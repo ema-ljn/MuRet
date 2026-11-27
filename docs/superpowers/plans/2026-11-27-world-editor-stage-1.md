@@ -56,10 +56,12 @@ Emanuel reads these before any code.
 3. **Every byte the loader skips is kept:** the `.map`'s and `.obj`'s first byte (the savers write 0, the loaders skip
    it), the plain bytes after the layout of a `.map`, `.obj` or `.OZB` (`tail`), the OZB's 4-byte prefix and BMP header,
    and the high byte of each cell of a two-byte `.att`.
-4. **The `.att` is written as `0x5f8690` lays it out and encrypted as `0x5f8390` decrypts it.** The saver writes
-   `00 N FF FF` and one byte per cell, unencrypted (the loose `Terrain.att` of the exporter `0x61ada0`); the client's
-   `EncTerrain<N>.att` is that under XOR3 and then K16, so the writer applies XOR3 first and K16 last. A file with two
-   bytes per cell (`0x20004`) keeps that layout and its high bytes.
+4. **The `.att` is written in the layout `0x5f8390` reads and encrypted as it decrypts it.** The header `00 N FF FF`
+   and one byte per cell; the client's `EncTerrain<N>.att` is that under XOR3 and then K16, so the writer applies XOR3
+   first and K16 last. A file with two bytes per cell (`0x20004`) keeps that layout and its high bytes. The saver
+   `0x5f8690` is not copied: it writes the loose `Terrain.att` of the exporter `0x61ada0` unencrypted, and as its
+   cells the first `0x10000` bytes of its WORD table, cells 0 to 32,767 as byte pairs (Q-C1831, found by the review
+   of this stage).
 5. **Objects are written in the model's order, with `count` = the number of objects.** `0x607540` walks its 256 sector
    lists and counts the deleted objects too (Q-C1830, added in Task 6): a bug not copied. The shipped files are
    mostly grouped by sector, but rewriting them by sector would reorder objects nobody touched. A negative count,
@@ -119,7 +121,7 @@ Client/tests/data/test_k16.cpp                               + the encryption's 
 Client/tests/data/test_terrain_{mapping,attributes,objects,heights}_file.cpp   new, one per format
 Client/tests/data/test_golden_world_files.cpp                new: the round trip of every real file
 docs/superpowers/specs/2026-11-27-world-editor-design.md     corrections (Task 6)
-Client/docs/research/07-quirks-y-bugs.md                     + Q-C1830 (Task 6)
+Client/docs/research/07-quirks-y-bugs.md                     + Q-C1830, Q-C1831 (Task 6)
 ```
 
 The engine's sources and the tests are globbed (`Client/CMakeLists.txt`, `mu_add_module_tests`): a new file joins on
@@ -216,8 +218,8 @@ ReadTerrainMappingFile(std::span<const std::byte> file);
   `std::vector<std::filesystem::path> WorldFiles(const std::filesystem::path& root, std::string_view prefix,
   std::string_view extension)` (every regular file under `root` whose name starts with `prefix` and has `extension`,
   both ignoring ASCII case with `Core::EqualsIgnoringAsciiCase` and `Tests::HasExtension`, sorted by their generic
-  relative path) and `std::optional<std::size_t> FirstDifference(std::span<const std::byte> a, std::span<const
-  std::byte> b)` (the first offset where they differ, or the shorter size if one is a prefix of the other).
+  relative path). The comparison is the existing `Tests::SameBytes` (`tests/support/SameBytes.h`), whose message
+  already gives the sizes or the first offset where they differ.
 
 - [ ] **Step 1: Write the failing unit tests** in `test_terrain_mapping_file.cpp`, suite `TerrainMappingFileTest`.
   `file` below is `Tests::EncryptK16(Tests::PlainTerrainMapping(3))`.
@@ -235,8 +237,8 @@ ReadTerrainMappingFile(std::span<const std::byte> file);
     `255.0f * TerrainAlphaScale` at the first, and cell 1 of each layer as in `file`.
 - [ ] **Step 2: Write the failing golden test** `GoldenWorldFiles.EveryMappingIsWrittenBackTheSame` (fixture
   `using GoldenWorldFiles = Client::Tests::GoldenDataTest;`, root `m_dataRoot`): `WorldFiles(m_dataRoot, "EncTerrain",
-  ".map")` has 23 files; each one reads, and its write has no `FirstDifference` with it (the message names the file and
-  the offset).
+  ".map")` has 23 files; each one reads, and its write is `SameBytes` with it (the message names the file and the
+  offset).
 - [ ] **Step 3: Run both to see them fail.** Expected: do not compile, `TerrainMappingFile.h` does not exist.
 - [ ] **Step 4: Implement** `TerrainMappingFile.{h,cpp}`. Read: `FileTooShort` below `TerrainMappingSize`; decrypt a
   copy of the whole file (K16 is one stream, so the tail decrypts with it); slice the layers at the named offsets.
@@ -275,7 +277,8 @@ ReadTerrainAttributesFile(std::span<const std::byte> file);
   - `ReadsOneBytePerCell`: `world == 4`, every cell `AttributePattern(cell)`, no `highBytes`.
   - `ReadsBothBytesOfEachWord`: every cell `AttributePattern(cell)`, `highBytes` every cell
     `AttributeHighBytePattern(cell)`.
-  - `WritesTheLayoutOf0x5f8690`: a model by hand (world 4, `AttributePattern`, no high bytes) writes the Bytes file.
+  - `WritesTheLayoutTheLoaderReads`: a model by hand (world 4, `AttributePattern`, no high bytes) writes the Bytes
+    file.
   - `WritesWordsWhenTheFileHadThem`: the same with `highBytes` = `AttributeHighBytePattern` writes the Words file.
   - `KeepsAnAttributeTheLoaderRefuses`: plain cell 0 set to `0x80` before encrypting: reads with `cells[0] == 0x80` and
     writes back the same bytes (`LoadTerrainAttributes` gives `InvalidData` for it; reporting it is stage 3's check).
@@ -396,9 +399,10 @@ ReadTerrainHeightsFile(std::span<const std::byte> file);
 - Modify: `docs/superpowers/specs/2026-11-27-world-editor-design.md`, `Client/docs/research/07-quirks-y-bugs.md`
 
 - [ ] **Step 1: Correct the spec** with what this stage found:
-  - "What a 1.02 world is", the writers' column: `.att` `0x5f8690` "(writes `0x10004`, unencrypted: the loose
-    `Terrain.att`)"; `.obj` `0x607540` "(by sector; its count includes deleted objects, Q-C1830)"; `TerrainLight.OZJ`
-    `0x5f8f60` "(JPEG through `0x63b150`, quality 100) and `0x63b280` (the prefix)".
+  - "What a 1.02 world is", the writers' column: `.att` `0x5f8690` "(the loose `Terrain.att`: the header and the
+    first `0x10000` bytes of its WORD table, unencrypted, Q-C1831)"; `.obj` `0x607540` "(by sector; its count
+    includes deleted objects, Q-C1830)"; `TerrainLight.OZJ` `0x5f8f60` "(JPEG through `0x63b150`, quality 100) and
+    `0x63b280` (the prefix)".
   - "Byte-exact", promise 2: drop "Where the original's writer is not located (`.obj`)…"; say that objects keep the
     document's order (this plan's decision 5) and that the `.att` is encrypted as its loader decrypts it (decision 4).
   - "Byte-exact", the light paragraph: add this plan's measurement and that stage 6's plan decides the encoding with
@@ -407,11 +411,17 @@ ReadTerrainHeightsFile(std::span<const std::byte> file);
   - "Left to the builder": drop the two items this stage located (the `.obj` writer, the light's JPEG settings).
 - [ ] **Step 2: Add Q-C1830** to the catalog of `07-quirks-y-bugs.md`, after Q-C28 (the other `EncTerrain.obj` row),
   in Spanish like its other 824 rows: `0x607540`, the `.obj` saver of the editor mode, walks the 256 sector lists
-  from `0x7d325d4`, writes only the live objects (`+0x0` set) but counts every node, so a file saved with deleted
+  from `0x7d325d4`, writes only the live objects (`+0x0` nonzero) but counts every node, so a file saved with deleted
   objects still in the lists declares more objects than it holds, and `0x607370` asks for records that are not there.
-  Class: internal bug. MuRet: `WriteTerrainObjectsFile` writes the number of records it writes
+  Its counter is an `int` written in 2 bytes, so past 32,767 nodes it wraps. Class: bug. MuRet:
+  `WriteTerrainObjectsFile` writes the number of records it writes
   (`TerrainObjectsFileTest.WritesTheLayoutOfTheLoader`); the old behavior lives in dead code nothing runs, so it gets
-  no test. Wave: world editor, stage 1.
+  no test. Wave: world editor, stage 1. Then Q-C1831
+  after it, found by the stage's review: `0x5f8690`, the `.att` saver, writes the header and `fwrite(0x7d0d348,
+  0x10000)`, the first half of its WORD table: cells 0 to 32,767 as low and high byte pairs, so `0x5f8390` gives every
+  odd cell a high byte (0) and rows 128 to 255 are lost. Class: bug. MuRet: `WriteTerrainAttributesFile` writes the
+  layout the loader reads (`TerrainAttributesFileTest.WritesTheLayoutTheLoaderReads`); dead code, no test of the old
+  behavior.
 - [ ] **Step 3: Verify the whole stage:** `ctest -R
   '^(K16Test|TerrainMapping|TerrainAttributes|TerrainObjects|TerrainHeights|GoldenTerrain|GoldenWorldFiles)'` passes;
   `check_layers.py` and `check_named_values.py` pass with the arguments `.github/workflows/ci.yml` gives them;

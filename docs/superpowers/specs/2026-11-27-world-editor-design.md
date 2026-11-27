@@ -97,7 +97,7 @@ of 256 × 256 cells, cell `(x, y)` at `y * 256 + x`, plus rows in the server's f
 | File | Holds | Original reader | MuRet reader | Original writer (in `main.exe`) |
 | --- | --- | --- | --- | --- |
 | `EncTerrain<N>.map` | tile layer 1, tile layer 2, blend alpha (`0x30002` bytes, K16) | `0x5f87b0` | `engine/Data/Terrain/TerrainMapping` | `0x5f8960` (writes `0x30002`, K16) |
-| `EncTerrain<N>.att` | attributes per cell, 1 or 2 bytes (`0x10004` or `0x20004`, XOR3 + K16) | `0x5f8390` | `TerrainAttributes` | `0x5f8690` (writes `0x10004`, unencrypted: the loose `Terrain.att`) |
+| `EncTerrain<N>.att` | attributes per cell, 1 or 2 bytes (`0x10004` or `0x20004`, XOR3 + K16) | `0x5f8390` | `TerrainAttributes` | `0x5f8690` (the loose `Terrain.att`: the header and the first `0x10000` bytes of its WORD table, unencrypted, Q-C1831) |
 | `EncTerrain<N>.obj` | objects: type (int16), position, angle (3 floats each), scale; 30 bytes each (K16) | `0x607370` | `TerrainObjects` | `0x607540` (by sector; its count includes deleted objects, Q-C1830) |
 | `TerrainHeight.OZB` | heights, a 256 × 256 grayscale BMP after 4 bytes | `0x5f9020` | `TerrainHeights` | `0x5f92b0` (a development tool) |
 | `TerrainLight.OZJ` | base light, a JPEG after 24 bytes | `0x63b490` | `TerrainLight` | `0x5f8f60` (JPEG through `0x63b150`, quality 100) and `0x63b280` (the prefix) |
@@ -283,9 +283,10 @@ Two promises, each with its tests:
 2. **Edits follow the original's writer.** A changed file is written as the original's saver writes it (`0x5f8960`,
    `0x5f8690`, `0x607540`, `0x5f92b0`, `0x63b280`): sizes, headers, the world byte, the encryption. Two exceptions,
    from the stage 1 plan (`docs/superpowers/plans/2026-11-27-world-editor-stage-1.md`, decisions 4 and 5): the
-   `.att` saver writes the loose file unencrypted, so the editor encrypts it as the loader decrypts it (XOR3, then
-   K16); and the `.obj` saver writes by sector and counts deleted objects too, so the editor keeps the document's
-   order and writes the real count. The original's `.att` saver writes one byte per cell (`0x10004`); a file with two
+   `.att` saver writes the loose file unencrypted, and as its cells the first `0x10000` bytes of its WORD table
+   (Q-C1831), so the editor writes the layout the loader reads (the header and one byte per cell, `0x10004`) and
+   encrypts it as the loader decrypts it (XOR3, then K16); and the `.obj` saver writes by sector and counts deleted
+   objects too, so the editor keeps the document's order and writes the real count. A file with two bytes per cell
    (`0x20004`: in `Client/assets/Data`, World1, World3's test copy and World31 on) keeps its own layout and its high
    bytes.
 

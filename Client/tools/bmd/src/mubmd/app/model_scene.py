@@ -1,21 +1,29 @@
 import math
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
-from mubmd.app.model_parts import tree_parents
+from mubmd.app.model_parts import NO_PARENT, tree_parents
 from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.leaves import leaf_text
 from mubmd.core.pointer import resolve
+from mubmd.core.ports import FileStore
 
 type Quaternion = tuple[float, float, float, float]
+type _Point = tuple[float, float, float]
 type _Corner = tuple[int, tuple[float, ...], tuple[float, ...]]
+type _Placed = tuple[Quaternion, _Point]
 
+DONOR_NAME: Final = "player.bmd"
 TRIANGLE: Final = 3
 TRIANGLE_CORNERS: Final = (0, 1, 2)
 QUAD_CORNERS: Final = (0, 1, 2, 0, 2, 3)
 POSITION_WIDTH: Final = 3
 UV_WIDTH: Final = 2
+UNTURNED: Final[Quaternion] = (0.0, 0.0, 0.0, 1.0)
+ORIGIN: Final[_Point] = (0.0, 0.0, 0.0)
+BOUNDS_DIGITS: Final = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +63,12 @@ class BonePose:
 class ActionPoses:
     keys: int
     bones: tuple[BonePose | None, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Bounds:
+    low: _Point
+    high: _Point
 
 
 def angle_quaternion(x: float, y: float, z: float) -> Quaternion:
@@ -168,3 +182,104 @@ def _bone_pose(bone: JsonValue, action: int) -> BonePose | None:
 def action_poses(view: JsonObject, action: int) -> ActionPoses:
     keys = _count(resolve(view, f"/actions/{action}"), "keys")
     return ActionPoses(keys, tuple(_bone_pose(bone, action) for bone in _items(view.get("bones"))))
+
+
+def _point(value: JsonValue) -> _Point:
+    x, y, z = _numbers(value, POSITION_WIDTH)
+    return x, y, z
+
+
+def _turned(turn: Quaternion, point: _Point) -> _Point:
+    x, y, z, w = turn
+    px, py, pz = point
+    tx, ty, tz = 2 * (y * pz - z * py), 2 * (z * px - x * pz), 2 * (x * py - y * px)
+    return px + w * tx + (y * tz - z * ty), py + w * ty + (z * tx - x * tz), pz + w * tz + (x * ty - y * tx)
+
+
+def _both_turns(first: Quaternion, second: Quaternion) -> Quaternion:
+    ax, ay, az, aw = first
+    bx, by, bz, bw = second
+    return (
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+        aw * bw - ax * bx - ay * by - az * bz,
+    )
+
+
+def _placed_in(holder: _Placed, point: _Point) -> _Point:
+    turn, (x, y, z) = holder
+    moved_x, moved_y, moved_z = _turned(turn, point)
+    return x + moved_x, y + moved_y, z + moved_z
+
+
+def _first_pose(bone: JsonValue) -> _Placed:
+    pose = _object(_at(_items(_object(bone).get("actions")), 0))
+    position = _at(_items(pose.get("positions")), 0)
+    turn = _at(_items(pose.get("rotations")), 0)
+    if position is None or turn is None:
+        return UNTURNED, ORIGIN
+    return angle_quaternion(*_point(turn)), _point(position)
+
+
+def _placed_bones(bones: Sequence[JsonValue]) -> list[_Placed]:
+    parents = tree_parents(bones)
+    placed: dict[int, _Placed] = {}
+    for start in range(len(bones)):
+        waiting: list[int] = []
+        index = start
+        while index != NO_PARENT and index not in placed:
+            waiting.append(index)
+            index = parents[index]
+        for index in reversed(waiting):
+            turn, place = _first_pose(bones[index])
+            if parents[index] != NO_PARENT:
+                holder = placed[parents[index]]
+                turn, place = _both_turns(holder[0], turn), _placed_in(holder, place)
+            placed[index] = turn, place
+    return [placed[index] for index in range(len(bones))]
+
+
+def _corner_places(meshes: Sequence[SceneMesh], placed: Sequence[_Placed]) -> Iterator[_Point]:
+    for mesh in meshes:
+        for corner, bone in enumerate(mesh.bones):
+            x, y, z = mesh.positions[corner * POSITION_WIDTH : (corner + 1) * POSITION_WIDTH]
+            yield _placed_in(placed[bone], (x, y, z))
+
+
+def rest_bounds(view: JsonObject, skeleton: JsonObject | None = None) -> Bounds | None:
+    bones = _items((view if skeleton is None else skeleton).get("bones"))
+    placed = _placed_bones(bones)
+    points = list(_corner_places(model_scene(view, skeleton).meshes, placed))
+    if not points:
+        points = [place for bone, (_, place) in zip(bones, placed, strict=True) if not _is_dummy(bone)]
+    if not points:
+        return None
+    low_x, low_y, low_z = (round(min(axis), BOUNDS_DIGITS) for axis in zip(*points, strict=True))
+    high_x, high_y, high_z = (round(max(axis), BOUNDS_DIGITS) for axis in zip(*points, strict=True))
+    return Bounds((low_x, low_y, low_z), (high_x, high_y, high_z))
+
+
+def _with_ancestors(used: set[int], bones: Sequence[SceneBone]) -> set[int]:
+    needed: set[int] = set()
+    for bone in used:
+        index = bone
+        while index != NO_PARENT and index not in needed:
+            needed.add(index)
+            index = bones[index].parent
+    return needed
+
+
+def borrows_skeleton(view: JsonObject, donor: JsonObject) -> bool:
+    scene = model_scene(view)
+    theirs = _scene_bones(_items(donor.get("bones")))
+    used = {bone for mesh in scene.meshes for bone in mesh.bones}
+    needed = _with_ancestors(used, scene.bones)
+    return bool(used) and all(index < len(theirs) and scene.bones[index] == theirs[index] for index in needed)
+
+
+def donor_of(store: FileStore, model: Path) -> Path | None:
+    if model.name.casefold() == DONOR_NAME:
+        return None
+    files = store.files_in(model.absolute().parent)
+    return next((path for path in files if path.name.casefold() == DONOR_NAME), None)

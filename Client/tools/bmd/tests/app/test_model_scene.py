@@ -3,10 +3,21 @@ from pathlib import Path
 
 import pytest
 
+from mubmd.adapters.storage import LocalFileStore
 from mubmd.app.model_parts import tree_parents
-from mubmd.app.model_scene import Quaternion, SceneBone, action_poses, angle_quaternion, model_scene
+from mubmd.app.model_scene import (
+    Bounds,
+    Quaternion,
+    SceneBone,
+    action_poses,
+    angle_quaternion,
+    borrows_skeleton,
+    donor_of,
+    model_scene,
+    rest_bounds,
+)
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.json_types import JsonObject
+from mubmd.core.json_types import JsonObject, JsonValue
 from tests.models import put, view_of
 
 SWORD = "Item/Sword01.bmd"
@@ -14,6 +25,18 @@ MONSTER = "Monster/Monster01.bmd"
 QUARTER = math.pi / 2
 ROOT_HALF = math.sqrt(0.5)
 CLOSE = 1e-6
+NEAR = 0.01
+PLAYER = "player/Player.bmd"
+HELM = "player/HelmMale01.bmd"
+OWN_SKELETON = ("Helper01", "Helper02", "Helper03", "Helper04", "Wing02", "Wing03", "Wing04", "playerTest")
+
+type Corner = tuple[float, float, float]
+
+
+def assert_box(bounds: Bounds | None, low: Corner, high: Corner) -> None:
+    assert bounds is not None
+    assert bounds.low == pytest.approx(low, abs=NEAR)
+    assert bounds.high == pytest.approx(high, abs=NEAR)
 
 
 @pytest.mark.parametrize(
@@ -111,9 +134,9 @@ def test_a_model_with_nothing_is_an_empty_scene(reference_data: Path) -> None:
 
 
 def test_another_skeleton_gives_its_bones_and_actions(reference_data: Path) -> None:
-    helm = view_of(reference_data, "player/HelmMale01.bmd")
+    helm = view_of(reference_data, HELM)
 
-    scene = model_scene(helm, view_of(reference_data, "player/Player.bmd"))
+    scene = model_scene(helm, view_of(reference_data, PLAYER))
 
     assert (len(scene.bones), len(scene.actions)) == (60, 205)
     assert [len(mesh.bones) for mesh in scene.meshes] == [186, 18]
@@ -143,3 +166,77 @@ def test_an_action_the_model_does_not_have(reference_data: Path) -> None:
         action_poses(view_of(reference_data, SWORD), 1)
 
     assert (error.value.code, error.value.pointer) == (ErrorCode.POINTER_NOT_FOUND, "/actions/1")
+
+
+@pytest.mark.parametrize(
+    ("name", "low", "high"),
+    [
+        (SWORD, (-1.673, -64.725, -9.254), (1.771, 10.318, 8.245)),
+        (MONSTER, (-79.39, -112.313, -1.25), (84.139, 51.869, 214.797)),
+        ("NPC/BloodCastle01.bmd", (-211.746, -128.875, -12.23), (64.793, 276.016, 139.654)),
+    ],
+)
+def test_the_box_of_a_model_at_rest(reference_data: Path, name: str, low: Corner, high: Corner) -> None:
+    assert_box(rest_bounds(view_of(reference_data, name)), low, high)
+
+
+def test_the_box_leaves_out_what_is_not_drawn(reference_data: Path) -> None:
+    bounds = rest_bounds(view_of(reference_data, "object35/Object36.bmd"))
+
+    assert_box(bounds, (-161.949, -145.952, -18.27), (193.877, 196.27, 186.079))
+
+
+def test_a_model_with_no_meshes_is_boxed_by_its_bones(reference_data: Path) -> None:
+    bounds = rest_bounds(view_of(reference_data, PLAYER))
+
+    assert_box(bounds, (-20.701, -23.303, -6.908), (23.044, 24.656, 168.342))
+
+
+def test_a_model_with_nothing_has_no_box(reference_data: Path) -> None:
+    assert rest_bounds(view_of(reference_data, "Object3/Object25.bmd")) is None
+
+
+def test_two_bones_in_a_chain() -> None:
+    def bone(parent: int, position: list[JsonValue], turn: list[JsonValue]) -> JsonObject:
+        return {"name": "Bone", "parent": parent, "actions": [{"positions": [position], "rotations": [turn]}]}
+
+    corners: list[JsonValue] = [
+        {"bone": 1, "position": [1.0, 0.0, 0.0]},
+        {"bone": 1, "position": [0.0, 1.0, 0.0]},
+        {"bone": 1, "position": [0.0, 0.0, 1.0]},
+    ]
+    triangle: JsonObject = {"polygon": 3, "vertices": [0, 1, 2, 0], "uvs": [0, 0, 0, 0]}
+    view: JsonObject = {
+        "bones": [bone(-1, [0.0, 0.0, 10.0], [0.0, 0.0, QUARTER]), bone(0, [5.0, 0.0, 0.0], [0.0, 0.0, 0.0])],
+        "actions": [{"keys": 1, "lock": 0}],
+        "meshes": [{"vertices": corners, "uvs": [[0.0, 0.0]], "triangles": [triangle]}],
+    }
+
+    assert_box(rest_bounds(view), (-1.0, 5.0, 10.0), (0.0, 6.0, 11.0))
+
+
+def test_a_part_on_the_players_skeleton(reference_data: Path) -> None:
+    helm = view_of(reference_data, HELM)
+
+    on_player = rest_bounds(helm, view_of(reference_data, PLAYER))
+
+    assert_box(on_player, (-13.141, -16.272, 160.149), (25.936, 34.578, 192.624))
+    assert_box(rest_bounds(helm), (-16.199, -19.041, 150.363), (13.603, 30.907, 182.822))
+
+
+def test_the_parts_that_borrow_the_players_skeleton(reference_data: Path) -> None:
+    player = view_of(reference_data, PLAYER)
+    others = sorted(path for path in (reference_data / "player").glob("*.bmd") if path.name != "Player.bmd")
+
+    borrows = {path.stem: borrows_skeleton(view_of(reference_data, f"player/{path.name}"), player) for path in others}
+
+    assert sorted(name for name, borrowed in borrows.items() if not borrowed) == sorted(OWN_SKELETON)
+    assert sum(borrows.values()) == 219
+
+
+def test_the_donor_is_the_folders_player(reference_data: Path) -> None:
+    store = LocalFileStore()
+
+    assert donor_of(store, reference_data / HELM) == reference_data / PLAYER
+    assert donor_of(store, reference_data / PLAYER) is None
+    assert donor_of(store, reference_data / SWORD) is None

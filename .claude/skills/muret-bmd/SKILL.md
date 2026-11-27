@@ -77,9 +77,10 @@ A table is a list of records, and a record's number is the game's own number, fr
 Every other `.bmd` is a 3D model: 1,962 files in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC`, `Data/Monster`
 and the `Object` folders. A model is known by its first bytes (`BMD` and a version), not by its name, so the same
 commands work on any of them. `info FILE` gives its `version`, its `cipher` (`K16` when the version is 12, `none`
-otherwise) and how many `meshes`, `bones` and `actions` it has; `bones` counts every entry of `/bones`, the dummy ones
-too, and `records`, `used_records` and `read_by_client` are `null` in a model. This is the whole view, with each list
-cut to one item:
+otherwise), its `size` in bytes and how many `meshes`, `bones` and `actions` it has; `bones` counts every entry of
+`/bones`, the dummy ones too, and `records`, `used_records` and `read_by_client` are `null` in a model. A model may
+have no meshes: `player/Player.bmd` is the characters' skeleton and its 205 actions. This is the whole view, with each
+list cut to one item:
 
 ```json
 {"format_version": 1, "format": "model", "encoding": "cp949", "version": 10,
@@ -117,9 +118,9 @@ cut to one item:
   `--limit 2` it comes back with two, and `truncated` is `true`. Read vertices, normals and keys with `--limit` 3 or
   more.
 - **Names are texts like a table's**, in cp949: a string, `{"text", "tail"}` or `{"hex"}` (the rule on the three
-  shapes of a text holds). Most bone names come as `{"text": "Bip01 Pelvis", "tail": "cdcd..."}`, because the exporter
-  left bytes after the name's 0: read `text`, and `test` the whole object. `find FILE QUERY` looks in the texture
-  names and the bone names, and `--field
+  shapes of a text holds). Most bone names and some texture names come as `{"text": "Bip01 Pelvis", "tail":
+  "cdcd..."}`, because the exporter left bytes after the name's 0: read `text`, and `test` the whole object, as `get`
+  gave it. `find FILE QUERY` looks in the texture names and the bone names, and `--field
   texture_name` or `--field name` narrows it to one of the two. The model's own `/name` is the path its exporter read:
   the client ignores it, and `find` does not look there.
 - **Counts are the lengths of the lists.** There is no count to edit: to add or remove a vertex, a key or a bone,
@@ -130,7 +131,8 @@ cut to one item:
 - **The version is the cipher, and only `build` changes it.** 12 is K16 (encrypted) and any other is plain: write 10,
   as 1,142 of the game's 1,146 plain models do. An edited model keeps its version. `set` and `apply` refuse
   `/version`: to decrypt or encrypt a model, `dump` it, change `version` in the JSON and `build` it (the recipe
-  below). A K16 model is 4 bytes longer than the same model plain: it keeps its size after the version.
+  below). A K16 model is 4 bytes longer than the same model plain: after the version it stores the length of what
+  follows. `info` gives a file's `size`.
 
 **What the client reads from a texture's name.** The name is not only a file name:
 
@@ -145,14 +147,17 @@ cut to one item:
 | Finding | It means | Do |
 | --- | --- | --- |
 | `TEXTURE_NOT_FOUND` (warning) | neither the model's folder nor a folder beside it has the file the name opens | fix the name, or put the `.OZJ` or `.OZT` in the model's folder |
-| `TEXTURE_ELSEWHERE` (warning, on a write) | only a folder beside the model's has the file; the message names it | copy the file into the model's folder, unless the game loads this model with that folder's textures (the helpers in `player` use `Item`'s) |
+| `TEXTURE_ELSEWHERE` (warning, on a write) | the model's folder does not have the file and a folder beside it does; the message names it | answer "not in the model's folder", and copy the file there: that is always right |
 | `TEXTURE_ROLE_CHANGED` (warning, on a write) | the new name changes the file's kind (OZJ or OZT), the slot or the effect; the message says which | keep the old name's prefix, its `_LETTERS` and the first letter of its extension, unless that change is the task |
 | `PARENT_AFTER_CHILD` (warning) | a bone hangs from itself or from a later bone, and the client poses a bone after its parent | choose an earlier bone, or -1 |
 | `OUT_OF_RANGE` (error) | a number points outside its list: a vertex's or a normal's `bone`, a normal's `vertex`, a triangle's corner, a mesh's `texture`, a bone's `parent`; or the model has more than 200 bones | fix the number: the client reads outside its buffers |
 
 A warning or an error in `warnings` does not stop the write: the file is written as you asked, so read `warnings`
 after every write. Every write looks for the texture files, so no warning on a new texture name means the model's own
-folder has its file: there is nothing to check with `validate`, `ls` or a `--dry-run`.
+folder has its file: there is nothing to check with `validate`, `ls` or a `--dry-run`. The tool does not know which
+folder the client opens a given model's textures from. It is the model's own for nearly all of them, and 42 of the
+game's models name a file that only another folder has (`player/Helper03.bmd` names `Item/unicon.OZJ`): `validate`
+reports none of those, and `TEXTURE_ELSEWHERE` is only for a name you write.
 
 ## One job, one call
 
@@ -168,9 +173,9 @@ folder has its file: there is nothing to check with `validate`, `ls` or a `--dry
 | Find in one field only | `find FILE QUERY --field name` | the same |
 | Every place a query appears | `find FILE QUERY --fields pointer --limit 8192` | `items: [{pointer}]`, `total` |
 | Pick records by a number | `dump FILE --output OUT.json`, then a script | the file's `records` |
-| What a model has | `info FILE` | `version`, `cipher`, `meshes`, `bones`, `actions` |
+| What a model has | `info FILE` | `version`, `cipher`, `size`, `meshes`, `bones`, `actions` |
 | A model's parts and their sizes | `get FILE '' --limit 3` | `value`: the header and the first parts, `{"count": n}` for the rest |
-| Every bone with its parent | `get FILE /bones --limit 200` | `value`: item `i` is bone `i`; `total` |
+| Every bone with its parent | `get FILE /bones --limit 200` | `value`: item `i` is bone `i`, and `{"dummy": 1}` is a dummy one; `total` |
 | Change a texture name or a bone | `apply FILE '[{"op": "test", ...}, {"op": "replace", ...}]'` | `changes`, and `warnings`: the texture's findings |
 | Decrypt or encrypt a model | `dump`, change `version` in the JSON, `build` | `changes: [{pointer: "/version", ...}]` |
 | Check a file or a folder | `validate PATH` | `files: [{path, findings}]`, `checked`, `skipped` |

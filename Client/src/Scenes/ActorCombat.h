@@ -27,6 +27,7 @@ struct ActorState;
 
 namespace Client::Terrain
 {
+struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
@@ -54,6 +55,8 @@ struct ActorCombatContext
     // The current map's terrain (Terrain::TerrainState::current), whose TerrainWall the deaths and the effects read;
     // without it, an empty one, and they stop where they read it.
     const Terrain::WorldTerrain* terrain = nullptr;
+    // The dynamic light (Terrain::TerrainState::dynamicLight) the effects add to; nullptr: adding one stops.
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
 };
 [[nodiscard]] ActorCombatContext CombatContextOf(const WorldEntryResources& resources);
 

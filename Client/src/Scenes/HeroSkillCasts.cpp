@@ -189,7 +189,8 @@ Core::Expected<void, std::string> AttackWith(Kernel::ActorState& actor, const He
                                                     .playerSkeleton = context.playerSkeleton,
                                                     .models = context.models,
                                                     .items = context.items,
-                                                    .terrain = context.terrain});
+                                                    .terrain = context.terrain,
+                                                    .dynamicLighting = context.dynamicLighting});
 }
 
 // 0x563b8f..0x564f37: 0x4f4a10 sobre c; un jugador (0x20a en +2) o, en la 0x18, uno con 1 en +0x88, nada más. Si
@@ -231,7 +232,8 @@ Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std:
                                             { world.Runtime().RequestSound(sound); },
                                             .soundAt = [&world](std::int32_t sound, const glm::vec3& origin)
                                             { world.Runtime().RequestSound(sound, origin); },
-                                            .controlDown = context.controlDown};
+                                            .controlDown = context.controlDown,
+                                            .dynamicLighting = context.dynamicLighting};
     return FireTheArrow(caster, nullptr, SlotOf(world, caster), static_cast<std::int32_t>(slot), count, 0, shot);
 }
 

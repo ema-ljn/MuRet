@@ -364,7 +364,8 @@ struct GameWorld
                                                    .playerSkeleton = player,
                                                    .terrain = &terrain,
                                                    .groundMarks = &marks,
-                                                   .trapezoid = &trapezoid});
+                                                   .trapezoid = &trapezoid,
+                                                   .dynamicLighting = &light.Lighting()});
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -378,6 +379,7 @@ struct GameWorld
     const Skeleton* player = &skeleton;
     Client::Terrain::GroundMarkTable marks{};
     TerrainPolygon trapezoid{};
+    Client::Terrain::DynamicWorldLight light;
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -420,7 +422,8 @@ TEST(CharacterStepTest, FullJointsKeepTheBoneEmitterSelectorsAndDecrementItsByte
                                              .playerSkeleton = &tested.skeleton,
                                              .terrain = &tested.terrain,
                                              .joints = tested.world.DrawTail().joints,
-                                             .trapezoid = &tested.trapezoid});
+                                             .trapezoid = &tested.trapezoid,
+                                             .dynamicLighting = &tested.light.Lighting()});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.Hero().byte1a0, map == 30 ? 35 : 34);
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + (map == 30 ? 0 : 12)).State());
@@ -445,7 +448,8 @@ TEST(CharacterStepTest, TheFlareSkillActionUsesTheExistingParticleAndSkipsItsFul
                                              .playerSkeleton = &tested.skeleton,
                                              .terrain = &tested.terrain,
                                              .particles = &tested.world.Particles(),
-                                             .trapezoid = &tested.trapezoid});
+                                             .trapezoid = &tested.trapezoid,
+                                             .dynamicLighting = &tested.light.Lighting()});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(),
                   Client::Tests::AfterDraws(Seed, SeenHeroDraws + TrailDraws + (full ? 0 : 3)).State());
@@ -483,7 +487,8 @@ TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudge
                                              .terrain = &tested.terrain,
                                              .particles = &tested.world.Particles(),
                                              .joints = tested.world.DrawTail().joints,
-                                             .trapezoid = &tested.trapezoid});
+                                             .trapezoid = &tested.trapezoid,
+                                             .dynamicLighting = &tested.light.Lighting()});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 6 + (full ? 0 : 12)).State());
         if (!full)
@@ -538,7 +543,8 @@ TEST(CharacterStepTest, TheChargedSkillReleasesThreeEnergyJointsWithTheirRandoms
                                              .playerSkeleton = &tested.skeleton,
                                              .terrain = &tested.terrain,
                                              .joints = tested.world.DrawTail().joints,
-                                             .trapezoid = &tested.trapezoid});
+                                             .trapezoid = &tested.trapezoid,
+                                             .dynamicLighting = &tested.light.Lighting()});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 9).State());
         const auto& joints = tested.world.DrawTail().joints;
@@ -581,7 +587,8 @@ TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoice
                                              .playerSkeleton = &tested.skeleton,
                                              .terrain = &tested.terrain,
                                              .particles = &tested.world.Particles(),
-                                             .trapezoid = &tested.trapezoid});
+                                             .trapezoid = &tested.trapezoid,
+                                             .dynamicLighting = &tested.light.Lighting()});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         // 506f7a selector y 541189/5411ce/5413ef, tres del constructor5d9/0 si hay hueco.
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 10 * (full ? 1 : 4)).State());
@@ -612,7 +619,8 @@ TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
                                          .scene = SceneId::Login,
                                          .playerSkeleton = tested.player,
                                          .terrain = &sceneTerrain,
-                                         .trapezoid = &tested.trapezoid});
+                                         .trapezoid = &tested.trapezoid,
+                                         .dynamicLighting = &tested.light.Lighting()});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.safeZone, 1);
@@ -640,7 +648,8 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
                                          .terrain = &tested.terrain,
                                          .darkSpiritSkeleton = &raven,
                                          .particles = &particles,
-                                         .trapezoid = &tested.trapezoid});
+                                         .trapezoid = &tested.trapezoid,
+                                         .dynamicLighting = &tested.light.Lighting()});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     // 8 paredes + 8 del otro + 1 cuerpo + 7 cuervo + 8 celda + 1 cabeza + 1 sufijo.
@@ -680,7 +689,8 @@ TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
                                          .terrain = &tested.terrain,
                                          .darkSpiritSkeleton = &raven,
                                          .particles = &particles,
-                                         .trapezoid = &tested.trapezoid});
+                                         .trapezoid = &tested.trapezoid,
+                                         .dynamicLighting = &tested.light.Lighting()});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
@@ -727,7 +737,8 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
                      .darkSpiritSkeleton = &raven,
                      .particles = &particles,
                      .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
-                     .trapezoid = &tested.trapezoid});
+                     .trapezoid = &tested.trapezoid,
+                     .dynamicLighting = &tested.light.Lighting()});
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
                 if (flags == 0)
                 {
@@ -772,7 +783,8 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
                         .darkSpiritSkeleton = &raven,
                         .particles = &particles,
                         .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
-                        .trapezoid = &tested.trapezoid});
+                        .trapezoid = &tested.trapezoid,
+                        .dynamicLighting = &tested.light.Lighting()});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(actor.darkSpirit->state, 6);
@@ -787,7 +799,8 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
                         .darkSpiritSkeleton = &raven,
                         .particles = &particles,
                         .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
-                        .trapezoid = &tested.trapezoid});
+                        .trapezoid = &tested.trapezoid,
+                        .dynamicLighting = &tested.light.Lighting()});
     ASSERT_TRUE(hidden.HasValue()) << hidden.Error();
     EXPECT_EQ(sent.size(), 1u);
 }
@@ -1657,7 +1670,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                                    .playerSkeleton = tested.player,
                                                    .terrain = &tested.terrain,
                                                    .worldClock = clock,
-                                                   .trapezoid = &tested.trapezoid});
+                                                   .trapezoid = &tested.trapezoid,
+                                                   .dynamicLighting = &tested.light.Lighting()});
     };
     {
         SCOPED_TRACE("otra celda");
@@ -1717,7 +1731,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                      sent.emplace_back(x, y);
                                      return {};
                                  },
-                                 .trapezoid = &reported.trapezoid});
+                                 .trapezoid = &reported.trapezoid,
+                                 .dynamicLighting = &reported.light.Lighting()});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{std::uint8_t{5}, std::uint8_t{6}}));
@@ -1739,7 +1754,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
             .worldClock = 10000.0f,
             .sendChaosCastleReposition = [](std::uint8_t, std::uint8_t) -> Client::Core::Expected<void, std::string>
             { return Client::Core::Unexpected(std::string("el GameServer no está abierto")); },
-            .trapezoid = &failing.trapezoid});
+            .trapezoid = &failing.trapezoid,
+            .dynamicLighting = &failing.light.Lighting()});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find("GameServer"), std::string::npos) << stepped.Error();
         EXPECT_EQ(failing.world.Runtime().reportedCellTime, 10000.0f);
@@ -1747,9 +1763,9 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
 }
 
 // La celda (x, y) del buffer dinámico 0x7b4ccc4.
-glm::vec3 DynamicLightAt(WorldState& world, std::uint8_t x, std::uint8_t y)
+glm::vec3 DynamicLightAt(const Client::Terrain::DynamicWorldLight& light, std::uint8_t x, std::uint8_t y)
 {
-    const auto& cell = world.DynamicLighting().Lighting().cells[Client::Data::Terrain::CellIndex(x, y)];
+    const auto& cell = light.Lighting().cells[Client::Data::Terrain::CellIndex(x, y)];
     return {cell[0], cell[1], cell[2]};
 }
 
@@ -1784,12 +1800,12 @@ TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
             ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
             EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
             EXPECT_EQ(tested.Hero().safeZone, 1);
-            const glm::vec3 center = DynamicLightAt(tested.world, 0, 0);
+            const glm::vec3 center = DynamicLightAt(tested.light, 0, 0);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(center.r), probe.color[0]);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(center.g), probe.color[1]);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(center.b), probe.color[2]);
             // A dos celdas, el peso de radio 2 es 0 y no toca la celda; el de radio 3 deja un tercio.
-            const glm::vec3 two = DynamicLightAt(tested.world, 2, 0);
+            const glm::vec3 two = DynamicLightAt(tested.light, 2, 0);
             if (probe.radiusThree)
             {
                 EXPECT_GT(two.r, 0.0f);
@@ -1798,14 +1814,14 @@ TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
             {
                 EXPECT_EQ(two, glm::vec3(0.0f));
             }
-            EXPECT_EQ(DynamicLightAt(tested.world, 3, 0), glm::vec3(0.0f));
+            EXPECT_EQ(DynamicLightAt(tested.light, 3, 0), glm::vec3(0.0f));
 
             GameWorld outlaw;
             outlaw.Hero().hands[hand].model = probe.model;
             outlaw.Hero().pk = 6;
             EXPECT_TRUE(outlaw.Step(Everything).HasValue());
             EXPECT_EQ(outlaw.random.State(), RandomAfter(SeenHeroDraws).State());
-            EXPECT_EQ(DynamicLightAt(outlaw.world, 0, 0), glm::vec3(0.0f));
+            EXPECT_EQ(DynamicLightAt(outlaw.light, 0, 0), glm::vec3(0.0f));
         }
     }
 }
@@ -1821,7 +1837,7 @@ TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
 
     ASSERT_TRUE(tested.Step(Everything).HasValue());
 
-    const glm::vec3 center = DynamicLightAt(tested.world, 0, 0);
+    const glm::vec3 center = DynamicLightAt(tested.light, 0, 0);
     const auto sum = [](std::uint32_t first, std::uint32_t second)
     {
         return static_cast<float>(static_cast<double>(std::bit_cast<float>(second)) +
@@ -2153,7 +2169,7 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     const auto litStep = lit.Step(Everything);
     EXPECT_TRUE(litStep.HasValue()) << ErrorOf(litStep);
     EXPECT_EQ(lit.random.State(), afterTheLight.State());
-    EXPECT_EQ(DynamicLightAt(lit.world, 0, 0).r, std::bit_cast<float>(0x3f4ccccdu));
+    EXPECT_EQ(DynamicLightAt(lit.light, 0, 0).r, std::bit_cast<float>(0x3f4ccccdu));
 }
 
 // Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y hace su cuerpo, con el paso de morirse
@@ -2504,7 +2520,8 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
                                                                  .terrain = &tested.terrain,
                                                                  .particles = &particles,
                                                                  .worldClock = probe.clock,
-                                                                 .trapezoid = &tested.trapezoid});
+                                                                 .trapezoid = &tested.trapezoid,
+                                                                 .dynamicLighting = &tested.light.Lighting()});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const Client::World::Particle& bubble = particles.All()[0];
@@ -2560,7 +2577,8 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
                                                                      .playerSkeleton = tested.player,
                                                                      .terrain = &tested.terrain,
                                                                      .particles = pooled ? &particles : nullptr,
-                                                                     .trapezoid = &tested.trapezoid});
+                                                                     .trapezoid = &tested.trapezoid,
+                                                                     .dynamicLighting = &tested.light.Lighting()});
 
             CrtRandom oracle(seed);
             Skip(oracle, SeenHeroDraws);
@@ -2650,7 +2668,8 @@ TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
                                          .playerSkeleton = tested.player,
                                          .terrain = &tested.terrain,
                                          .particles = &particles,
-                                         .trapezoid = &tested.trapezoid});
+                                         .trapezoid = &tested.trapezoid,
+                                         .dynamicLighting = &tested.light.Lighting()});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto& p = particles.All()[0];
     ASSERT_TRUE(p.alive);
@@ -2694,7 +2713,8 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
                                          .terrain = &tested.terrain,
                                          .darkSpiritSkeleton = &raven,
                                          .particles = &particles,
-                                         .trapezoid = &tested.trapezoid});
+                                         .trapezoid = &tested.trapezoid,
+                                         .dynamicLighting = &tested.light.Lighting()});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);

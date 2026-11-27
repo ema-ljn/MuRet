@@ -79,7 +79,8 @@ protected:
                                               .sprites = &m_sprites,
                                               .worldClock = m_clock,
                                               .map = map,
-                                              .groundMarks = m_groundMarks};
+                                              .groundMarks = m_groundMarks,
+                                              .dynamicLighting = &m_light.Lighting()};
         return Client::Scenes::StepTheModelEffects(pass);
     }
 
@@ -146,7 +147,7 @@ protected:
     {
         const auto x = static_cast<std::uint8_t>(m_actor.position.x / 100.0f);
         const auto y = static_cast<std::uint8_t>(m_actor.position.y / 100.0f);
-        return m_world->DynamicLighting().Lighting().cells[Client::Data::Terrain::CellIndex(x, y)][0];
+        return m_light.Lighting().cells[Client::Data::Terrain::CellIndex(x, y)][0];
     }
 
     // 0x53fe70(0x5de, …) en un pool gemelo, con el reloj `clock` y el rand() de `replay`.
@@ -197,6 +198,7 @@ protected:
     Client::World::FrameSprites m_sprites;
     Client::Terrain::GroundMarkTable m_marks{};
     Client::Terrain::GroundMarkTable* m_groundMarks = &m_marks;
+    Client::Terrain::DynamicWorldLight m_light;
     Client::Models::Skeleton m_skeleton;
     ActorState m_actor;
     float m_clock = Clock;

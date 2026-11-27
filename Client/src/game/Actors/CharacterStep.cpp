@@ -36,7 +36,6 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/DarkSpirit.h"
-#include "Terrain/DynamicWorldLight.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -657,7 +656,8 @@ Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const Char
                                             .playerSkeleton = context.playerSkeleton,
                                             .models = context.models,
                                             .items = context.items,
-                                            .terrain = context.terrain};
+                                            .terrain = context.terrain,
+                                            .dynamicLighting = context.dynamicLighting};
     constexpr std::uint8_t DyingAgain = 15;
     actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
     if (actor.dying >= DyingAgain)
@@ -916,7 +916,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     if (actor.type == FallingType)
     {
         const World::ObjectStepGlobals globals{.worldClock = context.worldClock,
-                                               .dynamicLighting = &context.world.DynamicLighting().Lighting(),
+                                               .dynamicLighting = context.dynamicLighting,
                                                .particles = context.particles};
         if (auto fire = World::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f),
                                               context.random, globals);
@@ -1242,8 +1242,8 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
             {
                 continue;
             }
-            if (auto added = World::AddDynamicLight(&context.world.DynamicLighting().Lighting(), actor.position,
-                                                    light->color, light->radius, "0x506b50");
+            if (auto added = World::AddDynamicLight(context.dynamicLighting, actor.position, light->color,
+                                                    light->radius, "0x506b50");
                 !added.HasValue())
             {
                 return Core::Unexpected(std::format("{} (la mano del lugar {})", added.Error(), slot));
@@ -1269,7 +1269,8 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
                                       .sprites = context.sprites,
                                       .worldClock = context.worldClock,
                                       .map = map,
-                                      .groundMarks = context.groundMarks};
+                                      .groundMarks = context.groundMarks,
+                                      .dynamicLighting = context.dynamicLighting};
         return Scenes::StepTheModelEffects(pass);
     }
     static_cast<void>(context.random.Next());

@@ -459,9 +459,10 @@ void DeathSound(const Kernel::ActorState& actor, const ActorCombatContext& conte
 World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
 {
     Kernel::WorldState& world = context.world;
-    return WizardEffectServicesOf(
-        world, context.random,
-        WizardSceneParts{.particles = &world.Particles(), .terrain = &Terrain::TerrainOrEmpty(context.terrain)});
+    return WizardEffectServicesOf(world, context.random,
+                                  WizardSceneParts{.particles = &world.Particles(),
+                                                   .terrain = &Terrain::TerrainOrEmpty(context.terrain),
+                                                   .dynamicLighting = context.dynamicLighting});
 }
 
 // 0x4f589d..0x4f58f6 (el jugador) y 0x4f5938..0x4f5991 (el 0x170): 0x518cf0(0xd5, +0x10, +0x1c, +0xf4, 0, 0, −1, …)
@@ -493,7 +494,8 @@ ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
                               .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
                               .models = &resources.models,
                               .items = resources.items,
-                              .terrain = &TerrainOf(resources)};
+                              .terrain = &TerrainOf(resources),
+                              .dynamicLighting = DynamicLightingOf(resources)};
 }
 
 Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, const ActorCombatContext& context)

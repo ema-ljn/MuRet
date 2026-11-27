@@ -24,6 +24,7 @@
 #include "Tables/GameData.h"
 #include "Scenes/IScene.h"
 #include "Assets/LoadedWorld.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
@@ -245,11 +246,14 @@ private:
     // The global trapezoid of the last 0x5fb570 (Camera::CameraState::trapezoid), any scene's.
     [[nodiscard]] Terrain::TerrainPolygon& SharedTerrainPolygon();
     [[nodiscard]] Kernel::WorldState& CharacterWorld() const;
+    // The dynamic light (Terrain::TerrainState::dynamicLight), which the selection and the game go on with.
+    [[nodiscard]] Terrain::DynamicWorldLight& DynamicLight() const;
     [[nodiscard]] Models::ClothWorld& CharacterRandomWorld();
 
     SceneContext m_context;
     // Los tests de vista sin los globales de main usan el mismo pool y paso, con un dueño local en el heap.
     std::unique_ptr<Kernel::WorldState> m_localWorld;
+    std::unique_ptr<Terrain::DynamicWorldLight> m_localLight;
     Models::ClothWorld m_localCloth;
     std::optional<std::string> m_failure;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.

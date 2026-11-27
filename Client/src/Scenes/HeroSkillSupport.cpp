@@ -63,7 +63,8 @@ ActorCombatContext CombatContextOf(const HeroSkillContext& context)
                               .playerSkeleton = context.playerSkeleton,
                               .models = context.models,
                               .items = context.items,
-                              .terrain = context.terrain};
+                              .terrain = context.terrain,
+                              .dynamicLighting = context.dynamicLighting};
 }
 
 std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& actor)

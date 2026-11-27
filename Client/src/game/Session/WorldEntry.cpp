@@ -27,6 +27,7 @@
 #include "Camera/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
 
@@ -294,6 +295,11 @@ Terrain::WorldTerrain* WritableTerrainOf(const WorldEntryResources& resources)
 const Terrain::WorldTerrain& TerrainOf(const WorldEntryResources& resources)
 {
     return resources.states != nullptr ? resources.states->terrain.current : Terrain::EmptyTerrain();
+}
+
+Terrain::TerrainLighting* DynamicLightingOf(const WorldEntryResources& resources)
+{
+    return resources.states != nullptr ? &resources.states->terrain.dynamicLight.Lighting() : nullptr;
 }
 
 Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply,

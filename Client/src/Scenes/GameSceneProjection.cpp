@@ -29,7 +29,7 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->tail = world.DrawTail();
     // Las uniones del objeto local de la UI (0x1a18) mueren antes del dibujo siguiente del original (Q-C1821).
     HideUiItemJoints(m_projection->tail);
-    m_projection->lighting = world.DynamicLighting().Lighting();
+    m_projection->lighting = DynamicLight().Lighting();
     m_projection->modelState = world.Runtime().objectModelState;
     m_projection->items = world.Runtime().itemRender;
     m_projection->cloth = *m_context.cloth;
@@ -60,7 +60,7 @@ GameDrawTailState& GameScene::FrameTail()
 }
 Terrain::TerrainLighting& GameScene::FrameLighting()
 {
-    return m_projectingFrame ? m_projection->lighting : m_context.world->DynamicLighting().Lighting();
+    return m_projectingFrame ? m_projection->lighting : DynamicLight().Lighting();
 }
 Models::ClothWorld& GameScene::FrameCloth()
 {

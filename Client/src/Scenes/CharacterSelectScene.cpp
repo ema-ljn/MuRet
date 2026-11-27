@@ -527,7 +527,9 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
             { m_context.world->Runtime().RequestSound(sound, origin); },
             .groundMarks = m_context.states != nullptr ? &m_context.states->terrain.groundMarks : nullptr,
-            .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr};
+            .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr,
+            .dynamicLighting =
+                m_context.states != nullptr ? &m_context.states->terrain.dynamicLight.Lighting() : nullptr};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -550,6 +552,7 @@ void CharacterSelectScene::StepCharacters()
                 return;
             }
             if (auto objects = m_world.StepObjects(*m_context.world, m_context.states->terrain.current,
+                                                   m_context.states->terrain.dynamicLight.Lighting(),
                                                    m_context.cloth->random, worldClock);
                 !objects.HasValue())
             {
@@ -591,7 +594,8 @@ void CharacterSelectScene::StepCharacters()
                     ? static_cast<std::uint32_t>(
                           std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
                     : 0U;
-            if (auto effects = m_world.StepEffects(*m_context.world, *m_context.cloth, worldClock, height, systemTime);
+            if (auto effects = m_world.StepEffects(*m_context.world, m_context.states->terrain.dynamicLight.Lighting(),
+                                                   *m_context.cloth, worldClock, height, systemTime);
                 !effects.HasValue())
             {
                 m_failure = effects.Error();
@@ -943,14 +947,14 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
         const Terrain::WorldTerrain* terrain = m_context.selection != nullptr ? m_context.selection->Terrain()
                                                : m_context.states != nullptr  ? &m_context.states->terrain.current
                                                                               : nullptr;
-        if (terrain != nullptr && terrain->lighting != nullptr)
+        if (m_context.states != nullptr && terrain != nullptr && terrain->lighting != nullptr)
         {
-            m_context.world->DynamicLighting().Update(*terrain->lighting);
+            m_context.states->terrain.dynamicLight.Update(*terrain->lighting);
         }
         // 0x5fbf60, después de la copia de la luz: las olas de la ventana del rango con el reloj del paso.
         if (HasTheWorld() && m_context.clock != nullptr)
         {
-            m_world.StepWaves(m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
+            m_world.StepWaves(m_context.clock->Now(), m_context.states->terrain.dynamicLight.Range(),
                               static_cast<std::uint8_t>(m_context.world->Runtime().map));
         }
     }
@@ -1289,9 +1293,9 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     }
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, Camera::WorldViewport, camera);
     m_terrainRange = Terrain::TerrainRangeOf(pass.view, camera);
-    if (m_context.world != nullptr)
+    if (m_context.world != nullptr && m_context.states != nullptr)
     {
-        m_context.world->DynamicLighting().PublishRange(m_terrainRange);
+        m_context.states->terrain.dynamicLight.PublishRange(m_terrainRange);
     }
     m_lastPass = pass;
     canvas.models.Begin(pass);
@@ -1478,7 +1482,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
         return;
     }
     const int frames = m_worldFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
-    m_world.BeginFrame(world, *m_context.cloth, frames);
+    m_world.BeginFrame(world, m_context.states->terrain.dynamicLight.Lighting(), *m_context.cloth, frames);
     const SelectionWorldFrame frame{.batch = canvas.models,
                                     .polygon = m_polygon,
                                     .range = m_terrainRange,

@@ -134,7 +134,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
                 return m_session->SendChaosCastleReposition(x, y);
             },
             .groundMarks = &m_context.states->terrain.groundMarks,
-            .trapezoid = &m_context.states->camera.trapezoid});
+            .trapezoid = &m_context.states->camera.trapezoid,
+            .dynamicLighting = &DynamicLight().Lighting()});
         !stepped.HasValue())
     {
         return stepped;
@@ -152,7 +153,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .terrainHeight = terrainHeight,
         .sprites = &m_sprites,
         .effects = &m_context.world->Map().effects,
-        .lighting = &m_context.world->DynamicLighting().Lighting(),
+        .lighting = &DynamicLight().Lighting(),
         .systemTime =
             [this]()
         {
@@ -222,7 +223,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                                             [session = m_session](Protocol::Outgoing packet)
                                                             { session->SendChat(std::move(packet)); })
                                                       : std::function<void(Protocol::Outgoing)>{},
-                         .models = m_models});
+                         .models = m_models,
+                         .dynamicLighting = &DynamicLight().Lighting()});
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();
@@ -300,13 +302,13 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         if (effect.type == 0xc2 && effect.subtype == 3)
         {
             if (auto stepped = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
-                                                  m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
+                                                  DynamicLight().Lighting(), *m_context.cloth);
                 !stepped.HasValue())
                 return stepped;
             // 0x52cde1..0x52cdfb: con vida impar después de la cola, otro paso entero (con su propio rand()).
             if (effect.alive && effect.life > 0 && (effect.life & 1) != 0)
                 if (auto again = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
-                                                    m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
+                                                    DynamicLight().Lighting(), *m_context.cloth);
                     !again.HasValue())
                     return again;
             continue;
@@ -359,7 +361,7 @@ ArrowStepContext GameScene::ArrowContext(float worldClock, const std::function<d
                             .random = m_context.cloth->random,
                             .particles = &m_context.world->Particles(),
                             .sprites = &m_sprites,
-                            .lighting = &m_context.world->DynamicLighting().Lighting(),
+                            .lighting = &DynamicLight().Lighting(),
                             .worldClock = worldClock,
                             .terrain = &StepTerrain(),
                             .terrainHeight = terrainHeight,
@@ -406,7 +408,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
         }};
     if (auto stepped = StepJoints(
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
-            worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
+            worldClock, &m_sprites, &DynamicLight().Lighting(),
             [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
             &m_context.world->Map().effects, hero, m_context.world, &volley, m_models);
         !stepped.HasValue())
@@ -416,7 +418,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto particles = StepGameParticles(
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
-            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
+            ParticleTextureHeightsOf(m_worldModels), &DynamicLight().Lighting(),
             ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero), ParticleOwnerBonesOf(*m_context.world),
             [&](std::int32_t sound) { runtime.RequestSound(sound); }, ParticleOwnerStatesOf(*m_context.world),
             &m_sprites);

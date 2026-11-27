@@ -4,7 +4,6 @@
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Terrain/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
@@ -97,9 +96,6 @@ public:
     // 0x743a198 and its wind: one pool for the login, the selection and the game, on the heap because of its size.
     [[nodiscard]] World::Particles& Particles();
     [[nodiscard]] const World::Particles& Particles() const;
-    // 0x7b4ccc4 and the last 0x5fbb00's bounds: one history for the three scenes.
-    [[nodiscard]] Terrain::DynamicWorldLight& DynamicLighting();
-    [[nodiscard]] const Terrain::DynamicWorldLight& DynamicLighting() const;
     [[nodiscard]] Actors::PlayerActionSpeeds& ActionSpeeds();
     [[nodiscard]] const Actors::PlayerActionSpeeds& ActionSpeeds() const;
     [[nodiscard]] Scenes::FaunaState& Fauna();
@@ -148,7 +144,6 @@ private:
     Player::ItemSetState m_itemSets;
     Scenes::HelperTable m_helpers{};
     std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
-    Terrain::DynamicWorldLight m_dynamicLighting;
     Actors::PlayerActionSpeeds m_actionSpeeds;
     Scenes::FaunaState m_fauna;
     Assets::FaunaModels m_faunaResources;

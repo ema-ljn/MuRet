@@ -31,6 +31,7 @@ struct ActorState;
 
 namespace Client::Terrain
 {
+struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
@@ -74,6 +75,8 @@ struct HeroSkillContext
     // The current map's terrain (Terrain::TerrainState::current); without it, an empty one, and the skills stop where
     // they read it.
     const Terrain::WorldTerrain* terrain = nullptr;
+    // The dynamic light (Terrain::TerrainState::dynamicLight) the skills' effects add to; nullptr: adding one stops.
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
 };
 
 // 0x57cfc0(héroe): con el modo del editor (0x77f3b18), el mouse de la UI (0x775857c) o 0x1000 en +0x78, nada. Si no:

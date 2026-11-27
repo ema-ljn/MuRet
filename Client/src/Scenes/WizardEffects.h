@@ -25,6 +25,7 @@ class IModelLibrary;
 } // namespace Client::Models
 namespace Client::Terrain
 {
+struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
@@ -70,6 +71,8 @@ struct WizardSceneParts
     // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (WorldState::FaunaResources), para el empujón
     // del 0xc2/4 (0x524a8d). Sin ellos, un 0x20a que empuja corta.
     const Models::IModelLibrary* models = nullptr;
+    // The dynamic light (Terrain::TerrainState::dynamicLight) the effects add to (0x5f9780). nullptr: adding one stops.
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
 };
 
 [[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,

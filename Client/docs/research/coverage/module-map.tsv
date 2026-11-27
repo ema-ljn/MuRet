@@ -1197,8 +1197,8 @@ game/Kernel/WorldRuntime.h	623	game/Kernel	game/Kernel	medium	durable globals, m
 game/Sound/WorldRuntimeAudio.cpp	37	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
-game/Kernel/WorldState.cpp	264	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
-game/Kernel/WorldState.h	165	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.cpp	275	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.h	156	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 Scenes/WorldTexts.cpp	92	Scenes	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 Scenes/WorldTexts.h	60	Scenes	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 game/Session/WorldTransitionSupport.cpp	225	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
@@ -1487,4 +1487,4 @@ game/Session/ModuleStates.h	15	game/Session	game/Session	high	each module's stat
 game/Session/SessionPacketSender.h	23	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)
 game/Session/SessionPacketSender.cpp	16	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)
 game/Camera/CameraState.h	21	game/Camera	game/Camera	high	what the camera owns of the original's globals: the trapezoid's effective level (AR4.1)
-game/Terrain/TerrainState.h	21	game/Terrain	game/Terrain	high	what the terrain owns of the original's globals: the ground marks (AR4.1)
+game/Terrain/TerrainState.h	24	game/Terrain	game/Terrain	high	what the terrain owns of the original's globals: the current map's terrain, the ground marks and the dynamic light (AR4.1)

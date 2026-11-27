@@ -42,6 +42,7 @@ class WorldState;
 
 namespace Client::Terrain
 {
+struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
@@ -125,6 +126,8 @@ struct HeroMovementContext
     // The current map's terrain (Terrain::TerrainState::current). Without it, an empty one: walking stops where it
     // reads the TerrainWall.
     const Terrain::WorldTerrain* terrain = nullptr;
+    // The dynamic light (Terrain::TerrainState::dynamicLight) the skills' effects add to; nullptr: adding one stops.
+    Terrain::TerrainLighting* dynamicLighting = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

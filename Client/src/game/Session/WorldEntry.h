@@ -54,6 +54,11 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::Camera
 
+namespace Client::Terrain
+{
+struct TerrainLighting;
+} // namespace Client::Terrain
+
 namespace Client::Kernel
 {
 class WorldState;
@@ -124,6 +129,8 @@ struct WorldEntryResources
 [[nodiscard]] Terrain::WorldTerrain* WritableTerrainOf(const WorldEntryResources& resources);
 // The same, to read. Without `states`, Terrain::EmptyTerrain().
 [[nodiscard]] const Terrain::WorldTerrain& TerrainOf(const WorldEntryResources& resources);
+// The dynamic light (0x7b4ccc4, Terrain::TerrainState::dynamicLight). nullptr without `states`: adding a light stops.
+[[nodiscard]] Terrain::TerrainLighting* DynamicLightingOf(const WorldEntryResources& resources);
 
 // Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para
 // diagnóstico y fixtures.

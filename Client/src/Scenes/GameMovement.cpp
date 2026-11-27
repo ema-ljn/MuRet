@@ -348,7 +348,8 @@ HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
                                          .playerSkeleton = context.playerSkeleton,
                                          .models = context.models,
                                          .items = context.items,
-                                         .terrain = context.terrain},
+                                         .terrain = context.terrain,
+                                         .dynamicLighting = context.dynamicLighting},
                               .sendWalk = context.sendWalk,
                               .sendAttack = context.sendAttack,
                               .skills = context.skills,
@@ -891,7 +892,8 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
                                                    .pickTerrainPoint = context.pickTerrainPoint,
                                                    .send = context.sendSkill,
                                                    .playerKey = context.playerKey,
-                                                   .terrain = context.terrain});
+                                                   .terrain = context.terrain,
+                                                   .dynamicLighting = context.dynamicLighting});
         !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, Terrain::TerrainOrEmpty(context.terrain));

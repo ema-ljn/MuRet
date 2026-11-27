@@ -124,10 +124,11 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
 Client::Core::Expected<void, std::string>
-AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, const Client::Terrain::WorldTerrain& terrain,
+AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Terrain::TerrainState& terrainState,
                          const Client::Kernel::ActorState& hero, Client::World::LeafWeather weather,
                          std::int32_t heroCellLayer, Client::Models::ClothWorld& reference)
 {
+    const Client::Terrain::WorldTerrain& terrain = terrainState.current;
     Client::World::Leaves leaves;
     Client::Scenes::FaunaState fauna;
     const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
@@ -144,7 +145,7 @@ AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, const Client::Terrai
                                                   hero.animation.action,
                                                   hero.safeZone,
                                                   terrain,
-                                                  world.DynamicLighting().Lighting(),
+                                                  terrainState.dynamicLight.Lighting(),
                                                   world.FaunaResources(),
                                                   reference,
                                                   worldClock};
@@ -1250,7 +1251,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Step(Client::Input::InputState{});
 
         ASSERT_EQ(game.Failure(), std::nullopt);
-        ASSERT_TRUE(AdvanceEnvironmentPrefix(tested.world, tested.states.terrain.current, heroBefore, weatherBefore,
+        ASSERT_TRUE(AdvanceEnvironmentPrefix(tested.world, tested.states.terrain, heroBefore, weatherBefore,
                                              layerBefore, reference)
                         .HasValue());
         const int body = OwnRecordClose + 1;

@@ -200,12 +200,12 @@ protected:
         frame.scene->PrepareFrame();
         const auto random = frame.cloth.random.State();
         const auto lighting =
-            std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+            std::make_unique<Client::Terrain::TerrainLighting>(frame.states.terrain.dynamicLight.Lighting());
         auto& canvas = frame.target.BeginFrame(frame.clock.Now());
         frame.scene->Render(canvas, 0.5f);
         ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
         EXPECT_EQ(frame.cloth.random.State(), random);
-        EXPECT_EQ(frame.world.DynamicLighting().Lighting().cells, lighting->cells);
+        EXPECT_EQ(frame.states.terrain.dynamicLight.Lighting().cells, lighting->cells);
         frame.target.Present();
     }
     std::unique_ptr<FrameFixture> m_frame;
@@ -221,18 +221,20 @@ TEST_F(GameSceneTailIntegrationTest, LiveMovingLightReceivesTheRealSpriteAndLigh
     effect.transform.scale = 1;
     effect.transform.position = frame.world.Actors()[0].position;
     effect.light = {0.1f, 0.2f, 0.3f};
-    const auto before = std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+    const auto before =
+        std::make_unique<Client::Terrain::TerrainLighting>(frame.states.terrain.dynamicLight.Lighting());
     Render();
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
-    EXPECT_NE(frame.world.DynamicLighting().Lighting().cells, before->cells);
+    EXPECT_NE(frame.states.terrain.dynamicLight.Lighting().cells, before->cells);
     EXPECT_TRUE(frame.target.frames.back().presented);
-    const auto retained = std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+    const auto retained =
+        std::make_unique<Client::Terrain::TerrainLighting>(frame.states.terrain.dynamicLight.Lighting());
     frame.scene->PrepareFrame();
     const auto random = frame.cloth.random.State();
     auto& canvas = frame.target.BeginFrame(frame.clock.Now());
     frame.scene->Render(canvas, 0.5f);
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
-    EXPECT_EQ(frame.world.DynamicLighting().Lighting().cells, retained->cells);
+    EXPECT_EQ(frame.states.terrain.dynamicLight.Lighting().cells, retained->cells);
     EXPECT_EQ(frame.cloth.random.State(), random);
 }
 
@@ -277,7 +279,7 @@ TEST_F(GameSceneTailIntegrationTest, IntermediateDrawLeavesFloorJointLightingAnd
     floor.seen = false;
     const auto color = joint.light;
     frame.world.Runtime().itemRender.glowPulse = 0.125f;
-    const auto light = std::make_unique<Client::Terrain::TerrainLighting>(frame.world.DynamicLighting().Lighting());
+    const auto light = std::make_unique<Client::Terrain::TerrainLighting>(frame.states.terrain.dynamicLight.Lighting());
     frame.scene->PrepareFrame();
     const auto random = frame.cloth.random.State();
     auto& canvas = frame.target.BeginFrame(frame.clock.Now());
@@ -288,7 +290,7 @@ TEST_F(GameSceneTailIntegrationTest, IntermediateDrawLeavesFloorJointLightingAnd
     EXPECT_EQ(joint.light, color);
     EXPECT_EQ(frame.world.Runtime().itemRender.glowPulse, 0.125f);
     EXPECT_EQ(frame.cloth.random.State(), random);
-    EXPECT_EQ(frame.world.DynamicLighting().Lighting().cells, light->cells);
+    EXPECT_EQ(frame.states.terrain.dynamicLight.Lighting().cells, light->cells);
 }
 
 TEST_F(GameSceneTailIntegrationTest, KalimaWaterRunsBothModesWithAnExplicitEmptyObjectTable)

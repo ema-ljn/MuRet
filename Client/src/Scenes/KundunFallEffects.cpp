@@ -426,10 +426,12 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
     const glm::vec3 angles{0.0f, 0.0f, F32(static_cast<double>(random.Next() % Spokes) * SpokeTurn)};
     constexpr std::int16_t FireEffect = 0xc2;
     constexpr std::uint16_t FireKey = 0; // ESI en 0x527a6f
-    const World::WizardEffectServices services = WizardEffectServicesOf(
-        context.world, random,
-        WizardSceneParts{
-            .particles = &context.world.Particles(), .worldClock = context.worldClock, .terrain = context.terrain});
+    const World::WizardEffectServices services =
+        WizardEffectServicesOf(context.world, random,
+                               WizardSceneParts{.particles = &context.world.Particles(),
+                                                .worldClock = context.worldClock,
+                                                .terrain = context.terrain,
+                                                .dynamicLighting = context.services.lighting});
     const auto fire = World::CreateWizardModelEffect(
         context.world.Map().effects, WizardArguments(FireEffect, point, angles, glm::vec3(1.0f), 0, nullptr, FireKey),
         random, services);

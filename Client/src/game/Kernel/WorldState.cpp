@@ -9,7 +9,6 @@
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Terrain/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
@@ -140,16 +139,6 @@ World::Particles& WorldState::Particles()
 const World::Particles& WorldState::Particles() const
 {
     return *m_particles;
-}
-
-Terrain::DynamicWorldLight& WorldState::DynamicLighting()
-{
-    return m_dynamicLighting;
-}
-
-const Terrain::DynamicWorldLight& WorldState::DynamicLighting() const
-{
-    return m_dynamicLighting;
 }
 
 Actors::PlayerActionSpeeds& WorldState::ActionSpeeds()

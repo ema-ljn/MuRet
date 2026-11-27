@@ -1049,7 +1049,6 @@ game/Kernel/WorldRuntime.h	World/LeafWeather.h	game/Kernel	game/Weather
 game/Kernel/WorldRuntime.h	World/ObjectModelStepState.h	game/Kernel	game/WorldObjects
 game/Kernel/WorldRuntime.h	game/Sound/MonsterSounds.h	game/Kernel	game/Sound
 game/Kernel/WorldState.cpp	game/Actors/Drawing/CharacterCloth.h	game/Kernel	game/Actors
-game/Kernel/WorldState.cpp	game/Terrain/DynamicWorldLight.h	game/Kernel	game/Terrain
 game/Kernel/WorldState.cpp	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.cpp	game/Assets/FaunaModels.h	game/Kernel	game/Assets
 game/Kernel/WorldState.cpp	Scenes/FaunaState.h	game/Kernel	game/Fauna
@@ -1060,7 +1059,6 @@ game/Kernel/WorldState.cpp	game/Actors/PlayerActionSpeeds.h	game/Kernel	game/Act
 game/Kernel/WorldState.cpp	World/Leaves.h	game/Kernel	game/Weather
 game/Kernel/WorldState.cpp	World/Particles.h	game/Kernel	game/Particles
 game/Kernel/WorldState.h	game/Actors/Drawing/CharacterCloth.h	game/Kernel	game/Actors
-game/Kernel/WorldState.h	game/Terrain/DynamicWorldLight.h	game/Kernel	game/Terrain
 game/Kernel/WorldState.h	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.h	game/Assets/FaunaModels.h	game/Kernel	game/Assets
 game/Kernel/WorldState.h	Scenes/FaunaState.h	game/Kernel	game/Fauna

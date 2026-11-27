@@ -63,6 +63,5 @@ inline constexpr HangingPlacement QuiverPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f,
 
 // The root of what hangs by that path: the bone times its place's matrix, with the x87's bits (OriginalAngleMatrix and
 // OriginalConcatTransforms). As in the other path, the character's scale goes on each vertex.
-[[nodiscard]] Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent,
-                                                        const HangingPlacement& placement);
+[[nodiscard]] Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent, const HangingPlacement& placement);
 } // namespace Client::Models

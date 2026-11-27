@@ -60,6 +60,25 @@ class CheckPureMoveTest(unittest.TestCase):
         code, output = self.check()
         self.assertEqual(code, 0, output)
 
+    def test_dropped_export_macro_and_rewrapped_line_passes(self):
+        wrapped = GUILD_STATE.replace('#pragma once\n', '#pragma once\n#include "EngineApi.h"\n').replace(
+            'int MarkSize();', 'ENGINE_API int MarkSize(int width,\n                        int height);')
+        self.repo.write(STATE, wrapped)
+        self.base = self.repo.commit('export the guild')
+        self.move_state(GUILD_STATE.replace('int MarkSize();', 'int MarkSize(int width, int height);'))
+        self.repo.commit('refactor(AR3.1): move the guild out of the engine')
+        code, output = self.check()
+        self.assertEqual(code, 0, output)
+
+    def test_rewrapped_and_edited_line_fails(self):
+        self.repo.write(STATE, GUILD_STATE.replace('int MarkSize();', 'int MarkSize(int width,\n int height);'))
+        self.base = self.repo.commit('wrap the guild')
+        self.move_state(GUILD_STATE.replace('int MarkSize();', 'int MarkSize(int width, long height);'))
+        self.repo.commit('refactor(AR3.1): move the guild')
+        code, output = self.check()
+        self.assertEqual(code, 1)
+        self.assertIn('long height', output)
+
     def test_renamed_docs_may_change(self):
         self.repo.move('docs/notes.md', 'docs/guild/notes.md')
         self.repo.write('docs/guild/notes.md', '# Notes\n\nThe guild state lives in game/Guild.\nIt has a rank.\n')

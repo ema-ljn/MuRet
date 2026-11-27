@@ -38,12 +38,11 @@
 #include <utility>
 #include <vector>
 
-// Client::Actors::Drawing::DrawCharacter contra la traza de la selección (MU_CLIENT_GL_TRACE_DIR y
-// MU_CLIENT_GOLDEN_DIR): el personaje de la traza (las partes Male17 de nivel 13, el pantalón 02,
-// Sword17 de nivel 13 en la mano derecha y Helper02) en los cinco swaps, con sus frames, sus relojes
-// y su lugar (06). Cada bloque que el original le mandó a GL por ese personaje (cada malla y cada pase
-// de brillo) tiene que estar en el lote de MuRet como un tramo de triángulos seguidos, con las mismas
-// posiciones y UV, y el lote no tiene nada más: uno a uno.
+// Client::Actors::Drawing::DrawCharacter against the selection's trace (MU_CLIENT_GL_TRACE_DIR and
+// MU_CLIENT_GOLDEN_DIR): the trace's character (the Male17 parts of level 13, pants 02, Sword17 of level 13 in the
+// right hand and Helper02) in the five swaps, with their frames, their clocks and their place (06). Each block the
+// original sent to GL for that character (each mesh and each glow pass) must be in MuRet's batch as a stretch of
+// consecutive triangles, with the same positions and UVs, and the batch has nothing else: one to one.
 namespace
 {
 using Client::Actors::Drawing::DrawCharacter;
@@ -74,8 +73,7 @@ using Client::Tests::ReadGlTrace;
 
 constexpr std::string_view SelectionTrace = "character-selection-Frame_003207.txt";
 
-// El personaje de la traza (06 § El personaje, vértice a vértice): las partes, su nivel y lo que
-// lleva.
+// The trace's character (06 § El personaje, vértice a vértice): the parts, their level and what it carries.
 constexpr std::uint16_t HelmMale17 = 0x1012 + 16;
 constexpr std::uint16_t ArmorMale17 = 0x1212 + 16;
 constexpr std::uint16_t PantMale02 = 0x1412 + 1;
@@ -85,16 +83,16 @@ constexpr std::uint16_t Sword17 = 0x212 + 16;
 constexpr std::uint16_t Helper02 = 0x1c13;
 constexpr std::uint8_t TracedLevel = 13;
 
-// Los frames del cuerpo y de la mascota y el reloj de cada swap (06).
+// The frames of the body and of the pet and the clock of each swap (06).
 constexpr std::array<float, 5> BodyFrames = {1.740f, 3.320f, 4.900f, 6.740f, 1.580f};
 constexpr std::array<float, 5> PetFrames = {1.5f, 2.0f, 2.5f, 3.0f, 3.5f};
 constexpr std::array<std::int64_t, 5> Clocks = {26437420, 26438716, 26440046, 26441452, 26442812};
 
-// Lo que puede diferir un vértice y una UV de los de la traza (como los otros golden).
+// How far a vertex and a UV may differ from the trace's (like the other goldens).
 constexpr float MaxError = 0.005f;
 constexpr float MaxUvError = 0.001f;
 
-// Los modelos del personaje, cargados del Data\ sin sus texturas.
+// The character's models, loaded from the Data folder without their textures.
 class TracedModels final : public IModelLibrary
 {
 public:
@@ -177,17 +175,15 @@ CharacterAppearance TracedAppearance()
     return appearance;
 }
 
-// Como la guarda el original: el frame de la tabla más 1, módulo las keys, y su parte entera como la
-// anterior.
+// As the original stores it: the table's frame plus 1, modulo the keys, and its integer part as the previous one.
 AnimationState StateAt(std::uint8_t action, float frame, int keyCount)
 {
     return {action, std::fmod(frame + 1.0f, static_cast<float>(keyCount)), action,
             static_cast<std::int16_t>(std::floor(frame))};
 }
 
-// Si los vértices del lote desde `start` son los del bloque, en orden.
-// Las UV se comparan solo en lo que va con textura: un bloque sin glTexCoord (la sombra, 0x4eff40)
-// trae en la traza la última que quedó.
+// Whether the batch's vertices from `start` are the block's, in order. The UVs are compared only in what goes with a
+// texture: a block without glTexCoord (the shadow, 0x4eff40) carries in the trace the last one that was left.
 bool SameRun(std::span<const ModelVertex> vertices, const std::vector<bool>& textured, std::size_t start,
              const GlTraceBlock& block)
 {
@@ -211,7 +207,7 @@ bool SameRun(std::span<const ModelVertex> vertices, const std::vector<bool>& tex
     return true;
 }
 
-// Si cada vértice del lote va en un tramo con textura.
+// Whether each vertex of the batch goes in a textured stretch.
 std::vector<bool> TexturedVertices(const ModelBatch& batch)
 {
     std::vector<bool> textured(batch.Vertices().size(), false);
@@ -239,9 +235,9 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
     const int bodyKeys = models.SkeletonOf(0x20a)->actions[3].keyCount;
     const int petKeys = models.SkeletonOf(Helper02)->actions[0].keyCount;
     ASSERT_EQ(trace.frames.size(), BodyFrames.size());
-    // Lo que la traza manda por frame: cuatro bloques por malla visible de las Male17 y de la espada
-    // (la base y los tres pases del nivel 13) y uno por malla del pantalón y de la mascota.
-    // Y la sombra (0x20b), un bloque, antes de las partes.
+    // What the trace sends per frame: four blocks per visible mesh of the Male17 and of the sword (the base and the
+    // three passes of level 13) and one per mesh of the pants and of the pet. And the shadow (0x20b), one block, before
+    // the parts.
     std::size_t expectedBlocks = 1;
     for (const auto& [model, perMesh] :
          {std::pair{HelmMale17, 4}, std::pair{ArmorMale17, 4}, std::pair{PantMale02, 1}, std::pair{GloveMale17, 4},
@@ -272,7 +268,7 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
         const std::vector<bool> textured = TexturedVertices(batch);
         std::vector<bool> covered(vertices.size(), false);
         std::size_t blocks = 0;
-        // Dónde empieza en el lote cada bloque de la traza, en el orden de la traza.
+        // Where each block of the trace starts in the batch, in the trace's order.
         std::vector<std::size_t> starts;
         for (const GlTraceBlock& block : trace.frames[f].blocks)
         {
@@ -295,7 +291,7 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
         const auto uncovered = static_cast<std::size_t>(std::count(covered.begin(), covered.end(), false));
         EXPECT_EQ(uncovered, 0u) << "frame " << f << ": vértices del lote que no son de ningún bloque de la traza";
         EXPECT_EQ(blocks, expectedBlocks) << "frame " << f;
-        // Y en el orden del original: lo aditivo no escribe la profundidad, así que el orden se ve.
+        // And in the original's order: what is additive does not write the depth, so the order shows.
         const auto unordered = std::ranges::is_sorted_until(starts);
         EXPECT_EQ(unordered, starts.end())
             << "frame " << f << ": el bloque " << (unordered - starts.begin()) << " de la traza va antes en el lote";

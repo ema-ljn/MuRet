@@ -36,9 +36,9 @@
 #include <utility>
 #include <vector>
 
-// DrawGameHanging (0x50db57..0x50e9fa y 0x509340) sobre un cuerpo sintético: el hueso k del cuerpo y de
-// cada modelo que cuelga está en (0, 0, k) sin giro, así cada punto deja ver de qué hueso sale. Los
-// esperados salen del ASM de c32bbd5f, sin ejecutar el original.
+// DrawGameHanging (0x50db57..0x50e9fa and 0x509340) on a synthetic body: bone k of the body and of each hanging model
+// is at (0, 0, k) without a turn, so each point shows which bone it comes from. The expected values come from the ASM
+// of c32bbd5f, without running the original.
 namespace
 {
 using Client::Actors::Drawing::GameHangingPass;
@@ -46,7 +46,7 @@ using Client::Kernel::ActorState;
 
 constexpr std::uint16_t Player = 0x20a;
 constexpr std::uint16_t Sword = 0x212;
-constexpr std::uint16_t BladeSword = 0x21d; // el destello a −150 de 0x50e921
+constexpr std::uint16_t BladeSword = 0x21d; // the flash at −150 of 0x50e921
 constexpr std::uint16_t Sword224 = 0x224;
 constexpr std::uint16_t Sword223 = 0x223;
 constexpr std::uint16_t Sword21 = 0x226;
@@ -60,7 +60,7 @@ constexpr std::uint16_t Shiny = 0x5fd;
 constexpr std::size_t BoneCount = 48;
 constexpr float PlayerSecondActionSpeed = 0.75f;
 
-// El rand() de la CRT con la semilla 1 después de `count` llamadas.
+// The CRT's rand() with seed 1 after `count` calls.
 std::uint32_t AfterRandoms(std::size_t count)
 {
     Client::Crt::CrtRandom random{1};
@@ -72,7 +72,7 @@ std::uint32_t AfterRandoms(std::size_t count)
 using Client::Math::D;
 using Client::Math::F32;
 
-// La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
+// The first seed with which `condition` accepts the draws of a new CrtRandom.
 std::uint32_t SeedWhere(const std::function<bool(Client::Crt::CrtRandom&)>& condition)
 {
     for (std::uint32_t seed = 1; seed < 100000; ++seed)
@@ -85,7 +85,7 @@ std::uint32_t SeedWhere(const std::function<bool(Client::Crt::CrtRandom&)>& cond
     return 1;
 }
 
-// Un CrtRandom con la semilla `seed` después de `count` llamadas.
+// A CrtRandom with the seed `seed` after `count` calls.
 Client::Crt::CrtRandom Skipped(std::uint32_t seed, std::size_t count)
 {
     Client::Crt::CrtRandom random(seed);
@@ -148,7 +148,7 @@ void ExpectSameParticles(const Client::World::Particles& actual, const Client::W
     }
 }
 
-// [ebp+0xc] de 0x50ba30 con el primer rand() de la semilla 1 (41): (41 % 30 + 70) · 0,01 en la x87.
+// [ebp+0xc] of 0x50ba30 with the first rand() of seed 1 (41): (41 % 30 + 70) · 0.01 in the x87.
 float FirstLum()
 {
     return static_cast<float>(static_cast<double>(81.0f) * static_cast<double>(0.01f));
@@ -162,7 +162,7 @@ public:
         using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
-        // La acción 1 tiene dos keys: lo que cuelga en ella puede avanzar.
+        // Action 1 has two keys: what hangs in it can advance.
         bone.actions = {{BoneKey{}}, {BoneKey{}, BoneKey{}}};
         m_skeleton.bones.assign(BoneCount, bone);
         for (std::size_t index = 0; index < BoneCount; ++index)
@@ -265,8 +265,8 @@ protected:
     Client::World::Particles m_particles;
 };
 
-// Sin nada que cuelgue quedan el rand() de 0x50db57 y, fuera de la espalda, el cierre de +0x38e antes de
-// cada mano. Sin buffer ni sprites no hace falta nada.
+// With nothing hanging, the rand() of 0x50db57 remains and, outside the back, the close of +0x38e before each hand.
+// Without a buffer or sprites, nothing is needed.
 TEST_F(GameHangingTest, WithNothingHangingOnlyTheLightAndTheTwoHandBytesSpendRandoms)
 {
     const HangingModels models({});
@@ -281,9 +281,9 @@ TEST_F(GameHangingTest, WithNothingHangingOnlyTheLightAndTheTwoHandBytesSpendRan
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
 }
 
-// 0x50ddde..0x50de60 con '4' en +0x38e (0x509926): el arma de la espalda usa la parte de las alas, con la
-// velocidad de la acción 1 del jugador, y 0x509340 le deja la key anterior en 2 y el frame en 3,2.
-// Al volver, 0x50de5a repone solo el frame de las alas: la key y la acción anteriores quedan (Q-C296).
+// 0x50ddde..0x50de60 with '4' in +0x38e (0x509926): the back weapon uses the wings' part, with the speed of the
+// player's action 1, and 0x509340 leaves its previous key at 2 and the frame at 3.2. On returning, 0x50de5a restores
+// only the wings' frame: the previous key and action stay (Q-C296).
 TEST_F(GameHangingTest, TheBackWeaponLeavesTheWingsWithTheirFrameButItsPreviousKey)
 {
     const HangingModels models({Sword});
@@ -302,14 +302,14 @@ TEST_F(GameHangingTest, TheBackWeaponLeavesTheWingsWithTheirFrameButItsPreviousK
     EXPECT_EQ(m_actor.wings.animation.frame, 7.5f);
     EXPECT_EQ(m_actor.wings.animation.previousKey, 2);
     EXPECT_EQ(m_actor.wings.animation.previousAction, 9);
-    // A la espalda no corre el lazo de las manos: el de 0x50db57, +0x38e en 0x509340 y la luz de 0x509a92.
+    // On the back the hands' loop does not run: that of 0x50db57, +0x38e in 0x509340 and the light of 0x509a92.
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
     ASSERT_EQ(m_batch.Vertices().size(), 3u);
     EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(130.0f, 155.0f, 97.0f));
 }
 
-// 0x50dcda..0x50dd70 fuera de la espalda: las saetas de la izquierda van al hueso de las alas con el lugar
-// de los arcos (70, 0, 90 y −10, 5, 10), y el lazo de las manos no las vuelve a dibujar.
+// 0x50dcda..0x50dd70 outside the back: the bolts of the left go to the wings' bone with the bows' place (70, 0, 90 and
+// −10, 5, 10), and the hands' loop does not draw them again.
 TEST_F(GameHangingTest, BoltsInTheLeftHandHangOnTheBackOutsideTheSafeZone)
 {
     const HangingModels models({Bolts});
@@ -320,14 +320,14 @@ TEST_F(GameHangingTest, BoltsInTheLeftHandHangOnTheBackOutsideTheSafeZone)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 3u);
     EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(140.0f, 155.0f, 67.0f));
-    // 0x50db57, +0x38e y la luz en 0x509340, y +0x38e antes de cada mano.
+    // 0x50db57, +0x38e and the light in 0x509340, and +0x38e before each hand.
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
 }
 
-// Q-C102: una mano con un modelo que el original no carga (0x1202, el tipo 0xff0 de la lista de la VM del
-// laboratorio) no dibuja nada y no corta el frame: 0x509340 corre igual sobre la entrada en cero de la tabla,
-// sin acciones ni mallas. Corren 0x50db57, +0x38e antes de cada mano, y el +0x38e y la luz (0x509a92) de
-// 0x509340, que no depende del modelo.
+// Q-C102: a hand with a model the original does not load (0x1202, type 0xff0 of the lab VM's list) draws nothing and
+// does not stop the frame: 0x509340 runs the same on the table's zeroed entry, without actions or meshes. 0x50db57,
+// +0x38e before each hand, and the +0x38e and the light (0x509a92) of 0x509340, which does not depend on the model,
+// run.
 TEST_F(GameHangingTest, AHandWhoseModelNobodyLoadsDrawsNothing)
 {
     constexpr std::uint16_t UnloadedHand = 0x1202;
@@ -342,8 +342,8 @@ TEST_F(GameHangingTest, AHandWhoseModelNobodyLoadsDrawsNothing)
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
 }
 
-// 0x50e896..0x50e9ea: el destello de 0x21d a −150 del hueso de la mano, con la luz del nivel 7
-// (0,5, 0,4 y 0,3 de [ebp+0xc]). Los rojos (+0x375 desde 6) y +0x1d6 en 4 no lo llevan.
+// 0x50e896..0x50e9ea: the flash of 0x21d at −150 from the hand's bone, with the light of level 7 (0.5, 0.4 and 0.3 of
+// [ebp+0xc]). The reds (+0x375 from 6) and +0x1d6 at 4 do not carry it.
 TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
 {
     const HangingModels models({BladeSword});
@@ -353,7 +353,7 @@ TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
     const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // Con el nivel 7, 0x60b3d0 dibuja la malla y su pasada del brillo.
+    // With level 7, 0x60b3d0 draws the mesh and its glow pass.
     ASSERT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(150.0f, 150.0f, 43.0f));
     const auto sprites = LiveSprites();
@@ -363,7 +363,7 @@ TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
     EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 0.0f, 43.0f));
     EXPECT_EQ(sprites[0].scale, 1.4f);
     EXPECT_EQ(sprites[0].light, glm::vec3(lum * 0.5f, lum * 0.4f, lum * 0.3f));
-    // 0x50db57, +0x38e de la mano y de 0x509340, la luz de 0x509a92 y +0x38e de la izquierda.
+    // 0x50db57, +0x38e of the hand and of 0x509340, the light of 0x509a92 and +0x38e of the left one.
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
 
     for (const bool red : {true, false})
@@ -400,9 +400,8 @@ TEST_F(GameHangingTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfWhatHangs)
     }
 }
 
-// 0x50f6d6..0x50f74b: Staff08 lleva Shiny02 en el hueso 27 y destellos del 28 al 37 de su propia pose,
-// que 0x509340 dejó en el buffer global (0x5092d0): su raíz es el hueso 33 del cuerpo. 0x607b60 le saca
-// un rand() más.
+// 0x50f6d6..0x50f74b: Staff08 carries Shiny02 on bone 27 and flashes from 28 to 37 of its own pose, which 0x509340 left
+// in the global buffer (0x5092d0): its root is bone 33 of the body. 0x607b60 draws one more rand() for it.
 TEST_F(GameHangingTest, TheStaffSpritesComeFromItsPoseInTheGlobalBuffer)
 {
     const HangingModels models({Staff08});
@@ -426,8 +425,8 @@ TEST_F(GameHangingTest, TheStaffSpritesComeFromItsPoseInTheGlobalBuffer)
     EXPECT_EQ(m_random.State(), AfterRandoms(6));
 }
 
-// 0x509f17..0x509ff8: Sword21 recorre los huesos 1 y 2 de su pose (EDI de 0x68b184c a 0x68b18ac) y en cada
-// uno pone los dos flare01, el del latido y el gris, en el mismo punto. Con el reloj en 0, el latido es 0,65f.
+// 0x509f17..0x509ff8: Sword21 walks bones 1 and 2 of its pose (EDI from 0x68b184c to 0x68b18ac) and on each it puts the
+// two flare01, the pulsing one and the gray one, at the same point. With the clock at 0, the pulse is 0.65f.
 TEST_F(GameHangingTest, Sword21PutsBothFlaresOnEachOfItsTwoBones)
 {
     const HangingModels models({Sword21});
@@ -451,12 +450,12 @@ TEST_F(GameHangingTest, Sword21PutsBothFlaresOnEachOfItsTwoBones)
         EXPECT_EQ(sprites[index].scale, grey ? 0.4f : f32(x * static_cast<double>(0.9f)));
         EXPECT_EQ(sprites[index].light, grey ? glm::vec3(0.3f) : beat);
     }
-    // 0x50db57, +0x38e de la mano y de 0x509340, la luz de 0x509a92 y +0x38e de la izquierda.
+    // 0x50db57, +0x38e of the hand and of 0x509340, the light of 0x509a92 and +0x38e of the left one.
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
 }
 
-// 0x50a683..0x50a75f: Mace10 pone un flare01 a (−10, 0, 0) de los huesos 2 a 5 de su pose (0x68b184c + ESI ·
-// 0x30, con ESI de 1 a 4) y, con ESI en 3, el Shiny02 en el hueso 4 con el giro de rand() % 360.
+// 0x50a683..0x50a75f: Mace10 puts a flare01 at (−10, 0, 0) of bones 2 to 5 of its pose (0x68b184c + ESI · 0x30, with
+// ESI from 1 to 4) and, with ESI at 3, the Shiny02 on bone 4 with the turn of rand() % 360.
 TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
 {
     const HangingModels models({Mace10});
@@ -480,7 +479,7 @@ TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
         EXPECT_EQ(sprites[index].scale, shiny ? 0.6f : 1.0f);
         EXPECT_EQ(sprites[index].light, shiny ? glm::vec3(0.5f) : flareLight);
     }
-    // El giro es el quinto rand(): después del de 0x50db57, los dos +0x38e y la luz de 0x509a92.
+    // The turn is the fifth rand(): after that of 0x50db57, the two +0x38e and the light of 0x509a92.
     Client::Crt::CrtRandom replay{1};
     for (int call = 0; call < 4; ++call)
         static_cast<void>(replay.Next());
@@ -488,13 +487,13 @@ TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
     EXPECT_EQ(m_random.State(), AfterRandoms(6));
 }
 
-// 0x50a005..0x50a138: el 0x227 en la acción 0x8c, fuera del mapa 10 y con un rand() par, corre el hueso 1 de su pose
-// (rand() % 30 − 15 en x e y, +20 en z) y suelta cuatro veces el joint 0x617/0 (escala 10, sin dueño) y la partícula
-// 0x5c5/0 blanca, cada par con los ángulos (rand() % 60 + 150; 0; z del personaje). En el mapa 10 no saca el rand().
+// 0x50a005..0x50a138: 0x227 in action 0x8c, outside map 10 and with an even rand(), shifts bone 1 of its pose (rand() %
+// 30 − 15 in x and y, +20 in z) and releases four times the 0x617/0 joint (scale 10, no owner) and the white 0x5c5/0
+// particle, each pair with the angles (rand() % 60 + 150, 0, the character's z). In map 10 it does not draw the rand().
 TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
 {
     constexpr std::uint16_t Sword227 = 0x227;
-    // 0x50db57, +0x38e de la mano y de 0x509340 y la luz de 0x509a92, antes del rand() & 1.
+    // 0x50db57, +0x38e of the hand and of 0x509340 and the light of 0x509a92, before the rand() & 1.
     constexpr std::size_t Before = 4;
     const std::uint32_t seed = SeedWhere(
         [](Client::Crt::CrtRandom& random)
@@ -513,7 +512,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     Client::Crt::CrtRandom draws = Skipped(seed, Before + 1);
-    // El hueso 1 de la espada, colgada del 0x21 de la mano: (150; 150; 10 + 33 + 1).
+    // Bone 1 of the sword, hanging from the hand's 0x21: (150, 150, 10 + 33 + 1).
     glm::vec3 point{150.0f, 150.0f, 44.0f};
     point.x = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.x));
     point.y = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.y));
@@ -527,7 +526,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
         ASSERT_TRUE(particles.CreateChecked(0x5c5, point, angles, glm::vec3(1.0f), 0, 1.0f, 0.0f, draws).HasValue());
     }
-    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    static_cast<void>(draws.Next()); // +0x38e of the left one.
     EXPECT_EQ(m_random.State(), draws.State());
     ExpectSameJoints(m_joints, joints);
     ExpectSameParticles(m_particles, particles);
@@ -549,8 +548,9 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     EXPECT_EQ(m_random.State(), Skipped(seed, Before + 1).State());
 }
 
-// 0x50af03..0x50b0a0: el arco 0xa27, con un rand() impar, suelta la chispa 0x5c6/0xb de 0,8 en el hueso 4 y en el 12
-// de su pose, con la luz (0,8; 0,8; 0,2) y los ángulos del personaje; con uno par, no. Los cinco destellos van igual.
+// 0x50af03..0x50b0a0: the bow 0xa27, with an odd rand(), releases the 0x5c6/0xb spark of 0.8 on bones 4 and 12 of its
+// pose, with the light (0.8, 0.8, 0.2) and the character's angles; with an even one, it does not. The five flashes go
+// the same.
 TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
 {
     constexpr std::uint16_t Bow = 0xa27;
@@ -585,17 +585,17 @@ TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
                                                0.0f, draws)
                                 .HasValue());
         }
-        static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+        static_cast<void>(draws.Next()); // +0x38e of the left one.
         EXPECT_EQ(m_random.State(), draws.State());
         ExpectSameParticles(m_particles, particles);
         EXPECT_EQ(LiveSprites().size(), 5u);
     }
 }
 
-// 0x50f454..0x50f676: el bastón 0xc18 en la mano lleva Spark02 y Shiny03 a −145 y, después, cuatro chispas 0x5c5/1
-// corridas (rand() % 20 − 10; rand() % 20 − 100; rand() % 20 − 10) con la luz (l; l · 0,6; l · 0,4) y los ángulos del
-// personaje, y de 0 a −180 un destello de 1 en (0; y + 60; 0) con tres de cada cuatro rand(), con (l; l · 0,2; l ·
-// 0,1).
+// 0x50f454..0x50f676: the staff 0xc18 in the hand carries Spark02 and Shiny03 at −145 and then four 0x5c5/1 sparks
+// shifted (rand() % 20 − 10, rand() % 20 − 100, rand() % 20 − 10) with the light (l, l · 0.6, l · 0.4) and the
+// character's angles, and from 0 to −180 a flash of 1 at (0, y + 60, 0) with three of every four rand() calls, with (l,
+// l · 0.2, l · 0.1).
 TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
 {
     constexpr std::uint16_t Staff = 0xc18;
@@ -608,7 +608,7 @@ TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const float lum = FirstLum();
     const glm::vec3 light{lum, lum * 0.6f, lum * 0.4f};
-    // 0x50db57, +0x38e de la mano y de 0x509340 y la luz de 0x509a92.
+    // 0x50db57, +0x38e of the hand and of 0x509340 and the light of 0x509a92.
     Client::Crt::CrtRandom draws = Skipped(1, 4);
     Client::World::Particles particles;
     for (int spark = 0; spark < 4; ++spark)
@@ -625,7 +625,7 @@ TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
         if ((draws.Next() & 3) < 3)
             flares.push_back(static_cast<float>(y + 60));
     }
-    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    static_cast<void>(draws.Next()); // +0x38e of the left one.
     EXPECT_EQ(m_random.State(), draws.State());
     ExpectSameParticles(m_particles, particles);
     for (std::size_t k = 0; k < 4; ++k)
@@ -651,9 +651,9 @@ TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
     }
 }
 
-// 0x50ed00..0x50ee71: la espada 0x224 en la mano lleva Shiny02 en (0; −20; 15) y suelta desde ahí tres joints 0x614/10
-// sin dueño hasta (0; −133; 7), con los ángulos del personaje y el ancho v · 20 + 20, con v = (sin(reloj · 0,004f) +
-// 1) · 0,3f.
+// 0x50ed00..0x50ee71: the sword 0x224 in the hand carries Shiny02 at (0, −20, 15) and releases from there three
+// 0x614/10 joints without an owner up to (0, −133, 7), with the character's angles and the width v · 20 + 20, with v =
+// (sin(clock · 0.004f) + 1) · 0.3f.
 TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
 {
     const HangingModels models({Sword224});
@@ -665,7 +665,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // Con el reloj en 0: v = 0,3f y el ancho 0,3f · 20 + 20.
+    // With the clock at 0: v = 0.3f and the width 0.3f · 20 + 20.
     const float v = F32(1.0 * D(0.3f));
     const float width = F32(D(v) * 20.0 + 20.0);
     glm::vec3 first{150.0f, 130.0f, 58.0f};
@@ -678,7 +678,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
         const Client::World::FishEffectRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
     }
-    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    static_cast<void>(draws.Next()); // +0x38e of the left one.
     EXPECT_EQ(m_random.State(), draws.State());
     ExpectSameJoints(m_joints, joints);
     for (std::size_t k = 0; k < 3; ++k)
@@ -695,8 +695,8 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     EXPECT_EQ(LiveSprites()[0].position, first);
 }
 
-// 0x50eb43..0x50ecf0: la espada 0x223. Dos joints 0x610/4 de la mano, con el personaje como dueño y sus ángulos, sin
-// rand() ni sprites. Con el reloj en 0, el ancho es 20.
+// 0x50eb43..0x50ecf0: the sword 0x223. Two 0x610/4 joints from the hand, with the character as owner and its angles,
+// without rand() or sprites. With the clock at 0, the width is 20.
 TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
 {
     const HangingModels models({Sword223});
@@ -708,7 +708,7 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
     const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // (0; −20; −40) a (0; −160; −10) y (0; −10; 28) a (0; −145; 18) del hueso 0x21: (150 + x; 150 + y; 43 + z).
+    // (0, −20, −40) to (0, −160, −10) and (0, −10, 28) to (0, −145, 18) of bone 0x21: (150 + x, 150 + y, 43 + z).
     const std::array<std::pair<glm::vec3, glm::vec3>, 2> edges{{
         {{150.0f, 130.0f, 3.0f}, {150.0f, -10.0f, 33.0f}},
         {{150.0f, 140.0f, 71.0f}, {150.0f, 5.0f, 61.0f}},
@@ -737,10 +737,10 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
     EXPECT_TRUE(LiveSprites().empty());
 }
 
-// 0x50b411..0x50b763: el bastón 0xc1e. Spark03 en (0; p − 170; p) del hueso 0 de su pose, que queda en +0x40 del
-// personaje y donde nace el joint 0x618/0x11 con el personaje como dueño; otra p sin efecto y la escala t; un destello,
-// dos Shiny02 y la chispa 0x5c6/0xb de 2 con la luz (1; 0,4; 1); y seis Shiny02 en los huesos 2 y 1 con (a; 0,1; a),
-// girados g y g + 90. Con el reloj en 0, a = 0,5 − 0,1f y g = 0.
+// 0x50b411..0x50b763: the staff 0xc1e. Spark03 at (0, p − 170, p) of bone 0 of its pose, which stays in the character's
+// +0x40 and where the 0x618/0x11 joint is born with the character as owner; another p with no effect and the scale t; a
+// flash, two Shiny02 and the 0x5c6/0xb spark of 2 with the light (1, 0.4, 1); and six Shiny02 on bones 2 and 1 with (a,
+// 0.1, a), turned g and g + 90. With the clock at 0, a = 0.5 − 0.1f and g = 0.
 TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFollowsIt)
 {
     constexpr std::uint16_t Staff = 0xc1e;
@@ -754,7 +754,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     Client::Crt::CrtRandom draws = Skipped(1, 4);
     const float p = F32(static_cast<double>(draws.Next() % 60) * D(0.05f) - D(1.5f));
     const float s = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + D(1.8f));
-    // El hueso 0 del bastón, colgado del 0x21 de la mano: (150; 150; 43).
+    // Bone 0 of the staff, hanging from the hand's 0x21: (150, 150, 43).
     glm::vec3 point{150.0f, F32(D(F32(D(p) - 170.0)) + 150.0), F32(D(p) + 43.0)};
     static_cast<void>(draws.Next() % 60);
     const float t = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + 1.0);
@@ -766,7 +766,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     const glm::vec3 violet{1.0f, 0.4f, 1.0f};
     Client::World::Particles particles;
     ASSERT_TRUE(particles.CreateChecked(0x5c6, point, angles, violet, 11, 2.0f, 0.0f, draws).HasValue());
-    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    static_cast<void>(draws.Next()); // +0x38e of the left one.
     EXPECT_EQ(m_random.State(), draws.State());
     EXPECT_EQ(m_actor.effectOrigin, point);
     ExpectSameJoints(m_joints, joints);
@@ -805,8 +805,8 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     }
 }
 
-// 0x50df80..0x50e05d: Helper02 cuelga del hueso 34 a (20, 0, 0) a media key por frame, y después
-// 0x4ec110 con (20, 0, 15) en el mismo hueso lleva un destello rojo de 1,5.
+// 0x50df80..0x50e05d: Helper02 hangs from bone 34 at (20, 0, 0) at half a key per frame, and then 0x4ec110 with (20, 0,
+// 15) on the same bone carries a red flash of 1.5.
 TEST_F(GameHangingTest, Helper02HangsFromBone34WithItsRedFlare)
 {
     const HangingModels models({Helper02});
@@ -828,7 +828,7 @@ TEST_F(GameHangingTest, Helper02HangsFromBone34WithItsRedFlare)
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
 }
 
-// 0x50df22: en los mapas 18 a 23 no cuelgan ni las alas ni la mascota.
+// 0x50df22: in maps 18 to 23 neither the wings nor the pet hang.
 TEST_F(GameHangingTest, TheEventMapsSkipTheWingsAndThePet)
 {
     const HangingModels models({Helper02});
@@ -844,9 +844,9 @@ TEST_F(GameHangingTest, TheEventMapsSkipTheWingsAndThePet)
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
 }
 
-// 0x413fe0, 0x4142f0 y 0x414470: con el CtlCode en 0x20, +0x360 pasa a 5 y la capa nueva dibuja MuSign en el
-// hueso 20 del cuerpo, corrido (70, −5, 0) y girado 45° en z, sin rand(): el pase base (luz por vértice) y el
-// cromo aditivo en (1; 0,5; 0). Su pose queda en el buffer global, y las alas se posan después.
+// 0x413fe0, 0x4142f0 and 0x414470: with the CtlCode at 0x20, +0x360 goes to 5 and the new layer draws MuSign on bone 20
+// of the body, shifted (70, −5, 0) and turned 45° in z, without rand(): the base pass (per-vertex light) and the
+// additive chrome in (1, 0.5, 0). Its pose stays in the global buffer, and the wings are posed afterwards.
 TEST_F(GameHangingTest, AGameMasterCarriesTheSignOnBone20)
 {
     const HangingModels models({MuSign});
@@ -859,7 +859,7 @@ TEST_F(GameHangingTest, AGameMasterCarriesTheSignOnBone20)
     ASSERT_TRUE(m_actor.layer.has_value());
     EXPECT_EQ(m_actor.layer->animation.action, 0);
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
-    // (70, −5, 0) desde el hueso 20 en (0, 0, 20), más el lugar (150, 150, 10).
+    // (70, −5, 0) from bone 20 at (0, 0, 20), plus the place (150, 150, 10).
     const glm::vec3 origin{220.0f, 145.0f, 30.0f};
     ASSERT_TRUE(m_carry.models.contains(MuSign));
     EXPECT_EQ(m_carry.models.at(MuSign).position, origin);
@@ -871,7 +871,7 @@ TEST_F(GameHangingTest, AGameMasterCarriesTheSignOnBone20)
         EXPECT_NEAR(vertices[first].position.x, origin.x, 1e-3f);
         EXPECT_NEAR(vertices[first].position.y, origin.y, 1e-3f);
         EXPECT_NEAR(vertices[first].position.z, origin.z, 1e-3f);
-        // El (1, 0, 0) de la malla, girado 45° en z.
+        // The mesh's (1, 0, 0), turned 45° in z.
         EXPECT_NEAR(vertices[first + 1].position.x, origin.x + 0.70710677f, 1e-3f);
         EXPECT_NEAR(vertices[first + 1].position.y, origin.y + 0.70710677f, 1e-3f);
     }
@@ -880,9 +880,9 @@ TEST_F(GameHangingTest, AGameMasterCarriesTheSignOnBone20)
     EXPECT_NEAR(vertices[3].color.blue, 0.0f, 1e-6f);
 }
 
-// La capa queda en el registro: con +0x360 en 5 y sin ser GM se sigue dibujando, y 0x4ec200 la avanza 0,5
-// por frame del original (entre frames, como quedó). Sin capa y con el 5 de un GM anterior, la vuelve a crear
-// (Q-C301).
+// The layer stays in the record: with +0x360 at 5 and without being a GM it is still drawn, and 0x4ec200 advances it
+// 0.5 per original frame (between frames, as it was left). Without a layer and with the 5 of an earlier GM, it creates
+// it again (Q-C301).
 TEST_F(GameHangingTest, TheSignStaysInTheRecordAndAdvancesOnlyOnOriginalFrames)
 {
     const HangingModels models({MuSign});
@@ -908,7 +908,7 @@ TEST_F(GameHangingTest, TheSignStaysInTheRecordAndAdvancesOnlyOnOriginalFrames)
     EXPECT_EQ(m_actor.byte360, 5);
 }
 
-// Un GM con la capa de otro tipo la suelta (0x414340 vuelve +0x360 a 0) y crea la 5.
+// A GM with a layer of another kind drops it (0x414340 sets +0x360 back to 0) and creates layer 5.
 TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
 {
     const HangingModels models({MuSign});
@@ -924,9 +924,9 @@ TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
     EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
 }
 
-// 0x414310..0x414330: con +0x360 del 6 al 13, 0x4294b0 (el byte del asedio, 0x7239ec) decide; con el 0 del
-// arranque no dibuja la capa, y con el asedio llama al método de +0x364 y emite el sprite. El 5 y el 14 no lo
-// miran.
+// 0x414310..0x414330: with +0x360 from 6 to 13, 0x4294b0 (the siege byte, 0x7239ec) decides; with the 0 of the start it
+// does not draw the layer, and with the siege it calls the method of +0x364 and emits the sprite. 5 and 14 do not look
+// at it.
 TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
 {
     const HangingModels models({MuSign});
@@ -948,9 +948,9 @@ TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
     }
 }
 
-// 0x414470 y 0x5ffdf0 en Chaos Castle: sin +0x1a1 del héroe la capa se dibuja como en otro mapa; con él, cada frame
-// del original le baja 0,15f al alpha guardado (un dibujo intermedio no), lo dibuja con ese alpha y, cuando queda
-// por debajo de 0,01, ni la posa ni la dibuja.
+// 0x414470 and 0x5ffdf0 in Chaos Castle: without the hero's +0x1a1 the layer is drawn as in another map; with it, each
+// original frame lowers the stored alpha by 0.15f (an intermediate draw does not), draws it with that alpha and, when
+// it drops below 0.01, neither poses nor draws it.
 TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
 {
     const HangingModels models({MuSign});
@@ -990,9 +990,9 @@ TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
     EXPECT_EQ(m_actor.layer->alpha, faded);
 }
 
-// CL9 hito 11, 0x50de63..0x50defd: en Blood Castle (11 a 17) con +0x360 del 1 al 3, el arma del evento (0xc1c,
-// 0x225 y 0xa24) cuelga a la espalda del lugar de las alas, con el lugar de los ítems (0x509340 con 1) pero con la
-// velocidad de las alas y sin volver el frame; fuera de Blood Castle (Lorencia, Devias) no cuelga nada.
+// 0x50de63..0x50defd: in Blood Castle (11 to 17) with +0x360 from 1 to 3, the event's weapon (0xc1c, 0x225 and 0xa24)
+// hangs on the back from the wings' slot, with the items' place (0x509340 with 1) but with the wings' speed and without
+// bringing the frame back; outside Blood Castle (Lorencia, Devias) nothing hangs.
 TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCastle)
 {
     constexpr std::array<std::uint16_t, 3> Weapons{0xc1c, 0x225, 0xa24};
@@ -1023,9 +1023,9 @@ TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCas
             }
             EXPECT_EQ(m_actor.wings.bone, 0x2f);
             EXPECT_EQ(m_actor.wings.speed, 0.25f);
-            // Los tres llevan el cromo de las armas (ChromeWeapon): el cuerpo y el cromo de la malla 0, la única del
-            // modelo del test. El 0xc1c y el 0x225 con el lugar de las espadas desde el hueso 0x2f (como la espada
-            // de la espalda); el 0xa24, con el de las ballestas.
+            // The three carry the weapons' chrome (ChromeWeapon): the body and the chrome of mesh 0, the only one of
+            // the test's model. 0xc1c and 0x225 with the swords' place from bone 0x2f (like the sword on the back);
+            // 0xa24, with the crossbows'.
             ASSERT_EQ(m_batch.Vertices().size(), 6u);
             if (weapon == 3)
                 EXPECT_NE(m_batch.Vertices()[0].position, glm::vec3(130.0f, 155.0f, 97.0f));
@@ -1035,9 +1035,9 @@ TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCas
     }
 }
 
-// 0x50de84 con +0x360 en 5 (un GM): el modelo es el que quedó en [ebp-0x18] (0x50dd97), el del lugar que eligió
-// la espalda aunque no colgara. Fuera de la zona segura es la espada de la derecha, que cuelga dos veces: a la
-// espalda y en la mano. Con el lugar vacío corta (Q-C1332).
+// 0x50de84 with +0x360 at 5 (a GM): the model is the one left in [ebp-0x18] (0x50dd97), that of the slot the back chose
+// even if it did not hang. Outside the safe zone it is the right-hand sword, which hangs twice: on the back and in the
+// hand. With the slot empty it stops (Q-C1332).
 TEST_F(GameHangingTest, AGameMasterInBloodCastleHangsTheWeaponLeftInTheBackSlot)
 {
     {
@@ -1068,7 +1068,7 @@ TEST_F(GameHangingTest, AGameMasterInBloodCastleHangsTheWeaponLeftInTheBackSlot)
     }
 }
 
-// 4140d5..4142a5: ocho variantes del atlas637, creado sin azar y dibujado sobreel hueso20.
+// 0x4140d5..0x4142a5: eight variants of the 0x637 atlas, created without randomness and drawn on bone 20.
 TEST_F(GameHangingTest, EverySiegeRoleCreatesItsAtlasLayerAndDrawsItsFrame)
 {
     const HangingModels models({});
@@ -1095,7 +1095,7 @@ TEST_F(GameHangingTest, EverySiegeRoleCreatesItsAtlasLayerAndDrawsItsFrame)
     }
 }
 
-// 41489c..41494d: sólo maestro(80), con alianza vacía o igual al gremio, usael cuadro de líder.
+// 0x41489c..0x41494d: only a master (0x80), with an empty alliance or one equal to the guild, uses the leader's frame.
 TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
 {
     const HangingModels models({});
@@ -1132,7 +1132,7 @@ TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
     EXPECT_EQ(LiveSprites().front().blend, 0);
 }
 
-// Sin MuSign, el GM corta en0x414470 después de lo ya dibujado; las capas del asedio no necesitan eseBMD.
+// Without MuSign, the GM stops at 0x414470 after what is already drawn; the siege layers do not need that BMD.
 TEST_F(GameHangingTest, AMissingGameMasterModelStopsWithItsAddress)
 {
     {
@@ -1158,8 +1158,8 @@ TEST_F(GameHangingTest, AMissingGameMasterModelStopsWithItsAddress)
     }
 }
 
-// 0x50dcc2: lo que no es un 0x20a salta a 0x50e060, sin la capa de un GM ni el arma del evento; quedan el rand() de
-// 0x50db57 y los cierres de +0x38e de las dos manos.
+// 0x50dcc2: what is not a 0x20a jumps to 0x50e060, without a GM's layer or the event's weapon; the rand() of 0x50db57
+// and the closes of +0x38e of the two hands remain.
 TEST_F(GameHangingTest, AMonsterSkipsTheBackTheLayerAndTheEventWeapon)
 {
     const HangingModels models({MuSign});
@@ -1179,7 +1179,7 @@ TEST_F(GameHangingTest, AMonsterSkipsTheBackTheLayerAndTheEventWeapon)
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
 }
 
-// Entre frames del original (0x509340 con la animación como quedó), lo que cuelga no avanza.
+// Between original frames (0x509340 with the animation as it was left), what hangs does not advance.
 TEST_F(GameHangingTest, BetweenOriginalFramesTheHangingAnimationDoesNotAdvance)
 {
     const HangingModels models({Helper02});

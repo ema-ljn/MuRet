@@ -50,15 +50,15 @@
 #include <string>
 #include <vector>
 
-// Client::Actors::Drawing::DrawGameCharacters (0x510d00 en la escena 5; 06 § El dibujo del juego): el héroe que no se
-// dibuja, el corte en el primer personaje vivo y visto (0x50ba30) y el TerrainWall de 0x42da60 al final.
+// Client::Actors::Drawing::DrawGameCharacters (0x510d00 in scene 5; 06 § El dibujo del juego): the hero that is not
+// drawn, the stop at the first character alive and seen (0x50ba30) and the TerrainWall of 0x42da60 at the end.
 namespace
 {
 using Client::Kernel::ActorState;
 
 constexpr std::size_t Hero = 42;
 
-// Un TerrainWall con el 0x04 en las cuatro celdas debajo de la puerta (119, 114) y en su fila.
+// A TerrainWall with 0x04 in the four cells under the gate (119, 114) and in its row.
 std::unique_ptr<Client::Data::Terrain::TerrainLayer<std::uint16_t>> GateWalls()
 {
     auto walls = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
@@ -70,8 +70,8 @@ std::unique_ptr<Client::Data::Terrain::TerrainLayer<std::uint16_t>> GateWalls()
     return walls;
 }
 
-// 0x510e75: sin un personaje vivo y visto, ninguno va a 0x50ba30; el héroe sin +0x1d8 & 4 tampoco se toca. Al
-// final, 0x42da40 abre las puertas del TerrainWall.
+// 0x510e75: without a character alive and seen, none goes to 0x50ba30; the hero without +0x1d8 & 4 is not touched
+// either. At the end, 0x42da40 opens the TerrainWall's gates.
 TEST(GameCharactersTest, WithoutASeenCharacterThePassOpensTheGates)
 {
     auto actors = std::make_unique<std::array<ActorState, 400>>();
@@ -89,8 +89,8 @@ TEST(GameCharactersTest, WithoutASeenCharacterThePassOpensTheGates)
     EXPECT_EQ((*actors)[Hero].field13c, 0.0f);
 }
 
-// 0x510e40..0x510e73: el héroe con +0x1d8 & 4 no se dibuja aunque esté vivo y visto; en la escena 5 le quedan
-// +0x13c en 1.000 y +0x148, +0x158 y +0x168 en 1. Otro con ese bit no es el héroe y corta.
+// 0x510e40..0x510e73: the hero with +0x1d8 & 4 is not drawn even if it is alive and seen; in scene 5 it is left with
+// +0x13c at 1,000 and +0x148, +0x158 and +0x168 at 1. Another with that bit is not the hero and stops.
 TEST(GameCharactersTest, TheHeroWithControlBitFourIsNotDrawn)
 {
     auto actors = std::make_unique<std::array<ActorState, 400>>();
@@ -145,8 +145,8 @@ TEST(GameCharactersTest, ProjectedHeroSuppressionWritesOnlyTheProjectionBox)
     EXPECT_EQ(boxes[Hero].axisZ, (glm::vec3{10.0f, 11.0f, 1.0f}));
 }
 
-// 0x510ea1: el primer personaje vivo y visto, por lugar, va a 0x50ba30, que MuRet no tiene en el juego: corta
-// con su lugar, sin abrir las puertas (0x42da60 va después del lazo).
+// 0x510ea1: the first character alive and seen, by slot, goes to 0x50ba30, which MuRet does not have in the game: it
+// stops with its slot, without opening the gates (0x42da60 comes after the loop).
 TEST(GameCharactersTest, TheFirstSeenCharacterStopsThePass)
 {
     auto actors = std::make_unique<std::array<ActorState, 400>>();
@@ -200,7 +200,7 @@ public:
     {
         m_skeleton.bones[0].dummy = true;
     }
-    // Más huesos como el primero, hasta `count`: el 26 es el de la marca del gremio (0x5091e0).
+    // More bones like the first, up to `count`: 26 is the guild mark's (0x5091e0).
     void GrowTo(std::size_t count)
     {
         while (m_skeleton.bones.size() < count)
@@ -238,7 +238,7 @@ protected:
         actor.scale = 1.0f;
         actor.alpha = 1.0f;
         actor.pk = 3;
-        actor.animation.action = 0x0d; // 0x4f3a60: caminar sin arma para las clases 0/1
+        actor.animation.action = 0x0d; // 0x4f3a60: walking unarmed for classes 0 and 1
         m_batch.Begin({});
     }
 
@@ -258,7 +258,7 @@ protected:
     Client::Render::ModelBatch m_batch;
 };
 
-// Los vértices de los tramos dibujados con `slot`.
+// The vertices of the stretches drawn with `slot`.
 std::vector<Client::Render::ModelVertex> VerticesWith(const Client::Render::ModelBatch& batch,
                                                       Client::Render::TextureSlot slot)
 {
@@ -276,11 +276,12 @@ std::vector<Client::Render::ModelVertex> VerticesWith(const Client::Render::Mode
     return found;
 }
 
-// 0x50d4fb..0x50d588 y 0x5091e0: otro jugador con gremio lleva la marca (0x5f16a0 con el fondo transparente) en el
-// hueso 26: el quad de 0x621320(5, 7) por R_ConcatTransforms(hueso, AngleMatrix(giro + (80, 45, 135)) con (20, −5,
-// −10)) más la posición, uv (0, 1), (1, 1), (1, 0), (0, 0). Con la armadura 0x1226, z en −18. Sin rand() propios. En
-// Lorencia, en Devias y en Chaos Castle (18), donde no va; tampoco con la bandera 0x4000 de +0x78, ni con un índice
-// cuya clave la tabla no encuentra hasta la cuenta (0x447b30), salvo el 0x7cf, que no la busca.
+// 0x50d4fb..0x50d588 and 0x5091e0: another player with a guild wears the mark (0x5f16a0 with the transparent
+// background) on bone 26: the quad of 0x621320(5, 7) by R_ConcatTransforms(bone, AngleMatrix(turn + (80, 45, 135)) with
+// (20, −5, −10)) plus the position, uv (0, 1), (1, 1), (1, 0), (0, 0). With the armor 0x1226, z at −18. No rand() of
+// its own. In Lorencia, in Devias and in Chaos Castle (18), where it does not go; nor with the 0x4000 flag of +0x78,
+// nor with an index whose key the table does not find up to the count (0x447b30), except 0x7cf, which does not look for
+// it.
 TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwentySix)
 {
     m_models.GrowTo(27);
@@ -330,7 +331,7 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
         ASSERT_EQ(vertices.size(), 6u);
         EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
         const auto points = expectedQuad(-10.0f);
-        // Las dos mitades del quad: (0, 1, 2) y (0, 2, 3).
+        // The quad's two halves: (0, 1, 2) and (0, 2, 3).
         const std::array<std::size_t, 6> order{0, 1, 2, 0, 2, 3};
         const std::array<glm::vec2, 4> uv{{{0, 1}, {1, 1}, {1, 0}, {0, 0}}};
         for (std::size_t i = 0; i < order.size(); ++i)
@@ -351,12 +352,12 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
     Actor().flags78 |= 0x4000;
     EXPECT_TRUE(draw(2, slot).empty());
     Actor().flags78 &= ~0x4000u;
-    // En Chaos Castle, sin el Angel (+0x88 distinto de 1), el cuerpo de siempre y ninguna marca.
+    // In Chaos Castle, without the Angel (+0x88 other than 1), the usual body and no mark.
     const std::uint8_t kind = Actor().byte88;
     Actor().byte88 = 0;
     EXPECT_TRUE(draw(18, slot).empty());
     Actor().byte88 = kind;
-    // La entrada 10 está después de la cuenta (4): 0x447b00 no encuentra su clave.
+    // Entry 10 is past the count (4): 0x447b00 does not find its key.
     Actor().word1f2 = 10;
     guild.table[10].key = 99;
     const Client::Render::TextureSlot tenth = Client::Scenes::GuildMarkTextures::SlotOf(10, true);
@@ -367,21 +368,21 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
     EXPECT_EQ(draw(2, Client::Scenes::GuildMarkTextures::SlotOf(1999, true)).size(), 6u);
 }
 
-// 50e298 abre +38e; 50e503 lee; 50e68a cierra con un rand; 50e746 prueba NoItem después.
-// El lazo repite para ambas manos (50e9ea..f4), aunque las dos estén vacías.
+// 0x50e298 opens +0x38e; 0x50e503 reads; 0x50e68a closes with a rand; 0x50e746 tests NoItem afterwards. The loop
+// repeats for both hands (0x50e9ea..0x50e9f4), even if both are empty.
 TEST_F(UnarmedGameCharacterTest, WalkingUnarmedClosesBothHandBytesAfterTheBodyRandom)
 {
     const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
-    EXPECT_EQ(m_cloth.random.State(), 0x18be873au); // semilla1: 50db57 y dos cierres de un byte
+    EXPECT_EQ(m_cloth.random.State(), 0x18be873au); // seed 1: 0x50db57 and two one-byte closes
     EXPECT_EQ(Actor().byte38eAccesses, 0);
     EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
 }
 
-// 510ea9..510eb3 y42afe0: después del0x20a,42ddb0 emite638 en un defensor cerca de una marca cada10pasos.
-// Los tres CRT del cuerpo/manos preceden a los dos del jitter de la bendición (53fe70).
+// 0x510ea9..0x510eb3 and 0x42afe0: after the 0x20a, 0x42ddb0 emits 0x638 on a defender near a mark every 10 steps. The
+// three CRT calls of the body and the hands come before the two of the blessing's jitter (0x53fe70).
 TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharacterAndItsRandoms)
 {
     m_world->Runtime().map = 30;
@@ -424,7 +425,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeRequiresTheParticlePoolAfterTheBo
     EXPECT_NE(result.Error().find("0x42de7f"), std::string::npos) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
-    // No llega a42da60: el bit04 de las puertas sigue cerrado.
+    // It does not reach 0x42da60: the gates' bit 0x04 stays closed.
     EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 5);
 }
 
@@ -453,7 +454,7 @@ TEST_F(UnarmedGameCharacterTest, TheHeroClosesItsOwnRecordBeforeTheBodyAndTheTwo
         std::uint8_t handDepth;
         std::uint32_t random;
     };
-    // 50ccb5..50d219: 3.848 rand del registro propio; después 50db57 y los dos cierres de +38e.
+    // 0x50ccb5..0x50d219: 3,848 rand calls of the own record; then 0x50db57 and the two closes of +0x38e.
     constexpr std::array cases{Case{0, 0, 0x059c5342}, Case{1, 0, 0x18be873a}, Case{0, 1, 0x46d18088},
                                Case{1, 1, 0x0029e2c0}, Case{255, 255, 0x0029e2c0}};
     m_world->Runtime().hero = 7;
@@ -483,7 +484,7 @@ TEST_F(UnarmedGameCharacterTest, NativeUnarmedStandingWalkingAndRunningActionsRe
         std::uint8_t characterClass;
         std::uint8_t action;
     };
-    // 0x4f2250: parado1 salvo Elf2; 0x4f3a60: caminar0xd salvo Elf0xe, correr0x16.
+    // 0x4f2250: standing 1 except the Elf's 2; 0x4f3a60: walking 0xd except the Elf's 0xe, running 0x16.
     constexpr std::array cases{Case{0, 1},    Case{1, 1},    Case{2, 2},    Case{0, 0x0d}, Case{1, 0x0d},
                                Case{2, 0x0e}, Case{0, 0x16}, Case{1, 0x16}, Case{2, 0x16}};
     for (const Case& probe : cases)
@@ -563,15 +564,14 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
-    EXPECT_EQ(m_cloth.random.State(), 0x3d6c1037u); // seis rand: (cuerpo + dos manos) por dos frames
+    EXPECT_EQ(m_cloth.random.State(), 0x3d6c1037u); // six rand calls: (body + two hands) times two frames
     EXPECT_EQ(Actor().byte38eAccesses, 0);
-    // 0x509340 deja la pose del cuerpo en los huesos propios (+0x120) para el paso siguiente (0x506d25).
+    // 0x509340 leaves the body's pose in the own bones (+0x120) for the next step (0x506d25).
     EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModel)->bones.size());
 }
 
-// Q-C412: 0x6001b0 copia la escala y la posición del personaje al modelo compartido de Player.bmd antes de posar,
-// con el alpha desde 0,01 (0x6b88d4); el cuervo de otro las lee en la zona segura. Un dibujo intermedio no las
-// toca.
+// Q-C412: 0x6001b0 copies the character's scale and position to Player.bmd's shared model before posing, with the alpha
+// from 0.01 (0x6b88d4); another's raven reads them in the safe zone. An intermediate draw does not touch them.
 TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerModel)
 {
     Actor().scale = 1.3f;
@@ -593,7 +593,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerMode
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
 }
 
-// Los vértices de las botas (la textura 0x300 de UnarmedModels), opacas.
+// The boots' vertices (the texture 0x300 of UnarmedModels), opaque.
 std::vector<Client::Render::ModelVertex> BootVertices(const Client::Render::ModelBatch& batch)
 {
     std::vector<Client::Render::ModelVertex> found;
@@ -609,7 +609,7 @@ std::vector<Client::Render::ModelVertex> BootVertices(const Client::Render::Mode
     return found;
 }
 
-// La z de un dibujo: dos NaN son la misma; si no, el mismo valor y el mismo signo (−0 no es +0).
+// The z of a draw: two NaNs are the same; otherwise, the same value and the same sign (−0 is not +0).
 bool SameZ(float drawn, float expected)
 {
     if (std::isnan(expected))
@@ -617,14 +617,14 @@ bool SameZ(float drawn, float expected)
     return drawn == expected && std::signbit(drawn) == std::signbit(expected);
 }
 
-// 0x50bc77..0x50bcbd: con la sombra, en Blood Castle (los mapas 0xb a 0x11), el que muere empujado (+0x1a1 y +0x389)
-// baja a la altura del terreno (0x5f93c0) antes de 0x60cf70 (0x50bcec), que copia ese origen al 0x20b; el cuerpo se
-// dibuja ahí. El fcom con `test ah, 1` escribe también con la z o la altura en NaN; con el terreno a la altura de la z
-// o arriba no escribe: con la z en −0 y el terreno en +0, la z queda en −0 (un `>` la pisaría con +0). Fuera de esos
-// mapas (Devias y Chaos Castle), sin +0x1a1 o sin morirse, la z queda. El suelo va detrás de las guardas de la sombra
-// (0x50bc05..0x50bc71): con el alpha por debajo de 0,5 (en 0,5 baja), con +0x3e4 o con una mascota que se monta
-// (0x1c14, 0x1c15) fuera de la zona segura (+0x3e2), ni sombra ni suelo. Sin las alturas, corta en la llamada a
-// 0x5f93c0.
+// 0x50bc77..0x50bcbd: with the shadow, in Blood Castle (maps 0xb to 0x11), the one that dies pushed (+0x1a1 and +0x389)
+// drops to the terrain height (0x5f93c0) before 0x60cf70 (0x50bcec), which copies that origin to the 0x20b; the body is
+// drawn there. The fcom with `test ah, 1` also writes with the z or the height at NaN; with the terrain at the z's
+// height or above it does not write: with the z at −0 and the terrain at +0, the z stays at −0 (a `>` would overwrite
+// it with +0). Outside those maps (Devias and Chaos Castle), without +0x1a1 or without dying, the z stays. The floor
+// goes behind the shadow's guards (0x50bc05..0x50bc71): with the alpha below 0.5 (at 0.5 it drops), with +0x3e4 or with
+// a pet that is ridden (0x1c14, 0x1c15) outside the safe zone (+0x3e2), neither shadow nor floor. Without the heights,
+// it stops at the call to 0x5f93c0.
 TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 {
     m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -650,7 +650,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
                                           << int{probe.dying} << ", z " << probe.z << ", terreno " << probe.height);
         m_world->Map().terrain.heights->cells.fill(probe.height);
         m_world->Runtime().map = probe.map;
-        // En Chaos Castle, sin el Angel (+0x88 distinto de 1).
+        // In Chaos Castle, without the Angel (+0x88 other than 1).
         Actor().byte88 = probe.map == 0x12 ? std::uint8_t{0} : kind;
         Actor().byte1a1 = probe.byte1a1;
         Actor().dying = probe.dying;
@@ -670,13 +670,13 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         EXPECT_EQ(shadow.scale, 1.0f);
         const auto boots = BootVertices(m_batch);
         ASSERT_EQ(boots.size(), 3u);
-        // El vértice suma el origen a su 0: con −0 sale +0.
+        // The vertex adds the origin to its 0: with −0 it gives +0.
         const float boot = boots[0].position.z;
         EXPECT_TRUE(std::isnan(probe.grounded) ? std::isnan(boot) : boot == probe.grounded) << boot;
     }
     Actor().byte88 = kind;
 
-    // Detrás de las guardas de la sombra: sin ella, la z queda y el 0x20b no se toca.
+    // Behind the shadow's guards: without it, the z stays and the 0x20b is not touched.
     struct Guard
     {
         float alpha;
@@ -720,7 +720,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
     Actor().pet.model = noPet;
     Actor().safeZone = 0;
 
-    // Entre frames del original, el cuerpo va al suelo pero la z no queda ni el 0x20b se toca.
+    // Between original frames, the body goes to the floor but the z does not stay and the 0x20b is not touched.
     Actor().position = {150.0f, 150.0f, 10.0f};
     m_world->PlaceModel(Client::Tables::PlayerShadowModel, {});
     m_batch.Begin({});
@@ -742,12 +742,12 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
     EXPECT_EQ(Actor().position.z, 10.0f);
 }
 
-// 0x50bbf7: 0x6001b0 copia la posición al registro del 0x20a (+0x6c..+0x74, 0x600247..0x600256) antes de las guardas y
-// del suelo de la sombra (0x50bcaf), y nada la vuelve a escribir en 0x50ba30 ([ebp−0x14] se asigna sólo en 0x50ba7f).
-// En Blood Castle, el que muere con la z en 10 y el terreno en 4 deja el origen 10 en el modelo compartido (Q-C412), y
-// los sprites de la piel del mago (0x50eab0: 0x4ec110 con [ebp−0x14] desde 0x50ea70, el hueso 19 con (−4, 11, 0), el
-// 0x5c6 y el 0x5fd) salen desde 10, en (146, 161, 10); las botas y la sombra, en 4. Entre frames del original, lo
-// mismo, sin tocar la z del personaje ni el modelo compartido.
+// 0x50bbf7: 0x6001b0 copies the position to the 0x20a's record (+0x6c..+0x74, 0x600247..0x600256) before the guards and
+// the shadow's floor (0x50bcaf), and nothing writes it again in 0x50ba30 ([ebp−0x14] is only assigned at 0x50ba7f). In
+// Blood Castle, the one that dies with the z at 10 and the terrain at 4 leaves the origin 10 in the shared model
+// (Q-C412), and the sprites of the wizard's skin (0x50eab0: 0x4ec110 with [ebp−0x14] from 0x50ea70, bone 19 with (−4,
+// 11, 0), the 0x5c6 and the 0x5fd) come out from 10, at (146, 161, 10); the boots and the shadow, at 4. Between
+// original frames, the same, without touching the character's z or the shared model.
 TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereTheyStoodBeforeTheGround)
 {
     m_models.GrowTo(20);
@@ -755,8 +755,8 @@ TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereThe
     m_world->Map().terrain.heights->cells.fill(4.0f);
     m_world->Runtime().map = 0xb;
     ActorState& actor = Actor();
-    actor.characterClass = 0; // el mago: 0x50ea38 mira clase & 7 en 0
-    actor.skin = 8;           // 0x50ea51: la piel & 0xf8 en 8
+    actor.characterClass = 0; // the wizard: 0x50ea38 looks for class & 7 at 0
+    actor.skin = 8;           // 0x50ea51: the skin & 0xf8 at 8
     actor.byte1a1 = 1;
     actor.dying = 1;
     actor.position = {150.0f, 150.0f, 10.0f};
@@ -801,9 +801,10 @@ TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereThe
     EXPECT_EQ(sparksAt(), fromTen);
 }
 
-// 0x4959d5: 0x50ba30(personaje, personaje, 0) con el personaje del retrato de las cartas, fuera del pool y con su tela
-// propia. Con +0x3e4 en 1 (0x4959a1) no hay sombra (0x50bc16) ni 0x505820 (0x50c913): el cuerpo sin los 3 vértices de
-// la sombra, con los mismos rand() (el del cuerpo y los dos cierres de las manos). El pool no se toca.
+// 0x4959d5: 0x50ba30(character, character, 0) with the character of the cards' portrait, outside the pool and with its
+// own cloth. With +0x3e4 at 1 (0x4959a1) there is no shadow (0x50bc16) nor 0x505820 (0x50c913): the body without the
+// shadow's 3 vertices, with the same rand() calls (the body's and the two closes of the hands). The pool is not
+// touched.
 TEST_F(UnarmedGameCharacterTest, OutsideThePoolTheLetterPortraitDrawsWithoutItsShadow)
 {
     for (const std::int32_t map : {0, 2})
@@ -843,8 +844,8 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
         const char* cut;
         std::uint32_t random;
     };
-    // 50e060 omite la espalda; 50e06b..50e0ba elige el efecto antes del primer acceso a +38e. Sin el
-    // efecto, +0x78 en 0x800 o 0x4800 no tiene ni 4 ni 0x2000000: 0x50fba4 no corre y el dibujo termina.
+    // 0x50e060 skips the back; 0x50e06b..0x50e0ba chooses the effect before the first access to +0x38e. Without the
+    // effect, +0x78 at 0x800 or 0x4800 has neither 4 nor 0x2000000: 0x50fba4 does not run and the draw ends.
     constexpr std::array cases{
         Case{30, 1, 0x800, "0x50e0c0", 0x0029e2c0},
         Case{31, 1, 0x800, nullptr, 0x18be873a},
@@ -873,16 +874,16 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
         }
         EXPECT_EQ(m_cloth.random.State(), probe.random);
         EXPECT_EQ(Actor().byte38eAccesses, 0);
-        // Sin corte, 0x42da60 abre las puertas al final del pase: la celda pierde el 0x04.
+        // Without a stop, 0x42da60 opens the gates at the end of the pass: the cell loses the 0x04.
         EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)],
                   probe.cut == nullptr ? 1 : 5);
         m_world->Map().terrain.attributes->cells = *GateWalls();
     }
 }
 
-// 0x511290 le da al personaje su buffer de huesos (+0x11c en 1 en 0x511bf7, +0x120): el cuerpo no pasa por el
-// buffer global (0x68b181c) ni en un frame del original ni en uno proyectado, y sólo el frame del original lo
-// guarda en el propio.
+// 0x511290 gives the character its bone buffer (+0x11c at 1 at 0x511bf7, +0x120): the body does not go through the
+// global buffer (0x68b181c) in an original frame or in a projected one, and only the original frame stores it in its
+// own.
 TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     for (const int frames : {0, 1})
@@ -914,8 +915,8 @@ TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose
     }
 }
 
-// El cuerpo arranca de su buffer propio: un hueso dummy (0x4eb973 no lo escribe) conserva lo que dejó el dibujo
-// anterior del personaje, no lo que haya en el global.
+// The body starts from its own buffer: a dummy bone (0x4eb973 does not write it) keeps what the character's previous
+// draw left, not what is in the global one.
 TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 {
     m_models.RetainTheDummyRoot();
@@ -937,7 +938,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), 6u);
-        // La bota empieza después del triángulo de la sombra: vértice0 + dummy propio + posición del actor.
+        // The boot starts after the shadow's triangle: vertex 0 + own dummy + the actor's position.
         EXPECT_EQ(m_batch.Vertices()[3].position, (glm::vec3{157.0f, 161.0f, 23.0f}));
         ASSERT_EQ(Actor().bodyPose.size(), 1u);
         EXPECT_EQ(Actor().bodyPose[0], own);
@@ -945,7 +946,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
         EXPECT_EQ(Actor().byte38eAccesses, 0);
     }
 }
-// El personaje como lo arma el caller del login o de la selección: el cuerpo de su paso, sin lo que cuelga.
+// The character as the caller of the login or the selection sets it up: the body of its step, without what hangs.
 Client::Actors::Drawing::DrawnCharacter Drawn(const ActorState& actor)
 {
     Client::Actors::Drawing::DrawnCharacter character;
@@ -955,10 +956,10 @@ Client::Actors::Drawing::DrawnCharacter Drawn(const ActorState& actor)
     return character;
 }
 
-// 0x50db57..0x510a7a en el login y la selección, que corren el mismo 0x50ba30 que el juego: el rand() de 0x50db57 y
-// los dos cierres de +0x38e de las manos, como en DrawGameCharacters, y el cuerpo en sus huesos propios. Sin
-// 0x510ef0, que sólo corre en la escena 5 (0x510a80): con +0x369 en 1 el juego crea el 0x140 (aquí, sin la tabla de
-// efectos ni las partículas en el pase, corta en 0x510f4d) y esto no.
+// 0x50db57..0x510a7a in the login and the selection, which run the same 0x50ba30 as the game: the rand() of 0x50db57
+// and the two closes of +0x38e of the hands, as in DrawGameCharacters, and the body in its own bones. Without 0x510ef0,
+// which only runs in scene 5 (0x510a80): with +0x369 at 1 the game creates the 0x140 (here, without the effects table
+// or the particles in the pass, it stops at 0x510f4d) and this does not.
 TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithoutTheSceneFiveEffect)
 {
     Actor().byte88 = 1;
@@ -979,7 +980,7 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithou
     EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Tables::PlayerSkeletonModel)->bones.size());
 }
 
-// Entre frames del original, sobre copias: ni el rand(), ni los huesos propios, ni el modelo compartido.
+// Between original frames, on copies: neither the rand(), nor the own bones, nor the shared model.
 TEST_F(UnarmedGameCharacterTest, OutsideTheGameAnIntermediateTailSpendsNothing)
 {
     const auto tail = Client::Actors::Drawing::DrawCharacterTail(
@@ -991,8 +992,8 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameAnIntermediateTailSpendsNothing)
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
 }
 
-// 0x510abd: el cuervo corre en todas las escenas. Sin el trapecio, el juego corta en 0x418320; fuera del juego lo
-// dibuja el caller (el login), y la cola no lo toca.
+// 0x510abd: the raven runs in every scene. Without the trapezoid, the game stops at 0x418320; outside the game the
+// caller draws it (the login), and the tail does not touch it.
 TEST_F(UnarmedGameCharacterTest, OutsideTheGameWithoutTheTrapezoidTheCallerDrawsTheRaven)
 {
     Actor().darkSpirit.emplace();
@@ -1007,7 +1008,7 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameWithoutTheTrapezoidTheCallerDraws
     ASSERT_TRUE(tail.HasValue()) << tail.Error();
 }
 
-// Sin el flujo global de rand, no hay cola.
+// Without the global rand flow, there is no tail.
 TEST_F(UnarmedGameCharacterTest, TheTailNeedsTheGlobalRandom)
 {
     auto pass = Pass();

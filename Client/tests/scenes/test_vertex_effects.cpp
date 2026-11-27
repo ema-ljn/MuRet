@@ -82,7 +82,7 @@ TEST(VertexEffectsTest, GateChildrenUseThePublishedScratchAndRunTheirConstructor
     const std::array meshes{Client::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(2), expected(2);
-    // CRT seed2:45%3=0; segundo sorteo elige12f/130; ocho del constructor.
+    // CRT seed 2: 45 % 3 = 0; the second draw chooses 0x12f/0x130; eight from the constructor.
     expected.Discard(10);
     const auto result =
         Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x12f, 0, *effects, random);
@@ -131,9 +131,9 @@ TEST(VertexEffectsTest, TheTwoProjectileFamiliesPreserveTheirDifferentChildSubty
         EXPECT_EQ(random.State(), expected.State());
     }
 }
-// 0x4eed94..0x4eee66: el 0x13c saca un rand() % 45 por esquina; con 0 y menos de 20 contados, el /0 crea el 0x13c/0
-// (ocho rand() de su alta) y el /1 el 0x12d/2 y el 0x12e/2 (ocho cada uno), con los ángulos en 0 y la luz 1; otro
-// subtipo solo cuenta. Desde los 20, solo el rand() de cada esquina.
+// 0x4eed94..0x4eee66: 0x13c draws one rand() % 45 per corner; with 0 and fewer than 20 counted, /0 creates the 0x13c/0
+// (eight rand() calls of its addition) and /1 the 0x12d/2 and the 0x12e/2 (eight each), with the angles at 0 and the
+// light at 1; another subtype only counts. From 20 on, only each corner's rand().
 TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
 {
     VertexModels models;
@@ -187,7 +187,7 @@ using Client::Actors::Drawing::EmitVertexEffectsOf;
 using Client::Crt::CrtRandom;
 using Client::Models::SkinnedMesh;
 
-// Un modelo con `count` triángulos de una esquina (el vértice 0) en la malla 0.
+// A model with `count` triangles of one corner (vertex 0) in mesh 0.
 Client::Data::Models::Model OneCornerModel(std::size_t count)
 {
     Client::Data::Models::Model model;
@@ -203,8 +203,8 @@ std::size_t Alive(const Client::World::ModelEffects& effects)
         std::ranges::count_if(effects.Effects(), [](const auto& effect) { return effect.alive; }));
 }
 
-// 0x4ee8e4..0x4ee9d3: el 0x10a/1 y /2 sueltan el 0x10b/2 y /3 sin rand() propios (los ocho de su alta); el /3, el 0x10a
-// + (rand() & 1) con el subtipo 4. Otro subtipo, nada.
+// 0x4ee8e4..0x4ee9d3: 0x10a/1 and /2 release the 0x10b/2 and /3 without rand() calls of their own (the eight of their
+// addition); /3, the 0x10a + (rand() & 1) with subtype 4. Another subtype, nothing.
 TEST(VertexEffectsTest, TheStonesOfTheStruckGlowTakeTheirSubtypes)
 {
     const auto model = OneCornerModel(1);
@@ -239,8 +239,8 @@ TEST(VertexEffectsTest, TheStonesOfTheStruckGlowTakeTheirSubtypes)
     }
 }
 
-// 0x4ee9d8..0x4eeb3b: el 0x10c con la luz en 0,2f: el /0, rand() % 12 (0x10d/0) y rand() % 50 (0x10c/0); el /1,
-// rand() % 5 (0x10d/2) y rand() % 10 (0x10c/2); cada alta antes del rand() siguiente. Otro subtipo, sin rand().
+// 0x4ee9d8..0x4eeb3b: 0x10c with the light at 0.2f: /0, rand() % 12 (0x10d/0) and rand() % 50 (0x10c/0); /1, rand() % 5
+// (0x10d/2) and rand() % 10 (0x10c/2); each addition before the next rand(). Another subtype, without rand().
 TEST(VertexEffectsTest, TheGateStonesComeWithADimLight)
 {
     const auto model = OneCornerModel(300);
@@ -284,9 +284,9 @@ TEST(VertexEffectsTest, TheGateStonesComeWithADimLight)
     }
 }
 
-// 0x4eee6b..0x4eeec1: el 0x137 saca un rand() % 8 por esquina; con 0, la cáscara 0x137 del subtipo pedido (el del joint
-// 0x632, también el 1) en la esquina, con los ángulos en 0 y la luz 1, y los nueve rand() de su alta. Con la tabla
-// llena, sólo el de cada esquina.
+// 0x4eee6b..0x4eeec1: 0x137 draws one rand() % 8 per corner; with 0, the 0x137 shell of the requested subtype (that of
+// the 0x632 joint, also 1) at the corner, with the angles at 0 and the light at 1, and the nine rand() calls of its
+// addition. With the table full, only each corner's.
 TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
 {
     VertexModels models;
@@ -345,9 +345,9 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
     }
 }
 
-// 0x4eeec6..0x4eef14: el 0x5ac/0, un sprite 0x5ac por esquina con la escala del modelo (+0x68) y la luz en 0,08f, sin
-// rand(). 0x4eef19..0x4eefca: el /1, en los triángulos 0 y 22, dos rand() y el joint 0x613/0xd; sin el personaje del
-// quinto argumento, corta en la llamada a 0x530860.
+// 0x4eeec6..0x4eef14: 0x5ac/0, one 0x5ac sprite per corner with the model's scale (+0x68) and the light at 0.08f,
+// without rand(). 0x4eef19..0x4eefca: /1, on triangles 0 and 22, two rand() calls and the 0x613/0xd joint; without the
+// fifth argument's character, it stops at the call to 0x530860.
 TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangles)
 {
     const auto model = OneCornerModel(23);
@@ -397,8 +397,8 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
                                     {.joints = joints}, shout)
                     .HasValue());
     EXPECT_EQ(shout.State(), expected.State());
-    // A mano, con la semilla 9 (68, 6151, 18175, 22398) y el giro en 45: (−68; 0; 31 − 60 + 45) y (−85; 0; 78 − 60 +
-    // 45). El alta del 0x613/0xd (0x53312c) no saca rand(): cuatro en total.
+    // By hand, with seed 9 (68, 6151, 18175, 22398) and the turn at 45: (−68, 0, 31 − 60 + 45) and (−85, 0, 78 − 60 +
+    // 45). The addition of the 0x613/0xd (0x53312c) draws no rand(): four in total.
     CrtRandom four(9);
     for (int draw = 0; draw < 4; ++draw)
         static_cast<void>(four.Next());
@@ -418,8 +418,8 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
     EXPECT_NE(cut.Error().find("0x4eefc5"), std::string::npos) << cut.Error();
 }
 
-// 0x4eefd6..0x4ef02e: el 0x607, rand() % 30 por esquina y con 0 la partícula 0x607/2 de escala 1 con la luz en 1. Otro
-// tipo (el 0x10b, el 0x5ad) no saca rand().
+// 0x4eefd6..0x4ef02e: 0x607, rand() % 30 per corner and with 0 the 0x607/2 particle of scale 1 with the light at 1.
+// Another type (0x10b, 0x5ad) draws no rand().
 TEST(VertexEffectsTest, TheFadingParticlesComeOneInThirty)
 {
     const auto model = OneCornerModel(200);

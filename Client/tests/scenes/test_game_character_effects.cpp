@@ -54,9 +54,9 @@
 #include <string_view>
 #include <vector>
 
-// La cola de 0x50ba30 (0x50ea20..0x510ab6) y el cuervo de 0x420df0, contra el ASM de c32bbd5f. Los floats
-// esperados salen de la aritmética del ASM en double y float (los bits, en hexadecimal); los rand(), del
-// CRT con la semilla 1.
+// The tail of 0x50ba30 (0x50ea20..0x510ab6) and the raven of 0x420df0, against the ASM of c32bbd5f. The expected floats
+// come from the ASM's arithmetic in double and float (the bits, in hexadecimal); the rand() calls, from the CRT with
+// seed 1.
 namespace
 {
 using Client::Actors::Drawing::GameCharacterEffectsPass;
@@ -78,7 +78,7 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-// Cuántos rand() hay que sacar con la semilla 1 para que el siguiente cumpla `wanted`.
+// How many rand() calls must be drawn with seed 1 for the next one to meet `wanted`.
 template <typename Predicate> std::size_t RandomsBefore(Predicate wanted)
 {
     CrtRandom random{1};
@@ -89,7 +89,7 @@ template <typename Predicate> std::size_t RandomsBefore(Predicate wanted)
     }
 }
 
-// Cuántos rand() hay que sacar con la semilla 1 para que los dos siguientes cumplan `first` y `second`.
+// How many rand() calls must be drawn with seed 1 for the next two to meet `first` and `second`.
 template <typename First, typename Second> std::size_t RandomsBeforePair(First first, Second second)
 {
     CrtRandom random{1};
@@ -103,7 +103,7 @@ template <typename First, typename Second> std::size_t RandomsBeforePair(First f
     }
 }
 
-// Los rand() de la semilla 1 desde el que sigue a los primeros `skipped`.
+// The rand() calls of seed 1 from the one after the first `skipped`.
 std::vector<int> RandomsAfter(std::size_t skipped, std::size_t count)
 {
     CrtRandom random{1};
@@ -162,8 +162,8 @@ protected:
             part.model = 0xffff;
         m_actor.hands[0].bone = 0x21;
         m_actor.hands[1].bone = 0x2a;
-        // El hueso k sin giro y en (0, 0, k): el punto de 0x4ec110 es el corrimiento más (0, 0, k) más la
-        // posición del personaje.
+        // Bone k without a turn and at (0, 0, k): the point of 0x4ec110 is the shift plus (0, 0, k) plus the
+        // character's position.
         m_body.assign(48, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < m_body.size(); ++bone)
             m_body[bone][3] = {0.0f, 0.0f, static_cast<float>(bone)};
@@ -217,7 +217,7 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinPutsTheSparkAndTheShinyOnBoneNinetee
     EXPECT_EQ(sprites[0].scale, Float(0x3f19999au));
     EXPECT_EQ(sprites[0].light, glm::vec3(1.0f));
     EXPECT_EQ(sprites[0].blend, 0);
-    // sin(1000 · 0,001f) · 0,4f.
+    // sin(1000 · 0.001f) · 0.4f.
     EXPECT_EQ(sprites[1].texture, 0x5fd);
     EXPECT_EQ(sprites[1].position, point);
     EXPECT_EQ(sprites[1].scale, Float(0x3eac5551u));
@@ -244,7 +244,7 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinNeedsClassZeroTheSkinBitsAndTheVisib
         const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        // La clase 8 tiene (8 & 7) en 0: también es del mago.
+        // Class 8 has (8 & 7) at 0: it is also the wizard's.
         EXPECT_EQ(LiveSprites(m_sprites).size(), probe.characterClass == 8 ? 2u : 0u);
     }
 }
@@ -268,7 +268,7 @@ TEST_F(GameCharacterEffectsTest, TheLightningActionOutsideTheDarkLordPutsThreeSp
         EXPECT_EQ(sprite.texture, 0x5d5);
         EXPECT_EQ(sprite.position, point);
     }
-    // s = 3 · 0,1f; s · 0,3f, s y s · 2,5, con ∓ftol(1234,5) · 0,1f de giro.
+    // s = 3 · 0.1f; s · 0.3f, s and s · 2.5, with ∓ftol(1234.5) · 0.1f of turn.
     EXPECT_EQ(sprites[0].scale, Float(0x3db851ecu));
     EXPECT_EQ(sprites[0].light, glm::vec3(Float(0x3dcccccdu), Float(0x3dcccccdu), 1.0f));
     EXPECT_EQ(sprites[0].rotation, 0.0f);
@@ -281,9 +281,9 @@ TEST_F(GameCharacterEffectsTest, TheLightningActionOutsideTheDarkLordPutsThreeSp
     EXPECT_EQ(m_random.State(), 1u);
 }
 
-// 0x50f96c..0x50f9c6 y 0x50fac5..0x50fb9c: en [1,2; 1,6) el brillo 0x621/2 con el personaje de dueño y el sonido
-// 0x1cc; en [7, 8) dos 0x117/2 sin dueño en la mano (+0x2bd), con (180, 45, 0) y (0, 0, z) y la luz (0,8f; 0,5f; 1).
-// Fuera de las ventanas o entre frames, nada. Ninguna saca rand(). Sin el mundo, cortan.
+// 0x50f96c..0x50f9c6 and 0x50fac5..0x50fb9c: in [1.2, 1.6) the 0x621/2 glow with the character as owner and the sound
+// 0x1cc; in [7, 8) two 0x117/2 without an owner in the hand (+0x2bd), with (180, 45, 0) and (0, 0, z) and the light
+// (0.8f, 0.5f, 1). Outside the windows or between frames, nothing. None draws rand(). Without the world, they stop.
 TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideTheirFramesOfAnOriginalFrame)
 {
     enum class Window : std::uint8_t
@@ -365,7 +365,7 @@ TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideThe
             EXPECT_FALSE(world->Runtime().lastSoundId.has_value());
         }
 
-        // Sin el mundo, las ventanas cortan con su dirección; fuera de ellas, nada.
+        // Without the world, the windows stop with their address; outside them, nothing.
         pass.world = nullptr;
         m_random = CrtRandom{1};
         const auto alone = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
@@ -382,8 +382,8 @@ TEST_F(GameCharacterEffectsTest, TheActionWindowsCreateTheirEffectsOnlyInsideThe
     }
 }
 
-// 0x50fba4..0x50fbcf: con 0x4 o 0x2000000 en +0x78 y sin 0x4000, las manos brillan: un rand() y tres sprites por mano.
-// Entre frames, sin los joints.
+// 0x50fba4..0x50fbcf: with 0x4 or 0x2000000 in +0x78 and without 0x4000, the hands glow: one rand() and three sprites
+// per hand. Between frames, without the joints.
 TEST_F(GameCharacterEffectsTest, TheGlowFlagsLightTheHandsWithTheExactConditionOfTheAssembly)
 {
     struct Case
@@ -410,10 +410,10 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsLightTheHandsWithTheExactConditionO
     }
 }
 
-// 0x50fbe5..0x50fd5c en un frame del original: por mano, k = (rand() % 30 + 70) · 0,01f (con la semilla 1, 41 y
-// 18.467: 81 y 87) y la luz (k; k · 0,3f; k · 0,2f), con k sin guardar en float para los productos; los sprites 0x5fd
-// de escala 1,5 en los huesos mano, mano − 6 y mano − 7 con el corrimiento de [ebp−0x50] (acá 0). Después, sin un
-// 0x10f/4 ni /9 suyo, cinco 0x10f/4 de ancho 20 desde él, con sus ángulos y el +0x3a4 con signo de blanco (+0xa0c).
+// 0x50fbe5..0x50fd5c in an original frame: per hand, k = (rand() % 30 + 70) · 0.01f (with seed 1, 41 and 18,467: 81 and
+// 87) and the light (k, k · 0.3f, k · 0.2f), with k not stored as a float for the products; the 0x5fd sprites of scale
+// 1.5 on bones hand, hand − 6 and hand − 7 with the shift of [ebp−0x50] (here 0). Then, without a 0x10f/4 or /9 of its
+// own, five 0x10f/4 of width 20 from it, with its angles and the signed +0x3a4 as the target (+0xa0c).
 TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
 {
     m_actor.flags78 = 0x2000000;
@@ -451,7 +451,7 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
     }
     EXPECT_EQ(m_random.State(), AfterRandoms(2));
 
-    // Con un 0x10f/9 suyo vivo, ninguno más; los sprites y los rand() igual.
+    // With a live 0x10f/9 of its own, no more; the sprites and the rand() calls the same.
     for (auto& joint : m_joints)
         joint.alive = false;
     m_joints[7].alive = true;
@@ -465,18 +465,19 @@ TEST_F(GameCharacterEffectsTest, TheGlowFlagsBindTheCharacterWithFiveAuras)
     EXPECT_EQ(LiveSprites(m_sprites).size(), 6u);
     EXPECT_EQ(m_random.State(), AfterRandoms(2));
 
-    // El de otro dueño o con otro subtipo no cuenta.
+    // One of another owner or with another subtype does not count.
     m_joints[7].subtype = 2;
     ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
     EXPECT_EQ(LiveJoints(m_joints).size(), 6u);
 }
 
-// 0x50f9c9..0x50fac2: por debajo del frame 2 (0x6b8818) y con party, 0x59e680 sobre el nombre. Fuera de la party salta
-// a 0x510a7a, sin las banderas de 0x50fba4, también entre frames. En la party, los joints 0x618 hacia otro miembro a la
-// vista (+0x1c en 0 o más y no él) nacen en un frame del original (0x50fa74 y 0x50fa97: /0xc y /0xd de ancho 20, desde
-// el miembro 150 más arriba, con él de dueño) y después siguen las banderas (0x4: dos rand(), seis sprites y, en un
-// frame del original, cinco 0x10f/4). Con el frame en 2 o sin party, también las banderas. Cada 0x618/0xc y /0xd saca
-// tres rand() (el sentido en 0x53217c y los dos giros en 0x5321af y 0x5321c5): seis por miembro, y ninguno sin joints.
+// 0x50f9c9..0x50fac2: below frame 2 (0x6b8818) and with a party, 0x59e680 on the name. Outside the party it jumps to
+// 0x510a7a, without the flags of 0x50fba4, also between frames. In the party, the 0x618 joints toward another member in
+// view (+0x1c at 0 or more and not itself) are born in an original frame (0x50fa74 and 0x50fa97: /0xc and /0xd of width
+// 20, from the member 150 higher, with it as owner) and then the flags follow (0x4: two rand() calls, six sprites and,
+// in an original frame, five 0x10f/4). With the frame at 2 or without a party, also the flags. Each 0x618/0xc and /0xd
+// draws three rand() calls (the direction at 0x53217c and the two turns at 0x5321af and 0x5321c5): six per member, and
+// none without joints.
 TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
 {
     struct Case
@@ -548,8 +549,8 @@ TEST_F(GameCharacterEffectsTest, BelowFrameTwoTheActionsReadTheParty)
     }
 }
 
-// 0x50fd74..0x50fdd5: con +0x358, cada dibujo cuenta; con 100 o más y la acción por debajo de 0xd, el 5ac/3 en el
-// personaje (0x518cf0 → 0x51e489) y el contador vuelve a 0 antes de contar. Sin rand().
+// 0x50fd74..0x50fdd5: with +0x358, each draw counts; with 100 or more and the action below 0xd, the 0x5ac/3 on the
+// character (0x518cf0 → 0x51e489) and the counter goes back to 0 before counting. No rand().
 TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundredthWithALowAction)
 {
     m_actor.byte358 = 1;
@@ -585,7 +586,7 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     EXPECT_FALSE(m_effects.Effects()[1].alive);
     EXPECT_EQ(m_random.State(), 1u);
 
-    // Entre frames, sobre la copia del caller: vuelve a 0 y cuenta, sin el efecto.
+    // Between frames, on the caller's copy: it goes back to 0 and counts, without the effect.
     m_actor.counter35c = 100;
     GameCharacterEffectsPass projected = Pass();
     projected.originalFrame = false;
@@ -594,7 +595,7 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     EXPECT_FALSE(m_effects.Effects()[1].alive);
     EXPECT_EQ(m_random.State(), 1u);
 
-    // Sin la tabla de efectos, corta con la dirección de la llamada.
+    // Without the effects table, it stops with the call's address.
     m_actor.counter35c = 100;
     GameCharacterEffectsPass missing = Pass();
     missing.effects = nullptr;
@@ -603,9 +604,9 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     EXPECT_NE(cut.Error().find("0x50fdc3"), std::string::npos) << cut.Error();
 }
 
-// 0x52a9ad: el rand() de la luz, +0xd8 uno más y, con la vida múltiplo de 15, el giro z 180 más y la posición a 50 del
-// dueño con el seno de la suma sin redondear y el coseno del float guardado, 20 más arriba, con un 619/9 ahí. La cola
-// común descuenta la vida: con 30, dos joints y muere en el paso 30.
+// 0x52a9ad: the light's rand(), +0xd8 one more and, with the life a multiple of 15, the z turn 180 more and the
+// position at 50 from the owner with the sine of the unrounded sum and the cosine of the stored float, 20 higher, with
+// a 0x619/9 there. The common tail takes off the life: with 30, two joints and it dies at step 30.
 TEST_F(GameCharacterEffectsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenStepsWithAnEnergyJoint)
 {
     using Client::Math::Detail::CosineProductPC53;
@@ -661,14 +662,14 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenSteps
         EXPECT_EQ(joints[index].width, 10.0f);
         EXPECT_EQ(joints[index].key, -1);
     }
-    // El primer 619/9 nace en el dueño de entonces; el segundo en la posición nueva.
+    // The first 0x619/9 is born on the owner of then; the second at the new position.
     EXPECT_EQ(joints[0].field9ec, 213);
     EXPECT_EQ(joints[0].position, glm::vec3(100.0f, 200.0f, 300.0f));
     EXPECT_EQ(joints[1].field9ec, 393);
     EXPECT_EQ(joints[1].position, m_actor.position);
 }
 
-// Sin dueño, el 5ac/3 no se corre ni suelta joints; otro efecto no es el 5ac/3.
+// Without an owner, the 0x5ac/3 neither moves nor releases joints; another effect is not the 0x5ac/3.
 TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEffectsAreRefused)
 {
     ASSERT_TRUE(m_effects.CreateFullSetFlare(m_actor.position, {}, glm::vec3(0.5f), nullptr).has_value());
@@ -688,10 +689,10 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     EXPECT_NE(refused.Error().find("0x52a9ad"), std::string::npos) << refused.Error();
 }
 
-// 0x52b9a6 → 0x518900: el calco 0x61e/1 de la mascota saca el rand() de la luz y, por cada uno de sus tres 619/1, el
-// giro (rand() % 90, 0, rand() % 360); cada joint nace donde ese giro lleva (0, −200, 0) restado de la posición del
-// calco, 120 más arriba, con ancho 5, key −1 y el héroe de dueño. La cola común descuenta la vida: con 20, muere en el
-// paso 20.
+// 0x52b9a6 → 0x518900: the pet's 0x61e/1 decal draws the light's rand() and, for each of its three 0x619/1, the turn
+// (rand() % 90, 0, rand() % 360); each joint is born where that turn takes (0, −200, 0) subtracted from the decal's
+// position, 120 higher, with width 5, key −1 and the hero as owner. The common tail takes off the life: with 20, it
+// dies at step 20.
 TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwnerEachStep)
 {
     m_actor.position = {1300.0f, 1700.0f, 290.0f};
@@ -741,7 +742,7 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     EXPECT_EQ(m_random.State(), AfterRandoms(7 * 20));
 }
 
-// 0x52b984..0x52bb2c: el /0 no emite joints y va a la cola común, con un solo rand() por paso.
+// 0x52b984..0x52bb2c: /0 emits no joints and goes to the common tail, with a single rand() per step.
 TEST_F(GameCharacterEffectsTest, TheLevelUpDecalExpiresWithoutAJointTable)
 {
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, 0).has_value());
@@ -757,7 +758,7 @@ TEST_F(GameCharacterEffectsTest, TheLevelUpDecalExpiresWithoutAJointTable)
     }
 }
 
-// Otro efecto no es el 0x61e/0, /1 ni /3, y sin la tabla de joints el /1 corta antes de sacar rand().
+// Another effect is not the 0x61e/0, /1 or /3, and without the joint table /1 stops before drawing rand().
 TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJointTable)
 {
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor).has_value());
@@ -775,9 +776,9 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
 
-// 0x52b9a6 → 0x518900 con el /3 de la 0x1c y de las invocaciones: el rand() de la luz y, como el /1, tres joints
-// 619/3 (0x5189cc), cada uno con los dos rand() de su giro, con el personaje de dueño. Con la tabla de joints llena,
-// ninguno y sigue: los mismos siete rand() y la cola.
+// 0x52b9a6 → 0x518900 with the /3 of the 0x1c and of the summons: the light's rand() and, like /1, three 0x619/3 joints
+// (0x5189cc), each with the two rand() calls of its turn, with the character as owner. With the joint table full, none,
+// and it goes on: the same seven rand() calls and the tail.
 TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
 {
     ASSERT_TRUE(
@@ -814,9 +815,10 @@ TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
     EXPECT_EQ(summon.life, 18);
 }
 
-// 0x52a8a7: el 5ac/2 de la 0x35 saca el rand() de la luz, deja la vida en 10 con el dueño vivo con 0x400 (en 0 si no) y
-// sube +0xd8; cada 50 gira 50 en z, se pone a 80 del dueño (el seno de la suma sin redondear, el coseno del float
-// guardado) y 50 más arriba, y suelta un 619/9 de ancho 15 ahí. La cola descuenta la vida.
+// 0x52a8a7: the 0x5ac/2 of the 0x35 draws the light's rand(), leaves the life at 10 with the owner alive with 0x400 (at
+// 0 otherwise) and raises +0xd8; every 50 it turns 50 in z, places itself at 80 from the owner (the sine of the
+// unrounded sum, the cosine of the stored float) and 50 higher, and releases a 0x619/9 of width 15 there. The tail
+// takes off the life.
 TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWithAnEnergyJoint)
 {
     using Client::Math::Detail::CosineProductPC53;
@@ -869,7 +871,7 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     EXPECT_EQ(joints[0].width, 15.0f);
     EXPECT_EQ(joints[0].key, -1);
 
-    // Sin 0x400 la vida queda en 0 y muere en la cola; con 0x4000 en el dueño, no cuenta ni se corre.
+    // Without 0x400 the life stays at 0 and it dies in the tail; with 0x4000 on the owner, it neither counts nor moves.
     m_actor.flags78 = 0x4000;
     const float counted = flare.speed;
     ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random).HasValue());
@@ -879,7 +881,7 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     EXPECT_EQ(m_random.State(), AfterRandoms(51));
 }
 
-// 0x52a866/0x52a89a: el selector precede las dos altas, aun con la tabla llena o en el paso final.
+// 0x52a866/0x52a89a: the selector comes before the two additions, even with the table full or at the final step.
 TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheCommonTail)
 {
     for (const std::size_t freeSlots : std::array<std::size_t, 3>{0, 1, 2})
@@ -907,7 +909,7 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
         for (std::size_t slot = 0; slot < freeSlots; ++slot)
         {
             const auto& child = m_particles.All()[slot];
-            EXPECT_EQ(child.rotation, slot == 0 ? 26.0f : 35.0f); // CRT(1): R2=18467, k=1.
+            EXPECT_EQ(child.rotation, slot == 0 ? 26.0f : 35.0f); // CRT(1): R2 = 18467, k = 1.
             EXPECT_EQ(child.typedOwner, owner);
             EXPECT_EQ(child.life, 10);
             EXPECT_EQ(child.scale, 2.0f);
@@ -980,7 +982,7 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
     actor.alive = true;
     actor.byte88 = 1;
     actor.flags78 = 0x10;
-    actor.scale = 7; // Leído por otros efectos: esta partícula no aplica escala.
+    actor.scale = 7; // Read by other effects: this particle does not apply the scale.
     actor.position = {100, 200, 300};
     actor.bodyPose.assign(40, Client::Math::BoneTransform(1));
     actor.bodyPose[36][3] = {11, 22, 33};
@@ -1023,7 +1025,7 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
         EXPECT_EQ(drawn.Value()->rotation, child.rotation);
     }
     EXPECT_EQ(random.State(), 0x2e12d22fu);
-    // Reusar el lugar del actor conserva la dirección nativa: alive/flags no invalidan, tipo/byte88 sí.
+    // Reusing the actor's slot keeps the native address: alive and flags do not invalidate it, type and byte88 do.
     actor.alive = false;
     actor.flags78 = 0;
     actor.position = {500, 600, 700};
@@ -1066,7 +1068,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetPutsThreeFlaresOnEachHandWithTheShine
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
     ASSERT_EQ(sprites.size(), 6u);
-    // 0x608e00(0x1822, 0,8, 0,5): (0,75; 0,65; 0,5) por 0,8 · 0,5.
+    // 0x608e00(0x1822, 0.8, 0.5): (0.75, 0.65, 0.5) times 0.8 · 0.5.
     const glm::vec3 color{Float(0x3e99999au), Float(0x3e851eb8u), Float(0x3e4ccccdu)};
     constexpr std::array<std::int32_t, 6> bones{0x21, 0x21 - 6, 0x21 - 7, 0x2a, 0x2a - 6, 0x2a - 7};
     for (std::size_t index = 0; index < sprites.size(); ++index)
@@ -1077,7 +1079,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetPutsThreeFlaresOnEachHandWithTheShine
         EXPECT_EQ(sprites[index].scale, Float(0x3fa66666u));
         EXPECT_EQ(sprites[index].light, color);
     }
-    // Con el nivel en 9, ni las botas ni el rand() % 20.
+    // With the level at 9, neither the boots nor the rand() % 20.
     EXPECT_EQ(m_random.State(), 1u);
 }
 
@@ -1092,13 +1094,13 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheFullSetFlares)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto sprites = LiveSprites(m_sprites);
     ASSERT_EQ(sprites.size(), 8u);
-    // Q-C350: el corrimiento de la piel queda en [ebp−0x50] para las manos.
+    // Q-C350: the skin's shift stays in [ebp−0x50] for the hands.
     EXPECT_EQ(sprites[2].position, At(0x21, {-4.0f, 11.0f, 0.0f}));
     EXPECT_EQ(sprites[7].position, At(0x2a - 7, {-4.0f, 11.0f, 0.0f}));
 }
 
-// Q-C350 también en las acciones: la piel del mago (0x50ea86) deja (−4, 11, 0) en [ebp−0x50] y 0x4ec110 lo usa en la
-// mano (+0x2bd, 0x21) de los rayos de la 0x94 (0x50f89b) y de los 0x117/2 de la 0x51 y la 0x5b (0x50fb16).
+// Q-C350 in the actions too: the wizard's skin (0x50ea86) leaves (−4, 11, 0) in [ebp−0x50] and 0x4ec110 uses it in the
+// hand (+0x2bd, 0x21) of the lightning of the 0x94 (0x50f89b) and of the 0x117/2 of the 0x51 and the 0x5b (0x50fb16).
 TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheHandOfTheActions)
 {
     m_actor.skin = 8;
@@ -1147,8 +1149,8 @@ TEST_F(GameCharacterEffectsTest, HiddenAttachmentsDropTheFlaresButKeepTheRandomO
     EXPECT_EQ(m_random.State(), AfterRandoms(1));
 }
 
-// La 6f1/3 de 0x53fe70 (0x543f49..0x544153) con los once rand() que siguen a `skipped`: la vida 12, el giro, la escala,
-// vz 2, la textura cra_04, la luz de la bota y dos corrimientos de ±10, ±10 y ±20 desde `point`.
+// The 0x6f1/3 of 0x53fe70 (0x543f49..0x544153) with the eleven rand() calls that follow `skipped`: life 12, the turn,
+// the scale, vz 2, the texture cra_04, the boot's light and two shifts of ±10, ±10 and ±20 from `point`.
 void ExpectBootsMist(const Client::World::Particle& mist, std::size_t skipped, const glm::vec3& point,
                      const glm::vec3& light)
 {
@@ -1169,9 +1171,9 @@ void ExpectBootsMist(const Client::World::Particle& mist, std::size_t skipped, c
     EXPECT_EQ(mist.typedOwner, Client::World::ParticleOwner{});
 }
 
-// 0x50ff37..0x5102bd con la semilla 1 (41, 18467, …): el 10 (41 & 3), el 11 (41 % 3 = 2) y el 12 (41 & 1) no crean y
-// sacan además el rand() % 20; el 13 crea las tres 6f1/3 (33 rand()) y saca el rand() % 20 (11538, que no es 0); el 14
-// sólo el rand() % 20. La luz de la bota vuelve a +0xf4.
+// 0x50ff37..0x5102bd with seed 1 (41, 18467, …): 10 (41 & 3), 11 (41 % 3 = 2) and 12 (41 & 1) do not create and also
+// draw the rand() % 20; 13 creates the three 0x6f1/3 (33 rand() calls) and draws the rand() % 20 (11538, which is not
+// 0); 14 only the rand() % 20. The boot's light goes back to +0xf4.
 TEST_F(GameCharacterEffectsTest, TheGlowingBootsDrawTheirRandomByLevelAndThePlusThirteenMists)
 {
     struct Case
@@ -1200,7 +1202,7 @@ TEST_F(GameCharacterEffectsTest, TheGlowingBootsDrawTheirRandomByLevelAndThePlus
         ASSERT_EQ(mists.size(), probe.mists);
         if (probe.mists == 0)
             continue;
-        // La luz de 0x1831 (0x50ffbc): (0; 0,32f; 0,24f).
+        // The light of 0x1831 (0x50ffbc): (0, 0.32f, 0.24f).
         const glm::vec3 bootsLight{0.0f, Float(0x3ea3d70au), Float(0x3e75c28fu)};
         const std::array<glm::vec3, 3> offsets{{{0.0f, -20.0f, 50.0f}, {0.0f, 0.0f, 70.0f}, {0.0f, 20.0f, 50.0f}}};
         for (std::size_t index = 0; index < mists.size(); ++index)
@@ -1211,8 +1213,8 @@ TEST_F(GameCharacterEffectsTest, TheGlowingBootsDrawTheirRandomByLevelAndThePlus
     }
 }
 
-// Los del 10 al 12 que sí crean: las tres 6f1/3 a ±18, con el rand() que eligió antes; entre frames sólo el que elige y
-// el rand() % 20, sin partículas.
+// Those from 10 to 12 that do create: the three 0x6f1/3 at ±18, with the rand() that chose before; between frames only
+// the one that chooses and the rand() % 20, without particles.
 TEST_F(GameCharacterEffectsTest, TheBootsMistsOfEachLevelAndTheirProjectedFrame)
 {
     struct Case
@@ -1220,8 +1222,8 @@ TEST_F(GameCharacterEffectsTest, TheBootsMistsOfEachLevelAndTheirProjectedFrame)
         std::int32_t level;
         std::size_t skipped;
     };
-    // Con la semilla 1: el primer múltiplo de 4 es el cuarto rand(), el de 3 el séptimo y el primer par el tercero; el
-    // rand() % 20 que sigue a las tres partículas no es 0 en ninguno (19, 3 y 7).
+    // With seed 1: the first multiple of 4 is the fourth rand(), that of 3 the seventh and the first even one the
+    // third; the rand() % 20 that follows the three particles is not 0 in any of them (19, 3 and 7).
     const std::array cases{
         Case{10, RandomsBefore([](int value) { return (value & 3) == 0; })},
         Case{11, RandomsBefore([](int value) { return value % 3 == 0; })},
@@ -1254,7 +1256,7 @@ TEST_F(GameCharacterEffectsTest, TheBootsMistsOfEachLevelAndTheirProjectedFrame)
             }
             EXPECT_EQ(m_random.State(), AfterRandoms(probe.skipped + 1 + 33 + 1));
             ASSERT_EQ(mists.size(), 3u);
-            // La luz de 0x182f (0x50ff5e): (0,65f; 0,3f; 0,1f).
+            // The light of 0x182f (0x50ff5e): (0.65f, 0.3f, 0.1f).
             const glm::vec3 bootsLight{Float(0x3f266666u), Float(0x3e99999au), Float(0x3dcccccdu)};
             const std::array<glm::vec3, 3> offsets{{{0.0f, -18.0f, 50.0f}, {0.0f, 0.0f, 70.0f}, {0.0f, 18.0f, 50.0f}}};
             for (std::size_t index = 0; index < mists.size(); ++index)
@@ -1266,7 +1268,7 @@ TEST_F(GameCharacterEffectsTest, TheBootsMistsOfEachLevelAndTheirProjectedFrame)
     }
 }
 
-// Sin el pool de partículas, la primera 6f1/3 corta con su llamada.
+// Without the particle pool, the first 0x6f1/3 stops with its call.
 TEST_F(GameCharacterEffectsTest, TheBootsMistNeedsTheParticlePool)
 {
     m_actor.body.back().model = 0x1833;
@@ -1280,10 +1282,11 @@ TEST_F(GameCharacterEffectsTest, TheBootsMistNeedsTheParticlePool)
     EXPECT_NE(result.Error().find("0x51020c"), std::string::npos) << result.Error();
 }
 
-// 0x5102c3..0x5104cb, después del rand() % 20 en 0 (el cuarto de la semilla 1): por nivel y pasos de lógica, cuántas
-// órbitas 60f/0 y cuántos joints 60f/0, 60f/0x12 y 610/7, y cuántos rand() más. El 11 saca otro rand() & 7 (19169 & 7
-// no es 0: la órbita). La órbita saca cuatro, el 60f/0 de ancho 10 dos, cada 60f/0x12 de ancho 20 tres y el 610/7 dos.
-// Con +13, los dos 60f/0x12 y la órbita con el 610/7 son ramas independientes (Q-C381).
+// 0x5102c3..0x5104cb, after the rand() % 20 at 0 (the fourth of seed 1): by level and logic steps, how many 0x60f/0
+// orbits and how many 0x60f/0, 0x60f/0x12 and 0x610/7 joints, and how many more rand() calls. 11 draws another rand() &
+// 7 (19169 & 7 is not 0: the orbit). The orbit draws four, the 0x60f/0 of width 10 two, each 0x60f/0x12 of width 20
+// three and the 0x610/7 two. With +13, the two 0x60f/0x12 and the orbit with the 0x610/7 are independent branches
+// (Q-C381).
 TEST_F(GameCharacterEffectsTest, TheSparklesOfEachLevelCreateTheirOrbitsAndJoints)
 {
     struct Case
@@ -1356,7 +1359,7 @@ TEST_F(GameCharacterEffectsTest, TheSparklesOfEachLevelCreateTheirOrbitsAndJoint
     }
 }
 
-// El 11 con rand() & 7 en 0 (0x51037c): el 60f/0 de ancho 10 con la luz en 1 del personaje, dos rand().
+// 11 with rand() & 7 at 0 (0x51037c): the 0x60f/0 of width 10 with the character's light at 1, two rand() calls.
 TEST_F(GameCharacterEffectsTest, ThePlusElevenSparkleJointTakesTheWhiteLightOfItsOwner)
 {
     const std::size_t skipped =
@@ -1386,7 +1389,7 @@ TEST_F(GameCharacterEffectsTest, ThePlusElevenSparkleJointTakesTheWhiteLightOfIt
     EXPECT_EQ(m_actor.light, glm::vec3(0.1f, 0.2f, 0.3f));
 }
 
-// Entre frames, sólo los rand() que eligen (el % 20 y, con +11, el & 7): ni órbitas ni joints.
+// Between frames, only the rand() calls that choose (the % 20 and, with +11, the & 7): neither orbits nor joints.
 TEST_F(GameCharacterEffectsTest, BetweenOriginalFramesTheSparklesOnlyDrawTheirChoices)
 {
     const std::size_t skipped = RandomsBefore([](int value) { return value % 20 == 0; });
@@ -1410,7 +1413,7 @@ TEST_F(GameCharacterEffectsTest, BetweenOriginalFramesTheSparklesOnlyDrawTheirCh
     }
 }
 
-// Sin joints, el primero de los dos 60f/0x12 corta con su llamada.
+// Without joints, the first of the two 0x60f/0x12 stops with its call.
 TEST_F(GameCharacterEffectsTest, TheWideSparklesNeedTheJoints)
 {
     const std::size_t skipped = RandomsBefore([](int value) { return value % 20 == 0; });
@@ -1427,9 +1430,9 @@ TEST_F(GameCharacterEffectsTest, TheWideSparklesNeedTheJoints)
     EXPECT_NE(result.Error().find("0x510435"), std::string::npos) << result.Error();
 }
 
-// 0x510a7a y 0x510ef0: con +0x88 en 1 y +0x369 en 1, fuera de los mapas 11 a 23 y 30 y en un frame del original, el
-// efecto 0x140 en el punto del hueso 20 (z 60 más), sus diez chispas 0x5c6/4 (treinta rand()) y +0x36c en el reloj;
-// después, con menos de 5000 de diferencia, nada, y con más, otro.
+// 0x510a7a and 0x510ef0: with +0x88 at 1 and +0x369 at 1, outside maps 11 to 23 and 30 and in an original frame, the
+// effect 0x140 at the point of bone 20 (z 60 higher), its ten 0x5c6/4 sparks (thirty rand() calls) and +0x36c at the
+// clock; then, with less than 5000 of difference, nothing, and with more, another.
 TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps)
 {
     struct Case
@@ -1487,7 +1490,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
             static_cast<void>(expected.Next());
         EXPECT_EQ(m_random.State(), expected.State());
     }
-    // Con 5000 o menos desde +0x36c, nada; con más, otro 0x140.
+    // With 5000 or less since +0x36c, nothing; with more, another 0x140.
     m_actor.byte88 = 1;
     m_actor.byte369 = 1;
     for (auto& effect : m_effects.Effects())
@@ -1504,7 +1507,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
     EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(6001.0f));
 }
 
-// Un cuervo sintético: un hueso y cinco mallas de un triángulo, para ver qué mallas dibuja y la sombra.
+// A synthetic raven: one bone and five meshes of one triangle, to see which meshes it draws and the shadow.
 class RavenModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -1527,7 +1530,8 @@ public:
         m_model.meshes.assign(5, mesh);
     }
 
-    // Con `count` huesos, todos raíz; el 6 corrido a (1, 2, 3) y girado 90 en z, para el pico del 0x113 (0x418bc8).
+    // With `count` bones, all roots; bone 6 shifted to (1, 2, 3) and turned 90 in z, for the beak of the 0x113
+    // (0x418bc8).
     void GrowBones(std::size_t count)
     {
         using namespace Client::Math;
@@ -1609,7 +1613,7 @@ protected:
 
 TEST_F(GameRavenTest, OutOfTheTrapeziumTheRavenSlowsDownAndForgetsItsStateWithoutDrawing)
 {
-    // Un trapecio de una celda en (200, 200), lejos del cuervo en (10,5; 10,6).
+    // A trapezoid of one cell at (200, 200), far from the raven at (10.5, 10.6).
     m_polygon = {.x = {200.0f, 201.0f, 201.0f, 200.0f}, .y = {200.0f, 200.0f, 201.0f, 201.0f}, .everything = false};
     m_owner.darkSpirit->state = 1;
     m_owner.darkSpirit->speed = 1.0f;
@@ -1633,7 +1637,7 @@ TEST_F(GameRavenTest, ASeenRavenDrawsMeshesThreeAndTwoAndTheShadowOfAllAndKeepsI
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), (2u + 5u) * 3u);
     EXPECT_EQ(m_owner.darkSpirit->pose.size(), 1u);
-    // 0x600a1c: el origen de la sombra en el modelo, a la altura del terreno bajo el cuervo.
+    // 0x600a1c: the shadow's origin in the model, at the terrain height under the raven.
     EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 0.0f));
 }
 
@@ -1662,8 +1666,8 @@ TEST_F(GameRavenTest, TheShadowFollowsTheMapRulesOf0x6002e0)
     }
 }
 
-// 0x600a24..0x600a2c llama a 0x4eff40, que en el mapa 30 abre la sombra con 2500 y no 2000 (0x4eff8d..0x4eff9f).
-// Los vértices de la sombra son los del pase base aplastados desde el cuervo a la altura del terreno.
+// 0x600a24..0x600a2c calls 0x4eff40, which in map 30 opens the shadow with 2500 and not 2000 (0x4eff8d..0x4eff9f). The
+// shadow's vertices are those of the base pass flattened from the raven to the terrain height.
 TEST_F(GameRavenTest, InCastleSiegeTheShadowFansOutWith2500)
 {
     for (const std::int32_t map : {0, 30})
@@ -1710,19 +1714,19 @@ TEST_F(GameRavenTest, InChaosCastleTheHeroByteFadesTheRavenUntilItIsNoLongerDraw
     const auto first = Client::Actors::Drawing::DrawGameRaven(m_owner, pass);
 
     ASSERT_TRUE(first.HasValue()) << first.Error();
-    // 0,155f − 0,15f queda por debajo de 0,01f: 0x5ffdf0 sale sin posar.
+    // 0.155f − 0.15f falls below 0.01f: 0x5ffdf0 returns without posing.
     EXPECT_LT(m_owner.darkSpirit->alpha, 0.01f);
     EXPECT_TRUE(m_batch.Vertices().empty());
     EXPECT_TRUE(m_owner.darkSpirit->pose.empty());
 }
 
-// 0x420e00..0x420e11: con +0x78 & 0x4000 del dueño, 0x4182f0(10) y 0x602e90(cuervo, 0, 0, 10). 0x5ffdf0 lo posa igual
-// (la pose de +0x120 y el modelo compartido en su lugar, no en el piso) y 0x6002e0 va por 0x60033c: el +0x108 del
-// cuervo es 0, así que el lazo del asedio no lo encuentra, ni con el asedio; el color del modelo en 1 y las cinco
-// mallas con 0x4ecc30(malla, 0x4040, 0,5, …, 0x620), aditivas con Chrome02, cada una en la mitad del color de la
-// anterior (Q-C95), sin el glColor3f(1, 1, 1) ni las mallas 3 y 2 del caso 0xc0, y sin la sombra ni las alturas del
-// terreno (0x600a0b). Las UV, con la normal (0, 0, 1) por la escala 0,7 y el reloj en 0: u = 0,7f y
-// v = (1 − 0,7f) − 0,7f · 2,5.
+// 0x420e00..0x420e11: with the owner's +0x78 & 0x4000, 0x4182f0(10) and 0x602e90(raven, 0, 0, 10). 0x5ffdf0 poses it
+// the same (the pose of +0x120 and the shared model in its place, not on the floor) and 0x6002e0 goes through 0x60033c:
+// the raven's +0x108 is 0, so the siege loop does not find it, not even with the siege; the model's color at 1 and the
+// five meshes with 0x4ecc30(mesh, 0x4040, 0.5, …, 0x620), additive with Chrome02, each at half the previous one's color
+// (Q-C95), without the glColor3f(1, 1, 1) or meshes 3 and 2 of case 0xc0, and without the shadow or the terrain heights
+// (0x600a0b). The UVs, with the normal (0, 0, 1) times the scale 0.7 and the clock at 0: u = 0.7f and v = (1 − 0.7f) −
+// 0.7f · 2.5.
 TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
 {
     m_owner.flags78 = 0x4000;
@@ -1761,10 +1765,10 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
     EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
 }
 
-// 0x418aab..0x418b71: en el 5, con +0x38d hasta 2, después del dibujo, diez joints 0x5ac/1 desde la posición y los
-// ángulos del cuervo, sin dueño, de ancho rand() % 40 + 20 cada uno (sus rand() antes de cada alta, que saca los
-// suyos), con el 0x4000 o sin él; con +0x38d en 1, después el 0x117/3 con los ángulos (45, rand() % 180 − 90, 0) y la
-// luz (1; 0,8f; 0,6f), sin más rand(). Sin las tablas del mundo, corta en la primera alta.
+// 0x418aab..0x418b71: in state 5, with +0x38d up to 2, after the draw, ten 0x5ac/1 joints from the raven's position and
+// angles, without an owner, each of width rand() % 40 + 20 (its rand() before each addition, which draws its own), with
+// the 0x4000 or without it; with +0x38d at 1, then the 0x117/3 with the angles (45, rand() % 180 − 90, 0) and the light
+// (1, 0.8f, 0.6f), without more rand(). Without the world's tables, it stops at the first addition.
 TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
 {
     for (const std::uint32_t flags : {0u, 0x4000u})
@@ -1838,7 +1842,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             EXPECT_EQ(skill.ownerContext, nullptr);
         }
 
-    // Sin la tabla de joints corta en la primera 0x530860, después del rand() % 40 de 0x418ad6.
+    // Without the joint table it stops at the first 0x530860, after the rand() % 40 of 0x418ad6.
     GameRavenPass bare = Pass();
     bare.world = nullptr;
     m_owner.darkSpirit->byte38d = 0;
@@ -1850,9 +1854,10 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
     EXPECT_EQ(m_random.State(), before.State());
 }
 
-// 0x418b7c..0x418c0a: en el 5, con +0x38d en 3 nada; impar desde 4 y más de 100 por encima del dueño, el 0x113/0 en el
-// pico (el hueso 6 de la pose de +0x120 con (50, 0, 0), 0x4ec110 sin escala), con los ángulos y la luz del cuervo y el
-// cuervo de dueño (vida 15, escala 0,6f), sin rand(). Con menos de siete huesos en la pose, corta en 0x418be4.
+// 0x418b7c..0x418c0a: in state 5, with +0x38d at 3 nothing; odd from 4 on and more than 100 above the owner, the
+// 0x113/0 at the beak (bone 6 of the pose of +0x120 with (50, 0, 0), 0x4ec110 without scale), with the raven's angles
+// and light and the raven as owner (life 15, scale 0.6f), without rand(). With fewer than seven bones in the pose, it
+// stops at 0x418be4.
 TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
 {
     m_models.GrowBones(7);
@@ -1884,7 +1889,7 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     EXPECT_EQ(air.ownerContext, &spirit);
     EXPECT_TRUE(air.hasOwner);
     EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
-    // 300 no pasa de 200 + 100.
+    // 300 does not exceed 200 + 100.
     m_owner.position.z = 200.0f;
     const auto low = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
     EXPECT_TRUE(low.HasValue()) << low.Error();
@@ -1898,10 +1903,10 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     EXPECT_NE(shortPose.Error().find("0x418be4"), std::string::npos) << shortPose.Error();
 }
 
-// 0x41896d: en el 6, con la pose del dibujo, rand() & 1 elige el primer hueso; el del modelo de prueba (el 0) suelta la
-// partícula 0x5ac/6 en el punto del hueso en el mundo (0x4ec110 de (0; 0; 0) con la pose de +0x120), con los ángulos
-// del cuervo, la luz (1; 0,6f; 0,4f) y la escala 1,3f, con sus rand() (0x53fe70). Desde el 1 no hay más huesos. Con el
-// pool lleno, ninguna y sigue. Sin las partículas, MuRet corta en la primera.
+// 0x41896d: in state 6, with the draw's pose, rand() & 1 chooses the first bone; that of the test model (bone 0)
+// releases the 0x5ac/6 particle at the bone's point in the world (0x4ec110 of (0, 0, 0) with the pose of +0x120), with
+// the raven's angles, the light (1, 0.6f, 0.4f) and the scale 1.3f, with its rand() calls (0x53fe70). From 1 on there
+// are no more bones. With the pool full, none, and it goes on. Without the particles, MuRet stops at the first.
 TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
 {
     for (const std::uint32_t seed : {1u, 2u, 3u, 4u})
@@ -1950,7 +1955,8 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
         EXPECT_EQ(m_random.State(), expected.State());
     }
 
-    // Con el pool lleno, ninguna y sin sus rand(); sin las partículas, corta. La semilla 3 empieza por el hueso 0.
+    // With the pool full, none and without their rand() calls; without the particles, it stops. Seed 3 starts with bone
+    // 0.
     constexpr std::uint32_t BoneZero = 3;
     Client::Crt::CrtRandom afterOne(BoneZero);
     ASSERT_EQ(afterOne.Next() & 1, 0);
@@ -1968,14 +1974,15 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
     EXPECT_NE(missing.Error().find("0x418a26"), std::string::npos) << missing.Error();
 }
 
-// 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770(1, 0x5ac, 1,
-// cuervo+0x1c, el personaje) sobre la malla 1 del cuervo recién posado (en cada esquina del triángulo 0, rand() % 90 y
-// rand() % 120 y el joint 0x613/0xd hacia el personaje, ancho 20) y 0x4164f0(0). Fuera de los frames del original,
-// 0x418920 no corre. Las esquinas y la normal, del scratch que deja 0x602e90(cuervo, 0, 0, …): el hueso 0 en el origen
-// sin giro, la raíz de 0x4eb860 con la bandera en 1 (0x5fc8f0 con (−10, 0, 30), cada elemento por 0,7f en float y el
-// origen (1050, 1060, 300)), 0x5fca90 con la identidad y 0x4ebc80 con Translate en 0 (0x5fccc0 para (0, 0, 10),
-// (1, 0, 10) y (0, 1, 10); 0x5fcbd0 para la normal (0, 0, 1), con la escala dentro). Los bits salen de una emulación
-// aparte de la x87 (fracciones exactas, PC53, fsin y fcos en 64 bits, cada FSTP en float), no de MuRet.
+// 0x418a51: with +0x38d at 15, without a character in +0x3b0 it only sets the counter back to 0; with one, 0x4ee770(1,
+// 0x5ac, 1, raven+0x1c, the character) on mesh 1 of the raven just posed (at each corner of triangle 0, rand() % 90 and
+// rand() % 120 and the 0x613/0xd joint toward the character, width 20) and 0x4164f0(0). Outside the original's frames,
+// 0x418920 does not run. The corners and the normal come from the scratch 0x602e90(raven, 0, 0, …) leaves: bone 0 at
+// the origin without a turn, the root of 0x4eb860 with the flag at 1 (0x5fc8f0 with (−10, 0, 30), each element times
+// 0.7f in float and the origin (1050, 1060, 300)), 0x5fca90 with the identity and 0x4ebc80 with Translate at 0
+// (0x5fccc0 for (0, 0, 10), (1, 0, 10) and (0, 1, 10); 0x5fcbd0 for the normal (0, 0, 1), with the scale inside). The
+// bits come from a separate emulation of the x87 (exact fractions, PC53, fsin and fcos in 64 bits, each FSTP in float),
+// not from MuRet.
 TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
 {
     m_owner.darkSpirit->state = 6;
@@ -1989,7 +1996,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->target3b0 = 3;
     m_owner.darkSpirit->far = 7;
     m_owner.darkSpirit->angles = {-10.0f, 0.0f, 30.0f};
-    m_owner.darkSpirit->scale = std::bit_cast<float>(0x3f333333u); // 0,7f
+    m_owner.darkSpirit->scale = std::bit_cast<float>(0x3f333333u); // 0.7f
     GameRavenPass projected = Pass();
     projected.originalFrame = false;
     ASSERT_TRUE(Client::Actors::Drawing::DrawGameRaven(m_owner, projected).HasValue());
@@ -2056,7 +2063,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     EXPECT_FALSE(joints[3].alive);
     EXPECT_EQ(m_random.State(), replay.State());
 
-    // Sin el cuervo posado en este dibujo (sin el buffer de la pose), el scratch es de otro modelo: corta.
+    // Without the raven posed in this draw (without the pose buffer), the scratch belongs to another model: it stops.
     m_owner.darkSpirit->state = 6;
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->alpha = 0.0f;

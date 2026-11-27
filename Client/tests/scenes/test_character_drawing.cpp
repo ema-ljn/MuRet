@@ -42,9 +42,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::CharacterDrawing: el slot de la piel y del pelo de cada clase (0x50d41c) y la
-// malla oculta (06 § El modelo en el binario). El dibujo entero va contra la traza en
-// GoldenCharacterDrawing.
+// Actors/Drawing/CharacterDrawing.h: the skin and hair slot of each class (0x50d41c) and the hidden mesh (06 § El
+// modelo en el binario). The whole draw goes against the trace in GoldenCharacterDrawing.
 namespace
 {
 using Client::Actors::Drawing::DrawCharacter;
@@ -68,7 +67,7 @@ using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
 
-// Un esqueleto de `bones` huesos sin padre, todos en el origen, con una acción de una key.
+// A skeleton of `bones` bones without a parent, all at the origin, with an action of one key.
 Skeleton FlatSkeleton(std::size_t bones)
 {
     Skeleton skeleton;
@@ -81,7 +80,7 @@ Skeleton FlatSkeleton(std::size_t bones)
     return skeleton;
 }
 
-// Un modelo de una malla con un triángulo, colgado del hueso 0.
+// A model of one mesh with a triangle, hanging from bone 0.
 Model OneTriangle()
 {
     Mesh mesh;
@@ -95,7 +94,7 @@ Model OneTriangle()
     return model;
 }
 
-// Player.bmd con los 48 huesos que cuelgan cosas, y dos mascotas de un triángulo.
+// Player.bmd with the 48 bones that hang things, and two pets of one triangle.
 class TwoPets final : public IModelLibrary
 {
 public:
@@ -124,8 +123,8 @@ private:
     Model m_model;
 };
 
-// Player.bmd y, para `drawn`, un modelo de `meshes` mallas de un triángulo colgadas del hueso 0, con la
-// textura `texture` en `slot`; los demás no están.
+// Player.bmd and, for `drawn`, a model of `meshes` meshes of one triangle hanging from bone 0, with the texture
+// `texture` in `slot`; the others are not there.
 class OneModel final : public IModelLibrary
 {
 public:
@@ -135,7 +134,7 @@ public:
     {
         m_model.meshes[0].textureName = std::move(texture);
         m_model.meshes.resize(meshes, m_model.meshes[0]);
-        // Cada malla con la textura de su índice, como todas las del laboratorio.
+        // Each mesh with the texture of its index, like all of the lab's.
         for (std::size_t index = 0; index < meshes; ++index)
         {
             m_model.meshes[index].texture = static_cast<std::int16_t>(index);
@@ -165,19 +164,19 @@ public:
         return other != m_others.end() ? std::span<const TextureSlot>(other->slots) : std::span<const TextureSlot>{};
     }
 
-    // El mismo modelo también como `model`, con todas sus mallas en `slot`: para ver en qué orden van.
+    // The same model also as `model`, with all its meshes in `slot`: to see in which order they go.
     void AlsoAs(std::uint16_t model, TextureSlot slot)
     {
         m_others.push_back(Other{model, std::vector<TextureSlot>(m_slots.size(), slot)});
     }
 
-    // El esqueleto de los ítems, para darle a su hueso 0 una pose propia.
+    // The items' skeleton, to give its bone 0 a pose of its own.
     Skeleton& ItemSkeleton()
     {
         return m_item;
     }
 
-    // Para armar una malla rota.
+    // To build a broken mesh.
     Mesh& FirstMesh()
     {
         return m_model.meshes[0];
@@ -222,9 +221,9 @@ void ExpectColor(const Client::Render::ModelVertex& vertex, float red, float gre
     EXPECT_FLOAT_EQ(vertex.color.blue, blue);
 }
 
-// 0x60cf70 con su modo 1, el personaje bajo el mouse: antes de cada parte, dos pases sin textura y
-// aditivos (0x60cd60 con 0x40), en (0,1; 0,03; 0) a 1,2 del hueso (+0x94) y en (0,7; 0,2; 0) a
-// 1,2 − 0,02; después la parte, como siempre.
+// 0x60cf70 with its mode 1, the character under the mouse: before each part, two untextured additive passes (0x60cd60
+// with 0x40), in (0.1, 0.03, 0) at 1.2 of the bone (+0x94) and in (0.7, 0.2, 0) at 1.2 − 0.02; then the part, as
+// always.
 TEST(CharacterDrawingTest, AnOutlinedPartGoesTwiceAroundItsBoneFirst)
 {
     DrawnCharacter character;
@@ -308,7 +307,7 @@ TEST(CharacterDrawingTest, PublishesPartBoxAtTheBodyPartDrawBoundary)
     EXPECT_EQ(published, 0);
 }
 
-// Los dos pases recorren todas las mallas de la parte, y la parte va después (0x60cf70).
+// The two passes walk every mesh of the part, and the part goes after them (0x60cf70).
 TEST(CharacterDrawingTest, TheOutlineGoesBeforeEveryMeshOfThePart)
 {
     DrawnCharacter character;
@@ -324,8 +323,7 @@ TEST(CharacterDrawingTest, TheOutlineGoesBeforeEveryMeshOfThePart)
     EXPECT_EQ(batch.Commands()[1].vertexCount, 2u * 3u);
 }
 
-// La malla oculta (0x12d, la que ModelTextureSlots manda ahí por su nombre) no se dibuja, y tampoco
-// su contorno.
+// The hidden mesh (0x12d, the one ModelTextureSlots sends there by its name) is not drawn, and neither is its outline.
 TEST(CharacterDrawingTest, TheHiddenMeshHasNoOutline)
 {
     DrawnCharacter character;
@@ -338,7 +336,7 @@ TEST(CharacterDrawingTest, TheHiddenMeshHasNoOutline)
     EXPECT_TRUE(batch.Commands().empty());
 }
 
-// 0x4ecc30 con 0x40 sin 0x2: una malla de cuatro componentes (una OZT) no va en el contorno.
+// 0x4ecc30 with 0x40 without 0x2: a four-component mesh (an OZT) does not go in the outline.
 TEST(CharacterDrawingTest, TheOutlineSkipsAFourComponentMesh)
 {
     DrawnCharacter character;
@@ -352,8 +350,8 @@ TEST(CharacterDrawingTest, TheOutlineSkipsAFourComponentMesh)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Alpha);
 }
 
-// El contorno es de las seis partes (0x60cf70 en el lazo de 0x50ba30): lo que cuelga, por 0x509340,
-// no lo lleva.
+// The outline belongs to the six parts (0x60cf70 in the loop of 0x50ba30): what hangs, through 0x509340, does not carry
+// it.
 TEST(CharacterDrawingTest, WhatHangsIsNotOutlined)
 {
     DrawnCharacter character;
@@ -368,9 +366,9 @@ TEST(CharacterDrawingTest, WhatHangsIsNotOutlined)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Opaque);
 }
 
-// El lazo de las manos de 0x50ba30 saltea las saetas (0xa19), las flechas (0xa21) y el cuervo
-// (0x1c17): no van en la mano. Las saetas de la derecha y las flechas de la izquierda tampoco van a
-// la espalda, y el cuervo es un objeto aparte (CL8).
+// The hands' loop of 0x50ba30 skips the bolts (0xa19), the arrows (0xa21) and the raven (0x1c17): they do not go in the
+// hand. The bolts of the right and the arrows of the left do not go on the back either, and the raven is a separate
+// object.
 TEST(CharacterDrawingTest, ArrowsBoltsAndTheRavenAreNotInTheHand)
 {
     for (const auto& [right, left] : {std::pair{std::uint16_t{0xa19}, std::uint16_t{0xa21}},
@@ -388,8 +386,8 @@ TEST(CharacterDrawingTest, ArrowsBoltsAndTheRavenAreNotInTheHand)
     }
 }
 
-// Los colores de los pases de una parte de +13 (0x60b3d0): el base y el 0x1040 con la luz por 0,9
-// (0x6093d0 multiplica por 1), y el 0x48 y el 0x44 con el color del ítem (0x608e00), sin la luz.
+// The pass colors of a +13 part (0x60b3d0): the base and the 0x1040 with the light times 0.9 (0x6093d0 multiplies by
+// 1), and the 0x48 and the 0x44 with the item's color (0x608e00), without the light.
 TEST(CharacterDrawingTest, AThirteenPartGlowsWithItsLightAndItsColor)
 {
     DrawnCharacter character;
@@ -409,7 +407,7 @@ TEST(CharacterDrawingTest, AThirteenPartGlowsWithItsLightAndItsColor)
     ExpectColor(vertices[9], item.red, item.green, item.blue);
 }
 
-// El 0x42 de un ítem excelente, con el color que late (ExcellentColorAt).
+// The 0x42 of an excellent item, with the pulsing color (ExcellentColorAt).
 TEST(CharacterDrawingTest, TheExcellentPassPulses)
 {
     DrawnCharacter character;
@@ -427,7 +425,7 @@ TEST(CharacterDrawingTest, TheExcellentPassPulses)
     ExpectColor(vertices[3], pulse.red, pulse.green, pulse.blue);
 }
 
-// 0x509340 le pasa a 0x60b3d0 el set en 0: lo que cuelga no lleva el pase de set.
+// 0x509340 passes the set at 0 to 0x60b3d0: what hangs has no set pass.
 TEST(CharacterDrawingTest, WhatHangsHasNoSetPass)
 {
     DrawnCharacter character;
@@ -440,10 +438,9 @@ TEST(CharacterDrawingTest, WhatHangsHasNoSetPass)
     EXPECT_EQ(batch.Commands().size(), 1u);
 }
 
-// 0x50ba30 dibuja la sombra (0x20b, Shadow01) antes de las partes, con las matrices del cuerpo: negra,
-// sin textura, opaca y sin escribir la profundidad (0x60b3d0 con +0x98 en 1 y 0x4eff40), y aplastada
-// sobre el piso, en la z del personaje más 5. Su malla es la oculta (hide_m, 0x12d), como en el
-// Data\: 0x4eff40 no mira la textura.
+// 0x50ba30 draws the shadow (0x20b, Shadow01) before the parts, with the body's matrices: black, untextured, opaque and
+// without writing the depth (0x60b3d0 with +0x98 at 1 and 0x4eff40), and flattened on the floor, at the character's z
+// plus 5. Its mesh is the hidden one (hide_m, 0x12d), as in the Data folder: 0x4eff40 does not look at the texture.
 TEST(CharacterDrawingTest, TheShadowGoesFirstBlackAndFlat)
 {
     DrawnCharacter character;
@@ -484,14 +481,14 @@ TEST(CharacterDrawingTest, ThePlayerShadowWidensOnlyInCastleSiege)
     }
 }
 
-// La sombra va antes de las partes (0x50ba30 la dibuja antes del lazo de las partes): con las dos,
-// el primer tramo es el de la sombra.
+// The shadow goes before the parts (0x50ba30 draws it before the parts' loop): with both, the first stretch is the
+// shadow's.
 TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)
 {
     DrawnCharacter character;
     character.appearance = Client::Kernel::ClassAppearance(0, 0);
     const std::uint16_t part = character.appearance.bodyParts[1].model;
-    // Una biblioteca con la sombra y una parte, el mismo triángulo.
+    // A library with the shadow and a part, the same triangle.
     class ShadowAndPart final : public IModelLibrary
     {
     public:
@@ -527,7 +524,7 @@ TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Opaque);
 }
 
-// Con una de las mascotas que se montan (0x1c14 y 0x1c15), 0x50ba30 no dibuja la sombra.
+// With one of the pets that are ridden (0x1c14 and 0x1c15), 0x50ba30 does not draw the shadow.
 TEST(CharacterDrawingTest, ARiddenPetHasNoShadow)
 {
     for (const std::uint16_t pet : {std::uint16_t{0x1c14}, std::uint16_t{0x1c15}})
@@ -543,7 +540,7 @@ TEST(CharacterDrawingTest, ARiddenPetHasNoShadow)
     }
 }
 
-// Sin el mouse encima, la parte sola.
+// Without the mouse over it, the part alone.
 TEST(CharacterDrawingTest, WithoutTheMouseThereIsNoOutline)
 {
     DrawnCharacter character;
@@ -556,8 +553,8 @@ TEST(CharacterDrawingTest, WithoutTheMouseThereIsNoOutline)
     EXPECT_EQ(batch.Vertices().size(), 3u);
 }
 
-// Una malla cuyo triángulo nombra un vértice, una normal o una UV que no tiene (un .bmd roto: el
-// original leería fuera) no se dibuja, ni en el contorno; las demás del modelo, sí.
+// A mesh whose triangle names a vertex, a normal or a UV it does not have (a broken .bmd: the original would read
+// outside) is not drawn, not even in the outline; the model's others are.
 TEST(CharacterDrawingTest, AMeshThatNamesWhatItLacksIsNotDrawn)
 {
     DrawnCharacter character;
@@ -586,7 +583,7 @@ TEST(CharacterDrawingTest, AMeshThatNamesWhatItLacksIsNotDrawn)
     }
 }
 
-// Q-C98: de las mascotas, solo 0x1c13 se dibuja; las partes que la biblioteca no tiene, tampoco.
+// Q-C98: of the pets, only 0x1c13 is drawn; the parts the library does not have are not either.
 TEST(CharacterDrawingTest, OnlyHelper02IsDrawnAsThePet)
 {
     const TwoPets models;
@@ -604,7 +601,7 @@ TEST(CharacterDrawingTest, OnlyHelper02IsDrawnAsThePet)
     }
 }
 
-// 2 · (clase & 7) + (clase >> 3): la clase c usa 0x12e + 2c y su segunda clase el de al lado.
+// 2 · (class & 7) + (class >> 3): class c uses 0x12e + 2c and its second class the one next to it.
 TEST(CharacterDrawingTest, TheSkinGoesByClass)
 {
     EXPECT_EQ(SkinIndexOf(0), 0);
@@ -614,8 +611,8 @@ TEST(CharacterDrawingTest, TheSkinGoesByClass)
     EXPECT_EQ(SkinIndexOf(12), 9);
 }
 
-// La piel va a 0x12e más la piel, el pelo a 0x12f más la piel (la clase 4, al 0x137 de hair_r), la
-// oculta no se dibuja, y las demás quedan en su slot.
+// The skin goes to 0x12e plus the skin, the hair to 0x12f plus the skin (class 4, to hair_r's 0x137), the hidden one is
+// not drawn, and the others stay in their slot.
 TEST(CharacterDrawingTest, TheSkinAndHairSlotsFollowTheClass)
 {
     EXPECT_EQ(MeshSlotOf(TextureSlot{0x12e}, 1), std::optional<TextureSlot>{TextureSlot{0x130}});
@@ -625,7 +622,7 @@ TEST(CharacterDrawingTest, TheSkinAndHairSlotsFollowTheClass)
     EXPECT_EQ(MeshSlotOf(TextureSlot{0x6f8}, 3), std::optional<TextureSlot>{TextureSlot{0x6f8}});
 }
 
-// El dibujo de una parte de +13, con el contorno o sin él, y la textura de su única malla.
+// The draw of a +13 part, with the outline or without it, and the texture of its only mesh.
 ModelBatch DrawnPart(const std::string& texture, bool outlined = false, std::uint8_t level = 13)
 {
     DrawnCharacter character;
@@ -636,15 +633,15 @@ ModelBatch DrawnPart(const std::string& texture, bool outlined = false, std::uin
     return Drawn(models, character);
 }
 
-// 0x4ef0c0: una malla con H en el script no se dibuja en ningún pase, ni en el del contorno.
+// 0x4ef0c0: a mesh with H in the script is not drawn in any pass, not even in the outline's.
 TEST(CharacterDrawingTest, AnHiddenScriptMeshIsNotDrawn)
 {
     EXPECT_TRUE(DrawnPart("part_H.jpg").Commands().empty());
     EXPECT_TRUE(DrawnPart("part_H.jpg", true).Commands().empty());
 }
 
-// 0x4ef0c0 pasa la malla con R como el blendMesh, y 0x4ecc30 la dibuja con su textura, aditiva y con
-// el color por la luz del blendMesh (1 en un jugador, 0x511290); los pases de brillo van igual.
+// 0x4ef0c0 passes the mesh with R as the blendMesh, and 0x4ecc30 draws it with its texture, additive and with the color
+// times the blendMesh's light (1 on a player, 0x511290); the glow passes go the same.
 TEST(CharacterDrawingTest, AnRMeshIsTheAdditiveBlendMesh)
 {
     const ModelBatch plain = DrawnPart("part.jpg");
@@ -665,8 +662,8 @@ TEST(CharacterDrawingTest, AnRMeshIsTheAdditiveBlendMesh)
     }
 }
 
-// 0x4ecc30 compara el blendMesh con la textura de la malla: con R pero con la textura de otra, va
-// como una sin script.
+// 0x4ecc30 compares the blendMesh with the mesh's texture: with R but with another's texture, it goes as one without a
+// script.
 TEST(CharacterDrawingTest, AnRMeshWithTheTextureOfAnotherIsNotTheBlendMesh)
 {
     DrawnCharacter character;
@@ -681,7 +678,7 @@ TEST(CharacterDrawingTest, AnRMeshWithTheTextureOfAnotherIsNotTheBlendMesh)
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Opaque);
 }
 
-// El blendMesh va antes que la mezcla de cuatro componentes: una OZT con R es aditiva.
+// The blendMesh goes before the four-component blend: an OZT with R is additive.
 TEST(CharacterDrawingTest, AnRFourComponentMeshIsAdditiveToo)
 {
     const ModelBatch batch = DrawnPart("part_R.tga", false, 0);
@@ -690,8 +687,8 @@ TEST(CharacterDrawingTest, AnRFourComponentMeshIsAdditiveToo)
     EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Additive, true}));
 }
 
-// El contorno (0x60cd60 → 0x4ef0c0 con 0x40) también pasa el blendMesh: la malla con R va con su
-// textura y el color del contorno por la luz, aunque sea de cuatro componentes.
+// The outline (0x60cd60 → 0x4ef0c0 with 0x40) also passes the blendMesh: the mesh with R goes with its texture and the
+// outline's color times the light, even if it has four components.
 TEST(CharacterDrawingTest, AnRMeshIsOutlinedWithItsTexture)
 {
     for (const std::string texture : {"part_R.jpg", "part_R.tga"})
@@ -708,7 +705,7 @@ TEST(CharacterDrawingTest, AnRMeshIsOutlinedWithItsTexture)
     }
 }
 
-// 0x4ecc30 no corre los pases de brillo de una malla con N; el 0x42 del excelente, sí.
+// 0x4ecc30 does not run the glow passes of a mesh with N; the excellent's 0x42, it does.
 TEST(CharacterDrawingTest, AnNMeshDoesNotShine)
 {
     EXPECT_EQ(DrawnPart("part_N.jpg").Commands().size(), 1u);
@@ -720,7 +717,7 @@ TEST(CharacterDrawingTest, AnNMeshDoesNotShine)
     EXPECT_EQ(Drawn(models, character).Commands().size(), 2u);
 }
 
-// La S corre las UV con la U y la V del objeto, que en un jugador son 0 (0x511290): no cambia nada.
+// S scrolls the UVs with the object's U and V, which on a player are 0 (0x511290): nothing changes.
 TEST(CharacterDrawingTest, AnSMeshDrawsAsOneWithoutScript)
 {
     const ModelBatch plain = DrawnPart("part.jpg");
@@ -738,8 +735,7 @@ TEST(CharacterDrawingTest, AnSMeshDrawsAsOneWithoutScript)
     }
 }
 
-// 0x60ff50 prende el +0 de la malla 1 de Spear01 (0x812): 0x4ecc30 no le corre los pases de brillo,
-// y a la malla 0 sí.
+// 0x60ff50 turns on the +0 of mesh 1 of Spear01 (0x812): 0x4ecc30 does not run its glow passes, and it does on mesh 0.
 TEST(CharacterDrawingTest, TheMeshesThat0x60ff50MarksDoNotShine)
 {
     DrawnCharacter character;
@@ -752,8 +748,8 @@ TEST(CharacterDrawingTest, TheMeshesThat0x60ff50MarksDoNotShine)
     EXPECT_EQ(batch.Vertices().size(), (4u + 1u) * 3u);
 }
 
-// Cuántos vértices deja el casco `helm` en un personaje de la clase `characterClass`, con la
-// biblioteca que tiene solo `drawn`.
+// How many vertices the helm `helm` leaves on a character of class `characterClass`, with the library that only has
+// `drawn`.
 std::size_t HelmVertices(std::uint8_t characterClass, std::uint16_t helm, std::uint16_t drawn)
 {
     DrawnCharacter character;
@@ -763,8 +759,8 @@ std::size_t HelmVertices(std::uint8_t characterClass, std::uint16_t helm, std::u
     return Drawn(models, character).Vertices().size();
 }
 
-// 0x50ba30, en la parte del casco de la clase 4 (+0x1d4 & 7): los cascos 0x1012, 0x1017, 0x1018,
-// 0x101a y 0x101b van con el modelo + 0x328b, su máscara (MaskHelmMale01, 06, 07, 09 y 10).
+// 0x50ba30, in the helm part of class 4 (+0x1d4 & 7): the helms 0x1012, 0x1017, 0x1018, 0x101a and 0x101b go with the
+// model + 0x328b, their mask (MaskHelmMale01, 06, 07, 09 and 10).
 TEST(CharacterDrawingTest, ClassFourWearsTheMaskOfItsHelm)
 {
     for (const std::uint16_t helm : {std::uint16_t{0x1012}, std::uint16_t{0x1017}, std::uint16_t{0x1018},
@@ -777,7 +773,7 @@ TEST(CharacterDrawingTest, ClassFourWearsTheMaskOfItsHelm)
     }
 }
 
-// Las otras clases llevan el casco, y la clase 4 lleva los demás cascos sin máscara.
+// The other classes wear the helm, and class 4 wears the other helms without a mask.
 TEST(CharacterDrawingTest, OnlyClassFourAndFiveHelmsWearTheMask)
 {
     EXPECT_EQ(HelmVertices(0, 0x1012, 0x1012), 3u);
@@ -786,7 +782,7 @@ TEST(CharacterDrawingTest, OnlyClassFourAndFiveHelmsWearTheMask)
     EXPECT_EQ(HelmVertices(4, 0x1013, 0x1013), 3u);
 }
 
-// 0x50ba30 cambia el modelo solo en la parte del casco (+0x218): en otra, el mismo número va como es.
+// 0x50ba30 changes the model only in the helm part (+0x218): in another, the same number goes as it is.
 TEST(CharacterDrawingTest, TheMaskIsOnlyForTheHelmPart)
 {
     DrawnCharacter character;
@@ -797,7 +793,7 @@ TEST(CharacterDrawingTest, TheMaskIsOnlyForTheHelmPart)
     EXPECT_EQ(Drawn(models, character).Vertices().size(), 3u);
 }
 
-// La parte `part` de la clase `characterClass` con una malla R, de +0 o excelente, a los 250 ms.
+// The part `part` of class `characterClass` with an R mesh, at +0 or excellent, at 250 ms.
 ModelBatch DrawnBlendMesh(std::uint8_t characterClass, bool excellent = false)
 {
     DrawnCharacter character;
@@ -810,8 +806,8 @@ ModelBatch DrawnBlendMesh(std::uint8_t characterClass, bool excellent = false)
     return batch;
 }
 
-// La luz del blendMesh es 1 (0x511290), y en la clase 4 la que 0x50ba30 pone en la parte del casco:
-// sin(0,001 · T) · 0,1 + 0,7.
+// The blendMesh's light is 1 (0x511290), and in class 4 the one 0x50ba30 sets in the helm part: sin(0.001 · T) · 0.1 +
+// 0.7.
 TEST(CharacterDrawingTest, TheBlendMeshLightOfClassFourPulses)
 {
     const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
@@ -820,7 +816,7 @@ TEST(CharacterDrawingTest, TheBlendMeshLightOfClassFourPulses)
     ExpectColor(DrawnBlendMesh(4).Vertices()[0], 0.4f * pulse, 0.4f * pulse, 0.4f * pulse);
 }
 
-// El 0x42 del blendMesh también va por esa luz.
+// The blendMesh's 0x42 also goes by that light.
 TEST(CharacterDrawingTest, TheExcellentPassOfTheBlendMeshTakesItsLight)
 {
     const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
@@ -832,7 +828,7 @@ TEST(CharacterDrawingTest, TheExcellentPassOfTheBlendMeshTakesItsLight)
     ExpectColor(batch.Vertices()[3], excellent.red * pulse, excellent.green * pulse, excellent.blue * pulse);
 }
 
-// El contorno del blendMesh también va por la luz: en la clase 4, el color del contorno por la que late.
+// The blendMesh's outline also goes by the light: in class 4, the outline's color times the pulsing one.
 TEST(CharacterDrawingTest, TheOutlineOfTheBlendMeshTakesItsLight)
 {
     const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
@@ -850,7 +846,7 @@ TEST(CharacterDrawingTest, TheOutlineOfTheBlendMeshTakesItsLight)
     ExpectColor(batch.Vertices()[3], 0.7f * pulse, 0.2f * pulse, 0.0f);
 }
 
-// La parte de la clase `characterClass` con una malla R de +13, a los 250 ms.
+// The part of class `characterClass` with an R mesh of +13, at 250 ms.
 ModelBatch DrawnThirteenBlendMesh(std::uint8_t characterClass)
 {
     DrawnCharacter character;
@@ -863,8 +859,8 @@ ModelBatch DrawnThirteenBlendMesh(std::uint8_t characterClass)
     return batch;
 }
 
-// Los pases de brillo salen de 0x4ecc30 antes de la rama del blendMesh: el 0x1040 va con el color
-// base por el factor del ítem (0x6093d0), sin la luz, como el 0x48 y el 0x44.
+// The glow passes come out of 0x4ecc30 before the blendMesh's branch: the 0x1040 goes with the base color times the
+// item's factor (0x6093d0), without the light, like the 0x48 and the 0x44.
 TEST(CharacterDrawingTest, TheMetalPassesOfTheBlendMeshDoNotTakeItsLight)
 {
     const ModelBatch plain = DrawnThirteenBlendMesh(0);
@@ -879,8 +875,8 @@ TEST(CharacterDrawingTest, TheMetalPassesOfTheBlendMeshDoNotTakeItsLight)
     }
 }
 
-// Un personaje de la clase `characterClass` con las partes de `models` en `parts` (la del índice 2,
-// el pantalón, con el modelo `pants`), cada una con una malla R en su slot, a los 1000 ms.
+// A character of class `characterClass` with the parts of `models` in `parts` (the one of index 2, the pants, with the
+// model `pants`), each with an R mesh in its slot, at 1000 ms.
 ModelBatch DrawnLights(std::uint8_t characterClass, std::uint16_t pants, std::uint16_t helm = 0)
 {
     DrawnCharacter character;
@@ -902,7 +898,7 @@ ModelBatch DrawnLights(std::uint8_t characterClass, std::uint16_t pants, std::ui
     return batch;
 }
 
-// El rojo de la malla R de la parte con el slot 0x300 + `part`, que es 0,4 por la luz.
+// The red of the R mesh of the part with slot 0x300 + `part`, which is 0.4 times the light.
 float LightOfPart(const ModelBatch& batch, std::size_t part)
 {
     const auto slot = TextureSlot{static_cast<std::uint16_t>(0x300 + part)};
@@ -917,9 +913,9 @@ float LightOfPart(const ModelBatch& batch, std::size_t part)
     return 0.0f;
 }
 
-// 0x60b3d0 escribe la luz del objeto con el modelo: PantMale25 (0x142a) la pone en la de sus
-// FShoots_R, sin(0,001 · T) · 0,4 + 0,6, y queda en las partes que siguen (la armadura y el casco) y
-// en el frame que sigue (las botas, que van antes).
+// 0x60b3d0 writes the object's light with the model: PantMale25 (0x142a) sets it in that of its FShoots_R, sin(0.001 ·
+// T) · 0.4 + 0.6, and it stays in the parts that follow (the armor and the helm) and in the next frame (the boots,
+// which go first).
 TEST(CharacterDrawingTest, PantMale25LightsTheCharacterWithItsShoots)
 {
     const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
@@ -932,8 +928,8 @@ TEST(CharacterDrawingTest, PantMale25LightsTheCharacterWithItsShoots)
     }
 }
 
-// En la clase 4, 0x50ba30 escribe la suya en el casco, que va después del pantalón: el casco y lo que
-// sigue la ven, y la armadura, entre los dos, la de PantMale25.
+// In class 4, 0x50ba30 writes its own on the helm, which goes after the pants: the helm and what follows see it, and
+// the armor, between the two, PantMale25's.
 TEST(CharacterDrawingTest, ClassFourLightsFromTheHelmOn)
 {
     const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
@@ -947,7 +943,7 @@ TEST(CharacterDrawingTest, ClassFourLightsFromTheHelmOn)
     EXPECT_NEAR(LightOfPart(batch, 0), pulse, 1e-6f);
 }
 
-// HelmMaleTest20 (0x1025) la vuelve a 1 después de la de la clase 4, en el mismo casco.
+// HelmMaleTest20 (0x1025) sets it back to 1 after class 4's, on the same helm.
 TEST(CharacterDrawingTest, TheTest20PartsPutTheLightBackToOne)
 {
     const ModelBatch batch = DrawnLights(4, 0x1425, 0x1025);
@@ -958,8 +954,8 @@ TEST(CharacterDrawingTest, TheTest20PartsPutTheLightBackToOne)
     }
 }
 
-// 0x60cf70 dibuja el contorno antes de llamar a 0x60b3d0: el de PantMale25 va con la luz que había
-// (en la clase 4, la del casco del frame anterior) y la parte, con la de sus FShoots_R.
+// 0x60cf70 draws the outline before calling 0x60b3d0: PantMale25's goes with the light there was (in class 4, the
+// previous frame's helm's) and the part, with that of its FShoots_R.
 TEST(CharacterDrawingTest, TheOutlineGoesWithTheLightFromBeforeThePart)
 {
     const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
@@ -979,8 +975,8 @@ TEST(CharacterDrawingTest, TheOutlineGoesWithTheLightFromBeforeThePart)
     EXPECT_NEAR(batch.Vertices()[6].color.red, 0.4f * shoots, 1e-6f);
 }
 
-// El arma `item` de nivel `level` en la mano derecha de la clase `characterClass`, con `meshes` mallas
-// de textura `texture`, a los `milliseconds`.
+// The weapon `item` of level `level` in the right hand of class `characterClass`, with `meshes` meshes of texture
+// `texture`, at `milliseconds`.
 ModelBatch DrawnInTheHand(std::uint16_t item, std::size_t meshes, std::uint8_t level = 0, int milliseconds = 1000,
                           const std::string& texture = "item.jpg", std::uint8_t characterClass = 0)
 {
@@ -994,8 +990,8 @@ ModelBatch DrawnInTheHand(std::uint16_t item, std::size_t meshes, std::uint8_t l
     return batch;
 }
 
-// Lo que cuelga lleva el objeto de 0x607b60: Bow07 (0xa18) tiene el blendMesh en −2, y 0x4ecc30
-// pasa todas sus mallas por esa rama, aditivas y por su luz, sin(0,004 · T) · 0,3 + 0,7.
+// What hangs carries the object of 0x607b60: Bow07 (0xa18) has the blendMesh at −2, and 0x4ecc30 passes all its meshes
+// through that branch, additive and by its light, sin(0.004 · T) · 0.3 + 0.7.
 TEST(CharacterDrawingTest, Bow07BlendsEveryMesh)
 {
     const ModelBatch batch = DrawnInTheHand(0xa18, 2);
@@ -1009,7 +1005,7 @@ TEST(CharacterDrawingTest, Bow07BlendsEveryMesh)
     }
 }
 
-// Sword06 (0x217) tiene el blendMesh en 1: la malla con la textura 1 va por esa rama, la otra no.
+// Sword06 (0x217) has the blendMesh at 1: the mesh with texture 1 goes through that branch, the other does not.
 TEST(CharacterDrawingTest, AnItemBlendsTheMeshWithTheTextureOfItsObject)
 {
     const ModelBatch batch = DrawnInTheHand(0x217, 2);
@@ -1019,8 +1015,7 @@ TEST(CharacterDrawingTest, AnItemBlendsTheMeshWithTheTextureOfItsObject)
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Additive);
 }
 
-// La luz de lo que cuelga es la de su objeto, no la del personaje: una malla R en la mano de la clase
-// 4 va por 1.
+// The light of what hangs is its object's, not the character's: an R mesh in the hand of class 4 goes by 1.
 TEST(CharacterDrawingTest, WhatHangsTakesTheLightOfItsObject)
 {
     const ModelBatch batch = DrawnInTheHand(0x212, 1, 0, 250, "item_R.jpg", 4);
@@ -1030,8 +1025,8 @@ TEST(CharacterDrawingTest, WhatHangsTakesTheLightOfItsObject)
     ExpectColor(batch.Vertices()[0], 0.4f, 0.4f, 0.4f);
 }
 
-// 0x609640 le pasa al pase base el +0x58 del objeto como la malla oculta: la 1 de Spear11 (0x81c) y la
-// 2 de Sword32 (0x231) no van.
+// 0x609640 passes the object's +0x58 to the base pass as the hidden mesh: mesh 1 of Spear11 (0x81c) and mesh 2 of
+// Sword32 (0x231) do not go.
 TEST(CharacterDrawingTest, TheBaseSkipsTheHiddenMeshOfTheObject)
 {
     EXPECT_EQ(DrawnInTheHand(0x81c, 2).Vertices().size(), 1u * 3u);
@@ -1039,7 +1034,7 @@ TEST(CharacterDrawingTest, TheBaseSkipsTheHiddenMeshOfTheObject)
     EXPECT_EQ(DrawnInTheHand(0x212, 3).Vertices().size(), 3u * 3u);
 }
 
-// 0x60b3d0 escribe la luz de Wing05 (0x1a16) en sin(0,001 · T) + 1,1: su malla R va por ella.
+// 0x60b3d0 writes the light of Wing05 (0x1a16) as sin(0.001 · T) + 1.1: its R mesh goes by it.
 TEST(CharacterDrawingTest, TheLightOfWing05Pulses)
 {
     DrawnCharacter character;
@@ -1055,9 +1050,8 @@ TEST(CharacterDrawingTest, TheLightOfWing05Pulses)
     EXPECT_NEAR(batch.Vertices()[0].color.red, 0.4f * (RoundedSin(1.0f) + 1.1f), 1e-6f);
 }
 
-// 0x509340 sale sin dibujar con el modelo 0x1c30 (0x509363: CMP EDI,0x1c30 y JZ al final): la capa
-// del Dark Lord, DarkLordRobe.bmd, un plano del inventario, no cuelga del hueso 47. Lo que se ve es la
-// tela de 0x50ba30.
+// 0x509340 returns without drawing with model 0x1c30 (0x509363: CMP EDI,0x1c30 and JZ to the end): the Dark Lord's
+// cape, DarkLordRobe.bmd, an inventory plane, does not hang from bone 47. What is seen is the cloth of 0x50ba30.
 TEST(CharacterDrawingTest, TheLordsCapeDoesNotHangAsAModel)
 {
     DrawnCharacter character;
@@ -1072,7 +1066,7 @@ TEST(CharacterDrawingTest, TheLordsCapeDoesNotHangAsAModel)
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// Los vértices del arma `item` de +13 en la mano derecha, con `meshes` mallas.
+// The vertices of the +13 weapon `item` in the right hand, with `meshes` meshes.
 std::size_t HandVertices(std::uint16_t item, std::size_t meshes)
 {
     DrawnCharacter character;
@@ -1082,9 +1076,9 @@ std::size_t HandVertices(std::uint16_t item, std::size_t meshes)
     return Drawn(models, character).Vertices().size();
 }
 
-// En los pases de 0x60b130 y 0x60b300, RenderBody saltea la malla oculta de algunos ítems: la 0 de
-// 0x227 en los tres pases del +13, y la 2 de 0x619 en el 0x48 y el 0x44, no en el 0x1040. 0x619 la
-// oculta también en el pase base, con el +0x58 de su objeto.
+// In the passes of 0x60b130 and 0x60b300, RenderBody skips the hidden mesh of some items: mesh 0 of 0x227 in the three
+// passes of +13, and mesh 2 of 0x619 in the 0x48 and the 0x44, not in the 0x1040. 0x619 also hides it in the base pass,
+// with its object's +0x58.
 TEST(CharacterDrawingTest, SomeItemsHideAMeshInTheirPasses)
 {
     EXPECT_EQ(HandVertices(0x227, 2), (1u + 4u) * 3u);
@@ -1092,8 +1086,8 @@ TEST(CharacterDrawingTest, SomeItemsHideAMeshInTheirPasses)
     EXPECT_EQ(HandVertices(0x212, 2), (4u + 4u) * 3u);
 }
 
-// 0x60b130 les pasa el +0x58 del objeto a 0x231, 0x81c y 0xe22 (y a 0x61a..0x61f, en −1): la malla
-// que su objeto oculta no va en el 0x48 ni en el 0x44, sí en el 0x1040.
+// 0x60b130 passes the object's +0x58 to 0x231, 0x81c and 0xe22 (and to 0x61a..0x61f, at −1): the mesh their object
+// hides does not go in the 0x48 or the 0x44, but it does in the 0x1040.
 TEST(CharacterDrawingTest, SomeItemsHideTheMeshOfTheirObjectInTheirPasses)
 {
     EXPECT_EQ(HandVertices(0x81c, 2), (4u + 1u) * 3u);
@@ -1102,8 +1096,8 @@ TEST(CharacterDrawingTest, SomeItemsHideTheMeshOfTheirObjectInTheirPasses)
     EXPECT_EQ(HandVertices(0x61a, 3), (4u + 4u + 4u) * 3u);
 }
 
-// 0x60b3d0 con el objeto de Spear10 (0x81b, lo que cuelga lleva el tipo de su ítem): antes, la malla
-// con el 0x5c0 forzado y el color (0,5; 0,5; 1,5), opaca; después, los pases de siempre.
+// 0x60b3d0 with the object of Spear10 (0x81b, what hangs carries its item's type): first, the mesh with the 0x5c0
+// forced and the color (0.5, 0.5, 1.5), opaque; then, the usual passes.
 TEST(CharacterDrawingTest, Spear10DrawsItsChromeFirst)
 {
     DrawnCharacter character;
@@ -1120,7 +1114,7 @@ TEST(CharacterDrawingTest, Spear10DrawsItsChromeFirst)
     ExpectColor(batch.Vertices()[3], 0.4f, 0.4f, 0.4f);
 }
 
-// El 0x81b es del objeto: una parte, cuyo objeto es el personaje (0x20a), no lo lleva.
+// 0x81b belongs to the object: a part, whose object is the character (0x20a), does not carry it.
 TEST(CharacterDrawingTest, OnlyTheHanging0x81bDrawsTheChrome)
 {
     DrawnCharacter character;
@@ -1131,9 +1125,8 @@ TEST(CharacterDrawingTest, OnlyTheHanging0x81bDrawsTheChrome)
     EXPECT_EQ(Drawn(models, character).Commands().size(), 1u);
 }
 
-// 0x607b60 le da a Spear10 la V (T % 2000) · −0,0005, y 0x60b3d0 pone el model+0x88 en 0 para el
-// pase del chrome: 0x4ecc30 le corre las UV a esa malla. Su malla, una OZT, va después con alpha y sin
-// correr (su blendMesh es −1).
+// 0x607b60 gives Spear10 the V (T % 2000) · −0.0005, and 0x60b3d0 sets model+0x88 to 0 for the chrome pass: 0x4ecc30
+// scrolls that mesh's UVs. Its mesh, an OZT, goes afterwards with alpha and without scrolling (its blendMesh is −1).
 TEST(CharacterDrawingTest, Spear10ScrollsItsChrome)
 {
     const ModelBatch batch = DrawnInTheHand(0x81b, 1, 0, 1000, "af.tga");
@@ -1146,8 +1139,8 @@ TEST(CharacterDrawingTest, Spear10ScrollsItsChrome)
     EXPECT_EQ(batch.Vertices()[3].uv, (glm::vec2{0.0f, 0.0f}));
 }
 
-// 0x4ecc30 suma la U y la V del objeto a las UV del pase 0x1040 (el modo 0x1000), no a las del 0x48
-// ni el 0x44: las de Spear10 de +13, contra las de un ítem que no las tiene.
+// 0x4ecc30 adds the object's U and V to the UVs of the 0x1040 pass (mode 0x1000), not to those of the 0x48 or the 0x44:
+// those of a +13 Spear10, against those of an item that does not have them.
 TEST(CharacterDrawingTest, TheChrome4PassTakesTheUVOfTheObject)
 {
     const ModelBatch spear = DrawnInTheHand(0x81b, 1, 13);
@@ -1166,8 +1159,8 @@ TEST(CharacterDrawingTest, TheChrome4PassTakesTheUVOfTheObject)
     }
 }
 
-// Staff06 (0xc17) tiene el blendMesh en 2 y una U y una V de rand() % 10 · 0,1 en cada frame: 0x4ecc30
-// le corre las UV a la malla de índice 2, y no a las otras, y de un frame al otro cambian.
+// Staff06 (0xc17) has the blendMesh at 2 and a U and a V of rand() % 10 · 0.1 in each frame: 0x4ecc30 scrolls the UVs
+// of the mesh of index 2, and not the others', and they change from one frame to the next.
 TEST(CharacterDrawingTest, TheBlendMeshOfStaff06ScrollsWithItsRandomUV)
 {
     std::vector<glm::vec2> shifts;
@@ -1193,7 +1186,7 @@ TEST(CharacterDrawingTest, TheBlendMeshOfStaff06ScrollsWithItsRandomUV)
     EXPECT_NE(std::ranges::adjacent_find(shifts, std::not_equal_to{}), shifts.end());
 }
 
-// El set de una parte de `meshes` mallas, con la textura `texture` en la malla 1, a los 250 ms.
+// The set of a part of `meshes` meshes, with the texture `texture` on mesh 1, at 250 ms.
 ModelBatch DrawnSet(std::size_t meshes, const std::string& second = "part.jpg")
 {
     DrawnCharacter character;
@@ -1207,9 +1200,8 @@ ModelBatch DrawnSet(std::size_t meshes, const std::string& second = "part.jpg")
     return batch;
 }
 
-// 0x60b3d0 llama al pase de set con un alpha que late (SetAlphaAt), y 0x4ecc30 multiplica por él en
-// el lugar el color del modelo en cada malla que lo dibuja: la primera va por a, la segunda por a²
-// (Q-C95).
+// 0x60b3d0 calls the set pass with a pulsing alpha (SetAlphaAt), and 0x4ecc30 multiplies the model's color by it in
+// place in each mesh that draws it: the first goes by a, the second by a² (Q-C95).
 TEST(CharacterDrawingTest, TheSetPassFadesMeshByMesh)
 {
     const ModelBatch batch = DrawnSet(2);
@@ -1225,7 +1217,7 @@ TEST(CharacterDrawingTest, TheSetPassFadesMeshByMesh)
     ExpectColor(vertices[9], set.red * alpha * alpha, set.green * alpha * alpha, set.blue * alpha * alpha);
 }
 
-// Una malla que no brilla sale de 0x4ecc30 antes de multiplicar: no cuenta para las que siguen.
+// A mesh that does not shine leaves 0x4ecc30 before multiplying: it does not count for the ones that follow.
 TEST(CharacterDrawingTest, AMeshWithoutShineDoesNotFadeTheSetPass)
 {
     const ModelBatch batch = DrawnSet(3, "part_N.jpg");
@@ -1246,7 +1238,7 @@ void ExpectAt(const Client::Render::ModelVertex& vertex, float x, float y, float
     EXPECT_NEAR(vertex.position.z, z, Tolerance);
 }
 
-// El carcaj `quiver` en la mano izquierda o en la derecha, de nivel `level`.
+// The quiver `quiver` in the left hand or in the right one, of level `level`.
 ModelBatch DrawnQuiver(std::uint16_t quiver, bool left, std::uint8_t level = 0, bool excellent = false)
 {
     DrawnCharacter character;
@@ -1257,9 +1249,9 @@ ModelBatch DrawnQuiver(std::uint16_t quiver, bool left, std::uint8_t level = 0, 
     return Drawn(models, character);
 }
 
-// 0x50ba30 con las armas en la mano: las saetas de la izquierda y las flechas de la derecha van a la
-// espalda, del hueso de las alas (47) por AngleMatrix(70, 0, 90) y (−10, 5, 10) (0x509340 con su
-// bandera). Con el hueso en el origen, el triángulo (0, 0, 0), (1, 0, 0), (0, 1, 0) cae así.
+// 0x50ba30 with the weapons in the hand: the bolts of the left and the arrows of the right go on the back, from the
+// wings' bone (47) by AngleMatrix(70, 0, 90) and (−10, 5, 10) (0x509340 with its flag). With the bone at the origin,
+// the triangle (0, 0, 0), (1, 0, 0), (0, 1, 0) falls like this.
 TEST(CharacterDrawingTest, TheBoltsAndTheArrowsGoOnTheBack)
 {
     const float seventy = 70.0f * std::numbers::pi_v<float> / 180.0f;
@@ -1274,8 +1266,8 @@ TEST(CharacterDrawingTest, TheBoltsAndTheArrowsGoOnTheBack)
     }
 }
 
-// Con saetas en la izquierda y flechas en la derecha, van las saetas (las flechas son el else de
-// 0x50ba30): sin el modelo de las saetas, nada.
+// With bolts on the left and arrows on the right, the bolts go (the arrows are the else of 0x50ba30): without the
+// bolts' model, nothing.
 TEST(CharacterDrawingTest, TheBoltsComeBeforeTheArrows)
 {
     DrawnCharacter character;
@@ -1287,16 +1279,16 @@ TEST(CharacterDrawingTest, TheBoltsComeBeforeTheArrows)
     EXPECT_TRUE(Drawn(models, character).Vertices().empty());
 }
 
-// 0x60b3d0 le da al carcaj 2 · nivel + 1: unas saetas +3 van con el 0x44 del +7. El excelente de la
-// mano va; el set, no (0x509340 le pasa 0).
+// 0x60b3d0 gives the quiver 2 · level + 1: +3 bolts go with the 0x44 of +7. The hand's excellent goes; the set does not
+// (0x509340 passes 0).
 TEST(CharacterDrawingTest, TheQuiverGlowsAtTwiceItsLevelPlusOne)
 {
     EXPECT_EQ(DrawnQuiver(0xa19, true, 3).Vertices().size(), 2u * 3u);
     EXPECT_EQ(DrawnQuiver(0xa19, true, 0).Vertices().size(), 1u * 3u);
     EXPECT_EQ(DrawnQuiver(0xa21, false, 0, true).Vertices().size(), 2u * 3u);
 }
-// 0x50ba30 dibuja las partes de la 5 a la 0: las botas, los guantes, el pantalón, la armadura, el casco
-// y la cabeza; después la espalda, las alas y la mascota, y al final las manos (0x50e6af).
+// 0x50ba30 draws the parts from 5 to 0: the boots, the gloves, the pants, the armor, the helm and the head; then the
+// back, the wings and the pet, and at the end the hands (0x50e6af).
 TEST(CharacterDrawingTest, ThePartsGoFromTheBootsToTheHeadAndTheHandsLast)
 {
     DrawnCharacter character;
@@ -1329,8 +1321,8 @@ TEST(CharacterDrawingTest, ThePartsGoFromTheBootsToTheHeadAndTheHandsLast)
               (std::vector<std::uint16_t>{0x304, 0x303, 0x302, 0x301, 0x300, 0x305, 0x306, 0x307, 0x308, 0x310}));
 }
 
-// RenderBody hace un pase sobre todas las mallas antes del siguiente: las bases de las dos mallas y
-// después cada pase de brillo en las dos.
+// RenderBody makes one pass over every mesh before the next: the bases of the two meshes and then each glow pass on
+// both.
 TEST(CharacterDrawingTest, AModelGoesPassByPass)
 {
     const ModelBatch batch = DrawnInTheHand(0x212, 2, 7);
@@ -1341,8 +1333,8 @@ TEST(CharacterDrawingTest, AModelGoesPassByPass)
     EXPECT_EQ(batch.Commands()[1].vertexCount, 2u * 3u);
     EXPECT_NE(batch.Commands()[1].state.texture, TextureSlot{0x300});
 }
-// La luz del personaje va por canal: la del login es la del terreno, que tiene color (0x50ba30 con
-// 0x5f99e0 fuera de la escena 4).
+// The character's light goes by channel: the login's is the terrain's, which has color (0x50ba30 with 0x5f99e0 outside
+// scene 4).
 TEST(CharacterDrawingTest, TheLightOfACharacterGoesByChannel)
 {
     DrawnCharacter character;
@@ -1376,9 +1368,8 @@ DrawnObject LogoLike()
     return object;
 }
 
-// Un objeto del mundo sin casos por tipo (0x6002e0): RenderBody(2) y nada más. Cada malla con el color
-// del modelo (0x5ffce0), y la del blendMesh aditiva y por la luz del objeto; posado con su escala y su
-// posición (0x5ffdf0).
+// A world object without cases by type (0x6002e0): RenderBody(2) and nothing more. Each mesh with the model's color
+// (0x5ffce0), and the blendMesh's additive and by the object's light; posed with its scale and its position (0x5ffdf0).
 TEST(CharacterDrawingTest, AnObjectGoesWithItsBasePassOnly)
 {
     const OneModel models(0xa2, "logo.jpg", 2);
@@ -1398,8 +1389,8 @@ TEST(CharacterDrawingTest, AnObjectGoesWithItsBasePassOnly)
     EXPECT_FLOAT_EQ(vertices[2].position.y, 22.0f);
 }
 
-// La raíz gira con los ángulos del objeto (0x5ffdf0 → 0x4eb860 con +0x1c): con 90° en z, el vértice
-// (1, 0, 0) va a (0, 2, 0) de su lugar.
+// The root turns with the object's angles (0x5ffdf0 → 0x4eb860 with +0x1c): with 90° in z, the vertex (1, 0, 0) goes to
+// (0, 2, 0) of its place.
 TEST(CharacterDrawingTest, AnObjectTurnsWithItsAngles)
 {
     const OneModel models(0xa2, "logo.jpg", 1);
@@ -1413,7 +1404,7 @@ TEST(CharacterDrawingTest, AnObjectTurnsWithItsAngles)
     EXPECT_NEAR(batch.Vertices()[1].position.y, 22.0f, 1e-4f);
 }
 
-// La malla que el objeto oculta (+0x58) no va, y las demás sí.
+// The mesh the object hides (+0x58) does not go, and the others do.
 TEST(CharacterDrawingTest, AnObjectSkipsItsHiddenMesh)
 {
     const OneModel models(0xa2, "logo.jpg", 2);
@@ -1426,7 +1417,7 @@ TEST(CharacterDrawingTest, AnObjectSkipsItsHiddenMesh)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
 }
 
-// El script de la textura vale también en un objeto (0x4ef0c0): con H, la malla no va.
+// The texture's script also holds on an object (0x4ef0c0): with H, the mesh does not go.
 TEST(CharacterDrawingTest, AnObjectFollowsTheScriptOfItsTextures)
 {
     OneModel models(0xa2, "logo.jpg", 2);
@@ -1438,9 +1429,9 @@ TEST(CharacterDrawingTest, AnObjectFollowsTheScriptOfItsTextures)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
 }
 
-// Un objeto con luz por vértice (+0xe8, que 0x5ffce0 copia a +0x44 del modelo): 0x4ecc30 le da a cada
-// esquina el color del modelo por la luz de su normal (0x4ebc80), por el índice de normal de la esquina
-// y no el de su vértice. La de x da 1,44; la de −z, el piso de 0,2; la de y, 0,4.
+// An object with per-vertex light (+0xe8, which 0x5ffce0 copies to the model's +0x44): 0x4ecc30 gives each corner the
+// model's color times the light of its normal (0x4ebc80), by the corner's normal index and not its vertex's. The one in
+// x gives 1.44; the one in −z, the floor of 0.2; the one in y, 0.4.
 DrawnObject LitObject()
 {
     DrawnObject object = LogoLike();
@@ -1465,7 +1456,7 @@ TEST(CharacterDrawingTest, AnObjectWithVertexLightLightsEachCornerByItsNormal)
     ExpectColor(batch.Vertices()[0], 0.2f, 0.2f, 0.2f);
     ExpectColor(batch.Vertices()[1], 0.72f, 0.72f, 0.72f);
     ExpectColor(batch.Vertices()[2], 0.1f, 0.1f, 0.1f);
-    // Sin ella, el color del modelo en las tres.
+    // Without it, the model's color on the three.
     DrawnObject unlit = LitObject();
     unlit.vertexLight = false;
     const ModelBatch flat = DrawnObjectOf(models, unlit);
@@ -1491,8 +1482,8 @@ TEST(CharacterDrawingTest, TheSelectedUnlitModelMeshScrollsWithoutChangingOtherM
     EXPECT_EQ(selected.Vertices()[3].color.red, plain.Vertices()[3].color.red);
 }
 
-// Un objeto de 0x5ffdf0 lleva la escala en la raíz (0x4eb860 con Translate), y 0x4ebc80 gira cada
-// normal con esa matriz sin normalizarla: con la escala 2, la normal en z mide 2 y da 0,8 · 2 · 2 + 0,4.
+// An object of 0x5ffdf0 carries the scale in the root (0x4eb860 with Translate), and 0x4ebc80 turns each normal with
+// that matrix without normalizing it: with scale 2, the normal in z measures 2 and gives 0.8 · 2 · 2 + 0.4.
 TEST(CharacterDrawingTest, TheNormalsOfAnObjectCarryItsScale)
 {
     const OneModel models(0xbf, "dk.jpg", 1);
@@ -1505,7 +1496,7 @@ TEST(CharacterDrawingTest, TheNormalsOfAnObjectCarryItsScale)
     ExpectColor(batch.Vertices()[0], 0.5f * 3.6f, 0.5f * 3.6f, 0.5f * 3.6f);
 }
 
-// La malla del blendMesh va por su rama, con glColor3f(color · luz del blendMesh), sin la de la normal.
+// The blendMesh's mesh goes through its branch, with glColor3f(color · the blendMesh's light), without the normal's.
 TEST(CharacterDrawingTest, TheBlendMeshOfALitObjectGoesWithoutTheVertexLight)
 {
     OneModel models(0xbf, "dk.jpg", 1);
@@ -1521,8 +1512,8 @@ TEST(CharacterDrawingTest, TheBlendMeshOfALitObjectGoesWithoutTheVertexLight)
     ExpectColor(batch.Vertices()[0], 0.25f, 0.25f, 0.25f);
 }
 
-// Con el alpha del objeto (+0x174) por debajo de 0,99, 0x4ecc30 mezcla (0x620a00(1)) y lo manda en el
-// glColor4f; desde 0,99, va opaca y en 1.
+// With the object's alpha (+0x174) below 0.99, 0x4ecc30 blends (0x620a00(1)) and sends it in the glColor4f; from 0.99
+// on, it goes opaque and at 1.
 TEST(CharacterDrawingTest, AnObjectFadingInBlendsWithItsAlpha)
 {
     const OneModel models(0xbf, "dk.jpg", 1);
@@ -1541,7 +1532,7 @@ TEST(CharacterDrawingTest, AnObjectFadingInBlendsWithItsAlpha)
     EXPECT_FLOAT_EQ(opaque.Vertices()[0].color.alpha, 1.0f);
 }
 
-// 0x5ffdf0 no dibuja un objeto con el alpha por debajo de 0,01 (0x6b88d4).
+// 0x5ffdf0 does not draw an object with the alpha below 0.01 (0x6b88d4).
 TEST(CharacterDrawingTest, AnObjectBelowAHundredthOfAlphaIsNotDrawn)
 {
     const OneModel models(0xbf, "dk.jpg", 1);
@@ -1552,10 +1543,9 @@ TEST(CharacterDrawingTest, AnObjectBelowAHundredthOfAlphaIsNotDrawn)
     EXPECT_FALSE(DrawnObjectOf(models, object).Commands().empty());
 }
 
-// El caballo oscuro (0x6002e0 con el 0xbf), con 13 mallas de un triángulo y la normal en z (la luz
-// por vértice da 0,4): el pase base en blanco por esa luz, después el cromo aditivo de la malla 12 en
-// (1; 0,8; 0,3) y la sombra de la malla 8, mezclada, sin textura, en (0, 0, 0, 0,7) y aplastada sobre
-// el piso.
+// The dark horse (0x6002e0 with 0xbf), with 13 meshes of one triangle and the normal in z (the per-vertex light gives
+// 0.4): the base pass in white times that light, then the additive chrome of mesh 12 in (1, 0.8, 0.3) and the shadow of
+// mesh 8, blended, untextured, in (0, 0, 0, 0.7) and flattened on the floor.
 ModelBatch DrawnHorseOf(const OneModel& models, const DrawnObject& horse, std::int32_t map = 0)
 {
     ModelBatch batch;
@@ -1595,10 +1585,11 @@ TEST(CharacterDrawingTest, TheDarkHorseGoesWhiteThenItsChromeThenItsShadow)
     EXPECT_FLOAT_EQ(shadow.position.z, 30.0f + 5.0f);
 }
 
-// El caballo de 0x4453b0 (0x44532e: 0x602e90(caballo, 0, …)) sale del scratch de 0x5ffdf0 con el segundo argumento en
-// 0: 0x4eb860 con la bandera en 1 mete la escala en la raíz y 0x4ebc80 con Translate en 0 gira cada normal por ese
-// hueso (0x5fcbd0), con la escala dentro. El cromo de la malla 12 (0x4ecc30 con 0x44, 0x4ed309..0x4ed32c con el reloj
-// en 0) es u = 0,5 · nz y v = 0,5 · ny: con la escala 1,6f del login y la normal (0, 0, 1), nz = 1,6f y u = 0,8f.
+// The horse of 0x4453b0 (0x44532e: 0x602e90(horse, 0, …)) comes out of the scratch of 0x5ffdf0 with the second argument
+// at 0: 0x4eb860 with the flag at 1 puts the scale in the root and 0x4ebc80 with Translate at 0 turns each normal by
+// that bone (0x5fcbd0), with the scale inside. The chrome of mesh 12 (0x4ecc30 with 0x44, 0x4ed309..0x4ed32c with the
+// clock at 0) is u = 0.5 · nz and v = 0.5 · ny: with the login's scale 1.6f and the normal (0, 0, 1), nz = 1.6f and u =
+// 0.8f.
 TEST(CharacterDrawingTest, TheChromeOfAWorldScratchReadsTheScaledNormal)
 {
     const OneModel models(0xbf, "dk.jpg", 13);
@@ -1613,9 +1604,9 @@ TEST(CharacterDrawingTest, TheChromeOfAWorldScratchReadsTheScaledNormal)
         EXPECT_EQ(batch.Vertices()[corner].uv, glm::vec2(0.8f, 0.0f)) << corner;
 }
 
-// Un scratch de 0x4ebc80 con Translate en 1 (el cuerpo de un monstruo por 0x50baed → 0x5ffdf0(objeto, 1) → 0x600177,
-// lo que cuelga por 0x509a39, un ítem del piso) guarda la normal girada sin la escala, y 0x4ecc30 la lee así: con 0x4
-// y la escala 1,5 del objeto, la normal (0, 0, 1) da u = 0,5, no 0,75.
+// A scratch of 0x4ebc80 with Translate at 1 (a monster's body through 0x50baed → 0x5ffdf0(object, 1) → 0x600177, what
+// hangs through 0x509a39, a floor item) keeps the turned normal without the scale, and 0x4ecc30 reads it that way: with
+// 0x4 and the object's scale 1.5, the normal (0, 0, 1) gives u = 0.5, not 0.75.
 TEST(CharacterDrawingTest, TheChromeOfATranslatedScratchIgnoresTheObjectScale)
 {
     const OneModel models(0x197, "m.jpg");
@@ -1637,8 +1628,8 @@ TEST(CharacterDrawingTest, TheChromeOfATranslatedScratchIgnoresTheObjectScale)
         EXPECT_EQ(corner.uv, glm::vec2(0.5f, 0.0f));
 }
 
-// Mientras aparece, el pase base mezcla con su alpha y el cromo va por él (0x4ecc30 multiplica el
-// color en el lugar); la sombra sigue en 0,7.
+// While it appears, the base pass blends with its alpha and the chrome goes by it (0x4ecc30 multiplies the color in
+// place); the shadow stays at 0.7.
 TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
 {
     const OneModel models(0xbf, "dk.jpg", 13);
@@ -1654,9 +1645,9 @@ TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
     EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, 0.7f);
 }
 
-// 0x60073c..0x600787: la sombra depende del mundo en curso. En Lorencia (0) y Devias (2), y en el login
-// (55), en 0,7; en el 7, en 0,2; en el 10, en Kalima (24 a 29) y en el 36, no hay. El cuerpo y el cromo
-// van en todos.
+// 0x60073c..0x600787: the shadow depends on the current world. In Lorencia (0) and Devias (2), and in the login (55),
+// at 0.7; in 7, at 0.2; in 10, in Kalima (24 to 29) and in 36, there is none. The body and the chrome go in all of
+// them.
 TEST(CharacterDrawingTest, TheHorseShadowGoesByTheMap)
 {
     const OneModel models(0xbf, "dk.jpg", 13);
@@ -1683,9 +1674,9 @@ TEST(CharacterDrawingTest, TheHorseShadowGoesByTheMap)
     }
 }
 
-// Los Fenrir (0x60277b..0x60292b), con tres mallas de un triángulo: la 0 y la 1 con el pase base en blanco y sin la
-// luz por vértice, la 1 otra vez con el cromo aditivo de eff_lighting (0x68f) con la acción 4, y la sombra de las
-// tres en (0, 0, 0, 0,7) aplastada sobre el piso; en el 7 en 0,2 y sin ella en el 10, en Kalima y en el 36.
+// The Fenrirs (0x60277b..0x60292b), with three meshes of one triangle: 0 and 1 with the base pass in white and without
+// the per-vertex light, 1 again with the additive chrome of eff_lighting (0x68f) with action 4, and the shadow of the
+// three in (0, 0, 0, 0.7) flattened on the floor; in 7 at 0.2 and without it in 10, in Kalima and in 36.
 TEST(CharacterDrawingTest, TheFenrirGoesWhiteChargesItsSecondMeshAndShadowsEveryMesh)
 {
     const OneModel models(0x14a, "fenril.jpg", 3);
@@ -1734,12 +1725,12 @@ TEST(CharacterDrawingTest, TheFenrirGoesWhiteChargesItsSecondMeshAndShadowsEvery
     }
 }
 
-// 0x602e90 con 10 en 0x6002e0 (0x60033c..0x600435): el color del modelo en 1 y, malla por malla, 0x4ecc30(malla,
-// 0x4040, 0,5, …, 0x620) sin RenderBody: el pase 0x4000 con Chrome02 (0x620) forzada, aditivo, con las UV de la
-// normal (con el reloj en 0, c = 1 y s = t = 0: u = nz + 3ny y v = 1 − nz − 2,5nz), y el color multiplicado en el
-// lugar por 0,5 en cada malla que lo dibuja (Q-C95). La malla oculta del objeto (+0x58) va igual; la que no tiene
-// triángulos (0x4ecc5b) y la de N (0x4ed07a) no van ni multiplican. No miran el alpha, el color, el blendMesh ni la
-// luz por vértice del objeto, y no hay sombra.
+// 0x602e90 with 10 in 0x6002e0 (0x60033c..0x600435): the model's color at 1 and, mesh by mesh, 0x4ecc30(mesh, 0x4040,
+// 0.5, …, 0x620) without RenderBody: the 0x4000 pass with Chrome02 (0x620) forced, additive, with the normal's UVs
+// (with the clock at 0, c = 1 and s = t = 0: u = nz + 3ny and v = 1 − nz − 2.5nz), and the color multiplied in place by
+// 0.5 in each mesh that draws it (Q-C95). The object's hidden mesh (+0x58) goes the same; the one without triangles
+// (0x4ecc5b) and the one with N (0x4ed07a) neither go nor multiply. They do not look at the object's alpha, color,
+// blendMesh or per-vertex light, and there is no shadow.
 TEST(CharacterDrawingTest, TheChromeShellGoesMeshByMeshWithChrome02AndHalvesTheColor)
 {
     OneModel models(0xbf, "dk.jpg", 4);
@@ -1768,8 +1759,8 @@ TEST(CharacterDrawingTest, TheChromeShellGoesMeshByMeshWithChrome02AndHalvesTheC
     }
 }
 
-// Las UV del 0x4000 llevan la normal con la escala del objeto (0x4ebc80 no la normaliza): con 1,6, u = 1,6 y
-// v = 1 − 1,6 − 4. Un modelo que la biblioteca no tiene no dibuja nada.
+// The UVs of the 0x4000 carry the normal with the object's scale (0x4ebc80 does not normalize it): with 1.6, u = 1.6
+// and v = 1 − 1.6 − 4. A model the library does not have draws nothing.
 TEST(CharacterDrawingTest, TheChromeShellTakesTheScaledNormal)
 {
     const OneModel models(0xbf, "dk.jpg", 1);
@@ -1793,8 +1784,8 @@ TEST(CharacterDrawingTest, TheChromeShellTakesTheScaledNormal)
     EXPECT_TRUE(none.Commands().empty());
 }
 
-// El cromo de 0x4ecc30 con 0x4 (Chrome): u = 0,5 · nz + t y v = 0,5 · ny + 2t, con la normal con la
-// escala del caballo: con 1,6 y el reloj en 0, la normal en z da u = 0,8.
+// The chrome of 0x4ecc30 with 0x4 (Chrome): u = 0.5 · nz + t and v = 0.5 · ny + 2t, with the normal carrying the
+// horse's scale: with 1.6 and the clock at 0, the normal in z gives u = 0.8.
 TEST(CharacterDrawingTest, TheHorseChromeTakesTheScaledNormal)
 {
     const OneModel models(0xbf, "dk.jpg", 13);
@@ -1809,8 +1800,8 @@ TEST(CharacterDrawingTest, TheHorseChromeTakesTheScaledNormal)
     EXPECT_FLOAT_EQ(chrome.uv.y, 0.0f);
 }
 
-// 0x6002e0 pide el cromo de las mallas 12 a 15, y cada una que existe multiplica el color en el lugar
-// por el alpha (Q-C95): con 16 mallas y 0,5, van por 0,5, 0,25, 0,125 y 0,0625.
+// 0x6002e0 asks for the chrome of meshes 12 to 15, and each one that exists multiplies the color in place by the alpha
+// (Q-C95): with 16 meshes and 0.5, they go by 0.5, 0.25, 0.125 and 0.0625.
 TEST(CharacterDrawingTest, TheHorseChromeGoesOnMeshesTwelveToFifteen)
 {
     const OneModel models(0xbf, "dk.jpg", 16);
@@ -1830,7 +1821,7 @@ TEST(CharacterDrawingTest, TheHorseChromeGoesOnMeshesTwelveToFifteen)
     }
 }
 
-// El cromo va por 0x4ecc30, que no corre los pases de brillo de una malla con N en el script.
+// The chrome goes through 0x4ecc30, which does not run the glow passes of a mesh with N in the script.
 TEST(CharacterDrawingTest, TheHorseChromeSkipsAMeshWithoutShine)
 {
     OneModel models(0xbf, "dk.jpg", 13);
@@ -1842,7 +1833,7 @@ TEST(CharacterDrawingTest, TheHorseChromeSkipsAMeshWithoutShine)
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::BlendedShadow);
 }
 
-// Sin la malla 12 no hay cromo, y sin la 8 no hay sombra; con el alpha por debajo de 0,01, nada.
+// Without mesh 12 there is no chrome, and without mesh 8 there is no shadow; with the alpha below 0.01, nothing.
 TEST(CharacterDrawingTest, TheHorseDrawsOnlyTheMeshesItHas)
 {
     const OneModel nine(0xbf, "dk.jpg", 9);
@@ -1859,7 +1850,7 @@ TEST(CharacterDrawingTest, TheHorseDrawsOnlyTheMeshesItHas)
     EXPECT_TRUE(DrawnHorseOf(models, hidden).Commands().empty());
 }
 
-// Un objeto cuyo modelo no está no se dibuja.
+// An object whose model is not there is not drawn.
 TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
 {
     const OneModel models(0xa3, "logo.jpg", 2);
@@ -1867,10 +1858,10 @@ TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
     EXPECT_TRUE(DrawnObjectOf(models, LogoLike()).Commands().empty());
 }
 
-// 0x509340, caso 0x620: con el HDK_Mace en la mano y la tabla del frame, los cinco sprites del cetro en
-// el hueso 0 de la pose de la maza (con su propia posición y su giro, colgado del cuerpo girado por el
-// personaje), con su escala y su posición y el rand() de la tela: los mismos que CreateScepterGlow con
-// ese hueso, que no es la raíz de la que cuelga.
+// 0x509340, case 0x620: with the HDK_Mace in the hand and the frame's table, the sceptre's five sprites on bone 0 of
+// the mace's pose (with its own position and turn, hanging from the body turned by the character), with its scale and
+// its position and the cloth's rand(): the same as CreateScepterGlow with that bone, which is not the root it hangs
+// from.
 TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
 {
     DrawnCharacter character;
@@ -1890,7 +1881,7 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
 
     (void)Drawn(models, character);
 
-    // La raíz es el hueso 33 del cuerpo plano: el giro del personaje, sin traslación.
+    // The root is bone 33 of the flat body: the character's turn, without translation.
     const Client::Math::BoneTransform root = Client::Math::AngleMatrix({0.0f, 0.0f, 90.0f});
     std::vector<Client::Math::BoneTransform> mace(1);
     ASSERT_TRUE(Client::Models::PoseAttached(models.ItemSkeleton(), Client::Models::AnimationState{}, root, mace));
@@ -1912,8 +1903,8 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     EXPECT_EQ(world.random.State(), random.State()) << "seis rand() de la tela";
 }
 
-// Con el sorteo del cetro (Actors::Drawing::ScepterGlowCarry), dos frames de MuRet en el mismo frame del original
-// piden los mismos cinco sprites y sacan los seis rand() una sola vez.
+// With the sceptre's draw (World::ScepterGlowCarry), two MuRet frames in the same original frame ask for the same five
+// sprites and draw the six rand() calls only once.
 TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
 {
     DrawnCharacter character;
@@ -1942,8 +1933,8 @@ TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
     }
 }
 
-// En la izquierda también (0x509340 no mira la mano); sin la tabla, o sin el rand() de la tela, no pide
-// ninguno ni saca rand(); y otro ítem no tiene ese caso.
+// On the left too (0x509340 does not look at the hand); without the table, or without the cloth's rand(), it asks for
+// none and draws no rand(); and another item does not have that case.
 TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
 {
     const OneModel mace(Client::World::HdkMaceModel);
@@ -1986,9 +1977,9 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
     }
 }
 
-// El punto de un hueso de un objeto, posado como en DrawObject y pasado al mundo como sus vértices: con
-// el hueso 0 plano, el desplazamiento por la escala más la posición; un hueso que el modelo no tiene, uno
-// dummy (0x4eb973 no lo escribe en el buffer global) o un modelo que no está, nada.
+// The point of an object's bone, posed as in DrawObject and taken to the world like its vertices: with bone 0 flat, the
+// offset times the scale plus the position; a bone the model does not have, a dummy one (0x4eb973 does not write it in
+// the global buffer) or a model that is not there, nothing.
 TEST(CharacterDrawingTest, ThePointOfABoneGoesToTheWorldLikeTheVertices)
 {
     OneModel models(0xa3, "logo.jpg");
@@ -2007,9 +1998,9 @@ TEST(CharacterDrawingTest, ThePointOfABoneGoesToTheWorldLikeTheVertices)
     EXPECT_FALSE(Client::Actors::Drawing::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value()) << "dummy";
 }
 
-// Con un hueso que se traslada y gira, y el objeto girado, a escala y en su lugar, el punto de
-// PosedBonePoint es el de un vértice en `offset` colgado de ese hueso, pasado al mundo por SkinMesh: el
-// desplazamiento va por el hueso antes que por la escala.
+// With a bone that translates and turns, and the object turned, scaled and in its place, the point of PosedBonePoint is
+// that of a vertex at `offset` hanging from that bone, taken to the world by SkinMesh: the offset goes through the bone
+// before the scale.
 TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
 {
     OneModel models(0xa3, "logo.jpg");
@@ -2036,8 +2027,8 @@ TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
     EXPECT_EQ(*point, skinned.positions.front());
 }
 
-// El buffer global de la pose lo deja el último modelo posado que tiene el hueso sin ser dummy: con dos,
-// gana el segundo; si el del segundo es dummy, queda el del primero; sin ninguno, nada.
+// The global pose buffer is left by the last posed model that has the bone without it being a dummy: with two, the
+// second wins; if the second's is a dummy, the first's stays; with none, nothing.
 TEST(CharacterDrawingTest, TheLastPosedWithTheBoneWins)
 {
     OneModel first(0xa3, "logo.jpg");
@@ -2083,7 +2074,7 @@ TEST(CharacterDrawingTest, PublishesTheCalculatedBodyAndAttachedMatricesInDrawOr
     };
     ModelBatch batch;
     DrawCharacter(batch, models, character, {});
-    // Lo que cuelga se publica una vez, con su raíz; las partes no se vuelven a posar.
+    // What hangs is published once, with its root; the parts are not posed again.
     ASSERT_EQ(published.size(), 2U);
     EXPECT_EQ(published[0], 0x20a);
     EXPECT_EQ(published[1], 0x1c13);

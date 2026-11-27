@@ -73,6 +73,7 @@ struct TerrainLighting;
 
 namespace Client::Kernel
 {
+class IOnScreenMessages;
 class WorldState;
 } // namespace Client::Kernel
 
@@ -137,6 +138,8 @@ struct WorldEntryResources
     Session::ModuleStates* states = nullptr;
     // What the letters' portraits ask of other modules when they step (App::GameClient's). nullptr: that step stops.
     const Actors::ICharacterStepHooks* characterStepHooks = nullptr;
+    // Where a module writes on the screen (0x555190, App::GameClient's). nullptr: a message stops.
+    Kernel::IOnScreenMessages* onScreenMessages = nullptr;
 };
 
 // The current map's terrain (Terrain::TerrainState::current), which the load replaces. nullptr without `states`.

@@ -1,5 +1,6 @@
 #include "Scenes/PetTrainerDrawing.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Math/X87.h"
 #include "Models/LogicalAccess.h"
@@ -267,7 +268,7 @@ Core::Expected<std::string, std::string> TheNameLine(const GameHudContext& conte
     auto format = TextOf(context, NameText, where);
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
-    const std::string_view name = HeroNameOf(context.world.Hero());
+    const std::string_view name = Actors::HeroNameOf(context.world.Hero());
     return Fits(Crt::Sprintf(format.Value(), name), LineRoom, where);
 }
 

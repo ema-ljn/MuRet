@@ -1,5 +1,6 @@
 #include "Scenes/GameMessages.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
@@ -16,20 +17,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
-std::string_view HeroNameOf(const Kernel::ActorState& hero)
-{
-    std::size_t size = 0;
-    while (size < hero.name.size() && hero.name[size] != std::byte{0})
-        ++size;
-    return {reinterpret_cast<const char*>(hero.name.data()), size};
-}
-
 UI::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
                               Core::PixelSize screen)
 {
@@ -52,6 +47,18 @@ Core::Expected<void, std::string> AddGameMessage(Kernel::WorldRuntime& runtime,
     if (sound.Value())
         runtime.RequestSound(Audio::SoundId{*sound.Value()});
     return {};
+}
+
+ChatMessages::ChatMessages(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
+                           std::function<Core::PixelSize()> screen)
+    : m_runtime(runtime), m_measure(measure), m_screen(std::move(screen))
+{
+}
+
+Core::Expected<void, std::string> ChatMessages::Add(std::string_view name, std::string_view text, std::int32_t type)
+{
+    const Core::PixelSize screen = m_screen ? m_screen() : Core::PixelSize{640, 480};
+    return AddGameMessage(m_runtime, m_measure, screen, name, text, type);
 }
 
 Core::Expected<void, std::string> AddTheEmptyMessages(Kernel::WorldRuntime& runtime,
@@ -105,7 +112,7 @@ void DrawTheMessages(const Kernel::WorldState& world, Kernel::HudState& hud, Ren
                                    .mouseY = mouse.y,
                                    .chatOpen = runtime.ui.chatOpen,
                                    .heroSafeZone = hero.safeZone != 0,
-                                   .heroName = HeroNameOf(hero),
+                                   .heroName = Actors::HeroNameOf(hero),
                                    .showChat = runtime.ui.chatModes.showChat,
                                    .crywolfStage = runtime.crywolf.stage};
     UI::DrawTheMessageArea(runtime.chat.area, hud.messageFrame, context, view);

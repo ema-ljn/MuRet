@@ -1,7 +1,6 @@
 #include "Actors/ActorEffectFlags.h"
 
 #include "Core/Expected.h"
-#include "Core/PixelSize.h"
 #include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
@@ -16,7 +15,7 @@
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Tables/TextTable.h"
-#include "Scenes/GameMessages.h"
+#include "Kernel/IOnScreenMessages.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/WizardEffects.h"
 #include "Session/WorldEntry.h"
@@ -84,14 +83,13 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const Scenes::WorldEntry
 {
     if (resources.texts == nullptr)
         return Cut("0x4e68f5: falta Text.bmd para el aviso de la bandera 0x2000000");
-    if (resources.textMeasure == nullptr)
-        return Cut("0x4e68f5: falta el medidor para 0x555190 y el aviso de la bandera 0x2000000");
+    if (resources.onScreenMessages == nullptr)
+        return Cut("0x4e68f5: no on-screen messages for 0x555190 and the notice of flag 0x2000000");
     const auto text = resources.texts->Text(BlessingNoticeText);
     if (!text)
         return Cut("0x4e68f5: Text.bmd no ofrece el registro 1828 del aviso");
-    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     // 0x5767b6c is an empty name anchor. Even an empty Text1828 must age the log and add its row.
-    return Scenes::AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
+    return resources.onScreenMessages->Add({}, *text, SystemMessage);
 }
 
 // 0x530860(0x10f, from, from, angles, subtype, the character, width, −1, 0, 0, −1) (AuraJoints.cpp). With the pool

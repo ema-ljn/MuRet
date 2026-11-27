@@ -1,4 +1,5 @@
 #include "Scenes/EventPackets.h"
+#include "Actors/ActorName.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -661,8 +662,8 @@ private:
             return Core::Unexpected(std::move(text).Error());
         if (m_context.measure == nullptr)
             return Core::Unexpected(std::string("0x4d6b4d: sin el medidor de los mensajes (0x555190)"));
-        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen, ChatNameOf(m_world.Actors()[owner]),
-                              text.Value(), UI::SystemMessage);
+        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen,
+                              Actors::ChatNameOf(m_world.Actors()[owner]), text.Value(), UI::SystemMessage);
     }
 
     // ----- 90 (0x4e4870).

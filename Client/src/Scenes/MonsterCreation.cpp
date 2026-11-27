@@ -1,10 +1,10 @@
 #include "Scenes/MonsterCreation.h"
 
 #include "Core/Expected.h"
-#include "Models/Animation.h"
 #include "Models/Cloth.h"
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
+#include "Actors/ActionReply.h"
 #include "Actors/ActorEquipment.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
@@ -511,7 +511,7 @@ private:
     // 0x4ea030(personaje, acción) con la cuenta de acciones del modelo del tipo.
     Core::Expected<void, std::string> SetTheAction(Kernel::ActorState& actor, const MonsterStep& step)
     {
-        return SetMonsterAction(actor, static_cast<std::uint8_t>(step.value), step.address, m_resources);
+        return Actors::SetMonsterAction(actor, static_cast<std::uint8_t>(step.value), step.address, m_resources);
     }
 
     // 0x5140c0.
@@ -552,24 +552,6 @@ private:
     std::optional<std::size_t> m_index;
 };
 } // namespace
-
-const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model)
-{
-    if (const auto* skeleton = Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SkeletonOf(Models::ModelId{model}))
-        return skeleton;
-    return resources.models.SkeletonOf(Models::ModelId{model});
-}
-
-Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
-                                                   [[maybe_unused]] std::uint32_t address,
-                                                   const WorldEntryResources& resources)
-{
-    // El registro de 0x5769ad8 + tipo · 0xe0 existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc
-    // u Object35, que 0x60da30 saltea) tiene +0x26 en 0, y 0x4ea030 sale sin poner nada (0x4ea056).
-    if (const auto* skeleton = MonsterSkeletonOf(resources, actor.type))
-        Models::SetAction(actor.animation, *skeleton, action);
-    return {};
-}
 
 Core::Expected<void, std::string> PutActorText(Kernel::ActorState& actor, std::span<const std::byte> bytes,
                                                std::uint32_t address, std::size_t offset)

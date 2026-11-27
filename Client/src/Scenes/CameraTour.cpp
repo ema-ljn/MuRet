@@ -1,4 +1,5 @@
 #include "Scenes/CameraTour.h"
+#include "Actors/ActionReply.h"
 #include "Math/X87.h"
 #include "Math/RoundedMath.h"
 #include "Scenes/ArrivalSparks.h"
@@ -448,7 +449,7 @@ private:
     {
         if (m_context.resources == nullptr)
             return Core::Unexpected(std::format("{:#x}: 0x4ea030 sin los modelos de la entrada", address));
-        return SetMonsterAction(actor, action, address, *m_context.resources);
+        return Actors::SetMonsterAction(actor, action, address, *m_context.resources);
     }
 
     // 0x403d40: +0x150 uno más, hasta 4.

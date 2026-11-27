@@ -1,5 +1,6 @@
 #include "Scenes/GameDialogDrawing.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
@@ -1739,7 +1740,7 @@ Core::Expected<void, std::string> DrawTheInvitation(Frame& frame, std::int32_t i
     {
         const Kernel::WorldState& world = frame.context.world;
         const Kernel::ActorState& inviter = world.Actors()[InviterOf(world, frame.runtime.social.party.requestKey)];
-        DrawCentered(frame, InvitationRowY - PartyRowStep, Crt::Sprintf(format.Value(), ChatNameOf(inviter)));
+        DrawCentered(frame, InvitationRowY - PartyRowStep, Crt::Sprintf(format.Value(), Actors::ChatNameOf(inviter)));
         auto question = TextOf(frame, PartyQuestionText);
         if (!question.HasValue())
             return Core::Unexpected(std::move(question).Error());

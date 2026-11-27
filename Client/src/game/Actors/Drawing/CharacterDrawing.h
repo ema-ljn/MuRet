@@ -69,7 +69,7 @@ struct DrawnCharacter
     // the own record's bits it used for its parts.
     std::optional<glm::vec3> hangingLight{};
     // +0x174 and the shadow guards of 0x50bc05..0x50bcbd (CastsShadow, GameCharacters.h). `object.position` already has
-    // the z of the shadow's floor (0x50bc77..0x50bcbd, ShadowGroundOf in MonsterDrawing.h).
+    // the z of the shadow's floor (0x50bc77..0x50bcbd, ShadowGroundOf in GameCharacters.h).
     float alpha = 1.0f;
     bool castsShadow = true;
     bool safeZone = false;

@@ -1,4 +1,5 @@
 #include "Scenes/CastleWeaponEffects.h"
+#include "Actors/ActionReply.h"
 #include "Kernel/ActorSearch.h"
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
@@ -66,7 +67,8 @@ Result KnockDownTheHero(const glm::vec3& point, float radius, const WorldEntryRe
     if (hero.animation.action == Knockdown || !InRange(point, hero.position, radius))
         return {};
     const bool fenrir = hero.pet.model == 0x1c37;
-    if (auto set = SetMonsterAction(hero, fenrir ? Actors::FenrirHitActionOf(hero) : Knockdown, 0x4295f0, resources);
+    if (auto set =
+            Actors::SetMonsterAction(hero, fenrir ? Actors::FenrirHitActionOf(hero) : Knockdown, 0x4295f0, resources);
         !set.HasValue())
         return set;
     // 429724 pasa5d alwireaunquelaacciónlocaldelFenrirseeligecon4e9cd0.
@@ -86,7 +88,7 @@ Result KnockDownTheActors(const glm::vec3& point, float radius, const WorldEntry
         if (!actor.alive || actor.byte88 != 0x80 || actor.type != Tables::PlayerSkeletonModel ||
             actor.animation.action == 137 || !InRange(point, actor.position, radius))
             continue;
-        if (auto set = SetMonsterAction(actor, 137, 0x429e40, resources); !set.HasValue())
+        if (auto set = Actors::SetMonsterAction(actor, 137, 0x429e40, resources); !set.HasValue())
             return set;
     }
     return {};
@@ -99,7 +101,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std
     const auto slot = Kernel::ActorWithKey(resources.world, key);
     // WorldState retiene el lugar400sentinela que5110d0 devuelve; no se fabricaactor0.
     auto& actor = resources.world.Actors()[slot];
-    if (auto set = SetMonsterAction(actor, 1, 0x44eec6, resources); !set.HasValue())
+    if (auto set = Actors::SetMonsterAction(actor, 1, 0x44eec6, resources); !set.HasValue())
         return set;
     const bool aimed = mode == 1;
     const glm::vec3 target{static_cast<float>(x * 100), static_cast<float>(y * 100), 100};

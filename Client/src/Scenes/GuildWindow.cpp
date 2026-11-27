@@ -1,5 +1,6 @@
 #include "Scenes/GuildWindow.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Protocol/FrontEnd/CharacterName.h"
@@ -523,7 +524,7 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
                                   "0x64fcd5");
     }
     // 0x64fd9c: 0x64faa0 con el nombre del héroe (+0x1d9).
-    auto index = FindTheMember(guild, HeroNameOf(hero));
+    auto index = FindTheMember(guild, Actors::HeroNameOf(hero));
     if (!index.HasValue())
         return Core::Unexpected(std::move(index).Error());
     guild.kickMember = index.Value();

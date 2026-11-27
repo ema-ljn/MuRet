@@ -1,5 +1,6 @@
 #include "Session/WorldTransitionSupport.h"
 
+#include "Actors/ActionReply.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Tables/PlayerModels.h"
@@ -62,7 +63,7 @@ Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(cons
         return Core::Unexpected(std::string("0x4f2250: falta Player.bmd en la transición"));
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
-    const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, actor.type);
+    const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : Actors::MonsterSkeletonOf(resources, actor.type);
     return Actors::ActorStopContext{
         .runtime = resources.world.Runtime(),
         .scene = SceneId::Game,

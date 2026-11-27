@@ -1,4 +1,5 @@
 #include "UI/Emotes.h"
+#include "Actors/Emote.h"
 
 #include "Tables/TextTable.h"
 
@@ -19,7 +20,7 @@
 // así), que no se contienen entre ellos.
 namespace
 {
-using Client::UI::EmoteCase;
+using Client::Actors::EmoteCase;
 using Client::UI::FindTheEmote;
 
 const Client::Tables::TextTable& Texts()

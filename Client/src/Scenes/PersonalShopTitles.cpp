@@ -1,5 +1,6 @@
 #include "Scenes/PersonalShopTitles.h"
 
+#include "Actors/ActorName.h"
 #include "Render/Text/FontSet.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
@@ -43,7 +44,7 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     {
         // 0x451326..0x451382: el cartel nuevo (0x4524e0), con la clave & 0x7fff y el lugar en (−1, −1).
         shops.titles.emplace(index, ShopTitle{.key = key & StoredKeyMask,
-                                              .name = ChatNameOf(actor),
+                                              .name = Actors::ChatNameOf(actor),
                                               .title = std::string(title),
                                               .x = Unplaced,
                                               .y = Unplaced});
@@ -52,7 +53,7 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     {
         // 0x4512d1..0x451301: la clave guardada (0x452530, ya con & 0x7fff) contra la entera, que desde 0x8000 no se
         // iguala nunca (07 Q-C969); el nombre y el título nuevos (0x452540) y el lugar en (−1, −1) (0x4527d0).
-        found->second.name = ChatNameOf(actor);
+        found->second.name = Actors::ChatNameOf(actor);
         found->second.title = std::string(title);
         found->second.x = Unplaced;
         found->second.y = Unplaced;

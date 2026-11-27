@@ -1,5 +1,6 @@
 #include "Scenes/EventDrawing.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
 #include "Render/SpriteBatch.h"
@@ -270,7 +271,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
     DrawLine(context, RankingTitleLeft, 0x46, title.Value());
     // 0x40be3a..0x40be6e: wsprintfA con el nombre del héroe (+0x1d9 de [0x743a170]).
     const Kernel::ActorState& hero = context.world.Hero();
-    const std::string heroName = ChatNameOf(hero);
+    const std::string heroName = Actors::ChatNameOf(hero);
     const std::array<Crt::FormatArgument, 1> nameArguments{Crt::StringArgument{.text = heroName}};
     auto honor = FormattedText(context, Wsprintf, RankingHonorText, nameArguments, CastleTextBuffer, "0x40be5c");
     if (!honor.HasValue())

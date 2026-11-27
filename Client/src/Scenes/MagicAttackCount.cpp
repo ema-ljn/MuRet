@@ -1,4 +1,5 @@
 #include "Scenes/MagicAttackCount.h"
+#include "Actors/ActionReply.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -78,7 +79,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
     // original.
     if (casterSlot == NoActor)
         resources.log.Debug("se descarta la acción 0x96 del 1A: la clave {:#x} del que pega no está", attack.key);
-    else if (auto set = SetMonsterAction(caster, MagicAttackAction, 0x4cee23, resources); !set.HasValue())
+    else if (auto set = Actors::SetMonsterAction(caster, MagicAttackAction, 0x4cee23, resources); !set.HasValue())
         return set;
     // 0x4cee28..0x4cefd7: pkt[5] en +0x38e, con la entrada de la tabla abierta.
     {

@@ -1,5 +1,6 @@
 #include "Scenes/OwnItemPlacement.h"
 
+#include "Actors/ActionReply.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
@@ -304,7 +305,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     }
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
-    const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, hero.type);
+    const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : Actors::MonsterSkeletonOf(resources, hero.type);
     const Actors::ActorEquipmentContext equipment{
         .own = world.OwnCharacter(),
         .ownRecordAccesses = runtime.ownRecordDepth,

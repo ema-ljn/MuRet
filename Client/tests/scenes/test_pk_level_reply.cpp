@@ -11,6 +11,7 @@
 #include "Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Kernel/ActorState.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
 #include "Session/WorldEntry.h"
@@ -73,7 +74,8 @@ struct Stage
                                    .log = log,
                                    .textMeasure = &text,
                                    .screen = [] { return Client::Core::PixelSize{640, 480}; },
-                                   .texts = &texts};
+                                   .texts = &texts,
+                                   .onScreenMessages = &messages};
     }
 
     Client::Kernel::WorldState world;
@@ -90,6 +92,7 @@ struct Stage
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
+    Client::Scenes::ChatMessages messages{world.Runtime(), text, [] { return Client::Core::PixelSize{640, 480}; }};
     // Made-up texts 487 to 491 (0x76e0c90, 0x76e0dbc, 0x76e0ee8, 0x76e1014 and 0x76e1140).
     Client::Tables::TextTable texts =
         Client::Tests::MakeTextTable({{487, "heroe"}, {488, "civil"}, {489, "cuidado"}, {490, "asesino"}, {491, "!"}});
@@ -149,6 +152,21 @@ TEST(PkLevelReplyTest, AnUnknownKeyWritesThePhantomRecord)
     EXPECT_EQ(stage->world.Actors()[400].pk, 3);
     ASSERT_EQ(stage->world.Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(stage->world.Runtime().chat.log.entries[0].text, "civil");
+}
+
+// 0x555190 is the chat's (Kernel::IOnScreenMessages): without it the state is kept and the notice stops.
+TEST(PkLevelReplyTest, WithoutTheOnScreenMessagesTheNoticeStops)
+{
+    auto stage = std::make_unique<Stage>();
+    WorldEntryResources resources = stage->Resources();
+    resources.onScreenMessages = nullptr;
+
+    const auto applied = Client::Actors::ApplyPkLevel(PkLevel{.key = ChosenKey, .level = 3}, resources);
+
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x4d3bf6"), std::string::npos) << applied.Error();
+    EXPECT_EQ(stage->world.Actors()[ChosenSlot].pk, 3);
+    EXPECT_TRUE(stage->world.Runtime().chat.log.entries.empty());
 }
 
 // 0x4d3c19 and 0x4d3c6a: the sprintf of 5 and 6 goes to a 0x20-byte stack buffer ([EBP − 0x20]): one that does not fit

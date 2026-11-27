@@ -34,6 +34,7 @@
 #include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
+#include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
 
@@ -276,11 +277,13 @@ protected:
                 .sprites = &m_sprites,
                 .poseCarry = &m_carry,
                 .worldModels = &m_models,
-                .terrain = &m_terrain};
+                .terrain = &m_terrain,
+                .hooks = &m_drawHooks};
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
+    Client::Session::CharacterDrawHooks m_drawHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;

@@ -1,5 +1,6 @@
 #include "Scenes/GameCommandsWindow.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Math/X87.h"
 #include "Render/SpriteBatch.h"
@@ -421,7 +422,7 @@ Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, 
                                                   std::size_t index)
 {
     UI::ChatInputState& input = context.world.Runtime().chat.input;
-    UI::SetTheChatFields(input, std::nullopt, ChatNameOf(context.world.Actors()[index]));
+    UI::SetTheChatFields(input, std::nullopt, Actors::ChatNameOf(context.world.Actors()[index]));
     input.field = UI::MessageField;
     UI::FocusTheChatField(input, UI::MessageField, &context.world.Runtime().ui.focusedList);
     return PressEnterInTheGame(chat);
@@ -795,7 +796,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
                                 F32(static_cast<double>(mouse.y) + NameCardOffset), NameCardWidth, NameCardHeight, 1.0f,
                                 1.0f);
             sprites.SetBlend(BlendMode::Alpha);
-            const std::string name = ChatNameOf(context.world.Actors()[static_cast<std::size_t>(chosen)]);
+            const std::string name = Actors::ChatNameOf(context.world.Actors()[static_cast<std::size_t>(chosen)]);
             hud.textColors = Render::Text::TextColors{.text = ChosenNameColor, .background = NameCardBack};
             WindowDrawing::DrawTitle(context, x + TitleLeft, y + ChosenNameTop, name);
             bool ready = false;

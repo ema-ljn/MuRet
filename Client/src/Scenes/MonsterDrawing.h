@@ -1,9 +1,6 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Kernel/ActorState.h"
-
-#include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -34,41 +31,9 @@ class WorldState;
 namespace Client::Scenes
 {
 
-// 0x50ba9e..0x50bae0: los +0x376 que 0x50ba30 manda a la tela sobre la malla (0x50bae7, la tabla de 0x510adc sobre
-// 0x510ad4): 0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 y 0x8f. Con cualquier tipo, también el 0x20a.
-[[nodiscard]] bool WearsClothOnTheMesh(std::uint16_t monster);
-
 // 0x50c671, 0x50c71b y 0x50c8ce: los +0x376 con pases de brillo de 0x60b130 (0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e a 0x53,
 // 0x35, 0x36 y 0x87).
 [[nodiscard]] bool MonsterShines(std::uint16_t monster);
-
-// 0x50bf45..0x50c904: lo que 0x50ba30 le agrega al cuerpo por el +0x376, con cualquier tipo (también el 0x20a): los
-// pases de brillo de 0x50c671 (0x26, 0x2b, 0x34, 0x3b, 0x43 y 0x4e a 0x53), los sprites y las partículas del 0x45
-// (0x50bf98), el 0x46 (0x50c0fb), las telas del 0x47, el 0x4a y el 0x12d (0x50c59f), el 0x49 y el 0x4b (0x50c36b), el
-// 0x4d (0x50c177), el brillo del 0x35 y el 0x36 (0x50c71b), las armas colgadas del 0x2a (0x50c762) y del 0x84 al 0x86
-// (0x50c83b) y el brillo del 0x87 (0x50c8ce). Con uno de ellos, corta con su dirección; DrawGameMonster dibuja antes
-// el 0x45, hasta su primera partícula, el 0x46, el 0x4d, las telas del 0x47, el 0x4a y el 0x12d, los pases de brillo
-// (MonsterShines), lo que cuelgan el 0x2a y del 0x84 al 0x86 y las cadenas del 0x49 y el 0x4b (el 0x49 hasta
-// 0x60b300, 0x50c595), y llama a esta con los demás. El camino del 0x20a (un jugador con un +0x376 de la lista, que
-// ninguna alta escribe) corta con todos.
-[[nodiscard]] Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster);
-
-// 0x50db57..0x50dc58 sin su rand(): la luz de lo que cuelga (+0x3b4). Con +0x375 desde 6, (1; 0,1; 0,1). Si no, la
-// del terreno (la de 0x50cc55, o 0,4 en la escena 4) más la propia (+0xf4), y en Blood Castle (los mapas 10 a 17: el
-// mapa − 9 entre 1 y 8) con el +0x376 en 0x56..0x59, 0x5c..0x5f, 0x73..0x76, 0x79..0x7c, 0x7f..0x82 o 0x8a..0x8f, si
-// (mapa − 9) / 3 (con signo) no es 0, (ese cociente · 0,5; 0,1; 0,1).
-[[nodiscard]] glm::vec3 HangingLightOf(const Kernel::ActorState& actor, const glm::vec3& terrainLight,
-                                       std::int32_t map);
-
-// El suelo de la sombra de 0x50ba30: 0x50bc77..0x50bcbd con un jugador (el 0x20a, detrás de las guardas de su sombra y
-// antes de 0x60cf70 en 0x50bcec) y 0x50be15..0x50be52 con un monstruo o un NPC (después de las de la suya). En Blood
-// Castle (los mapas 0xb a 0x11), con +0x1a1 del objeto y muriéndose (+0x389), la z que le queda al objeto: la altura
-// del terreno (0x5f93c0 sobre el terreno de `pass` o, sin él, uno vacío, con su altura fija) guardada en
-// float, salvo con el terreno a la altura de la z o arriba (el fcom con `test ah, 1`: con la z o la altura en NaN
-// también la escribe). Fuera de eso, la z de `actor`. Sin las alturas, corta en `address` (la llamada a 0x5f93c0).
-[[nodiscard]] Core::Expected<float, std::string> ShadowGroundOf(const Actors::Drawing::GameCharacterPass& pass,
-                                                                const Kernel::ActorState& actor, std::int32_t map,
-                                                                std::uint32_t address);
 
 // 0x50ba30 con un monstruo o un NPC (el tipo no es el 0x20a) en el lugar `slot`, en el orden del ASM:
 // - con un +0x376 de WearsClothOnTheMesh (0x50bae7), 0x5ffdf0, la tela sobre la malla de pass.cloths[slot]

@@ -18,6 +18,7 @@
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameFloorItemDrawing.h"
 #include "Terrain/SphereFrustum.h"
 #include "World/Sprites.h"
 #include "World/ObjectModelStepState.h"
@@ -707,4 +708,23 @@ TEST(GameFloorItemDrawingTest, IncompleteStaffScratchKeepsStoresAndFirstMeshThro
     ASSERT_EQ(batch.Vertices().size(), 3u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 0);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1);
+}
+
+// 0x608950 on the floor and its copy inlined in the inventory (0x5e0e92..0x5e0ee6) give every model the same height.
+TEST(GameFloorItemDrawingTest, TheBodyPartRootHeightIsTheInventorysForEveryModel)
+{
+    const auto inventory = [](std::int32_t model)
+    {
+        if (model >= 0x1012 && model < 0x1212)
+            return -160.0f;
+        if (model >= 0x1212 && model < 0x1412)
+            return -100.0f;
+        if (model >= 0x1612 && model < 0x1812)
+            return -70.0f;
+        if (model >= 0x1412 && model < 0x1612)
+            return -50.0f;
+        return 0.0f;
+    };
+    for (std::int32_t model = 0; model <= 0xffff; ++model)
+        ASSERT_EQ(Client::Scenes::BodyPartRootHeight(static_cast<std::int16_t>(model)), inventory(model)) << model;
 }

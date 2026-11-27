@@ -46,20 +46,6 @@ std::uint16_t Model(const FloorItemState& item)
         return 0x223b;
     return static_cast<std::uint16_t>(item.type);
 }
-float RootHeight(std::int16_t type)
-{
-    if (type < FirstArmor || type >= EndArmor)
-        return 0;
-    if (type < 0x1212)
-        return -160;
-    if (type < 0x1412)
-        return -100;
-    if (type < 0x1612)
-        return -50;
-    if (type < 0x1812)
-        return -70;
-    return 0;
-}
 Actors::Drawing::DrawnObject Object(const FloorItemState& item, const FloorItemDrawContext& context)
 {
     Actors::Drawing::DrawnObject object;
@@ -80,7 +66,7 @@ Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemSta
 {
     if (item.type >= FirstArmor && item.type < EndArmor)
         object.model = Player;
-    object.transform.lockedRootHeight = RootHeight(item.type);
+    object.transform.lockedRootHeight = BodyPartRootHeight(item.type);
     if (context.onSkin || !context.onPose)
         object.alpha = 0;
     if (!context.models.Find(object.model) || !context.models.SkeletonOf(object.model))
@@ -215,6 +201,22 @@ Core::Expected<void, std::string> Water(Actors::Drawing::DrawnObject& object, co
     return {};
 }
 } // namespace
+
+float BodyPartRootHeight(std::int16_t model)
+{
+    if (model < FirstArmor || model >= EndArmor)
+        return 0;
+    if (model < 0x1212)
+        return -160;
+    if (model < 0x1412)
+        return -100;
+    if (model < 0x1612)
+        return -50;
+    if (model < 0x1812)
+        return -70;
+    return 0;
+}
+
 Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<FloorItemState> items,
                                                        const FloorItemDrawContext& context)
 {

@@ -24,11 +24,11 @@ CL8	2026-11-13-cl8-lista-vm.md	22	El precio de reparar	P-C140	no			game/Items
 CL8	2026-11-13-cl8-lista-vm.md	23	Los créditos:	P-C78	no			game/FrontEnd
 CL8	2026-11-13-cl8-lista-vm.md	24	Un ítem de la UI con brillo o sprites	P-C73 P-C74 Q-C479	no			game/Actors
 CL8	2026-11-13-cl8-lista-vm.md	25	El pulso del set:		no			
-CL11	2026-11-19-cl11-lista-vm.md	1	Los efectos de los magos	P-C402 Q-C1502	no			engine/Render
-CL11	2026-11-19-cl11-lista-vm.md	2	La skill cargada del mago	P-C54	no			game/Actors
+CL11	2026-11-19-cl11-lista-vm.md	1	Los efectos de los magos	P-C402 Q-C1502	no			game/Monsters
+CL11	2026-11-19-cl11-lista-vm.md	2	La skill cargada del mago	P-C54	no			game/Monsters
 CL11	2026-11-19-cl11-lista-vm.md	3	El escudo del mago	P-C58 P-C412	no			game/Actors
 CL11	2026-11-19-cl11-lista-vm.md	4	La segunda animación del `0x13b`	P-C421	no			game/Actors
-CL11	2026-11-19-cl11-lista-vm.md	5	Las cáscaras `0x137` y la pose del `0x20b`.	P-C520 P-C521 P-C522 Q-C1730	no			game/Monsters
+CL11	2026-11-19-cl11-lista-vm.md	5	Las cáscaras `0x137` y la pose del `0x20b`.	P-C520 P-C521 P-C522 Q-C1730	no			game/Actors
 CL11	2026-11-19-cl11-lista-vm.md	6	El serial de los C3 en `0x517a20`.	P-C523	no			game/Combat
 CL11	2026-11-19-cl11-lista-vm.md	7	El volley en el mapa 54 con el asedio prendido	P-C524	no			game/Joints
 CL11	2026-11-19-cl11-lista-vm.md	8	Chaos Castle con jugadores	P-C535 P-C536 Q-C1820	no			game/Actors
@@ -79,7 +79,7 @@ CL9	08-pendientes.md	fila	Semántica de cada handler	P-C09	no		fila de 08 que pi
 CL5	08-pendientes.md	fila	La carga y el login, en GL y en pantalla.	P-C13	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/FrontEnd
 CL6	08-pendientes.md	fila	La selección, lo que la CL6.R dejó abierto	P-C14	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Actors
 CL6	08-pendientes.md	fila	Crear y borrar personajes, en el cable	P-C16	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Ui
-CL6	08-pendientes.md	fila	La cabeza y el guardia de Lorencia, lo que la CL6.2 dejó abierto	P-C17	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Actors
+CL6	08-pendientes.md	fila	La cabeza y el guardia de Lorencia, lo que la CL6.2 dejó abierto	P-C17	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Monsters
 CL6	08-pendientes.md	fila	El render de modelos más allá de las dos trazas	P-C18	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Actors
 CL6	08-pendientes.md	fila	La selección de MuRet, lo que la CL6.3 PR D dejó abierto	P-C19	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Actors
 CL6	08-pendientes.md	fila	Lo que la CL6.3 PR F dibuja sin traza	P-C20	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Actors
@@ -189,7 +189,7 @@ CL9	08-pendientes.md	fila	Las ventanas de los NPC contra el GameServer 0.97	P-C1
 CL9	08-pendientes.md	fila	Lo que queda del hito 6 después de la fase 3b	P-C198	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/ChaosMix
 CL9	08-pendientes.md	fila	Las respuestas del `BC` sin oráculo de red	P-C341	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Events
 CL9	08-pendientes.md	fila	La lista de `0x6e5660`: lo que se infiere	P-C366	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/ChaosMix
-CL9	08-pendientes.md	fila	Lo del castillo que solo la VM dice	P-C303	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/Actors
+CL9	08-pendientes.md	fila	Lo del castillo que solo la VM dice	P-C303	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso	game/CastleSiege
 CL2	07-quirks-y-bugs.md	fila	`decode_inbound`, antes del corte	Q-C18	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	
 CL7	07-quirks-y-bugs.md	fila	terreno, `0x5fa830`	Q-C19	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Assets
 CL6	07-quirks-y-bugs.md	fila	dibujo del personaje, `0x509340`	Q-C20	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Actors
@@ -201,11 +201,11 @@ CL3	07-quirks-y-bugs.md	fila	mouse, `0x640940`	Q-C47	no		fila de 07 que nombra V
 CL4	07-quirks-y-bugs.md	fila	`WinMain` y el WndProc (`0x4af4e0`), mientras se arrastra la ventana o se cambia su tamaño	Q-C49	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Chat
 CL5	07-quirks-y-bugs.md	fila	`0x621b60`, con alfa	Q-C57	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Render
 CL5	07-quirks-y-bugs.md	fila	las fuentes de `WinMain`, CRT y [análisis de codificación](12-codificacion.md)	Q-C67	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	
-CL5	07-quirks-y-bugs.md	fila	el wrap de `0x63b870` y `0x63bd00` (el cuarto argumento)	Q-C73	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Data
+CL5	07-quirks-y-bugs.md	fila	el wrap de `0x63b870` y `0x63bd00` (el cuarto argumento)	Q-C73	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Assets
 CL5	07-quirks-y-bugs.md	fila	el estado de GL del 2D: `0x621aa0`, `0x620a00`, `0x620a90` y `0x647650`	Q-C75	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Render
 CL5	07-quirks-y-bugs.md	fila	el texto con GDI: `0x467060` (el del login) y `0x4667a0`	Q-C76	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Render
-CL6	07-quirks-y-bugs.md	fila	las acciones de un modelo, `0x4f13d0` y `0x60dbe0`	Q-C87	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Data
-CL6	07-quirks-y-bugs.md	fila	la luz por vértice, `0x4ebc80`	Q-C115	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Monsters
+CL6	07-quirks-y-bugs.md	fila	las acciones de un modelo, `0x4f13d0` y `0x60dbe0`	Q-C87	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Actors
+CL6	07-quirks-y-bugs.md	fila	la luz por vértice, `0x4ebc80`	Q-C115	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Models
 CL6	07-quirks-y-bugs.md	fila	el peso del viento de la tela, `0x454240`	Q-C121	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Models
 CL6	07-quirks-y-bugs.md	fila	los resortes de la tela, `0x454a50`	Q-C122	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	engine/Models
 CL7	07-quirks-y-bugs.md	fila	el fondo del juego, `0x6371a0` (`0x637391..0x637404`)	Q-C143	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha	game/Scenes

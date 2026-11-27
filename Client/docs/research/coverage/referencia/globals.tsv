@@ -86,7 +86,7 @@ va	home	file	line	module	users	flag
 0x6c82a0					game/Actors game/Guild game/Movement game/Protocol game/Session game/Skills	no-home
 0x6c82a4					game/Protocol	no-home
 0x6c82e4					engine/Crypto game/Protocol game/Tables	no-home
-0x6c82e8	FloorItemGlobals::pendingPickUp	Client/src/Scenes/WorldRuntime.h	348	game/Kernel	game/Items game/Protocol	
+0x6c82e8	FloorItemGlobals::pendingPickUp	Client/src/Scenes/WorldRuntime.h	348	game/Kernel	game/Items game/Session	
 0x6c82ec	FloorItemGlobals::pendingDrop	Client/src/Scenes/WorldRuntime.h	351	game/Kernel	game/Items game/Protocol	
 0x6c82f0	GuildState::rivalIndex	Client/src/Scenes/GuildState.h	353	game/Guild	game/FrontEnd	
 0x6c83e0					game/Session	no-home
@@ -126,7 +126,7 @@ va	home	file	line	module	users	flag
 0x6c8c38					game/Actors	no-home
 0x6c8c3e					game/Actors	no-home
 0x6c8c40					game/Skills	no-home
-0x6c8c5c	LeafWeather::firstWave	Client/src/World/LeafWeather.h	17	game/Weather	game/Kernel	
+0x6c8c5c	LeafWeather::firstWave	Client/src/World/LeafWeather.h	18	game/Weather	game/Kernel	
 0x6c8c74					engine/Crypto game/Tables	no-home
 0x6c8dc8	ChatCommandContext::tradeLevel	Client/src/UI/ChatCommands.h	124	game/Chat	game/Hud	
 0x6c8dcc	OldWindowGlobals::mouseUpdateTime	Client/src/UI/OldWindows.h	488	game/Ui	game/ChaosMix game/Guild game/Hud game/Items game/Movement game/Npc game/Party game/Quests game/Session game/Social	
@@ -261,14 +261,14 @@ va	home	file	line	module	users	flag
 0x6d5d64	HeroMovementContext::sendEventWindowLeave GameUiContext::screen InputEvent::x	Client/src/Scenes/GameMovement.h	74	game/Movement	engine/Input game/Hud game/Npc	two-homes
 0x6d5d80					engine/Pathfinding	no-home
 0x6d5dc4					app	no-home
-0x6d5dc8	ChatReceiveContext::scene GameCharacterEffectsPass::gameScene WorldRuntime::terrainPolygon WorldEntryResources::scene	Client/src/Scenes/ChatReceive.h	44	game/Chat	app game/Actors game/Kernel game/Session game/Terrain	two-homes
+0x6d5dc8	ChatReceiveContext::scene GameCharacterEffectsPass::gameScene WorldRuntime::terrainPolygon WorldEntryResources::scene	Client/src/Scenes/ChatReceive.h	45	game/Chat	app game/Actors game/Kernel game/Session game/Terrain	two-homes
 0x6d5e24					game/FrontEnd	no-home
 0x6d5e28	DialogBoxState::dialogIndex	Client/src/UI/GameDialogs.h	84	game/Ui	game/Hud game/Quests	
 0x6d5e2c	GuildState::kickIndex	Client/src/Scenes/GuildState.h	380	game/Guild	game/Hud game/Protocol	
 0x6d5e30					game/FrontEnd	no-home
 0x6d5ec4	GameHudContext::chosenServer	Client/src/Scenes/GameHud.h	106	game/Hud	game/Scenes	
 0x6d5ecc	GameHudContext::chosenServer	Client/src/Scenes/GameHud.h	106	game/Hud		
-0x6d5edc	ChatReceiveContext::chosenSlot GameHudContext::chosenSlot GameUiContext::chosenSlot OwnCharacterRecord::skillKeys	Client/src/Scenes/ChatReceive.h	48	game/Chat	game/Hud game/Kernel game/Session	two-homes
+0x6d5edc	ChatReceiveContext::chosenSlot GameHudContext::chosenSlot GameUiContext::chosenSlot OwnCharacterRecord::skillKeys	Client/src/Scenes/ChatReceive.h	49	game/Chat	game/Hud game/Kernel game/Session	two-homes
 0x6d5ee0	GameCamera::targetDistance	Client/src/World/GameCamera.h	34	game/Camera	game/Scenes	
 0x6d5ee4					app	no-home
 0x6d6124					game/FrontEnd	no-home
@@ -469,14 +469,14 @@ va	home	file	line	module	users	flag
 0x576791c	GameMovementState::lastActionTick HeroSkillContext::tickCount	Client/src/Scenes/GameMovementState.h	59	game/Movement	game/Hero game/Skills	two-homes
 0x5767920					game/Hud	no-home
 0x5767924	CastleSiegeState::castleSiegeInfo	Client/src/UI/CastleSiegeState.h	221	game/CastleSiege	game/Actors game/Hud game/Protocol	
-0x5767928	ServerSession::m_loginSent	Client/src/game/Session/ServerSession.h	598	game/Session		
+0x5767928	ServerSession::m_loginSent	Client/src/game/Session/ServerSession.h	497	game/Session		
 0x576792c	MapServerAuth::account ServerSession::m_account	Client/src/game/Protocol/Session/MapServerMove.h	48	game/Protocol	game/Session	two-homes
 0x576793c	ChatCommandContext::logoutRequested GameUiState::logoutRequested PanelContext::logoutRequested	Client/src/UI/ChatCommands.h	104	game/Chat	game/Events game/Hud game/Ui	two-homes
 0x5767940	ChatInputState::brake	Client/src/UI/ChatInput.h	170	game/Chat		
 0x5767948	WorldRuntime::lastShotSkill	Client/src/Scenes/WorldRuntime.h	562	game/Kernel	game/Effects game/Skills	
 0x576794c	GateCheckState::requestBlocked	Client/src/GameLogic/GateCheckState.h	28	game/Movement	game/Hud game/Items game/Skills	
 0x5767950	NpcWindowState::buyLock	Client/src/Scenes/NpcWindowState.h	165	game/Npc	game/Hud	
-0x5767954	GameUiState::field5767954	Client/src/UI/GameUiState.h	117	game/Ui	game/Hud game/Items game/Protocol	
+0x5767954	GameUiState::field5767954	Client/src/UI/GameUiState.h	117	game/Ui	game/Hud game/Items game/Protocol game/Session	
 0x5767958					game/Scenes	no-home
 0x576795c					game/Scenes	no-home
 0x5767960	HudState::summonLife	Client/src/Scenes/WorldRuntime.h	216	game/Kernel	game/Protocol game/Skills	
@@ -553,8 +553,8 @@ va	home	file	line	module	users	flag
 0x75e34b8	LoginScene::m_leaves	Client/src/Scenes/LoginScene.h	290	game/Scenes	game/Weather	
 0x75fdc38	WorldRuntime::leafWeather LeafWeather::target	Client/src/Scenes/WorldRuntime.h	552	game/Kernel	game/Weather	two-homes
 0x75fdc3c	WorldRuntime::leafWeather LeafWeather::current	Client/src/Scenes/WorldRuntime.h	552	game/Kernel	game/Weather	two-homes
-0x75fdc40	LeafWeather::secondWave	Client/src/World/LeafWeather.h	18	game/Weather		
-0x75fdc44	LeafWeather::phase	Client/src/World/LeafWeather.h	19	game/Weather		
+0x75fdc40	LeafWeather::secondWave	Client/src/World/LeafWeather.h	19	game/Weather		
+0x75fdc44	LeafWeather::phase	Client/src/World/LeafWeather.h	20	game/Weather		
 0x7609bb8					game/Particles	no-home
 0x7609bc0					game/Particles	no-home
 0x7609bc4					game/Particles	no-home

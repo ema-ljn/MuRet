@@ -1,4 +1,5 @@
 #include "Scenes/EventPackets.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -12,7 +13,6 @@
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/EventChipWindow.h"
@@ -606,7 +606,7 @@ private:
     Applied On(const Events::ItemAcquired& packet)
     {
         // 0x4d69ad..0x4d69d1: con la clave del héroe, nada.
-        const std::size_t owner = ActorWithKey(m_world, packet.key);
+        const std::size_t owner = Kernel::ActorWithKey(m_world, packet.key);
         if (owner == m_runtime.hero)
             return {};
         // 0x4d6a09..0x4d6a3e: el prefijo, con sprintf en el primer buffer.

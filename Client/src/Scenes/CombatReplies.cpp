@@ -1,4 +1,5 @@
 #include "Scenes/CombatReplies.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -180,7 +181,7 @@ Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::Ki
                                                       const ActorCombatContext& combat, const ChatReceiveContext& chat)
 {
     Kernel::WorldState& world = combat.world;
-    const std::size_t index = ActorWithKey(world, reply.key);
+    const std::size_t index = Kernel::ActorWithKey(world, reply.key);
     Kernel::ActorState& dead = world.Actors()[index];
     if (reply.shock)
     {
@@ -209,7 +210,7 @@ Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::Ki
 Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& reply, const ActorCombatContext& combat)
 {
     Kernel::WorldState& world = combat.world;
-    Kernel::ActorState& actor = world.Actors()[ActorWithKey(world, reply.key)];
+    Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, reply.key)];
     actor.dying = 1;
     actor.movement = 0;
     actor.deathSkill = reply.skill;
@@ -232,7 +233,7 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.pushOrigin = actor.position;
     actor.floatD0 = Plus(second, 40.0f);
     // 0x4d0b49..0x4d0b98: el rumbo hacia el que lo mató (0x4e93f0) va a +0x24 y +0x30; la cabeza copia +0x1c y +0x20.
-    const Kernel::ActorState& killer = world.Actors()[ActorWithKey(world, reply.killer)];
+    const Kernel::ActorState& killer = world.Actors()[Kernel::ActorWithKey(world, reply.killer)];
     const auto angle =
         static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, killer.position.x, killer.position.y));
     actor.angles.z = angle;

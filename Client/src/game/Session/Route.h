@@ -9,6 +9,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Actors/ActionSend.h"
+#include "Actors/ViewportHooks.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/ChatReceive.h"
@@ -18,6 +19,7 @@
 #include "Kernel/WorldState.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionPacketSender.h"
+#include "Session/ViewportHooks.h"
 #include "Session/WorldEntry.h"
 #include "World/LeafWeather.h"
 
@@ -207,6 +209,23 @@ template <> struct RoutedPart<const Kernel::IPacketSender&>
     static SessionPacketSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session)
     {
         return SessionPacketSender(session);
+    }
+};
+
+// The viewport's slots over the world (Session/ViewportHooks.h).
+template <> struct RoutedPart<const Actors::IViewportHooks&>
+{
+    static ViewportHooks Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    {
+        return ViewportHooks(world);
+    }
+};
+
+template <> struct RoutedPart<const Actors::IViewportLeaveHooks&>
+{
+    static ViewportLeaveHooks Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    {
+        return ViewportLeaveHooks(world.world);
     }
 };
 

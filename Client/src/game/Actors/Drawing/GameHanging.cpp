@@ -1155,7 +1155,7 @@ bool NamedLikeAGameMaster(const Kernel::ActorState& actor)
 // 0x413fe0: a GM ("webzen" in the name, +0x78 & 0x1000000 or the CtlCode at 0x20 or 8) drops a layer other than 5 and
 // sets +0x360 to 5. Then, with no layer and with +0x360 from 5 to 13, it creates it: with +0x360 at 5, MuSign's
 // (0x414370); those from 6 to 13 use the 0x637 atlas (0x4147c0). From 6 to 13 only packets write it: the 0x12
-// (0x4c89e1, ViewportPlayers.h) and 0x40c140 copy a byte, and 0x42ab40 (ApplyCastleSiegeFlags), 0x42ad50 and 0x42ae60
+// (0x4c89e1, Actors/In/) and 0x40c140 copy a byte, and 0x42ab40 (ApplyCastleSiegeFlags), 0x42ad50 and 0x42ae60
 // choose it by the flags 0x40000, 0x80000, 0x400000 and 0x800000 of +0x78 (0x42ab40, in map 30); the drawing of those
 // layers (0x414820) reads +0x360 and +0x368. Nobody but 0x414340 sets +0x360 back to 0: the 5 stays in the record.
 Result StepTheLayer(Kernel::ActorState& actor)

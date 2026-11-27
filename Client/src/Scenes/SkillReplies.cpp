@@ -1,4 +1,5 @@
 #include "Scenes/SkillReplies.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -16,7 +17,6 @@
 #include "Actors/ActorFlags.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/BlastEffectCalls.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
@@ -708,8 +708,8 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const std::size_t sourceIndex = ActorWithKey(world, attack.source);
-    const std::size_t targetIndex = ActorWithKey(world, attack.target);
+    const std::size_t sourceIndex = Kernel::ActorWithKey(world, attack.source);
+    const std::size_t targetIndex = Kernel::ActorWithKey(world, attack.target);
     if (targetIndex == NoActor)
         return {};
     runtime.lastAttacker = static_cast<std::int32_t>(sourceIndex);
@@ -746,7 +746,7 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
 Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic, const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    const std::size_t index = ActorWithKey(world, magic.key);
+    const std::size_t index = Kernel::ActorWithKey(world, magic.key);
     Kernel::ActorState& actor = world.Actors()[index];
     {
         const Models::LogicalAccess access(actor.byte38eAccesses, resources.cloth.random, ActorByteCloseRandoms);
@@ -788,7 +788,7 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
 void ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    Kernel::ActorState& actor = world.Actors()[ActorWithKey(world, cancel.key)];
+    Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, cancel.key)];
     std::uint32_t mask = 0;
     switch (cancel.skill)
     {
@@ -855,7 +855,7 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorS
                                                   const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    Kernel::ActorState& actor = world.Actors()[ActorWithKey(world, state.key)];
+    Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, state.key)];
     const bool lit = (actor.flags78 & state.mask) == state.mask;
     if (state.type == 1)
     {
@@ -875,8 +875,8 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorS
 Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    const std::size_t sourceIndex = ActorWithKey(world, target.source);
-    const std::size_t targetIndex = ActorWithKey(world, target.target);
+    const std::size_t sourceIndex = Kernel::ActorWithKey(world, target.source);
+    const std::size_t targetIndex = Kernel::ActorWithKey(world, target.target);
     if (targetIndex == NoActor)
         return {};
     world.Runtime().lastAttacker = static_cast<std::int32_t>(sourceIndex);
@@ -906,7 +906,7 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
 
 Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, const WorldEntryResources& resources)
 {
-    const std::size_t index = ActorWithKey(resources.world, effect.key);
+    const std::size_t index = Kernel::ActorWithKey(resources.world, effect.key);
     if (index >= NoActor)
         return {};
     constexpr std::uint8_t PlayerObject = 1;

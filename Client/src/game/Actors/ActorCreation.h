@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/ActorSearch.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,15 +21,14 @@ struct ActorState;
 } // namespace Client::Kernel
 
 // The creation and removal of a character of the world's pool by its key: 0x512870 and 0x510ff0. They are called by
-// 0x12 and 0x14 (ViewportPlayers.h) and by the creation of monsters (0x5141e0). Contract:
+// 0x12 and 0x14 (Actors/In/) and by the creation of monsters (0x5141e0). Contract:
 // Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el viewport". *Static*.
 namespace Client::Actors
 {
 struct ActorConstructionContext;
 struct ActorPlacement;
 
-// 0x512870 and 0x510ff0 walk 400 records, one fewer than the pool: 400 is "none".
-inline constexpr std::size_t CreatedActorSearch = 400;
+inline constexpr std::size_t CreatedActorSearch = Kernel::SearchedActors;
 
 // 0x512870(key, type, X, Y, angle). First it looks for a live one with the key (MOVSX of +0x1f4 against the int): it
 // builds it again (0x511290) without touching the key and sets +0x78 and +0x7c to 0. If there is none, the first one

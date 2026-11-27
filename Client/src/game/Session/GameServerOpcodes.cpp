@@ -51,7 +51,11 @@
 #include "Scenes/QuestReplies.h"
 #include "Scenes/SkillReplies.h"
 #include "Scenes/SocialEvents.h"
-#include "Actors/ViewportPlayers.h"
+#include "Actors/In/EquipmentShown.h"
+#include "Actors/In/Transformed.h"
+#include "Actors/In/ViewportLeave.h"
+#include "Actors/In/ViewportPlayers.h"
+#include "Actors/In/ViewportPosition.h"
 #include "Session/Route.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionHandlers.h"
@@ -115,14 +119,14 @@ std::span<const OpcodeRow> GameServerOpcodes()
         // at neither the scene nor the encryption flag.
         Row(ViewportPlayersOpcode, std::nullopt, 0x4e372e, "ViewportPlayers",
             &Route<"se ignoran los jugadores del viewport (12)", &Protocol::Actors::ReadPlayers,
-                   &Client::Actors::ApplyViewportPlayers>,
+                   &Client::Actors::In::ApplyViewportPlayers>,
             CopiedToRing),
         Row(ViewportMonstersOpcode, std::nullopt, 0x4e37d1, "ViewportMonsters",
             &Route<"se ignoran los monstruos del viewport (13)", &Protocol::Actors::ReadMonsters,
                    &Scenes::ApplyViewportMonsters>),
         Row(ViewportLeaveOpcode, std::nullopt, 0x4e3819, "ViewportLeave",
             &Route<"se ignoran las bajas del viewport (14)", &Protocol::Actors::ReadLeave,
-                   &Client::Actors::ApplyViewportLeave>),
+                   &Client::Actors::In::ApplyViewportLeave>),
         // The 0.97 GameServer's 15 (GCDamageSend) has no case.
         // 0x4cf200 (16) and 0x4cfce0 (9C) look at the flag before reading; 0x4d0a30 (17) does not.
         Row(KillExperienceOpcode, std::nullopt, 0x4e3a74, "KillExperience",
@@ -178,7 +182,7 @@ std::span<const OpcodeRow> GameServerOpcodes()
             CopiedToRing),
         Row(EquipmentShownOpcode, std::nullopt, 0x4e3973, "EquipmentShown",
             &Route<"se ignora el equipo de otro (25)", &Protocol::Actors::ReadEquipmentShown,
-                   &Client::Actors::ApplyEquipmentShown>),
+                   &Client::Actors::In::ApplyEquipmentShown>),
         // 0x4d3510 (26) and 0x4d3820 (27) arrive in any GameServer scene, also before the F3 03's reply.
         Row(LifeOpcode, std::nullopt, 0x4e3b70, "Life",
             &Route<"se ignora la vida (26)", &Protocol::Items::ReadLifeRefill, &Scenes::ApplyLifeRefill>),
@@ -280,7 +284,7 @@ std::span<const OpcodeRow> GameServerOpcodes()
             &Route<"se ignora la vida de la party (44)", &Protocol::Party::ReadPartyLife, &Scenes::ApplyPartyLife>),
         Row(TransformedOpcode, std::nullopt, 0x4e3801, "Transformed",
             &Route<"se ignoran los transformados del viewport (45)", &Protocol::Actors::ReadTransformed,
-                   &Client::Actors::ApplyTransformed>),
+                   &Client::Actors::In::ApplyTransformed>),
         Row(MapAttributesOpcode, std::nullopt, 0x4e41d1, "MapAttributes",
             RoutedEvent<"se ignora el paquete de evento 46">),
         Row(ItemAcquiredOpcode, std::nullopt, 0x4e41e9, "ItemAcquired",
@@ -500,7 +504,7 @@ std::span<const OpcodeRow> GameServerOpcodes()
             &Route<"se ignora el daño (D7)", &Protocol::Movement::ReadDamage, &Client::Actors::ApplyDamageReply>),
         Row(PositionOpcode, std::nullopt, 0x4e3716, "Position",
             &Route<"se ignora la posición de otro (DF)", &Protocol::Actors::ReadPosition,
-                   &Client::Actors::ApplyViewportPosition>),
+                   &Client::Actors::In::ApplyViewportPosition>),
         Row(GuildAssignResultOpcode, std::nullopt, 0x4e442c, "GuildAssignResult", RoutedGuild),
         Row(RelationshipRequestOpcode, std::nullopt, 0x4e4444, "RelationshipRequest", RoutedGuild),
         Row(RelationshipResultOpcode, std::nullopt, 0x4e446e, "RelationshipResult", RoutedGuild),

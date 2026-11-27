@@ -1,9 +1,9 @@
 #include "Scenes/PetOrders.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Crt/CrtRandom.h"
 #include "Protocol/Pets/PetOrders.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/DarkSpirit.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -41,17 +41,17 @@ void ApplyPetOrder(const Protocol::Pets::PetOrder& order, Kernel::WorldState& wo
         return;
     // 0x41653d..0x41655e: +0x1ad en 1 y el blanco en el personaje de la clave, esté o no.
     spirit.byte1ad = 1;
-    spirit.target = ActorWithKey(world, order.key);
+    spirit.target = Kernel::ActorWithKey(world, order.key);
 }
 
 void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    Kernel::ActorState& owner = world.Actors()[ActorWithKey(world, attack.owner)];
+    Kernel::ActorState& owner = world.Actors()[Kernel::ActorWithKey(world, attack.owner)];
     if (!owner.darkSpirit)
         return;
     DarkSpirit& spirit = *owner.darkSpirit;
-    const std::size_t target = ActorWithKey(world, attack.target);
+    const std::size_t target = Kernel::ActorWithKey(world, attack.target);
     spirit.target = target;
     constexpr std::uint32_t Stopped = 0x1000;
     constexpr std::uint32_t Hidden = 0x4000;

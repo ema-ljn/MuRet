@@ -1,4 +1,5 @@
 #include "Scenes/SiegeBattleUi.h"
+#include "Kernel/ActorSearch.h"
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
@@ -14,7 +15,6 @@
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameMovementState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -277,7 +277,7 @@ void OpenTheSiegeGate(Kernel::WorldState& world, std::uint16_t key)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.castleSiege.siegeBattleUi.gateKey = key;
-    runtime.castleSiege.siegeBattleUi.gateState = world.Actors()[ActorWithKey(world, key)].flags78;
+    runtime.castleSiege.siegeBattleUi.gateState = world.Actors()[Kernel::ActorWithKey(world, key)].flags78;
     runtime.panels.delegated.siegeGate = 1;
 }
 

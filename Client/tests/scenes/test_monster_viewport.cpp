@@ -19,9 +19,9 @@
 #include "Math/OriginalRotation.h"
 #include "Actors/ActorCreation.h"
 #include "Actors/ActorPickingBox.h"
+#include "Kernel/ActorSearch.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/CastleBattleReceive.h"
-#include "Scenes/ChatReceive.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Particles.h"
@@ -510,7 +510,7 @@ TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
         EXPECT_EQ(merchant.key, 0x7265);
         EXPECT_EQ(merchant.head, 0x6e61);
         // La clave ya no es la del registro: el original tampoco lo encuentra por ella.
-        EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0132), Client::Actors::CreatedActorSearch);
+        EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0132), Client::Actors::CreatedActorSearch);
     }
 }
 

@@ -1,4 +1,5 @@
 #include "Scenes/SocialEvents.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -10,7 +11,6 @@
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Protocol/Social/Trade.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
@@ -828,7 +828,7 @@ void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, Kernel::W
 {
     for (const Protocol::PersonalShop::ShopTitleEntry& entry : titles.entries)
     {
-        const std::size_t index = ActorWithKey(world, entry.key);
+        const std::size_t index = Kernel::ActorWithKey(world, entry.key);
         if (index >= ShopKeysSearched)
             continue;
         AddShopTitle(world, entry.key, index, entry.title);
@@ -853,7 +853,7 @@ void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, Kernel::W
     // 0x4e4f0e: el log 0x6c8504 con el resultado, nada más.
     if (closed.result != 1)
         return;
-    const std::size_t index = ActorWithKey(world, closed.key);
+    const std::size_t index = Kernel::ActorWithKey(world, closed.key);
     if (index >= ShopKeysSearched)
         return;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -884,7 +884,7 @@ Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::
 
 void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, Kernel::WorldState& world)
 {
-    const std::size_t index = ActorWithKey(world, title.key);
+    const std::size_t index = Kernel::ActorWithKey(world, title.key);
     if (index >= ShopKeysSearched)
         return;
     const Kernel::ActorState& actor = world.Actors()[index];

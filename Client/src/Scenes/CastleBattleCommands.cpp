@@ -1,4 +1,5 @@
 #include "Scenes/CastleBattleCommands.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege/CastleBattle.h"
@@ -8,7 +9,6 @@
 #include "Scenes/CastleSiegeMap.h"
 #include "Scenes/CastleWeaponEffects.h"
 #include "Scenes/CastleWindows.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
@@ -81,7 +81,7 @@ Core::Expected<void, std::string> Popup(const CastleReceiveContext& context, std
 
 Core::Expected<void, std::string> CrownAccess(const Battle::CrownAccess& access, const CastleReceiveContext& context)
 {
-    const auto first = ActorWithKey(context.world, access.firstKey);
+    const auto first = Kernel::ActorWithKey(context.world, access.firstKey);
     if (access.status > 2)
         return {};
     std::array<std::string, 2> lines;
@@ -93,7 +93,7 @@ Core::Expected<void, std::string> CrownAccess(const Battle::CrownAccess& access,
         lines[0] = std::move(message).Value();
         return Popup(context, std::span(lines).first(1), 3000);
     }
-    const auto second = ActorWithKey(context.world, access.secondKey);
+    const auto second = Kernel::ActorWithKey(context.world, access.secondKey);
     const std::array<Crt::FormatArgument, 1> secondName{
         Crt::StringArgument{HeroNameOf(context.world.Actors()[second])}};
     auto message = Formatted(context, 1486, secondName);
@@ -248,7 +248,7 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
                 if constexpr (std::is_same_v<Received, Battle::GateCommand>)
                     if (received.result != 1)
                         return {};
-                const auto index = ActorWithKey(world, received.key);
+                const auto index = Kernel::ActorWithKey(world, received.key);
                 auto& actor = world.Actors()[index];
                 if constexpr (std::is_same_v<Received, Battle::GateCommand>)
                 {

@@ -9,7 +9,6 @@
 #include "Scenes/GuildPanels.h"
 #include "Scenes/SceneId.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -62,10 +61,6 @@ struct ChatReceiveContext
     // que el paquete. nullptr: el C7 corta en 0x4dcd0e (P-C212).
     const WorldEntryResources* worldEntry = nullptr;
 };
-
-// 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
-// 0x8000 no la tiene nadie); sin ninguno, el 400.
-[[nodiscard]] std::size_t ActorWithKey(const Kernel::WorldState& world, std::uint16_t key);
 
 // 0x4c6098: at the login scene (2), requestServerList and nothing else.
 // 0x4c6070 fuera de la escena 2: el nombre de pkt[3..12] y, según pkt[0xd], el texto al chat de la party (~, tipo 4),

@@ -90,8 +90,9 @@ The client is moving to modules ([ADR 0023](docs/adr/0023-client-module-architec
 3. Includes respect the layers. In CI, `check_layers.py` rejects a new include that goes up a layer
    or reaches a module of the same layer that `may_use` does not name, and a file without a module.
 4. A new packet, from AR2 on: its layout in `Protocol/<Module>/`, its handler and its row in the opcode table, in place
-   of its `Unported{}` row. The handler goes in `<Module>/In/` once its module's AR4 design makes that folder, and is
-   today's applier until then (the [`muret-packet`](.claude/skills/muret-packet/SKILL.md) skill).
+   of its `Unported{}` row. The handler goes in `<Module>/In/`, one file per packet (`game/Actors/In/` since AR4.1),
+   and is today's applier in a module whose AR4 design has not made that folder yet (the
+   [`muret-packet`](.claude/skills/muret-packet/SKILL.md) skill).
 5. A module that is being moved gets no port work that day; its design and port work on it do not
    run at the same time.
 6. A sine, a cosine or any function the C library rounds comes from `Math/RoundedMath.h`,

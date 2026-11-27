@@ -1,4 +1,5 @@
 #include "Actors/ActionReply.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Kernel/CharacterClass.h"
@@ -11,7 +12,6 @@
 #include "Actors/ActorActions.h"
 #include "Scenes/ActorCombat.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Session/WorldEntry.h"
@@ -165,7 +165,7 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
                                                    const ActionSender& sendAction)
 {
     // 0x4cb769: with nobody alive with the key, the original returns slot 400 and the C1 18 writes to it too (Q-C778).
-    const std::size_t index = Scenes::ActorWithKey(resources.world, reply.key);
+    const std::size_t index = Kernel::ActorWithKey(resources.world, reply.key);
     Kernel::ActorState& actor = resources.world.Actors()[index];
     if (actor.pet.model == DarkHorsePet)
         return {};

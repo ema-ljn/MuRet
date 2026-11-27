@@ -32,7 +32,6 @@
 #include "Scenes/SocialEvents.h"
 #include "Scenes/SocialRequests.h"
 #include "Scenes/SocialState.h"
-#include "Actors/ViewportPlayers.h"
 #include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -51,6 +50,7 @@
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "support/ViewportHandlers.h"
 #include "support/ViewportPackets.h"
 
 #include <gtest/gtest.h>
@@ -282,7 +282,7 @@ protected:
                                                             .targetY = y}}};
         auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
         ASSERT_TRUE(read.HasValue());
-        const auto applied = Client::Actors::ApplyViewportPlayers(read.Value(), game->Resources());
+        const auto applied = Client::Tests::ApplyViewportPlayers(read.Value(), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ASSERT_EQ(game->world.Actors()[1].key, OtherKey);
     }

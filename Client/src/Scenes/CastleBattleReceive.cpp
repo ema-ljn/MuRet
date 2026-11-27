@@ -1,4 +1,5 @@
 #include "Scenes/CastleBattleReceive.h"
+#include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege/CastleBattle.h"
@@ -7,7 +8,6 @@
 #include "Scenes/CastleBattleCommands.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/SiegeBattleUi.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/GamePanels.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -32,7 +32,7 @@ namespace Battle = Protocol::CastleSiege;
 // B9 01, 0x4e0750: también en el registro 400 cuando la clave no está.
 void ApplyNpcLevel(const Battle::NpcLevel& level, Kernel::WorldState& world)
 {
-    world.Actors()[ActorWithKey(world, level.key)].byte93 = level.level;
+    world.Actors()[Kernel::ActorWithKey(world, level.key)].byte93 = level.level;
 }
 
 // B9 02, 0x4e0790: el byte i / 2, el par en el nibble de arriba (SHR 4) y el impar en el de abajo (AND 0xf).
@@ -55,7 +55,7 @@ Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, 
 // BA, 0x4cf1b0: 0x5110d0 siempre; +0x1bc solo con cuál en 0x28, también en el registro 400.
 void ApplyActorField(const Battle::ActorField& field, Kernel::WorldState& world)
 {
-    const std::size_t index = ActorWithKey(world, field.key);
+    const std::size_t index = Kernel::ActorWithKey(world, field.key);
     if (field.kind == Battle::ActorField1bcKind)
     {
         world.Actors()[index].byte1bc = field.value;

@@ -1,4 +1,3 @@
-#include "Actors/ViewportPlayers.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -10,6 +9,7 @@
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/ActorSearch.h"
 #include "Kernel/PlayerKey.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Protocol/Movement/Movement.h"
@@ -17,11 +17,15 @@
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
+#include "Actors/In/Transformed.h"
+#include "Actors/In/ViewportLeave.h"
+#include "Actors/In/ViewportPlayers.h"
+#include "Actors/In/ViewportPosition.h"
+#include "Actors/ViewportHooks.h"
 #include "Actors/ActionReply.h"
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -44,6 +48,7 @@
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "Session/ModuleStates.h"
+#include "Session/ViewportHooks.h"
 #include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
@@ -53,6 +58,7 @@
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "support/ViewportHandlers.h"
 #include "support/ViewportPackets.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -64,6 +70,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <optional>
 #include <span>
@@ -217,7 +224,7 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
                                                             .targetY = cell.y,
                                                             .directionAndPk = 0x53}}};
         const Players players = Read(records);
-        const auto applied = Client::Actors::ApplyViewportPlayers(players, game->Resources());
+        const auto applied = Client::Tests::ApplyViewportPlayers(players, game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
         const ActorState& actor = Actor(1);
@@ -269,7 +276,7 @@ TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
                                                             .targetX = Byte(cell.x + 3),
                                                             .targetY = cell.y,
                                                             .directionAndPk = 0x30}}};
-        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
         const ActorState& actor = Actor(1);
@@ -321,7 +328,7 @@ TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
                                                                 .name = "Chingolo",
                                                                 .targetX = cell.x,
                                                                 .targetY = cell.y}}};
-            const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+            const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
             const ActorState& actor = Actor(1);
@@ -361,7 +368,7 @@ TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFo
         }
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0459, .x = cell.x, .y = cell.y, .effects = 0x410u | 0x1000000u, .name = "Chingolo"}}};
-        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Actor(1).flags78, 0x410u | 0x1000000u);
         for (const auto& effect : effects.Effects())
@@ -380,11 +387,11 @@ TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
         {.key = 0x0011, .isNew = true, .x = cell.x, .y = cell.y, .name = "Tero"},
         {.key = 0x0012, .isNew = true, .x = cell.x, .y = cell.y, .name = "WEBZEN"},
     }};
-    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0010), Client::Actors::CreatedActorSearch);
-    EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0011), 1u);
-    EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0012), 2u);
+    EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0010), Client::Actors::CreatedActorSearch);
+    EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0011), 1u);
+    EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0012), 2u);
     EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * FreshRecordDraws).State());
 }
@@ -415,7 +422,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
                                                         .effects = 1,
                                                         .name = "Benteveo",
                                                         .directionAndPk = 0x10}}};
-    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
     const ActorState& actor = Actor(3);
@@ -473,7 +480,7 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
              .classAndState = Byte(0x40 | tested.state),
              .name = "Arquera"},
         }};
-        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Actor(1).characterClass, 0);
         EXPECT_EQ(Actor(1).animation.action, tested.others);
@@ -496,7 +503,7 @@ TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero", .directionAndPk = 0x30}}};
-        const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+        const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
         const ActorState& actor = Actor(1);
@@ -539,7 +546,7 @@ TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
     const Cell cell = FreeRow();
     const std::array<ViewportPlayerRecord, 1> records{
         {{.key = 0x0041, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-    ASSERT_TRUE(Client::Actors::ApplyViewportPlayers(Read(records), game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Tests::ApplyViewportPlayers(Read(records), game->Resources()).HasValue());
     auto& joints = game->world.DrawTail().joints;
     ActorState& actor = Actor(1);
     actor.position = {1234.0f, 5678.0f, 90.0f};
@@ -567,7 +574,7 @@ TEST_F(ViewportPlayersTest, InKalimaWithTheJointsFullThePlayerStillEnters)
     const Cell cell = FreeRow();
     const std::array<ViewportPlayerRecord, 1> records{
         {{.key = 0x0042, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
     EXPECT_EQ(std::to_integer<char>(Actor(1).name[0]), 'H');
@@ -587,7 +594,7 @@ TEST_F(ViewportPlayersTest, AFullPoolWritesTheNoneRecord)
     }
     const std::array<ViewportPlayerRecord, 1> records{
         {{.key = 0x0040, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-    const auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+    const auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     const ActorState& none = Actor(Client::Actors::CreatedActorSearch);
     EXPECT_FALSE(none.alive);
@@ -657,7 +664,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     info.emplace();
     info->fill(0xff);
 
-    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x8123, 0x013d}}, world);
+    Client::Tests::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x8123, 0x013d}}, world);
     EXPECT_FALSE(leaving.alive);
     EXPECT_FALSE(leaving.darkSpirit.has_value());
     EXPECT_FALSE(world.Helpers()[*helper.Value()].alive);
@@ -674,7 +681,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     info.reset();
     world.Actors()[5].alive = true;
     world.Actors()[5].key = 0x0007;
-    Client::Actors::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x0007}}, world);
+    Client::Tests::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x0007}}, world);
     EXPECT_FALSE(world.Actors()[5].alive);
 }
 
@@ -687,7 +694,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
     const std::array<Client::Tests::TransformedRecordBytes, 1> hidden{{{.key = 0x0456, .name = "webzen"}}};
     auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(hidden));
     ASSERT_TRUE(read.HasValue());
-    EXPECT_TRUE(Client::Actors::ApplyTransformed(read.Value(), game->Resources()).HasValue());
+    EXPECT_TRUE(Client::Tests::ApplyTransformed(read.Value(), game->Resources()).HasValue());
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
     const Cell cell = FreeRow();
     Actor(0).characterClass = 3;
@@ -701,7 +708,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
                                                                        .directionAndPk = 0x31}}};
     read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
-    const auto applied = Client::Actors::ApplyTransformed(read.Value(), game->Resources());
+    const auto applied = Client::Tests::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     const ActorState& actor = Actor(1);
     EXPECT_EQ(actor.type, 0x15b);
@@ -722,7 +729,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
     const std::array<Client::Tests::TransformedRecordBytes, 1> shown{{{.key = 0x0456, .x = 130, .y = 130, .type = 68}}};
     const auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
     ASSERT_TRUE(read.HasValue());
-    const auto applied = Client::Actors::ApplyTransformed(read.Value(), game->Resources());
+    const auto applied = Client::Tests::ApplyTransformed(read.Value(), game->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("Monster50.bmd"), std::string::npos) << applied.Error();
     EXPECT_FALSE(Actor(1).alive);
@@ -751,7 +758,7 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
                                                        .targetY = cell.y,
                                                        .directionAndPk = 0x31};
     record.name[0] = std::byte{'T'};
-    const auto walked = Client::Actors::FinishTheTransformed(1, record, 2, game->Resources());
+    const auto walked = Client::Tests::FinishTheTransformed(1, record, 2, game->Resources());
     ASSERT_TRUE(walked.HasValue()) << walked.Error();
     const ActorState& actor = Actor(1);
     EXPECT_EQ(actor.scale, 0.8f);
@@ -766,7 +773,7 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     record.isNew = true;
     record.name[0] = std::byte{'U'};
     const CrtRandom before = game->cloth.random;
-    const auto arrived = Client::Actors::FinishTheTransformed(1, record, 2, game->Resources());
+    const auto arrived = Client::Tests::FinishTheTransformed(1, record, 2, game->Resources());
     ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
     EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'U');
     const auto effects = std::as_const(game->world.Map().effects).Effects();
@@ -815,7 +822,7 @@ TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
     for (std::size_t count = 1; count <= 2; ++count)
     {
-        const auto applied = Client::Actors::FinishTheTransformed(0, record, 0, resources);
+        const auto applied = Client::Tests::FinishTheTransformed(0, record, 0, resources);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const auto& entries = game->world.Runtime().chat.log.entries;
         ASSERT_EQ(entries.size(), count);
@@ -835,7 +842,7 @@ TEST_F(ViewportPlayersTest, TheBlessingFlagOnAnotherActorNeedsNoMessageResources
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Actors::TransformedRecord record{
         .key = 0x456, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
-    const auto applied = Client::Actors::FinishTheTransformed(1, record, 0, game->Resources());
+    const auto applied = Client::Tests::FinishTheTransformed(1, record, 0, game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(1).flags78 & BlessingFlag, BlessingFlag);
     EXPECT_TRUE(game->world.Runtime().chat.log.entries.empty());
@@ -848,7 +855,7 @@ TEST_F(ViewportPlayersTest, AMissingBlessingTextKeepsThePrefixAndLeavesTheFinalF
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag | 1u, .targetX = cell.x, .targetY = cell.y};
-    const auto applied = Client::Actors::FinishTheTransformed(0, record, 0, game->Resources());
+    const auto applied = Client::Tests::FinishTheTransformed(0, record, 0, game->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("Text.bmd"), std::string::npos) << applied.Error();
     EXPECT_EQ(Actor(0).flags78 & 1u, 1u);
@@ -872,7 +879,7 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = 0x2000000, .targetX = cell.x, .targetY = cell.y};
 
-    const auto applied = Client::Actors::FinishTheTransformed(0, record, 0, resources);
+    const auto applied = Client::Tests::FinishTheTransformed(0, record, 0, resources);
 
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     ASSERT_EQ(chat.log.entries.size(), 1u);
@@ -906,7 +913,7 @@ protected:
     {
         auto read = Client::Protocol::Actors::ReadEquipmentShown(Client::Tests::EquipmentShownPacket(key, item));
         EXPECT_TRUE(read.HasValue());
-        return Client::Actors::ApplyEquipmentShown(read.Value(), game->Resources());
+        return Client::Tests::ApplyEquipmentShown(read.Value(), game->Resources());
     }
     static constexpr std::uint16_t OtherKey = 0x0042;
     static constexpr std::size_t OtherSlot = 4;
@@ -998,7 +1005,7 @@ TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
 {
     const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
     ASSERT_TRUE(read.HasValue());
-    ASSERT_TRUE(Client::Actors::ApplyViewportPosition(read.Value(), game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Actors::In::ApplyViewportPosition(read.Value(), game->world, game->cloth.random).HasValue());
     EXPECT_EQ(Other().cellX, 140);
     EXPECT_EQ(Other().cellY, 141);
     EXPECT_EQ(Other().targetX, 140);
@@ -1016,7 +1023,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
     Other().cellX = 138;
     Other().cellY = 143;
     Other().position = {12, 34, 56};
-    const auto pushed = Client::Actors::ApplyViewportPosition(read.Value(), game->Resources());
+    const auto pushed = Client::Actors::In::ApplyViewportPosition(read.Value(), game->world, game->cloth.random);
     ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
     EXPECT_EQ(Other().floatE4, 20.0f);
     EXPECT_EQ(Other().floatD0, 800.0f);
@@ -1060,7 +1067,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
             particles[index].position = {2, 4, 8};
         }
         game->cloth.random = CrtRandom(Seed);
-        const auto pushed = Client::Actors::ApplyViewportPosition(read.Value(), game->Resources());
+        const auto pushed = Client::Actors::In::ApplyViewportPosition(read.Value(), game->world, game->cloth.random);
         ASSERT_TRUE(pushed.HasValue()) << pushed.Error();
         const int draws = CellDraws + 40 + static_cast<int>(free) * 5;
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, draws).State());
@@ -1092,7 +1099,7 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-        auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+        auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ActorState& actor = Actor(1);
 
@@ -1129,7 +1136,7 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         const Cell cell = FreeRow();
         const std::array<ViewportPlayerRecord, 1> records{
             {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
-        auto applied = Client::Actors::ApplyViewportPlayers(Read(records), game->Resources());
+        auto applied = Client::Tests::ApplyViewportPlayers(Read(records), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ActorState& actor = Actor(1);
         const std::uint32_t created = game->cloth.random.State();
@@ -1176,5 +1183,161 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{sound});
         EXPECT_EQ(game->cloth.random.State(), expected.State());
     }
+}
+
+// Each slot the handlers ask, by name and in order, before the session's own.
+class RecordingViewportHooks final : public Client::Actors::IViewportHooks
+{
+public:
+    explicit RecordingViewportHooks(const Client::Scenes::WorldEntryResources& resources) : m_real(resources) {}
+    [[nodiscard]] Client::Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor) const override
+    {
+        m_calls.emplace_back("StartTheTeleportAction");
+        return m_real.StartTheTeleportAction(actor);
+    }
+    void CreateTheArrivalEffect(ActorState& actor) const override
+    {
+        m_calls.emplace_back("CreateTheArrivalEffect");
+        m_real.CreateTheArrivalEffect(actor);
+    }
+    [[nodiscard]] Client::Core::Expected<void, std::string> CreateTheKalimaBeam(ActorState& actor) const override
+    {
+        m_calls.emplace_back("CreateTheKalimaBeam");
+        return m_real.CreateTheKalimaBeam(actor);
+    }
+    [[nodiscard]] Client::Core::Expected<void, std::string> RefreshTheSiegePanel() const override
+    {
+        m_calls.emplace_back("RefreshTheSiegePanel");
+        return m_real.RefreshTheSiegePanel();
+    }
+    [[nodiscard]] std::uint8_t PublishedHeroClass() const override
+    {
+        m_calls.emplace_back("PublishedHeroClass");
+        return m_real.PublishedHeroClass();
+    }
+    [[nodiscard]] Client::Core::Expected<std::size_t, std::string>
+    CreateMonster(std::int32_t type, std::uint8_t x, std::uint8_t y, std::int32_t key) const override
+    {
+        m_calls.emplace_back("CreateMonster");
+        return m_real.CreateMonster(type, x, y, key);
+    }
+    [[nodiscard]] Client::Core::Expected<void, std::string> CreateTheMagicCircle(ActorState& actor) const override
+    {
+        m_calls.emplace_back("CreateTheMagicCircle");
+        return m_real.CreateTheMagicCircle(actor);
+    }
+    [[nodiscard]] Client::Core::Expected<void, std::string> DressThePublishedHero() const override
+    {
+        m_calls.emplace_back("DressThePublishedHero");
+        return m_real.DressThePublishedHero();
+    }
+    void ReleaseThePublishedHerosRaven() const override
+    {
+        m_calls.emplace_back("ReleaseThePublishedHerosRaven");
+        m_real.ReleaseThePublishedHerosRaven();
+    }
+    [[nodiscard]] Client::Core::Expected<void, std::string> RecreateTheRaven(ActorState& actor) const override
+    {
+        m_calls.emplace_back("RecreateTheRaven");
+        return m_real.RecreateTheRaven(actor);
+    }
+    void TurnOffTheHelpersOf(std::size_t rider) const override
+    {
+        m_calls.emplace_back("TurnOffTheHelpersOf");
+        m_real.TurnOffTheHelpersOf(rider);
+    }
+    [[nodiscard]] Client::Core::Expected<void, std::string>
+    CreateTheHelper(std::uint16_t type, const glm::vec3& position, std::size_t rider) const override
+    {
+        m_calls.emplace_back("CreateTheHelper");
+        return m_real.CreateTheHelper(type, position, rider);
+    }
+    [[nodiscard]] const std::vector<std::string>& Calls() const
+    {
+        return m_calls;
+    }
+
+private:
+    Client::Session::ViewportHooks m_real;
+    mutable std::vector<std::string> m_calls;
+};
+
+// 0x4c8860 on a player of state 1 just arrived in Kalima: 0x53d930, effect 0x61f, joint 0x610/8 and the siege's panel,
+// in that order.
+TEST_F(ViewportPlayersTest, TheEnteringPlayerAsksItsSlotsInTheOriginalsOrder)
+{
+    Load(0);
+    game->world.Runtime().map = 24;
+    const Cell cell = FreeRow();
+    const std::array<ViewportPlayerRecord, 1> records{
+        {{.key = 0x0050, .isNew = true, .x = cell.x, .y = cell.y, .classAndState = 0x01, .name = "Hornero"}}};
+    const auto resources = game->Resources();
+    const RecordingViewportHooks hooks(resources);
+    const auto applied = Client::Actors::In::ApplyViewportPlayers(Read(records), resources, hooks);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(hooks.Calls(), (std::vector<std::string>{"StartTheTeleportAction", "CreateTheArrivalEffect",
+                                                       "CreateTheKalimaBeam", "RefreshTheSiegePanel"}));
+}
+
+// 0x4c92a0 on a transformed one just arrived: the hero's class before the creation, 0x5141e0, circle 0xec and 0x512a30
+// on the published hero, in that order.
+TEST_F(ViewportPlayersTest, TheTransformedAsksItsSlotsInTheOriginalsOrder)
+{
+    Load(0);
+    const Cell cell = FreeRow();
+    const std::array<Client::Tests::TransformedRecordBytes, 1> shown{
+        {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .type = 3, .name = "Tatu"}}};
+    const auto read = Client::Protocol::Actors::ReadTransformed(Client::Tests::TransformedPacket(shown));
+    ASSERT_TRUE(read.HasValue());
+    const auto resources = game->Resources();
+    const RecordingViewportHooks hooks(resources);
+    const auto applied = Client::Actors::In::ApplyTransformed(read.Value(), resources, hooks);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(hooks.Calls(), (std::vector<std::string>{"PublishedHeroClass", "CreateMonster", "CreateTheMagicCircle",
+                                                       "DressThePublishedHero"}));
+}
+
+// What the 0x14 asks of each key, and whether the character was still there when it asked.
+class RecordingLeaveHooks final : public Client::Actors::IViewportLeaveHooks
+{
+public:
+    RecordingLeaveHooks(Client::Kernel::WorldState& world, const ActorState& watched)
+        : m_real(world), m_watched(watched)
+    {
+    }
+    void ForgetTheSwitchHolder(std::uint16_t key) const override
+    {
+        m_calls.push_back(std::format("switch {:#06x} {}", key, m_watched.alive));
+        m_real.ForgetTheSwitchHolder(key);
+    }
+    void RemoveTheShopTitle(std::int32_t key) const override
+    {
+        m_calls.push_back(std::format("shop {:#06x} {}", key, m_watched.alive));
+        m_real.RemoveTheShopTitle(key);
+    }
+    [[nodiscard]] const std::vector<std::string>& Calls() const
+    {
+        return m_calls;
+    }
+
+private:
+    Client::Session::ViewportLeaveHooks m_real;
+    const ActorState& m_watched;
+    mutable std::vector<std::string> m_calls;
+};
+
+// 0x4ca780: per key, the switch holder with the whole key before the removal, and the shop sign without bit 15 after.
+TEST(ViewportLeaveTest, EachKeyAsksTheSwitchHolderBeforeTheRemovalAndTheShopSignAfter)
+{
+    const auto game = std::make_unique<Game>();
+    auto& world = game->world;
+    ActorState& leaving = world.Actors()[2];
+    leaving = Client::Tests::UnarmedPlayer();
+    leaving.alive = true;
+    leaving.key = 0x0123;
+    const RecordingLeaveHooks hooks(world, leaving);
+    Client::Actors::In::ApplyViewportLeave(Client::Protocol::Actors::Leave{{0x8123, 0x013d}}, world, hooks);
+    EXPECT_EQ(hooks.Calls(), (std::vector<std::string>{"switch 0x8123 true", "shop 0x0123 false", "switch 0x013d false",
+                                                       "shop 0x013d false"}));
 }
 } // namespace

@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+pytest_plugins = ["nicegui.testing.user_plugin"]
+
 TEXT_FILES = ("Local/Text.bmd", "Local/Texttest.bmd", "Local/TKOU.bmd")
 TABLE_FILES: tuple[str, ...] = (
     *TEXT_FILES,

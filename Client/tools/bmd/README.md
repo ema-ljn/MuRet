@@ -5,7 +5,8 @@ identical, and an edited file is read by the client as the tool showed it.
 
 - **For agents:** a CLI that prints JSON, with stable error and exit codes and a JSON description of itself. The
   project skill [`muret-bmd`](../../../.claude/skills/muret-bmd/SKILL.md) teaches it.
-- **For people:** the same operations in a console UI (`mubmd tui`).
+- **For people:** the same operations in a console UI (`mubmd tui`), and a viewer of the 3D models in the browser
+  (`mubmd web`).
 
 This version reads every `.bmd` of the game: its tables, 29 files in 14 formats ([the list](#the-tables)), and its
 1,962 3D models ([what a model holds](#the-models)). The design is in
@@ -20,6 +21,9 @@ python3 -m venv .venv && . .venv/bin/activate
 pip install -e "Client/tools/bmd[dev]"
 mubmd --version
 ```
+
+`[dev]` brings everything. To use the tool and not change it, `pip install -e Client/tools/bmd` has the commands and
+the console UI, and `pip install -e "Client/tools/bmd[web]"` adds the web viewer (NiceGUI: 39 packages, about 89 MB).
 
 ## The working copy
 
@@ -107,6 +111,7 @@ is `PARENT_AFTER_CHILD`. The skill has the rules in full.
 | `mubmd build <json> --output <file>` | The reverse: a table to its own file name, a model to any `.bmd` name |
 | `mubmd roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mubmd tui [<folder or file>]` | The console UI |
+| `mubmd web [<folder or model>] [--port N] [--no-browser]` | The web viewer of models |
 
 `set`, `apply`, `build`, `dump` and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
 Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
@@ -254,6 +259,31 @@ there: use `mubmd set`. In a model the UI edits the names, a mesh's `texture` an
 them are shown, and geometry and keys are edited with `mubmd set`, `mubmd apply` or a dump. A file inside the
 reference folder opens read-only: it can be searched, not edited.
 
+## The web viewer
+
+`mubmd web ~/mu/Data` serves a page from this machine and opens it in the browser: the folder's models on the left,
+the chosen model in the middle, drawn with its textures, and its parts, facts and findings on the right. It needs the
+`web` extra. A model instead of a folder opens its folder with that model chosen.
+
+- **The model** turns, moves and zooms with the mouse. Above it are play and pause, the key slider, the speed (2, 4, 8
+  or 16 keys per second: the file does not say how fast an action plays) and two switches: `skeleton` draws the bones,
+  and `additive` draws the model as light on black, for the effects.
+- **A part** chosen in the tree shows its facts and fields: a mesh is tinted in the scene, an action is played and a
+  bone is marked on the skeleton. A finding chooses its part.
+- **A piece of a character** (a helm, an armor, pants, gloves, boots) has one more switch, `On Player.bmd's skeleton`:
+  with it on, the piece moves with the 205 actions of the `Player.bmd` of its folder.
+- **A mesh whose texture is not shown** stays in a flat color, and its facts say why: no folder has the file, or it
+  is one the client refuses. Triangles that hang from a bone the model does not have are not drawn, and the facts
+  count them.
+
+It is a viewer, not the client's renderer: textures are drawn unlit and on both sides, with none of the client's
+blend rules per model. It writes nothing, so it can open the reference folder as it is (`mubmd web
+Client/assets/Data`), and it reads a model again each time it is opened, so a working copy is shown as it is on disk.
+
+The server listens on 127.0.0.1 only, and refuses a request that reaches it under another host name. `--port` picks
+the port (8765 by default, `0` for a free one) and `--no-browser` leaves the browser closed: the address is on
+stderr. `Ctrl+C` stops it, and then it prints its JSON object like any other command.
+
 ## Development
 
 ```bash
@@ -262,17 +292,28 @@ ruff check . && ruff format --check . && mypy src tests && pytest
 ```
 
 The layers are `core` (formats, documents, checks; standard library only), `app` (use cases) and `adapters` (file
-system, CLI, console UI); `tests/test_layers.py` keeps them apart. The snapshot tests compare the console UI against
-`tests/adapters/tui/__snapshots__/`; after a change that is meant to be seen, look at `snapshot_report.html` and run
-`pytest --snapshot-update`.
+system, CLI, console UI, web viewer); `tests/test_layers.py` keeps them apart, and keeps NiceGUI inside
+`adapters/web`. The snapshot tests compare the console UI against `tests/adapters/tui/__snapshots__/`; after a change
+that is meant to be seen, look at `snapshot_report.html` and run `pytest --snapshot-update`.
+
+The web viewer's page is tested without a browser, through NiceGUI's test user. Its JavaScript
+(`adapters/web/bmd_model.js`) runs only in a browser, so the tests marked `browser` drive a headless Chromium with
+Playwright, and `pytest` alone leaves them out:
+
+```bash
+python -m playwright install chromium     # once
+pytest -m browser
+```
+
+`MUBMD_CHROMIUM=/path/to/chromium` makes them use a Chromium that is already installed.
 
 ## Stages
 
-Stages 1 to 4 are done.
+Stages 1 to 5 are done.
 
 1. Design and skills.
 2. Texts end to end.
 3. Every table: items, skills, gates, filters, item sets, credits, the slide, move requirements, monster skills,
    dialogs and quests.
 4. Models, with the K16 cipher.
-5. A wireframe preview of a model in the console UI.
+5. The web viewer of models.

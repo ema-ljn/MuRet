@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from mubmd.adapters.storage import LocalFileStore
 from mubmd.app.checks import TextureFiles, findings_of
 from mubmd.app.documents import decode_document
 from mubmd.core.findings import Finding, Severity
@@ -73,3 +74,19 @@ def test_a_folder_is_listed_once(files: dict[Path, bytes]) -> None:
     findings(store, SWORD, textures)
     findings(store, WORK / "Item" / "waterring.bmd", textures)
     assert store.listed.count(WORK / "Item") == 1
+
+
+def test_find_gives_the_file_with_its_own_case(reference_data: Path) -> None:
+    textures = TextureFiles(LocalFileStore())
+    assert (
+        textures.find(reference_data / "Item" / "Sword01.bmd", "SWORD02.ozj") == reference_data / "Item" / "sword02.OZJ"
+    )
+
+
+def test_find_looks_in_the_folders_beside(reference_data: Path) -> None:
+    textures = TextureFiles(LocalFileStore())
+    assert (
+        textures.find(reference_data / "player" / "Helper03.bmd", "unicon.OZJ")
+        == reference_data / "Item" / "unicon.OZJ"
+    )
+    assert textures.find(reference_data / "Item" / "waterring.bmd", "waterring.OZJ") is None

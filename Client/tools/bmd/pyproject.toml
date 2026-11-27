@@ -17,12 +17,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+web = ["nicegui==4.1.0"]
 dev = [
+    "mubmd[web]",
     "pytest==8.4.2",
     "pytest-asyncio==1.5.0",
     "pytest-textual-snapshot==1.1.0",
     "syrupy==4.8.0",
     "jsonschema==4.26.0",
+    "playwright==1.65.2",
     "ruff==0.17.6",
     "mypy==2.4.1",
 ]
@@ -36,6 +39,9 @@ packages = ["src/mubmd"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "-m 'not browser'"
+markers = ["browser: drives the web viewer in Chromium; run with pytest -m browser"]
+main_file = ""
 
 [tool.mypy]
 strict = true

@@ -22,6 +22,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorPickingBox.h"
 #include "Actors/Drawing/CharacterCloth.h"
+#include "Models/SkinningBuffers.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacterEffects.h"
@@ -263,6 +264,7 @@ struct MonsterFrame
     Kernel::WorldState& world;
     Kernel::ActorState& actor;
     const Actors::Drawing::GameCharacterPass& pass;
+    Models::SkinningBuffers& buffers;
     Crt::CrtRandom& random;
     std::size_t slot = 0;
     std::int32_t map = 0;
@@ -337,7 +339,8 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
         Actors::Drawing::DrawnObject stale;
         stale.model = actor.type;
         stale.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
-        std::vector<Models::SkinnedMesh> meshes = Actors::Drawing::SkinObjectMeshes(frame.fauna, stale, actor.bodyPose);
+        const std::span<Models::SkinnedMesh> meshes =
+            Actors::Drawing::SkinObjectMeshesInto(frame.buffers.meshes, frame.fauna, stale, actor.bodyPose);
         return StepTheMeshCloth(frame, meshes, actor.bodyPose, actor.position);
     }
     // 0x5ffe9d..0x5ffeef: el 0x18f y el 0x18e van 60 y 120 más allá en y (0x6b86cc y 0x6b86c8).
@@ -358,7 +361,8 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     // +0x108 de un personaje del pool: queda en 0 (Q-C224, *inferido*).
     // 0x4eb860 en el buffer propio (+0x120, que 0x511290 le dio a todo personaje): los huesos dummy quedan como los
     // dejó el dibujo anterior (Q-C318).
-    std::vector<BoneTransform> bones(skeleton.bones.size(), BoneTransform(0.0f));
+    std::vector<BoneTransform>& bones = frame.buffers.bones;
+    bones.assign(skeleton.bones.size(), BoneTransform(0.0f));
     std::copy_n(actor.bodyPose.begin(), std::min(actor.bodyPose.size(), bones.size()), bones.begin());
     if (!Models::PoseSkeleton(skeleton, actor.animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("0x4eb860: la pose del modelo {:#x} falló", actor.type));
@@ -399,8 +403,8 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
             Actors::Drawing::DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
     // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala de 0x6c881c por el modo, deja las mallas en 0x5786f9c.
-    std::vector<Models::SkinnedMesh> meshes =
-        Actors::Drawing::SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
+    const std::span<Models::SkinnedMesh> meshes =
+        Actors::Drawing::SkinObjectMeshesInto(frame.buffers.meshes, frame.fauna, object, bones, BoneScaleOf(mode));
     if (!(actor.alpha < DrawnAlpha))
         PublishMonsterPickingBox(frame, transform.position);
     if (cloth)
@@ -603,10 +607,10 @@ constexpr std::int32_t OwnTexture = -1;
 struct PosedBody
 {
     Actors::Drawing::DrawnObject object;
-    std::vector<Models::SkinnedMesh> meshes;
+    std::span<const Models::SkinnedMesh> meshes;
 };
 
-PosedBody PosedBodyOf(const MonsterFrame& frame)
+PosedBody PosedBodyOf(MonsterFrame& frame)
 {
     const Kernel::ActorState& actor = frame.actor;
     PosedBody posed;
@@ -623,7 +627,8 @@ PosedBody PosedBodyOf(const MonsterFrame& frame)
                                        .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.alpha = actor.alpha;
     object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;
-    posed.meshes = Actors::Drawing::SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+    posed.meshes =
+        Actors::Drawing::SkinObjectMeshesInto(frame.buffers.posedMeshes, frame.fauna, object, actor.bodyPose);
     return posed;
 }
 
@@ -985,7 +990,8 @@ Result DrawTheShadow(MonsterFrame& frame)
             object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
             object.state.blendMesh = static_cast<std::int16_t>(actor.dword64);
             object.state.hiddenMesh = static_cast<std::int16_t>(actor.dword58);
-            const auto meshes = Actors::Drawing::SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+            const auto meshes =
+                Actors::Drawing::SkinObjectMeshesInto(frame.buffers.shadowMeshes, frame.fauna, object, actor.bodyPose);
             Actors::Drawing::DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
         }
     }
@@ -1492,12 +1498,14 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     std::optional<Crt::CrtRandom> projectedRandom;
     Kernel::ActorState& actor = originalFrame ? stored : projected.emplace(stored);
     Crt::CrtRandom& random = originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
+    Models::SkinningBuffers ownBuffers;
     MonsterFrame frame{.batch = batch,
                        .items = models,
                        .fauna = fauna,
                        .world = world,
                        .actor = actor,
                        .pass = pass,
+                       .buffers = pass.drawBuffers != nullptr ? *pass.drawBuffers : ownBuffers,
                        .random = random,
                        .slot = slot,
                        .map = world.Runtime().map,

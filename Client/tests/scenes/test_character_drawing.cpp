@@ -1,6 +1,7 @@
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Models/SkinningBuffers.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -541,6 +542,78 @@ TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)
     ASSERT_EQ(batch.Commands().size(), 2u);
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Shadow);
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Opaque);
+}
+
+// SkinObjectMeshesInto in buffers a bigger model left (three meshes, the first with more vertices): a model of two,
+// the second broken, gets its two as SkinObjectMeshes skins them into fresh meshes, the broken one empty.
+TEST(CharacterDrawingTest, ASmallModelSkinnedAfterABigOneMatchesFreshMeshes)
+{
+    constexpr std::uint16_t BigModel = 0x1c12;
+    constexpr std::uint16_t SmallModel = 0x1c13;
+    OneModel big(BigModel, "part.jpg", 3);
+    big.FirstMesh().vertices.push_back({0, {0, 0, 1}});
+    big.FirstMesh().normals.push_back({0, {1, 0, 0}, 0});
+    OneModel small(SmallModel, "part.jpg", 2);
+    small.MeshAt(1).triangles[0].vertices[0] = 9;
+    DrawnObject bigObject;
+    bigObject.model = BigModel;
+    DrawnObject smallObject;
+    smallObject.model = SmallModel;
+    smallObject.transform.position = {5.0f, 6.0f, 7.0f};
+    const std::vector<Client::Math::BoneTransform> bones(1, Client::Math::BoneTransform(1.0f));
+    Client::Models::SkinnedMeshes buffers;
+    static_cast<void>(Client::Actors::Drawing::SkinObjectMeshesInto(buffers, big, bigObject, bones));
+
+    const auto reused = Client::Actors::Drawing::SkinObjectMeshesInto(buffers, small, smallObject, bones);
+
+    const auto fresh = Client::Actors::Drawing::SkinObjectMeshes(small, smallObject, bones);
+    ASSERT_EQ(reused.size(), fresh.size());
+    for (std::size_t mesh = 0; mesh < fresh.size(); ++mesh)
+    {
+        EXPECT_EQ(reused[mesh].positions, fresh[mesh].positions) << mesh;
+        EXPECT_EQ(reused[mesh].normals, fresh[mesh].normals) << mesh;
+    }
+    EXPECT_TRUE(reused[1].positions.empty());
+}
+
+// A character drawn in the buffers a bigger one left (three meshes in its part, its shadow and its sword, the first
+// with one more vertex, somewhere else) draws as with buffers of its own.
+TEST(CharacterDrawingTest, ACharacterDrawnInTheBuffersOfABiggerOneDrawsAsWithItsOwn)
+{
+    constexpr std::uint16_t Sword = 0x212;
+    DrawnCharacter character;
+    character.appearance = Client::Kernel::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = Sword};
+    const std::uint16_t part = character.appearance.bodyParts[1].model;
+    OneModel big(part, "part.jpg", 3);
+    big.FirstMesh().vertices.push_back({0, {0, 0, 1}});
+    big.FirstMesh().normals.push_back({0, {1, 0, 0}, 0});
+    OneModel small(part, "part.jpg", 2);
+    for (OneModel* models : {&big, &small})
+    {
+        models->AlsoAs(Client::Tables::PlayerShadowModel, TextureSlot{0x300});
+        models->AlsoAs(Sword, TextureSlot{0x300});
+    }
+    Client::Models::SkinningBuffers buffers;
+    DrawnCharacter lent = character;
+    lent.drawBuffers = &buffers;
+    static_cast<void>(Drawn(big, lent));
+    character.object.position = {5.0f, 6.0f, 7.0f};
+    lent.object.position = character.object.position;
+
+    const ModelBatch reused = Drawn(small, lent);
+
+    const ModelBatch own = Drawn(small, character);
+    ASSERT_FALSE(own.Vertices().empty());
+    ASSERT_EQ(reused.Vertices().size(), own.Vertices().size());
+    EXPECT_EQ(reused.Commands().size(), own.Commands().size());
+    for (std::size_t vertex = 0; vertex < own.Vertices().size(); ++vertex)
+    {
+        EXPECT_EQ(reused.Vertices()[vertex].position, own.Vertices()[vertex].position) << vertex;
+        EXPECT_EQ(reused.Vertices()[vertex].uv, own.Vertices()[vertex].uv) << vertex;
+        const Client::Render::Color& color = own.Vertices()[vertex].color;
+        ExpectColor(reused.Vertices()[vertex], color.red, color.green, color.blue);
+    }
 }
 
 // With one of the pets that are ridden (0x1c14 and 0x1c15), 0x50ba30 does not draw the shadow.

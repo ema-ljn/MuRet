@@ -1272,7 +1272,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
             .guildMarks = &m_guildMarks,
             .kalima = FrameKalima(),
             .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake,
-            .faunaModels = &LoadedFaunaModels()});
+            .faunaModels = &LoadedFaunaModels(),
+            .drawBuffers = &m_characterBuffers});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

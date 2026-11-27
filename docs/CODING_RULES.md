@@ -521,12 +521,13 @@ each frame ([ADR 0026](adr/0026-keep-the-standard-library.md)).
   buffer that outlives the frame (cleared, not freed), or a `std::array` with a count where the
   original has a fixed array; what happens past that array's end follows the research. A callback
   that does not change between frames is built once, or replaced by an interface its caller keeps.
-- **Today's exceptions are scheduled.** With 40 monsters on screen, the skinning
-  (`Models/Skinning.cpp`) and the character drawing (`Scenes/CharacterDrawing.cpp`) create
-  about 2,090 temporary `std::vector` per frame, and `GamePanels` rebuilds about 85
-  `std::function`. The refactor removes them (AR4.1 and AR4.5 of the
-  [plan](superpowers/plans/2026-11-20-client-architecture-refactor.md)) with the behavior golden
-  identical. New code does not add more.
+- **Today's exceptions are scheduled.** Since AR4.1 the character drawing poses and skins into
+  `Models::SkinningBuffers`, which the game scene keeps from frame to frame: with 40 monsters on
+  screen a frame went from about 2,290 allocations to about 210, and with 40 players from about
+  1,545 to about 715. What is left is the lists of meshes each model draws, the `std::function` of
+  each character and item, and the about 85 `std::function` `GamePanels` rebuilds. The refactor
+  removes them (AR4.5 of the [plan](superpowers/plans/2026-11-20-client-architecture-refactor.md)
+  for the panels) with the behavior golden identical. New code does not add more.
 - **Measure an optimized build.** At `-O2`, `malloc` and `free` cost 0.15 ms of that frame. At
   `-O0` the frame is about 15 times slower because nothing is inlined, so a profile of a `-O0`
   build points at the standard library instead of the code: profile `-O2`, or `-Og` to debug.

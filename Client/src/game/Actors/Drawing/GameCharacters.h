@@ -30,6 +30,7 @@ namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
+struct SkinningBuffers;
 } // namespace Client::Models
 
 namespace Client::Terrain
@@ -119,6 +120,9 @@ struct GameCharacterPass
     // The models a creation loaded for the monsters and NPCs (Assets::AssetsState::fauna), where their pose leaves
     // its key. nullptr: no monster or NPC is drawn.
     Assets::FaunaModels* faunaModels = nullptr;
+    // What the characters' draw poses and skins into, one character after another, kept by the frame's owner. Without
+    // them, each character's draw uses buffers of its own.
+    Models::SkinningBuffers* drawBuffers = nullptr;
 };
 
 // The ordinary player's body, its terrain light and the hero's override, reusing DrawCharacter, then what hangs with

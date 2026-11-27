@@ -17,8 +17,6 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Protocol/Session/BuildConstants.h"
-#include "Protocol/CastleSiege/CastleBattle.h"
-#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/FrontEnd/CharacterCreate.h"
 #include "Protocol/FrontEnd/CharacterDelete.h"
 #include "Protocol/FrontEnd/CharacterList.h"
@@ -41,7 +39,6 @@
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Guild/Guild.h"
 #include "Network/PacketFields.h"
 #include "Protocol/Party/Party.h"
 #include "Network/ProtocolError.h"
@@ -1041,53 +1038,6 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
-}
-
-// 0x4e2b10 con los opcodes de los eventos: ninguno mira la escena, el estado de la sesión ni el flag de cifrado. The
-// 0B's copy to the ring of 0x77f27b4 (0x4e3594..0x4e361c) is its row's.
-void ServerSession::OnEventPacket(const Network::Packet& packet)
-{
-    auto event = Protocol::Events::ReadEventPacket(packet);
-    if (!event.HasValue())
-    {
-        m_log.Warning("se ignora el paquete de evento {:02X}: {}",
-                      Network::ByteOf(packet.Opcode().value_or(Network::Opcode{})), Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(event).Value(), *this)));
-}
-
-void ServerSession::OnGuild(const Network::Packet& packet)
-{
-    auto guild = Protocol::Guild::ReadGuildPacket(packet);
-    if (!guild.HasValue())
-    {
-        m_log.Warning("se ignora el paquete del gremio: {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(guild).Value(), *this)));
-}
-
-void ServerSession::OnCastleSiege(const Network::Packet& packet)
-{
-    auto castle = Protocol::CastleSiege::ReadCastleSiegePacket(packet);
-    if (!castle.HasValue())
-    {
-        m_log.Warning("se ignora el paquete del castillo: {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(castle).Value(), *this)));
-}
-
-void ServerSession::OnCastleBattle(const Network::Packet& packet)
-{
-    auto battle = Protocol::CastleSiege::ReadCastleBattlePacket(packet);
-    if (!battle.HasValue())
-    {
-        m_log.Warning("se ignora el paquete de la batalla del castillo: {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(battle).Value(), *this)));
 }
 
 Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::Items::ItemMove& move)

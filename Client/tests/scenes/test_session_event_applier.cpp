@@ -11,7 +11,6 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
-#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Events/Events.h"
@@ -323,10 +322,9 @@ TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
     auto tested = std::make_unique<Applier>();
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    const Client::App::WorldEvent event =
-        Client::Protocol::Events::EventPacket{Client::Protocol::Events::EventChipInfo{.type = 0, .count = 3}};
+    const Client::Protocol::Events::EventPacket event{Client::Protocol::Events::EventChipInfo{.type = 0, .count = 3}};
 
-    const auto result = tested->applier.ApplyWorld(event, online.session);
+    const auto result = Client::Session::ReceiveEventPacket(event, online.session, *tested->applier.RoutedWorld());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested->world.Runtime().panels.field78abb00, 1);
@@ -366,19 +364,18 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 // la sesión antes del mensaje, que sin medidor corta.
 TEST(SessionEventApplierTest, TheCastlePacketsReachTheirApplierAndSendThroughTheSession)
 {
-    namespace Castle = Client::Protocol::CastleSiege;
     const auto tested = std::make_unique<Applier>();
-    Client::Tests::LoggedInSession online;
+    Client::Tests::LoggedInSession online(&tested->applier);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    const Client::App::WorldEvent count = Castle::CastleSiegePacket{Castle::KillCount{.value = 6}};
-    ASSERT_TRUE(tested->applier.ApplyWorld(count, online.session).HasValue());
-    EXPECT_EQ(tested->world.Hero().byte372, 6);
-
     const std::size_t sent = online.socket.sent.size();
-    const Client::App::WorldEvent giveUp = Castle::CastleSiegePacket{Castle::GiveUpResult{.result = 1}};
-    const auto result = tested->applier.ApplyWorld(giveUp, online.session);
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x555190"), std::string::npos);
+    online.socket.reads = {Client::Tests::Join(
+        {Client::Tests::Bytes({0xc1, 5, 0xb8, 1, 6}), Client::Tests::Bytes({0xc1, 5, 0xb2, 2, 1})})};
+
+    const auto polled = online.session.Poll();
+
+    EXPECT_EQ(tested->world.Hero().byte372, 6);
+    ASSERT_FALSE(polled.HasValue());
+    EXPECT_NE(polled.Error().find("0x555190"), std::string::npos) << polled.Error();
     const std::vector<std::byte> requests(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
                                           online.socket.sent.end());
     EXPECT_EQ(requests, (std::vector<std::byte>{std::byte{0xc1}, std::byte{4}, std::byte{0xb2}, std::byte{0x38},

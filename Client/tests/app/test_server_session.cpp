@@ -23,9 +23,7 @@
 #include "Network/SocketError.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/Session/BuildConstants.h"
-#include "Protocol/CastleSiege/CastleBattle.h"
 #include "Protocol/CastleSiege/CastleSiege.h"
-#include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Messenger/FriendChat.h"
 #include "Protocol/Guild/Guild.h"
@@ -4021,21 +4019,24 @@ TEST(ServerSessionTest, AShortViewportPacketOrDurabilityStillTakesItsCopy)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// 0x4e3594..0x4e361c: el dispatcher copia el 0B a la cola de 0x77f27b4 antes de su caso (CL9 hito 11), aunque llegue
-// corto y no se pueda leer; el entero sigue al mundo después de la copia.
+// 0x4e3594..0x4e361c: the dispatcher copies the 0B to the queue of 0x77f27b4 before its case (CL9 hito 11), even short
+// and unreadable; its row reads the whole one after the copy.
 TEST(ServerSessionTest, AnEventStateTakesItsCopyEvenShort)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     const auto shortState = Bytes({0xc1, 4, 0x0b, 1});
     const auto state = Bytes({0xc1, 5, 0x0b, 1, 3});
     tested.socket.reads = {Join({shortState, state})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
     ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], shortState));
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[1], state));
-    ASSERT_EQ(tested.eventSink.world.size(), 1u);
-    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Events::EventPacket>(tested.eventSink.world[0]));
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el paquete de evento 0B: no se puede leer"), 1u);
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
@@ -4469,30 +4470,24 @@ TEST(ServerSessionTest, TheQuestPacketsAreReadByTheirRows)
     EXPECT_EQ(world->world.Runtime().quest.flags[1], 0x22);
 }
 
-// 0x4e4547: el BC 00 y el BC 01 llegan al mundo como paquetes de evento con pkt[3] y pkt[4]; corto, un aviso y nada
-// (CL9 hitos 6 y 11). Valores inventados.
-TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
+// 0x4e4547: the BC 00 and the BC 01 are event packets read by their rows; a short one leaves a warning and nothing
+// more (CL9 hitos 6 and 11). Made-up values.
+TEST(ServerSessionTest, TheJewelMixAnswerIsReadByItsRows)
 {
-    namespace Events = Client::Protocol::Events;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    // The unmix with 7 (0x4da5f0) and the mix with 4 (0x4e4605) show a text.
+    const auto texts = Client::Tests::MakeTextTable({{1815, "Un texto inventado"}, {1817, "Un texto inventado"}});
+    world->resources.texts = &texts;
     tested.socket.reads = {
         Join({Bytes({0xc1, 5, 0xbc, 1, 7}), Bytes({0xc1, 4, 0xbc, 0}), Bytes({0xc1, 5, 0xbc, 0, 4})})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 2u);
-    const auto* first = std::get_if<Events::EventPacket>(&events[0]);
-    ASSERT_NE(first, nullptr);
-    const auto* unmixed = std::get_if<Events::JewelMixResult>(first);
-    ASSERT_NE(unmixed, nullptr);
-    EXPECT_EQ(unmixed->subcode, Client::Protocol::JewelMix::UnmixSubcode);
-    EXPECT_EQ(unmixed->result, 7);
-    const auto* second = std::get_if<Events::EventPacket>(&events[1]);
-    ASSERT_NE(second, nullptr);
-    const auto* mixed = std::get_if<Events::JewelMixResult>(second);
-    ASSERT_NE(mixed, nullptr);
-    EXPECT_EQ(mixed->subcode, Client::Protocol::JewelMix::MixSubcode);
-    EXPECT_EQ(mixed->result, 4);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 2u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el paquete de evento BC: no se puede leer"), 1u);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
 // 0x4da373: el 86 con 100 (la mezcla del entrenador) lo lee su fila con los siete bytes del ítem desde pkt[4], como el
@@ -4606,60 +4601,52 @@ TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// CL9 hito 12: los paquetes del castillo fuera de la batalla llegan al mundo. El B2 19 que el laboratorio manda después
-// de cada /move llega también al mundo (hito 13); el B8 con otro subcódigo sigue sin handler. Un B2 05 que no
-// trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
-TEST(ServerSessionTest, TheCastleAndBattlePacketsReachTheWorld)
+// CL9 hito 12: the castle's packets outside the battle are read by their rows. The B2 19 that the lab sends after each
+// /move is read too (hito 13); the B8 with another subcode still has no handler. A B2 05 that lacks what it reads is
+// ignored with a warning, without closing the session. Made-up values.
+TEST(ServerSessionTest, TheCastleAndBattlePacketsAreReadByTheirRows)
 {
-    namespace Castle = Client::Protocol::CastleSiege;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    // The B2 01 with 3 shows the text 1506 (0x4df080).
+    const auto texts = Client::Tests::MakeTextTable({{1506, "Un texto inventado"}});
+    world->resources.texts = &texts;
     tested.socket.reads = {
         Join({Bytes({0xc1, 5, 0xb2, 0x01, 3}), Bytes({0xc1, 5, 0xb2, 0x19, 0}), Bytes({0xc1, 5, 0xb8, 1, 4}),
               Bytes({0xc1, 5, 0xb8, 2, 4}), Bytes({0xc1, 0x0c, 0xb3, 1, 1, 0, 0, 0, 0, 0, 0, 0}),
               Bytes({0xc1, 5, 0xb2, 0x05, 1}), Bytes({0xc1, 6, 0xb2, 0x1a, 1, 7}), Bytes({0xc1, 5, 0xb5, 0, 2})})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 6u);
-    const auto* registered = std::get_if<Castle::CastleSiegePacket>(&events[0]);
-    ASSERT_NE(registered, nullptr);
-    EXPECT_EQ(std::get<Castle::RegisterResult>(*registered).result, 3);
-    EXPECT_EQ(std::get<Client::Protocol::CastleSiege::SiegeSide>(
-                  std::get<Client::Protocol::CastleSiege::CastleBattlePacket>(events[1]))
-                  .side,
-              0);
-    EXPECT_EQ(std::get<Castle::KillCount>(std::get<Castle::CastleSiegePacket>(events[2])).value, 4);
-    EXPECT_TRUE(std::get<Castle::NpcList>(std::get<Castle::CastleSiegePacket>(events[3])).records.empty());
-    EXPECT_EQ(std::get<Castle::SiegeFlags>(std::get<Castle::CastleSiegePacket>(events[4])).value, 7);
-    EXPECT_EQ(std::get<Castle::RegisteredGuildList>(std::get<Castle::CastleSiegePacket>(events[5])).result, 2);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 6u);
+    EXPECT_EQ(world->world.Hero().byte372, 4);
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "el opcode B2 y el subcódigo 19 no tiene handler"));
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B8 y el subcódigo 02 no tiene handler"));
-    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete del castillo"));
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el paquete del castillo: no se puede leer"), 1u);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// CL9 hito 13: los paquetes de la batalla llegan al mundo. El B9 04 cae al default del original (0x4e58c8) y sigue sin
-// handler; un BA que no trae lo que lee se ignora con un aviso, sin cerrar la sesión. Los valores son inventados.
-TEST(ServerSessionTest, TheCastleBattlePacketsReachTheWorld)
+// CL9 hito 13: the battle's packets are read by their rows. The B9 04 falls to the original's default (0x4e58c8) and
+// still has no handler; a BA that lacks what it reads is ignored with a warning, without closing the session. Made-up
+// values.
+TEST(ServerSessionTest, TheCastleBattlePacketsAreReadByTheirRows)
 {
-    namespace Battle = Client::Protocol::CastleSiege;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     std::vector<std::byte> holder = Bytes({0xc1, 0x1b, 0xb2, 0x20, 0x01, 0x3d});
     holder.resize(0x1b);
     tested.socket.reads = {Join({Bytes({0xc1, 7, 0xb9, 0x01, 0x00, 0x05, 3}), Bytes({0xc1, 5, 0xb9, 0x04, 1}),
                                  Bytes({0xc1, 5, 0xb9, 0x05, 1}), Bytes({0xc1, 7, 0xba, 0x00, 0x05, 0x28, 2}),
                                  Bytes({0xc1, 5, 0xba, 0x00, 0x05}), Bytes({0xc1, 5, 0xbb, 0x00, 0x00}), holder})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 5u);
-    EXPECT_EQ(std::get<Battle::NpcLevel>(std::get<Battle::CastleBattlePacket>(events[0])).level, 3);
-    EXPECT_EQ(std::get<Battle::HuntZoneEntryResult>(std::get<Battle::CastleBattlePacket>(events[1])).result, 1);
-    EXPECT_EQ(std::get<Battle::ActorField>(std::get<Battle::CastleBattlePacket>(events[2])).value, 2);
-    EXPECT_TRUE(std::get<Battle::MinimapMembers>(std::get<Battle::CastleBattlePacket>(events[3])).members.empty());
-    EXPECT_EQ(std::get<Battle::SwitchHolder>(std::get<Battle::CastleBattlePacket>(events[4])).key, 0x013d);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 5u);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el opcode B9 y el subcódigo 04 no tiene handler"));
-    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el paquete de la batalla del castillo"));
+    EXPECT_EQ(
+        tested.CountLogged(LogLevel::Warning, "se ignora el paquete de la batalla del castillo: no se puede leer"), 1u);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
@@ -4803,29 +4790,27 @@ TEST(ServerSessionTest, CastlePacketsGoToTheGameServerOnly)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// CL9 hito 8: los paquetes del gremio (un C1 y el C2 de la lista) llegan al sink como Protocol::Guild::GuildPacket; uno
-// que no se lee se ignora sin cortar la sesión.
-TEST(ServerSessionTest, GuildPacketsReachTheSink)
+// CL9 hito 8: the guild's packets (a C1 and the C2 of the list) are read by their rows; one that cannot be read is
+// ignored without ending the session.
+TEST(ServerSessionTest, GuildPacketsAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    // The EB 01 with 0 shows the text 1328.
+    const auto texts = Client::Tests::MakeTextTable({{1328, "Un texto inventado"}});
+    world->resources.texts = &texts;
     const auto join = Bytes({0xc1, 5, 0x50, 0x01, 0x23});
     const auto list =
         Bytes({0xc2, 0, 0x18, 0x52, 1, 0, 0, 0, 5, 0, 0, 0, 0, 'T', 'e', 'r', 'o', 's', 0, 0, 0, 0, 0, 0});
     const auto broken = Bytes({0xc1, 3, 0x51});
     const auto refresh = Bytes({0xc1, 5, 0xeb, 1, 0});
     tested.socket.reads = {Join({join, list, broken, refresh})};
-    EXPECT_TRUE(tested.session.Poll().HasValue());
-    ASSERT_EQ(tested.eventSink.world.size(), 3u);
-    const auto* asked = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[0]);
-    ASSERT_NE(asked, nullptr);
-    EXPECT_EQ(std::get<Client::Protocol::Guild::JoinRequest>(*asked).key, 0x0123);
-    const auto* listed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[1]);
-    ASSERT_NE(listed, nullptr);
-    EXPECT_EQ(std::get<Client::Protocol::Guild::MemberList>(*listed).score, 5);
-    const auto* refreshed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[2]);
-    ASSERT_NE(refreshed, nullptr);
-    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Guild::UnionListRefresh>(*refreshed));
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 3u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el paquete del gremio: no se puede leer"), 1u);
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
@@ -5043,19 +5028,19 @@ TEST(ServerSessionTest, TheMapServerAuthenticationReadsItsTickAfterTheWorldReset
 
 } // namespace
 
-// 0x4deef0, registro del F3 24: el resultado debe alcanzar el consumidor y no caer en opcode desconocido.
-TEST(ServerSessionTest, GuildWarOutcomeReachesTheWorldWithItsRawPresentByte)
+// 0x4deef0, the F3 24's record: its row reads it, it does not fall to an unknown opcode, and a present byte of 3 or
+// more leaves the outcome as it was.
+TEST(ServerSessionTest, GuildWarOutcomeIsReadByItsRowWithItsRawPresentByte)
 {
-    namespace Events = Client::Protocol::Events;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    const auto before = world->world.Runtime().events.guildWarOutcome.present;
     tested.socket.reads = {Bytes({0xc1, 5, 0xf3, 0x24, 255})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
-    const auto* packet = std::get_if<Events::EventPacket>(&events[0]);
-    ASSERT_NE(packet, nullptr);
-    const auto* outcome = std::get_if<Events::GuildWarOutcome>(packet);
-    ASSERT_NE(outcome, nullptr);
-    EXPECT_EQ(outcome->present, 255);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 1u);
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "no tiene handler"));
+    EXPECT_EQ(world->world.Runtime().events.guildWarOutcome.present, before);
 }

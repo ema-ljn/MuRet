@@ -28,4 +28,7 @@ inline constexpr std::uint8_t K16Step = 0x3D;
 
 // In place. `bytes` must be the file from its first byte.
 ENGINE_API void DecryptK16(std::span<std::byte> bytes);
+// The inverse, as the editor mode's savers do it inline (0x5f8960, 0x607540): cipher[i] = (plain[i] + previous) ^
+// K16Key[i % 16], with the same `previous`. In place, from the file's first byte.
+ENGINE_API void EncryptK16(std::span<std::byte> bytes);
 } // namespace Client::Crypto

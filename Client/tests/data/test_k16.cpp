@@ -74,4 +74,39 @@ TEST(K16Test, ASecondHalfAloneIsWrongOnlyInItsFirstByte)
     EXPECT_NE(secondHalf[0], plain[16]);
     EXPECT_EQ(std::vector(secondHalf.begin() + 1, secondHalf.end()), std::vector(plain.begin() + 17, plain.end()));
 }
+
+// cipher[i] = (plain[i] + previous) ^ K16Key[i % 16], previous = cipher[i] + 3D, the first previous 5E. Bytes 16 and
+// 17 take the key's first two bytes again, with the running previous.
+TEST(K16Test, EncryptsEighteenZerosByHand)
+{
+    std::vector<std::byte> bytes(18);
+
+    Client::Crypto::EncryptK16(bytes);
+
+    EXPECT_EQ(bytes, (std::vector{std::byte{0x8F}, std::byte{0xBF}, std::byte{0xAE}, std::byte{0x1D}, std::byte{0x88},
+                                  std::byte{0x5F}, std::byte{0x57}, std::byte{0xB3}, std::byte{0xCE}, std::byte{0xA4},
+                                  std::byte{0xB8}, std::byte{0xC4}, std::byte{0x36}, std::byte{0xC0}, std::byte{0x1A},
+                                  std::byte{0xF5}, std::byte{0xE3}, std::byte{0x53}}));
+}
+
+// FF + 5E wraps to 5D, and 5D ^ D1 = 8C. Then (01 + C9) ^ 73 = B9 and (80 + F6) ^ 52 = 24.
+TEST(K16Test, EncryptWrapsInEightBits)
+{
+    std::vector<std::byte> bytes = {std::byte{0xFF}, std::byte{0x01}, std::byte{0x80}};
+
+    Client::Crypto::EncryptK16(bytes);
+
+    EXPECT_EQ(bytes, (std::vector{std::byte{0x8C}, std::byte{0xB9}, std::byte{0x24}}));
+}
+
+TEST(K16Test, DecryptUndoesEncrypt)
+{
+    const std::vector<std::byte> plain = BytePattern(1000, 37, 11);
+    std::vector<std::byte> bytes = plain;
+
+    Client::Crypto::EncryptK16(bytes);
+    DecryptK16(bytes);
+
+    EXPECT_EQ(bytes, plain);
+}
 } // namespace

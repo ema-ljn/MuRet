@@ -2,15 +2,21 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Network/Packet.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/Events/Events.h"
+#include "Protocol/Items/FloorItems.h"
 #include "Protocol/Movement/World.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Protocol/Social/Trade.h"
 #include "Scenes/EventPackets.h"
+#include "Scenes/FloorItemPackets.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/SocialEvents.h"
+#include "Scenes/WorldState.h"
+#include "Session/Route.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionContexts.h"
 #include "Session/WorldEntry.h"
@@ -18,10 +24,23 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::Session
 {
+namespace
+{
+template <void (*Release)(Scenes::WorldState&)> void Released(App::ServerSession& session)
+{
+    const Scenes::WorldEntryResources* const world = session.RoutedWorld();
+    if (world == nullptr)
+        return;
+    Release(world->world);
+    session.FinishRoutedReception({});
+}
+} // namespace
+
 Core::Expected<void, std::string> ReceiveTeleport(const Protocol::Movement::Teleport& teleport,
                                                   App::ServerSession& session,
                                                   const Scenes::WorldEntryResources& resources)
@@ -59,6 +78,41 @@ Core::Expected<void, std::string> ReceiveEventPacket(const Protocol::Events::Eve
     if (const std::optional<std::string>& discarded = applied.Value().discarded)
         resources.log.Warning("se descarta el resto del paquete de evento: {}", *discarded);
     return {};
+}
+
+void PickUpWhenShort::Unreadable(App::ServerSession& session, const Network::Packet& packet,
+                                 Network::ProtocolError error, std::string_view what)
+{
+    if (error == Network::ProtocolError::TooShort)
+    {
+        if (const auto zen = Protocol::Items::ReadShortZenPickUp(packet); zen.HasValue())
+        {
+            session.Log().Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
+            Deliver<&Scenes::ApplyShortZenPickUp>(session, zen.Value());
+            return;
+        }
+    }
+    session.IgnoreUnreadable(what);
+    if (error == Network::ProtocolError::TooShort)
+        Released<&Scenes::ApplyShortPickUpResult>(session);
+}
+
+void DropWhenShort::Unreadable(App::ServerSession& session, const Network::Packet& packet, Network::ProtocolError error,
+                               std::string_view what)
+{
+    session.IgnoreUnreadable(what);
+    if (error != Network::ProtocolError::TooShort)
+        return;
+    if (const auto unread = Protocol::Items::ReadShortDropResult(packet); unread.HasValue())
+        Deliver<&Scenes::ApplyShortDropResult>(session, unread.Value());
+}
+
+void StatFruitWhenShort::Unreadable(App::ServerSession& session, const Network::Packet&, Network::ProtocolError error,
+                                    std::string_view what)
+{
+    session.IgnoreUnreadable(what);
+    if (error == Network::ProtocolError::TooShort)
+        Released<&Scenes::ApplyShortStatFruit>(session);
 }
 
 Core::Expected<void, std::string> ReceiveShopItemList(const Protocol::PersonalShop::ShopItemList& list,

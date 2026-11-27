@@ -24,7 +24,6 @@
 #include "Network/Xor32Packet.h"
 #include "Protocol/Session/BuildConstants.h"
 #include "Protocol/CastleSiege/CastleSiege.h"
-#include "Protocol/Items/FloorItems.h"
 #include "Protocol/Messenger/FriendChat.h"
 #include "Protocol/Guild/Guild.h"
 #include "Protocol/Outgoing.h"
@@ -4185,45 +4184,59 @@ TEST(ServerSessionTest, TheKillsAndTheDeathAreReadAndTheClearOnesAreReported)
 }
 
 // 07 Q-C1240: con el GameServer 0.97, el 22 (C3 de 8 bytes), el 23 sin pkt[4] y el 2C de un byte no traen lo que lee
-// el cliente, pero 0x4d0cc0, 0x4d10d0 y 0x4de500 sueltan su espera en todos sus caminos: al mundo llega solo eso. El
-// 20 de entradas de 9 bytes no escribe nada fijo y no llega. Los valores son inventados.
+// el cliente, pero 0x4d0cc0, 0x4d10d0 y 0x4de500 sueltan su espera en todos sus caminos: sus filas avisan que no se
+// pueden leer y sueltan solo eso. El 20 de entradas de 9 bytes no escribe nada fijo. Los valores son inventados.
 TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
 {
-    namespace FloorItems = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    Client::Scenes::WorldRuntime& runtime = world->world.Runtime();
+    runtime.floor.pendingPickUp = 5;
+    runtime.floor.pendingDrop = 22;
+    runtime.ui.field5767954 = 10;
+    runtime.cursorItemCount = 1;
+    runtime.cursorItem.occupied = 1;
     tested.socket.reads = {
         Join({FromTheGameServer(Bytes({0xc1, 0x08, 0x22, 0x0c, 0x00, 0x18, 0x2c, 0}), tested.gameServerSends),
               Bytes({0xc1, 0x04, 0x23, 0x01}), Bytes({0xc1, 0x03, 0x23}), Bytes({0xc1, 0x04, 0x2c, 0x23}),
               Bytes({0xc2, 0x00, 0x0e, 0x20, 1, 0x00, 0x05, 130, 120, 0x00, 0x18, 0x2c, 0, 0})})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 4u);
-    EXPECT_TRUE(std::holds_alternative<FloorItems::ShortPickUpResult>(events[0]));
-    const auto* dropped = std::get_if<FloorItems::ShortDropResult>(&events[1]);
-    ASSERT_NE(dropped, nullptr);
-    EXPECT_EQ(dropped->result, std::optional<std::uint8_t>{std::uint8_t{1}});
-    const auto* bare = std::get_if<FloorItems::ShortDropResult>(&events[2]);
-    ASSERT_NE(bare, nullptr);
-    EXPECT_FALSE(bare->result.has_value());
-    EXPECT_TRUE(std::holds_alternative<FloorItems::ShortStatFruit>(events[3]));
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 4u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora lo levantado del piso (22): no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora lo tirado al piso (23): no se puede leer"), 2u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora la fruta de stats (2C): no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignoran los ítems del piso (20): no se puede leer"), 1u);
+    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
+    EXPECT_EQ(runtime.floor.pendingDrop, -1);
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(runtime.cursorItem.occupied, 0u);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// El GCMoneySend del GameServer 0.97 (C3 08 22 FE, el zen al comprar en la tienda) llega al mundo con su zen, y no
-// como el 22 corto que solo suelta el pedido (07 Q-C1240).
+// El GCMoneySend del GameServer 0.97 (C3 08 22 FE, el zen al comprar en la tienda) llega al mundo con su zen, sin el
+// aviso de que no se puede leer, y no como el 22 corto que solo suelta el pedido (07 Q-C1240). El 918 es inventado.
 TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
 {
-    namespace FloorItems = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    const auto texts = Client::Tests::MakeTextTable({{918, "levantado"}});
+    world->resources.texts = &texts;
+    tested.eventSink.routedWorld = &world->resources;
+    world->world.Runtime().floor.pendingPickUp = 5;
     tested.socket.reads = {
         FromTheGameServer(Bytes({0xc1, 0x08, 0x22, 0xfe, 0x00, 0x01, 0x86, 0xa0}), tested.gameServerSends)};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
-    const auto* zen = std::get_if<FloorItems::ShortZenPickUp>(&events[0]);
-    ASSERT_NE(zen, nullptr);
-    EXPECT_EQ(zen->zen, 100000u);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Debug, "el 22 con el zen llegó corto"), 1u);
+    EXPECT_EQ(world->world.OwnCharacter().zen, 100000u);
+    EXPECT_EQ(world->world.Runtime().floor.pendingPickUp, -1);
 }
 
 // La respuesta del F3 06 (0x4d3200, 0x4e30cd en el sub-dispatcher del F3) la lee su fila; una corta, un aviso.

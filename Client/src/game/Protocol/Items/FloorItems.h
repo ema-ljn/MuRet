@@ -84,20 +84,9 @@ struct StatFruit
 
 [[nodiscard]] Core::Expected<StatFruit, Network::ProtocolError> ReadStatFruit(const Network::Packet& packet);
 
-// A 22, 23 or 2C shorter than what the client reads (the GameServer 0.97, 07 Q-C1240): the original reads what was
-// left in its receive buffer, which MuRet does not make up, but some writes happen on all its paths. 0x4d0cc0 leaves
-// the pick-up request (0x6c82e8) at −1 (0x4d10b9) and 0x4de500 the use's wait (0x5767954) at 0 (0x4de7e4 and the
-// other five exits, 0x4deb0e).
-struct ShortPickUpResult
-{
-};
-
-struct ShortStatFruit
-{
-};
-
-// 0x4d10d0 leaves the dropped place (0x6c82ec) at −1 on all its paths (0x4d13d1 and 0x4d13e5) and, with pkt[3] other
-// than 0, the cursor empty (0x7879fbc at 0, 0x4d13c7), on all of them too. `result` is pkt[3], if it arrived.
+// A 23 shorter than what the client reads (the GameServer 0.97, 07 Q-C1240): 0x4d10d0 leaves the dropped place
+// (0x6c82ec) at −1 on all its paths (0x4d13d1 and 0x4d13e5) and, with pkt[3] other than 0, the cursor empty (0x7879fbc
+// at 0, 0x4d13c7), on all of them too. `result` is pkt[3], if it arrived.
 struct ShortDropResult
 {
     std::optional<std::uint8_t> result;

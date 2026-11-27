@@ -241,10 +241,11 @@ public:
     [[nodiscard]] std::uint16_t PlayerIndex() const;
 
     // What a routed row (Session/Route.h) needs: the world its handler takes its parts from, nullptr if the sink has
-    // none; the warning when its packet cannot be read; the warning and the F1 03 when a packet that must arrive
-    // encrypted arrives in clear; and the end of its reception, the sink's AfterWorldReception and then the result, as
-    // after ApplyWorld.
+    // none; the session's log; the warning when its packet cannot be read; the warning and the F1 03 when a packet that
+    // must arrive encrypted arrives in clear; and the end of its reception, the sink's AfterWorldReception and then the
+    // result, as after ApplyWorld.
     [[nodiscard]] const Scenes::WorldEntryResources* RoutedWorld() const;
+    [[nodiscard]] Core::Log& Log() const;
     void IgnoreUnreadable(std::string_view ignored);
     void ReportInClear(std::string_view warning, Protocol::Outgoing report);
     void FinishRoutedReception(Core::Expected<void, std::string> applied);
@@ -450,13 +451,9 @@ private:
     void OnMapServerMove(const Network::Packet& packet);
     // 0x4c1e20 con [0x5767928] distinto de 0: el saludo de un GameServer con el login ya mandado.
     void OnGameHelloAfterLogin(const Network::Packet& packet);
-    void OnPickUpResult(const Network::Packet& packet);
-    void OnDropResult(const Network::Packet& packet);
-    void OnStatFruit(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
-    void OnReport73(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

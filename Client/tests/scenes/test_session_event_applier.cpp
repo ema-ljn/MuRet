@@ -14,7 +14,6 @@
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Events/Events.h"
-#include "Protocol/Items/FloorItems.h"
 #include "Protocol/Movement/World.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -265,9 +264,6 @@ TEST(SessionEventApplierTest, TheLeaveWireLetsGoOfAnotherThroughTheRealSession)
     EXPECT_TRUE(tested->world.Runtime().oldWindows.chatRooms.orders.empty());
     EXPECT_NE(online.session.State(), Client::App::SessionState::Failed);
 }
-// 07 Q-C1240: el 22, el 23 y el 2C cortos llegan a lo que sueltan (0x4d10b9, 0x4d13e5 y 0x4deb0e), sin caer en el
-// F3 03.
-
 // The skills reach their appliers through the real session, in wire order: the F3 11 without Skill.bmd stops at the
 // count and fails the session.
 TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
@@ -516,26 +512,6 @@ TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleas
         EXPECT_EQ(tested->world.Runtime().map, 2);
         EXPECT_FALSE(tested->world.Runtime().orderedScene.has_value());
     }
-}
-
-TEST(SessionEventApplierTest, TheShortFloorItemRepliesReachTheirReleases)
-{
-    namespace FloorItems = Client::Protocol::Items;
-    const auto tested = std::make_unique<Applier>();
-    Client::Tests::LoggedInSession online;
-    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
-    runtime.floor.pendingPickUp = 5;
-    runtime.floor.pendingDrop = 22;
-    runtime.ui.field5767954 = 10;
-    const Client::App::WorldEvent picked = FloorItems::ShortPickUpResult{};
-    const Client::App::WorldEvent dropped = FloorItems::ShortDropResult{.result = std::uint8_t{0}};
-    const Client::App::WorldEvent fruit = FloorItems::ShortStatFruit{};
-    EXPECT_TRUE(tested->applier.ApplyWorld(picked, online.session).HasValue());
-    EXPECT_TRUE(tested->applier.ApplyWorld(dropped, online.session).HasValue());
-    EXPECT_TRUE(tested->applier.ApplyWorld(fruit, online.session).HasValue());
-    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
-    EXPECT_EQ(runtime.floor.pendingDrop, -1);
-    EXPECT_EQ(runtime.ui.field5767954, 0);
 }
 
 // 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.

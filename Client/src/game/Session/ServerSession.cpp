@@ -41,9 +41,7 @@
 #include "Protocol/Outgoing.h"
 #include "Network/PacketFields.h"
 #include "Protocol/Party/Party.h"
-#include "Network/ProtocolError.h"
 #include "Protocol/Pets/PetInfo.h"
-#include "Protocol/Skills/Skill.h"
 #include "Protocol/Quests/Quest.h"
 #include "Protocol/Movement/World.h"
 #include "Protocol/Movement/Movement.h"
@@ -346,6 +344,11 @@ std::uint16_t ServerSession::PlayerIndex() const
 const Scenes::WorldEntryResources* ServerSession::RoutedWorld() const
 {
     return m_eventSink.RoutedWorld();
+}
+
+Core::Log& ServerSession::Log() const
+{
+    return m_log;
 }
 
 void ServerSession::IgnoreUnreadable(std::string_view ignored)
@@ -1045,58 +1048,6 @@ Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::It
     return SendWorldPacket(Protocol::Items::WriteItemMove(move));
 }
 
-void ServerSession::OnPickUpResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Items::ReadPickUpResult(packet);
-    if (!result.HasValue())
-    {
-        // 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen, aunque no
-        // los siete bytes que el sonido lee desde pkt[4].
-        if (const auto zen = Protocol::Items::ReadShortZenPickUp(packet);
-            result.Error() == Network::ProtocolError::TooShort && zen.HasValue())
-        {
-            m_log.Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
-            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(zen.Value(), *this)));
-            return;
-        }
-        m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
-        // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
-        if (result.Error() == Network::ProtocolError::TooShort)
-            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Items::ShortPickUpResult{}, *this)));
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
-void ServerSession::OnDropResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Items::ReadDropResult(packet);
-    if (!result.HasValue())
-    {
-        m_log.Warning("se ignora lo tirado al piso (23): {}", Unreadable);
-        // 07 Q-C1240: 0x4d10d0 suelta el lugar tirado (0x4d13d1 y 0x4d13e5) en todos sus caminos.
-        const auto unread = Protocol::Items::ReadShortDropResult(packet);
-        if (result.Error() == Network::ProtocolError::TooShort && unread.HasValue())
-            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(unread.Value(), *this)));
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
-void ServerSession::OnStatFruit(const Network::Packet& packet)
-{
-    const auto fruit = Protocol::Items::ReadStatFruit(packet);
-    if (!fruit.HasValue())
-    {
-        m_log.Warning("se ignora la fruta de stats (2C): {}", Unreadable);
-        // 07 Q-C1240: 0x4de500 no mira el largo y termina la espera del uso (0x4deb0e) en todos sus caminos.
-        if (fruit.Error() == Network::ProtocolError::TooShort)
-            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Items::ShortStatFruit{}, *this)));
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(fruit.Value(), *this)));
-}
-
 Core::Expected<void, std::string> ServerSession::SendPickUp(std::uint16_t index)
 {
     return SendWorldPacket(Protocol::Items::WritePickUp(index));
@@ -1360,16 +1311,6 @@ void ServerSession::PollTheChatRooms()
             }
         }
     }
-}
-
-// 0x4d5b10: cifrado no hace nada; sin el cifrado, el F1 03 con 0xf1 (*estático*, 08, P-C263).
-void ServerSession::OnReport73(const Network::Packet& packet)
-{
-    if (packet.WasDecrypted())
-        return;
-    m_log.Warning("el 73 no llegó cifrado: se le avisa al GameServer (F1 03)");
-    Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::Skills::Report73Head);
-    m_connection.Send(std::move(report.packet), report.delivery);
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

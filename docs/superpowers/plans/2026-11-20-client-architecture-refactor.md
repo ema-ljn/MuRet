@@ -762,6 +762,8 @@ the modules that left.
 
 ## Epic AR4: `Scenes/` into vertical modules
 
+Detailed plan: [`2026-11-27-ar4-scenes-into-modules.md`](2026-11-27-ar4-scenes-into-modules.md).
+
 Five milestones, bottom-up in the graph. Each milestone is **a move** (`move.py --modules …`, with what is in `Scenes/`,
 `UI/`, `World/` and `GameLogic/` today for those modules, per the map), **a comments PR** (those of these files and their
 tests, in English and only the necessary ones: see "The comments PRs") and **a design** (the `Client::<Module>`

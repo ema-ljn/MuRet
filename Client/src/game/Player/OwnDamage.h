@@ -17,65 +17,65 @@ namespace Client::Kernel
 struct OwnCharacterRecord;
 } // namespace Client::Kernel
 
-// Los daños del personaje propio que muestran la ventana del personaje (0x5ee2e0) y el tooltip de la skill (0x5b90b0):
-// el del ataque, 0x5b8b80, el de la magia, 0x5513d0, y el de la skill, 0x5516e0, con sus accesos a la tabla de
-// protección y sus rand(). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La ventana del personaje" y "El
-// cuerpo de la skill".
+// The own character's damages that the character window (0x5ee2e0) and the skill's tooltip (0x5b90b0) show: the
+// attack's, 0x5b8b80, the magic's, 0x5513d0, and the skill's, 0x5516e0, with their protection table accesses and their
+// rand() calls. Contract: Client/docs/research/06-render-escenas-y-ui.md, "La ventana del personaje" and "El cuerpo de
+// la skill".
 namespace Client::Player
 {
 struct ItemSetOptionList;
 struct OwnEquipmentOverride;
 
-// Lo que 0x5b8b80 deja en sus dos punteros y lo que devuelve.
+// What 0x5b8b80 leaves in its two pointers and what it returns.
 struct OwnAttackDamage
 {
     std::uint32_t min = 0;
     std::uint32_t max = 0;
-    // El byte que devuelve: la ventana pinta el renglón del daño en naranja con 1. Lo prenden las dos manos con un
-    // tipo de 0 a 0xbff en las clases 1 y 3, y en la 2, con las dos de 0x800 a 0x9ff, el 0x807 de la izquierda o el
-    // 0x80f de la derecha con nivel (el +4 & 0x78 en 8 o más). Qué es (las dos armas, las flechas o los virotes con
-    // nivel) es *inferido*.
+    // The byte it returns: with 1 the window paints the damage line orange. Both hands with a type from 0 to 0xbff
+    // set it in classes 1 and 3, and in class 2, both from 0x800 to 0x9ff, the left's 0x807 or the right's 0x80f
+    // with a level (+4 & 0x78 at 8 or more). What it means (both weapons, the arrows or the bolts with a level) is
+    // *inferred*.
     bool highlighted = false;
 };
 
-// 0x5b8b80(&min, &max), cdecl: abre el registro propio (sin gastar) y, al cerrarlo, si queda en 0, saca 3.848
-// rand(). Las manos son los lugares 0 (+0xb6c) y 1 (+0xbb4), o el ítem del cursor (0x7879f80) en el lugar de
-// [0x78a6758] (0 o 1) con [0x7879fbc] > 0 y la grilla del inventario. Con la derecha de 0x808 a 0x80e, el 0x810 o de
-// 0x812 a 0x9ff, el par +0x50 y +0x52; si no, con la izquierda de 0x800 a 0x806, el 0x811, el 0x814 o el 0x815, la
-// derecha en −1 o de 0xa00 a 0xbff, el par +0x54 y +0x56; si no, +0x50 y +0x52. Las clases 1 y 3 con las dos manos
-// de 0 a 0xbff suman el 55 % de cada par (+0x50 y +0x54, +0x52 y +0x56, sin signo y truncando); con el bit 0x02 de
-// +0x3c, 15 más a los dos. `heroClass` es el +0x1d4 del héroe & 7.
+// 0x5b8b80(&min, &max), cdecl: opens the own record (without spending) and, on closing it, if it is left at 0, draws
+// 3,848 rand() calls. The hands are places 0 (+0xb6c) and 1 (+0xbb4), or the cursor item (0x7879f80) in the place of
+// [0x78a6758] (0 or 1) with [0x7879fbc] > 0 and the inventory grid. With the right from 0x808 to 0x80e, 0x810 or from
+// 0x812 to 0x9ff, the pair +0x50 and +0x52; otherwise, with the left from 0x800 to 0x806, 0x811, 0x814 or 0x815, the
+// right at −1 or from 0xa00 to 0xbff, the pair +0x54 and +0x56; otherwise +0x50 and +0x52. Classes 1 and 3 with both
+// hands from 0 to 0xbff add 55 % of each pair (+0x50 and +0x54, +0x52 and +0x56, unsigned and truncating); with bit
+// 0x02 of +0x3c, 15 more to both. `heroClass` is the hero's +0x1d4 & 7.
 [[nodiscard]] OwnAttackDamage AttackDamageOf(const Kernel::OwnCharacterRecord& own, Kernel::CharacterClass heroClass,
                                              const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth,
                                              Crt::CrtRandom& random);
 
-// Lo que 0x5513d0 deja en sus dos punteros.
+// What 0x5513d0 leaves in its two pointers.
 struct OwnMagicDamage
 {
     std::int32_t min = 0;
     std::int32_t max = 0;
 };
 
-// 0x5513d0(skill, &min, &max), thiscall sobre el registro propio: abre la entrada `skill` de Skill.bmd (60 rand() al
-// cerrarla en 0, `skillDepth`), y con s, el byte +0x21 de la entrada, min = +0x5a + s y max = +0x5c + s + s / 2.
-// Pone en 0 las 16 marcas de la lista de [0x6eed3c] (+0x937c), suma a un p de 32 bits en 0 las entradas del byte
-// +0x30 de la skill (0x40d8c0) y a sus 16 bits de abajo las del selector 0x9f (0x40d690), y suma p a los dos. Sin
-// Skill.bmd o sin la skill, error antes de abrir; con más de 16 entradas en la lista, el de 0x40d8c0 o 0x40d690.
+// 0x5513d0(skill, &min, &max), thiscall on the own record: opens Skill.bmd's entry `skill` (60 rand() calls on closing
+// it at 0, `skillDepth`), and with s, the entry's byte +0x21, min = +0x5a + s and max = +0x5c + s + s / 2. It zeroes
+// the 16 marks of [0x6eed3c]'s list (+0x937c), adds to a 32-bit p at 0 the entries of the skill's byte +0x30
+// (0x40d8c0) and to its low 16 bits those of selector 0x9f (0x40d690), and adds p to both. Without Skill.bmd or the
+// skill, an error before opening; with more than 16 entries in the list, 0x40d8c0's or 0x40d690's.
 [[nodiscard]] Core::Expected<OwnMagicDamage, std::string>
 MagicDamageOf(const Kernel::OwnCharacterRecord& own, std::uint8_t skill, const Tables::SkillTable* skills,
               std::uint8_t& skillDepth, Crt::CrtRandom& random, ItemSetOptionList& setOptions);
 
-// Lo que 0x5516e0 deja en sus dos punteros.
+// What 0x5516e0 leaves in its two pointers.
 struct OwnSkillDamage
 {
     std::int32_t min = 0;
     std::int32_t max = 0;
 };
 
-// 0x5516e0(skill, &min, &max), thiscall sobre el registro propio, que no lee: 0x5513d0 sin los dos words del registro.
-// Abre la entrada `skill` de Skill.bmd (60 rand() al cerrarla en 0, `skillDepth`) y, con s, su byte +0x21, min = s y
-// max = s + s / 2; pone en 0 las 16 marcas de +0x937c y suma a los dos el mismo p de los conjuntos (0x40d8c0 y
-// 0x40d690). Sin Skill.bmd o sin la skill, error antes de abrir.
+// 0x5516e0(skill, &min, &max), thiscall on the own record, which it does not read: 0x5513d0 without the record's two
+// words. It opens Skill.bmd's entry `skill` (60 rand() calls on closing it at 0, `skillDepth`) and, with s, its byte
+// +0x21, min = s and max = s + s / 2; it zeroes the 16 marks of +0x937c and adds the same sets' p to both (0x40d8c0 and
+// 0x40d690). Without Skill.bmd or the skill, an error before opening.
 [[nodiscard]] Core::Expected<OwnSkillDamage, std::string>
 SkillDamageOf(std::uint8_t skill, const Tables::SkillTable* skills, std::uint8_t& skillDepth, Crt::CrtRandom& random,
               ItemSetOptionList& setOptions);

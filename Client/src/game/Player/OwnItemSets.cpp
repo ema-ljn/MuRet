@@ -20,22 +20,22 @@
 #include <span>
 #include <string>
 
-// 0x40e1b0 (1.290 bytes), 0x40cfa0 (100), 0x40d010 (1.298) y 0x40de10 (898), cotejados con el PE
-// c32bbd5f: 06, "Los stats del registro propio". 0x40da20 es Player::AddItemSetOptionValues (0x40d690).
+// 0x40e1b0 (1,290 bytes), 0x40cfa0 (100), 0x40d010 (1,298) and 0x40de10 (898), checked against the PE c32bbd5f: 06,
+// "Los stats del registro propio". 0x40da20 is Player::AddItemSetOptionValues (0x40d690).
 namespace Client::Player
 {
 namespace
 {
 using OptionRecord = std::span<const std::byte, Tables::ItemSetOptionRecordSize>;
 
-// El conjunto de un ítem es su byte +0x1c & 3 (0x40cfa7; el byte llega sin signo y el resto con signo
-// de 0x40cfae nunca es negativo). 0, ninguno.
+// An item's set is its byte +0x1c & 3 (0x40cfa7; the byte arrives unsigned and 0x40cfae's signed remainder is never
+// negative). 0, none.
 constexpr std::uint8_t SetIndexMask = 3;
-// En ItemSetType.bmd, ningún conjunto (0x40cfc4 y 0x40cfc9).
+// In ItemSetType.bmd, no set (0x40cfc4 and 0x40cfc9).
 constexpr std::uint8_t NoSet = 0xff;
 
-// Los lugares que 0x40e1b0 salta (0x40e1e6..0x40e1f8) y los dos pares en que cuenta una vez el mismo
-// ítem: las manos y los anillos (0x40e27a..0x40e2b3 y 0x40e326..0x40e34a).
+// The places 0x40e1b0 skips (0x40e1e6..0x40e1f8) and the two pairs in which the same item counts once: the hands and
+// the rings (0x40e27a..0x40e2b3 and 0x40e326..0x40e34a).
 constexpr std::size_t WingsSlot = 7;
 constexpr std::size_t PetSlot = 8;
 constexpr std::size_t RightHandSlot = 0;
@@ -43,26 +43,26 @@ constexpr std::size_t LeftHandSlot = 1;
 constexpr std::size_t FirstRingSlot = 10;
 constexpr std::size_t SecondRingSlot = 11;
 
-// Un registro de ItemSetOption.bmd, como lo lee 0x40d010.
-constexpr std::size_t NameSize = 0x20;            // +0, el nombre con su 0
-constexpr std::size_t PairIdsOffset = 0x20;       // seis pares de opciones (0x40d25d)
-constexpr std::size_t PairValuesOffset = 0x2c;    // y sus valores (0x40d262)
+// An ItemSetOption.bmd record, as 0x40d010 reads it.
+constexpr std::size_t NameSize = 0x20;            // +0, the name with its 0
+constexpr std::size_t PairIdsOffset = 0x20;       // six option pairs (0x40d25d)
+constexpr std::size_t PairValuesOffset = 0x2c;    // and their values (0x40d262)
 constexpr int PairCount = 6;                      // 0x40d09c..0x40d0a7
 constexpr std::size_t ExtraIdsOffset = 0x38;      // 0x40d28a
 constexpr std::size_t ExtraValuesOffset = 0x3a;   // 0x40d291
-constexpr std::size_t FullSetPiecesOffset = 0x3c; // las piezas del conjunto + 1 (0x40d363)
+constexpr std::size_t FullSetPiecesOffset = 0x3c; // the set's pieces + 1 (0x40d363)
 constexpr std::size_t FullIdsOffset = 0x3d;       // 0x40d381
 constexpr std::size_t FullValuesOffset = 0x42;    // 0x40d376
 constexpr std::size_t FullOptionCount = 5;        // 0x40d448
-constexpr std::size_t ClassMarksOffset = 0x47;    // una por clase (0x40d0d0..0x40d140)
-// Un conjunto aplica desde dos piezas (0x40d08e), y está completo con piezas − 1 ≥ +0x3c − 2 (0x40d366).
+constexpr std::size_t ClassMarksOffset = 0x47;    // one per class (0x40d0d0..0x40d140)
+// A set applies from two pieces (0x40d08e), and is complete with pieces − 1 ≥ +0x3c − 2 (0x40d366).
 constexpr std::uint8_t MinimumPieces = 2;
 constexpr int FullSetMargin = 2;
-// Las opciones de 0x18 en adelante piden la marca de la clase (0x40d29c); 0xff es ninguna.
+// Options from 0x18 on ask for the class mark (0x40d29c); 0xff is none.
 constexpr std::uint8_t FirstClassOption = 0x18;
 constexpr std::uint8_t NoOption = 0xff;
-// Las marcas: 1 vale para la clase; 2, con la evolución (+0x1d4 >> 3) distinta de 0. Las clases 0 a
-// 2 miran las dos; la 3 solo el 1, y la 4 no tiene ninguna (0x40d0d0..0x40d14d).
+// The marks: 1 holds for the class; 2, with the evolution (+0x1d4 >> 3) other than 0. Classes 0 to 2 look at both;
+// class 3 only at 1, and class 4 has none (0x40d0d0..0x40d14d).
 constexpr std::uint8_t ClassMark = 1;
 constexpr std::uint8_t EvolvedClassMark = 2;
 constexpr std::uint8_t ClassesWithEvolvedMark = 3;
@@ -70,32 +70,31 @@ constexpr std::uint8_t LastMarkedClass = Kernel::ClassNumberOf(Kernel::Character
 constexpr std::uint8_t ClassBits = 7;
 constexpr int EvolutionShift = 3;
 
-// Las opciones de cada clase de pieza que caben en las listas locales de 0x40d010 (-0x64, -0x84 y
-// -0x104, de a 16).
+// The options of each piece kind that fit in 0x40d010's local lists (-0x64, -0x84 and -0x104, 16 each).
 constexpr std::size_t LocalOptionCapacity = 16;
 
-// 0x40de10 llama a 0x40da20 con estos, en este orden (0x40e14c..0x40e17c).
+// 0x40de10 calls 0x40da20 with these, in this order (0x40e14c..0x40e17c).
 constexpr std::uint32_t StrengthSelector = 0x8c;
 constexpr std::uint32_t AgilitySelector = 0x8d;
 constexpr std::uint32_t EnergySelector = 0x8e;
 constexpr std::uint32_t VitalitySelector = 0x8f;
-// Los tipos de 0x40dc50 que suman, por la tabla de saltos de 0x40e194, y lea eax, [eax + eax·4].
+// The 0x40dc50 types that add, by 0x40e194's jump table, and lea eax, [eax + eax·4].
 constexpr std::uint8_t KindOfStrength = 1;
 constexpr std::uint8_t KindOfAgility = 2;
 constexpr std::uint8_t KindOfEnergy = 3;
 constexpr std::uint8_t KindOfVitality = 4;
 constexpr int ItemStatValueFactor = 5;
 
-// Lo que 0x40e1b0 guarda del lugar 0 o 10 para no contar dos veces el mismo ítem en el 1 o el 11
-// (-0x7c y -0x60). En el original no tiene valor al entrar, pero el lugar 0 siempre lo escribe antes
-// de que el 1 lo lea, y pasa de una pasada a la otra.
+// What 0x40e1b0 keeps from place 0 or 10 so as not to count the same item twice in 1 or 11 (-0x7c and -0x60). In the
+// original it has no value on entry, but place 0 always writes it before place 1 reads it, and it carries over from
+// one pass to the other.
 struct PairedPiece
 {
     std::uint16_t type = 0;
     std::uint8_t setIndex = 0;
 };
 
-// Una opción en las listas locales de 0x40d010, antes de copiarla a la de [0x6eed3c].
+// An option in 0x40d010's local lists, before it is copied to [0x6eed3c]'s.
 struct CollectedOption
 {
     std::uint8_t option = 0;
@@ -109,7 +108,7 @@ struct CollectedOptions
     std::array<std::uint8_t, ItemSetKindCount> counts{};
 };
 
-// Lo que 0x40d010 sabe del conjunto que está aplicando.
+// What 0x40d010 knows of the set it is applying.
 struct SetBeingApplied
 {
     std::uint8_t setId = 0;
@@ -129,21 +128,21 @@ std::uint8_t SetIndexOf(const Kernel::ItemState& item)
     return static_cast<std::uint8_t>(item.flags1c & SetIndexMask);
 }
 
-// 0x40e1e6..0x40e1f8 en la primera pasada, 0x40e4cf..0x40e4e1 en la segunda.
+// 0x40e1e6..0x40e1f8 in the first pass, 0x40e4cf..0x40e4e1 in the second.
 bool CountsSlot(std::size_t slot)
 {
     return slot != WingsSlot && slot != PetSlot;
 }
 
-// 0x40e27a..0x40e2b3: el lugar 1 o el 11 con el mismo tipo y conjunto que el 0 o el 10.
+// 0x40e27a..0x40e2b3: place 1 or 11 with the same type and set as 0 or 10.
 bool RepeatsItsPair(std::size_t slot, const Kernel::ItemState& item, const PairedPiece& previous)
 {
     const bool second = slot == LeftHandSlot || slot == SecondRingSlot;
     return second && previous.type == item.id && previous.setIndex == SetIndexOf(item);
 }
 
-// 0x40e563..0x40e592: un requisito (+0x20 la agilidad, +0x22 la energía, +0x1e la fuerza) mayor que la
-// copia, sin signo.
+// 0x40e563..0x40e592: a requirement (+0x20 the agility, +0x22 the energy, +0x1e the strength) above the copy,
+// unsigned.
 bool MeetsRequirements(const Kernel::ItemState& item, const OwnStatCopies& copies)
 {
     return item.word20 <= copies.agility && item.word22 <= copies.energy && item.word1e <= copies.strength;
@@ -165,8 +164,8 @@ std::uint8_t ClassMatchOf(OptionRecord record, std::uint8_t classLow, int evolut
     return third ? 1 : 0;
 }
 
-// La marca de la clase del héroe, rec[0x47 + clase] (0x40d2a7): con la clase 5 a 7 cae en el registro
-// siguiente, que está pegado en [0x6eed3c] + 0x8004; después del último, fuera de la tabla (Q-C187).
+// The hero's class mark, rec[0x47 + class] (0x40d2a7): with class 5 to 7 it falls in the next record, which sits right
+// after it in [0x6eed3c] + 0x8004; after the last one, outside the table (Q-C187).
 Core::Expected<std::uint8_t, std::string> ClassMarkOf(const Tables::ItemSetOptionTable& options,
                                                       const SetBeingApplied& set)
 {
@@ -182,7 +181,7 @@ Core::Expected<std::uint8_t, std::string> ClassMarkOf(const Tables::ItemSetOptio
     return ByteAt(*record, offset % Tables::ItemSetOptionRecordSize);
 }
 
-// 0x40d297..0x40d2bd y 0x40d394..0x40d3f4.
+// 0x40d297..0x40d2bd and 0x40d394..0x40d3f4.
 Core::Expected<bool, std::string> AllowsOption(const Tables::ItemSetOptionTable& options, const SetBeingApplied& set,
                                                std::uint8_t option)
 {
@@ -199,11 +198,11 @@ Core::Expected<bool, std::string> AllowsOption(const Tables::ItemSetOptionTable&
     {
         return Core::Unexpected(mark.Error());
     }
-    // cmp con signo: la evolución menor que la marca − 1 no la tiene.
+    // Signed cmp: an evolution below the mark − 1 does not have it.
     return mark.Value() != 0 && set.evolution >= mark.Value() - 1;
 }
 
-// 0x40d2bf..0x40d2e9: la opción al final de la lista local de su clase de pieza.
+// 0x40d2bf..0x40d2e9: the option at the end of its piece kind's local list.
 Core::Expected<void, std::string> Collect(CollectedOptions& collected, std::size_t kind, CollectedOption option)
 {
     std::uint8_t& count = collected.counts[kind];
@@ -234,8 +233,8 @@ Core::Expected<void, std::string> CollectIfAllowed(CollectedOptions& collected, 
     return Collect(collected, kind, {.option = option, .classMatch = set.classMatch, .value = value});
 }
 
-// 0x40d16d..0x40d233: strcpy al nombre de su clase de pieza, o, si tiene el de otro conjunto, al primero
-// vacío de los dos o al segundo, con +0x9307 en piezas − 1.
+// 0x40d16d..0x40d233: strcpy to its piece kind's name or, if that holds another set's, to the first empty one of the
+// two or to the second, with +0x9307 at pieces − 1.
 Core::Expected<void, std::string> CopySetName(ItemSetState& state, std::size_t kind, const SetBeingApplied& set,
                                               std::uint8_t pieces)
 {
@@ -271,8 +270,8 @@ Core::Expected<void, std::string> CopySetName(ItemSetState& state, std::size_t k
     return {};
 }
 
-// 0x40d233..0x40d358: con n = piezas − 1, los primeros min(n, 6) pares de opciones, y después, mientras
-// i < n − min(n, 6), las de +0x38 (con n ≤ 9, como deja 0x40e1b0, no hay ninguna).
+// 0x40d233..0x40d358: with n = pieces − 1, the first min(n, 6) option pairs and then, while i < n − min(n, 6), those
+// of +0x38 (with n ≤ 9, as 0x40e1b0 leaves it, there are none).
 Core::Expected<void, std::string> CollectPieceOptions(CollectedOptions& collected, std::size_t kind,
                                                       const Tables::ItemSetOptionTable& options,
                                                       const SetBeingApplied& set, int optionPieces)
@@ -317,8 +316,8 @@ Core::Expected<void, std::string> CollectPieceOptions(CollectedOptions& collecte
     return {};
 }
 
-// 0x40d35e..0x40d457: el conjunto completo suma sus cinco opciones, cada una con +0x9307 + 1 si no es
-// 0, y pone el +0x358 del héroe publicado en 1.
+// 0x40d35e..0x40d457: the complete set adds its five options, each with +0x9307 + 1 if it is not 0, and sets the
+// published hero's +0x358 to 1.
 Core::Expected<void, std::string> CollectFullSetOptions(ItemSetState& state, CollectedOptions& collected,
                                                         std::size_t kind, const Tables::ItemSetOptionTable& options,
                                                         const SetBeingApplied& set, int optionPieces,
@@ -347,7 +346,7 @@ Core::Expected<void, std::string> CollectFullSetOptions(ItemSetState& state, Col
     return {};
 }
 
-// 0x40d087..0x40d45e: un conjunto de la lista.
+// 0x40d087..0x40d45e: one set of the list.
 Core::Expected<void, std::string> ApplyPiece(ItemSetState& state, CollectedOptions& collected,
                                              const ItemSetPiece& piece, const Tables::ItemSetOptionTable& options,
                                              Kernel::ActorState& publishedHero)
@@ -385,7 +384,7 @@ Core::Expected<void, std::string> ApplyPiece(ItemSetState& state, CollectedOptio
     return CollectFullSetOptions(state, collected, piece.kind, options, set, optionPieces, publishedHero);
 }
 
-// 0x40d473..0x40d515: las de la clase 0 desde el principio, las de la 1 detrás, y las cuentas.
+// 0x40d473..0x40d515: kind 0's from the start, kind 1's after them, and the counts.
 Core::Expected<void, std::string> StoreCollected(ItemSetState& state, const CollectedOptions& collected)
 {
     const std::size_t total = std::size_t{collected.counts[0]} + collected.counts[1];
@@ -404,7 +403,7 @@ Core::Expected<void, std::string> StoreCollected(ItemSetState& state, const Coll
             std::array<std::uint8_t, 3>& listed = state.list.entries[index];
             listed[0] = option.option;
             listed[1] = option.classMatch;
-            // El valor es un byte del registro: entra en el DWORD con signo sin cambiar.
+            // The value is a record byte: it enters the signed DWORD unchanged.
             state.list.values[index] = static_cast<std::int32_t>(option.value);
             state.list.secondValues[index] = static_cast<std::int32_t>(option.value);
             ++index;
@@ -415,8 +414,7 @@ Core::Expected<void, std::string> StoreCollected(ItemSetState& state, const Coll
     return {};
 }
 
-// 0x40e1ce..0x40e1e3 y 0x40e4bf..0x40e4cc: los 16 bytes de +0x934c, cinco opciones enteras y el primer
-// byte de la sexta.
+// 0x40e1ce..0x40e1e3 and 0x40e4bf..0x40e4cc: the 16 bytes of +0x934c, five whole options and the sixth's first byte.
 void FillOptionListHead(ItemSetOptionList& list, std::uint8_t value)
 {
     constexpr std::size_t WholeEntries = 5;
@@ -444,13 +442,13 @@ std::uint16_t* CopyOf(OwnStatCopies& copies, std::uint8_t kind)
     }
 }
 
-// 0x40de23..0x40e132, un lugar: abre el registro, y con durabilidad 0x40dc50 y la suma; lo cierra.
+// 0x40de23..0x40e132, one place: opens the record and, with durability, 0x40dc50 and the sum; closes it.
 Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, const Kernel::ItemState& item,
                                                        std::size_t slot, const OwnStatsContext& context)
 {
     const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
-    // 0x40e038..0x40e075: la contribución de valor 0 es nula cualquiera sea el selector.
-    // El acceso lógico queda alrededor, con su cierre y RNG nativos.
+    // 0x40e038..0x40e075: a value-0 contribution is null whatever the selector. The logical access stays around it,
+    // with its native closing and RNG.
     if (item.durability == 0 || (item.id == Kernel::EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
     {
         return {};
@@ -471,7 +469,7 @@ Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, co
     return {};
 }
 
-// 0x40e301..0x40e320: un tipo negativo (el −1 de un lugar vacío) no cuenta.
+// 0x40e301..0x40e320: a negative type (an empty place's −1) does not count.
 Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Tables::ItemSetTypeTable& types,
                                              const Kernel::ItemState& item)
 {
@@ -483,7 +481,7 @@ Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Tables
     return AddItemSetPiece(pieces, types, static_cast<std::size_t>(type), item.flags1c);
 }
 
-// Una pasada de 0x40e1b0 (0x40e1e6..0x40e3a1 y 0x40e4cf..0x40e6a1): con `requirements`, la segunda.
+// One pass of 0x40e1b0 (0x40e1e6..0x40e3a1 and 0x40e4cf..0x40e6a1): with `requirements`, the second.
 Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece& previous,
                                               const Kernel::OwnCharacterRecord& own,
                                               const Tables::ItemSetTypeTable& types, const OwnStatsContext& context,
@@ -515,7 +513,7 @@ Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece
     return {};
 }
 
-// 0x40e3b3..0x40e494: abre el registro, copia sus cuatro stats y lo cierra.
+// 0x40e3b3..0x40e494: opens the record, copies its four stats and closes it.
 OwnStatCopies ReadStatCopies(const Kernel::OwnCharacterRecord& own, const OwnStatsContext& context)
 {
     const Models::LogicalAccess access(context.ownRecordAccesses, context.random, Models::OwnRecordCloseRandoms);
@@ -541,7 +539,7 @@ Core::Expected<void, std::string> AddItemSetPiece(ItemSetPieces& pieces, const T
     {
         return {};
     }
-    // 0x40cfd2..0x40cfe3: el mismo conjunto o el primer lugar libre.
+    // 0x40cfd2..0x40cfe3: the same set or the first free place.
     const auto piece = std::ranges::find_if(pieces, [setId](const ItemSetPiece& listed)
                                             { return listed.setId == 0 || listed.setId == setId; });
     if (piece == pieces.end())
@@ -611,7 +609,7 @@ AddOwnBonusesToStatCopies(OwnStatCopies& copies, const Kernel::OwnCharacterRecor
         CopyAndSelector{&copies.energy, EnergySelector}, CopyAndSelector{&copies.vitality, VitalitySelector}};
     for (const CopyAndSelector& call : setOptions)
     {
-        // 0x40da20, el código de 0x40d690.
+        // 0x40da20, 0x40d690's code.
         auto added = AddItemSetOptionValues(context.itemSets->list, *call.copy, call.selector);
         if (!added.HasValue())
         {

@@ -19,10 +19,10 @@
 #include <utility>
 #include <vector>
 
-// Los daños del personaje propio de la ventana del personaje (CL8 hito 5; 06 § La ventana del personaje): el ataque
-// de 0x5b8b80, la magia de 0x5513d0 y el daño de la skill de 0x5516e0 (el tooltip de la skill), con sus accesos y
-// sus rand(). Los valores salen del ASM cotejado con el PE c32bbd5f; el registro, la lista de los sets y Skill.bmd son
-// inventados.
+// The own character's damages in the character window (CL8 milestone 5; 06 § La ventana del personaje): 0x5b8b80's
+// attack, 0x5513d0's magic and 0x5516e0's skill damage (the skill's tooltip), with their accesses and their rand()
+// calls. The values come from the ASM checked against the PE c32bbd5f; the record, the sets' list and Skill.bmd are
+// made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -49,7 +49,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// El registro con los dos pares del ataque y las manos vacías.
+// The record with the attack's two pairs and empty hands.
 OwnCharacterRecord Record()
 {
     OwnCharacterRecord own;
@@ -73,8 +73,8 @@ OwnAttackDamage Attack(const OwnCharacterRecord& own, CharacterClass heroClass, 
     return damage;
 }
 
-// 0x5b8cb2..0x5b8d32: sin nada en la derecha, el segundo par; con un arco de la primera franja, el primero; con la
-// izquierda de 0x800 a 0x806 y la derecha fuera de las franjas, el segundo. Cada llamada cierra el registro.
+// 0x5b8cb2..0x5b8d32: with nothing on the right, the second pair; with a bow of the first range, the first; with the
+// left from 0x800 to 0x806 and the right outside the ranges, the second. Each call closes the record.
 TEST(OwnDamageTest, TheHandsChooseThePairOfTheAttack)
 {
     OwnCharacterRecord own = Record();
@@ -98,8 +98,8 @@ TEST(OwnDamageTest, TheHandsChooseThePairOfTheAttack)
     EXPECT_EQ(damage.min, 100u);
 }
 
-// Las clases 1 y 3 con un arma en cada mano: el 55 % de cada par, sin signo y truncando, y el renglón en naranja. El
-// bit 0x02 de +0x3c suma 15 a los dos.
+// Classes 1 and 3 with a weapon in each hand: 55 % of each pair, unsigned and truncating, and the line in orange. Bit
+// 0x02 of +0x3c adds 15 to both.
 TEST(OwnDamageTest, TwoWeaponsTakeFiftyFivePercentOfEachPair)
 {
     OwnCharacterRecord own = Record();
@@ -114,8 +114,8 @@ TEST(OwnDamageTest, TwoWeaponsTakeFiftyFivePercentOfEachPair)
     EXPECT_EQ(damage.max, 150u * 55u / 100u + 45u * 55u / 100u + 15u);
 }
 
-// La clase 2 con las dos manos de 0x800 a 0x9ff: el 0x80f de la derecha o el 0x807 de la izquierda con nivel (el +4 &
-// 0x78 en 8 o más) prende el naranja, sin cambiar el daño.
+// Class 2 with both hands from 0x800 to 0x9ff: the right's 0x80f or the left's 0x807 with a level (+4 & 0x78 at 8 or
+// more) turns the orange on, without changing the damage.
 TEST(OwnDamageTest, TheElfLightsTheLineWithLeveledArrowsOrBolts)
 {
     OwnCharacterRecord own = Record();
@@ -135,8 +135,8 @@ TEST(OwnDamageTest, TheElfLightsTheLineWithLeveledArrowsOrBolts)
     EXPECT_TRUE(Attack(own, ElfClass).highlighted);
 }
 
-// El ítem del cursor ([0x7879f80]) toma el lugar de la mano de [0x78a6758] con [0x7879fbc] > 0 y la grilla del
-// inventario; con el registro ya abierto, el cierre no saca nada.
+// The cursor item ([0x7879f80]) takes the place of [0x78a6758]'s hand with [0x7879fbc] > 0 and the inventory grid;
+// with the record already open, the closing draws nothing.
 TEST(OwnDamageTest, TheCursorItemReplacesAHandAndANestedAccessSpendsNothing)
 {
     OwnCharacterRecord own = Record();
@@ -154,7 +154,7 @@ TEST(OwnDamageTest, TheCursorItemReplacesAHandAndANestedAccessSpendsNothing)
     EXPECT_EQ(random.State(), before.State());
 }
 
-// Skill.bmd inventado: la skill `skill` con sus bytes +0x21 y +0x30.
+// A made-up Skill.bmd: skill `skill` with its bytes +0x21 and +0x30.
 Client::Tables::SkillTable SkillsWith(std::uint8_t skill, std::uint8_t damage, std::uint8_t setSelector)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -166,9 +166,8 @@ Client::Tables::SkillTable SkillsWith(std::uint8_t skill, std::uint8_t damage, s
     return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
-// 0x5513d0: +0x5a + s y +0x5c + s + s / 2, más p, que junta la suma de 0x40d8c0 (32 bits) y la de 0x40d690 con el
-// selector 0x9f sobre sus 16 bits de abajo. Las marcas empiezan en 0, y la entrada de la skill saca 60 rand() al
-// cerrarse.
+// 0x5513d0: +0x5a + s and +0x5c + s + s / 2, plus p, which joins 0x40d8c0's sum (32 bits) and 0x40d690's with selector
+// 0x9f on its low 16 bits. The marks start at 0, and the skill's entry draws 60 rand() calls on closing.
 TEST(OwnDamageTest, TheMagicAddsTheSkillAndTheSetOptions)
 {
     OwnCharacterRecord own = Record();
@@ -191,7 +190,7 @@ TEST(OwnDamageTest, TheMagicAddsTheSkillAndTheSetOptions)
     const auto damage = MagicDamageOf(own, 5, &skills, depth, random, list);
 
     ASSERT_TRUE(damage.HasValue()) << damage.Error();
-    // p = 7 + 2 por 0x40d8c0 (la marca de la tercera se borró antes) y sus 16 bits de abajo más 70.000.
+    // p = 7 + 2 by 0x40d8c0 (the third's mark was cleared before) and its low 16 bits plus 70,000.
     const std::int32_t bonus = (7 + 2 + 70000) & 0xffff;
     EXPECT_EQ(damage.Value().min, 10 + 31 + bonus);
     EXPECT_EQ(damage.Value().max, 20 + 31 + 15 + bonus);
@@ -202,7 +201,7 @@ TEST(OwnDamageTest, TheMagicAddsTheSkillAndTheSetOptions)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Sin Skill.bmd o sin la skill, error antes de abrir la entrada; con más de 16 entradas en la lista, el de 0x40d8c0.
+// Without Skill.bmd or the skill, an error before opening the entry; with more than 16 entries in the list, 0x40d8c0's.
 TEST(OwnDamageTest, TheMagicStopsWithoutItsTables)
 {
     const OwnCharacterRecord own = Record();
@@ -224,8 +223,8 @@ TEST(OwnDamageTest, TheMagicStopsWithoutItsTables)
     EXPECT_EQ(depth, 0);
 }
 
-// 0x5516e0: la magia sin los dos words del registro, s y s + s / 2 más el mismo p. La entrada abierta por fuera no
-// saca nada al cerrarse.
+// 0x5516e0: the magic without the record's two words, s and s + s / 2 plus the same p. The entry opened outside draws
+// nothing on closing.
 TEST(OwnDamageTest, TheSkillDamageIsTheMagicWithoutTheRecord)
 {
     const auto skills = SkillsWith(9, 45, 3);
@@ -258,7 +257,7 @@ TEST(OwnDamageTest, TheSkillDamageIsTheMagicWithoutTheRecord)
     EXPECT_EQ(random.State(), before.State());
 }
 
-// Sin Skill.bmd, error antes de abrir; con más de 16 entradas en la lista, el de 0x40d8c0.
+// Without Skill.bmd, an error before opening; with more than 16 entries in the list, 0x40d8c0's.
 TEST(OwnDamageTest, TheSkillDamageStopsWithoutItsTables)
 {
     ItemSetOptionList list;

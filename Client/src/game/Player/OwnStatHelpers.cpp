@@ -24,9 +24,9 @@
 #include <string>
 #include <string_view>
 
-// 0x54efe0 (2.304 bytes), 0x54f9b0 (873), 0x54fd40 (193), 0x54fe10 (2.471), 0x5507e0 (425), 0x550990
-// (653), 0x550c30 (46) y 0x550c60 (63), con 0x54ee00 (187), 0x54e680, 0x54e6b0 y 0x54e6d0, cotejados con
-// el PE c32bbd5f: 06, "Los ocho helpers de los stats propios".
+// 0x54efe0 (2,304 bytes), 0x54f9b0 (873), 0x54fd40 (193), 0x54fe10 (2,471), 0x5507e0 (425), 0x550990 (653), 0x550c30
+// (46) and 0x550c60 (63), with 0x54ee00 (187), 0x54e680, 0x54e6b0 and 0x54e6d0, checked against the PE c32bbd5f: 06,
+// "Los ocho helpers de los stats propios".
 namespace Client::Player
 {
 OwnEquipmentOverride HeldItemOf(const Kernel::WorldRuntime& runtime)
@@ -46,8 +46,8 @@ using Tables::ItemTable;
 
 constexpr std::uint16_t EmptyItem = 0xffff;
 
-// Los lugares (06, "El equipo propio en el personaje"): las manos, las partes del cuerpo del 2 al 6 en el
-// orden de Kernel::BodyPart, las alas y la mascota. Del 9 al 11 no tienen nombre acreditado.
+// The places (06, "El equipo propio en el personaje"): the hands, the body parts from 2 to 6 in Kernel::BodyPart's
+// order, the wings and the pet. 9 to 11 have no credited name.
 constexpr std::size_t RightHandSlot = 0;
 constexpr std::size_t LeftHandSlot = 1;
 constexpr std::size_t HelmSlot = 2;
@@ -61,21 +61,21 @@ constexpr std::size_t Slot9 = 9;
 constexpr std::size_t Slot10 = 10;
 constexpr std::size_t Slot11 = 11;
 
-// El nivel de D+4, (D+4 >> 3) & 15, como en 0x54ee00 y 0x54f7f2.
+// D+4's level, (D+4 >> 3) & 15, as in 0x54ee00 and 0x54f7f2.
 constexpr int LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
 
-// El tipo de un ítem en Item.bmd: 16 secciones de 512 (ItemTable.h). El ASM compara con signo.
+// An item's type in Item.bmd: 16 sections of 512 (ItemTable.h). The ASM compares it signed.
 constexpr std::int16_t ItemType(int group, int index)
 {
     constexpr int ItemsPerGroup = 512;
     return static_cast<std::int16_t>(group * ItemsPerGroup + index);
 }
 
-// El byte del registro de Item.bmd que recibe 0x54ee00 (movsx del tipo, *[0x7758550] + tipo · 0x54).
+// Item.bmd's record byte that 0x54ee00 gets (movsx of the type, *[0x7758550] + type · 0x54).
 constexpr std::size_t BaseDurabilityOffset = 0x2d;
 
-// 0x54ee00 (0x54ee1c..0x54ee56) y sus constantes de .rdata.
+// 0x54ee00 (0x54ee1c..0x54ee56) and its .rdata constants.
 constexpr std::uint32_t CheapLevels = 4;
 constexpr std::int32_t CheapLevelStep = 1;
 constexpr std::int32_t LevelStep = 2;
@@ -93,7 +93,7 @@ constexpr float MiddleWearFactor = 0.3f; // 0x6b89dc
 constexpr float LowWearFactor = 0.2f;    // 0x6b8854
 constexpr float NoFactor = 0.0f;         // 0x6b86a0
 
-// Los selectores de 0x54e540 (suma los valores de las opciones) y de 0x54e590 (suma un porcentaje).
+// The selectors of 0x54e540 (adds the options' values) and of 0x54e590 (adds a percentage).
 constexpr std::uint32_t Options50 = 0x50;
 constexpr std::uint32_t Options51 = 0x51;
 constexpr std::uint32_t Options52 = 0x52;
@@ -108,7 +108,7 @@ constexpr std::uint32_t Options96 = 0x96;
 constexpr std::uint32_t SmallPercent = 2;
 constexpr std::uint32_t LargePercent = 10;
 
-// Los selectores de la lista de [0x6eed3c] (0x40d690, 0x40d730 y 0x40d7f0).
+// The selectors of [0x6eed3c]'s list (0x40d690, 0x40d730 and 0x40d7f0).
 constexpr std::uint32_t SetOptions91 = 0x91;
 constexpr std::uint32_t SetOptions92 = 0x92;
 constexpr std::uint32_t SetOptions93 = 0x93;
@@ -121,7 +121,7 @@ constexpr std::uint32_t SetOptionsA6 = 0xa6;
 constexpr std::uint32_t SetOptionsA7 = 0xa7;
 constexpr std::uint32_t SetOptionsA8 = 0xa8;
 
-// Un WORD del registro: los 16 bits de abajo, como los mov word y add word del original.
+// A record WORD: the low 16 bits, like the original's mov word and add word.
 std::uint16_t Low16(std::int64_t value)
 {
     return static_cast<std::uint16_t>(value);
@@ -152,16 +152,15 @@ bool WornWithDurability(const ItemState& item)
     return item.id != EmptyItem && item.durability != 0;
 }
 
-// El lugar `slot`, o el ítem de 0x7879f80 si lo reemplaza. Cada helper lo pide solo en los lugares de
-// su tabla de saltos.
+// Place `slot`, or 0x7879f80's item if it replaces it. Each helper asks for it only at the places of its jump table.
 const ItemState& SlotOrHeld(const Kernel::OwnCharacterRecord& own, const OwnEquipmentOverride& held, std::size_t slot)
 {
     const bool replaces = held.dword7879fbc > 0 && held.window78ab9b8Is78a9bb0 && held.slot78a6758 == slot;
     return replaces ? held.item7879f80 : own.equipment[slot];
 }
 
-// El byte +0x2d del registro de Item.bmd del tipo, leído con signo. Fuera de la tabla (−1, negativo, o
-// 8.192 o más) el original lee memoria que no es de ella, como en Q-C184.
+// Byte +0x2d of the type's Item.bmd record, read signed. Outside the table (−1, negative, or 8,192 or more) the
+// original reads memory that is not the table's, as in Q-C184.
 Core::Expected<std::uint8_t, std::string> BaseDurabilityOf(const ItemState& item, const ItemTable* items,
                                                            std::string_view where)
 {
@@ -180,28 +179,28 @@ Core::Expected<std::uint8_t, std::string> BaseDurabilityOf(const ItemState& item
     return std::to_integer<std::uint8_t>((*record)[BaseDurabilityOffset]);
 }
 
-// 0x54ee00 como la llaman las manos y los lugares 1 a 6, con D+0x1b y D+0x1c sin signo.
+// 0x54ee00 as the hands and places 1 to 6 call it, with D+0x1b and D+0x1c unsigned.
 float FactorOf(const ItemState& item, std::uint8_t baseDurability)
 {
     return ItemDurabilityFactor(item.durability, baseDurability, item.scalar1Low, item.flags1b, item.flags1c);
 }
 
-// Y como la llaman con las alas: 0 y 0 en lugar de D+0x1b y D+0x1c.
+// And as the wings call it: 0 and 0 instead of D+0x1b and D+0x1c.
 float WingsFactorOf(const ItemState& item, std::uint8_t baseDurability)
 {
     return ItemDurabilityFactor(item.durability, baseDurability, item.scalar1Low, 0, 0);
 }
 
-// value − _ftol(value · factor): el fild del WORD sin signo, el fmul por el float de 0x54ee00 y 0x69fd3c.
-// El producto, de 16 por 24 bits, es exacto en doble.
+// value − _ftol(value · factor): fild of the unsigned WORD, fmul by 0x54ee00's float and 0x69fd3c. The product, 16 by
+// 24 bits, is exact in double.
 std::uint16_t Reduced(std::uint16_t value, float factor)
 {
     const double product = static_cast<double>(value) * static_cast<double>(factor);
     return Low16(value - Math::FtolLow(product));
 }
 
-// 0x54e540 y 0x54e590 no leen nada de un ítem con el tipo −1; con más de nueve opciones leerían fuera de
-// las nueve de ItemState (como en AddCapeOfLordOptions). Error antes de la primera de esas lecturas.
+// 0x54e540 and 0x54e590 read nothing from an item of type −1; with more than nine options they would read past
+// ItemState's nine (as in AddCapeOfLordOptions). An error before the first of those reads.
 Core::Expected<void, std::string> CheckOptionCount(const ItemState& item, std::string_view where)
 {
     if (item.id == EmptyItem || item.optionCount <= Kernel::MaxItemOptions)
@@ -223,7 +222,7 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
     return static_cast<std::uint16_t>(std::to_integer<unsigned>(bytes[0]) | (std::to_integer<unsigned>(bytes[1]) << 8));
 }
 
-// 0x54e540 sobre un WORD del registro o un local. Precondición: CheckOptionCount.
+// 0x54e540 on a record WORD or a local. Precondition: CheckOptionCount.
 void AddOptions(std::uint16_t& word, std::uint32_t selector, const ItemState& item)
 {
     std::array<std::byte, 2> bytes = LittleEndianWord(word);
@@ -231,7 +230,7 @@ void AddOptions(std::uint16_t& word, std::uint32_t selector, const ItemState& it
     word = FromLittleEndian(bytes);
 }
 
-// 0x54e590. Precondición: CheckOptionCount.
+// 0x54e590. Precondition: CheckOptionCount.
 void ApplyOptionPercent(std::uint16_t& word, std::uint32_t selector, const ItemState& item, std::uint32_t factor)
 {
     std::array<std::byte, 2> bytes = LittleEndianWord(word);
@@ -240,8 +239,8 @@ void ApplyOptionPercent(std::uint16_t& word, std::uint32_t selector, const ItemS
     word = FromLittleEndian(bytes);
 }
 
-// Las cuatro llamadas de un ítem sobre un par de WORD, en el orden del ASM: 0x54e540 con `added` en los
-// dos y 0x54e590 con `percent` en los dos. Precondición: CheckOptionCount.
+// An item's four calls on a WORD pair, in the ASM's order: 0x54e540 with `added` on both and 0x54e590 with `percent`
+// on both. Precondition: CheckOptionCount.
 void AddOptionsToPair(std::uint16_t& first, std::uint16_t& second, const ItemState& item, std::uint32_t added,
                       std::uint32_t percent, std::uint32_t factor)
 {
@@ -266,15 +265,15 @@ struct WordPair
     std::uint16_t second = 0;
 };
 
-// Una llamada a 0x40d7f0: la base y el selector.
+// One call to 0x40d7f0: the base and the selector.
 struct PercentOfBase
 {
     std::uint16_t base = 0;
     std::uint32_t selector = 0;
 };
 
-// 0x54f09b..0x54f108: la rama de 0x54f28e, con los tipos con signo (jl/jge). En el Item.bmd del repo son
-// las ballestas en la mano derecha y los arcos en la izquierda, con durabilidad.
+// 0x54f09b..0x54f108: 0x54f28e's branch, with the types signed (jl/jge). In the repo's Item.bmd these are the
+// crossbows in the right hand and the bows in the left, with durability.
 bool TakesTheArcherBranch(const ItemState& right, const ItemState& left)
 {
     const std::int16_t rightType = SignedType(right);
@@ -286,8 +285,8 @@ bool TakesTheArcherBranch(const ItemState& right, const ItemState& left)
     return (rightRange && right.durability != 0) || (leftRange && left.durability != 0);
 }
 
-// 0x54f108..0x54f2f2: +0x50 y +0x52 por la clase (la tabla de saltos de 0x54f904) o por la rama de las
-// ballestas; +0x54 y +0x56 los copian en todas las ramas.
+// 0x54f108..0x54f2f2: +0x50 and +0x52 by class (0x54f904's jump table) or by the crossbows' branch; +0x54 and +0x56
+// copy them in every branch.
 WordPair BaseOfWords50And52(CharacterClass characterClass, int strength, int agility, int energy, bool archer)
 {
     if (archer)
@@ -309,8 +308,8 @@ WordPair BaseOfWords50And52(CharacterClass characterClass, int strength, int agi
     }
 }
 
-// 0x54f2f8..0x54f3c0: las alas, sin reemplazo, con el tipo y el +0x2d de Item.bmd distinto de 0 (no mira
-// la durabilidad): sus opciones 0x50, reducidas por 0x54ee00, a los cuatro.
+// 0x54f2f8..0x54f3c0: the wings, with no replacement, with the type and Item.bmd's +0x2d other than 0 (it does not
+// look at the durability): their 0x50 options, reduced by 0x54ee00, to the four.
 Core::Expected<void, std::string> AddWingsToWords50To56(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     const ItemState& wings = own.equipment[WingsSlot];
@@ -343,8 +342,7 @@ Core::Expected<void, std::string> AddWingsToWords50To56(Kernel::OwnCharacterReco
     return {};
 }
 
-// 0x54f3c3..0x54f477 y 0x54f4e9..0x54f59e: D+0xc y D+0xe de una mano, más sus opciones 0x50, reducidos
-// por 0x54ee00.
+// 0x54f3c3..0x54f477 and 0x54f4e9..0x54f59e: a hand's D+0xc and D+0xe, plus its 0x50 options, reduced by 0x54ee00.
 Core::Expected<WordPair, std::string> HandWords(const ItemState& hand, const ItemTable* items, std::string_view where)
 {
     const auto base = BaseDurabilityOf(hand, items, where);
@@ -363,8 +361,8 @@ Core::Expected<WordPair, std::string> HandWords(const ItemState& hand, const Ite
     return WordPair{Reduced(words.first, factor), Reduced(words.second, factor)};
 }
 
-// 0x54f3c3..0x54f4e6: la mano derecha va a +0x50 y +0x52, salvo con un tipo de 0xa00 a 0xc00 (con signo,
-// jl y jg), que va a +0x54 y +0x56; sus opciones 0x5d y 0x5e, siempre a +0x50 y +0x52.
+// 0x54f3c3..0x54f4e6: the right hand goes to +0x50 and +0x52, except with a type from 0xa00 to 0xc00 (signed, jl and
+// jg), which goes to +0x54 and +0x56; its 0x5d and 0x5e options, always to +0x50 and +0x52.
 Core::Expected<void, std::string> AddRightHandToWords50To56(Kernel::OwnCharacterRecord& own, const ItemState& right,
                                                             const ItemTable* items)
 {
@@ -385,7 +383,7 @@ Core::Expected<void, std::string> AddRightHandToWords50To56(Kernel::OwnCharacter
     return {};
 }
 
-// 0x54f4e9..0x54f5ec: la izquierda, a +0x54 y +0x56 (primero +0x56), con sus opciones.
+// 0x54f4e9..0x54f5ec: the left, to +0x54 and +0x56 (+0x56 first), with its options.
 Core::Expected<void, std::string> AddLeftHandToWords50To56(Kernel::OwnCharacterRecord& own, const ItemState& left,
                                                            const ItemTable* items)
 {
@@ -404,8 +402,8 @@ Core::Expected<void, std::string> AddLeftHandToWords50To56(Kernel::OwnCharacterR
     return {};
 }
 
-// 0x54f5ef..0x54f703: el lugar 9 (opciones 0x5d y 0x5e por 2 a los dos pares) y los 10 y 11 (0x5e por
-// 10 a los cuatro).
+// 0x54f5ef..0x54f703: place 9 (options 0x5d and 0x5e by 2 to both pairs) and places 10 and 11 (0x5e by 10 to the
+// four).
 Core::Expected<void, std::string> AddAccessoriesToWords50To56(Kernel::OwnCharacterRecord& own, const ItemState& slot9,
                                                               const ItemState& slot10, const ItemState& slot11)
 {
@@ -436,8 +434,8 @@ Core::Expected<void, std::string> AddAccessoriesToWords50To56(Kernel::OwnCharact
     return {};
 }
 
-// 0x54f706..0x54f7b3: 0x40d690 con 0x91 a +0x54 y +0x50, con 0x92 a +0x56 y +0x52, y 0x40d7f0 con la
-// agilidad (0xa5) y con la fuerza (0xa4) a los cuatro; cada uno sobre un local en 0.
+// 0x54f706..0x54f7b3: 0x40d690 with 0x91 to +0x54 and +0x50, with 0x92 to +0x56 and +0x52, and 0x40d7f0 with the
+// agility (0xa5) and with the strength (0xa4) to the four; each on a local at 0.
 Core::Expected<void, std::string> AddSetOptionsToWords50To56(Kernel::OwnCharacterRecord& own,
                                                              ItemSetOptionList* setOptions, std::uint16_t strength,
                                                              std::uint16_t agility)
@@ -475,8 +473,8 @@ Core::Expected<void, std::string> AddSetOptionsToWords50To56(Kernel::OwnCharacte
     return {};
 }
 
-// word + _ftol(word · (2 · nivel + 1) · 0.01f + 1.0f) (0x54f80a..0x54f8d6). Todo es exacto en doble: el
-// multiplicador tiene 5 por 24 bits, el producto 16 más y el 1 no pasa de 2^-30.
+// word + _ftol(word · (2 · level + 1) · 0.01f + 1.0f) (0x54f80a..0x54f8d6). All exact in double: the multiplier has 5
+// by 24 bits, the product 16 more and the 1 stays under 2^-30.
 std::uint16_t WithAmmunition(std::uint16_t word, std::uint32_t level)
 {
     constexpr float AmmunitionStep = 0.01f; // 0x6b88d4
@@ -485,8 +483,8 @@ std::uint16_t WithAmmunition(std::uint16_t word, std::uint32_t level)
     return Low16(word + Math::FtolLow(static_cast<double>(word) * multiplier + One));
 }
 
-// 0x54f7b0..0x54f8d6: con las dos manos de 0x800 a 0x9ff (con signo), Bolt de nivel en la izquierda
-// ajusta +0x50 y +0x52 y vuelve; si no, Arrow de nivel en la derecha ajusta +0x54 y +0x56.
+// 0x54f7b0..0x54f8d6: with both hands from 0x800 to 0x9ff (signed), a Bolt with a level on the left adjusts +0x50 and
+// +0x52 and returns; otherwise an Arrow with a level on the right adjusts +0x54 and +0x56.
 void AddAmmunition(Kernel::OwnCharacterRecord& own, const ItemState& right, const ItemState& left)
 {
     const auto inBowGroup = [](const ItemState& item)
@@ -510,8 +508,8 @@ void AddAmmunition(Kernel::OwnCharacterRecord& own, const ItemState& right, cons
 
 // ---- 0x54f9b0 ----
 
-// 0x54fa5e..0x54fb22: las alas, sin reemplazo, con el tipo (no mira la durabilidad ni el +0x2d): sus
-// opciones 0x51, reducidas, a +0x5a y +0x5c.
+// 0x54fa5e..0x54fb22: the wings, with no replacement, with the type (it does not look at the durability or +0x2d):
+// their 0x51 options, reduced, to +0x5a and +0x5c.
 Core::Expected<void, std::string> AddWingsToWords5aAnd5c(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     const ItemState& wings = own.equipment[WingsSlot];
@@ -537,8 +535,8 @@ Core::Expected<void, std::string> AddWingsToWords5aAnd5c(Kernel::OwnCharacterRec
     return {};
 }
 
-// 0x54fb28..0x54fc2a: la mano derecha suma sus opciones 0x51 (0x50 con 0x15, 0x17 y 0x1f, el 0 21, el 0
-// 23 y el 0 31), reducidas, y después 0x5f y 0x60 por 2.
+// 0x54fb28..0x54fc2a: the right hand adds its 0x51 options (0x50 with 0x15, 0x17 and 0x1f, the 0 21, the 0 23 and the
+// 0 31), reduced, and then 0x5f and 0x60 by 2.
 Core::Expected<void, std::string> AddRightHandToWords5aAnd5c(Kernel::OwnCharacterRecord& own, const ItemState& right,
                                                              const ItemTable* items)
 {
@@ -568,7 +566,7 @@ Core::Expected<void, std::string> AddRightHandToWords5aAnd5c(Kernel::OwnCharacte
     return {};
 }
 
-// 0x54fc30..0x54fccc: el lugar 9 (0x5f y 0x60 por 2) y los 10 y 11 (0x60 por 10).
+// 0x54fc30..0x54fccc: place 9 (0x5f and 0x60 by 2) and places 10 and 11 (0x60 by 10).
 Core::Expected<void, std::string> AddAccessoriesToWords5aAnd5c(Kernel::OwnCharacterRecord& own, const ItemState& slot9,
                                                                const ItemState& slot10, const ItemState& slot11)
 {
@@ -596,8 +594,8 @@ Core::Expected<void, std::string> AddAccessoriesToWords5aAnd5c(Kernel::OwnCharac
     return {};
 }
 
-// 0x54fccf..0x54fd0f: 0x40d690 suma a +0xef4 sin ponerlo en 0, que va a +0x5a y +0x5c; después +0xef4 en
-// 0, 0x40d7f0 con la energía, y otra vez a los dos. +0xef4 queda con lo de 0x40d7f0.
+// 0x54fccf..0x54fd0f: 0x40d690 adds to +0xef4 without zeroing it, which goes to +0x5a and +0x5c; then +0xef4 at 0,
+// 0x40d7f0 with the energy, and again to both. +0xef4 is left with 0x40d7f0's.
 Core::Expected<void, std::string> AddSetOptionsToWords5aAnd5c(Kernel::OwnCharacterRecord& own,
                                                               ItemSetOptionList* setOptions, std::uint16_t energy)
 {
@@ -623,7 +621,7 @@ Core::Expected<void, std::string> AddSetOptionsToWords5aAnd5c(Kernel::OwnCharact
 
 // ---- 0x54fe10 ----
 
-// 0x54fe1e..0x54fef8: los divisores de la agilidad (más +0x2c) para +0x4c y +0x58, por la clase.
+// 0x54fe1e..0x54fef8: the agility divisors (plus +0x2c) for +0x4c and +0x58, by class.
 WordPair BaseSpeeds(CharacterClass characterClass, int agility)
 {
     switch (characterClass)
@@ -646,14 +644,14 @@ void AddToSpeeds(Kernel::OwnCharacterRecord& own, std::int64_t value)
     AddTo(own.magicSpeed, value);
 }
 
-// 0x54ff78..0x54ffbf: un arma cuenta con el tipo de 0 a 0xbff (con signo), salvo Bolt y Arrow.
+// 0x54ff78..0x54ffbf: a weapon counts with a type from 0 to 0xbff (signed), except Bolt and Arrow.
 bool CountsForSpeed(const ItemState& hand)
 {
     const std::int16_t type = SignedType(hand);
     return type != ItemType(4, 7) && type != ItemType(4, 15) && type >= 0 && type < ItemType(6, 0);
 }
 
-// 0x55001a..0x550072: el D+0x17 de cada mano (0 sin durabilidad); con las dos que cuentan, el promedio.
+// 0x55001a..0x550072: each hand's D+0x17 (0 without durability); with both counting, the average.
 void AddWeaponSpeeds(Kernel::OwnCharacterRecord& own, const ItemState& right, const ItemState& left)
 {
     const int rightSpeed = right.durability > 0 ? right.byte17 : 0;
@@ -669,8 +667,8 @@ void AddWeaponSpeeds(Kernel::OwnCharacterRecord& own, const ItemState& right, co
     }
 }
 
-// 0x54ffd4..0x550016: Wizard's Ring (0x1a14, el 13 20) con durabilidad y (D+4 >> 3), con signo y sin la
-// máscara del nivel, en 0 o en 3.
+// 0x54ffd4..0x550016: Wizard's Ring (0x1a14, the 13 20) with durability and (D+4 >> 3), signed and without the level
+// mask, at 0 or 3.
 bool IsSpeedRing(const ItemState& ring)
 {
     constexpr std::int32_t PlainRing = 0;
@@ -683,10 +681,10 @@ bool IsSpeedRing(const ItemState& ring)
     return shifted == PlainRing || shifted == ThirdLevelRing;
 }
 
-// 0x550075..0x5506fb: con el anillo en el lugar 11 o, si no, en el 10, 10 más a las dos velocidades y el
-// bit 0x04 de +0x3c prendido; sin ninguno, y con el bit prendido, el bit apagado. Cada cambio del bit va
-// entre una apertura y un cierre del registro (en línea; el último cierre, con su propio bucle de rand()).
-// El bit se lee antes de abrir: con el registro cerrado el original leería el byte cifrado.
+// 0x550075..0x5506fb: with the ring in place 11 or, otherwise, in 10, 10 more to both speeds and bit 0x04 of +0x3c
+// set; with neither, and with the bit set, the bit cleared. Each change of the bit goes between an opening and a
+// closing of the record (inline; the last closing, with its own rand() loop). The bit is read before opening: with
+// the record closed the original would read the encrypted byte.
 void UpdateRingSpeeds(Kernel::OwnCharacterRecord& own, const ItemState& slot10, const ItemState& slot11,
                       std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
@@ -708,8 +706,7 @@ void UpdateRingSpeeds(Kernel::OwnCharacterRecord& own, const ItemState& slot10, 
     own.speedAdjustBits = static_cast<std::uint8_t>(own.speedAdjustBits & AllButRingBit);
 }
 
-// 0x55073b..0x5507ad: las opciones 0x61 de los lugares 0, 1, 9 y 8 del registro, sin reemplazo, a las
-// dos velocidades.
+// 0x55073b..0x5507ad: the 0x61 options of the record's places 0, 1, 9 and 8, with no replacement, to both speeds.
 Core::Expected<void, std::string> AddSpeedOptions(Kernel::OwnCharacterRecord& own)
 {
     for (const std::size_t slot : {RightHandSlot, LeftHandSlot, Slot9, PetSlot})
@@ -728,7 +725,7 @@ Core::Expected<void, std::string> AddSpeedOptions(Kernel::OwnCharacterRecord& ow
 
 // ---- 0x550990 ----
 
-// 0x5509b6..0x550a3d: el divisor de la agilidad (más +0x2c) para +0x62.
+// 0x5509b6..0x550a3d: the agility divisor (plus +0x2c) for +0x62.
 std::uint16_t BaseOfWord62(CharacterClass characterClass, int agility)
 {
     switch (characterClass)
@@ -746,8 +743,7 @@ std::uint16_t BaseOfWord62(CharacterClass characterClass, int agility)
     }
 }
 
-// 0x54e680: el D+0x12 de un ítem más sus opciones 0x53, o 0 con el tipo −1. Precondición:
-// CheckOptionCount.
+// 0x54e680: an item's D+0x12 plus its 0x53 options, or 0 with type −1. Precondition: CheckOptionCount.
 std::uint16_t Word12WithOptions(const ItemState& item)
 {
     if (item.id == EmptyItem)
@@ -759,9 +755,9 @@ std::uint16_t Word12WithOptions(const ItemState& item)
     return value;
 }
 
-// 0x550a40..0x550b1b: por cada lugar del 1 al 7 con durabilidad, 0x54e680 reducido por 0x54ee00 (las
-// alas, con 0 y 0), sumado en 32 bits; +0x62 suma los 16 de abajo. Con tipo −1 el aporte al WORD es 0:
-// 0x54e680 devuelve AX=0 y todos los factores que devuelve 0x54ee00 son finitos.
+// 0x550a40..0x550b1b: for each place from 1 to 7 with durability, 0x54e680 reduced by 0x54ee00 (the wings, with 0 and
+// 0), added in 32 bits; +0x62 adds the low 16. With type −1 the WORD's share is 0: 0x54e680 returns AX=0 and every
+// factor 0x54ee00 returns is finite.
 Core::Expected<void, std::string> AddSlotsToWord62(Kernel::OwnCharacterRecord& own, const ItemTable* items)
 {
     std::uint32_t sum = 0;
@@ -790,8 +786,8 @@ Core::Expected<void, std::string> AddSlotsToWord62(Kernel::OwnCharacterRecord& o
     return {};
 }
 
-// 0x550b1e..0x550b83: con [0x743a17c] distinto de 0, +0x62 suma _ftol(+0x62 · f), con f según
-// [0x743a178] (la tabla de saltos de 0x550c20): 0.05f, 0.1f, 0.15f o 0.2f del 10 al 13, y 0 si no.
+// 0x550b1e..0x550b83: with [0x743a17c] other than 0, +0x62 adds _ftol(+0x62 · f), with f by [0x743a178] (0x550c20's
+// jump table): 0.05f, 0.1f, 0.15f or 0.2f from 10 to 13, and 0 otherwise.
 void AddScanToWord62(Kernel::OwnCharacterRecord& own, const Actors::Scan505820& scan)
 {
     constexpr std::uint32_t FirstScanLevel = 10;
@@ -800,15 +796,15 @@ void AddScanToWord62(Kernel::OwnCharacterRecord& own, const Actors::Scan505820& 
     {
         return;
     }
-    // add eax, −10 y ja con 3: la resta envuelve y compara sin signo.
+    // add eax, −10 and ja with 3: the subtraction wraps and compares unsigned.
     const std::uint32_t index = std::bit_cast<std::uint32_t>(scan.dword743a178) - FirstScanLevel;
     const float factor = index < ScanFactors.size() ? ScanFactors[index] : NoFactor;
     const double product = static_cast<double>(own.word62) * static_cast<double>(factor);
     own.word62 = Low16(own.word62 + Math::FtolLow(product));
 }
 
-// 0x550b86..0x550be1: 0x40d690 con 0x96, 0x40d7f0 con la agilidad (0xa6) y con la vitalidad (0xa7) y, con
-// un tipo de 0xc00 a 0xdff (con signo) en el lugar 1, 0x40d730 con 0xa2.
+// 0x550b86..0x550be1: 0x40d690 with 0x96, 0x40d7f0 with the agility (0xa6) and with the vitality (0xa7) and, with a
+// type from 0xc00 to 0xdff (signed) in place 1, 0x40d730 with 0xa2.
 Core::Expected<void, std::string> AddSetOptionsToWord62(Kernel::OwnCharacterRecord& own, ItemSetOptionList* setOptions,
                                                         std::uint16_t agility, std::uint16_t vitality)
 {
@@ -835,7 +831,7 @@ Core::Expected<void, std::string> AddSetOptionsToWord62(Kernel::OwnCharacterReco
     return ApplyItemSetOptionPercent(*setOptions, own.word62, SetOptionsA2);
 }
 
-// 0x550be6..0x550c14: las opciones 0x96 del lugar 8 y, si es Cape of Lord (0x1a1e), las del 7.
+// 0x550be6..0x550c14: place 8's 0x96 options and, if it is Cape of Lord (0x1a1e), place 7's.
 Core::Expected<void, std::string> AddPetAndCapeToWord62(Kernel::OwnCharacterRecord& own)
 {
     const ItemState& pet = own.equipment[PetSlot];
@@ -867,7 +863,7 @@ float ItemDurabilityFactor(std::uint8_t durability, std::uint8_t baseDurability,
     {
         maximum += step < CheapLevels ? CheapLevelStep : LevelStep;
     }
-    // and 0x80000003 con el byte sin signo: el resto, de 0 a 3.
+    // and 0x80000003 with the unsigned byte: the remainder, 0 to 3.
     const std::uint32_t kind = flags1c % KindModulus;
     if (kind == FirstBonusKind || kind == SecondBonusKind)
     {
@@ -881,7 +877,7 @@ float ItemDurabilityFactor(std::uint8_t durability, std::uint8_t baseDurability,
     {
         return NoFactor;
     }
-    // fild, fidiv y fsubr de 1.0f: cada una redondea a 53 bits, como en doble.
+    // fild, fidiv and fsubr of 1.0f: each rounds to 53 bits, as in double.
     const double remaining = 1.0 - static_cast<double>(durability) / static_cast<double>(maximum);
     if (remaining > static_cast<double>(HighWearLimit))
     {
@@ -969,7 +965,7 @@ Core::Expected<void, std::string> UpdateOwnWord4e(Kernel::OwnCharacterRecord& ow
 {
     const int agility = Low16(own.word2c + own.agility);
     const int strength = Low16(own.word2a + own.strength);
-    // imul cx, cx, 5: el nivel por 5 en 16 bits, que igual se suma en 16.
+    // imul cx, cx, 5: the level times 5 in 16 bits, which is added in 16 anyway.
     const int levelTerm = own.level * 5;
     if (ClassOf(own) == CharacterClass::DarkLord)
     {
@@ -1076,14 +1072,14 @@ void UpdateOwnWord64(Kernel::OwnCharacterRecord& own)
         {
             continue;
         }
-        // 0x54e6b0: D+0x14, o 0 con el tipo −1.
+        // 0x54e6b0: D+0x14, or 0 with type −1.
         own.word64 = item.id == EmptyItem ? std::uint16_t{0} : item.word14;
     }
 }
 
 void UpdateOwnWord66(Kernel::OwnCharacterRecord& own)
 {
-    // 0x54e6d0: D+0x18, o 0 con el tipo −1.
+    // 0x54e6d0: D+0x18, or 0 with type −1.
     const auto word18Of = [](const ItemState& item) { return item.id == EmptyItem ? std::uint16_t{0} : item.word18; };
     const ItemState& boots = own.equipment[BootsSlot];
     if (boots.durability != 0)

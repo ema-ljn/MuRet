@@ -17,13 +17,13 @@
 #include <span>
 #include <string>
 
-// 0x5b8b80 (1.328 bytes), 0x5513d0 (783) y 0x5516e0 (769), cotejados con el PE c32bbd5f: 06, "La ventana del
-// personaje" y "El cuerpo de la skill".
+// 0x5b8b80 (1,328 bytes), 0x5513d0 (783) and 0x5516e0 (769), checked against the PE c32bbd5f: 06, "La ventana del
+// personaje" and "El cuerpo de la skill".
 namespace Client::Player
 {
 namespace
 {
-// El tipo de un ítem como lo lee el original: un short con signo.
+// An item's type as the original reads it: a signed short.
 std::int32_t TypeOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int16_t>(item.id);
@@ -34,8 +34,8 @@ bool InRange(std::int32_t type, std::int32_t first, std::int32_t last)
     return type >= first && type <= last;
 }
 
-// 0x5b8cb2..0x5b8d12: con la derecha de una de esas tres franjas, el primer par; si no, el segundo con la izquierda
-// de las suyas, la derecha vacía o de 0xa00 a 0xbff.
+// 0x5b8cb2..0x5b8d12: with the right hand in one of those three ranges, the first pair; otherwise the second, with the
+// left in its own, the right empty or from 0xa00 to 0xbff.
 bool UsesSecondPair(std::int32_t right, std::int32_t left)
 {
     if (InRange(right, 0x808, 0x80e) || right == 0x810 || InRange(right, 0x812, 0x9ff))
@@ -44,26 +44,26 @@ bool UsesSecondPair(std::int32_t right, std::int32_t left)
            InRange(right, 0xa00, 0xbff);
 }
 
-// El nivel de una flecha o de un virote, (+4 & 0x78) en 8 o más.
+// An arrow's or a bolt's level, (+4 & 0x78) at 8 or more.
 bool HasLevel(const Kernel::ItemState& item)
 {
     return (item.scalar1Low & 0x78u) >= 8u;
 }
 
-// imul por 0x37 y div por 100, sin signo.
+// imul by 0x37 and div by 100, unsigned.
 std::uint32_t FiftyFivePercent(std::uint16_t value)
 {
     return static_cast<std::uint32_t>(value) * 55u / 100u;
 }
 
-// Skill.bmd: el byte del daño y el de los conjuntos (0x40d8c0) de una entrada.
+// Skill.bmd: an entry's damage byte and its sets byte (0x40d8c0).
 constexpr std::size_t DamageByte = 0x21;
 constexpr std::size_t SetOptionByte = 0x30;
-// 0x40d690 con el selector de la magia.
+// 0x40d690 with the magic's selector.
 constexpr std::uint32_t MagicSetSelector = 0x9f;
 
-// 0x551496 y 0x551791..0x5517c3: las 16 marcas de +0x937c en 0, con cuatro dwords, y el p de 32 bits, en 0, con lo que
-// suma 0x40d8c0 por el byte +0x30 de la skill y, en sus 16 bits de abajo (add word ptr), 0x40d690 con 0x9f.
+// 0x551496 and 0x551791..0x5517c3: the 16 marks of +0x937c at 0, with four dwords, and the 32-bit p, at 0, with what
+// 0x40d8c0 adds for the skill's byte +0x30 and, in its low 16 bits (add word ptr), 0x40d690 with 0x9f.
 Core::Expected<std::int32_t, std::string> SetBonusOf(std::span<const std::byte, Tables::SkillRecordSize> record,
                                                      ItemSetOptionList& setOptions)
 {
@@ -84,7 +84,7 @@ OwnAttackDamage AttackDamageOf(const Kernel::OwnCharacterRecord& own, Kernel::Ch
                                const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-    // 0x5b8c45..0x5b8cad: el ítem del cursor en lugar de una mano.
+    // 0x5b8c45..0x5b8cad: the cursor item in place of a hand.
     const Kernel::ItemState* rightItem = &own.equipment[0];
     const Kernel::ItemState* leftItem = &own.equipment[1];
     if (held.dword7879fbc > 0 && held.window78ab9b8Is78a9bb0)
@@ -161,7 +161,7 @@ Core::Expected<OwnSkillDamage, std::string> SkillDamageOf(std::uint8_t skill, co
     if (!record)
         return Core::Unexpected(std::format("0x5516e0: Skill.bmd no tiene la skill {}", skill));
     const Models::LogicalAccess access(skillDepth, random, static_cast<std::uint16_t>(Tables::SkillRecordSize));
-    // 0x551761..0x55178a: s y s + s / 2, con la división de C (cdq, sub, sar).
+    // 0x551761..0x55178a: s and s + s / 2, with C's division (cdq, sub, sar).
     const auto base = static_cast<std::int32_t>(std::to_integer<std::uint8_t>((*record)[DamageByte]));
     OwnSkillDamage damage{.min = base, .max = (base >> 1) + base};
     const auto bonus = SetBonusOf(*record, setOptions);

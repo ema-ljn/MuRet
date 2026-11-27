@@ -21,50 +21,50 @@
 #include <span>
 #include <string>
 
-// 0x550d10, cotejado con el PE c32bbd5f (1.698 bytes), con 0x54ef00 (31) y 0x40dc50 (66): 06, "Los
-// stats del registro propio". 0x40e1b0 y 0x40da20 están en Scenes/OwnItemSets.cpp.
+// 0x550d10, checked against the PE c32bbd5f (1,698 bytes), with 0x54ef00 (31) and 0x40dc50 (66): 06, "Los stats del
+// registro propio". 0x40e1b0 and 0x40da20 are in Player/OwnItemSets.cpp.
 namespace Client::Player
 {
 namespace
 {
-// El byte del registro de Item.bmd que devuelve 0x40dc50 (0x40dc88).
+// Item.bmd's record byte that 0x40dc50 returns (0x40dc88).
 constexpr std::size_t ItemStatKindOffset = 0x44;
 // (D+0x1c >> 2) & 3 (0x40dc58..0x40dc6e).
 constexpr int ItemStatValueShift = 2;
 constexpr int ItemStatValueMask = 3;
-// lea eax, [eax + eax·4] antes de cada suma (0x550d82).
+// lea eax, [eax + eax·4] before each sum (0x550d82).
 constexpr int ItemStatValueFactor = 5;
-// Los tipos de 0x40dc50 que suman, por la tabla de saltos de 0x5513b4, con el WORD de cada uno.
+// The 0x40dc50 types that add, by 0x5513b4's jump table, with each one's WORD.
 constexpr std::uint8_t KindOfWord2a = 1;
 constexpr std::uint8_t KindOfWord2c = 2;
 constexpr std::uint8_t KindOfWord30 = 3;
 constexpr std::uint8_t KindOfWord2e = 4;
 
-// Los selectores de 0x40da20 para cada WORD (0x550db3..0x550e12): la fuerza, la agilidad, la energía, la
-// vitalidad y +0x36.
+// 0x40da20's selectors for each WORD (0x550db3..0x550e12): the strength, the agility, the energy, the vitality and
+// +0x36.
 constexpr std::uint32_t SetOptionSelectorOfWord2a = 0x8c;
 constexpr std::uint32_t SetOptionSelectorOfWord2c = 0x8d;
 constexpr std::uint32_t SetOptionSelectorOfWord30 = 0x8e;
 constexpr std::uint32_t SetOptionSelectorOfWord2e = 0x8f;
 constexpr std::uint32_t SetOptionSelectorOfWord36 = 0x90;
 
-// El lugar de las alas, [0x7681eb4] + 0xd64 = +0xb6c + 7 · 0x48, y el tipo que mira (0x550e2a).
+// The wings' place, [0x7681eb4] + 0xd64 = +0xb6c + 7 · 0x48, and the type it looks at (0x550e2a).
 constexpr std::size_t WingsSlot = 7;
 constexpr std::uint16_t CapeOfLordId = 0x1a1e;
-// El selector de 0x54e540 en 0x55104b.
+// 0x54e540's selector at 0x55104b.
 constexpr std::uint32_t Word36OptionSelector = 0x90;
 
-// Los dos topes de la cola (0x55130e) y el módulo de sus dos sorteos.
+// The tail's two caps (0x55130e) and the modulus of its two draws.
 constexpr std::uint16_t TailCap = 100;
 constexpr int TailPercent = 100;
 
-// Un WORD del registro: los 16 bits de abajo, como los `mov word` y `add word` del original.
+// A record WORD: the low 16 bits, like the original's `mov word` and `add word`.
 std::uint16_t Low16(int value)
 {
     return static_cast<std::uint16_t>(value);
 }
 
-// El WORD que suma el tipo `kind` (0x550d7f..0x550da9), o nullptr si ese tipo no suma.
+// The WORD that type `kind` adds to (0x550d7f..0x550da9), or nullptr if that type does not add.
 std::uint16_t* BonusWord(Kernel::OwnCharacterRecord& own, std::uint8_t kind)
 {
     switch (kind)
@@ -92,8 +92,8 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
     return static_cast<std::uint16_t>(std::to_integer<unsigned>(bytes[0]) | (std::to_integer<unsigned>(bytes[1]) << 8));
 }
 
-// 0x551287..0x5512ba, los ocho helpers en su orden (thiscall sobre el registro, sin argumentos), y la
-// cola 0x5512bf..0x5513b1.
+// 0x551287..0x5512ba, the eight helpers in their order (thiscall on the record, no arguments), and the tail
+// 0x5512bf..0x5513b1.
 Core::Expected<void, std::string> RunOwnStatHelpersAndTail(Kernel::OwnCharacterRecord& own,
                                                            const OwnStatsContext& context)
 {
@@ -205,7 +205,7 @@ std::uint16_t ItemStatBonusValueOf(const Kernel::ItemState& item)
 Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const Kernel::ItemState& item,
                                                            const Tables::ItemTable& items)
 {
-    // El valor se escribe antes de leer la tabla (0x40dc6e); el tipo, con signo (movsx, 0x40dc77).
+    // The value is written before the table is read (0x40dc6e); the type, signed (movsx, 0x40dc77).
     const std::uint16_t value = ItemStatBonusValueOf(item);
     const auto type = static_cast<std::int16_t>(item.id);
     const std::optional<std::span<const std::byte, Tables::ItemRecordSize>> record =
@@ -222,8 +222,8 @@ Core::Expected<void, std::string> AddOwnItemStatBonuses(Kernel::OwnCharacterReco
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
         const Kernel::ItemState& item = own.equipment[slot];
-        // 0x550d72..0x550da9: para valor 0, los 256 selectores producen los mismos WORD.
-        // No se inventa el byte anterior a Item.bmd ni se borran los datos residuales del lugar.
+        // 0x550d72..0x550da9: for value 0, the 256 selectors produce the same WORDs. The byte before Item.bmd is not
+        // invented and the place's leftover data is not erased.
         if (item.durability == 0 || (item.id == Kernel::EmptyOwnItemId && ItemStatBonusValueOf(item) == 0))
         {
             continue;
@@ -272,7 +272,7 @@ Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(Kernel::OwnCharacter
 {
     own.wordef8 = Low16(own.wordef0 - own.wordee6);
     own.wordefa = Low16(own.wordef2 - own.wordee6);
-    // 0x5512eb..0x551306: los dos WORD sin signo, el rand() y el IDIV de 32 bits con signo.
+    // 0x5512eb..0x551306: the two unsigned WORDs, the rand() and the signed 32-bit IDIV.
     const int minimum = own.wordee2;
     const int draw = random.Next();
     const int divisor = own.wordee4 - minimum + 1;
@@ -285,7 +285,7 @@ Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(Kernel::OwnCharacter
     own.wordefc = Low16(draw % divisor + minimum - own.word62);
     own.wordefe = Low16(own.word4e - own.wordeec);
     own.wordf00 = Low16(own.word60 - own.wordeea);
-    // cmp y jbe: los topes, sin signo (0x551337 y 0x55134a).
+    // cmp and jbe: the caps, unsigned (0x551337 and 0x55134a).
     if (own.wordefe > TailCap)
     {
         own.wordefe = TailCap;
@@ -294,7 +294,7 @@ Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(Kernel::OwnCharacter
     {
         own.wordf00 = TailCap;
     }
-    // jge con signo contra el WORD sin signo (0x55136d y 0x551392).
+    // Signed jge against the unsigned WORD (0x55136d and 0x551392).
     own.bytef02 = static_cast<std::uint8_t>(random.Next() % TailPercent < own.wordefe);
     own.bytef03 = static_cast<std::uint8_t>(random.Next() % TailPercent < own.wordf00);
     return {};

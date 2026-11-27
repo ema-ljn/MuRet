@@ -33,7 +33,7 @@
 #include <string>
 #include <string_view>
 
-// El picking de los personajes del juego (0x59e700) y lo que 0x59ec80 hace con él. Los mundos van en el heap.
+// The picking of the game's characters (0x59e700) and what 0x59ec80 does with it. The worlds go on the heap.
 namespace
 {
 using Client::Actors::PickTheCharacter;
@@ -47,8 +47,8 @@ constexpr std::uint8_t Monsters = 0x22;
 constexpr std::uint8_t Npcs = 4;
 constexpr std::int32_t NoPick = -1;
 
-// Un segmento horizontal a lo largo de X, en Y 1.000 y a 60 de altura: toca la caja de quien esté en Y 1.000 (de −60 a
-// 40 alrededor de la posición, Q-C100).
+// A horizontal segment along X, at Y 1,000 and at height 60: it touches the box of whoever is at Y 1,000 (from −60 to
+// 40 around the position, Q-C100).
 const TerrainPickingSegment Ray{.origin = {0.0f, 1000.0f, 60.0f}, .end = {20000.0f, 1000.0f, 60.0f}};
 
 void Place(WorldState& world, std::size_t slot, float x, std::uint8_t kind)
@@ -60,7 +60,7 @@ void Place(WorldState& world, std::size_t slot, float x, std::uint8_t kind)
     actor.byte42c = 1;
     actor.byte88 = kind;
     actor.position = {x, 1000.0f, 0.0f};
-    // La caja que 0x511290 le pone al 0x20a (0x512270 y 0x5122d4).
+    // The box 0x511290 gives 0x20a (0x512270 and 0x5122d4).
     actor.boundsMin = {-60.0f, -60.0f, 0.0f};
     actor.boundsMaxX = 40.0f;
     actor.boundsMaxY = 40.0f;
@@ -79,7 +79,7 @@ struct Picking
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
 };
 
-// 0x59e737..0x59e7f6: los de la máscara, vivos, a la vista y con alpha se tiñen por +0x1d6 y por el PK.
+// 0x59e737..0x59e7f6: those of the mask, alive, in view and with alpha are tinted by +0x1d6 and by the PK.
 TEST(CharacterPickingTest, TheMaskedOnesAreTintedByLevelAndPk)
 {
     Picking tested;
@@ -135,8 +135,8 @@ TEST(CharacterPickingTest, EligibleTintingSetsThePersistentEffectFlag)
     EXPECT_EQ(world.Actors()[0].light, glm::vec3(0.2f));
 }
 
-// 0x59e7fc..0x59ea95: el más cercano a la cámara cuya caja toca el segmento; sin el héroe publicado, el que se muere,
-// el escondido (+0x7c & 0x10000000), el de +0x42c en 0 ni el de otra máscara.
+// 0x59e7fc..0x59ea95: the one nearest the camera whose box touches the segment; never the published hero, the dying
+// one, the hidden one (+0x7c & 0x10000000), the one with +0x42c at 0 or one of another mask.
 TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
 {
     Picking tested;
@@ -150,7 +150,7 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     Place(world, 5, 1100.0f, Players);
     world.Actors()[5].byte42c = 0;
     Place(world, 6, 1200.0f, Monsters & 2);
-    // Fuera del segmento: en Y 2.000.
+    // Off the segment: at Y 2,000.
     Place(world, 7, 600.0f, Players);
     world.Actors()[7].position.y = 2000.0f;
     Client::Actors::PublishPickingBox(
@@ -159,7 +159,7 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
     EXPECT_EQ(PickTheCharacter(world, Monsters, Ray.origin, Ray), 6);
     EXPECT_EQ(PickTheCharacter(world, Npcs, Ray.origin, Ray), NoPick);
-    // Empatados, gana el primero.
+    // On a tie, the first one wins.
     Place(world, 8, 2000.0f, Players);
     EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
 }
@@ -201,8 +201,8 @@ TEST(CharacterPickingTest, UnorderedDistanceComparisonAcceptsTheLaterCandidate)
     EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
 }
 
-// La caja de cada tipo (CL9 hito 2): a 150 de altura, el segmento pasa por arriba del 0x20a (techo 120) y toca la del
-// 0x18e (0x51236f, de (−90, −50, 0) a (90, 50, 200)), aunque esté más lejos.
+// Each type's box: at height 150, the segment passes above 0x20a (top 120) and touches that of 0x18e (0x51236f, from
+// (−90, −50, 0) to (90, 50, 200)), even though it is farther.
 TEST(CharacterPickingTest, TheBoxComesFromTheConstructedType)
 {
     Picking tested;
@@ -245,8 +245,8 @@ TEST(CharacterPickingTest, PickingUsesTheLastPublishedBoxAfterTheActorMoves)
     EXPECT_EQ(PickTheCharacter(world, Players, shortRay.origin, shortRay), 1);
 }
 
-// 0x59e9ec..0x59ea6d: en Lorencia la capa 4 y en Devias la 3 cuentan solo con la capa de la celda del héroe; en los
-// demás mapas, cualquiera.
+// 0x59e9ec..0x59ea6d: in Lorencia layer 4 and in Devias layer 3 count only with the layer of the hero's cell; on the
+// other maps, any.
 TEST(CharacterPickingTest, TheUpperFloorsCountOnlyOnTheHerosLayer)
 {
     struct Case
@@ -264,19 +264,19 @@ TEST(CharacterPickingTest, TheUpperFloorsCountOnlyOnTheHerosLayer)
         mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
         Place(world, 1, 1250.0f, Players);
         Place(world, 2, 3000.0f, Players);
-        // La celda (12, 10) del primero.
+        // The first one's cell (12, 10).
         mapping->layer1[Client::Data::Terrain::CellIndex(12, 10)] = tried.upper;
         EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 2);
         world.Runtime().heroCellLayer = tried.upper;
         EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
-        // En otro mapa la capa no cuenta.
+        // On another map the layer does not count.
         world.Runtime().heroCellLayer = 0;
         world.Runtime().map = 1;
         EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 1);
     }
 }
 
-// 0x59ec80 con el segmento del dibujo.
+// 0x59ec80 with the draw's segment.
 struct Frame
 {
     Frame()
@@ -306,7 +306,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Un nombre inventado en los bytes de un personaje o de un lugar de la party.
+// A made-up name in the bytes of a character or of a party slot.
 void Name(std::span<std::byte> name, std::string_view text)
 {
     std::ranges::fill(name, std::byte{0});
@@ -314,7 +314,7 @@ void Name(std::span<std::byte> name, std::string_view text)
         name[at] = static_cast<std::byte>(text[at]);
 }
 
-// La party de 0x77f3cd0 con estos nombres, cada uno con +0x1c en `index`.
+// The party at 0x77f3cd0 with these names, each with +0x1c at `index`.
 void Party(WorldState& world, std::initializer_list<std::string_view> names, std::int32_t index)
 {
     Client::Scenes::PartyState& party = world.Runtime().social.party;
@@ -335,9 +335,9 @@ std::array<std::int32_t, 4> Indices(const WorldState& world)
     return {slots[0].actorIndex, slots[1].actorIndex, slots[2].actorIndex, slots[3].actorIndex};
 }
 
-// 0x59e86a..0x59e948 y 0x59ea9b..0x59eb66: cada jugador (+0x88 en 1) que pasa las primeras condiciones busca su lugar
-// en −2 de la party, aun sin segmento, con su +0x78; el héroe también. Al final, el héroe que no se ve queda en −3 y
-// los demás sin personaje en −1, con +0x20 en 0.
+// 0x59e86a..0x59e948 and 0x59ea9b..0x59eb66: each player (+0x88 at 1) that passes the first conditions looks for its
+// party slot at −2, even without a segment, with its +0x78; the hero too. At the end, an unseen hero is left at −3 and
+// the others without a character at −1, with +0x20 at 0.
 TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
 {
     for (const std::int32_t map : {0, 2})
@@ -358,12 +358,12 @@ TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
         const auto& slots = world.Runtime().social.party.slots;
         EXPECT_EQ(slots[0].actorFlags, 0x48U);
         EXPECT_EQ(slots[2].actorFlags, 0U);
-        // Lo encontrado se queda: solo se busca en −2.
+        // What was found stays: only −2 is searched.
         Name(world.Actors()[3].name, "Otro");
         EXPECT_EQ(PickTheCharacter(world, Players, Ray.origin, Ray), 3);
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
 
-        // El héroe que no se ve.
+        // The unseen hero.
         Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
         world.Actors()[0].seen = false;
         static_cast<void>(PickTheCharacter(world, Players, Ray.origin, Ray));
@@ -372,9 +372,9 @@ TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
     }
 }
 
-// 0x59e680 (y el lazo en línea de 0x5926ca): strncmp(lugar, nombre, max(largo, 1)) en los lugares hasta 0x78aba48. El
-// lugar que empieza con el nombre cuenta; con el nombre vacío, solo el lugar vacío; sin party o con la cuenta negativa,
-// nadie. No toca +0x1c ni +0x20.
+// 0x59e680 (and the inline loop of 0x5926ca): strncmp(slot, name, max(length, 1)) on the slots up to 0x78aba48. A slot
+// that starts with the name counts; with an empty name, only the empty slot; without a party or with a negative count,
+// nobody. It does not touch +0x1c or +0x20.
 TEST(CharacterPickingTest, IsInThePartyComparesTheNameAsAPrefix)
 {
     for (const std::int32_t map : {0, 2})
@@ -393,7 +393,7 @@ TEST(CharacterPickingTest, IsInThePartyComparesTheNameAsAPrefix)
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-2, -2, 0, 0}));
         Party(world, {"Tejon", "Brezal"}, -2);
         EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
-        // El tercer lugar vacío no cuenta con la cuenta en 2.
+        // The third, empty slot does not count with the count at 2.
         Name(actor.name, "");
         EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
         world.Runtime().hud.partyCount = 3;
@@ -403,7 +403,7 @@ TEST(CharacterPickingTest, IsInThePartyComparesTheNameAsAPrefix)
     }
 }
 
-// 0x59ef2f → 0x59e3b0: con el mouse en la UI solo busca a la party, entre los de tipo 0x20a.
+// 0x59ef2f → 0x59e3b0: with the mouse over the UI it only looks for the party, among those of type 0x20a.
 TEST(CharacterPickingTest, OverTheUiOnlyThePartyIsLookedFor)
 {
     Frame tested;
@@ -423,8 +423,9 @@ TEST(CharacterPickingTest, OverTheUiOnlyThePartyIsLookedFor)
     EXPECT_EQ(tested.random.State(), CrtRandom().State());
 }
 
-// 0x59ef46..0x59ef5f: con Alt, el ítem del piso que toca el rayo salta a 0x59f52a, que busca a la party (0x59e3b0)
-// antes de 0x59f52f, sin buscar personajes; sin ítem, los personajes (0x59e700, que también miran la party).
+// 0x59ef46..0x59ef5f: with Alt, a floor item the ray touches jumps to 0x59f52a, which looks for the party (0x59e3b0)
+// before 0x59f52f, without looking for characters; without an item, the characters (0x59e700, which also look at the
+// party).
 TEST(CharacterPickingTest, AltOverAFloorItemAlsoLooksForTheParty)
 {
     for (const bool withItem : {true, false})
@@ -466,9 +467,9 @@ TEST(CharacterPickingTest, AltOverAFloorItemAlsoLooksForTheParty)
     }
 }
 
-// 0x5e4140: con la party cerrada, la lista de la derecha (640 − 50, de a 19 desde 5). Con la skill 0x1a, el Elf abre el
-// registro propio por cada miembro con personaje y elige al del renglón del mouse; después 0x59e3b0 los vuelve a
-// buscar. Un miembro en −1 ocupa su renglón y uno en −3, no. El Dark Knight no abre nada.
+// 0x5e4140: with the party window closed, the list on the right (640 − 50, every 19 from 5). With skill 0x1a, the Elf
+// opens the own record for each member with a character and picks the one on the mouse's row; then 0x59e3b0 looks for
+// them again. A member at −1 takes its row and one at −3 does not. The Dark Knight opens nothing.
 TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
 {
     for (const std::int32_t map : {0, 2})
@@ -484,7 +485,7 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
         Place(world, 3, 2000.0f, Players);
         world.Actors()[3].type = 0x20a;
         world.Actors()[3].position.y = 5000.0f;
-        // La caja que lee el picking es la que publicó el último dibujo (+0x13c..+0x168): la del lugar nuevo.
+        // The box the picking reads is the one the last draw published (+0x13c..+0x168): the new slot's.
         Client::Actors::PublishPickingBox(
             world.Actors()[3], world.Actors()[3].position, world.Actors()[3].boundsMin,
             {world.Actors()[3].boundsMaxX, world.Actors()[3].boundsMaxY, world.Actors()[3].boundsTop});
@@ -494,7 +495,7 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
         slots[0].actorIndex = -3;
         slots[1].actorIndex = 0;
         slots[3].actorIndex = 3;
-        // Tejon en [5, 24], Zorzal en [24, 43] y Brezal en [43, 62].
+        // Tejon at [5, 24], Zorzal at [24, 43] and Brezal at [43, 62].
         tested.mouse = {.x = 587, .y = 62};
         const CrtRandom expected = Advanced(tested.random, 3 * Client::Models::OwnRecordCloseRandoms);
         ASSERT_TRUE(tested.Pick().HasValue());
@@ -502,13 +503,13 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
         EXPECT_EQ(tested.random.State(), expected.State());
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-1, 0, -1, 3}));
 
-        // Fuera de la lista (x + 50 cuenta, x + 51 no), busca como siempre: sin nadie en el segmento.
+        // Outside the list (x + 50 counts, x + 51 does not), it looks as always: nobody on the segment.
         tested.mouse = {.x = 641, .y = 62};
         world.Runtime().selectedTargets = {-1, -1, -1, -1, -1};
         ASSERT_TRUE(tested.Pick().HasValue());
         EXPECT_EQ(world.Runtime().selectedTargets[2], -1);
 
-        // El Dark Knight no abre el registro ni elige desde la lista.
+        // The Dark Knight does not open the record or pick from the list.
         world.Actors()[0].characterClass = 1;
         Party(world, {"Mirlo", "Tejon", "Zorzal", "Brezal"}, 3);
         tested.mouse = {.x = 600, .y = 10};
@@ -519,8 +520,8 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
     }
 }
 
-// 0x59efb9..0x59f509: el Dark Wizard abre el registro propio por su skill (los 3.848 rand() del cierre) y elige al
-// jugador de la máscara 1 en 0x6c8e30. Sin elegido de antes, 0x59ef07 ya dejó 0x6c8e38 en −1.
+// 0x59efb9..0x59f509: the Dark Wizard opens the own record for its skill (the 3,848 rand() of the close) and picks the
+// player of mask 1 at 0x6c8e30. With nobody picked before, 0x59ef07 already left 0x6c8e38 at −1.
 TEST(CharacterPickingTest, TheWizardPicksAPlayerAndDrawsTheOwnRecord)
 {
     Frame tested;
@@ -533,7 +534,7 @@ TEST(CharacterPickingTest, TheWizardPicksAPlayerAndDrawsTheOwnRecord)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-// 0x59efda..0x59f489: con la skill 0x1a a 0x1c el Elf busca primero a los jugadores; sin ella, a los monstruos.
+// 0x59efda..0x59f489: with skills 0x1a to 0x1c the Elf looks for the players first; without them, the monsters.
 TEST(CharacterPickingTest, TheSkillOfTheElfPutsThePlayersFirst)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x1a}, std::uint8_t{0x1c}, std::uint8_t{0x1d}})
@@ -550,7 +551,7 @@ TEST(CharacterPickingTest, TheSkillOfTheElfPutsThePlayersFirst)
     }
 }
 
-// 0x59ef46..0x59efb4: con Alt, primero los de la máscara 4 (0x6c8e2c) y, sin ninguno, los de 0x22 y 1.
+// 0x59ef46..0x59efb4: with Alt, first those of mask 4 (0x6c8e2c) and, with none, those of 0x22 and 1.
 TEST(CharacterPickingTest, AltLooksForTheNpcsFirst)
 {
     Frame tested;
@@ -566,7 +567,7 @@ TEST(CharacterPickingTest, AltLooksForTheNpcsFirst)
     EXPECT_EQ(tested.random.State(), CrtRandom().State());
 }
 
-// 0x59ee4b..0x59ef10: el monstruo elegido sigue con el ataque automático y sin botones; con un botón, se suelta.
+// 0x59ee4b..0x59ef10: the chosen monster stays with the automatic attack and no buttons; with a button, it is released.
 TEST(CharacterPickingTest, TheChosenMonsterStaysWithoutButtons)
 {
     Frame tested;

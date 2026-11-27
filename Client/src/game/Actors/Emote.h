@@ -16,31 +16,31 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// El emote de un personaje (CL9 hito 1; 06 § El chat, "El emote"): 0x576a60 y lo que hace cada caso de 0x576eb0 con
-// lo que encontró UI::FindTheEmote. Ninguna de las dos saca rand(), y un C1 no lo saca. *Estático*.
+// A character's emote (06 § El chat, "El emote"): 0x576a60 and what each case of 0x576eb0 does with what
+// UI::FindTheEmote found. Neither draws a rand(), and a C1 does not either. *Static*.
 namespace Client::Actors
 {
 
 struct EmoteContext
 {
-    // [0x743a170], el héroe: la dirección de todos los C1 18 sale de su ángulo (+0x24), sea cual sea el personaje.
+    // [0x743a170], the hero: the direction of every C1 18 comes from its angle (+0x24), whatever the character.
     Kernel::ActorState& hero;
-    // Los modelos: 0x4ea030 mira las acciones del modelo del tipo del personaje (+2; 0x5769ad8 + tipo · 0xe0, su +0x26,
-    // en 0x4ea036..0x4ea054), Player.bmd con un jugador y otro con un transformado (0x45).
+    // The models: 0x4ea030 looks at the actions of the model of the character's type (+2; 0x5769ad8 + type · 0xe0,
+    // its +0x26, in 0x4ea036..0x4ea054), Player.bmd with a player and another with a transformed one (0x45).
     const Models::IModelLibrary& models;
     ActionSender send;
 };
 
-// 0x576a60(personaje, personaje, animación, acción): con la acción de ahora del personaje (+0x111) de 1 a 12 o en 0x8a
-// (las de parado de 0x4f2250, antes de las de caminar, 0x0d..0x21), pone la animación con 0x4ea030 (con un elfo,
-// +0x1d4 & 7 == 2, la siguiente, salvo de 0xb7 a 0xc0) y manda el C1 18 de la acción; si no, nada. Devuelve si actuó.
-// Los que la llaman (0x576eb0 y la guerra de gremios: 0x4d8260 y 0x4d8870, hito 8) pasan dos veces el mismo
-// personaje, el de la clase y el de la acción; MuRet lo recibe una vez.
+// 0x576a60(character, character, animation, action): with the character's current action (+0x111) from 1 to 12 or
+// at 0x8a (the standing ones of 0x4f2250, before the walking ones, 0x0d..0x21), sets the animation with 0x4ea030
+// (with an elf, +0x1d4 & 7 == 2, the next one, except from 0xb7 to 0xc0) and sends the action's C1 18; otherwise,
+// nothing. Returns whether it acted. Its callers (0x576eb0 and the guild war: 0x4d8260 and 0x4d8870) pass the same
+// character twice, the class's and the action's; MuRet receives it once.
 [[nodiscard]] Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
                                                              const EmoteContext& context);
 
-// Un caso de 0x576eb0 (0x57ca85 y los demás): 0x576a60 con el héroe y después, haya actuado o no, su propio C1 18 con
-// la acción del caso. Con el héroe parado salen dos C1 18 iguales (Q-C776); caminando, pegando o en otra acción, solo
-// el del caso, y el héroe no se anima.
+// A case of 0x576eb0 (0x57ca85 and the others): 0x576a60 with the hero and then, whether it acted or not, its own
+// C1 18 with the case's action. With the hero standing two equal C1 18 go out (Q-C776); walking, striking or in
+// another action, only the case's, and the hero is not animated.
 [[nodiscard]] Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteContext& context);
 } // namespace Client::Actors

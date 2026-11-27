@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <span>
 
-// Las banderas de estado de un personaje (+0x78 y +0x7c) que bajan las skills, y los efectos y joints que se van con
-// ellas (CL9 hito 4). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las skills que llegan".
+// A character's state flags (+0x78 and +0x7c) that skills lower, and the effects and joints that go away with them.
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "Las skills que llegan".
 namespace Client::World
 {
 class ModelEffects;
@@ -23,20 +23,21 @@ struct JointState;
 namespace Client::Actors
 {
 
-// 0x518ac0(tipo, dueño, subtipo): apaga los efectos de modelo vivos de ese tipo (MOVSX del +2), de ese dueño (+0x108)
-// y de ese subtipo (+4; −1, cualquiera), en los 200. Devuelve si apagó alguno. Sin rand(). El dueño de MuRet es el
-// ownerContext del efecto (*inferido*, Q-C1200: los efectos con dueño personaje lo guardan ahí).
+// 0x518ac0(type, owner, subtype): turns off the live model effects of that type (MOVSX of +2), that owner (+0x108)
+// and that subtype (+4; −1, any), among the 200. Returns whether it turned any off. No rand(). MuRet's owner is the
+// effect's ownerContext (*inferred*, Q-C1200: effects owned by a character keep it there).
 bool KillModelEffectsOf(World::ModelEffects& effects, std::int16_t type, const void* owner, std::int32_t subtype);
 
-// 0x534f90(tipo, dueño, subtipo): lo mismo en los 500 joints (tipo en +4, dueño en +0x54 y subtipo en +0xc), sin
-// devolver nada. Sin rand().
+// 0x534f90(type, owner, subtype): the same among the 500 joints (type at +4, owner at +0x54 and subtype at +0xc),
+// returning nothing. No rand().
 void KillJointsOf(std::span<Scenes::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype);
 
-// 0x4e6910(máscara, personaje): baja la bandera de +0x78 (o de +0x7c) si está y, según cuál, apaga los efectos y los
-// joints que la acompañan (0x518ac0 y 0x534f90), en `world`. Con otra máscara, nada. Ver la tabla de 06.
+// 0x4e6910(mask, character): lowers the flag of +0x78 (or of +0x7c) if it is set and, depending on which, turns off
+// the effects and joints that go with it (0x518ac0 and 0x534f90), in `world`. With another mask, nothing. See the
+// table in 06.
 void RemoveActorFlag(std::uint32_t mask, Kernel::ActorState& actor, Kernel::WorldState& world);
 
-// 0x439d40: en un personaje que no es un 0x20a, con 0x100 en +0x78 lo baja y pone +0x110 en 0x21; si no, con 8, lo
-// baja y pone 0x22.
+// 0x439d40: on a character that is not a 0x20a, with 0x100 in +0x78 it lowers it and sets +0x110 to 0x21; otherwise,
+// with 8, it lowers it and sets 0x22.
 void SettleMonsterFlags(Kernel::ActorState& actor);
 } // namespace Client::Actors

@@ -69,8 +69,8 @@
 #include <utility>
 #include <vector>
 
-// Los paquetes del viewport sobre el mundo (CL9 hito 1): el 0x12, el 0x14, el 0x45, el 0x25 y el 0xDF, armados con los
-// structs del ASM (support/ViewportPackets.h), en Lorencia (0) y Devias (2). Los nombres son inventados.
+// The viewport's packets on the world: the 0x12, the 0x14, the 0x45, the 0x25 and the 0xDF, built with the ASM's
+// structs (support/ViewportPackets.h), in Lorencia (0) and Devias (2). The names are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -82,18 +82,18 @@ using Client::Tests::ViewportPlayerRecord;
 
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t HeroKey = 33;
-// 0x511290 desde cero: las dos escrituras de la celda, sus cuatro lecturas y la del contador, 4 rand() cada una.
+// 0x511290 from zero: the two writes of the cell, its four reads and the counter's, 4 rand() each.
 constexpr int ConstructionDraws = 28;
-// Dos accesos a la celda protegida (+0x41c y +0x420).
+// Two accesses to the protected cell (+0x41c and +0x420).
 constexpr int CellDraws = 8;
 constexpr int FreshRecordDraws = ConstructionDraws + CellDraws + CellDraws;
 
-// El mundo del juego, en el heap: WorldState pesa unos 350 KB.
+// The game's world, on the heap: WorldState is about 350 KB.
 struct Game
 {
     Game()
     {
-        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        // 0x612d90 and 0x612270 upload the textures of the models they load through the table the game binds.
         world.FaunaResources().TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
@@ -115,19 +115,20 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
-    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
-    // El Data\ del laboratorio, para los Monster*.bmd que mira el alta de 0x5141e0; vacío fuera de los tests con datos.
+    // The lab's Data folder, for the Monster*.bmd that the creation of 0x5141e0 looks at; empty outside the tests with
+    // data.
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    // Item.bmd sin nada marcado, para 0x54efe0 desde 0x512a30.
+    // Item.bmd with nothing marked, for 0x54efe0 from 0x512a30.
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
-    // Sin ningún conjunto: 0x40e1b0 (desde 0x512a30) recorre el equipo y no aplica nada.
+    // Without any set: 0x40e1b0 (from 0x512a30) walks the equipment and applies nothing.
     Client::Tables::ItemSetTables sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
@@ -166,7 +167,7 @@ protected:
         game->dataRoot = m_dataRoot;
     }
 
-    // La primera celda, desde (100, 100), con las cuatro de su derecha libres: sin paredes ni zona segura.
+    // The first cell, from (100, 100), with the four to its right free: no walls and no safe zone.
     [[nodiscard]] Cell FreeRow() const
     {
         const auto& cells = game->world.Map().terrain.attributes->cells;
@@ -193,8 +194,8 @@ protected:
     std::unique_ptr<Game> game;
 };
 
-// 0x4c8f4b..0x4c905c: recién llegado, al centro de su celda, con el efecto 0x61f y el alpha en 0; el blanco del
-// registro no cuenta. La cola guarda el paquete entero antes de los registros.
+// 0x4c8f4b..0x4c905c: just arrived, at the center of its cell, with effect 0x61f and the alpha at 0; the record's
+// target does not count. The queue stores the whole packet before the records.
 TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -243,12 +244,12 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
         EXPECT_EQ(effect.ownerContext, &actor);
         EXPECT_EQ(effect.disturbanceState, 0xffffu);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
-        // La copia del dispatcher (0x4e372e) la hace la sesión antes del lector; 0x4c8860 copia solo con el estado 1.
+        // The session makes the dispatcher's copy (0x4e372e) before the reader; 0x4c8860 copies only with state 1.
         EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
     }
 }
 
-// 0x4c907c..0x4c91a3: el que ya estaba camina hasta +0x26/+0x27 desde su celda, leída la Y antes que la X.
+// 0x4c907c..0x4c91a3: one already there walks to +0x26/+0x27 from its cell, with the Y read before the X.
 TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -281,9 +282,9 @@ TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
     }
 }
 
-// 0x4e670f..0x4e67a1 (CL9 hito 4; en el hito 1 cortaban): 0x400 y 0x10 apagan el 0x5ac/2 y /1 del que entra y crean
-// otro con él de dueño, sin rand() y sin mirar si ya tenía el bit; después prenden el bit y siguen (el 0x80, aquí). Con
-// la tabla llena, ninguno y sigue.
+// 0x4e670f..0x4e67a1: 0x400 and 0x10 turn off the entering player's 0x5ac/2 and /1 and create another with it as owner,
+// without rand() and without looking at whether it already had the bit; then they set the bit and go on (the 0x80,
+// here). With the table full, none, and it goes on.
 TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
 {
     using Client::World::GuardFlareSubtype;
@@ -291,10 +292,10 @@ TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
     struct Case
     {
         std::uint32_t flags;
-        // Los subtipos de los lugares 0 y 1 de la tabla al final (−1, muerto); el 0 empieza con un /2 viejo del que
-        // entra.
+        // The subtypes of slots 0 and 1 of the table at the end (−1, dead); slot 0 starts with an old /2 of the
+        // entering player.
         std::array<std::int32_t, 2> subtypes;
-        // Si el del lugar 0 es el nuevo (el viejo se apagó y el alta tomó su lugar).
+        // Whether slot 0's is the new one (the old one went off and the creation took its slot).
         bool renewed;
     };
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -307,7 +308,7 @@ TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
             Load(map);
             const Cell cell = FreeRow();
             auto& effects = game->world.Map().effects;
-            // El que entra va al lugar 1 de los personajes.
+            // The entering player goes to the characters' slot 1.
             ASSERT_TRUE(effects.CreateSkillFlare({}, {}, {}, GuardFlareSubtype, &Actor(1)).has_value());
             const std::array<ViewportPlayerRecord, 1> records{{{.key = 0x0458,
                                                                 .x = cell.x,
@@ -334,7 +335,7 @@ TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
                 EXPECT_EQ(effect.ownerContext, &actor);
                 EXPECT_EQ(effect.life, 1000);
                 const bool fresh = slot > 0 || test.renewed;
-                // El nuevo, donde lo dejó 0x511290 (el registro viejo no lo mueve); el viejo, en el origen.
+                // The new one, where 0x511290 left it (the old record does not move it); the old one, at the origin.
                 EXPECT_EQ(effect.transform.position == actor.position, fresh);
             }
             EXPECT_FALSE(live[2].alive);
@@ -365,8 +366,7 @@ TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFo
     }
 }
 
-// 0x4c88d2 (0x576960 con "webzen", distinguiendo mayúsculas): el registro no hace nada, pero el paquete ya está en la
-// cola.
+// 0x4c88d2 (0x576960 with "webzen", case-sensitive): the record does nothing, but the packet is already in the queue.
 TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
 {
     Load(0);
@@ -385,9 +385,9 @@ TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * FreshRecordDraws).State());
 }
 
-// 0x4c88e2..0x4c89ed, 0x4c8a43..0x4c8ad4 y 0x4c9229..0x4c9246: el estado 1 conserva lo del que estaba (de +0x1f2 solo
-// el byte de abajo, Q-C800), arranca el teletransporte (0x53d930, con el registro propio abierto y cerrado), guarda el
-// paquete otra vez (Q-C801) y al final pisa +0x360 y +0x78 con lo de antes.
+// 0x4c88e2..0x4c89ed, 0x4c8a43..0x4c8ad4 and 0x4c9229..0x4c9246: state 1 keeps what the one already there had (of
+// +0x1f2 only the low byte, Q-C800), starts the teleport (0x53d930, with the own record opened and closed), stores the
+// packet again (Q-C801) and at the end overwrites +0x360 and +0x78 with the earlier values.
 TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
 {
     Load(0);
@@ -421,7 +421,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     EXPECT_EQ(actor.byte369, 1);
     EXPECT_EQ(actor.byte370, 2);
     EXPECT_EQ(actor.byte372, 3);
-    // 0x5139f0 lo dejó en 0 y 0x4e6380 prendió el bit 1: los pisa lo de antes.
+    // 0x5139f0 left it at 0 and 0x4e6380 set bit 1: the earlier values overwrite them.
     EXPECT_EQ(actor.byte360, 5);
     EXPECT_EQ(actor.flags78, 8u);
     EXPECT_EQ(actor.animation.action, 0x93);
@@ -437,7 +437,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     EXPECT_TRUE(effects[1].hasOwner);
     EXPECT_EQ(effects[1].ownerContext, &actor);
     EXPECT_EQ(effects[1].disturbanceState, 0xffffu);
-    // 0x4c8a43..0x4c8ad4: el estado 1 copia el paquete entero (Q-C801), además de la copia del dispatcher.
+    // 0x4c8a43..0x4c8ad4: state 1 copies the whole packet (Q-C801), besides the dispatcher's copy.
     const auto& ring = game->world.Runtime().viewportPackets;
     EXPECT_EQ(ring.count, 1);
     EXPECT_EQ(ring.sizes[0], 5 + 0x2c);
@@ -446,7 +446,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
               AfterDraws(Seed, FreshRecordDraws + Client::Models::OwnRecordCloseRandoms).State());
 }
 
-// 0x4c8a36: los estados 2 a 4 con su acción, y la del elfo (la clase & 7 en 2).
+// 0x4c8a36: states 2 to 4 with their action, and the elf's (class & 7 at 2).
 TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
 {
     struct Case
@@ -479,9 +479,9 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
     }
 }
 
-// 0x4c91aa..0x4c91e1: en Kalima (24 a 29 y 36), 0x530860(0x610, posición, posición, ángulos, 8, jugador, 20, −1, 0, 0,
-// −1) con el jugador de dueño, sin rand(): nace en su posición con z = 300 y sus ángulos, vida 100, 20 puntos, ancho
-// 20, mezcla 4. Después sigue: el equipo y el nombre. En Lorencia y Devias, ningún joint.
+// 0x4c91aa..0x4c91e1: in Kalima (24 to 29 and 36), 0x530860(0x610, position, position, angles, 8, player, 20, −1, 0, 0,
+// −1) with the player as owner, without rand(): it is born at its position with z = 300 and its angles, life 100, 20
+// points, width 20, blend 4. Then it goes on: the equipment and the name. In Lorencia and Devias, no joint.
 TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
 {
     for (const std::int32_t map : {0, 2, 24, 29, 36})
@@ -526,7 +526,8 @@ TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
     }
 }
 
-// 0x53801e..0x538055: el paso del 610/8 lee del jugador el byte vivo y la posición (con z = 300); muerto, se apaga.
+// 0x53801e..0x538055: the step of the 0x610/8 reads the live byte and the position (with z = 300) from the player;
+// dead, it goes off.
 TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
 {
     Load(0);
@@ -547,7 +548,8 @@ TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
     EXPECT_FALSE(joints[0].alive);
 }
 
-// Con los 500 joints vivos, 0x530860 no crea nada y el 0x12 sigue: el equipo y el nombre, sin rand() de más.
+// With the 500 joints alive, 0x530860 creates nothing and the 0x12 goes on: the equipment and the name, without extra
+// rand().
 TEST_F(ViewportPlayersTest, InKalimaWithTheJointsFullThePlayerStillEnters)
 {
     Load(0);
@@ -569,7 +571,7 @@ TEST_F(ViewportPlayersTest, InKalimaWithTheJointsFullThePlayerStillEnters)
         EXPECT_EQ(joint.type, 0x617);
 }
 
-// 0x4c8968 → 0x512870: con los 400 vivos, el alta da el 400 y el registro escribe en ese, el 401 del pool.
+// 0x4c8968 → 0x512870: with the 400 alive, the creation gives 400 and the record writes on it, the pool's 401st.
 TEST_F(ViewportPlayersTest, AFullPoolWritesTheNoneRecord)
 {
     Load(0);
@@ -591,7 +593,7 @@ TEST_F(ViewportPlayersTest, AFullPoolWritesTheNoneRecord)
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws + CellDraws).State());
 }
 
-// 0x4e3736..0x4e377e: con diez guardados, el undécimo corre las ranuras 1..9 a 0..8 y entra en la 9.
+// 0x4e3736..0x4e377e: with ten stored, the eleventh shifts slots 1..9 to 0..8 and goes into 9.
 TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
 {
     Client::Actors::ViewportPacketRing ring;
@@ -605,13 +607,13 @@ TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
     EXPECT_EQ(std::to_integer<int>(ring.slots[0][5]), 1);
     EXPECT_EQ(std::to_integer<int>(ring.slots[8][5]), 9);
     EXPECT_EQ(std::to_integer<int>(ring.slots[9][5]), 10);
-    // Uno de más de 0x100 no entra, pero corre las ranuras igual.
+    // One over 0x100 does not go in, but shifts the slots anyway.
     const std::array<std::byte, 0x101> large{};
     Client::Actors::StoreViewportPacket(ring, large);
     EXPECT_EQ(ring.count, 9);
     EXPECT_EQ(std::to_integer<int>(ring.slots[0][5]), 2);
     EXPECT_EQ(std::to_integer<int>(ring.slots[8][5]), 10);
-    // El de 0x100 justo entra (JG): la cola vuelve a diez.
+    // One of exactly 0x100 goes in (JG): the queue is back to ten.
     std::array<std::byte, 0x100> full{};
     full.back() = std::byte{0xbb};
     Client::Actors::StoreViewportPacket(ring, full);
@@ -620,7 +622,7 @@ TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
     EXPECT_EQ(ring.slots[9].back(), std::byte{0xbb});
 }
 
-// 0x4e3778..0x4e377e: con lugar, uno de más de 0x100 no corre nada ni toca lo guardado.
+// 0x4e3778..0x4e377e: with room, one over 0x100 shifts nothing and does not touch what is stored.
 TEST(ViewportPacketRingTest, AnOversizedPacketDoesNotEraseAShorterRing)
 {
     Client::Actors::ViewportPacketRing ring;
@@ -633,8 +635,8 @@ TEST(ViewportPacketRingTest, AnOversizedPacketDoesNotEraseAShorterRing)
     EXPECT_EQ(ring.slots[0][2], std::byte{0x1c});
 }
 
-// 0x4ca780: la clave entera 0x13d apaga +4..+6 de la info del asedio, cualquier otra +0x1f..+0x21 (Q-C802); la baja va
-// sin el bit 15 y apaga los ayudantes del que se va.
+// 0x4ca780: the full key 0x13d clears +4..+6 of the siege information, any other +0x1f..+0x21 (Q-C802); the removal
+// goes without bit 15 and turns off the helpers of the one leaving.
 TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
 {
     const auto game = std::make_unique<Game>();
@@ -664,7 +666,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     EXPECT_EQ((*info)[0x21], 0);
     EXPECT_EQ((*info)[0x22], 0xff);
     EXPECT_TRUE(world.Actors()[0].alive);
-    // Sin la info del asedio, solo la baja.
+    // Without the siege information, only the removal.
     info.reset();
     world.Actors()[5].alive = true;
     world.Actors()[5].key = 0x0007;
@@ -672,9 +674,9 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     EXPECT_FALSE(world.Actors()[5].alive);
 }
 
-// 0x4c92a0: "webzen" no hace nada; el otro da el alta de 0x5141e0 con su tipo (el 3: Monster10.bmd y el modelo 0x15b)
-// y FinishTheTransformed le pone la clase del héroe leída antes. Los rand(): los 28 del alta, las dos celdas y el
-// camino.
+// 0x4c92a0: "webzen" does nothing; the other gets the creation of 0x5141e0 with its type (3: Monster10.bmd and model
+// 0x15b) and FinishTheTransformed gives it the hero's class read before. The rand(): the creation's 28, the two cells
+// and the path.
 TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
 {
     Load(0);
@@ -709,7 +711,7 @@ TEST_F(ViewportPlayersTest, TheTransformedIsCreatedByItsType)
     EXPECT_EQ(actor.angles.z, 90.0f);
 }
 
-// 0x4c934c: el tipo 68 pide Monster50.bmd, que el Data del laboratorio no trae: el original cierra (P-C173).
+// 0x4c934c: type 68 asks for Monster50.bmd, which the lab's Data does not have: the original closes (P-C173).
 TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
 {
     Load(0);
@@ -722,10 +724,10 @@ TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
     EXPECT_FALSE(Actor(1).alive);
 }
 
-// 0x4c9356..0x4c975d sobre el personaje que dio el alta (que la hito 2 porta): con +0x376 en 7, la escala en 0,8; la
-// clase del héroe, el PK, +0x88 y +0x3e3; el camino con la Y leída antes que la X, el nombre y el héroe vestido otra
-// vez. El recién llegado no camina: con la posición y el alpha puestos, el círculo 0xec (0x4c965c) y el rayo 0x5d5/2
-// (0x4c9674) con él de dueño, sin rand(), y después el nombre.
+// 0x4c9356..0x4c975d on the character the creation gave: with +0x376 at 7, the scale at 0.8; the hero's class, the PK,
+// +0x88 and +0x3e3; the path with the Y read before the X, the name and the hero dressed again. One just arrived does
+// not walk: with the position and the alpha set, circle 0xec (0x4c965c) and ray 0x5d5/2 (0x4c9674) with it as owner,
+// without rand(), and then the name.
 TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItArrives)
 {
     Load(0);
@@ -782,8 +784,8 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     CrtRandom expected = before;
     for (int draw = 0; draw < CellDraws + CellDraws; ++draw)
         static_cast<void>(expected.Next());
-    // El círculo y el rayo no sacan rand(): después de las celdas sólo quedan los de 0x512a30 sobre el héroe publicado,
-    // que se repiten desde ahí.
+    // The circle and the ray draw no rand(): after the cells only those of 0x512a30 on the published hero are left,
+    // which repeat from there.
     const CrtRandom arrivedRandom = game->cloth.random;
     game->cloth.random = expected;
     const auto resources = game->Resources();
@@ -791,7 +793,8 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     EXPECT_EQ(arrivedRandom.State(), game->cloth.random.State());
 }
 
-// 0x4e68e1..0x4e68fd: el héroe recibe Text[1828] cada vez, aunque ya tenga la bandera; OR corre después del aviso.
+// 0x4e68e1..0x4e68fd: the hero gets Text[1828] every time, even if it already has the flag; the OR runs after the
+// notice.
 TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication)
 {
     Load(0);
@@ -849,7 +852,7 @@ TEST_F(ViewportPlayersTest, AMissingBlessingTextKeepsThePrefixAndLeavesTheFinalF
     EXPECT_TRUE(game->world.Runtime().chat.log.entries.empty());
 }
 
-// Un Text[1828] vacío sigue pasando por 0x555190: envejece el registro y añade una fila al área vieja.
+// An empty Text[1828] still goes through 0x555190: it ages the log and adds a row to the old area.
 TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheLogAge)
 {
     Load(0);
@@ -876,7 +879,7 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     EXPECT_EQ(chat.area.clock, Client::UI::MessageClockSteps);
 }
 
-// El 0x25 y el 0xDF sobre un jugador que ya está.
+// The 0x25 and the 0xDF on a player already there.
 class ShownEquipmentTest : public ::testing::Test
 {
 protected:
@@ -906,17 +909,18 @@ protected:
     std::unique_ptr<Game> game = std::make_unique<Game>();
 };
 
-// 0x4c83ec..0x4c842c: la derecha con el modelo, el nivel (0x513340 del nibble; de 8 a 15, 0) y el excelente.
+// 0x4c83ec..0x4c842c: the right hand with the model, the level (0x513340 of the nibble; from 8 to 15, 0) and the
+// excellent bits.
 TEST_F(ShownEquipmentTest, TheRightHandTakesTheModelLevelAndExcellent)
 {
-    // El tipo 0x103: el byte 0 y el bit 0x80 del byte 3; el lugar 0 y el nivel 3 en el byte 1.
+    // Type 0x103: byte 0 and bit 0x80 of byte 3; slot 0 and level 3 in byte 1.
     ASSERT_TRUE(Show(OtherKey, {0x03, 0x03, 0, 0x85, 0x07, 0, 0}).HasValue());
     EXPECT_EQ(Other().hands[0].model, 0x103 + 0x212);
     EXPECT_EQ(Other().hands[0].level, Client::Kernel::ItemLevelOf(3));
     EXPECT_EQ(Other().hands[0].flags1b, 5);
     ASSERT_TRUE(Show(OtherKey, {0x03, 0x09, 0, 0, 0, 0, 0}).HasValue());
     EXPECT_EQ(Other().hands[0].level, 0);
-    // Vacía (0x1fff): el modelo en 0xffff y el excelente en 0; el nivel queda.
+    // Empty (0x1fff): the model at 0xffff and the excellent bits at 0; the level stays.
     Other().hands[0].level = 4;
     ASSERT_TRUE(Show(OtherKey, {0xff, 0x00, 0, 0x80, 0, 0xf0, 0}).HasValue());
     EXPECT_EQ(Other().hands[0].model, Client::Kernel::NoItemModel);
@@ -925,7 +929,7 @@ TEST_F(ShownEquipmentTest, TheRightHandTakesTheModelLevelAndExcellent)
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x4c8431..0x4c8457: vaciar la izquierda suelta el cuervo del héroe publicado, no el de este (Q-C803).
+// 0x4c8431..0x4c8457: emptying the left hand releases the published hero's raven, not this character's (Q-C803).
 TEST_F(ShownEquipmentTest, EmptyingTheLeftHandReleasesThePublishedHerosRaven)
 {
     Hero().darkSpirit.emplace();
@@ -936,10 +940,10 @@ TEST_F(ShownEquipmentTest, EmptyingTheLeftHandReleasesThePublishedHerosRaven)
     EXPECT_TRUE(Other().darkSpirit.has_value());
 }
 
-// 0x4c848b..0x4c8667: el cuerpo con el set; vacío, la parte de la clase.
+// 0x4c848b..0x4c8667: the body with the set; empty, the class's part.
 TEST_F(ShownEquipmentTest, TheBodyTakesTheSetOrTheClassPart)
 {
-    // La armadura (lugar 3) del tipo 0x1005: el byte 5 con 8 arriba.
+    // The armor (slot 3) of type 0x1005: byte 5 with 8 on top.
     ASSERT_TRUE(Show(OtherKey, {0x05, 0x31, 0, 0x02, 0x05, 0x80, 0}).HasValue());
     EXPECT_EQ(Other().body[1].model, 0x1005 + 0x212);
     EXPECT_EQ(Other().body[1].level, Client::Kernel::ItemLevelOf(1));
@@ -950,13 +954,13 @@ TEST_F(ShownEquipmentTest, TheBodyTakesTheSetOrTheClassPart)
               Client::Kernel::ClassPartModel(Client::Kernel::BodyPart{1}, Other().characterClass));
     EXPECT_EQ(Other().body[1].level, 0);
     EXPECT_EQ(Other().body[1].flags1c, 0);
-    // Las alas (7) con el nivel en 0, sin mirar el nibble.
+    // The wings (7) with the level at 0, without looking at the nibble.
     ASSERT_TRUE(Show(OtherKey, {0x01, 0x7f, 0, 0, 0, 0xc0, 0}).HasValue());
     EXPECT_EQ(Other().wings.model, 0x1801 + 0x212);
     EXPECT_EQ(Other().wings.level, 0);
 }
 
-// 0x4c8711..0x4c87d4: la mascota con su ayudante; el 0x1c12 gasta sus tres rand() y Fenrir guarda el excelente.
+// 0x4c8711..0x4c87d4: the pet with its helper; 0x1c12 draws its three rand() and Fenrir keeps the excellent bits.
 TEST_F(ShownEquipmentTest, ThePetCreatesItsHelper)
 {
     ASSERT_TRUE(Show(OtherKey, {0x00, 0x80, 0, 0, 0, 0xd0, 0}).HasValue());
@@ -966,18 +970,18 @@ TEST_F(ShownEquipmentTest, ThePetCreatesItsHelper)
     EXPECT_EQ(helpers[0].type, 0x1c12);
     EXPECT_EQ(helpers[0].rider, OtherSlot);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 3).State());
-    // Vacía: 0x443d40 apaga sus ayudantes.
+    // Empty: 0x443d40 turns off its helpers.
     ASSERT_TRUE(Show(OtherKey, {0xff, 0x80, 0, 0x80, 0, 0xf0, 0}).HasValue());
     EXPECT_EQ(Other().pet.model, Client::Kernel::NoItemModel);
     EXPECT_FALSE(helpers[0].alive);
-    // Fenrir (0x1a25) con el excelente 2: el ayudante 0x14c.
+    // Fenrir (0x1a25) with excellent bits 2: helper 0x14c.
     ASSERT_TRUE(Show(OtherKey, {0x25, 0x80, 0, 0x02, 0, 0xd0, 0}).HasValue());
     EXPECT_EQ(Other().pet.flags1b, 2);
     EXPECT_EQ(helpers[0].type, 0x14c);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 3).State());
 }
 
-// 0x4c838e → 0x5110d0 con la clave entera: con el bit 15, ninguno; escribe en el 400.
+// 0x4c838e → 0x5110d0 with the whole key: with bit 15, nobody; it writes on 400.
 TEST_F(ShownEquipmentTest, TheWholeKeyWithTheNewBitFindsNobody)
 {
     ASSERT_TRUE(Show(0x8000 | OtherKey, {0x03, 0x00, 0, 0, 0, 0, 0}).HasValue());
@@ -985,7 +989,7 @@ TEST_F(ShownEquipmentTest, TheWholeKeyWithTheNewBitFindsNobody)
     EXPECT_EQ(game->world.Actors()[Client::Actors::CreatedActorSearch].hands[0].model, 0x3 + 0x212);
 }
 
-// 0x4c6ca8..0x4c6dfe: la celda protegida, el blanco y +0x399.
+// 0x4c6ca8..0x4c6dfe: the protected cell, the target and +0x399.
 TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
 {
     const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
@@ -999,7 +1003,7 @@ TEST_F(ShownEquipmentTest, ThePositionWritesTheCells)
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, CellDraws).State());
 }
 
-// 0x4c6c9d llama 0x51fe10(posición, 0): dos sorteos por intento, cinco por alta efectiva y ninguna 0x5ed.
+// 0x4c6c9d calls 0x51fe10(position, 0): two draws per try, five per actual creation and no 0x5ed.
 TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
 {
     const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
@@ -1033,7 +1037,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
     }
 }
 
-// 0x51fe4b/0x51fe6e preceden la búsqueda de slot 0x53fe70. Llenar el pool no corta los otros intentos.
+// 0x51fe4b/0x51fe6e come before the slot search of 0x53fe70. Filling the pool does not stop the other tries.
 TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
 {
     const auto read = Client::Protocol::Actors::ReadPosition(Client::Tests::PositionPacket(OtherKey, 140, 141));
@@ -1074,7 +1078,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
     }
 }
 
-// El D3 y el D7 de otro (0x4c6d60 y 0x4cab40) encuentran al que dio de alta el 0x12.
+// Another player's D3 and D7 (0x4c6d60 and 0x4cab40) find the one the 0x12 created.
 TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -1105,11 +1109,10 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
     }
 }
 
-// El 18 con la acción 0x78 de un jugador que dio de alta el 0x12 (0x4cb750 → 0x4f4a10): el FFF codificado
-// conserva1211 y pasa por el sonido aleatorio3c (4f5192); con ambas manosFFFF, solo cierra el registro propio.
-// Con una espada de un grupo de 0 a 2 sin la marca +0x1e de Item.bmd en la
-// derecha, la 0x23 o la 0x24 por +0x38f y el sonido rand() & 1 + 0x3c (0x4f5192). Después, +0x381 en 1, el frame en 0,
-// el blanco con el lugar del héroe y [0x5767964] con el índice.
+// The 18 with action 0x78 of a player the 0x12 created (0x4cb750 → 0x4f4a10): the encoded 0xfff keeps 0x1211 and goes
+// through the random sound 0x3c (0x4f5192); with both hands at 0xffff, it only closes the own record. With a sword of a
+// group from 0 to 2 without Item.bmd's +0x1e mark in the right hand, 0x23 or 0x24 by +0x38f and the sound rand() & 1 +
+// 0x3c (0x4f5192). Then +0x381 at 1, the frame at 0, the target with the hero's slot and [0x5767964] with the index.
 TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
 {
     constexpr int OwnRecordDraws = 0xf08;
@@ -1144,7 +1147,7 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(encodedSound));
         EXPECT_EQ(game->cloth.random.State(), encoded.State());
 
-        // 4f5181/4f5186: únicamente ambos WORD enFFFF omiten el rand() y el sonido.
+        // 0x4f5181/0x4f5186: only both WORDs at 0xffff skip the rand() and the sound.
         actor.hands[0].model = Client::Kernel::NoItemModel;
         actor.hands[1].model = Client::Kernel::NoItemModel;
         game->world.Runtime().lastSoundId.reset();
@@ -1163,7 +1166,7 @@ TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
         applied = Client::Actors::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = 0x0456, .direction = 1, .action = 0x79}, game->Resources(), {});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        // +0x38f en 2 después de los dos ataques: (2 & 1) + 0x23.
+        // +0x38f at 2 after the two attacks: (2 & 1) + 0x23.
         EXPECT_EQ(actor.animation.action, 0x23);
         EXPECT_EQ(actor.attackCount, 3);
         EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sound));

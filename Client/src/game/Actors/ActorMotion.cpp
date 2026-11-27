@@ -42,7 +42,7 @@ void RetryPath(Kernel::ActorState& actor, Crt::CrtRandom& random, Data::Terrain:
         return;
     }
     const auto x = ReadCell(actor.cellXAccesses, actor.cellX, random);
-    // 0x508c84: la primera X distinta saltea la lectura comparativa de Y.
+    // 0x508c84: the first different X skips the comparing read of Y.
     if (x == actor.targetX && ReadCell(actor.cellYAccesses, actor.cellY, random) == actor.targetY)
     {
         return;

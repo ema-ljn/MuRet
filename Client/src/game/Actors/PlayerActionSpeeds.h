@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <optional>
 
-// Overlay durable del Player.bmd compartido: 06, Caminar (0x4f37c0). No altera el recurso const.
+// A lasting overlay on the shared Player.bmd: 06 § Caminar (0x4f37c0). It does not change the const resource.
 namespace Client::Actors
 {
 class PlayerActionSpeeds

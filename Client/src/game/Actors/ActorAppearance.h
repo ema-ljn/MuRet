@@ -7,7 +7,7 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// La proyección del equipo del registro persistente que consume el dibujo del personaje.
+// The projection of the persistent record's equipment that the character drawing consumes.
 namespace Client::Actors
 {
 

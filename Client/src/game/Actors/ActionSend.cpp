@@ -13,11 +13,11 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x6b87dc (22,5f), 0x6b87d8 (0,0222f, 1/45 redondeado a float) y 0x6b87d4 (1,0f).
+// 0x6b87dc (22.5f), 0x6b87d8 (0.0222f, 1/45 rounded to float) and 0x6b87d4 (1.0f).
 constexpr float HalfSector = 22.5f;
 constexpr float SectorReciprocal = 0.02222222276031971f;
 constexpr double SectorBias = 1.0;
-// 0x576b5e..0x576b6e: AND 0xff y el resto por 8 con signo.
+// 0x576b5e..0x576b6e: AND 0xff and then the signed remainder by 8.
 constexpr std::uint32_t LowByte = 0xff;
 constexpr std::uint32_t DirectionMask = 7;
 } // namespace

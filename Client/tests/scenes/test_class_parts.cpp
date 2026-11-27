@@ -16,8 +16,8 @@
 #include <cstdint>
 #include <string>
 
-// Client::Actors::ApplyTheClassParts: 0x513100, la ropa de la clase nueva del premio de una misión. Los valores salen
-// del ASM cotejado con el PE c32bbd5f; ninguno de una corrida del original.
+// Client::Actors::ApplyTheClassParts: 0x513100, the clothes of the new class from a quest's prize. The values come from
+// the ASM checked against PE c32bbd5f; none from a run of the original.
 namespace
 {
 using Client::Actors::ActorStopContext;
@@ -27,17 +27,17 @@ using Client::Kernel::ActorState;
 using Client::Kernel::NoItemModel;
 using Client::Tests::UnarmedPlayer;
 
-// Los modelos de la ropa de la clase (Kernel::ClassPartModel): el casco, la armadura, los pantalones, los guantes y
-// las botas, más (clase >> 3) · 5 + (clase & 7).
+// The models of the class's clothes (Kernel::ClassPartModel): the helmet, the armor, the pants, the gloves and the
+// boots, plus (class >> 3) · 5 + (class & 7).
 constexpr std::uint16_t HelmClass = 0x2212, ArmorClass = 0x221a, PantsClass = 0x2222, GlovesClass = 0x222a,
                         BootsClass = 0x2232;
-// La clase 1 con el bit de la segunda clase: la base es la 1 y la entera suma 5 + 1.
+// Class 1 with the second class's bit: the base is 1 and the whole class adds 5 + 1.
 constexpr std::uint8_t SecondClass = 0x09;
 constexpr std::uint16_t BaseOffset = 1, SecondOffset = 6;
-// Fuera de [0x22, 0x97] y de [0xc5, 0xcc]: 0x4f2250 corre. 0x22 y 0xcc son de las ventanas.
+// Outside [0x22, 0x97] and [0xc5, 0xcc]: 0x4f2250 runs. 0x22 and 0xcc are the windows'.
 constexpr std::uint8_t StandAction = 1;
 
-// Un ítem cualquiera en una parte, con nivel y bytes +3 y +4.
+// Any item on a part, with a level and bytes +3 and +4.
 ActorItemPart Worn(std::uint16_t model)
 {
     ActorItemPart part;
@@ -60,7 +60,7 @@ protected:
         return Client::Actors::ApplyTheClassParts(actor, context);
     }
 
-    // La clase entera con toda la ropa de su clase base, sin nada en las manos.
+    // The whole class with all the clothes of its base class, with nothing in the hands.
     static ActorState BaseClothes(std::uint8_t action)
     {
         ActorState actor = UnarmedPlayer(SecondClass);
@@ -75,7 +75,7 @@ protected:
     CrtRandom m_random{1};
 };
 
-// 0x513107: con otro tipo que el 0x20a, nada: ni 0x4f2250 ni la ropa ni 0x512930.
+// 0x513107: with a type other than 0x20a, nothing: no 0x4f2250, no clothes and no 0x512930.
 TEST_F(ClassPartsTest, OnlyAPlayerChangesItsClothes)
 {
     ActorState actor = BaseClothes(StandAction);
@@ -93,9 +93,9 @@ TEST_F(ClassPartsTest, OnlyAPlayerChangesItsClothes)
     EXPECT_EQ(m_random.State(), CrtRandom(1).State());
 }
 
-// Q-C1024, 0x513146..0x51324d: con toda la ropa de la clase base, sólo el casco compara su propia parte y pasa a la de
-// la clase entera, con el nivel y los bytes +3 y +4 en 0. La armadura compara los pantalones, los pantalones los
-// guantes, los guantes las botas y las botas la mano derecha: ninguno es el modelo base de la vuelta, y quedan.
+// Q-C1024, 0x513146..0x51324d: with all the base class's clothes, only the helmet compares its own part and goes to the
+// whole class's, with the level and bytes +3 and +4 at 0. The armor compares the pants, the pants the gloves, the
+// gloves the boots and the boots the right hand: none is the round's base model, and they stay.
 TEST_F(ClassPartsTest, WithTheBaseClothesOnlyTheHelmChanges)
 {
     ActorState actor = BaseClothes(0x22);
@@ -115,16 +115,16 @@ TEST_F(ClassPartsTest, WithTheBaseClothesOnlyTheHelmChanges)
         EXPECT_EQ(actor.body[part].flags1b, 0x11);
         EXPECT_EQ(actor.body[part].flags1c, 0x22);
     }
-    // 0x513255, 0x512930: el casco nuevo no es abierto (sin cabeza) y la escala de la clase 1 sin piel.
+    // 0x513255, 0x512930: the new helmet is not open (no head) and the scale of class 1 without skin.
     EXPECT_EQ(actor.head, NoItemModel);
     EXPECT_EQ(actor.scale, 0.9f);
-    // La acción 0x22 es de la primera ventana: sin 0x4f2250 ni rand().
+    // Action 0x22 is the first window's: no 0x4f2250 and no rand().
     EXPECT_EQ(actor.animation.action, 0x22);
     EXPECT_EQ(m_random.State(), CrtRandom(1).State());
 }
 
-// Q-C1024: cada parte de la 1 a la 4 cambia cuando la siguiente (y la mano derecha, para las botas) tiene el modelo
-// base de la suya, sea cual sea el suyo. Cada comparación lee la parte siguiente antes de que su vuelta la escriba.
+// Q-C1024: each part from 1 to 4 changes when the next one (and the right hand, for the boots) has the base model of
+// its own, whatever its own is. Each comparison reads the next part before its round writes it.
 TEST_F(ClassPartsTest, EachLowerPartComparesTheNextOne)
 {
     ActorState actor = UnarmedPlayer(SecondClass);
@@ -151,7 +151,7 @@ TEST_F(ClassPartsTest, EachLowerPartComparesTheNextOne)
     EXPECT_EQ(actor.hands[0].model, BootsClass + BaseOffset);
 }
 
-// 0x51314a: el WORD con signo (MOVSX) contra base + (clase & 7): una mano sin ítem (0xffff, −1) no es ninguno.
+// 0x51314a: the signed WORD (MOVSX) against base + (class & 7): a hand without an item (0xffff, −1) is none of them.
 TEST_F(ClassPartsTest, AnEmptyRightHandIsNotTheBaseBoots)
 {
     ActorState actor = BaseClothes(0xc5);
@@ -163,8 +163,8 @@ TEST_F(ClassPartsTest, AnEmptyRightHandIsNotTheBaseBoots)
     EXPECT_EQ(actor.body[4].level, 7);
 }
 
-// 0x51311c..0x513135: con la acción fuera de las dos ventanas, 0x4f2250 primero (la de parado y el rand() del sufijo).
-// Con +0x3e3 distinto de 0, 0x512930 no toca la cabeza ni la escala, pero la ropa cambia igual.
+// 0x51311c..0x513135: with the action outside both windows, 0x4f2250 first (the standing action and the suffix's
+// rand()). With +0x3e3 other than 0, 0x512930 does not touch the head or the scale, but the clothes change anyway.
 TEST_F(ClassPartsTest, AnotherActionStopsFirst)
 {
     for (const std::uint8_t action : {std::uint8_t{0x21}, std::uint8_t{0x98}, std::uint8_t{0xc4}, std::uint8_t{0xcd}})
@@ -186,7 +186,7 @@ TEST_F(ClassPartsTest, AnotherActionStopsFirst)
     }
 }
 
-// Si 0x4f2250 corta (sentado, +0x7c con 0x200000, sin quien mande el C1 18), la ropa queda como estaba.
+// If 0x4f2250 fails (sitting, +0x7c with 0x200000, without a sender for the C1 18), the clothes stay as they were.
 TEST_F(ClassPartsTest, AStopThatCutsLeavesTheClothes)
 {
     ActorState actor = BaseClothes(StandAction);

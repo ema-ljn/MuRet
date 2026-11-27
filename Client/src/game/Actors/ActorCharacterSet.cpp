@@ -41,7 +41,7 @@ struct PetAndHelper
     std::uint16_t helper = Kernel::NoItemModel;
 };
 
-// 0x513b3c..0x513bd6: la mascota de b[4] & 3 y su ayudante.
+// 0x513b3c..0x513bd6: the pet of b[4] & 3 and its helper.
 PetAndHelper BasePet(Kernel::Equipment equipment)
 {
     constexpr std::uint16_t Guardian = 0x1c12;
@@ -54,7 +54,7 @@ PetAndHelper BasePet(Kernel::Equipment equipment)
     case 0:
         return {Guardian, Guardian};
     case 1:
-        return {Imp, Kernel::NoItemModel}; // 0x513bc0..0x513bc6 no tiene caso 1.
+        return {Imp, Kernel::NoItemModel}; // 0x513bc0..0x513bc6 has no case 1.
     case 2:
         return {Unilia, UniliaHelper};
     default:
@@ -62,8 +62,8 @@ PetAndHelper BasePet(Kernel::Equipment equipment)
     }
 }
 
-// Dónde van los ayudantes de las mascotas: con `own` en nullptr, al pool con 0x443fa0 y el lugar del personaje; si
-// no, a ese ayudante propio con 0x443d70 (el objeto de 0x5139f0, 0x513b7b..0x513ce5).
+// Where the pets' helpers go: with `own` as nullptr, to the pool with 0x443fa0 and the character's slot; otherwise,
+// to that own helper with 0x443d70 (the object of 0x5139f0, 0x513b7b..0x513ce5).
 struct PetTarget
 {
     Kernel::WorldState& world;
@@ -96,14 +96,14 @@ Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelpe
     return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
 }
 
-// 0x513a12..0x513b27: las manos y las alas.
+// 0x513a12..0x513b27: the hands and the wings.
 Core::Expected<void, std::string> PutHandsAndWings(Kernel::ActorState& actor,
                                                    const Kernel::CharacterAppearance& appearance,
                                                    const Scenes::WorldEntryResources& resources)
 {
     actor.hands[0].model = appearance.rightHand ? appearance.rightHand->model : Kernel::NoItemModel;
     actor.hands[1].model = appearance.leftHand ? appearance.leftHand->model : Kernel::NoItemModel;
-    // 0x513aab..0x513ab4: el cuervo de la clase 4 con 0xa05 y 0x420cf0.
+    // 0x513aab..0x513ab4: the raven of class 4 with 0xa05 and 0x420cf0.
     if (actor.hands[1].model == Raven)
     {
         if (auto raven = Scenes::ReplaceTheRaven(actor, resources); !raven.HasValue())
@@ -118,7 +118,7 @@ Core::Expected<void, std::string> PutHandsAndWings(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x513cf3..0x513d27: +0x360 con el bit 1 de b[11]. Entre 1 y 3 (el arma del evento de Blood Castle) queda.
+// 0x513cf3..0x513d27: +0x360 with bit 1 of b[11]. Between 1 and 3 (the Blood Castle event weapon) it stays.
 void PutTheEventWeapon(Kernel::ActorState& actor, Kernel::Equipment equipment)
 {
     constexpr std::uint8_t LastEventWeapon = 3;
@@ -129,7 +129,7 @@ void PutTheEventWeapon(Kernel::ActorState& actor, Kernel::Equipment equipment)
     actor.byte360 = (ByteOf(equipment, 11) & 2) != 0 ? Byte11Weapon : std::uint8_t{0};
 }
 
-// 0x513d84..0x51409b: con +0x3e3 en 0, la ropa y los bits de las partes y de las manos.
+// 0x513d84..0x51409b: with +0x3e3 at 0, the clothes and the bits of the parts and of the hands.
 void PutTheBody(Kernel::ActorState& actor, const Kernel::CharacterAppearance& appearance, Kernel::Equipment equipment)
 {
     for (std::size_t part = 0; part < actor.body.size(); ++part)
@@ -180,19 +180,19 @@ Core::Expected<void, std::string> CreatePets(const PetTarget& target, Kernel::Eq
     return {};
 }
 
-// 0x5139f0 desde 0x513a12, sobre el personaje de `target`.
+// 0x5139f0 from 0x513a12, on the character of `target`.
 Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, Kernel::Equipment equipment,
                                               const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::ActorState& actor = target.actor;
-    // 0x513a12: solo los jugadores.
+    // 0x513a12: only players.
     if (actor.type != Tables::PlayerSkeletonModel)
         return {};
     const Kernel::CharacterAppearance appearance = Kernel::AppearanceOf(actor.characterClass, actor.skin, equipment);
     if (auto carried = PutHandsAndWings(actor, appearance, resources); !carried.HasValue())
         return carried;
-    // 0x513b27..0x513b39: con el cuarto argumento en 0, 0x443d40; con un ayudante, su byte vivo en 0.
+    // 0x513b27..0x513b39: with the fourth argument at 0, 0x443d40; with a helper, its live byte at 0.
     if (target.own != nullptr)
         target.own->alive = false;
     else
@@ -202,8 +202,8 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, Kernel::E
     // 0x513cee.
     Kernel::ReleaseTheLayer(actor);
     PutTheEventWeapon(actor, equipment);
-    // 0x513d27..0x513d77: L = b[5] << 16 | b[6] << 8 | b[7]; las manos con los bits 0..2 y 3..5, y las alas y la
-    // mascota con el nivel en 0.
+    // 0x513d27..0x513d77: L = b[5] << 16 | b[6] << 8 | b[7]; the hands with bits 0..2 and 3..5, and the wings and
+    // the pet with the level at 0.
     constexpr int LeftLevelShift = 3;
     const std::uint32_t levels = (static_cast<std::uint32_t>(ByteOf(equipment, 5)) << 16) |
                                  (static_cast<std::uint32_t>(ByteOf(equipment, 6)) << 8) | ByteOf(equipment, 7);
@@ -215,7 +215,7 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, Kernel::E
     if (actor.byte3e3 != 0)
         return {};
     PutTheBody(actor, appearance, equipment);
-    // 0x5140a1 y 0x5140a7.
+    // 0x5140a1 and 0x5140a7.
     ArmForTheEventMaps(actor, world.Runtime().map);
     ApplyHeadAndScale(actor);
     return {};

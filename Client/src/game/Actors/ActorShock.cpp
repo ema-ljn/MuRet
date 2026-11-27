@@ -67,7 +67,7 @@ void PlayerHitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryRes
 }
 void HitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
-    // 0x4f5496 mira C3: unordered también entra en el sonido.
+    // 0x4f5496 looks at C3: unordered also goes into the sound.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
         return;
     const auto requestSound = [&actor, &resources](std::int32_t id)
@@ -85,16 +85,16 @@ void HitSound(const Kernel::ActorState& actor, const Scenes::WorldEntryResources
     constexpr std::uint16_t SilentMonster = 0x160;
     if (actor.type == SilentMonster)
         return;
-    // 0x4f553d..0x4f55a7: el WORD +0xae del modelo (el tercero de los diez de 0x612c80, que carga el alta; en 0 en un
-    // modelo sin tabla o sin cargar); en −1, sin sonido ni rand(). Si no, rand() & 1 elige +0xae o +0xb0, y el sonido
-    // es ese WORD + 0xd2, + 5 con el subtipo 9 (CL10).
+    // 0x4f553d..0x4f55a7: the model's WORD +0xae (the third of the ten of 0x612c80, which the creation loads; at 0 on a
+    // model without a table or not loaded); at −1, no sound and no rand(). Otherwise rand() & 1 picks +0xae or +0xb0,
+    // and the sound is that WORD + 0xd2, + 5 with subtype 9.
     constexpr std::size_t HitSoundWord = 2;
     if (const auto drawn =
             Sound::DrawModelSound(Sound::WrittenSounds(resources.world.Runtime().modelSounds, actor.type), HitSoundWord,
                                   actor.subtype, resources.cloth.random))
         requestSound(*drawn);
 }
-// 0x4f55bb..0x4f5649: cinco intentos, aun con el pool lleno, y el sonido después de todos ellos.
+// 0x4f55bb..0x4f5649: five attempts, even with the pool full, and the sound after all of them.
 Core::Expected<void, std::string> CreateShockDust(const Kernel::ActorState& actor,
                                                   const Scenes::WorldEntryResources& resources)
 {
@@ -136,8 +136,8 @@ Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::
         return {};
     if (actor.type != Tables::PlayerSkeletonModel)
     {
-        // 0x4f5475..0x4f5480: 0x4ea030(c, 5) con las acciones del modelo del monstruo (el que cargó su alta, no
-        // Player.bmd); un modelo que no está es el registro sin acciones y no pone nada.
+        // 0x4f5475..0x4f5480: 0x4ea030(c, 5) with the actions of the monster's model (the one its creation loaded,
+        // not Player.bmd); a model that is not there is the record without actions and sets nothing.
         if (actor.animation.action < 3 || actor.animation.action > 4)
         {
             if (auto set = Scenes::SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())

@@ -25,19 +25,19 @@
 #include <span>
 #include <string>
 
-// 0x4f2250, cotejado con el PE c32bbd5f (1.607 instrucciones, 5.481 bytes): 06, "Caminar".
+// 0x4f2250, checked against PE c32bbd5f (1,607 instructions, 5,481 bytes): 06, "Caminar".
 namespace Client::Actors
 {
 namespace
 {
-// Lo que cambia la acción en la mascota (+0x318) y en la mano izquierda (+0x2d8).
+// What changes the action on the pet (+0x318) and in the left hand (+0x2d8).
 constexpr std::uint16_t Fenrir = 0x1c37;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 constexpr std::array<std::uint16_t, 2> RidingPets = {0x1c14, 0x1c15};
 constexpr std::uint16_t Raven = 0x1c17;
 constexpr std::uint16_t WallCheckedModel = 0x172;
 
-// Las acciones de parado (P-C14 c). Los nombres dicen qué las elige en 0x4f2250, no cómo se ven.
+// The standing actions (P-C14 c). The names say what picks them in 0x4f2250, not how they look.
 constexpr std::uint8_t UnarmedStand = 1;
 constexpr std::uint8_t UnarmedElfStand = 2;
 constexpr std::uint8_t ArmedStand = 3;
@@ -61,49 +61,49 @@ constexpr std::uint8_t SittingAction = 0xca;
 constexpr std::uint8_t DefaultModelStandAction = 0;
 constexpr std::uint8_t WallStandAction = 7;
 
-// +0x7c con este bit: sentado.
+// +0x7c with this bit: sitting.
 constexpr std::uint32_t SittingFlag = 0x200000;
-// +0x376 con este valor: vuela.
+// +0x376 with this value: flying.
 constexpr std::uint16_t FlyingWord376 = 0x101;
 
-// Los mapas de vuelo de 0x4f23ad..0x4f23bf (Atlans y Kalima): ahí 0x4f2250 lee la celda del personaje
-// en el TerrainWall (0x7d0d348) en la escena 5.
+// The flying maps of 0x4f23ad..0x4f23bf (Atlans and Kalima): there 0x4f2250 reads the character's cell in the
+// TerrainWall (0x7d0d348) in scene 5.
 using Maps::AtlansMap;
 using Maps::FirstKalimaMap;
 using Maps::LastKalimaMap;
 using Maps::SeventhKalimaMap;
 
-// En la zona segura de los mapas 11 a 23 se elige la acción del arma; fuera de ese rango, la de sin
-// armas (0x4f2c16..0x4f2c1e).
+// In the safe zone of maps 11 to 23 the weapon's action is chosen; outside that range, the unarmed one
+// (0x4f2c16..0x4f2c1e).
 constexpr std::int32_t FirstArmedSafeMap = 11;
 constexpr std::int32_t LastArmedSafeMap = 23;
 
-// 0x4f2c4c: el byte +0x1e del registro del arma en Item.bmd (World::ItemState::byte0a).
+// 0x4f2c4c: byte +0x1e of the weapon's Item.bmd record (Kernel::ItemState::byte0a).
 constexpr std::size_t WeaponMarkOffset = 0x1e;
-// Los de los grupos 0 a 2 que, con la marca, van a la 0x8a.
+// Those of groups 0 to 2 that, with the mark, go to 0x8a.
 constexpr std::array<int, 3> SpecialMarkedModels = {0x227, 0x229, 0x231};
-// 0x813 y 0x814, del grupo 3, van a la 5 antes que el resto del grupo.
+// 0x813 and 0x814, of group 3, go to 5 before the rest of the group.
 constexpr std::array<int, 2> Model813Pair = {0x813, 0x814};
 
-// 0x41ed10 con Fenrir: 0x279 más rand() & 1, con rand() % 3 en 0 antes (0x4f3704..0x4f372c).
+// 0x41ed10 with Fenrir: 0x279 plus rand() & 1, with rand() % 3 at 0 first (0x4f3704..0x4f372c).
 constexpr std::int32_t FenrirSoundBase = 0x279;
 constexpr int FenrirSoundChance = 3;
 constexpr int FenrirSoundVariants = 2;
-// El sufijo: rand() % 16 distinto de 0 termina ahí (0x4f36be..0x4f36cf).
+// The suffix: rand() % 16 other than 0 ends there (0x4f36be..0x4f36cf).
 constexpr int SuffixChance = 16;
-// Los subtipos que van a la tabla de sonidos del modelo aunque sean jugadores (0x4f36e2..0x4f36f3).
+// The subtypes that go to the model's sound table even though they are players (0x4f36e2..0x4f36f3).
 constexpr std::int32_t FirstModelSoundSubtype = 209;
 constexpr std::int32_t LastModelSoundSubtype = 211;
 constexpr std::int32_t ModelSoundBase = 0xd2;
 constexpr std::int32_t ModelSoundSubtypeNineOffset = 5;
 
-// 0x4f2250 compara los modelos como WORD con signo.
+// 0x4f2250 compares the models as a signed WORD.
 int Signed(std::uint16_t model)
 {
     return static_cast<std::int16_t>(model);
 }
 
-// El primer modelo de un grupo de ítems (Tables::ItemModel).
+// The first model of an item group (Tables::ItemModel).
 int GroupStart(int group)
 {
     return Tables::FirstItemModel + group * Tables::ItemModelsPerGroup;
@@ -119,15 +119,13 @@ bool Contains(std::span<const int> models, int model)
     return std::ranges::find(models, model) != models.end();
 }
 
-// En la derecha, los índices 8 a 14, 16 y de 18 en adelante del grupo 4 (0x4f2d2f..0x4f2d51; las
-// ballestas de MuMain).
+// On the right, indices 8 to 14, 16 and from 18 on of group 4 (0x4f2d2f..0x4f2d51; MuMain's crossbows).
 bool IsRightGroup4(int model)
 {
     return (model >= 0xa1a && model < 0xa21) || model == 0xa22 || (model >= 0xa24 && model < 0xc12);
 }
 
-// En la izquierda, los índices 0 a 6, 17, 20 y 21 del grupo 4 (0x4f2d05..0x4f2d2d; los arcos de
-// MuMain).
+// On the left, indices 0 to 6, 17, 20 and 21 of group 4 (0x4f2d05..0x4f2d2d; MuMain's bows).
 bool IsLeftGroup4(int model)
 {
     return (model >= 0xa12 && model < 0xa19) || model == 0xa23 || model == 0xa26 || model == 0xa27;
@@ -143,7 +141,7 @@ std::uint8_t UnarmedFor(const Kernel::ActorState& actor)
     return Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf ? UnarmedElfStand : UnarmedStand;
 }
 
-// La marca de un arma de la derecha: el byte +0x1e de su registro de Item.bmd.
+// The mark of a right-hand weapon: byte +0x1e of its Item.bmd record.
 Core::Expected<bool, std::string> IsMarked(int model, const Tables::ItemTable* items)
 {
     if (items == nullptr)
@@ -158,7 +156,7 @@ Core::Expected<bool, std::string> IsMarked(int model, const Tables::ItemTable* i
     return (*record)[WeaponMarkOffset] != std::byte{0};
 }
 
-// La de un arma de la derecha con la marca leída: sin ella, la 3; con ella, `marked`.
+// That of a right-hand weapon with the mark read: without it, 3; with it, `marked`.
 Core::Expected<std::uint8_t, std::string> ByMark(int right, const Tables::ItemTable* items, std::uint8_t marked)
 {
     const auto isMarked = IsMarked(right, items);
@@ -169,7 +167,7 @@ Core::Expected<std::uint8_t, std::string> ByMark(int right, const Tables::ItemTa
     return isMarked.Value() ? marked : ArmedStand;
 }
 
-// 0x4f2bf6..0x4f2d82: con los pies en el piso, por las armas.
+// 0x4f2bf6..0x4f2d82: with the feet on the ground, by the weapons.
 Core::Expected<std::uint8_t, std::string> GroundStand(const Kernel::ActorState& actor, std::int32_t map,
                                                       const Tables::ItemTable* items)
 {
@@ -200,7 +198,7 @@ Core::Expected<std::uint8_t, std::string> GroundStand(const Kernel::ActorState& 
     return IsRightGroup4(right) ? RightGroup4Stand : UnarmedFor(actor);
 }
 
-// 0x4f228c..0x4f22f6: Fenrir fuera de la zona segura, por las dos manos.
+// 0x4f228c..0x4f22f6: Fenrir outside the safe zone, by both hands.
 std::uint8_t FenrirStand(const Kernel::ActorState& actor)
 {
     const bool right = actor.hands[0].model != Kernel::NoItemModel;
@@ -212,8 +210,8 @@ std::uint8_t FenrirStand(const Kernel::ActorState& actor)
     return left ? FenrirLeftHandStand : FenrirUnarmedStand;
 }
 
-// 0x4f2365..0x4f23dd: vuela con alas fuera de la zona segura o con +0x376 en 0x101. En los mapas de
-// vuelo de la escena 5 decide además la celda del TerrainWall, que MuRet no tiene en el juego.
+// 0x4f2365..0x4f23dd: it flies with wings outside the safe zone or with +0x376 at 0x101. On the flying maps of
+// scene 5 the TerrainWall cell decides too, which MuRet does not have in the game.
 Core::Expected<bool, std::string> IsFlying(const Kernel::ActorState& actor, const ActorStopContext& context)
 {
     bool flyingCell = false;
@@ -238,7 +236,7 @@ Core::Expected<bool, std::string> IsFlying(const Kernel::ActorState& actor, cons
     return withWings || actor.word376 == FlyingWord376 || flyingCell;
 }
 
-// La acción de parado, o std::nullopt cuando ya está sentado y no hay que poner ninguna.
+// The standing action, or std::nullopt when it is already sitting and none has to be set.
 Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(Kernel::ActorState& actor,
                                                                      const ActorStopContext& context)
 {
@@ -274,8 +272,8 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(Kernel::Act
             return std::optional<std::uint8_t>{};
         }
         Models::SetAction(actor.animation, context.playerSkeleton, SittingAction);
-        // 0x4f2416..0x4f2bea (0x4f2834..0x4f2bea por el piso): C1 05 18 con la dirección del ángulo del personaje
-        // (+0x24, no el del héroe) y 0x82, y el sufijo (0x4f36be), también si el envío falla.
+        // 0x4f2416..0x4f2bea (0x4f2834..0x4f2bea on the ground): C1 05 18 with the direction of the character's angle
+        // (+0x24, not the hero's) and 0x82, and the suffix (0x4f36be), even if the send fails.
         auto sent = SendTheAction(actor.angles.z, Protocol::Movement::SittingAction, context.sendAction, "0x4f2416");
         if (!sent.HasValue())
         {
@@ -295,7 +293,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(Kernel::Act
     return std::optional{ground.Value()};
 }
 
-// 0x4f36be..0x4f37a5: el sufijo, con la acción ya puesta.
+// 0x4f36be..0x4f37a5: the suffix, with the action already set.
 Core::Expected<ActorStopResult, std::string> Suffix(const Kernel::ActorState& actor, const ActorStopContext& context)
 {
     Crt::CrtRandom& random = context.random;

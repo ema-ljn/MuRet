@@ -21,21 +21,21 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x52e841: el monstruo de hielo (Monster16.bmd, el tipo 22 del 0x13, en Devias), que se rompe en pedazos.
+// 0x52e841: the ice monster (Monster16.bmd, type 22 of 0x13, in Devias), which breaks into pieces.
 constexpr std::uint16_t IceMonsterModel = 0x161;
 constexpr int IceShards = 10; // 0x52e85a
-// 0x52e88a..0x52e8a5: los que no dejan nada.
+// 0x52e88a..0x52e8a5: those that leave nothing.
 constexpr std::array<std::uint16_t, 3> CleanModels{0x159, 0x160, 0x164};
-// 0x52e8ae: dos marcas.
+// 0x52e8ae: two marks.
 constexpr int BloodMarks = 2;
 constexpr int OffsetSpan = 100;  // 0x52e8bc
 constexpr int OffsetCentre = 50; // 0x52e8c3
 constexpr int SizeMask = 3;      // 0x52e926
 constexpr int SizeBase = 8;      // 0x52e932
-// 0x6b87b8 (0,1f), un FMUL de float sobre el FILD.
+// 0x6b87b8 (0.1f), a float FMUL over the FILD.
 constexpr double SizeStep = static_cast<double>(0.1f);
 constexpr int Degrees = 360; // 0x52e952
-// El tipo de las dos marcas (0x52e967): la sangre, Effect\blood01.tga.
+// The type of the two marks (0x52e967): blood, Effect\blood01.tga.
 constexpr std::int32_t BloodMark = 0x5e3;
 constexpr std::int32_t NoBone = -1;
 
@@ -47,8 +47,8 @@ bool IsClean(std::uint16_t type)
     return false;
 }
 
-// 0x4ec110(modelo, +0x120 + hueso · 0x30, corrimiento, punto, 1): el hueso de los huesos propios por la escala y más la
-// posición del modelo compartido. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
+// 0x4ec110(model, +0x120 + bone · 0x30, offset, point, 1): the bone from its own bones times the scale plus the
+// shared model's position. Without its own bones (before the first drawing), the matrix at zero (Q-C318).
 glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
                     const ActorRemainsContext& context)
 {
@@ -60,14 +60,14 @@ glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm
 
 Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor, const ActorRemainsContext& context)
 {
-    // 0x52e81c..0x52e83b: el DWORD +0x54 del modelo del tipo (MOVSX del WORD +2).
+    // 0x52e81c..0x52e83b: the DWORD +0x54 of the type's model (MOVSX of WORD +2).
     if (context.skeleton == nullptr)
         return Core::Unexpected(
             std::format("0x52e834: 0x52e810 lee el hueso +0x54 del modelo {:#x}, que no está cargado", actor.type));
     const std::int32_t bone = context.skeleton->headBone;
     if (bone == NoBone)
         return {};
-    // 0x52e841..0x52e881: el byte vivo de c en 0 y diez 0x518cf0(0xca, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0).
+    // 0x52e841..0x52e881: the live byte of c at 0 and ten 0x518cf0(0xca, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0).
     if (actor.type == IceMonsterModel)
     {
         actor.alive = false;
@@ -78,8 +78,8 @@ Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor, con
     }
     if (IsClean(actor.type))
         return {};
-    // 0x52e8ab..0x52e975. Un +0x54 negativo, o fuera de los huesos propios ya posados, haría leer a 0x4ec110 otra
-    // memoria: corta. Sin posar (antes del primer dibujo), la matriz en cero (Q-C318).
+    // 0x52e8ab..0x52e975. A negative +0x54, or one outside the own bones already posed, would make 0x4ec110 read
+    // other memory: it stops. Unposed (before the first drawing), the matrix at zero (Q-C318).
     const auto index = static_cast<std::size_t>(bone);
     if (bone < 0 || (!actor.bodyPose.empty() && index >= actor.bodyPose.size()))
         return Core::Unexpected(std::format("0x52e91c: el hueso +0x54 ({}) del modelo {:#x} cae fuera de los {} huesos "
@@ -91,7 +91,7 @@ Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor, con
         const int y = context.random.Next() % OffsetSpan - OffsetCentre;
         const glm::vec3 offset{static_cast<float>(x), static_cast<float>(y), 0.0f};
         const glm::vec3 point = BonePoint(actor, index, offset, context);
-        // 0x52e921..0x52e963: el lado antes que el giro.
+        // 0x52e921..0x52e963: the side before the turn.
         const auto size =
             static_cast<float>(static_cast<double>((context.random.Next() & SizeMask) + SizeBase) * SizeStep);
         const auto angle = static_cast<float>(context.random.Next() % Degrees);

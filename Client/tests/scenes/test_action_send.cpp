@@ -10,8 +10,8 @@
 #include <string>
 #include <vector>
 
-// Actors::ActionDirection y SendTheAction: la dirección del C1 18 (0x576b44, 0x4f248a, 0x59b456) y quién lo manda.
-// Los valores salen de la cuenta del ASM (0x6b87dc, 0x6b87d8, 0x6b87d4 y el _ftol 0x69fd3c), no de una corrida.
+// Actors::ActionDirection and SendTheAction: the direction of the C1 18 (0x576b44, 0x4f248a, 0x59b456) and who sends
+// it. The values come from the ASM's arithmetic (0x6b87dc, 0x6b87d8, 0x6b87d4 and the _ftol 0x69fd3c), not from a run.
 namespace
 {
 using Client::Actors::ActionDirection;
@@ -25,7 +25,7 @@ struct Edge
     std::uint8_t direction;
 };
 
-// Cada octante empieza en 22,5 + 45 · k: el borde ya es del siguiente.
+// Each octant starts at 22.5 + 45 · k: the edge already belongs to the next one.
 TEST(ActionSendTest, EachOctantStartsAtItsEdge)
 {
     const std::vector<Edge> edges = {
@@ -39,8 +39,8 @@ TEST(ActionSendTest, EachOctantStartsAtItsEdge)
     }
 }
 
-// El _ftol trunca hacia el 0 (Q-C777): de −112,5° a −22,5° (sin los bordes) da 0, y debajo de −67,5° cada ángulo da el
-// octante de al lado; en −112,5° el −1 & 0xff & 7 da 7.
+// _ftol truncates toward 0 (Q-C777): from −112.5° to −22.5° (without the edges) it gives 0, and below −67.5° each angle
+// gives the next octant; at −112.5° the −1 & 0xff & 7 gives 7.
 TEST(ActionSendTest, NegativeAnglesTruncateTowardZero)
 {
     const std::vector<Edge> edges = {
@@ -63,7 +63,8 @@ TEST(ActionSendTest, SendTheActionGivesTheDirectionAndTheAction)
     EXPECT_EQ(sent, (std::vector<SentAction>{{3, 0x82}, {7, 0x8e}}));
 }
 
-// Sin quien mande o con un ángulo fuera del _ftol portable, el error con la dirección de quien llama y nada sale.
+// Without a sender or with an angle outside the portable _ftol, the error with the caller's address and nothing goes
+// out.
 TEST(ActionSendTest, NoSenderOrAnUnportableAngleIsAnError)
 {
     const auto unsent = SendTheAction(0.0f, 0x82, ActionSender{}, "0x4f2416");

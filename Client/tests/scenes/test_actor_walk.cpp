@@ -255,9 +255,9 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
     EXPECT_EQ(m_random.State(), 1U);
 }
 
-// 0x4f3edc..0x4f3f6c: el que no es un jugador, con rand() & 15 en 0, pide la WORD 0 o la 1 de la tabla que escribió el
-// alta (rand() % 2, más 5 con el subtipo 9 y más 0xd2); con la WORD 0 en −1, ninguna y sin el segundo rand(); sin la
-// tabla, las WORD en 0 de 0x60dc80: el rand() y el 0xd2.
+// 0x4f3edc..0x4f3f6c: a non-player, with rand() & 15 at 0, asks for WORD 0 or 1 of the table its creation wrote (rand()
+// % 2, plus 5 with subtype 9 and plus 0xd2); with WORD 0 at −1, neither, and without the second rand(); without the
+// table, the zeroed WORDs of 0x60dc80: the rand() and 0xd2.
 TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
 {
     std::uint32_t seed = 1;
@@ -363,9 +363,9 @@ TEST(ActorFootstepTest, MapLayerAndSafeZoneChooseTheNativeSound)
     }
 }
 
-// 0x4f3efa..0x4f3f67: otro modelo que el 0x20a, sorteado con rand() & 15, suena con la tabla de su modelo (+0xaa, la de
-// 0x612c80): una de las dos primeras por rand() & 1, más 0xd2 (y 5 con el subtipo 9). Con la primera en −1, nada; sin
-// la tabla ni la de WorldRuntime::modelSounds, las WORD en 0 de 0x60dc80: el rand() y el 0xd2 (0xd7 con el 9).
+// 0x4f3efa..0x4f3f67: a model other than 0x20a, chosen with rand() & 15, sounds with its model's table (+0xaa, that of
+// 0x612c80): one of the first two by rand() & 1, plus 0xd2 (and 5 with subtype 9). With the first at −1, nothing;
+// without the table or WorldRuntime::modelSounds, the zeroed WORDs of 0x60dc80: the rand() and 0xd2 (0xd7 with 9).
 TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
 {
     const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
@@ -428,8 +428,8 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
     EXPECT_EQ(drawnTwice, sounded);
 }
 
-// 0x4f3edc..0x4f3ef2: con el subtipo 209 a 211, antes de la tabla, 0x41ed10(0x7b) sin rand(): si la tabla no suena,
-// queda el 0x7b; si suena, su pedido es el último. Los rand() son los del subtipo 0.
+// 0x4f3edc..0x4f3ef2: with subtypes 209 to 211, before the table, 0x41ed10(0x7b) without rand(): if the table does not
+// sound, 0x7b stays; if it does, its request is the last. The rand() are those of subtype 0.
 TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
 {
     const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};

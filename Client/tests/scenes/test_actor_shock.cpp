@@ -30,9 +30,9 @@
 #include <optional>
 #include <string>
 
-// Actors::SetActorShock (0x4f53a0) con un monstruo: la acción 5 con las acciones del modelo que cargó su alta y el
-// sonido del golpe de su tabla (0x4f553d..0x4f55a7). Monster01 (0x152) y Monster02 (0x153) son sintéticos, con las
-// tablas de 0x612d90: los sonidos {0, 1, 2, 3, 4} y {5, 6, 7, 8, 9}. Los mapas: Lorencia y Devias.
+// Actors::SetActorShock (0x4f53a0) with a monster: action 5 with the actions of the model its creation loaded and the
+// hit sound from its table (0x4f553d..0x4f55a7). Monster01 (0x152) and Monster02 (0x153) are synthetic, with the tables
+// of 0x612d90: sounds {0, 1, 2, 3, 4} and {5, 6, 7, 8, 9}. The maps: Lorencia and Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -113,8 +113,8 @@ protected:
     Client::Scenes::SingleModelLibrary m_models;
 };
 
-// 0x4f5475..0x4f5480 y 0x4f553d..0x4f55a7: el monstruo quieto pasa a la acción 5 de su modelo (no la de Player.bmd) y
-// pide el WORD +0xae o +0xb0 de su tabla, según rand() & 1, más 0xd2. Un rand().
+// 0x4f5475..0x4f5480 and 0x4f553d..0x4f55a7: the still monster goes to action 5 of its model (not Player.bmd's) and
+// asks for WORD +0xae or +0xb0 of its table, by rand() & 1, plus 0xd2. One rand().
 TEST_F(ActorShockTest, AMonsterTakesTheActionAndTheSoundOfItsLoadedModel)
 {
     for (const std::int32_t map : {0, 2})
@@ -139,7 +139,7 @@ TEST_F(ActorShockTest, AMonsterTakesTheActionAndTheSoundOfItsLoadedModel)
     }
 }
 
-// 0x4f555d..0x4f5564: con el subtipo 9, el sonido va 5 más arriba. En las acciones 3 y 4 la acción no cambia.
+// 0x4f555d..0x4f5564: with subtype 9, the sound goes 5 higher. In actions 3 and 4 the action does not change.
 TEST_F(ActorShockTest, TheNinthSubtypeShiftsTheSoundAndTheAttackKeepsItsAction)
 {
     Monster().subtype = 9;
@@ -151,8 +151,8 @@ TEST_F(ActorShockTest, TheNinthSubtypeShiftsTheSoundAndTheAttackKeepsItsAction)
     EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{2 + drawn + 5 + 0xd2});
 }
 
-// Un modelo sin cargar es el registro en 0 del original: 0x4ea030 no pone nada (0x4ea056) y su tabla, en 0 (0x60dbe0),
-// pide el sonido 0xd2 con su rand(). No cierra la sesión.
+// A model not loaded is the original's zeroed record: 0x4ea030 sets nothing (0x4ea056) and its table, at 0 (0x60dbe0),
+// asks for sound 0xd2 with its rand(). It does not close the session.
 TEST_F(ActorShockTest, AMonsterWithoutItsModelKeepsItsActionAndSoundsFromTheZeroRecord)
 {
     for (const std::int32_t map : {0, 2})
@@ -171,7 +171,7 @@ TEST_F(ActorShockTest, AMonsterWithoutItsModelKeepsItsActionAndSoundsFromTheZero
     }
 }
 
-// El 0x160 sale antes de su tabla (0x4f5536): sin sonido ni rand().
+// 0x160 returns before its table (0x4f5536): no sound and no rand().
 TEST_F(ActorShockTest, TheSilentMonsterDrawsNothing)
 {
     Monster().type = 0x160;

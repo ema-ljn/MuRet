@@ -26,9 +26,9 @@
 #include <string>
 #include <vector>
 
-// Client::Actors::ApplyActorEquipment: 0x512a30, con 0x505820 y 0x550d10 (06, "El equipo propio en el
-// personaje", "El conjunto completo de 0x505820" y "Los stats del registro propio"; 04, "El F3 10"). Los valores salen
-// del ASM cotejado con el PE c32bbd5f; ninguno de una corrida.
+// Client::Actors::ApplyActorEquipment: 0x512a30, with 0x505820 and 0x550d10 (06, "El equipo propio en el personaje",
+// "El conjunto completo de 0x505820" and "Los stats del registro propio"; 04, "El F3 10"). The values come from the ASM
+// checked against PE c32bbd5f; none from a run.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -38,16 +38,16 @@ using Client::Kernel::NoItemModel;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 
-// La primera semilla cuyo rand() % 16 no es 0: el sufijo de 0x4f2250 saca uno y termina.
+// The first seed whose rand() % 16 is not 0: the suffix of 0x4f2250 draws one and ends.
 std::uint32_t QuietSeed()
 {
     return FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 != 0; });
 }
 
-// Los rand() de la cola de 0x550d10 (0x5512ee y los dos % 100).
+// The rand() of the tail of 0x550d10 (0x5512ee and the two % 100).
 constexpr int TailRandoms = 3;
 
-// Lo que no escribe 0x512a30 queda con esto.
+// What 0x512a30 does not write keeps this.
 constexpr std::uint8_t Untouched = 0x5a;
 constexpr std::uint16_t UntouchedModel = 0x5a5a;
 
@@ -62,8 +62,8 @@ ActorItemPart UntouchedPart()
             .speed = 7.0f};
 }
 
-// Un jugador con todas sus partes, la cabeza y la escala en Untouched, quieto en la acción 0x22: así
-// 0x512a30 no llama a 0x4f2250 salvo que la prueba lo pida.
+// A player with all its parts, the head and the scale at Untouched, standing in action 0x22: so 0x512a30 does not call
+// 0x4f2250 unless the test asks for it.
 ActorState DressedInUntouched(std::uint8_t characterClass)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(characterClass);
@@ -83,7 +83,7 @@ class ActorEquipmentTest : public ::testing::Test
 protected:
     ActorEquipmentTest()
     {
-        // Un tipo, un B1 y dos bytes distintos por lugar. Los lugares 9 a 11 también: 0x512a30 no los lee.
+        // A type, a B1 and two different bytes per slot. Slots 9 to 11 too: 0x512a30 does not read them.
         for (std::size_t slot = 0; slot < m_own.equipment.size(); ++slot)
         {
             Client::Kernel::ItemState& item = m_own.equipment[slot];
@@ -110,7 +110,7 @@ protected:
         return Client::Actors::ApplyActorEquipment(actor, context);
     }
 
-    // Lo que hay en [0x743a178] y [0x743a17c].
+    // What [0x743a178] and [0x743a17c] hold.
     void ExpectScan(std::int32_t lowestLevel, std::uint8_t keepsTheBonus) const
     {
         ASSERT_TRUE(m_runtime.fullSetScan.has_value());
@@ -124,7 +124,7 @@ protected:
     Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
-    // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
+    // The set tables without any set: 0x40e1b0 walks the equipment and applies nothing.
     Client::Tables::ItemSetTables m_sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
@@ -132,9 +132,9 @@ protected:
     CrtRandom m_random{QuietSeed()};
 };
 
-// 0x512abf..0x512b9b y 0x512cc7..0x512ec9: el modelo es el tipo + 0x212, el nivel (B1 >> 3) & 0xf, y
-// los bytes +0x1b y +0x1c del ítem van tal cual. Las manos llevan el +0x1b, las alas y la mascota ningún
-// byte, y el cuerpo los dos. Los lugares 9 a 11 no se leen.
+// 0x512abf..0x512b9b and 0x512cc7..0x512ec9: the model is the type + 0x212, the level (B1 >> 3) & 0xf, and the item's
+// bytes +0x1b and +0x1c go as they are. The hands carry +0x1b, the wings and the pet no byte, and the body both. Slots
+// 9 to 11 are not read.
 TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
 {
     ActorState actor = DressedInUntouched(1);
@@ -150,7 +150,7 @@ TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
         EXPECT_EQ(actor.hands[side].level, expectedLevel(side));
         EXPECT_EQ(actor.hands[side].flags1b, static_cast<std::uint8_t>(0xb0 + side));
         EXPECT_EQ(actor.hands[side].flags1c, Untouched);
-        // +5..+0x10, el hueso y lo que cuelga, no son de 0x512a30.
+        // +5..+0x10, the bone and what hangs, do not belong to 0x512a30.
         EXPECT_EQ(actor.hands[side].bone, Untouched);
         EXPECT_EQ(actor.hands[side].animation.frame, 7.0f);
         EXPECT_EQ(actor.hands[side].speed, 7.0f);
@@ -174,8 +174,8 @@ TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
     EXPECT_EQ(actor.pet.flags1c, Untouched);
 }
 
-// Un tipo −1 deja 0xffff en las manos, las alas y la mascota, y la parte de la clase en el cuerpo:
-// 0x2212, 0x221a, 0x2222, 0x222a y 0x2232 más (clase >> 3) · 5 + (clase & 7). El nivel se copia igual.
+// A type of −1 leaves 0xffff in the hands, the wings and the pet, and the class's part on the body: 0x2212, 0x221a,
+// 0x2222, 0x222a and 0x2232 plus (class >> 3) · 5 + (class & 7). The level is copied anyway.
 TEST_F(ActorEquipmentTest, EmptySlotsLeaveNoItemOrTheClassPart)
 {
     for (Client::Kernel::ItemState& item : m_own.equipment)
@@ -199,11 +199,11 @@ TEST_F(ActorEquipmentTest, EmptySlotsLeaveNoItemOrTheClassPart)
         EXPECT_EQ(actor.body[part].model, classParts[part] + classOffset);
         EXPECT_EQ(actor.body[part].level, 15);
     }
-    // 0x512930: la parte de la clase no es un casco abierto.
+    // 0x512930: the class's part is not an open helmet.
     EXPECT_EQ(actor.head, NoItemModel);
 }
 
-// 0x512a3c..0x512a42: con otro tipo sale sin abrir el registro ni tocar al personaje.
+// 0x512a3c..0x512a42: with another type it returns without opening the record or touching the character.
 TEST_F(ActorEquipmentTest, ANonPlayerIsLeftAsIs)
 {
     ActorState monster = DressedInUntouched(0);
@@ -217,9 +217,9 @@ TEST_F(ActorEquipmentTest, ANonPlayerIsLeftAsIs)
     EXPECT_EQ(m_random.State(), CrtRandom(QuietSeed()).State());
 }
 
-// +0x3e3 distinto de 0: después de las manos y de 0x4f2250 cierra el registro (0x512bea..0x512cc6) y no
-// toca la ropa, la cabeza ni la escala. El cierre que deja la cuenta en 0 saca 3.848 rand(), después
-// del de 0x4f2250; si quien llama lo tiene abierto, ninguno.
+// +0x3e3 other than 0: after the hands and 0x4f2250 it closes the record (0x512bea..0x512cc6) and does not touch the
+// clothes, the head or the scale. The close that leaves the count at 0 draws 3,848 rand(), after that of 0x4f2250; if
+// the caller has it open, none.
 TEST_F(ActorEquipmentTest, WithByte3e3TheClothesStayAndTheRecordCloses)
 {
     const std::uint32_t seed = QuietSeed();
@@ -244,8 +244,8 @@ TEST_F(ActorEquipmentTest, WithByte3e3TheClothesStayAndTheRecordCloses)
     EXPECT_EQ(m_random.State(), AfterDraws(seed, 1).State());
 }
 
-// 0x512ba1..0x512bd4: llama a 0x4f2250 con las manos ya puestas, salvo en los mapas 18 a 23, con las
-// acciones 0xc5 a 0xcc o con las de 0x22 a 0x97.
+// 0x512ba1..0x512bd4: calls 0x4f2250 with the hands already set, except on maps 18 to 23, with actions 0xc5 to 0xcc or
+// with those from 0x22 to 0x97.
 TEST_F(ActorEquipmentTest, TheStopRunsInTheMiddleUnlessBusyOrInMaps18To23)
 {
     m_own.equipment[0].id = 0;
@@ -276,8 +276,8 @@ TEST_F(ActorEquipmentTest, TheStopRunsInTheMiddleUnlessBusyOrInMaps18To23)
         EXPECT_FALSE(stopsWith(0, map));
     }
 
-    // 0x4f2250 ve lo que acaba de poner: con las alas nuevas vuela (la 9); sin ellas, la derecha nueva,
-    // 0x212 sin la marca, elige la 3.
+    // 0x4f2250 sees what it has just set: with the new wings it flies (9); without them, the new right hand, 0x212
+    // without the mark, chooses 3.
     m_runtime.map = 0;
     ActorState actor = DressedInUntouched(0);
     actor.byte3e3 = 1;
@@ -289,7 +289,7 @@ TEST_F(ActorEquipmentTest, TheStopRunsInTheMiddleUnlessBusyOrInMaps18To23)
     EXPECT_EQ(actor.animation.action, 3);
 }
 
-// Un error de 0x4f2250 corta antes de la ropa, y el acceso al registro se cierra igual.
+// An error from 0x4f2250 stops before the clothes, and the access to the record closes anyway.
 TEST_F(ActorEquipmentTest, AStopErrorStopsBeforeTheClothes)
 {
     ActorState actor = DressedInUntouched(0);
@@ -302,12 +302,12 @@ TEST_F(ActorEquipmentTest, AStopErrorStopsBeforeTheClothes)
     EXPECT_EQ(m_accesses, 0);
 }
 
-// La ropa sigue con 0x4053f0, 0x512930, 0x505820 con el héroe publicado y 0x550d10, entera. Con otro
-// personaje 0x505820 no corre y 0x550990 lee lo que había: acá, el 0 de la .bss. Con el héroe sí: sin un
-// conjunto, [0x743a178] queda en 0 y [0x743a17c] en 1.
+// The clothes go on with 0x4053f0, 0x512930, 0x505820 with the published hero and 0x550d10, whole. With another
+// character 0x505820 does not run and 0x550990 reads what was there: here, the .bss's 0. With the hero it does: without
+// a set, [0x743a178] is left at 0 and [0x743a17c] at 1.
 TEST_F(ActorEquipmentTest, TheClothesRunTheScanOnlyWithTheHeroAndThenTheStats)
 {
-    // 0x1012 es un casco abierto: 0x512930 pone la cabeza de la clase.
+    // 0x1012 is an open helmet: 0x512930 sets the class's head.
     m_own.equipment[2].id = 0x1012 - 0x212;
 
     ActorState someone = DressedInUntouched(2);
@@ -324,14 +324,14 @@ TEST_F(ActorEquipmentTest, TheClothesRunTheScanOnlyWithTheHeroAndThenTheStats)
     const auto scanned = Apply(hero);
     ASSERT_TRUE(scanned.HasValue()) << scanned.Error();
     EXPECT_EQ(hero.head, 0x2212 + 5);
-    // La clase 5 no tiene caso en las tablas de 0x512930: la escala queda.
+    // Class 5 has no case in 0x512930's tables: the scale stays.
     EXPECT_EQ(hero.scale, 7.0f);
     ExpectScan(0, 1);
 }
 
-// 0x550d10 (0x512ef5) corre después de la cabeza y antes del cierre, con el registro abierto por 0x512a30:
-// 0x54ef00 pone en 0 los WORD de +0x2a a +0x36, y siguen los ocho helpers y la cola. Los 33 accesos de
-// 0x40e1b0 no lo dejan en 0: los rand() son los tres de la cola y los del cierre de 0x512a30.
+// 0x550d10 (0x512ef5) runs after the head and before the close, with the record opened by 0x512a30: 0x54ef00 sets the
+// WORDs from +0x2a to +0x36 to 0, and the eight helpers and the tail follow. The 33 accesses of 0x40e1b0 do not leave
+// it at 0: the rand() are the tail's three and those of 0x512a30's close.
 TEST_F(ActorEquipmentTest, TheStatsRunWholeBeforeTheClose)
 {
     const std::uint32_t seed = QuietSeed();
@@ -344,20 +344,20 @@ TEST_F(ActorEquipmentTest, TheStatsRunWholeBeforeTheClose)
 
     EXPECT_EQ(m_own.word2a, 0);
     EXPECT_EQ(m_own.word36, 0);
-    // La cola: +0xef0 − +0xee6, los dos en 0.
+    // The tail: +0xef0 − +0xee6, both at 0.
     EXPECT_EQ(m_own.wordef8, 0);
     EXPECT_EQ(actor.head, NoItemModel);
     EXPECT_EQ(m_accesses, 0);
     EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Models::OwnRecordCloseRandoms).State());
 }
 
-// 0x512eda..0x512eec: 0x505820 con el héroe ya vestido y con el registro abierto por 0x512a30, así que el
-// acceso de la clase 3 no lo deja en 0 ni saca rand(). 0x550990 lee lo que dejó: con [0x743a17c] en 1 y
-// [0x743a178] en 13, +0x62 suma _ftol(+0x62 · 0.2f) (0x550b1e..0x550b83).
+// 0x512eda..0x512eec: 0x505820 with the hero already dressed and the record opened by 0x512a30, so class 3's access
+// does not leave it at 0 or draw rand(). 0x550990 reads what it left: with [0x743a17c] at 1 and [0x743a178] at 13,
+// +0x62 adds _ftol(+0x62 · 0.2f) (0x550b1e..0x550b83).
 TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
 {
     const std::uint32_t seed = QuietSeed();
-    // Del casco a las botas, el mismo índice en los grupos 7 a 11; el casco, del 9.
+    // From the helmet to the boots, the same index in groups 7 to 11; the helmet at level 9.
     const std::array<std::uint8_t, 5> levels{9, 13, 14, 15, 13};
     const auto wear = [this, &levels](std::uint16_t index)
     {
@@ -369,12 +369,12 @@ TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
             item.flags1c = 0;
         }
     };
-    // Con la clase 3 en el registro, la base de +0x62 es la agilidad / 5 (0x550990): 80.
+    // With class 3 in the record, the base of +0x62 is agility / 5 (0x550990): 80.
     m_own.characterClass = 3;
     m_own.agility = 400;
     ActorState& hero = m_hero;
 
-    // La 3 no mira el casco: el nivel más chico es 13. La armadura 8 15 es una de las cuatro (0x505aa7).
+    // Class 3 does not look at the helmet: the lowest level is 13. Armor 8 15 is one of the four (0x505aa7).
     wear(15);
     hero = DressedInUntouched(3);
     ASSERT_TRUE(Apply(hero).HasValue());
@@ -383,7 +383,7 @@ TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
     EXPECT_EQ(m_accesses, 0);
     EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Models::OwnRecordCloseRandoms).State());
 
-    // Con la 8 5, [0x743a17c] queda en 0 y +0x62 no suma.
+    // With 8 5, [0x743a17c] is left at 0 and +0x62 adds nothing.
     m_random = CrtRandom(seed);
     wear(5);
     hero = DressedInUntouched(3);
@@ -392,15 +392,15 @@ TEST_F(ActorEquipmentTest, TheHeroIsScannedWithTheRecordOpenAnd0x550990ReadsIt)
     EXPECT_EQ(m_own.word62, 80);
     EXPECT_EQ(m_random.State(), AfterDraws(seed, TailRandoms + Client::Models::OwnRecordCloseRandoms).State());
 
-    // Otra clase mira el casco: el más chico es 9, que no tiene factor, y [0x743a17c] queda en 1.
+    // Another class looks at the helmet: the lowest is 9, which has no factor, and [0x743a17c] is left at 1.
     hero = DressedInUntouched(1);
     ASSERT_TRUE(Apply(hero).HasValue());
     ExpectScan(9, 1);
     EXPECT_EQ(m_own.word62, 80);
 }
 
-// Con otro personaje 0x550990 lee lo que dejó el último 0x505820, sin tocarlo. Si MuRet no lo sabe (un frame
-// del juego en el medio), corta ahí con error; con el héroe, 0x505820 lo vuelve a escribir antes.
+// With another character 0x550990 reads what the last 0x505820 left, without touching it. If MuRet does not know it (a
+// game frame in between), it stops there with an error; with the hero, 0x505820 writes it again first.
 TEST_F(ActorEquipmentTest, AnotherCharacterReadsWhatTheLastScanLeft)
 {
     m_own.agility = 400;
@@ -428,10 +428,10 @@ TEST_F(ActorEquipmentTest, AnotherCharacterReadsWhatTheLastScanLeft)
     ExpectScan(0, 1);
 }
 
-// 0x4053f0 en los mapas 18 a 23, después de la ropa: 0x4053a0 deja sin ítem las manos, las alas y la
-// mascota, con el nivel en 0 y el +0x1b de las manos en 0 (no el de las alas ni el de la mascota), y la
-// clase (+0x1d4 & 7) elige el arma: 0xc17 a la derecha de la 0, 0x222 en las dos manos de la 1, la 3 y
-// la 4, 0xa25 a la derecha de la 2 y nada en la 5 a la 7. Sigue con 0x512930 y 0x550d10.
+// 0x4053f0 on maps 18 to 23, after the clothes: 0x4053a0 leaves the hands, the wings and the pet without an item, with
+// the level at 0 and the hands' +0x1b at 0 (not that of the wings or the pet), and the class (+0x1d4 & 7) chooses the
+// weapon: 0xc17 in the right hand of class 0, 0x222 in both hands of classes 1, 3 and 4, 0xa25 in the right hand of
+// class 2 and nothing for 5 to 7. It goes on with 0x512930 and 0x550d10.
 TEST_F(ActorEquipmentTest, Maps18To23LeaveOnlyTheWeaponOfTheClass)
 {
     struct Armed
@@ -474,14 +474,14 @@ TEST_F(ActorEquipmentTest, Maps18To23LeaveOnlyTheWeaponOfTheClass)
             EXPECT_EQ(actor.pet.level, 0);
             EXPECT_EQ(actor.pet.flags1b, Untouched);
             EXPECT_FALSE(actor.previousHad1c15);
-            // La ropa de antes queda, y 0x512930 corre después.
+            // The earlier clothes stay, and 0x512930 runs afterwards.
             EXPECT_EQ(actor.body[0].model, m_own.equipment[2].id + 0x212);
             EXPECT_EQ(actor.head, NoItemModel);
         }
     }
 }
 
-// 0x512a30 escribe el word318 entero: lo que la selección guarda de él se pone al día.
+// 0x512a30 writes the whole word318: what the selection keeps of it is brought up to date.
 TEST_F(ActorEquipmentTest, ThePetKeepsTheWord318HistoryInStep)
 {
     ActorState actor = DressedInUntouched(0);

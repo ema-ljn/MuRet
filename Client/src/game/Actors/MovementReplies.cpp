@@ -98,7 +98,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(Kernel::ActorState& actor,
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el D3 recibido"));
     Pathfinding::PathFinder finder(attributes->cells);
-    // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el D3 de otro.
+    // 0x4eac0a..0x4eac41: with a Crywolf altar in 0x6c8e54, the A* flag also in another's D3.
     const auto path = finder.Find({actor.cellX, actor.cellY}, {actor.targetX, actor.targetY},
                                   Scenes::CrywolfAltarGoal(resources.world));
     actor.movement = path.has_value() ? 1 : 0;
@@ -131,8 +131,8 @@ Core::Expected<void, std::string> ApplyJumpingWalk(Kernel::ActorState& actor,
     const auto context = StopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
-    // 0x4f37c0 → 0x4ea030 con el modelo del personaje: el 0x186 es un monstruo (el GS 0.97 manda su D3 desde
-    // gObjMonster, que llama a CGMoveRecv), con su modelo en WorldState::FaunaResources (MonsterSkeletonOf).
+    // 0x4f37c0 → 0x4ea030 with the character's model: 0x186 is a monster (GS 0.97 sends its D3 from
+    // gObjMonster, which calls CGMoveRecv), with its model in WorldState::FaunaResources (MonsterSkeletonOf).
     const auto walked = SetActorWalk(actor, {context.Value(), resources.world.ActionSpeeds(), false,
                                              context.Value().actorSkeleton, context.Value().modelSounds});
     if (!walked.HasValue())
@@ -172,13 +172,13 @@ glm::vec3 DamageLight(std::uint8_t type, bool hero)
         return {1.0f, 1.0f, 1.0f};
     }
 }
-// 0x4cb30b..0x4cb3b0: el héroe 0x20a con +0x78 & 0x100 (el escudo de la skill del mago, 0x4e641a) que recibe un golpe
-// sin sacudida. El personaje del lugar [0x5767964] (WorldRuntime::lastAttacker: el del último 18 con 0x78 o 0x79, o la
-// fuente del último 19, 69 o 1A, con el 400, el lugar que sigue a los 400 de la tabla, si no estaba; 0 antes del
-// primero) es el que pega: 0x4e93f0 da el rumbo desde él hasta el héroe y, si difiere del suyo (+0x24) en menos de 10
-// (0x6b8d30, un double; también sin orden, con NaN), 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0,
-// héroe, −1, 0, 0, 0, 0): el escudo, que mira al que pega. El original no mira si ese lugar está vivo: lee el que haya.
-// Sin rand(); con la tabla llena, nada.
+// 0x4cb30b..0x4cb3b0: the 0x20a hero with +0x78 & 0x100 (the shield of the wizard's skill, 0x4e641a) that takes a hit
+// without a shake. The character of slot [0x5767964] (WorldRuntime::lastAttacker: that of the last 18 with 0x78 or
+// 0x79, or the source of the last 19, 69 or 1A, with 400, the slot after the table's 400, if it was not there; 0
+// before the first) is the one striking: 0x4e93f0 gives the heading from it to the hero and, if it differs from its
+// own (+0x24) by less than 10 (0x6b8d30, a double; also unordered, with NaN), 0x518cf0(0x109, the hero's +0x10,
+// (0, 0, heading + 180), +0xf4, 0, hero, −1, 0, 0, 0, 0): the shield, facing the striker. The original does not check
+// whether that slot is alive: it reads whatever is there. No rand(); with the table full, nothing.
 Core::Expected<void, std::string> RaiseTheShield(Kernel::ActorState& hero, const Scenes::WorldEntryResources& resources)
 {
     constexpr std::int16_t ShieldEffect = 0x109;
@@ -192,7 +192,7 @@ Core::Expected<void, std::string> RaiseTheShield(Kernel::ActorState& hero, const
             std::format("0x4cb347: el lugar {} de [0x5767964] cae fuera de la tabla de personajes", source));
     const Kernel::ActorState& striker = actors[static_cast<std::size_t>(source)];
     const double heading = Math::CreateAngle(striker.position.x, striker.position.y, hero.position.x, hero.position.y);
-    // 0x4cb361..0x4cb376: fabs y fcomp con test ah,1: C0 también sin orden.
+    // 0x4cb361..0x4cb376: fabs and fcomp with test ah,1: C0 also unordered.
     if (std::fabs(heading - static_cast<double>(striker.angles.z)) >= FacingSpan)
         return {};
     const World::ModelEffectArguments shield{.type = ShieldEffect,
@@ -225,7 +225,7 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, Kernel::Actor
         CreateRisingDamage(resources.world, position, reply.amount, light - glm::vec3(dim), enlarged);
         position.z = static_cast<float>(static_cast<double>(position.z) + DuplicateHeight);
     }
-    // 0x4cb614 salta a 0x4cb6c1 y cae después en 0x4cb6c9: bit7 también emite el normal final.
+    // 0x4cb614 jumps to 0x4cb6c1 and then falls into 0x4cb6c9: bit 7 also emits the final normal one.
     if (reply.flag)
         CreateRisingDamage(resources.world, position, reply.amount, light, scale + DuplicateHeight);
     CreateRisingDamage(resources.world, actor.position, reply.amount, light, scale);

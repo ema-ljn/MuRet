@@ -26,21 +26,21 @@ struct ActorMotionContext
     Kernel::WorldRuntime& runtime;
     Crt::CrtRandom& random;
     std::function<double(float, float)> height;
-    // 0x4eac0a..0x4eac41: la bandera del A* que 0x4eac00 calcula al entrar (Scenes::CrywolfAltarGoal) para el
-    // reintento del camino (0x508e0e). Nada de 0x508ba0 antes del reintento cambia lo que mira.
+    // 0x4eac0a..0x4eac41: the A* flag 0x4eac00 computes on entry (Scenes::CrywolfAltarGoal) for the path
+    // retry (0x508e0e). Nothing in 0x508ba0 before the retry changes what it looks at.
     bool altarGoal = false;
 };
-// Los accesos lógicos de MovePath se conservan antes/después de cada store, sin tocar el blanco.
+// MovePath's logical accesses are kept before and after each store, without touching the target.
 [[nodiscard]] bool MoveActorPath(Kernel::ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> UpdateActorPosition(Kernel::ActorState& actor,
                                                                     const ActorMotionContext& context);
-// 0x508ba0. El héroe lo excluye el caller. Quieto reintenta sin moverse; caminando avanza incluso
-// después del snap de llegada y de fijar el yaw de D3. Usa el TerrainWall vivo, sin reconstruirlo.
+// 0x508ba0. The caller leaves the hero out. Standing still it retries without moving; walking it advances even
+// after the arrival snap and after fixing the yaw of D3. It uses the live TerrainWall, without rebuilding it.
 [[nodiscard]] Core::Expected<void, std::string> StepOtherActorMotion(Kernel::ActorState& actor,
                                                                      const ActorWalkContext& walk,
                                                                      const ActorMotionContext& motion,
                                                                      Data::Terrain::TerrainLayer<std::uint16_t>& walls);
-// Sólo lo llama 0x505de0 para personajes vistos. La resta ocurre antes de sus efectos.
+// Only 0x505de0 calls it, for seen characters. The subtraction happens before its effects.
 [[nodiscard]] Core::Expected<void, std::string> StepActorCooldown(Kernel::ActorState& actor, Crt::CrtRandom& random,
                                                                   const ActorCooldownServices& services = {});
 } // namespace Client::Actors

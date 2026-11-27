@@ -15,8 +15,8 @@ struct ActorState;
 
 namespace Client::Actors
 {
-// 0x5069ae: los veinte efectos del freno. Los callbacks comparten el CRT del caller, incluyendo
-// los rand que el creador del efecto gasta. Vacío corta antes del creador, después del prefijo.
+// 0x5069ae: the twenty effects of the brake. The callbacks share the caller's CRT, including the rand() calls the
+// effect's creator spends. Empty stops before the creator, after the prefix.
 struct ActorCooldownServices
 {
     std::function<Core::Expected<void, std::string>(const glm::vec3&, const Kernel::ActorState&)> particle;

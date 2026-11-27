@@ -21,21 +21,21 @@ struct OwnCharacterRecord;
 class WorldState;
 } // namespace Client::Kernel
 
-// 0x505820, el conjunto completo +9 de un personaje, y lo que deja en [0x743a178] y [0x743a17c] para
-// 0x550990 y para el dibujo de los personajes. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
+// 0x505820, a character's full +9 set, and what it leaves in [0x743a178] and [0x743a17c] for
+// 0x550990 and for the characters' drawing. Contract: Client/docs/research/06-render-escenas-y-ui.md,
 // "El conjunto completo de 0x505820".
 namespace Client::Actors
 {
 
-// [0x743a178] y [0x743a17c], en la .bss: 0 al arrancar. Solo los escribe 0x505820, los dos en cada
-// llamada; los leen 0x550990 (0x550b1e..0x550b2a) y el dibujo de los personajes (0x50ff2a..0x510313).
+// [0x743a178] and [0x743a17c], in the .bss: 0 at startup. Only 0x505820 writes them, both on every
+// call; 0x550990 (0x550b1e..0x550b2a) and the characters' drawing (0x50ff2a..0x510313) read them.
 struct Scan505820
 {
     std::int32_t dword743a178 = 0;
     std::uint8_t byte743a17c = 0;
 };
 
-// Lo que 0x505820 lee de una parte del cuerpo: el modelo (+0, con signo) y el nivel (+2, & 0xf).
+// What 0x505820 reads from a body part: the model (+0, signed) and the level (+2, & 0xf).
 struct ScannedPart
 {
     std::uint16_t model = 0;
@@ -44,8 +44,8 @@ struct ScannedPart
 
 inline constexpr std::size_t ScannedPartCount = 5;
 
-// Lo que lee del personaje: la clase (+0x1d4, & 7) y las cinco partes del cuerpo, de +0x218 a +0x298 de
-// a 0x20, en el orden de Kernel::BodyPart (del casco a las botas).
+// What it reads from the character: the class (+0x1d4, & 7) and the five body parts, from +0x218 to +0x298
+// 0x20 apart, in the order of Kernel::BodyPart (from the helmet to the boots).
 struct ScannedCharacter
 {
     std::uint8_t characterClass = 0;
@@ -53,30 +53,30 @@ struct ScannedCharacter
 };
 
 [[nodiscard]] ScannedCharacter ScannedCharacterOf(const Kernel::ActorState& actor);
-// Un personaje de la lista o el del login: lo que 0x517270 y 0x5139f0 dejan en esas partes.
+// A character of the list or the login's: what 0x517270 and 0x5139f0 leave in those parts.
 [[nodiscard]] ScannedCharacter ScannedCharacterOf(const Kernel::CharacterAppearance& appearance);
 
-// Lo que deja 0x505820: lo que devuelve en al y los dos globales.
+// What 0x505820 leaves: what it returns in al and the two globals.
 struct FullSetScan
 {
     bool complete = false;
     Scan505820 globals;
 };
 
-// 0x505820(personaje), cdecl. Con alguna parte en 0xffff, o con una de nivel menor que 9 o de otro índice
-// ((modelo − 0x212) con el resto con signo de 512) que las botas, no hay conjunto: [0x743a178] en 0. Si
-// no, [0x743a178] es el nivel más chico. La clase 3 no mira el casco. [0x743a17c] queda en 1, salvo con
-// la clase 3 y el conjunto: abre el registro propio (Models::LogicalAccess sobre
-// `ownRecordAccesses`), lo pone en 0 si la armadura del registro (+0xc44) no es 0x100f, 0x1014, 0x1017
-// ni 0x1020, y lo cierra, con 3.848 rand() de `random` si deja la cuenta en 0.
+// 0x505820(character), cdecl. With some part at 0xffff, or with one of level below 9 or of another index
+// ((model − 0x212) with the signed remainder of 512) than the boots, there is no set: [0x743a178] at 0. Otherwise,
+// [0x743a178] is the smallest level. Class 3 does not look at the helmet. [0x743a17c] stays at 1, except with
+// class 3 and the set: it opens the own record (Models::LogicalAccess over
+// `ownRecordAccesses`), sets it to 0 if the record's armor (+0xc44) is not 0x100f, 0x1014, 0x1017
+// or 0x1020, and closes it, with 3,848 rand() of `random` if it leaves the count at 0.
 [[nodiscard]] FullSetScan ScanFullSet(const ScannedCharacter& character, const Kernel::OwnCharacterRecord& own,
                                       std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random);
 
-// 0x50c904..0x50c926: lo que 0x50ba30 hace con un 0x20a con +0x3e4 en 0, en cada frame del original que lo
-// dibuja, `frames` veces: 0x505820 con el registro propio y la cuenta de accesos de `world`, y los
-// globales en WorldRuntime::fullSetScan. Devuelve lo del último, que lee el conjunto completo de la cola de
-// efectos (0x50fddb). Con `frames` en 0 (un dibujo entre frames), lo mismo sobre copias del rand() y de la
-// cuenta, sin publicar nada.
+// 0x50c904..0x50c926: what 0x50ba30 does with a 0x20a with +0x3e4 at 0, on each frame of the original that
+// draws it, `frames` times: 0x505820 with the own record and the access count of `world`, and the
+// globals in WorldRuntime::fullSetScan. Returns the last one's, which the full set of the effect queue reads
+// (0x50fddb). With `frames` at 0 (a drawing between frames), the same over copies of the rand() and of the
+// count, without publishing anything.
 [[nodiscard]] FullSetScan ScanTheDrawnCharacter(Kernel::WorldState& world, const ScannedCharacter& character,
                                                 Crt::CrtRandom& random, int frames);
 } // namespace Client::Actors

@@ -27,8 +27,8 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-// Client::Actors::SetActorStop: 0x4f2250, la acción de parado (06, "Caminar"; P-C14 c). Los valores
-// salen del ASM cotejado con el PE c32bbd5f; ninguno de una corrida del original.
+// Client::Actors::SetActorStop: 0x4f2250, the standing action (06, "Caminar"; P-C14 c). The values come from the ASM
+// checked against PE c32bbd5f; none from a run of the original.
 namespace
 {
 using Client::Actors::ActorStopContext;
@@ -63,7 +63,7 @@ public:
     std::vector<SoundRequest> requests;
 };
 
-// La primera semilla cuyo rand() % 16 no es 0: el sufijo saca uno y termina.
+// The first seed whose rand() % 16 is not 0: the suffix draws one and ends.
 std::uint32_t QuietSeed()
 {
     return FirstSeedWhere([](CrtRandom& random) { return random.Next() % 16 != 0; });
@@ -82,7 +82,7 @@ std::uint32_t SeedWithSuffixGate(std::uint32_t prefixDraws, bool gate)
 class ActorStopTest : public ::testing::Test
 {
 protected:
-    // 0x4f2250 sobre `actor`, en el mapa y la escena de la prueba, con la semilla de m_random.
+    // 0x4f2250 on `actor`, in the test's map and scene, with m_random's seed.
     Client::Core::Expected<Client::Actors::ActorStopResult, std::string> Stop(ActorState& actor)
     {
         Client::Actors::ActionSender send{};
@@ -100,7 +100,7 @@ protected:
         return Client::Actors::SetActorStop(actor, context);
     }
 
-    // La acción que queda después de un 0x4f2250 que no corta.
+    // The action left after a 0x4f2250 that does not fail.
     std::uint8_t StandOf(ActorState actor)
     {
         const auto stopped = Stop(actor);
@@ -115,12 +115,12 @@ protected:
     const Client::Models::Skeleton* m_actorSkeleton = nullptr;
     std::span<const std::int16_t> m_modelSounds{};
     const Client::Data::Terrain::TerrainLayer<std::uint16_t>* m_terrainWalls = nullptr;
-    // Las armas de la matriz que llevan la marca +0x1e en Item.bmd.
+    // The matrix's weapons that carry the +0x1e mark in Item.bmd.
     Client::Tables::ItemTable m_items =
         Client::Tests::ItemsMarking({0x213, 0x227, 0x229, 0x231, 0x811, 0x815, 0xc12, 0xe11});
     bool m_withItems = true;
     CrtRandom m_random{QuietSeed()};
-    // Los C1 18 que manda sentarse, con la dirección y la acción. Sin m_withSender, nadie los manda.
+    // The C1 18 that sitting down sends, with the direction and the action. Without m_withSender, nobody sends them.
     bool m_withSender = true;
     std::vector<Client::Tests::SentAction> m_sent;
 };
@@ -133,8 +133,8 @@ ActorState Armed(std::uint16_t right, std::uint16_t left = NoItemModel, std::uin
     return actor;
 }
 
-// 0x4f2bf6..0x4f2c2c y 0x4f2d5b..0x4f2d72: sin nada en las manos, o en la zona segura de los mapas de
-// menos de 11 o más de 23, la 1, y la 2 con la clase 2 (sin mirar el bit de la segunda clase).
+// 0x4f2bf6..0x4f2c2c and 0x4f2d5b..0x4f2d72: with nothing in the hands, or in the safe zone of maps below 11 or above
+// 23, action 1, and 2 with class 2 (without looking at the second class's bit).
 TEST_F(ActorStopTest, SafeZoneOrNoWeaponStands1Or2ForTheElf)
 {
     EXPECT_EQ(StandOf(UnarmedPlayer(0)), 1);
@@ -153,7 +153,7 @@ TEST_F(ActorStopTest, SafeZoneOrNoWeaponStands1Or2ForTheElf)
         EXPECT_EQ(StandOf(armedSafe), 2);
         armedSafe.characterClass = 0;
     }
-    // De 11 a 23, la zona segura no cambia nada: elige el arma (0x4f2c16..0x4f2c1e).
+    // From 11 to 23, the safe zone changes nothing: the weapon chooses (0x4f2c16..0x4f2c1e).
     for (const std::int32_t map : {11, 23})
     {
         SCOPED_TRACE(map);
@@ -162,7 +162,7 @@ TEST_F(ActorStopTest, SafeZoneOrNoWeaponStands1Or2ForTheElf)
     }
 }
 
-// Run en 0 al entrar (0x4f227f), y la acción por 0x4ea030: con la misma no toca el frame.
+// Run at 0 on entry (0x4f227f), and the action through 0x4ea030: with the same one it does not touch the frame.
 TEST_F(ActorStopTest, RunGoesToZeroAndTheActionGoesThroughSetAction)
 {
     ActorState walking = UnarmedPlayer();
@@ -183,8 +183,8 @@ TEST_F(ActorStopTest, RunGoesToZeroAndTheActionGoesThroughSetAction)
     EXPECT_EQ(standing.animation.frame, 2.25f);
 }
 
-// 0x4f2c31..0x4f2d82, con los modelos como WORD con signo: los grupos 0 a 2 por la marca +0x1e del
-// registro, 0x813 y 0x814, los grupos 3 y 5, la izquierda del grupo 4 y la derecha del grupo 4.
+// 0x4f2c31..0x4f2d82, with the models as signed WORDs: groups 0 to 2 by the record's +0x1e mark, 0x813 and 0x814,
+// groups 3 and 5, the left one of group 4 and the right one of group 4.
 TEST_F(ActorStopTest, WeaponMatrix)
 {
     struct Case
@@ -212,7 +212,7 @@ TEST_F(ActorStopTest, WeaponMatrix)
     EXPECT_EQ(StandOf(Armed(NoItemModel, 0xe12, 2)), 2);
 }
 
-// La marca sale de *[0x7758550]: sin Item.bmd no se inventa. 0x813 y 0x814 y el grupo 4 no la leen.
+// The mark comes from *[0x7758550]: without Item.bmd it is not made up. 0x813, 0x814 and group 4 do not read it.
 TEST_F(ActorStopTest, WithoutItemBmdTheMarkIsAnError)
 {
     m_withItems = false;
@@ -226,8 +226,8 @@ TEST_F(ActorStopTest, WithoutItemBmdTheMarkIsAnError)
     EXPECT_EQ(StandOf(Armed(NoItemModel, 0xa12)), 7);
 }
 
-// 0x4f22fb..0x4f230f: el caballo oscuro fuera de la zona segura, con armas o con alas, es la 0x4a. En
-// la zona segura sigue de largo.
+// 0x4f22fb..0x4f230f: the dark horse outside the safe zone, with weapons or wings, is 0x4a. In the safe zone it goes
+// past.
 TEST_F(ActorStopTest, DarkHorseOutsideIs4a)
 {
     ActorState rider = Armed(0x212, 0xa12);
@@ -241,8 +241,8 @@ TEST_F(ActorStopTest, DarkHorseOutsideIs4a)
     EXPECT_EQ(StandOf(inTown), 1);
 }
 
-// 0x4f2314..0x4f2360: el cuervo en la izquierda en la zona segura es la 0x48; 0x1c14 y 0x1c15 fuera de
-// ella, la 0xb sin armas y la 0xc con alguna.
+// 0x4f2314..0x4f2360: the raven in the left hand in the safe zone is 0x48; 0x1c14 and 0x1c15 outside it, 0xb without
+// weapons and 0xc with any.
 TEST_F(ActorStopTest, TheRavenInTheSafeZoneIs48AndRidingIsBOrC)
 {
     ActorState raven = Armed(0x212, 0x1c17);
@@ -264,8 +264,8 @@ TEST_F(ActorStopTest, TheRavenInTheSafeZoneIs48AndRidingIsBOrC)
     }
 }
 
-// 0x4f228c..0x4f22f6: Fenrir fuera de la zona segura pone en 0 el latch 0x7d3a0d0 y elige por las
-// manos, antes que el caballo, las alas o sentarse.
+// 0x4f228c..0x4f22f6: Fenrir outside the safe zone sets the latch 0x7d3a0d0 to 0 and chooses by the hands, before the
+// horse, the wings or sitting.
 TEST_F(ActorStopTest, FenrirIs76To79)
 {
     struct Case
@@ -297,8 +297,8 @@ TEST_F(ActorStopTest, FenrirIs76To79)
     EXPECT_EQ(m_runtime.movementSpeed.itemLatch, 7u);
 }
 
-// 0x4f2365..0x4f27fc: vuela con alas fuera de la zona segura o con +0x376 en 0x101; la 10 con la
-// derecha del grupo 4 y si no la 9.
+// 0x4f2365..0x4f27fc: it flies with wings outside the safe zone or with +0x376 at 0x101; 10 with the right one of group
+// 4, otherwise 9.
 TEST_F(ActorStopTest, WingsOutsideOrWord376FlyAs9Or10)
 {
     ActorState winged = Armed(0x212);
@@ -315,8 +315,8 @@ TEST_F(ActorStopTest, WingsOutsideOrWord376FlyAs9Or10)
     EXPECT_EQ(StandOf(word376), 9);
 }
 
-// 0x4f2376..0x4f23ce: en los mapas 7, 24 a 29 y 36 de la escena 5 decide la celda del TerrainWall vivo,
-// que MuRet no tiene en el juego. Fuera de la escena 5 no la mira.
+// 0x4f2376..0x4f23ce: on maps 7, 24 to 29 and 36 of scene 5 the cell of the live TerrainWall decides, which MuRet does
+// not have in the game. Outside scene 5 it does not look at it.
 TEST_F(ActorStopTest, FlyingMapsOfTheGameSceneAreAFrontier)
 {
     for (const std::int32_t map : {7, 24, 29, 36})
@@ -342,9 +342,9 @@ TEST_F(ActorStopTest, FlyingMapsOfTheGameSceneAreAFrontier)
     }
 }
 
-// 0x4f23e3..0x4f2bea y 0x4f2801..0x4f2bea: con +0x7c & 0x200000, ya sentado no cambia nada; si no, pone la 0xca y
-// manda el C1 05 18 con la dirección de su propio ángulo (+0x24) y 0x82, por las dos copias (volando y por el piso),
-// y sigue al sufijo, que saca su rand().
+// 0x4f23e3..0x4f2bea and 0x4f2801..0x4f2bea: with +0x7c & 0x200000, already sitting, nothing changes; otherwise it sets
+// 0xca and sends the C1 05 18 with the direction of its own angle (+0x24) and 0x82, through both copies (flying and on
+// the ground), and goes on to the suffix, which draws its rand().
 TEST_F(ActorStopTest, SittingSendsTheActionWithItsOwnAngle)
 {
     using Sent = std::vector<Client::Tests::SentAction>;
@@ -376,7 +376,7 @@ TEST_F(ActorStopTest, SittingSendsTheActionWithItsOwnAngle)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// Sin quien mande el C1 18 (una llamada que todavía no lo ata), sentarse corta con su dirección después de la 0xca.
+// Without a sender for the C1 18 (a call that does not wire it yet), sitting down stops with its address after 0xca.
 TEST_F(ActorStopTest, SittingWithoutASenderIsAnExplicitError)
 {
     m_withSender = false;
@@ -388,8 +388,8 @@ TEST_F(ActorStopTest, SittingWithoutASenderIsAnExplicitError)
     EXPECT_EQ(sitting.animation.action, 0xca);
 }
 
-// 0x4f36be..0x4f37a5: un rand() siempre; con rand() % 16 en 0 y Fenrir, otro % 3 y, si da 0, el sonido
-// 0x279 + rand() & 1. La mascota decide, no la acción.
+// 0x4f36be..0x4f37a5: one rand() always; with rand() % 16 at 0 and Fenrir, another % 3 and, if it gives 0, sound 0x279
+// + rand() & 1. The pet decides, not the action.
 TEST_F(ActorStopTest, TheSuffixDrawsOneRandAndFenrirMaySound)
 {
     const std::uint32_t quiet = QuietSeed();
@@ -453,7 +453,7 @@ TEST_F(ActorStopTest, FenrirSuffixRequestsItsSoundOnceAtTheActorPosition)
     EXPECT_FALSE(playback.requests[0].loop);
 }
 
-// 0x4f2286..0x4f36be: el tipo 0x154 pide la acción 0 del esqueleto propio tras leer Y y luego X.
+// 0x4f2286..0x4f36be: type 0x154 asks for action 0 of its own skeleton after reading Y and then X.
 TEST_F(ActorStopTest, TransformedActorUsesItsModelIdleAndPreservesTheSameActionFrame)
 {
     m_actorModelSkeleton.actions.resize(7);
@@ -492,7 +492,7 @@ TEST_F(ActorStopTest, TransformedActorUsesItsModelIdleAndPreservesTheSameActionF
     EXPECT_EQ(m_random.State(), AfterDraws(quiet, 9).State());
 }
 
-// El 0x172 consulta solamente el bit 0 del TerrainWall en la celda lógica y elige 7 o 0.
+// 0x172 looks only at bit 0 of the TerrainWall in the logical cell and chooses 7 or 0.
 TEST_F(ActorStopTest, Type172UsesTheLogicalCellTerrainWallBit)
 {
     m_actorModelSkeleton.actions.resize(8);
@@ -522,7 +522,7 @@ TEST_F(ActorStopTest, Type172UsesTheLogicalCellTerrainWallBit)
     EXPECT_EQ(actor.position, glm::vec3(9000.0f, 8000.0f, 12.0f));
 }
 
-// El actor transformado necesita celdas Y y X con cierres separados: cada cierre a cero gasta cuatro rand().
+// The transformed actor needs the Y and X cells with separate closes: each close to zero draws four rand().
 TEST_F(ActorStopTest, LogicalCellCloseDrawsRespectExistingDepthAndByteWrap)
 {
     m_actorSkeleton = &m_actorModelSkeleton;
@@ -559,7 +559,7 @@ TEST_F(ActorStopTest, LogicalCellCloseDrawsRespectExistingDepthAndByteWrap)
     }
 }
 
-// Un modelo sin esqueleto equivale al registro vacío: SetAction no-op, pero el sufijo sigue corriendo.
+// A model without a skeleton is the same as the empty record: SetAction does nothing, but the suffix still runs.
 TEST_F(ActorStopTest, MissingOrEmptyActorSkeletonLeavesTheAnimationAndRunsTheSuffix)
 {
     const std::array<std::int16_t, 10> noModelSound{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
@@ -585,7 +585,7 @@ TEST_F(ActorStopTest, MissingOrEmptyActorSkeletonLeavesTheAnimationAndRunsTheSuf
     }
 }
 
-// En el 0x172 la falta de TerrainWall corta después de run y los dos accesos, antes de cambiar la acción.
+// On 0x172 a missing TerrainWall stops with an error after run and the two accesses, before changing the action.
 TEST_F(ActorStopTest, Type172WithoutTerrainWallsErrorsAfterTheLogicalCellAccesses)
 {
     m_actorSkeleton = &m_actorModelSkeleton;
@@ -610,7 +610,7 @@ TEST_F(ActorStopTest, Type172WithoutTerrainWallsErrorsAfterTheLogicalCellAccesse
     EXPECT_EQ(m_random.State(), AfterDraws(seed, 8).State());
 }
 
-// 0x4f36e2..0x4f36f3: los subtipos 209 a 211 usan la tabla de sonido con jugadores y no jugadores.
+// 0x4f36e2..0x4f36f3: subtypes 209 to 211 use the sound table with players and non-players.
 TEST_F(ActorStopTest, ModelSoundSubtypesUseTheirTableWhenTheSuffixGateOpens)
 {
     const std::array<std::int16_t, 10> sounds{10, 11, 11, 11, 12, -1, -1, -1, -1, -1};
@@ -642,8 +642,7 @@ TEST_F(ActorStopTest, ModelSoundSubtypesUseTheirTableWhenTheSuffixGateOpens)
     }
 }
 
-// El primer WORD −1 corta antes del segundo rand(); los ceros del registro vacío son datos válidos y sí toman el
-// segundo.
+// A first WORD of −1 stops before the second rand(); the empty record's zeros are valid data and do take the second.
 TEST_F(ActorStopTest, ModelSoundSentinelAndZeroFallbackHaveDifferentRandomPaths)
 {
     m_actorSkeleton = &m_actorModelSkeleton;
@@ -668,7 +667,7 @@ TEST_F(ActorStopTest, ModelSoundSentinelAndZeroFallbackHaveDifferentRandomPaths)
     EXPECT_EQ(m_random.State(), AfterDraws(seed, 9).State());
 }
 
-// El sufijo noPlayer usa los dos WORD del modelo, añade 5 con subtype 9 y no aplica la rama de sonido de Fenrir.
+// The noPlayer suffix uses the model's two WORDs, adds 5 with subtype 9 and does not take Fenrir's sound branch.
 TEST_F(ActorStopTest, NonPlayerSuffixUsesItsModelTableInsteadOfFenrirSounds)
 {
     m_actorSkeleton = &m_actorModelSkeleton;
@@ -690,7 +689,7 @@ TEST_F(ActorStopTest, NonPlayerSuffixUsesItsModelTableInsteadOfFenrirSounds)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// Los dos WORD se leen con signo: si el segundo es −1 se suma como tal, no termina el sufijo.
+// Both WORDs are read signed: if the second is −1 it is added as such, and it does not end the suffix.
 TEST_F(ActorStopTest, TheSecondModelSoundWordIsSignedAndStillAddsTheSubtypeOffset)
 {
     m_actorSkeleton = &m_actorModelSkeleton;
@@ -714,7 +713,7 @@ TEST_F(ActorStopTest, TheSecondModelSoundWordIsSignedAndStillAddsTheSubtypeOffse
     EXPECT_EQ(m_random.State(), AfterDraws(seed, 10).State());
 }
 
-// Si el sufijo no abre la tabla no hace falta prestarla; si la abre, el error conserva los cambios anteriores.
+// If the suffix does not open the table it need not be lent; if it opens it, the error keeps the earlier changes.
 TEST_F(ActorStopTest, MissingModelSoundTableErrorsOnlyWhenTheSuffixReadsIt)
 {
     m_actorSkeleton = &m_actorModelSkeleton;
@@ -738,7 +737,7 @@ TEST_F(ActorStopTest, MissingModelSoundTableErrorsOnlyWhenTheSuffixReadsIt)
     EXPECT_EQ(m_random.State(), AfterDraws(loud, 9).State());
 }
 
-// También en el jugador transformado, 209..211 consultan la tabla que presta su caller.
+// On the transformed player too, 209..211 look at the table their caller lends.
 TEST_F(ActorStopTest, PlayerSoundSubtypesUseTheBorrowedModelTable)
 {
     const std::array<std::int16_t, 10> sounds{10, 11, 11, 11, 12, -1, -1, -1, -1, -1};

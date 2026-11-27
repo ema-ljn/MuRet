@@ -28,19 +28,19 @@ constexpr double LargePetHeightOffset = 90.0; // 0x6b8948
 constexpr std::int32_t FirstLargeOffsetMap = 8;
 constexpr std::int32_t SecondLargeOffsetMap = 10;
 constexpr std::int32_t NoMap = -1;
-// 0x6b86b4 y 0x6b86b0: el centro de la celda, X · 100 + 50.
+// 0x6b86b4 and 0x6b86b0: the center of the cell, X · 100 + 50.
 constexpr float CellSize = 100.0f;
 constexpr float CellCenter = 50.0f;
 constexpr float PlayerScale = 0.9f;
 constexpr std::uint8_t ConstructedPk = 3;
-// 0x511c70: +0x93 en 0xa.
+// 0x511c70: +0x93 at 0xa.
 constexpr std::uint16_t NoWord376 = 0xffff;
 constexpr std::uint8_t PlayerStartAction = 1;
 constexpr std::uint16_t ConstructedMovementSpeed = 10;
 constexpr std::uint8_t RightHandBone = 0x21;
 constexpr std::uint8_t LeftHandBone = 0x2a;
 
-// La caja de 0x511290 (+0x124..+0x138), relativa a la posición.
+// The box of 0x511290 (+0x124..+0x138), relative to the position.
 struct ConstructionBox
 {
     glm::vec3 min;
@@ -49,8 +49,8 @@ struct ConstructionBox
     float top;
 };
 
-// 0x512270..0x5123ba: el piso en (−60, −60, 0) y, por la tabla de bytes de 0x512700 sobre la de saltos de 0x5126e4
-// con el tipo − 0x154 (de 0 a 0xb6, sin signo), el resto. Fuera de la tabla, el 0x5123a9.
+// 0x512270..0x5123ba: the floor at (−60, −60, 0) and, through the byte table of 0x512700 over the jump table of
+// 0x5126e4 with type − 0x154 (0 to 0xb6, unsigned), the rest. Outside the table, 0x5123a9.
 ConstructionBox BoxOf(std::uint16_t type)
 {
     constexpr glm::vec3 Floor{-60.0f, -60.0f, 0.0f};
@@ -93,7 +93,7 @@ void PutTheBox(Kernel::ActorState& actor, const ConstructionBox& box)
     actor.boundsTop = box.top;
 }
 
-// Los huesos de las manos de un caso: el de la derecha (+0x2bd) y el de la izquierda (+0x2dd), si los escribe.
+// A case's hand bones: the right one (+0x2bd) and the left one (+0x2dd), if it writes them.
 struct HandBones
 {
     std::uint8_t right;
@@ -110,8 +110,8 @@ constexpr HandBones RightOnly(std::uint8_t right)
     return {right, std::nullopt};
 }
 
-// 0x512490..0x5126a8: la tabla de bytes de 0x512824 sobre la de saltos de 0x5127b8 con el tipo − 0x152 (de 0 a 0x48,
-// sin signo). nullopt: el caso es el 0x5126b2.
+// 0x512490..0x5126a8: the byte table of 0x512824 over the jump table of 0x5127b8 with type − 0x152 (0 to 0x48,
+// unsigned). nullopt: the case is 0x5126b2.
 std::optional<HandBones> TableHandBonesOf(std::uint16_t type)
 {
     switch (type)
@@ -156,7 +156,7 @@ std::optional<HandBones> TableHandBonesOf(std::uint16_t type)
     case 0x17a:
         return Both(20, 33); // 0x51269d
     case 0x17b:
-        return RightOnly(23); // 0x51257f: la izquierda queda como estaba
+        return RightOnly(23); // 0x51257f: the left one stays as it was
     case 0x17c:
         return RightOnly(43); // 0x512571
     case 0x17e:
@@ -178,13 +178,13 @@ std::optional<HandBones> TableHandBonesOf(std::uint16_t type)
     case 0x198:
     case 0x199:
     case 0x19a:
-        return Both(RightHandBone, LeftHandBone); // 0x5126ce, sin 0x43a250 ni 0x42d7f0
+        return Both(RightHandBone, LeftHandBone); // 0x5126ce, without 0x43a250 or 0x42d7f0
     default:
         return std::nullopt;
     }
 }
 
-// 0x43a250: los huesos de los tipos 0x192..0x197 (la tabla de 0x43a2d4); el 0x193 y los demás devuelven 0.
+// 0x43a250: the bones of types 0x192..0x197 (the table of 0x43a2d4); 0x193 and the rest return 0.
 std::optional<HandBones> EventHandBonesOf(std::uint16_t type)
 {
     switch (type)
@@ -204,7 +204,7 @@ std::optional<HandBones> EventHandBonesOf(std::uint16_t type)
     }
 }
 
-// 0x42d7f0: la caja del 0x19b, +0x38f en 0 y 1 (sin los huesos), y la del 0x1f8 con 0 (con los huesos).
+// 0x42d7f0: the box of 0x19b, +0x38f at 0 and 1 (without the bones), and that of 0x1f8 with 0 (with the bones).
 bool SetTheSiegeBox(Kernel::ActorState& actor, std::uint16_t type)
 {
     constexpr std::uint16_t SiegeGate = 0x19b;
@@ -227,8 +227,8 @@ void PutTheHandBones(Kernel::ActorState& actor, const HandBones& bones)
         actor.hands[1].bone = *bones.left;
 }
 
-// 0x512490..0x5126d5: los huesos de las manos por el tipo; el 0x5126b2 prueba 0x43a250 y 0x42d7f0 y, si ninguno
-// devuelve 1, cuelga las manos del 33 y del 42.
+// 0x512490..0x5126d5: the hand bones by type; 0x5126b2 tries 0x43a250 and 0x42d7f0 and, if neither returns 1, hangs
+// the hands from 33 and 42.
 void SetTheHandBones(Kernel::ActorState& actor, std::uint16_t type)
 {
     if (const auto bones = TableHandBonesOf(type))
@@ -246,7 +246,7 @@ void SetTheHandBones(Kernel::ActorState& actor, std::uint16_t type)
     PutTheHandBones(actor, {RightHandBone, LeftHandBone});
 }
 
-// 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
+// 0x4ec200 does not run here: 0x511290 leaves both actions at 1 and the frame at 0.
 void ResetTheAnimation(Kernel::ActorState& actor)
 {
     const std::uint8_t action = actor.type == Tables::PlayerSkeletonModel ? PlayerStartAction : 0;
@@ -256,8 +256,8 @@ void ResetTheAnimation(Kernel::ActorState& actor)
     actor.animation.previousKey = 0;
 }
 
-// 0x512455..0x512463 y los lazos de antes: la cabeza y las cinco del cuerpo sin ítem, con nivel y bytes
-// en 0; las manos sin ítem con el nivel y el +3 en 0; las alas, la mascota y +0x338 solo el modelo.
+// 0x512455..0x512463 and the loops before it: the head and the five body parts without an item, with level and bytes
+// at 0; the hands without an item with the level and the +3 at 0; the wings, the pet and +0x338 only the model.
 void ClearTheParts(Kernel::ActorState& actor)
 {
     actor.head = Kernel::NoItemModel;
@@ -279,15 +279,15 @@ void ClearTheParts(Kernel::ActorState& actor)
     actor.previousHad1c15 = false;
 }
 
-// Un acceso a una de las dos entradas de la celda con `value` en claro mientras está abierta: lo que deja en la
-// variable al cerrar va a `left` (ActorState::cellXLeft y cellYLeft).
+// An access to one of the two cell entries with `value` in the clear while it is open: what it leaves in the
+// variable when it closes goes to `left` (ActorState::cellXLeft and cellYLeft).
 void AccessTheCell(std::uint8_t& accesses, std::uint8_t value, std::uint32_t& left, Crt::CrtRandom& random)
 {
     left = value;
     const Models::LogicalAccess access(accesses, random, Models::SmallLogicalCloseRandoms, left);
 }
 
-// La celda: escribe X y después Y, cada una en su acceso (0x412890 al cerrar), y las copias en claro.
+// The cell: writes X and then Y, each in its own access (0x412890 when it closes), and the copies in the clear.
 void WriteTheCell(Kernel::ActorState& actor, const ActorPlacement& placement, Crt::CrtRandom& random)
 {
     AccessTheCell(actor.cellXAccesses, placement.x, actor.cellXLeft, random);
@@ -298,7 +298,7 @@ void WriteTheCell(Kernel::ActorState& actor, const ActorPlacement& placement, Cr
     actor.targetY = placement.y;
 }
 
-// El contador de pasos (0x7d3a0f0), con la cuenta de accesos que lleva la tela.
+// The step counter (0x7d3a0f0), with the access count the cloth keeps.
 std::int32_t ReadTheStepCounter(Models::ClothWorld& cloth)
 {
     const std::int32_t steps = cloth.logicSteps;
@@ -312,7 +312,7 @@ std::int32_t ReadTheStepCounter(Models::ClothWorld& cloth)
     return steps;
 }
 
-// Lo que 0x511290 deja fijo en un 0x20a, fuera de la celda, la posición y las partes.
+// What 0x511290 fixes on a 0x20a, outside the cell, the position and the parts.
 void SetTheStartingState(Kernel::ActorState& actor, std::uint16_t type)
 {
     actor.alive = true;
@@ -322,7 +322,7 @@ void SetTheStartingState(Kernel::ActorState& actor, std::uint16_t type)
     PutTheBox(actor, BoxOf(type));
     actor.alphaTarget = 1.0f;
     actor.alpha = 1.0f;
-    // 0x511bdf y 0x512499: el alpha de a 0,05 (0x4e9980) y la luz del blendMesh en 1,0.
+    // 0x511bdf and 0x512499: the alpha in steps of 0.05 (0x4e9980) and the blendMesh light at 1.0.
     actor.alphaMode = 1;
     actor.blendMeshLight = 1.0f;
     if (!IsNewFace(type))
@@ -332,14 +332,14 @@ void SetTheStartingState(Kernel::ActorState& actor, std::uint16_t type)
     ResetTheAnimation(actor);
     actor.seen = false;
     actor.dying = 0;
-    actor.dyingTime = 0.0f; // 0x51247a, con el ESI en 0 de 0x5121f6
+    actor.dyingTime = 0.0f; // 0x51247a, with the ESI at 0 from 0x5121f6
     actor.byte88 = 1;
-    // 0x511d51, con el ESI en 0 de 0x511c36.
+    // 0x511d51, with the ESI at 0 from 0x511c36.
     actor.flags78 = 0;
     actor.byte3e3 = 0;
     actor.word376 = NoWord376;
     actor.movement = 0;
-    // 0x511bc0/0x511bc7: no escribe progress ni el contenido del camino.
+    // 0x511bc0/0x511bc7: writes neither progress nor the path's contents.
     actor.path.count = 0;
     actor.path.current = 0;
     actor.movementPhase = 0.0f;                         // 0x511c44
@@ -360,17 +360,17 @@ void SetTheStartingState(Kernel::ActorState& actor, std::uint16_t type)
     actor.run = 0;
     actor.controlCode = 0;
     actor.pk = ConstructedPk;
-    // 0x511c99, en el mismo bloque que el PK y la escala: el +0x358 que después escribe 0x40d010 en el
-    // héroe publicado.
+    // 0x511c99, in the same block as the PK and the scale: the +0x358 that 0x40d010 later writes on the
+    // published hero.
     actor.byte358 = 0;
-    // 0x511ca0: +0x35c, con el ESI en 0 de 0x511c36.
+    // 0x511ca0: +0x35c, with the ESI at 0 from 0x511c36.
     actor.counter35c = 0;
     actor.level = 0;
     actor.guildStatus = 0xff;
     actor.light = {};
     actor.drawnLight = {};
     actor.byte390 = 0; // 0x51186b
-    // 0x511be6..0x511d45 y 0x51248d.
+    // 0x511be6..0x511d45 and 0x51248d.
     actor.dword58 = -1;
     actor.dword64 = -1;
     actor.byte92 = 1;
@@ -382,12 +382,12 @@ void SetTheStartingState(Kernel::ActorState& actor, std::uint16_t type)
     actor.byte38a = 0;
     actor.dword394 = 0;
     actor.dword428 = -0x80;
-    // 0x511d7b y 0x511d7e: la U (+0x6c) y la V (+0x70).
+    // 0x511d7b and 0x511d7e: the U (+0x6c) and the V (+0x70).
     actor.textureU = 0.0f;
     actor.textureV = 0.0f;
-    // 0x511878: reconstruir el dueño borra el cuervo anterior.
+    // 0x511878: rebuilding the owner erases the previous raven.
     actor.darkSpirit.reset();
-    // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.
+    // 0x511872: +0x364 at 0 without 0x414340, so +0x360 stays as it was.
     actor.layer.reset();
 }
 } // namespace
@@ -447,10 +447,10 @@ Core::Expected<void, std::string> ConstructActor(Kernel::ActorState& actor, std:
     {
         return Core::Unexpected(std::string("0x51225f: faltan las alturas del mundo cargado"));
     }
-    // El FSTP a float va después de la suma del corrimiento.
+    // The FSTP to float comes after adding the offset.
     actor.position = {x, y, static_cast<float>(ConstructionHeight(context, x, y, previousHad1c15, safe))};
     actor.angles = {0.0f, 0.0f, placement.angle};
-    // 0x5123c4..0x5123ff: suelta los huesos propios (+0x120) y pide otros sin iniciar (Q-C318).
+    // 0x5123c4..0x5123ff: frees its own bones (+0x120) and asks for others, uninitialized (Q-C318).
     actor.bodyPose.clear();
     ClearTheParts(actor);
     SetTheHandBones(actor, type);

@@ -29,16 +29,16 @@ namespace
 constexpr std::uint32_t FrozenFlag = 0x1000;
 constexpr std::uint32_t Flag4000 = 0x4000;
 constexpr std::uint32_t LockedFlag = 0x20;
-// 0x4fba46..0x4fba89: lo que sube +0x3c8 por paso (0x6b8a48 y 0x6b8b90).
+// 0x4fba46..0x4fba89: how much +0x3c8 rises per step (0x6b8a48 and 0x6b8b90).
 constexpr std::uint16_t FastDyingType = 0x172;
 constexpr std::int32_t FastDyingMap = 7;
 constexpr float FastDyingStep = 0.05f;
 constexpr float DyingStep = 0.02f;
 constexpr std::uint16_t SlowDyingType = 0x192;
-// 0x4fba6d..0x4fba7b: con +0x60 del objeto en 100 o más (con signo), 0,01 (0x6b88d4); si no, 0,02.
+// 0x4fba6d..0x4fba7b: with the object's +0x60 at 100 or more (signed), 0.01 (0x6b88d4); otherwise, 0.02.
 constexpr std::int32_t SlowDyingLevel = 100;
 constexpr float SlowDyingStep = 0.01f;
-// 0x4fba95..0x4fbad6: el uno (0x6b87d4), el alpha más bajo que sigue (0x6b88d4) y lo que se hunde (0x6b87b4).
+// 0x4fba95..0x4fbad6: the one (0x6b87d4), the lowest alpha that goes on (0x6b88d4) and how much it sinks (0x6b87b4).
 constexpr float FadeStart = 1.0f;
 constexpr float LowestAlpha = 0.01f;
 constexpr float SinkStep = 0.4f;
@@ -48,16 +48,16 @@ using Maps::LastBloodCastleMap;
 using Maps::LastChaosCastleMap;
 constexpr int ChaosOffsetSpan = 160;
 constexpr int ChaosOffsetCenter = 80;
-// 0x4fbc1e..0x4fbc9b: las skills que empujan y hasta qué paso.
+// 0x4fbc1e..0x4fbc9b: the skills that push and up to which step.
 constexpr std::uint8_t PushSkill = 0x28;
 constexpr std::uint8_t SecondPushSkill = 0x3b;
 constexpr std::uint8_t LastFlightStep = 14;
 constexpr std::uint8_t LastSparkStep = 30;
-// 0x4fbd45..0x4fbdf5: cuatro burbujas 0x607 en el mapa 7.
+// 0x4fbd45..0x4fbdf5: four 0x607 bubbles on map 7.
 constexpr std::int32_t BubbleMap = 7;
 constexpr int Bubbles = 4;
 constexpr std::int32_t BubbleParticle = 0x607;
-// 0x4fb343: el ángulo X que pierde el vuelo del castillo (0x6b87f8).
+// 0x4fb343: the X angle the castle flight loses (0x6b87f8).
 constexpr float CastleSpin = 5.0f;
 constexpr int DeathSkillBoneCount = 32;
 constexpr int DeathSkillScaleSpan = 100;
@@ -69,8 +69,8 @@ float Sum(float a, float b)
     return static_cast<float>(static_cast<double>(a) + static_cast<double>(b));
 }
 
-// 0x4fbd52..0x4fbdf5: cada burbuja, x e y con rand() & 0x7f − 64 y z con rand() & 0xff, sobre la posición, con los
-// ángulos (+0x1c) y la luz propia (+0xf4) del objeto: 0x53fe70(0x607, punto, +0x1c, +0xf4, 0, 1, 0).
+// 0x4fbd52..0x4fbdf5: each bubble, x and y with rand() & 0x7f − 64 and z with rand() & 0xff, over the position, with
+// the object's angles (+0x1c) and own light (+0xf4): 0x53fe70(0x607, point, +0x1c, +0xf4, 0, 1, 0).
 Core::Expected<void, std::string> BlowTheBubbles(const Kernel::ActorState& actor, std::size_t slot,
                                                  const ActorDyingContext& context)
 {
@@ -110,7 +110,7 @@ Core::Expected<void, std::string> CreateTheChaosCastleBurst(Kernel::ActorState& 
     const glm::vec3 point = ChaosCastleBurstPoint(actor, context.random);
     if (context.particles == nullptr)
     {
-        // 0x51fe4b y 0x51fe6e sortean antes de que 0x53fe70 busque su primer lugar libre.
+        // 0x51fe4b and 0x51fe6e draw before 0x53fe70 looks for its first free slot.
         static_cast<void>(context.random.Next());
         static_cast<void>(context.random.Next());
         return Core::Unexpected(
@@ -125,9 +125,9 @@ Core::Expected<void, std::string> CreateTheChaosCastleBurst(Kernel::ActorState& 
     return {};
 }
 
-// 0x4fbca1..0x4fbd43: diez veces, el hueso rand() % 32 por 0x4ec110 (Translate 1) con el corrimiento (0, 0, 0) y la
-// partícula 0x5ac/5 en ese punto, con los ángulos del objeto (+0x1c), la luz (0,3f; 0,3f; 1) y la escala
-// (rand() % 100) · 0,02f + 0,5 (0x6b89e4 y 0x6b882c). Dos rand() por vuelta, también con el pool lleno.
+// 0x4fbca1..0x4fbd43: ten times, bone rand() % 32 through 0x4ec110 (Translate 1) with the offset (0, 0, 0) and
+// particle 0x5ac/5 at that point, with the object's angles (+0x1c), the light (0.3f, 0.3f, 1) and the scale
+// (rand() % 100) · 0.02f + 0.5 (0x6b89e4 and 0x6b882c). Two rand() per round, also with the pool full.
 Core::Expected<void, std::string> CreateTheDeathSkillFlares(const Kernel::ActorState& actor, std::size_t slot,
                                                             const ActorDyingContext& context)
 {
@@ -188,7 +188,7 @@ Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std:
 {
     if (actor.dying == 0)
         return {};
-    // 0x4fb9fa..0x4fba43: cada bandera se resta si está.
+    // 0x4fb9fa..0x4fba43: each flag is subtracted if it is set.
     actor.flags78 &= ~(FrozenFlag | Flag4000 | LockedFlag);
     // 0x4fba46..0x4fba8f.
     float step = DyingStep;
@@ -197,9 +197,9 @@ Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std:
     else if (actor.type == SlowDyingType && actor.dword60 >= SlowDyingLevel)
         step = SlowDyingStep;
     actor.dyingTime = Sum(actor.dyingTime, step);
-    // 0x4fba95..0x4fbb0d: con +0x3c8 en 1 o más (sin orden, no), el alpha es 1 − (+0x3c8 − 1) en la x87, guardado en
-    // float pero comparado entero con 0,01: sin bajar de ahí la Z baja 0,4; debajo (o sin orden), el que no es el
-    // héroe se borra. Después, 0x4fb1a0(c, o, 0) suelta las telas, que viven en la escena (P-C161).
+    // 0x4fba95..0x4fbb0d: with +0x3c8 at 1 or more (unordered, no), the alpha is 1 − (+0x3c8 − 1) on the x87, stored
+    // as float but compared unrounded with 0.01: while it stays above that the Z drops 0.4; below it (or unordered),
+    // anyone but the hero is erased. Then 0x4fb1a0(c, o, 0) frees the cloths, which live in the scene (P-C161).
     if (actor.dyingTime >= FadeStart)
     {
         const double faded =
@@ -229,8 +229,8 @@ Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std:
     }
     else if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
     {
-        // 0x4fbb4a..0x4fbc19: con +0x1a1, el vuelo y el tope 15; sin él, 25. Del tope − 10 al tope, en los pasos
-        // impares, tres rand() % 160 alrededor de la posición y las chispas de 0x51fe10.
+        // 0x4fbb4a..0x4fbc19: with +0x1a1, the flight and the cap 15; without it, 25. From cap − 10 to the cap, on
+        // odd steps, three rand() % 160 around the position and the sparks of 0x51fe10.
         std::uint8_t last = 25;
         if (actor.byte1a1 != 0)
         {
@@ -247,7 +247,7 @@ Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std:
     }
     else if (actor.deathSkill == PushSkill || actor.deathSkill == SecondPushSkill)
     {
-        // 0x4fbc30..0x4fbc84: +0xd0 baja +0xd8, que sube 1; debajo de 0 (sin orden, no), 0.
+        // 0x4fbc30..0x4fbc84: +0xd0 drops by +0xd8, which rises by 1; below 0 (unordered, no), 0.
         if (actor.dying <= LastFlightStep)
         {
             actor.floatD0 = static_cast<float>(static_cast<double>(actor.floatD0) - static_cast<double>(actor.floatD8));

@@ -85,22 +85,22 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x50919a y 0x5091c8: los dos lazos de 0x508f00 recorren 400 registros (0x69780 / 0x438); el 401 no.
+// 0x50919a and 0x5091c8: the two loops of 0x508f00 walk 400 records (0x69780 / 0x438); not record 401.
 constexpr std::size_t SteppedCharacters = 400;
-// 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
+// 0x412162: on map 30 (0x1e), 0x412140 builds the siege panel.
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 
-// 0x4fd603: el tipo que pasa su nombre y su nivel a 0x4381f0.
+// 0x4fd603: the type that passes its name and level to 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
-// 0x4fbe2e..0x4fbe41: 0x4fbe10 corre solo en los mapas 18 a 23.
+// 0x4fbe2e..0x4fbe41: 0x4fbe10 runs only on maps 18 to 23.
 constexpr std::int32_t FirstCellReportMap = 18;
 constexpr std::int32_t LastCellReportMap = 23;
-// 0x4fb910 y 0x505425: el tipo que cae y gira en 0x4fb380 y que después sigue 0x52f360.
+// 0x4fb910 and 0x505425: the type that falls and turns in 0x4fb380 and that 0x52f360 then follows.
 constexpr std::uint16_t FallingType = 0xf1;
-// 0x4f9580 con el 0x20a: por 1,5 (0x6b8b94) en las acciones 3 y 4 con +0x3e3; por 0,5 (0x6b882c) en la 0x3f
-// pasado el frame 6 (0x6b87f4) y en la 0x44; por 0,1f (0x6b8a34) en las 0x4d, 0x4f y 0x5a pasado el 5,5
-// (0x6b8a40); en la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 (0x6b87d4) y el 3 (0x6b86b8): por 0,125
-// (0x6ba170) con el personaje en la party (0x59e680) y por 0,5 (0x6b882c) si no.
+// 0x4f9580 with the 0x20a: times 1.5 (0x6b8b94) on actions 3 and 4 with +0x3e3; times 0.5 (0x6b882c) on 0x3f
+// past frame 6 (0x6b87f4) and on 0x44; times 0.1f (0x6b8a34) on 0x4d, 0x4f and 0x5a past 5.5
+// (0x6b8a40); in class 4, on 0x94, 0x51 and 0x5b between frame 1 (0x6b87d4) and 3 (0x6b86b8): times 0.125
+// (0x6ba170) with the character in the party (0x59e680) and times 0.5 (0x6b882c) otherwise.
 constexpr float FasterFactor = 1.5f;
 constexpr float HalfFactor = 0.5f;
 constexpr float TenthFactor = 0.1f;
@@ -117,9 +117,9 @@ constexpr float ClassFourFirstFrame = 1.0f;
 constexpr float ClassFourLastFrame = 3.0f;
 constexpr float PartyClassFourFactor = 0.125f;
 constexpr std::uint8_t HalvedAction = 0x44;
-// 0x4f973a: con +0x78 & 0x1000 la animación no avanza y 0x4f9580 devuelve 0, "terminó".
+// 0x4f973a: with +0x78 & 0x1000 the animation does not advance and 0x4f9580 returns 0, "finished".
 constexpr std::uint32_t FrozenFlag = 0x1000;
-// 0x4fcb10: lo que hace con la acción que terminó.
+// 0x4fcb10: what it does with the action that finished.
 constexpr std::uint8_t FirstMarkAction = 0xc3;
 constexpr std::uint8_t SecondMarkAction = 0xc4;
 constexpr std::uint8_t FirstStoppedAfter = 0x0d;
@@ -132,23 +132,23 @@ constexpr std::uint8_t LastKeptAction = 0xc2;
 constexpr std::array<std::uint8_t, 7> KeptActions{0x8b, 0x8c, 0x46, 0x47, 0x44, 0x49, 0x4b};
 constexpr std::uint8_t FirstKeptRange = 0x6a;
 constexpr std::uint8_t LastKeptRange = 0x75;
-// 0x4fceea..0x4fcf04: antes del frame 3 (0x6b86b8), salvo en la 0x8d, 0x4fcee0 sale sin estela.
+// 0x4fceea..0x4fcf04: before frame 3 (0x6b86b8), except on 0x8d, 0x4fcee0 leaves without a trail.
 constexpr float TrailFrame = 3.0f;
 constexpr std::uint8_t AlwaysTrailedAction = 0x8d;
 
-// 0x4fc57e, 0x4fc5b0 y 0x4fc606: el bit de +0x3c que 0x4fc450 apaga con cada WORD en 0.
+// 0x4fc57e, 0x4fc5b0 and 0x4fc606: the bit of +0x3c that 0x4fc450 turns off with each WORD at 0.
 constexpr std::uint8_t Word3eBit = 0x01;
 constexpr std::uint8_t Word40Bit = 0x02;
 constexpr std::uint8_t Word42Bit = 0x08;
 
-// 0x5068b9..0x5068d4: con +0x78 & 0x20 (o & 0x1000, FrozenFlag) la cabeza no se mueve.
+// 0x5068b9..0x5068d4: with +0x78 & 0x20 (or & 0x1000, FrozenFlag) the head does not move.
 constexpr std::uint32_t StillHeadFlag = 0x20;
-// 0x506acf: con +0x375 en 6 o más (sin signo), las manos no dan luz.
+// 0x506acf: with +0x375 at 6 or more (unsigned), the hands give no light.
 constexpr std::uint8_t FirstPkWithoutLights = 6;
-// 0x506aec..0x506b42: los modelos de las manos que piden una luz a 0x5f9780, con su color (los tres DWORD
-// de [ebp−0x1c]) y su radio. El 0x21e (0x506af7..0x506b0c): (0,8; 0,64; 0,4) con 3. El 0x225, el 0xa24, el
-// 0xc1c y el 0x61f (0x506b2d..0x506b42): (0,64; 0,4; 0,24) con 2. Los 0,64 y 0,24 son un ulp más que los
-// float más cercanos (0x3f23d70a y 0x3e75c28f): van por sus bits.
+// 0x506aec..0x506b42: the hand models that ask 0x5f9780 for a light, with its color (the three DWORDs
+// of [ebp−0x1c]) and its radius. 0x21e (0x506af7..0x506b0c): (0.8, 0.64, 0.4) with 3. 0x225, 0xa24,
+// 0xc1c and 0x61f (0x506b2d..0x506b42): (0.64, 0.4, 0.24) with 2. The 0.64 and 0.24 are one ulp above the
+// nearest floats (0x3f23d70a and 0x3e75c28f): they go by their bits.
 struct HandLight
 {
     std::uint16_t model;
@@ -166,14 +166,14 @@ constexpr std::array<HandLight, 5> HandLights{
     HandLight{.model = 0xc1c, .color = DimHandLight, .radius = 2},
     HandLight{.model = 0x61f, .color = DimHandLight, .radius = 2},
 };
-// 0x506d01 y 0x506d8b: los mapas del caso del 0x20a con efectos.
+// 0x506d01 and 0x506d8b: the maps of the 0x20a case with effects.
 constexpr std::int32_t ClockEffectMap = 7;
 constexpr std::int32_t RandomEffectMap = 9;
-// 0x506e5d..0x506e63 y 0x506f62: las acciones del 0x20a con efectos.
+// 0x506e5d..0x506e63 and 0x506f62: the 0x20a actions with effects.
 constexpr std::uint8_t FirstEffectAction = 0x44;
 constexpr std::uint8_t SecondEffectAction = 0x45;
 constexpr std::uint8_t BoneEffectAction = 0x96;
-// 0x5086d6..0x508712: en Kalima (los mapas 24 a 29 y el 36), las acciones del 0x20a que sacan el 0x6f4.
+// 0x5086d6..0x508712: in Kalima (maps 24 to 29 and 36), the 0x20a actions that release 0x6f4.
 constexpr std::array<std::uint8_t, 7> KalimaParticleActions{0x20, 0x21, 0x1d, 0x15, 0x1e, 0x1f, 0x4b};
 using Maps::IsKalimaMap;
 
@@ -192,11 +192,11 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
     bits = static_cast<std::uint8_t>(bits & ~bit);
 }
 
-// El modelo de 0x5769ad8 + tipo · 0xe0 que leen 0x4f9580, 0x4fcbb0 y 0x505de0: Player.bmd, el NewFace suelto o el de
-// los monstruos y los NPC (WorldState::FaunaResources, con la biblioteca del mapa detrás; 08, P-C176).
-// El registro de un monstruo o un NPC existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc u
-// Object35, que 0x60da30 saltea, o un tipo sin caso de carga) está en 0, sin acciones (+0x26), y 0x4ea030, 0x4f9580 y
-// 0x505de0 lo toman como un modelo vacío.
+// The model of 0x5769ad8 + type · 0xe0 that 0x4f9580, 0x4fcbb0 and 0x505de0 read: Player.bmd, the loose NewFace or
+// that of the monsters and NPCs (WorldState::FaunaResources, with the map's library behind it; 08, P-C176).
+// A monster's or an NPC's record always exists: that of a model that was not loaded (a .bmd missing in Npc or
+// Object35, which 0x60da30 skips, or a type without a load case) is at 0, without actions (+0x26), and 0x4ea030,
+// 0x4f9580 and 0x505de0 take it as an empty model.
 const Models::Skeleton* ModelSkeletonOf(const Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     static const Models::Skeleton ZeroRecord;
@@ -208,8 +208,8 @@ const Models::Skeleton* ModelSkeletonOf(const Kernel::ActorState& actor, const C
     return loaded != nullptr ? loaded : &ZeroRecord;
 }
 
-// 0x5f93c0(x, y) sobre el terreno del paso, con la altura fija de context; vacía sin las alturas o sin el
-// TerrainWall.
+// 0x5f93c0(x, y) over the step's terrain, with the fixed height of context; empty without the heights or without
+// the TerrainWall.
 std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& context)
 {
     const Terrain::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
@@ -219,7 +219,7 @@ std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& 
     { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight); };
 }
 
-// 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
+// 0x508ba0(c, c) from 0x508ed8 with anyone but the published hero ([0x743a170]; with it, it leaves at 0x508bad).
 Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, std::size_t slot,
                                                      const CharacterStepContext& context)
 {
@@ -253,20 +253,20 @@ Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, 
     return StepOtherActorMotion(actor, walk, motion, terrain.attributes->cells);
 }
 
-// 0x4fc450(c) desde 0x4fd6fe, con el héroe publicado ([0x743a170]; con otro sale en 0x4fc464): los tres WORD
-// de [0x7681eb0], con el registro propio abierto (Q-C246).
+// 0x4fc450(c) from 0x4fd6fe, with the published hero ([0x743a170]; with another it leaves at 0x4fc464): the three
+// WORDs of [0x7681eb0], with the own record open (Q-C246).
 Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     Player::ItemSetOptionList& setOptions = world.ItemSets().list;
-    // El ítem del cursor, con lo que haya en sus globales (HeldItemOf).
+    // The cursor's item, with whatever is in its globals (HeldItemOf).
     const Player::OwnEquipmentOverride held = Player::HeldItemOf(runtime);
-    // 0x4fc46a..0x4fc556: abre el registro propio en línea; 0x4fc617..0x4fc767 lo cierra en línea, con los
-    // 3.848 rand() de 0x40b4d0 si la cuenta queda en 0.
+    // 0x4fc46a..0x4fc556: opens the own record inline; 0x4fc617..0x4fc767 closes it inline, with the
+    // 3,848 rand() of 0x40b4d0 if the count stays at 0.
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    // 0x4fc55b..0x4fc58a: +0x3e baja si es positivo y, en 0, apaga el bit 0x01 de +0x3c y llama a 0x54fe10.
+    // 0x4fc55b..0x4fc58a: +0x3e drops if positive and, at 0, turns off bit 0x01 of +0x3c and calls 0x54fe10.
     if (own.word3e > 0)
     {
         --own.word3e;
@@ -280,8 +280,8 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
             return updated;
         }
     }
-    // 0x4fc594..0x4fc5e0: +0x40, el bit 0x02, las 16 marcas de la lista ([0x6eed3c] + 0x937c) en 0, 0x54efe0
-    // y 0x54f9b0.
+    // 0x4fc594..0x4fc5e0: +0x40, bit 0x02, the list's 16 marks ([0x6eed3c] + 0x937c) at 0, 0x54efe0
+    // and 0x54f9b0.
     if (own.word40 > 0)
     {
         --own.word40;
@@ -299,7 +299,7 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
             return updated;
         }
     }
-    // 0x4fc5ea..0x4fc612: +0x42, el bit 0x08 y 0x54fe10 otra vez.
+    // 0x4fc5ea..0x4fc612: +0x42, bit 0x08 and 0x54fe10 again.
     if (own.word42 > 0)
     {
         --own.word42;
@@ -316,12 +316,12 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     return {};
 }
 
-// 0x4f9580(c, c): la velocidad de la acción, sus factores y 0x4ec200. Devuelve si terminó, lo que 0x4f9580
-// devuelve en 0.
+// 0x4f9580(c, c): the action's speed, its factors and 0x4ec200. Returns whether it finished, which 0x4f9580
+// returns as 0.
 Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
-    // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
+    // 0x4f958e..0x4f95a5: the type's shared model.
     const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
@@ -331,7 +331,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
                                             actor.type, slot));
     }
     const bool frozen = (actor.flags78 & FrozenFlag) == FrozenFlag;
-    // 0x4f95a7: sin acciones (+0x26 en 0) la velocidad queda en 0 y 0x4ec200 sale sin avanzar (0x4ec214).
+    // 0x4f95a7: without actions (+0x26 at 0) the speed stays at 0 and 0x4ec200 leaves without advancing (0x4ec214).
     if (skeleton->actions.empty())
     {
         return frozen;
@@ -346,7 +346,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
                                             publishedAction, slot, skeleton->actions.size(), actor.type));
     }
     const Models::ActionInfo& info = skeleton->actions[publishedAction];
-    // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0. La de Player.bmd, con la de cada personaje.
+    // 0x4f95c0..0x4f95d4: a negative or NaN speed counts as 0. Player.bmd's, with each character's.
     const PlayerActionSpeeds& speeds =
         context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
     const float sharedSpeed = player ? speeds.Speed(publishedAction, info.speed) : info.speed;
@@ -373,26 +373,26 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
     else if ((actor.characterClass & ClassMask) == ClassFour && IsOneOf(ClassFourActions, action) &&
              frame > ClassFourFirstFrame && frame < ClassFourLastFrame)
     {
-        // 0x4f969d..0x4f96ba: 0x59e680 con el personaje.
+        // 0x4f969d..0x4f96ba: 0x59e680 with the character.
         speed *= Scenes::IsInTheParty(context.world, actor) ? PartyClassFourFactor : HalfFactor;
     }
     if (action == HalvedAction)
     {
         speed *= HalfFactor;
     }
-    // 0x4f96d4..0x4f9737: los otros tipos (el NewFace, el 0x192 y el 0x1a9).
+    // 0x4f96d4..0x4f9737: the other types (the NewFace, 0x192 and 0x1a9).
     speed = Scenes::ModelSpeedOf(actor.type, action, frame, speed);
-    // 0x4f973a: con +0x78 & 0x1000 devuelve 0 sin avanzar.
+    // 0x4f973a: with +0x78 & 0x1000 it returns 0 without advancing.
     if (frozen)
     {
         return true;
     }
-    // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21). El NewFace es el
-    // objeto suelto de la selección; 4ec200 consulta la escena vigente, no el tipo.
+    // 0x4f9774: 0x4ec200, which returns 0 when it finishes; in scene 4 the frame + 2 decides it (Q-C21). The NewFace
+    // is the selection's loose object; 0x4ec200 looks at the current scene, not the type.
     const Models::AnimationScene scene = context.scene == Scenes::SceneId::CharacterSelect
                                              ? Models::AnimationScene::CharacterSelect
                                              : Models::AnimationScene::Other;
-    // 4ec21b usa el BYTE +a0 publicado antes de animar, aunque el actor haya cambiado de acción.
+    // 0x4ec21b uses the BYTE +0xa0 published before animating, even if the actor changed its action.
     if (info.keyCount <= 1)
         return false;
     auto advanced = animation;
@@ -409,8 +409,8 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
     return finished;
 }
 
-// 0x52e810(c) desde 0x4fcb9c y 0x4fcc3c: los restos, con el modelo del tipo de c y la escala y la posición que le dejó
-// el último 0x505ec6 de ese tipo (Q-C1178).
+// 0x52e810(c) from 0x4fcb9c and 0x4fcc3c: the remains, with the model of c's type and the scale and position the last
+// 0x505ec6 of that type left on it (Q-C1178).
 Core::Expected<void, std::string> LeaveTheRemainsOf(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     const Kernel::SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
@@ -422,12 +422,12 @@ Core::Expected<void, std::string> LeaveTheRemainsOf(Kernel::ActorState& actor, c
                                                       .random = context.random});
 }
 
-// 0x4fcb10(c, c) desde 0x4fce57, con la acción que terminó.
+// 0x4fcb10(c, c) from 0x4fce57, with the action that finished.
 Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcba6: con +0x38a en 0, lo pone en 1 y corre 0x52e810 una vez; con o sin él,
-    // sale sin volver a la de parado.
+    // 0x4fcb17..0x4fcb23 and 0x4fcb87..0x4fcba6: with +0x38a at 0, sets it to 1 and runs 0x52e810 once; with or
+    // without it, leaves without going back to the standing one.
     if (action == FirstMarkAction || action == SecondMarkAction)
     {
         if (actor.byte38a != 0)
@@ -435,8 +435,8 @@ Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const 
         actor.byte38a = 1;
         return LeaveTheRemainsOf(actor, context);
     }
-    // 0x4fcb25..0x4fcb63: vuelven a la de parado (0x4f2250) las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54
-    // y 0x55 y, de la 0x22 a la 0xc2, las que no son 0x8b, 0x8c, 0x46, 0x47, 0x44, 0x49, 0x4b ni de la 0x6a a la
+    // 0x4fcb25..0x4fcb63: these go back to the standing one (0x4f2250): those before 0x0d, 0xbd to 0xbf, 0x54
+    // and 0x55 and, from 0x22 to 0xc2, those that are not 0x8b, 0x8c, 0x46, 0x47, 0x44, 0x49, 0x4b or from 0x6a to
     // 0x75.
     const bool kept = action < FirstKeptAction || action > LastKeptAction || IsOneOf(KeptActions, action) ||
                       (action >= FirstKeptRange && action <= LastKeptRange);
@@ -466,7 +466,7 @@ Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const 
             return Core::Unexpected(stopped.Error());
         }
     }
-    // 0x4fcb71..0x4fcb7a: la 0x44, también la que puso 0x4f2250, vuelve al frame 0.
+    // 0x4fcb71..0x4fcb7a: 0x44, also when 0x4f2250 set it, goes back to frame 0.
     if (actor.animation.action == HalvedAction)
     {
         actor.animation.frame = 0.0f;
@@ -474,18 +474,18 @@ Core::Expected<void, std::string> StopAtTheEnd(Kernel::ActorState& actor, const 
     return {};
 }
 
-// 0x4fcd00(c, c, b) desde 0x4fd770.
+// 0x4fcd00(c, c, b) from 0x4fd770.
 Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, std::size_t slot,
                                                    const CharacterStepContext& context)
 {
-    // 0x4fcd0c..0x4fcd55: con +0x88 en 4, en los mapas 0 y 2, el 0x20a de subtipo 0xd1 a 0xd3 (el tipo 236) gira.
+    // 0x4fcd0c..0x4fcd55: with +0x88 at 4, on maps 0 and 2, the 0x20a of subtype 0xd1 to 0xd3 (type 236) turns.
     const bool turned = Scenes::TurnTheNpc(actor, context.world.Runtime().map);
-    // 0x4fcd60: 0x4fc790, el mensaje del NPC.
+    // 0x4fcd60: 0x4fc790, the NPC's message.
     if (auto said = Scenes::SayTheNpcLine(actor, slot, context); !said.HasValue())
     {
         return said;
     }
-    // 0x4fcd65..0x4fce15: el mensaje del nombre de 0x6c88b0, con su reloj.
+    // 0x4fcd65..0x4fce15: the name message of 0x6c88b0, with its clock.
     if (auto named = Scenes::SayTheNamedLine(actor, slot, context); !named.HasValue())
     {
         return named;
@@ -496,25 +496,25 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
     {
         return Core::Unexpected(finished.Error());
     }
-    // 0x4fce27: sin terminar, solo lo del 0x1f5 (0x4fce7a).
+    // 0x4fce27: unfinished, only the 0x1f5 part (0x4fce7a).
     if (finished.Value())
     {
-        // 0x4fce33/39: los dos sonidos se habilitan otra vez al terminar la animación.
+        // 0x4fce33/39: both sounds are enabled again when the animation finishes.
         actor.firstFootstepSound = 0;
         actor.secondFootstepSound = 0;
-        // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
+        // 0x4fce3f..0x4fce57: the 0x20a that turned goes to 0x4fc8c0 and the other to 0x4fcb10.
         if (actor.type == Tables::PlayerSkeletonModel)
         {
             return turned ? Scenes::FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
-        // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
+        // 0x4fce5e: the other models, to 0x4fcbb0. AdvanceTheBody already found the model.
         const Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
         const auto end = Scenes::FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
             return Core::Unexpected(end.Error());
         }
-        // 0x4fcc35..0x4fcc3c: el monstruo que terminó de morir deja sus restos.
+        // 0x4fcc35..0x4fcc3c: the monster that finished dying leaves its remains.
         if (end.Value() == Scenes::ModelActionEnd::LeaveRemains)
         {
             if (auto left = LeaveTheRemainsOf(actor, context); !left.HasValue())
@@ -522,7 +522,7 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
                 return left;
             }
         }
-        // 0x4fcbe3: con 0x42d890 en 1, 0x4f9580 otra vez; lo que devuelve no se mira.
+        // 0x4fcbe3: with 0x42d890 at 1, 0x4f9580 again; what it returns is not looked at.
         if (end.Value() == Scenes::ModelActionEnd::AdvanceAgain)
         {
             if (auto again = AdvanceTheBody(actor, slot, context); !again.HasValue())
@@ -530,16 +530,17 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
                 return Core::Unexpected(again.Error());
             }
         }
-        // 0x4fce68..0x4fce70: el 0xc5, con el frame en 8.
+        // 0x4fce68..0x4fce70: 0xc5, with the frame at 8.
         if (actor.type == NamedType)
         {
             constexpr float NamedFrame = 8.0f; // 0x41000000
             actor.animation.frame = NamedFrame;
         }
     }
-    // 0x4fce7a..0x4fced1: el 0x1f5 compara la key que dejó en su modelo la última pose (+0xa8 de 0x5769ad8 + 0x1f5 ·
-    // 0xe0, FaunaModels::PoseKey, que guarda el dibujo de los monstruos) con la última key de su acción (+0x111, sin
-    // mirar si el modelo la tiene) y, si es esa, rand() % 32 en 0 le pone la acción 1 con 0x4ea030 y si no la 0.
+    // 0x4fce7a..0x4fced1: 0x1f5 compares the key the last pose left on its model (+0xa8 of 0x5769ad8 + 0x1f5 · 0xe0,
+    // FaunaModels::PoseKey, which the monsters' drawing keeps) with the last key of its action (+0x111, without
+    // checking whether the model has it) and, if it is that one, rand() % 32 at 0 sets action 1 with 0x4ea030 and
+    // otherwise 0.
     constexpr std::uint16_t TraderModel = 0x1f5;
     if (actor.type == TraderModel)
     {
@@ -559,13 +560,13 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
     return {};
 }
 
-// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a. Las partículas y el reloj son los del paso (0x432bd0 crea la 0x5d9
-// del 0x1b0).
+// 0x4fcee0(c, c, b) from 0x505410, with the 0x20a. The particles and the clock are the step's (0x432bd0 creates the
+// 0x5d9 of 0x1b0).
 Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, std::size_t slot,
                                                      const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
+    // 0x4fceea..0x4fcf25: before frame 3 (or with NaN) and outside 0x8d it copies the position to +0x17c and leaves.
     if (!(actor.animation.frame >= TrailFrame) && action != AlwaysTrailedAction)
     {
         actor.trailOrigin = actor.position;
@@ -577,8 +578,8 @@ Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, 
     const auto* skeleton = ModelSkeletonOf(actor, context);
     if (auto emitted = Scenes::EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
         return emitted;
-    // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
-    // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
+    // 0x4fd5c1..0x4fd5df: 0x441260 (only 0x1a7), 0x42fa40 (0x1b1 and 0x1b3), 0x432bd0 and 0x426d90 (0x1b8 to
+    // 0x1ba). 0x4fd5d7: 0x432bd0, with its unconditional rand() of 0x432bf1 (Scenes::StepTheSwingsOf1abTo1b4).
     if (auto swung = Scenes::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.random, context.particles,
                                                      context.worldClock);
         !swung.HasValue())
@@ -586,19 +587,19 @@ Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, 
     return Scenes::EmitLateMonsterRibbonTrails(actor, skeleton, context);
 }
 
-// Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
-// con 0x40b240, 0x40b2f0 y 0x412890), con los cuatro rand() del último cierre.
+// A read of the hero's protected cell: opens the entry (0x40b570) and closes it (0x40b800, or inline
+// with 0x40b240, 0x40b2f0 and 0x412890), with the four rand() of the last close.
 std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return value;
 }
 
-// 0x4fbe10, por cada personaje que da un paso: compara la celda lógica del héroe (+0x41c y +0x420) con la
-// guardada (0x743a180 y 0x743a184, .bss 0). Si es la misma y pasaron 10 s (el reloj del mundo menos 0x743a188,
-// por 0,001f, en la x87) en una celda con el bit 8 del atributo, manda C1 06 AF 02 x y (0x4fbeed..0x4fc39d, CL9
-// hito 11). Con la misma celda guarda el reloj solo si pasó ese tiempo; con otra, guarda la celda y el reloj.
-// Cada comparación abre y cierra su entrada.
+// 0x4fbe10, for each character that takes a step: compares the hero's logical cell (+0x41c and +0x420) with the
+// stored one (0x743a180 and 0x743a184, .bss 0). If it is the same and 10 s passed (the world clock minus 0x743a188,
+// times 0.001f, on the x87) on a cell with bit 8 of the attribute, it sends C1 06 AF 02 x y (0x4fbeed..0x4fc39d).
+// With the same cell it stores the clock only if that time passed; with another, it stores the cell and the clock.
+// Each comparison opens and closes its entry.
 Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -607,7 +608,7 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
     if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
         ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
     {
-        // 0x4fbea8..0x4fbec5: fld, fsub, fmul y fcomp con 10; menor (o sin orden), nada.
+        // 0x4fbea8..0x4fbec5: fld, fsub, fmul and fcomp with 10; less (or unordered), nothing.
         constexpr double Thousandth = Math::ThousandthAsDouble;
         constexpr double ReportDelay = 10.0;
         const double waited =
@@ -623,21 +624,21 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
                                                    static_cast<std::uint8_t>(runtime.reportedCellY));
         if ((terrain.attributes->cells[cell] & ReportedCellBit) == ReportedCellBit)
         {
-            // 0x4fbeed..0x4fc231: C1, el largo, AF, 02 y el byte bajo de 0x743a180 y de 0x743a184, con el XOR de
-            // 32 byte a byte desde el 02; 0x4fc26c..0x4fc39d lo manda (send o la cola de [0x6c82a0]). Sin socket
-            // (+0xc en −1) el original no manda nada y sigue; la sesión de MuRet sin el GameServer abierto devuelve
-            // error, como con el D3.
+            // 0x4fbeed..0x4fc231: C1, the length, AF, 02 and the low byte of 0x743a180 and of 0x743a184, with the XOR
+            // of 32 byte by byte from the 02; 0x4fc26c..0x4fc39d sends it (send or the queue of [0x6c82a0]). Without a
+            // socket (+0xc at −1) the original sends nothing and goes on; MuRet's session without the GameServer open
+            // returns an error, as with the D3.
             if (!context.sendChaosCastleReposition)
                 return Core::Unexpected(std::format("0x4fbee8: el héroe lleva 10 s en la celda ({}; {}) con el bit 8 "
                                                     "y no hay sesión para el C1 06 AF 02",
                                                     runtime.reportedCellX, runtime.reportedCellY));
-            // 0x4fc30b y 0x4fc355: con el envío fallido también guarda el reloj antes de salir.
+            // 0x4fc30b and 0x4fc355: with the send failed it also stores the clock before leaving.
             auto sent = context.sendChaosCastleReposition(static_cast<std::uint8_t>(runtime.reportedCellX),
                                                           static_cast<std::uint8_t>(runtime.reportedCellY));
             runtime.reportedCellTime = context.worldClock;
             return sent;
         }
-        // 0x4fc39d: sin el bit, el reloj del mundo a 0x743a188.
+        // 0x4fc39d: without the bit, the world clock to 0x743a188.
         runtime.reportedCellTime = context.worldClock;
         return {};
     }
@@ -647,8 +648,8 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
     return {};
 }
 
-// 0x4fd787..0x4fd7e1: +0x389 más uno, en un byte; con 15 o más, 0x4f5660 (SetActorDie); en Blood Castle (11 a 17)
-// con +0x1a1, 0x4f5660 otra vez, también antes del 15.
+// 0x4fd787..0x4fd7e1: +0x389 plus one, in a byte; with 15 or more, 0x4f5660 (SetActorDie); in Blood Castle (11 to 17)
+// with +0x1a1, 0x4f5660 again, also before 15.
 Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     const Scenes::ActorCombatContext combat{.world = context.world,
@@ -674,14 +675,14 @@ Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const Char
 Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::size_t slot,
                                                const CharacterStepContext& context);
 
-// 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
-// (0x4fd5f0)"). `hero` es c == [0x743a170].
-// 0x417e62: el grito del cuervo.
+// 0x4fd5f0(c, c) from 0x508edf, through the path of the still 0x20a (06, "El cuerpo de los personajes
+// (0x4fd5f0)"). `hero` is c == [0x743a170].
+// 0x417e62: the raven's shout.
 constexpr std::int32_t RavenShoutSound = 0x1d1;
 
-// Lo que el paso del cuervo lee del pool (DarkSpiritTargets): el personaje de +8 y el de +0x3b0, con signo. Entre 0 y
-// 399 mira sus banderas (0x416a8b..0x416ab9); el 6 lee su posición con cualquier valor distinto de 0xffff (0x417858):
-// los lugares que escriben el A8 (0 a 400) están en el pool de MuRet, y otro valor corta.
+// What the raven's step reads from the pool (DarkSpiritTargets): the character of +8 and that of +0x3b0, signed.
+// Between 0 and 399 it looks at their flags (0x416a8b..0x416ab9); 6 reads its position with any value other than
+// 0xffff (0x417858): the slots the A8 writes (0 to 400) are in MuRet's pool, and another value stops.
 Core::Expected<Scenes::DarkSpiritTargets, std::string> RavenTargetsOf(const Kernel::DarkSpirit& spirit,
                                                                       Kernel::WorldState& world, std::size_t slot)
 {
@@ -713,7 +714,8 @@ Core::Expected<Scenes::DarkSpiritTargets, std::string> RavenTargetsOf(const Kern
 
 glm::vec3 OwnBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset);
 
-// El cuerpo publicó el modelo ANTES de mover al moribundo. No sustituir este placement por actor.position actual.
+// The body published the model BEFORE moving the dying one. Do not replace this placement with the current
+// actor.position.
 glm::vec3 SharedBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
                           const Kernel::WorldState& world)
 {
@@ -732,7 +734,7 @@ const Models::Skeleton* BoneEmitterSkeleton(const Kernel::ActorState& actor, con
     return ModelSkeletonOf(actor, context);
 }
 
-// 4fd835..4fdada: el contador sólo baja después de recorrer los huesos; J lleno conserva seis selectores por hueso.
+// 0x4fd835..0x4fdada: the counter only drops after walking the bones; a full J keeps six selectors per bone.
 Core::Expected<void, std::string> StepTheBoneEmitter(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     if (context.world.Runtime().map == CastleMap || actor.byte1a0 == 0)
@@ -776,8 +778,8 @@ Core::Expected<void, std::string> StepTheBoneEmitter(Kernel::ActorState& actor, 
     return {};
 }
 
-// 0x4fdb3f: la luz local de 0x4fd5f0 con la partícula 0x5ac (0,3f es 0x3e99999a); la leen después los casos de
-// habilidad (Scenes::BodyLight).
+// 0x4fdb3f: 0x4fd5f0's local light with particle 0x5ac (0.3f is 0x3e99999a); the skill cases read it later
+// (Scenes::BodyLight).
 constexpr glm::vec3 ActionFlareLight{0.3f, 0.5f, 1.0f};
 
 Core::Expected<void, std::string> CreateTheActionFlare(Kernel::ActorState& actor, const CharacterStepContext& context)
@@ -800,15 +802,16 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
                                               const CharacterStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    // 0x4fd603..0x4fd698: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0 (MonsterStepCases.h).
+    // 0x4fd603..0x4fd698: 0xc5 passes its name and +0x1d6 to 0x4381f0 (MonsterStepCases.h).
     if (actor.type == NamedType)
     {
         if (auto queued = Scenes::QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
             return queued;
     }
-    // 0x4fd69b..0x4fd6ef: publica la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0).
+    // 0x4fd69b..0x4fd6ef: publishes the position, the scale and the action to the shared model (+0x6c, +0x68 and
+    // +0xa0).
     context.world.PlaceModel(actor);
-    // 0x4fd6f5: 0x4fbe10, la celda del héroe en los mapas 18 a 23.
+    // 0x4fd6f5: 0x4fbe10, the hero's cell on maps 18 to 23.
     if (runtime.map >= FirstCellReportMap && runtime.map <= LastCellReportMap)
     {
         if (auto reported = ReportTheHeroCell(context); !reported.HasValue())
@@ -822,7 +825,8 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
             return timers;
         }
     }
-    // 4fb38b..4fb3b1: skills8/9 ponen +398; primero gira por el valor ANTERIOR, sin normalizar y sin RNG.
+    // 0x4fb38b..0x4fb3b1: skills 8 and 9 set +0x398; it turns by the PREVIOUS value first, unnormalized and without
+    // RNG.
     if (actor.byte398 != 0)
     {
         constexpr double TurnPerCount = 10.0;
@@ -830,7 +834,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
             static_cast<float>(static_cast<double>(actor.angles.z) + static_cast<double>(actor.byte398) * TurnPerCount);
         --actor.byte398;
     }
-    // 0x4fd70e: 0x4fb380. El 0xf1 cae (0x4fb910).
+    // 0x4fd70e: 0x4fb380. 0xf1 falls (0x4fb910).
     if (actor.type == FallingType)
     {
         const std::function<double(float, float)> height = TerrainHeightOf(context);
@@ -841,7 +845,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
         }
         Scenes::StepTheFallingBall(actor, height);
     }
-    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389). Lo que sigue corre aunque lo haya borrado.
+    // 0x4fd722: 0x4fb9e0, dying (+0x389). What follows runs even if it erased it.
     if (auto died = StepActorDying(actor, slot,
                                    {.map = runtime.map,
                                     .scene = context.scene,
@@ -855,27 +859,27 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     {
         return died;
     }
-    // 0x4fd72e: 0x4e9980, el alpha hacia su meta y la luz del blendMesh.
+    // 0x4fd72e: 0x4e9980, the alpha toward its goal and the blendMesh light.
     World::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
-    // 0x4fd736..0x4fd75e: +0x3d8 en 0: en los personajes solo lo escribe esta resta (*estático*).
+    // 0x4fd736..0x4fd75e: +0x3d8 at 0: on characters only this subtraction writes it (*static*).
     // 0x4fd770: 0x4fcd00.
     if (auto animated = StepTheAnimation(actor, slot, context); !animated.HasValue())
     {
         return animated;
     }
-    // 0x4fd77b..0x4fd7dc: muriéndose, +0x389 sube (un byte, que da la vuelta) y desde 15 llama a 0x4f5660; en Blood
-    // Castle (11 a 17) con +0x1a1, otra vez.
+    // 0x4fd77b..0x4fd7dc: dying, +0x389 rises (a byte, which wraps) and from 15 calls 0x4f5660; in Blood Castle
+    // (11 to 17) with +0x1a1, again.
     if (actor.dying != 0)
     {
         if (auto died = DieAgain(actor, context); !died.HasValue())
             return died;
     }
-    // 0x4fd7e4: rand() % 6 sin condición; (r + 2) · 0,1f va a un local que este camino no lee (Q-C247).
+    // 0x4fd7e4: unconditional rand() % 6; (r + 2) · 0.1f goes to a local this path does not read (Q-C247).
     static_cast<void>(context.random.Next());
     if (auto emitted = StepTheBoneEmitter(actor, context); !emitted.HasValue())
         return emitted;
-    // 0x4fdae0..0x4fdb92: las 0x4d, 0x4f y 0x5a pasado el frame 5,5 sacan la partícula 0x5ac del hueso 42.
-    // La luz local de 0x4fd5f0: (1, 1, 1) en 0x4fd81e y la de la partícula en 0x4fdb3f.
+    // 0x4fdae0..0x4fdb92: 0x4d, 0x4f and 0x5a past frame 5.5 release particle 0x5ac from bone 42.
+    // 0x4fd5f0's local light: (1, 1, 1) at 0x4fd81e and the particle's at 0x4fdb3f.
     glm::vec3 bodyLight = Scenes::BodyLight;
     const std::uint8_t action = actor.animation.action;
     if (IsOneOf(ParticleActions, action) && actor.animation.frame > ParticleFrame)
@@ -884,14 +888,14 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
         if (auto flare = CreateTheActionFlare(actor, context); !flare.HasValue())
             return flare;
     }
-    // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
-    // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
-    // 0x79 (0x4cb830, ActionReply).
+    // 0x4fdb9a..0x50539e: with +0x381 other than 0, 0x4f97b0 and 0x4f5b70 and +0x381 += 1; from [0x6c88ac], the skill
+    // of +0x38e with the target of +0x3a4. The attack on arrival (0x5653c1, HeroAttack) and the C1 18 with 0x78 and
+    // 0x79 (0x4cb830, ActionReply) set it to 1.
     if (auto attacked = Scenes::StepTheAttack(actor, slot, context, bodyLight); !attacked.HasValue())
     {
         return attacked;
     }
-    // 0x5053a2..0x5053f0: cuenta el +0x428 y, al vencer, corre 0x511070(c, o) sin cortar el cuerpo.
+    // 0x5053a2..0x5053f0: counts +0x428 down and, when it expires, runs 0x511070(c, o) without stopping the body.
     if (actor.dword428 > 0)
         --actor.dword428;
     if (actor.dword428 <= 0 && actor.dword428 != Kernel::ActorRemovalCountdownSentinel)
@@ -899,15 +903,15 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
         actor.dword428 = Kernel::ActorRemovalCountdownSentinel;
         RemoveActorAtSlot(context.world, actor, slot);
     }
-    // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
+    // 0x5053fc: 0x42a2b0, the health bar of 0x1a8.
     Scenes::QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
     if (auto trailed = StepTheWeaponTrail(actor, slot, context); !trailed.HasValue())
     {
         return trailed;
     }
-    // 0x505425..0x505444: el 0xf1 echa el fuego de la clase 0 de 0x52f360 sin offset, con sus ángulos, su posición
-    // y su luz.
+    // 0x505425..0x505444: 0xf1 throws the class 0 fire of 0x52f360 without an offset, with its angles, its position
+    // and its light.
     if (actor.type == FallingType)
     {
         const World::ObjectStepGlobals globals{.worldClock = context.worldClock,
@@ -920,7 +924,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
             return Core::Unexpected(std::format("{} (el 0xf1 del lugar {})", fire.Error(), slot));
         }
     }
-    // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
+    // 0x50544b: 0x420dd0, after the trail and before 0x505de0, also outside the trapezoid.
     if (actor.darkSpirit && (actor.flags78 & FrozenFlag) == 0)
     {
         if (auto raven = StepTheRaven(actor, slot, context); !raven.HasValue())
@@ -928,7 +932,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
             return raven;
         }
     }
-    // 0x505453..0x5054aa: muriéndose, apaga 0x8000 y 0x10000 de +0x78.
+    // 0x505453..0x5054aa: dying, turns off 0x8000 and 0x10000 of +0x78.
     if (actor.dying != 0)
     {
         constexpr std::uint32_t DyingClearedFlags = 0x8000 | 0x10000;
@@ -937,7 +941,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     return {};
 }
 
-// 0x420dd0: el cuervo de +0x430, que el que llama da por existente y sin +0x78 & 0x1000.
+// 0x420dd0: the raven of +0x430, which the caller takes as existing and without +0x78 & 0x1000.
 Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::size_t slot,
                                                const CharacterStepContext& context)
 {
@@ -965,14 +969,14 @@ Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::s
                                 .modelOrigin = player.origin},
                                static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
                                context.random, context.counter, targets.Value());
-    // 0x416fc8 y 0x4175de: el A7 que corta el ataque, por send(); sin la sesión, no sale.
+    // 0x416fc8 and 0x4175de: the A7 that stops the attack, through send(); without the session, it does not go out.
     if (stepped.stopsTheAttack && context.send)
     {
         context.send(Protocol::Pets::WritePetCommand({.pet = Protocol::Pets::RavenPet,
                                                       .command = Protocol::Pets::StopTheAttackCommand,
                                                       .key = Protocol::Pets::NoTargetKey}));
     }
-    // 0x417e67: 0x41ed10(0x1d1) (CL10).
+    // 0x417e67: 0x41ed10(0x1d1).
     if (stepped.shouts && context.soundRequest)
     {
         context.soundRequest(RavenShoutSound);
@@ -980,8 +984,8 @@ Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::s
     return {};
 }
 
-// 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x505ec6
-// copió del personaje al modelo. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
+// 0x4ec110(model, own bones + bone · 0x30, offset, point, 1) with the scale and position 0x505ec6 copied from the
+// character to the model. Without own bones (before the first drawing), the matrix at zero (Q-C318).
 glm::vec3 OwnBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
@@ -1003,10 +1007,10 @@ Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm
     return {};
 }
 
-// 0x5189f0(c, &posición): tres 0x619/8 (0x518aa8: 0x530860(0x619, primero, posición, ángulos, 8, c, 10, −1, 0, 0,
-// −1)). Cada uno con los ángulos (rand() % 90, 0, rand() % 360), que salen también con la tabla de joints llena, y el
-// primer punto en la posición menos (0, −500, 0) girado por ellos, 120 más arriba. El alta saca su rand() de la luz
-// (FaunaJointCreation, 0x5324ea) sólo con un lugar libre.
+// 0x5189f0(c, &position): three 0x619/8 (0x518aa8: 0x530860(0x619, first, position, angles, 8, c, 10, −1, 0, 0,
+// −1)). Each one with the angles (rand() % 90, 0, rand() % 360), which are drawn also with the joint table full, and
+// the first point at the position minus (0, −500, 0) turned by them, 120 higher. The creation draws its light's rand()
+// (FaunaJointCreation, 0x5324ea) only with a free slot.
 Core::Expected<void, std::string> EmitChargedSkillJoints(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
     constexpr int Count = 3, PitchSpan = 90, YawSpan = 360;
@@ -1042,7 +1046,7 @@ Core::Expected<void, std::string> EmitChargedSkillJoints(Kernel::ActorState& act
     return {};
 }
 
-// 506e57..506f5a: la pose sin publicar usa la matriz0 de Q-C318, no equivale a puntero120NULL.
+// 0x506e57..0x506f5a: the unpublished pose uses the zero matrix of Q-C318; it is not the same as a NULL +0x120.
 Core::Expected<void, std::string> EmitChargedSkillFlares(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
                                                          const CharacterStepContext& context)
 {
@@ -1066,7 +1070,8 @@ Core::Expected<void, std::string> EmitChargedSkillFlares(Kernel::ActorState& act
     return EmitChargedSkillJoints(actor, context);
 }
 
-// 506f62..506fc1: diez selecciones de hueso y partículas5d9/0 ya portadas; count0 conserva rand antes del IDIV.
+// 0x506f62..0x506fc1: ten bone picks and 0x5d9/0 particles, already ported; a count of 0 keeps the rand() before the
+// IDIV.
 Core::Expected<void, std::string> EmitRandomBoneFires(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
                                                       const CharacterStepContext& context)
 {
@@ -1085,11 +1090,11 @@ Core::Expected<void, std::string> EmitRandomBoneFires(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x506d0a..0x506d7c: en la escena 5 y el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000
-// debajo de 1000) saca una burbuja 0x607 de la cabeza: 0x4ec110 con el hueso +0x54 del modelo (20 en Player.bmd)
-// de los huesos propios (+0x120), (0, 20, −10), la escala (+0x68) y la posición (+0x6c) que 0x505ec6 copió
-// del personaje, y 0x53fe70(0x607, punto, +0x1c, (1, 1, 1) de 0x506c82, 0, 1, 0). Antes del primer dibujo
-// los huesos son los del operator new de 0x511290, sin iniciar: MuRet usa una matriz en cero (Q-C318).
+// 0x506d0a..0x506d7c: in scene 5 and on map 7, the second of every ten of the world clock (ftol % 10000
+// below 1000) releases a 0x607 bubble from the head: 0x4ec110 with the model's +0x54 bone (20 in Player.bmd)
+// of the own bones (+0x120), (0, 20, −10), the scale (+0x68) and the position (+0x6c) that 0x505ec6 copied
+// from the character, and 0x53fe70(0x607, point, +0x1c, (1, 1, 1) of 0x506c82, 0, 1, 0). Before the first drawing
+// the bones are those of 0x511290's operator new, uninitialized: MuRet uses a zero matrix (Q-C318).
 Core::Expected<void, std::string> BlowTheAtlansBubble(const Kernel::ActorState& actor, std::size_t slot,
                                                       const CharacterStepContext& context)
 {
@@ -1121,9 +1126,9 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const Kernel::ActorState& 
     return {};
 }
 
-// 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() % 4 (rand() & 3): con 0, una gota 0x68/0 de
-// 0x4ec110 con el hueso 26 (0x4e0) y después con el 35 (0x690) de los huesos propios, (−15, 0, 0), y
-// 0x53fe70(0x68, punto, +0x1c, (1, 1, 1), 0, 1, 0). El segundo rand() sale aunque el primero no dé 0.
+// 0x506d7f..0x506e54: on map 9, in any scene, two rand() % 4 (rand() & 3): with 0, a 0x68/0 drop from 0x4ec110 with
+// bone 26 (0x4e0) and then with bone 35 (0x690) of the own bones, (−15, 0, 0), and
+// 0x53fe70(0x68, point, +0x1c, (1, 1, 1), 0, 1, 0). The second rand() is drawn even if the first does not give 0.
 Core::Expected<void, std::string> DropTheDevilSquareRain(const Kernel::ActorState& actor, std::size_t slot,
                                                          const CharacterStepContext& context)
 {
@@ -1153,21 +1158,21 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const Kernel::ActorStat
     return {};
 }
 
-// 0x505e15..0x505ebb: la caja de +0x13c..+0x168 con la de +0x124..+0x138: el rincón más la posición y los tres ejes
-// (el largo de cada lado en la diagonal, el resto en 0). Cada resta y cada suma en la x87 se guarda en float: lo mismo
-// que en float.
+// 0x505e15..0x505ebb: the box of +0x13c..+0x168 from that of +0x124..+0x138: the corner plus the position and the
+// three axes (the length of each side on the diagonal, the rest at 0). Each subtraction and each addition on the x87
+// is stored as float: the same as in float.
 void BoxTheModelWithoutActions(Kernel::ActorState& actor)
 {
     PublishPickingBox(actor, actor.position, actor.boundsMin, {actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop});
 }
 
-// 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los
-// monstruos y los NPC"). `hero` es c == [0x743a170].
+// 0x505de0(c, c) from 0x508ee6, to its end (06, "Los efectos de los personajes (0x505de0)" and "El cuerpo de los
+// monstruos y los NPC"). `hero` is c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
-    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15 y sale.
+    // 0x505e0b: a model without actions (+0x26 of 0x5769ad8 + type · 0xe0) goes to the box of 0x505e15 and leaves.
     const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
@@ -1180,19 +1185,19 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
         BoxTheModelWithoutActions(actor);
         return {};
     }
-    // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
-    // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
-    // guarda la escala y la posición de cada tipo: la de Player.bmd la lee el cuervo en la zona segura antes de
-    // este punto de su dueño (Q-C412), y las de todos, los restos de 0x52e810 en el paso del cuerpo, que va antes
-    // (Q-C1178); los de abajo leen las del propio personaje (OwnBonePoint).
+    // 0x505ec6..0x505ee4: the position, the scale and the action go to the shared model (+0x6c, +0x68 and
+    // +0xa0), which the 0x4ec110 calls below read and which the drawing writes again before posing. MuRet
+    // keeps the scale and position of each type: the raven reads Player.bmd's in the safe zone before
+    // this point of its owner (Q-C412), and the remains of 0x52e810 read everyone's in the body step, which comes
+    // first (Q-C1178); the ones below read the character's own (OwnBonePoint).
     context.world.PlaceModel(actor);
-    // 0x505ef2: sin verse, nada más.
+    // 0x505ef2: unseen, nothing else.
     if (!actor.seen)
     {
         return {};
     }
-    // 0x505ef8..0x506866 y 0x50686e..0x5068b2: la zona segura es el bit 0x01 del byte bajo de la celda
-    // lógica, la de +0x41c y +0x420 (06 § Caminar), no la de la posición dibujada.
+    // 0x505ef8..0x506866 and 0x50686e..0x5068b2: the safe zone is bit 0x01 of the low byte of the logical cell,
+    // that of +0x41c and +0x420 (06 § Caminar), not that of the drawn position.
     const LogicalCell cell = ReadLogicalCell(actor, context.random);
     if (walls == nullptr)
     {
@@ -1200,14 +1205,14 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
     }
     const std::uint16_t attribute = (*walls)[Data::Terrain::CellIndex(cell.x, cell.y)];
     actor.safeZone = static_cast<std::uint8_t>((attribute & Pathfinding::SafeZoneWallBit) != 0 ? 1 : 0);
-    // 0x5068b9..0x5069ab: la cabeza, sin +0x78 & 0x20 ni & 0x1000 (0x5068be..0x5068d4). 0x5068da: con otro
-    // modelo, antes 0x4ea190, que ya cortó en 0x505e0b. 0x5068eb..0x5068fb: otro que el héroe, sin morirse
-    // (+0x389), sortea con rand() % 32 y, si da 0, dos más hacia dónde mira (+0x34 y +0x38); después los dos
-    // ángulos giran hacia el blanco (0x4e96f0 y 0x4e9560). El héroe no sortea ni gasta: gira hacia el blanco
-    // que MoveHero escribe con el mouse (0x59b1c2..0x59b287, CL7.4), que MuRet todavía no escribe.
+    // 0x5068b9..0x5069ab: the head, without +0x78 & 0x20 or & 0x1000 (0x5068be..0x5068d4). 0x5068da: with another
+    // model, 0x4ea190 first, which already stopped at 0x505e0b. 0x5068eb..0x5068fb: anyone but the hero, not dying
+    // (+0x389), draws rand() % 32 and, if it gives 0, two more for where it looks (+0x34 and +0x38); then both
+    // angles turn toward the target (0x4e96f0 and 0x4e9560). The hero neither draws nor spends: it turns toward the
+    // target MoveHero writes with the mouse (0x59b1c2..0x59b287), which MuRet does not write yet.
     if ((actor.flags78 & StillHeadFlag) == 0 && (actor.flags78 & FrozenFlag) == 0)
     {
-        // 0x5068da..0x5068e8: con otro modelo, antes 0x4ea190.
+        // 0x5068da..0x5068e8: with another model, 0x4ea190 first.
         if (!player)
         {
             if (auto target = Scenes::SetTheModelHeadTarget(actor, context.world.Actors(), context.random);
@@ -1223,9 +1228,9 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
     {
         return cooldown;
     }
-    // 0x506acf..0x506b62: con +0x375 debajo de 6, la luz de cada mano, la derecha (+0x2b8) y después la
-    // izquierda (+0x2d8): 0x5f9780 con la x y la y del objeto (+0x10, +0x14) sobre el buffer dinámico
-    // 0x7b4ccc4, el de WorldState, que 0x5fbf60 repone en cada paso. Sin rand().
+    // 0x506acf..0x506b62: with +0x375 below 6, the light of each hand, the right one (+0x2b8) and then the
+    // left one (+0x2d8): 0x5f9780 with the object's x and y (+0x10, +0x14) over the dynamic buffer
+    // 0x7b4ccc4, WorldState's, which 0x5fbf60 restores on each step. No rand().
     if (actor.pk < FirstPkWithoutLights)
     {
         for (const Kernel::ActorItemPart& hand : actor.hands)
@@ -1244,13 +1249,13 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
             }
         }
     }
-    // 0x506b64: +0x3d8 en 0. Positivo, con +0x3d4 en 0x611 sortea con rand() & 3 y, si da 0, tres más una
-    // posición, y con 0x612 recorre los huesos con 0x4ec110; no crea nada (Q-C266). En los personajes +0x3d8 solo
-    // lo escribe 0x4fd5f0, que lo baja si es positivo (0x4fd75e); los otros que escriben +0x3d4 y +0x3d8 son de la
-    // UI (*estático*).
-    // 0x506cac..0x506cf1: rand() & 7, sin condición, y el caso del tipo − 0x152. Con otro modelo, su caso o los helpers
-    // de 0x5085db (Scenes::StepTheModelEffects); 0x50862f..0x508801 son del 0x20a, que cae en 0x506cf8 (mira el mapa 7
-    // solo en la escena 5) y no lee el rand() (*estático*, Q-C207).
+    // 0x506b64: +0x3d8 at 0. Positive, with +0x3d4 at 0x611 it draws rand() & 3 and, if it gives 0, three more for a
+    // position, and with 0x612 it walks the bones with 0x4ec110; it creates nothing (Q-C266). On characters only
+    // 0x4fd5f0 writes +0x3d8, lowering it if positive (0x4fd75e); the others that write +0x3d4 and +0x3d8 belong to the
+    // UI (*static*).
+    // 0x506cac..0x506cf1: rand() & 7, unconditional, and the case of type − 0x152. With another model, its case or the
+    // helpers of 0x5085db (Scenes::StepTheModelEffects); 0x50862f..0x508801 belong to the 0x20a, which falls into
+    // 0x506cf8 (it looks at map 7 only in scene 5) and does not read the rand() (*static*, Q-C207).
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
     {
@@ -1291,9 +1296,9 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
         if (auto fired = EmitRandomBoneFires(actor, *skeleton, context); !fired.HasValue())
             return fired;
     }
-    // 0x506fc1..0x507001: 0x4ec110 con el hueso de +0x2bd a un local que nadie lee, y a 0x50862f.
-    // 0x50862f..0x5086ca: solo con el héroe publicado (0x508641), los pasos: el sonido de 0x505770 con +0x3e0 y
-    // +0x3e1.
+    // 0x506fc1..0x507001: 0x4ec110 with the bone of +0x2bd into a local nobody reads, and to 0x50862f.
+    // 0x50862f..0x5086ca: only with the published hero (0x508641), the footsteps: the sound of 0x505770 with +0x3e0
+    // and +0x3e1.
     if (hero)
     {
         for (const auto sound : TakeActorFootstepSounds(actor, map, context.world.Runtime().heroCellLayer))
@@ -1304,9 +1309,9 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
             }
         }
     }
-    // 0x5086cf..0x508801: en Kalima, el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b (con el héroe, todas de los
-    // pasos) saca el 0x6f4/1 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
-    // en la x (0x508793) y en la y (0x5087b6).
+    // 0x5086cf..0x508801: in Kalima, the 0x20a on actions 0x15, 0x1d to 0x21 and 0x4b (with the hero, all of them
+    // footstep actions) releases 0x6f4/1 at (0, −40, 0) turned by +0x1c (0x5fc8f0 and 0x5fcbd0), with rand() % 64
+    // in the x (0x508793) and in the y (0x5087b6).
     if (IsKalimaMap(map) && IsOneOf(KalimaParticleActions, action))
     {
         constexpr int FootstepSpan = 64, FootstepCenter = 32;
@@ -1359,8 +1364,8 @@ Core::Expected<void, std::string> StepACharacter(Kernel::ActorState& actor, std:
     {
         return effects;
     }
-    // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a); en el 30 mueve, por +0x376, los objetos del
-    // asedio (MonsterStepCases.h).
+    // 0x508eed: 0x42da90, which outside map 30 returns 0 (0x42da9a); on map 30 it moves the siege objects by +0x376
+    // (MonsterStepCases.h).
     const Scenes::CastleObjectStep castle{.runtime = context.world.Runtime(),
                                           .pool = context.world.Actors(),
                                           .height = TerrainHeightOf(context),
@@ -1399,7 +1404,7 @@ LogicalCell ReadLogicalCell(Kernel::ActorState& actor, Crt::CrtRandom& random)
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {
     Kernel::WorldState& world = context.world;
-    // 0x508f06..0x508f0c: 0x412140 con el héroe, antes del lazo.
+    // 0x508f06..0x508f0c: 0x412140 with the hero, before the loop.
     if (auto panel = Scenes::RefreshTheSiegePanel(world.Runtime()); !panel.HasValue())
     {
         return panel;
@@ -1413,19 +1418,19 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     }
     Data::Terrain::TerrainLayer<std::uint16_t>& walls = terrain.attributes->cells;
     Pathfinding::ClearCharacterWalls(walls);
-    // 0x5fba90 lee los globales de 0x78ecbf0 y 0x78ecc00: el trapecio del último dibujo de cualquier escena.
+    // 0x5fba90 reads the globals of 0x78ecbf0 and 0x78ecc00: the trapezoid of the last drawing of any scene.
     const Terrain::TerrainPolygon& polygon = runtime.terrainPolygon;
     const auto actors = world.Actors();
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {
         Kernel::ActorState& actor = actors[slot];
-        // 0x508f49..0x509165: vivo, sin morirse y sin el 8 de +0x88, ocupa su celda lógica.
+        // 0x508f49..0x509165: alive, not dying and without the 8 of +0x88, it takes its logical cell.
         if (actor.alive && actor.dying == 0 && actor.byte88 != Pathfinding::NonBlockingKind)
         {
             const LogicalCell cell = ReadLogicalCell(actor, context.random);
             Pathfinding::MarkCharacterWall(walls, cell.x, cell.y);
         }
-        // 0x50916d..0x5091a0: vivo o no, si se ve, con el trapecio del último 0x5fb570.
+        // 0x50916d..0x5091a0: alive or not, whether it is seen, with the trapezoid of the last 0x5fb570.
         actor.seen = CharacterSeen(polygon, actor.position);
     }
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
@@ -1437,15 +1442,15 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
             return stepped;
         }
     }
-    // 0x5091d0: una vez después del último 0x508ea0, también en el login y antes del preview de selección.
+    // 0x5091d0: once after the last 0x508ea0, also at login and before the selection's preview.
     return Actors::Drawing::StepRibbons(world.DrawTail().ribbons);
 }
 
-// 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 con el contexto del paso. La 5f3/1 va al pool de partículas
-// en la posición sorteada, con los ángulos (+0x1c) y la luz (+0xf4, ya en 1) del personaje, escala 1 y sin dueño
-// (0x506a57..0x506a73); la piedrita 0xc8 o 0xc9, a la tabla de efectos del mundo en la posición del personaje (+0x10),
-// con sus ángulos y su luz, el subtipo 0, sin dueño y la clave −1 (0x506a8c..0x506ab7). Los dos con el CRT del paso.
-// Sin el pool, la partícula corta ahí.
+// 0x5069ae..0x506ac6: the creators of the +0x3e5 brake with the step's context. The 0x5f3/1 goes to the particle
+// pool at the drawn position, with the character's angles (+0x1c) and light (+0xf4, already at 1), scale 1 and no
+// owner (0x506a57..0x506a73); the 0xc8 or 0xc9 pebble, to the world's effect table at the character's position
+// (+0x10), with its angles and its light, subtype 0, no owner and key −1 (0x506a8c..0x506ab7). Both with the step's
+// CRT. Without the pool, the particle stops there.
 ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& context)
 {
     return {

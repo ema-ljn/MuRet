@@ -16,11 +16,11 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x576a84..0x576a94: la acción de ahora, de 1 a 12 o 0x8a.
+// 0x576a84..0x576a94: the current action, from 1 to 12 or 0x8a.
 constexpr std::uint8_t FirstStandAction = 1;
 constexpr std::uint8_t LastStandAction = 0xc;
 constexpr std::uint8_t MarkedSpecialStand = 0x8a;
-// 0x576a9d..0x576abc: el elfo (+0x1d4 & 7 == 2) y las animaciones sin la del elfo, de 0xb7 a 0xc0 (CMP con signo).
+// 0x576a9d..0x576abc: the elf (+0x1d4 & 7 == 2) and the animations without the elf's, from 0xb7 to 0xc0 (signed CMP).
 constexpr std::uint8_t FirstSharedAnimation = 0xb7;
 constexpr std::uint8_t LastSharedAnimation = 0xc0;
 
@@ -42,13 +42,13 @@ Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::Em
 {
     if (!IsStanding(actor.animation.action))
         return false;
-    // 0x576abf: 0x4ea030 con el modelo del tipo del personaje (+2), no siempre el de Player.bmd.
+    // 0x576abf: 0x4ea030 with the model of the character's type (+2), not always Player.bmd's.
     const auto* skeleton = context.models.SkeletonOf(actor.type);
     if (skeleton == nullptr)
         return Core::Unexpected(
             std::format("0x576abf: el emote sin las acciones del modelo {:#x} del personaje (0x4ea030)", actor.type));
     Models::SetAction(actor.animation, *skeleton, AnimationFor(actor, emote.animation));
-    // 0x576ac7..0x576e97: C1 05 18 con la dirección de [0x743a170] + 0x24 y la acción, XOR32 en línea.
+    // 0x576ac7..0x576e97: C1 05 18 with the direction of [0x743a170] + 0x24 and the action, XOR32 inline.
     if (auto sent = SendTheAction(context.hero.angles.z, emote.action, context.send, "0x576b3e"); !sent.HasValue())
         return Core::Unexpected(sent.Error());
     return true;
@@ -58,7 +58,7 @@ Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteCon
 {
     if (auto played = PlayTheEmote(context.hero, emote, context); !played.HasValue())
         return Core::Unexpected(played.Error());
-    // El C1 05 18 del caso (0x5777aa..0x577b75 en el 0x577796, igual en los otros 21), con el ESI de 0x576ed4.
+    // The case's C1 05 18 (0x5777aa..0x577b75 in 0x577796, the same in the other 21), with the ESI of 0x576ed4.
     return SendTheAction(context.hero.angles.z, emote.action, context.send, "0x577823");
 }
 } // namespace Client::Actors

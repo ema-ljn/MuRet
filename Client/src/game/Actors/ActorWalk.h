@@ -23,15 +23,15 @@ struct ActorWalkContext
     PlayerActionSpeeds& actionSpeeds;
     bool hero = false;
     const Models::Skeleton* actorSkeleton = nullptr;
-    // +0xaa del modelo del personaje (0x612c80, Assets::FaunaModels::SoundActions), los sonidos de sus acciones que lee
-    // 0x4f3f0f con otro modelo que el 0x20a. Vacío, los de WorldRuntime::modelSounds (MonsterSounds.h).
+    // +0xaa of the character's model (0x612c80, Assets::FaunaModels::SoundActions), the sounds of its actions that
+    // 0x4f3f0f reads with a model other than 0x20a. Empty, those of WorldRuntime::modelSounds (MonsterSounds.h).
     std::span<const std::int16_t> modelSounds{};
 };
 using ActorWalkResult = ActorStopResult;
-// 0x4f37c0: Run, velocidades compartidas, acción y sufijo de sonidos, en ese orden.
+// 0x4f37c0: Run, shared speeds, action and sound suffix, in that order.
 [[nodiscard]] Core::Expected<ActorWalkResult, std::string> SetActorWalk(Kernel::ActorState& actor,
                                                                         const ActorWalkContext& context);
-// 0x508668/0x505770: latches por frame y solicitudes de sonido. El caller selecciona al héroe.
+// 0x508668/0x505770: per-frame latches and sound requests. The caller selects the hero.
 [[nodiscard]] std::array<std::optional<std::int32_t>, 2>
 TakeActorFootstepSounds(Kernel::ActorState& actor, std::int32_t map, std::int32_t heroCellLayer);
 } // namespace Client::Actors

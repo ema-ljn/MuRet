@@ -28,27 +28,28 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x4cb781: el caballo oscuro en +0x318.
+// 0x4cb781: the dark horse at +0x318.
 constexpr std::uint16_t DarkHorsePet = 0x1c16;
-// 0x4cb7b9..0x4cb7fa: (pkt[5] − 1.0) · 45.0 (0x6b87d4 y 0x6b8848) y la celda · 100.0 + 50.0 (0x6b86b4 y 0x6b86b0).
+// 0x4cb7b9..0x4cb7fa: (pkt[5] − 1.0) · 45.0 (0x6b87d4 and 0x6b8848) and the cell · 100.0 + 50.0 (0x6b86b4 and
+// 0x6b86b0).
 constexpr double DirectionBase = 1.0;
 constexpr double DegreesPerDirection = 45.0;
 constexpr double CellSize = 100.0;
 constexpr double HalfCell = 50.0;
-// 0x4cb853..0x4cb864: la acción 0x12 pone la 0x98 y pide el sonido 0x6f.
+// 0x4cb853..0x4cb864: action 0x12 sets 0x98 and requests sound 0x6f.
 constexpr std::uint8_t ShieldAction = 0x12;
 constexpr std::uint8_t ShieldAnimation = 0x98;
 constexpr std::int32_t ShieldSound = 0x6f;
-// 0x4cb820: 0x78 y 0x79 van a 0x4f4a10 (Strike).
+// 0x4cb820: 0x78 and 0x79 go to 0x4f4a10 (Strike).
 constexpr std::uint8_t FirstStrikeAction = 0x78;
 constexpr std::uint8_t LastStrikeAction = 0x79;
-// 0x4cb812: 0x7a y 0x7b van a 0x4f2250.
+// 0x4cb812: 0x7a and 0x7b go to 0x4f2250.
 constexpr std::uint8_t FirstStopAction = 0x7a;
 constexpr std::uint8_t LastStopAction = 0x7b;
-// 0x4cbc92: la 0x7e pone la 5.
+// 0x4cbc92: 0x7e sets 5.
 constexpr std::uint8_t SalutedAction = 0x7e;
 constexpr std::uint8_t SalutedAnimation = 5;
-// 0x4cb871..0x4cbcc8: de 0x80 a 0x9b, la animación de cada acción y la del elfo (+0x1d4 & 7 == 2).
+// 0x4cb871..0x4cbcc8: from 0x80 to 0x9b, the animation of each action and the elf's (+0x1d4 & 7 == 2).
 constexpr std::uint8_t FirstTableAction = 0x80;
 constexpr std::uint8_t LastTableAction = 0x9b;
 
@@ -63,7 +64,7 @@ constexpr TableAnimation Both(std::uint8_t animation)
     return TableAnimation{animation, animation};
 }
 
-// Por acción desde 0x80, con el bloque de cada una (las de 0x92 en adelante no miran la clase).
+// Per action from 0x80, with the block of each one (those from 0x92 on do not look at the class).
 constexpr std::array<TableAnimation, LastTableAction - FirstTableAction + 1> Animations{{
     {0xc5, 0xc7}, // 0x80, 0x4cb871
     {0xcb, 0xcc}, // 0x81, 0x4cb8a3
@@ -95,7 +96,7 @@ constexpr std::array<TableAnimation, LastTableAction - FirstTableAction + 1> Ani
     Both(0xbf),   // 0x9b, 0x4cbcc8
 }};
 
-// La animación que 0x4cb750 le pasa a 0x4ea030 (0x4cbcdb: cualquier otra, la acción misma).
+// The animation 0x4cb750 passes to 0x4ea030 (0x4cbcdb: any other, the action itself).
 std::uint8_t AnimationOf(const Kernel::ActorState& actor, std::uint8_t action)
 {
     if (action == ShieldAction)
@@ -131,9 +132,9 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
         return Core::Unexpected(stopped.Error());
     return {};
 }
-// 0x4cb820..0x4cb852: 0x4f4a10 (SetActorAttack, con sus rand() y su sonido) y, después, +0x381 en 1, el frame
-// (+0x114) en 0, el blanco (+0x3a4) con el WORD de abajo de [0x57678b0] (el lugar del héroe, heroSlot) y [0x5767964]
-// con el índice. Un corte de 0x4f4a10 deja lo de antes hecho y no escribe nada de esto.
+// 0x4cb820..0x4cb852: 0x4f4a10 (SetActorAttack, with its rand() calls and its sound) and then +0x381 at 1, the frame
+// (+0x114) at 0, the target (+0x3a4) with the low WORD of [0x57678b0] (the hero's slot, heroSlot) and [0x5767964]
+// with the index. A stop in 0x4f4a10 leaves what came before done and writes none of this.
 Core::Expected<void, std::string> Strike(Kernel::ActorState& actor, std::size_t index,
                                          const Scenes::WorldEntryResources& resources)
 {
@@ -160,13 +161,13 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
                                                    const Scenes::WorldEntryResources& resources,
                                                    const ActionSender& sendAction)
 {
-    // 0x4cb769: sin nadie vivo con la clave, el original devuelve el lugar 400 y el 18 también le escribe (Q-C778).
+    // 0x4cb769: with nobody alive with the key, the original returns slot 400 and the C1 18 writes to it too (Q-C778).
     const std::size_t index = Scenes::ActorWithKey(resources.world, reply.key);
     Kernel::ActorState& actor = resources.world.Actors()[index];
     if (actor.pet.model == DarkHorsePet)
         return {};
-    // 0x4cb7b2..0x4cb7fa: el Movement en 0, el ángulo y la posición en el centro de la celda blanco (Q-C779). Todo en
-    // la x87 y guardado en float; con bytes las cuentas son exactas.
+    // 0x4cb7b2..0x4cb7fa: Movement at 0, the angle and the position at the center of the target cell (Q-C779). All on
+    // the x87 and stored as float; with bytes the arithmetic is exact.
     actor.movement = 0;
     actor.angles.z = static_cast<float>((static_cast<double>(reply.direction) - DirectionBase) * DegreesPerDirection);
     actor.position.x = static_cast<float>(static_cast<double>(actor.targetX) * CellSize + HalfCell);
@@ -176,9 +177,9 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
         return StopTheActor(actor, resources, sendAction);
     if (action >= FirstStrikeAction && action <= LastStrikeAction)
         return Strike(actor, index, resources);
-    // 0x4ea030 lee las acciones del modelo del personaje (0x5769ad8 + tipo · 0xe0): un monstruo o un NPC, el que
-    // cargó su alta; un modelo que no está es el registro sin acciones y no pone nada (0x4ea056). Sin Player.bmd, el
-    // jugador es una guarda de contrato.
+    // 0x4ea030 reads the actions of the character's model (0x5769ad8 + type · 0xe0): for a monster or an NPC, the one
+    // its creation loaded; a model that is not there is the record without actions and sets nothing (0x4ea056).
+    // Without Player.bmd, the player is a contract guard.
     if (actor.type == Tables::PlayerSkeletonModel)
     {
         const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);

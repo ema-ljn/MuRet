@@ -16,11 +16,11 @@ struct EquipmentShown;
 struct Position;
 } // namespace Client::Protocol::Actors
 
-// Los otros jugadores entran y salen del viewport (CL9 hito 1): el 0x12, el 0x14, el 0x45, el 0x25 y el 0xDF. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el viewport". Todo *estático*, del ASM. Lo
-// que MuRet no tiene corta con error, con su dirección, después de lo que el original hace antes. Las búsquedas
-// 0x5132d0 (el vivo con un nombre), 0x5178f0 (un int en un arreglo) y 0x517920 (los jugadores cerca de un punto) no
-// tienen llamadores ni punteros en el binario: no se portan.
+// The other players enter and leave the viewport: the 0x12, the 0x14, the 0x45, the 0x25 and the 0xDF. Contract:
+// Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el viewport". All *static*, from the ASM.
+// What MuRet does not have stops with an error, with its address, after what the original does before it. The searches
+// 0x5132d0 (the live character with a name), 0x5178f0 (an int in an array) and 0x517920 (the players near a point) have
+// no callers or pointers in the binary: they are not ported.
 namespace Client::Crt
 {
 class CrtRandom;
@@ -40,76 +40,75 @@ struct WorldEntryResources;
 namespace Client::Actors
 {
 
-// Lo que comparten las altas del viewport (los jugadores, el 45, el DF y los monstruos de MonsterViewport.h):
-// Una escritura de la celda protegida (+0x41c o +0x420) con su acceso abierto: 4 rand() al cerrarse si queda sin
-// accesos.
+// Shared by the viewport's creations (the players, the 45, the DF and the monsters of MonsterViewport.h): a write of
+// the protected cell (+0x41c or +0x420) with its access open: 4 rand() on closing if no access is left open.
 void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random);
-// Una lectura, con su acceso (0x40b800 o el cierre en línea).
+// A read, with its access (0x40b800 or the inline close).
 [[nodiscard]] std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random);
-// La X y después la Y de la celda protegida, y +0x39a/+0x39b con los mismos valores.
+// The X and then the Y of the protected cell, and +0x39a/+0x39b with the same values.
 void WriteTheCells(Kernel::ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random);
-// (nibble alto − 1) · 45 (0x6b8848, con el 1 de 0x6b87d4).
+// (high nibble − 1) · 45 (0x6b8848, with the 1 from 0x6b87d4).
 [[nodiscard]] float AngleOf(std::uint8_t directionAndPk);
-// La X y después la Y, leídas de la tabla, al centro de la celda.
+// The X and then the Y, read from the table, to the center of the cell.
 void PutInTheCellCenter(Kernel::ActorState& actor, Crt::CrtRandom& random);
-// La Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay camino.
+// The Y, the X and 0x4eac00(X, Y, target, +0x3e8, 0); +0x378 at 1 only if there is a path.
 [[nodiscard]] Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std::uint8_t targetX,
                                                                 std::uint8_t targetY,
                                                                 const Scenes::WorldEntryResources& resources);
 
-// El dispatcher (0x4e372e..0x4e37b8) guarda el paquete entero en la cola (la sesión, con CopyToPacketRing, antes de
-// leerlo) y 0x4c8860 recorre los registros. Cada uno: si el nombre (los diez bytes, hasta su 0) tiene "webzen"
-// (0x576960), nada. Si no, con el estado 1 guarda de un vivo con la clave (0x5110d0) el byte de abajo de +0x1f2,
-// +0x368, +0x369, +0x370, +0x360, +0x78 y +0x372; el alta (CreateActor, tipo 0x20a, ángulo 0), que con lo guardado los
-// recupera (+0x1f2 sin el byte de arriba, Q-C800); la clase de +4, la piel en 0, +0x88 en 1 y el PK; por el estado, 1:
-// 0x53d930 y el paquete otra vez a la cola (Q-C801), 2: la acción 0xc5 (0xc7 el elfo), 3: 0xcb (0xcc), 4: 0xc9 (0xca),
-// 0x4ea030; las banderas (0x4e6380); la celda protegida y +0x39a/+0x39b; el ángulo, (dirección − 1) · 45. Recién
-// llegado (el bit 15): la posición en el centro de la celda, el efecto 0x61f (0x4c905f, con el actor de dueño en
-// +0x108 y la clave −1) y el alpha en 0. Si no, el camino hasta +0x26/+0x27 (0x4eac00) y, si hay, +0x378 en 1. En
-// Kalima (24 a 29 y 36), el joint 0x610/8 con el jugador de dueño (0x4c91dc, la clase de los peces de Atlans con
-// JointOwnerKind::Actor; sin rand(), con los joints llenos nada). Después, el equipo (ApplyCharacterSet con el
-// lugar de 0x5110d0), el nombre y +0x1e3 en 0, con el estado 1 otra vez +0x360 y +0x78, Castle Siege (0x42ab40) y el
-// panel (0x412140). Cada celda escrita o leída gasta 4 rand() al cerrarse; el alta, los 28 de 0x511290 y los de sus
-// ayudantes.
+// The dispatcher (0x4e372e..0x4e37b8) stores the whole packet in the queue (the session, with CopyToPacketRing, before
+// reading it) and 0x4c8860 walks the records. Each one: if the name (the ten bytes, up to its 0) contains "webzen"
+// (0x576960), nothing. Otherwise, with state 1 it keeps from a live character with the key (0x5110d0) the low byte of
+// +0x1f2, +0x368, +0x369, +0x370, +0x360, +0x78 and +0x372; the creation (CreateActor, type 0x20a, angle 0), which
+// restores them from what it kept (+0x1f2 without the high byte, Q-C800); the class from +4, the skin at 0, +0x88 at 1
+// and the PK; by state, 1: 0x53d930 and the packet to the queue again (Q-C801), 2: action 0xc5 (0xc7 for the elf), 3:
+// 0xcb (0xcc), 4: 0xc9 (0xca), 0x4ea030; the flags (0x4e6380); the protected cell and +0x39a/+0x39b; the angle,
+// (direction − 1) · 45. Just arrived (bit 15): the position at the center of the cell, effect 0x61f (0x4c905f, with the
+// actor as owner at +0x108 and key −1) and the alpha at 0. Otherwise, the path to +0x26/+0x27 (0x4eac00) and, if there
+// is one, +0x378 at 1. In Kalima (24 to 29 and 36), joint 0x610/8 with the player as owner (0x4c91dc, the class of the
+// Atlans fish with JointOwnerKind::Actor; without rand(), and with the joints full nothing). Then the equipment
+// (ApplyCharacterSet with the slot from 0x5110d0), the name and +0x1e3 at 0, with state 1 +0x360 and +0x78 again,
+// Castle Siege (0x42ab40) and the panel (0x412140). Each cell written or read draws 4 rand() on closing; the creation,
+// the 28 of 0x511290 and those of its helpers.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::Players& players,
                                                                      const Scenes::WorldEntryResources& resources);
 
-// 0x4ca780: por cada clave, con la información del asedio (0x5767924), la entera 0x13d pone sus bytes 4..6 en 0 y
-// cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca el
-// cartel de la tienda personal de esa clave en el mapa de 0x7245c8 (el primero en su orden) y 0x451430 lo saca.
+// 0x4ca780: for each key, with the siege information (0x5767924), the full key 0x13d sets its bytes 4..6 to 0 and any
+// other key bytes 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) with the key without bit 15; and 0x451630 looks up the
+// personal shop sign of that key in the map at 0x7245c8 (the first in its order) and 0x451430 removes it.
 void ApplyViewportLeave(const Protocol::Actors::Leave& leave, Kernel::WorldState& world);
 
-// 0x4c92a0: con "webzen" en el nombre, el registro no hace nada. Si no, la clase del héroe publicado (0x4c9328), el
-// alta del transformado o del monstruo de tipo +4 (CreateMonster, 0x5141e0, sin mirar si devuelve 0) y
-// FinishTheTransformed.
+// 0x4c92a0: with "webzen" in the name, the record does nothing. Otherwise, the published hero's class (0x4c9328), the
+// creation of the transformed character or of the monster of type +4 (CreateMonster, 0x5141e0, without looking at
+// whether it returns 0) and FinishTheTransformed.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Transformed& transformed,
                                                                  const Scenes::WorldEntryResources& resources);
 
-// 0x4c9356..0x4c9762, lo que 0x4c92a0 hace con el personaje `index` que devolvió 0x5141e0: con +0x376 en 7 la escala
-// en 0,8; la clase del héroe publicado que leyó antes del alta (`heroClass`, 0x4c9328), el PK, +0x88 y +0x3e3 en 1;
-// las banderas (0x4e6380 y 0x42ab40); la celda protegida, +0x39a/+0x39b y el ángulo. Recién llegado, la posición, el
-// alpha en 0, el círculo 0xec (0x4c965c) y el rayo 0x5d5/2 que lo sigue (0x4c9674), los dos con él de dueño; si no, el
-// camino (0x4eac00) con la Y leída antes que la X. Después, el nombre, +0x1e3 en 0 y 0x512a30 sobre el héroe publicado.
+// 0x4c9356..0x4c9762, what 0x4c92a0 does with the character `index` that 0x5141e0 returned: with +0x376 at 7 the scale
+// at 0.8; the published hero's class it read before the creation (`heroClass`, 0x4c9328), the PK, +0x88 and +0x3e3 at
+// 1; the flags (0x4e6380 and 0x42ab40); the protected cell, +0x39a/+0x39b and the angle. Just arrived, the position,
+// the alpha at 0, circle 0xec (0x4c965c) and ray 0x5d5/2 that follows it (0x4c9674), both with it as owner; otherwise,
+// the path (0x4eac00) with the Y read before the X. Then the name, +0x1e3 at 0 and 0x512a30 on the published hero.
 [[nodiscard]] Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
                                                                      const Protocol::Actors::TransformedRecord& record,
                                                                      std::uint8_t heroClass,
                                                                      const Scenes::WorldEntryResources& resources);
 
-// 0x4c8380: el personaje de la clave entera (0x5110d0, el 400 si no hay) y el ítem de pkt[5..]: el tipo (0x54b3a0) en
-// el lugar del nibble de arriba de pkt[6], con 0x1fff sin ítem. Las manos (0, 1) con el nivel (0x513340 del nibble de
-// abajo: de 8 a 15, 0) y el excelente (pkt[8] & 0x3f); vaciar la izquierda suelta el cuervo del héroe publicado, no el
-// de este (Q-C803), y llenarla lo arma otra vez (0x420d60). Las cinco del cuerpo (2 a 6) con el set (pkt[9]); vacías,
-// la parte de la clase. Las alas (7) con el nivel en 0. La mascota (8): vacía, 0x443d40; si no, el ayudante por tipo
-// (0x1a00, 0x1a02, 0x1a03, 0x1a04 y Fenrir 0x1a25 con +0x31b en el excelente) con 0x443fa0. Del 9 al 15, nada. Al
-// final, 0x4053f0 y 0x512930.
+// 0x4c8380: the character with the whole key (0x5110d0, the 400 if there is none) and the item of pkt[5..]: the type
+// (0x54b3a0) in the slot of the high nibble of pkt[6], with 0x1fff for no item. The hands (0, 1) with the level
+// (0x513340 of the low nibble: from 8 to 15, 0) and the excellent bits (pkt[8] & 0x3f); emptying the left one releases
+// the published hero's raven, not this character's (Q-C803), and filling it arms it again (0x420d60). The five of the
+// body (2 to 6) with the set (pkt[9]); an empty one, the class's part. The wings (7) with the level at 0. The pet (8):
+// empty, 0x443d40; otherwise, the helper by type (0x1a00, 0x1a02, 0x1a03, 0x1a04 and Fenrir 0x1a25 with +0x31b at the
+// excellent bits) with 0x443fa0. From 9 to 15, nothing. At the end, 0x4053f0 and 0x512930.
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::EquipmentShown& shown,
                                                                     const Scenes::WorldEntryResources& resources);
 
-// 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 (el que crea 0x5141e0 para los tipos 160,
-// 180, 188, 196, 266, 274 y 337): +0xe4 en 20, la X y la Y de la celda leídas con su acceso, +0xd0 y +0xcc con las
-// diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); 0x51fe10(posición, 0) intenta veinte
-// partículas 5c5/2 a Z+80, con dos sorteos por intento aun con el pool lleno y cinco adicionales por alta. Si no, la
-// celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
+// 0x4c6b40: the character with the whole key (0x5110d0). With type 0xf1 (the one 0x5141e0 creates for types 160, 180,
+// 188, 196, 266, 274 and 337): +0xe4 at 20, the cell's X and Y read with their access, +0xd0 and +0xcc with the
+// differences times 400 and sound 0x1b (WorldRuntime::lastSoundId); 0x51fe10(position, 0) tries twenty 0x5c5/2
+// particles at Z+80, with two draws per try even with the pool full and five more per creation. Otherwise, the
+// protected cell at pkt[5] and pkt[6], +0x39a/+0x39b and +0x399 at 1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::Position& position,
                                                                       const Scenes::WorldEntryResources& resources);
 } // namespace Client::Actors

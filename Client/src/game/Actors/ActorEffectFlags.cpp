@@ -32,7 +32,7 @@
 #include <string>
 #include <utility>
 
-// 0x4e6380, cotejado con el PE (1.418 bytes), y 0x42ab40 (266 bytes).
+// 0x4e6380, checked against the PE (1,418 bytes), and 0x42ab40 (266 bytes).
 namespace Client::Actors
 {
 namespace
@@ -49,7 +49,7 @@ bool Has(std::uint32_t flags, std::uint32_t bit)
     return (flags & bit) == bit;
 }
 
-// Los tipos 0x204 a 0x208 (con signo, 0x4e64a2..0x4e64a8) llevan la bandera en +0x7c, entera.
+// Types 0x204 to 0x208 (signed, 0x4e64a2..0x4e64a8) carry the flag in +0x7c, whole.
 bool KeepsItIn7c(const Kernel::ActorState& actor)
 {
     constexpr std::int16_t FirstType = 0x204;
@@ -58,7 +58,7 @@ bool KeepsItIn7c(const Kernel::ActorState& actor)
     return type >= FirstType && type <= LastType;
 }
 
-// 0x10000, 0x20000, 0x80000 (sin la parte del 0x40000) y 0x100000.
+// 0x10000, 0x20000, 0x80000 (without the 0x40000 part) and 0x100000.
 void PutBitOr7c(Kernel::ActorState& actor, std::uint32_t bit)
 {
     if (KeepsItIn7c(actor))
@@ -88,12 +88,12 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const Scenes::WorldEntry
     if (!text)
         return Cut("0x4e68f5: Text.bmd no ofrece el registro 1828 del aviso");
     const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-    // 0x5767b6c es una ancla de nombre vacía. Incluso un Text1828 vacío debe envejecer el log y añadir su fila.
+    // 0x5767b6c is an empty name anchor. Even an empty Text1828 must age the log and add its row.
     return Scenes::AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
 }
 
-// 0x530860(0x10f, desde, desde, ángulos, subtipo, el personaje, ancho, −1, 0, 0, −1) (AuraJoints.cpp). Con el pool
-// lleno, nada.
+// 0x530860(0x10f, from, from, angles, subtype, the character, width, −1, 0, 0, −1) (AuraJoints.cpp). With the pool
+// full, nothing.
 Core::Expected<void, std::string> CreateAura(Kernel::ActorState& actor, glm::vec3& from, glm::vec3& angles,
                                              std::int32_t subtype, float width,
                                              const Scenes::WorldEntryResources& resources)
@@ -117,10 +117,10 @@ Core::Expected<void, std::string> CreateAura(Kernel::ActorState& actor, glm::vec
 }
 } // namespace
 
-// 0x518ac0(0xc1, personaje, 1) apaga sus 0xc1/1 y dos 0x518cf0(0xc1, +0x10, ángulos, +0xf4, 1 y 2, personaje, −1, …)
-// crean el hielo con los ángulos del personaje y, en el segundo, la z 180 más (fld, fadd y fstp). La luz es la del
-// personaje (+0xf4), que cada alta pisa con (0,4f; 0,3f; 0,2f) (0x51acd2): el segundo ya la lee pisada. Sus humos 5f2/0
-// no leen el reloj del mundo.
+// 0x518ac0(0xc1, character, 1) turns off its 0xc1/1 and two 0x518cf0(0xc1, +0x10, angles, +0xf4, 1 and 2, character,
+// −1, …) create the ice with the character's angles and, in the second, the z 180 higher (fld, fadd and fstp). The
+// light is the character's (+0xf4), which each creation overwrites with (0.4f, 0.3f, 0.2f) (0x51acd2): the second
+// already reads it overwritten. Their 0x5f2/0 smokes do not read the world's clock.
 Core::Expected<void, std::string> WrapInIce(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources,
                                             const IceCalls& calls)
 {
@@ -166,7 +166,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
     constexpr std::uint32_t Hidden = 0x10000000;
     if (Has(flags, Hidden))
         actor.flags7c |= Hidden;
-    // 0x4e63d3..0x4e6412: los cuatro bits de abajo.
+    // 0x4e63d3..0x4e6412: the four low bits.
     actor.flags78 |= flags & 0xfu;
     // 0x4e641a..0x4e6492.
     constexpr std::uint32_t Bit100 = 0x100;
@@ -176,7 +176,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         {
             constexpr std::int32_t Bit100Sound = 0x84;
             requestSound(Bit100Sound);
-            // 0x4e6447..0x4e6483: apaga sus 0x10f/0 (0x534f90) y crea cinco, de ancho 50, que giran a su alrededor.
+            // 0x4e6447..0x4e6483: turns off its 0x10f/0 (0x534f90) and creates five, 50 wide, that turn around it.
             auto& joints = resources.world.DrawTail().joints;
             KillJointsOf(joints, Scenes::JointFamilies::AuraJoint, &actor, 0);
             for (int ring = 0; ring < 5; ++ring)
@@ -192,7 +192,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         PutBitOr7c(actor, Bit10000);
     if (Has(flags, Bit20000))
         PutBitOr7c(actor, Bit20000);
-    // 0x4e64df..0x4e6543: el primero de 0x80000, 0x400000 y 0x800000 que tenga, afuera, y el 0x40000 adentro.
+    // 0x4e64df..0x4e6543: the first of 0x80000, 0x400000 and 0x800000 it has, off, and 0x40000 on.
     if (Has(flags, Bit40000))
     {
         if (KeepsItIn7c(actor))
@@ -232,13 +232,13 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         ClearBit(actor.flags78, Bit40000);
         actor.flags78 |= Bit400000;
     }
-    // 0x4e65c8..0x4e65ec: el bit va antes de los joints.
+    // 0x4e65c8..0x4e65ec: the bit goes before the joints.
     constexpr std::uint32_t Bit1000 = 0x1000;
     if (Has(flags, Bit1000))
     {
         actor.flags78 |= Bit1000;
-        // 0x4e65df..0x4e66c3: tres 0x10f/8 de ancho 30 desde una copia de su +0x10, girados 90, 180 y 270 en z, la
-        // copia 10 más abajo después de cada uno.
+        // 0x4e65df..0x4e66c3: three 0x10f/8, 30 wide, from a copy of its +0x10, turned 90, 180 and 270 in z, the
+        // copy 10 lower after each one.
         glm::vec3 from = actor.position;
         for (const std::uint32_t turn : {0x42b40000u, 0x43340000u, 0x43870000u})
         {
@@ -254,9 +254,10 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         if (Has(flags, bit))
             actor.flags78 |= bit;
     }
-    // 0x4e670f..0x4e67a1: siempre, sin mirar si ya tenía el bit y sin rand(), apaga su 0x5ac/2 (o /1) y crea otro con
-    // él de dueño (0x518ac0 y 0x518cf0, como la skill 0x35 y la 0x30 de SkillReplies, sin los joints 0x619/9 de la
-    // 0x35); con la tabla llena, ninguno. Después prende el bit y sigue. El paso del /1 corta en 0x52a866 (CL11).
+    // 0x4e670f..0x4e67a1: always, without checking whether it already had the bit and without rand(), turns off its
+    // 0x5ac/2 (or /1) and creates another with it as owner (0x518ac0 and 0x518cf0, like skills 0x35 and 0x30 of
+    // SkillReplies, without the 0x619/9 joints of 0x35); with the table full, none. Then it sets the bit and goes on.
+    // The step of /1 stops at 0x52a866.
     for (const auto& [bit, subtype] :
          {std::pair{0x400u, World::GuardFlareSubtype}, std::pair{0x10u, World::SwellFlareSubtype}})
     {
@@ -266,7 +267,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         static_cast<void>(effects.CreateSkillFlare(actor.position, actor.angles, actor.light, subtype, &actor));
         actor.flags78 |= bit;
     }
-    // 0x4e67a6..0x4e6833: con el bit ya prendido en +0x78, solo lo vuelve a prender.
+    // 0x4e67a6..0x4e6833: with the bit already set in +0x78, it only sets it again.
     constexpr std::uint32_t Bit20 = 0x20;
     if (Has(flags, Bit20))
     {
@@ -284,7 +285,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
     {
         if (!Has(actor.flags78, Bit40))
         {
-            // 0x4e6842..0x4e6899: la calavera 0x628/0 sobre el personaje (la de antes, apagada) y el sonido 0x85 en él.
+            // 0x4e6842..0x4e6899: the skull 0x628/0 over the character (the previous one, off) and sound 0x85 on it.
             constexpr std::int32_t SkullSound = 0x85;
             if (auto skull = Scenes::PutTheSkullOn(actor, resources.world, resources.cloth.random, 0x4e688c);
                 !skull.HasValue())
@@ -319,7 +320,7 @@ void ApplyCastleSiegeFlags(Kernel::ActorState& actor, std::uint32_t flags, std::
     if (map != CastleSiegeMap)
         return;
     constexpr std::uint8_t GuildLayer = 0xc;
-    // 0x42ab52..0x42abe7: el primero de los tres, con la capa 0xc soltada antes.
+    // 0x42ab52..0x42abe7: the first of the three, with layer 0xc freed first.
     constexpr std::uint8_t FirstLayer = 6;
     std::uint8_t layer = FirstLayer;
     for (const std::uint32_t bit : {Bit80000, Bit400000, Bit800000})

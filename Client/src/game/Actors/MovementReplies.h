@@ -17,7 +17,7 @@ struct WorldEntryResources;
 
 namespace Client::Actors
 {
-// 06, «Lo que llega»: D3 y D7 conservan las coordenadas protegidas y el orden de la CRT.
+// 06, "Lo que llega": D3 and D7 keep the protected coordinates and the CRT's order.
 [[nodiscard]] Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply,
                                                                Kernel::PlayerKey player,
                                                                const Scenes::WorldEntryResources& resources);

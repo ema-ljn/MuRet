@@ -24,54 +24,55 @@ namespace Client::Player
 struct ItemSetState;
 } // namespace Client::Player
 
-// El equipo propio en el personaje: 0x512a30, con 0x505820 y 0x550d10. Contrato:
+// The own equipment on the character: 0x512a30, with 0x505820 and 0x550d10. Contract:
 // Client/docs/research/06-render-escenas-y-ui.md, "El equipo propio en el personaje", "El conjunto completo
-// de 0x505820" y "Los stats del registro propio", y 04, "El F3 10".
+// de 0x505820" and "Los stats del registro propio", and 04, "El F3 10".
 namespace Client::Actors
 {
 struct Scan505820;
 
-// Lo que 0x512a30 lee y escribe fuera del personaje. Quien llama lo presta durante la llamada.
+// What 0x512a30 reads and writes outside the character. The caller lends it for the call.
 struct ActorEquipmentContext
 {
-    // [0x7681eb4], el registro propio: los nueve lugares que lee, y lo que escribe 0x550d10, un
-    // thiscall sobre él (0x512ef5).
+    // [0x7681eb4], the own record: the nine slots it reads, and what 0x550d10 writes, a
+    // thiscall on it (0x512ef5).
     Kernel::OwnCharacterRecord& own;
-    // La cuenta de accesos de su entrada en la tabla de protección (Models::LogicalAccess):
-    // 0x512a30 lo abre al empezar y lo cierra al terminar, con los 3.848 rand() si lo deja en 0.
+    // The access count of its entry in the protection table (Models::LogicalAccess):
+    // 0x512a30 opens it at the start and closes it at the end, with the 3,848 rand() if it leaves it at 0.
     std::uint8_t& ownRecordAccesses;
-    // DAT_0743a170, el héroe publicado en ese momento: con él, 0x505820 (0x512ee2). 0x550d10 lee su
-    // clase y escribe su +0x358 (0x40d010).
+    // DAT_0743a170, the hero published at that moment: with it, 0x505820 (0x512ee2). 0x550d10 reads its
+    // class and writes its +0x358 (0x40d010).
     Kernel::ActorState& publishedHero;
-    // [0x743a178] y [0x743a17c] (WorldRuntime::fullSetScan): los escribe 0x505820 con el héroe publicado, y
-    // 0x550d10 los lee en 0x550990 con lo que haya.
+    // [0x743a178] and [0x743a17c] (WorldRuntime::fullSetScan): 0x505820 writes them with the published hero, and
+    // 0x550d10 reads them in 0x550990 with whatever is there.
     std::optional<Scan505820>& fullSetScan;
-    // Lo de 0x4f2250, que 0x512a30 llama en el medio (0x512bd4). Su random es el de la tabla, y sus
-    // items, el Item.bmd que también lee 0x550d10.
+    // That of 0x4f2250, which 0x512a30 calls in the middle (0x512bd4). Its random is the table's, and its
+    // items, the Item.bmd that 0x550d10 also reads.
     ActorStopContext stop;
-    // [0x6eed3c], para 0x550d10: las tablas de 0x40c600 y lo que escriben 0x40e1b0 y 0x40da20, que
-    // dura de una llamada a otra (WorldState::ItemSets). Sin alguno de los dos, 0x550d10 corta en
-    // 0x40e1b0 antes de tocar nada (Player::OwnStatsContext).
+    // [0x6eed3c], for 0x550d10: the tables of 0x40c600 and what 0x40e1b0 and 0x40da20 write, which
+    // lasts from one call to the next (WorldState::ItemSets). Without either, 0x550d10 stops at
+    // 0x40e1b0 before touching anything (Player::OwnStatsContext).
     const Tables::ItemSetTables* itemSetTables = nullptr;
     Player::ItemSetState* itemSets = nullptr;
-    // El ítem del cursor para 0x54efe0, 0x54f9b0 y 0x54fe10 (HeldItemOf): lo que hay en sus globales al llamar.
+    // The cursor's item for 0x54efe0, 0x54f9b0 and 0x54fe10 (HeldItemOf): what is in their globals at the call.
     Player::OwnEquipmentOverride held{};
 };
 
-// 0x4053f0: en los mapas 18 a 23 (`map`), 0x4053a0 (las manos, las alas y la mascota sin ítem, con el nivel en 0) y el
-// arma del evento por la clase (+0x1d4 & 7): el bastón 5 5 en la derecha de la 0, la ballesta 4 19 en la de la 2 y
-// la espada 0 16 en las dos de la 1, la 3 y la 4. En los otros mapas, nada.
+// 0x4053f0: on maps 18 to 23 (`map`), 0x4053a0 (the hands, the wings and the pet without an item, with the level at
+// 0) and the event weapon by class (+0x1d4 & 7): the staff 5 5 in the right hand of 0, the crossbow 4 19 in that of
+// 2 and the sword 0 16 in both hands of 1, 3 and 4. On the other maps, nothing.
 void ArmForTheEventMaps(Kernel::ActorState& actor, std::int32_t map);
 
-// 0x512930: con +0x3e3 en 0, la cabeza de la clase bajo un casco abierto (+0x1f8) y la escala por la clase y la piel;
-// con +0x3e3 distinto de 0, nada.
+// 0x512930: with +0x3e3 at 0, the class's head under an open helmet (+0x1f8) and the scale by class and skin;
+// with +0x3e3 other than 0, nothing.
 void ApplyHeadAndScale(Kernel::ActorState& actor);
 
-// 0x512a30 sobre `actor`: con el tipo 0x20a, los modelos, los niveles y los bytes del equipo propio, la
-// acción de parado y, con +0x3e3 en 0, la ropa, las armas de los mapas 18 a 23, la cabeza, la escala, el
-// conjunto completo si es el héroe publicado (0x505820, Scenes/FullSetScan.h) y los stats del registro
-// (0x550d10, Player::RecalculateOwnStats). Lo que MuRet no tiene corta con error después de lo que el
-// original hace antes, y el acceso al registro se cierra igual. Devuelve lo que pidió 0x4f2250, si corrió.
+// 0x512a30 on `actor`: with type 0x20a, the models, levels and bytes of the own equipment, the
+// standing action and, with +0x3e3 at 0, the clothes, the weapons of maps 18 to 23, the head, the scale, the
+// full set if it is the published hero (0x505820, Actors/FullSetScan.h) and the record's stats
+// (0x550d10, Player::RecalculateOwnStats). What MuRet does not have stops with an error after what the
+// original does before it, and the access to the record closes all the same. It returns what 0x4f2250 asked for,
+// if it ran.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(Kernel::ActorState& actor,
                                                                                const ActorEquipmentContext& context);
 } // namespace Client::Actors

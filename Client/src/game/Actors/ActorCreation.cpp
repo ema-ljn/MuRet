@@ -41,7 +41,7 @@ Core::Expected<std::size_t, std::string> CreateActor(Kernel::WorldState& world, 
                                                      const ActorConstructionContext& context, Models::ClothWorld& cloth)
 {
     const auto actors = world.Actors();
-    // 0x512885..0x5128a0, y 0x5128c3..0x5128df.
+    // 0x512885..0x5128a0, and 0x5128c3..0x5128df.
     for (std::size_t slot = 0; slot < CreatedActorSearch; ++slot)
     {
         Kernel::ActorState& actor = actors[slot];
@@ -53,7 +53,7 @@ Core::Expected<std::size_t, std::string> CreateActor(Kernel::WorldState& world, 
         actor.flags7c = 0;
         return slot;
     }
-    // 0x5128a2..0x5128b6, y 0x5128e9..0x512926.
+    // 0x5128a2..0x5128b6, and 0x5128e9..0x512926.
     for (std::size_t slot = 0; slot < CreatedActorSearch; ++slot)
     {
         Kernel::ActorState& actor = actors[slot];
@@ -70,7 +70,7 @@ Core::Expected<std::size_t, std::string> CreateActor(Kernel::WorldState& world, 
         actor.flags7c = 0;
         return slot;
     }
-    // 0x5128ba: el 400, como está.
+    // 0x5128ba: 400, as it is.
     return CreatedActorSearch;
 }
 

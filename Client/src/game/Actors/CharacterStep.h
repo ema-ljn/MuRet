@@ -53,109 +53,109 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-// El paso de los personajes (0x508f00, desde el juego en 0x63710f, la selección en 0x6342f9 y el login en
-// 0x634d13): el TerrainWall, si cada uno se ve y, por cada uno, 0x508ea0: 0x508ba0 con los que no son el
-// héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 hasta su final, con la cabeza que
-// sortea en los que no son el héroe. Corta con error donde el original lee algo que MuRet no tiene. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "El paso de los personajes", "El paso de los personajes en
-// la selección y el login", "El cuerpo de los personajes (0x4fd5f0)" y "Los efectos de los personajes
-// (0x505de0)".
+// The characters' step (0x508f00, from the game at 0x63710f, the selection at 0x6342f9 and the login at
+// 0x634d13): the TerrainWall, whether each one is seen and, for each one, 0x508ea0: 0x508ba0 with those that are not
+// the hero, the body (0x4fd5f0) through the path of the still 0x20a and 0x505de0 to its end, with the head that
+// draws on those that are not the hero. It stops with an error where the original reads something MuRet does not
+// have. Contract: Client/docs/research/06-render-escenas-y-ui.md, "El paso de los personajes", "El paso de los
+// personajes en la selección y el login", "El cuerpo de los personajes (0x4fd5f0)" and "Los efectos de los
+// personajes (0x505de0)".
 namespace Client::Actors
 {
 class PlayerActionSpeeds;
 
-// 0x5fba90 como lo llaman 0x508f00 (0x50916d..0x50918c) y 0x508ea0 (0x508eac..0x508ecb): el lugar del
-// personaje por 0,01f (0x6b88d4), guardado en float, con el margen de −20 (0xc1a00000).
+// 0x5fba90 as 0x508f00 (0x50916d..0x50918c) and 0x508ea0 (0x508eac..0x508ecb) call it: the character's place
+// times 0.01f (0x6b88d4), stored as float, with the margin of −20 (0xc1a00000).
 [[nodiscard]] bool CharacterSeen(const Terrain::TerrainPolygon& polygon, const glm::vec3& position);
 
-// La celda lógica de un personaje: la X de +0x41c y la Y de +0x420.
+// A character's logical cell: the X of +0x41c and the Y of +0x420.
 struct LogicalCell
 {
     std::uint8_t x = 0;
     std::uint8_t y = 0;
 };
 
-// La celda lógica por la tabla de protección, como la leen 0x508f00, 0x505de0 y la cámara (0x635ae0):
-// la Y y después la X, cada una en un acceso que se cierra y gasta 4 rand() si lo deja en 0.
+// The logical cell through the protection table, as 0x508f00, 0x505de0 and the camera (0x635ae0) read it:
+// the Y and then the X, each in an access that closes and spends 4 rand() if it leaves it at 0.
 [[nodiscard]] LogicalCell ReadLogicalCell(Kernel::ActorState& actor, Crt::CrtRandom& random);
 
 struct CharacterStepContext
 {
-    // Con el trapecio global que dejó el último 0x5fb570 (WorldRuntime::terrainPolygon): antes del primer
-    // dibujo del juego, el del último dibujo de la selección (Q-C216).
+    // With the global trapezoid the last 0x5fb570 left (WorldRuntime::terrainPolygon): before the game's first
+    // drawing, that of the selection's last drawing (Q-C216).
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    // DAT_006d5dc8: la selección (4) decide el final de la animación con el frame + 2 (Q-C21), y el 0x607
-    // del mapa 7 de 0x505de0 es solo de la 5 (0x506cf8).
+    // DAT_006d5dc8: the selection (4) decides the end of the animation with the frame + 2 (Q-C21), and the 0x607
+    // of map 7 of 0x505de0 belongs to scene 5 only (0x506cf8).
     Scenes::SceneId scene = Scenes::SceneId::Game;
-    // Player.bmd, el modelo 0x5769ad8 + 0x20a · 0xe0 de las acciones que leen 0x4f9580 y 0x4ec200. Sin él,
-    // el cuerpo corta en 0x4f9580.
+    // Player.bmd, the model 0x5769ad8 + 0x20a · 0xe0 of the actions 0x4f9580 and 0x4ec200 read. Without it,
+    // the body stops at 0x4f9580.
     const Models::Skeleton* playerSkeleton = nullptr;
-    // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
-    // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
+    // *[0x7758550], Item.bmd in memory: the helpers of 0x4fc450 and the standing action (0x4f2250) read it
+    // with a weapon or an item on. nullptr if it was not loaded: they stop where they read it.
     const Tables::ItemTable* items = nullptr;
-    // *[0x76bd1d8], Skill.bmd en memoria: el alcance (0x5526f0) del lazo de la skill 0x4c del paso del ataque
-    // (0x50243d, CL9 hito 4). nullptr: corta ahí con un blanco que mirar.
+    // *[0x76bd1d8], Skill.bmd in memory: the range (0x5526f0) of the loop of skill 0x4c of the attack step
+    // (0x50243d). nullptr: it stops there with a target to look at.
     const Tables::SkillTable* skills = nullptr;
-    // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
-    // 3). nullptr: un modelo que no es el 0x20a corta ahí.
+    // The skeletons of the other models, for 0x4f5660 (SetActorDie) with the dying one from step 15. nullptr: a
+    // model that is not the 0x20a stops there.
     const Models::IModelLibrary* models = nullptr;
-    // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
+    // The load of scene 2 or 4; empty, the game's map. The TerrainWall is written right there.
     const Terrain::WorldTerrain* terrain = nullptr;
     const Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
-    // La tabla de sprites del frame (0x5491e0) que piden los casos de 0x505de0 (el 0x166). Sin ella, cortan ahí.
+    // The frame's sprite table (0x5491e0) that the cases of 0x505de0 ask for (0x166). Without it, they stop there.
     World::FrameSprites* sprites = nullptr;
-    // Los joints del juego (0x74a8d78, GameDrawTailState::joints), para el 0x618/0 y /1 del que mató (0x505169). Vacío,
-    // el paso del ataque corta ahí.
+    // The game's joints (0x74a8d78, GameDrawTailState::joints), for the 0x618/0 and /1 of the killer (0x505169).
+    // Empty, the attack step stops there.
     std::span<Scenes::JointState> joints{};
     float worldClock = 0.0f;
     std::int32_t counter = 0;
-    // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
+    // The loose object of 0x7437050 (NewFace 0xa8..0xac), outside the pool's 400.
     const Models::Skeleton* newFaceSkeleton = nullptr;
-    // Si está vacío, el overlay durable de world. Lo escribe cada Walk antes de animar ese actor.
+    // If empty, world's durable overlay. Each Walk writes it before animating that actor.
     PlayerActionSpeeds* actionSpeeds = nullptr;
     float fixedHeight = 1200.0f;
-    // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
+    // Sound requests: the consumer decides how to play them.
     std::function<void(std::int32_t)> soundRequest{};
     std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
-    // Lo que el paso manda por send() (el A7 del cuervo, 0x416a20). Vacío, sin la sesión: no sale.
+    // What the step sends through send() (the raven's A7, 0x416a20). Empty, without the session: it does not go out.
     std::function<void(Protocol::Outgoing)> send{};
-    // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
-    // (0x558fd6, CL9 hito 3).
+    // GetAsyncKeyState(0x11) with 0x80 in the high byte: Ctrl down, which 0x558eb0 reads in the hero's skill
+    // (0x558fd6).
     bool controlDown = false;
-    // Lo que dicen los NPC (0x4fc790, 0x4fc8c0 y 0x4fcda2): los textos de Text.bmd y el medidor y la pantalla del globo
-    // (0x557170). Sin ellos, el que tiene que hablar corta.
+    // What the NPCs say (0x4fc790, 0x4fc8c0 and 0x4fcda2): the texts of Text.bmd and the balloon's measurer and
+    // screen (0x557170). Without them, whoever has to speak stops.
     const Tables::TextTable* texts = nullptr;
     const Render::Text::ITextMeasure* textMeasure = nullptr;
     Core::PixelSize screen{640, 480};
-    // timeGetTime() (0x6b8144), en ms, que lee el mensaje del nombre de 0x6c88b0 (0x4fcd82 y 0x4fcd8e). Vacío, el que
-    // tiene ese nombre corta.
+    // timeGetTime() (0x6b8144), in ms, which the name message of 0x6c88b0 reads (0x4fcd82 and 0x4fcd8e). Empty, the
+    // one with that name stops.
     std::function<std::uint32_t()> systemTime{};
-    // CL9 hito 11: el C1 06 AF 02 x y de 0x4fbee8 (Chaos Castle, el héroe 10 s en una celda con el bit 8), por la
-    // sesión. Vacío, ese envío corta.
+    // The C1 06 AF 02 x y of 0x4fbee8 (Chaos Castle, the hero 10 s on a cell with bit 8), through the session. Empty,
+    // that send stops.
     std::function<Core::Expected<void, std::string>(std::uint8_t, std::uint8_t)> sendChaosCastleReposition{};
 };
 
-// 0x508f00. Corta con error, en el orden del original, sin el mapa cargado
-// (0x508f14), en las ramas de 0x508ba0 que MuRet no tiene, en las de 0x4fd5f0 fuera del 0x20a quieto (06, su
-// tabla de cortes) y en las de 0x505de0 que crean efectos o partículas que MuRet no tiene (06, "Los efectos
-// de los personajes (0x505de0)"); las luces de las manos van al buffer dinámico de `world`. Lo que hizo antes
-// del corte queda, con los rand() que sacó.
+// 0x508f00. It stops with an error, in the original's order, without the map loaded
+// (0x508f14), in the branches of 0x508ba0 MuRet does not have, in those of 0x4fd5f0 outside the still 0x20a (06, its
+// table of stops) and in those of 0x505de0 that create effects or particles MuRet does not have (06, "Los efectos
+// de los personajes (0x505de0)"); the hands' lights go to the dynamic buffer of `world`. What it did before
+// the stop stays, with the rand() calls it drew.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 
-// 0x5069ae..0x506ac6: los creadores del freno de +0x3e5 (Actors::StepActorCooldown) con el pool de partículas y la
-// tabla de efectos del contexto: la 5f3/1 (0x506a73) y la piedrita 0xc8/0xc9 /0 sin dueño (0x506ab7). Guardan
-// referencias a `context`.
+// 0x5069ae..0x506ac6: the creators of the +0x3e5 brake (Actors::StepActorCooldown) with the context's particle pool
+// and effect table: the 0x5f3/1 (0x506a73) and the 0xc8/0xc9 /0 pebble without an owner (0x506ab7). They keep
+// references to `context`.
 [[nodiscard]] ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& context);
 
-// 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
+// 0x508ea0 for an object outside the pool: it does not erase or mark TerrainWall and it is never the published hero.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacter(Kernel::ActorState& actor,
                                                               const CharacterStepContext& context);
 
-// 0x4fd5f0(objeto, objeto) y 0x505de0(objeto, objeto) seguidos, sin 0x508ea0: no mira el byte vivo ni si se ve (+0x16c
-// queda como está) ni corre 0x508ba0. Lo llama el retrato de las cartas (0x495a20, 0x495dad..0x495db8, y su dibujo,
-// 0x495760), con un personaje fuera del pool que no es el héroe.
+// 0x4fd5f0(object, object) and 0x505de0(object, object) in a row, without 0x508ea0: it looks neither at the live byte
+// nor at whether it is seen (+0x16c stays as it is) and does not run 0x508ba0. The letters' portrait calls it
+// (0x495a20, 0x495dad..0x495db8, and its drawing, 0x495760), with a character outside the pool that is not the hero.
 [[nodiscard]] Core::Expected<void, std::string> StepTheBodyAndEffects(Kernel::ActorState& actor,
                                                                       const CharacterStepContext& context);
 } // namespace Client::Actors

@@ -196,6 +196,71 @@ function Get-PackageName {
     return $name
 }
 
+function Get-DllImports([string]$File) {
+    $lines = & dumpbin /nologo /dependents $File
+    if ($LASTEXITCODE -ne 0) {
+        throw "dumpbin failed on $File"
+    }
+    foreach ($line in $lines) {
+        if ($line -match '^\s+(\S+\.dll)\s*$') {
+            $Matches[1]
+        }
+    }
+}
+
+function Find-VcRuntime {
+    if (-not $env:VCToolsRedistDir) {
+        return $null
+    }
+    $crt = Get-ChildItem -Directory -ErrorAction SilentlyContinue (Join-Path $env:VCToolsRedistDir 'x64') |
+        Where-Object { $_.Name -match '^Microsoft\.VC\d+\.CRT$' } | Select-Object -First 1
+    if ($crt) {
+        return $crt.FullName
+    }
+    return $null
+}
+
+# main.exe and every DLL it imports, transitively, from bin\ and, in Release, the Visual C++ runtime, so the zip runs
+# on a PC without it (Debug's is not redistributable). Windows' own DLLs are in neither folder and stay out.
+function Copy-WithImports([string]$Dir) {
+    $folders = @($BinDir)
+    if ($Config -eq 'Release') {
+        $crt = Find-VcRuntime
+        if ($crt) {
+            $folders += $crt
+        } else {
+            Write-Warning 'The Visual C++ runtime DLLs were not found: the package needs the VC++ redistributable installed'
+        }
+    }
+    $sources = @{}
+    foreach ($folder in $folders) {
+        foreach ($dll in Get-ChildItem $folder -Filter *.dll) {
+            $key = $dll.Name.ToLowerInvariant()
+            if (-not $sources.ContainsKey($key)) {
+                $sources[$key] = $dll.FullName
+            }
+        }
+    }
+    $exe = Join-Path $BinDir 'main.exe'
+    Copy-Item $exe $Dir
+    $copied = @{}
+    $queue = @($exe)
+    while ($queue.Count -gt 0) {
+        $next = @()
+        foreach ($file in $queue) {
+            foreach ($name in @(Get-DllImports $file)) {
+                $key = $name.ToLowerInvariant()
+                if ($sources.ContainsKey($key) -and -not $copied.ContainsKey($key)) {
+                    $copied[$key] = $true
+                    Copy-Item $sources[$key] $Dir
+                    $next += $sources[$key]
+                }
+            }
+        }
+        $queue = $next
+    }
+}
+
 function New-Package {
     $name = Get-PackageName
     $packageRoot = Join-Path $Repo 'build\package'
@@ -209,22 +274,7 @@ function New-Package {
     }
     New-Item -ItemType Directory -Force $dir | Out-Null
 
-    Copy-Item (Join-Path $BinDir 'main.exe') $dir
-    Get-ChildItem $BinDir -Filter *.dll | Where-Object { $_.Name -notmatch '^(gtest|gmock)' } |
-        Copy-Item -Destination $dir
-    # The Visual C++ runtime beside main.exe, so the zip runs on a PC without it. Debug's is not redistributable.
-    if ($Config -eq 'Release') {
-        $crt = $null
-        if ($env:VCToolsRedistDir) {
-            $crt = Get-ChildItem -Directory -ErrorAction SilentlyContinue (Join-Path $env:VCToolsRedistDir 'x64') |
-                Where-Object { $_.Name -match '^Microsoft\.VC\d+\.CRT$' } | Select-Object -First 1
-        }
-        if ($crt) {
-            Get-ChildItem $crt.FullName -Filter *.dll | Copy-Item -Destination $dir
-        } else {
-            Write-Warning 'The Visual C++ runtime DLLs were not found: the package needs the VC++ redistributable installed'
-        }
-    }
+    Copy-WithImports $dir
     if (-not $NoData) {
         Write-Host 'Copying Client\assets\Data...'
         Copy-Item -Recurse $RepoData (Join-Path $dir 'Data')
@@ -236,6 +286,7 @@ function New-Package {
         throw "main.exe --version failed in the package (exit code $LASTEXITCODE): a DLL may be missing"
     }
     Write-Host $version
+    Get-ChildItem $dir -File | Format-Table -AutoSize Name, Length | Out-Host
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::CreateFromDirectory($dir, $zip,

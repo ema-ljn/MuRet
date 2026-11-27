@@ -71,7 +71,7 @@ Client\tools\windows\build.cmd -Config Debug -Tests
 | --- | --- |
 | `-Config Debug` | Debug instead of Release |
 | `-Tests` | builds every target and runs CTest; CI runs them in Debug |
-| `-Package` | `main.exe`, its DLLs, the Visual C++ runtime (Release), a `muret-client.ini` and `Client\assets\Data` in `build\package\<name>\`, and its zip |
+| `-Package` | `main.exe` and the DLLs it imports (in Release, the Visual C++ runtime's too), a `muret-client.ini` and `Client\assets\Data` in `build\package\<name>\`, and its zip |
 | `-NoData` | with `-Package`, no `Data`: `main.exe` then reads a `Data` folder beside it |
 | `-Clean` | deletes the build folder first |
 | `-Jobs <N>` | N compilations at once, if `cl` runs out of memory (C1060) |
@@ -88,9 +88,9 @@ the end the script prints how to run `main.exe` with the repo's `Data`, through 
 A tag `vX.Y.Z` publishes the Windows client as a GitHub Release, built by
 [`release.yml`](.github/workflows/release.yml) with the script above. The version is the one in
 `project(MuRet VERSION ...)` of `CMakeLists.txt`, which `main.exe --version` and the login show, and the workflow
-fails on any other tag. The zip holds `main.exe`, its DLLs, the Visual C++ runtime and a `muret-client.ini`, without
-`Data`: the original client's `Data` folder goes beside `main.exe`. To publish one, raise the version in a PR, merge
-it, then:
+fails on any other tag. The zip holds `main.exe`, the DLLs it imports (the engine's four, `SDL3.dll` and the Visual
+C++ runtime's) and a `muret-client.ini`, without `Data`: the original client's `Data` folder goes beside `main.exe`.
+To publish one, raise the version in a PR, merge it, then:
 
 ```bash
 git fetch origin main

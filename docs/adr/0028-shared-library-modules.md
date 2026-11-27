@@ -168,6 +168,15 @@ loses the only guard that keeps SDL in one place.
 - **Who links `Platform` sees SDL's headers and does not link SDL.** `Platform`'s headers name SDL's types, so it
   passes on `SDL3::Headers`; a binary that calls SDL itself (the executable, the backends' tests) links `SDL3::SDL3`.
 
+## What the Windows package changed (2026-11-27)
+
+- **Windows follows the Linux rule for outside libraries.** The first package of `Client/tools/windows/build.ps1`
+  (#535) held eight outside DLLs, because vcpkg's `x64-windows` builds every port shared. Emanuel chose the repo's
+  triplet `x64-windows-shared-sdl`: every port static and SDL3 alone shared, with the CRT still dynamic. FreeType and
+  libjpeg-turbo now live inside `Engine.dll`, SDL3_mixer and its codecs inside `Audio.dll`, and `SDL3.dll` is the only
+  outside DLL. This replaces `x64-windows` in "One runtime, one build" above; what that rule asks of the runtime does
+  not change.
+
 ## Open questions
 
 1. **One test executable per file, or fewer?** Asked since 2026-11-02. Today there are 756, one per file; one per

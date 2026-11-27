@@ -111,7 +111,8 @@ ApplyPartyRequestResult(const Protocol::Party::PartyRequestResult& result, const
 void ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world, Core::Log& log);
 
 // 0x4e409b: la cuenta en 0, el texto 502 (tipo 2) y, con 0x6c8e50 en 0 o más, 0x6c8e50 en −1.
-[[nodiscard]] Core::Expected<void, std::string> ApplyPartyLeft(const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyPartyLeft(const Protocol::Party::PartyLeft&,
+                                                               const WorldEntryResources& resources);
 
 // 0x4e4174: por cada byte, +0x18 del lugar del nibble alto con el bajo (hasta 10). Con un lugar de 5 o más el original
 // escribe pasado el arreglo (Q-C960): se descarta el paquete entero, con un aviso en `log`.
@@ -155,7 +156,8 @@ void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, WorldStat
 void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldState& world);
 
 // 0x4e4fcc (3F 12): con 0x6c931c en 2, Close(0x800, 0), Close(0x20000, 0) y el texto 1126 con el tipo 2.
-[[nodiscard]] Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources,
+[[nodiscard]] Core::Expected<void, std::string> ApplyShopOwnerLeft(const Protocol::PersonalShop::ShopOwnerLeft&,
+                                                                   const WorldEntryResources& resources,
                                                                    const GamePacketSender& send);
 
 // 0x555190("", el texto `text` de Text.bmd, `type`): los avisos de los paquetes sociales, con el buffer vacío de la

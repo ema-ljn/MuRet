@@ -777,7 +777,7 @@ TEST_P(SocialEventsTest, APartyFormsAndBreaks)
     EXPECT_TRUE(WarnedWith(*stage, "Q-C960"));
 
     stage->Runtime().movement.followTarget = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyPartyLeft(stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyPartyLeft(Client::Protocol::Party::PartyLeft{}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->Runtime().hud.partyCount, 0);
     EXPECT_EQ(stage->LastMessage().text, "dejaste la party");
     EXPECT_EQ(stage->Runtime().movement.followTarget, -1);

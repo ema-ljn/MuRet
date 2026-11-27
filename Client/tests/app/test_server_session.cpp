@@ -12,6 +12,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Network/CloseReason.h"
 #include "Crypto/SimpleModulus.h"
@@ -31,7 +32,6 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Movement/Movement.h"
-#include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Pets/PetInfo.h"
 #include "Protocol/Pets/PetOrders.h"
@@ -4065,10 +4065,10 @@ TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFie
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], Bytes({0xc1, 3, 0x1c})));
 }
 
-// 04 § Mover y equipar ítems: el 24 cifrado, el 28, el 2A y los F3 14 y F3 13 llegan al mundo en orden; el 24 sin
+// 04 § Mover y equipar ítems: el 24 cifrado, el 28, el 2A y los F3 14 y F3 13 los leen sus filas; el 24 sin
 // cifrar se contesta con el C1 06 F1 03 00 16 (0x4d166b) sin leerlo, y el 24 del cliente sale con XOR32 y en C3.
 // El ítem es inventado.
-TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
+TEST(ServerSessionTest, TheItemMovesAreReadAndTheClearOneIsReported)
 {
     namespace Inventory = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
@@ -4080,25 +4080,8 @@ TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
          Bytes({0xc1, 5, 0x28, 0x16, 1}), Bytes({0xc1, 6, 0x2a, 2, 9, 0}),
          Bytes({0xc1, 0x0c, 0xf3, 0x14, 0x17, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0}), equipment})};
     ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 5u);
-    const auto* moved = std::get_if<Inventory::ItemMoveResult>(&events[0]);
-    ASSERT_NE(moved, nullptr);
-    EXPECT_EQ(moved->result, 0);
-    EXPECT_EQ(moved->slot, 0x15);
-    EXPECT_EQ(moved->item[0], std::byte{0x21});
-    const auto* deleted = std::get_if<Inventory::ItemDelete>(&events[1]);
-    ASSERT_NE(deleted, nullptr);
-    EXPECT_EQ(deleted->slot, 0x16);
-    const auto* durability = std::get_if<Inventory::Durability>(&events[2]);
-    ASSERT_NE(durability, nullptr);
-    EXPECT_EQ(durability->durability, 9);
-    const auto* put = std::get_if<Inventory::ItemPut>(&events[3]);
-    ASSERT_NE(put, nullptr);
-    EXPECT_EQ(put->slot, 0x17);
-    const auto* change = std::get_if<Inventory::EquipmentChange>(&events[4]);
-    ASSERT_NE(change, nullptr);
-    EXPECT_EQ(change->key, 0x1234);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
+    EXPECT_TRUE(tested.eventSink.world.empty());
     // 0x4e38ca y 0x4e3ace: el 24 y el 2A dejan su copia en la cola; el 28, el F3 14 y el F3 13, no.
     ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0],
@@ -4116,10 +4099,15 @@ TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
     // El 24 sin cifrar también se copia, antes del flag.
     EXPECT_EQ(tested.eventSink.packetCopies.size(), 3u);
 
-    ASSERT_TRUE(tested.session
-                    .SendItemMove(Inventory::ItemMove{
-                        .sourceFlag = 0, .sourceSlot = 0x15, .item = moved->item, .targetFlag = 0, .targetSlot = 0x16})
-                    .HasValue());
+    ASSERT_TRUE(
+        tested.session
+            .SendItemMove(Inventory::ItemMove{.sourceFlag = 0,
+                                              .sourceSlot = 0x15,
+                                              .item = {std::byte{0x21}, std::byte{0x0b}, std::byte{0x2c}, std::byte{0},
+                                                       std::byte{0}, std::byte{0x70}, std::byte{0}},
+                                              .targetFlag = 0,
+                                              .targetSlot = 0x16})
+            .HasValue());
     const auto sent = tested.GameServerReads();
     ASSERT_EQ(sent.packets.size(), before + 2);
     EXPECT_TRUE(SameBytes(Xor32Decode(sent.packets.back()).Bytes(),
@@ -4127,26 +4115,51 @@ TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
     EXPECT_TRUE(sent.packets.back().WasDecrypted());
 }
 
+// 0x4d4af0: in clear, the 36 is not read and is answered with C1 06 F1 03 00 36 in C3, which draws two rand() of the
+// world's CRT.
+TEST(ServerSessionTest, TheTradeRequestInClearIsAnsweredWithTwoRandomsOfTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    Client::Crt::CrtRandom expected = world->cloth.random;
+    static_cast<void>(expected.Next());
+    static_cast<void>(expected.Next());
+    const auto before = tested.GameServerReads().packets.size();
+
+    tested.socket.reads = {Bytes({0xc1, 0x0d, 0x36, 'B', 'r', 'e', 'z', 'a', 'l', 0, 0, 0, 0})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    const auto reported = tested.GameServerReads();
+    ASSERT_EQ(reported.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, 0x36})));
+    EXPECT_TRUE(reported.packets.back().WasDecrypted());
+    EXPECT_EQ(world->cloth.random.State(), expected.State());
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning,
+                                 "el pedido de comercio (36) no llegó cifrado: se le avisa al GameServer (F1 03)"),
+              1u);
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0}));
+    EXPECT_EQ(world->world.Runtime().social.trade.otherName[0], std::byte{0});
+}
+
 // 04 § La vida y el maná: el 26 y el 27 llegan al mundo también antes del F3 03 (0x4d3510 y 0x4d3820 no miran la
 // escena); el 26 corto con 0xff se ignora. Los valores son inventados.
 TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
 {
-    namespace Inventory = Client::Protocol::Items;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     tested.socket.reads = {Join({Bytes({0xc1, 7, 0x26, 0xfe, 0x01, 0x2c, 0}), Bytes({0xc1, 5, 0x26, 0xff, 0x01}),
-                                 Bytes({0xc1, 8, 0x27, 0x15, 0x00, 0x5a, 0, 0})})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 2u);
-    const auto* life = std::get_if<Inventory::LifeRefill>(&events[0]);
-    ASSERT_NE(life, nullptr);
-    EXPECT_EQ(life->place, Inventory::MaximumPlace);
-    EXPECT_EQ(life->life, 0x12c);
-    const auto* mana = std::get_if<Inventory::ManaRefill>(&events[1]);
-    ASSERT_NE(mana, nullptr);
-    EXPECT_EQ(mana->place, 0x15);
-    EXPECT_EQ(mana->mana, 0x5a);
+                                 Bytes({0xc1, 8, 0x27, 0xff, 0x00, 0x5a, 0x00, 0x1e})})};
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter, (std::vector<std::size_t>{0, 0}));
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora la vida (26): no se puede leer"), 1u);
+    EXPECT_EQ(world->world.OwnCharacter().maxLife, 0x12c);
+    EXPECT_EQ(world->world.OwnCharacter().mana, 0x5a);
+    EXPECT_EQ(world->world.OwnCharacter().bp, 0x1e);
 }
 
 // 04 § Pegar, el daño y la muerte (CL9 hito 3): el 16 y el 9C cifrados (como los arma la GS: GCKillPlayerExpSend y
@@ -4500,27 +4513,19 @@ TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
     EXPECT_EQ(mixed->result, 4);
 }
 
-// 0x4da373: el 86 con 100 (la mezcla del entrenador) llega al mundo con los siete bytes del ítem desde pkt[4], como el
-// 1 (CL9 hito 6). Valores inventados.
-TEST(ServerSessionTest, TheTrainerMixReachesTheWorldWithItsItem)
+// 0x4da373: el 86 con 100 (la mezcla del entrenador) lo lee su fila con los siete bytes del ítem desde pkt[4], como el
+// 1 (CL9 hito 6); el 86 corto con 100, un aviso. Valores inventados.
+TEST(ServerSessionTest, TheTrainerMixIsReadByItsRow)
 {
-    namespace Npc = Client::Protocol::Npc;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    tested.socket.reads = {
-        Join({Bytes({0xc1, 0x0b, 0x86, 100, 0x0d, 0x08, 0x40, 0, 0, 0, 0x10}), Bytes({0xc1, 0x04, 0x86, 0})})};
+    tested.socket.reads = {Join({Bytes({0xc1, 0x0b, 0x86, 100, 0x0d, 0x08, 0x40, 0, 0, 0, 0x10}),
+                                 Bytes({0xc1, 0x04, 0x86, 0}), Bytes({0xc1, 0x04, 0x86, 100})})};
     ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 2u);
-    const auto* trained = std::get_if<Npc::ChaosMixResult>(&events[0]);
-    ASSERT_NE(trained, nullptr);
-    EXPECT_EQ(trained->result, Npc::TrainerMixResult);
-    EXPECT_EQ(trained->item, (Npc::ItemData{std::byte{0x0d}, std::byte{0x08}, std::byte{0x40}, std::byte{0},
-                                            std::byte{0}, std::byte{0}, std::byte{0x10}}));
-    const auto* failed = std::get_if<Npc::ChaosMixResult>(&events[1]);
-    ASSERT_NE(failed, nullptr);
-    EXPECT_EQ(failed->result, 0);
-    EXPECT_EQ(failed->item, Npc::ItemData{});
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el 86 de las ventanas de los NPC: no se puede leer"),
+              1u);
+    EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
 // El A0, el A2 y el 30 salen con el XOR32 y cifrados como C3; el C1 03 31 de 0x419900, en claro.

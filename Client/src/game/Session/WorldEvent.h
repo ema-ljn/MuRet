@@ -5,22 +5,16 @@
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Social/Duel.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Messenger/FriendChat.h"
 #include "Protocol/Messenger/Friends.h"
 #include "Protocol/Guild/Guild.h"
-#include "Protocol/Items/Inventory.h"
 #include "Protocol/Messenger/Letters.h"
-#include "Protocol/Npc/NpcWindows.h"
-#include "Protocol/Party/Party.h"
-#include "Protocol/PersonalShop/PersonalShop.h"
 #include "Protocol/Pets/PetInfo.h"
 #include "Protocol/Pets/PetOrders.h"
 #include "Protocol/Quests/Quest.h"
 #include "Protocol/Skills/Skill.h"
-#include "Protocol/Social/Trade.h"
 #include "Protocol/Weather/Weather.h"
 
 #include <cstdint>
@@ -106,27 +100,12 @@ struct ChatRoomPingDue
 using WorldEvent = std::variant<
     Protocol::FrontEnd::CharacterSelectResult, Protocol::Items::InventoryList, ClearInventoryReceived,
     ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
-    Protocol::Weather::Weather, Protocol::Items::ItemMoveResult, Protocol::Items::ItemDelete,
-    Protocol::Items::Durability, Protocol::Items::EquipmentChange, Protocol::Items::ItemPut,
-    Protocol::Items::LifeRefill, Protocol::Items::ManaRefill, Protocol::Npc::TalkResult, Protocol::Npc::ItemList,
-    Protocol::Npc::BuyResult, Protocol::Npc::SellResult, Protocol::Npc::RepairResult, Protocol::Npc::WarehouseMoney,
-    Protocol::Npc::NpcWindowClosed, Protocol::Npc::WarehouseState, Protocol::Npc::ChaosMixResult,
-    Protocol::Items::FloorItemsCreate, Protocol::Items::FloorItemsDelete, Protocol::Items::PickUpResult,
-    Protocol::Items::DropResult, Protocol::Items::StatFruit, Protocol::Items::ShortPickUpResult,
-    Protocol::Items::ShortZenPickUp, Protocol::Items::ShortDropResult, Protocol::Items::ShortStatFruit,
-    Protocol::Social::TradeRequest, Protocol::Social::ClearTradeRequest, Protocol::Social::TradeResponse,
-    Protocol::Social::TradeItemRemoved, Protocol::Social::TradeItemAdded, Protocol::Social::TradeMoneyResult,
-    Protocol::Social::TradeOtherMoney, Protocol::Social::TradeOkState, Protocol::Social::TradeResult,
-    Protocol::Party::PartyRequest, Protocol::Party::PartyRequestResult, Protocol::Party::PartyList,
-    Protocol::Party::PartyLeft, Protocol::Party::PartyLife, Protocol::Social::DuelStart, Protocol::Social::DuelEnd,
-    Protocol::Social::DuelRequest, Protocol::Social::DuelScore, Protocol::PersonalShop::ShopTitles,
-    Protocol::PersonalShop::ShopCreated, Protocol::PersonalShop::ShopClosed, Protocol::PersonalShop::ShopNotice,
-    Protocol::PersonalShop::ShopTitle, Protocol::PersonalShop::ShopOwnerLeft, Protocol::PersonalShop::PriceResult,
-    Protocol::PersonalShop::ShopItemList, Protocol::PersonalShop::ShopPurchase, Protocol::PersonalShop::ShopRefresh,
-    Protocol::Skills::MagicAttack, Protocol::Skills::DurationMagic, Protocol::Skills::MagicCancel,
-    Protocol::Skills::ActorState, Protocol::Skills::ActorEffect, Protocol::Skills::SkillTarget,
-    Protocol::Skills::SkillList, Protocol::Skills::SummonLife, Protocol::Pets::PetOrder, Protocol::Pets::PetAttack,
-    Protocol::Pets::PetInfoReply, Protocol::Quests::QuestFlag, Protocol::Quests::QuestList,
+    Protocol::Weather::Weather, Protocol::Items::PickUpResult, Protocol::Items::DropResult, Protocol::Items::StatFruit,
+    Protocol::Items::ShortPickUpResult, Protocol::Items::ShortZenPickUp, Protocol::Items::ShortDropResult,
+    Protocol::Items::ShortStatFruit, Protocol::Skills::MagicAttack, Protocol::Skills::DurationMagic,
+    Protocol::Skills::MagicCancel, Protocol::Skills::ActorState, Protocol::Skills::ActorEffect,
+    Protocol::Skills::SkillTarget, Protocol::Skills::SkillList, Protocol::Skills::SummonLife, Protocol::Pets::PetOrder,
+    Protocol::Pets::PetAttack, Protocol::Pets::PetInfoReply, Protocol::Quests::QuestFlag, Protocol::Quests::QuestList,
     Protocol::Quests::QuestStateChange, Protocol::Quests::SetQuestResult, Protocol::Quests::QuestResult,
     Protocol::Messenger::FriendList, Protocol::Messenger::FriendAddResult, Protocol::Messenger::FriendRequest,
     Protocol::Messenger::FriendDeleteResult, Protocol::Messenger::FriendState, Protocol::Events::EventPacket,

@@ -3,15 +3,19 @@
 #include "App/IChatRoomLinks.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Kernel/PlayerKey.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Movement/World.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/WorldState.h"
 #include "Session/ServerSession.h"
 #include "Session/WorldEntry.h"
@@ -111,6 +115,31 @@ void HandleBySitting(const Walk& walk, const Client::Scenes::ActionSender& sendA
     sendAction(walk.direction, 0x7a);
 }
 
+struct WorldServices
+{
+    const Client::Core::Log* log = nullptr;
+    const Client::Crt::CrtRandom* random = nullptr;
+};
+std::optional<WorldServices> worldServices;
+
+void HandleWithTheLogAndTheRandom(const Walk&, Client::Core::Log& log, Client::Crt::CrtRandom& random)
+{
+    worldServices = WorldServices{.log = &log, .random = &random};
+}
+
+void HandleBySendingTheAction(const Walk& walk, const Client::Scenes::GamePacketSender& send)
+{
+    send(Client::Protocol::Movement::WriteAction(walk.direction, 0x7a));
+}
+
+const Client::Crt::CrtRandom* answeredFrom = nullptr;
+
+Client::Protocol::Outgoing AnswerFromTheRandom(Client::Crt::CrtRandom& random)
+{
+    answeredFrom = &random;
+    return Client::Protocol::Movement::WriteRejectedTeleport();
+}
+
 const Client::App::ServerSession* sessionPart = nullptr;
 
 void HandleWithTheSession(const Walk&, Client::App::ServerSession& session)
@@ -127,6 +156,9 @@ constexpr auto RouteEncrypted =
                             &HandleWithEveryPart,
                             Client::Session::InClear<"el movimiento de prueba no llegó cifrado",
                                                      &Client::Protocol::Movement::WriteRejectedTeleport>>;
+constexpr auto RouteAnswered = &Client::Session::Route<
+    "se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk, &HandleWithEveryPart,
+    Client::Session::AnsweredInClear<"el movimiento de prueba no llegó cifrado", &AnswerFromTheRandom>>;
 
 Client::Network::Packet WalkPacket(bool decrypted = false)
 {
@@ -145,6 +177,8 @@ protected:
         nextFailure.reset();
         chatParts.reset();
         combatParts.reset();
+        worldServices.reset();
+        answeredFrom = nullptr;
         sessionPart = nullptr;
         ASSERT_NO_FATAL_FAILURE(online.ReachLoggedIn());
         online.eventSink.routedWorld = &world->resources;
@@ -230,6 +264,29 @@ TEST_F(RouteTest, AnActionSenderSendsThroughTheSession)
                                          Client::Tests::Bytes({0xc1, 5, 0x18, 15, 0x7a})));
 }
 
+TEST_F(RouteTest, AHandlerGetsTheLogAndTheRandomOfTheWorld)
+{
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleWithTheLogAndTheRandom>(online.session, WalkPacket());
+
+    ASSERT_TRUE(worldServices.has_value());
+    EXPECT_EQ(worldServices->log, &world->log);
+    EXPECT_EQ(worldServices->random, &world->cloth.random);
+}
+
+TEST_F(RouteTest, AGamePacketSenderSendsThroughTheSession)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleBySendingTheAction>(online.session, WalkPacket());
+
+    const auto received = online.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets.back()).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 5, 0x18, 15, 0x7a})));
+}
+
 TEST_F(RouteTest, OnlyTheSessionsOwnHandlersNameTheSession)
 {
     Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
@@ -274,6 +331,52 @@ TEST_F(RouteTest, AnEncryptedPacketPassesTheCheckAndIsHandled)
 
     ASSERT_EQ(handled.size(), 1u);
     EXPECT_EQ(handled[0].walk.characterId, 0x1234);
+    EXPECT_EQ(online.GameServerReads().packets.size(), before);
+    EXPECT_FALSE(Warned("no llegó cifrado"));
+}
+
+// 0x4d4af0 answers the 36 in clear itself, with an F1 03 that draws from the CRT: the answer ends the reception.
+TEST_F(RouteTest, APacketAnsweredInClearGetsItsAnswerFromTheWorldsRandomWithoutBeingRead)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    RouteAnswered(online.session, WalkPacket());
+
+    EXPECT_TRUE(handled.empty());
+    EXPECT_EQ(answeredFrom, &world->cloth.random);
+    EXPECT_EQ(online.eventSink.routedAfter, (std::vector<std::size_t>{0}));
+    EXPECT_TRUE(Warned("el movimiento de prueba no llegó cifrado: se le avisa al GameServer (F1 03)"));
+    const auto received = online.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets.back()).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 6, 0xf1, 3, 0, 0x1c})));
+    EXPECT_TRUE(received.packets.back().WasDecrypted());
+    EXPECT_NE(online.session.State(), SessionState::Failed);
+}
+
+TEST_F(RouteTest, AnEncryptedPacketIsNotAnsweredAndIsHandled)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    RouteAnswered(online.session, WalkPacket(true));
+
+    ASSERT_EQ(handled.size(), 1u);
+    EXPECT_EQ(handled[0].walk.characterId, 0x1234);
+    EXPECT_EQ(answeredFrom, nullptr);
+    EXPECT_EQ(online.GameServerReads().packets.size(), before);
+    EXPECT_FALSE(Warned("no llegó cifrado"));
+}
+
+TEST_F(RouteTest, WithoutAWorldAPacketInClearIsNotAnswered)
+{
+    online.eventSink.routedWorld = nullptr;
+    const auto before = online.GameServerReads().packets.size();
+
+    RouteAnswered(online.session, WalkPacket());
+
+    EXPECT_TRUE(handled.empty());
+    EXPECT_EQ(answeredFrom, nullptr);
+    EXPECT_TRUE(online.eventSink.routedAfter.empty());
     EXPECT_EQ(online.GameServerReads().packets.size(), before);
     EXPECT_FALSE(Warned("no llegó cifrado"));
 }

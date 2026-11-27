@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Session/SessionContexts.h"
+#include "Session/WorldEntry.h"
 
 #include <string>
 
@@ -15,9 +17,14 @@ struct Regen;
 struct Teleport;
 } // namespace Client::Protocol::Movement
 
-namespace Client::Scenes
+namespace Client::Protocol::PersonalShop
 {
-struct WorldEntryResources;
+struct ShopItemList;
+}
+
+namespace Client::Protocol::Social
+{
+struct TradeRequest;
 }
 
 // The routed rows whose applier needs what only the session lends (Session/Route.h): until AR4 gives the modules their
@@ -31,4 +38,23 @@ namespace Client::Session
 [[nodiscard]] Core::Expected<void, std::string> ReceiveRegen(const Protocol::Movement::Regen& regen,
                                                              App::ServerSession& session,
                                                              const Scenes::WorldEntryResources& resources);
+
+// 0x4d52bc..0x4d5553: with a personal shop open, the C1 04 37 00 that Scenes::ApplyTradeRequest returns goes out in
+// clear, with the XOR32.
+[[nodiscard]] Core::Expected<void, std::string> ReceiveTradeRequest(const Protocol::Social::TradeRequest& request,
+                                                                    App::ServerSession& session,
+                                                                    const Scenes::WorldEntryResources& resources);
+
+[[nodiscard]] Core::Expected<void, std::string> ReceiveShopItemList(const Protocol::PersonalShop::ShopItemList& list,
+                                                                    App::ServerSession& session,
+                                                                    const Scenes::WorldEntryResources& resources);
+
+// `Apply` with the bag bound to the session's senders (WithTheSession): the NPC windows and the trade's answer.
+template <typename Received,
+          Core::Expected<void, std::string> (*Apply)(const Received&, const Scenes::WorldEntryResources&)>
+[[nodiscard]] Core::Expected<void, std::string> BoundToTheSession(const Received& received, App::ServerSession& session,
+                                                                  const Scenes::WorldEntryResources& resources)
+{
+    return Apply(received, WithTheSession(resources, session));
+}
 } // namespace Client::Session

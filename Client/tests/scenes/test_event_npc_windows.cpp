@@ -25,6 +25,7 @@
 #include "UI/GameText.h"
 #include "UI/Widget.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
@@ -191,7 +192,7 @@ protected:
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     CrtRandom random{Seed};
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::Input::InputState input;

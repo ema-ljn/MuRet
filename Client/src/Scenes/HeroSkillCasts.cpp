@@ -40,6 +40,7 @@
 #include "World/Particles.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -230,9 +231,9 @@ Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std:
                                             .playerSkeleton = context.playerSkeleton,
                                             .items = context.items,
                                             .terrain = context.terrain,
-                                            .soundRequest = [&world](std::int32_t sound)
+                                            .soundRequest = [&world](Audio::SoundId sound)
                                             { world.Runtime().RequestSound(sound); },
-                                            .soundAt = [&world](std::int32_t sound, const glm::vec3& origin)
+                                            .soundAt = [&world](Audio::SoundId sound, const glm::vec3& origin)
                                             { world.Runtime().RequestSound(sound, origin); },
                                             .controlDown = context.controlDown,
                                             .dynamicLighting = context.dynamicLighting,
@@ -324,7 +325,8 @@ Core::Expected<void, std::string> ShineOnTheHero(const Kernel::ActorState& hero,
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x55be23: el brillo 0x5fe (0x53fe70) falla con el error {}",
                                             static_cast<unsigned>(created.Error())));
-    world.Runtime().RequestSound(static_cast<std::int32_t>(context.random.Next() % 2) + FirstShineSound);
+    world.Runtime().RequestSound(
+        Audio::SoundId{static_cast<std::int32_t>(context.random.Next() % 2) + FirstShineSound});
     return {};
 }
 

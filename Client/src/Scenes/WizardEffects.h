@@ -4,6 +4,7 @@
 #include "Protocol/Outgoing.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -69,7 +70,7 @@ struct WizardSceneParts
     const Terrain::WorldTerrain* terrain = nullptr;
     float fixedHeight = 1200.0f;
     float* cameraShake = nullptr;
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
     std::function<void(Protocol::Outgoing)> send{};
     // La tabla de joints (0x530860); vacía, la del mundo (WorldState::DrawTail).
     std::span<JointState> joints{};

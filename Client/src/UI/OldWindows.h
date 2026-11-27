@@ -9,6 +9,7 @@
 #include "UI/LetterModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -476,7 +477,7 @@ struct OldWindowGlobals
     std::int32_t& capture;
     std::int32_t& pressedButton;
     ChatFocus& keyboardFocus;
-    std::optional<std::int32_t>& sound;
+    std::optional<Audio::SoundId>& sound;
     // 0x5762ec0 (la lista que toma las flechas), 0x7d366d8 (la rueda), 0x7d36880 (el clic derecho) y 0x7d36849 (el
     // doble clic, alimentado por SDL como el WM_LBUTTONDBLCLK: P-C182/P-C187).
     std::int32_t& focusedList;
@@ -487,9 +488,9 @@ struct OldWindowGlobals
     // ellos (un paso sin el juego), no se tocan.
     std::int32_t* mouseUpdateTime = nullptr;
     std::int32_t* mouseUpdateTimeMax = nullptr;
-    std::function<void(std::int32_t)> soundRequest{};
+    std::function<void(Audio::SoundId)> soundRequest{};
 
-    void RequestSound(std::int32_t id) const
+    void RequestSound(Audio::SoundId id) const
     {
         if (soundRequest)
             soundRequest(id);

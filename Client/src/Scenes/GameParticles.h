@@ -4,6 +4,7 @@
 #include "Math/OriginalRotation.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -102,7 +103,7 @@ StepGameParticles(World::Particles& particles, Crt::CrtRandom& random, const std
     const std::function<std::optional<float>(std::int32_t)>& textureHeight, Terrain::TerrainLighting* lighting,
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
     const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
-    const std::function<void(std::int32_t)>& sound,
+    const std::function<void(Audio::SoundId)>& sound,
     const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates = {},
     World::FrameSprites* sprites = nullptr);
 

@@ -13,6 +13,7 @@
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
+#include "Audio/SoundId.h"
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
@@ -24,7 +25,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t AmbientSound = 0x1d3;
+constexpr Audio::SoundId AmbientSound{0x1d3};
 constexpr std::int32_t PeriodicSound = 0x1d4;
 constexpr std::int32_t RegionSound = 0x1d9;
 constexpr int AmbientPeriod = 100;
@@ -34,9 +35,9 @@ constexpr int SelectorGate = 10;
 constexpr int ParticleGate = 5;
 constexpr int ParticleSpread = 800;
 
-void PlayKalimaSound(Kernel::WorldState& world, std::int32_t sound)
+void PlayKalimaSound(Kernel::WorldState& world, Audio::SoundId sound)
 {
-    world.Fauna().Sound(sound, nullptr);
+    world.Fauna().Sound(sound.Value(), nullptr);
     world.Runtime().RequestSound(sound);
 }
 
@@ -57,7 +58,7 @@ void RegionSoundOf(Kernel::WorldState& world, Models::ClothWorld& cloth)
     }();
     constexpr std::int32_t MinX = 25, MaxX = 51, MinY = 44, MaxY = 119;
     if (x >= MinX && x <= MaxX && y >= MinY && y <= MaxY && cloth.logicSteps % RegionPeriod == 0)
-        PlayKalimaSound(world, RegionSound + cloth.random.Next() % SoundAlternatives);
+        PlayKalimaSound(world, Audio::SoundId{RegionSound + cloth.random.Next() % SoundAlternatives});
 }
 
 void OwnRecordSound(Kernel::WorldState& world, Models::ClothWorld& cloth)
@@ -90,7 +91,7 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldS
 {
     PlayKalimaSound(world, AmbientSound);
     if (cloth.logicSteps % AmbientPeriod == 0)
-        PlayKalimaSound(world, PeriodicSound + cloth.random.Next() % SoundAlternatives);
+        PlayKalimaSound(world, Audio::SoundId{PeriodicSound + cloth.random.Next() % SoundAlternatives});
     OwnRecordSound(world, cloth);
     // 438904: cierre propio antes del gate. El count se lee sólo si éste acepta.
     if (cloth.random.Next() % SelectorGate == 0 && world.Runtime().objectSelectionCount != 0)
@@ -117,7 +118,7 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldS
     {
         position.z = static_cast<float>(static_cast<double>(hero.position.z) + EffectHeight);
         static_cast<void>(world.Map().effects.CreateKalimaEffect(position, glm::vec3(0), light, cloth.random));
-        constexpr std::int32_t EffectSound = 0x1d7;
+        constexpr Audio::SoundId EffectSound{0x1d7};
         PlayKalimaSound(world, EffectSound);
     }
     return std::int32_t{0};

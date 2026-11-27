@@ -44,6 +44,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -231,7 +232,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
                                            .worldClock = worldClock,
                                            .dynamicLighting = &dynamicLighting,
                                            .particles = &world.Particles(),
-                                           .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+                                           .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
                                            .modelState = &world.Runtime().objectModelState};
     if (auto stepped = StepGameWorldObjects(objects, map, m_models, random, globals, {}, collapse); !stepped.HasValue())
     {
@@ -253,7 +254,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
         .effects = &world.Map().effects,
         .lighting = &dynamicLighting,
         .systemTime = [systemTime]() { return systemTime; },
-        .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+        .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
         .joint = [&world, &cloth](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
@@ -268,7 +269,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
             placement.action = action;
             world.PlaceModel(type, placement);
         },
-        .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); }};
+        .soundAt = [&world](Audio::SoundId id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); }};
     for (World::ModelEffect& effect : world.Map().effects.Effects())
     {
         const auto* skeleton = effect.type == World::EarthquakeBurstEffect
@@ -292,7 +293,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
     const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
     if (auto stepped = StepJoints(
             world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites, &dynamicLighting,
-            [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, height, actors, {}, &world.Map().effects,
+            [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, height, actors, {}, &world.Map().effects,
             hero, &world);
         !stepped.HasValue())
     {

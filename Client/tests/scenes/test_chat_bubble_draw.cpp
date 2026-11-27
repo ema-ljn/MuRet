@@ -15,6 +15,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
@@ -540,7 +541,7 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
 
     EXPECT_FALSE(runtime.ui.rightClick);
     EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
 // 0x5563a4..0x5565ef: con el cartel del dueño, el texto 1104 (como lo de adelante, de su ancho) y el título corto a su

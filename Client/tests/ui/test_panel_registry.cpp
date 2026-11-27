@@ -3,6 +3,7 @@
 #include "Kernel/CharacterClass.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -40,8 +41,9 @@ struct Tested
     DialogState dialogs{};
     PanelState state{};
     std::vector<std::int32_t> sounds{};
-    PanelContext context{
-        .random = random, .dialogs = dialogs, .map = 0, .sound = [this](std::int32_t id) { sounds.push_back(id); }};
+    PanelContext context{.random = random, .dialogs = dialogs, .map = 0, .sound = [this](Client::Audio::SoundId id) {
+                             sounds.push_back(id.Value());
+                         }};
     PanelRegistry panels{state, context};
 };
 

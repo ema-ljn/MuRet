@@ -10,6 +10,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -77,7 +78,7 @@ struct BeamWorld
     Client::Core::Expected<void, std::string> Step(float worldClock = 0.0f)
     {
         return Client::Scenes::StepJoints(joints, random, nullptr, &particles, worldClock, &sprites, lighting.get(),
-                                          [this](std::int32_t sound) { sounds.push_back(sound); });
+                                          [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); });
     }
 
     ActorState actor;

@@ -30,6 +30,7 @@
 #include "World/ModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "World/WizardModelEffects.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -267,9 +268,9 @@ protected:
                                                            .terrain = &game->states.terrain.current,
                                                            .particles = withParticles ? &game->particles : nullptr,
                                                            .joints = game->joints,
-                                                           .soundRequest = [this](std::int32_t sound)
+                                                           .soundRequest = [this](Client::Audio::SoundId sound)
                                                            {
-                                                               sounds.push_back(sound);
+                                                               sounds.push_back(sound.Value());
                                                                soundDraws.push_back(Draws());
                                                            }};
         return Client::Scenes::StepTheAttackCases(monster, slot, context);
@@ -1700,7 +1701,7 @@ TEST_F(MonsterAttackCasesTest, TheKind46DropsTwentyFallingStarsOnItsTarget)
     }
     EXPECT_FALSE(effects[20].alive);
     EXPECT_EQ(Draws(), 20 * 4 + Tail);
-    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x42);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x42});
 
     ActorState& far = Prepare({.type = 0x46, .step = 5, .target = 400});
     const auto cut = Step(far);
@@ -3323,7 +3324,7 @@ TEST_F(MonsterAttackCasesTest, FullModelPoolContinuesPastScatterHelpersIntoFollo
             if (soundCount == 0)
                 EXPECT_FALSE(game->world.Runtime().lastSoundId.has_value());
             else
-                EXPECT_EQ(game->world.Runtime().lastSoundId, 0x40);
+                EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x40});
             EXPECT_EQ(monster.position, actorPosition);
             EXPECT_EQ(monster.trailOrigin, expectedTrail);
             EXPECT_EQ(game->cloth.random.State(), expectedRandom.State());

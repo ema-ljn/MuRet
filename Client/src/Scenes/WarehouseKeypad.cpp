@@ -24,6 +24,8 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -51,7 +53,7 @@ namespace Npc = Protocol::Npc;
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
 // 0x5e7c6d: 0x41ed10(0x19, 0, 0), el sonido de las teclas.
-constexpr std::int32_t KeySound = 0x19;
+constexpr Audio::SoundId KeySound = Sound::ButtonClickSound;
 // 0x5e7d39 y 0x5e7e7e: los diálogos de cuatro cifras iguales y de la contraseña repetida distinta.
 constexpr std::int32_t SameDigitsDialog = 0x87;
 constexpr std::int32_t WrongRepeatDialog = 0x88;

@@ -9,6 +9,7 @@
 #include "Scenes/Slides.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Audio/SoundId.h"
 
 #include <chrono>
 #include <cstdint>
@@ -88,8 +89,8 @@ bool InTheDeviasChurch(Kernel::ActorState& hero, Crt::CrtRandom& random)
 
 void StepWorldAmbience(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random)
 {
-    constexpr int Wind = 0, Rain = 1, Forest = 2, Dungeon = 3, Tower = 5, Atlans = 6, Tarkan = 7, Icarus = 0x14;
-    const auto loop = [&runtime](std::int32_t id) { runtime.RequestSound(id, std::nullopt, true); };
+    constexpr Audio::SoundId Wind{0}, Rain{1}, Forest{2}, Dungeon{3}, Tower{5}, Atlans{6}, Tarkan{7}, Icarus{0x14};
+    const auto loop = [&runtime](Audio::SoundId id) { runtime.RequestSound(id, std::nullopt, true); };
     const std::int32_t map = runtime.map;
     switch (map)
     {

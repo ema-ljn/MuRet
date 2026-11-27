@@ -24,6 +24,7 @@
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
 #include "Render/Frame/TextCacheDrawer.h"
+#include "Audio/SoundId.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
@@ -340,7 +341,7 @@ protected:
     std::int32_t m_capture = 0;
     std::int32_t m_pressedButton = 0;
     ChatFocus m_focus = ChatFocus::Game;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;
     bool m_rightClick = false;

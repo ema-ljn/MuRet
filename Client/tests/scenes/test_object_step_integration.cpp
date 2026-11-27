@@ -25,6 +25,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -82,7 +83,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
         globals.dynamicLighting = lighting.get();
         globals.particles = particles.get();
         globals.heroPosition = &hero;
-        globals.sound = [&](std::int32_t id) { sounds.push_back(id); };
+        globals.sound = [&](Client::Audio::SoundId id) { sounds.push_back(id.Value()); };
         Client::Crt::CrtRandom random(7);
         for (int step = 0; step < 4; ++step)
         {

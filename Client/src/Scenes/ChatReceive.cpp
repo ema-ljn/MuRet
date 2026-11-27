@@ -22,6 +22,8 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -47,7 +49,7 @@ constexpr std::size_t GuildNoticeTextBytes = 58;
 constexpr std::size_t WhisperFailedText = 482;
 constexpr std::size_t GuildNoticeText = 483;
 // 0x4e3550: el sonido del susurro con 0x77f3b78.
-constexpr std::int32_t WhisperSound = 0x26;
+constexpr Audio::SoundId WhisperSound = Sound::WhisperSound;
 // 0x4e341d: el héroe en +0x368 con 0x80; 0x6c8404: "길드 마스터" en EUC-KR, los 12 bytes que compara REPE CMPSB.
 constexpr std::uint8_t GuildMasterStatus = 0x80;
 constexpr std::array<std::uint8_t, 12> GuildMasterName{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8,

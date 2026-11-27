@@ -21,6 +21,7 @@
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -314,11 +315,11 @@ TEST_F(ModelEffectsTest, TheTownSoundsComeFromTheirOwnRandom)
         Clear();
         CrtRandom random(lucky);
         ASSERT_TRUE(Step(0x1d8, map, random).HasValue());
-        EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{0xa1});
+        EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0xa1});
         Clear();
         CrtRandom other(lucky);
         ASSERT_TRUE(Step(0x1d3, map, other).HasValue());
-        EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{0xa0});
+        EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0xa0});
         EXPECT_EQ(other.State(), AfterDraws(lucky, 2).State());
     }
 }
@@ -382,7 +383,7 @@ TEST_F(ModelEffectsTest, TheFountainSparksAtTheStartOfItsRest)
         m_actor.flags7c = 0;
         CrtRandom random(Seed);
         ASSERT_TRUE(Step(0x1ce, map, random).HasValue());
-        EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{0xa0});
+        EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0xa0});
         EXPECT_EQ(m_actor.blendMeshLight, Brightness(Seed));
         EXPECT_EQ(m_actor.dword64, 4);
         EXPECT_EQ(Joints(0x617), 4);

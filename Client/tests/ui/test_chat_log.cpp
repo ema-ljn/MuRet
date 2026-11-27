@@ -146,7 +146,7 @@ TEST_F(ChatLogTest, TheFilterLetsInOnlyNormalChatWithOneOfItsWordsAndRings)
 
     const auto rung = Client::UI::AddToTheLog(m_log, m_modes, Measure(), "Ana", "compro alas", 3, 0, true);
     ASSERT_TRUE(rung.HasValue()) << rung.Error();
-    EXPECT_EQ(rung.Value(), std::optional<std::int32_t>(Client::UI::ChatFilterSound));
+    EXPECT_EQ(rung.Value(), std::optional{Client::UI::ChatFilterSound});
     // Los otros tipos no pasan por el filtro.
     Add("Ana", "vendo escudo", 0);
     EXPECT_EQ(m_log.entries.size(), 2u);

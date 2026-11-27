@@ -42,6 +42,7 @@
 #include "World/Sprites.h"
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
@@ -688,7 +689,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     CrtRandom m_random;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     bool m_projecting = false;
     Client::Render::SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text{m_sprites};

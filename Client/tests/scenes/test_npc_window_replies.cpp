@@ -32,6 +32,7 @@
 #include "UI/PanelRegistry.h"
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
@@ -232,7 +233,7 @@ TEST_F(NpcWindowRepliesTest, TheDefaultOpensTheNpcShopWithTheRandomOfItsProtecte
     EXPECT_EQ(state.npcShop, 1);
     EXPECT_EQ(state.npcShopDepth, 0);
     EXPECT_EQ(state.inventory, 1);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_TRUE(Npc().cursorWarpRequested);
     EXPECT_TRUE(stage->sent.empty());
 
@@ -277,7 +278,7 @@ TEST_F(NpcWindowRepliesTest, CastleGuardTalkClosesTheCurrentNpcBeforeRequestingC
     EXPECT_TRUE(SameBytes(stage->Plain(0).Bytes(), Bytes({0xc1, 3, 0x31})));
     EXPECT_TRUE(SameBytes(stage->Plain(1).Bytes(), Bytes({0xc1, 4, 0xb2, 0})));
     EXPECT_EQ(stage->world.Runtime().panels.npcShop, 0);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
 }
 
 // 0x4d2532 y 0x4d253b: el almacén y la caja del caos, cada uno con el inventario. La caja manda el C1 04 BD 09 (con el
@@ -320,7 +321,7 @@ TEST_F(NpcWindowRepliesTest, TheTrainerOpensItsMenuWithoutTheInventory)
     EXPECT_EQ(runtime.panels.delegated.trainer, 1);
     EXPECT_EQ(runtime.npcWindows.trainerBox[4].id, 0xffff);
     EXPECT_EQ(runtime.panels.inventory, 0);
-    EXPECT_EQ(runtime.lastSoundId, 0x1c);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_TRUE(Npc().cursorWarpRequested);
     EXPECT_TRUE(stage->sent.empty());
 }
@@ -337,7 +338,7 @@ TEST_F(NpcWindowRepliesTest, TheFifthTalkResultOpensPanel2000WithoutTheInventory
         EXPECT_EQ(stage->world.Runtime().panels.panel2000, 1);
         EXPECT_EQ(stage->world.Runtime().panels.inventory, 0);
         EXPECT_EQ(stage->world.Runtime().panels.field78abb08, 0);
-        EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1c);
+        EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_TRUE(Npc().cursorWarpRequested);
         EXPECT_TRUE(stage->sent.empty());
         EXPECT_EQ(stage->cloth.random.State(), Advanced(CrtRandom(Seed), 6).State());
@@ -438,7 +439,7 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheShopGridAndTheChaosBox)
     EXPECT_EQ(Npc().chaosBox[9].id, Jewel);
     EXPECT_EQ(Npc().chaosBox[9].gridColumn, 1);
     EXPECT_EQ(Npc().chaosBox[9].gridRow, 1);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x44);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x44});
 }
 
 // El 31 con la grilla 5 (0x4c5fb4..0x4c6042): el aviso 1208 de tipo 2, los sonidos, la caja del entrenador vacía y
@@ -467,7 +468,7 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheTrainerBoxWithTheTailOfEachItem)
     EXPECT_EQ(box[12].occupied, 1);
     EXPECT_EQ(box[21].occupied, 0);
     EXPECT_EQ(Npc().chaosMixState, 1);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x44);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x44});
     const auto& entry = stage->world.Runtime().chat.log.entries.back();
     EXPECT_EQ(entry.text, "pone la mascota");
     EXPECT_EQ(entry.type, 2);
@@ -484,7 +485,7 @@ TEST_F(NpcWindowRepliesTest, ABoughtItemGoesToItsInventoryPlace)
     const auto bought = Client::Scenes::ApplyBuyResult({.slot = 12 + 9, .item = ItemBytes(Jewel)}, stage->Resources());
     ASSERT_TRUE(bought.HasValue()) << bought.Error();
     EXPECT_EQ(stage->world.Inventory().cells[9].id, Jewel);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(Npc().buyLock, 0);
 }
 
@@ -498,12 +499,12 @@ TEST_F(NpcWindowRepliesTest, SellRepairAndTheWarehouseMoneyWriteTheZen)
     EXPECT_EQ(stage->cloth.random.State(), sold.State());
     EXPECT_EQ(stage->world.OwnCharacter().zen, 1234u);
     EXPECT_EQ(stage->world.Runtime().cursorItemCount, 0);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 
     const auto repaired = Client::Scenes::ApplyRepairResult({.money = 1000}, stage->Resources());
     ASSERT_TRUE(repaired.HasValue()) << repaired.Error();
     EXPECT_EQ(stage->world.OwnCharacter().zen, 1000u);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x25);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x25});
     ASSERT_TRUE(Client::Scenes::ApplyRepairResult({.money = 0}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->world.OwnCharacter().zen, 1000u);
 
@@ -716,7 +717,7 @@ TEST_F(NpcWindowRepliesTest, TheTrainerMixLeavesItsItemInTheTrainerBox)
 {
     Npc().trainerBox[20].id = Jewel;
     Npc().chaosMixState = 1;
-    stage->world.Runtime().lastSoundId = 0;
+    stage->world.Runtime().lastSoundId = Client::Audio::SoundId{0};
     const CrtRandom before = stage->cloth.random;
     const auto mixed =
         Client::Scenes::ApplyChaosMixResult({.result = 100, .item = ItemBytes(Sword)}, stage->Resources());
@@ -727,7 +728,7 @@ TEST_F(NpcWindowRepliesTest, TheTrainerMixLeavesItsItemInTheTrainerBox)
         EXPECT_EQ(Npc().trainerBox[cell].id, Sword) << cell;
     EXPECT_EQ(Npc().trainerBox[0].occupied, 1);
     EXPECT_EQ(Npc().chaosMixState, 1);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0});
 }
 
 // El 24 con 2, 3 y 5 (0x4d1cf6.., 0x4d1d20.. y 0x4d1d4a..): 0x5bc740 con el último argumento en 0 en la grilla del
@@ -750,19 +751,19 @@ TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheOtherGrids)
     }
     EXPECT_EQ(Npc().grid[10].occupied, 1);
     EXPECT_EQ(Npc().grid[19].occupied, 0);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 
-    stage->world.Runtime().lastSoundId = 0;
+    stage->world.Runtime().lastSoundId = Client::Audio::SoundId{0};
     const auto chaos =
         Client::Scenes::ApplyItemMoveResult({.result = 3, .slot = 1, .item = ItemBytes(Sword)}, stage->Resources());
     ASSERT_TRUE(chaos.HasValue()) << chaos.Error();
     for (const std::size_t cell : {1u, 9u, 17u})
         EXPECT_EQ(Npc().chaosBox[cell].id, Sword) << cell;
     EXPECT_EQ(Npc().chaosBox[1].occupied, 1);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 
     // El 24 con 5 (0x4d1d4a..0x4d1d55): 0x44ad70(lugar, datos, 0) en la caja del entrenador, con la cola.
-    stage->world.Runtime().lastSoundId = 0;
+    stage->world.Runtime().lastSoundId = Client::Audio::SoundId{0};
     const CrtRandom placed = Advanced(stage->cloth.random, Own);
     const auto trainer =
         Client::Scenes::ApplyItemMoveResult({.result = 5, .slot = 6, .item = ItemBytes(Sword)}, stage->Resources());
@@ -771,7 +772,7 @@ TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheOtherGrids)
     for (const std::size_t cell : {6u, 14u, 22u})
         EXPECT_EQ(Npc().trainerBox[cell].id, Sword) << cell;
     EXPECT_EQ(Npc().trainerBox[6].occupied, 1);
-    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 }
 
 // 0x4d28a9..0x4d28f6: x = (260 · mx / 640) · ancho / 640, y = alto · my / 480.
@@ -799,7 +800,7 @@ TEST_F(NpcWindowRepliesTest, BothEventTalkResultsOpenTheirNativeWindowWithTheInv
         EXPECT_EQ(runtime.panels.eventNpcKind, result == 4 ? 0 : 1);
         EXPECT_EQ(runtime.panels.inventory, 1);
         EXPECT_EQ(stage->cloth.random.State(), expected.State());
-        EXPECT_EQ(runtime.lastSoundId, 0x1c);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_TRUE(Npc().cursorWarpRequested);
         EXPECT_TRUE(stage->sent.empty());
     }

@@ -4,6 +4,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 #include <vector>
 #include <cstddef>
 #include <string>
@@ -76,7 +77,8 @@ TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsT
     e.speed = 10;
     Client::Crt::CrtRandom random(7);
     int sound = 0;
-    const auto result = Client::Scenes::StepCrywolfDeathSpirit(e, random, {.sound = [&](int id) { sound = id; }});
+    const auto result = Client::Scenes::StepCrywolfDeathSpirit(
+        e, random, {.sound = [&](Client::Audio::SoundId id) { sound = id.Value(); }});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FLOAT_EQ(e.turnDirection, 1.1f);
     EXPECT_FLOAT_EQ(e.speed, 10);

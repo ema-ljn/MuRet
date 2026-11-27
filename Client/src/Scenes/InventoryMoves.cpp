@@ -39,6 +39,8 @@
 #include "Kernel/CharacterClass.h"
 #include "Math/Ftol.h"
 #include "Kernel/ItemState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -79,8 +81,8 @@ constexpr double CellScale = static_cast<double>(0.05f);
 constexpr double Half = Math::HalfAsDouble;
 
 // 0x41ed10: mover un ítem y el F3 14.
-constexpr std::int32_t ItemMoveSound = 0x1d;
-constexpr std::int32_t ItemPutSound = 0x45;
+constexpr Audio::SoundId ItemMoveSound = Sound::GetItemSound;
+constexpr Audio::SoundId ItemPutSound = Sound::GemSound;
 // +0x44: entra (2), no entra (3) y la joya que podría ir sobre otro ítem (4).
 // 0x5cf3c9..0x5cf40b: lo que no va a otra grilla que el inventario: 0x1c17 a 0x1c1a, 0x1a13, 0x1a14 y el 0x1c0b de
 // nivel 13 (+4 & 0x78 en 0x68).
@@ -255,8 +257,8 @@ constexpr std::int32_t DropMouseUpdateTimeMax = 6;
 // 0x41ed10 (CL10), en lastSoundId.
 constexpr std::size_t UseRefusedText = 474;
 constexpr std::int32_t UseWait = 10;
-constexpr std::int32_t FirstPotionSound = 0x21;
-constexpr std::int32_t PotionSound = 0x20;
+constexpr Audio::SoundId FirstPotionSound{0x21};
+constexpr Audio::SoundId PotionSound{0x20};
 constexpr std::int32_t LastSoundedPotion = 0x1c09;
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)

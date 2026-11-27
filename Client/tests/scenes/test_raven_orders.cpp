@@ -14,6 +14,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
@@ -145,7 +146,7 @@ TEST(RavenOrdersTest, TheAttackOfKindZeroCharges)
     EXPECT_EQ(raven.speed, static_cast<float>(roll) + 20.0f);
     EXPECT_EQ(raven.target, MonsterIndex);
     EXPECT_EQ(raven.target3b0, MonsterIndex);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x1d2);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d2});
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
@@ -156,7 +157,7 @@ TEST(RavenOrdersTest, TheAttackOfKindOneShouts)
     tested->Attack(1);
     EXPECT_EQ(tested->Raven().state, 6);
     EXPECT_EQ(tested->Raven().byte1ad, 0);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x1d0);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d0});
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 

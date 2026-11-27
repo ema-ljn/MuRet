@@ -19,6 +19,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
@@ -211,7 +212,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
     Client::Input::InputState m_input;
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(CommandTexts());
@@ -225,7 +226,7 @@ TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
     const auto stepped = Client::Scenes::StepTheGameUi(UiContext(300, 300));
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().panels.delegated.commands, 1);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
     // Debajo del registro del chat, que con el mouse encima no deja correr los paneles (0x5ee174).
     const auto again = Client::Scenes::StepTheGameUi(UiContext(100, 200));
@@ -349,7 +350,7 @@ TEST_P(GameCommandsWindowTest, TheCloseButtonResetsTheCommands)
     EXPECT_TRUE(movement.leftHeld);
     EXPECT_EQ(movement.mouseUpdateTime, 0);
     EXPECT_EQ(movement.mouseUpdateTimeMax, 6);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Seed);
 }
 

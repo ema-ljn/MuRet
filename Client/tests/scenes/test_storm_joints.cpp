@@ -20,6 +20,7 @@
 #include "World/Particles.h"
 #include "World/SkinShellEffects.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/quaternion_float.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -70,8 +71,8 @@ struct Storm
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepJoints(
-            joints, random, nullptr, &particles, 0.0f, nullptr, nullptr,
-            [this](std::int32_t sound) { sounds.push_back(sound); }, [this](float, float) { return ground; });
+            joints, random, nullptr, &particles, 0.0f, nullptr, nullptr, [this](Client::Audio::SoundId sound)
+            { sounds.push_back(sound.Value()); }, [this](float, float) { return ground; });
     }
 
     std::vector<JointState> joints = std::vector<JointState>(8);

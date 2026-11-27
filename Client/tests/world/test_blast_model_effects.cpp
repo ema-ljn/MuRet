@@ -13,6 +13,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -78,7 +79,7 @@ struct Harness
                                       request.ownerContext, effectOwner});
                     return {};
                 },
-                .sound = [this](std::int32_t id) { sounds.push_back(id); }};
+                .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); }};
     }
 };
 
@@ -395,7 +396,7 @@ struct StepHarness
                 .terrainAttributes = attributes.get(),
                 .map = &map,
                 .cameraShake = withShake ? &shake : nullptr,
-                .sound = [this](std::int32_t id) { sounds.push_back(id); },
+                .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); },
                 .joint = [this](const FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
                 {
                     joints.push_back(request.type);

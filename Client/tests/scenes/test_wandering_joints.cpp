@@ -10,6 +10,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -85,7 +86,7 @@ struct Pool
     {
         return Client::Scenes::StepJoints(
             joints, cloth->random, cloth.get(), particles.get(), 0, sprites.get(), nullptr,
-            [this](std::int32_t sound) { sounds.push_back(sound); }, {}, {},
+            [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }, {}, {},
             [this](ModelEffect& hit) -> Client::Core::Expected<void, std::string>
             {
                 hits.push_back(hit.transform.position);

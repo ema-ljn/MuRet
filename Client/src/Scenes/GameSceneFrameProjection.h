@@ -13,6 +13,7 @@
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -43,7 +44,7 @@ struct GameSceneFrameProjection
     std::uint8_t crywolfSandOverlay = 0;
     // Lo que escribe la interfaz de Crywolf (0x4365c0): las cuentas del cartel, la barra, el reloj y el consejo.
     Kernel::CrywolfInterface crywolfInterface{};
-    std::optional<std::int32_t> sound{};
+    std::optional<Audio::SoundId> sound{};
     // 0x77f36d4 + 0x12 · 4 y 0x78abb38: el latch de Alt y los nombres del piso, que invierte el hover (0x5bbbc0).
     std::int32_t altLatch = 0;
     std::uint8_t altNames = 0;

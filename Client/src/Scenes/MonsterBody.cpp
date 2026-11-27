@@ -12,6 +12,7 @@
 #include "Scenes/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Math/Ftol.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -40,7 +41,7 @@ constexpr std::uint32_t AdditiveFlags = 0x42;
 constexpr std::uint32_t ChromeFlags = 0x44;
 constexpr std::uint32_t ShinyFlags = 0x48;
 constexpr std::uint8_t DeathAction = 6;
-constexpr std::int32_t DeathSound = 0x87;
+constexpr Audio::SoundId DeathSound{0x87};
 // Los efectos por vértice de la muerte: las piedras 0x10a del 0x18e (0x601c01) y las 0x10c del 0x18f (0x601c3d).
 constexpr std::int32_t StoneEffects = 0x10a;
 constexpr std::int32_t GateStoneEffects = 0x10c;

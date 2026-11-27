@@ -9,6 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -155,18 +156,18 @@ TEST_F(ObjectCollapseTest, TheGateStartsFallingAtTwenty)
     ASSERT_TRUE(Collapse(gate).HasValue());
     EXPECT_EQ(gate.transform.angles.x, 36.0f);
     EXPECT_EQ(gate.state.hiddenMesh, Client::Models::NoHiddenMesh);
-    EXPECT_EQ(Runtime().lastSoundId, 0x89);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x89});
     EXPECT_EQ(Request().delay, 2.5f);
 
     // Cada objeto del tipo suma la demora del pedido, que es una sola: el segundo cae más rápido (Q-C1338).
     WorldObject second = Object(Gate);
     second.transform.angles.x = 10.0f;
-    Runtime().lastSoundId = 0;
+    Runtime().lastSoundId = Client::Audio::SoundId{0};
     Client::Scenes::CountDownTheObjectCollapse(Runtime());
     ASSERT_TRUE(Collapse(second).HasValue());
     EXPECT_EQ(second.transform.angles.x, 12.5f);
     EXPECT_EQ(Request().delay, 4.0f);
-    EXPECT_EQ(Runtime().lastSoundId, 0);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_EQ(m_random.State(), CrtRandom{7}.State());
 }
 

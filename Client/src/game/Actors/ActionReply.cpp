@@ -19,6 +19,7 @@
 #include "Kernel/WorldState.h"
 #include "Assets/FaunaModels.h"
 #include "Terrain/TerrainDefines.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -41,7 +42,7 @@ constexpr double HalfCell = 50.0;
 // 0x4cb853..0x4cb864: action 0x12 sets 0x98 and requests sound 0x6f.
 constexpr std::uint8_t ShieldAction = 0x12;
 constexpr std::uint8_t ShieldAnimation = 0x98;
-constexpr std::int32_t ShieldSound = 0x6f;
+constexpr Audio::SoundId ShieldSound{0x6f};
 // 0x4cb820: 0x78 and 0x79 go to 0x4f4a10 (Strike).
 constexpr std::uint8_t FirstStrikeAction = 0x78;
 constexpr std::uint8_t LastStrikeAction = 0x79;

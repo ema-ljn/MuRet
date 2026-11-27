@@ -24,6 +24,7 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -464,7 +465,7 @@ TEST(HeroSkillsKnightTest, Skill3eNeedsTheDarkHorse)
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(tested->Sent(0), DurationMagic(0x3e, ExpectedDirection(TurnsOf256), 0xaa, 0xaa, ChosenKey));
         EXPECT_EQ(tested->Hero().animation.action, 0x53);
-        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x1ce);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1ce});
         EXPECT_EQ(tested->Hero().movement, 0);
     }
     for (int variant = 0; variant < 4; ++variant)
@@ -715,7 +716,7 @@ TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
         EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 24, 0, 0}));
         EXPECT_EQ(tested->random.State(), potionExpected.State());
         EXPECT_EQ(tested->world.Runtime().ui.field5767954, 10);
-        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x20);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x20});
         EXPECT_EQ(tested->world.OwnCharacter().mana, 100);
     }
     {

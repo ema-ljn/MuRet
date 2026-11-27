@@ -16,6 +16,7 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
@@ -353,7 +354,7 @@ TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWi
     EXPECT_EQ(runtime.slot78a6758, 21);
     EXPECT_EQ(Cell(1, 1).id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(Cell(1, 3).id, Client::Kernel::EmptyOwnItemId);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(random.State(), before.State());
     EXPECT_FALSE(runtime.movement.pendingClick);
     const auto dropped = Scenes::DropOnOtherGrid(

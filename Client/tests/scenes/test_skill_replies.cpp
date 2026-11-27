@@ -33,6 +33,7 @@
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/Bytes.h"
@@ -196,7 +197,7 @@ TEST(SkillRepliesTest, TheMagicAttackOfAnotherTurnsTowardsTheTargetAndActs)
     EXPECT_EQ(caster.byte38eAccesses, 0);
     EXPECT_EQ(caster.animation.action, 0x38);
     EXPECT_EQ(caster.byte381, 1);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x70);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x70});
     EXPECT_EQ(tested->world.Runtime().lastAttacker, static_cast<std::int32_t>(CasterIndex));
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
@@ -414,7 +415,7 @@ TEST(SkillRepliesTest, TheTeleportSkillSwapsTheVanishing)
     EXPECT_EQ(hero.byte381, 0);
     EXPECT_EQ(tested->AliveEffects(0x5c6), 2u);
     EXPECT_EQ(tested->world.Runtime().movement.gateRequestBlocked, 0);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x83);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x83});
 }
 
 // 0x4cdb0f: la 0x44 salida baja el 0x1000 del blanco (0x4e6910) y apaga su 0x628/5.
@@ -456,11 +457,11 @@ TEST(SkillRepliesTest, TheSkill3bDropsItsComboAtTheSource)
     for (auto& effect : full->world.Map().effects.Effects())
         effect.alive = true;
     ASSERT_TRUE(full->Attack(0x3b).HasValue());
-    EXPECT_EQ(full->world.Runtime().lastSoundId, 0x94);
+    EXPECT_EQ(full->world.Runtime().lastSoundId, Client::Audio::SoundId{0x94});
 
     const auto applied = tested->Attack(0x3b);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x94);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x94});
     const ActorState& source = tested->Actor(CasterIndex);
     ASSERT_EQ(tested->AliveEffects(0x112), 1u);
     const auto& combo = tested->world.Map().effects.Effects()[0];
@@ -570,7 +571,7 @@ TEST(SkillRepliesTest, TheSkill37PutsASkullOverItsTarget)
     EXPECT_EQ(skull.transform.position, target.position);
     EXPECT_EQ(skull.transform.angles, target.angles);
     EXPECT_EQ(skull.light, glm::vec3(1.0f));
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x85});
     EXPECT_EQ(target.flags78, 0x40u);
 }
 
@@ -585,7 +586,7 @@ TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
         Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x40, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x40u);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x85});
     const auto& effects = tested->world.Map().effects.Effects();
     const auto skulls = [&effects]
     { return std::ranges::count_if(effects, [](const auto& effect) { return effect.alive && effect.type == 0x628; }); };
@@ -657,11 +658,11 @@ TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
         EXPECT_EQ(source.byte38e, prehead ? skill : 0);
         if (skill == 0x3b)
         {
-            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x94);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x94});
         }
         else if (skill == 0x37)
         {
-            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x85);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x85});
         }
         else
         {
@@ -1348,7 +1349,7 @@ TEST(SkillRepliesTest, TheLevelUpEffectRespectsBothPoolsAndContinuesToItsSound)
 
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
             EXPECT_EQ(tested->cloth.random.State(), expected.State());
-            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x98);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x98});
             for (int i = 0; i < created; ++i)
             {
                 const auto& joint = joints[static_cast<std::size_t>(i)];
@@ -1426,7 +1427,7 @@ TEST(SkillRepliesTest, LevelUpUpdatesTheOwnRecordBeforeEffectsWithoutActorGuards
                                                                      1000 * (extra + 9) * extra * extra));
             EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
             EXPECT_EQ(tested->cloth.random.State(), expected.State());
-            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x98);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x98});
             if (!full)
             {
                 EXPECT_EQ(tested->world.DrawTail().joints.front().ownerContext, &actor);

@@ -37,6 +37,7 @@
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/ChatTexts.h"
 #include "support/GoldenDir.h"
@@ -376,7 +377,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     EXPECT_EQ(Random().State(), expected.State());
     EXPECT_EQ(runtime.ui.field78abb39, 0);
     EXPECT_EQ(runtime.cursorItemCount, 0);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     for (const std::size_t cell : {2U, 10U, 18U})
     {
         SCOPED_TRACE(cell);
@@ -418,7 +419,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     for (const std::size_t cell : {2U, 10U, 18U})
         EXPECT_EQ(trade.ownGrid[cell].id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ui.hoveredItem.place, Client::UI::HoveredItem::Place::None);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 
     // Soltarlo en la casilla (3, 1) del inventario: el 24 desde la grilla 1 y la espera del OK.
     sent.clear();

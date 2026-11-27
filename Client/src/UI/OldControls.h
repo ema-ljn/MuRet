@@ -4,6 +4,7 @@
 
 #include "UI/OldWindowBase.h"
 #include "UI/TextField.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -147,15 +148,15 @@ struct OldListGlobals
     // 0x775857c.
     std::uint8_t& mouseOnUi;
     // 0x41ed10: el último sonido.
-    std::optional<std::int32_t>& sound;
+    std::optional<Audio::SoundId>& sound;
     // +0x40 del administrador (0x5763514): 1 después del dibujo. Las cuentas de las flechas y de la pista de una lista
     // con padre solo suben con él (0x47b2b0, 0x47b427).
     bool drawn = false;
     // 0x5762ebc: la caja modal. Con una, el paso no mira los renglones (0x47b71b).
     std::int32_t modal = 0;
-    std::function<void(std::int32_t)> soundRequest{};
+    std::function<void(Audio::SoundId)> soundRequest{};
 
-    void RequestSound(std::int32_t id) const
+    void RequestSound(Audio::SoundId id) const
     {
         if (soundRequest)
             soundRequest(id);

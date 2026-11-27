@@ -2,6 +2,7 @@
 
 #include "Audio/Music.h"
 #include "Audio/Playback.h"
+#include "Audio/SoundId.h"
 #include "Tables/MonsterSkillTable.h"
 #include "Tables/DialogTable.h"
 #include "Tables/MoveRequirements.h"
@@ -352,8 +353,8 @@ struct FloorItemGlobals
 
 struct WorldRuntime
 {
-    void RequestSound(std::int32_t id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false);
-    void StopSound(std::int32_t id, bool rewind);
+    void RequestSound(Audio::SoundId id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false);
+    void StopSound(Audio::SoundId id, bool rewind);
     void SetSoundVolume(std::uint8_t level);
     // Q-C180/Q-C27: the first data notice that asked for WM_DESTROY. It lasts even if Poll fails; main shows the modal
     // before closing. Unsupported-map and errors without a notice do not write it.
@@ -422,7 +423,7 @@ struct WorldRuntime
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
-    std::optional<std::int32_t> lastSoundId{};
+    std::optional<Audio::SoundId> lastSoundId{};
     // 0x743748c, 0x74374bc and 0x74374ec: the matrices the +0x376 0x4d drawing copies (0x50c177): bones 23 and 14 of
     // its second model (the 0x18a) and 24 of the first (the 0x189), from +0x120. 0x4f5b70's attack reads them
     // (0x4f840e and 0x4f8b92, milestone 3).

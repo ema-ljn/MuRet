@@ -19,6 +19,7 @@
 #include "UI/GameDialogs.h"
 #include "UI/MessageArea.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
@@ -253,7 +254,7 @@ TEST(JewelMixDialogsTest, ChoosingTheSoulAndTwentyAsksAndTheYesSendsBc00)
         EXPECT_EQ(runtime.dialogs.current, 0xa5);
         EXPECT_EQ(runtime.social.trade.warningByte, 1);
         EXPECT_EQ(runtime.npcWindows.field6e5798, 1);
-        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
         ASSERT_EQ(tested.sent.size(), 1u);
         EXPECT_EQ(tested.sent[0].delivery, Client::Network::Delivery::Clear);
         EXPECT_TRUE(SameBytes(Xor32Decode(tested.sent[0].packet).Bytes(), Bytes({0xc1, 0x06, 0xbc, 0x00, 0x01, 0x01})));

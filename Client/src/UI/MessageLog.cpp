@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <optional>
@@ -11,8 +12,8 @@
 
 namespace Client::UI
 {
-Core::Expected<std::optional<std::int32_t>, std::string> AddMessage(const MessageSink& sink, std::string_view name,
-                                                                    std::string_view text, std::int32_t type)
+Core::Expected<std::optional<Audio::SoundId>, std::string> AddMessage(const MessageSink& sink, std::string_view name,
+                                                                      std::string_view text, std::int32_t type)
 {
     auto sound = AddToTheLog(sink.log, sink.modes, sink.measure, name, text, type, 0, sink.noticeSound);
     if (!sound.HasValue())
@@ -21,12 +22,12 @@ Core::Expected<std::optional<std::int32_t>, std::string> AddMessage(const Messag
     return sound;
 }
 
-Core::Expected<std::optional<std::int32_t>, std::string> StepTheMessageClock(const MessageSink& sink)
+Core::Expected<std::optional<Audio::SoundId>, std::string> StepTheMessageClock(const MessageSink& sink)
 {
     const bool expired = sink.area.clock < 1;
     --sink.area.clock;
     if (!expired)
-        return std::optional<std::int32_t>{};
+        return std::optional<Audio::SoundId>{};
     sink.area.clock = MessageClockSteps;
     return AddMessage(sink, {}, {}, 0);
 }

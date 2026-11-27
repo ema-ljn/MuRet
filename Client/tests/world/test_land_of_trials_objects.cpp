@@ -5,6 +5,7 @@
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -55,7 +56,7 @@ struct Step
     {
         globals.dynamicLighting = lighting.get();
         globals.effects = effects.get();
-        globals.sound = [this](std::int32_t sound) { sounds.push_back(sound); };
+        globals.sound = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
         globals.systemTime = [this]
         {
             times.push_back(time);

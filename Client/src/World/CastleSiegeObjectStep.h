@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -33,7 +34,7 @@ struct CastleSiegePrelude
     bool siegeActive = false;
     float* musicTime = nullptr;
     std::function<std::uint32_t()> systemTime{};
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
     Crt::CrtRandom* random = nullptr;
     std::int32_t logicSteps = 0;
     glm::vec3 heroPosition{};
@@ -72,7 +73,7 @@ struct CastleSiegePrelude
 struct CastleGateCollapseServices
 {
     std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> emit{};
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
 StepCastleSiegeSeenObject(WorldObject& object, bool siegeActive, float worldClock,

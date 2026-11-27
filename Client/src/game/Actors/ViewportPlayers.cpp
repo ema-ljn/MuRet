@@ -44,6 +44,7 @@
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainDefines.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -603,7 +604,7 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::
         // +0xcc (0x6b87b0); sound 0x1b and 0x51fe10 with the position.
         constexpr float PushSpeed = 20.0f;
         constexpr float PushScale = 400.0f;
-        constexpr std::int32_t PushSound = 0x1b;
+        constexpr Audio::SoundId PushSound{0x1b};
         actor.floatE4 = PushSpeed;
         const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
         actor.floatD0 =

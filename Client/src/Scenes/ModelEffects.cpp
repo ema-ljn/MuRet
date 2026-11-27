@@ -32,6 +32,8 @@
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -124,7 +126,7 @@ Result Joint(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, s
 }
 
 // 0x41ed10(sonido, 0, 0) (CL10).
-void Sound(ModelEffectsPass& pass, std::int32_t sound)
+void Sound(ModelEffectsPass& pass, Audio::SoundId sound)
 {
     pass.world.Runtime().RequestSound(sound);
 }
@@ -466,7 +468,7 @@ Result StepThe1ce(ModelEffectsPass& pass, float brightness)
     const bool resting = actor.animation.action == 0;
     const float frame = actor.animation.frame;
     if (resting && frame >= 5.0f && frame <= 10.0f)
-        Sound(pass, 0xa0);
+        Sound(pass, Audio::SoundId{0xa0});
     actor.blendMeshLight = brightness;
     if (auto lit = Light(pass, "0x507f74", {brightness, F32(D(brightness) * D(Bits(0x3ecccccdu))), 0.0f}, 3);
         !lit.HasValue())
@@ -865,12 +867,12 @@ CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
     case 0x1d8:
         // 0x507e8a: rand() & 63 en 0, el sonido 0xa1.
         if (Roll(pass, 64) == 0)
-            Sound(pass, 0xa1);
+            Sound(pass, Audio::SoundId{0xa1});
         break;
     case 0x1d3:
         // 0x507eb7: rand() & 255 en 0, el sonido 0xa0.
         if (Roll(pass, 256) == 0)
-            Sound(pass, 0xa0);
+            Sound(pass, Audio::SoundId{0xa0});
         break;
     case 0x1ce:
         stepped = StepThe1ce(pass, brightness);
@@ -1098,7 +1100,7 @@ Result CrywolfHeavyStrike(ModelEffectsPass& pass)
         return Core::Unexpected(
             std::format("0x43197c: la explosión 5ed/2 falla con error {}", static_cast<unsigned>(burst.Error())));
     if (burst.Value())
-        Sound(pass, 0x40);
+        Sound(pass, Sound::ExplosionSound);
     for (int index = 0; index < 6; ++index)
         CrywolfStone(pass, 0xe5, point);
     return {};

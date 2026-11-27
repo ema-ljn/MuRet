@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -102,7 +103,7 @@ struct WizardEffectServices
     // 0x4294b0, el byte del asedio (0x7239ec).
     bool siegeActive = false;
     // 0x41ed10(id, 0, 0).
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
     // 0x530860.
     std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> joint{};
     // El dueño (+0x108) leído en vivo; nada si no es un personaje.

@@ -23,6 +23,7 @@
 #include "Kernel/WorldMap.h"
 #include "World/ModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -529,7 +530,7 @@ TEST_F(CameraTourActorsTest, TheGuardsCompleteTheirArrivalInCrywolf)
         EXPECT_EQ(tested->State().step, map == CrywolfMap ? 2 : 1);
         if (map != CrywolfMap)
             continue;
-        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x243);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x243});
         const auto* skeleton = tested->states.assets.fauna.SkeletonOf(Client::Models::ModelId{0x1ae});
         ASSERT_NE(skeleton, nullptr);
         ASSERT_GT(skeleton->actions.size(), 2u);
@@ -570,7 +571,7 @@ TEST_F(CameraTourActorsTest, TheBarrierArrivalContinuesAcrossPartialAndFullPools
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested->State().step, 1);
         EXPECT_EQ(tested->State().nextActorKey, 10001);
-        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x243);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x243});
         EXPECT_EQ(tested->cloth.random.State(), expected.State());
         if (capacity.joints >= 10)
         {

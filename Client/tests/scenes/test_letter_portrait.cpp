@@ -52,6 +52,7 @@
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
@@ -726,7 +727,7 @@ public:
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::Tables::TextTable texts =
         Client::Tests::MakeTextTable({{997, "Arrastrar gira"}, {998, "Rueda acerca"}, {999, "Clic vuelve"}});
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     Client::Render::ModelBatch models;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites frameSprites;

@@ -12,6 +12,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <algorithm>
@@ -33,7 +34,7 @@ Result ParticleAt(ModelEffect& effect, Particles& particles, Crt::CrtRandom& ran
         return Core::Unexpected(std::string("0x527dd2: falla una partícula de las armas del asedio"));
     return {};
 }
-void Sound(const SiegeStoneStepServices& services, std::int32_t id, const glm::vec3& position)
+void Sound(const SiegeStoneStepServices& services, Audio::SoundId id, const glm::vec3& position)
 {
     if (services.sound)
         services.sound(id, position);
@@ -60,7 +61,7 @@ Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeSto
     const ModelEffectArguments crater{
         .type = 0x636, .position = effect.transform.position, .angles = effect.transform.angles, .light = effect.light};
     static_cast<void>(services.effects->CreateCraterEffect(crater));
-    Sound(services, 0x1eb, effect.transform.position);
+    Sound(services, Audio::SoundId{0x1eb}, effect.transform.position);
     if (effect.type == SiegeStoneEffect)
     {
         if (!services.collide)
@@ -105,7 +106,7 @@ Result Contact(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStep
             if (!collided.HasValue())
                 return Core::Unexpected(collided.Error());
             if (collided.Value() && effect.seen)
-                Sound(services, 0x1eb, effect.transform.position);
+                Sound(services, Audio::SoundId{0x1eb}, effect.transform.position);
         }
         return {};
     }

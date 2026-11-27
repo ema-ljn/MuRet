@@ -28,6 +28,7 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/PanelDialog.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/ChatTexts.h"
@@ -171,7 +172,7 @@ TEST(GameUiTest, EscapeOpensTheMenuWithTheTwoQueriesOfThePanelKey)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::UI::EscapeMenuDialog);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     // El latch no deja leer la misma Esc dos veces.
     tested.world.Runtime().lastSoundId.reset();
     ASSERT_TRUE(tested.Dialogs().HasValue());
@@ -188,7 +189,7 @@ TEST(GameUiTest, EscapeClosesTheMenuWithoutQueries)
     ASSERT_TRUE(tested.Dialogs().HasValue());
     EXPECT_EQ(tested.random.State(), before);
     EXPECT_EQ(tested.world.Runtime().dialogs.current, 0);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 }
 
 TEST(GameUiTest, TheMenuStepsWithTheUiBlockAndKeepsTheMouse)
@@ -213,7 +214,7 @@ TEST(GameUiTest, TheLastMenuButtonGoesBackToTheGame)
     EXPECT_FALSE(runtime.movement.pendingClick);
     EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
     EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
-    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
 TEST(GameUiTest, TheLetterIOpensTheInventory)
@@ -414,7 +415,7 @@ TEST(GameUiTest, TheQuickSlotKeysUseTheirPotions)
         ASSERT_EQ(sink.sent.size(), 1u);
         const auto packet = Client::Protocol::Items::WriteUseItem(sink.sent.front());
         EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x26, 9 + 12, 0, 0})));
-        EXPECT_EQ(tested.world.Runtime().lastSoundId, slot.sound);
+        EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{slot.sound});
         EXPECT_EQ(tested.Ui().field5767954, 10);
 
         Release(tested.input, slot.key);
@@ -473,7 +474,7 @@ TEST(GameUiTest, TheRightClickOnAQuickSlotUsesItsItem)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(sink.sent.size(), 1u);
     EXPECT_EQ(sink.sent.front().slot, 12);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x20);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x20});
     EXPECT_FALSE(tested.Ui().rightClick);
 }
 
@@ -577,7 +578,7 @@ TEST(GameUiTest, TheClickOnTheListChoosesTheSkillAndClosesIt)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested->world.Actors()[0].skillIndex, 4);
     EXPECT_EQ(tested->Ui().skillListOpen, 0);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FALSE(tested->world.Runtime().movement.pendingClick);
     EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 6);
 }
@@ -1091,7 +1092,7 @@ TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
     Press(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(input.message.text.Value(), "dicho");
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 
     Release(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
@@ -1128,7 +1129,7 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
     Press(tested.input, Key::F2);
     ASSERT_TRUE(keys().HasValue());
     EXPECT_FALSE(tested.Ui().chatModes.showChat);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 
     Press(tested.input, Key::F3);
     ASSERT_TRUE(keys().HasValue());
@@ -1166,7 +1167,7 @@ TEST(GameUiTest, TheF1KeyWalksTheHelps)
     ASSERT_TRUE(f1());
     EXPECT_EQ(mode, 1);
     EXPECT_EQ(tested.world.ItemSets().byte9305, 0);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     ASSERT_TRUE(f1());
     EXPECT_EQ(mode, 2);
     ASSERT_TRUE(f1());
@@ -1342,7 +1343,7 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(runtime.oldWindows.windows.contains(box), !friendsOpen);
         EXPECT_EQ(runtime.dialogs.current == Client::UI::EscapeMenuDialog, !friendsOpen);
-        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     }
 }
 

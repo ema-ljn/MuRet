@@ -22,6 +22,7 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
@@ -355,7 +356,7 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(world.Runtime().cursorItem.id, Potion);
     EXPECT_EQ(world.Runtime().slot78a6758, static_cast<std::int32_t>(PotionCell) + 12);
     EXPECT_EQ(world.Inventory().cells[PotionCell].id, Client::Kernel::EmptyOwnItemId);
-    EXPECT_EQ(world.Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     EXPECT_EQ(random.State(), expected.State());
 
@@ -412,7 +413,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsThe
     auto& runtime = world.Runtime();
     runtime.dialogItem.id = 0x4321;
     runtime.slot78a6758 = 99;
-    runtime.lastSoundId = -1;
+    runtime.lastSoundId = Client::Audio::SoundId{-1};
     runtime.ui.rightClick = true;
     constexpr int TicketPanelRandoms = 2;
     const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms + TicketPanelRandoms);
@@ -437,7 +438,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsThe
     EXPECT_EQ(runtime.panels.inventory, 1);
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_EQ(runtime.dialogs.pending, 0);
-    EXPECT_EQ(runtime.lastSoundId, -1);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{-1});
     EXPECT_TRUE(messages.empty());
 
     // 0x5c4132..0x5c413c: la espera sí impide llegar al ítem desde el caller de la grilla.

@@ -33,6 +33,7 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
@@ -375,7 +376,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
     Client::Input::InputState m_input;
-    std::optional<std::int32_t> m_sound{};
+    std::optional<Client::Audio::SoundId> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(QuestTexts());
@@ -426,17 +427,17 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
     EXPECT_FALSE(Movement().pendingClick);
     EXPECT_EQ(Movement().mouseUpdateTime, 0);
     EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     // 0x419840: la misión 0 disponible, con las condiciones sin el zen, y su diálogo 10.
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 10);
     EXPECT_TRUE(requests.requests.empty());
 
-    Runtime().lastSoundId = 0;
+    Runtime().lastSoundId = Client::Audio::SoundId{0};
     Click();
     ASSERT_TRUE(Step(0x1f9, 0x18b, &requests).HasValue());
     EXPECT_EQ(Window(), 0);
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"31"}));
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
 }
 
 // 0x419bd0, la acción 2: el clic sobre la segunda respuesta (las respuestas en 0xfa con el estado 3) gasta el clic,
@@ -457,7 +458,7 @@ TEST_P(QuestWindowTest, TheCloseAnswerClosesTheWindow)
     EXPECT_FALSE(Movement().leftHeld);
     EXPECT_EQ(Movement().mouseUpdateTime, 0);
     EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 10);
     EXPECT_EQ(m_random.State(), Seed);
 }
@@ -472,7 +473,7 @@ TEST_P(QuestWindowTest, TheAcceptAnswerSendsTheQuestAndShowsTheNextDialog)
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"A2 0 1"}));
     EXPECT_EQ(Window(), Client::Scenes::QuestDialogWindow);
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 12);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, C3Randoms).State());
 
     // Sin el cable, el A2 corta antes de sacar los rand().
@@ -499,14 +500,14 @@ TEST_P(QuestWindowTest, TheCheckingAnswerLooksAtTheConditionsWithTheZen)
 
     m_world->OwnCharacter().zen = 999;
     OpenTheDialog(Client::Scenes::QuestAvailable);
-    Runtime().lastSoundId = 0;
+    Runtime().lastSoundId = Client::Audio::SoundId{0};
     const std::uint32_t before = m_random.State();
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopOtherwise + 17, &requests).HasValue());
     EXPECT_EQ(requests.requests.size(), 1U);
     EXPECT_EQ(Quest().currentState, Client::Scenes::QuestConditionFailed);
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 20);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{before}, 2 * OwnRecordClose).State());
 }
 
@@ -523,14 +524,14 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
 
     OpenTheDialog(Client::Scenes::QuestInProgress);
     requests.requests.clear();
-    Runtime().lastSoundId = 0;
+    Runtime().lastSoundId = Client::Audio::SoundId{0};
     const std::uint32_t before = m_random.State();
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopInProgress - 18, &requests).HasValue());
     EXPECT_TRUE(requests.requests.empty());
     EXPECT_FALSE(Movement().pendingClick) << "el clic se gasta igual";
     EXPECT_FALSE(Movement().leftHeld);
-    EXPECT_EQ(Runtime().lastSoundId, 0);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_EQ(m_random.State(), before);
 
     // 0x419c62..0x419c71: |0x236 − x| hasta 0x6a.
@@ -575,7 +576,7 @@ TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
     EXPECT_FALSE(Movement().leftHeld);
     EXPECT_EQ(Movement().mouseUpdateTime, 4);
     EXPECT_EQ(Movement().mouseUpdateTimeMax, 12);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, C3Randoms).State());
 }
 
@@ -626,7 +627,7 @@ TEST_P(QuestWindowTest, TheListTabsAndItsCloseButton)
     ASSERT_TRUE(Step(Alone + 0x19, 0x18b, &requests).HasValue());
     EXPECT_EQ(Window(), 0);
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"31"}));
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Seed);
 }
 

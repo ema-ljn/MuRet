@@ -15,6 +15,8 @@
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
 #include "Math/Ftol.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <bit>
 #include <cstddef>
@@ -227,7 +229,7 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
         runtime.ui.field78abb28 = 1;
     if (!picked.HasValue())
         return picked;
-    constexpr std::int32_t ItemMoveSound = 0x1d; // 0x5c8f7a.
+    constexpr Audio::SoundId ItemMoveSound = Sound::GetItemSound; // 0x5c8f7a.
     runtime.RequestSound(ItemMoveSound);
     return {};
 }

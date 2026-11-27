@@ -10,6 +10,7 @@
 #include "Sound/MonsterSounds.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Kernel/WorldRuntime.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -262,19 +263,19 @@ std::optional<std::int32_t> FootstepSound(const Kernel::ActorState& actor, std::
 Core::Expected<ActorWalkResult, std::string> StepSound(const Kernel::ActorState& actor, const ActorWalkContext& context)
 {
     auto& random = context.stop.random;
-    const auto requestSound = [&context, &actor](std::int32_t sound)
+    const auto requestSound = [&context, &actor](Audio::SoundId sound)
     { context.stop.runtime.RequestSound(sound, actor.position); };
     if (actor.type == 0x16d)
     {
-        requestSound(0x7c);
-        return ActorWalkResult{.sound = 0x7c};
+        requestSound(Audio::SoundId{0x7c});
+        return ActorWalkResult{.sound = Audio::SoundId{0x7c}};
     }
     if (Kernel::BaseClassOf(actor.characterClass) == SecondRunningClass && actor.pet.model == DarkHorse &&
         actor.safeZone == 0)
     {
         const std::int32_t sound = 0x1c3 + random.Next() % 3;
-        requestSound(sound);
-        return ActorWalkResult{.sound = sound};
+        requestSound(Audio::SoundId{sound});
+        return ActorWalkResult{.sound = Audio::SoundId{sound}};
     }
     const std::uint8_t action = actor.animation.action;
     if (actor.pet.model == Fenrir && actor.safeZone == 0)
@@ -282,14 +283,14 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const Kernel::ActorState&
         if (action >= 0x6a && action <= 0x75)
         {
             const std::int32_t sound = 0x273 + random.Next() % 3;
-            requestSound(sound);
-            return ActorWalkResult{.sound = sound};
+            requestSound(Audio::SoundId{sound});
+            return ActorWalkResult{.sound = Audio::SoundId{sound}};
         }
         if (action >= 0x7a && action <= 0x7d)
         {
             const std::int32_t sound = 0x273 + (random.Next() & 1);
-            requestSound(sound);
-            return ActorWalkResult{.sound = sound};
+            requestSound(Audio::SoundId{sound});
+            return ActorWalkResult{.sound = Audio::SoundId{sound}};
         }
     }
     const int mask = context.hero ? 63 : 15;
@@ -304,8 +305,8 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const Kernel::ActorState&
     ActorWalkResult result;
     if (modelSound)
     {
-        requestSound(0x7b);
-        result.sound = 0x7b;
+        requestSound(Audio::SoundId{0x7b});
+        result.sound = Audio::SoundId{0x7b};
     }
     std::optional<Sound::ModelSounds> sounds = Sound::WrittenSounds(context.stop.runtime.modelSounds, actor.type);
     if (context.modelSounds.size() == std::tuple_size_v<Sound::ModelSounds>)
@@ -316,8 +317,8 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const Kernel::ActorState&
     constexpr std::size_t FirstWalkSound = 0;
     if (const auto drawn = Sound::DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
     {
-        requestSound(*drawn);
-        result.sound = drawn;
+        requestSound(Audio::SoundId{*drawn});
+        result.sound = Audio::SoundId{*drawn};
     }
     return result;
 }

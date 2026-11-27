@@ -23,6 +23,7 @@
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
 #include "Crt/SprintfFormat.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -63,7 +64,7 @@ constexpr std::size_t RoomClosedText = 402;
 // 0x4dc840 con el 1 y 0x49d0b0: el costo de una carta.
 constexpr std::int32_t LetterCost = 1000;
 // 0x41ed10(0x29, 0, 0): llegó una carta. Queda en lastSoundId (CL10).
-constexpr std::int32_t NewLetterSound = 0x29;
+constexpr Audio::SoundId NewLetterSound{0x29};
 // 0x4dcb70: la ventana de leer, en (100, 100) sin el lugar de la anterior.
 constexpr std::int32_t ReadPlace = 100;
 // 0x4dce10: el chat, en (100, 100).
@@ -612,7 +613,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         if (chat->base.state == MinimizedState)
         {
             UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId,
-                                   [&runtime](std::int32_t sound) { runtime.RequestSound(sound); });
+                                   [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); });
             auto text = TextOf(context, ChatWaitingText, "0x4dd47c");
             if (!text.HasValue())
                 return Core::Unexpected(std::move(text).Error());
@@ -623,7 +624,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         }
         else if (chat->base.state == HiddenState || UI::LastOldWindow(manager) != window)
             UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId,
-                                   [&runtime](std::int32_t sound) { runtime.RequestSound(sound); });
+                                   [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); });
         return UI::AddAChatLine(manager, *chat, message.Value().index, message.Value().text, MemberLine, 0,
                                 windows.Measure());
     }

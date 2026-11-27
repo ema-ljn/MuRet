@@ -16,6 +16,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -321,16 +322,16 @@ Core::Expected<ActorStopResult, std::string> Suffix(const Kernel::ActorState& ac
         }
         const std::int32_t subtypeOffset = actor.subtype == 9 ? ModelSoundSubtypeNineOffset : 0;
         const std::int32_t sound = ModelSoundBase + context.modelSounds[variant] + subtypeOffset;
-        context.runtime.RequestSound(sound, actor.position);
-        return ActorStopResult{.sound = sound};
+        context.runtime.RequestSound(Audio::SoundId{sound}, actor.position);
+        return ActorStopResult{.sound = Audio::SoundId{sound}};
     }
     if (actor.pet.model != Fenrir || random.Next() % FenrirSoundChance != 0)
     {
         return ActorStopResult{};
     }
     const std::int32_t sound = FenrirSoundBase + random.Next() % FenrirSoundVariants;
-    context.runtime.RequestSound(sound, actor.position);
-    return ActorStopResult{.sound = sound};
+    context.runtime.RequestSound(Audio::SoundId{sound}, actor.position);
+    return ActorStopResult{.sound = Audio::SoundId{sound}};
 }
 } // namespace
 

@@ -1,6 +1,7 @@
 #include "UI/OldControls.h"
 
 #include "UI/OldWindowBase.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -33,7 +34,7 @@ protected:
     std::int32_t m_capture = 0;
     std::int32_t m_focused = 0;
     std::uint8_t m_mouseOnUi = 0;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     bool m_drawn = true;
     std::int32_t m_modal = 0;
     std::set<std::uint8_t> m_down;
@@ -185,7 +186,7 @@ TEST_F(OldListTest, TheBarArrowCountsOnlyAfterADraw)
     const std::int32_t arrowX = 100 + 8 - 0x15 + 0xe6;
     EXPECT_TRUE(Step(20, arrowX + 1, 300 - 0x5b + 1));
     EXPECT_EQ(m_list.scroll, 1);
-    EXPECT_EQ(m_sound, 0x19);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x19});
     EXPECT_EQ(m_focused, 40);
     m_drawn = false;
     static_cast<void>(Step(20, arrowX + 1, 300 - 0x5b + 1));

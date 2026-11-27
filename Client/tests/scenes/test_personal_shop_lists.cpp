@@ -32,6 +32,7 @@
 #include "UI/PanelRegistry.h"
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/ItemFiles.h"
 #include "support/PlayerActors.h"
@@ -448,7 +449,7 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
     ASSERT_TRUE(deleted.HasValue()) << deleted.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(world.Inventory().secondCells[4].id, Client::Kernel::EmptyOwnItemId);
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 }
 
 // 0x5be150 con la grilla de la tienda (0x5be3eb, desde el lugar − 0x4c) y la propia del comercio (0x5be191).

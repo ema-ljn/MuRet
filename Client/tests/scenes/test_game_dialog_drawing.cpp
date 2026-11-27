@@ -26,6 +26,7 @@
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
@@ -149,7 +150,7 @@ public:
     WorldState world;
     Client::Crt::CrtRandom random;
     std::uint8_t cellDepth = 0;
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};

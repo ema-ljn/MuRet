@@ -16,6 +16,8 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -29,7 +31,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x4cee16: 0x41ed10(0x76, 0, 0).
-constexpr std::int32_t MagicAttackSound = 0x76;
+constexpr Audio::SoundId MagicAttackSound = Sound::MagicSound;
 // 0x4cee1d: 0x4ea030(el que pega, 0x96).
 constexpr std::uint8_t MagicAttackAction = 0x96;
 // 0x5110d0 sin nadie con la clave: el lugar de después de los 400.

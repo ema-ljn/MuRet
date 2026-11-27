@@ -14,6 +14,8 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -31,8 +33,8 @@ namespace
 {
 constexpr std::int32_t TopLeftRect = 1;
 // 0x41ed10(0x19, 0, 0) y 0x41ed10(0x1c, 0, 0): se despachan en ese orden y el último queda en el diagnóstico.
-constexpr std::int32_t ButtonSound = 0x19;
-constexpr std::int32_t OpenSound = 0x1c;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
+constexpr Audio::SoundId OpenSound = Sound::CreateWindowSound;
 // Text.bmd.
 constexpr std::size_t FriendsTitleText = 990;
 constexpr std::size_t ReconnectTitleText = 1066;

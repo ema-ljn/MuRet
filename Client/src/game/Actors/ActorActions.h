@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Actors/ActionSend.h"
 #include "Scenes/SceneId.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <optional>
@@ -60,7 +61,7 @@ struct ActorStopContext
 // It stays available for diagnostics after SetActorStop dispatched it.
 struct ActorStopResult
 {
-    std::optional<std::int32_t> sound;
+    std::optional<Audio::SoundId> sound;
 };
 
 // 0x4f2250: always sets Run to 0. The player picks its action by pet, safe zone, weapons, wings and map; the others

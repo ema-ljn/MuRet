@@ -36,6 +36,8 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -77,7 +79,7 @@ constexpr std::int32_t CloseTop = 0x18b;
 constexpr std::int32_t CloseSize = 0x18;
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
 // 0x41ed10(0x19, 0, 0): el clic del botón de cerrar y de la paleta (CL10).
-constexpr std::int32_t ClickSound = 0x19;
+constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
 // 0x6236f0: los avisos de 0x654f80 y 0x655c10.
 constexpr std::int32_t FilteredNameDialog = 0x72;
 constexpr std::int32_t ForbiddenSymbolDialog = 0x7a;

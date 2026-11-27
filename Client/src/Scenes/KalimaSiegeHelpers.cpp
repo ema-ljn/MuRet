@@ -21,6 +21,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainDecal.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -191,7 +192,7 @@ public:
     }
 
     // 0x41ed10(id, 0, 0): en WorldRuntime::lastSoundId (CL10), solo en el frame del original.
-    void Sound(std::int32_t id) const
+    void Sound(Audio::SoundId id) const
     {
         if (m_pass.soundRequest)
         {
@@ -512,7 +513,7 @@ Result DrawKundun(const Helper& helper)
         if (!(frame >= 2.0f) && actor.dword60 != Armed)
         {
             actor.dword60 = Armed;
-            constexpr std::int32_t RoarSound = 0x1db;
+            constexpr Audio::SoundId RoarSound{0x1db};
             helper.Sound(RoarSound);
         }
         if (actor.dword60 == Armed && frame > 4.0f)

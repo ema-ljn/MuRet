@@ -10,6 +10,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -192,7 +193,7 @@ protected:
     std::int32_t m_capture = 0;
     std::int32_t m_pressedButton = 0;
     ChatFocus m_focus = ChatFocus::Game;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;
     std::int32_t m_mouseUpdateTime = 3;
@@ -224,7 +225,7 @@ TEST_F(FriendWindowsTest, TheFirstOpenBuildsTheWindowWithItsTabs)
     EXPECT_EQ(friends.friends.currentTab, 0);
     ASSERT_EQ(friends.tabs[2].tab.windows.size(), 1u);
     EXPECT_EQ(friends.tabs[2].tab.windows[0].id, box);
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>(OpenSound));
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{OpenSound});
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(m_manager.order.back(), m_manager.friends);
 }
@@ -249,7 +250,7 @@ TEST_F(FriendWindowsTest, OpeningShowsTheHiddenDropsTheShownAndReopensWhereItWas
     ASSERT_TRUE(again.HasValue()) << again.Error();
     EXPECT_FALSE(again.Value());
     EXPECT_EQ(Friends().base.state, Client::UI::ShownWindow);
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>(OpenSound));
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{OpenSound});
 
     Friends().base.x = 0x40;
     Friends().base.y = 0x50;

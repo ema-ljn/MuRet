@@ -21,6 +21,7 @@
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 
@@ -142,7 +143,8 @@ struct FrameWorld
                                     .terrain = &terrain,
                                     .particles = withParticles ? &particles : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
-                                    .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); }};
+                                    .soundRequest = [this](Client::Audio::SoundId sound)
+                                    { sounds.push_back(sound.Value()); }};
     }
 
     Client::Core::Expected<bool, std::string> Step(ActorState& actor, std::uint8_t skill)

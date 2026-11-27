@@ -38,6 +38,8 @@
 #include "Terrain/TerrainState.h"
 #include "Assets/FaunaModels.h"
 #include "Terrain/TerrainDefines.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -208,7 +210,7 @@ Core::Expected<void, std::string> StartTheTeleportAction(Kernel::ActorState& act
     actor.alphaTarget = 1.0f;
     static_cast<void>(
         resources.world.Map().effects.Create(World::TeleportEffect, actor.position, actor.angles, actor.light, 0.0f));
-    constexpr std::int32_t TeleportSound = 0x76;
+    constexpr Audio::SoundId TeleportSound = Sound::MagicSound;
     resources.world.Runtime().RequestSound(TeleportSound);
     return {};
 }

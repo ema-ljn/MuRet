@@ -30,6 +30,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/LetterModel.h"
 #include "Camera/GameCamera.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/FakeClock.h"
@@ -110,7 +111,7 @@ TEST(SessionEventApplierTest, TheLevelUpWireReachesTheWorldThroughTheRealSession
     EXPECT_EQ(own.bp, 81);
     EXPECT_EQ(own.experience, 123u);
     EXPECT_EQ(own.nextExperience, 173680400u);
-    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x98);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x98});
     EXPECT_EQ(tested->world.DrawTail().joints.front().ownerContext, &tested->world.Actors()[7]);
     EXPECT_EQ(online.session.State(), Client::App::SessionState::LoggedIn);
 }

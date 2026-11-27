@@ -6,6 +6,7 @@
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
 #include "World/WorldObjectRegistrations.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -203,9 +204,9 @@ struct ObjectStepGlobals
     const glm::vec3* heroPosition = nullptr;
     bool editorMode = false;
     // 0x41ed10(id, 0, 0): el caller conserva o emite la petición, aun en pasos consecutivos.
-    std::function<void(std::int32_t)> sound{};
+    std::function<void(Audio::SoundId)> sound{};
     // 0x41ed10(id, 0, 1): la misma petición, en bucle (el ambiente del 9, 0x604b9b).
-    std::function<void(std::int32_t)> loopedSound{};
+    std::function<void(Audio::SoundId)> loopedSound{};
     ObjectModelStepState* modelState = nullptr;
     // 0x518cf0: la tabla de los efectos con modelo, donde el 0x34 del 1 suelta la piedra 0xda y el 0x18 del 4
     // el chorro 0x5de; el chorro abre y cierra el registro propio (0x7681eb4) con su cuenta de accesos.

@@ -40,6 +40,7 @@
 #include "UI/PanelRegistry.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 #include "support/Bytes.h"
 #include "support/FileBytes.h"
 #include "support/SameBytes.h"
@@ -1073,8 +1074,8 @@ TEST_F(EventPacketsTest, TheBloodCastlePlayStateTurnsThePlayersAndGivesTheWeapon
         EXPECT_EQ(Hero().animation.action, 0xc0);
         EXPECT_EQ(other.animation.action, 0xc0);
         EXPECT_EQ(monster.angles.z, 0.0f);
-        EXPECT_EQ(started.sounds, std::vector<std::int32_t>{0x8b});
-        EXPECT_EQ(Runtime().lastSoundId, 0x8b);
+        EXPECT_EQ(started.sounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x8b}});
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x8b});
         const EventMapObject& event = *Runtime().eventObject;
         EXPECT_EQ(event.field10, 1);
         EXPECT_EQ(event.field14, (std::array<std::int32_t, 4>{900, 300, 40, 2}));
@@ -1088,7 +1089,7 @@ TEST_F(EventPacketsTest, TheBloodCastlePlayStateTurnsThePlayersAndGivesTheWeapon
         const EventPacketResult reset = Applied(Events::EventPlayState{.state = 2});
         EXPECT_EQ(Runtime().eventObject->field10, 0);
         EXPECT_EQ(Runtime().eventObject->field14, (std::array<std::int32_t, 4>{-1, -1, -1, -1}));
-        EXPECT_EQ(reset.stoppedSounds, std::vector<std::int32_t>{0x8b});
+        EXPECT_EQ(reset.stoppedSounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x8b}});
 
         Applied(Events::EventPlayState{.state = 3});
         EXPECT_EQ(Runtime().events.objectCollapse.map, map);
@@ -1145,8 +1146,8 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
         EXPECT_EQ(Runtime().chaosCastleArea, 0xff);
         EXPECT_FALSE(Runtime().ui.chatOpen);
         EXPECT_EQ(Hero().animation.action, 0xc0);
-        EXPECT_EQ(started.stoppedSounds, std::vector<std::int32_t>{0x9e});
-        EXPECT_EQ(started.sounds, std::vector<std::int32_t>{0x99});
+        EXPECT_EQ(started.stoppedSounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x9e}});
+        EXPECT_EQ(started.sounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x99}});
 
         Applied(Events::EventPlayState{.state = 6, .remaining = 50, .weaponOwner = 0x0123, .weapon = 2});
         EXPECT_EQ(Runtime().eventObject->field10, 7);
@@ -1166,7 +1167,7 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
             EXPECT_EQ(Runtime().events.objectCollapse.map, map);
             EXPECT_EQ(Runtime().events.objectCollapse.type, 1);
             EXPECT_EQ(Runtime().events.objectCollapse.counter, 0x28);
-            EXPECT_EQ(collapsed.sounds, std::vector<std::int32_t>{0x61});
+            EXPECT_EQ(collapsed.sounds, (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x61}}));
         }
         // El primer anillo: (0x17, 0x4b) de 0x16 × 2, (0x2b, 0x4d) de 2 × 0x20, ...
         EXPECT_EQ(Cell(0x17, 0x4b), 8);
@@ -1179,8 +1180,9 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
 
         const EventPacketResult ended = Applied(Events::EventPlayState{.state = 7});
         EXPECT_EQ(Runtime().eventObject->field10, 0);
-        EXPECT_EQ(ended.stoppedSounds, std::vector<std::int32_t>{0x99});
-        EXPECT_EQ(ended.sounds, (std::vector<std::int32_t>{0x9e, 0x9f}));
+        EXPECT_EQ(ended.stoppedSounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x99}});
+        EXPECT_EQ(ended.sounds,
+                  (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x9e}, Client::Audio::SoundId{0x9f}}));
     }
 }
 
@@ -1237,10 +1239,10 @@ TEST_F(EventPacketsTest, TheSerialResultShowsItsNoticeAndKeepsTheData)
 // 0x4e4ad4: 0x5b, 0x5c y 0x5d con 0, 1 y 2.
 TEST_F(EventPacketsTest, TheEventSoundPlaysItsSound)
 {
-    EXPECT_EQ(Applied(Events::EventSound{0}).sounds, std::vector<std::int32_t>{0x5b});
-    EXPECT_EQ(Applied(Events::EventSound{2}).sounds, std::vector<std::int32_t>{0x5d});
+    EXPECT_EQ(Applied(Events::EventSound{0}).sounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x5b}});
+    EXPECT_EQ(Applied(Events::EventSound{2}).sounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x5d}});
     EXPECT_TRUE(Applied(Events::EventSound{3}).sounds.empty());
-    EXPECT_EQ(Runtime().lastSoundId, 0x5d);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x5d});
 }
 
 // ----- BC 00 y BC 01.
@@ -1698,7 +1700,8 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
     ResetTheBox();
     Applied(Events::ServerCommand{.command = 7, .value5 = 0, .value6 = 0});
     EXPECT_EQ(Runtime().dialogs.current, 0xaa);
-    EXPECT_EQ(Applied(Events::ServerCommand{.command = 2}).sounds, std::vector<std::int32_t>{0x5a});
+    EXPECT_EQ(Applied(Events::ServerCommand{.command = 2}).sounds,
+              std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x5a}});
     terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Applied(Events::ServerCommand{.command = 0, .value5 = 4, .value6 = 7});
     EXPECT_EQ(world.Map().effects.Effects()[0].transform.position, (glm::vec3{450, 750, 100}));

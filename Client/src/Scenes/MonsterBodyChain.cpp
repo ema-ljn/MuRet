@@ -22,6 +22,8 @@
 #include "Math/Ftol.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -161,7 +163,7 @@ Result StrikeTheGlow(MonsterBodyFrame& frame)
 {
     constexpr std::uint8_t BlueStrike = 0x21, GreenStrike = 0x22;
     constexpr std::int32_t StruckMesh = 6, Stones = 0x10a, BlueStones = 1, GreenStones = 2;
-    constexpr std::int32_t StruckSound = 0x88;
+    constexpr Audio::SoundId StruckSound = Sound::HitCristalSound;
     Kernel::ActorState& actor = frame.actor;
     if (actor.byte110 != BlueStrike && actor.byte110 != GreenStrike)
         return {};
@@ -271,7 +273,7 @@ Result DrawKundun(MonsterBodyFrame& frame)
         // El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005): entre frames del original (una
         // copia proyectada de Kundun) MuRet dibuja la malla, pero no tiembla ni suelta los pedazos ni saca sus rand(),
         // como los creadores de la tormenta.
-        RequestBodySound(frame, 0x1dd);
+        RequestBodySound(frame, Audio::SoundId{0x1dd});
         actor.dword60 = 10;
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, MeshArgsOf(actor)); !drawn.HasValue())
             return drawn;
@@ -289,7 +291,7 @@ Result DrawKundun(MonsterBodyFrame& frame)
         // −1)). Después el temblor (0x43f249..0x43f269) y el cuerpo, que ya tiene +0x60 en 0x5a. Como en la rama de
         // 0x43edff, entre frames del original (la copia proyectada de Kundun, con +0x60 en 0x5a) MuRet dibuja el
         // cuerpo, pero no suelta los rayos, no tiembla ni saca sus rand(): el original lo hace una vez por cuadro.
-        RequestBodySound(frame, 0x1de);
+        RequestBodySound(frame, Audio::SoundId{0x1de});
         actor.dword60 = Fallen;
         if (frame.originalFrame)
         {
@@ -633,7 +635,7 @@ Chained DrawCastleGuard(MonsterBodyFrame& frame)
     if (actor.animation.action == DeathAction)
     {
         actor.alive = false;
-        RequestBodySound(frame, 0x1e8);
+        RequestBodySound(frame, Audio::SoundId{0x1e8});
         return Drawn(EmitCastleVertices(frame, 0x10a));
     }
     if (auto drawn = DrawBodyPass(frame.model, BaseFlags, ActorPassArgs(actor)); !drawn.HasValue())
@@ -742,7 +744,7 @@ Chained DrawCastleMonster(MonsterBodyFrame& frame)
         if (actor.animation.action == DeathAction)
         {
             actor.alive = false;
-            RequestBodySound(frame, 0x87);
+            RequestBodySound(frame, Audio::SoundId{0x87});
             if (auto emitted = EmitCastleVertices(frame, 0x131); !emitted.HasValue())
                 return Core::Unexpected(emitted.Error());
         }

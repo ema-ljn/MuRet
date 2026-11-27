@@ -15,6 +15,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 
@@ -98,7 +99,7 @@ struct Harness
             .map = &map,
             .cameraShake = &shake,
             .siegeActive = false,
-            .sound = [this](std::int32_t id) { sounds.push_back(id); },
+            .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); },
             .joint =
                 [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
             {

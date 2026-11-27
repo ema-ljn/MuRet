@@ -30,6 +30,7 @@
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
@@ -280,7 +281,7 @@ TEST_F(CombatRepliesTest, AShockKillsAnotherPlayerWithTheDeathActionAndSound)
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(dead.animation.action, 0xc3);
     EXPECT_EQ(dead.animation.frame, DeathFrame);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x6e));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x6e});
     EXPECT_EQ(dead.dying, 1);
     EXPECT_EQ(Hero().byte380, 0);
     EXPECT_EQ(Hero().attackTarget, 0);
@@ -304,7 +305,7 @@ TEST_F(CombatRepliesTest, ThePlayerDeathSoundFollowsTheClassAndFenrir)
         ActorState& dead = PlayerAt(20, 0x55, probe.characterClass);
         dead.pet.model = probe.pet;
         ASSERT_TRUE(Client::Scenes::SetActorDie(dead, Combat()).HasValue());
-        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(probe.sound)) << int{probe.characterClass};
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{probe.sound}) << int{probe.characterClass};
     }
 }
 
@@ -317,7 +318,7 @@ TEST_F(CombatRepliesTest, AShockOnTheHeroZeroesTheOwnLifeInsideTheOwnRecord)
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(m_world->OwnCharacter().life, 0);
     EXPECT_EQ(Hero().animation.action, 0xc3);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x6c));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x6c});
     EXPECT_EQ(Hero().dying, 1);
     EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws));
     EXPECT_EQ(Runtime().ownRecordDepth, 0);
@@ -333,7 +334,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeathSoundIsDrawn)
     ASSERT_TRUE(
         Client::Scenes::ApplyKillExperience({.key = 0x55, .shock = true, .amount = 0, .damage = 1}, Combat(), Chat())
             .HasValue());
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{sound});
     EXPECT_EQ(dead.animation.frame, DeathFrame);
     EXPECT_EQ(m_random.State(), After(1 + OwnRecordDraws));
 }
@@ -348,10 +349,11 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
     {
         std::int16_t word;
         std::int32_t subtype;
-        std::optional<std::int32_t> sound;
+        std::optional<Client::Audio::SoundId> sound;
     };
-    for (const Case& tested : {Case{0x7d, 0, 0x7d + 0xd2}, Case{0x7d, 9, 0x7d + 5 + 0xd2}, Case{-1, 0, std::nullopt},
-                               Case{-3, 0, -3 + 0xd2}})
+    for (const Case& tested :
+         {Case{0x7d, 0, Client::Audio::SoundId{0x7d + 0xd2}}, Case{0x7d, 9, Client::Audio::SoundId{0x7d + 5 + 0xd2}},
+          Case{-1, 0, std::nullopt}, Case{-3, 0, Client::Audio::SoundId{-3 + 0xd2}}})
     {
         SCOPED_TRACE(tested.word);
         Runtime().lastSoundId.reset();
@@ -380,7 +382,7 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
                         .HasValue());
         EXPECT_EQ(Actor(14).animation.action, 6);
         EXPECT_EQ(Actor(14).animation.frame, DeathFrame);
-        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(subtype == 9 ? 0xd7 : 0xd2));
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{subtype == 9 ? 0xd7 : 0xd2});
     }
 
     Runtime().lastSoundId.reset();
@@ -475,7 +477,7 @@ TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFul
                 EXPECT_FALSE(dead.alive);
                 EXPECT_EQ(dead.animation.action, 7);
                 EXPECT_EQ(std::bit_cast<std::uint32_t>(dead.animation.frame), expectedFrame);
-                EXPECT_EQ(Runtime().lastSoundId, sound);
+                EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{*sound});
                 EXPECT_EQ(m_random.State(), expected.State());
                 EXPECT_TRUE(std::ranges::all_of(effectPool,
                                                 [](const Client::World::ModelEffect& effect) { return effect.alive; }));
@@ -515,7 +517,7 @@ TEST_F(CombatRepliesTest, ThePlayerAndThe170ScatterTheirBones)
         ASSERT_TRUE(died.HasValue()) << died.Error();
         EXPECT_FALSE(dead.alive);
         EXPECT_EQ(dead.animation.action, 7);
-        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x7c));
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x7c});
         EXPECT_EQ(m_random.State(), expected.State());
         for (std::size_t slot = 0; slot < Bones; ++slot)
         {
@@ -566,7 +568,7 @@ TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
         EXPECT_EQ(hero.animation.frame, DeathFrame);
         EXPECT_EQ(m_world->OwnCharacter().life, 0);
         EXPECT_EQ(Runtime().ownRecordDepth, depth);
-        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+        EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{sound});
         EXPECT_EQ(m_random.State(), expected.State());
     }
 }
@@ -655,7 +657,7 @@ TEST_F(CombatRepliesTest, TheBloodCastleRewardLandsOnSlotFourHundred)
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(400).animation.action, 6);
     EXPECT_EQ(Actor(400).dying, 1);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0xd2));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
     EXPECT_EQ(m_world->OwnCharacter().experience, 100u);
 }
 
@@ -853,7 +855,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeadFallsIntoTheVoid)
     EXPECT_EQ(dead.floatE4, static_cast<float>(e4 + 10.0));
     EXPECT_EQ(dead.floatD4, 1.0f);
     EXPECT_EQ(dead.floatD8, static_cast<float>(1.0 - (drop + 3.0)));
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x60));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x60});
     EXPECT_EQ(m_random.State(), After(2));
 
     // El mismo TerrainWall en Blood Castle no lo hace caer; la skill tampoco empuja en los castillos.
@@ -916,7 +918,7 @@ TEST_F(CombatRepliesTest, ASwordAlternatesByTheAttackCountAndDrawsItsSound)
     ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x23);
     CrtRandom expected = DrawnAfter(OwnRecordDraws);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>((expected.Next() & 1) + 0x3c));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{(expected.Next() & 1) + 0x3c});
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 1));
 
     // 0x4ea030 vuelve el frame a 0 al cambiar de acción: la segunda también pide sonido.
@@ -940,7 +942,7 @@ TEST_F(CombatRepliesTest, ABowShootsByTheWingsAndSoundsWithoutDrawing)
     player.hands[1].model = 0xa12;
     ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x2e);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x55));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x55});
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 
     player.wings.model = 0x1a00;
@@ -1018,7 +1020,7 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
     ASSERT_TRUE(Client::Scenes::SetActorAttack(still, Combat()).HasValue());
     EXPECT_EQ(still.animation.action, 3);
     EXPECT_EQ(still.attackCount, 2);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0xd2));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
     EXPECT_EQ(m_random.State(), After(1));
 
     Client::Sound::ModelSounds sounds{};
@@ -1034,8 +1036,8 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
         next.animation = {};
         const std::int32_t drawn = expected.Next() % 2;
         ASSERT_TRUE(Client::Scenes::SetActorAttack(next, CombatWithSounds(sounds)).HasValue());
-        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(sounds[static_cast<std::size_t>(2 + drawn)] +
-                                                                     (subtype == 9 ? 5 : 0) + 0xd2));
+        EXPECT_EQ(Runtime().lastSoundId,
+                  Client::Audio::SoundId{sounds[static_cast<std::size_t>(2 + drawn)] + (subtype == 9 ? 5 : 0) + 0xd2});
     }
     EXPECT_EQ(m_random.State(), expected.State());
 
@@ -1074,7 +1076,7 @@ TEST_F(CombatRepliesTest, AnAttackWithoutAModelKeepsItsAnimationButStillCountsAn
         EXPECT_EQ(Runtime().lastSoundId.has_value(), frameIsZeroOrUnordered);
         if (frameIsZeroOrUnordered)
         {
-            EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0xd2));
+            EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
         }
         EXPECT_EQ(m_random.State(), expected.State());
     }
@@ -1092,7 +1094,7 @@ TEST_F(CombatRepliesTest, APlayerWithAModelSoundSubtypeDrawsTwice)
     ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x22);
     EXPECT_NE(sound, 0xd2);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0xd2));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
@@ -1324,7 +1326,7 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
             EXPECT_EQ(effect.animation.action, 7);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(effect.animation.frame), frameBits);
             EXPECT_EQ(effect.attackCount, 0);
-            EXPECT_EQ(Runtime().lastSoundId, expectedSound);
+            EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{*expectedSound});
             EXPECT_EQ(m_random.State(), expected.State());
             EXPECT_TRUE(std::ranges::all_of(effectPool, [](const Client::World::ModelEffect& poolEffect)
                                             { return poolEffect.alive; }));
@@ -1362,7 +1364,7 @@ TEST_F(CombatRepliesTest, TheSawOf27GoesOutWithTheStrike)
     EXPECT_EQ(created.transform.angles, saw.angles);
     EXPECT_EQ(saw.animation.action, 7);
     EXPECT_EQ(saw.attackCount, 0);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x10));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x10});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
@@ -1399,7 +1401,7 @@ TEST_F(CombatRepliesTest, TheFlameOf33GoesOutWithTheStrike)
     EXPECT_EQ(created.light, burner.light);
     EXPECT_EQ(burner.animation.action, 7);
     EXPECT_EQ(burner.attackCount, 0);
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x79));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x79});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
@@ -1415,7 +1417,7 @@ TEST_F(CombatRepliesTest, TheModelSoundsComeFromTheRuntimeTable)
     const std::int32_t drawn = expected.Next() % 2;
     ActorState& monster = MonsterAt(12, 0x100);
     ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
-    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x14 + drawn + 0xd2));
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x14 + drawn + 0xd2});
     EXPECT_EQ(m_random.State(), expected.State());
 }
 } // namespace

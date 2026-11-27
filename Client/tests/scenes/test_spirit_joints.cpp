@@ -21,6 +21,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -75,7 +76,7 @@ struct Pool
                                                        .target = -1};
         const Client::Scenes::JointKernels::CreationServices services{
             .playerBonePoint = {},
-            .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+            .soundRequest = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
             .ownRecordDepth = withOwnRecord ? &ownRecordDepth : nullptr,
             .ownVolley = withOwnRecord ? &ownVolley : nullptr};
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind, &services);

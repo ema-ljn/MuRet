@@ -40,6 +40,8 @@
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
 #include "Tables/PlayerModels.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -64,7 +66,7 @@ using Math::D;
 using Math::F32;
 constexpr std::int16_t NoTarget = -1;
 // El sonido de los fuegos 0xc2 de la 0x02 y la 0x04 (0x5049f9, 0x504bda).
-constexpr std::int32_t FireSound = 0x42;
+constexpr Audio::SoundId FireSound = Sound::MeteoriteSound;
 constexpr std::size_t PoolSlots = 400;
 // +0x78 & 0x4000: los casos 0x1b, 0x1c y 0x10 con blanco no hacen nada (0x50451c, 0x5046ca, 0x504836).
 constexpr std::uint32_t QuietFlag = 0x4000;
@@ -72,7 +74,7 @@ constexpr std::uint32_t QuietFlag = 0x4000;
 constexpr std::int32_t FlameJoint = 0x10f;
 
 // 0x41ed10(sonido, …): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
-void RequestTheSound(const Actors::CharacterStepContext& context, std::int32_t sound,
+void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId sound,
                      const Kernel::ActorState* actor = nullptr)
 {
     if (actor != nullptr && context.soundAt)
@@ -122,7 +124,7 @@ CreateTheSpirit(Kernel::ActorState& actor, const Actors::CharacterStepContext& c
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", spirit.address));
     const JointKernels::CreationServices services{.playerBonePoint = {},
-                                                  .soundRequest = [&context](std::int32_t sound)
+                                                  .soundRequest = [&context](Audio::SoundId sound)
                                                   { RequestTheSound(context, sound); },
                                                   .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
                                                   .ownVolley = &context.world.OwnCharacter().bytef04};
@@ -186,7 +188,7 @@ Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, Kernel:
 // 0x632/6 (StormJoints.cpp), y el sonido 0x266 aunque el pool esté lleno.
 Core::Expected<void, std::string> CallTheStorm(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
-    constexpr std::int32_t StormSound = 0x266;
+    constexpr Audio::SoundId StormSound{0x266};
     if (context.joints.empty())
         return Core::Unexpected(std::string("0x4fe172: faltan los joints del frame (0x530860)"));
     const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
@@ -214,7 +216,7 @@ Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& acto
     constexpr std::int32_t InfernoSubtype = 4;
     constexpr float InfernoWidth = 40;  // 0x42200000
     constexpr double InfernoLift = 130; // 0x6ba194
-    constexpr std::int32_t InfernoSound = 0x26f;
+    constexpr Audio::SoundId InfernoSound{0x26f};
     if (context.joints.empty())
         return Core::Unexpected(std::string("0x504b33: faltan los joints del frame (0x530860)"));
     glm::vec3 from{actor.position.x, actor.position.y, F32(D(actor.position.z) + InfernoLift)};
@@ -298,7 +300,7 @@ Core::Expected<void, std::string> SpinTheEnergy(Kernel::ActorState& actor, const
         if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", energy.address, created.Error()));
     }
-    RequestTheSound(context, EnergySound);
+    RequestTheSound(context, Audio::SoundId{EnergySound});
     return {};
 }
 
@@ -310,7 +312,7 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
                                                   const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t SpiralEffect = 0x62c;
-    constexpr std::int32_t SpiralSound = 0x1cd;
+    constexpr Audio::SoundId SpiralSound{0x1cd};
     constexpr std::uint8_t HighAction = 0x51, LowAction = 0x5b;
     glm::vec3 point = TurnedPoint(actor, {0.0f, -90.0f, -50.0f});
     if (actor.animation.action == HighAction)
@@ -371,7 +373,7 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
 Core::Expected<void, std::string> RaiseTheAuras(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr float Width = std::bit_cast<float>(0x432a0000u);
-    constexpr std::int32_t RiseSound = 0x26b;
+    constexpr Audio::SoundId RiseSound{0x26b};
     actor.flags78 = 0;
     glm::vec3 from = actor.position;
     from.z = static_cast<float>(static_cast<double>(from.z) + 100);
@@ -437,7 +439,7 @@ Core::Expected<void, std::string> RingTheSpirits(Kernel::ActorState& actor, std:
             !made.HasValue())
             return made;
     }
-    RequestTheSound(context, ring.sound);
+    RequestTheSound(context, Audio::SoundId{ring.sound});
     return {};
 }
 
@@ -514,7 +516,7 @@ Core::Expected<Kernel::ActorState*, std::string> TargetOf(Kernel::ActorState& ac
 Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t QuakeSkill = 0x2a;
-    constexpr std::int32_t QuakeSound = 0x95;
+    constexpr Audio::SoundId QuakeSound{0x95};
     KeepTheWeapon(actor);
     const std::int32_t index = OwnSkillIndex(context, QuakeSkill);
     World::ModelEffects& effects = context.world.Map().effects;
@@ -546,7 +548,7 @@ Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, cons
 Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t FlameSkill = 5;
-    constexpr std::int32_t FlameSound = 0x79;
+    constexpr Audio::SoundId FlameSound{0x79};
     constexpr double CellCentre = 0.5;                     // 0x6b882c
     constexpr double CellSize = Terrain::CellSizeAsDouble; // 0x6b86b4
     Kernel::WorldState& world = context.world;
@@ -686,7 +688,7 @@ Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::
     if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
         !created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", joint, created.Error()));
-    constexpr std::int32_t BindSound = 0x267;
+    constexpr Audio::SoundId BindSound{0x267};
     RequestTheSound(context, BindSound);
     return {};
 }
@@ -705,7 +707,7 @@ Core::Expected<void, std::string> FreeTheTarget(Kernel::ActorState& actor, std::
         return Core::Unexpected(std::format("0x4fe3ce: faltan los joints del juego (0x534f90) del lugar {}", slot));
     Actors::KillJointsOf(context.joints, FlameJoint, target.Value(), 4);
     Actors::KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
-    constexpr std::int32_t FreeSound = 0x269;
+    constexpr Audio::SoundId FreeSound{0x269};
     const Kernel::ActorState& freed = *target.Value();
     if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
                                       .position = freed.position,
@@ -772,7 +774,7 @@ Core::Expected<void, std::string> SwingTheHands(const Kernel::ActorState& actor,
     constexpr std::int32_t RaiseSound = 0x1cf;
     constexpr std::int32_t OtherSwingSound = 0x272;
     // 0x4feaae: la 0x40 conserva o como origen.
-    RequestTheSound(context, skill == RaiseSkill ? RaiseSound : OtherSwingSound,
+    RequestTheSound(context, Audio::SoundId{skill == RaiseSkill ? RaiseSound : OtherSwingSound},
                     skill == RaiseSkill ? &actor : nullptr);
     return {};
 }
@@ -812,7 +814,7 @@ std::int32_t FenrirShade(const Kernel::ActorState& actor)
 Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                const Actors::CharacterStepContext& context)
 {
-    constexpr std::int32_t AroundSound = 0x27d;
+    constexpr Audio::SoundId AroundSound{0x27d};
     constexpr std::size_t MostTargets = 10;
     constexpr std::uint8_t PlayerObject = 1;
     constexpr std::uint8_t MonsterObject = 2;
@@ -930,7 +932,7 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
 Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                 const Actors::CharacterStepContext& context)
 {
-    constexpr std::int32_t RingSound = 0x1cb;
+    constexpr Audio::SoundId RingSound{0x1cb};
     if (auto inner = CreateWizard(
             0x4feae8, WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 2, &actor),
             skill, slot, context);
@@ -975,7 +977,7 @@ Core::Expected<void, std::string> RainTheMeteors(Kernel::ActorState& actor, std:
     constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bit_cast<float>(0x3dcccccdu)};
     constexpr std::int32_t MeteorSubtype = 6;
     constexpr std::uint16_t MeteorKey = 0;
-    constexpr std::int32_t MeteorSound = 0x8e;
+    constexpr Audio::SoundId MeteorSound{0x8e};
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x4ff570: falta la altura del terreno (0x5f93c0) del Meteorito"));
@@ -1059,7 +1061,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     {
         // 0x4febdb..0x4fec2b: 0x518cf0(0x6ac, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, [0x5767948], 0, 0, 0) sin
         // 0x59fb80 antes (Scenes::FireBreathEffect: sus cuarenta joints 0x617/1) y el sonido 0x72.
-        constexpr std::int32_t BreathSound = 0x72;
+        constexpr Audio::SoundId BreathSound = Sound::KnightSkill3Sound;
         if (auto made =
                 CreateHighEffect({.type = FireBreathEffect,
                                   .position = actor.position,
@@ -1081,7 +1083,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         const std::int32_t index = OwnSkillIndex(context, skill);
         if (auto made = CreateOwnedBlast(0xf3, actor.position, actor, index, context); !made.HasValue())
             return made;
-        RequestTheSound(context, 0x73);
+        RequestTheSound(context, Audio::SoundId{0x73});
         return {};
     }
     case 0x0a:
@@ -1099,7 +1101,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
                     return Core::Unexpected(disturbed.Error());
             }
         }
-        RequestTheSound(context, 0x77);
+        RequestTheSound(context, Audio::SoundId{0x77});
         return {};
     case 0x28:
         // 0x4ff4c3: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 1, o, −1, …).
@@ -1109,8 +1111,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
                 slot, context);
             !circle.HasValue())
             return circle;
-        context.world.Runtime().StopSound(0x92, true); // 0x4ff4fe: rebobina antes de pedir 0x93.
-        RequestTheSound(context, 0x93);
+        context.world.Runtime().StopSound(Audio::SoundId{0x92}, true); // 0x4ff4fe: rebobina antes de pedir 0x93.
+        RequestTheSound(context, Audio::SoundId{0x93});
         return {};
     case 0x26:
         return RainTheMeteors(actor, slot, skill, context);
@@ -1118,7 +1120,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         if (auto storm = DropTheIceStorm(actor, context); !storm.HasValue())
             return storm;
         CountHeroVolley(actor, context);
-        RequestTheSound(context, 0x90);
+        RequestTheSound(context, Audio::SoundId{0x90});
         return {};
     case 0x05:
         return CastTheFlame(actor, context);
@@ -1126,7 +1128,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     {
         // 0x500c10..0x500c5c (el Twister): 0x59fb80(8) y 0x518cf0(0xcf, o+0x10, o+0x1c, la luz local, 0, o, o+0x8a,
         // lugar, 0, 0, 0); después el sonido 0x74.
-        constexpr std::int32_t TwisterSound = 0x74;
+        constexpr Audio::SoundId TwisterSound{0x74};
         const std::int32_t index = OwnSkillIndex(context, skill);
         World::ModelEffectArguments storm = WizardArguments(World::StormEffect, actor.position, actor.angles, light, 0,
                                                             &actor, static_cast<std::uint16_t>(actor.word8a));
@@ -1155,7 +1157,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
                                          skill, slot, context);
             !made.HasValue())
             return made;
-        RequestTheSound(context, 0x7a);
+        RequestTheSound(context, Sound::AquaFlashSound);
         return {};
     }
     case 0x0d:
@@ -1217,7 +1219,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
                 return thin;
         }
         CountHeroVolley(actor, context);
-        RequestTheSound(context, 0x75);
+        RequestTheSound(context, Audio::SoundId{0x75});
         return {};
     }
     case 0x4c:
@@ -1227,7 +1229,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         // 0x50294e..0x50298e: 0x518cf0(0x13b, o+0x10, o+0x1c, la luz del paso, 0, o, −1, 0, 0, 0, 0), la llama del
         // asedio sobre o, y el sonido 0x26c.
         constexpr std::int16_t SwordForce = 0x13b;
-        constexpr std::int32_t ForceSound = 0x26c;
+        constexpr Audio::SoundId ForceSound{0x26c};
         if (auto made = CreateHighEffect({.type = SwordForce,
                                           .position = actor.position,
                                           .angles = actor.angles,
@@ -1321,7 +1323,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     case 0x2e:
     {
         // 0x504453..0x5044b4: lo mismo con el blanco, 0x53e2b0(c, o, blanco, lugar, 0, skill), y el sonido 0x26e.
-        constexpr std::int32_t BlastSound = 0x26e;
+        constexpr Audio::SoundId BlastSound{0x26e};
         const std::uint8_t shot = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
         if (auto fired = FireTheArrow(actor, &victim, slot, index, 0, shot, context); !fired.HasValue())
@@ -1395,7 +1397,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
             static_cast<void>(
                 context.world.Map().effects.CreateIceShard(victim.position, actor.angles, actor.light, context.random));
         constexpr std::uint32_t FrozenFlag = 2;
-        constexpr std::int32_t IceSound = 0x78;
+        constexpr Audio::SoundId IceSound{0x78};
         if (actor.skillSucceeded != 0)
             victim.flags78 |= FrozenFlag;
         RequestTheSound(context, IceSound);
@@ -1407,7 +1409,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // blanco, el sonido 0x84, 0x534f90(0x10f, blanco, 0) y cinco joints 0x10f/0.
         constexpr std::uint16_t SelfFlagType = 0x189;
         constexpr std::uint32_t ShieldFlag = 0x100;
-        constexpr std::int32_t ShieldSound = 0x84;
+        constexpr Audio::SoundId ShieldSound = Sound::SoulBarrierSound;
         if (actor.type == SelfFlagType)
         {
             actor.flags78 |= ShieldFlag;
@@ -1456,7 +1458,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         }
         if (actor.skillSucceeded != 0)
             victim.flags78 |= 1;
-        RequestTheSound(context, 0x22);
+        RequestTheSound(context, Audio::SoundId{0x22});
         return {};
     }
     case 0x02:
@@ -1473,7 +1475,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     {
         // 0x504a0a..0x504abf: tres 0x518cf0(0x139, o+0x10, o+0x1c, o+0xf4, subtipo, blanco, −1, 0, 0, 0, 0), con los
         // subtipos 0, 1 y 2 (Scenes::JavelinEffect, un rand() cada uno), y el sonido 0x26d.
-        constexpr std::int32_t JavelinSound = 0x26d;
+        constexpr Audio::SoundId JavelinSound{0x26d};
         constexpr std::array<std::int32_t, 3> Subtypes{0, 1, 2};
         constexpr std::array<std::uint32_t, 3> Addresses{0x504a3a, 0x504a72, 0x504aa9};
         for (std::size_t index = 0; index < Subtypes.size(); ++index)
@@ -1498,7 +1500,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // 0x504b51..0x504b99: el 0x116/2 sobre o con el blanco de dueño y el sonido 0x271.
         constexpr std::int16_t PierPart = 0x116;
         constexpr std::int32_t DivingSubtype = 2;
-        constexpr std::int32_t DiveSound = 0x271;
+        constexpr Audio::SoundId DiveSound{0x271};
         if (auto made = CreateHighEffect({.type = PierPart,
                                           .position = actor.position,
                                           .angles = actor.angles,
@@ -1530,7 +1532,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         constexpr std::uint16_t TripleType = 0x164;
         constexpr double SideTurn = 10.0;  // 0x6b87a8
         constexpr double BothSides = 20.0; // 0x6b86d0
-        constexpr std::int32_t WaveSound = 0x76;
+        constexpr Audio::SoundId WaveSound = Sound::MagicSound;
         glm::vec3 angles = TowardsTheTarget(actor, victim);
         const auto wave = [&](std::uint32_t address)
         {
@@ -1557,7 +1559,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // 0x504cdb..0x504d7a: dos 0x518cf0(0x114, o+0x10, o+0x1c, o+0xf4, 1, 0, −1, 0, 0, 0, 0) (0x504d05 y 0x504d37),
         // uno con el 0x115/0 (0x504d69) y después el sonido 0x1c8. Cada 0x114/1 suelta dos joints 0x6e8/0 (0x51c25f).
         constexpr std::uint16_t Wave = 0x114, Piercing = 0x115;
-        constexpr std::int32_t SwirlSubtype = 1, WaveSound = 0x1c8;
+        constexpr std::int32_t SwirlSubtype = 1;
+        constexpr Audio::SoundId WaveSound{0x1c8};
         for (int wave = 0; wave < 2; ++wave)
             if (auto made = CreateHighEffect({.type = Wave,
                                               .position = actor.position,
@@ -1607,7 +1610,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
                                          skill, slot, context);
             !made.HasValue())
             return Core::Unexpected(std::format("0x505053: {}", made.Error()));
-        RequestTheSound(context, 0x76);
+        RequestTheSound(context, Sound::MagicSound);
         return {};
     }
     default:

@@ -15,6 +15,8 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -32,7 +34,7 @@ constexpr std::int32_t ButtonSize = 0x18;
 constexpr std::int32_t MoneyButtonLeft = 0x1a;
 constexpr std::int32_t OkButtonLeft = 0x61;
 constexpr std::int32_t CancelButtonLeft = 0x89;
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 // 0x5ece66..0x5ece9a: el diálogo del zen y lo que deja.
 constexpr std::int32_t MoneyDialog = 0x73;
 constexpr std::int32_t MoneyFieldLimit = 8;

@@ -12,6 +12,8 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -63,7 +65,7 @@ constexpr std::int32_t TabHeight = 0xe;
 // 0x6c8dcc con el clic de un botón.
 constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 // 0x41ed10(0x1c, 0, 0), el sonido de los botones (CL10).
-constexpr std::int32_t ButtonSound = 0x1c;
+constexpr Audio::SoundId ButtonSound = Sound::CreateWindowSound;
 
 // El clic gastado por un botón de la ventana: 0x7d366d4 en 0, 0x77f3b10 en 0 y 0x6c8dcc en 6.
 void SpendTheClick(GameMovementState& movement)

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -110,7 +111,7 @@ struct ArrowStepContext
     // The map's load (0x7d0d348); without it, an empty one.
     const Terrain::WorldTerrain* terrain = nullptr;
     std::function<double(float, float)> terrainHeight{};
-    std::function<void(std::int32_t)> soundRequest{};
+    std::function<void(Audio::SoundId)> soundRequest{};
     std::function<void(Protocol::Outgoing)> send{};
 };
 

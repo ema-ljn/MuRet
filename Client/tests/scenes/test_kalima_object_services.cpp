@@ -18,6 +18,7 @@
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
 #include "Kernel/ActorState.h"
+#include "Audio/SoundId.h"
 #include <limits>
 #include <cmath>
 #include "World/WorldObjects.h"
@@ -282,10 +283,10 @@ TEST(KalimaObjectServicesTest, FullParticlePoolStillHidesMarkersStoresScaleAndRe
         p.alive = true;
     Client::Crt::CrtRandom random(7);
     std::vector<std::int32_t> sounds;
-    const Client::Scenes::GameObjectPass pass{.map = 24,
-                                              .random = &random,
-                                              .particles = &particles,
-                                              .requestSound = [&](std::int32_t sound) { sounds.push_back(sound); }};
+    const Client::Scenes::GameObjectPass pass{
+        .map = 24, .random = &random, .particles = &particles, .requestSound = [&](Client::Audio::SoundId sound) {
+            sounds.push_back(sound.Value());
+        }};
     for (std::int16_t type = 35; type <= 40; ++type)
     {
         auto object = Object(type);

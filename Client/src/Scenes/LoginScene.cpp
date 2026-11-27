@@ -111,6 +111,8 @@
 #include "World/WizardModelEffects.h"
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -137,7 +139,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t ButtonClickSound = 0x19;
+constexpr Audio::SoundId ButtonClickSound = Sound::ButtonClickSound;
 
 std::string ObjectCreationFailureMessage(const World::WorldObjectCreationFailure& failure)
 {
@@ -881,8 +883,8 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          .particles = &CharacterWorld().Particles(),
          .worldClock = clock,
          .counter = cloth.logicSteps,
-         .soundRequest = [this](std::int32_t sound) { CharacterWorld().Runtime().RequestSound(sound); },
-         .soundAt = [this](std::int32_t sound, const glm::vec3& origin)
+         .soundRequest = [this](Audio::SoundId sound) { CharacterWorld().Runtime().RequestSound(sound); },
+         .soundAt = [this](Audio::SoundId sound, const glm::vec3& origin)
          { CharacterWorld().Runtime().RequestSound(sound, origin); },
          .trapezoid = &SharedTerrainPolygon(),
          .dynamicLighting = &DynamicLight().Lighting(),
@@ -1009,7 +1011,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
     const float worldClock = WorldClock();
     const std::function<double(float, float)> terrainHeight = TerrainHeight();
     const Terrain::WorldTerrain* terrain = m_terrain.Terrain();
-    const auto sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); };
+    const auto sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); };
     const auto publishAction = [&world](std::uint16_t type, std::uint8_t action)
     {
         auto placement = world.ModelPlacement(type);
@@ -1035,7 +1037,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
             return {};
         },
         .publishAction = publishAction,
-        .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); },
+        .soundAt = [&world](Audio::SoundId id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); },
         .hero = &world.Hero()};
     World::WizardEffectServices wizard =
         WizardEffectServicesOf(world, cloth.random,
@@ -1081,7 +1083,7 @@ Core::Expected<void, std::string> LoginScene::StepTheJoints()
     const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
     const auto stepped = StepJoints(
         world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), WorldClock(), &m_sprites,
-        &DynamicLight().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, TerrainHeight(),
+        &DynamicLight().Lighting(), [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, TerrainHeight(),
         actors, {}, &world.Map().effects, hero, &world);
     if (!stepped.HasValue())
         return Core::Unexpected(stepped.Error() + ", en el login (0x634d1d → 0x53c670)");
@@ -1098,7 +1100,7 @@ Core::Expected<void, std::string> LoginScene::StepTheParticles()
         TerrainHeight(), ParticleOwnersAmong(m_objects), ParticleActorActionsAmong(world.Actors()),
         ParticleTextureHeightsOf(m_models), &DynamicLight().Lighting(),
         ParticleActorHandsAmong(world.Actors(), world.Runtime().hero), ParticleOwnerBonesOf(world),
-        [&world](std::int32_t id) { world.Runtime().RequestSound(id); }, ParticleOwnerStatesOf(world), &m_sprites);
+        [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, ParticleOwnerStatesOf(world), &m_sprites);
     if (!stepped.HasValue())
         return Core::Unexpected(std::format("0x634d22 → 0x5446e0: el paso de las partículas del login falla con el "
                                             "error {}",

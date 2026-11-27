@@ -7,6 +7,7 @@
 #include "Models/IModelLibrary.h"
 #include "Models/Skinning.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -107,8 +108,8 @@ struct MonsterBodyFrame
     // 0x4294b0: el byte del asedio.
     bool siegeActive = false;
     // El sonido pedido a 0x41ed10 (CL10); solo en los frames del original.
-    std::optional<std::int32_t>* lastSoundId = nullptr;
-    std::function<void(std::int32_t)> soundRequest{};
+    std::optional<Audio::SoundId>* lastSoundId = nullptr;
+    std::function<void(Audio::SoundId)> soundRequest{};
     bool originalFrame = true;
     // 0x7d325c8, el temblor de la cámara (GameCharacterPass::cameraShake). nullptr: corta si un caso lo escribe.
     float* cameraShake = nullptr;
@@ -126,7 +127,7 @@ struct MonsterBodyFrame
 };
 
 // 0x41ed10(id, objeto, 0) en un frame del original: lo anota para CL10.
-void RequestBodySound(MonsterBodyFrame& frame, std::int32_t sound);
+void RequestBodySound(MonsterBodyFrame& frame, Audio::SoundId sound);
 
 // 0x7d3a0f0: el contador de pasos lógicos, con los 4 rand() de su cierre si no hay otro acceso abierto.
 [[nodiscard]] std::int32_t ReadLogicSteps(MonsterBodyFrame& frame);

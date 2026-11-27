@@ -29,6 +29,8 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -46,7 +48,7 @@ namespace
 namespace Npc = Protocol::Npc;
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones.
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 // 0x6c8dcc: el máximo de MouseUpdateTime que dejan los botones.
 constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 // El rand() del relleno (0x69fd70) y el del número de serie (0x40b0a0, o 0x40b240 y 0x40b3f0 en línea) de un C3.

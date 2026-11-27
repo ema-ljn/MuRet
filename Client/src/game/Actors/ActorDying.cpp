@@ -13,6 +13,8 @@
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleBurst.h"
 #include "World/Particles.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -62,7 +64,7 @@ constexpr float CastleSpin = 5.0f;
 constexpr int DeathSkillBoneCount = 32;
 constexpr int DeathSkillScaleSpan = 100;
 constexpr std::int32_t DeathSkillFlareSubtype = 5;
-constexpr std::int32_t DeathSkillSound = 0x40;
+constexpr Audio::SoundId DeathSkillSound = Sound::ExplosionSound;
 
 float Sum(float a, float b)
 {

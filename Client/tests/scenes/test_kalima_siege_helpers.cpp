@@ -16,6 +16,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -199,7 +200,7 @@ protected:
     std::vector<Client::Scenes::JointState> m_joints;
     Client::Render::ModelBatch m_batch;
     float m_shake = 0.0f;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     bool m_siege = false;
 };
 
@@ -456,7 +457,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
     ActorState& kundun = Actor(0x192, 5, 1.0f);
     FillParticles();
     ASSERT_TRUE(Draw(0).HasValue());
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>{0x1db});
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x1db});
     EXPECT_EQ(kundun.dword60, 100);
     EXPECT_EQ(kundun.word8a, 10);
     auto sprites = Sprites();

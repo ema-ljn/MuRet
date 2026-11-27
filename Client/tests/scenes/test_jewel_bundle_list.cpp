@@ -19,6 +19,7 @@
 #include "UI/ChatLogWindow.h"
 #include "UI/GameUiState.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
@@ -242,7 +243,7 @@ TEST(JewelBundleListTest, TheBarArrowsAndTheTrackScroll)
         static_cast<void>(tested.Click(400, 241));
         EXPECT_EQ(list.scroll, 6);
         EXPECT_EQ(list.arrowRepeat, 1);
-        EXPECT_EQ(runtime.Runtime().lastSoundId, 0x19);
+        EXPECT_EQ(runtime.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
         EXPECT_EQ(runtime.Runtime().ui.focusedList, list.id);
         EXPECT_TRUE(runtime.Runtime().movement.pendingClick);
         runtime.Runtime().lastSoundId.reset();
@@ -259,7 +260,7 @@ TEST(JewelBundleListTest, TheBarArrowsAndTheTrackScroll)
         EXPECT_EQ(list.arrowRepeat, 0);
         static_cast<void>(tested.Click(400, 340));
         EXPECT_EQ(list.scroll, 6);
-        EXPECT_EQ(runtime.Runtime().lastSoundId, 0x19);
+        EXPECT_EQ(runtime.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
         runtime.Runtime().lastSoundId.reset();
 
         tested.PlaceTheBar();
@@ -448,7 +449,7 @@ public:
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     CrtRandom random{0x1357u};
     std::uint8_t cellDepth = 0;
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};

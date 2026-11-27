@@ -2,6 +2,7 @@
 #include "Core/Expected.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
@@ -26,9 +27,9 @@ TEST(CastleGateCollapseTest, TheFragmentAndSoundPrecedeHidingOnlyMeshZero)
             return {};
         },
         .sound =
-            [&](int sound)
+            [&](Client::Audio::SoundId sound)
         {
-            EXPECT_EQ(sound, 0x1ec);
+            EXPECT_EQ(sound, Client::Audio::SoundId{0x1ec});
             EXPECT_EQ(gate.state.hiddenMesh, -1);
             calls.push_back(2);
         }};

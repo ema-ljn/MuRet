@@ -23,6 +23,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <bit>
@@ -375,7 +376,7 @@ private:
             return Create(step);
         case MonsterStepKind::Sound:
             // 0x4410eb → 0x41ed10: reproduce el sonido de aparición del monstruo.
-            m_resources.world.Runtime().RequestSound(static_cast<std::int32_t>(step.value));
+            m_resources.world.Runtime().RequestSound(Audio::SoundId{static_cast<std::int32_t>(step.value)});
             return {};
         case MonsterStepKind::Joint:
             // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3. 0x5165d1, el

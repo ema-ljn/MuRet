@@ -20,6 +20,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/ItemSetFiles.h"
 #include "support/SameBytes.h"
@@ -198,7 +199,7 @@ TEST(GameCharacterWindowTest, TheLetterCOpensTheCharacterAndRecalculatesTheOwnSt
         // La cola de 0x550d10 corrió: +0xef8 es una resta de WORD en 0.
         EXPECT_EQ(tested.world.OwnCharacter().wordef8, 0);
         EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
-        EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x1c);
+        EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_TRUE(tested.sent.empty());
     }
 }
@@ -319,7 +320,7 @@ TEST(GameCharacterWindowTest, TheStatButtonsSendTheirPoint)
                 ASSERT_EQ(tested.sent.size(), 1u) << button;
                 EXPECT_TRUE(SamePacket(tested.sent[0],
                                        Client::Protocol::Player::WriteLevelUpPoint(static_cast<std::uint8_t>(button))));
-                EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+                EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
                 EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
             }
         }

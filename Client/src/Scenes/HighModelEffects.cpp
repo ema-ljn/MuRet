@@ -41,6 +41,8 @@
 #include "World/Particles.h"
 #include "World/SiegeStoneEffects.h"
 #include "World/WorldObjectStepServices.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -315,7 +317,7 @@ void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& co
     constexpr float WideScale = 0.5f;                      // 0x3f000000
     constexpr int ExtraFallSpan = 20, ExtraFallBase = 10;  // 0x14 y 0xa
     constexpr double Height = 500.0, Lead = 100.0;         // 0x6b8a98 y 0x6b86b4
-    constexpr std::int32_t FallingSound = 0x42;
+    constexpr Audio::SoundId FallingSound = Sound::MeteoriteSound;
     CrtRandom& random = context.random;
     effect.life = random.Next() % LifeSpan + LifeBase;
     effect.turnDirection = InitialRise;
@@ -895,7 +897,7 @@ Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, 
             return Core::Unexpected("0x5273c6: " + trail.Error());
     }
     constexpr double MoreBursts = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
-    constexpr std::int32_t PartSound = 0x1ca;
+    constexpr Audio::SoundId PartSound{0x1ca};
     effect.turnDirection = F32(D(effect.turnDirection) + MoreBursts);
     context.world.Runtime().RequestSound(PartSound);
     return {};
@@ -1126,7 +1128,7 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
                                effect.transform.angles, glm::vec3(1.0f), 0, 1.0f, 0x52ca4f);
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
-        constexpr std::int32_t BlastSound = 0x40;
+        constexpr Audio::SoundId BlastSound = Sound::ExplosionSound;
         if (made.Value().has_value())
             context.world.Runtime().RequestSound(BlastSound);
         constexpr int Chips = 6;

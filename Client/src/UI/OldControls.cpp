@@ -3,6 +3,8 @@
 #include "Math/FloatConstants.h"
 #include "UI/ChatLogWindow.h"
 #include "UI/OldWindowBase.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -26,7 +28,7 @@ constexpr std::int32_t KeyRepeatSteps = 5;
 constexpr std::uint8_t UpKey = 0x26;
 constexpr std::uint8_t DownKey = 0x28;
 // 0x41ed10(0x19, 0, 0).
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 // 0x47b0f0: el alto con el borde agarrado, de 40 en 40 píxeles y de 3 en 3 renglones.
 constexpr std::int32_t ResizeStep = 0x28;
 constexpr std::int32_t ResizeSlack = 5;

@@ -23,6 +23,7 @@
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -307,7 +308,7 @@ protected:
     Client::Render::ModelBatch m_batch;
     std::unique_ptr<ActorState> m_actor;
     Client::Models::ClothWorld m_cloth;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     float m_shake = 0.0f;
     bool m_siegeActive = false;
     float m_boneScale = 1.0f;
@@ -538,7 +539,7 @@ TEST_F(MonsterBodyTest, The18eBeforeTwentyFiveStepsAsksItsSoundAndLeavesItsStone
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
-    EXPECT_EQ(m_sound, 0x87);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x87});
     EXPECT_TRUE(m_actor->alive);
     EXPECT_GT(ExpectTheTwinVertexEffects(AfterRandoms(4), 0, 0x10a, 0), 0u);
 }
@@ -609,7 +610,7 @@ TEST_F(MonsterBodyTest, TheDying18eAnd18fDieWithoutTheCounter)
         const auto result = Draw(type, 0);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_FALSE(m_actor->alive);
-        EXPECT_EQ(m_sound, 0x87);
+        EXPECT_EQ(m_sound, Client::Audio::SoundId{0x87});
         ExpectTheTwinVertexEffects(before, 0, type == 0x18e ? 0x10a : 0x10c, 0);
     }
     m_sound.reset();
@@ -714,7 +715,7 @@ TEST_F(MonsterBodyTest, TheCastleStatueDeathPreservesItsFalseReturnAfterSoundAnd
     const auto result = Draw(0x19b, 30);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FALSE(m_actor->alive);
-    EXPECT_EQ(m_sound, 0x87);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x87});
     EXPECT_EQ(m_cloth.random.State(), AfterRandoms(9));
     EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
 }
@@ -728,7 +729,7 @@ TEST_F(MonsterBodyTest, TheCastleGuardDeathEmitsDebrisAndConsumesItsBodyPass)
     const auto result = Draw(0x19c, 30);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FALSE(m_actor->alive);
-    EXPECT_EQ(m_sound, 0x1e8);
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x1e8});
     EXPECT_EQ(m_cloth.random.State(), AfterRandoms(6));
     EXPECT_TRUE(m_batch.Vertices().empty());
 }
@@ -1045,7 +1046,7 @@ TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
             const auto before = m_cloth.random.State();
             ASSERT_TRUE(Draw(type, 2).HasValue());
             EXPECT_EQ(m_actor->byte110, 0);
-            EXPECT_EQ(m_sound, 0x88);
+            EXPECT_EQ(m_sound, Client::Audio::SoundId{0x88});
             EXPECT_EQ(ExpectTheTwinVertexEffects(before, 6, 0x10a, strike == 0x21 ? 1 : 2), Triangle);
             EXPECT_EQ(m_effects->Effects()[0].type, 0x10b);
             EXPECT_EQ(m_effects->Effects()[0].subtype, strike == 0x21 ? 2 : 3);
@@ -1120,7 +1121,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x192, map);
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_EQ(m_sound, 0x1de);
+        EXPECT_EQ(m_sound, Client::Audio::SoundId{0x1de});
         EXPECT_EQ(m_actor->dword60, 0x5a);
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
         Client::Crt::CrtRandom oracle{1};
@@ -1152,7 +1153,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         result = Draw(0x192, map);
         ASSERT_FALSE(result.HasValue());
         EXPECT_EQ(result.Error().rfind("0x43ee90", 0), 0u) << result.Error();
-        EXPECT_EQ(m_sound, 0x1dd);
+        EXPECT_EQ(m_sound, Client::Audio::SoundId{0x1dd});
         EXPECT_EQ(m_actor->dword60, 10);
         ASSERT_EQ(m_batch.Vertices().size(), Triangle);
         Client::Crt::CrtRandom replica{1};
@@ -1307,7 +1308,7 @@ TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
         m_actor->dword60 = 0x5a;
         const auto original = Draw(0x192, map);
         ASSERT_TRUE(original.HasValue()) << original.Error();
-        EXPECT_EQ(m_sound, 0x1dd);
+        EXPECT_EQ(m_sound, Client::Audio::SoundId{0x1dd});
         EXPECT_NE(m_shake, 0.25f);
         EXPECT_EQ(m_cloth.random.State(), AfterRandoms(7));
         EXPECT_TRUE(m_effects->Effects()[9].alive);

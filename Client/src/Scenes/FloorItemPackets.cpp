@@ -28,6 +28,8 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -70,10 +72,10 @@ constexpr float CellHalf = 0.5f;
 using Terrain::CellSize;
 // Los sonidos de 0x41ed10 (CL10): 0x6083a5 el zen, 0x60840a las joyas y 0x608400 lo demás; 0x4d10af y 0x4d10a2 los
 // del 22.
-constexpr std::int32_t ZenDropSound = 0x1f;
-constexpr std::int32_t JewelSound = 0x45;
-constexpr std::int32_t ItemDropSound = 0x1e;
-constexpr std::int32_t ItemPickUpSound = 0x1d;
+constexpr Audio::SoundId ZenDropSound{0x1f};
+constexpr Audio::SoundId JewelSound = Sound::GemSound;
+constexpr Audio::SoundId ItemDropSound{0x1e};
+constexpr Audio::SoundId ItemPickUpSound = Sound::GetItemSound;
 // 0x4d0f85..0x4d0f9c y 0x4d102a..0x4d1036: los textos de Text.bmd del aviso del 22.
 constexpr std::size_t ZenText = 224;
 constexpr std::size_t PickedUpText = 918;
@@ -298,7 +300,7 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
     // 0x60835d..0x608370: el tipo de 0x54b3a0 en +4.
     const std::int32_t type = InventoryItemType(InventoryItemBytes(bytes));
     item.itemType = static_cast<std::int16_t>(type);
-    std::optional<std::int32_t> sound;
+    std::optional<Audio::SoundId> sound;
     if (type == ZenItem)
     {
         // 0x608376..0x6083a7: el zen en b1, b2 y b4; +0x1e y +0x1f en 0 (+0x20 queda).
@@ -387,7 +389,7 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::F
             return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight);
         },
         .clock = resources.clock != nullptr ? resources.clock->Now() : Core::Duration{},
-        .soundRequest = [&runtime = world.Runtime()](std::int32_t sound, const glm::vec3& position)
+        .soundRequest = [&runtime = world.Runtime()](Audio::SoundId sound, const glm::vec3& position)
         { runtime.RequestSound(sound, position); },
         .effects = &world.Map().effects};
     auto& items = world.DrawTail().floorItems;

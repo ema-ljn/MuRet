@@ -40,6 +40,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -333,8 +334,8 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
     if (original && !(frame < FirstWindowStart) && frame < FirstWindowEnd)
     {
         constexpr std::int16_t GlowEffect = 0x621;
-        constexpr std::int32_t HeldSubtype = 2;   // 0x50f9a3
-        constexpr std::int32_t GlowSound = 0x1cc; // 0x50f9bc
+        constexpr std::int32_t HeldSubtype = 2;    // 0x50f9a3
+        constexpr Audio::SoundId GlowSound{0x1cc}; // 0x50f9bc
         if (tail.pass.world == nullptr)
             return Core::Unexpected(std::format("0x50f9b3: falta el mundo para el 0x621/2 de la acción {:#x}", action));
         const auto made = Scenes::CreateHighModelEffect({.type = GlowEffect,

@@ -31,6 +31,8 @@
 #include "UI/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
 #include "Kernel/ItemState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -67,10 +69,10 @@ constexpr std::size_t DuelEndedText = 914;      // 0x77000f4
 // 0x4e6090: los textos del 41, del 0 al 5 (0x76e1848, 0x76e1974, 0x76e1aa0, 0x76e1bcc, 0x76e1cf8 y 0x76e44d0).
 constexpr std::array<std::size_t, 6> PartyResultTexts{497, 498, 499, 500, 501, 535};
 // Los sonidos (0x41ed10).
-constexpr std::int32_t TradeItemSound = 0x1d;
-constexpr std::int32_t TradeOkSound = 0x19;
-constexpr std::int32_t DuelStartSound = 0x8d;
-constexpr std::int32_t DuelRequestSound = 0x8c;
+constexpr Audio::SoundId TradeItemSound = Sound::GetItemSound;
+constexpr Audio::SoundId TradeOkSound = Sound::ButtonClickSound;
+constexpr Audio::SoundId DuelStartSound{0x8d};
+constexpr Audio::SoundId DuelRequestSound{0x8c};
 // 0x4e3e0a: el 3C del GS.
 constexpr std::uint8_t OtherOkOff = 0;
 constexpr std::uint8_t OtherOkOn = 1;

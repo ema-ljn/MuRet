@@ -4,6 +4,8 @@
 #include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -39,8 +41,8 @@ inline constexpr std::size_t FilterOffText = 756;
 inline constexpr std::size_t FilterTitleText = 754;
 inline constexpr std::array<std::size_t, 3> ChatButtonHelpTexts{750, 751, 752};
 // 0x41ed10(id, 0, 0): los sonidos que pide.
-inline constexpr std::int32_t ChatButtonSound = 0x19;
-inline constexpr std::int32_t ChatFilterSound = 0x26;
+inline constexpr Audio::SoundId ChatButtonSound = Sound::ButtonClickSound;
+inline constexpr Audio::SoundId ChatFilterSound = Sound::WhisperSound;
 
 struct ChatEntry
 {
@@ -176,7 +178,7 @@ struct ChatMeasure
 //     nombre en el primero;
 //   - después, TrimTheLog, la elección en 0, el corrimiento uno más (si corría y el tipo se ve) y lo acota.
 // Devuelve el sonido que pide.
-[[nodiscard]] Core::Expected<std::optional<std::int32_t>, std::string>
+[[nodiscard]] Core::Expected<std::optional<Audio::SoundId>, std::string>
 AddToTheLog(ChatLogState& log, ChatModes modes, const ChatMeasure& measure, std::string_view name,
             std::string_view text, std::int32_t type, std::int32_t param, bool noticeSound);
 

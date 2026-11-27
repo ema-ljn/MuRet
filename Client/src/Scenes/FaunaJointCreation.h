@@ -4,6 +4,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -91,7 +92,7 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
-           Terrain::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
+           Terrain::TerrainLighting* lighting = nullptr, const std::function<void(Audio::SoundId)>& soundRequest = {},
            const std::function<double(float, float)>& terrainHeight = {},
            std::span<const Kernel::ActorState> actors = {}, const JointKernels::EffectHit& effectHit = {},
            World::ModelEffects* effects = nullptr, const Kernel::ActorState* hero = nullptr,

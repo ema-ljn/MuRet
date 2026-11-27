@@ -2,6 +2,7 @@
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <bit>
 #include <cstddef>
@@ -84,9 +85,9 @@ TEST(CrywolfExplosionsTest, TheRingRetainsThePhysicalVisitOrderAndTheAcceptedExp
         Client::World::PortableParticleTrigonometry trig;
         const float clock = 0;
         std::vector<int> sounds;
-        const auto stepped =
-            Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trig, {}, {}, {}, {},
-                                                lighting.get(), {}, {}, [&](int sound) { sounds.push_back(sound); });
+        const auto stepped = Client::World::StepParticlesChecked(
+            *particles, random, std::cref(clock), nullptr, trig, {}, {}, {}, {}, lighting.get(), {}, {},
+            [&](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); });
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_EQ(random.State(), 0xbb6f8e98u);
         EXPECT_EQ(sounds, (std::vector<int>{0x40}));

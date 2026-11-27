@@ -31,6 +31,8 @@
 #include "UI/GameText.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -49,13 +51,13 @@ namespace
 namespace Npc = Protocol::Npc;
 
 // 0x41ed10 (CL10): lo que dejan en WorldRuntime::lastSoundId.
-constexpr std::int32_t FirstTalkSound = 0x19;    // 0x4d2899
-constexpr std::int32_t FirstChaosSound = 0x57;   // 0x4c5f7f, 0x4c5fcb y 0x4da31b
-constexpr std::int32_t SecondTalkSound = 0x1c;   // 0x4d28a2, después del 0x19
-constexpr std::int32_t ItemSound = 0x1d;         // 0x4e3c4e y 0x4e3cb0
-constexpr std::int32_t RepairSound = 0x25;       // 0x4e3d1d
-constexpr std::int32_t ChaosListSound = 0x44;    // 0x4c5f88, después del 0x57
-constexpr std::int32_t ChaosSuccessSound = 0x45; // 0x4da324, después del 0x57
+constexpr Audio::SoundId FirstTalkSound = Sound::ButtonClickSound;   // 0x4d2899
+constexpr Audio::SoundId FirstChaosSound{0x57};                      // 0x4c5f7f, 0x4c5fcb y 0x4da31b
+constexpr Audio::SoundId SecondTalkSound = Sound::CreateWindowSound; // 0x4d28a2, después del 0x19
+constexpr Audio::SoundId ItemSound = Sound::GetItemSound;            // 0x4e3c4e y 0x4e3cb0
+constexpr Audio::SoundId RepairSound{0x25};                          // 0x4e3d1d
+constexpr Audio::SoundId ChaosListSound{0x44};                       // 0x4c5f88, después del 0x57
+constexpr Audio::SoundId ChaosSuccessSound = Sound::GemSound;        // 0x4da324, después del 0x57
 // La tabla de 0x4d2914 (pkt[3] − 2) y el default de 0x4d2881.
 constexpr std::uint8_t TalkWarehouse = 2;
 constexpr std::uint8_t TalkChaosBox = 3;

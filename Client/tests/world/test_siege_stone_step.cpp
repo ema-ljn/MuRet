@@ -4,6 +4,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
+#include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <memory>
@@ -139,9 +140,9 @@ TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
     auto effect = Flight(World::SiegeStoneEffect);
     effect.seen = true;
     int sounds = 0;
-    state.services.sound = [&](std::int32_t id, const glm::vec3& position)
+    state.services.sound = [&](Client::Audio::SoundId id, const glm::vec3& position)
     {
-        EXPECT_EQ(id, 0x1eb);
+        EXPECT_EQ(id, Client::Audio::SoundId{0x1eb});
         EXPECT_EQ(position, effect.transform.position);
         ++sounds;
     };
@@ -165,9 +166,9 @@ TEST(SiegeStoneStepTest, VisibleLandingSoundsAtTheGroundAdjustedImpactPosition)
     effect.start.z = -100;
     effect.seen = true;
     int sounds = 0;
-    state.services.sound = [&](std::int32_t id, const glm::vec3& position)
+    state.services.sound = [&](Client::Audio::SoundId id, const glm::vec3& position)
     {
-        EXPECT_EQ(id, 0x1eb);
+        EXPECT_EQ(id, Client::Audio::SoundId{0x1eb});
         EXPECT_EQ(position, effect.transform.position);
         EXPECT_EQ(position.z, -5.0f);
         ++sounds;

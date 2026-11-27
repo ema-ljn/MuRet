@@ -1,6 +1,7 @@
 #include "UI/ChatLogWindow.h"
 
 #include "UI/ChatLog.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -60,7 +61,7 @@ bool InRect(const ChatLogStepView& view, std::int32_t x, std::int32_t y, std::in
 // 0x479960: una flecha o la pista con el botón apretado. En 0 corre y empieza la cuenta, hasta 15 la sube (la
 // lista no tiene padre, +0x44 en 0) y desde 16 corre en cada paso.
 void Repeat(ChatLogState& log, ChatModes modes, std::int32_t& counter, std::int32_t lines,
-            std::optional<std::int32_t> sound, ChatLogStepResult& result)
+            std::optional<Audio::SoundId> sound, ChatLogStepResult& result)
 {
     if (counter == 0)
     {

@@ -30,6 +30,7 @@
 #include "Scenes/EventGlobals.h"
 #include "Scenes/NpcWindowState.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 #include <glm/ext/vector_float2.hpp>
 #include <algorithm>
 #include <array>
@@ -417,7 +418,7 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
         EXPECT_EQ(sent[1],
                   (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x04}, std::byte{0x54}, std::byte{0x00}}));
         EXPECT_EQ(tested->world.Runtime().panels.delegated.secondGuild, 0);
-        EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x1c);
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     }
 }
 
@@ -691,7 +692,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
         // strcpy: después del 0, el lugar conserva lo que tenía.
         EXPECT_EQ(slot[8], 'y');
         EXPECT_EQ(input.whisper.text.Value(), "Viejo07");
-        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     }
 }
 

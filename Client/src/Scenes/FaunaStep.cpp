@@ -21,6 +21,7 @@
 #include "World/IFishStepServices.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -98,7 +99,8 @@ public:
         if (m_context.runtime != nullptr)
         {
             const auto* bird = reinterpret_cast<const FaunaObject*>(owner);
-            m_context.runtime->RequestSound(id, bird != nullptr ? std::optional{bird->position} : std::nullopt);
+            m_context.runtime->RequestSound(Audio::SoundId{id},
+                                            bird != nullptr ? std::optional{bird->position} : std::nullopt);
         }
         return {};
     }
@@ -233,8 +235,8 @@ public:
         if (m_context.runtime != nullptr)
         {
             const auto* fish = static_cast<const FaunaObject*>(owner);
-            m_context.runtime->RequestSound(id, fish != nullptr ? std::optional{fish->position} : std::nullopt,
-                                            loop != 0);
+            m_context.runtime->RequestSound(Audio::SoundId{id},
+                                            fish != nullptr ? std::optional{fish->position} : std::nullopt, loop != 0);
         }
         return std::int32_t{0};
     }

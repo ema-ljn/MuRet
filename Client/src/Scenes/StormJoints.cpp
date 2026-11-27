@@ -14,6 +14,8 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -356,7 +358,7 @@ Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointK
     {
         // 0x53bf57..0x53bf6e: 0x53fe70(0x5ee, +0x24, +0x30, +0x48, 0, 3, 0); su alta pide el sonido 0x40 (0x542aa7).
         constexpr float BlazeScale = 3.0f; // 0x53bf59
-        constexpr std::int32_t BlazeSound = 0x40;
+        constexpr Audio::SoundId BlazeSound = Sound::ExplosionSound;
         if (services.particles == nullptr)
             return Core::Unexpected(std::string("0x53bf6e: faltan las partículas del joint 0x632/6"));
         const auto made =

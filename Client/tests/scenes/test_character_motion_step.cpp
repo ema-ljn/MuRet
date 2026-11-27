@@ -13,6 +13,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
 #include "Assets/FaunaModels.h"
+#include "Audio/SoundId.h"
 #include "support/PlayerActors.h"
 #include "support/GoldenDir.h"
 
@@ -171,14 +172,14 @@ TEST_F(CharacterMotionStepTest, WalkingHeroRequestsItsSoundWithoutStoppingTheWor
     actor.animation.action = 13;
     actor.animation.frame = 1.6f;
     std::vector<std::int32_t> sounds;
-    const auto stepped =
-        Client::Actors::StepCharacters({.world = m_world,
-                                        .random = m_random,
-                                        .playerSkeleton = &m_skeleton,
-                                        .terrain = &m_terrain,
-                                        .soundRequest = [&](std::int32_t sound) { sounds.push_back(sound); },
-                                        .trapezoid = &m_trapezoid,
-                                        .faunaModels = &m_faunaModels});
+    const auto stepped = Client::Actors::StepCharacters(
+        {.world = m_world,
+         .random = m_random,
+         .playerSkeleton = &m_skeleton,
+         .terrain = &m_terrain,
+         .soundRequest = [&](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
+         .trapezoid = &m_trapezoid,
+         .faunaModels = &m_faunaModels});
     ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
     EXPECT_EQ(sounds, (std::vector<std::int32_t>{9}));
     EXPECT_EQ(actor.firstFootstepSound, 1);

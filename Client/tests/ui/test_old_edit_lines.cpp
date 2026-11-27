@@ -14,6 +14,7 @@
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
 #include "UI/TextField.h"
+#include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>
@@ -333,7 +334,7 @@ protected:
     std::int32_t m_capture = 0;
     std::int32_t m_pressedButton = 0;
     ChatFocus m_focus = ChatFocus::Game;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;
     bool m_rightClick = false;
@@ -454,7 +455,7 @@ TEST_F(OldEditTest, TheDownArrowScrollsWithTheSoundAndRepeats)
     Step(edit, 290, 230);
 
     EXPECT_EQ(edit.firstLine, 1);
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>(0x19));
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x19});
     EXPECT_EQ(edit.arrowRepeat, 1);
     EXPECT_EQ(m_mouseOnUi, 1);
     EXPECT_EQ(m_focus, ChatFocus::OldWindow);
@@ -528,7 +529,7 @@ TEST_F(OldEditTest, TheRightEdgeOfASingleLineEditSounds)
 
     Step(edit, 20 + 0xb4 - 10, 42);
 
-    EXPECT_EQ(m_sound, std::optional<std::int32_t>(0x19));
+    EXPECT_EQ(m_sound, Client::Audio::SoundId{0x19});
     EXPECT_EQ(edit.firstLine, 0);
     EXPECT_EQ(edit.base.state, 0);
     EXPECT_EQ(m_manager.focusedEdit, 3);

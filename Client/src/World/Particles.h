@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "World/ParticleOwner.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -409,7 +410,7 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                      const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
                      Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands,
-                     const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+                     const ParticleOwnerBones& ownerBones, const std::function<void(Audio::SoundId)>& sound,
                      const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
 
 } // namespace Client::World

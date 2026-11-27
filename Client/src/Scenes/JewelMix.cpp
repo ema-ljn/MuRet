@@ -18,6 +18,8 @@
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "Kernel/ItemState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <array>
 #include <cstddef>
@@ -33,7 +35,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x41ed10(0x19, 0, 0) y 0x6c8dcc: el sonido de los botones de los diálogos y el máximo de MouseUpdateTime.
-constexpr std::int32_t DialogSound = 0x19;
+constexpr Audio::SoundId DialogSound = Sound::ButtonClickSound;
 constexpr std::int32_t DialogMouseUpdateTimeMax = 6;
 // 0x6e5794: juntar (el 0xa2) o deshacer (el 0xa4).
 constexpr std::int32_t MixMode = 0;

@@ -30,6 +30,8 @@
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -62,7 +64,7 @@ Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, s
     actor.animation.previousAction = 1;
     actor.alpha = 1.0f;
     if (sound)
-        resources.world.Runtime().RequestSound(*sound); // (CL10)
+        resources.world.Runtime().RequestSound(Audio::SoundId{*sound}); // (CL10)
     return {};
 }
 
@@ -331,7 +333,7 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
         // 0x4ca616..0x4ca642: un invocado (0x98..0x9e) vuelve al frame 0 (+0x114 y +0x118) y suena 0x61.
         if (summon)
         {
-            constexpr std::int32_t SummonSound = 0x61;
+            constexpr Audio::SoundId SummonSound = Sound::WallFallSound;
             actor.animation.frame = 0.0f;
             actor.animation.previousKey = 0;
             runtime.RequestSound(SummonSound);
@@ -440,7 +442,7 @@ Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const W
     case 0x72:
     case 0x78:
     case 0x7e:
-        runtime.RequestSound(0x173); // (CL10) 0x4c9876
+        runtime.RequestSound(Audio::SoundId{0x173}); // (CL10) 0x4c9876
         return {};
     case 0x154:
     case 0x155:

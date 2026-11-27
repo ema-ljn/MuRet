@@ -23,6 +23,7 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
@@ -434,7 +435,7 @@ TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
         auto& runtime = trainer.Runtime();
         EXPECT_EQ(runtime.panels.delegated.trainer, Client::Scenes::TrainerBoxMode);
         EXPECT_EQ(runtime.panels.inventory, 1);
-        EXPECT_EQ(runtime.lastSoundId, 0x1c);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_FALSE(runtime.movement.pendingClick);
         EXPECT_TRUE(trainer.sent.empty());
         trainer.WithThePanels([](Client::UI::PanelRegistry& panels)
@@ -645,7 +646,7 @@ TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
         EXPECT_FALSE(runtime.movement.pendingClick);
 
         runtime.npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
-        runtime.lastSoundId = 0;
+        runtime.lastSoundId = Client::Audio::SoundId{0};
         const auto closed = trainer.Step(BoxCloseX + 0x17, BoxCloseY + 0x17);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
@@ -654,7 +655,7 @@ TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
         EXPECT_TRUE(SameBytes(trainer.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
         EXPECT_EQ(runtime.panels.delegated.trainer, 0);
         EXPECT_EQ(runtime.panels.inventory, 0);
-        EXPECT_EQ(runtime.lastSoundId, 0x1c);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
     }
 }
 
@@ -681,7 +682,7 @@ TEST(PetTrainerTest, OpeningThePanelStartsTheMenuWithAnEmptyBox)
         EXPECT_FALSE(Client::Scenes::TrainerBoxHasItems(*trainer.world));
         EXPECT_EQ(runtime.panels.character, 0);
         EXPECT_EQ(runtime.panels.inventory, 0);
-        EXPECT_EQ(runtime.lastSoundId, 0x1c);
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_TRUE(trainer.sent.empty());
     }
 }

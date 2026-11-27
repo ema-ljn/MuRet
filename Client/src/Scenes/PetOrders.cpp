@@ -8,6 +8,7 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -72,10 +73,10 @@ void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const WorldEntryRes
         const int roll = resources.cloth.random.Next() % 10;
         spirit.floatF0 = 0.5f;
         spirit.speed = static_cast<float>(roll) + 20.0f;
-        world.Runtime().RequestSound(0x1d2);
+        world.Runtime().RequestSound(Audio::SoundId{0x1d2});
         return;
     }
     if (spirit.state == ShoutingState)
-        world.Runtime().RequestSound(0x1d0);
+        world.Runtime().RequestSound(Audio::SoundId{0x1d0});
 }
 } // namespace Client::Scenes

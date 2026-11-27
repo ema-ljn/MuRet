@@ -43,6 +43,7 @@
 #include "Kernel/ItemState.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainPickingSegment.h"
+#include "Audio/SoundId.h"
 
 #include "support/Bytes.h"
 #include "support/ItemSetFiles.h"
@@ -296,7 +297,7 @@ TEST(FloorItemsSceneTest, TheCreateFillsEachEntryInEveryMap)
         EXPECT_EQ(sword.boundingMin, glm::vec3(-30.0f));
         EXPECT_EQ(sword.boundingMax, glm::vec3(30.0f));
         // 0x6083a5: solo el recién caído suena (CL10).
-        EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1f);
+        EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1f});
     }
 }
 
@@ -586,7 +587,7 @@ TEST(FloorItemsSceneTest, ThePickUpResultTakesTheZenOrNamesTheItem)
     EXPECT_EQ(stage->world.OwnCharacter().zen, 123456u);
     ASSERT_EQ(runtime.chat.log.entries.size(), 1u);
     EXPECT_EQ(runtime.chat.log.entries[0].text, "66053 zen levantado");
-    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
 
     runtime.floor.pendingPickUp = 5;
@@ -599,7 +600,7 @@ TEST(FloorItemsSceneTest, ThePickUpResultTakesTheZenOrNamesTheItem)
     ASSERT_EQ(runtime.chat.log.entries.size(), 2u);
     // El registro guarda el último primero.
     EXPECT_EQ(runtime.chat.log.entries[0].text, "Espada inventada +3 levantado");
-    EXPECT_EQ(runtime.lastSoundId, 0x45);
+    EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x45});
 }
 
 // 0x4d10d0: rechazado, el ítem del cursor vuelve (0x5be150); tirado desde la grilla, sale de ella. Los dos dejan
@@ -797,7 +798,7 @@ protected:
     std::uint8_t m_cellX = 0;
     std::uint8_t m_cellY = 0;
     std::uint8_t m_sand = 0;
-    std::optional<std::int32_t> m_sound;
+    std::optional<Client::Audio::SoundId> m_sound;
     Client::Kernel::HudState m_hud{};
 };
 

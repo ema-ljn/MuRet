@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Audio/SoundId.h"
 #include "Core/Expected.h"
 #include "Kernel/IOnScreenMessages.h"
 #include "Kernel/IPacketSender.h"
@@ -37,7 +38,7 @@ private:
 
 struct SoundRequest
 {
-    std::int32_t id = 0;
+    Client::Audio::SoundId id{0};
     std::optional<glm::vec3> origin;
     bool loop = false;
 
@@ -47,7 +48,7 @@ struct SoundRequest
 class FakeSoundRequests final : public Kernel::ISoundRequests
 {
 public:
-    void Request(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override
+    void Request(Client::Audio::SoundId id, std::optional<glm::vec3> origin, bool loop) override
     {
         m_requests.push_back(SoundRequest{.id = id, .origin = origin, .loop = loop});
     }

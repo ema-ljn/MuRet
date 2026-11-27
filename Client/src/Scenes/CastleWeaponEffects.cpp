@@ -20,6 +20,7 @@
 #include "Terrain/SiegeTerrain.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 #include <glm/ext/vector_float3.hpp>
 #include <cmath>
 #include <cstddef>
@@ -107,7 +108,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std
                           resources);
         !fired.HasValue())
         return fired;
-    resources.world.Runtime().RequestSound(0x1ea);
+    resources.world.Runtime().RequestSound(Audio::SoundId{0x1ea});
     return {};
 }
 Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, std::uint8_t x, std::uint8_t y,
@@ -125,7 +126,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, s
                                            .light = {1, .3f, .1f},
                                            .subtype = 6};
     static_cast<void>(resources.world.Map().effects.CreateCastleShockWave(wave, resources.cloth.random));
-    resources.world.Runtime().RequestSound(0x1ea);
+    resources.world.Runtime().RequestSound(Audio::SoundId{0x1ea});
     return {};
 }
 World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& resources)
@@ -159,7 +160,7 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
                 return Core::Unexpected(std::string("0x5283df: no hay terreno que hundir"));
             return Terrain::DeformTheSiegeTerrain(*terrain, x, y, tx, ty);
         },
-        .sound = [&world](std::int32_t sound, const glm::vec3& position)
+        .sound = [&world](Audio::SoundId sound, const glm::vec3& position)
         { world.Runtime().RequestSound(sound, position, false); }};
     const auto& terrain = TerrainOf(resources);
     if (terrain.heights && terrain.attributes)

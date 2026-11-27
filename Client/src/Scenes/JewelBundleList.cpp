@@ -22,6 +22,8 @@
 #include "UI/GameUiState.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/Widget.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -61,7 +63,7 @@ constexpr std::int32_t BarModeInset = 8;
 // 0x483bc0: la rueda corre de a 3 renglones.
 constexpr std::int32_t WheelRows = 3;
 // 0x41ed10(0x19, 0, 0): las flechas de la barra.
-constexpr std::int32_t ArrowSound = 0x19;
+constexpr Audio::SoundId ArrowSound = Sound::ButtonClickSound;
 // 0x46f2c0: los renglones, de 13, desde 10 sobre el borde de abajo; 0x46f1a0 y 0x46f020 los toman desde 3 más arriba.
 constexpr std::int32_t RowHeight = 0xd;
 constexpr std::int32_t RowsBottom = 10;

@@ -23,6 +23,8 @@
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -164,7 +166,8 @@ Core::Expected<void, std::string> BeginThePiercingChild(ModelEffect& child, cons
     constexpr std::int32_t ChildLife = 100;
     constexpr float ChildScale = 24.0f; // 0x41c00000
     constexpr std::int32_t JointKey = 0x1e, NoTarget = -1;
-    constexpr std::int32_t TrailJoint = 0x610, TrailSound = 0x7a;
+    constexpr std::int32_t TrailJoint = 0x610;
+    constexpr Audio::SoundId TrailSound = Sound::AquaFlashSound;
     child.life = ChildLife;
     child.objectState.blendMesh = 0;
     child.objectState.light = 1.0f;
@@ -1173,7 +1176,7 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
         {
             if (!services.sound)
                 return Core::Unexpected(Cut("0x5257bc", "el sonido 0x91 (0x41ed10) no llegó"));
-            services.sound(0x91);
+            services.sound(Audio::SoundId{0x91});
         }
         return {};
     }

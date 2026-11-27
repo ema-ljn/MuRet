@@ -16,6 +16,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
@@ -164,7 +165,7 @@ protected:
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     CrtRandom random{Seed};
-    std::optional<std::int32_t> sound;
+    std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     RecordingTextDrawer text{sprites};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable(EventTexts());

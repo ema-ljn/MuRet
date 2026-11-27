@@ -7,6 +7,8 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/Widget.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -54,7 +56,7 @@ constexpr std::int32_t EscapeKey = 0x1b;
 constexpr std::int32_t EnterKey = 0xd;
 // 0x45b200: el estado apagado, el modo del rectángulo y el sonido del soltado (0x41ed10, CL10).
 constexpr std::int32_t TopLeftRect = 1;
-constexpr std::int32_t ButtonSound = 0x19;
+constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
 
 // Hasta el primer '\0', como lo copia strcpy.
 std::string_view LineOf(std::string_view text)

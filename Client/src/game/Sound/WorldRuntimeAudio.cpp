@@ -1,5 +1,7 @@
 #include "Kernel/WorldRuntime.h"
 
+#include "Audio/SoundId.h"
+
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
@@ -7,23 +9,23 @@
 
 namespace Client::Kernel
 {
-void WorldRuntime::RequestSound(std::int32_t id, std::optional<glm::vec3> origin, bool loop)
+void WorldRuntime::RequestSound(Audio::SoundId id, std::optional<glm::vec3> origin, bool loop)
 {
     lastSoundId = id;
     if (audio == nullptr)
     {
         return;
     }
-    audio->PlaySound(id, origin, loop);
+    audio->PlaySound(id.Value(), origin, loop);
 }
 
-void WorldRuntime::StopSound(std::int32_t id, bool rewind)
+void WorldRuntime::StopSound(Audio::SoundId id, bool rewind)
 {
     if (audio == nullptr)
     {
         return;
     }
-    audio->StopSound(id, rewind);
+    audio->StopSound(id.Value(), rewind);
 }
 
 void WorldRuntime::SetSoundVolume(std::uint8_t level)

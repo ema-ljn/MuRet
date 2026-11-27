@@ -25,6 +25,7 @@
 #include "World/Particles.h"
 #include "World/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -165,11 +166,12 @@ struct SkillWorld
                                     .terrain = &terrain,
                                     .particles = withParticles ? &world.Particles() : nullptr,
                                     .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
-                                    .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+                                    .soundRequest = [this](Client::Audio::SoundId sound)
+                                    { sounds.push_back(sound.Value()); },
                                     .soundAt =
-                                        [this](std::int32_t sound, const glm::vec3& origin)
+                                        [this](Client::Audio::SoundId sound, const glm::vec3& origin)
                                     {
-                                        sounds.push_back(sound);
+                                        sounds.push_back(sound.Value());
                                         soundOrigins.push_back(origin);
                                     },
                                     .controlDown = controlDown};

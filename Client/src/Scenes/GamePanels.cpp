@@ -30,6 +30,7 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -80,7 +81,7 @@ UI::PanelContext ContextOf(Kernel::WorldState& world, Crt::CrtRandom& random, Ga
     // 0x6689d0: el ancho del mundo con Senior y su auxiliar abiertos.
     context.heroSiegeMark = HeroCanCraftAtTheCastle(world);
     context.inventoryBusy = [&world]() { return CastleSeniorBusy(world); };
-    context.sound = [&runtime](std::int32_t id) { runtime.RequestSound(id); };
+    context.sound = [&runtime](Audio::SoundId id) { runtime.RequestSound(id); };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
     // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
     context.tradeClosed = [&world, &random](bool aux) { return CloseTheTradeGrids(world, random, aux, {}); };

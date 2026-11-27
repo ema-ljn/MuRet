@@ -8,6 +8,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/SlideBanner.h"
+#include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
 
@@ -242,7 +243,7 @@ TEST(WinMainLoopTest, CrywolfAtStageFiveRequestsItsSound)
 
         tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
 
-        EXPECT_EQ(runtime.lastSoundId, std::optional<std::int32_t>(sound));
+        EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{sound});
     }
 }
 
@@ -271,7 +272,7 @@ TEST(WinMainLoopTest, TheGameMusicStepsBeforeTheFrameCounterCloses)
 
     tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
 
-    EXPECT_EQ(tail.world->Runtime().lastSoundId, std::optional<std::int32_t>(ForestSound));
+    EXPECT_EQ(tail.world->Runtime().lastSoundId, Client::Audio::SoundId{ForestSound});
 }
 
 TEST(WinMainLoopTest, TheCrywolfSoundNeedsItsMapAndItsStage)

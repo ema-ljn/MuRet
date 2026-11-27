@@ -3,6 +3,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/ChatLog.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <optional>
@@ -60,7 +61,7 @@ struct ChatLogStepView
 struct ChatLogStepResult
 {
     // 0x41ed10(id, 0, 0): los sonidos que pide, en orden.
-    std::vector<std::int32_t> sounds;
+    std::vector<Audio::SoundId> sounds;
     // 0x4694c0(0, 0, 1, nombre) sobre 0x57634f8: el nombre del renglón elegido para el campo del susurro (su EDIT
     // de +0xf0, vtable + 0x4c), con el clic derecho.
     std::optional<std::string> whisperTo;

@@ -29,6 +29,8 @@
 #include "World/Particles.h"
 #include "World/WizardModelEffects.h"
 #include "Assets/FaunaModels.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -74,10 +76,10 @@ constexpr std::uint8_t FifteenthStep = 15;
 // Las acciones de pegar de un monstruo (+0x111).
 constexpr std::uint8_t FirstAttack = 3;
 constexpr std::uint8_t SecondAttack = 4;
-constexpr std::int32_t RoarSound = 0x75;
-constexpr std::int32_t HowlSound = 0x50;
-constexpr std::int32_t HitSound = 0x42;
-constexpr std::int32_t AngryRoarSound = 0x77;
+constexpr Audio::SoundId RoarSound{0x75};
+constexpr Audio::SoundId HowlSound{0x50};
+constexpr Audio::SoundId HitSound = Sound::MeteoriteSound;
+constexpr Audio::SoundId AngryRoarSound{0x77};
 constexpr std::int32_t TailFireParticle = World::FireParticle;
 constexpr std::int32_t TailThunderParticle = World::ThunderParticle;
 constexpr float TailParticleScale = 1.0f;
@@ -172,7 +174,7 @@ std::uint8_t ReadTheSkill(Kernel::ActorState& actor, CrtRandom& random)
 }
 
 // 0x41ed10(sonido, 0, 0): la CL10 decide cómo suena.
-void RequestTheSound(const Actors::CharacterStepContext& context, std::int32_t sound)
+void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId sound)
 {
     if (context.soundRequest)
         context.soundRequest(sound);
@@ -301,7 +303,7 @@ JointKernels::CreationServices JointServices(const Actors::CharacterStepContext&
                 return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale,
                                                        placement.origin);
             },
-            .soundRequest = [&context](std::int32_t sound) { RequestTheSound(context, sound); },
+            .soundRequest = [&context](Audio::SoundId sound) { RequestTheSound(context, sound); },
             .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
             .ownVolley = &context.world.OwnCharacter().bytef04};
 }
@@ -567,7 +569,7 @@ Core::Expected<void, std::string> ThrowTheFireRing(const Kernel::ActorState& act
     constexpr glm::vec3 FireReach{0.0f, 300.0f, 0.0f};
     constexpr std::int32_t FireSubtype = 8;
     constexpr std::uint16_t FireKey = 0;
-    constexpr std::int32_t BurstSound = 0x1e0;
+    constexpr Audio::SoundId BurstSound{0x1e0};
     constexpr int FullTurn = Math::FullTurn;
     glm::vec3 turn{0.0f, 0.0f, static_cast<float>(context.random.Next() % FullTurn)};
     for (int fire = 0; fire < Fires; ++fire)
@@ -599,7 +601,7 @@ Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::
     constexpr float RingTurn = 120.0f; // 0x6b86c8
     constexpr int Rings = 3;
     constexpr std::int32_t RingSubtype = 1;
-    constexpr std::int32_t RingSound = 0x1df;
+    constexpr Audio::SoundId RingSound{0x1df};
     const glm::vec3 point{actor.position.x, actor.position.y,
                           static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(Hover))};
     for (int ring = 0; ring < Rings; ++ring)
@@ -632,9 +634,9 @@ Core::Expected<void, std::string> StepTheKalimaSkill(Kernel::ActorState& actor, 
     constexpr std::uint8_t GuardSkill = 0xca;
     constexpr std::uint32_t WardFlag = 0x100;
     constexpr std::uint32_t GuardFlag = 0x8;
-    constexpr std::int32_t GuardSound = 0x1e1;
-    constexpr std::int32_t BurstSound = 0x1e0;
-    constexpr std::int32_t RingSound = 0x1df;
+    constexpr Audio::SoundId GuardSound{0x1e1};
+    constexpr Audio::SoundId BurstSound{0x1e0};
+    constexpr Audio::SoundId RingSound{0x1df};
     if (actor.byte381 >= ThirteenthStep && !HasFreeModelEffect(context) &&
         (skill == BurstSkill || skill == RingSkill || skill == ShieldSkill))
     {

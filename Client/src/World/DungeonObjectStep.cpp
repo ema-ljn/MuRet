@@ -9,6 +9,7 @@
 #include "World/ObjectModelStepState.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -187,7 +188,7 @@ Core::Expected<void, std::string> KickObject(WorldObject& object, const ObjectSt
     constexpr double Push = static_cast<double>(std::bit_cast<float>(0xbecccccdu));
     constexpr double Spin = -4.0;
     constexpr double Decay = static_cast<double>(std::bit_cast<float>(0x3f19999au));
-    constexpr std::int32_t KickSound = 0x7c;
+    constexpr Audio::SoundId KickSound{0x7c};
     const std::uint8_t action = *globals.heroAction;
     if (action >= FirstKickAction && action <= LastKickAction && !(object.velocity.x >= StillSpeed))
     {

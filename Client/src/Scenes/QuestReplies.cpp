@@ -23,6 +23,7 @@
 #include "Session/WorldTransitionSupport.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -37,9 +38,9 @@ namespace Client::Scenes
 namespace
 {
 // 0x4ddbb3: 0x41ed10(0x66, 0, 0) antes del switch, y otra vez al final de la 0xc9, la 0xca y la 0xcb (0x4de4db).
-constexpr std::int32_t PrizeSound = 0x66;
+constexpr Audio::SoundId PrizeSound{0x66};
 // 0x4dde55: el de la 0xc8, que vuelve sin la acción ni el segundo 0x66.
-constexpr std::int32_t PointsPrizeSound = 0x65;
+constexpr Audio::SoundId PointsPrizeSound{0x65};
 // 0x4de145 (0x4de416, 0x4de4ca): 0x4ea030(personaje, 0xb8) después de 0x513100.
 constexpr std::uint8_t ClassPrizeAction = 0xb8;
 

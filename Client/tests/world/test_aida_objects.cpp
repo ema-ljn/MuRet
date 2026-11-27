@@ -3,6 +3,7 @@
 #include "Models/ObjectState.h"
 #include "Terrain/TerrainLighting.h"
 #include "World/WorldObjects.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -44,7 +45,7 @@ struct Step
     Step()
     {
         globals.dynamicLighting = lighting.get();
-        globals.sound = [this](std::int32_t sound) { sounds.push_back(sound); };
+        globals.sound = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
     }
 };
 
@@ -140,7 +141,7 @@ TEST(AidaObjectsTest, EveryObjectRequestsTheAmbientSoundAndTheGuardianNeedsTheDy
     EXPECT_EQ(mist.state.hiddenMesh, Client::World::HiddenObject);
 
     ObjectStepGlobals dark;
-    dark.sound = [](std::int32_t) {};
+    dark.sound = [](Client::Audio::SoundId) {};
     auto guardian = Object(0x1e);
     CrtRandom drawn(7);
     const auto unlit = StepWorldObjectChecked(guardian, SelectionMap, nullptr, drawn, dark);

@@ -43,6 +43,8 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <algorithm>
 #include <array>
@@ -62,7 +64,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x41ed10(0x19, 0, 0): el sonido de los botones de los diálogos.
-constexpr std::int32_t DialogSound = 0x19;
+constexpr Audio::SoundId DialogSound = Sound::ButtonClickSound;
 // 0x6c8dcc: el máximo de MouseUpdateTime que dejan los botones.
 constexpr std::int32_t DialogMouseUpdateTimeMax = 6;
 

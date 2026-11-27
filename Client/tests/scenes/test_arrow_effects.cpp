@@ -25,6 +25,7 @@
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
 #include "support/SameBytes.h"
@@ -195,11 +196,12 @@ struct ArrowWorld
                                     .playerSkeleton = &skeleton,
                                     .terrain = &terrain,
                                     .particles = &particles,
-                                    .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+                                    .soundRequest = [this](Client::Audio::SoundId sound)
+                                    { sounds.push_back(sound.Value()); },
                                     .soundAt =
-                                        [this](std::int32_t sound, const glm::vec3& origin)
+                                        [this](Client::Audio::SoundId sound, const glm::vec3& origin)
                                     {
-                                        sounds.push_back(sound);
+                                        sounds.push_back(sound.Value());
                                         soundOrigins.push_back(origin);
                                     }};
     }
@@ -218,7 +220,7 @@ struct ArrowWorld
                              : ground.has_value() ? std::function<double(float, float)>(
                                                         [this](float, float) { return ground.value_or(0.0); })
                                                   : std::function<double(float, float)>{},
-            .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
+            .soundRequest = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
             .send = [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }};
     }
 
@@ -1144,7 +1146,7 @@ TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
             EXPECT_EQ(trail->transform.position, arrow.transform.position);
             EXPECT_EQ(trail->start, arrow.transform.position);
             EXPECT_EQ(trail->owner.effect, &arrow);
-            EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x7a);
+            EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x7a});
             EXPECT_EQ(arrow.dword100, 0);
             EXPECT_EQ(arrow.state, 1);
             EXPECT_EQ(arrow.word8c, 0);
@@ -1537,7 +1539,7 @@ TEST(ArrowEffectsTest, TheSkillOfThePlaceDecidesTheHit)
             {
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
                 constexpr int FullBurst = 20 * (2 + 5);
-                EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x40);
+                EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x40});
                 EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + fireDraws + OwnRecord + FullBurst);
                 EXPECT_EQ(arrow.life, 29);
             }
@@ -2297,11 +2299,11 @@ TEST(ArrowEffectsTest, CelestialPulseAtLifeThirteenCreatesTheTrailPulseAndMovesO
         if (full)
         {
             EXPECT_EQ(joints, 0);
-            EXPECT_NE(tested.world.Runtime().lastSoundId, 0x7a);
+            EXPECT_NE(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x7a});
             continue;
         }
         EXPECT_EQ(joints, 4);
-        EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x7a);
+        EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x7a});
         const auto& pulse = tested.world.Map().effects.Effects()[1];
         ASSERT_TRUE(pulse.alive);
         EXPECT_EQ(pulse.type, 0x105);
@@ -2343,7 +2345,7 @@ TEST(ArrowEffectsTest, CelestialArrowStaysPutWhileItsStartTravelsForThirtySteps)
         EXPECT_EQ(arrow.alive, step < 30);
     }
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 30);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x7a);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x7a});
     const auto& pulse = tested.world.Map().effects.Effects()[1];
     EXPECT_EQ(pulse.type, 0x105);
     EXPECT_EQ(pulse.transform.position, (glm::vec3{1000, 3000, 130}));
@@ -2368,6 +2370,6 @@ TEST(ArrowEffectsTest, CelestialPulsePrecedesTheHitAndDoesNotSkipItsLightOrLifet
     EXPECT_EQ(arrow.transform.position, (glm::vec3{1000, 1000, 130}));
     EXPECT_TRUE(tested.world.Map().effects.Effects()[1].alive);
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 1);
-    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x7a);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x7a});
     EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& light) { return light[0] > 0; }));
 }

@@ -22,6 +22,8 @@
 #include "UI/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <array>
 #include <bit>
@@ -38,7 +40,7 @@ namespace
 namespace Castle = Protocol::CastleSiege;
 using CastleUi::ConsumeClick;
 using CastleUi::Send;
-constexpr std::int32_t ClickSound = 0x19;
+constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
 
 bool Hit(const GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
 {
@@ -116,7 +118,7 @@ void StepList(const GameUiContext& context, UI::OldList& list, std::deque<UI::Ca
                                .sound = runtime.lastSoundId,
                                .drawn = runtime.oldWindows.drawn != 0,
                                .modal = runtime.oldWindows.modal,
-                               .soundRequest = [&runtime](std::int32_t sound) { runtime.RequestSound(sound); }};
+                               .soundRequest = [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); }};
     UI::OldListView view{.mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
                              return context.input.IsDown(key == 0x26 ? Input::Key::Up : Input::Key::Down);
                          }};

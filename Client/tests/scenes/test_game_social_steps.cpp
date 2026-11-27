@@ -16,6 +16,7 @@
 #include "Kernel/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/PanelRegistry.h"
+#include "Audio/SoundId.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -167,7 +168,7 @@ TEST_P(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
     EXPECT_EQ(m_requests.sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x3c, 0x01}));
     EXPECT_EQ(Draws(), 1 + 2);
     EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 
     // Con 0x78abaa5 prendido y el OK propio en 1, lo apaga.
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61 + 0x17, 0x186 + 0x17).HasValue());
@@ -219,7 +220,7 @@ TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
     EXPECT_EQ(Runtime().social.moneyField, 1);
     EXPECT_EQ(Runtime().social.typedMoney, 0);
     EXPECT_EQ(Runtime().social.trade.field78abacc, 2);
-    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FALSE(Runtime().movement.pendingClick);
     EXPECT_TRUE(m_requests.sent.empty());
 }
@@ -309,7 +310,7 @@ TEST_P(GameSocialStepsTest, TheSessionClosesBothGuildWindows)
     const auto second = panels.Registry().Close(Client::UI::SecondGuildPanel);
     ASSERT_TRUE(second.HasValue()) << second.Error();
     EXPECT_EQ(delegated.secondGuild, 0);
-    EXPECT_EQ(Runtime().lastSoundId, 0x1c);
+    EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     ASSERT_EQ(m_requests.guild.size(), 1u);
     EXPECT_FALSE(m_requests.guild[0].encrypted);
     EXPECT_EQ(m_requests.guild[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x54, 0x00}));

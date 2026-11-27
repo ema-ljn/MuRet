@@ -251,7 +251,7 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
         {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true, &m_skeleton});
     ASSERT_TRUE(walked.HasValue()) << (walked.HasValue() ? "" : walked.Error());
     ASSERT_TRUE(walked.Value().sound.has_value());
-    EXPECT_EQ(*walked.Value().sound, 0x7c);
+    EXPECT_EQ(*walked.Value().sound, Client::Audio::SoundId{0x7c});
     EXPECT_EQ(m_random.State(), 1U);
 }
 
@@ -277,7 +277,7 @@ TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
 
     const auto unwritten = walk(0);
     ASSERT_TRUE(unwritten.HasValue()) << (unwritten.HasValue() ? "" : unwritten.Error());
-    EXPECT_EQ(unwritten.Value().sound, std::optional<std::int32_t>(0xd2));
+    EXPECT_EQ(unwritten.Value().sound, Client::Audio::SoundId{0xd2});
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(seed, 2).State());
 
     m_runtime.modelSounds[Model] = {0x30, 0x31, -1, -1, -1, -1, -1, -1, -1, -1};
@@ -285,7 +285,7 @@ TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
     ASSERT_TRUE(ninth.HasValue()) << (ninth.HasValue() ? "" : ninth.Error());
     auto expected = Client::Tests::AfterDraws(seed, 1);
     const std::int32_t word = expected.Next() % 2;
-    EXPECT_EQ(ninth.Value().sound, std::optional<std::int32_t>(0x30 + word + 5 + 0xd2));
+    EXPECT_EQ(ninth.Value().sound, Client::Audio::SoundId{0x30 + word + 5 + 0xd2});
     EXPECT_EQ(m_random.State(), expected.State());
 
     m_runtime.modelSounds[Model][0] = -1;
@@ -392,7 +392,8 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
             {
                 ++sounded;
                 const std::int32_t base = subtype == 9 ? 0xd2 + 5 : 0xd2;
-                EXPECT_TRUE(*walked.Value().sound == base + 0x10 || *walked.Value().sound == base + 0x11);
+                EXPECT_TRUE(walked.Value().sound->Value() == base + 0x10 ||
+                            walked.Value().sound->Value() == base + 0x11);
             }
 
             Client::Crt::CrtRandom quiet(seed);
@@ -415,7 +416,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
             EXPECT_EQ(unknown.Value().sound.has_value(), walked.Value().sound.has_value());
             if (unknown.Value().sound.has_value())
             {
-                EXPECT_EQ(*unknown.Value().sound, subtype == 9 ? 0xd2 + 5 : 0xd2);
+                EXPECT_EQ(*unknown.Value().sound, Client::Audio::SoundId{subtype == 9 ? 0xd2 + 5 : 0xd2});
             }
             if (walked.Value().sound.has_value())
             {
@@ -476,7 +477,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
             if (expected.Value().sound.has_value())
             {
                 ++sounded;
-                EXPECT_EQ(muted.Value().sound, 0x7b);
+                EXPECT_EQ(muted.Value().sound, Client::Audio::SoundId{0x7b});
             }
             else
             {

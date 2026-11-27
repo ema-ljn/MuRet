@@ -13,6 +13,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Assets/FaunaModels.h"
+#include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <cstdint>
 #include <memory>
@@ -115,7 +116,7 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
             {
                 EXPECT_EQ(world->Map().effects.Effects()[0].type, 0x636);
                 EXPECT_EQ(world->Particles().All()[0].subtype, 2);
-                EXPECT_EQ(world->Runtime().lastSoundId, 0x40);
+                EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
             }
         }
 }

@@ -30,6 +30,7 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "Session/ModuleStates.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -257,7 +258,7 @@ TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
         EXPECT_EQ(shine.typedOwner,
                   (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, CasterSlot}));
     }
-    EXPECT_EQ(m_world->Runtime().lastSoundId, std::optional<std::int32_t>{0x76});
+    EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x76});
     EXPECT_EQ(Caster().animation.action, 0x96);
     EXPECT_EQ(Caster().byte38e, Magic);
     EXPECT_EQ(Caster().byte38eAccesses, 0);

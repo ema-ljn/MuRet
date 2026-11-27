@@ -23,6 +23,8 @@
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 #include "Math/OriginalRotation.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -836,7 +838,7 @@ Core::Expected<void, std::string> ScatterCrywolfImpact(const glm::vec3& position
         if (!burst.HasValue())
             return Core::Unexpected(std::string("0x520086: burst de impactoCrywolf sin partículas"));
         if (burst.Value() && services.sound)
-            services.sound(0x40);
+            services.sound(Sound::ExplosionSound);
         for (int stone = 0; stone < 2; ++stone)
         {
             const auto type = static_cast<std::int16_t>(FirstStoneChipEffect + (random.Next() & 1));
@@ -944,9 +946,9 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
         if (created)
         {
             if (services.soundAt)
-                services.soundAt(0x58, effect.transform.position);
+                services.soundAt(Audio::SoundId{0x58}, effect.transform.position);
             else if (services.sound)
-                services.sound(0x58);
+                services.sound(Audio::SoundId{0x58});
         }
         return {};
     }
@@ -966,9 +968,9 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
                 return Core::Unexpected(std::string("0x52b339: el estallido60d sin su partícula"));
         }
         if (services.soundAt)
-            services.soundAt(0x59, effect.transform.position);
+            services.soundAt(Audio::SoundId{0x59}, effect.transform.position);
         else if (services.sound)
-            services.sound(0x59);
+            services.sound(Audio::SoundId{0x59});
     }
     const auto trail = particles.CreateChecked(0x60d, effect.transform.position, effect.transform.angles, effect.light,
                                                -1, 1, worldClock, random);
@@ -1146,7 +1148,8 @@ constexpr double QuakeCellScale = static_cast<double>(std::bit_cast<float>(0x3c2
 constexpr std::uint16_t SeparateOwnerType = 0x1b1;
 // La altura de las grietas sobre el terreno: 3 (0x6b86b8), o 100 (0x6b86b4) en Kalima.
 constexpr double CrackRise = 3.0, KalimaCrackRise = 100.0;
-constexpr std::int32_t ExplosionSound = 0x40, QuakeSound = 0x97;
+constexpr Audio::SoundId ExplosionSound = Sound::ExplosionSound;
+constexpr Audio::SoundId QuakeSound{0x97};
 
 // 0x5fc8f0 y 0x5fcbd0: `offset` girado por AngleMatrix de `angles`.
 glm::vec3 Turned(const glm::vec3& offset, const glm::vec3& angles)
@@ -1486,7 +1489,7 @@ Core::Expected<void, std::string> EmitEarthquakeTrails(ModelEffect& effect, Crt:
     constexpr glm::vec3 Behind{-25.0f, -40.0f, 0.0f};
     constexpr int GroupSize = 4, HorizontalRange = 30, HorizontalMinimum = 20;
     constexpr int VerticalRange = 500, VerticalMinimum = -250;
-    constexpr std::int32_t TrailSound = 0x96;
+    constexpr Audio::SoundId TrailSound{0x96};
     if (effect.owner.angles == nullptr)
         return Core::Unexpected(std::string("0x5224ec: el terremoto necesita los ángulos de su dueño"));
     if (services.effects == nullptr)

@@ -22,6 +22,7 @@
 #include "Terrain/TerrainAttributeQuery.h"
 #include "World/WizardModelEffects.h"
 #include "World/WorldObjectStepServices.h"
+#include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -123,7 +124,7 @@ Core::Expected<void, std::string> CreateSpiritJoint(JointState& joint, const Wor
         break;
     case 1: // 0x53309e..0x5330cd: y suena 0x3e.
     {
-        constexpr std::int32_t BirthSound = 0x3e;
+        constexpr Audio::SoundId BirthSound{0x3e};
         joint.speed = 70.0f;
         joint.life = 49;
         joint.width = request.scale;

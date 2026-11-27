@@ -9,6 +9,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "UI/Widget.h"
+#include "Audio/SoundId.h"
 
 #include <cstdint>
 #include <functional>
@@ -60,10 +61,10 @@ struct GameHudContext
     // nullptr, la de WorldRuntime.
     Kernel::CrywolfInterface* crywolfInterface = nullptr;
     // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
-    std::optional<std::int32_t>& sound;
-    std::function<void(std::int32_t)> soundRequest{};
+    std::optional<Audio::SoundId>& sound;
+    std::function<void(Audio::SoundId)> soundRequest{};
 
-    void RequestSound(std::int32_t id) const
+    void RequestSound(Audio::SoundId id) const
     {
         if (soundRequest)
             soundRequest(id);

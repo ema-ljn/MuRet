@@ -18,6 +18,8 @@
 #include "World/MissileFireParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/WorldObjectStepServices.h"
+#include "Audio/SoundId.h"
+#include "Sound/SoundIds.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -260,7 +262,7 @@ void CreateTheExplosion(Particle& particle, float scale)
 // (f · 0,5f; f · 0,3f; f · 0,1f) con f = vida · 0,05f (0x6b8ad0) retenido en la x87 entre los tres productos.
 Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particles& particles, Crt::CrtRandom& random,
                                                      const float* worldClock, Terrain::TerrainLighting* lighting,
-                                                     const std::function<void(std::int32_t)>& sound)
+                                                     const std::function<void(Audio::SoundId)>& sound)
 {
     particle.field48 = std::bit_cast<float>((ExplosionLife - particle.life) / 2);
     if (particle.subtype == 2)
@@ -287,7 +289,7 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
                 if (!burst.HasValue())
                     return Core::Unexpected(burst.Error());
                 if (burst.Value() && sound)
-                    sound(0x40);
+                    sound(Sound::ExplosionSound);
             }
         }
     }
@@ -2641,7 +2643,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
     IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
     const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
     Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
-    const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
+    const std::function<void(Audio::SoundId)>& sound, const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -3037,7 +3039,7 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
                      const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
                      Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands,
-                     const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+                     const ParticleOwnerBones& ownerBones, const std::function<void(Audio::SoundId)>& sound,
                      const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,

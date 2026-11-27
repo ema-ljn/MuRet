@@ -13,8 +13,10 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -52,6 +54,20 @@ TEST(KernelPortsTest, AFakeSoundRequestsKeepsTheIdTheOriginAndTheLoop)
               (std::vector<SoundRequest>{
                   {.id = Client::Audio::SoundId{0x19}, .origin = std::nullopt, .loop = false},
                   {.id = Client::Audio::SoundId{0x8b}, .origin = glm::vec3(1.0f, 2.0f, 3.0f), .loop = true}}));
+}
+
+TEST(KernelPortsTest, AFakeSoundRequestsKeepsTheStopsWithTheirRewindAndTheVolumes)
+{
+    FakeSoundRequests fake;
+    Client::Kernel::ISoundRequests& sounds = fake;
+
+    sounds.Stop(Client::Audio::SoundId{0x99}, true);
+    sounds.Stop(Client::Audio::SoundId{0x9e}, false);
+    sounds.SetEffectsVolume(7);
+
+    EXPECT_EQ(fake.Stops(), (std::vector<std::pair<Client::Audio::SoundId, bool>>{
+                                {Client::Audio::SoundId{0x99}, true}, {Client::Audio::SoundId{0x9e}, false}}));
+    EXPECT_EQ(fake.Volumes(), std::vector<std::uint8_t>{7});
 }
 
 TEST(KernelPortsTest, AFakeOnScreenMessagesKeepsEachMessageAndAnswersWithItsFailure)

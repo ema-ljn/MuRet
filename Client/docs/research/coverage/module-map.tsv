@@ -24,8 +24,8 @@ App/FontFiles.cpp	54	App	app/App	high	engine or protocol layer, no game state
 App/FontFiles.h	42	App	app/App	high	engine or protocol layer, no game state
 App/FrameRateMeter.cpp	28	App	app/App	high	engine or protocol layer, no game state
 App/FrameRateMeter.h	37	App	app/App	high	engine or protocol layer, no game state
-App/GameClient.cpp	342	App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
-App/GameClient.h	184	App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
+App/GameClient.cpp	345	App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
+App/GameClient.h	188	App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
 App/GameLoop.cpp	166	App	app/App	high	engine or protocol layer, no game state
 App/GameLoop.h	82	App	app/App	high	engine or protocol layer, no game state
 App/IChatRoomLinks.h	37	App	app/App	high	engine or protocol layer, no game state
@@ -59,6 +59,8 @@ engine/Audio/SoundId.h	11	engine/Audio	engine/Audio	high	the id of the sound cat
 game/Sound/SoundCatalog.cpp	657	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 game/Sound/SoundCatalog.h	22	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 game/Sound/SoundIds.h	26	game/Sound	game/Sound	high	the sounds of the catalog more than one module asks for, each named after its WAV (AR4.1)
+game/Sound/SoundRequests.cpp	32	game/Sound	game/Sound	high	the kernel's sound port over the device that plays the catalog (AR4.1)
+game/Sound/SoundRequests.h	27	game/Sound	game/Sound	high	the kernel's sound port over the device that plays the catalog (AR4.1)
 engine/Audio/SoundDefinition.h	15	engine/Audio	engine/Audio	high	what the platform audio needs to know of one sound (AR1.1)
 engine/Core/Ascii.cpp	28	engine/Core	engine/Core	high	engine or protocol layer, no game state
 engine/Core/Ascii.h	22	engine/Core	engine/Core	high	engine or protocol layer, no game state
@@ -1072,7 +1074,7 @@ Scenes/QuestWindowDrawing.cpp	644	Scenes	game/Quests	high	quests (2026-11-21 rev
 Scenes/QuestWindowStep.cpp	316	Scenes	game/Quests	high	quests (2026-11-21 review)
 Scenes/Quests.cpp	637	Scenes	game/Quests	high	quests (2026-11-21 review)
 Scenes/Quests.h	116	Scenes	game/Quests	high	quests (2026-11-21 review)
-game/Session/ReturnToSelection.cpp	197	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
+game/Session/ReturnToSelection.cpp	204	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
 game/Session/ReturnToSelection.h	36	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
 Scenes/RingEffects.cpp	177	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/RingEffects.h	51	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
@@ -1201,8 +1203,7 @@ game/Assets/WorldModels.cpp	484	game/Assets	game/Assets	high	models and textures
 game/Assets/WorldModels.h	115	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 Scenes/WorldObjectsDrawing.cpp	1030	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldObjectsDrawing.h	241	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
-game/Kernel/WorldRuntime.h	623	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
-game/Sound/WorldRuntimeAudio.cpp	39	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
+game/Kernel/WorldRuntime.h	586	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Kernel/WorldState.cpp	266	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
@@ -1490,7 +1491,7 @@ game/Session/SessionHandlers.h	96	game/Session	game/Session	high	the routed hand
 game/Session/SessionHandlers.cpp	125	game/Session	game/Session	high	the routed handlers that need the session itself: the warp, the regen, the trade request, the shop list, the events, the bound NPC windows and the short floor-item replies (AR2.3)
 game/Kernel/PlayerKey.h	11	game/Kernel	game/Kernel	high	the key of the player's own character, a part a routed handler can name (AR2.2)
 game/Kernel/IPacketSender.h	15	game/Kernel	game/Kernel	high	the port a module sends a world packet through (AR4.1)
-game/Kernel/ISoundRequests.h	18	game/Kernel	game/Kernel	high	the port a module requests a sound through (AR4.1)
+game/Kernel/ISoundRequests.h	22	game/Kernel	game/Kernel	high	the port a module requests a sound through (AR4.1)
 game/Kernel/IOnScreenMessages.h	19	game/Kernel	game/Kernel	high	the port a module writes an on-screen message through (AR4.1)
 game/Session/ModuleStates.h	15	game/Session	game/Session	high	each module's state, owned beside the world state and handed by the routes (AR4.1)
 game/Session/SessionPacketSender.h	23	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)

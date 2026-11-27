@@ -51,6 +51,7 @@
 #include "Kernel/ItemState.h"
 #include "World/ModelEffects.h"
 #include "Audio/SoundId.h"
+#include "Sound/SoundRequests.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -739,6 +740,8 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         tested.dataRoot = m_dataRoot;
         auto& runtime = tested.world.Runtime();
         runtime.audio = &playback;
+        Client::Sound::SoundRequests playbackRequests(&playback);
+        runtime.sounds = &playbackRequests;
         runtime.map = pass.from;
         runtime.warpCounter = 9999999;
         const Letters letters;

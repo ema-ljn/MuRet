@@ -31,6 +31,7 @@
 #include "Scenes/WinMainLoop.h"
 #include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
+#include "Sound/SoundRequests.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
 
@@ -163,6 +164,7 @@ private:
 
     const Tables::GameData& m_data;
     GameClientDevices m_devices;
+    Sound::SoundRequests m_sounds;
     GameClientOptions m_options;
     Models::ClothWorld m_cloth;
     Camera::GameCamera m_camera;

@@ -52,14 +52,32 @@ public:
     {
         m_requests.push_back(SoundRequest{.id = id, .origin = origin, .loop = loop});
     }
+    void Stop(Client::Audio::SoundId id, bool rewind) override
+    {
+        m_stops.emplace_back(id, rewind);
+    }
+    void SetEffectsVolume(std::uint8_t level) override
+    {
+        m_volumes.push_back(level);
+    }
 
     [[nodiscard]] const std::vector<SoundRequest>& Requests() const
     {
         return m_requests;
     }
+    [[nodiscard]] const std::vector<std::pair<Client::Audio::SoundId, bool>>& Stops() const
+    {
+        return m_stops;
+    }
+    [[nodiscard]] const std::vector<std::uint8_t>& Volumes() const
+    {
+        return m_volumes;
+    }
 
 private:
     std::vector<SoundRequest> m_requests;
+    std::vector<std::pair<Client::Audio::SoundId, bool>> m_stops;
+    std::vector<std::uint8_t> m_volumes;
 };
 
 struct OnScreenMessage

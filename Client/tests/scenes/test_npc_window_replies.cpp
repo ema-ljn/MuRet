@@ -33,6 +33,7 @@
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
 #include "Audio/SoundId.h"
+#include "Sound/SoundRequests.h"
 
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
@@ -695,6 +696,8 @@ TEST_F(NpcWindowRepliesTest, NativeSoundPairsReachPlaybackInOrderWithoutAnOrigin
 {
     NpcPlayback playback;
     stage->world.Runtime().audio = &playback;
+    Client::Sound::SoundRequests playbackRequests(&playback);
+    stage->world.Runtime().sounds = &playbackRequests;
     ASSERT_TRUE(Talk(13).HasValue());
     EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
     playback.sounds.clear();
@@ -709,6 +712,7 @@ TEST_F(NpcWindowRepliesTest, NativeSoundPairsReachPlaybackInOrderWithoutAnOrigin
         Client::Scenes::ApplyChaosMixResult({.result = 1, .item = ItemBytes(Sword)}, stage->Resources()).HasValue());
     EXPECT_EQ(playback.sounds, (std::vector<std::int32_t>{0x57, 0x45}));
     stage->world.Runtime().audio = nullptr;
+    stage->world.Runtime().sounds = nullptr;
 }
 
 // El 86 con 100 (0x4da373): la caja del entrenador vacía y el ítem en su lugar 0 con 0x44ad70(0, datos, 1), sin la cola

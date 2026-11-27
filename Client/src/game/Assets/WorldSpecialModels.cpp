@@ -35,27 +35,27 @@ enum class SpecialMap : std::uint8_t
     Login = 55,
 };
 
-// Cada fila es 0x60da30(modelo, carpeta, nombre, número), en el orden del ASM. Una carpeta de
-// especiales no se deriva de Object<N>: Lost Tower comparte Dungeon; Angel usa Player y Npc.
+// Each row is 0x60da30(model, folder, name, number), in ASM order. A specials folder is not derived from Object<N>:
+// Lost Tower shares Dungeon; Angel uses Player and Npc.
 constexpr std::array<Data::Models::ModelFile, 2> Lorencia{
-    {{0xad, "Object1\\", "Bird", 1}, {0xb2, "Object1\\", "Fish", 1}}}; // 617345..6173a2
+    {{0xad, "Object1\\", "Bird", 1}, {0xb2, "Object1\\", "Fish", 1}}}; // 0x617345..0x6173a2
 constexpr std::array<Data::Models::ModelFile, 3> Dungeon{{{0xda, "Object2\\", "DungeonStone", 1},
                                                           {0xaf, "Object2\\", "Bat", 1},
-                                                          {0xb0, "Object2\\", "Rat", 1}}}; // 6173af..617440
+                                                          {0xb0, "Object2\\", "Rat", 1}}}; // 0x6173af..0x617440
 constexpr std::array<Data::Models::ModelFile, 2> Devias{
-    {{0x201, "Npc\\", "obj_donkey", -1}, {0x202, "Npc\\", "obj_flag", -1}}}; // 61744d..6174aa
+    {{0x201, "Npc\\", "obj_donkey", -1}, {0x202, "Npc\\", "obj_flag", -1}}}; // 0x61744d..0x6174aa
 constexpr std::array<Data::Models::ModelFile, 4> Noria{{{0xae, "Object1\\", "Butterfly", 1},
                                                         {0x142, "Npc\\", "warp01", -1},
                                                         {0x143, "Npc\\", "warp02", -1},
-                                                        {0x144, "Npc\\", "warp03", -1}}}; // 617520..6175e2
+                                                        {0x144, "Npc\\", "warp03", -1}}}; // 0x617520..0x6175e2
 constexpr std::array<Data::Models::ModelFile, 7> Exile{{{0xe7, "Object6\\", "Meteo", 1},
                                                         {0xe8, "Object6\\", "Meteo", 2},
                                                         {0xe9, "Object6\\", "Meteo", 3},
                                                         {0xea, "Object6\\", "Meteo", 4},
                                                         {0xeb, "Object6\\", "Meteo", 5},
                                                         {0xef, "Object6\\", "BossHead", 1},
-                                                        {0xf0, "Object6\\", "Princess", 1}}}; // 617633..617685
-constexpr std::array<Data::Models::ModelFile, 1> Stadium{{{0xb1, "Object7\\", "Bug", 1}}};    // 6176cb
+                                                        {0xf0, "Object6\\", "Princess", 1}}}; // 0x617633..0x617685
+constexpr std::array<Data::Models::ModelFile, 1> Stadium{{{0xb1, "Object7\\", "Bug", 1}}};    // 0x6176cb
 constexpr std::array<Data::Models::ModelFile, 8> Atlans{{{0xb3, "Object8\\", "Fish", 2},
                                                          {0xb4, "Object8\\", "Fish", 3},
                                                          {0xb5, "Object8\\", "Fish", 4},
@@ -63,11 +63,12 @@ constexpr std::array<Data::Models::ModelFile, 8> Atlans{{{0xb3, "Object8\\", "Fi
                                                          {0xb7, "Object8\\", "Fish", 6},
                                                          {0xb8, "Object8\\", "Fish", 7},
                                                          {0xb9, "Object8\\", "Fish", 8},
-                                                         {0xba, "Object8\\", "Fish", 9}}};        // 6176f3..617734
-constexpr std::array<Data::Models::ModelFile, 1> Tarkan{{{0xb2, "Object9\\", "Bug", 2}}};         // 617864
-constexpr std::array<Data::Models::ModelFile, 1> Icarus{{{0xbb, "Object11\\", "cloud", -1}}};     // 6178ba
-constexpr std::array<Data::Models::ModelFile, 1> BloodCastle{{{0xbc, "Object12\\", "Crow", 1}}};  // 6179b3
-constexpr std::array<Data::Models::ModelFile, 1> ChaosCastle{{{0x1f7, "Player\\", "Angel", -1}}}; // 618970
+                                                         {0xba, "Object8\\", "Fish", 9}}};        // 0x6176f3..0x617734
+constexpr std::array<Data::Models::ModelFile, 1> Tarkan{{{0xb2, "Object9\\", "Bug", 2}}};         // 0x617864
+constexpr std::array<Data::Models::ModelFile, 1> Icarus{{{0xbb, "Object11\\", "cloud", -1}}};     // 0x6178ba
+constexpr std::array<Data::Models::ModelFile, 1> BloodCastle{{{0xbc, "Object12\\", "Crow", 1}}};  // 0x6179b3
+constexpr std::array<Data::Models::ModelFile, 1> ChaosCastle{{{0x1f7, "Player\\", "Angel", -1}}}; // 0x618970
+// 0x618a1d..0x618c45
 constexpr std::array<Data::Models::ModelFile, 11> Kalima{{{0x11d, "Monster\\", "cd71a", -1},
                                                           {0x11e, "Monster\\", "cd71b", -1},
                                                           {0x11f, "Monster\\", "cd71c", -1},
@@ -78,15 +79,15 @@ constexpr std::array<Data::Models::ModelFile, 11> Kalima{{{0x11d, "Monster\\", "
                                                           {0x124, "Monster\\", "cd71h", -1},
                                                           {0x125, "Skill\\", "dragonhead", -1},
                                                           {0x126, "Skill\\", "phoenix", -1},
-                                                          {0x127, "Monster\\", "cundun_gone", -1}}}; // 618a1d..618c45
-constexpr std::array<Data::Models::ModelFile, 1> Trials{{{0xae, "Object1\\", "Butterfly", 1}}};      // 61823e
+                                                          {0x127, "Monster\\", "cundun_gone", -1}}};
+constexpr std::array<Data::Models::ModelFile, 1> Trials{{{0xae, "Object1\\", "Butterfly", 1}}}; // 0x61823e
 constexpr std::array<Data::Models::ModelFile, 3> Aida{{{0xae, "Object1\\", "Butterfly", 1},
                                                        {0x141, "Object34\\", "tree_eff", -1},
-                                                       {0xb2, "Object9\\", "Bug", 2}}}; // 618566..6185e6
+                                                       {0xb2, "Object9\\", "Bug", 2}}}; // 0x618566..0x6185e6
 constexpr std::array<Data::Models::ModelFile, 3> Crywolf{{{0x148, "Object35\\", "scorpion", -1},
                                                           {0xed, "Monster\\", "arrowstusk", -1},
-                                                          {0xee, "Monster\\", "arrowstusk", -1}}};   // 617a4e..617b28
-constexpr std::array<Data::Models::ModelFile, 1> Login{{{DragonModel, "Object56\\", "Dragon", -1}}}; // 6188bf
+                                                          {0xee, "Monster\\", "arrowstusk", -1}}}; // 0x617a4e..0x617b28
+constexpr std::array<Data::Models::ModelFile, 1> Login{{{DragonModel, "Object56\\", "Dragon", -1}}}; // 0x6188bf
 } // namespace
 
 WorldSpecialModelSet SpecialWorldModelsOf(std::uint8_t map)

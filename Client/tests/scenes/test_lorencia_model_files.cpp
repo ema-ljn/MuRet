@@ -11,10 +11,9 @@
 
 namespace
 {
-// Tuplas transcritas del contrato ASM independiente de 0x616ec0, main.exe SHA-256
-// c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a.
-// Contrato cotejado con ASM: CALL 0x619a21..0x619ea1; research 05, tabla de Lorencia.
-// Orden de CALL, no de ID: SteelWall va después de StoneMuWall y Cannon antes de Bridge.
+// Tuples transcribed from the independent ASM contract of 0x616ec0, main.exe SHA-256
+// c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a: CALL 0x619a21..0x619ea1; research 05, the
+// Lorencia table. CALL order, not ID order: SteelWall goes after StoneMuWall and Cannon before Bridge.
 TEST(LorenciaModelFilesTest, KeepsTheOriginalCallOrderAndFileNumbers)
 {
     struct Request
@@ -64,7 +63,7 @@ TEST(LorenciaModelFilesTest, KeepsTheOriginalCallOrderAndFileNumbers)
     }
 }
 
-// Los huecos no se rellenan con ObjectNN: no hay duplicados ni IDs fuera del bloque 0..159.
+// The gaps are not filled with ObjectNN: no duplicates and no IDs outside block 0..159.
 TEST(LorenciaModelFilesTest, RequestsTheNamedFilesFromObject1WithoutFillingTheHoles)
 {
     const auto files = Client::Assets::LorenciaModelFiles();

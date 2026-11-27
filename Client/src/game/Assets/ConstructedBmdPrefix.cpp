@@ -16,7 +16,8 @@ Core::Expected<void, std::string> ConstructedBmdPrefix::Initialize(std::uint16_t
         return Core::Unexpected(std::string("0x60dc51: el prefijo construido excede el resto1024"));
     if (m_offset && *m_offset != constructedBeforeBase)
         return Core::Unexpected(std::string("0x60dbe0: la tabla global ya tiene otro prefijo construido"));
-    // 6154b3 escribe count0 en cada BMD, incluso antes de la base lógica. No hay acciones a cargar.
+    // 0x6154b3 writes an action count of 0 into every BMD, those before the logical base too: there are no actions to
+    // load.
     m_offset = constructedBeforeBase;
     return {};
 }

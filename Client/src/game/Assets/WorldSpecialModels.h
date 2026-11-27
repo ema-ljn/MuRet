@@ -18,8 +18,8 @@ enum class WorldSpecialKind : std::uint8_t
     Kalima,
 };
 
-// 05 § Los especiales de cada mapa, 0x617325 y los rangos que lo siguen. La carpeta de texturas
-// solo difiere de la del BMD en Angel; Noria y Exile separan las cargas de las asignaciones.
+// 05 § Los especiales de cada mapa, 0x617325 and the ranges after it. The texture folder only differs from the BMD's
+// for Angel; Noria and Exile split the loads from the assignments.
 struct WorldSpecialModelSet
 {
     std::span<const Data::Models::ModelFile> files{};

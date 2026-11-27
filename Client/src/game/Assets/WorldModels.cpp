@@ -42,14 +42,14 @@ struct WorldModelTextureRequests
 
 namespace
 {
-// 0x60d5f0(k, "Object<N>\\", 0x2901, 0x2600, 1): repitiendo y con GL_NEAREST.
+// 0x60d5f0(k, "Object<N>\\", 0x2901, 0x2600, 1): repeating and with GL_NEAREST.
 constexpr Data::Textures::Sampling WorldModelSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 
 constexpr std::uint8_t LorenciaMap = Maps::LorenciaMap;
 constexpr std::uint8_t CastleSiegeMap = Maps::CastleSiegeMap;
 constexpr Render::TextureSlot SpecialModelsFirstSlot{0x69};
 
-// "Object56" para el mapa 55: la carpeta Object<N> de su número (Maps::WorldFolderNumber).
+// "Object56" for map 55: the Object<N> folder of its number (Maps::WorldFolderNumber).
 std::string ObjectFolder(std::uint8_t map)
 {
     return "Object" + std::to_string(Maps::WorldFolderNumber(map)) + "\\";
@@ -72,8 +72,8 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     const WorldSpecialModelSet specials = SpecialWorldModelsOf(map);
     if (specials.kind == WorldSpecialKind::BloodCastle && globalModels == nullptr)
     {
-        // Dependencia estructural, antes de cargar o pedir una textura: estos modelos son globales,
-        // cargados por 0x615700. Un archivo Gate opcional ausente no implica servicio ausente.
+        // A structural dependency, checked before loading or requesting a texture: these models are global, loaded by
+        // 0x615700. A missing optional Gate file does not mean a missing service.
         return Core::Unexpected(std::string("0x6179f0: falta la biblioteca global de Gate01/02 (0x616304/0x61631a)"));
     }
     m_globalModels = globalModels;
@@ -108,7 +108,7 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     UploadTextures(dataRoot, textures, log, textureRequests);
     if (m_sharedTextures != nullptr)
     {
-        // El cursor conserva el orden de las peticiones; solo quedan publicados los reemplazos logrados.
+        // The cursor keeps the order of the requests; only the successful replacements stay published.
         m_sharedTextures->Slots() = std::move(*m_slots);
         m_slots.reset();
         std::set<std::uint16_t> firstReferences;
@@ -164,9 +164,9 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
 {
     if (specials.kind == WorldSpecialKind::Exile)
     {
-        // 0x617633..0x6176a4: primero carga los siete; con todos ausentes, cada asignación lee cero
-        // mallas y no llega a GL. Una malla real alcanza el wrap inválido 0x2600 de 0x617699 (GL_NEAREST como
-        // wrap, un error de Webzen que GL ignora, Q-C441); el mapa 5 queda fuera del alcance (P-C12).
+        // 0x617633..0x6176a4: it loads the seven first; with all of them missing, each assignment reads zero meshes and
+        // does not reach GL. A real mesh reaches the invalid wrap 0x2600 of 0x617699 (GL_NEAREST as a wrap, a Webzen
+        // bug GL ignores, Q-C441); map 5 is out of scope (P-C12).
         for (const Data::Models::ModelFile& file : specials.files)
             LoadFile(dataRoot, file, log, missing);
         for (const Data::Models::ModelFile& file : specials.files)
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
     {
         for (std::uint16_t gate = 0x10c; gate <= 0x10d; ++gate)
         {
-            // 0x60d617..0x60d61b: un Gate sin mallas no pide textura ni adelanta el cursor.
+            // 0x60d617..0x60d61b: a Gate without meshes requests no texture and does not advance the cursor.
             if (const Data::Models::Model* model = m_globalModels->Find(gate); model != nullptr)
                 m_meshTextures[gate] =
                     TextureSlots()->Assign(*model, "Monster\\", WorldModelSampling, &textureRequests.requests,
@@ -242,7 +242,7 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
         const auto model = m_skeletons.find(DungeonModel);
         if (model == m_skeletons.end() || model->second.actions.size() <= DungeonAction)
             return Core::Unexpected(std::string("0x61a13c: falta la segunda acción del modelo 40 de Dungeon"));
-        // 0x61a136: 40*0xe0+0x30 es el arreglo de acciones; +0x14 es velocidad de la acción 1.
+        // 0x61a136: 40*0xe0+0x30 is the action array; +0x14 is action 1's speed.
         model->second.actions[DungeonAction].speed = 0.4f;
     }
     if (specials.kind != WorldSpecialKind::Kalima)
@@ -272,11 +272,11 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
     return {};
 }
 
-// 0x42aa6b: la carga del 30 (0x42a760) llama a 0x612d90(0x4d) después de 0x616ec0. 0x60da30 lee
-// Data\Monster\Monster78.bmd en el modelo 0x19f; sin mallas, 0x612dee sale sin texturas ni acciones. Con ellas,
-// 0x60d5f0(0x19f, "Monster\\", 0x2901, 0x2600, 1) sigue el cursor global después de los objetos, las siete
-// velocidades de 0x612e5a (0,25; 0,2; 0,34; 0,33; 0,33; 0,5 y 0,55) y la acción 6 que no se repite (+0x60 en 1).
-// GameScene reserva los dos .wav del caso 0x4d y publica la tabla de sonidos tras la carga.
+// 0x42aa6b: the load of map 30 (0x42a760) calls 0x612d90(0x4d) after 0x616ec0. 0x60da30 reads
+// Data\Monster\Monster78.bmd into model 0x19f; without meshes, 0x612dee leaves without textures or actions. With them,
+// 0x60d5f0(0x19f, "Monster\\", 0x2901, 0x2600, 1) follows the global cursor after the objects, the seven speeds of
+// 0x612e5a (0.25, 0.2, 0.34, 0.33, 0.33, 0.5 and 0.55) and action 6 that does not repeat (+0x60 at 1). GameScene
+// reserves the two .wav of case 0x4d and publishes the sound table after the load.
 Core::Expected<void, std::string> WorldModels::LoadTheSpearman(const std::filesystem::path& dataRoot, Core::Log& log,
                                                                std::size_t& missing,
                                                                WorldModelTextureRequests& textureRequests)
@@ -344,7 +344,7 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
     }
     if (skipped != 0)
     {
-        // 0x63bfcf/0x63bb7a reemplazan la textura física solo después de leerla.
+        // 0x63bfcf/0x63bb7a replace the physical texture only after reading it.
         for (const auto& [slot, state] : uploads)
             if (state.failed)
                 slots.SetName(Render::TextureSlot{slot}, state.residentName);
@@ -361,7 +361,7 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
 
 void WorldModels::Release()
 {
-    // Antes de UploadTextures, los bindings son provisionales: todavía no adquirieron referencias.
+    // Before UploadTextures the bindings are provisional: they have not acquired references yet.
     if (m_sharedTextures != nullptr && m_store != nullptr)
     {
         for (const auto& [model, bindings] : m_meshTextures)

@@ -38,8 +38,8 @@
 #include <span>
 #include <string>
 
-// Bindings acreditados por ASM y sus archivos físicos de Data: un lote con el selector correcto
-// no basta. Cada handle debe resolver a píxeles subidos, metadata y sampling de la llamada nativa.
+// Bindings proven by the ASM and their physical Data files: a batch with the right selector is not enough. Each
+// handle must resolve to uploaded pixels, metadata and the sampling of the native call.
 namespace
 {
 using Client::Data::Textures::Filter;
@@ -57,7 +57,7 @@ struct Resource
     Wrap wrap;
 };
 
-// 61bd9f..61bdb4: FontTest, slot1, NEAREST/CLAMP; 621799 y621889 lo pasan a621610→620780.
+// 0x61bd9f..0x61bdb4: FontTest, slot 1, NEAREST/CLAMP; 0x621799 and 0x621889 pass it to 0x621610 → 0x620780.
 constexpr Resource DamageAtlas{1, "Interface\\FontTest.tga", 256, 32, PixelFormat::Rgba, Filter::Nearest, Wrap::Clamp};
 constexpr std::array<Resource, 5> JointResources{{
     {0x610, "Effect\\Flare02.jpg", 64, 64, PixelFormat::Rgb, Filter::Linear, Wrap::Repeat},
@@ -115,7 +115,7 @@ protected:
         EXPECT_EQ(uploaded->sampling.wrap, expected.wrap);
         EXPECT_EQ(metadata->size, (glm::vec2{static_cast<float>(expected.width), static_cast<float>(expected.height)}));
         EXPECT_EQ(metadata->components, Client::Data::Textures::BytesPerPixel(expected.format));
-        // Referencia independiente de las tablas de producción: la ruta literal del callsite del ASM.
+        // A reference independent of the production tables: the literal path of the ASM's call site.
         const std::array<Client::Data::Textures::TextureSetEntry, 1> native{Client::Data::Textures::TextureSetEntry{
             expected.path, expected.selector, {expected.filter, expected.wrap}}};
         const auto decoded = Client::Data::Textures::LoadTextureSet(m_dataRoot, native);
@@ -205,7 +205,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
         auto& joint = joints[*created.Value()];
         ASSERT_EQ(joint.texture, JointResources[probe.resource].selector);
         ASSERT_NO_FATAL_FAILURE(ExpectResource(JointResources[probe.resource]));
-        // Un segmento válido del contrato de dibujo; este test no simula el movimiento de la fauna.
+        // A valid segment of the drawing contract; this test does not simulate the fauna's movement.
         joint.count = 1;
         for (std::size_t point = 0; point < 4; ++point)
         {
@@ -240,11 +240,11 @@ TEST_F(GameTailTextureTest, ARejectedDamageAtlasNeverPublishesAHandleOrMetadata)
 
     const auto loaded = models.Load(m_dataRoot, store, m_log);
 
-    ASSERT_TRUE(loaded.HasValue()) << loaded.Error(); // política previa de GameModels: avisa y sigue
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error(); // GameModels' earlier policy: warn and go on
     EXPECT_FALSE(models.TextureMetadataOf(1).has_value());
     EXPECT_FALSE(models.TextureSlotOf(1).has_value());
     EXPECT_FALSE(store.physical.Find(Client::Render::TextureSlot{1}).has_value());
-    // Los recursos que sí subieron mantienen su handle y su almacenamiento físico.
+    // The resources that did upload keep their handle and their physical storage.
     const auto spark = models.TextureSlotOf(0x617);
     ASSERT_TRUE(spark.has_value());
     EXPECT_TRUE(store.physical.Find(*spark).has_value());
@@ -253,7 +253,7 @@ TEST_F(GameTailTextureTest, ARejectedDamageAtlasNeverPublishesAHandleOrMetadata)
 
 TEST_F(GameTailTextureTest, ExtendedTailBindingsUseTheNativeFilesAndSampling)
 {
-    // ASM61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.
+    // 0x61d511/0x61d9b4/0x61d9ef/0x61da0b/0x61da2a/0x61da9d/0x61dba2/0x61dcc3.
     constexpr std::array<Resource, 8> resources{{
         {0x5da, "Effect\\Fire02.jpg", 64, 64, PixelFormat::Rgb, Filter::Linear, Wrap::Clamp},
         {0x5bb, "Effect\\blur01.jpg", 32, 64, PixelFormat::Rgb, Filter::Nearest, Wrap::Clamp},
@@ -270,7 +270,7 @@ TEST_F(GameTailTextureTest, ExtendedTailBindingsUseTheNativeFilesAndSampling)
 
 TEST_F(GameTailTextureTest, RidingSpearModelAndMeshTexturesComeFromTheNativeSkillFile)
 {
-    // 6161b5:60da30(10f,"Data\\Skill\\","RidingSpear",1);61619f folderSkill.
+    // 0x6161b5: 0x60da30(0x10f, "Data\\Skill\\", "RidingSpear", 1); 0x61619f, folder Skill.
     const auto expected = Client::Data::Models::LoadModelFile(m_dataRoot, {0x10f, "Skill\\", "RidingSpear", 1});
     ASSERT_TRUE(expected.HasValue());
     const auto* model = m_models.Find(0x10f);

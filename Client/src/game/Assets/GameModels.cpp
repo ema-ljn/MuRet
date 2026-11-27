@@ -35,16 +35,16 @@ namespace Client::Assets
 {
 namespace
 {
-// Los slots donde empiezan las texturas de cada cargador (06 § El modelo en el binario).
+// The slots where each loader's textures start (06 § El modelo en el binario).
 constexpr Render::TextureSlot PlayerTexturesStart{0x138};
 constexpr Render::TextureSlot ItemTexturesStart{0x25a};
-// 0x615700 (0x61692a), antes de las del caballo.
+// 0x615700 (0x61692a), before the horse's.
 constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
-// 0x615f77: los Fenrir, donde terminan las de 0x611850.
+// 0x615f77: the Fenrir ones, where those of 0x611850 end.
 constexpr Render::TextureSlot FenrirTexturesStart{0x371};
-// 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
+// 0x61634e..0x616370: Gate02 before the 0x3b8 block; Blood Castle reassigns both Gates in the map.
 constexpr Render::TextureSlot GateTexturesStart{0x69};
-// Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
+// Uploads those of `entries` one by one: one that does not load leaves its line in the log, and the rest go on.
 std::size_t UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
                        Render::ITextureStore& textures, Core::Log& log,
                        std::map<std::uint32_t, Models::TextureMetadata>* metadata = nullptr)
@@ -81,7 +81,7 @@ std::size_t UploadEach(const std::filesystem::path& dataRoot, std::span<const Da
 Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& dataRoot,
                                                    Render::ITextureStore& textures, Core::Log& log)
 {
-    // En una recarga, los modelos de la fase de skills aún deben estar ausentes durante 0x611850.
+    // On a reload, the models of the skills phase must still be absent during 0x611850.
     GameModels staged;
     staged.m_textureMetadata = m_textureMetadata;
     if (m_startupTextureStore == &textures)
@@ -133,27 +133,28 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     AssignTextures(Tables::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
     AssignTextures(Tables::ItemTextureCalls());
-    // 0x611850 consulta 0xdb con Item\Bow\ antes de que 0x616095 cargue su BMD.
+    // 0x611850 queries 0xdb with Item\Bow\ before 0x616095 loads its BMD.
     const auto skills = loadTables({Tables::SkillModelFiles()});
     if (!skills.HasValue())
         return skills;
-    // 0x61606f/0x61607f: el cargador cambia la acción 0 de HellGate después de leer su BMD.
+    // 0x61606f/0x61607f: the loader changes HellGate's action 0 after reading its BMD.
     if (const auto gate = m_skeletons.find(0xc5); gate != m_skeletons.end() && !gate->second.actions.empty())
     {
         auto& action = gate->second.actions.front();
         action.lockPositions = false;
         action.speed = 0.15f;
     }
-    // 0x616276: la acción 0 de Ball01 conserva 0,5 keys por paso.
+    // 0x616276: Ball01's action 0 keeps 0.5 keys per step.
     if (const auto ball = m_skeletons.find(0xf1); ball != m_skeletons.end() && !ball->second.actions.empty())
         ball->second.actions.front().speed = 0.5f;
     m_slots.SetNext(FenrirTexturesStart);
     AssignTextures(Tables::FenrirTextureCalls());
-    // 61613a consulta 109 y 61619f consulta 10f antes de cargar sus BMD. En el perfil sin Data2/SMD no hay mallas
-    // en ese punto: no asignar ahora el BMD futuro. Su consulta efectiva llega con el barrido de 616e46.
+    // 0x61613a queries 0x109 and 0x61619f queries 0x10f before loading their BMDs. In the profile without Data2/SMD
+    // there are no meshes at that point, so the future BMD is not assigned now: its effective query comes with the
+    // sweep of 0x616e46.
     m_slots.SetNext(GateTexturesStart);
     AssignTextures(Tables::SiegeBeforeSkillTextureCalls());
-    // 0x6164a0..0x6164bb: LaceArrow pisa los slots 0x138 y 0x139, con Item\ y GL_CLAMP (Q-C89).
+    // 0x6164a0..0x6164bb: LaceArrow overwrites slots 0x138 and 0x139, with Item\ and GL_CLAMP (Q-C89).
     if (const auto* laceArrow = Find(0x11c); laceArrow != nullptr)
     {
         m_slots.SetNext(PlayerTexturesStart);
@@ -168,7 +169,7 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
         AssignTextures(call);
     }
     UploadEach(dataRoot, DamageTextureSet, textures, log, &m_textureMetadata);
-    // 0x61ccb0: las del HUD, antes de las de los efectos (CL8 hito 2).
+    // 0x61ccb0: the HUD's, before the effects'.
     UploadEach(dataRoot, HudTextureSet, textures, log);
     UploadEach(dataRoot, CrywolfTextureSet, textures, log);
     UploadEach(dataRoot, GlowTextureSet, textures, log, &m_textureMetadata);
@@ -184,8 +185,8 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     return {};
 }
 
-// 0x60d5f0 por cada llamada: el modelo que no se leyó no tiene mallas, y no pide nada. El que se pide
-// dos veces se queda con los slots de la segunda.
+// 0x60d5f0 for each call: a model that was not read has no meshes and requests nothing. One requested twice keeps the
+// slots of the second.
 void GameModels::AssignTextures(std::span<const Tables::ModelTextureCall> calls)
 {
     for (const Tables::ModelTextureCall& call : calls)
@@ -225,7 +226,7 @@ std::optional<Models::TextureMetadata> GameModels::TextureMetadataOf(std::uint32
 
 std::optional<Render::TextureSlot> GameModels::TextureSlotOf(std::uint32_t selector) const
 {
-    // Solo las que subieron: la clave salió del slot de 16 bits de su entrada, así que no se trunca nada.
+    // Only those that were uploaded: the key came from the 16-bit slot of its entry, so nothing is truncated.
     if (!m_textureMetadata.contains(selector))
     {
         return std::nullopt;

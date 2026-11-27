@@ -13,12 +13,12 @@
 #include <span>
 #include <string>
 
-// El juego de texturas de una escena (TextureSets.h) mientras la escena vive (CL5.4): lo lee del
-// Data\ y lo sube en su Enter, como 0x622e40 y 0x61c7c0, y lo suelta en su Leave, como 0x63c150
-// con cada slot. Guarda el tamaño del buffer de cada una, que la UI nueva usa para sus UV.
+// A scene's texture set (TextureSets.h) while the scene lives: read from Data\ and uploaded in its Enter, as 0x622e40
+// and 0x61c7c0 do, and released in its Leave, as 0x63c150 does with each slot. Keeps each one's buffer size, which
+// the new UI uses for its UVs.
 namespace Client::Assets
 {
-// Los lados del buffer de una textura subida (Texture::textureWidth y textureHeight).
+// The sides of an uploaded texture's buffer (Texture::textureWidth and textureHeight).
 struct TextureBufferSize
 {
     int width = 1;
@@ -28,24 +28,24 @@ struct TextureBufferSize
 class SceneTextures
 {
 public:
-    // `set` tiene que vivir más que esto: las tablas de TextureSets.h son constexpr.
+    // `set` must outlive this: the TextureSets.h tables are constexpr.
     SceneTextures(Render::ITextureStore& store, std::span<const Data::Textures::TextureSetEntry> set);
 
-    // Lee todo el juego desde `dataRoot` (LoadTextureSet) y lo sube a la tabla de una vez. Una que
-    // falta o no se lee corta antes de subir nada, con un error que la nombra como la pide el
-    // original; si la tabla no sube, su error.
+    // Reads the whole set from `dataRoot` (LoadTextureSet) and uploads it to the table at once. One that is missing or
+    // unreadable stops before anything is uploaded, with an error naming it as the original asks for it; if the table
+    // does not upload, its error.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot);
 
-    // Suelta cada slot del juego, en orden, si hubo un Load (aunque haya fallado: lo que la tabla
-    // subió antes del error no queda). Uno más no hace nada.
+    // Releases each slot of the set, in order, if there was a Load (even a failed one: what the table uploaded before
+    // the error does not stay). Another call does nothing.
     void Release();
-    // Conserva el slot que también pertenece a la carga común de GameModels.
+    // Keeps the slot that also belongs to the common load of GameModels.
     void Release(std::optional<Render::TextureSlot> sharedSlot);
 
-    // El de `slot` si se subió, o 1 × 1.
+    // That of `slot` if it was uploaded, or 1 × 1.
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
-    // El tamaño y los componentes de la que subió en `selector` (los de su lugar de la tabla 0x7d3a1b8,
-    // que leen 0x548550 y 0x549440); vacío si no se subió.
+    // The size and components of the one uploaded at `selector` (those of its place in table 0x7d3a1b8, which 0x548550
+    // and 0x549440 read); empty if it was not uploaded.
     [[nodiscard]] std::optional<Models::TextureMetadata> MetadataOf(std::uint32_t selector) const;
 
 private:

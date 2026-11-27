@@ -51,7 +51,7 @@ Core::Expected<void, std::string> ModelTextureTable::Upload(const Data::Textures
 {
     if (m_store == nullptr)
         return Core::Unexpected(std::string("63bfcf: falta el backend de texturas"));
-    // La subida puede pisar un slot con referencias vivas: conserva el byte tras decrementarlo.
+    // The upload may overwrite a slot with live references: it keeps the byte after decrementing it.
     const Render::TextureSlot slot{texture.slot};
     const auto name = std::string(m_slots.NameOf(slot));
     const auto old = References(slot);

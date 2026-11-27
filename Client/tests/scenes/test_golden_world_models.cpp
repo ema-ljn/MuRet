@@ -38,9 +38,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Assets::WorldModels con el Data\ del repo: los modelos de Object56\ que carga 0x616ec0 para
-// el mapa 55 (el k de Object<k + 1>.bmd) y sus texturas, que siguen la tabla de la carga desde 0x41c
-// (06 § El mundo del login).
+// Client::Assets::WorldModels with the repo's Data\: the Object56\ models 0x616ec0 loads for map 55 (the k of
+// Object<k + 1>.bmd) and their textures, which follow the load's table from 0x41c (06 § El mundo del login).
 namespace
 {
 using Client::Assets::WorldModels;
@@ -56,8 +55,8 @@ constexpr std::uint8_t Devias = 2;
 
 using GoldenWorldModels = Client::Tests::GoldenDataTest;
 
-// 0x616ec0: los 112 pedidos con nombre de 0x619a21..0x619ea1 y los dos especiales.
-// Volver al lazo Object<k+1> deja sin modelo incluso Tree01 y Beer03.
+// 0x616ec0: the 112 named requests of 0x619a21..0x619ea1 and the two specials. Going back to the Object<k+1> loop
+// leaves even Tree01 and Beer03 without a model.
 TEST_F(GoldenWorldModels, LorenciaLoadsTheNamedObjects)
 {
     FakeTextureStore store;
@@ -73,8 +72,8 @@ TEST_F(GoldenWorldModels, LorenciaLoadsTheNamedObjects)
         EXPECT_NE(models.Find(model), nullptr) << std::hex << model;
         EXPECT_NE(models.SkeletonOf(model), nullptr) << std::hex << model;
     }
-    // Sin GameModels previo: Bird/Fish más 102 texturas de objetos. Las tres globales
-    // que el caso compuesto reutiliza acá reciben sus propios slots de Object1.
+    // Without an earlier GameModels: Bird/Fish plus 102 object textures. The three global ones the composite case
+    // reuses get their own Object1 slots here.
     ASSERT_NE(models.TextureSlots(), nullptr);
     EXPECT_EQ(models.TextureSlots()->ToLoad().size(), 104u);
     EXPECT_EQ(models.TextureSlots()->Next(), TextureSlot{0x482});
@@ -83,7 +82,7 @@ TEST_F(GoldenWorldModels, LorenciaLoadsTheNamedObjects)
     EXPECT_EQ(models.TextureSlots()->NameOf(TextureSlot{0x481}), "apple.jpg");
 }
 
-// El consumidor real de la tabla: los 109 tipos que piden los 2.870 registros de World1.
+// The table's real consumer: the 109 types the 2,870 records of World1 ask for.
 TEST_F(GoldenWorldModels, EveryLorenciaObjectTypeHasItsNamedModelAndSkeleton)
 {
     const auto objects = Client::Terrain::LoadWorldObjects(m_dataRoot, Lorencia);
@@ -108,9 +107,9 @@ TEST_F(GoldenWorldModels, EveryLorenciaObjectTypeHasItsNamedModelAndSkeleton)
     }
 }
 
-// Pedidos especiales 0x617356/0x617387, antes de reiniciar el cursor a 0x41c. El volcado
-// lor_slots.bin ya tiene bottle.tga en 0x30f, pot3.tga en 0x2b3 y apple.jpg en 0x2b4:
-// con esa tabla global se piden 99 texturas nuevas, no las 102 de una tabla aislada.
+// Special requests 0x617356/0x617387, before the cursor goes back to 0x41c. The lor_slots.bin dump already has
+// bottle.tga at 0x30f, pot3.tga at 0x2b3 and apple.jpg at 0x2b4: with that global table 99 new textures are asked
+// for, not the 102 of an isolated table.
 TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
 {
     FakeTextureStore store;
@@ -160,8 +159,8 @@ TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
         EXPECT_TRUE(store.Find(slot).has_value());
 }
 
-// 0x61744d..0x6174d9: en Devias, el burro (0x201, obj_donkey) y la bandera (0x202, obj_flag) de Npc\, con sus
-// texturas desde 0x69 (0x60d530) y de Npc\, antes de los objetos de Object3\, que van desde 0x41c.
+// 0x61744d..0x6174d9: in Devias, the donkey (0x201, obj_donkey) and the flag (0x202, obj_flag) from Npc\, with their
+// textures from 0x69 (0x60d530) and from Npc\, before the Object3\ objects, which go from 0x41c.
 TEST_F(GoldenWorldModels, DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects)
 {
     FakeTextureStore store;
@@ -192,7 +191,7 @@ TEST_F(GoldenWorldModels, DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects)
     EXPECT_EQ(store.Size(), 0u);
 }
 
-// El mapa de selección 54 conserva el lazo genérico: los 77 ObjectNN de Object55.
+// Selection map 54 keeps the generic loop: the 77 ObjectNN of Object55.
 TEST_F(GoldenWorldModels, World55KeepsTheGenericObjects)
 {
     FakeTextureStore store;
@@ -210,7 +209,7 @@ TEST_F(GoldenWorldModels, World55KeepsTheGenericObjects)
 
 using GoldenLorenciaModelTextureSlots = Client::Tests::MemoryDumpTest;
 
-// Nombres de textura del original: solo metadata, sin copiar el volcado al repo.
+// The original's texture names: metadata only, without copying the dump into the repo.
 TEST_F(GoldenLorenciaModelTextureSlots, TheWorldNamesMatchTheNativeTable)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -242,8 +241,8 @@ TEST_F(GoldenLorenciaModelTextureSlots, TheWorldNamesMatchTheNativeTable)
     EXPECT_EQ(compared, 101u);
 }
 
-// El modelo k es Object<k + 1>.bmd: en el Data\ del laboratorio están 79 de los 160 (del Object02 al
-// Object91 con huecos), y en el mapa 55 también el dragón.
+// Model k is Object<k + 1>.bmd: the lab's Data\ has 79 of the 160 (Object02 to Object91 with gaps), and on map 55
+// the dragon too.
 TEST_F(GoldenWorldModels, World56LoadsObjectKPlusOne)
 {
     FakeTextureStore store;
@@ -263,7 +262,7 @@ TEST_F(GoldenWorldModels, World56LoadsObjectKPlusOne)
     EXPECT_EQ(models.SkeletonOf(83)->actions.front().keyCount, 13);
 }
 
-// Uno que falta se saltea sin avisar (Q-C23): el tipo 82, que pide el .obj, queda sin modelo.
+// A missing one is skipped silently (Q-C23): type 82, which asks for the .obj, stays without a model.
 TEST_F(GoldenWorldModels, AMissingModelIsSkipped)
 {
     FakeTextureStore store;
@@ -283,9 +282,8 @@ TEST_F(GoldenWorldModels, AMissingModelIsSkipped)
     }
 }
 
-// 0x616ec0 en el mapa 55 (0x6188ae): el dragón que vuela es el modelo 0xb4, de Object56\Dragon.bmd
-// (dragon.bmd en el Data\, Q-C127), con 3 mallas, 93 huesos y una acción de 41 keys, y sus texturas
-// desde 0x60d530(0x69).
+// 0x616ec0 on map 55 (0x6188ae): the flying dragon is model 0xb4, from Object56\Dragon.bmd (dragon.bmd in the Data\,
+// Q-C127), with 3 meshes, 93 bones and one action of 41 keys, and its textures from 0x60d530(0x69).
 TEST_F(GoldenWorldModels, TheDragonIsModel0xb4)
 {
     FakeTextureStore store;
@@ -305,17 +303,17 @@ TEST_F(GoldenWorldModels, TheDragonIsModel0xb4)
     EXPECT_EQ(slots[0], TextureSlot{0x69});
     EXPECT_EQ(slots[1], TextureSlot{0x6a});
     EXPECT_EQ(slots[2], TextureSlot{0x6b});
-    // Ningún otro mapa lo tiene.
+    // No other map has it.
     WorldModels lorencia;
     ASSERT_TRUE(lorencia.Load(m_dataRoot, 0, store, log, nullptr).HasValue());
     EXPECT_EQ(lorencia.Find(Client::Assets::DragonModel), nullptr);
 }
 
-// 0x60d530(0x41c) y las texturas de cada modelo en el orden de k, con GL_NEAREST y repitiendo
-// (0x60d5f0(k, "Object56\\", 0x2901, 0x2600, 1)). Los 65 nombres de Object56\ se buscan primero en la
-// tabla: los tres del dragón están en 0x69..0x6b, y en la del original (lor_slots.bin, las de 0x615700)
-// están castlegate02, cswalltop y castlegatehide en 0x3e5..0x3e7, y fire02 y fire01 en 0x3ef y 0x3f0. Las
-// 57 nuevas van del 0x41c al 0x454 y el logo queda en 0x455 (Q-C92).
+// 0x60d530(0x41c) and each model's textures in k order, with GL_NEAREST and repeating (0x60d5f0(k, "Object56\\",
+// 0x2901, 0x2600, 1)). The 65 names of Object56\ are looked up in the table first: the dragon's three are at
+// 0x69..0x6b, and in the original's (lor_slots.bin, those of 0x615700) castlegate02, cswalltop and castlegatehide
+// are at 0x3e5..0x3e7, and fire02 and fire01 at 0x3ef and 0x3f0. The 57 new ones go from 0x41c to 0x454 and the logo
+// lands at 0x455 (Q-C92).
 TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
 {
     FakeTextureStore store;
@@ -349,7 +347,7 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
         EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Repeat) << std::hex << slot;
     }
     EXPECT_FALSE(store.Find(TextureSlot{0x455}).has_value());
-    // La malla 0 del Object02 es la primera textura nueva.
+    // Mesh 0 of Object02 is the first new texture.
     ASSERT_FALSE(models.MeshTextures(1).empty());
     EXPECT_EQ(models.MeshTextures(1).front(), TextureSlot{0x41c});
 
@@ -357,8 +355,8 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
     EXPECT_FALSE(store.Find(TextureSlot{0x41c}).has_value());
 }
 
-// 616c95..616ce9 y el barrido 616e46 abastecen los cinco nombres antes de 61a115/61c7c0.
-// No se fuerza un slot global: la caché nativa reutiliza por nombre y deja 57 nombres nuevos, hasta 455.
+// 0x616c95..0x616ce9 and the sweep of 0x616e46 provide the five names before 0x61a115/0x61c7c0. No global slot is
+// forced: the native cache reuses by name and leaves 57 new names, up to 0x455.
 TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingTheLogo)
 {
     FakeTextureStore store;
@@ -391,7 +389,7 @@ TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingThe
         EXPECT_EQ(image->sampling.filter, Client::Data::Textures::Filter::Nearest);
         EXPECT_EQ(image->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
     }
-    // Fire01.bmd trae fire02.jpg en la malla 0 y fire01.jpg en la 1; Object90 reutiliza ese mismo par.
+    // Fire01.bmd brings fire02.jpg on mesh 0 and fire01.jpg on mesh 1; Object90 reuses that same pair.
     ASSERT_EQ(game.MeshTextures(0xc2).size(), 2u);
     EXPECT_EQ(game.MeshTextures(0xc2)[0], cached[3]);
     EXPECT_EQ(game.MeshTextures(0xc2)[1], cached[4]);
@@ -408,7 +406,7 @@ TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingThe
         ASSERT_FALSE(models.MeshTextures(id).empty());
         EXPECT_EQ(models.MeshTextures(id).front(), cached[0]);
     }
-    // Object24.bmd: column2.JPG en la malla 0; cswalltop.JPG en la 1.
+    // Object24.bmd: column2.JPG on mesh 0; cswalltop.JPG on mesh 1.
     ASSERT_EQ(models.MeshTextures(23).size(), 2u);
     EXPECT_EQ(models.MeshTextures(23)[1], cached[1]);
     const auto fire = models.MeshTextures(89);
@@ -431,8 +429,8 @@ TEST_F(GoldenWorldModels, TheLoginReusesTheFiveNativeGlobalNamesBeforeLoadingThe
         EXPECT_TRUE(store.Find(slot).has_value());
 }
 
-// 0x619bc2 carga SteelWall después de StoneWall, pero 0x619eb7 asigna texturas por ID.
-// Estos BMD propios distinguen ambos órdenes sin Data original ni volcado de memoria.
+// 0x619bc2 loads SteelWall after StoneWall, but 0x619eb7 assigns textures by ID. These own BMDs tell both orders
+// apart without the original Data or a memory dump.
 TEST(WorldModelsTest, LorenciaAssignsNamedTexturesByIdAfterLoadingTheSpecials)
 {
     Client::Tests::TemporaryFolder folder{"lorencia-texture-id-order"};
@@ -476,8 +474,8 @@ TEST(WorldModelsTest, LorenciaAssignsNamedTexturesByIdAfterLoadingTheSpecials)
     EXPECT_EQ(models.TextureSlots()->ToLoad().size(), 4u);
 }
 
-// Los BMD truncados hacen observable cada pedido mediante su aviso inmediato. Esto no
-// registra la intercalación de Load/Assign cuando los modelos son válidos.
+// The truncated BMDs make each request observable through its immediate warning. This does not record how Load and
+// Assign interleave when the models are valid.
 TEST(WorldModelsTest, LorenciaRequestsTheSpecialsAndNamedModelsInCallOrder)
 {
     Client::Tests::TemporaryFolder folder{"lorencia-model-call-order"};
@@ -513,7 +511,7 @@ TEST(WorldModelsTest, LorenciaRequestsTheSpecialsAndNamedModelsInCallOrder)
     EXPECT_EQ(requests, Expected);
 }
 
-// Sin ningún modelo (sin la carpeta Object56, o vacía) el login va sin objetos, y lo dice en el log.
+// Without any model (no Object56 folder, or an empty one) the login goes without objects, and says so in the log.
 TEST(WorldModelsTest, WithoutAnyModelThereIsAWarning)
 {
     Client::Tests::TemporaryFolder empty{"world-models-empty"};

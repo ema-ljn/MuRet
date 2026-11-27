@@ -36,8 +36,8 @@ struct Request
     TextureSlot slot;
 };
 
-// 05 § Los especiales de cada mapa; ASM 6173af..617440, 617520..6175e2, 6176ba..6176e6 y
-// 617853..61787f. Dungeon y Lost Tower comparten Object2, no la carpeta de su terreno.
+// 05 § Los especiales de cada mapa; ASM 0x6173af..0x617440, 0x617520..0x6175e2, 0x6176ba..0x6176e6 and
+// 0x617853..0x61787f. Dungeon and Lost Tower share Object2, not their terrain's folder.
 constexpr std::array<Request, 3> Dungeon{{{0xda, "Object2", "DungeonStone01.bmd", TextureSlot{0x69}},
                                           {0xaf, "Object2", "Bat01.bmd", TextureSlot{0x6a}},
                                           {0xb0, "Object2", "Rat01.bmd", TextureSlot{0x6b}}}};
@@ -130,7 +130,7 @@ TEST(WorldSpecialModelsTest, TheFirstFamiliesAssignTheirSpecialsBeforeTheGeneric
 TEST(WorldSpecialModelsTest, ReloadingAnotherFamilyReleasesThePreviousSpecials)
 {
     Client::Tests::TemporaryFolder folder{"special-model-reentry"};
-    WriteMap(folder.Path(), Cases[1]); // Lost Tower: los especiales vienen de Object2.
+    WriteMap(folder.Path(), Cases[1]); // Lost Tower: the specials come from Object2.
     WriteMap(folder.Path(), Cases[3]); // Stadium.
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
@@ -154,7 +154,7 @@ TEST(WorldSpecialModelsTest, ReloadingAnotherFamilyReleasesThePreviousSpecials)
     EXPECT_FALSE(store.Find(TextureSlot{0x6b}).has_value());
 }
 
-// Q-C23: que falte un especial no reserva una textura ni impide los siguientes.
+// Q-C23: a missing special does not reserve a texture or prevent the next ones.
 TEST(WorldSpecialModelsTest, AMissingSpecialDoesNotConsumeATextureSlot)
 {
     Client::Tests::TemporaryFolder folder{"special-model-missing"};

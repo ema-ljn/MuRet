@@ -22,45 +22,41 @@
 #include <string>
 #include <vector>
 
-// Los modelos de los objetos de un mundo (CL7.2): lo que 0x616ec0 lee para el mapa. Primero los
-// especiales de cada familia, con sus texturas desde 0x60d530(0x69); Lorencia usa después los
-// 112 nombres de 0x619a21..0x619ea1. En los demás sigue el lazo
-// genérico (0x61a0c4..0x61a0e1): k de 0 a 159 es Object<N>\Object<k + 1>.bmd ("%s0%d.bmd" hasta el 9).
-// Sus texturas, de Object<N>\, siguen la tabla desde 0x60d530(0x41c), con GL_NEAREST y
-// repitiendo (0x60d5f0(k, "Object<N>\\", 0x2901, 0x2600, 1)). Contrato: 05 § Los modelos de cada mundo
-// y 06 § El mundo del login. Los efectos y objetos fijos de los especiales los crea MapLoad.
+// The models of a world's objects: what 0x616ec0 reads for the map. First each family's specials, with their textures
+// from 0x60d530(0x69); Lorencia then uses the 112 names of 0x619a21..0x619ea1. The others follow the generic loop
+// (0x61a0c4..0x61a0e1): k from 0 to 159 is Object<N>\Object<k + 1>.bmd ("%s0%d.bmd" up to 9). Their textures, from
+// Object<N>\, follow the table from 0x60d530(0x41c), with GL_NEAREST and repeating (0x60d5f0(k, "Object<N>\\", 0x2901,
+// 0x2600, 1)). Contract: 05 § Los modelos de cada mundo and 06 § El mundo del login. MapLoad creates the specials'
+// effects and fixed objects.
 namespace Client::Assets
 {
 struct WorldSpecialModelSet;
 struct WorldModelTextureRequests;
 class ModelTextureTable;
 inline constexpr std::size_t WorldModelCount = 160;
-// El dragón que vuela en el login (06 § El dragón de fondo): solo en el mapa 55.
+// The dragon that flies in the login (06 § El dragón de fondo): only on map 55.
 inline constexpr std::uint16_t DragonModel = 0xb4;
-// El lancero del asedio: 0x612d90(0x4d) lo carga en el modelo 0x152 + 0x4d (Monster78) con el mapa 30 (0x42aa6b).
+// The siege spearman: 0x612d90(0x4d) loads it into model 0x152 + 0x4d (Monster78) with map 30 (0x42aa6b).
 inline constexpr std::uint16_t SpearmanModel = 0x19f;
 inline constexpr Render::TextureSlot WorldModelsFirstSlot{0x41c};
 
 class WorldModels final : public Models::IModelLibrary
 {
 public:
-    // Lee los de `map` desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
-    // carga, global en el original) desde 0x41c, o una tabla vacía sin ella, y las sube. Una familia
-    // cuyos especiales requieren un servicio ausente devuelve error después de soltar la anterior. Un modelo que
-    // falta se saltea sin avisar, como el original (Q-C23). Una textura que falta o no sube se saltea
-    // con un aviso, como en GameModels: el original la encuentra por nombre en la tabla, cargada por
-    // otro (fire01 y fire02 del tipo 89, de 0x615700, que MuRet todavía no carga entera), y su malla
-    // sale sin textura. `globalModels`, si se presta, vive hasta Release y no cambia: Blood Castle
-    // lo exige antes de consumir recursos; Gate01/02 ausentes se saltean como archivos opcionales.
-    // El mapa superpone solo sus bindings de
-    // texturas, sin copiar ni modificar esos modelos. Los slots y metadata propios prevalecen sobre
-    // los globales, y solo se publican tras una subida efectiva.
+    // Reads those of `map` from `dataRoot` and gives them their textures following `gameSlots` (the load's table,
+    // global in the original) from 0x41c, or an empty table without it, and uploads them. A family whose specials need
+    // a missing service returns an error after releasing the previous one. A missing model is skipped silently, as in
+    // the original (Q-C23). A texture that is missing or does not upload is skipped with a warning, as in GameModels:
+    // the original finds it by name in the table, loaded by another (fire01 and fire02 of type 89, from 0x615700, which
+    // MuRet does not load whole yet), and its mesh comes out without a texture. `globalModels`, if lent, lives until
+    // Release and does not change: Blood Castle requires it before consuming resources; missing Gate01/02 are skipped
+    // as optional files. The map overlays only its texture bindings, without copying or changing those models. Its own
+    // slots and metadata take precedence over the global ones, and are only published after an effective upload.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          Render::ITextureStore& textures, Core::Log& log,
                                                          const Models::ModelTextureSlots* gameSlots,
                                                          const Models::IModelLibrary* globalModels = nullptr,
                                                          ModelTextureTable* sharedTextures = nullptr);
-    // Suelta las texturas y los modelos.
     void Release();
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
@@ -70,11 +66,10 @@ public:
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
-    // Cuántos se leyeron.
     [[nodiscard]] std::size_t Count() const;
-    // Los slots que repartió Load, si cargó: el próximo es donde sigue el logo (0x61c7c0).
+    // The slots Load handed out, if it loaded: the next one is where the logo goes on (0x61c7c0).
     [[nodiscard]] const Models::ModelTextureSlots* TextureSlots() const;
-    // 612d90 continúa el cursor global con las texturas de Monster32/34.
+    // 0x612d90 continues the global cursor with the textures of Monster32/34.
     [[nodiscard]] Models::ModelTextureSlots* TextureSlots();
 
 private:
@@ -104,10 +99,9 @@ private:
     Render::ITextureStore* m_store = nullptr;
     ModelTextureTable* m_sharedTextures = nullptr;
     std::size_t m_requestStart = 0;
-    // Los que subió Load, para soltarlos.
     std::vector<Render::TextureSlot> m_uploaded;
     std::map<std::uint32_t, Models::TextureMetadata> m_textureMetadata;
-    // No poseedor: los modelos y texturas globales viven hasta Release; no se copian ni se modifican.
+    // Not owning: the global models and textures live until Release; they are not copied or changed.
     const Models::IModelLibrary* m_globalModels = nullptr;
 };
 } // namespace Client::Assets

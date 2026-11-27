@@ -47,8 +47,8 @@ struct FaunaModelLoadContext
     Core::Log& log;
     Models::ModelTextureSlots& slots;
     ModelTextureTable* sharedTextures = nullptr;
-    // WorldRuntime::modelSounds: 0x612d90 escribe la tabla de sonidos del modelo (0x612c80, 0x613127) después de
-    // cargarlo con mallas. nullptr, no la escribe.
+    // WorldRuntime::modelSounds: 0x612d90 writes the model's sound table (0x612c80, 0x613127) after loading it with
+    // meshes. With nullptr it does not write it.
     Sound::ModelSoundTable* sounds = nullptr;
     Audio::IPlayback* audio = nullptr;
 };
@@ -59,10 +59,10 @@ struct FaunaResourceSound
     std::int32_t buffers = 2;
     std::int32_t flags = 1;
 };
-// Los modelos que el original carga cuando los pide un alta (0x612d90 y 0x612270): los de la fauna (0x1f y 0x21, el
-// modelo 0x171 y el 0x173, desde StepGameFauna) y los de los monstruos y los NPC (desde 0x5141e0, CL9 hito 2, P-C176).
-// En el original van al arreglo global de 0x5769ad8, que no se suelta al cambiar de mapa: el dueño dura más que los
-// cambios de mapa, y Bind solo cambia la biblioteca prestada (la del mapa, que sigue con la global).
+// The models the original loads when a creation asks for them (0x612d90 and 0x612270): the fauna's (0x1f and 0x21,
+// models 0x171 and 0x173, from StepGameFauna) and the monsters' and NPCs' (from 0x5141e0, P-C176). In the original
+// they go to the global array at 0x5769ad8, which is not released on a map change: the owner outlives map changes,
+// and Bind only changes the borrowed library (the map's, which stays with the global one).
 class FaunaModels final : public Models::IModelLibrary
 {
 public:
@@ -73,37 +73,37 @@ public:
     FaunaModels& operator=(FaunaModels&&) = delete;
     ~FaunaModels() override;
     void Bind(const Models::IModelLibrary* base);
-    // 60dc4c: el caller entrega su elección CRT en la inicialización global de modelos.
+    // 0x60dc4c: the caller hands over its CRT choice in the global model initialization.
     [[nodiscard]] Core::Expected<void, std::string> InitializePrefix(std::uint16_t constructedBeforeBase);
     [[nodiscard]] const Models::Skeleton* PrefixModel() const;
     [[nodiscard]] std::optional<std::uint16_t> PrefixOffset() const;
-    // 612d90(1f/21) desde la fauna: los otros números cortan.
+    // 0x612d90(0x1f/0x21) from the fauna: other numbers fail.
     [[nodiscard]] Core::Expected<void, std::string> Prepare(std::int32_t monster, FaunaModelLoadContext& context);
-    // 0x612d90(n) entero, con el mapa en curso (0x6c9dd0), que elige la carpeta de las texturas. Con el modelo 0x152 +
-    // n ya con acciones o mallas (aquí o en la biblioteca prestada), nada (0x612dbc/0x612dc7). Lee Monster{n + 1}.bmd:
-    // sin él, el original cierra (0x612dd6..0x612de1, Q-C23) y MuRet corta (P-C173). Sin mallas, nada más (0x612dee).
-    // Con ellas, sus texturas (0x60d5f0) y las tablas de MonsterModelTable: las siete velocidades comunes, el factor,
-    // el primer switch, la acción 1 que no se repite y el tercer switch, con sus .wav (SoundFiles), los diez sonidos
-    // de las acciones (SoundActions), el hueso de la cabeza (+0x54), el byte +0x88 y las texturas fijas. Una velocidad
-    // que cae fuera de las acciones del modelo (el original escribe fuera de su arreglo) corta.
+    // The whole 0x612d90(n), with the current map (0x6c9dd0) choosing the texture folder. With model 0x152 + n already
+    // holding actions or meshes (here or in the borrowed library), nothing (0x612dbc/0x612dc7). Reads Monster{n +
+    // 1}.bmd: without it the original closes (0x612dd6..0x612de1, Q-C23) and MuRet fails (P-C173). Without meshes,
+    // nothing else (0x612dee). With them, its textures (0x60d5f0) and the MonsterModelTable tables: the seven common
+    // speeds, the factor, the first switch, action 1 that does not repeat and the third switch, with their .wav
+    // (SoundFiles), the ten action sounds (SoundActions), the head bone (+0x54), byte +0x88 and the fixed textures. A
+    // speed outside the model's actions (the original writes outside its array) fails.
     [[nodiscard]] Core::Expected<void, std::string> LoadMonster(std::int32_t number, std::int32_t map,
                                                                 FaunaModelLoadContext& context);
-    // 0x612270(modelo): con el modelo ya con acciones, nada (0x612298..0x61229f). Si no, su caso (los .bmd de las
-    // carpetas Npc y Object35, las partes de 0x1cb..0x1cd, sus texturas y sus .wav) y la cola: sus acciones a 0,25 y,
-    // con mallas, 0x60d5f0 otra vez. Un .bmd que falta se saltea sin avisar (0x60da30 solo cierra con Monster, Player
-    // y PlayerTest). NPC\BloodCastle01.bmd, con padres después de sus hijos (Q-C108), corta: la pose de MuRet no lo
-    // admite (08, P-C240).
+    // 0x612270(model): with the model already holding actions, nothing (0x612298..0x61229f). Otherwise its case (the
+    // .bmd files of the Npc and Object35 folders, the parts of 0x1cb..0x1cd, their textures and their .wav) and the
+    // tail: its actions at 0.25 and, with meshes, 0x60d5f0 again. A missing .bmd is skipped silently (0x60da30 only
+    // closes the game for Monster, Player and PlayerTest). NPC\BloodCastle01.bmd, with parents after their children
+    // (Q-C108), fails: MuRet's pose does not allow it (08, P-C240).
     [[nodiscard]] Core::Expected<void, std::string> LoadNpc(std::uint16_t model, FaunaModelLoadContext& context);
-    // Lo que usan LoadMonster y LoadNpc desde un alta: la tabla de texturas propia con su cursor y el backend que le
-    // ligó el juego (GameScene::Enter); sin backend, nullopt.
+    // What LoadMonster and LoadNpc use from a creation: the own texture table with its cursor and the backend the game
+    // bound to it (GameScene::Enter); without a backend, nullopt.
     [[nodiscard]] std::optional<FaunaModelLoadContext> LoadContextOf(const std::filesystem::path& dataRoot,
                                                                      Core::Log& log);
-    // La velocidad (+4) de la acción `action` de un modelo propio, la que escribe el guion del recorrido de la cámara
-    // (0x403a96..0x403abe, CL9 hito 11) después del alta. Un modelo que no está acá (el de la biblioteca prestada, que
-    // MuRet no deja escribir) o una acción fuera de su arreglo (el original escribe afuera) cortan con `address`.
+    // The speed (+4) of action `action` of an own model, which the camera tour script writes (0x403a96..0x403abe) after
+    // the creation. A model that is not here (one of the borrowed library, which MuRet does not let anyone write) or an
+    // action outside its array (the original writes outside it) fails with `address`.
     [[nodiscard]] Core::Expected<void, std::string> SetActionSpeed(std::uint16_t model, std::uint8_t action,
                                                                    float speed, std::string_view address);
-    // El byte `offset` de un modelo que escribió 0x612d90 (el 0x88 del 0x16d, 0x613f97), si lo escribió.
+    // Byte `offset` of a model 0x612d90 wrote (0x88 of 0x16d, 0x613f97), if it wrote it.
     [[nodiscard]] std::optional<std::uint8_t> ModelByte(std::uint16_t model, std::uint8_t offset) const;
     void Release();
     void ResetSoundRegistrationStamps();
@@ -115,11 +115,11 @@ public:
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
     [[nodiscard]] std::span<const FaunaResourceSound> SoundFiles() const;
-    // +0xaa..+0xbc del modelo: lo que escribió 0x612c80, o los ceros de 0x60dbe0 (también sin el modelo: el registro en
-    // 0 del original).
+    // +0xaa..+0xbc of the model: what 0x612c80 wrote, or the zeros of 0x60dbe0 (also without the model: the original's
+    // record at 0).
     [[nodiscard]] std::span<const std::int16_t, 10> SoundActions(std::uint16_t model) const;
-    // +0xa4/+0xa8 del modelo: frame/key publicados por pose (4eb860) y avance (4ec200).
-    // 0x60dbe0 los deja en cero; no se reinician al soltar los modelos (*inferido*).
+    // +0xa4/+0xa8 of the model: the frame and key that pose (0x4eb860) and advance (0x4ec200) publish. 0x60dbe0 leaves
+    // them at zero; they are not reset when the models are released (*inferred*).
     [[nodiscard]] float PoseFrame(std::uint16_t model) const;
     [[nodiscard]] std::int16_t PoseKey(std::uint16_t model) const;
     void RecordPoseKey(std::uint16_t model, std::int16_t key);
@@ -131,23 +131,23 @@ private:
         Data::Models::Model model;
         Models::Skeleton skeleton;
         std::vector<Render::TextureSlot> textures;
-        // +0xaa: 0x60dbe0 deja el arreglo en 0 (0x60dc80) y solo 0x612c80 lo escribe.
+        // +0xaa: 0x60dbe0 leaves the array at 0 (0x60dc80) and only 0x612c80 writes it.
         std::array<std::int16_t, 10> sounds{};
         std::map<std::uint8_t, std::uint8_t> bytes;
     };
-    // El modelo con acciones o mallas, aquí o en la biblioteca prestada: lo que miran las guardas de 0x612d90 y
-    // 0x612270.
+    // The model with actions or meshes, here or in the borrowed library: what the guards of 0x612d90 and 0x612270
+    // check.
     [[nodiscard]] bool HasActions(std::uint16_t model) const;
     [[nodiscard]] bool HasMeshes(std::uint16_t model) const;
-    // 0x60d5f0(modelo, carpeta, …) sobre un modelo propio: sus slots y la subida de lo nuevo.
+    // 0x60d5f0(model, folder, …) on an own model: its slots and the upload of what is new.
     void AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context);
-    // 0x63b870 y 0x63bd00 en un slot fijo.
+    // 0x63b870 and 0x63bd00 on a fixed slot.
     [[nodiscard]] Core::Expected<void, std::string> LoadFixedTexture(const Data::Textures::TextureSetEntry& texture,
                                                                      FaunaModelLoadContext& context);
     [[nodiscard]] Core::Expected<void, std::string> ApplyMonsterTables(std::int32_t number, Entry& entry,
                                                                        FaunaModelLoadContext& context);
     void RegisterModelSounds(std::uint16_t model, Audio::IPlayback* audio);
-    // No se reinicia al salir de un mapa ni al soltar sus texturas.
+    // Not reset when leaving a map or releasing its textures.
     ConstructedBmdPrefix m_prefix;
     ModelTextureTable m_textureTable;
     ModelTextureTable* m_sharedTextures = nullptr;

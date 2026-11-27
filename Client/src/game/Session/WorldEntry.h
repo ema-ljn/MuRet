@@ -57,6 +57,11 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Session
+{
+struct ModuleStates;
+} // namespace Client::Session
+
 // La respuesta del F3 03, 0x4c3940 con el paquete cifrado: la carga del mapa, el héroe y lo que
 // sigue. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo" (la tabla
 // de 0x4c3940), "El héroe" y "La carga del mapa"; 04-protocolo.md, "La entrada al mundo".
@@ -114,6 +119,8 @@ struct WorldEntryResources
     // 3F 07 de la tienda de otro (0x5eb17f), en la entrada, el teleport, el regen, el 37, el 3F 05 y las misiones. Lo
     // presta el sink con la sesión; sin él, cerrar esas ventanas corta. Al final, como `skills`.
     std::function<void(Protocol::Outgoing)> sendGamePacket{};
+    // App::GameClient's, beside `world`. Last, like `skills`.
+    Session::ModuleStates* states = nullptr;
 };
 
 // Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para

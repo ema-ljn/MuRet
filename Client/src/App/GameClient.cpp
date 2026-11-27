@@ -112,7 +112,8 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                    // 0x6d5dc8, the scene that 00 and 0D read.
                    .scene = [this] { return m_manager.Current(); },
                    .texts = data.text ? &*data.text : nullptr,
-                   .skills = data.skills ? &*data.skills : nullptr},
+                   .skills = data.skills ? &*data.skills : nullptr,
+                   .states = &m_states},
       m_eventApplier(m_worldEntry),
       m_online(server ? std::make_unique<Online>(*server, devices.clock, devices.log, m_eventApplier) : nullptr),
       m_context{.dataRoot = m_options.dataRoot,

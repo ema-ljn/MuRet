@@ -5,6 +5,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/IPacketSender.h"
 #include "Kernel/PlayerKey.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
@@ -130,6 +131,11 @@ void HandleWithTheLogAndTheRandom(const Walk&, Client::Core::Log& log, Client::C
 void HandleBySendingTheAction(const Walk& walk, const Client::Scenes::GamePacketSender& send)
 {
     send(Client::Protocol::Movement::WriteAction(walk.direction, 0x7a));
+}
+
+void HandleBySendingThroughThePort(const Walk& walk, const Client::Kernel::IPacketSender& send)
+{
+    send.Send(Client::Protocol::Movement::WriteAction(walk.direction, 0x7a));
 }
 
 const Client::Crt::CrtRandom* answeredFrom = nullptr;
@@ -280,6 +286,19 @@ TEST_F(RouteTest, AGamePacketSenderSendsThroughTheSession)
 
     Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
                            &HandleBySendingTheAction>(online.session, WalkPacket());
+
+    const auto received = online.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets.back()).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 5, 0x18, 15, 0x7a})));
+}
+
+TEST_F(RouteTest, TheKernelsPacketSenderSendsThroughTheSession)
+{
+    const auto before = online.GameServerReads().packets.size();
+
+    Client::Session::Route<"se ignora el movimiento de prueba", &Client::Protocol::Movement::ReadWalk,
+                           &HandleBySendingThroughThePort>(online.session, WalkPacket());
 
     const auto received = online.GameServerReads();
     ASSERT_EQ(received.packets.size(), before + 1);

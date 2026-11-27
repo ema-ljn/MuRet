@@ -172,7 +172,7 @@ HEAD` passes. After its squash, `move.py --record <squash>`.
   - **The handlers.** Each routed row of the module gets its handler in `<Module>/In/<Packet>.cpp`, a free function of
     up to ~80 lines that names its parts; the row points at it, and today's applier goes.
   - **The actions.** Each `Send…` or `Request…` of `ServerSession` that the module's intent starts becomes
-    `<Module>/Out/<Intent>.cpp`: it validates against the module's state and writes through `Kernel::PacketSender`.
+    `<Module>/Out/<Intent>.cpp`: it validates against the module's state and writes through `Kernel::IPacketSender`.
   - **The rows.** Every row of the module leaves the baseline. A mutual pair moves what both share down (to `Kernel`
     or to a lower module's `<Module>Defines.h`) or inverts the call with a port. An upward include becomes a port, or
     the call moves up to its caller. A one-way use that makes sense joins `may_use` in `Client/modules.tsv`, with the
@@ -219,8 +219,8 @@ recipe.
 PR `refactor(AR4.1): the kernel's ports and the module states' owner`. Skills: `clean-architecture`, `cpp-pro`.
 
 **Files:**
-- Create in `Client/src/game/Kernel/`: `PacketSender.h`, `SoundRequests.h` and `OnScreenMessages.h` (the spec's three
-  ports), with their tests in `Client/tests/kernel/`.
+- Create in `Client/src/game/Kernel/`: `IPacketSender.h`, `ISoundRequests.h` and `IOnScreenMessages.h` (the spec's three
+  ports, with CODING_RULES' `I` for interfaces), with their tests in `Client/tests/kernel/`.
 - Create `Client/src/game/Session/ModuleStates.h`.
 - Modify `game/Session/Route.h` (the parts) and `App/GameClient.{h,cpp}` (the owner).
 
@@ -229,30 +229,31 @@ PR `refactor(AR4.1): the kernel's ports and the module states' owner`. Skills: `
 ```cpp
 namespace Client::Kernel
 {
-class PacketSender { public: virtual ~PacketSender() = default; virtual void Send(Protocol::Outgoing packet) const = 0; };
+class IPacketSender { public: virtual ~IPacketSender() = default; virtual void Send(Protocol::Outgoing packet) const = 0; };
 // As WorldRuntime::RequestSound takes it today; Task 7 gives the id its type.
-class SoundRequests { public: virtual ~SoundRequests() = default;
+class ISoundRequests { public: virtual ~ISoundRequests() = default;
     virtual void Request(std::int32_t id, std::optional<glm::vec3> origin, bool loop) = 0; };
 // 0x555190(name, text, type).
-class OnScreenMessages { public: virtual ~OnScreenMessages() = default;
+class IOnScreenMessages { public: virtual ~IOnScreenMessages() = default;
     virtual Core::Expected<void, std::string> Add(std::string_view name, std::string_view text, std::int32_t type) = 0; };
 }
 namespace Client::Session { struct ModuleStates; } // one member per module, by value, as each design moves it
 ```
 
-`Session` implements `PacketSender`, `Sound` implements `SoundRequests` (Task 7) and `Hud` implements
-`OnScreenMessages`. `App::GameClient` owns the `ModuleStates` beside the `WorldState`, and the `WorldEntryResources`
-the session routes with holds a reference to it, so `Route` hands a handler the member it names (AR3 Decision 1A).
+`Session` implements `IPacketSender`, `Sound` implements `ISoundRequests` (Task 7) and `Hud` implements
+`IOnScreenMessages`. `App::GameClient` owns the `ModuleStates` beside the `WorldState`, and the `WorldEntryResources`
+the session routes with points at it, so `Route` hands a handler the member it names (AR3 Decision 1A).
 
 - [ ] **Step 1: Write the failing tests.** A fake of each port records its calls. `Route` hands a handler that names
-  a member of `ModuleStates` that member.
+  `const Kernel::IPacketSender&` the session's sender. The test that `Route` hands a member of `ModuleStates` comes
+  with its first member (Task 6).
 - [ ] **Step 2: Implement the ports and the owner.** `Scenes::GamePacketSender` and `Scenes::ActionSender`, two
-  `std::function` aliases today, give way to `Kernel::PacketSender` one module at a time, as each design reaches them;
-  `UI::MessageSink` and `MessageSinkOf` give way to `OnScreenMessages` the same way.
-- [ ] **Step 3: The aggregate's rows into this milestone.** `WorldMap.h` and `LoadedWorld.h` stop including `Terrain`
-  and `Assets` (9 rows): what a loaded world holds of the terrain and the models goes to their states. The other rows
-  of the aggregate leave with the modules they point at.
-- [ ] **Step 4: Check** as the recipe.
+  `std::function` aliases today, give way to `Kernel::IPacketSender` one module at a time, as each design reaches them;
+  `UI::MessageSink` and `MessageSinkOf` give way to `IOnScreenMessages` the same way.
+- [ ] **Step 3: Check** as the recipe.
+
+The aggregate's rows into this milestone (`WorldMap.h` and `LoadedWorld.h` stop including `Terrain` and `Assets`, 9
+rows) go with Task 6, which gives the terrain its state.
 
 ### Task 6: `Assets`, `Terrain` and `Camera`
 
@@ -266,14 +267,17 @@ PR `refactor(AR4.1): one record per model slot and the terrain's state`. Skills:
   as `PlayerSkeletonModel`; item vocabulary Task 12 in the moved files.
 - `CellSize` in `Terrain`. `terrainPolygonState` goes to `Camera`'s state and `groundMarks` to `Terrain`'s.
 - `Terrain`'s 4 upward rows and `Assets`' one.
+- The aggregate's rows into this milestone: `WorldMap.h` and `LoadedWorld.h` stop including `Terrain` and `Assets` (9
+  rows), and what a loaded world holds of the terrain and the models goes to their states. The other rows of the
+  aggregate leave with the modules they point at.
 
 ### Task 7: `Sound`
 
 PR `refactor(AR4.1): the sound requests through the kernel`.
 
 - `Sound/SoundIds.h` and `Audio::SoundId` (named-values Task 8): the 13 shared sounds, `0x19` once, and the three WAVs
-  the events loop as music (`0x8b`, `0x99`, `0x9e`) named once. `SoundRequests::Request` takes the `Audio::SoundId`.
-- `Sound` implements `Kernel::SoundRequests`. The roughly 200 calls to `WorldRuntime::RequestSound` (76 files) stay
+  the events loop as music (`0x8b`, `0x99`, `0x9e`) named once. `ISoundRequests::Request` takes the `Audio::SoundId`.
+- `Sound` implements `Kernel::ISoundRequests`. The roughly 200 calls to `WorldRuntime::RequestSound` (76 files) stay
   in their functions and call the port, so the order of the requests and the `rand()` that picks some of them do not
   move.
 - `modelSounds`, `lastSoundId` and `audio` leave `WorldRuntime` for `Sound`'s state.
@@ -564,8 +568,8 @@ Recommended and written into the tasks unless Emanuel says otherwise. Task 1's A
 - **What stays out:** the port fixes of the Crywolf plan's "Found on the way"; AR5's scene scripts and `main.cpp`
   phases; AR6's `MapId` enum and deduplication; the item draw plan's tasks, which keep their own plan; the music plan,
   which runs on its own.
-- **Names used the same way in every task:** `Session::ModuleStates`, `Kernel::PacketSender`,
-  `Kernel::SoundRequests`, `Kernel::OnScreenMessages`, `EffectSpawner`, `ParticleSpawn`, `PanelRegistry`, `IPanel`,
+- **Names used the same way in every task:** `Session::ModuleStates`, `Kernel::IPacketSender`,
+  `Kernel::ISoundRequests`, `Kernel::IOnScreenMessages`, `EffectSpawner`, `ParticleSpawn`, `PanelRegistry`, `IPanel`,
   `Connection`.
 - **Estimates:** the files, lines and rows of each milestone were counted at 4cbf432b from the map and the baselines.
   The master plan's counts stay where this plan did not measure again: the ~2,090 vectors, the ~85 `std::function`,

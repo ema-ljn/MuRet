@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/IPacketSender.h"
 #include "Kernel/PlayerKey.h"
 #include "Models/Cloth.h"
 #include "Network/Packet.h"
@@ -16,6 +17,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Session/ServerSession.h"
+#include "Session/SessionPacketSender.h"
 #include "Session/WorldEntry.h"
 #include "World/LeafWeather.h"
 
@@ -197,6 +199,15 @@ template <> struct RoutedPart<const Actors::ActionSender&>
 template <> struct RoutedPart<const Scenes::GamePacketSender&>
 {
     static Scenes::GamePacketSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
+};
+
+// The kernel's port over the session's GameServer.
+template <> struct RoutedPart<const Kernel::IPacketSender&>
+{
+    static SessionPacketSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session)
+    {
+        return SessionPacketSender(session);
+    }
 };
 
 // Only the session's own handlers name it.

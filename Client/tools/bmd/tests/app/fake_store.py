@@ -15,6 +15,9 @@ class FakeStore:
             raise MubmdError(ErrorCode.FILE_NOT_FOUND, f"{path} does not exist")
         return self.files[path]
 
+    def head(self, path: Path, count: int) -> bytes:
+        return self.read(path)[:count]
+
     def sha256(self, path: Path) -> str:
         return hashlib.sha256(self.read(path)).hexdigest()
 

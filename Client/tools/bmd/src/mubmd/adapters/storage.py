@@ -75,6 +75,12 @@ class LocalFileStore:
             raise _not_found(path)
         return path.read_bytes()
 
+    def head(self, path: Path, count: int) -> bytes:
+        if not path.is_file():
+            raise _not_found(path)
+        with path.open("rb") as stream:
+            return stream.read(count)
+
     def sha256(self, path: Path) -> str:
         return hashlib.sha256(self.read(path)).hexdigest()
 

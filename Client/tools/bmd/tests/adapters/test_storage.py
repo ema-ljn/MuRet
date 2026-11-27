@@ -221,3 +221,17 @@ def test_a_folder_that_is_not_there_lists_nothing(tmp_path: Path) -> None:
     store = LocalFileStore()
     assert store.files_in(tmp_path / "missing") == ()
     assert store.folders_in(tmp_path / "missing") == ()
+
+
+def test_head_gives_the_first_bytes(tmp_path: Path) -> None:
+    file = tmp_path / "a.bmd"
+    file.write_bytes(b"BMD\x0a and more")
+    store = LocalFileStore()
+    assert store.head(file, 3) == b"BMD"
+    assert store.head(file, 100) == b"BMD\x0a and more"
+
+
+def test_head_of_a_missing_file_is_not_found(tmp_path: Path) -> None:
+    with pytest.raises(MubmdError) as caught:
+        LocalFileStore().head(tmp_path / "missing.bmd", 3)
+    assert caught.value.code is ErrorCode.FILE_NOT_FOUND

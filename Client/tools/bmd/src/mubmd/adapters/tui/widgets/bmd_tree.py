@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from rich.style import Style
@@ -7,12 +7,11 @@ from textual.message import Message
 from textual.widgets import Tree
 from textual.widgets.tree import TreeNode
 
-from mubmd.core.catalog import identify
-from mubmd.core.errors import MubmdError
-
 OPEN_GLYPH = "◆"
 TEXT_TABLE_GLYPH = "≡"
 RECORD_TABLE_GLYPH = "▤"
+MODEL_GLYPH = "△"
+FORMAT_GLYPHS = {"text": TEXT_TABLE_GLYPH, "model": MODEL_GLYPH}
 GUIDE_DEPTH = 2
 
 
@@ -24,12 +23,8 @@ def display_order(folder: Path, files: Iterable[Path]) -> list[Path]:
     return sorted(files, key=key)
 
 
-def file_glyph(path: Path) -> str | None:
-    try:
-        format_name = identify(path, b"").format.name
-    except MubmdError:
-        return None
-    return TEXT_TABLE_GLYPH if format_name == "text" else RECORD_TABLE_GLYPH
+def file_glyph(format_name: str | None) -> str | None:
+    return None if format_name is None else FORMAT_GLYPHS.get(format_name, RECORD_TABLE_GLYPH)
 
 
 class BmdTree(Tree[Path]):
@@ -41,16 +36,16 @@ class BmdTree(Tree[Path]):
             super().__init__()
             self.path = path
 
-    def __init__(self, folder: Path, files: Iterable[Path]) -> None:
+    def __init__(self, folder: Path, formats: Mapping[Path, str | None]) -> None:
         super().__init__(folder.name, data=folder)
         self.guide_depth = GUIDE_DEPTH
         self.unsaved: set[Path] = set()
         self.opened: Path | None = None
         self.nodes: dict[Path, TreeNode[Path]] = {folder: self.root}
         self.glyphs: dict[Path, str | None] = {}
-        for file in display_order(folder, files):
+        for file in display_order(folder, formats):
             self.nodes[file] = self._folder(file.parent).add_leaf(file.name, data=file)
-            self.glyphs[file] = file_glyph(file)
+            self.glyphs[file] = file_glyph(formats[file])
         self.root.expand()
 
     def _folder(self, path: Path) -> TreeNode[Path]:

@@ -68,6 +68,34 @@ RecordTableView > .datatable--cursor {
     color: $foreground;
 }
 
+ModelTree {
+    display: none;
+    height: 1fr;
+    border: round $primary 60%;
+    border-title-color: $primary;
+    border-title-style: bold;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+
+ModelTree:focus {
+    border: round $primary;
+}
+
+#document.-model ModelTree {
+    display: block;
+}
+
+#document.-model RecordTableView {
+    display: none;
+}
+
+#document.-model FieldList {
+    height: auto;
+    min-height: 3;
+    max-height: 12;
+}
+
 FieldList {
     display: none;
     height: 1fr;

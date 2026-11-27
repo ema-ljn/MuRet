@@ -7,6 +7,7 @@ from typing import Any, Final
 
 from mubmd.app.checks import findings_of
 from mubmd.core.catalog import Identified, identify
+from mubmd.core.documents.model import MODEL_MAGIC
 from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
@@ -76,6 +77,13 @@ def decode_document(store: FileStore, path: Path, *, encoding: str | None = None
         document=identified.format.codec.decode(data, identified.file),
         read_only=store.is_reference(path),
     )
+
+
+def format_name_of(store: FileStore, path: Path) -> str | None:
+    try:
+        return identify(path.absolute(), store.head(path, len(MODEL_MAGIC))).format.name
+    except MubmdError:
+        return None
 
 
 def open_document(store: FileStore, path: Path, *, encoding: str | None = None) -> OpenDocument:

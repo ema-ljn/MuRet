@@ -212,6 +212,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     // El renglón de bienvenida del F3 03 (0x4c4b60).
     resources.textMeasure = &letters;
     resources.texts = &*data.Value().text;
+    resources.states = &states;
     const auto entered = Client::Scenes::ApplyWorldEntry(reply, 1, resources, publisher);
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     world.Runtime().drawingEnabled = true;

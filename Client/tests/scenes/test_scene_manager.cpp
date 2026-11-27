@@ -1339,7 +1339,8 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
                                                         .itemSetTables = &*gameResources.data.itemSets,
                                                         .log = log,
                                                         .textMeasure = &letters,
-                                                        .texts = &*gameResources.data.text};
+                                                        .texts = &*gameResources.data.text,
+                                                        .states = &states};
     RecordingFrameTarget target({800, 600});
     bool returning = false;
     bool choose = false;

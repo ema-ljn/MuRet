@@ -2043,6 +2043,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     const auto ownedWorld = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& worldState = *ownedWorld;
     Client::Scenes::SelectionState state(worldState);
+    Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
@@ -2050,7 +2051,8 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
                                .cloth = &cloth,
                                .camera = &camera,
                                .cameraInput = &cameraInput,
-                               .selection = &state};
+                               .selection = &state,
+                               .states = &states};
     {
         LoginScene login(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
         ASSERT_TRUE(login.Enter().HasValue());

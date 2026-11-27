@@ -172,7 +172,8 @@ protected:
                 .log = m_log,
                 .textMeasure = &m_letters,
                 .scene = [this] { return std::optional(m_scene); },
-                .texts = &*m_data.text};
+                .texts = &*m_data.text,
+                .states = &m_states};
     }
 
     void EnterWorld()

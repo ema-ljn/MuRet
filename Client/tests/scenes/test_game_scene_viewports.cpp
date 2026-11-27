@@ -164,7 +164,8 @@ protected:
                                                             .itemSetTables = &*m_data.itemSets,
                                                             .log = m_log,
                                                             .textMeasure = &m_letters,
-                                                            .texts = &*m_data.text};
+                                                            .texts = &*m_data.text,
+                                                            .states = &m_states};
         EntryPublisher publisher;
         const auto entered = Client::Scenes::ApplyWorldEntry(reply, 5, resources, publisher);
         ASSERT_TRUE(entered.HasValue()) << entered.Error();

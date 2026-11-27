@@ -1,4 +1,4 @@
-#include "Audio/Music.h"
+#include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 
 #include <glm/ext/vector_float3.hpp>

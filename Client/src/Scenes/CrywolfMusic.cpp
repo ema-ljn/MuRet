@@ -1,6 +1,6 @@
 #include "Scenes/CrywolfMusic.h"
 
-#include "Audio/Music.h"
+#include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"

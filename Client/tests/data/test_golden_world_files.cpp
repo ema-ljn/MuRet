@@ -1,5 +1,6 @@
 #include "Data/Terrain/TerrainAttributesFile.h"
 #include "Data/Terrain/TerrainMappingFile.h"
+#include "Data/Terrain/TerrainObjectsFile.h"
 
 #include "Core/Ascii.h"
 #include "support/FileBytes.h"
@@ -24,8 +25,10 @@ namespace
 using Client::Core::EqualsIgnoringAsciiCase;
 using Client::Data::Terrain::ReadTerrainAttributesFile;
 using Client::Data::Terrain::ReadTerrainMappingFile;
+using Client::Data::Terrain::ReadTerrainObjectsFile;
 using Client::Data::Terrain::WriteTerrainAttributesFile;
 using Client::Data::Terrain::WriteTerrainMappingFile;
+using Client::Data::Terrain::WriteTerrainObjectsFile;
 using Client::Tests::HasExtension;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::SameBytes;
@@ -122,5 +125,21 @@ TEST_F(GoldenWorldFiles, TheWordFilesKeepTheirHighBytes)
         EXPECT_EQ(notZero, known == expected.end() ? 0 : known->second) << name;
     }
     EXPECT_EQ(wordFiles, 16U);
+}
+TEST_F(GoldenWorldFiles, EveryObjectsFileIsWrittenBackTheSame)
+{
+    const std::vector<std::filesystem::path> files = WorldFiles(m_dataRoot, "EncTerrain", ".obj");
+
+    EXPECT_EQ(files.size(), 23U);
+    for (const std::filesystem::path& file : files)
+    {
+        const std::string name = file.lexically_relative(m_dataRoot).generic_string();
+        const std::vector<std::byte> bytes = FileBytes(file);
+        const auto read = ReadTerrainObjectsFile(bytes);
+        ASSERT_TRUE(read.HasValue()) << name;
+        const auto written = WriteTerrainObjectsFile(read.Value());
+        ASSERT_TRUE(written.HasValue()) << name;
+        EXPECT_TRUE(SameBytes(written.Value(), bytes)) << name;
+    }
 }
 } // namespace

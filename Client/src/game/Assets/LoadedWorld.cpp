@@ -1,4 +1,4 @@
-#include "Kernel/LoadedWorld.h"
+#include "Assets/LoadedWorld.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"

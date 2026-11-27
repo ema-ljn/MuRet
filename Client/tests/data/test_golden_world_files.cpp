@@ -1,4 +1,5 @@
 #include "Data/Terrain/TerrainAttributesFile.h"
+#include "Data/Terrain/TerrainHeightsFile.h"
 #include "Data/Terrain/TerrainMappingFile.h"
 #include "Data/Terrain/TerrainObjectsFile.h"
 
@@ -24,9 +25,11 @@ namespace
 {
 using Client::Core::EqualsIgnoringAsciiCase;
 using Client::Data::Terrain::ReadTerrainAttributesFile;
+using Client::Data::Terrain::ReadTerrainHeightsFile;
 using Client::Data::Terrain::ReadTerrainMappingFile;
 using Client::Data::Terrain::ReadTerrainObjectsFile;
 using Client::Data::Terrain::WriteTerrainAttributesFile;
+using Client::Data::Terrain::WriteTerrainHeightsFile;
 using Client::Data::Terrain::WriteTerrainMappingFile;
 using Client::Data::Terrain::WriteTerrainObjectsFile;
 using Client::Tests::HasExtension;
@@ -122,7 +125,7 @@ TEST_F(GoldenWorldFiles, TheWordFilesKeepTheirHighBytes)
         const auto notZero = static_cast<std::size_t>(
             std::ranges::count_if(*read.Value()->highBytes, [](std::uint8_t high) { return high != 0; }));
         const auto known = expected.find(name);
-        EXPECT_EQ(notZero, known == expected.end() ? 0 : known->second) << name;
+        EXPECT_EQ(notZero, known == expected.end() ? std::size_t{0} : known->second) << name;
     }
     EXPECT_EQ(wordFiles, 16U);
 }
@@ -140,6 +143,21 @@ TEST_F(GoldenWorldFiles, EveryObjectsFileIsWrittenBackTheSame)
         const auto written = WriteTerrainObjectsFile(read.Value());
         ASSERT_TRUE(written.HasValue()) << name;
         EXPECT_TRUE(SameBytes(written.Value(), bytes)) << name;
+    }
+}
+
+TEST_F(GoldenWorldFiles, EveryHeightsFileIsWrittenBackTheSame)
+{
+    const std::vector<std::filesystem::path> files = WorldFiles(m_dataRoot, "TerrainHeight", ".ozb");
+
+    EXPECT_EQ(files.size(), 19U);
+    for (const std::filesystem::path& file : files)
+    {
+        const std::string name = file.lexically_relative(m_dataRoot).generic_string();
+        const std::vector<std::byte> bytes = FileBytes(file);
+        const auto read = ReadTerrainHeightsFile(bytes);
+        ASSERT_TRUE(read.HasValue()) << name;
+        EXPECT_TRUE(SameBytes(WriteTerrainHeightsFile(*read.Value()), bytes)) << name;
     }
 }
 } // namespace

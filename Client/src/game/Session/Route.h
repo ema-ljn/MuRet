@@ -11,9 +11,11 @@
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/SocialEvents.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Session/ServerSession.h"
 #include "Session/WorldEntry.h"
+#include "World/LeafWeather.h"
 
 #include <algorithm>
 #include <array>
@@ -123,6 +125,14 @@ template <> struct RoutedPart<Crt::CrtRandom&>
     static Crt::CrtRandom& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
     {
         return world.cloth.random;
+    }
+};
+
+template <> struct RoutedPart<World::LeafWeather&>
+{
+    static World::LeafWeather& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    {
+        return world.world.Runtime().leafWeather;
     }
 };
 

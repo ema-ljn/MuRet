@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Protocol/Weather/Weather.h"
 
 #include <cstdint>
 #include <system_error>
@@ -24,4 +25,8 @@ struct LeafWeather
 // Los errores se propagan intactos, conservando sólo el prefijo de stores ejecutado.
 [[nodiscard]] Core::Expected<void, std::error_code> StepLeafWeatherWaves(LeafWeather& weather, const float& time,
                                                                          ILeafWaveEvaluator* evaluator);
+
+// 0x4e36c4 and 0x4e36ed write only the target: 0 with a high nibble of 0, six times the low nibble with a high nibble
+// of 1. The default of 0x4e5b4a writes nothing and draws no rand().
+void ApplyWeather(const Protocol::Weather::Weather& received, LeafWeather& weather);
 } // namespace Client::World

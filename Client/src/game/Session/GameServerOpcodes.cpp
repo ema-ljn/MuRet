@@ -7,21 +7,30 @@
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Items/Inventory.h"
+#include "Protocol/Messenger/FriendChat.h"
+#include "Protocol/Messenger/Friends.h"
+#include "Protocol/Messenger/Letters.h"
 #include "Protocol/Movement/World.h"
 #include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Opcodes.h"
 #include "Protocol/Party/Party.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
+#include "Protocol/Pets/PetInfo.h"
+#include "Protocol/Pets/PetOrders.h"
 #include "Protocol/Player/LevelUpPoint.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Player/PkLevel.h"
+#include "Protocol/Quests/Quest.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Social/Duel.h"
 #include "Protocol/Social/Trade.h"
+#include "Protocol/Weather/Weather.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatReplies.h"
 #include "Scenes/FloorItemPackets.h"
+#include "Scenes/GameFriends.h"
+#include "Scenes/GameLetters.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/LevelUpPointReply.h"
 #include "Scenes/MagicAttackCount.h"
@@ -29,13 +38,17 @@
 #include "Scenes/MovementReplies.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/PersonalShopLists.h"
+#include "Scenes/PetOrders.h"
+#include "Scenes/PetStats.h"
 #include "Scenes/PkLevelReply.h"
+#include "Scenes/QuestReplies.h"
 #include "Scenes/SkillReplies.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Session/Route.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionHandlers.h"
+#include "World/LeafWeather.h"
 
 #include <array>
 #include <optional>
@@ -59,7 +72,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(WhisperOpcode, std::nullopt, 0x4e34ea, "Whisper",
             &Route<"se ignora el susurro (02)", &Protocol::Chat::ReadWhisper, &Scenes::ApplyWhisper>),
         Row(MainCheckOpcode, std::nullopt, 0x4e357c, "MainCheck", &Call<&ServerSession::OnMainCheck>),
-        Row(ActorStateOpcode, std::nullopt, 0x4e3a5c, "ActorState", &Call<&ServerSession::OnActorState>),
+        Row(ActorStateOpcode, std::nullopt, 0x4e3a5c, "ActorState",
+            &Route<"se ignora el estado del personaje (07)", &Protocol::Skills::ReadActorState,
+                   &Scenes::ApplyActorState>),
         Row(EventStateOpcode, std::nullopt, 0x4e3594, "EventState", &Call<&ServerSession::OnEventPacket>, CopiedToRing),
         Row(WhisperResultOpcode, std::nullopt, 0x4e366f, "WhisperResult",
             &Route<"se ignora el resultado del susurro (0C)", &Protocol::Chat::ReadWhisperResult,
@@ -67,7 +82,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(NoticeOpcode, std::nullopt, 0x4e369d, "Notice",
             &Route<"se ignora el aviso (0D)", &Protocol::Chat::ReadNotice, &Scenes::ApplyNotice>),
         Row(KeepaliveOpcode, std::nullopt, 0, "Keepalive", SentOnly{}),
-        Row(WeatherOpcode, std::nullopt, 0x4e36b5, "Weather", &Call<&ServerSession::OnWeather>),
+        // 0x4e36b5: no scene guard, login state or encryption check; the Connection already normalized the C3.
+        Row(WeatherOpcode, std::nullopt, 0x4e36b5, "Weather",
+            &Route<"se ignora el clima (0F)", &Protocol::Weather::ReadWeather, &World::ApplyWeather>),
         Row(SkillHitsOpcode, std::nullopt, 0, "SkillHits", SentOnly{}),
         // 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5, 0x4e3716, 0x4e37d1, 0x4e37e9 and 0x4e4643: the viewport's cases look
         // at neither the scene nor the encryption flag.
@@ -92,18 +109,27 @@ std::span<const OpcodeRow> GameServerOpcodes()
         // 0x4cb750 (from 0x4e39ab), the 1A (0x4cedd0) and the D7: no scene or flag guard.
         Row(ActionOpcode, std::nullopt, 0x4e39a3, "Action",
             &Route<"se ignora la acción (18)", &Protocol::Movement::ReadAction, &Scenes::ApplyActionReply>),
-        // The C3 19 and 1E arrive decrypted with the table's opcode (0xa5 to 0x19, 0xa6 to 0x1e).
-        Row(MagicAttackOpcode, std::nullopt, 0x4e39bf, "MagicAttack", &Call<&ServerSession::OnMagicAttack>),
+        // The C3 19 and 1E arrive decrypted with the table's opcode (0xa5 to 0x19, 0xa6 to 0x1e). In clear, 0x4cc530
+        // (19) and 0x4ce000 (1E) send the F1 03 with their opcode and nothing more.
+        Row(MagicAttackOpcode, std::nullopt, 0x4e39bf, "MagicAttack",
+            &Route<"se ignora la skill (19)", &Protocol::Skills::ReadMagicAttack, &Scenes::ApplyMagicAttack,
+                   InClear<"la skill (19) no llegó cifrada",
+                           &Written<&Protocol::Skills::WriteClearSkillReport, MagicAttackOpcode>>>),
         Row(MagicAttackCountOpcode, std::nullopt, 0x4e3a05, "MagicAttackCount",
             &Route<"se ignora la skill que pega a varios (1A)", &Protocol::Actors::ReadMagicAttackCount,
                    &Scenes::ApplyMagicAttackCount>),
-        Row(MagicCancelOpcode, std::nullopt, 0x4e3a44, "MagicCancel", &Call<&ServerSession::OnMagicCancel>),
+        Row(MagicCancelOpcode, std::nullopt, 0x4e3a44, "MagicCancel",
+            &Route<"se ignora el fin de la skill (1B)", &Protocol::Skills::ReadMagicCancel, &Scenes::ApplyMagicCancel>),
         // P-C33: 0x4c6e32 tests the flag before reading the fields.
         Row(TeleportOpcode, std::nullopt, 0x4e3e98, "Teleport",
             &Route<"se ignora el warp (1C)", &Protocol::Movement::ReadTeleport, &ReceiveTeleport,
                    InClear<"el warp (1C) no llegó cifrado", &Protocol::Movement::WriteRejectedTeleport>>,
             CopiedToRing),
-        Row(DurationMagicOpcode, std::nullopt, 0x4e3a21, "DurationMagic", &Call<&ServerSession::OnDurationMagic>),
+        Row(DurationMagicOpcode, std::nullopt, 0x4e3a21, "DurationMagic",
+            &Route<"se ignora la skill con duración (1E)", &Protocol::Skills::ReadDurationMagic,
+                   &Scenes::ApplyDurationMagic,
+                   InClear<"la skill con duración (1E) no llegó cifrada",
+                           &Written<&Protocol::Skills::WriteClearSkillReport, DurationMagicOpcode>>>),
         Row(ViewportSummonsOpcode, std::nullopt, 0x4e37e9, "ViewportSummons",
             &Route<"se ignoran los invocados del viewport (1F)", &Protocol::Actors::ReadSummons,
                    &Scenes::ApplySummons>),
@@ -226,7 +252,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
                    &Scenes::ApplyTransformed>),
         Row(MapAttributesOpcode, std::nullopt, 0x4e41d1, "MapAttributes", &Call<&ServerSession::OnEventPacket>),
         Row(ItemAcquiredOpcode, std::nullopt, 0x4e41e9, "ItemAcquired", &Call<&ServerSession::OnEventPacket>),
-        Row(ActorEffectOpcode, std::nullopt, 0x4e4201, "ActorEffect", &Call<&ServerSession::OnActorEffect>),
+        Row(ActorEffectOpcode, std::nullopt, 0x4e4201, "ActorEffect",
+            &Route<"se ignora el efecto del personaje (48)", &Protocol::Skills::ReadActorEffect,
+                   &Scenes::ApplyActorEffect>),
         Row(GuildJoinRequestOpcode, std::nullopt, 0x4e4219, "GuildJoinRequest", &Call<&ServerSession::OnGuild>),
         Row(GuildJoinResultOpcode, std::nullopt, 0x4e4231, "GuildJoinResult", &Call<&ServerSession::OnGuild>),
         Row(GuildMemberListOpcode, std::nullopt, 0x4e4249, "GuildMemberList", &Call<&ServerSession::OnGuild>),
@@ -247,7 +275,9 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(ViewportObjectsOpcode, std::nullopt, 0x4e4643, "ViewportObjects",
             &Route<"se ignoran los objetos del viewport (68)", &Protocol::Actors::ReadObjects,
                    &Scenes::ApplyViewportObjects>),
-        Row(SkillTargetOpcode, std::nullopt, 0x4e39e2, "SkillTarget", &Call<&ServerSession::OnSkillTarget>),
+        Row(SkillTargetOpcode, std::nullopt, 0x4e39e2, "SkillTarget",
+            &Route<"se ignora el blanco de la skill (69)", &Protocol::Skills::ReadSkillTarget,
+                   &Scenes::ApplySkillTarget>),
         Row(PingOpcode, std::nullopt, 0x4e465b, "Ping", Unported{}),
         Row(Report73Opcode, std::nullopt, 0x4e4673, "Report73", &Call<&ServerSession::OnReport73>),
         Row(WarehouseMoneyOpcode, std::nullopt, 0x4e4692, "WarehouseMoney",
@@ -284,14 +314,30 @@ std::span<const OpcodeRow> GameServerOpcodes()
                            &Written<&Protocol::Combat::WriteClearKillReport, ExtendedKillExperienceOpcode>>>),
         Row(SerialResultOpcode, std::nullopt, 0x4e4a86, "SerialResult", &Call<&ServerSession::OnEventPacket>),
         Row(EventSoundOpcode, std::nullopt, 0x4e4ad4, "EventSound", &Call<&ServerSession::OnEventPacket>),
-        Row(QuestFlagOpcode, std::nullopt, 0x4e4b3a, "QuestFlag", &Call<&ServerSession::OnQuestFlag>),
-        Row(QuestListOpcode, std::nullopt, 0x4e4b6d, "QuestList", &Call<&ServerSession::OnQuestList>),
-        Row(QuestStateOpcode, std::nullopt, 0x4e4b9f, "QuestState", &Call<&ServerSession::OnQuestState>),
-        Row(SetQuestOpcode, std::nullopt, 0x4e4ba9, "SetQuest", &Call<&ServerSession::OnSetQuestResult>),
-        Row(QuestResultOpcode, std::nullopt, 0x4e4bf2, "QuestResult", &Call<&ServerSession::OnQuestResult>),
-        Row(PetOrderOpcode, std::nullopt, 0x4e4c0a, "PetOrder", &Call<&ServerSession::OnPetOrder>),
-        Row(PetAttackOpcode, std::nullopt, 0x4e4c42, "PetAttack", &Call<&ServerSession::OnPetAttack>),
-        Row(PetInfoOpcode, std::nullopt, 0x4e4ca1, "PetInfo", &Call<&ServerSession::OnPetInfo>),
+        // 0x4e4b3a..0x4e4bf2: the quests, with no scene guard and no encryption check.
+        Row(QuestFlagOpcode, std::nullopt, 0x4e4b3a, "QuestFlag",
+            &Route<"se ignora el 9F de las misiones", &Protocol::Quests::ReadQuestFlag, &Scenes::ApplyQuestFlag>),
+        Row(QuestListOpcode, std::nullopt, 0x4e4b6d, "QuestList",
+            &Route<"se ignora la lista de las misiones (A0)", &Protocol::Quests::ReadQuestList,
+                   &Scenes::ApplyQuestList>),
+        Row(QuestStateOpcode, std::nullopt, 0x4e4b9f, "QuestState",
+            &Route<"se ignora el estado de una misión (A1)", &Protocol::Quests::ReadQuestState,
+                   &BoundToTheSession<Protocol::Quests::QuestStateChange, &Scenes::ApplyQuestState>>),
+        Row(SetQuestOpcode, std::nullopt, 0x4e4ba9, "SetQuest",
+            &Route<"se ignora la respuesta del A2", &Protocol::Quests::ReadSetQuestResult,
+                   &BoundToTheSession<Protocol::Quests::SetQuestResult, &Scenes::ApplySetQuestResult>>),
+        Row(QuestResultOpcode, std::nullopt, 0x4e4bf2, "QuestResult",
+            &Route<"se ignora el premio de una misión (A3)", &Protocol::Quests::ReadQuestResult,
+                   &Scenes::ApplyQuestResult>),
+        // 0x4e4c0a, 0x4e4c42 and 0x4e4ca1: the hero's raven's order, a Dark Lord raven's attack and a pet's
+        // information, with no encryption check.
+        Row(PetOrderOpcode, std::nullopt, 0x4e4c0a, "PetOrder",
+            &Route<"se ignora la orden del cuervo (A7)", &Protocol::Pets::ReadPetOrder, &Scenes::ApplyPetOrder>),
+        Row(PetAttackOpcode, std::nullopt, 0x4e4c42, "PetAttack",
+            &Route<"se ignora el ataque del cuervo (A8)", &Protocol::Pets::ReadPetAttack, &Scenes::ApplyPetAttack>),
+        Row(PetInfoOpcode, std::nullopt, 0x4e4ca1, "PetInfo",
+            &Route<"se ignora la información de la mascota (A9)", &Protocol::Pets::ReadPetInfoReply,
+                   &Scenes::ApplyPetInfo>),
         Row(DuelStartOpcode, std::nullopt, 0x4e4cf8, "DuelStart",
             &Route<"se ignora el comienzo del duelo (AA)", &Protocol::Social::ReadDuelStart, &Scenes::ApplyDuelStart>),
         Row(DuelEndOpcode, std::nullopt, 0x4e4d10, "DuelEnd",
@@ -375,18 +421,42 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(CrywolfOpcode, Crywolf::ChaosBoxSubcode, 0x4e5941, "Crywolf ChaosBox",
             &Call<&ServerSession::OnEventPacket>),
         Row(CrywolfOpcode, Crywolf::EffectSubcode, 0x4e5941, "Crywolf Effect", &Call<&ServerSession::OnEventPacket>),
-        Row(FriendListOpcode, std::nullopt, 0x4e5a4e, "FriendList", &Call<&ServerSession::OnFriendList>),
-        Row(FriendAddOpcode, std::nullopt, 0x4e5a66, "FriendAdd", &Call<&ServerSession::OnFriendAddResult>),
-        Row(FriendRequestOpcode, std::nullopt, 0x4e5a7e, "FriendRequest", &Call<&ServerSession::OnFriendRequest>),
-        Row(FriendDeleteOpcode, std::nullopt, 0x4e5a96, "FriendDelete", &Call<&ServerSession::OnFriendDeleteResult>),
-        Row(FriendStateOpcode, std::nullopt, 0x4e5aae, "FriendState", &Call<&ServerSession::OnFriendState>),
-        Row(LetterSendOpcode, std::nullopt, 0x4e5ac6, "LetterSend", &Call<&ServerSession::OnLetterSendResult>),
-        Row(LetterListOpcode, std::nullopt, 0x4e5ade, "LetterList", &Call<&ServerSession::OnLetterRow>),
-        Row(LetterReadOpcode, std::nullopt, 0x4e5af6, "LetterRead", &Call<&ServerSession::OnLetterRead>),
-        Row(LetterDeleteOpcode, std::nullopt, 0x4e5b0e, "LetterDelete", &Call<&ServerSession::OnLetterDeleteResult>),
+        // 0x4e5a4e..0x4e5b42: the friends (C0 to C4), the letters (C5 to C8) and the chat with a friend (CA and CB),
+        // with no scene guard and no encryption check.
+        Row(FriendListOpcode, std::nullopt, 0x4e5a4e, "FriendList",
+            &Route<"se ignora la lista de amigos (C0)", &Protocol::Messenger::ReadFriendList,
+                   &Scenes::ApplyFriendList>),
+        Row(FriendAddOpcode, std::nullopt, 0x4e5a66, "FriendAdd",
+            &Route<"se ignora el resultado de agregar un amigo (C1)", &Protocol::Messenger::ReadFriendAddResult,
+                   &Scenes::ApplyFriendAddResult>),
+        Row(FriendRequestOpcode, std::nullopt, 0x4e5a7e, "FriendRequest",
+            &Route<"se ignora el pedido de amistad (C2)", &Protocol::Messenger::ReadFriendRequest,
+                   &Scenes::ApplyFriendRequest>),
+        Row(FriendDeleteOpcode, std::nullopt, 0x4e5a96, "FriendDelete",
+            &Route<"se ignora el resultado de borrar un amigo (C3)", &Protocol::Messenger::ReadFriendDeleteResult,
+                   &Scenes::ApplyFriendDeleteResult>),
+        Row(FriendStateOpcode, std::nullopt, 0x4e5aae, "FriendState",
+            &Route<"se ignora el estado de un amigo (C4)", &Protocol::Messenger::ReadFriendState,
+                   &Scenes::ApplyFriendState>),
+        Row(LetterSendOpcode, std::nullopt, 0x4e5ac6, "LetterSend",
+            &Route<"se ignora el resultado de mandar una carta (C5)", &Protocol::Messenger::ReadLetterSendResult,
+                   &Scenes::ApplyLetterSendResult>),
+        Row(LetterListOpcode, std::nullopt, 0x4e5ade, "LetterList",
+            &Route<"se ignora una carta de la lista (C6)", &Protocol::Messenger::ReadLetterRow,
+                   &Scenes::ApplyLetterRow>),
+        Row(LetterReadOpcode, std::nullopt, 0x4e5af6, "LetterRead",
+            &Route<"se ignora la carta para leer (C7)", &Protocol::Messenger::ReadLetterRead,
+                   &Scenes::ApplyLetterRead>),
+        Row(LetterDeleteOpcode, std::nullopt, 0x4e5b0e, "LetterDelete",
+            &Route<"se ignora el resultado de borrar una carta (C8)", &Protocol::Messenger::ReadLetterDeleteResult,
+                   &Scenes::ApplyLetterDeleteResult>),
         Row(LetterListRequestOpcode, std::nullopt, 0, "LetterListRequest", SentOnly{}),
-        Row(RoomRequestOpcode, std::nullopt, 0x4e5b26, "RoomRequest", &Call<&ServerSession::OnRoomAnswer>),
-        Row(RoomInviteOpcode, std::nullopt, 0x4e5b3e, "RoomInvite", &Call<&ServerSession::OnInviteResult>),
+        Row(RoomRequestOpcode, std::nullopt, 0x4e5b26, "RoomRequest",
+            &Route<"se ignora la sala del chat con un amigo (CA)", &Protocol::Messenger::ReadRoomAnswer,
+                   &Scenes::ApplyRoomAnswer>),
+        Row(RoomInviteOpcode, std::nullopt, 0x4e5b3e, "RoomInvite",
+            &Route<"se ignora el resultado de invitar al chat (CB)", &Protocol::Messenger::ReadInviteResult,
+                   &Scenes::ApplyInviteResult>),
         Row(NoticeAnswerOpcode, std::nullopt, 0, "NoticeAnswer", SentOnly{}),
         Row(WalkOpcode, std::nullopt, 0x4e36fa, "Walk",
             &Route<"se ignora el movimiento (D3)", &Protocol::Movement::ReadWalk, &Scenes::ApplyWalkReply>),
@@ -428,14 +498,15 @@ std::span<const OpcodeRow> GameServerOpcodes()
         Row(CharacterOpcode, Character::InventoryListSubcode, 0x4e2f93, "Character InventoryList",
             &Call<&ServerSession::OnInventoryReply>),
         Row(CharacterOpcode, Character::SkillListSubcode, 0x4e2f93, "Character SkillList",
-            &Call<&ServerSession::OnSkillList>),
+            &Route<"se ignora la lista de skills (F3 11)", &Protocol::Skills::ReadSkillList, &Scenes::ApplySkillList>),
         Row(CharacterOpcode, Character::EquipmentChangeSubcode, 0x4e2f93, "Character EquipmentChange",
             &Route<"se ignora el equipo de otro (F3 13)", &Protocol::Items::ReadEquipmentChange,
                    &Scenes::ApplyEquipmentChange>),
         Row(CharacterOpcode, Character::ItemPutSubcode, 0x4e2f93, "Character ItemPut",
             &Route<"se ignora el ítem puesto (F3 14)", &Protocol::Items::ReadItemPut, &Scenes::ApplyItemPut>),
         Row(CharacterOpcode, Character::SummonLifeSubcode, 0x4e2f93, "Character SummonLife",
-            &Call<&ServerSession::OnSummonLife>),
+            &Route<"se ignora la vida del invocado (F3 20)", &Protocol::Skills::ReadSummonLife,
+                   &Scenes::ApplySummonLife>),
         Row(CharacterOpcode, Character::EventTimeSubcode, 0x4e2f93, "Character EventTime",
             &Call<&ServerSession::OnEventPacket>),
         Row(CharacterOpcode, Character::SoccerScoreSubcode, 0x4e2f93, "Character SoccerScore",

@@ -7,15 +7,7 @@
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
-#include "Protocol/Messenger/FriendChat.h"
-#include "Protocol/Messenger/Friends.h"
 #include "Protocol/Guild/Guild.h"
-#include "Protocol/Messenger/Letters.h"
-#include "Protocol/Pets/PetInfo.h"
-#include "Protocol/Pets/PetOrders.h"
-#include "Protocol/Quests/Quest.h"
-#include "Protocol/Skills/Skill.h"
-#include "Protocol/Weather/Weather.h"
 
 #include <cstdint>
 #include <variant>
@@ -97,21 +89,13 @@ struct ChatRoomPingDue
 {
 };
 
-using WorldEvent = std::variant<
-    Protocol::FrontEnd::CharacterSelectResult, Protocol::Items::InventoryList, ClearInventoryReceived,
-    ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
-    Protocol::Weather::Weather, Protocol::Items::PickUpResult, Protocol::Items::DropResult, Protocol::Items::StatFruit,
-    Protocol::Items::ShortPickUpResult, Protocol::Items::ShortZenPickUp, Protocol::Items::ShortDropResult,
-    Protocol::Items::ShortStatFruit, Protocol::Skills::MagicAttack, Protocol::Skills::DurationMagic,
-    Protocol::Skills::MagicCancel, Protocol::Skills::ActorState, Protocol::Skills::ActorEffect,
-    Protocol::Skills::SkillTarget, Protocol::Skills::SkillList, Protocol::Skills::SummonLife, Protocol::Pets::PetOrder,
-    Protocol::Pets::PetAttack, Protocol::Pets::PetInfoReply, Protocol::Quests::QuestFlag, Protocol::Quests::QuestList,
-    Protocol::Quests::QuestStateChange, Protocol::Quests::SetQuestResult, Protocol::Quests::QuestResult,
-    Protocol::Messenger::FriendList, Protocol::Messenger::FriendAddResult, Protocol::Messenger::FriendRequest,
-    Protocol::Messenger::FriendDeleteResult, Protocol::Messenger::FriendState, Protocol::Events::EventPacket,
-    Protocol::Guild::GuildPacket, Protocol::Messenger::LetterSendResult, Protocol::Messenger::LetterRow,
-    Protocol::Messenger::LetterRead, Protocol::Messenger::LetterDeleteResult, Protocol::Messenger::RoomAnswer,
-    Protocol::Messenger::InviteResult, ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue,
-    Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleSiege::CastleBattlePacket, MapServerLeft, MapServerJoined,
-    MapServerAuthenticationPrepared, GuildTableReset>;
+using WorldEvent =
+    std::variant<Protocol::FrontEnd::CharacterSelectResult, Protocol::Items::InventoryList, ClearInventoryReceived,
+                 ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
+                 Protocol::Items::PickUpResult, Protocol::Items::DropResult, Protocol::Items::StatFruit,
+                 Protocol::Items::ShortPickUpResult, Protocol::Items::ShortZenPickUp, Protocol::Items::ShortDropResult,
+                 Protocol::Items::ShortStatFruit, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket,
+                 ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket,
+                 Protocol::CastleSiege::CastleBattlePacket, MapServerLeft, MapServerJoined,
+                 MapServerAuthenticationPrepared, GuildTableReset>;
 } // namespace Client::App

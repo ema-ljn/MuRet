@@ -17,16 +17,8 @@
 #include "Protocol/Items/InventoryList.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
-#include "Protocol/Messenger/FriendChat.h"
-#include "Protocol/Messenger/Friends.h"
 #include "Protocol/Guild/Guild.h"
-#include "Protocol/Messenger/Letters.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Pets/PetInfo.h"
-#include "Protocol/Pets/PetOrders.h"
-#include "Protocol/Quests/Quest.h"
-#include "Protocol/Skills/Skill.h"
-#include "Protocol/Weather/Weather.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
 #include "Scenes/ActionReply.h"
@@ -61,7 +53,6 @@
 #include "Scenes/WorldState.h"
 #include "Session/WorldTransitions.h"
 #include "UI/LetterWindows.h"
-#include "World/LeafWeather.h"
 
 #include <chrono>
 #include <cstddef>
@@ -79,19 +70,6 @@ namespace
 using Session::ChatContextOf;
 using Session::SessionPublisher;
 using Session::WithTheSession;
-
-void ApplyWeather(const Protocol::Weather::Weather& received, World::LeafWeather& weather)
-{
-    // 0x4e36c4/0x4e36ed: sólo target; el default de 0x4e5b4a no escribe nada ni pide rand().
-    constexpr std::uint8_t NibbleShift = 4;
-    constexpr std::uint8_t IntensityMask = 0x0f;
-    constexpr std::int32_t TargetPerIntensity = 6;
-    const auto mode = received.code >> NibbleShift;
-    if (mode == 0)
-        weather.target = 0;
-    else if (mode == 1)
-        weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
-}
 
 // Lo que los paquetes del gremio leen del juego y de la sesión (CL9 hito 8): lo que mandan va por el GameServer de la
 // sesión, también los C1 18 del gesto de la guerra (0x576a60, el emote del hito 1, con los modelos de la escena).
@@ -165,31 +143,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
 {
     if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
         return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
-    if (auto skill = ApplySkillEvent(event); skill)
-        return std::move(*skill);
-    if (const auto* list = std::get_if<Protocol::Messenger::FriendList>(&event))
-        return ApplyFriendList(*list, ChatContextOf(m_resources, session));
-    if (const auto* added = std::get_if<Protocol::Messenger::FriendAddResult>(&event))
-        return ApplyFriendAddResult(*added, ChatContextOf(m_resources, session));
-    if (const auto* request = std::get_if<Protocol::Messenger::FriendRequest>(&event))
-        return ApplyFriendRequest(*request, ChatContextOf(m_resources, session));
-    if (const auto* deleted = std::get_if<Protocol::Messenger::FriendDeleteResult>(&event))
-        return ApplyFriendDeleteResult(*deleted, ChatContextOf(m_resources, session));
-    if (const auto* state = std::get_if<Protocol::Messenger::FriendState>(&event))
-        return ApplyFriendState(*state, ChatContextOf(m_resources, session));
-    // CL9 hito 10.
-    if (const auto* sent = std::get_if<Protocol::Messenger::LetterSendResult>(&event))
-        return ApplyLetterSendResult(*sent, ChatContextOf(m_resources, session));
-    if (const auto* row = std::get_if<Protocol::Messenger::LetterRow>(&event))
-        return ApplyLetterRow(*row, ChatContextOf(m_resources, session));
-    if (const auto* letter = std::get_if<Protocol::Messenger::LetterRead>(&event))
-        return ApplyLetterRead(*letter, ChatContextOf(m_resources, session));
-    if (const auto* deleted = std::get_if<Protocol::Messenger::LetterDeleteResult>(&event))
-        return ApplyLetterDeleteResult(*deleted, ChatContextOf(m_resources, session));
-    if (const auto* answer = std::get_if<Protocol::Messenger::RoomAnswer>(&event))
-        return ApplyRoomAnswer(*answer, ChatContextOf(m_resources, session));
-    if (const auto* invited = std::get_if<Protocol::Messenger::InviteResult>(&event))
-        return ApplyInviteResult(*invited, ChatContextOf(m_resources, session));
     if (const auto* room = std::get_if<App::ChatRoomPacket>(&event))
         return ApplyRoomPacket(room->window, room->packet, ChatContextOf(m_resources, session));
     if (const auto* closed = std::get_if<App::ChatRoomClosed>(&event))
@@ -200,47 +153,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
         return {};
     }
     return ApplyWorldContent(event, session);
-}
-
-// CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h), las órdenes del cuervo (Scenes/PetOrders.h) y el A9 de
-// las mascotas (Scenes/PetStats.h). nullopt si `event` no es una.
-std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkillEvent(const App::WorldEvent& event)
-{
-    if (const auto* attack = std::get_if<Protocol::Skills::MagicAttack>(&event))
-        return ApplyMagicAttack(*attack, m_resources);
-    if (const auto* magic = std::get_if<Protocol::Skills::DurationMagic>(&event))
-        return ApplyDurationMagic(*magic, m_resources);
-    if (const auto* cancel = std::get_if<Protocol::Skills::MagicCancel>(&event))
-    {
-        ApplyMagicCancel(*cancel, m_resources);
-        return Core::Expected<void, std::string>{};
-    }
-    if (const auto* state = std::get_if<Protocol::Skills::ActorState>(&event))
-        return ApplyActorState(*state, m_resources);
-    if (const auto* effect = std::get_if<Protocol::Skills::ActorEffect>(&event))
-        return ApplyActorEffect(*effect, m_resources);
-    if (const auto* target = std::get_if<Protocol::Skills::SkillTarget>(&event))
-        return ApplySkillTarget(*target, m_resources);
-    if (const auto* list = std::get_if<Protocol::Skills::SkillList>(&event))
-        return ApplySkillList(*list, m_resources);
-    if (const auto* summon = std::get_if<Protocol::Skills::SummonLife>(&event))
-    {
-        ApplySummonLife(*summon, m_resources);
-        return Core::Expected<void, std::string>{};
-    }
-    if (const auto* order = std::get_if<Protocol::Pets::PetOrder>(&event))
-    {
-        ApplyPetOrder(*order, m_resources.world);
-        return Core::Expected<void, std::string>{};
-    }
-    if (const auto* attack = std::get_if<Protocol::Pets::PetAttack>(&event))
-    {
-        ApplyPetAttack(*attack, m_resources);
-        return Core::Expected<void, std::string>{};
-    }
-    if (const auto* info = std::get_if<Protocol::Pets::PetInfoReply>(&event))
-        return ApplyPetInfo(*info, m_resources);
-    return std::nullopt;
 }
 
 void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
@@ -256,11 +168,6 @@ void SessionEventApplier::ClearLogoutRequest()
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,
                                                                          App::ServerSession& session)
 {
-    if (const auto* weather = std::get_if<Protocol::Weather::Weather>(&event))
-    {
-        ApplyWeather(*weather, m_resources.world.Runtime().leafWeather);
-        return {};
-    }
     if (std::holds_alternative<App::ClearInventoryReceived>(event))
     {
         ClearForInventoryReply(m_resources);
@@ -304,23 +211,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     {
         return ApplyMapServerJoin(WithTheSession(m_resources, session));
     }
-    // Las misiones (CL9 hito 2).
-    if (const auto* flag = std::get_if<Protocol::Quests::QuestFlag>(&event))
-    {
-        ApplyQuestFlag(*flag, m_resources.world);
-        return {};
-    }
-    if (const auto* list = std::get_if<Protocol::Quests::QuestList>(&event))
-    {
-        ApplyQuestList(*list, m_resources);
-        return {};
-    }
-    if (const auto* state = std::get_if<Protocol::Quests::QuestStateChange>(&event))
-        return ApplyQuestState(*state, WithTheSession(m_resources, session));
-    if (const auto* set = std::get_if<Protocol::Quests::SetQuestResult>(&event))
-        return ApplySetQuestResult(*set, WithTheSession(m_resources, session));
-    if (const auto* result = std::get_if<Protocol::Quests::QuestResult>(&event))
-        return ApplyQuestResult(*result, m_resources);
     // CL9 hito 5.
     if (const auto* picked = std::get_if<Protocol::Items::PickUpResult>(&event))
         return ApplyPickUpResult(*picked, m_resources);

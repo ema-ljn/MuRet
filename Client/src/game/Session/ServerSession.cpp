@@ -38,9 +38,7 @@
 #include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Messenger/FriendChat.h"
-#include "Protocol/Messenger/Friends.h"
 #include "Protocol/Items/Inventory.h"
-#include "Protocol/Messenger/Letters.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Guild/Guild.h"
@@ -48,13 +46,10 @@
 #include "Protocol/Party/Party.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Pets/PetInfo.h"
-#include "Protocol/Pets/PetOrders.h"
 #include "Protocol/Skills/Skill.h"
 #include "Protocol/Quests/Quest.h"
 #include "Protocol/Movement/World.h"
-#include "Protocol/Weather/Weather.h"
 #include "Protocol/Movement/Movement.h"
-#include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <array>
@@ -1062,18 +1057,6 @@ void ServerSession::OnEventPacket(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(event).Value(), *this)));
 }
 
-// 0x4e36b5: sin guarda de escena, estado de login ni procedencia cifrada. La Connection ya normalizó C3.
-void ServerSession::OnWeather(const Network::Packet& packet)
-{
-    auto weather = Protocol::Weather::ReadWeather(packet);
-    if (!weather.HasValue())
-    {
-        m_log.Warning("se ignora el clima (0F): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(weather.Value(), *this)));
-}
-
 void ServerSession::OnGuild(const Network::Packet& packet)
 {
     auto guild = Protocol::Guild::ReadGuildPacket(packet);
@@ -1083,127 +1066,6 @@ void ServerSession::OnGuild(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(guild).Value(), *this)));
-}
-
-void ServerSession::OnFriendList(const Network::Packet& packet)
-{
-    const auto list = Protocol::Messenger::ReadFriendList(packet);
-    if (!list.HasValue())
-    {
-        m_log.Warning("se ignora la lista de amigos (C0): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
-}
-
-void ServerSession::OnFriendAddResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Messenger::ReadFriendAddResult(packet);
-    if (!result.HasValue())
-    {
-        m_log.Warning("se ignora el resultado de agregar un amigo (C1): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
-void ServerSession::OnFriendRequest(const Network::Packet& packet)
-{
-    const auto request = Protocol::Messenger::ReadFriendRequest(packet);
-    if (!request.HasValue())
-    {
-        m_log.Warning("se ignora el pedido de amistad (C2): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(request.Value(), *this)));
-}
-
-void ServerSession::OnFriendDeleteResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Messenger::ReadFriendDeleteResult(packet);
-    if (!result.HasValue())
-    {
-        m_log.Warning("se ignora el resultado de borrar un amigo (C3): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
-void ServerSession::OnFriendState(const Network::Packet& packet)
-{
-    const auto state = Protocol::Messenger::ReadFriendState(packet);
-    if (!state.HasValue())
-    {
-        m_log.Warning("se ignora el estado de un amigo (C4): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
-}
-
-void ServerSession::OnLetterSendResult(const Network::Packet& packet)
-{
-    const auto read = Protocol::Messenger::ReadLetterSendResult(packet);
-    if (!read.HasValue())
-    {
-        m_log.Warning("se ignora el resultado de mandar una carta (C5): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
-}
-
-void ServerSession::OnLetterRow(const Network::Packet& packet)
-{
-    const auto read = Protocol::Messenger::ReadLetterRow(packet);
-    if (!read.HasValue())
-    {
-        m_log.Warning("se ignora una carta de la lista (C6): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
-}
-
-void ServerSession::OnLetterRead(const Network::Packet& packet)
-{
-    const auto read = Protocol::Messenger::ReadLetterRead(packet);
-    if (!read.HasValue())
-    {
-        m_log.Warning("se ignora la carta para leer (C7): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
-}
-
-void ServerSession::OnLetterDeleteResult(const Network::Packet& packet)
-{
-    const auto read = Protocol::Messenger::ReadLetterDeleteResult(packet);
-    if (!read.HasValue())
-    {
-        m_log.Warning("se ignora el resultado de borrar una carta (C8): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
-}
-
-void ServerSession::OnRoomAnswer(const Network::Packet& packet)
-{
-    const auto read = Protocol::Messenger::ReadRoomAnswer(packet);
-    if (!read.HasValue())
-    {
-        m_log.Warning("se ignora la sala del chat con un amigo (CA): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
-}
-
-void ServerSession::OnInviteResult(const Network::Packet& packet)
-{
-    const auto read = Protocol::Messenger::ReadInviteResult(packet);
-    if (!read.HasValue())
-    {
-        m_log.Warning("se ignora el resultado de invitar al chat (CB): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
 }
 
 void ServerSession::OnCastleSiege(const Network::Packet& packet)
@@ -1441,62 +1303,6 @@ Core::Expected<void, std::string> ServerSession::SendChaosCastleReposition(std::
     return SendWorldPacket(Protocol::Events::WriteChaosCastleReposition(x, y));
 }
 
-// 0x4e4b3a..0x4e4bf2: las misiones, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
-void ServerSession::OnQuestFlag(const Network::Packet& packet)
-{
-    const auto flag = Protocol::Quests::ReadQuestFlag(packet);
-    if (!flag.HasValue())
-    {
-        m_log.Warning("se ignora el 9F de las misiones: {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(flag.Value(), *this)));
-}
-
-void ServerSession::OnQuestList(const Network::Packet& packet)
-{
-    auto list = Protocol::Quests::ReadQuestList(packet);
-    if (!list.HasValue())
-    {
-        m_log.Warning("se ignora la lista de las misiones (A0): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(list).Value(), *this)));
-}
-
-void ServerSession::OnQuestState(const Network::Packet& packet)
-{
-    const auto state = Protocol::Quests::ReadQuestState(packet);
-    if (!state.HasValue())
-    {
-        m_log.Warning("se ignora el estado de una misión (A1): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
-}
-
-void ServerSession::OnSetQuestResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Quests::ReadSetQuestResult(packet);
-    if (!result.HasValue())
-    {
-        m_log.Warning("se ignora la respuesta del A2: {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
-void ServerSession::OnQuestResult(const Network::Packet& packet)
-{
-    const auto result = Protocol::Quests::ReadQuestResult(packet);
-    if (!result.HasValue())
-    {
-        m_log.Warning("se ignora el premio de una misión (A3): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
-}
-
 void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
 {
     static_cast<void>(SendWorldPacket(std::move(packet)));
@@ -1606,88 +1412,6 @@ void ServerSession::PollTheChatRooms()
     }
 }
 
-// 0x4cc530: sin el cifrado, el F1 03 con 0x19 y nada más.
-void ServerSession::OnMagicAttack(const Network::Packet& packet)
-{
-    if (!packet.WasDecrypted())
-    {
-        m_log.Warning("la skill (19) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::MagicAttackOpcode);
-        m_connection.Send(std::move(report.packet), report.delivery);
-        return;
-    }
-    const auto attack = Protocol::Skills::ReadMagicAttack(packet);
-    if (!attack.HasValue())
-    {
-        m_log.Warning("se ignora la skill (19): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
-}
-
-// 0x4ce000: lo mismo con el 1E.
-void ServerSession::OnDurationMagic(const Network::Packet& packet)
-{
-    if (!packet.WasDecrypted())
-    {
-        m_log.Warning("la skill con duración (1E) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::DurationMagicOpcode);
-        m_connection.Send(std::move(report.packet), report.delivery);
-        return;
-    }
-    const auto magic = Protocol::Skills::ReadDurationMagic(packet);
-    if (!magic.HasValue())
-    {
-        m_log.Warning("se ignora la skill con duración (1E): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(magic.Value(), *this)));
-}
-
-void ServerSession::OnMagicCancel(const Network::Packet& packet)
-{
-    const auto cancel = Protocol::Skills::ReadMagicCancel(packet);
-    if (!cancel.HasValue())
-    {
-        m_log.Warning("se ignora el fin de la skill (1B): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(cancel.Value(), *this)));
-}
-
-void ServerSession::OnActorState(const Network::Packet& packet)
-{
-    const auto state = Protocol::Skills::ReadActorState(packet);
-    if (!state.HasValue())
-    {
-        m_log.Warning("se ignora el estado del personaje (07): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
-}
-
-void ServerSession::OnActorEffect(const Network::Packet& packet)
-{
-    const auto effect = Protocol::Skills::ReadActorEffect(packet);
-    if (!effect.HasValue())
-    {
-        m_log.Warning("se ignora el efecto del personaje (48): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(effect.Value(), *this)));
-}
-
-void ServerSession::OnSkillTarget(const Network::Packet& packet)
-{
-    const auto target = Protocol::Skills::ReadSkillTarget(packet);
-    if (!target.HasValue())
-    {
-        m_log.Warning("se ignora el blanco de la skill (69): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(target.Value(), *this)));
-}
-
 // 0x4d5b10: cifrado no hace nada; sin el cifrado, el F1 03 con 0xf1 (*estático*, 08, P-C263).
 void ServerSession::OnReport73(const Network::Packet& packet)
 {
@@ -1696,64 +1420,6 @@ void ServerSession::OnReport73(const Network::Packet& packet)
     m_log.Warning("el 73 no llegó cifrado: se le avisa al GameServer (F1 03)");
     Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::Skills::Report73Head);
     m_connection.Send(std::move(report.packet), report.delivery);
-}
-
-void ServerSession::OnSkillList(const Network::Packet& packet)
-{
-    const auto list = Protocol::Skills::ReadSkillList(packet);
-    if (!list.HasValue())
-    {
-        m_log.Warning("se ignora la lista de skills (F3 11): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
-}
-
-void ServerSession::OnSummonLife(const Network::Packet& packet)
-{
-    const auto summon = Protocol::Skills::ReadSummonLife(packet);
-    if (!summon.HasValue())
-    {
-        m_log.Warning("se ignora la vida del invocado (F3 20): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summon.Value(), *this)));
-}
-
-// 0x4e4c0a: la orden del cuervo del héroe, sin mirar el cifrado.
-void ServerSession::OnPetOrder(const Network::Packet& packet)
-{
-    const auto order = Protocol::Pets::ReadPetOrder(packet);
-    if (!order.HasValue())
-    {
-        m_log.Warning("se ignora la orden del cuervo (A7): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(order.Value(), *this)));
-}
-
-// 0x4e4c42: el ataque del cuervo de un Dark Lord, sin mirar el cifrado.
-void ServerSession::OnPetAttack(const Network::Packet& packet)
-{
-    const auto attack = Protocol::Pets::ReadPetAttack(packet);
-    if (!attack.HasValue())
-    {
-        m_log.Warning("se ignora el ataque del cuervo (A8): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
-}
-
-// 0x4e4ca1: la información de una mascota, sin mirar el cifrado.
-void ServerSession::OnPetInfo(const Network::Packet& packet)
-{
-    const auto info = Protocol::Pets::ReadPetInfoReply(packet);
-    if (!info.HasValue())
-    {
-        m_log.Warning("se ignora la información de la mascota (A9): {}", Unreadable);
-        return;
-    }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(info.Value(), *this)));
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

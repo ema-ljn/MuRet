@@ -34,9 +34,6 @@
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Pets/PetInfo.h"
-#include "Protocol/Pets/PetOrders.h"
-#include "Protocol/Skills/Skill.h"
-#include "Protocol/Quests/Quest.h"
 #include "Protocol/FrontEnd/CharacterCreate.h"
 #include "Protocol/FrontEnd/CharacterDelete.h"
 #include "Protocol/FrontEnd/CharacterList.h"
@@ -49,6 +46,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
+#include "Tables/DialogTable.h"
 
 #include "support/AppPrinters.h"
 #include "support/BareWorld.h"
@@ -63,6 +61,7 @@
 #include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
+#include "support/SceneDataFiles.h"
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
@@ -643,11 +642,13 @@ TEST(ServerSessionTest, AClearWorldEntryReplyIsReportedWithF103)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// CL9 hito 4: las skills que llegan cifradas entran al mundo, cada una con su tipo.
-TEST(ServerSessionTest, TheEncryptedSkillsReachTheWorld)
+// The encrypted skills are read by their rows in wire order; the F3 11 that removes one needs no Skill.bmd.
+TEST(ServerSessionTest, TheEncryptedSkillsAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     tested.socket.reads = {Join({
         FromTheGameServer(Bytes({0xC1, 0x08, 0x19, 0x0D, 0x12, 0x34, 0x80, 0x56}), tested.gameServerSends),
         FromTheGameServer(Bytes({0xC1, 0x09, 0x1E, 0x0E, 0x12, 0x34, 0x80, 0x81, 0x40}), tested.gameServerSends),
@@ -655,31 +656,16 @@ TEST(ServerSessionTest, TheEncryptedSkillsReachTheWorld)
         FromTheGameServer(Bytes({0xC1, 0x0A, 0x07, 0x01, 0x10, 0x00, 0x00, 0x00, 0x12, 0x34}), tested.gameServerSends),
         FromTheGameServer(Bytes({0xC1, 0x06, 0x48, 0x12, 0x34, 0x10}), tested.gameServerSends),
         FromTheGameServer(Bytes({0xC1, 0x08, 0x69, 0x03, 0x34, 0x12, 0x56, 0x00}), tested.gameServerSends),
-        FromTheGameServer(Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x00, 0x02, 0x11}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x07, 0xF3, 0x11, 0xFF, 0x00, 0x02}), tested.gameServerSends),
         FromTheGameServer(Bytes({0xC1, 0x05, 0xF3, 0x20, 0x42}), tested.gameServerSends),
         FromTheGameServer(Bytes({0xC1, 0x04, 0x73, 0x00}), tested.gameServerSends),
     })};
     const std::size_t sentBefore = tested.GameServerReads().packets.size();
-    static_cast<void>(tested.session.Poll());
-    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 8u);
-    const auto* attack = std::get_if<Client::Protocol::Skills::MagicAttack>(&events[0]);
-    ASSERT_NE(attack, nullptr);
-    EXPECT_EQ(attack->source, 0x1234);
-    EXPECT_EQ(attack->target, 0x0056);
-    EXPECT_TRUE(attack->succeeded);
-    EXPECT_NE(std::get_if<Client::Protocol::Skills::DurationMagic>(&events[1]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skills::MagicCancel>(&events[2]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skills::ActorState>(&events[3]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skills::ActorEffect>(&events[4]), nullptr);
-    EXPECT_NE(std::get_if<Client::Protocol::Skills::SkillTarget>(&events[5]), nullptr);
-    const auto* list = std::get_if<Client::Protocol::Skills::SkillList>(&events[6]);
-    ASSERT_NE(list, nullptr);
-    EXPECT_EQ(list->slot, 2);
-    EXPECT_EQ(list->skill, 0x11);
-    const auto* summon = std::get_if<Client::Protocol::Skills::SummonLife>(&events[7]);
-    ASSERT_NE(summon, nullptr);
-    EXPECT_EQ(summon->life, 0x42);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 8u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
+    EXPECT_EQ(world->world.Runtime().hud.summonLife, 0x42);
     // El 73 cifrado no hace nada (0x4d5b10).
     EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
@@ -694,6 +680,8 @@ TEST(ServerSessionTest, TheClearSkillsAreReportedWithF103)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        const auto world = std::make_unique<BareWorld>();
+        tested.eventSink.routedWorld = &world->resources;
         const std::size_t sentBefore = tested.GameServerReads().packets.size();
         tested.socket.reads = {packet};
         static_cast<void>(tested.session.Poll());
@@ -701,21 +689,27 @@ TEST(ServerSessionTest, TheClearSkillsAreReportedWithF103)
         ASSERT_EQ(received.packets.size(), sentBefore + 1) << head;
         EXPECT_TRUE(
             SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, head})));
-        EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+        EXPECT_TRUE(tested.eventSink.routedAfter.empty());
+        EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se le avisa al GameServer (F1 03)"), 1u);
         EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     }
 }
 
 // Los demás no miran el cifrado (0x4cbe90, 0x4cbe00, 0x4dbf50, 0x4cc290 y 0x4c5070).
-TEST(ServerSessionTest, TheOtherClearSkillsReachTheWorld)
+TEST(ServerSessionTest, TheOtherClearSkillsAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
     tested.socket.reads = {
         Join({Bytes({0xC1, 0x06, 0x1B, 0x1B, 0x12, 0x34}), Bytes({0xC1, 0x08, 0x69, 0x03, 0x34, 0x12, 0x56, 0x00}),
               Bytes({0xC1, 0x07, 0xF3, 0x11, 0xFF, 0x00, 0x02})})};
-    static_cast<void>(tested.session.Poll());
-    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 3u);
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 3u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
 }
 
 TEST(ServerSessionTest, LevelUpReceptionsPreserveRepeatedEventsAndRejectTruncations)
@@ -733,41 +727,37 @@ TEST(ServerSessionTest, LevelUpReceptionsPreserveRepeatedEventsAndRejectTruncati
     EXPECT_EQ(world->world.OwnCharacter().level, 9);
 }
 
-// 0x4e4c0a y 0x4e4c42: las órdenes del cuervo entran al mundo sin mirar el cifrado.
-TEST(ServerSessionTest, TheRavenOrdersReachTheWorld)
+// 0x4e4c0a y 0x4e4c42: las órdenes del cuervo llegan sin mirar el cifrado. Sin el cuervo del héroe, el A7 no hace
+// nada.
+TEST(ServerSessionTest, TheRavenOrdersAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
     tested.socket.reads = {Join({Bytes({0xC1, 0x07, 0xA7, 0x00, 0x03, 0x12, 0x34}),
-                                 Bytes({0xC1, 0x09, 0xA8, 0x00, 0x01, 0x12, 0x34, 0x05, 0x67})})};
-    static_cast<void>(tested.session.Poll());
-    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 2u);
-    const auto* order = std::get_if<Client::Protocol::Pets::PetOrder>(&events[0]);
-    ASSERT_NE(order, nullptr);
-    EXPECT_EQ(order->order, 3);
-    EXPECT_EQ(order->key, 0x1234);
-    const auto* attack = std::get_if<Client::Protocol::Pets::PetAttack>(&events[1]);
-    ASSERT_NE(attack, nullptr);
-    EXPECT_EQ(attack->kind, 1);
-    EXPECT_EQ(attack->owner, 0x1234);
-    EXPECT_EQ(attack->target, 0x0567);
+                                 Bytes({0xC1, 0x09, 0xA8, 0x00, 0x01, 0x12, 0x34, 0x05, 0x67}),
+                                 Bytes({0xC1, 0x06, 0xA7, 0x00, 0x03, 0x12})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 2u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora la orden del cuervo (A7): no se puede leer"), 1u);
+    EXPECT_FALSE(world->world.Hero().darkSpirit);
 }
 
-// 0x4e4ca1: el A9 de las mascotas entra al mundo sin mirar el cifrado (CL9 hito 4).
-TEST(ServerSessionTest, ThePetInfoReachesTheWorld)
+// 0x4e4ca1: el A9 de las mascotas llega sin mirar el cifrado (CL9 hito 4).
+TEST(ServerSessionTest, ThePetInfoIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    // 0x550d10 reads the item set tables (0x40c600).
+    world->ReadyForTransitions();
     tested.socket.reads = {Bytes({0xC1, 0x0C, 0xA9, 0x00, 0x00, 0x01, 0x07, 0x00, 0x10, 0x27, 0x00, 0x00})};
-    static_cast<void>(tested.session.Poll());
-    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 1u);
-    const auto* info = std::get_if<Client::Protocol::Pets::PetInfoReply>(&events[0]);
-    ASSERT_NE(info, nullptr);
-    EXPECT_EQ(info->slot, 1);
-    EXPECT_EQ(info->level, 7);
-    EXPECT_EQ(info->experience, 10000u);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
 }
 
 // 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.
@@ -4456,35 +4446,27 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// 0x4e4b3a..0x4e4bf2: el 9F y los A0..A3 llegan al mundo en orden, sin guarda de escena. Los valores son inventados.
-TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
+// 0x4e4b3a..0x4e4bf2: el 9F y los A0..A3 llegan en orden, sin guarda de escena; el A1 corto deja su aviso. Los
+// valores son inventados.
+TEST(ServerSessionTest, TheQuestPacketsAreReadByTheirRows)
 {
-    namespace Quest = Client::Protocol::Quests;
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto world = std::make_unique<BareWorld>();
+    tested.eventSink.routedWorld = &world->resources;
+    // The A1 and the A2 open the quest's dialog (0x419710): Dialog.bmd and, with no answers, the text 609.
+    world->world.Runtime().dialogTable.assign(Client::Tables::DialogCount, {});
+    const auto texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
+    world->resources.texts = &texts;
     tested.socket.reads = {Join({Bytes({0xc1, 5, 0x9f, 1, 0x22}), Bytes({0xc1, 4, 0xa0, 3}),
                                  Bytes({0xc1, 5, 0xa1, 2, 0x10}), Bytes({0xc1, 6, 0xa2, 2, 0, 0x20}),
                                  Bytes({0xc1, 7, 0xa3, 0x80, 0x21, 0xc8, 5}), Bytes({0xc1, 4, 0xa1, 2})})};
-    ASSERT_TRUE(tested.session.Poll().HasValue());
-    const auto events = tested.eventSink.TakeWorldEvents();
-    ASSERT_EQ(events.size(), 5u);
-    const auto* flag = std::get_if<Quest::QuestFlag>(&events[0]);
-    ASSERT_NE(flag, nullptr);
-    EXPECT_EQ(flag->value, 0x22);
-    const auto* list = std::get_if<Quest::QuestList>(&events[1]);
-    ASSERT_NE(list, nullptr);
-    EXPECT_EQ(list->count, 3);
-    EXPECT_TRUE(list->states.empty());
-    const auto* state = std::get_if<Quest::QuestStateChange>(&events[2]);
-    ASSERT_NE(state, nullptr);
-    EXPECT_EQ(state->state, 0x10);
-    const auto* set = std::get_if<Quest::SetQuestResult>(&events[3]);
-    ASSERT_NE(set, nullptr);
-    EXPECT_EQ(set->state, 0x20);
-    const auto* prize = std::get_if<Quest::QuestResult>(&events[4]);
-    ASSERT_NE(prize, nullptr);
-    EXPECT_EQ(prize->key, 0x21);
-    EXPECT_EQ(prize->kind, Quest::PointsPrize);
+    const auto polled = tested.session.Poll();
+    ASSERT_TRUE(polled.HasValue()) << polled.Error();
+    EXPECT_EQ(tested.eventSink.routedAfter.size(), 5u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "se ignora el estado de una misión (A1): no se puede leer"), 1u);
+    EXPECT_EQ(world->world.Runtime().quest.flags[1], 0x22);
 }
 
 // 0x4e4547: el BC 00 y el BC 01 llegan al mundo como paquetes de evento con pkt[3] y pkt[4]; corto, un aviso y nada

@@ -7,7 +7,6 @@
 #include "Session/WorldEntry.h"
 
 #include <cstddef>
-#include <optional>
 #include <span>
 #include <string>
 
@@ -42,7 +41,6 @@ public:
 private:
     Core::Expected<void, std::string> ApplyWorldEvent(const App::WorldEvent& event, App::ServerSession& session);
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);
-    std::optional<Core::Expected<void, std::string>> ApplySkillEvent(const App::WorldEvent& event);
     WorldEntryResources m_resources;
 };
 } // namespace Client::Scenes

@@ -578,8 +578,8 @@ TEST_F(GoldenGameModels, TheGameMasterSignIsLoadedWithItsOwnTextures)
 }
 
 // 0x61641d and 0x616442: Skill\groundStone.bmd and groundStone2.bmd, stones 0x118 and 0x119 of the horse's stomp,
-// with their skeleton (action 0 repeating, as 0x4f13d0 leaves it and 0x615700 writes it again) and the Skill\
-// textures of the 0x616e20 loop.
+// with their skeleton (action 0 repeating, as 0x4f13d0 leaves it and 0x615700 writes it again) and the
+// Skill\ textures of the 0x616e20 loop.
 TEST_F(GoldenGameModels, TheGroundStonesAreLoadedWithTheirSkillTextures)
 {
     FakeTextureStore textures;

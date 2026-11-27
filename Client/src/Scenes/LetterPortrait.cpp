@@ -23,6 +23,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorWalk.h"
 #include "Actors/Drawing/CharacterCloth.h"
+#include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/DarkSpirit.h"
 #include "Actors/Drawing/GameCharacters.h"
@@ -410,7 +411,8 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .groundMarks = resources.states != nullptr ? &resources.states->terrain.groundMarks : nullptr,
         .trapezoid = resources.states != nullptr ? &resources.states->camera.trapezoid : nullptr,
         .dynamicLighting = DynamicLightingOf(resources),
-        .faunaModels = FaunaModelsOf(resources)};
+        .faunaModels = FaunaModelsOf(resources),
+        .reportedCell = resources.states != nullptr ? &resources.states->actors.reportedCell : nullptr};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.

@@ -38,6 +38,7 @@
 #include "Actors/ActorAppearance.h"
 #include "Actors/ActorConstruction.h"
 #include "Kernel/ActorState.h"
+#include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/HelperTable.h"
@@ -532,7 +533,8 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .trapezoid = m_context.states != nullptr ? &m_context.states->camera.trapezoid : nullptr,
             .dynamicLighting =
                 m_context.states != nullptr ? &m_context.states->terrain.dynamicLight.Lighting() : nullptr,
-            .faunaModels = m_context.states != nullptr ? &m_context.states->assets.fauna : nullptr};
+            .faunaModels = m_context.states != nullptr ? &m_context.states->assets.fauna : nullptr,
+            .reportedCell = m_context.states != nullptr ? &m_context.states->actors.reportedCell : nullptr};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.

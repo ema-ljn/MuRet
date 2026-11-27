@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
 
 #include "Assets/PlayerSkeleton.h"
@@ -350,9 +351,9 @@ struct GameWorld
         world.Runtime().map = map;
         Hero().cellX = 5;
         Hero().cellY = 6;
-        world.Runtime().reportedCellX = 5;
-        world.Runtime().reportedCellY = 6;
-        world.Runtime().reportedCellTime = -10000.0f;
+        reportedCell.x = 5;
+        reportedCell.y = 6;
+        reportedCell.time = -10000.0f;
         Cell(5, 6) = 8;
     }
 
@@ -374,7 +375,8 @@ struct GameWorld
                                                    .groundMarks = &marks,
                                                    .trapezoid = &trapezoid,
                                                    .dynamicLighting = &light.Lighting(),
-                                                   .faunaModels = &faunaModels});
+                                                   .faunaModels = &faunaModels,
+                                                   .reportedCell = &reportedCell});
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -390,6 +392,7 @@ struct GameWorld
     TerrainPolygon trapezoid{};
     Client::Terrain::DynamicWorldLight light;
     Client::Assets::FaunaModels faunaModels;
+    Client::Actors::ReportedCell reportedCell{};
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -1693,7 +1696,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                                    .worldClock = clock,
                                                    .trapezoid = &tested.trapezoid,
                                                    .dynamicLighting = &tested.light.Lighting(),
-                                                   .faunaModels = &tested.faunaModels});
+                                                   .faunaModels = &tested.faunaModels,
+                                                   .reportedCell = &tested.reportedCell});
     };
     {
         SCOPED_TRACE("otra celda");
@@ -1703,20 +1707,20 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         moved.trapezoid = Everything;
         const auto stepped = step(moved, 1234.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        EXPECT_EQ(moved.world.Runtime().reportedCellX, 5);
-        EXPECT_EQ(moved.world.Runtime().reportedCellY, 6);
-        EXPECT_EQ(moved.world.Runtime().reportedCellTime, 1234.0f);
+        EXPECT_EQ(moved.reportedCell.x, 5);
+        EXPECT_EQ(moved.reportedCell.y, 6);
+        EXPECT_EQ(moved.reportedCell.time, 1234.0f);
         EXPECT_EQ(moved.random.State(), after(3 * Client::Models::SmallLogicalCloseRandoms));
     }
     {
         SCOPED_TRACE("la misma, 9,999 s después");
         GameWorld waiting(18);
         waiting.StandOnTheReportedCell(18);
-        waiting.world.Runtime().reportedCellTime = 0.0f;
+        waiting.reportedCell.time = 0.0f;
         waiting.trapezoid = Everything;
         const auto stepped = step(waiting, 9999.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        EXPECT_EQ(waiting.world.Runtime().reportedCellTime, 0.0f);
+        EXPECT_EQ(waiting.reportedCell.time, 0.0f);
         EXPECT_EQ(waiting.random.State(), after(HeroCellReads));
     }
     {
@@ -1724,11 +1728,11 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         GameWorld still(18);
         still.StandOnTheReportedCell(18);
         still.Cell(5, 6) = 0;
-        still.world.Runtime().reportedCellTime = 0.0f;
+        still.reportedCell.time = 0.0f;
         still.trapezoid = Everything;
         const auto stepped = step(still, 10000.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        EXPECT_EQ(still.world.Runtime().reportedCellTime, 10000.0f);
+        EXPECT_EQ(still.reportedCell.time, 10000.0f);
         EXPECT_EQ(still.random.State(), after(HeroCellReads));
     }
     for (const std::int32_t map : {18, 21, 23})
@@ -1737,7 +1741,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         // CL9 hito 11, 0x4fbeed..0x4fc39d: el C1 06 AF 02 con el byte bajo de 0x743a180 y 0x743a184, y el reloj.
         GameWorld reported(map);
         reported.StandOnTheReportedCell(map);
-        reported.world.Runtime().reportedCellTime = 0.0f;
+        reported.reportedCell.time = 0.0f;
         reported.trapezoid = Everything;
         std::vector<std::pair<std::uint8_t, std::uint8_t>> sent;
         const auto stepped = StepCharacters(
@@ -1755,18 +1759,19 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
                                  },
                                  .trapezoid = &reported.trapezoid,
                                  .dynamicLighting = &reported.light.Lighting(),
-                                 .faunaModels = &reported.faunaModels});
+                                 .faunaModels = &reported.faunaModels,
+                                 .reportedCell = &reported.reportedCell});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_EQ(sent[0], (std::pair<std::uint8_t, std::uint8_t>{std::uint8_t{5}, std::uint8_t{6}}));
-        EXPECT_EQ(reported.world.Runtime().reportedCellTime, 10000.0f);
+        EXPECT_EQ(reported.reportedCell.time, 10000.0f);
         EXPECT_EQ(reported.random.State(), after(HeroCellReads));
     }
     {
         SCOPED_TRACE("el envío que falla corta con el reloj guardado (0x4fc313)");
         GameWorld failing(18);
         failing.StandOnTheReportedCell(18);
-        failing.world.Runtime().reportedCellTime = 0.0f;
+        failing.reportedCell.time = 0.0f;
         failing.trapezoid = Everything;
         const auto stepped = StepCharacters(CharacterStepContext{
             .world = failing.world,
@@ -1779,11 +1784,30 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
             { return Client::Core::Unexpected(std::string("el GameServer no está abierto")); },
             .trapezoid = &failing.trapezoid,
             .dynamicLighting = &failing.light.Lighting(),
-            .faunaModels = &failing.faunaModels});
+            .faunaModels = &failing.faunaModels,
+            .reportedCell = &failing.reportedCell});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find("GameServer"), std::string::npos) << stepped.Error();
-        EXPECT_EQ(failing.world.Runtime().reportedCellTime, 10000.0f);
+        EXPECT_EQ(failing.reportedCell.time, 10000.0f);
     }
+}
+
+TEST(CharacterStepTest, ChaosCastleStopsWithoutTheReportedCell)
+{
+    GameWorld tested(18);
+    tested.Hero().cellX = 5;
+    tested.Hero().cellY = 6;
+    tested.trapezoid = Everything;
+    const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
+                                                             .random = tested.random,
+                                                             .scene = SceneId::Game,
+                                                             .playerSkeleton = tested.player,
+                                                             .terrain = &tested.terrain,
+                                                             .trapezoid = &tested.trapezoid,
+                                                             .dynamicLighting = &tested.light.Lighting(),
+                                                             .faunaModels = &tested.faunaModels});
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x4fbe10"), std::string::npos) << stepped.Error();
 }
 
 // La celda (x, y) del buffer dinámico 0x7b4ccc4.

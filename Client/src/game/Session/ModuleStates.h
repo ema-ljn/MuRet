@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Actors/ActorsState.h"
 #include "Assets/AssetsState.h"
 #include "Camera/CameraState.h"
 #include "Terrain/TerrainState.h"
@@ -10,6 +11,7 @@ namespace Client::Session
 {
 struct ModuleStates
 {
+    Actors::ActorsState actors;
     Assets::AssetsState assets;
     Camera::CameraState camera;
     Terrain::TerrainState terrain;

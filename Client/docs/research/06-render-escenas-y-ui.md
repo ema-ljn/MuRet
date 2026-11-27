@@ -12627,8 +12627,8 @@ diez ranuras de `0x100` bytes (los largos en `0x77e1bb0` y la cuenta, un char co
 `0x4d3cc0`), sin mirar el flag de cifrado ni si el paquete se lee. Con la cuenta en más de 9 la deja en 9 y corre las
 ranuras 1..9 a 0..8; un paquete de más de `0x100` no entra, pero el corrimiento ya se hizo. El estado 1 del `12` la
 escribe otra vez (paso 5, Q-C801). Nadie la lee: `0x557830` (un volcado) y `0x4c12a0` no tienen llamadores. MuRet: la
-sesión hace la copia (`ISessionEventSink::CopyToPacketRing`) y la cola es `WorldRuntime::viewportPackets`
-(`Scenes::StoreViewportPacket`); el `0x0B` la copia en `ServerSession::OnEventPacket`, antes del lector (hito 11).
+sesión hace la copia (`ISessionEventSink::CopyToPacketRing`) y la cola es `Actors::ActorsState::viewportPackets`
+(`Actors::StoreViewportPacket`); el `0x0B` la copia en `ServerSession::OnEventPacket`, antes del lector (hito 11).
 
 **El `12`, `0x4c8860(paquete, largo)`**, por cada registro:
 

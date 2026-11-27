@@ -1098,7 +1098,6 @@ game/Kernel/WorldRuntime.h	World/LeafWeather.h	game/Kernel	game/Weather
 game/Kernel/WorldRuntime.h	World/ObjectModelStepState.h	game/Kernel	game/WorldObjects
 game/Kernel/WorldRuntime.h	game/Actors/Drawing/GameItemRenderState.h	game/Kernel	game/Actors
 game/Kernel/WorldRuntime.h	game/Actors/FullSetScan.h	game/Kernel	game/Actors
-game/Kernel/WorldRuntime.h	game/Actors/ViewportPacketRing.h	game/Kernel	game/Actors
 game/Kernel/WorldRuntime.h	game/Sound/MonsterSounds.h	game/Kernel	game/Sound
 game/Kernel/WorldState.cpp	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.cpp	Scenes/FaunaState.h	game/Kernel	game/Fauna

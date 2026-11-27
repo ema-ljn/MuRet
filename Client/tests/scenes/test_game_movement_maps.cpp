@@ -15,6 +15,7 @@
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
+#include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameMovementState.h"
@@ -239,6 +240,7 @@ protected:
     Client::Terrain::TerrainPolygon m_trapezoid{};
     Client::Models::Skeleton m_skeleton;
     Client::Assets::FaunaModels m_faunaModels;
+    Client::Actors::ReportedCell m_reportedCell{};
     std::optional<Client::Tables::SkillTable> m_skills;
     std::optional<PathCell> m_target;
     std::vector<std::vector<std::byte>> m_packets;
@@ -410,7 +412,8 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
                                                          .terrain = &m_terrain.current,
                                                          .particles = particles.get(),
                                                          .trapezoid = &m_trapezoid,
-                                                         .faunaModels = &m_faunaModels});
+                                                         .faunaModels = &m_faunaModels,
+                                                         .reportedCell = &m_reportedCell});
     // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Hero().safeZone, 1);

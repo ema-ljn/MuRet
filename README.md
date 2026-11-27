@@ -83,6 +83,24 @@ the end the script prints how to run `main.exe` with the repo's `Data`, through 
 `build\<preset>\` with the data path and a font (`[Video] FontFile`, Arial). From PowerShell,
 `.\Client\tools\windows\build.ps1` takes the same options when the execution policy lets scripts run.
 
+### Releases
+
+A tag `vX.Y.Z` publishes the Windows client as a GitHub Release, built by
+[`release.yml`](.github/workflows/release.yml) with the script above. The version is the one in
+`project(MuRet VERSION ...)` of `CMakeLists.txt`, which `main.exe --version` and the login show, and the workflow
+fails on any other tag. The zip holds `main.exe`, its DLLs, the Visual C++ runtime and a `muret-client.ini`, without
+`Data`: the original client's `Data` folder goes beside `main.exe`. To publish one, raise the version in a PR, merge
+it, then:
+
+```bash
+git fetch origin main
+git tag v0.2.0 origin/main
+git push origin v0.2.0
+```
+
+A PR that changes `Client/tools/windows/` or `release.yml` builds the package without publishing it, and Actions >
+Release > Run workflow builds it from any branch. Both leave the zip as the run's artifact.
+
 ## Documentación
 
 - Entrada para agentes y personas: [`AGENTS.md`](AGENTS.md); reglas de código: [`docs/CODING_RULES.md`](docs/CODING_RULES.md)

@@ -177,11 +177,16 @@ function Write-ClientIni([string]$Path, [string]$DataPath) {
 function Get-PackageName {
     $cmakeLists = Get-Content -Raw (Join-Path $Repo 'CMakeLists.txt')
     $version = [regex]::Match($cmakeLists, 'project\(MuRet\s+VERSION\s+([0-9.]+)').Groups[1].Value
-    $commit = (& git -C $Repo rev-parse --short=8 HEAD).Trim()
-    if (-not (Test-Native git @('-C', $Repo, 'diff', '--quiet', 'HEAD'))) {
-        $commit += '-dirty'
+    $name = "muret-client-$version"
+    $clean = Test-Native git @('-C', $Repo, 'diff', '--quiet', 'HEAD')
+    $tagged = Test-Native git @('-C', $Repo, 'describe', '--exact-match', '--tags', '--match', "v$version", 'HEAD')
+    if (-not ($clean -and $tagged)) {
+        $name += '-' + (& git -C $Repo rev-parse --short=8 HEAD).Trim()
+        if (-not $clean) {
+            $name += '-dirty'
+        }
     }
-    $name = "muret-client-$version-$commit-windows-x64"
+    $name += '-windows-x64'
     if ($Config -eq 'Debug') {
         $name += '-debug'
     }

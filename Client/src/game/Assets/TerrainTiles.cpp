@@ -26,16 +26,17 @@ namespace Client::Assets
 {
 namespace
 {
-// 0x616ec0 antes de 0x61a560: gota, rama propia, cáusticas y light01; después tiles, pasto, clima y 0x122.
+// 0x616ec0 before 0x61a560: drop, own branch, caustics and light01; then tiles, grass, weather and 0x122.
 std::vector<Terrain::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
     std::vector<Terrain::WorldTileTexture> wanted{Terrain::DropTexture()};
     if (Maps::IsKalimaMap(map))
     {
-        // 6189e9: el agua real vive enObject25, antes del salto de61a92a sobre los tiles ordinarios.
+        // 0x6189e9: the real water lives in Object25, before the jump of 0x61a92a over the ordinary tiles.
         for (const auto& texture : World::KalimaTextureSet())
         {
-            // 6189e9 sexto0: water1 no avisa; 618a03 sexto1: water2 es requerido.
+            // 0x6189e9 passes 0 as the sixth argument, so water1 does not warn; 0x618a03 passes 1, so water2 is
+            // required.
             constexpr std::uint16_t OptionalAlphaWaterSlot = 0x23;
             wanted.push_back(
                 {std::string(texture.path), texture.slot, texture.sampling, texture.slot != OptionalAlphaWaterSlot});
@@ -66,7 +67,7 @@ std::vector<Terrain::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTex
     return wanted;
 }
 
-// El buffer de una textura leída: el alto de un pasto o el tamaño de un tile.
+// The buffer of a read texture: a grass's height or a tile's size.
 void RecordTheBuffer(std::uint16_t slot, const Data::Textures::Texture& texture,
                      std::array<Terrain::TileSize, 256>& sizes,
                      std::array<std::optional<float>, Terrain::GrassTextureCount>& grass)
@@ -77,8 +78,8 @@ void RecordTheBuffer(std::uint16_t slot, const Data::Textures::Texture& texture,
         grass[static_cast<std::size_t>(slot - Terrain::FirstGrassSlot)] = height;
         return;
     }
-    // El tile i es el slot i + 0x23; el 0x122, el tile 255 (Q-C19). Las de los objetos de Tarkan (0x5c2,
-    // 0x5c3 y 0x716) quedan fuera de los 256 y no son de ningún tile.
+    // Tile i is slot i + 0x23; 0x122 is tile 255 (Q-C19). The Tarkan object textures (0x5c2, 0x5c3 and 0x716) fall
+    // outside the 256 and belong to no tile.
     if (slot < Terrain::FirstTileSlot || static_cast<std::size_t>(slot - Terrain::FirstTileSlot) >= sizes.size())
         return;
     sizes[static_cast<std::size_t>(slot - Terrain::FirstTileSlot)] = {static_cast<float>(texture.textureWidth), height};
@@ -106,7 +107,7 @@ Core::Expected<void, std::string> TerrainTiles::UploadTextures(std::span<const D
 {
     if (m_sharedTextures == nullptr)
     {
-        // El backend puede haber subido un prefijo antes de fallar: Release limpia sus candidatos.
+        // The backend may have uploaded a prefix before failing: Release clears its candidates.
         for (const auto& texture : textures)
             RememberSlot(Render::TextureSlot{texture.slot});
         return m_store.Load(textures);
@@ -134,7 +135,8 @@ Core::Expected<void, std::string> TerrainTiles::Load(const std::filesystem::path
         auto read = Data::Textures::LoadTextureSet(dataRoot, entry);
         if (!read.HasValue())
         {
-            // Un tile que no avisa, falte o no se lea, se saltea (Q-C14: 0x63b870 devuelve false y sigue).
+            // A tile that does not warn and is missing or unreadable is skipped (Q-C14: 0x63b870 returns false and goes
+            // on).
             if (!tile.required)
             {
                 skipped.push_back(Data::Textures::Describe(read.Error()));

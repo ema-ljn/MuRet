@@ -44,7 +44,7 @@ struct Special
     std::string_view textures{};
 };
 
-// 05 § Los especiales de cada mapa. Carpetas, números y orden contrastados con 6176f3..618c45.
+// 05 § Los especiales de cada mapa. Folders, numbers and order checked against 0x6176f3..0x618c45.
 constexpr std::array<Special, 8> Atlans{{{0xb3, "Object8", "Fish02.bmd", 0x69},
                                          {0xb4, "Object8", "Fish03.bmd", 0x6a},
                                          {0xb5, "Object8", "Fish04.bmd", 0x6b},
@@ -96,7 +96,7 @@ constexpr std::array<MapCase, 25> Cases{
 void WriteModel(const std::filesystem::path& root, const Special& special, bool actions = true)
 {
     Client::Data::Models::Model model = Client::Tests::SampleModel();
-    // Los dos arrowstusk cargan el mismo archivo y comparten su textura; el id no es el nombre.
+    // Both arrowstusk load the same file and share its texture; the id is not the name.
     const std::string texture = "group" + std::to_string(special.slot) + ".tga";
     model.meshes.front().textureName = texture;
     if (!actions)
@@ -129,7 +129,7 @@ void WriteMap(const std::filesystem::path& root, const MapCase& probe)
 void WritePlayerSkeleton(const std::filesystem::path& root)
 {
     Client::Data::Models::Model player = Client::Tests::SampleModel();
-    player.meshes.clear(); // Q-C88: Player.bmd es el esqueleto sin mallas.
+    player.meshes.clear(); // Q-C88: Player.bmd is the skeleton without meshes.
     constexpr std::uint8_t ClearVersion = 0x0a;
     Client::Tests::WriteSceneFile(root, "Player/Player.bmd",
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(player), ClearVersion));
@@ -247,7 +247,7 @@ TEST_F(WorldModelGroupsTest, BloodCastleBorrowsTheModelsAndOverlaysTheirTextureB
         EXPECT_EQ(models.SkeletonOf(gate), m_globals.SkeletonOf(gate));
         ASSERT_EQ(models.MeshTextures(gate).size(), 1u);
         EXPECT_EQ(models.MeshTextures(gate).front(), TextureSlot{0x6a});
-        // 0x616370 y el barrido 0x616e46 dejan ambos modelos globales en doorc01.jpg.
+        // 0x616370 and the sweep of 0x616e46 leave both global models on doorc01.jpg.
         ASSERT_EQ(m_globals.MeshTextures(gate).size(), 1u);
         EXPECT_EQ(m_globals.MeshTextures(gate).front(), TextureSlot{0x69});
     }
@@ -267,8 +267,8 @@ TEST_F(WorldModelGroupsTest, BloodCastleBorrowsTheModelsAndOverlaysTheirTextureB
     EXPECT_FALSE(models.TextureSlotOf(0x69).has_value());
 }
 
-// 0x6179ce carga las texturas de Crow antes de 0x6179f0. En 0x60d617..0x60d61b un
-// Gate opcional sin mallas no entra al lazo ni reserva un slot; no equivale a no tener biblioteca.
+// 0x6179ce loads Crow's textures before 0x6179f0. At 0x60d617..0x60d61b an optional Gate without meshes does not
+// enter the loop or reserve a slot; that is not the same as having no library.
 TEST(WorldOptionalGateModelsTest, BloodCastleSkipsAbsentGlobalGateFilesAndContinuesItsOwnModels)
 {
     constexpr std::array<std::uint16_t, 3> AvailableGate{0, 0x10c, 0x10d};
@@ -406,7 +406,7 @@ TEST_F(WorldModelGroupsTest, MissingExileSpecialsAreOptionalButTheirInvalidWrapI
     EXPECT_EQ(m_store.loadCalls, before);
     models.Release();
 }
-// Una asignación provisional no posee la referencia del modelo que ya dejó la textura residente.
+// A provisional assignment does not own the reference of the model that already left the texture resident.
 TEST(WorldModelOwnershipTest, FailedActionsKeepResidentReferencesAcrossReleaseAndRetry)
 {
     constexpr TextureSlot SharedSlot{0x68};
@@ -452,7 +452,7 @@ TEST(WorldModelOwnershipTest, FailedActionsKeepResidentReferencesAcrossReleaseAn
         EXPECT_TRUE(store.Find(SharedSlot).has_value());
         EXPECT_TRUE(store.released.empty());
 
-        // Load también suelta una carga fallida anterior antes de reintentar.
+        // Load also releases an earlier failed load before retrying.
         ASSERT_FALSE(models.Load(folder.Path(), map, store, log, nullptr, nullptr, &table).HasValue());
         std::filesystem::remove(folder.Path() / "Object2/Object02.bmd");
         WriteModel(folder.Path(), Special{40, "Object2", "Object41.bmd", SharedSlot.value});

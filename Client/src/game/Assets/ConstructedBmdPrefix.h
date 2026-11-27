@@ -7,15 +7,15 @@
 #include <optional>
 #include <string>
 
-// 60dc20..60dc7a: evidencia funcional del BMD construido antes de la base lógica.
+// 0x60dc20..0x60dc7a: the BMDs constructed before the logical base.
 namespace Client::Assets
 {
 class ConstructedBmdPrefix final
 {
 public:
-    // Recibe la cantidad real de objetos construidos antes de la base, no una dirección física.
+    // The count of objects constructed before the base, not a physical address.
     [[nodiscard]] Core::Expected<void, std::string> Initialize(std::uint16_t constructedBeforeBase);
-    // Sólo4ea030:6154b3 prueba actionCount0. Los demás campos del BMD no se proyectan.
+    // Only the action count of 0 (0x6154b3) is proven, by 0x4ea030; the BMD's other fields are not modeled.
     [[nodiscard]] const Models::Skeleton* BorrowForSetAction() const;
     [[nodiscard]] std::optional<std::uint16_t> Offset() const;
 

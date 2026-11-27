@@ -23,7 +23,7 @@ class CastleSiegeObjectResourcesTest : public Client::Tests::GoldenDataTest,
 {
 };
 
-// 0x42e626 dibuja NpcBarrier1ff con 0x41..0x60; el epílogo 0x618dda..0x618e29 los carga también en el mapa 30.
+// 0x42e626 draws NpcBarrier1ff with 0x41..0x60; the epilogue 0x618dda..0x618e29 loads them on map 30 too.
 TEST_P(CastleSiegeObjectResourcesTest, TheWorldFindsAllThirtyTwoRealCausticsInTheNativeSharedSlots)
 {
     const auto map = GetParam();
@@ -47,7 +47,7 @@ TEST_P(CastleSiegeObjectResourcesTest, TheWorldFindsAllThirtyTwoRealCausticsInTh
         EXPECT_EQ(table.References(textureSlot), 1);
     }
     ASSERT_FALSE(store->calls.empty());
-    EXPECT_EQ(store->calls.front().slot, 0x607); // 0x616eeb, antes de la rama propia del mapa.
+    EXPECT_EQ(store->calls.front().slot, 0x607); // 0x616eeb, before the map's own branch.
     const auto firstTile = std::ranges::find(store->calls, std::uint16_t{0x23}, &Client::Tests::StoreCall::slot);
     const auto firstCaustic = std::ranges::find(store->calls, std::uint16_t{0x41}, &Client::Tests::StoreCall::slot);
     const auto lastCaustic = std::ranges::find(store->calls, std::uint16_t{0x60}, &Client::Tests::StoreCall::slot);
@@ -57,14 +57,14 @@ TEST_P(CastleSiegeObjectResourcesTest, TheWorldFindsAllThirtyTwoRealCausticsInTh
     if (map == 24)
     {
         EXPECT_LT(firstTile, firstCaustic);
-    } // Water1 de Kalima está en la rama, antes del epílogo.
+    } // Kalima's Water1 is in the branch, before the epilogue.
     else
     {
         EXPECT_LT(lastCaustic, firstTile);
-    } // Tiles comunes de 0x61a560, después de 0x616ec0.
+    } // Common tiles of 0x61a560, after 0x616ec0.
     const auto light = std::ranges::find(store->calls, std::uint16_t{0x68}, &Client::Tests::StoreCall::slot);
     ASSERT_NE(light, store->calls.end());
-    EXPECT_LT(lastCaustic, light); // 0x618e40, antes de que el clima de 0x61a560 pueda reemplazar 0x68.
+    EXPECT_LT(lastCaustic, light); // 0x618e40, before 0x61a560's weather can replace 0x68.
     const auto finalLight = store->Find(Client::Render::TextureSlot{0x68});
     ASSERT_TRUE(finalLight.has_value());
     EXPECT_EQ(finalLight->sampling.filter,

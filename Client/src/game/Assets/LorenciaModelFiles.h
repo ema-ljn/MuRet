@@ -4,8 +4,8 @@
 
 #include <span>
 
-// Pedidos con nombre de Object1, en el orden de 0x616ec0 (05 § Modelos .bmd).
-// El almacenamiento y las cadenas son estáticos; el span no posee los datos.
+// Named Object1 requests, in the order of 0x616ec0 (05 § Modelos .bmd). The storage and the strings are static; the
+// span does not own the data.
 namespace Client::Assets
 {
 [[nodiscard]] std::span<const Data::Models::ModelFile> LorenciaModelFiles();

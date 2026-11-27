@@ -6,15 +6,15 @@
 #include <span>
 #include <string_view>
 
-// Lo que 0x612d90(n) y 0x612270(modelo) hacen con un modelo de monstruo o de NPC después de leerlo (CL9 hito 2, 08
-// P-C176): las tablas, leídas del listado caso por caso (*estático*). Quien carga es FaunaModels (LoadMonster y
-// LoadNpc); acá están solo los datos y las reglas sin estado. Contrato: 06, "Los modelos de los monstruos y los NPC".
+// What 0x612d90(n) and 0x612270(model) do with a monster or NPC model after reading it (08 P-C176): the tables, read
+// from the listing case by case (*static*). FaunaModels loads (LoadMonster and LoadNpc); here are only the data and
+// the stateless rules. Contract: 06, "Los modelos de los monstruos y los NPC".
 namespace Client::Assets
 {
-// 0x612d90(n) lee Monster\Monster{n + 1}.bmd en el modelo 0x152 + n.
+// 0x612d90(n) reads Monster\Monster{n + 1}.bmd into model 0x152 + n.
 inline constexpr std::uint16_t FirstMonsterModel = 0x152;
 
-// Un pedido de 0x41eac0(id, ruta, búferes, banderas): el .wav que la CL10 carga (MuRet todavía no reproduce audio).
+// A 0x41eac0(id, path, buffers, flags) request: the .wav to load.
 struct ModelSoundFile
 {
     std::int32_t id = 0;
@@ -23,15 +23,15 @@ struct ModelSoundFile
     std::int32_t flags = 1;
 };
 
-// Lo que hace cada caso del tercer switch de 0x612d90 (0x613130, la tabla de saltos 0x615340), en su orden.
+// What each case of the third switch of 0x612d90 does (0x613130, jump table 0x615340), in its order.
 enum class MonsterModelOpKind : std::uint8_t
 {
     Sound,       // 0x41eac0(value, path, 2, 1)
-    SoundTable,  // 0x612c80(model, sounds…): los diez WORD de los sonidos de las acciones del modelo
-    Speed,       // la velocidad (+4) de la acción index: los bits de value
-    HeadBone,    // +0x54 del modelo `model` = value
-    ModelByte,   // el byte index del modelo `model` = value
-    JpegTexture, // 0x63b870(path, value, filter, wrap, 0, 1): una textura en el slot fijo value
+    SoundTable,  // 0x612c80(model, sounds…): the model's ten action sound WORDs
+    Speed,       // the speed (+4) of action index: the bits of value
+    HeadBone,    // +0x54 of model `model` = value
+    ModelByte,   // byte index of model `model` = value
+    JpegTexture, // 0x63b870(path, value, filter, wrap, 0, 1): a texture in fixed slot value
     TgaTexture,  // 0x63bd00(path, value, filter, wrap, 0, 1)
 };
 
@@ -47,29 +47,29 @@ struct MonsterModelOp
     std::uint32_t wrap = 0;
 };
 
-// Una escritura de la velocidad (+4) de una acción: los bits del float.
+// A write of an action's speed (+4): the float's bits.
 struct ActionSpeedStore
 {
     std::uint8_t action = 0;
     std::uint32_t bits = 0;
 };
 
-// 0x612e5a..0x612e9f: las siete velocidades que pone a todo monstruo (0,25; 0,2; 0,34; 0,33; 0,33; 0,5 y 0,55) antes
-// del byte de la acción 6 (+0x60 en 1, no se repite).
+// 0x612e5a..0x612e9f: the seven speeds it sets on every monster (0.25, 0.2, 0.34, 0.33, 0.33, 0.5 and 0.55) before
+// the byte of action 6 (+0x60 at 1, it does not repeat).
 [[nodiscard]] std::span<const ActionSpeedStore> CommonMonsterSpeeds() noexcept;
 
-// 0x612ea3..0x612efb: el factor de las acciones 0 a 5 de algunos monstruos (1,2 el 3; 0,7 el 5 y el 0x19; 0,4 el 0x25
-// y el 0x2a), multiplicado en el x87 y guardado en float.
+// 0x612ea3..0x612efb: the factor of actions 0 to 5 of some monsters (1.2 for 3; 0.7 for 5 and 0x19; 0.4 for 0x25 and
+// 0x2a), multiplied in the x87 and stored as float.
 [[nodiscard]] std::optional<float> MonsterSpeedFactorOf(std::int32_t number) noexcept;
 
-// El primer switch (0x612f16, las tablas 0x6152b4 y 0x615240, de n = 2 a 0x69): velocidades de acciones sueltas.
+// The first switch (0x612f16, tables 0x6152b4 and 0x615240, n = 2 to 0x69): speeds of single actions.
 [[nodiscard]] std::span<const ActionSpeedStore> EarlyMonsterSpeedsOf(std::int32_t number) noexcept;
 
-// El segundo switch (0x613119, las tablas 0x615324 y 0x61531c): el 0xe, el 0x1f, el 0x27 y el 0x28 ponen +0x10 en 1, la
-// acción 1 no se repite (0x613120).
+// The second switch (0x613119, tables 0x615324 and 0x61531c): 0xe, 0x1f, 0x27 and 0x28 set +0x10 to 1, so action 1
+// does not repeat (0x613120).
 [[nodiscard]] bool MonsterFirstActionStops(std::int32_t number) noexcept;
 
-// El tercer switch, con su dirección (0 si va al default, que no hace nada).
+// The third switch, with its address (0 if it goes to the default, which does nothing).
 struct MonsterModelCase
 {
     std::int32_t number = 0;
@@ -78,12 +78,12 @@ struct MonsterModelCase
 };
 [[nodiscard]] MonsterModelCase MonsterModelCaseOf(std::int32_t number) noexcept;
 
-// 0x612df4..0x612e4e: la carpeta de las texturas de 0x60d5f0: Npc\ del 0x46 al 0x48 en los mapas 18 a 23 (Chaos
-// Castle), Object31\ el 0x4a en el 30 y Monster\ los demás.
+// 0x612df4..0x612e4e: the texture folder of 0x60d5f0: Npc\ for 0x46 to 0x48 on maps 18 to 23 (Chaos Castle),
+// Object31\ for 0x4a on map 30 and Monster\ for the rest.
 [[nodiscard]] std::string_view MonsterTextureFolderOf(std::int32_t number, std::int32_t map) noexcept;
 
-// Lo que hace 0x612270(modelo) en el caso del modelo (la tabla de bytes 0x612c2c sobre la de saltos 0x612b9c, con
-// modelo − 0x1cb sin signo hasta 0x3d), en su orden.
+// What 0x612270(model) does in the model's case (byte table 0x612c2c over jump table 0x612b9c, with model − 0x1cb
+// unsigned up to 0x3d), in its order.
 enum class NpcModelOpKind : std::uint8_t
 {
     Load,     // 0x60da30(model, "Data\" + folder, name, number)
@@ -106,11 +106,11 @@ struct NpcModelCase
     std::uint32_t address = 0;
     std::span<const NpcModelOp> ops{};
 };
-// El caso del modelo; sin caso (el default 0x612b4f), ninguna operación.
+// The model's case; without a case (the default 0x612b4f), no operation.
 [[nodiscard]] NpcModelCase NpcModelCaseOf(std::uint16_t model) noexcept;
 
-// 0x612b4f..0x612b8b: lo que sigue a cualquier caso: la velocidad de todas las acciones del modelo en 0,25
-// (0x3e800000) y, con mallas, 0x60d5f0(modelo, "Npc\", …) otra vez.
+// 0x612b4f..0x612b8b: what follows any case: the speed of all the model's actions at 0.25 (0x3e800000) and, with
+// meshes, 0x60d5f0(model, "Npc\", …) again.
 inline constexpr float NpcActionSpeed = 0.25f;
 inline constexpr std::string_view NpcTextureFolder = "Npc\\";
 } // namespace Client::Assets

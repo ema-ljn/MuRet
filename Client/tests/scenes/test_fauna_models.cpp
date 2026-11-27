@@ -125,8 +125,8 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     EXPECT_EQ(store.loadCalls, 1);
     EXPECT_EQ(models.SoundFiles().size(), 3U);
 }
-// 0x613127: con `sounds`, la carga del 0x1f (con mallas) escribe la tabla de sonidos del 0x171 como el alta de un
-// monstruo (0x612c80); la segunda, que reutiliza el modelo, no la vuelve a escribir.
+// 0x613127: with `sounds`, the load of 0x1f (with meshes) writes the sound table of 0x171 as a monster's creation
+// does (0x612c80); the second, which reuses the model, does not write it again.
 TEST(FaunaModelsTest, PrepareWritesTheSoundTableOfTheLoadedMonster)
 {
     Client::Tests::TemporaryFolder folder{"fauna-model32-sounds"};
@@ -285,8 +285,8 @@ TEST(FaunaModelsTest, AMapTransitionSharesMonsterReferencesAndACachedMonsterSees
     EXPECT_TRUE(store.Find(slot));
     ASSERT_TRUE(world.Load(folder.Path(), 1, store, log, &initial, nullptr, &table).HasValue());
     EXPECT_EQ(world.MeshTextures(40).front(), slot);
-    // 60d550 busca [0,next): el nombre en next=41c queda fuera y se vuelve a subir.
-    // 63bfcf pierde esa referencia vieja antes de sobrescribir, aun con BMD cacheado.
+    // 0x60d550 searches [0, next): the name at next = 0x41c falls outside and is uploaded again. 0x63bfcf drops that
+    // old reference before overwriting, even with the BMD cached.
     EXPECT_EQ(table.References(slot), 1);
     EXPECT_EQ(store.loadCalls, 2);
     ASSERT_TRUE(fauna.TextureMetadataOf(slot.value));
@@ -323,9 +323,9 @@ TEST_F(GoldenFaunaModels, BothRealMonsterResourcesPrepareTheirMeshesTexturesAndA
 }
 } // namespace
 
-// 0x612d90 y 0x612270 con el Data del laboratorio (CL9 hito 2, P-C176): cada número que piden los casos de 0x5141e0 y
-// sus creadores de evento carga su Monster{n + 1}.bmd con mallas, texturas y las acciones que escriben sus tablas; el
-// 0x31 (Monster50) no está y corta (P-C173). Cada NPC con caso carga, salvo BloodCastle01 (Q-C108, P-C240).
+// 0x612d90 and 0x612270 with the lab's Data (P-C176): each number the cases of 0x5141e0 and their event creators ask
+// for loads its Monster{n + 1}.bmd with meshes, textures and the actions its tables write; 0x31 (Monster50) is
+// missing and fails (P-C173). Each NPC with a case loads, except BloodCastle01 (Q-C108, P-C240).
 namespace
 {
 using GoldenMonsterModels = Client::Tests::GoldenDataTest;
@@ -350,7 +350,7 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
             if (step.kind == Client::Scenes::MonsterStepKind::LoadMonster)
             {
                 numbers.insert(static_cast<std::int32_t>(step.value));
-                // El 51443f suma rand() % 2.
+                // 0x51443f adds rand() % 2.
                 if (step.plusRandom)
                     numbers.insert(static_cast<std::int32_t>(step.value) + 1);
             }
@@ -380,19 +380,19 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
         EXPECT_EQ(models.MeshTextures(model).size(), models.Find(model)->meshes.size());
         EXPECT_FALSE(models.SkeletonOf(model)->actions[6].repeats);
     }
-    // 0x613137: Monster01 con los cinco .wav del toro, sus sonidos y el hueso de la cabeza en 0x14.
+    // 0x613137: Monster01 with the bull's five .wav files, its sounds and the head bone at 0x14.
     EXPECT_EQ(models.SkeletonOf(0x152)->headBone, 0x14);
     EXPECT_EQ(models.SoundActions(0x152)[4], 4);
-    // 0x612ea3: el 3 multiplica por 1,2 las acciones 0 a 5 (0,25 · 1,2).
+    // 0x612ea3: 3 multiplies actions 0 to 5 by 1.2 (0.25 · 1.2).
     EXPECT_EQ(models.SkeletonOf(0x155)->actions[0].speed, 0.25f * 1.2f);
     EXPECT_EQ(models.SkeletonOf(0x155)->actions[6].speed, 0.55f);
     EXPECT_EQ(models.SkeletonOf(0x155)->headBone, 0x10);
-    // 0x613f97: el 0x1b deja +0x88 en 1.
+    // 0x613f97: 0x1b leaves +0x88 at 1.
     EXPECT_EQ(models.ModelByte(0x16d, 0x88), std::optional<std::uint8_t>{std::uint8_t{1}});
-    // 0x50c21c..0x50c281: el +0x376 0x4d copia el hueso 24 de Monster56 (0x189) y el 23 y el 14 de Monster57 (0x18a).
+    // 0x50c21c..0x50c281: +0x376 0x4d copies bone 24 of Monster56 (0x189) and bones 23 and 14 of Monster57 (0x18a).
     EXPECT_GT(models.SkeletonOf(0x189)->bones.size(), 24u);
     EXPECT_GT(models.SkeletonOf(0x18a)->bones.size(), 23u);
-    // 0x50c762 y 0x50c83b: el 0x2a (Monster32, 0x171) cuelga del hueso 0x3d y las estatuas (Monster61, 0x18e), del 1.
+    // 0x50c762 and 0x50c83b: 0x2a (Monster32, 0x171) hangs from bone 0x3d and the statues (Monster61, 0x18e) from 1.
     EXPECT_GT(models.SkeletonOf(0x171)->bones.size(), 0x3du);
     EXPECT_GT(models.SkeletonOf(0x18e)->bones.size(), 1u);
 }
@@ -420,22 +420,22 @@ TEST_F(GoldenMonsterModels, EveryNpcOfTheCasesLoadsButBloodCastle01)
         for (const auto& action : skeleton->actions)
             EXPECT_EQ(action.speed, Client::Assets::NpcActionSpeed);
     }
-    // 0x6122c4: Female01 y sus partes de 0x1da a 0x1e3, cada una con sus texturas.
+    // 0x6122c4: Female01 and its parts from 0x1da to 0x1e3, each with its textures.
     for (const int part : {0x1da, 0x1db, 0x1dc, 0x1dd, 0x1de, 0x1df, 0x1e2, 0x1e3})
     {
         const auto model = static_cast<std::uint16_t>(part);
         ASSERT_NE(models.Find(model), nullptr) << part;
         EXPECT_EQ(models.MeshTextures(model).size(), models.Find(model)->meshes.size());
     }
-    // 0x612590: el herrero pide nBlackSmith.wav con un búfer y sin banderas.
+    // 0x612590: the blacksmith asks for nBlackSmith.wav with one buffer and no flags.
     const auto sounds = models.SoundFiles();
     EXPECT_TRUE(
         std::any_of(sounds.begin(), sounds.end(), [](const Client::Assets::FaunaResourceSound& sound)
                     { return sound.id == 0xa0 && sound.path == "Sound\\nBlackSmith.wav" && sound.buffers == 1; }));
 }
 
-// Q-C857: el Breeder (0x1f6) llama a 0x60d5f0 en su caso (0x612b47) y otra vez en la cola (0x612b8b), que encuentra
-// cada nombre y le suma una referencia; el herrero (0x1ce) solo pasa por la cola.
+// Q-C857: the Breeder (0x1f6) calls 0x60d5f0 in its case (0x612b47) and again in the tail (0x612b8b), which finds
+// each name and adds a reference to it; the blacksmith (0x1ce) only goes through the tail.
 TEST_F(GoldenMonsterModels, TheNpcTailAddsASecondReferenceToTheTexturesOfItsCase)
 {
     auto load = std::make_unique<GoldenLoad>();

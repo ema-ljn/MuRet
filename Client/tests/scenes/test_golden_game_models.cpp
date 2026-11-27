@@ -51,9 +51,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Assets::GameModels contra el Data\ del laboratorio (MU_CLIENT_GOLDEN_DIR): los modelos
-// del personaje y de los ítems que lee la carga, con su esqueleto y sus texturas (06 § El modelo en
-// el binario).
+// Client::Assets::GameModels against the lab's Data\ (MU_CLIENT_GOLDEN_DIR): the character and item models the load
+// reads, with their skeleton and textures (06 § El modelo en el binario).
 namespace
 {
 using Client::Assets::ClothTextureSet;
@@ -71,7 +70,7 @@ using Client::Tests::FakeTextureStore;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::RecordingSink;
 
-// 615f77..61619f,616370/38d,616953..616e46: replay literal del orden nativo sobre los BMD cargados.
+// 0x615f77..0x61619f, 0x616370/0x61638d, 0x616953..0x616e46: a literal replay of the native order over the loaded BMDs.
 using NativeSkillLoadTest = Client::Tests::GoldenDataTest;
 TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallInOrder)
 {
@@ -93,7 +92,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     std::map<std::uint16_t, std::vector<TextureSlot>> bindings;
     const auto query = [&](const Call& call)
     {
-        // 0x61613a y 0x61619f consultan los modelos antes de sus cargas BMD.
+        // 0x61613a and 0x61619f query the models before their BMDs load.
         if (!call.bmdAvailable)
             return;
         if (const auto* model = game.Find(call.model); model != nullptr)
@@ -189,7 +188,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     }
 }
 
-// Los tres giftbox de 0x60ff50 y ManyFlag de 0x6166e8 no están en el laboratorio.
+// The three giftboxes of 0x60ff50 and ManyFlag of 0x6166e8 are not in the lab.
 constexpr std::size_t MissingInTheLab = 4;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
@@ -204,7 +203,7 @@ TEST_F(GoldenGameModels, TheEffectTextureRegistryPublishesTheFire05Slot)
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    // 0x61ddac fija el slot. Las dimensiones y componentes salen de Fire05.OZJ (fixture JPEG 6b).
+    // 0x61ddac fixes the slot. The size and components come from Fire05.OZJ (JPEG 6b fixture).
     constexpr TextureSlot fire{0x5dc};
     const auto slot = models.TextureSlotOf(fire.value);
     ASSERT_TRUE(slot.has_value());
@@ -220,7 +219,7 @@ TEST_F(GoldenGameModels, TheEffectTextureRegistryPublishesTheFire05Slot)
     EXPECT_EQ(uploaded->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
 }
 
-// 0x616095 carga la flecha común. 0x52d68c lee su cuenta de mallas en el segundo pase de Kalima.
+// 0x616095 loads the common arrow. 0x52d68c reads its mesh count in Kalima's second pass.
 TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
 {
     FakeTextureStore store;
@@ -256,7 +255,7 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
     }
 }
 
-// Todas las filas de los cargadores de arranque, salvo los cuatro archivos ausentes.
+// Every row of the startup loaders, except the four missing files.
 TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
 {
     FakeTextureStore textures;
@@ -322,7 +321,7 @@ TEST_F(GoldenGameModels, StartupPublishesTheFourFixedSkillTextureSlots)
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    // 0x616043 y 0x616e6f..0x616ea9 suben estos slots fuera del lazo de mallas.
+    // 0x616043 and 0x616e6f..0x616ea9 upload these slots outside the mesh loop.
     for (const TextureSlot slot : {TextureSlot{0x608}, TextureSlot{0x609}, TextureSlot{0x60a}, TextureSlot{0x6f7}})
     {
         SCOPED_TRACE(slot.value);
@@ -400,7 +399,7 @@ TEST_F(GoldenGameModels, SelectionReplacesAndReleasesTheTemporaryStartupTexture)
     EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
     EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
 
-    // 0x61784b: Tarkan vuelve a publicar el slot desde la carpeta del mapa.
+    // 0x61784b: Tarkan publishes the slot again from the map's folder.
     Client::Assets::ModelTextureTable mapTextures;
     Client::Assets::TerrainTiles terrain(textures);
     terrain.BindTextureTable(mapTextures);
@@ -472,9 +471,9 @@ TEST_F(GoldenGameModels, AnEnteredOrFailedSelectionReleasesTheStartupTexture)
     }
 }
 
-// 0x616304/0x61631a cargan Gate01/02 de Object12; 0x61634e..0x616370 asigna solo Gate02 desde
-// Monster, en 0x69, antes de volver a 0x3b8. El barrido616e46 también asigna Gate01: los dos BMD reales
-// usan doorc01.jpg y reutilizan el mismo recurso sin pedirlo desde Skill.
+// 0x616304/0x61631a load Gate01/02 from Object12; 0x61634e..0x616370 assigns only Gate02 from Monster, at 0x69,
+// before going back to 0x3b8. The sweep of 0x616e46 also assigns Gate01: both real BMDs use doorc01.jpg and reuse the
+// same resource without asking for it from Skill.
 TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialTexture)
 {
     FakeTextureStore textures;
@@ -510,8 +509,8 @@ TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialText
     EXPECT_EQ(metadata->components, 3);
 }
 
-// La piel y el pelo de 0x60f7d0 quedan en sus nueve slots fijos, y las texturas del personaje
-// empiezan en 0x138 y las de los ítems en 0x25a.
+// The skin and hair of 0x60f7d0 stay in their nine fixed slots; the character's textures start at 0x138 and the
+// items' at 0x25a.
 TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
 {
     FakeTextureStore textures;
@@ -530,12 +529,12 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
     EXPECT_FALSE(loaded.contains(0x135));
     EXPECT_TRUE(loaded.contains(0x138));
     EXPECT_TRUE(loaded.contains(0x25a));
-    // Y las de los pases de brillo (0x61ccb0, avance 0), que el dibujo de las partes pide.
+    // And those of the glow passes (0x61ccb0, step 0), which the drawing of the parts asks for.
     for (const int slot : {0x5c0, 0x5fc, 0x620})
     {
         EXPECT_TRUE(loaded.contains(static_cast<std::uint16_t>(slot))) << std::hex << slot;
     }
-    // LaceArrow (0x6164bb), AirForce (0x616b63), seamanFX (0x616c0b) y Skull (0x616c26) piden CLAMP.
+    // LaceArrow (0x6164bb), AirForce (0x616b63), seamanFX (0x616c0b) and Skull (0x616c26) ask for CLAMP.
     for (const auto& entry : models.TextureSlots().ToLoad())
     {
         const bool laceArrow = (entry.slot == 0x138 || entry.slot == 0x139) &&
@@ -554,8 +553,8 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
     }
 }
 
-// 0x6166fe y 0x616c5c: Skill\MuSign.bmd, el 0x12a de la capa de los GM, con sus texturas de Skill\. Van
-// al final de la carga, en slots que ninguna textura fija vuelve a subir.
+// 0x6166fe and 0x616c5c: Skill\MuSign.bmd, 0x12a of the GMs' cape, with its Skill\ textures. They go at the end of
+// the load, in slots no fixed texture uploads again.
 TEST_F(GoldenGameModels, TheGameMasterSignIsLoadedWithItsOwnTextures)
 {
     FakeTextureStore textures;
@@ -578,9 +577,9 @@ TEST_F(GoldenGameModels, TheGameMasterSignIsLoadedWithItsOwnTextures)
     }
 }
 
-// 0x61641d y 0x616442: Skill\groundStone.bmd y groundStone2.bmd, las piedras 0x118 y 0x119 del pisotón del caballo,
-// con su esqueleto (la acción 0 que repite, como la deja 0x4f13d0 y la vuelve a escribir 0x615700) y las texturas de
-// Skill\ del lazo 0x616e20.
+// 0x61641d and 0x616442: Skill\groundStone.bmd and groundStone2.bmd, stones 0x118 and 0x119 of the horse's stomp,
+// with their skeleton (action 0 repeating, as 0x4f13d0 leaves it and 0x615700 writes it again) and the
+// Skill\ textures of the 0x616e20 loop.
 TEST_F(GoldenGameModels, TheGroundStonesAreLoadedWithTheirSkillTextures)
 {
     FakeTextureStore textures;
@@ -609,8 +608,8 @@ TEST_F(GoldenGameModels, TheGroundStonesAreLoadedWithTheirSkillTextures)
     }
 }
 
-// 0x6165bc..0x616688 cargan Skill\EarthQuake01..08 en 0xfb..0x102 (el 04 en 0xfe y el 06 en 0x100, al final) y
-// 0x616a11..0x616a9b sus texturas de Skill\: las grietas del terremoto del caballo se dibujan con su malla.
+// 0x6165bc..0x616688 load Skill\EarthQuake01..08 into 0xfb..0x102 (04 at 0xfe and 06 at 0x100, at the end) and
+// 0x616a11..0x616a9b their Skill\ textures: the cracks of the horse's earthquake draw with their mesh.
 TEST_F(GoldenGameModels, TheEarthquakeCracksAreLoadedWithTheirOwnTextures)
 {
     FakeTextureStore textures;
@@ -632,7 +631,7 @@ TEST_F(GoldenGameModels, TheEarthquakeCracksAreLoadedWithTheirOwnTextures)
     }
 }
 
-// La carga común de GameModels conserva clouds.jpg para las escenas; LoginScene no la sube.
+// GameModels' common load keeps clouds.jpg for the scenes; LoginScene does not upload it.
 TEST_F(GoldenGameModels, TheCloudTextureIsLoadedWithTheGameModels)
 {
     FakeTextureStore textures;
@@ -675,9 +674,8 @@ TEST_F(GoldenGameModels, JointAndPortalResourcesPublishTheirRealPhysicalTextures
     }
 }
 
-// Lo que piden los dos cargadores está en el laboratorio: el original se cierra con una textura de
-// modelo que falta (Q-C23), así que con estas carpetas ninguna falta. Con la carpeta del .bmd
-// faltaban 14, entre ellas las de las mascotas.
+// What both loaders ask for is in the lab: the original closes on a missing model texture (Q-C23), so with these
+// folders none is missing. With the .bmd's folder, 14 were missing, the pets' among them.
 TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
 {
     FakeTextureStore textures;
@@ -699,9 +697,9 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     }
 }
 
-// El caballo oscuro (0xbf, Skill\DarkHorse.bmd): sus 13 mallas, su esqueleto y sus texturas, 11 desde
-// 0x3bc, después de las cuatro de 0x145, 0x146 y 0x147, y dos que ya estaban: dkhead2 y dkheadwing,
-// que subió 0x1c16 (DarkHorseHorn, también de Skill\) en 0x26b y 0x26c.
+// The dark horse (0xbf, Skill\DarkHorse.bmd): its 13 meshes, its skeleton and its textures, 11 from 0x3bc, after the
+// four of 0x145, 0x146 and 0x147, and two that were already there: dkhead2 and dkheadwing, which 0x1c16
+// (DarkHorseHorn, also from Skill\) uploaded at 0x26b and 0x26c.
 TEST_F(GoldenGameModels, TheDarkHorseGetsItsTexturesAfterTheThreeBeforeIt)
 {
     FakeTextureStore textures;
@@ -725,7 +723,7 @@ TEST_F(GoldenGameModels, TheDarkHorseGetsItsTexturesAfterTheThreeBeforeIt)
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x26b}), "dkhead2.JPG");
 }
 
-// La mascota que se dibuja (0x1c13, Helper02 de Player\) con las texturas de Item\, todas subidas.
+// The pet that is drawn (0x1c13, Helper02 from Player\) with the Item\ textures, all uploaded.
 TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
 {
     FakeTextureStore textures;
@@ -743,9 +741,9 @@ TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
     }
 }
 
-// Las monturas de las mascotas de 0x615700, con su esqueleto y sus texturas subidas: el Uniria (Rider01, 0xc6) con
-// las de Helper03 (unicon.jpg y unicon01.tga de Item\, que el lazo 0x616e20 encuentra por el nombre), el Dinorant
-// (Rider02, 0x110, 0x6169fb) después de HellGate (0x6169e0) y los tres Fenrir desde 0x371, con fenril02.jpg en común.
+// The pet mounts of 0x615700, with their skeleton and their uploaded textures: the Uniria (Rider01, 0xc6) with those
+// of Helper03 (unicon.jpg and unicon01.tga from Item\, which the 0x616e20 loop finds by name), the Dinorant (Rider02,
+// 0x110, 0x6169fb) after HellGate (0x6169e0) and the three Fenrir from 0x371, with fenril02.jpg in common.
 TEST_F(GoldenGameModels, ThePetMountsLoadWithTheirTextures)
 {
     FakeTextureStore textures;
@@ -789,8 +787,8 @@ TEST_F(GoldenGameModels, ThePetMountsLoadWithTheirTextures)
     EXPECT_EQ(models.SkeletonOf(0x14a)->actions.size(), 6u);
 }
 
-// 0x61ca30 lee Logo05 y los cinco NewFace de Data\Logo (en la Data del repo), y les pone 0,3 a las
-// acciones 0 y 1 de los NewFace; sin la tabla de la carga, sus texturas empiezan en 0x6f8.
+// 0x61ca30 reads Logo05 and the five NewFace of Data\Logo (in the repo's Data) and sets actions 0 and 1 of the
+// NewFace to 0.3; without the load's table, their textures start at 0x6f8.
 TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
 {
     FakeTextureStore textures;
@@ -812,7 +810,7 @@ TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
     }
     ASSERT_NE(selection.TextureSlots(), nullptr);
     EXPECT_EQ(selection.MeshTextures(Client::Scenes::SelectionLogoModel).front(), TextureSlot{0x6f8});
-    // Las del 0xa4 con GL_LINEAR (0x2601) y las de los NewFace con GL_NEAREST (0x2600), repitiendo.
+    // Those of 0xa4 with GL_LINEAR (0x2601) and those of the NewFace with GL_NEAREST (0x2600), repeating.
     const auto logo = textures.Find(TextureSlot{0x6f8});
     ASSERT_TRUE(logo.has_value());
     EXPECT_EQ(logo->sampling.filter, Client::Data::Textures::Filter::Linear);
@@ -846,7 +844,7 @@ TEST_F(ModelTextureSlotsGoldenTest, CommonTextureDimensionsAndComponentsMatchLor
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    // Entradas fijas nuevas de 0x61ccb0. La selección reutiliza y libera 0x716 (0x61cc65..0x61cc7a).
+    // New fixed entries of 0x61ccb0. The selection reuses and frees 0x716 (0x61cc65..0x61cc7a).
     constexpr std::array<std::uint16_t, 32> slots{
         0xf6,  0x102, 0x103, 0x5c1, 0x5dc, 0x5ee, 0x5ff, 0x600, 0x61b, 0x61d, 0x624, 0x628, 0x629, 0x62a, 0x62d, 0x62e,
         0x62f, 0x630, 0x631, 0x632, 0x633, 0x634, 0x699, 0x69a, 0x6ae, 0x6b2, 0x6b3, 0x6b4, 0x6b5, 0x6e8, 0x6e9, 0x6ef};
@@ -867,8 +865,8 @@ TEST_F(ModelTextureSlotsGoldenTest, CommonTextureDimensionsAndComponentsMatchLor
     }
 }
 
-// Oráculo nativo independiente: metadatos residuales del slot 0x622 en la captura de Lorencia.
-// Su nombre ya está vacío; no demuestra residencia, visibilidad ni movimiento en el login.
+// An independent native oracle: the residual metadata of slot 0x622 in the Lorencia capture. Its name is already
+// empty; it proves no residency, visibility or movement in the login.
 TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -900,8 +898,8 @@ TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
     EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components);
 }
 
-// Los nombres de 0x60f7d0, 0x611850 y 0x615700, incluidos los slots vacíos y los de LaceArrow (Q-C89).
-// El volcado de 0x7d3a198 en Lorencia tiene registros de 0x38 bytes, con el nombre en +0.
+// The names of 0x60f7d0, 0x611850 and 0x615700, including the empty slots and those of LaceArrow (Q-C89). The dump of
+// 0x7d3a198 in Lorencia has 0x38-byte records, with the name at +0.
 TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -930,9 +928,8 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
     }
 }
 
-// El cuervo (0xc0, Skill\DarkSpirit.bmd): sus mallas con las texturas de la quinta llamada de 0x615700
-// (0x3c7 a 0x3ca) y la malla 3 con dksbody.tga, que encuentra en 0x26f, donde la subió el 0x1c17
-// (06 § El cuervo).
+// The raven (0xc0, Skill\DarkSpirit.bmd): its meshes with the textures of the fifth call of 0x615700 (0x3c7 to
+// 0x3ca) and mesh 3 with dksbody.tga, which it finds at 0x26f, where 0x1c17 uploaded it (06 § El cuervo).
 TEST_F(ModelTextureSlotsGoldenTest, TheRavenFindsItsBodyInTheBillsSlot)
 {
     FakeTextureStore textures;
@@ -952,10 +949,10 @@ TEST_F(ModelTextureSlotsGoldenTest, TheRavenFindsItsBodyInTheBillsSlot)
     EXPECT_EQ(skeleton->bones.size(), 77u);
     EXPECT_EQ(skeleton->actions.size(), 4u);
 }
-// 0x61ca30 con 0x60d530(0x6f8): Logo05 y los cinco NewFace, siguiendo la tabla de la carga, dejan
-// sus 31 texturas de 0x6f8 a 0x716 (Q-C91). En el volcado de Lorencia, 0x61cc50 ya soltó los slots y
-// borró los nombres, pero cada uno guarda el tamaño del buffer (los floats de +0x20 y +0x24) y los
-// componentes (+0x28: 3 o 4) de lo que tuvo: los de lo que sube MuRet en cada slot.
+// 0x61ca30 with 0x60d530(0x6f8): Logo05 and the five NewFace, following the load's table, leave their 31 textures
+// from 0x6f8 to 0x716 (Q-C91). In the Lorencia dump 0x61cc50 has already released the slots and cleared the names,
+// but each keeps the buffer size (the floats at +0x20 and +0x24) and the components (+0x28: 3 or 4) of what it held:
+// those of what MuRet uploads into each slot.
 TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -983,8 +980,8 @@ TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
         std::memcpy(&width, record + 0x20, sizeof width);
         std::memcpy(&height, record + 0x24, sizeof height);
         std::memcpy(&components, record + 0x28, sizeof components);
-        // Los nombres de GL de 0x6f8 a 0x716 van seguidos: los de 0x61ca30, que sube estas 31 después
-        // de sus cuatro del 2D.
+        // The GL names from 0x6f8 to 0x716 are consecutive: those of 0x61ca30, which uploads these 31 after its four 2D
+        // ones.
         std::uint32_t glName = 0;
         std::uint32_t firstGlName = 0;
         std::memcpy(&glName, record + 0x2c, sizeof glName);
@@ -999,10 +996,10 @@ TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
     }
 }
 
-// 0x61ccb0 sube las texturas de los sprites y las partículas del login (0x63b870 con GL_LINEAR y
-// GL_CLAMP) y nadie las suelta: Effect\flare01.jpg en 0x5ac, Effect\Shiny02.jpg en 0x5fd, Effect\Spark03.jpg
-// en 0x5c6 (32 × 32) y Effect\smoke01.jpg en 0x5f2. El sprite y la partícula miden su tamaño por la escala
-// (0x549290, 0x548550), así que GameModels lo da.
+// 0x61ccb0 uploads the login sprites' and particles' textures (0x63b870 with GL_LINEAR and GL_CLAMP) and nobody
+// releases them: Effect\flare01.jpg at 0x5ac, Effect\Shiny02.jpg at 0x5fd, Effect\Spark03.jpg at 0x5c6 (32 × 32) and
+// Effect\smoke01.jpg at 0x5f2. The sprite and the particle measure their size by the scale (0x549290, 0x548550), so
+// GameModels provides it.
 TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
 {
     FakeTextureStore store;
@@ -1022,7 +1019,7 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
         EXPECT_EQ(size->x, static_cast<float>(texture->texture.textureWidth));
         EXPECT_EQ(size->y, static_cast<float>(texture->texture.textureHeight));
     }
-    // Spark03.OZJ mide 32 × 32 (otra chispa, como Effect\spark.jpg, mide 112).
+    // Spark03.OZJ is 32 × 32 (another spark, like Effect\spark.jpg, is 112).
     const auto spark = models.TextureSize(TextureSlot{0x5c6});
     ASSERT_TRUE(spark.has_value());
     EXPECT_EQ(spark->x, 32.0f);
@@ -1031,7 +1028,7 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
 }
 } // namespace
 
-// 0x6161ea/0x616333/0x616349/0x6163c2/0x6163d8/0x61679e..0x616854: efectos alcanzados por el asedio y Crywolf.
+// 0x6161ea/0x616333/0x616349/0x6163c2/0x6163d8/0x61679e..0x616854: effects the siege and Crywolf reach.
 TEST_F(GoldenGameModels, EveryReachedSiegeAndCrywolfEffectHasItsRealModelSkeletonAndUploadedMeshTextures)
 {
     using Client::Data::Models::ModelFile;

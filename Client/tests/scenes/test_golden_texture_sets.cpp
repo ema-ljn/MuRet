@@ -11,9 +11,8 @@
 #include <span>
 #include <vector>
 
-// Los juegos de la carga, del login y de sus ventanas contra el Data\ del laboratorio: todas
-// están, todas se leen, cada una con su slot, y la imagen tiene el tamaño de la que leyó el
-// original. Se comparan tamaños, nunca píxeles.
+// The load, login and window sets against the lab's Data\: all are there, all read, each with its slot, and the
+// image has the size of the one the original read. Sizes are compared, never pixels.
 namespace
 {
 using Client::Assets::LoadingTextureSet;
@@ -31,8 +30,7 @@ using Client::Data::Textures::TextureSide;
 
 using GoldenTextureSet = Client::Tests::GoldenDataTest;
 
-// El ancho y el alto de la imagen de cada entrada, en el orden del juego: medidos en el Data\ del
-// laboratorio.
+// The width and height of each entry's image, in the set's order: measured in the lab's Data\.
 struct ImageSize
 {
     int width = 0;
@@ -71,12 +69,11 @@ inline constexpr std::array<ImageSize, 6> LoadingImageSizes{{
 }};
 static_assert(LoadingImageSizes.size() == LoadingTextureSet.size());
 
-// Los dos cursores, el OK y el cancelar, con sus tres estados uno arriba del otro, la caja del aviso, que
-// mide lo que la ventana (0x6429b0), y la del código del borrado (0x642bf0). Después, las de la ventana
-// de Esc, con lo que les pone la tabla de 0x6478c0: la piedra, los dos bordes, los dos lados de una línea
-// y los botones de cuatro cuadros de 30. El cerrar de los créditos tiene tres cuadros de 30 (0x63f202);
-// las de las opciones, lo que les ponen 0x644120 y 0x646640: el borde de arriba de 65, las casillas de
-// dos cuadros de 16, la perilla, el relleno y la barra.
+// The two cursors, OK and cancel, with their three states one above the other, the notice box, which is as big as
+// the window (0x6429b0), and the delete code box (0x642bf0). Then those of the Esc window, with what the table of
+// 0x6478c0 gives them: the stone, the two borders, the two sides of a line and the buttons of four 30-pixel frames.
+// The credits' close has three 30-pixel frames (0x63f202); the options', what 0x644120 and 0x646640 give them: the
+// top border of 65, the checkboxes of two 16-pixel frames, the knob, the fill and the bar.
 inline constexpr std::array<ImageSize, 18> WindowImageSizes{{
     {32, 32},
     {32, 32},
@@ -99,8 +96,8 @@ inline constexpr std::array<ImageSize, 18> WindowImageSizes{{
 }};
 static_assert(WindowImageSizes.size() == WindowTextureSet.size());
 
-// Las de la selección (CL6.3): los ocho botones y marcos de Interface\, los dos fondos de 512 × 512,
-// Impack03 y la chasellight.
+// The selection's: the eight buttons and frames of Interface\, the two 512 × 512 backgrounds, Impack03 and the
+// chasellight.
 inline constexpr std::array<ImageSize, 12> SelectionImageSizes{{
     {346, 38},
     {108, 104},
@@ -117,13 +114,12 @@ inline constexpr std::array<ImageSize, 12> SelectionImageSizes{{
 }};
 static_assert(SelectionImageSizes.size() == SelectionTextureSet.size());
 
-// Las cuatro del mosaico de la carga del mundo: 400 × 512 arriba y 400 × 88 abajo (06 § La carga del
-// mundo).
+// The four of the world loading mosaic: 400 × 512 on top and 400 × 88 below (06 § La carga del mundo).
 inline constexpr std::array<ImageSize, 4> WorldLoadingImageSizes{{{400, 512}, {400, 512}, {400, 88}, {400, 88}}};
 static_assert(WorldLoadingImageSizes.size() == WorldLoadingTextureSet.size());
 
-// Cada textura cargada contra su entrada: el slot, el formato de su cargador, el tamaño de la
-// imagen y el buffer de lados potencia de 2 que la cubre.
+// Each loaded texture against its entry: the slot, its loader's format, the image size and the power-of-2 buffer
+// that covers it.
 void ExpectTheSet(std::span<const TextureSetEntry> set, std::span<const ImageSize> sizes,
                   const std::vector<LoadedTexture>& loaded)
 {
@@ -143,7 +139,7 @@ void ExpectTheSet(std::span<const TextureSetEntry> set, std::span<const ImageSiz
     }
 }
 
-// Las 18 de 0x61c7c0, que el original sube al entrar al login (06 § El login).
+// The 18 of 0x61c7c0, which the original uploads on entering the login (06 § El login).
 TEST_F(GoldenTextureSet, TheLoginSetLoads)
 {
     const auto loaded = LoadTextureSet(m_dataRoot, LoginTextureSet);
@@ -152,7 +148,7 @@ TEST_F(GoldenTextureSet, TheLoginSetLoads)
     ExpectTheSet(LoginTextureSet, LoginImageSizes, loaded.Value());
 }
 
-// Las seis de 0x61ccb0 que usan el login y la selección: el cursor y las ventanas.
+// The six of 0x61ccb0 that the login and the selection use: the cursor and the windows.
 TEST_F(GoldenTextureSet, TheWindowSetLoads)
 {
     const auto loaded = LoadTextureSet(m_dataRoot, WindowTextureSet);
@@ -161,7 +157,7 @@ TEST_F(GoldenTextureSet, TheWindowSetLoads)
     ExpectTheSet(WindowTextureSet, WindowImageSizes, loaded.Value());
 }
 
-// Las seis de 0x622e40, las de la escena de carga (06 § La carga).
+// The six of 0x622e40, the loading scene's (06 § La carga).
 TEST_F(GoldenTextureSet, TheLoadingSetLoads)
 {
     const auto loaded = LoadTextureSet(m_dataRoot, LoadingTextureSet);
@@ -169,7 +165,7 @@ TEST_F(GoldenTextureSet, TheLoadingSetLoads)
     ASSERT_TRUE(loaded.HasValue()) << Describe(loaded.Error());
     ExpectTheSet(LoadingTextureSet, LoadingImageSizes, loaded.Value());
 }
-// Las doce de 0x61ca30, las de la selección (06 § La selección de personaje).
+// The twelve of 0x61ca30, the selection's (06 § La selección de personaje).
 TEST_F(GoldenTextureSet, TheSelectionSetLoads)
 {
     const auto loaded = LoadTextureSet(m_dataRoot, SelectionTextureSet);
@@ -178,7 +174,7 @@ TEST_F(GoldenTextureSet, TheSelectionSetLoads)
     ExpectTheSet(SelectionTextureSet, SelectionImageSizes, loaded.Value());
 }
 
-// Las cuatro de 0x6356f0, las de la carga del mundo.
+// The four of 0x6356f0, the world loading's.
 TEST_F(GoldenTextureSet, TheWorldLoadingSetLoads)
 {
     const auto loaded = LoadTextureSet(m_dataRoot, WorldLoadingTextureSet);

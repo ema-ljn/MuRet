@@ -19,12 +19,12 @@ class IModelLibrary;
 
 namespace Client::Assets
 {
-// Registro físico durable de 60d550/63c150. El cursor puede retroceder; los nombres siguen vivos.
+// The durable physical record of 0x60d550/0x63c150. The cursor can go back; the names stay alive.
 class ModelTextureTable final
 {
 public:
     void Bind(Render::ITextureStore& store);
-    // El backend que ligó Bind; nullptr antes.
+    // nullptr before Bind.
     [[nodiscard]] Render::ITextureStore* Store() const;
     void Seed(const Models::ModelTextureSlots& slots, const Models::IModelLibrary* models);
     [[nodiscard]] Models::ModelTextureSlots& Slots();

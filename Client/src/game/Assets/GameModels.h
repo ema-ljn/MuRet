@@ -22,16 +22,16 @@
 #include <string>
 #include <vector>
 
-// Los modelos del personaje (0x60dbe0), ítems (0x60ff50) y efectos (0x615700), con sus esqueletos
-// y enlaces de mallas a texturas para las escenas. Contrato en 06 § El modelo en el binario.
+// The models of the character (0x60dbe0), items (0x60ff50) and effects (0x615700), with their skeletons and
+// mesh-to-texture links for the scenes. Contract in 06 § El modelo en el binario.
 namespace Client::Assets
 {
 class GameModels final : public Models::IModelLibrary
 {
 public:
-    // Reconstruye las tablas de modelos y los enlaces de 0x60f7d0, 0x611850 y 0x615700 en sus fases.
-    // Conserva los metadatos de texturas ya publicados si una subida posterior falla. Un modelo
-    // obligatorio ausente detiene la carga y los demás recursos ausentes se registran en el log (Q-C23).
+    // Rebuilds the model tables and the links of 0x60f7d0, 0x611850 and 0x615700 in their phases. Keeps the texture
+    // metadata already published if a later upload fails. A missing required model stops the load, and the other
+    // missing resources go to the log (Q-C23).
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
                                                          Render::ITextureStore& textures, Core::Log& log);
 
@@ -39,17 +39,14 @@ public:
     [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
-    // El slot de cada textura que subió, solo si quedó publicada: cada una va al de su entrada,
-    // que es su selector. Es lo que 0x620780 liga para las partículas.
+    // The slot of each texture that was uploaded, only if it was published: each goes to its entry's, which is its
+    // selector. It is what 0x620780 binds for the particles.
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
-    // El tamaño de una textura que subió.
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
-    // Transfiere la textura temporal a la selección, que pasa a ser dueña del slot físico.
+    // Hands the temporary texture to the selection, which becomes the owner of the physical slot.
     [[nodiscard]] std::optional<Models::TextureMetadata> TakeStartupSelectionTexture(Render::ITextureStore& store);
 
-    // Cuántos modelos se leyeron.
     [[nodiscard]] std::size_t Count() const;
-    // Los slots que repartió la carga, con el nombre de cada uno.
     [[nodiscard]] const Models::ModelTextureSlots& TextureSlots() const;
 
 private:
@@ -60,10 +57,10 @@ private:
     std::map<std::uint16_t, Data::Models::Model> m_models;
     std::map<std::uint16_t, Models::Skeleton> m_skeletons;
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
-    // La metadata de las texturas que efectivamente subió.
+    // Only the textures that were actually uploaded.
     std::map<std::uint32_t, Models::TextureMetadata> m_textureMetadata;
     Render::ITextureStore* m_startupTextureStore = nullptr;
-    // Desde 0x138 (0x60f7d0); Load le corre el próximo a cada cargador.
+    // From 0x138 (0x60f7d0); Load moves the next one for each loader.
     Models::ModelTextureSlots m_slots{Render::TextureSlot{0x138}};
 };
 } // namespace Client::Assets

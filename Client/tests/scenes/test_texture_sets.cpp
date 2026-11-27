@@ -17,9 +17,8 @@
 #include <span>
 #include <string_view>
 
-// Los juegos de texturas de la carga, del login y de sus ventanas como datos (06 § La carga y § El
-// login): cada entrada tiene un cargador, un slot de la tabla del original y uno solo. Lo que se
-// lee del disco lo prueba test_golden_texture_sets.cpp.
+// The texture sets of the load, the login and their windows as data (06 § La carga and § El login): each entry has
+// one loader and exactly one slot of the original's table. test_golden_texture_sets.cpp tests what is read from disk.
 namespace
 {
 using Client::Assets::EffectTextureSet;
@@ -35,7 +34,7 @@ using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Render::OriginalTextureSlotCount;
 
-// Que cada entrada tenga cargador y un slot de la tabla, sin repetir.
+// Each entry has a loader and a table slot, without repeats.
 void ExpectAValidSet(std::span<const TextureSetEntry> set)
 {
     std::set<std::uint16_t> slots;
@@ -47,7 +46,6 @@ void ExpectAValidSet(std::span<const TextureSetEntry> set)
     }
 }
 
-// Cuántas entradas tienen `sampling`.
 std::size_t CountWith(std::span<const TextureSetEntry> set, Sampling sampling)
 {
     std::size_t count = 0;
@@ -58,9 +56,9 @@ std::size_t CountWith(std::span<const TextureSetEntry> set, Sampling sampling)
     return count;
 }
 
-// 0x61c7c0 sube 18 texturas (el 0xa2 es un modelo, no entra): 12 sin filtro y sin repetir, las dos
-// de la arena con filtro y repetidas, FireSnuff y cr_mu_lo con filtro, y server_ex03 y server_ex02
-// repetidas sin filtro.
+// 0x61c7c0 uploads 18 textures (0xa2 is a model, it does not count): 12 without filter and without repeat, the two
+// sand ones with filter and repeated, FireSnuff and cr_mu_lo with filter, and server_ex03 and server_ex02 repeated
+// without filter.
 TEST(TextureSetsTest, TheLoginSetIsTheOneOf0x61c7c0)
 {
     ExpectAValidSet(LoginTextureSet);
@@ -71,13 +69,12 @@ TEST(TextureSetsTest, TheLoginSetIsTheOneOf0x61c7c0)
     EXPECT_EQ(CountWith(LoginTextureSet, {Filter::Nearest, Wrap::Repeat}), 2u);
 }
 
-// Las de 0x61ccb0 que usan el login y la selección: los dos cursores (los slots 2 y 3, con filtro y sin
-// repetir, 0x61ccf9 y 0x61cd12), las cuatro de las ventanas (CL5.5 y CL6.5), sin filtro y sin repetir, y
-// las del hito 8 de la CL8, sin filtro: el cerrar de los créditos (0x726), las seis de la ventana de Esc,
-// con la piedra y los dos lados repetidos, y las cinco de las opciones, con el relleno del deslizador
-// repetido. Ninguna en un slot de las dos escenas: cada una sube los dos juegos a la vez. La séptima es
-// la caja del código del borrado (0x728), la decimotercera los botones de la de Esc (0x72f) y la última
-// la barra del deslizador (0x734).
+// Those of 0x61ccb0 that the login and the selection use: the two cursors (slots 2 and 3, with filter and without
+// repeat, 0x61ccf9 and 0x61cd12), the four of the windows, without filter and without repeat, and, without filter, the
+// credits' close (0x726), the six of the Esc window, with the stone and the two sides repeated, and the five of the
+// options, with the slider's fill repeated. None in a slot of the two scenes: each uploads both sets at once. The
+// seventh is the delete code box (0x728), the thirteenth the Esc window's buttons (0x72f) and the last the slider's
+// bar (0x734).
 TEST(TextureSetsTest, TheWindowSetIsTheOneOf0x61ccb0)
 {
     ExpectAValidSet(WindowTextureSet);
@@ -106,8 +103,8 @@ TEST(TextureSetsTest, TheWindowSetIsTheOneOf0x61ccb0)
     }
 }
 
-// Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 (0x61cd9b, 0x61cdc5 y 0x61cf1f):
-// Shiny01 y Chrome01 con filtro, Chrome01 repitiendo, y Chrome02 sin filtro ni repetir.
+// The glow pass textures, which 0x61ccb0 uploads in its step 0 (0x61cd9b, 0x61cdc5 and 0x61cf1f): Shiny01 and
+// Chrome01 with filter, Chrome01 repeating, and Chrome02 without filter or repeat.
 TEST(TextureSetsTest, TheGlowSetIsTheOneOf0x61ccb0)
 {
     ExpectAValidSet(GlowTextureSet);
@@ -126,7 +123,7 @@ TEST(TextureSetsTest, TheGlowSetIsTheOneOf0x61ccb0)
     EXPECT_EQ(GlowTextureSet[2].sampling.wrap, Wrap::Clamp);
 }
 
-// 0x61d801 sube clouds.jpg a 0x622, con GL_LINEAR y GL_CLAMP, para la neblina del login.
+// 0x61d801 uploads clouds.jpg to 0x622, with GL_LINEAR and GL_CLAMP, for the login's mist.
 TEST(TextureSetsTest, TheEffectSetLoadsTheCloudsWithLinearClamp)
 {
     ExpectAValidSet(EffectTextureSet);
@@ -144,7 +141,7 @@ TEST(TextureSetsTest, TheEffectSetLoadsTheCloudsWithLinearClamp)
     EXPECT_EQ(cloud->sampling.wrap, Wrap::Clamp);
 }
 
-// 0x61d7e5 sube Explotion01.jpg a 0x5ed, con GL_LINEAR y GL_CLAMP: la explosión 5ed/0 del terremoto 0xfa.
+// 0x61d7e5 uploads Explotion01.jpg to 0x5ed, with GL_LINEAR and GL_CLAMP: the explosion 0x5ed/0 of earthquake 0xfa.
 TEST(TextureSetsTest, TheEffectSetLoadsTheEarthquakeExplosionWithLinearClamp)
 {
     const TextureSetEntry* explosion = nullptr;
@@ -159,8 +156,8 @@ TEST(TextureSetsTest, TheEffectSetLoadsTheEarthquakeExplosionWithLinearClamp)
     EXPECT_EQ(explosion->sampling.wrap, Wrap::Clamp);
 }
 
-// 0x61d6e0 y 0x61d6fc: el calco y los anillos de 0x61f deben subir a los slots originales.
-// Lee los OZJ versionados del repo: también fija el nombre real, no solo dos filas de la tabla.
+// 0x61d6e0 and 0x61d6fc: the decal and the rings of 0x61f must upload to the original slots. Reads the repo's
+// versioned OZJ files: it also pins the real name, not only two rows of the table.
 TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
@@ -186,7 +183,8 @@ TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)
     }
 }
 
-// 0x61d5a0 y 0x61d893: la chispa 6ec/5 de Crywolf (fantaF) y la burbuja 698/0 de su agua (coll), de la Data del repo.
+// 0x61d5a0 and 0x61d893: Crywolf's spark 0x6ec/5 (fantaF) and the bubble 0x698/0 of its water (coll), from the repo's
+// Data.
 TEST(TextureSetsTest, TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
@@ -211,8 +209,8 @@ TEST(TextureSetsTest, TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots
     }
 }
 
-// 0x61d663 y 0x61d768: la onda 0x6eb del galope en Icarus (ShockWave, 128 × 128) y el polvo 5f3 del galope en los
-// demás mapas (smoke02, 64 × 64, el alto que lee su paso), de la Data del repo.
+// 0x61d663 and 0x61d768: the gallop wave 0x6eb in Icarus (ShockWave, 128 × 128) and the gallop dust 0x5f3 on the
+// other maps (smoke02, 64 × 64, the height its step reads), from the repo's Data.
 TEST(TextureSetsTest, TheGallopTexturesUploadAtTheirOriginalSlots)
 {
     Client::Tests::FakeTextureStore store;
@@ -247,7 +245,7 @@ TEST(TextureSetsTest, TheGallopTexturesUploadAtTheirOriginalSlots)
     }
 }
 
-// 0x61d4db: la llama que emiten los objetos usa Fire01, también en la carga durable.
+// 0x61d4db: the flame the objects emit uses Fire01, also in the durable load.
 TEST(TextureSetsTest, TheObjectFireTextureUploadsAtItsOriginalSlot)
 {
     Client::Tests::FakeTextureStore store;
@@ -278,7 +276,7 @@ TEST(TextureSetsTest, TheNoriaSparkAndLightningTexturesUploadAtTheirOriginalSlot
     }
 }
 
-// 0x622e40 sube seis, todas con filtro y sin repetir salvo la barra.
+// 0x622e40 uploads six, all with filter and without repeat except the bar.
 TEST(TextureSetsTest, TheLoadingSetIsTheOneOf0x622e40)
 {
     ExpectAValidSet(LoadingTextureSet);
@@ -288,7 +286,7 @@ TEST(TextureSetsTest, TheLoadingSetIsTheOneOf0x622e40)
 }
 } // namespace
 
-// 0x61d784..0x61d78e: material de las partículas del mapa 34, con filtro y sin repetir.
+// 0x61d784..0x61d78e: the material of map 34's particles, with filter and without repeat.
 TEST(TextureSetsTest, TheCrywolfArrivalSmokeUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;
@@ -302,7 +300,7 @@ TEST(TextureSetsTest, TheCrywolfArrivalSmokeUploadsItsRealImage)
     EXPECT_GT(texture->texture.height, 0);
 }
 
-// 0x61ccb0: el cráter usa nearest; PoundingBall comparte linear/clamp con fi02.
+// 0x61ccb0: the crater uses nearest; PoundingBall shares linear/clamp with fi02.
 TEST(TextureSetsTest, TheCrywolfEffectMaterialsUploadTheirRealImages)
 {
     Client::Tests::FakeTextureStore store;
@@ -325,7 +323,7 @@ TEST(TextureSetsTest, TheCrywolfEffectMaterialsUploadTheirRealImages)
     EXPECT_GT(ball->texture.height, 0);
 }
 
-// 0x61e3c0..0x61e46e: materiales de los controles H12/H13 que usa el asedio.
+// 0x61e3c0..0x61e46e: the materials of the H12/H13 controls the siege uses.
 TEST(TextureSetsTest, TheHudUploadsTheCastleMapGateAndGuardianButtons)
 {
     Client::Tests::FakeTextureStore store;
@@ -345,7 +343,7 @@ TEST(TextureSetsTest, TheHudUploadsTheCastleMapGateAndGuardianButtons)
     }
 }
 
-// 0x61b20f, 0x61b286 y 0x61b2a6: las imágenes que consumen las barras y los botones de mezcla.
+// 0x61b20f, 0x61b286 and 0x61b2a6: the images the bars and the mix buttons consume.
 TEST(TextureSetsTest, TheHudUploadsTheLevelAndBothMixButtons)
 {
     Client::Tests::FakeTextureStore store;
@@ -364,7 +362,7 @@ TEST(TextureSetsTest, TheHudUploadsTheLevelAndBothMixButtons)
     }
 }
 
-// 61da58/61da62: Thunder01 usa GL_LINEAR/GL_REPEAT, a diferencia de los sprites cercanos.
+// 0x61da58/0x61da62: Thunder01 uses GL_LINEAR/GL_REPEAT, unlike the nearby sprites.
 TEST(TextureSetsTest, HelperThunderUploadsItsRealImageWithLinearRepeat)
 {
     Client::Tests::FakeTextureStore store;
@@ -392,7 +390,7 @@ TEST(TextureSetsTest, TheFireworkTrailUploadsItsRealImage)
     EXPECT_GT(trail->texture.height, 0);
 }
 
-// 0x61dc0b..0x61dc15: Chrome03 para Crywolf y los brillos de monstruos, sin filtro ni repetición.
+// 0x61dc0b..0x61dc15: Chrome03 for Crywolf and the monsters' glows, without filter or repeat.
 TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;
@@ -407,7 +405,7 @@ TEST(TextureSetsTest, TheCrywolfChromeUploadsItsRealImage)
     EXPECT_GT(texture->texture.height, 0);
 }
 
-// 0x61d523..0x61d52d: Fire03 del efecto 0x147/1 usa LINEAR/CLAMP.
+// 0x61d523..0x61d52d: Fire03 of effect 0x147/1 uses LINEAR/CLAMP.
 TEST(TextureSetsTest, TheCrywolfFireUploadsItsRealImage)
 {
     Client::Tests::FakeTextureStore store;

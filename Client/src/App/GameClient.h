@@ -29,6 +29,7 @@
 #include "Scenes/SelectionState.h"
 #include "Session/SessionEventApplier.h"
 #include "Scenes/WinMainLoop.h"
+#include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
@@ -168,6 +169,7 @@ private:
     // 0x4bafa6..0x4bafc2: WinMain zeroes the pool of 401 characters and the own record; 0x4bafad..0x4bafdf: the hero
     // is character 0.
     Kernel::WorldState m_world;
+    Session::ModuleStates m_states;
     Camera::GameCameraInput m_cameraInput;
     Scenes::SelectionState m_selection;
     // 0x61ccb0: the loading scene reads them.

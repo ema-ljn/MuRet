@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import pytest
+
 from mubmd.adapters.storage import LocalFileStore
 from mubmd.adapters.web.models import KEPT_SESSIONS, Models
+from mubmd.core.errors import ErrorCode, MubmdError
 from tests.conftest import MODEL_FILES, TABLE_FILES
 
 SWORD = "Item/Sword01.bmd"
@@ -38,3 +41,40 @@ def test_the_donor_of_a_part_is_the_folders_player(web_copy: Path) -> None:
     assert models.donor("player/HelmMale01.bmd") == PLAYER
     assert models.donor("player/Helper03.bmd") is None
     assert models.donor(SWORD) is None
+
+
+@pytest.mark.parametrize(
+    "file",
+    [
+        "//host/share/x.bmd",
+        "\\\\host\\share\\x.bmd",
+        "C:/x.bmd",
+        "C:x.bmd",
+        "/x.bmd",
+        "\\x.bmd",
+        "Item/../Item/Sword01.bmd",
+        "Item\\..\\x.bmd",
+    ],
+)
+def test_a_name_that_could_leave_the_folder_is_refused_before_the_disk_is_touched(
+    web_copy: Path, monkeypatch: pytest.MonkeyPatch, file: str
+) -> None:
+    models = Models(LocalFileStore(), web_copy)
+
+    def touched(*_: object, **__: object) -> None:
+        raise AssertionError("the disk was touched")
+
+    monkeypatch.setattr(Path, "resolve", touched)
+
+    with pytest.raises(MubmdError) as error:
+        models.path(file)
+
+    assert error.value.code is ErrorCode.FILE_NOT_FOUND
+
+
+@pytest.mark.parametrize("kept", [0, 1000])
+def test_a_player_that_does_not_open_is_no_donor(web_copy: Path, kept: int) -> None:
+    player = web_copy / PLAYER
+    player.write_bytes(player.read_bytes()[:kept])
+
+    assert Models(LocalFileStore(), web_copy).donor("player/HelmMale01.bmd") is None

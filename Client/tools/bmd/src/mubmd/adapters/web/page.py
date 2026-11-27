@@ -35,8 +35,6 @@ PART_TOKENS: Final = 2
 SCENE_WIDTH: Final = 960
 SCENE_HEIGHT: Final = 640
 FRAMES_PER_SECOND: Final = 60
-GRID_DIVISIONS: Final = 20
-GRID_STEP: Final = 100
 DEFAULT_BOUNDS: Final = Bounds((-50.0, -50.0, 0.0), (50.0, 50.0, 100.0))
 VIEW_DIRECTION: Final = (0.45, -0.8, 0.4)
 VIEW_DISTANCE: Final = 2.2
@@ -154,10 +152,6 @@ class _ModelPanels:
         look_at_x, look_at_y, look_at_z = center
         scene.move_camera(x, y, z, look_at_x, look_at_y, look_at_z, duration=0)
 
-    def _grid(self) -> tuple[int, int]:
-        size = math.dist(self._bounds.low, self._bounds.high) * 2
-        return max(math.ceil(size / GRID_STEP), 1) * GRID_STEP, GRID_DIVISIONS
-
     def _send_state(self) -> None:
         self._model.speed(self._speed.value)
         self._model.skeleton(self._skeleton.value)
@@ -230,10 +224,11 @@ class _ModelPanels:
                 ui.label(NOTHING_TO_DRAW).classes("mubmd-dim")
             distance = math.dist(self._bounds.low, self._bounds.high) * VIEW_DISTANCE
             camera = ui.scene.perspective_camera(near=max(distance / 1000, 0.01), far=max(distance * 50, 1000))
+            # NiceGUI's grid comes with a floor that hides what a model has under z = 0: bmd_model.js draws ours.
             with ui.scene(
                 SCENE_WIDTH,
                 SCENE_HEIGHT,
-                grid=self._grid(),
+                grid=False,
                 camera=camera,
                 background_color=LORENCIA.background,
                 fps=FRAMES_PER_SECOND,

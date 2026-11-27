@@ -179,9 +179,20 @@ def _bone_pose(bone: JsonValue, action: int) -> BonePose | None:
     return BonePose(tuple(positions), tuple(quaternions))
 
 
+def _held_in_place(pose: BonePose) -> BonePose:
+    x, y = pose.positions[:2]
+    heights = pose.positions[2::POSITION_WIDTH]
+    return BonePose(tuple(number for z in heights for number in (x, y, z)), pose.quaternions)
+
+
 def action_poses(view: JsonObject, action: int) -> ActionPoses:
-    keys = _count(resolve(view, f"/actions/{action}"), "keys")
-    return ActionPoses(keys, tuple(_bone_pose(bone, action) for bone in _items(view.get("bones"))))
+    """As the client poses it (0x4eb860): the first bone of an action with `lock` keeps the x and y of its key 0."""
+    chosen = resolve(view, f"/actions/{action}")
+    poses = [_bone_pose(bone, action) for bone in _items(view.get("bones"))]
+    first = poses[0] if poses else None
+    if _count(chosen, "lock") and first is not None and first.positions:
+        poses[0] = _held_in_place(first)
+    return ActionPoses(_count(chosen, "keys"), tuple(poses))
 
 
 def _point(value: JsonValue) -> _Point:

@@ -3,20 +3,28 @@ import socket
 from collections.abc import Iterator
 from pathlib import Path
 
+import httpx2
 import pytest
-from nicegui import ui
-from nicegui.testing import User
+from nicegui import app, ui
 from nicegui.testing.general import nicegui_reset_globals
 
 from mubmd.adapters.storage import LocalFileStore
-from mubmd.adapters.web.server import HOST, build, free_port, guard, serve
+from mubmd.adapters.web.server import HOST, free_port, serve
 from mubmd.core.errors import ErrorCode, MubmdError
 
 
 @pytest.fixture
-def app_not_started() -> Iterator[None]:
+def run_asked(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, object]]:
+    """What `ui.run` was asked, with a `ui.run` that ends at once as on Ctrl+C, on an app that has not started."""
+    asked: dict[str, object] = {}
+
+    def stopped_with_ctrl_c(**arguments: object) -> None:
+        asked.update(arguments)
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(ui, "run", stopped_with_ctrl_c)
     with nicegui_reset_globals():
-        yield
+        yield asked
 
 
 def test_a_taken_port_is_an_error_with_a_way_out() -> None:
@@ -44,27 +52,27 @@ def test_a_free_port_is_the_one_asked_for() -> None:
     assert free_port(port) == port
 
 
-async def test_another_host_is_refused(user: User, web_copy: Path) -> None:
-    build(LocalFileStore(), web_copy)
-    guard()
-
-    answers = [
-        (
-            await user.http_client.get("/api/scene", params={"file": "Item/Sword01.bmd"}, headers={"Host": host})
-        ).status_code
-        for host in ("evil.example", "127.0.0.1:8765", "localhost:8765")
-    ]
-
-    assert answers == [400, 200, 200]
-
-
-@pytest.mark.usefixtures("app_not_started")
-def test_ctrl_c_ends_the_server_with_its_address(web_copy: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def stopped_with_ctrl_c(**_: object) -> None:
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr(ui, "run", stopped_with_ctrl_c)
-
+@pytest.mark.usefixtures("run_asked")
+def test_ctrl_c_ends_the_server_with_its_address(web_copy: Path) -> None:
     address = serve(LocalFileStore(), web_copy, port=0, open_browser=False)
 
     assert re.fullmatch(r"http://127\.0\.0\.1:\d+", address)
+
+
+def test_the_server_listens_on_this_machine_only(web_copy: Path, run_asked: dict[str, object]) -> None:
+    serve(LocalFileStore(), web_copy, port=0, open_browser=False)
+
+    assert run_asked["host"] == "127.0.0.1"
+
+
+@pytest.mark.usefixtures("run_asked")
+async def test_the_server_refuses_another_host(web_copy: Path) -> None:
+    serve(LocalFileStore(), web_copy, port=0, open_browser=False)
+
+    async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app), base_url="http://test") as client:
+        answers = [
+            (await client.get("/api/scene", params={"file": "Item/Sword01.bmd"}, headers={"Host": host})).status_code
+            for host in ("evil.example", "127.0.0.1:8765", "localhost:8765")
+        ]
+
+    assert answers == [400, 200, 200]

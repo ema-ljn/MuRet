@@ -9,6 +9,10 @@ const FLAT = 0x8c6a2f;
 const TINT = 0xe6c76a;
 const MARK = 0xd9822b;
 const MARK_SHARE = 0.012;
+const GRID_STEP = 100;
+const GRID_DIVISIONS = 20;
+const GRID_OPACITY = 0.2;
+const NOTHING_MEASURED = { low: [-50, -50, 0], high: [50, 50, 100] };
 const KEY_READOUT = ".mubmd-key";
 
 function asked(route, params) {
@@ -62,8 +66,12 @@ export default class BmdModel {
       keys: 0,
       key: 0,
       playing: false,
+      duration: 0,
       bounds: null,
     };
+    const { low, high } = scene.bounds ?? NOTHING_MEASURED;
+    this.size = Math.hypot(...high.map((value, axis) => value - low[axis]));
+    this.add_grid();
     this.add_bones(scene.bones);
     this.parts = scene.meshes.map((mesh) => this.add_part(mesh));
     this.mixer = new THREE.AnimationMixer(this.root);
@@ -88,6 +96,15 @@ export default class BmdModel {
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
+  }
+
+  add_grid() {
+    const side = Math.max(Math.ceil((this.size * 2) / GRID_STEP), 1) * GRID_STEP;
+    const grid = new THREE.GridHelper(side, GRID_DIVISIONS);
+    grid.material.transparent = true;
+    grid.material.opacity = GRID_OPACITY;
+    grid.rotateX(Math.PI / 2);
+    this.root.add(grid);
   }
 
   add_bones(bones) {
@@ -183,7 +200,7 @@ export default class BmdModel {
     this.current = this.mixer.clipAction(clip);
     this.current.reset().play();
     this.mixer.update(0);
-    Object.assign(this.state, { action, keys, key: 0, playing: true });
+    Object.assign(this.state, { action, keys, key: 0, playing: true, duration: clip.duration });
   }
 
   pause() {
@@ -233,8 +250,7 @@ export default class BmdModel {
     this.marker?.removeFromParent();
     this.marker = null;
     if (!this.bones[bone]) return;
-    const { low, high } = this.scene.bounds ?? { low: [0, 0, 0], high: [100, 100, 100] };
-    const radius = Math.max(Math.hypot(...high.map((value, axis) => value - low[axis])) * MARK_SHARE, 0.5);
+    const radius = Math.max(this.size * MARK_SHARE, 0.5);
     const material = new THREE.MeshBasicMaterial({ color: MARK, depthTest: false });
     this.marker = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 8), material);
     this.marker.renderOrder = 1;

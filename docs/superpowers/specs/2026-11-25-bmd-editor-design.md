@@ -390,7 +390,9 @@ Its plan, with every decision and what was measured on the real files, is
   server to write).
 - **Local only.** The server listens on 127.0.0.1, with no flag to change that, and refuses a request whose `Host` is
   not `127.0.0.1` or `localhost`, so a site on the internet cannot reach it through a DNS name that points at
-  127.0.0.1. A file outside the served folder is refused.
+  127.0.0.1. A model outside the served folder is refused, and a name that could leave it (`..`, a drive, a network
+  share) is refused before the disk is touched. A mesh's texture is looked for where `validate` looks: in the model's
+  folder and in the folders beside it.
 - **It is a viewer, not the client's renderer.** Textures are read as the client reads them (an OZJ is a JPEG after 24
   bytes; an OZT is 32-bit BGRA rows stored bottom first, no side over 512) and drawn unlit, on both sides, with alpha
   test. There is no lighting, none of the client's blend rules per model and no x87 math. A texture that no folder

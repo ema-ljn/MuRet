@@ -1,3 +1,4 @@
+import asyncio
 import os
 import socket
 import sys
@@ -6,7 +7,8 @@ from pathlib import Path
 from typing import Final
 from urllib.parse import urlencode
 
-from nicegui import app, ui
+from nicegui import app, background_tasks, ui
+from nicegui.server import Server
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from mubmd.adapters.web.api import add_api
@@ -18,6 +20,7 @@ from mubmd.core.ports import FileStore
 HOST: Final = "127.0.0.1"
 ALLOWED_HOSTS: Final = ("127.0.0.1", "localhost")
 TITLE: Final = "mubmd"
+LISTENING_CHECK_SECONDS: Final = 0.01
 
 
 def free_port(port: int) -> int:
@@ -42,13 +45,20 @@ def build(store: FileStore, root: Path) -> None:
     add_page(models)
 
 
+async def _say_when_listening(address: str) -> None:
+    while not Server.instance.started:
+        await asyncio.sleep(LISTENING_CHECK_SECONDS)
+    print(f"mubmd web: {address} (Ctrl+C stops it)", file=sys.stderr, flush=True)
+
+
 def serve(store: FileStore, target: Path, *, port: int, open_browser: bool) -> str:
     root, first_page = (target, "/") if target.is_dir() else (target.parent, "/?" + urlencode({"file": target.name}))
     chosen = free_port(port)
     address = f"http://{HOST}:{chosen}"
     build(store, root)
     guard()
-    app.on_startup(lambda: print(f"mubmd web: {address} (Ctrl+C stops it)", file=sys.stderr, flush=True))
+    # NiceGUI's startup runs before the port is open.
+    app.on_startup(lambda: background_tasks.create(_say_when_listening(address), name="mubmd web says it listens"))
     # uvicorn shuts down on Ctrl+C and then raises the signal again.
     with suppress(KeyboardInterrupt):
         ui.run(

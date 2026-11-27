@@ -161,6 +161,16 @@ def test_the_poses_of_an_action(reference_data: Path) -> None:
     assert monster.bones[9] is None
 
 
+def test_a_locked_action_keeps_its_first_bone_in_place(reference_data: Path) -> None:
+    walk = action_poses(view_of(reference_data, MONSTER), 2)
+
+    first = walk.bones[0]
+    assert first is not None
+    assert first.positions[0::3] == pytest.approx([-0.225] * 7, abs=NEAR)
+    assert first.positions[1::3] == pytest.approx([3.207] * 7, abs=NEAR)
+    assert first.positions[2::3] == pytest.approx([101.761, 108.772, 109.859] * 2 + [101.761], abs=NEAR)
+
+
 def test_an_action_the_model_does_not_have(reference_data: Path) -> None:
     with pytest.raises(MubmdError) as error:
         action_poses(view_of(reference_data, SWORD), 1)

@@ -1,5 +1,7 @@
 #include "Assets/WorldModels.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
+#include "Assets/ModelTable.h"
 #include "Assets/ModelTextureTable.h"
 
 #include "Core/Expected.h"
@@ -24,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <optional>
 #include <set>
@@ -102,8 +105,8 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
         if (auto spearman = LoadTheSpearman(dataRoot, log, missing, textureRequests); !spearman.HasValue())
             return spearman;
     }
-    log.Debug("los objetos de {}: {} modelos y {} que no están", m_folder, m_models.size(), missing);
-    if (m_models.empty())
+    log.Debug("los objetos de {}: {} modelos y {} que no están", m_folder, m_models.Count(), missing);
+    if (m_models.Empty())
         log.Warning("no hay ningún modelo de los objetos del mundo en Data\\{}: el mundo va sin ellos", m_folder);
     UploadTextures(dataRoot, textures, log, textureRequests);
     if (m_sharedTextures != nullptr)
@@ -114,12 +117,12 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
         std::set<std::uint16_t> firstReferences;
         for (const auto slot : m_uploaded)
             firstReferences.insert(slot.value);
-        for (const auto& [model, bindings] : m_meshTextures)
-            for (const auto slot : bindings)
+        ForEachBinding(
+            [&](Render::TextureSlot slot)
             {
                 if (slot != Render::UnboundModelTextureSlot && firstReferences.erase(slot.value) == 0)
                     m_sharedTextures->Acquire(slot);
-            }
+            });
     }
     return {};
 }
@@ -142,19 +145,19 @@ void WorldModels::LoadFile(const std::filesystem::path& dataRoot, const Data::Mo
         log.Warning("el objeto {} del mundo no tiene un esqueleto que se pueda posar", file.model);
         return;
     }
-    m_models.emplace(file.model, std::move(loaded).Value());
-    m_skeletons.emplace(file.model, std::move(skeleton).Value());
+    if (m_models.Find(file.model) == nullptr)
+        m_models.Insert(file.model, std::move(loaded).Value(), std::move(skeleton).Value());
 }
 
 void WorldModels::AssignSpecialTexture(const Data::Models::ModelFile& file, const WorldSpecialModelSet& specials,
                                        WorldModelTextureRequests& textureRequests)
 {
-    const auto model = m_models.find(file.model);
-    if (model == m_models.end())
+    LoadedModel* model = m_models.Find(file.model);
+    if (model == nullptr)
         return;
     const auto folder = specials.textureFolder.empty() ? file.folder : specials.textureFolder;
-    m_meshTextures[file.model] = TextureSlots()->Assign(
-        model->second, folder, WorldModelSampling, &textureRequests.requests, &textureRequests.bindings[file.model]);
+    model->meshTextures = TextureSlots()->Assign(model->model, folder, WorldModelSampling, &textureRequests.requests,
+                                                 &textureRequests.bindings[file.model]);
 }
 
 Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesystem::path& dataRoot,
@@ -171,8 +174,8 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
             LoadFile(dataRoot, file, log, missing);
         for (const Data::Models::ModelFile& file : specials.files)
         {
-            const auto found = m_models.find(file.model);
-            if (found != m_models.end() && !found->second.meshes.empty())
+            const Data::Models::Model* found = m_models.ModelOf(file.model);
+            if (found != nullptr && !found->meshes.empty())
                 return Core::Unexpected(
                     std::string("0x617699: el wrap 0x2600 de los especiales de Object6 no está portado"));
         }
@@ -200,7 +203,7 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
         {
             // 0x60d617..0x60d61b: a Gate without meshes requests no texture and does not advance the cursor.
             if (const Data::Models::Model* model = m_globalModels->Find(gate); model != nullptr)
-                m_meshTextures[gate] =
+                m_globalBindings[gate] =
                     TextureSlots()->Assign(*model, "Monster\\", WorldModelSampling, &textureRequests.requests,
                                            &textureRequests.bindings[gate]);
         }
@@ -224,11 +227,11 @@ void WorldModels::LoadObjects(const std::filesystem::path& dataRoot, std::uint8_
                      log, missing);
     }
     TextureSlots()->SetNext(WorldModelsFirstSlot);
-    for (const auto& [model, data] : m_models)
+    for (auto& [model, loaded] : m_models)
     {
         if (model < WorldModelCount)
-            m_meshTextures[model] = TextureSlots()->Assign(data, m_folder, WorldModelSampling,
-                                                           &textureRequests.requests, &textureRequests.bindings[model]);
+            loaded.meshTextures = TextureSlots()->Assign(loaded.model, m_folder, WorldModelSampling,
+                                                         &textureRequests.requests, &textureRequests.bindings[model]);
     }
 }
 
@@ -239,11 +242,11 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
     constexpr std::size_t DungeonAction = 1;
     if (map == DungeonMap)
     {
-        const auto model = m_skeletons.find(DungeonModel);
-        if (model == m_skeletons.end() || model->second.actions.size() <= DungeonAction)
+        Models::Skeleton* model = m_models.SkeletonOf(DungeonModel);
+        if (model == nullptr || model->actions.size() <= DungeonAction)
             return Core::Unexpected(std::string("0x61a13c: falta la segunda acción del modelo 40 de Dungeon"));
         // 0x61a136: 40*0xe0+0x30 is the action array; +0x14 is action 1's speed.
-        model->second.actions[DungeonAction].speed = 0.4f;
+        model->actions[DungeonAction].speed = 0.4f;
     }
     if (specials.kind != WorldSpecialKind::Kalima)
         return {};
@@ -260,11 +263,11 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
                                                {0x127, true, std::nullopt, "0x618ca3"}}};
     for (const Setting& setting : Settings)
     {
-        const auto model = m_skeletons.find(setting.model);
-        if (model == m_skeletons.end() || model->second.actions.empty())
+        Models::Skeleton* model = m_models.SkeletonOf(setting.model);
+        if (model == nullptr || model->actions.empty())
             return Core::Unexpected(std::string(setting.address) + ": falta la primera acción del especial de Kalima " +
                                     std::to_string(setting.model));
-        Models::ActionInfo& action = model->second.actions.front();
+        Models::ActionInfo& action = model->actions.front();
         action.repeats = setting.repeats;
         if (setting.speed)
             action.speed = *setting.speed;
@@ -285,13 +288,12 @@ Core::Expected<void, std::string> WorldModels::LoadTheSpearman(const std::filesy
     constexpr std::array<float, 7> Speeds{0.25f, 0.2f, 0.34f, 0.33f, 0.33f, 0.5f, 0.55f};
     constexpr std::size_t NotRepeated = 6;
     LoadFile(dataRoot, {SpearmanModel, "Monster\\", "Monster", SpearmanFile}, log, missing);
-    const auto model = m_models.find(SpearmanModel);
-    if (model == m_models.end() || model->second.meshes.empty())
+    LoadedModel* model = m_models.Find(SpearmanModel);
+    if (model == nullptr || model->model.meshes.empty())
         return {};
-    m_meshTextures[SpearmanModel] =
-        TextureSlots()->Assign(model->second, "Monster\\", WorldModelSampling, &textureRequests.requests,
-                               &textureRequests.bindings[SpearmanModel]);
-    Models::Skeleton& skeleton = m_skeletons.at(SpearmanModel);
+    model->meshTextures = TextureSlots()->Assign(model->model, "Monster\\", WorldModelSampling,
+                                                 &textureRequests.requests, &textureRequests.bindings[SpearmanModel]);
+    Models::Skeleton& skeleton = *model->skeleton;
     if (skeleton.actions.size() < Speeds.size())
         return Core::Unexpected(std::string("0x612e5a: Monster78 no tiene las siete acciones de los monstruos"));
     for (std::size_t action = 0; action < Speeds.size(); ++action)
@@ -350,7 +352,7 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
                 slots.SetName(Render::TextureSlot{slot}, state.residentName);
         for (const auto& [model, requestsByMesh] : textureRequests.bindings)
         {
-            auto& slotsByMesh = m_meshTextures.at(model);
+            auto& slotsByMesh = BindingsOf(model);
             for (std::size_t mesh = 0; mesh < requestsByMesh.size(); ++mesh)
                 if (const auto request = requestsByMesh[mesh]; request && failed[*request])
                     slotsByMesh[mesh] = Render::UnboundModelTextureSlot;
@@ -364,10 +366,12 @@ void WorldModels::Release()
     // Before UploadTextures the bindings are provisional: they have not acquired references yet.
     if (m_sharedTextures != nullptr && m_store != nullptr)
     {
-        for (const auto& [model, bindings] : m_meshTextures)
-            for (const auto slot : bindings)
+        ForEachBinding(
+            [&](Render::TextureSlot slot)
+            {
                 if (slot.value != 0x12e && slot != Render::UnboundModelTextureSlot)
                     m_sharedTextures->Release(slot);
+            });
     }
     else if (m_store != nullptr)
     {
@@ -380,33 +384,57 @@ void WorldModels::Release()
     m_store = nullptr;
     m_sharedTextures = nullptr;
     m_slots.reset();
-    m_models.clear();
-    m_skeletons.clear();
-    m_meshTextures.clear();
+    m_models.Clear();
+    m_globalBindings.clear();
     m_textureMetadata.clear();
     m_globalModels = nullptr;
 }
 
 const Data::Models::Model* WorldModels::Find(std::uint16_t model) const
 {
-    const auto found = m_models.find(model);
-    return found != m_models.end() ? &found->second
-                                   : (m_globalModels != nullptr ? m_globalModels->Find(model) : nullptr);
+    if (const Data::Models::Model* own = m_models.ModelOf(model))
+        return own;
+    return m_globalModels != nullptr ? m_globalModels->Find(model) : nullptr;
 }
 
 const Models::Skeleton* WorldModels::SkeletonOf(std::uint16_t model) const
 {
-    const auto found = m_skeletons.find(model);
-    return found != m_skeletons.end() ? &found->second
-                                      : (m_globalModels != nullptr ? m_globalModels->SkeletonOf(model) : nullptr);
+    if (const Models::Skeleton* own = m_models.SkeletonOf(model))
+        return own;
+    return m_globalModels != nullptr ? m_globalModels->SkeletonOf(model) : nullptr;
 }
 
 std::span<const Render::TextureSlot> WorldModels::MeshTextures(std::uint16_t model) const
 {
-    const auto found = m_meshTextures.find(model);
-    if (found != m_meshTextures.end())
-        return found->second;
+    if (const LoadedModel* own = m_models.Find(model))
+        return own->meshTextures;
+    if (const auto bound = m_globalBindings.find(model); bound != m_globalBindings.end())
+        return bound->second;
     return m_globalModels != nullptr ? m_globalModels->MeshTextures(model) : std::span<const Render::TextureSlot>{};
+}
+
+std::span<const Models::MeshTraits> WorldModels::MeshTraitsOf(std::uint16_t model) const
+{
+    if (const LoadedModel* own = m_models.Find(model))
+        return own->meshes;
+    return m_globalModels != nullptr ? m_globalModels->MeshTraitsOf(model) : std::span<const Models::MeshTraits>{};
+}
+
+std::vector<Render::TextureSlot>& WorldModels::BindingsOf(std::uint16_t model)
+{
+    if (LoadedModel* own = m_models.Find(model))
+        return own->meshTextures;
+    return m_globalBindings.at(model);
+}
+
+void WorldModels::ForEachBinding(const std::function<void(Render::TextureSlot)>& visit) const
+{
+    for (const auto& [model, loaded] : m_models)
+        for (const Render::TextureSlot slot : loaded.meshTextures)
+            visit(slot);
+    for (const auto& [model, bindings] : m_globalBindings)
+        for (const Render::TextureSlot slot : bindings)
+            visit(slot);
 }
 
 std::optional<Models::TextureMetadata> WorldModels::TextureMetadataOf(std::uint32_t selector) const
@@ -441,7 +469,7 @@ std::optional<glm::vec2> WorldModels::TextureSize(Render::TextureSlot slot) cons
 
 std::size_t WorldModels::Count() const
 {
-    return m_models.size();
+    return m_models.Count();
 }
 
 Models::ModelTextureSlots* WorldModels::TextureSlots()

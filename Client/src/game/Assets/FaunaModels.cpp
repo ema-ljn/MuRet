@@ -2,6 +2,7 @@
 
 #include "Audio/Playback.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Sound/MonsterSounds.h"
 
 #include "Core/Expected.h"
@@ -15,6 +16,7 @@
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Assets/ConstructedBmdPrefix.h"
+#include "Assets/ModelTable.h"
 #include "Assets/ModelTextureTable.h"
 #include "Assets/MonsterModelTable.h"
 #include "Models/TextureMetadata.h"
@@ -122,6 +124,14 @@ void FaunaModels::RegisterModelSounds(std::uint16_t model, Audio::IPlayback* aud
     for (const FaunaResourceSound& sound : found->second.sounds)
         audio->RegisterSound(sound.id, sound.path);
     found->second.registered = true;
+}
+
+void FaunaModels::SetLoaded(Entry& entry, Data::Models::Model model, Models::Skeleton skeleton)
+{
+    LoadedModel loaded = MakeLoadedModel(std::move(model), std::move(skeleton));
+    entry.model = std::move(loaded.model);
+    entry.skeleton = std::move(*loaded.skeleton);
+    entry.meshes = std::move(loaded.meshes);
 }
 
 void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context)
@@ -298,8 +308,7 @@ Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, 
         return Core::Unexpected(std::format("0x612de1: el hueso {} de Monster\\{} cuelga de uno de después (Q-C108)",
                                             skeleton.Error().bone, Data::Models::ModelFileName("Monster", number + 1)));
     auto& entry = m_models[model];
-    entry.model = std::move(loaded).Value();
-    entry.skeleton = std::move(skeleton).Value();
+    SetLoaded(entry, std::move(loaded).Value(), std::move(skeleton).Value());
     // 0x612dee: without meshes, no textures and no actions.
     if (entry.model.meshes.empty())
         return {};
@@ -346,8 +355,7 @@ Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, Faun
                                                     skeleton.Error().bone,
                                                     Data::Models::ModelFileName(op.name, op.number)));
             auto& entry = m_models[op.model];
-            entry.model = std::move(loaded).Value();
-            entry.skeleton = std::move(skeleton).Value();
+            SetLoaded(entry, std::move(loaded).Value(), std::move(skeleton).Value());
             entry.textures.clear();
             break;
         }
@@ -470,6 +478,14 @@ std::span<const Render::TextureSlot> FaunaModels::MeshTextures(std::uint16_t mod
     if (found != m_models.end())
         return found->second.textures;
     return m_base != nullptr ? m_base->MeshTextures(model) : std::span<const Render::TextureSlot>{};
+}
+
+std::span<const Models::MeshTraits> FaunaModels::MeshTraitsOf(std::uint16_t model) const
+{
+    const auto found = m_models.find(model);
+    if (found != m_models.end())
+        return found->second.meshes;
+    return m_base != nullptr ? m_base->MeshTraitsOf(model) : std::span<const Models::MeshTraits>{};
 }
 std::optional<Models::TextureMetadata> FaunaModels::TextureMetadataOf(std::uint32_t selector) const
 {

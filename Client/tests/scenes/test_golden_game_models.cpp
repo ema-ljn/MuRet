@@ -7,6 +7,7 @@
 #include "Tables/ModelTextureCalls.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/ModelTextures.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
@@ -42,6 +43,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <ios>
 #include <memory>
 #include <map>
@@ -62,6 +64,7 @@ using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Render::TextureSlot;
 using Client::Tables::ItemModelFiles;
+using Client::Tables::MeshesWithoutShine;
 using Client::Tables::ModelTextureSampling;
 using Client::Tables::PlayerFixedTextures;
 using Client::Tables::PlayerModelFiles;
@@ -311,6 +314,71 @@ TEST_F(GoldenGameModels, StartupActionsKeepTheOverridesWrittenAfterTheBmdLoad)
     ASSERT_NE(projectile, nullptr);
     ASSERT_FALSE(projectile->actions.empty());
     EXPECT_EQ(projectile->actions.front().speed, 0.5f); // 0x616276.
+}
+
+// 0x4f13d0 keeps each mesh's texture script, and the end of 0x60ff50 takes the shine off five item meshes
+// (0x6117fd..0x611847).
+TEST_F(GoldenGameModels, EachMeshKeepsItsScriptAndTheFiveMarkedMeshesDoNotShine)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    std::size_t scripted = 0;
+    for (const auto table : {PlayerModelFiles(), ItemModelFiles(), SkillModelFiles()})
+        for (const auto& file : table)
+        {
+            const auto* model = models.Find(file.model);
+            if (model == nullptr)
+                continue;
+            const auto traits = models.MeshTraitsOf(file.model);
+            ASSERT_EQ(traits.size(), model->meshes.size()) << file.name;
+            for (std::size_t mesh = 0; mesh < traits.size(); ++mesh)
+            {
+                const auto script = Client::Data::Models::TextureScriptOf(model->meshes[mesh].textureName);
+                scripted += script.has_value() ? 1u : 0u;
+                const Client::Tables::ModelMesh at{file.model, static_cast<std::uint16_t>(mesh)};
+                const bool marked = std::ranges::find(MeshesWithoutShine, at) != MeshesWithoutShine.end();
+                EXPECT_EQ(traits[mesh].hidden, script && script->hidden) << file.name << " " << mesh;
+                EXPECT_EQ(traits[mesh].blendScript, script && script->blendMesh) << file.name << " " << mesh;
+                EXPECT_EQ(traits[mesh].scrollScript, script && script->scrollUv) << file.name << " " << mesh;
+                EXPECT_EQ(traits[mesh].shines, !marked && !(script && script->withoutShine))
+                    << file.name << " " << mesh;
+            }
+        }
+    EXPECT_GT(scripted, 0u);
+    for (const Client::Tables::ModelMesh& marked : MeshesWithoutShine)
+    {
+        const auto traits = models.MeshTraitsOf(marked.model);
+        ASSERT_GT(traits.size(), marked.mesh) << marked.model;
+        EXPECT_FALSE(traits[marked.mesh].shines) << marked.model;
+    }
+}
+
+// The skeleton holds the animation keys; the file keeps its bones without them.
+TEST_F(GoldenGameModels, OnlyTheSkeletonKeepsTheAnimationKeys)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const auto* player = models.Find(0x20a);
+    const auto* skeleton = models.SkeletonOf(0x20a);
+    ASSERT_NE(player, nullptr);
+    ASSERT_NE(skeleton, nullptr);
+    ASSERT_EQ(player->bones.size(), skeleton->bones.size());
+    std::size_t keys = 0;
+    for (std::size_t bone = 0; bone < player->bones.size(); ++bone)
+    {
+        EXPECT_TRUE(player->bones[bone].actions.empty()) << bone;
+        for (const auto& action : skeleton->bones[bone].actions)
+            keys += action.size();
+    }
+    EXPECT_GT(keys, 0u);
 }
 
 TEST_F(GoldenGameModels, StartupPublishesTheFourFixedSkillTextureSlots)

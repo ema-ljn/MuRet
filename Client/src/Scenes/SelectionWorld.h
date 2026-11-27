@@ -9,6 +9,7 @@
 #include "Render/ModelBatch.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -77,6 +78,7 @@ public:
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;

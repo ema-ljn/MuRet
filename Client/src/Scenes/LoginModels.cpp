@@ -2,11 +2,13 @@
 
 #include "Crt/CrtRandom.h"
 #include "Scenes/DarkSpirit.h"
+#include "Assets/ModelTable.h"
 
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Kernel/CharacterClass.h"
+#include "Models/MeshTraits.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
@@ -68,33 +70,36 @@ void SingleModelLibrary::Set(std::uint16_t model, Data::Models::Model data, Mode
                              std::vector<Render::TextureSlot> meshTextures)
 {
     m_model = model;
-    m_data = std::move(data);
-    m_skeleton = std::move(skeleton);
-    m_meshTextures = std::move(meshTextures);
+    m_loaded = Assets::MakeLoadedModel(std::move(data), std::move(skeleton));
+    m_loaded.meshTextures = std::move(meshTextures);
 }
 
 void SingleModelLibrary::Clear()
 {
     m_model.reset();
-    m_data = {};
-    m_skeleton = {};
-    m_meshTextures.clear();
+    m_loaded = {};
 }
 
 const Data::Models::Model* SingleModelLibrary::Find(std::uint16_t model) const
 {
-    return m_model == model ? &m_data : nullptr;
+    return m_model == model ? &m_loaded.model : nullptr;
 }
 
 const Models::Skeleton* SingleModelLibrary::SkeletonOf(std::uint16_t model) const
 {
-    return m_model == model ? &m_skeleton : nullptr;
+    return m_model == model && m_loaded.skeleton.has_value() ? &*m_loaded.skeleton : nullptr;
 }
 
 std::span<const Render::TextureSlot> SingleModelLibrary::MeshTextures(std::uint16_t model) const
 {
-    return m_model == model ? std::span<const Render::TextureSlot>(m_meshTextures)
+    return m_model == model ? std::span<const Render::TextureSlot>(m_loaded.meshTextures)
                             : std::span<const Render::TextureSlot>{};
+}
+
+std::span<const Models::MeshTraits> SingleModelLibrary::MeshTraitsOf(std::uint16_t model) const
+{
+    return m_model == model ? std::span<const Models::MeshTraits>(m_loaded.meshes)
+                            : std::span<const Models::MeshTraits>{};
 }
 
 ModelObject LoginLogo()

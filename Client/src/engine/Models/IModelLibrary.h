@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Data/Models/Model.h"
+#include "Models/MeshTraits.h"
 #include "Render/ITextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -25,6 +26,12 @@ public:
     [[nodiscard]] virtual const Skeleton* SkeletonOf(std::uint16_t model) const = 0;
     // One per mesh, in order; empty if its textures were not loaded.
     [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const = 0;
+    // One per mesh, in order, as the load read them. A library that keeps none draws every mesh plainly.
+    [[nodiscard]] virtual std::span<const MeshTraits> MeshTraitsOf(std::uint16_t model) const
+    {
+        (void)model;
+        return {};
+    }
     // A raw32 lookup in the same table: an explicit absence, never truncated to the models' slot16.
     [[nodiscard]] virtual std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const
     {

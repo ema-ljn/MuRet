@@ -9,6 +9,7 @@
 #include "Render/ITextureStore.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
@@ -107,9 +108,7 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
     Release();
     m_startupTexture = startupTexture;
     m_startupStore = startupTexture ? &textures : nullptr;
-    m_models.clear();
-    m_skeletons.clear();
-    m_meshTextures.clear();
+    m_models.Clear();
     // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
     m_textures.reset();
     m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SelectionModelsFirstSlot)
@@ -137,10 +136,9 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
                 posed.actions[action].speed = NewFaceActionSpeed;
             }
         }
-        m_meshTextures[file.model] = m_slots->Assign(model.Value(), LogoFolder,
-                                                     file.model == SelectionLogoModel ? LogoSampling : NewFaceSampling);
-        m_models.emplace(file.model, std::move(model).Value());
-        m_skeletons.emplace(file.model, std::move(posed));
+        auto meshTextures = m_slots->Assign(model.Value(), LogoFolder,
+                                            file.model == SelectionLogoModel ? LogoSampling : NewFaceSampling);
+        m_models.Insert(file.model, std::move(model).Value(), std::move(posed)).meshTextures = std::move(meshTextures);
     }
     m_textures.emplace(textures, m_slots->ToLoad());
     return m_textures->Load(dataRoot);
@@ -164,20 +162,22 @@ void SelectionModels::Release()
 
 const Data::Models::Model* SelectionModels::Find(std::uint16_t model) const
 {
-    const auto found = m_models.find(model);
-    return found == m_models.end() ? nullptr : &found->second;
+    return m_models.ModelOf(model);
 }
 
 const Models::Skeleton* SelectionModels::SkeletonOf(std::uint16_t model) const
 {
-    const auto found = m_skeletons.find(model);
-    return found == m_skeletons.end() ? nullptr : &found->second;
+    return m_models.SkeletonOf(model);
 }
 
 std::span<const Render::TextureSlot> SelectionModels::MeshTextures(std::uint16_t model) const
 {
-    const auto found = m_meshTextures.find(model);
-    return found == m_meshTextures.end() ? std::span<const Render::TextureSlot>{} : found->second;
+    return m_models.MeshTextures(model);
+}
+
+std::span<const Models::MeshTraits> SelectionModels::MeshTraitsOf(std::uint16_t model) const
+{
+    return m_models.MeshTraitsOf(model);
 }
 
 std::optional<Models::TextureMetadata> SelectionModels::TextureMetadataOf(std::uint32_t selector) const

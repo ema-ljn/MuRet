@@ -2,6 +2,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -279,6 +280,10 @@ public:
     {
         return Of(model).MeshTextures(model);
     }
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override
+    {
+        return Of(model).MeshTraitsOf(model);
+    }
 
 private:
     [[nodiscard]] const Models::IModelLibrary& Of(std::uint16_t model) const
@@ -312,6 +317,10 @@ public:
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override
     {
         return Of(model).MeshTextures(model);
+    }
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override
+    {
+        return Of(model).MeshTraitsOf(model);
     }
 
 private:

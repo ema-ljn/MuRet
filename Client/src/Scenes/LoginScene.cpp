@@ -9,7 +9,7 @@
 #include "Assets/FaunaModels.h"
 
 #include "App/LoopTiming.h"
-#include "Audio/Music.h"
+#include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 #include "App/ServerAddress.h"
 #include "Session/ModuleStates.h"

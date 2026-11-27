@@ -52,8 +52,8 @@ game/Assets/ModelIds.h	23	game/Assets	game/Assets	high	the model slots the fauna
 game/Assets/PlayerSkeleton.cpp	37	game/Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 game/Assets/PlayerSkeleton.h	14	game/Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 engine/Audio/ISoundCatalog.h	19	engine/Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
-engine/Audio/Music.cpp	185	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
-engine/Audio/Music.h	41	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
+engine/Audio/MusicPlayer.cpp	185	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
+engine/Audio/MusicPlayer.h	41	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/Playback.h	28	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/SoundId.h	11	engine/Audio	engine/Audio	high	the id of the sound catalog a sound request names, its own type (AR4.1)
 game/Sound/SoundCatalog.cpp	657	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Audio/Music.h"
+#include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 #include "Audio/SoundId.h"
 #include "Kernel/ISoundRequests.h"

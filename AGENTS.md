@@ -70,6 +70,7 @@ seguí el estilo del código que está alrededor.
 | the client refactor, epic by epic (AR0 to AR7) | [plan](docs/superpowers/plans/2026-11-20-client-architecture-refactor.md) |
 | where a client file goes and how a module is built | [`muret-module`](.claude/skills/muret-module/SKILL.md) skill |
 | moving client files to their module, and the comments PR after a move | [`muret-move`](.claude/skills/muret-move/SKILL.md) skill |
+| a packet the client reads: its layout, its handler, its row in the opcode table and its tests | [`muret-packet`](.claude/skills/muret-packet/SKILL.md) skill |
 
 El contrato con el GameServer 1.02 es el wire (puerto 55960, C1/C2, 22 heads) y el SQL que
 describe el research. Toda diferencia con el original se documenta en un ADR y se cubre con un
@@ -87,8 +88,9 @@ The client is moving to modules ([ADR 0023](docs/adr/0023-client-module-architec
    its signature), and the same PR adds its row to the map. The move of its module carries it later.
 3. Includes respect the layers. In CI, `check_layers.py` rejects a new include that goes up a layer
    or reaches a module of the same layer that `may_use` does not name, and a file without a module.
-4. A new packet, from AR2 on: its layout in `Protocol/<Module>/`, its handler in `<Module>/In/` and
-   its row in the opcode table, in place of its `Unported{va}` row.
+4. A new packet, from AR2 on: its layout in `Protocol/<Module>/`, its handler and its row in the opcode table, in place
+   of its `Unported{}` row. The handler goes in `<Module>/In/` once its module's AR4 design makes that folder, and is
+   today's applier until then (the [`muret-packet`](.claude/skills/muret-packet/SKILL.md) skill).
 5. A module that is being moved gets no port work that day; its design and port work on it do not
    run at the same time.
 6. A sine, a cosine or any function the C library rounds comes from `Math/RoundedMath.h`,

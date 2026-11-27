@@ -15,13 +15,13 @@ namespace Client::Actors::Drawing
 {
 namespace
 {
-// El giro del hueso: sus tres primeras columnas (la cuarta es la traslación, HalfLifeMath.h).
+// The bone's turn: its first three columns (the fourth is the translation, HalfLifeMath.h).
 glm::mat3 TurnOf(const Math::BoneTransform& bone)
 {
     return glm::mat3{bone[0], bone[1], bone[2]};
 }
 
-// El origen del hueso en el mundo: 0x4ec110 con el punto local en 0.
+// The bone's origin in the world: 0x4ec110 with the local point at 0.
 glm::vec3 OriginOf(const Math::BoneTransform& bone, float scale, const glm::vec3& position)
 {
     return position + scale * bone[3];

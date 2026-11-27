@@ -36,7 +36,7 @@ constexpr float Scroll = 0.0005f;
 constexpr float PulseFrequency = 0.001f;
 constexpr Render::TextureSlot ArmorChrome{0x5c1};
 using Math::F32;
-// Los parámetros de cada pase no son stores. Sólo Store publica los MOV/FSTP de609640.
+// Each pass's parameters are not stores. Only Store publishes the MOV and FSTP of 0x609640.
 class ItemRenderer
 {
 public:
@@ -110,7 +110,7 @@ public:
     {
         if (!m_context.random)
             return Core::Unexpected(std::string("609640: falta el CRT global de los UV"));
-        // El primer rand es V: los pushes del original van de derecha a izquierda.
+        // The first rand is V: the original's pushes go from right to left.
         const auto v = F32(static_cast<double>(m_context.random->Next() % 10) * 0.1f);
         const auto u = F32(static_cast<double>(m_context.random->Next() % 10) * 0.1f);
         return Layer(mesh, Textured, mesh, object.state.light, {u, v}, {}, 1.0f);
@@ -214,7 +214,7 @@ Result Sword(ItemRenderer& draw)
             return result;
         if (auto result = draw.Layer(1, Textured, 1); !result.HasValue())
             return result;
-        // glColor3f no escribe model+48; RenderMesh conserva su autoridad de color.
+        // glColor3f does not write model+0x48; RenderMesh keeps its authority over the color.
         return draw.Layer(3, 0x44, 3, draw.object.state.light, {draw.Product(Slow), draw.Product(Scroll)});
     }
     if (auto result = draw.Layer(0, Textured, 0, draw.object.state.light, glm::vec2(draw.Product(Scroll)), {}, 1.0f);
@@ -463,7 +463,7 @@ Result TranslucentSword(ItemRenderer& draw)
 
 Result EffectChrome(ItemRenderer& draw, std::uint32_t flags)
 {
-    // 60a98d: un modelo cargado con cero mallas recorre el default, sin los stores RGB.
+    // 0x60a98d: a model loaded with zero meshes goes through the default, without the RGB stores.
     if (!draw.ModelHasMeshes())
         return draw.Pass(Body, flags);
     if (auto result = draw.Pass(Body, Textured); !result.HasValue())

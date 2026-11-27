@@ -33,7 +33,7 @@ namespace
 using Crt::CrtRandom;
 using Result = Core::Expected<void, std::string>;
 
-// La luz de 0x4ee770: 1 al empezar (0x4ee7b3..0x4ee7c1), 0,2f con el 0x10c y el 0x131 (0x3e4ccccd) y 0,08f con el
+// The light of 0x4ee770: 1 at the start (0x4ee7b3..0x4ee7c1), 0.2f with 0x10c and 0x131 (0x3e4ccccd) and 0.08f with
 // 0x5ac (0x3da3d70a, 0x4eeec8).
 constexpr float FullLight = 1.0f;
 constexpr float DimLight = std::bit_cast<float>(0x3e4ccccdu);
@@ -46,20 +46,20 @@ constexpr std::int16_t SiegeShard = 0x131, SiegeDust = 0x132, SiegeSpark = 0x133
 constexpr std::int16_t SkinShell = World::SkinShellEffect, GolemStones = 0x13c;
 constexpr std::int32_t RavenSprite = 0x5ac, FadingParticle = 0x607;
 
-// rand() & máscara con el ajuste del signo (AND 0x80000001 o 0x80000007): con rand() no negativo, el resto.
+// rand() & mask with the sign fix (AND 0x80000001 or 0x80000007): with a non-negative rand(), the remainder.
 std::int32_t Masked(CrtRandom& random, std::int32_t modulus)
 {
     return random.Next() % modulus;
 }
 
-// 0x518cf0(tipo, punto, ángulos, luz, subtipo, 0, −1, 0, 0, 0, 0) de las piedras 0x10a y 0x10b (0x51bafb).
+// 0x518cf0(type, point, angles, light, subtype, 0, −1, 0, 0, 0, 0) of the stones 0x10a and 0x10b (0x51bafb).
 void Debris(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
             const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     static_cast<void>(effects.CreateDebris(type, position, angles, light, random, subtype));
 }
 
-// Lo mismo con los fragmentos del asedio y las piedras del 0x13c (0x51d2a9, 0x51d5b8).
+// The same with the siege fragments and the stones of 0x13c (0x51d2a9, 0x51d5b8).
 void Siege(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
            const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
@@ -67,7 +67,7 @@ void Siege(World::ModelEffects& effects, std::int16_t type, const glm::vec3& pos
         {.type = type, .position = position, .angles = angles, .light = light, .subtype = subtype}, effects, random));
 }
 
-// Lo mismo con las piedras 0x10c y 0x10d de las puertas (0x51b99f).
+// The same with the gates' stones 0x10c and 0x10d (0x51b99f).
 Result GateDebris(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                   const glm::vec3& light, std::int32_t subtype, CrtRandom& random, std::uint32_t address)
 {
@@ -79,7 +79,7 @@ Result GateDebris(World::ModelEffects& effects, std::int16_t type, const glm::ve
     return {};
 }
 
-// 0x4ee835..0x4ee9d3: el 0x10a.
+// 0x4ee835..0x4ee9d3: 0x10a.
 void ScatterStones(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                    const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
@@ -101,7 +101,7 @@ void ScatterStones(World::ModelEffects& effects, const glm::vec3& position, cons
         Debris(effects, StoneShard, position, angles, light, GreenShard, random);
         return;
     case Mixed:
-        // 0x4ee981..0x4ee9cb: los argumentos ya en la pila y el rand() & 1 al final, sumado al 0x10a.
+        // 0x4ee981..0x4ee9cb: the arguments already on the stack and the rand() & 1 last, added to 0x10a.
         Debris(effects, static_cast<std::int16_t>(StoneEffect + Masked(random, ShardChance)), position, angles, light,
                MixedSubtype, random);
         return;
@@ -110,7 +110,7 @@ void ScatterStones(World::ModelEffects& effects, const glm::vec3& position, cons
     }
 }
 
-// 0x4ee9d8..0x4eeb4e: el 0x10c, con la luz en 0,2f.
+// 0x4ee9d8..0x4eeb4e: 0x10c, with the light at 0.2f.
 Result ScatterGateStones(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                          glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
@@ -145,7 +145,7 @@ Result ScatterGateStones(World::ModelEffects& effects, const glm::vec3& position
     return {};
 }
 
-// 0x4eeb53..0x4eec6b: el 0x12d, el 0x12e y el 0x12f; el segundo rand() & 1 elige entre el tipo base y el siguiente.
+// 0x4eeb53..0x4eec6b: 0x12d, 0x12e and 0x12f; the second rand() & 1 chooses between the base type and the next.
 void ScatterShower(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                    const glm::vec3& light, CrtRandom& random)
 {
@@ -158,7 +158,7 @@ void ScatterShower(World::ModelEffects& effects, std::int16_t type, const glm::v
           type == ShowerEffect ? ShowerSubtype : 0, random);
 }
 
-// 0x4eec70..0x4eed6a: el 0x131, con la luz en 0,2f; cada alta antes del rand() siguiente.
+// 0x4eec70..0x4eed6a: 0x131, with the light at 0.2f; each addition before the next rand().
 void ScatterSiegeShards(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                         glm::vec3& light, CrtRandom& random)
 {
@@ -172,9 +172,9 @@ void ScatterSiegeShards(World::ModelEffects& effects, const glm::vec3& position,
         Siege(effects, SiegeSpark, position, angles, light, 0, random);
 }
 
-// 0x4eed94..0x4eee66, el 0x13c: un rand() % 45 por esquina; con 0 y menos de 20 ya contados ([ebp+8], que no vuelve a
-// 0 entre polígonos), el /0 crea el 0x13c/0 y el /1 el 0x12d/2 y el 0x12e/2, sin dueño; con cualquier subtipo, uno más
-// en la cuenta (aunque la tabla esté llena).
+// 0x4eed94..0x4eee66, 0x13c: one rand() % 45 per corner; with 0 and fewer than 20 already counted ([ebp+8], which does
+// not go back to 0 between polygons), /0 creates the 0x13c/0 and /1 the 0x12d/2 and the 0x12e/2, without an owner; with
+// any subtype, one more in the count (even if the table is full).
 void ScatterGolemStones(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                         const glm::vec3& light, std::int32_t subtype, int& counted, CrtRandom& random)
 {
@@ -194,8 +194,8 @@ void ScatterGolemStones(World::ModelEffects& effects, const glm::vec3& position,
     ++counted;
 }
 
-// 0x4eee6b..0x4eeec1: el 0x137, rand() & 7 y con 0 0x518cf0(0x137, punto, ángulos, luz, subtipo, 0, −1, 0, 0, 0, 0):
-// la cáscara de World::CreateSkinShell (con la tabla llena, nada y sin sus rand()).
+// 0x4eee6b..0x4eeec1: 0x137, rand() & 7 and with 0, 0x518cf0(0x137, point, angles, light, subtype, 0, −1, 0, 0, 0, 0):
+// the shell of World::CreateSkinShell (with the table full, nothing, and without its rand() calls).
 void ScatterSkinShells(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                        const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
@@ -207,7 +207,7 @@ void ScatterSkinShells(World::ModelEffects& effects, const glm::vec3& position, 
         random));
 }
 
-// 0x4eef19..0x4eefca: el 0x5ac/1 en los triángulos de índice múltiplo de 22.
+// 0x4eef19..0x4eefca: 0x5ac/1 on the triangles whose index is a multiple of 22.
 Result PullTheRavenJoints(const glm::vec3& position, std::int32_t triangle, glm::vec3& angles,
                           const VertexEffectCall& call, const VertexEffectTables& tables, CrtRandom& random)
 {
@@ -216,8 +216,8 @@ Result PullTheRavenJoints(const glm::vec3& position, std::int32_t triangle, glm:
     constexpr float RavenJointWidth = 20.0f; // 0x41a00000
     if (triangle % Every != 0)
         return {};
-    // 0x4eef4a..0x4eefb2: la y en 0, la x en −(rand() % 90) (FILD, FCHS) y la z en (rand() % 120 − 60) más la z del
-    // cuarto argumento (FILD, FADD).
+    // 0x4eef4a..0x4eefb2: y at 0, x at −(rand() % 90) (FILD, FCHS) and z at (rand() % 120 − 60) plus the fourth
+    // argument's z (FILD, FADD).
     angles.y = 0.0f;
     angles.x = static_cast<float>(-static_cast<double>(random.Next() % Pitch));
     const std::int32_t turn = (random.Next() % Turn) - TurnCenter;
@@ -245,7 +245,7 @@ Result PullTheRavenJoints(const glm::vec3& position, std::int32_t triangle, glm:
     return {};
 }
 
-// Una esquina: el caso del tipo (0x4ee801..0x4ef033).
+// One corner: the type's case (0x4ee801..0x4ef033).
 Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angles, glm::vec3& light, int& counted,
               float modelScale, const VertexEffectCall& call, const VertexEffectTables& tables, CrtRandom& random)
 {
@@ -294,7 +294,7 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
     }
     case RavenSprite:
     {
-        // 0x4eeec6..0x4eef14: la luz en 0,08f; el /0, 0x5491e0(0x5ac, punto, +0x68 del modelo, luz, 0, 0, 0).
+        // 0x4eeec6..0x4eef14: the light at 0.08f; /0, 0x5491e0(0x5ac, point, +0x68 of the model, light, 0, 0, 0).
         constexpr std::int32_t Sprite = 0, Joints = 1;
         light = glm::vec3(GlowLight);
         if (call.subtype == Sprite)
@@ -306,7 +306,7 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
         }
         if (call.subtype == Joints)
         {
-            // 0x4eef2d..0x4eef3b: la luz en (1; 0,8f; 0,2f) antes del índice del triángulo.
+            // 0x4eef2d..0x4eef3b: the light at (1, 0.8f, 0.2f) before the triangle's index.
             light = {FullLight, std::bit_cast<float>(0x3f4ccccdu), DimLight};
             return PullTheRavenJoints(position, triangle, angles, call, tables, random);
         }
@@ -314,7 +314,8 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
     }
     case FadingParticle:
     {
-        // 0x4eefd6..0x4ef02e: la luz en 1, rand() % 30 y con 0 0x53fe70(0x607, punto, ángulos, luz, 2, 1,0f, 0).
+        // 0x4eefd6..0x4ef02e: the light at 1, rand() % 30 and with 0, 0x53fe70(0x607, point, angles, light, 2, 1.0f,
+        // 0).
         constexpr int Chance = 30;
         constexpr std::int32_t FadingSubtype = 2;
         light = glm::vec3(FullLight);
@@ -340,7 +341,7 @@ Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model&
                                                       const VertexEffectCall& call, const VertexEffectTables& tables,
                                                       Crt::CrtRandom& random)
 {
-    // 0x4ee776..0x4ee7a4: la malla entre 0 y +0x24 (MOVSX) y con +0xa (los triángulos) por encima de 0.
+    // 0x4ee776..0x4ee7a4: the mesh between 0 and +0x24 (MOVSX) and with +0xa (the triangles) above 0.
     if (call.mesh < 0 || static_cast<std::size_t>(call.mesh) >= model.meshes.size())
         return {};
     const auto index = static_cast<std::size_t>(call.mesh);
@@ -349,13 +350,13 @@ Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model&
         return {};
     if (index >= meshes.size())
         return Core::Unexpected(std::format("0x4ee770: falta el scratch posado de la malla {}", call.mesh));
-    // 0x4ee7aa..0x4ee7c1: los ángulos en 0 y la luz en 1, una vez por llamada.
+    // 0x4ee7aa..0x4ee7c1: the angles at 0 and the light at 1, once per call.
     glm::vec3 angles{};
     glm::vec3 light(FullLight);
     int counted = 0;
     for (std::size_t triangle = 0; triangle < triangles.size(); ++triangle)
     {
-        // MOVSX desde el byte de la cuenta: 0x80..0xff no recorre esquinas.
+        // MOVSX from the count's byte: 0x80..0xff walks no corners.
         const auto corners = static_cast<std::int8_t>(triangles[triangle].polygon);
         if (corners <= 0)
             continue;

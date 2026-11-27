@@ -66,7 +66,7 @@ protected:
     Client::Crt::CrtRandom m_random{0x12345678u};
 };
 
-// 4fd138..4fd13f: el194 que no está en acción3 salta a los helpers, sin probar el arma.
+// 0x4fd138..0x4fd13f: a 0x194 that is not in action 3 jumps to the helpers, without trying the weapon.
 TEST_F(WeaponTrailTest, Type194RejectsActionFourBeforeTheGenericSwordFallback)
 {
     m_actor.type = 0x194;
@@ -79,13 +79,13 @@ TEST_F(WeaponTrailTest, Type194RejectsActionFourBeforeTheGenericSwordFallback)
     EXPECT_FALSE(m_world->DrawTail().ribbons[0].alive);
 }
 
-// 4fd3a4..4fd47a: esta espada reutiliza la matriz propia y la colocación compartida, una vez.
+// 0x4fd3a4..0x4fd47a: this sword reuses the own matrix and the shared placement, once.
 TEST_F(WeaponTrailTest, TheSingleSampleUsesTheRetainedOwnBoneAndSharedPlacement)
 {
     m_actor.hands[0].model = 0x215;
     m_actor.bodyPose.assign(1, BoneTransform(1.0f));
     m_actor.bodyPose[0][3] = {3, 4, 5};
-    m_actor.position = {900, 800, 700}; // No se vuelve a publicar en el modelo.
+    m_actor.position = {900, 800, 700}; // It is not published again in the model.
 
     const auto emitted = Emit();
 
@@ -98,11 +98,11 @@ TEST_F(WeaponTrailTest, TheSingleSampleUsesTheRetainedOwnBoneAndSharedPlacement)
     EXPECT_EQ(ribbon.second[0], (glm::vec3{106, -32, 310}));
 }
 
-// 4fcf3e..4fcf4a: 25/26 seleccionan nivel/modelo y hueso de la izquierda para ambos extremos.
+// 0x4fcf3e..0x4fcf4a: 0x25 and 0x26 choose the left hand's level, model and bone for both ends.
 TEST_F(WeaponTrailTest, TheLeftSwingUsesTheLeftHandForBothEndpoints)
 {
     m_actor.animation.action = 0x25;
-    m_actor.hands[0].model = 0x21f; // El rojo de la derecha no participa.
+    m_actor.hands[0].model = 0x21f; // The right hand's red does not take part.
     m_actor.hands[1].model = 0x215;
     m_actor.hands[1].level = 0;
     m_actor.bodyPose.assign(2, BoneTransform(1.0f));
@@ -119,7 +119,7 @@ TEST_F(WeaponTrailTest, TheLeftSwingUsesTheLeftHandForBothEndpoints)
     EXPECT_EQ(ribbon.light, (glm::vec3{0.8f, 0.8f, 0.8f}));
 }
 
-// 4fd487 consulta la acción publicada, aunque el cuerpo haya cambiado ya la del actor.
+// 0x4fd487 looks up the published action, even if the body already changed the actor's.
 TEST_F(WeaponTrailTest, TenSamplesUseThePublishedModelActionAndRetainTheFinalPose)
 {
     m_skeleton.actions[0x23].speed = 1.0f;
@@ -161,7 +161,7 @@ TEST_F(WeaponTrailTest, AFullPoolStillAppendsToTheExistingOwnerWithoutRestarting
     EXPECT_EQ(retained.first[0], (glm::vec3{100, 160, 300}));
     EXPECT_EQ(m_random.State(), 0x12345678u);
 }
-// 4fd580: cinco altas impares antes de sus cintas, con cuatro rand por lugar concedido.
+// 0x4fd580: five odd additions before their ribbons, with four rand per granted slot.
 TEST_F(WeaponTrailTest, Type194CompletesTenSamplesWithNormalFullAndPartialParticlePools)
 {
     for (const std::size_t freeSlots : {std::size_t{3000}, std::size_t{0}, std::size_t{2}})
@@ -216,7 +216,7 @@ TEST_F(WeaponTrailTest, Type194CompletesTenSamplesWithNormalFullAndPartialPartic
     }
 }
 
-// Selección literal 4fcf87..4fd22b: fronteras inclusivas y prioridad de acción sobre familia.
+// Literal selection 0x4fcf87..0x4fd22b: inclusive boundaries and the action's priority over the family.
 TEST_F(WeaponTrailTest, ThePlayerSelectorsCoverTheirActionAndWeaponBoundaries)
 {
     struct Case
@@ -256,7 +256,7 @@ TEST_F(WeaponTrailTest, ThePlayerSelectorsCoverTheirActionAndWeaponBoundaries)
     }
 }
 
-// 4fd2e4..4fd3a4: niveles, nivel99 y arma roja preceden al color blanco por tipo.
+// 0x4fd2e4..0x4fd3a4: levels, level 99 and the red weapon come before the white color by type.
 TEST_F(WeaponTrailTest, TheColorBranchesRetainTheirNativePriority)
 {
     struct Case
@@ -284,7 +284,7 @@ TEST_F(WeaponTrailTest, TheColorBranchesRetainTheirNativePriority)
     EXPECT_EQ(m_world->DrawTail().ribbons[0].light, (glm::vec3{1, 0.2f, 0.2f}));
 }
 
-// 4fd10b..4fd22b: rechazos especiales no recaen en espada, subtype9 retiene arma/nivel.
+// 0x4fd10b..0x4fd22b: special rejections do not fall back to a sword, subtype 9 keeps the weapon and level.
 TEST_F(WeaponTrailTest, TheMonsterSelectorsRespectTheirPrecedenceAndRetainedEquipment)
 {
     struct Case
@@ -309,7 +309,7 @@ TEST_F(WeaponTrailTest, TheMonsterSelectorsRespectTheirPrecedenceAndRetainedEqui
                            Case{0x197, 3, 0, 0, 0x21f, 0, 10, purple},    Case{0x197, 4, 0, 9, 0x21f, 2, 10, red},
                            Case{0x160, 3, 0, 0, 0x212, 0, 1, orange},     Case{0x160, 3, 0, 0, 0x411, 0, 1, orange},
                            Case{0x160, 4, 0, 0, 0x412, 0, 0, {}}};
-    // 194: la tabla de partículas llena omite sus altas impares y conserva las diez cintas.
+    // 0x194: the full particle table skips its odd additions and keeps the ten ribbons.
     for (auto& particle : m_world->Particles().All())
         particle.alive = true;
     for (const auto& probe : cases)

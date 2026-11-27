@@ -27,14 +27,14 @@
 
 namespace Client::Actors::Drawing
 {
-// 69fd3c: FISTP qword con truncación; los callers conservan EAX, no una conversión int32 del host.
+// 0x69fd3c: FISTP qword with truncation; the callers keep EAX, not a host int32 conversion.
 std::int32_t ItemClockWord(float time)
 {
     constexpr double Limit = 0x1p63;
     constexpr double WordRange = 0x1p32;
     const double value = time;
     if (!std::isfinite(value) || value >= Limit || value < -Limit)
-        return 0; // El patrón inválido64 enmascarado tiene la palabra baja en cero.
+        return 0; // The masked invalid 64-bit pattern has its low word at zero.
     double low = std::fmod(std::trunc(value), WordRange);
     if (low < 0)
         low += WordRange;
@@ -98,13 +98,13 @@ Result SmallGlow(DrawnObject& object, float time, const ItemDrawContext& context
     const bool second = object.model == 0x2247;
     if (second)
     {
-        object.unlitMesh = std::int16_t{0}; // 60bf3e: model+88 antes de FSIN, object+70 y huesos/pool.
+        object.unlitMesh = std::int16_t{0}; // 0x60bf3e: model+0x88 before FSIN, object+0x70 and the bones and pool.
         Publish(object, context, {});
     }
     const auto wave = Wave(time, 0.002f, 0.35f, 0.65f);
     if (!wave.HasValue())
         return Core::Unexpected(wave.Error());
-    const float pulse = F32(wave.Value()); // 60be4f/60bf68: el store precede a los productos del color.
+    const float pulse = F32(wave.Value()); // 0x60be4f/0x60bf68: the store comes before the color's products.
     if (second)
     {
         const auto clockInteger = ItemClockWord(-time);
@@ -214,7 +214,7 @@ ItemShineClock ItemShineClockOf(Models::ShinePass pass, Core::Duration clock)
     shine.t = F32(static_cast<double>(shine.word % 10000) * 0.0001f);
     if (pass != Models::ShinePass::Chrome4 && pass != Models::ShinePass::Chrome5)
         return shine;
-    // CoreDuration es finito y acotado: ambos argumentos están dentro de |a|<2^63.
+    // CoreDuration is finite and bounded: both arguments are within |a| < 2^63.
     shine.chrome4Cosine = F32(*Math::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
     shine.chrome4Sine = F32(*Math::Detail::SineProductPC53(static_cast<double>(time) * 0.002f, 1));
     return shine;
@@ -247,17 +247,18 @@ glm::vec2 ItemShineTexCoords(Models::ShinePass pass, const glm::vec3& normal, co
         const float c = clock.chrome4Cosine;
         const float sine = clock.chrome4Sine;
         const double sum = static_cast<double>(c) * nx + static_cast<double>(sine) * ny + nz;
-        const float u = F32(sum); // 4ed1fb: spill que el último FADD vuelve a leer.
+        const float u = F32(sum); // 0x4ed1fb: a spill the last FADD reads again.
         return {F32(static_cast<double>(sine) * 3 + ny * 0.5f + u),
                 F32((1 - sum) - (nz * 0.5f + static_cast<double>(t) * 3))};
     }
     case ShinePass::Chrome5:
     {
-        // 0x4ed25e..0x4ed2b2: la v resta nz · 2,5f (0x6b89a8) y t; la u suma s · 5f (0x6b87f8) y ny · 3f al spill.
+        // 0x4ed25e..0x4ed2b2: v subtracts nz · 2.5f (0x6b89a8) and t; u adds s · 5f (0x6b87f8) and ny · 3f to the
+        // spill.
         const float c = clock.chrome4Cosine;
         const float sine = clock.chrome4Sine;
         const double sum = static_cast<double>(c) * nx + static_cast<double>(sine) * ny + nz;
-        const float u = F32(sum); // 4ed26e: spill que el último FADD vuelve a leer.
+        const float u = F32(sum); // 0x4ed26e: a spill the last FADD reads again.
         return {F32(static_cast<double>(sine) * 5 + ny * 3 + u), F32((1 - sum) - (nz * 2.5f + static_cast<double>(t)))};
     }
     }

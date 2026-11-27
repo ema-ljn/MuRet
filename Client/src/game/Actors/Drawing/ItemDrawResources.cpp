@@ -36,7 +36,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
             return Core::Unexpected(std::string("0x4ec110: el hueso del ítem excede la pose compartida"));
         return Math::OriginalVectorTransform({}, Math::OriginalMatrixOf(bones[bone]));
     };
-    // privateBoneOrigin sigue ausente: object+120 no está representado por el scratch global.
+    // privateBoneOrigin stays absent: object+0x120 is not represented by the global scratch.
     item.special = &special;
     item.glowPulse = resources.itemRender.glowPulse;
     item.selections = &resources.itemRender.selections;
@@ -48,8 +48,8 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     item.createJoint = [joints = resources.joints, random = &resources.random](
                            const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
     {
-        // Productores de Helper07, dueño opaco (FloorItemState del piso o ActorState de lo que cuelga): nunca
-        // interpretarlo como FaunaObject.
+        // Helper07's producers, with an opaque owner (the floor's FloorItemState or the ActorState of what hangs):
+        // never read it as a FaunaObject.
         if (!((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14)))
             return Core::Unexpected(std::string("0x530860: creador del joint de ítem fuera del contrato de dueño"));
         const auto created = Scenes::CreateFaunaJoint(joints, request, *random);

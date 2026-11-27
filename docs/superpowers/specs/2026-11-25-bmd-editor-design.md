@@ -6,6 +6,10 @@
 > also has a CLI usable from a SKILL.md"; and, on the look, "give it a nice format, surprise me". He picked Textual
 > for the console UI, and a separate working copy for the edited files. Then: "it has to be AI friendly: its CLI
 > optimized for AI use, together with SKILL.md files for its use".
+>
+> **Renamed `mutools` on 2026-11-27.** Emanuel: "rename mubmd to mutools", together with a better design and an
+> editor that changes models, adds new ones and animates them. The folder is `Client/tools/mutools`, the package and
+> the command `mutools`; the finished stages' plans keep the old name.
 
 ## What and why
 
@@ -22,7 +26,7 @@ can look inside one, change a text or an item, and get a file the client reads, 
 - **Non-goal:** a 3D modeling tool. Geometry and animation are editable through JSON, not by hand in the UI.
 - **Non-goal:** importing from or exporting to Blender, glTF or OBJ. It can be a later stage.
 - **Non-goal:** touching the client (`Client/src`), its build or its tests. The tool stands alone under
-  `Client/tools/bmd/`.
+  `Client/tools/mutools/`.
 - **It would be a failure:** a file read and written without changes that is not byte-identical to the original; an
   edited file that the client reads differently from what the tool showed; or silently changing the reference data in
   `Client/assets/Data`.
@@ -78,10 +82,10 @@ For the interfaces, compared by popularity and fit:
 ### Where it lives
 
 ```text
-Client/tools/bmd/
-  pyproject.toml            package `mubmd`, console script `mubmd`, pinned dependencies, ruff, mypy, pytest config
+Client/tools/mutools/
+  pyproject.toml            package `mutools`, console script `mutools`, pinned dependencies, ruff, mypy, pytest config
   README.md                 what it does, install, the commands, the JSON format
-  src/mubmd/
+  src/mutools/
     core/                   no third-party import
       domain/               the documents: frozen dataclasses, one module per kind
       formats/              codecs: bytes <-> document, one module per format; ciphers and checksum
@@ -177,7 +181,7 @@ is decrypted or encrypted.
 fail with an error that names the way out. Edits happen in a working copy, a full `Data` folder that the client can run
 (`Main --data <copy>`, or the lab's `cliente-lab/Data`):
 
-- `mubmd workspace init <dest>` copies the reference folder (about 370 MB) to `<dest>` and checks it against
+- `mutools workspace init <dest>` copies the reference folder (about 370 MB) to `<dest>` and checks it against
   `Data.sha256`; any existing `Data` folder works as a working copy too.
 - Every command reads and writes the path it is given, with no overlay and no hidden state: two `set` calls on the
   same file build on each other.
@@ -199,7 +203,7 @@ passes some texts to `sprintf`.
 
 ### The JSON format
 
-`mubmd dump` writes, and `mubmd build` reads, one JSON document per file. It is the document's own view, the same one
+`mutools dump` writes, and `mutools build` reads, one JSON document per file. It is the document's own view, the same one
 `get` shows, so a JSON Pointer means the same thing in `get`, `set`, `apply` and the dumped file (`/texts/500` is record
 500 in all of them):
 
@@ -231,21 +235,21 @@ follows the core and recommended levels of the vendored `ai-native-cli` skill (s
 [AI friendliness](#ai-friendliness)), adapted where noted.
 
 ```text
-mubmd                                       the self-description below
-mubmd formats                               the catalog: every format, its files, known by name or by content
-mubmd schema <format>                       the fields of a format: JSON pointer, offset, type, limits, research reference
-mubmd workspace init <dest>                 copy the reference Data folder to a working copy and check it
-mubmd info <file>                           format, cipher, a table's records or a model's parts, findings count
-mubmd find <file> <query>                   records whose text or name matches; --field, --regex
-mubmd get <file> <pointer>                  one value or subtree: /texts/500, /records/12/name, /meshes/0/texture_name
-mubmd set <file> <pointer> <value>          one edit, saved as in Saving
-mubmd apply <file> <patch.json>             several edits at once, all or none (JSON Patch: test and replace)
-mubmd validate <file|folder>                findings
-mubmd diff <a> <b>                          field by field, between two files or a file and a JSON
-mubmd dump <file> --output <out.json>       the whole document as JSON, to a file
-mubmd build <in.json> --output <file>       the reverse: a table to its own name, a model to any .bmd name
-mubmd roundtrip <folder>                    decode and encode every .bmd; reports any byte that differs
-mubmd tui [<folder|file>]                   the console UI
+mutools                                     the self-description below
+mutools formats                             the catalog: every format, its files, known by name or by content
+mutools schema <format>                     the fields of a format: JSON pointer, offset, type, limits, research reference
+mutools workspace init <dest>               copy the reference Data folder to a working copy and check it
+mutools info <file>                         format, cipher, a table's records or a model's parts, findings count
+mutools find <file> <query>                 records whose text or name matches; --field, --regex
+mutools get <file> <pointer>                one value or subtree: /texts/500, /records/12/name, /meshes/0/texture_name
+mutools set <file> <pointer> <value>        one edit, saved as in Saving
+mutools apply <file> <patch.json>           several edits at once, all or none (JSON Patch: test and replace)
+mutools validate <file|folder>              findings
+mutools diff <a> <b>                        field by field, between two files or a file and a JSON
+mutools dump <file> --output <out.json>     the whole document as JSON, to a file
+mutools build <in.json> --output <file>     the reverse: a table to its own name, a model to any .bmd name
+mutools roundtrip <folder>                  decode and encode every .bmd; reports any byte that differs
+mutools tui [<folder|file>]                 the console UI
 ```
 
 **Output.**
@@ -273,7 +277,7 @@ mubmd tui [<folder|file>]                   the console UI
 **Errors.**
 
 - Errors are one JSON object on stderr: `{"ok": false, "schema": 1, "error": {"code": "REFERENCE_READ_ONLY",
-  "message": "...", "suggestion": "mubmd workspace init ~/mu/Data", "input": {...}, "pointer": "/texts/500"}}`. The
+  "message": "...", "suggestion": "mutools workspace init ~/mu/Data", "input": {...}, "pointer": "/texts/500"}}`. The
   `suggestion` is a command the agent can run next whenever there is one, and `input` echoes what the command got.
 - The codes are a closed list, part of the contract, and never renamed within a version. Among them:
   `USAGE`, `FILE_NOT_FOUND`, `UNKNOWN_FORMAT`, `POINTER_NOT_FOUND`, `INVALID_VALUE`, `TEXT_TOO_LONG`,
@@ -314,11 +318,11 @@ mubmd tui [<folder|file>]                   the console UI
 
 **Self-description.**
 
-- `mubmd` with no arguments and `mubmd --help` return JSON: what the tool is, every command with its parameters
+- `mutools` with no arguments and `mutools --help` return JSON: what the tool is, every command with its parameters
   (name, type, required, default, choices), an example, its exit codes and its error codes. It is generated from the
   Typer app, so it cannot drift from the code. `--human` gives the classic help.
-- `mubmd --brief` returns one paragraph, the same one the skill opens with.
-- `mubmd schema` returns the formats' fields, so an agent learns a format without the research, and each command's
+- `mutools --brief` returns one paragraph, the same one the skill opens with.
+- `mutools schema` returns the formats' fields, so an agent learns a format without the research, and each command's
   entry in the help carries its output's JSON Schema.
 - No MCP server for now: the articles read for this design disagree on it, and a CLI with a skill costs an agent
   fewer tokens. The use cases are plain functions, so an MCP adapter can be added later without touching the core.
@@ -329,7 +333,7 @@ A Textual app with its own theme, **"Lorencia"**: near-black background, MU's ol
 red for errors and unsaved marks, parchment-colored text. A light variant exists for bright terminals.
 
 ```text
-╭─ ◆ mubmd ─ ~/mu/Data ─────────────────────────────────────── working copy · 1 unsaved ─╮
+╭─ ◆ mutools ─ ~/mu/Data ───────────────────────────────────── working copy · 1 unsaved ─╮
 │ ╭ Data ───────────────╮ ╭ Local/Text.bmd ─ text · XOR3 · 1645/2048 used ▰▰▰▰▰▰▰▱▱ ───╮ │
 │ │ ▾ Local             │ │  #     text                                         bytes  │ │
 │ │   ◆ Text.bmd     ●  │ │  100   Zen                                              3  │ │
@@ -358,14 +362,14 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
 
 ### The web viewer
 
-`mubmd web ~/mu/Data` serves one page from the same machine and opens it in the browser. It shows any model with its
+`mutools web ~/mu/Data` serves one page from the same machine and opens it in the browser. It shows any model with its
 textures, plays its actions, draws its skeleton and lists its parts, facts and findings. Emanuel chose it on
 2026-11-27 ("Web local con three.js") over the wireframe in braille characters that this design had as its surprise.
 Its plan, with every decision and what was measured on the real files, is
 [`2026-11-27-bmd-editor-web-viewer.md`](../plans/2026-11-27-bmd-editor-web-viewer.md).
 
 ```text
-┌ ◆ mubmd ─ ~/mu/Data ────────────────────────────────────────────────────────────────────────┐
+┌ ◆ mutools ─ ~/mu/Data ──────────────────────────────────────────────────────────────────────┐
 │ ┌ filter ───────────┐ ┌ Monster/Monster01.bmd ───────────────────────┐ ┌ parts ────────────┐ │
 │ │ ▸ Item (246)      │ │ ▶ ❙❙  key ───●────── 7 / 20   8 keys/s ▾     │ │ ▾ meshes (14)     │ │
 │ │ ▾ Monster (115)   │ │ ☐ skeleton  ☐ additive                       │ │   0 helmat_01.jpg │ │
@@ -405,9 +409,9 @@ Its plan, with every decision and what was measured on the real files, is
   0x5fcd20, computed in Python so that it is tested without a browser). The page is NiceGUI, and the model is a
   three.js `SkinnedMesh` built by one JavaScript file of ours. three.js comes inside NiceGUI's wheel: no third-party
   JavaScript enters the repo.
-- **The page's requests are private to the page**, outside the CLI contract. `mubmd web` itself is under it: one line
+- **The page's requests are private to the page**, outside the CLI contract. `mutools web` itself is under it: one line
   on stderr when it is ready, the usual JSON object when `Ctrl+C` stops it, `USAGE` without the `web` extra and
-  `IO_ERROR` for a port in use. NiceGUI is an optional extra, `mubmd[web]`, that the CLI and the console UI do not
+  `IO_ERROR` for a port in use. NiceGUI is an optional extra, `mutools[web]`, that the CLI and the console UI do not
   need.
 
 ### AI friendliness
@@ -418,7 +422,7 @@ Three parts: the CLI above, a skill that teaches it, and tests that keep both ho
 
 - Its description names when to use it (open, inspect, translate or edit a `.bmd`: `Text.bmd`, items, skills, gates,
   dialogs, quests, models), so it loads on those requests and not on C++ work in `Client/src/Data`.
-- Its body, short enough to read whole: the one-paragraph brief (the same as `mubmd --brief`); the workflow
+- Its body, short enough to read whole: the one-paragraph brief (the same as `mutools --brief`); the workflow
   (working copy, `find`, `get`, then `set` or `apply` once, then `validate`: a write is verified and returns its
   changes and warnings, so `--dry-run` is for showing a batch to someone before it is written; Emanuel, 2026-11-25);
   recipes for the common jobs (change a text, translate several texts with one `apply`, change an item's field,
@@ -458,10 +462,10 @@ ranked below the repo's rules):
 - The TUI with `run_test` and `Pilot` (open, edit, undo, save to a temporary folder) and SVG snapshots
   (`pytest-textual-snapshot`) of the main screens.
 - The web viewer's page and its requests through NiceGUI's test user, with no browser. Its JavaScript runs only in a
-  browser, so a few tests marked `browser` drive a headless Chromium with Playwright against a real `mubmd web`
+  browser, so a few tests marked `browser` drive a headless Chromium with Playwright against a real `mutools web`
   (`pytest -m browser`); `pytest` alone leaves them out.
 - `ruff check`, `ruff format --check` and `mypy --strict` over `src` and `tests`.
-- A workflow of its own, `.github/workflows/bmd-tool.yml`, on changes under `Client/tools/bmd/**`: Python 3.13,
+- A workflow of its own, `.github/workflows/bmd-tool.yml`, on changes under `Client/tools/mutools/**`: Python 3.13,
   `pip install -e ".[dev]"` with exact pins, then the checks above. A second job, in parallel, installs Chromium and
   runs the browser tests.
 
@@ -480,7 +484,7 @@ leaves its own checks green, and the workflow lands with the first code PR.
    [`2026-11-26-bmd-editor-tables.md`](../plans/2026-11-26-bmd-editor-tables.md).
 4. **Models:** the lossless model codec with K16, validation, the model view in the TUI. Its plan, with the decisions
    the 1,962 real files forced, is [`2026-11-27-bmd-editor-models.md`](../plans/2026-11-27-bmd-editor-models.md).
-5. **The web viewer of models:** `mubmd web`, a page served from the same machine that shows a model with its
+5. **The web viewer of models:** `mutools web`, a page served from the same machine that shows a model with its
    textures, actions and skeleton. It took the place of the wireframe preview. Its plan is
    [`2026-11-27-bmd-editor-web-viewer.md`](../plans/2026-11-27-bmd-editor-web-viewer.md).
 

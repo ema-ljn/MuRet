@@ -1,6 +1,6 @@
 ---
 name: python-design-patterns
-description: Use when designing or reviewing the structure of Python code in MuRet (the mubmd tool under Client/tools/bmd, the research scripts) - choosing layers, splitting a class or function that does too much, deciding whether to abstract or keep duplication, composition over inheritance. KISS, SRP, separation of concerns and the rule of three, ranked below CODING_RULES and the tool's spec.
+description: Use when designing or reviewing the structure of Python code in MuRet (mutools, under Client/tools/mutools, and the research scripts) - choosing layers, splitting a class or function that does too much, deciding whether to abstract or keep duplication, composition over inheritance. KISS, SRP, separation of concerns and the rule of three, ranked below CODING_RULES and the tool's spec.
 license: MIT
 metadata:
   upstream: https://github.com/wshobson/agents/tree/c96b5f6552dba32e4492307493ee613581430715/plugins/python-development/skills/python-design-patterns
@@ -25,9 +25,9 @@ file is MuRet's layer; the upstream skill is in [`references/upstream-skill.md`]
    [plan](../../../docs/superpowers/plans/2026-11-25-bmd-editor.md).
 4. This skill and, last, `references/`.
 
-## Which idea is which part of mubmd
+## Which idea is which part of mutools
 
-| The skill says | In mubmd |
+| The skill says | In mutools |
 | --- | --- |
 | Separate concerns into layers with one direction | `core/` (documents, formats, views, checks) imports only the standard library; `app/` holds the use cases; `adapters/` holds storage, the CLI and the TUI. `tests/test_layers.py` checks it. Hexagonal details are in the `clean-architecture` skill. |
 | Single responsibility, small functions | One module per format and per concern (`text_format.py`, `text_checks.py`); a use case orchestrates and does not decode bytes itself. |

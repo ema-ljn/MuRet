@@ -1,5 +1,9 @@
 # BMD editor Implementation Plan
 
+> **Renamed.** Since 2026-11-27 the tool is `mutools`, in `Client/tools/mutools`, with the package `mutools`. This
+> plan is the record of a finished stage and keeps the names it had: read `mubmd` as `mutools` and `Client/tools/bmd` as
+> `Client/tools/mutools`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

@@ -1,0 +1,64 @@
+import dataclasses
+from collections.abc import Sequence
+from pathlib import Path
+
+from mutools.app.documents import (
+    EditResult,
+    check_encoding,
+    encode_verified,
+    open_document,
+    parse_json,
+    parse_value,
+    refuse_reference,
+    save_view,
+    warnings_of,
+)
+from mutools.core.catalog import format_by_name, target_of
+from mutools.core.errors import ErrorCode, MutoolsError
+from mutools.core.patch import Change, PatchOp, apply_patch, diff_views
+from mutools.core.pointer import resolve
+from mutools.core.ports import FileStore
+
+
+def set_value(
+    store: FileStore, path: Path, pointer: str, raw: str, *, dry_run: bool, encoding: str | None = None
+) -> EditResult:
+    opened = open_document(store, path, encoding=encoding)
+    value = parse_value(raw, resolve(opened.view, pointer), pointer)
+    view = apply_patch(opened.view, (PatchOp("replace", pointer, value),))
+    return save_view(store, opened, view, dry_run=dry_run)
+
+
+def apply_operations(
+    store: FileStore, path: Path, ops: Sequence[PatchOp], *, dry_run: bool, encoding: str | None = None
+) -> EditResult:
+    opened = open_document(store, path, encoding=encoding)
+    return save_view(store, opened, apply_patch(opened.view, ops), dry_run=dry_run)
+
+
+def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> EditResult:
+    view = parse_json(store.read(source), str(source))
+    if not isinstance(view, dict):
+        raise MutoolsError(ErrorCode.INVALID_VALUE, f"{source} does not hold a JSON object")
+    format_name = view.get("format")
+    spec = format_by_name(format_name if isinstance(format_name, str) else "")
+    target = target_of(output.absolute(), spec)
+    encoding = view.get("encoding")
+    if isinstance(encoding, str):
+        target = dataclasses.replace(target, file=dataclasses.replace(target.file, encoding=check_encoding(encoding)))
+    refuse_reference(store, output)
+    document, data, written = encode_verified(target, view)
+    exists = store.exists(output)
+    expected = store.sha256(output) if exists else None
+    changes: tuple[Change, ...] = ()
+    original = None
+    if exists:
+        current = store.read(output)
+        if current == data:
+            return EditResult(output, changed=False, dry_run=dry_run, changes=(), warnings=())
+        original = spec.codec.decode(current, target.file)
+        changes = diff_views(spec.codec.to_view(original), written)
+    warnings = warnings_of(store, output, target, document, original, changes)
+    if not dry_run:
+        store.write(output, data, expected_sha256=expected)
+    return EditResult(output, changed=True, dry_run=dry_run, changes=changes, warnings=warnings)

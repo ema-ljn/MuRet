@@ -64,8 +64,8 @@ seguí el estilo del código que está alrededor.
 | decisiones globales | `docs/adr/` |
 | las reglas de Clean Code, Clean Architecture, refactoring y C++ Core Guidelines, adaptadas a MuRet | [skills del repo](.claude/skills/) |
 | Python in MuRet (design patterns, style, structure, tests, types, errors) and CLIs for agents | the `python-*` and `ai-native-cli` [skills](.claude/skills/) |
-| the `.bmd` editor (`mubmd`, Python): design and plans | [spec](docs/superpowers/specs/2026-11-25-bmd-editor-design.md), [plan](docs/superpowers/plans/2026-11-25-bmd-editor.md), [every table](docs/superpowers/plans/2026-11-26-bmd-editor-tables.md), [models](docs/superpowers/plans/2026-11-27-bmd-editor-models.md) |
-| editing `.bmd` files (texts, every table and the 3D models) with `mubmd`, in a working copy | [`muret-bmd`](.claude/skills/muret-bmd/SKILL.md) skill, [README](Client/tools/bmd/README.md) |
+| `mutools`, the Python tools for MU's data (the `.bmd` editor and its web studio): design and plans | [spec](docs/superpowers/specs/2026-11-25-bmd-editor-design.md), [plan](docs/superpowers/plans/2026-11-25-bmd-editor.md), [every table](docs/superpowers/plans/2026-11-26-bmd-editor-tables.md), [models](docs/superpowers/plans/2026-11-27-bmd-editor-models.md) |
+| editing `.bmd` files (texts, every table and the 3D models) with `mutools`, in a working copy | [`muret-bmd`](.claude/skills/muret-bmd/SKILL.md) skill, [README](Client/tools/mutools/README.md) |
 | the client's architecture: layers, modules and where each file goes | [spec](docs/superpowers/specs/2026-11-20-client-architecture-design.md), [ADR 0023](docs/adr/0023-client-module-architecture.md), [`Client/modules.tsv`](Client/modules.tsv) and [`module-map.tsv`](Client/docs/research/coverage/module-map.tsv) |
 | the client refactor, epic by epic (AR0 to AR7) | [plan](docs/superpowers/plans/2026-11-20-client-architecture-refactor.md) |
 | where a client file goes and how a module is built | [`muret-module`](.claude/skills/muret-module/SKILL.md) skill |

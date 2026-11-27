@@ -1,6 +1,6 @@
 ---
 name: python-code-style
-description: Use when writing or reviewing Python style in MuRet (the mubmd tool under Client/tools/bmd, the research scripts) - ruff, mypy strict, naming, imports, line length, docstrings, README. Ranked below CODING_RULES, whose comment rule (§9) limits docstrings.
+description: Use when writing or reviewing Python style in MuRet (mutools, under Client/tools/mutools, and the research scripts) - ruff, mypy strict, naming, imports, line length, docstrings, README. Ranked below CODING_RULES, whose comment rule (§9) limits docstrings.
 license: MIT
 metadata:
   upstream: https://github.com/wshobson/agents/tree/c96b5f6552dba32e4492307493ee613581430715/plugins/python-development/skills/python-code-style
@@ -23,16 +23,16 @@ in [`references/upstream-skill.md`](references/upstream-skill.md).
    [plan](../../../docs/superpowers/plans/2026-11-25-bmd-editor.md).
 4. This skill and, last, `references/`.
 
-## Which idea is which part of mubmd
+## Which idea is which part of mutools
 
-| The skill says | In mubmd |
+| The skill says | In mutools |
 | --- | --- |
-| ruff for lint and format | `ruff check .` and `ruff format --check .` in `.github/workflows/bmd-tool.yml`, configured in `Client/tools/bmd/pyproject.toml`. |
+| ruff for lint and format | `ruff check .` and `ruff format --check .` in `.github/workflows/bmd-tool.yml`, configured in `Client/tools/mutools/pyproject.toml`. |
 | mypy strict | `mypy --strict` over `src` and `tests`, tests included. |
 | 120-character lines | Same as the repo's C++ (`.clang-format`). |
 | Descriptive names, snake_case, PascalCase, SCREAMING_SNAKE_CASE constants | As is; names say the MU concept (`TEXT_RECORD_SIZE`, `xor3`, `TextTable`), not the byte offset. |
-| Absolute imports, grouped | As is (`from mubmd.core.pointer import parse_pointer`). |
-| README for the project | `Client/tools/bmd/README.md`: install, commands, JSON format, TUI keys. |
+| Absolute imports, grouped | As is (`from mutools.core.pointer import parse_pointer`). |
+| README for the project | `Client/tools/mutools/README.md`: install, commands, JSON format, TUI keys. |
 
 ## Where `references/` does not apply to MuRet
 

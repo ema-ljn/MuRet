@@ -1,6 +1,6 @@
 ---
 name: ai-native-cli
-description: Use when designing, changing or reviewing a MuRet command-line tool that agents call (mubmd under Client/tools/bmd first) - JSON output by default, the success and error envelopes, error and exit codes, self-description, dry runs, paging and token economy. A CLI design spec for agents, ranked below CODING_RULES and the tool's spec.
+description: Use when designing, changing or reviewing a MuRet command-line tool that agents call (mutools first, under Client/tools/mutools) - JSON output by default, the success and error envelopes, error and exit codes, self-description, dry runs, paging and token economy. A CLI design spec for agents, ranked below CODING_RULES and the tool's spec.
 license: CC-BY-4.0
 metadata:
   upstream: https://github.com/sickn33/agentic-awesome-skills/tree/166f581cfdc37d94cf56efe4454fb06a5759776c/skills/ai-native-cli
@@ -40,7 +40,7 @@ is the full contract):
 | C1, C2, C6: stdout for data, stderr for the rest, no prompts | As is. Only the `tui` command is interactive. |
 | I1-I7: long flags, typed parameters, no ambiguity | Typer declares every parameter with its type; positional arguments are only the file, the JSON Pointer and the value. |
 | S1, S3: `--yes` for destructive operations, `--dry-run` | `--dry-run` on every command that writes, returning the diff as JSON. `--yes` only for `workspace init` into a folder that is not empty: other writes keep a `.bak`, check the file did not change since it was read, and never touch the reference folder. |
-| D1-D16: self-description | `mubmd` and `--help` return JSON (commands, typed parameters, examples, output schemas, exit and error codes), generated from the Typer app; `--brief` prints the paragraph the project skill opens with; `--human --help` is the classic help. |
+| D1-D16: self-description | `mutools` and `--help` return JSON (commands, typed parameters, examples, output schemas, exit and error codes), generated from the Typer app; `--brief` prints the paragraph the project skill opens with; `--human --help` is the classic help. |
 | N4: reserved flags, `--fields` | `--human`, `--brief`, `--help`, `--version`, `--yes`, `--dry-run`, `--fields`, plus `--limit` and `--offset` for paging. |
 | C7: idempotency | Setting a value a file already has returns `"changed": false` and writes nothing. |
 

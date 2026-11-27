@@ -93,6 +93,16 @@ template <auto Write, auto... Arguments> Protocol::Outgoing Written()
     return Write(Arguments...);
 }
 
+// A case whose packet, when it cannot be read, is only a warning.
+struct Dropped
+{
+    template <typename Error>
+    static void Unreadable(App::ServerSession& session, const Network::Packet&, const Error&, std::string_view what)
+    {
+        session.IgnoreUnreadable(what);
+    }
+};
+
 namespace Detail
 {
 template <typename Part> struct RoutedPart;
@@ -127,6 +137,14 @@ template <> struct RoutedPart<Crt::CrtRandom&>
     static Crt::CrtRandom& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
     {
         return world.cloth.random;
+    }
+};
+
+template <> struct RoutedPart<const Tables::TextTable*>
+{
+    static const Tables::TextTable* Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    {
+        return world.texts;
     }
 };
 
@@ -215,8 +233,18 @@ struct RoutedHandler<Result (*)(const Received&, Parts...)>
 };
 } // namespace Detail
 
-// Without a world (a session whose sink applies nothing), the packet is read and dropped.
-template <Ignored What, auto Read, auto Handle, typename Encryption = AnyEncryption>
+// `Handle` with `received` and the parts of the world it names, and then the end of the reception. Without a world (a
+// session whose sink applies nothing), nothing.
+template <auto Handle, typename Received> void Deliver(App::ServerSession& session, const Received& received)
+{
+    const Scenes::WorldEntryResources* const world = session.RoutedWorld();
+    if (world == nullptr)
+        return;
+    session.FinishRoutedReception(
+        Detail::RoutedHandler<decltype(Handle)>::template Call<Handle>(received, *world, session));
+}
+
+template <Ignored What, auto Read, auto Handle, typename Encryption = AnyEncryption, typename Unread = Dropped>
 void Route(App::ServerSession& session, const Network::Packet& packet)
 {
     if (Encryption::Reported(session, packet))
@@ -224,13 +252,15 @@ void Route(App::ServerSession& session, const Network::Packet& packet)
     const auto received = Read(packet);
     if (!received.HasValue())
     {
-        session.IgnoreUnreadable(What.View());
+        Unread::Unreadable(session, packet, received.Error(), What.View());
         return;
     }
-    const Scenes::WorldEntryResources* const world = session.RoutedWorld();
-    if (world == nullptr)
-        return;
-    session.FinishRoutedReception(
-        Detail::RoutedHandler<decltype(Handle)>::template Call<Handle>(received.Value(), *world, session));
+    Deliver<Handle>(session, received.Value());
+}
+
+// A case that reads nothing: only its encryption's policy.
+template <typename Encryption> void OnlyTheEncryption(App::ServerSession& session, const Network::Packet& packet)
+{
+    static_cast<void>(Encryption::Reported(session, packet));
 }
 } // namespace Client::Session

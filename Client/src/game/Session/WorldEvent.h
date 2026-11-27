@@ -3,7 +3,6 @@
 #include "Network/Packet.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Items/FloorItems.h"
 
 #include <cstdint>
 #include <variant>
@@ -88,8 +87,6 @@ struct ChatRoomPingDue
 using WorldEvent =
     std::variant<Protocol::FrontEnd::CharacterSelectResult, Protocol::Items::InventoryList, ClearInventoryReceived,
                  ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
-                 Protocol::Items::PickUpResult, Protocol::Items::DropResult, Protocol::Items::StatFruit,
-                 Protocol::Items::ShortPickUpResult, Protocol::Items::ShortZenPickUp, Protocol::Items::ShortDropResult,
-                 Protocol::Items::ShortStatFruit, ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, MapServerLeft,
-                 MapServerJoined, MapServerAuthenticationPrepared, GuildTableReset>;
+                 ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, MapServerLeft, MapServerJoined,
+                 MapServerAuthenticationPrepared, GuildTableReset>;
 } // namespace Client::App

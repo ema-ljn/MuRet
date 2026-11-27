@@ -9,8 +9,6 @@
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Items/FloorItems.h"
-#include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorCombat.h"
@@ -150,30 +148,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     if (std::holds_alternative<App::MapServerJoined>(event))
     {
         return ApplyMapServerJoin(WithTheSession(m_resources, session));
-    }
-    // CL9 hito 5.
-    if (const auto* picked = std::get_if<Protocol::Items::PickUpResult>(&event))
-        return ApplyPickUpResult(*picked, m_resources);
-    if (const auto* dropped = std::get_if<Protocol::Items::DropResult>(&event))
-        return ApplyDropResult(*dropped, m_resources);
-    if (const auto* fruit = std::get_if<Protocol::Items::StatFruit>(&event))
-        return ApplyStatFruit(*fruit, m_resources.world, m_resources.cloth.random, m_resources.texts);
-    if (const auto* zen = std::get_if<Protocol::Items::ShortZenPickUp>(&event))
-        return ApplyShortZenPickUp(*zen, m_resources);
-    if (std::holds_alternative<Protocol::Items::ShortPickUpResult>(event))
-    {
-        ApplyShortPickUpResult(m_resources.world);
-        return {};
-    }
-    if (const auto* dropped = std::get_if<Protocol::Items::ShortDropResult>(&event))
-    {
-        ApplyShortDropResult(*dropped, m_resources.world);
-        return {};
-    }
-    if (std::holds_alternative<Protocol::Items::ShortStatFruit>(event))
-    {
-        ApplyShortStatFruit(m_resources.world);
-        return {};
     }
     if (const auto* inventory = std::get_if<Protocol::Items::InventoryList>(&event))
     {

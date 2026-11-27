@@ -12,6 +12,7 @@
 #include "Render/Pass3D.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameFloorItemDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
@@ -390,20 +391,6 @@ Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t ste
     return {};
 }
 
-// 0x5e0e7c..0x5e0ef2: la z de más de la raíz del que posa, por el que dibuja.
-float RootHeightOf(std::int32_t model)
-{
-    if (model >= 0x1012 && model < 0x1212)
-        return -160.0f;
-    if (model >= 0x1212 && model < 0x1412)
-        return -100.0f;
-    if (model >= 0x1612 && model < 0x1812)
-        return -70.0f;
-    if (model >= 0x1412 && model < 0x1612)
-        return -50.0f;
-    return 0.0f;
-}
-
 // 0x5e0ef8..0x5e13be: la escala por el que dibuja, con los bits del binario; el 0x225, el 0xc1c y el 0xa24 con un
 // nivel negativo dejan el nivel en 0, y el 0x1e32 al 0x1e34 corren la y y apagan dos ángulos.
 float ScaleOf(std::int32_t model, std::int32_t& level, glm::vec3& position, glm::vec3& angles)
@@ -676,7 +663,8 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
         model = poseModel = 0x223a;
     else if (model == Zen && step == 2)
         model = poseModel = 0x223b;
-    placement.rootHeight = RootHeightOf(model);
+    // 0x5e0e7c..0x5e0ef2: the poser's extra root z, by the drawn model.
+    placement.rootHeight = BodyPartRootHeight(static_cast<std::int16_t>(model));
     placement.scale = ScaleOf(model, placement.level, placement.position, angles);
     placement.model = static_cast<std::uint16_t>(model);
     placement.poseModel = static_cast<std::uint16_t>(poseModel);

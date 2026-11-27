@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Assets/ModelTable.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Render/ITextureStore.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -16,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <optional>
 #include <span>
@@ -62,6 +65,7 @@ public:
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
@@ -90,11 +94,14 @@ private:
                                                                     WorldModelTextureRequests& textureRequests);
     void UploadTextures(const std::filesystem::path& dataRoot, Render::ITextureStore& textures, Core::Log& log,
                         const WorldModelTextureRequests& textureRequests);
+    // The slots of an own model's meshes, or those this map binds to a global one.
+    [[nodiscard]] std::vector<Render::TextureSlot>& BindingsOf(std::uint16_t model);
+    void ForEachBinding(const std::function<void(Render::TextureSlot)>& visit) const;
 
     std::string m_folder;
-    std::map<std::uint16_t, Data::Models::Model> m_models;
-    std::map<std::uint16_t, Models::Skeleton> m_skeletons;
-    std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
+    ModelTable m_models;
+    // Blood Castle's Gates: global models whose textures this map binds again (0x60d617).
+    std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_globalBindings;
     std::optional<Models::ModelTextureSlots> m_slots;
     Render::ITextureStore* m_store = nullptr;
     ModelTextureTable* m_sharedTextures = nullptr;

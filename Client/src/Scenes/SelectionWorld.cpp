@@ -10,6 +10,7 @@
 #include "Render/ModelBatch.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Skinning.h"
 #include "Render/Pass3D.h"
@@ -90,6 +91,11 @@ const Models::Skeleton* SelectionTextureLibrary::SkeletonOf(std::uint16_t model)
 std::span<const Render::TextureSlot> SelectionTextureLibrary::MeshTextures(std::uint16_t model) const
 {
     return m_world.MeshTextures(model);
+}
+
+std::span<const Models::MeshTraits> SelectionTextureLibrary::MeshTraitsOf(std::uint16_t model) const
+{
+    return m_world.MeshTraitsOf(model);
 }
 
 std::optional<Models::TextureMetadata> SelectionTextureLibrary::TextureMetadataOf(std::uint32_t selector) const

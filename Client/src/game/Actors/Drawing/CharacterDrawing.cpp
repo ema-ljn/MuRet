@@ -1,5 +1,6 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Scenes/CrywolfAltarDrawing.h"
 #include "World/ModelEffects.h"
 
@@ -183,39 +184,14 @@ struct CharacterFrame
     std::minstd_rand& random;
 };
 
-// What its texture's script (0x4ef0c0 and 0x4ecc30) and the +0 of 0x60ff50 say about a mesh.
-struct MeshRole
+// What the load read of mesh `index` (0x4f13d0 and 0x60ff50); a mesh the library has no traits for is drawn plainly.
+Models::MeshTraits TraitsOf(std::span<const Models::MeshTraits> traits, std::size_t index)
 {
-    // H: 0x4ef0c0 draws it in no pass.
-    bool hidden = false;
-    // R: 0x4ef0c0 passes 0x4ecc30 its index as the blendMesh, instead of the object's.
-    bool blendScript = false;
-    // S: 0x4ecc30 scrolls its UVs with the object's U and V.
-    bool scrollScript = false;
-    // Without N or the +0: 0x4ecc30 runs the glow passes on it.
-    bool shines = true;
-};
-
-MeshRole RoleOf(std::uint16_t model, const Data::Models::Mesh& mesh, std::size_t index)
-{
-    MeshRole role;
-    if (const std::optional<Data::Models::TextureScript> script = Data::Models::TextureScriptOf(mesh.textureName))
-    {
-        role.hidden = script->hidden;
-        role.blendScript = script->blendMesh;
-        role.scrollScript = script->scrollUv;
-        role.shines = !script->withoutShine;
-    }
-    const Tables::ModelMesh marked{model, static_cast<std::uint16_t>(index)};
-    if (std::ranges::find(Tables::MeshesWithoutShine, marked) != Tables::MeshesWithoutShine.end())
-    {
-        role.shines = false;
-    }
-    return role;
+    return index < traits.size() ? traits[index] : Models::MeshTraits{};
 }
 
 // The blendMesh 0x4ef0c0 passes 0x4ecc30 with the mesh: its index with R; otherwise, the object's.
-std::int16_t BlendMeshOf(const MeshRole& role, std::size_t index, const ObjectState& object)
+std::int16_t BlendMeshOf(const Models::MeshTraits& role, std::size_t index, const ObjectState& object)
 {
     return role.blendScript ? static_cast<std::int16_t>(index) : object.blendMesh;
 }
@@ -240,7 +216,7 @@ struct MeshDraw
     std::size_t index = 0;
     const Data::Models::Mesh* mesh = nullptr;
     const Models::SkinnedMesh* skinned = nullptr;
-    MeshRole role;
+    Models::MeshTraits role;
     std::optional<Render::TextureSlot> texture;
     Render::Color shade;
     bool blends = false;
@@ -586,13 +562,14 @@ std::vector<MeshDraw> MeshDrawsOf(const Models::IModelLibrary& models, std::uint
                                   std::vector<Models::SkinnedMesh>& skinned)
 {
     const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
+    const std::span<const Models::MeshTraits> traits = models.MeshTraitsOf(modelId);
     skinned.assign(model.meshes.size(), Models::SkinnedMesh{});
     std::vector<MeshDraw> draws;
     draws.reserve(model.meshes.size());
     for (std::size_t index = 0; index < model.meshes.size(); ++index)
     {
         const Data::Models::Mesh& mesh = model.meshes[index];
-        const MeshRole role = RoleOf(modelId, mesh, index);
+        const Models::MeshTraits role = TraitsOf(traits, index);
         const MeshTexture texture = TextureOf(mesh, slots, index, skin);
         if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
             !Models::SkinMesh(mesh, bones, object, skinned[index]))
@@ -1158,7 +1135,7 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
 namespace
 {
 MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, const Data::Models::Mesh& mesh,
-                          const Models::SkinnedMesh& skinned, std::size_t index, const MeshRole& role,
+                          const Models::SkinnedMesh& skinned, std::size_t index, const Models::MeshTraits& role,
                           std::optional<Render::TextureSlot> texture, bool originalClock)
 {
     const auto blendMesh = BlendMeshOf(role, index, object.state);
@@ -1190,11 +1167,12 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& model
     if (model == nullptr || (!forceVisible && object.alpha < 0.01f))
         return {};
     const auto slots = models.MeshTextures(object.model);
+    const auto traits = models.MeshTraitsOf(object.model);
     std::vector<MeshDraw> draws;
     for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
     {
         const auto& mesh = model->meshes[index];
-        const auto role = RoleOf(object.model, mesh, index);
+        const auto role = TraitsOf(traits, index);
         const auto texture = TextureOf(mesh, slots, index, object.skin);
         if ((!rawMesh && role.hidden) || !texture.drawn || !IndicesInRange(mesh) ||
             meshes[index].positions.size() < mesh.vertices.size() || meshes[index].normals.size() < mesh.normals.size())
@@ -1358,7 +1336,7 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Models::IM
     // 0x60ce4e: 0x4ecc30(0, …) without 0x4ef0c0, which is the one that looks at the mesh's script (hidden or its own
     // blendMesh).
     const Data::Models::Mesh& mesh = model->meshes.front();
-    MeshRole role = RoleOf(object.model, mesh, 0);
+    Models::MeshTraits role = TraitsOf(models.MeshTraitsOf(object.model), 0);
     role.hidden = false;
     role.blendScript = false;
     const MeshTexture texture = TextureOf(mesh, models.MeshTextures(object.model), 0, object.skin);
@@ -1592,6 +1570,7 @@ Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, co
     if (waving && !worldClock)
         return Core::Unexpected(std::string("4ed79d: la onda de 0x4ecc30 sin el reloj del mundo (0x5767b88)"));
     const auto slots = models.MeshTextures(object.model);
+    const auto traits = models.MeshTraitsOf(object.model);
     const auto shine = ItemShine(flags);
     auto currentColor = object.color;
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
@@ -1599,7 +1578,7 @@ Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, co
         if (mesh >= 0 && index != static_cast<std::size_t>(mesh))
             continue;
         const auto& input = model->meshes[index];
-        const auto role = RoleOf(object.model, input, index);
+        const auto role = TraitsOf(traits, index);
         if (mesh < 0 && (role.hidden || static_cast<std::int16_t>(index) == object.state.hiddenMesh))
             continue;
         // 0x4ecc5b: without triangles it leaves before everything, without touching the model's color.

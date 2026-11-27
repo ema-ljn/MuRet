@@ -4,6 +4,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Textures/TextureSet.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Assets/ConstructedBmdPrefix.h"
@@ -111,6 +112,7 @@ public:
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
@@ -131,6 +133,7 @@ private:
         Data::Models::Model model;
         Models::Skeleton skeleton;
         std::vector<Render::TextureSlot> textures;
+        std::vector<Models::MeshTraits> meshes;
         // +0xaa: 0x60dbe0 leaves the array at 0 (0x60dc80) and only 0x612c80 writes it.
         std::array<std::int16_t, 10> sounds{};
         std::map<std::uint8_t, std::uint8_t> bytes;
@@ -141,6 +144,8 @@ private:
     [[nodiscard]] bool HasMeshes(std::uint16_t model) const;
     // 0x60d5f0(model, folder, …) on an own model: its slots and the upload of what is new.
     void AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context);
+    // The file, its skeleton and its traits as a loaded model keeps them (MakeLoadedModel).
+    static void SetLoaded(Entry& entry, Data::Models::Model model, Models::Skeleton skeleton);
     // 0x63b870 and 0x63bd00 on a fixed slot.
     [[nodiscard]] Core::Expected<void, std::string> LoadFixedTexture(const Data::Textures::TextureSetEntry& texture,
                                                                      FaunaModelLoadContext& context);

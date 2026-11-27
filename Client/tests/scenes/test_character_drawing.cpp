@@ -1,4 +1,5 @@
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 
 #include "Crt/CrtRandom.h"
@@ -163,6 +164,21 @@ public:
         const auto other = std::ranges::find(m_others, model, &Other::model);
         return other != m_others.end() ? std::span<const TextureSlot>(other->slots) : std::span<const TextureSlot>{};
     }
+    // Read from the meshes as they are now, as a load would: a test may change a texture name after building.
+    [[nodiscard]] std::span<const Client::Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override
+    {
+        if (!Has(model))
+            return {};
+        m_traits = Client::Models::ReadMeshTraits(m_model);
+        for (const std::size_t mesh : m_withoutShine)
+            m_traits[mesh].shines = false;
+        return m_traits;
+    }
+    // As 0x60ff50 marks it at the end of the load.
+    void WithoutShine(std::size_t mesh)
+    {
+        m_withoutShine.push_back(mesh);
+    }
 
     // The same model also as `model`, with all its meshes in `slot`: to see in which order they go.
     void AlsoAs(std::uint16_t model, TextureSlot slot)
@@ -192,6 +208,8 @@ private:
         std::uint16_t model = 0;
         std::vector<TextureSlot> slots;
     };
+    mutable std::vector<Client::Models::MeshTraits> m_traits;
+    std::vector<std::size_t> m_withoutShine;
 
     [[nodiscard]] bool Has(std::uint16_t model) const
     {
@@ -735,13 +753,15 @@ TEST(CharacterDrawingTest, AnSMeshDrawsAsOneWithoutScript)
     }
 }
 
-// 0x60ff50 turns on the +0 of mesh 1 of Spear01 (0x812): 0x4ecc30 does not run its glow passes, and it does on mesh 0.
-TEST(CharacterDrawingTest, TheMeshesThat0x60ff50MarksDoNotShine)
+// A mesh the load marked as not shining (0x6117fd..0x611847): 0x4ecc30 does not run its glow passes, and it does on
+// mesh 0.
+TEST(CharacterDrawingTest, AMeshTheLoadMarkedDoesNotShine)
 {
     DrawnCharacter character;
     character.appearance = Client::Kernel::ClassAppearance(0, 0);
     character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x812, .level = 13};
-    const OneModel models(0x812, "spear.jpg", 2);
+    OneModel models(0x812, "spear.jpg", 2);
+    models.WithoutShine(1);
 
     const ModelBatch batch = Drawn(models, character);
 

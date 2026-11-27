@@ -7,12 +7,14 @@
 #include "Data/Models/ModelFiles.h"
 #include "Render/ITextureStore.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/ActorState.h"
+#include "Assets/ModelTable.h"
 #include "Assets/SceneTextures.h"
 #include "Models/TextureMetadata.h"
 #include "UI/Widget.h"
@@ -23,11 +25,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <map>
 #include <optional>
 #include <span>
 #include <string>
-#include <vector>
 
 namespace Client::Models
 {
@@ -75,6 +75,7 @@ public:
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
@@ -82,9 +83,7 @@ public:
     [[nodiscard]] const Models::ModelTextureSlots* TextureSlots() const;
 
 private:
-    std::map<std::uint16_t, Data::Models::Model> m_models;
-    std::map<std::uint16_t, Models::Skeleton> m_skeletons;
-    std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
+    Assets::ModelTable m_models;
     std::optional<Models::ModelTextureSlots> m_slots;
     std::optional<Assets::SceneTextures> m_textures;
     // La carga común deja este slot a la selección cuando entra.

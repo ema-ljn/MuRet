@@ -132,7 +132,7 @@ engine/Data/Models/ModelTextures.h	42	engine/Data/Models	engine/Data/Models	high
 game/Tables/PlayerActions.cpp	83	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/PlayerActions.h	35	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/PlayerModels.cpp	610	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-game/Tables/PlayerModels.h	72	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/PlayerModels.h	73	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/GateRecord.cpp	24	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/GateRecord.h	29	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/GateTable.cpp	19	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
@@ -444,13 +444,13 @@ engine/Render/ModelFog.h	23	engine/Render	engine/Render	high	engine or protocol 
 engine/Render/ModelVertex.h	23	engine/Render	engine/Render	high	engine or protocol layer, no game state
 engine/Models/Animation.cpp	143	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Animation.h	87	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
-game/Actors/Attachment.cpp	43	game/Actors	game/Actors	high	which Player.bmd bone holds what, and the pet and cape ids, are MU's content (item vocabulary)
+game/Actors/Attachment.cpp	44	game/Actors	game/Actors	high	which Player.bmd bone holds what, and the pet and cape ids, are MU's content (item vocabulary)
 game/Actors/Attachment.h	73	game/Actors	game/Actors	high	which Player.bmd bone holds what, and the pet and cape ids, are MU's content (item vocabulary)
 engine/Models/Cloth.cpp	870	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Cloth.h	292	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Math/HalfLifeMath.cpp	175	engine/Math	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
 engine/Math/HalfLifeMath.h	47	engine/Math	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
-engine/Models/IModelLibrary.h	49	engine/Models	engine/Models	high	the loaded models drawing asks for, below the game modules that draw them (AR1.1)
+engine/Models/IModelLibrary.h	56	engine/Models	engine/Models	high	the loaded models drawing asks for, below the game modules that draw them (AR1.1)
 engine/Models/ItemGlow.cpp	59	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/ItemGlow.h	47	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/LogicalAccess.cpp	47	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
@@ -477,6 +477,8 @@ engine/Math/RoundedTransforms.cpp	39	engine/Math	engine/Math	high	glm's rotation
 engine/Math/RoundedTransforms.h	13	engine/Math	engine/Math	high	glm's rotation and perspective with the rounded sine, cosine and tangent; used by Render and Scenes
 engine/Models/Shine.cpp	95	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Shine.h	36	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
+engine/Models/MeshTraits.cpp	29	engine/Models	engine/Models	high	what a mesh's texture script says, read once at load (AR4.1)
+engine/Models/MeshTraits.h	26	engine/Models	engine/Models	high	what a mesh's texture script says, read once at load (AR4.1)
 engine/Models/Skeleton.cpp	71	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Skeleton.h	63	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 engine/Models/Skinning.cpp	164	engine/Models	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
@@ -614,7 +616,7 @@ game/Actors/CharacterAnimation.cpp	64	game/Actors	game/Actors	medium	actor recor
 game/Actors/CharacterAnimation.h	39	game/Actors	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 game/Actors/Drawing/CharacterCloth.cpp	482	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 game/Actors/Drawing/CharacterCloth.h	158	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
-game/Actors/Drawing/CharacterDrawing.cpp	2584	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
+game/Actors/Drawing/CharacterDrawing.cpp	2539	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
 game/Actors/Drawing/CharacterDrawing.h	518	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
 game/Kernel/CharacterHead.cpp	47	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 game/Kernel/CharacterHead.h	33	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
@@ -641,8 +643,8 @@ Scenes/CombatReplies.cpp	243	Scenes	game/Combat	high	character attack step (addr
 Scenes/CombatReplies.h	32	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
 game/Assets/ConstructedBmdPrefix.cpp	33	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/ConstructedBmdPrefix.h	26	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
-Scenes/CreatePreview.cpp	306	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-Scenes/CreatePreview.h	121	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
+Scenes/CreatePreview.cpp	307	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
+Scenes/CreatePreview.h	125	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/CrywolfAltarDrawing.h	27	Scenes	game/MapScripts/Crywolf	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/CrywolfContract.cpp	260	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
 Scenes/CrywolfContract.h	113	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
@@ -687,8 +689,8 @@ Scenes/FaunaEffects.h	39	Scenes	game/Fauna	medium	ambient fauna (birds, fish), o
 Scenes/FaunaJointCreation.cpp	2386	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 Scenes/FaunaJointCreation.h	91	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 game/Assets/AssetsState.h	13	game/Assets	game/Assets	high	what the assets own of the original's globals: the fauna models (AR4.1)
-game/Assets/FaunaModels.cpp	539	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
-game/Assets/FaunaModels.h	176	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/FaunaModels.cpp	555	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/FaunaModels.h	181	game/Assets	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/FaunaMotion.cpp	138	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaMotion.h	24	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaObject.h	73	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
@@ -727,14 +729,14 @@ Scenes/GameDialogSteps.h	88	Scenes	game/Hud/Dialogs	medium	game dialogs (addr.)/
 Scenes/GameDrawTail.cpp	849	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Effects.Joints (23 vs 5 
 Scenes/GameDrawTail.h	271	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Effects.Joints (23 vs 5 
 Scenes/GameFloorItemDrawing.cpp	250	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
-Scenes/GameFloorItemDrawing.h	15	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
+Scenes/GameFloorItemDrawing.h	19	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/GameFloorItems.cpp	174	Scenes	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (2 vs 1 own)
 Scenes/GameFloorItems.h	36	Scenes	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (2 vs 1 own)
 Scenes/GameFriends.cpp	374	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
 Scenes/GameFriends.h	84	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
 Scenes/GameGates.cpp	211	Scenes	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
 Scenes/GameGates.h	37	Scenes	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
-game/Actors/Drawing/GameHanging.cpp	1378	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
+game/Actors/Drawing/GameHanging.cpp	1373	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 game/Actors/Drawing/GameHanging.h	105	game/Actors/Drawing	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/GameHelps.cpp	82	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/GameHelps.h	31	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
@@ -764,8 +766,10 @@ Scenes/GameLetters.cpp	697	Scenes	game/Messenger	high	friends and letters (2026-
 Scenes/GameLetters.h	78	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
 Scenes/GameMessages.cpp	110	Scenes	game/Chat	high	the chat that was in Social (2026-11-21 review)
 Scenes/GameMessages.h	55	Scenes	game/Chat	high	the chat that was in Social (2026-11-21 review)
-game/Assets/GameModels.cpp	260	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
-game/Assets/GameModels.h	69	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/GameModels.cpp	267	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/GameModels.h	66	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/ModelTable.cpp	91	game/Assets	game/Assets	high	one record per model slot and the table GameModels, WorldModels and the selection share (AR4.1)
+game/Assets/ModelTable.h	68	game/Assets	game/Assets	high	one record per model slot and the table GameModels, WorldModels and the selection share (AR4.1)
 Scenes/GameMoveWindow.cpp	285	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
 Scenes/GameMoveWindow.h	28	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
 Scenes/GameMovement.cpp	896	Scenes	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
@@ -931,9 +935,9 @@ Scenes/LoadingScene.cpp	171	Scenes	game/Scenes	high	scene 1, the loading scene s
 Scenes/LoadingScene.h	59	Scenes	game/Scenes	high	scene 1, the loading scene script (AR0.1 review)
 Scenes/LoginActor.cpp	98	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/LoginActor.h	30	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-Scenes/LoginModels.cpp	203	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
+Scenes/LoginModels.cpp	210	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/LoginModels.h	135	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-Scenes/LoginScene.cpp	2123	Scenes	game/Scenes	medium	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to SceneFlow (10 vs 5 own)
+Scenes/LoginScene.cpp	2164	Scenes	game/Scenes	medium	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to SceneFlow (10 vs 5 own)
 Scenes/LoginScene.h	338	Scenes	game/Scenes	medium	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to SceneFlow (10 vs 5 own)
 game/Assets/LorenciaModelFiles.cpp	60	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/LorenciaModelFiles.h	12	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
@@ -1092,8 +1096,8 @@ Scenes/SelectionInventory.cpp	44	Scenes	game/FrontEnd	medium	login and selection
 Scenes/SelectionInventory.h	15	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/SelectionState.cpp	262	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/SelectionState.h	95	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-Scenes/SelectionWorld.cpp	520	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-Scenes/SelectionWorld.h	171	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
+Scenes/SelectionWorld.cpp	535	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
+Scenes/SelectionWorld.h	193	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 game/Session/SessionEventApplier.cpp	716	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 game/Session/SessionEventApplier.h	50	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/ShopSigns.cpp	445	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
@@ -1162,7 +1166,7 @@ game/Assets/TextureSets.h	540	game/Assets	game/Assets	medium	models and textures
 Scenes/TooltipLines.h	64	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/TooltipWriter.cpp	146	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/TooltipWriter.h	92	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
-Scenes/UiItemDrawing.cpp	790	Scenes	game/Items	medium	the 3D item of the UI windows (AR0.1 review)
+Scenes/UiItemDrawing.cpp	777	Scenes	game/Items	medium	the 3D item of the UI windows (AR0.1 review)
 Scenes/UiItemDrawing.h	153	Scenes	game/Items	medium	the 3D item of the UI windows (AR0.1 review)
 game/Actors/Drawing/VertexEffects.cpp	389	game/Actors/Drawing	game/Actors/Drawing	medium	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (3 vs 
 game/Actors/Drawing/VertexEffects.h	86	game/Actors/Drawing	game/Actors/Drawing	medium	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (3 vs 
@@ -1190,8 +1194,8 @@ Scenes/WorldLoadingScene.h	50	Scenes	game/Scenes	high	scene 3, the world loading
 game/Kernel/WorldMap.h	34	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
 Scenes/WorldModelPose.cpp	60	Scenes	game/WorldObjects	medium	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
 Scenes/WorldModelPose.h	23	Scenes	game/WorldObjects	medium	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
-game/Assets/WorldModels.cpp	456	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
-game/Assets/WorldModels.h	113	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/WorldModels.cpp	484	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+game/Assets/WorldModels.h	114	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 Scenes/WorldObjectsDrawing.cpp	1019	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldObjectsDrawing.h	241	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 game/Kernel/WorldRuntime.h	623	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/ModelTable.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -7,6 +8,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
@@ -66,12 +68,11 @@ public:
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::span<const Models::MeshTraits> MeshTraitsOf(std::uint16_t model) const override;
 
 private:
     std::optional<std::uint16_t> m_model;
-    Data::Models::Model m_data;
-    Models::Skeleton m_skeleton;
-    std::vector<Render::TextureSlot> m_meshTextures;
+    Assets::LoadedModel m_loaded;
 };
 
 // 0x606660(0xa2, (10.680; 15.550; 1.710), (10, 0, 36), 1) y su caso en las escenas 2 y 4

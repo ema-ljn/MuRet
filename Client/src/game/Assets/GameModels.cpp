@@ -1,5 +1,6 @@
 #include "Assets/GameModels.h"
 
+#include "Assets/ModelTable.h"
 #include "Assets/PlayerSkeleton.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -12,6 +13,7 @@
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
+#include "Models/MeshTraits.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -117,11 +119,10 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
                 Data::Models::Model model = std::move(loaded).Value();
                 auto skeleton = file.model == Tables::PlayerSkeletonModel ? Assets::MakePlayerSkeleton(model)
                                                                           : Models::MakeSkeleton(model);
+                std::optional<Models::Skeleton> made;
                 if (skeleton.HasValue())
-                {
-                    m_skeletons.insert_or_assign(file.model, std::move(skeleton).Value());
-                }
-                m_models.insert_or_assign(file.model, std::move(model));
+                    made = std::move(skeleton).Value();
+                m_models.Insert(file.model, std::move(model), std::move(made));
             }
         }
         return {};
@@ -129,6 +130,12 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     const auto playerAndItems = loadTables({Tables::PlayerModelFiles(), Tables::ItemModelFiles()});
     if (!playerAndItems.HasValue())
         return playerAndItems;
+    // 0x6117fd..0x611847: the end of 0x60ff50 takes the shine off five item meshes.
+    for (const Tables::ModelMesh& marked : Tables::MeshesWithoutShine)
+    {
+        if (LoadedModel* item = m_models.Find(marked.model); item != nullptr && marked.mesh < item->meshes.size())
+            item->meshes[marked.mesh].shines = false;
+    }
     m_slots.SetNext(PlayerTexturesStart);
     AssignTextures(Tables::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
@@ -138,15 +145,15 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     if (!skills.HasValue())
         return skills;
     // 0x61606f/0x61607f: the loader changes HellGate's action 0 after reading its BMD.
-    if (const auto gate = m_skeletons.find(0xc5); gate != m_skeletons.end() && !gate->second.actions.empty())
+    if (Models::Skeleton* gate = m_models.SkeletonOf(0xc5); gate != nullptr && !gate->actions.empty())
     {
-        auto& action = gate->second.actions.front();
+        auto& action = gate->actions.front();
         action.lockPositions = false;
         action.speed = 0.15f;
     }
     // 0x616276: Ball01's action 0 keeps 0.5 keys per step.
-    if (const auto ball = m_skeletons.find(0xf1); ball != m_skeletons.end() && !ball->second.actions.empty())
-        ball->second.actions.front().speed = 0.5f;
+    if (Models::Skeleton* ball = m_models.SkeletonOf(0xf1); ball != nullptr && !ball->actions.empty())
+        ball->actions.front().speed = 0.5f;
     m_slots.SetNext(FenrirTexturesStart);
     AssignTextures(Tables::FenrirTextureCalls());
     // 0x61613a queries 0x109 and 0x61619f queries 0x10f before loading their BMDs. In the profile without Data2/SMD
@@ -155,11 +162,11 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     m_slots.SetNext(GateTexturesStart);
     AssignTextures(Tables::SiegeBeforeSkillTextureCalls());
     // 0x6164a0..0x6164bb: LaceArrow overwrites slots 0x138 and 0x139, with Item\ and GL_CLAMP (Q-C89).
-    if (const auto* laceArrow = Find(0x11c); laceArrow != nullptr)
+    if (LoadedModel* laceArrow = m_models.Find(0x11c); laceArrow != nullptr)
     {
         m_slots.SetNext(PlayerTexturesStart);
         constexpr Data::Textures::Sampling sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
-        m_meshTextures.insert_or_assign(0x11c, m_slots.Assign(*laceArrow, "Item\\", sampling));
+        laceArrow->meshTextures = m_slots.Assign(laceArrow->model, "Item\\", sampling);
     }
     m_slots.SetNext(SkillTexturesStart);
     AssignTextures(Tables::SkillTextureCalls());
@@ -181,7 +188,7 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     UploadEach(dataRoot, GameTailTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, Tables::PlayerFixedTextures(), textures, log);
     UploadEach(dataRoot, m_slots.ToLoad(), textures, log, &m_textureMetadata);
-    log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.size());
+    log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.Count());
     return {};
 }
 
@@ -191,31 +198,30 @@ void GameModels::AssignTextures(std::span<const Tables::ModelTextureCall> calls)
 {
     for (const Tables::ModelTextureCall& call : calls)
     {
-        const auto found = m_models.find(call.model);
-        if (found != m_models.end())
-        {
-            m_meshTextures.insert_or_assign(
-                call.model, m_slots.Assign(found->second, call.folder, {Data::Textures::Filter::Nearest, call.wrap}));
-        }
+        if (LoadedModel* found = m_models.Find(call.model); found != nullptr)
+            found->meshTextures =
+                m_slots.Assign(found->model, call.folder, {Data::Textures::Filter::Nearest, call.wrap});
     }
 }
 
 const Data::Models::Model* GameModels::Find(std::uint16_t model) const
 {
-    const auto found = m_models.find(model);
-    return found == m_models.end() ? nullptr : &found->second;
+    return m_models.ModelOf(model);
 }
 
 const Models::Skeleton* GameModels::SkeletonOf(std::uint16_t model) const
 {
-    const auto found = m_skeletons.find(model);
-    return found == m_skeletons.end() ? nullptr : &found->second;
+    return m_models.SkeletonOf(model);
 }
 
 std::span<const Render::TextureSlot> GameModels::MeshTextures(std::uint16_t model) const
 {
-    const auto found = m_meshTextures.find(model);
-    return found == m_meshTextures.end() ? std::span<const Render::TextureSlot>{} : found->second;
+    return m_models.MeshTextures(model);
+}
+
+std::span<const Models::MeshTraits> GameModels::MeshTraitsOf(std::uint16_t model) const
+{
+    return m_models.MeshTraitsOf(model);
 }
 
 std::optional<Models::TextureMetadata> GameModels::TextureMetadataOf(std::uint32_t selector) const
@@ -251,7 +257,7 @@ std::optional<Models::TextureMetadata> GameModels::TakeStartupSelectionTexture(R
 
 std::size_t GameModels::Count() const
 {
-    return m_models.size();
+    return m_models.Count();
 }
 
 const Models::ModelTextureSlots& GameModels::TextureSlots() const

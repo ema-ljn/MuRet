@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -73,3 +75,40 @@ def test_diff_reports_each_changed_leaf() -> None:
 
 def test_diff_of_equal_views_is_empty() -> None:
     assert diff_views(view(), view()) == ()
+
+
+def test_apply_shares_what_it_does_not_touch() -> None:
+    original: JsonObject = {"a": [{"x": 1}, {"x": 2}], "b": [3]}
+    result = apply_patch(original, (PatchOp("replace", "/a/1/x", 5),))
+    assert result == {"a": [{"x": 1}, {"x": 5}], "b": [3]}
+    assert result["b"] is original["b"]
+    first, second = original["a"], result["a"]
+    assert isinstance(first, list)
+    assert isinstance(second, list)
+    assert second[0] is first[0]
+    assert first[1] == {"x": 2}
+
+
+def test_a_later_operation_sees_an_earlier_one() -> None:
+    original: JsonObject = {"a": [{"x": 1}, {"x": 2}], "b": [3]}
+    ops = (PatchOp("replace", "/a/1/x", 5), PatchOp("test", "/a/1/x", 5), PatchOp("replace", "/a/0/x", 7))
+    assert apply_patch(original, ops) == {"a": [{"x": 7}, {"x": 5}], "b": [3]}
+
+
+def test_the_result_does_not_share_the_patch_value() -> None:
+    value: JsonValue = {"x": [1]}
+    result = apply_patch({"a": [0]}, (PatchOp("replace", "/a/0", value),))
+    assert isinstance(value, dict)
+    value["x"] = [2]
+    assert result == {"a": [{"x": [1]}]}
+
+
+def test_a_diff_skips_the_parts_two_views_share() -> None:
+    class Unequal:
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("a shared part was compared")
+
+        __hash__ = None  # type: ignore[assignment]
+
+    shared: Any = [Unequal()]
+    assert diff_views({"same": shared, "x": 1}, {"same": shared, "x": 2}) == (Change("/x", 1, 2),)

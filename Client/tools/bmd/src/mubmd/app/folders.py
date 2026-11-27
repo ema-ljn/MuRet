@@ -1,4 +1,3 @@
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -8,6 +7,7 @@ from mubmd.app.paging import DEFAULT_LIMIT, page
 from mubmd.core.catalog import identify
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
+from mubmd.core.json_text import view_text
 from mubmd.core.patch import Change, diff_views
 from mubmd.core.ports import FileStore
 
@@ -96,7 +96,7 @@ def dump(
     if output.suffix.casefold() == ".bmd":
         raise MubmdError(ErrorCode.USAGE, f"dump writes JSON and {output.name} is a .bmd: give --output a .json name")
     view = open_document(store, path, encoding=encoding).view
-    data = (json.dumps(view, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    data = view_text(view).encode("utf-8")
     if not dry_run:
         expected = store.sha256(output) if store.exists(output) else None
         store.write(output, data, expected_sha256=expected)

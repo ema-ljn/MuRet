@@ -103,3 +103,16 @@ def test_find_takes_a_field(cli: Cli, working_copy: Path) -> None:
     target = working_copy / "Local" / "movereq.bmd"
     items = cli("find", target, "Arena", "--field", "name").json["data"]["items"]
     assert [item["pointer"] for item in items] == ["/records/0/name"]
+
+
+def test_get_of_one_quest_shows_its_entries(cli: Cli, working_copy: Path) -> None:
+    data = cli("get", working_copy / "Local" / "quest.bmd", "/records/0").json["data"]
+    assert (len(data["value"]["entries"]), len(data["value"]["conditions"])) == (16, 16)
+    assert data["value"]["entries"][0]["dialogs"] == [52, 54, 55, 56]
+
+
+def test_a_page_of_quests_counts_their_entries(cli: Cli, working_copy: Path) -> None:
+    data = cli("get", working_copy / "Local" / "quest.bmd", "/records", "--limit", "2").json["data"]
+    counted = {"count": 16}
+    assert [(record["entries"], record["conditions"]) for record in data["value"]] == [(counted, counted)] * 2
+    assert (data["truncated"], data["total"], data["next_offset"]) == (True, 200, 2)

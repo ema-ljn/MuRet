@@ -10,7 +10,7 @@ from mubmd.app.paging import DEFAULT_LIMIT, Page, page
 from mubmd.core.catalog import FormatSpec, all_formats, format_by_name
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.json_types import JsonObject, JsonValue
-from mubmd.core.leaves import Tokens, leaf_text, leaves
+from mubmd.core.leaves import Tokens, is_leaf, leaf_text, leaves, outline
 from mubmd.core.pointer import format_pointer, parse_pointer, resolve
 from mubmd.core.ports import CatalogFile, FieldInfo, FileStore
 
@@ -154,6 +154,22 @@ def _cut(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
     return value, False
 
 
+def _item(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
+    outlined, counted = outline(value)
+    shown, cut = _cut(outlined, limit)
+    return shown, counted or cut
+
+
+def _levels(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
+    if isinstance(value, list):
+        items = [_item(item, limit) for item in value[:limit]]
+        return [item for item, _ in items], len(value) > limit or any(cut for _, cut in items)
+    if isinstance(value, dict) and not is_leaf(value):
+        members = {key: _levels(item, limit) for key, item in value.items()}
+        return {key: item for key, (item, _) in members.items()}, any(cut for _, cut in members.values())
+    return value, False
+
+
 def get(
     store: FileStore,
     path: Path,
@@ -170,10 +186,10 @@ def get(
             raise MubmdError(
                 ErrorCode.USAGE, f"--offset skips items of a list, and {pointer} is not one", pointer=pointer
             )
-        value, truncated = _cut(found, limit)
+        value, truncated = _levels(found, limit)
         return GetResult(pointer, value, truncated, total=None, next_offset=None)
     shown = page(found, limit, offset)
-    value, truncated = _cut(list(shown.items), limit)
+    value, truncated = _levels(list(shown.items), limit)
     whole = offset == 0 and shown.next_offset is None
     return GetResult(pointer, value, truncated or not whole, shown.total, shown.next_offset)
 

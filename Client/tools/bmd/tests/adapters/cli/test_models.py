@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from tests.adapters.cli.conftest import Cli
+from tests.conftest import MODEL_FILES
 
 TEXTURE_NAME = "/meshes/0/texture_name"
 SWORD_TEXTURE_NAME = slice(6772, 6804)
@@ -186,3 +187,51 @@ def test_the_help_names_a_models_pointer(cli: Cli) -> None:
 def test_the_help_says_where_a_model_is_built(cli: Cli) -> None:
     (command,) = cli("build", "--help").json["data"]["commands"]
     assert "a model's view to any .bmd name" in command["help"]
+
+
+def test_get_of_a_model_shows_its_parts_and_their_counts(cli: Cli, reference_data: Path) -> None:
+    result = cli("get", reference_data / "player" / "Player.bmd", "", "--limit", "2")
+    data = result.json["data"]
+    value = data["value"]
+    first_bone, _ = value["bones"]
+    assert len(result.out.encode()) < 2000
+    assert (value["version"], value["meshes"]) == (12, [])
+    assert value["actions"] == [{"keys": 3, "lock": 1, "positions": {"count": 3}}, {"keys": 6, "lock": 0}]
+    assert (first_bone["parent"], first_bone["actions"]) == (-1, {"count": 205})
+    assert data["truncated"] is True
+
+
+def test_get_pages_a_list_inside_a_model(cli: Cli, model_copy: Path) -> None:
+    sword = model_copy / "Item" / "Sword01.bmd"
+    data = cli("get", sword, "/meshes/0/vertices", "--offset", "41", "--limit", "5").json["data"]
+    assert (data["total"], data["next_offset"]) == (42, None)
+    assert data["value"] == [{"bone": 0, "position": [-0.2545926, 0.24154522, 64.7253]}]
+
+
+def test_get_of_a_mesh_shows_its_first_items(cli: Cli, model_copy: Path) -> None:
+    data = cli("get", model_copy / "Item" / "Sword01.bmd", "/meshes/0", "--limit", "2").json["data"]
+    value = data["value"]
+    assert (len(value["vertices"]), len(value["triangles"]), data["truncated"]) == (2, 2, True)
+    assert value["texture_name"] == "sword02.jpg"
+
+
+@pytest.mark.parametrize("name", MODEL_FILES)
+def test_dump_then_build_gives_the_same_model(cli: Cli, model_copy: Path, tmp_path: Path, name: str) -> None:
+    source = model_copy / name
+    dumped = tmp_path / "model.json"
+    target = source.with_name("Rebuilt.bmd")
+    assert cli("dump", source, "--output", dumped).code == 0
+    assert cli("build", dumped, "--output", target).code == 0
+    assert target.read_bytes() == source.read_bytes()
+
+
+def test_the_biggest_model_dumps_and_builds(cli: Cli, reference_data: Path, tmp_path: Path) -> None:
+    source = reference_data / "player" / "Player.bmd"
+    dumped = tmp_path / "player.json"
+    target = tmp_path / "Player.bmd"
+    result = cli("dump", source, "--output", dumped)
+    size = dumped.stat().st_size
+    assert result.json["data"] == {"output": str(dumped), "size": size}
+    assert size < 12_000_000
+    assert cli("build", dumped, "--output", target).code == 0
+    assert target.read_bytes() == source.read_bytes()

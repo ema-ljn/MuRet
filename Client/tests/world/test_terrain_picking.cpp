@@ -21,8 +21,8 @@
 #include <limits>
 #include <memory>
 
-// Expectativas analíticas/estáticas de 06 § El rayo contra el terreno; ninguna proviene de una
-// nueva ejecución o emulación del original. Los puntos asimétricos evitan la diagonal excluida.
+// Analytic and static expectations from 06 § El rayo contra el terreno; none comes from a new run or
+// emulation of the original. The asymmetric points avoid the excluded diagonal.
 namespace
 {
 using Client::Terrain::PickTerrain;
@@ -68,7 +68,7 @@ protected:
     }
 };
 
-// Rechaza omitir 023 o conservar maxT viejo.
+// Rejects skipping 023 or keeping a stale maxT.
 TEST_F(TerrainPickingTest, BothTrianglesPublishThePointAndCell)
 {
     for (const glm::vec3& point : std::array<glm::vec3, 2>{{{75.0f, 25.0f, 0.0f}, {25.0f, 75.0f, 0.0f}}})
@@ -150,9 +150,9 @@ TEST_F(TerrainPickingTest, APositiveYNormalKeepsTheInteriorPoint)
 
 TEST_F(TerrainPickingTest, ProjectionUsesTheThresholdBeforeTheLargestComponent)
 {
-    // Cruz (-7500,0,10000), longitud 12500: nx≈-0.6 activa yz aunque nz≈0.8 sea mayor.
-    // El rayo artificial enorme redondea x fuera del triángulo xy, pero yz=(25,37.5) es interior.
-    // Es un discriminante PC53 del componente, sin expectativa nativa ni helper expuesto.
+    // Cross (-7500,0,10000), length 12500: nx≈-0.6 turns on yz even though nz≈0.8 is larger.
+    // The huge artificial ray rounds x outside the xy triangle, but yz=(25,37.5) is inside.
+    // It is a PC53 discriminant of the component, with no native expectation and no exposed helper.
     m_heights->cells[1] = 75.0f;
     m_heights->cells[257] = 75.0f;
     const auto result =
@@ -168,10 +168,10 @@ TEST_F(TerrainPickingTest, ProjectionUsesTheThresholdBeforeTheLargestComponent)
 
 TEST_F(TerrainPickingTest, ProjectionIncludesBothThresholdSignsOnXAndY)
 {
-    // H≈100/√3: el spill de 100H es 5773.5029296875 y la componente normal mide
-    // ≈0.500000015445, que redondea a 0.5f. La componente z≈0.866 es mayor.
-    // Las cuatro pendientes distinguen la proyección inclusiva en ±0.5 de excluir sus extremos,
-    // sin publicar una normal de prueba ni derivar expected del picker.
+    // H≈100/√3: the spill of 100H is 5773.5029296875 and the normal component measures
+    // ≈0.500000015445, which rounds to 0.5f. The z component ≈0.866 is larger.
+    // The four slopes tell the inclusive projection at ±0.5 from excluding its ends,
+    // without publishing a test normal or deriving the expected value from the picker.
     constexpr float Height = 57.735027313232422f;
     constexpr float Middle = Height * 0.5f;
     struct Case
@@ -207,7 +207,7 @@ TEST_F(TerrainPickingTest, ProjectionIncludesBothThresholdSignsOnXAndY)
 
 TEST_F(TerrainPickingTest, NegativeProjectionNormalsAlsoExcludeEdges)
 {
-    // nx<0 elige yz con determinantes estrictamente positivos. y=0 cae en la arista v0→v1.
+    // nx<0 picks yz with strictly positive determinants. y=0 falls on the edge v0→v1.
     m_heights->cells[1] = 150.0f;
     m_heights->cells[257] = 150.0f;
     const auto result = PickTerrain(m_state, m_view, {}, m_polygon, Vertical(75.0f, 0.0f));
@@ -215,7 +215,7 @@ TEST_F(TerrainPickingTest, NegativeProjectionNormalsAlsoExcludeEdges)
     ExpectRetainedMiss();
 }
 
-// Cada vértice pesa 1/4 o 1/2 en estos puntos: distingue override por esquina de altura bilineal.
+// Each vertex weighs 1/4 or 1/2 at these points: tells a per-corner override from a bilinear height.
 TEST_F(TerrainPickingTest, FixedHeightIsAppliedIndependentlyToEachCorner)
 {
     constexpr std::array<std::size_t, 4> Corners{0, 1, 257, 256};
@@ -284,7 +284,7 @@ TEST_F(TerrainPickingTest, PointsImmediatelyInsideTheDiagonalAreAccepted)
 
 TEST_F(TerrainPickingTest, BlockMarginAndCellFrustumAreBothApplied)
 {
-    // El centro del bloque (2,2) queda fuera, pero pasa con margen -40; sólo pasa el centro (.5,.5).
+    // The center of block (2,2) is outside but passes with margin -40; only the center (.5,.5) passes.
     const TerrainPolygon thin{.x = {0.0f, 0.75f, 0.75f, 0.0f}, .y = {1.0f, 1.0f, 0.0f, 0.0f}};
     const auto inside = PickTerrain(m_state, m_view, {}, thin, Vertical(75.0f, 25.0f));
     ASSERT_TRUE(inside.HasValue()) << inside.Error();
@@ -367,8 +367,8 @@ TEST_F(TerrainPickingTest, CursorUsesTheFullUnsignedAttributeAndBothExceptions)
     }
 }
 
-// Estado retenido fraccional explícito, fuera del stock entero pero dentro del dominio geométrico
-// admitido. Permite distinguir el producto retenido 100*0.01f<1 de redondearlo a float o dividir100.
+// An explicit fractional retained state, outside the stock integer one but inside the accepted geometric
+// domain. It tells the retained product 100*0.01f<1 from rounding it to float or dividing by 100.
 TEST_F(TerrainPickingTest, TargetTruncatesTheUnroundedHitProducts)
 {
     m_state.selectedX = 0.5f;
@@ -392,8 +392,8 @@ TEST_F(TerrainPickingTest, TargetTruncatesTheUnroundedHitProducts)
 
 TEST_F(TerrainPickingTest, TargetAndCursorUseTheAsymmetricHitCellInsteadOfTheSelection)
 {
-    // Celda retenida (0.5,1.5), hit (100,210): local (50,60) de 023; target (0,2), no trunc (0,1).
-    // Sólo target (0,2) lleva atributo 8. Su transpuesta (2,0) y la selección truncada (0,1) llevan 0.
+    // Retained cell (0.5,1.5), hit (100,210): local (50,60) of 023; target (0,2), not trunc (0,1).
+    // Only target (0,2) carries attribute 8. Its transpose (2,0) and the truncated selection (0,1) carry 0.
     m_attributes->cells[(2 * 256) + 0] = 0x08;
     m_state.selectedX = 0.5f;
     m_state.selectedY = 1.5f;
@@ -407,7 +407,7 @@ TEST_F(TerrainPickingTest, TargetAndCursorUseTheAsymmetricHitCellInsteadOfTheSel
     EXPECT_EQ(m_target.y, 2u);
     EXPECT_TRUE(m_target.dontMove);
 
-    // El espejo conserva la asimetría: target (2,0) lleva 0; leer su transpuesta daría 8.
+    // The mirror keeps the asymmetry: target (2,0) carries 0; reading its transpose would give 8.
     m_state.selectedX = 1.5f;
     m_state.selectedY = 0.5f;
     const auto otherAxis = PickTerrainTarget(m_state, m_target, m_view, {}, {}, Vertical(210.0f, 100.0f));
@@ -523,8 +523,8 @@ TEST_F(TerrainPickingTest, AnExternalRetryErrorKeepsTheCompleteInputStateAndTarg
 
 TEST_F(TerrainPickingTest, AnExtremeRayCannotCauseAnUndefinedIntegerConversion)
 {
-    // La proyección yz puede admitir el punto redondeado de un rayo enorme fuera del dominio de
-    // cámara stock. El componente lo informa como error si no admite ftol signed64 ordinario.
+    // The yz projection can accept the rounded point of a huge ray outside the stock camera's domain.
+    // The component reports it as an error if it does not admit an ordinary signed64 ftol.
     m_heights->cells[1] = 150.0f;
     m_heights->cells[257] = 150.0f;
     const TerrainPickingSegment ray{{-1.0e35f, 25.0f, 75.0f}, {2.0e35f, 25.0f, 75.0f}};

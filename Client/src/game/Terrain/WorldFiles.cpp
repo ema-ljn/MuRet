@@ -16,8 +16,7 @@ namespace Client::Terrain
 {
 namespace
 {
-// Más que cualquier TerrainHeight.OZB (1.080 + 65.536 bytes), EncTerrain.map (196.610) o
-// TerrainLight.OZJ del laboratorio.
+// More than any TerrainHeight.OZB (1,080 + 65,536 bytes), EncTerrain.map (196,610) or TerrainLight.OZJ of the lab.
 constexpr std::uintmax_t MaxWorldFileBytes = std::uintmax_t{16} * 1024 * 1024;
 } // namespace
 

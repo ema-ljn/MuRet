@@ -19,41 +19,40 @@ namespace Client::Terrain
 {
 namespace
 {
-// Los tipos que miran 0x548fe0 y 0x549090.
+// The types 0x548fe0 and 0x549090 check.
 constexpr std::int32_t ShrinkingType = 7;
 constexpr std::int32_t BloodType = 0x5e3;
 constexpr std::int32_t SecondFadingType = 0x5e4;
 constexpr std::int32_t ThirdFadingType = 0x606;
-// 0x548fe7: la vida de la que parte la búsqueda del lugar que se apaga, 0x270f.
+// 0x548fe7: the life the search for the place to turn off starts from, 0x270f.
 constexpr std::int32_t SearchLife = 9999;
-// 0x54906e..0x54907f: la vida de una marca nueva, rand() % 32 + 50.
+// 0x54906e..0x54907f: a new mark's life, rand() % 32 + 50.
 constexpr int LifeRandomRange = 32;
 constexpr std::int32_t FirstLife = 50;
-// 0x5490ef: lo que crece el lado del 0x5e3 en cada paso (0x6b89e8).
+// 0x5490ef: how much the side of 0x5e3 grows on each step (0x6b89e8).
 constexpr float BloodGrowth = 0.004f;
 static_assert(std::bit_cast<std::uint32_t>(BloodGrowth) == 0x3B83126F, "la constante de 0x6b89e8");
-// 0x5490f9: el rojo de las que se borran (0x3dcccccd).
+// 0x5490f9: the red of those that fade (0x3dcccccd).
 constexpr float FadingRed = 0.1f;
 static_assert(std::bit_cast<std::uint32_t>(FadingRed) == 0x3DCCCCCD, "la constante de 0x5490f9");
-// 0x54910b..0x549113: con menos de 50 de vida, el alfa es vida · 0,02 (0x6b8b90).
+// 0x54910b..0x549113: below 50 life, the alpha is life · 0.02 (0x6b8b90).
 constexpr std::int32_t FadingLife = 50;
 constexpr float AlphaPerLife = 0.02f;
 static_assert(std::bit_cast<std::uint32_t>(AlphaPerLife) == 0x3CA3D70A, "la constante de 0x6b8b90");
-// 0x5490c5..0x5490cd: lo que achica el 7 en cada paso (0x6b8a48) y el lado debajo del que se apaga
-// (0x6b87b8).
+// 0x5490c5..0x5490cd: how much 7 shrinks on each step (0x6b8a48) and the side below which it turns off (0x6b87b8).
 constexpr float ShrinkStep = 0.05f;
 static_assert(std::bit_cast<std::uint32_t>(ShrinkStep) == 0x3D4CCCCD, "la constante de 0x6b8a48");
 constexpr float SmallestSize = 0.1f;
 static_assert(std::bit_cast<std::uint32_t>(SmallestSize) == 0x3DCCCCCD, "la constante de 0x6b87b8");
-// 0x549152: con una textura de 3 componentes (+0x28 del slot), la mezcla aditiva.
+// 0x549152: with a 3-component texture (+0x28 of the slot), the additive blend.
 constexpr std::uint8_t AdditiveComponents = 3;
-// 0x549175: lo que sube el calco sobre el terreno (0x40a00000).
+// 0x549175: how much the decal rises above the terrain (0x40a00000).
 constexpr float MarkLift = 5.0f;
 
 using Math::F32;
 
-// 0x620a90 y 0x620a00(1) ponen la mezcla con su perfil entero (el culling, la máscara de profundidad, el
-// alpha test y la textura) y no tocan el depth test ni la textura ligada.
+// 0x620a90 and 0x620a00(1) set the blend with its whole profile (culling, depth mask, alpha test and texture) and do
+// not touch the depth test or the bound texture.
 Render::ModelDrawState Blended(Render::ModelDrawState state, Render::ModelBlend blend)
 {
     state.blend = blend;
@@ -64,7 +63,7 @@ Render::ModelDrawState Blended(Render::ModelDrawState state, Render::ModelBlend 
     return state;
 }
 
-// El dec de 32 bits, que da la vuelta en el mínimo.
+// The 32-bit dec, which wraps at the minimum.
 std::int32_t Decremented(std::int32_t life)
 {
     return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(life) - 1u);
@@ -75,14 +74,14 @@ bool Fades(std::int32_t type)
     return type == BloodType || type == SecondFadingType || type == ThirdFadingType;
 }
 
-// 0x5490a1..0x549119: una marca prendida, en un paso.
+// 0x5490a1..0x549119: a live mark, in one step.
 void StepMark(GroundMark& mark)
 {
     mark.life = Decremented(mark.life);
     if (mark.type == ShrinkingType)
     {
-        // 0x5490c3..0x5490da: fsub, fst y fcomp: guarda el lado y compara el del registro, sin redondear;
-        // debajo de 0,1, o NaN, se apaga.
+        // 0x5490c3..0x5490da: fsub, fst and fcomp: stores the side and compares the register's, unrounded; below 0.1,
+        // or NaN, it turns off.
         const double shrunk = static_cast<double>(mark.size) - static_cast<double>(ShrinkStep);
         mark.size = F32(shrunk);
         if (!(shrunk >= static_cast<double>(SmallestSize)))
@@ -121,7 +120,7 @@ Core::Expected<void, std::string> AddGroundMark(GroundMarkTable& marks, const Gr
     {
         if (!mark.live)
         {
-            // 0x549012..0x549059: la marca, con el alfa en 1.
+            // 0x549012..0x549059: the mark, with the alpha at 1.
             mark = GroundMark{.live = true,
                               .type = request.type,
                               .size = request.size,
@@ -130,14 +129,14 @@ Core::Expected<void, std::string> AddGroundMark(GroundMarkTable& marks, const Gr
                               .color = request.color,
                               .alpha = 1.0f,
                               .life = mark.life};
-            // 0x549020 y 0x54905c..0x54906c: la vida, solo con los tipos que se borran.
+            // 0x549020 and 0x54905c..0x54906c: the life, only with the types that fade.
             if (Fades(request.type))
             {
                 mark.life = (random.Next() % LifeRandomRange) + FirstLife;
             }
             return {};
         }
-        // 0x548ff6..0x548fff: cmp y jle, con signo: se queda con la primera de menos vida.
+        // 0x548ff6..0x548fff: cmp and jle, signed: it keeps the first one with the least life.
         if (mark.life < weakestLife)
         {
             weakestLife = mark.life;
@@ -150,7 +149,7 @@ Core::Expected<void, std::string> AddGroundMark(GroundMarkTable& marks, const Gr
                                             "debajo de 9999, 0x548fe0 escribe en la dirección {:#x}, el tipo",
                                             request.type));
     }
-    // 0x54900c: apaga esa y no pone la nueva.
+    // 0x54900c: turns that one off and does not place the new one.
     weakest->live = false;
     return {};
 }
@@ -170,7 +169,7 @@ Core::Expected<void, std::string> DrawGroundMarks(Render::ModelBatch& batch, con
                                                   const Data::Terrain::TerrainHeights& heights,
                                                   const SlotComponents& components)
 {
-    // 0x549135: la mezcla aditiva, aunque no haya ninguna.
+    // 0x549135: the additive blend, even if there is none.
     batch.SetState(Blended(batch.State(), Render::ModelBlend::Additive));
     for (const GroundMark& mark : marks)
     {
@@ -178,7 +177,7 @@ Core::Expected<void, std::string> DrawGroundMarks(Render::ModelBatch& batch, con
         {
             continue;
         }
-        // 0x549146..0x54916a: el byte +0x28 del slot del tipo.
+        // 0x549146..0x54916a: byte +0x28 of the type's slot.
         const std::optional<std::uint8_t> slotComponents = components(mark.type);
         if (!slotComponents)
         {
@@ -189,7 +188,7 @@ Core::Expected<void, std::string> DrawGroundMarks(Render::ModelBatch& batch, con
         const Render::ModelBlend blend =
             *slotComponents == AdditiveComponents ? Render::ModelBlend::Additive : Render::ModelBlend::Alpha;
         batch.SetState(Blended(batch.State(), blend));
-        // 0x54916d..0x549198: 0x5fb2f0 con el lado en los dos lados y el giro cambiado de signo (fchs).
+        // 0x54916d..0x549198: 0x5fb2f0 with the side on both sides and the turn negated (fchs).
         const TerrainDecal decal{.slot = mark.type,
                                  .x = mark.position.x,
                                  .y = mark.position.y,

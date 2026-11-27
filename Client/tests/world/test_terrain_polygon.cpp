@@ -24,8 +24,8 @@ using Client::Terrain::TerrainPolygonInput;
 using Client::Terrain::TerrainPolygonOf;
 using Client::Terrain::TerrainPolygonState;
 
-// Oráculo analítico: dimensiones locales literales del contrato, sin selector de perfiles.
-// Giros identidad y ±45° (turn=0/+1/−1); seno/coseno de45 almacenados son 0x3f3504f3.
+// Analytic oracle: the contract's literal local dimensions, without a profile selector.
+// Identity and ±45° turns (turn=0/+1/−1); the stored sine and cosine of 45 are 0x3f3504f3.
 TerrainPolygon AnalyticalPolygon(float farWidth, float nearWidth, float farY, float nearY,
                                  const glm::vec3& translation = {}, int turn = 0)
 {
@@ -77,7 +77,7 @@ TEST(TerrainPolygonTest, TenProfilesKeepTheirDimensionsAndCornerOrder)
         float farY;
         float nearY;
     };
-    // W640: a=1, q=1.1f. T/N son constantes, no F multiplicado por factores recompuestos.
+    // W640: a=1, q=1.1f. T/N are constants, not F multiplied by recomposed factors.
     constexpr std::array<Row, 10> Rows{{
         {6, 2, -91, 0, 3000, 540, 4505, -3570},
         {30, 5, -91, 16500, 2250, 540, 2703, -1428},
@@ -136,13 +136,13 @@ TEST(TerrainPolygonTest, WidthKeepsSignedIntegerAndProductBeforeThePointOneStore
         float farWidth;
         float nearWidth;
     };
-    // Vectores analíticos binary32, obtenidos de las constantes exactas, no del código bajo prueba.
+    // Analytic binary32 vectors, taken from the exact constants, not from the code under test.
     constexpr std::array<Row, 11> Rows{{{640, 1650, 638},
                                         {641, 1652.34375f, 638.90625f},
                                         {853, 2149.21875f, 831.03131103515625f},
                                         {12, 178.125f, 68.875f},
                                         {0, 150, 58},
-                                        {-64, 0, 0}, // W×g cancela exactamente0,1f; no el double0,1.
+                                        {-64, 0, 0}, // W×g cancels 0.1f exactly, not the double 0.1.
                                         {-640, -1350, -522},
                                         {16777217, 39321752, 15204411},
                                         {2147483647, 5033164800.0f, 1946157056.0f},
@@ -194,7 +194,7 @@ TEST(TerrainPolygonTest, TranslationIsStoredBeforeCellScale)
 {
     auto input = IdentityInput();
     input.worldWidth = 641;
-    // CercaX=540,84375: guardar la suma con1,1f da0x40ad6c07; escalar sin store da0x40ad6c08.
+    // NearX=540.84375: storing the sum with 1.1f gives 0x40ad6c07; scaling without a store gives 0x40ad6c08.
     input.translation = {1.1f, -1.1f, 333};
     const auto polygon = TerrainPolygonOf(input, 0);
     ASSERT_TRUE(polygon.HasValue());
@@ -215,8 +215,8 @@ TEST(TerrainPolygonTest, NormalDecisionTruncatesBeforeComparisonAndRetainsEveryL
                                        {1000.9f, 1000.1f, 1},
                                        {-1000.9f, -1000.1f, 1},
                                        {-999.9f, -1000.1f, 3},
-                                       {-0.5f, -1.0f, 3}, // floor adoptaría1.
-                                       {1.5f, 1.0f, 1}}}; // ceil retendría3.
+                                       {-0.5f, -1.0f, 3}, // floor would take 1.
+                                       {1.5f, 1.0f, 1}}}; // ceil would keep 3.
     const auto input = IdentityInput();
     for (const auto& row : Rows)
     {
@@ -362,7 +362,7 @@ TEST(TerrainPolygonTest, CastleBandsObserveEachAdjacentFloatAtAllSixBounds)
             TerrainPolygonInput input;
             input.map = 30;
             input.objectPosition = bound.x ? glm::vec2{values[i], 20000} : glm::vec2{16500, values[i]};
-            input.cameraYaw = std::numeric_limits<float>::quiet_NaN(); // No se consume en mapa30.
+            input.cameraYaw = std::numeric_limits<float>::quiet_NaN(); // Not read on map 30.
             const auto polygon = TerrainPolygonOf(input, -1);
             ASSERT_TRUE(polygon.HasValue());
             ExpectBits(polygon.Value(), bound.large[i] ? AnalyticalPolygon(2250, 540, 2703, -1428, {}, true)
@@ -529,9 +529,9 @@ TEST(TerrainPolygonTest, QueryFreezesLevelWhileGeometryChangesAndFrameFailureRet
     ASSERT_FALSE(failed.HasValue());
 }
 
-// Fórmula legacy (antes de CL7.5E): cameraYaw−37,25°, ángulo efectivo+37,25°, W853.
-// π/180=0x3c8efa35; seno almacenado0x3f1af48c, coseno almacenado0x3f4bc6ca.
-// Si radianes se redondea antes a float, coseno queda0x3f4bc6c9 y cambian esquinas.
+// Legacy formula: cameraYaw−37.25°, effective angle +37.25°, W853.
+// π/180=0x3c8efa35; stored sine 0x3f1af48c, stored cosine 0x3f4bc6ca.
+// If the radians are rounded to float first, the cosine becomes 0x3f4bc6c9 and the corners change.
 TEST(TerrainPolygonTest, GenericYawAndNonDefaultWidthMatchLegacyCornerBits)
 {
     auto input = IdentityInput();
@@ -555,12 +555,12 @@ TEST(TerrainPolygonTest, GenericYawAndNonDefaultWidthMatchLegacyCornerBits)
     }
 }
 
-// W0 expone el coseno pequeño de+90° sin el términoX: conserva π/180 float0x3c8efa35.
-// Con π/180 double, Y lejana sería0x26607edc en vez de0x342630a4 (oráculo legacy independiente).
+// W0 exposes the small cosine of +90° without the X term: it keeps the float π/180 0x3c8efa35.
+// With a double π/180, the far Y would be 0x26607edc instead of 0x342630a4 (independent legacy oracle).
 TEST(TerrainPolygonTest, QuarterTurnPreservesTheFloatDegreesConstant)
 {
     auto input = IdentityInput();
-    input.cameraYaw = -90.0f; // El ángulo efectivo del mapa55 es+90°.
+    input.cameraYaw = -90.0f; // The effective angle of map 55 is +90°.
     input.worldWidth = 0;
     const auto polygon = TerrainPolygonOf(input, 0);
     ASSERT_TRUE(polygon.HasValue());

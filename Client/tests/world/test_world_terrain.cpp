@@ -12,8 +12,8 @@
 #include <cstdint>
 #include <string>
 
-// Client::Terrain::LoadWorldTerrain y la tabla de los tiles de 0x61a560: lo que el terreno de un mundo
-// lee de su carpeta (06 § Terreno y § El terreno del login).
+// Client::Terrain::LoadWorldTerrain and the tile table of 0x61a560: what a world's terrain reads from its folder
+// (06 § Terreno and § El terreno del login).
 namespace
 {
 using Client::Data::Textures::Filter;
@@ -25,8 +25,8 @@ using Client::Terrain::WorldTileTextures;
 
 constexpr std::uint8_t Login = 55;
 
-// Los 14 tiles del login, de World56\, en los slots 0x23 a 0x30, con GL_NEAREST y repitiendo; solo
-// TileGrass01 avisa si falta (el sexto argumento de 0x63b870).
+// The 14 login tiles, from World56\, in slots 0x23 to 0x30, with GL_NEAREST and repeating; only TileGrass01 warns
+// if it is missing (the sixth argument of 0x63b870).
 TEST(WorldTerrainTest, World56HasTheTilesOfTheOriginal)
 {
     const auto tiles = WorldTileTextures(Login);
@@ -43,7 +43,7 @@ TEST(WorldTerrainTest, World56HasTheTilesOfTheOriginal)
     }
 }
 
-// Los mapas 24 a 29 y 36 arman sus tiles en 0x4377a0: la tabla no tiene ninguno.
+// Maps 24 to 29 and 36 build their tiles in 0x4377a0: the table has none of them.
 TEST(WorldTerrainTest, TheMapsWithTheirOwnTilesHaveNone)
 {
     for (const std::uint8_t map : {std::uint8_t{24}, std::uint8_t{29}, std::uint8_t{36}})
@@ -54,8 +54,8 @@ TEST(WorldTerrainTest, TheMapsWithTheirOwnTilesHaveNone)
     EXPECT_EQ(WorldTileTextures(30).size(), 14u);
 }
 
-// 0x61abb4..0x61ac36: después de los tiles, World<N>\TileGrass01..03.tga en 0x32..0x34 con 0x63bd00,
-// GL_NEAREST y repitiendo, sin avisar si faltan. En Lorencia (World1) y en Devias (World3).
+// 0x61abb4..0x61ac36: after the tiles, World<N>\TileGrass01..03.tga in 0x32..0x34 with 0x63bd00, GL_NEAREST and
+// repeating, without warning if they are missing. In Lorencia (World1) and in Devias (World3).
 TEST(WorldTerrainTest, TheGrassComesAfterTheTiles)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -76,7 +76,7 @@ TEST(WorldTerrainTest, TheGrassComesAfterTheTiles)
     EXPECT_TRUE(WorldGrassTextures(36).empty());
 }
 
-// Q-C19: el slot 0x122 es Interface\accept_box01.jpg, con GL_NEAREST y GL_CLAMP, como lo sube 0x61ae60.
+// Q-C19: slot 0x122 is Interface\accept_box01.jpg, with GL_NEAREST and GL_CLAMP, as 0x61ae60 uploads it.
 TEST(WorldTerrainTest, TheSlot0x122IsTheAcceptBox)
 {
     const auto box = AcceptBoxTexture();
@@ -87,7 +87,7 @@ TEST(WorldTerrainTest, TheSlot0x122IsTheAcceptBox)
     EXPECT_TRUE(box.required);
 }
 
-// Q-C27: el MAP ausente no avisa; sin carpeta se alcanza el ATT fatal.
+// Q-C27: a missing MAP does not warn; without a folder the fatal ATT is reached.
 TEST(WorldTerrainTest, AMissingWorldNamesTheFatalAttributes)
 {
     const Client::Tests::TemporaryFolder empty("world-terrain");
@@ -100,8 +100,8 @@ class GoldenWorldTerrain : public Client::Tests::GoldenDataTest
 {
 };
 
-// El mundo del login, con el Data\ del repo: las capas, los atributos (la celda del personaje con el
-// bit 0x08, 06 § El terreno del login), las alturas por 3 y la luz.
+// The login world, with the repo's Data\: the layers, the attributes (the character's cell with the bit 0x08,
+// 06 § El terreno del login), the heights times 3 and the light.
 TEST_F(GoldenWorldTerrain, TheLoginWorldLoads)
 {
     const auto terrain = LoadWorldTerrain(m_dataRoot, Login);
@@ -112,7 +112,7 @@ TEST_F(GoldenWorldTerrain, TheLoginWorldLoads)
     ASSERT_NE(world.heights, nullptr);
     ASSERT_NE(world.lighting, nullptr);
     EXPECT_NE(world.attributes->cells[Client::Data::Terrain::CellIndex(106, 141)] & 0x08, 0);
-    // En la celda (0, 0) del mapa 55 el byte de la altura es 150: 450 por 3.
+    // On cell (0, 0) of map 55 the height byte is 150: 450 times 3.
     EXPECT_EQ(world.heights->cells[0], 450.0f);
 }
 } // namespace

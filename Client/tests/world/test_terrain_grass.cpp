@@ -26,9 +26,8 @@
 #include <string>
 #include <vector>
 
-// Client::Terrain::DrawGrassCell y DrawGrass con un terreno armado a mano: el pase del pasto de 0x5fac90
-// con 0x5fa830 y 0x7d0d31c en 2 (0x5fa9f6..0x5fac7b), recorrido como el terreno por 0x5fc190
-// (06 § El pasto).
+// Client::Terrain::DrawGrassCell and DrawGrass with a hand-built terrain: the grass pass of 0x5fac90 with 0x5fa830
+// and 0x7d0d31c at 2 (0x5fa9f6..0x5fac7b), walked like the terrain by 0x5fc190 (06 § El pasto).
 namespace
 {
 using Client::Data::Terrain::CellIndex;
@@ -51,11 +50,11 @@ using Client::Terrain::TerrainWater;
 
 constexpr std::uint8_t CellX = 7;
 constexpr std::uint8_t CellY = 9;
-// El corrimiento de la fila de la celda: la u arranca en 7 · 0,25 + 0,125.
+// The offset of the cell's row: the u starts at 7 · 0.25 + 0.125.
 constexpr float RowOffset = 0.125f;
 
-// Un terreno con la capa 1 en 0 (el slot 0x32), el alfa en 0, alturas y luces distintas en cada
-// celda, ningún atributo y las tres texturas del pasto con buffers de 64, 32 y 16 de alto.
+// A terrain with layer 1 at 0 (the slot 0x32), alpha at 0, different heights and lights on each cell, no attribute
+// and the three grass textures with buffers 64, 32 and 16 high.
 struct Terrain
 {
     std::unique_ptr<TerrainMapping> mapping = std::make_unique<TerrainMapping>();
@@ -88,8 +87,7 @@ struct Terrain
         grass.offsets = offsets;
     }
 
-    // Las cuatro esquinas de la celda, en el orden de 0x5fac90: (x, y), (x + 1, y), (x + 1, y + 1) y
-    // (x, y + 1).
+    // The four corners of the cell, in the order of 0x5fac90: (x, y), (x + 1, y), (x + 1, y + 1) and (x, y + 1).
     static std::array<std::size_t, 4> Corners(std::uint8_t x, std::uint8_t y)
     {
         const std::size_t first = CellIndex(x, y);
@@ -114,11 +112,10 @@ Drawn Draw(const Terrain& terrain, const TerrainWater& water = TerrainWater{})
     return drawn;
 }
 
-// Los seis vértices del quad, de sus cuatro: (0, 1, 2) y (0, 2, 3).
+// The six vertices of the quad, from its four: (0, 1, 2) and (0, 2, 3).
 constexpr std::array<std::size_t, 6> QuadCorners{0, 1, 2, 0, 2, 3};
 
-// La esquina `corner` del quad en el lote: las tres primeras abren el primer triángulo y la 3 cierra
-// el segundo.
+// Corner `corner` of the quad in the batch: the first three open the first triangle and 3 closes the second.
 const Client::Render::ModelVertex& QuadVertex(const ModelBatch& batch, std::size_t corner)
 {
     constexpr std::array<std::size_t, 4> Places{0, 1, 2, 5};
@@ -126,9 +123,9 @@ const Client::Render::ModelVertex& QuadVertex(const ModelBatch& batch, std::size
     return batch.Vertices()[command.firstVertex + Places[corner]];
 }
 
-// 0x5fab27..0x5fac6d: arriba sobre (x, y) y sobre (x + 1, y + 1), 50 menos en x y el doble del alto del
-// buffer más en z; abajo en (x + 1, y + 1) y en (x, y). La u, x · 0,25 más el corrimiento de la fila, y
-// la v de 0 arriba y 1 abajo. La luz de cada esquina en su orden, con alfa 1, y la mezcla de 0x620a00(1).
+// 0x5fab27..0x5fac6d: on top over (x, y) and over (x + 1, y + 1), 50 less in x and twice the buffer's height more
+// in z; at the bottom on (x + 1, y + 1) and on (x, y). The u is x · 0.25 plus the row's offset, and the v is 0 on
+// top and 1 at the bottom. The light of each corner in its order, with alpha 1, and the blend of 0x620a00(1).
 TEST(TerrainGrassTest, TheGrassIsAQuadStandingOnTheDiagonalOfTheCell)
 {
     const Terrain terrain;
@@ -155,13 +152,13 @@ TEST(TerrainGrassTest, TheGrassIsAQuadStandingOnTheDiagonalOfTheCell)
         const Client::Render::ModelVertex& vertex = drawn.batch.Vertices()[command.firstVertex + v];
         EXPECT_EQ(vertex.position, positions[corner]) << "vértice " << v;
         EXPECT_EQ(vertex.uv, uvs[corner]) << "vértice " << v;
-        // La luz va por esquina en orden, no por la posición: la del vértice 1 es la de (x + 1, y).
+        // The light goes by corner in order, not by position: that of vertex 1 is that of (x + 1, y).
         const auto& light = terrain.lighting->cells[cells[corner]];
         EXPECT_EQ(vertex.color, (Client::Render::Color{light[0], light[1], light[2], 1.0f})) << "vértice " << v;
     }
 }
 
-// 0x5faa8c: la capa 1 en k es el slot 0x32 + k, y el alto es el del buffer de esa textura.
+// 0x5faa8c: layer 1 at k is the slot 0x32 + k, and the height is that of the buffer of that texture.
 TEST(TerrainGrassTest, TheFirstLayerPicksTheGrassAndItsHeight)
 {
     Terrain terrain;
@@ -174,7 +171,7 @@ TEST(TerrainGrassTest, TheFirstLayerPicksTheGrassAndItsHeight)
     EXPECT_EQ(QuadVertex(drawn.batch, 0).position.z, terrain.heights->cells[cells[0]] + 32.0f);
 }
 
-// 0x5fa9f6..0x5faa73: una esquina con alfa por encima de 0 deja la celda sin pasto.
+// 0x5fa9f6..0x5faa73: a corner with alpha above 0 leaves the cell without grass.
 TEST(TerrainGrassTest, ACornerWithAlphaLeavesTheCellWithoutGrass)
 {
     for (std::size_t corner = 0; corner < 4; ++corner)
@@ -187,7 +184,7 @@ TEST(TerrainGrassTest, ACornerWithAlphaLeavesTheCellWithoutGrass)
     }
 }
 
-// 0x5facb6..0x5facce: el bit 0x08 de la esquina (x, y) esconde también el pasto.
+// 0x5facb6..0x5facce: the bit 0x08 of corner (x, y) hides the grass too.
 TEST(TerrainGrassTest, TheBit0x08HidesTheGrass)
 {
     Terrain terrain;
@@ -197,7 +194,7 @@ TEST(TerrainGrassTest, TheBit0x08HidesTheGrass)
     EXPECT_TRUE(drawn.batch.Commands().empty());
 }
 
-// 0x5faa79: los mapas 11 a 17 no dibujan el pasto.
+// 0x5faa79: maps 11 to 17 draw no grass.
 TEST(TerrainGrassTest, TheMaps11To17HaveNoGrass)
 {
     for (const int map : {10, 11, 14, 17, 18})
@@ -210,7 +207,7 @@ TEST(TerrainGrassTest, TheMaps11To17HaveNoGrass)
     }
 }
 
-// 0x5faaa3: la textura que no se subió (+0x34 en 0) deja la celda sin pasto, y no avisa.
+// 0x5faaa3: a texture that was not uploaded (+0x34 at 0) leaves the cell without grass, without a warning.
 TEST(TerrainGrassTest, AGrassThatWasNotUploadedIsSkipped)
 {
     Terrain terrain;
@@ -220,7 +217,7 @@ TEST(TerrainGrassTest, AGrassThatWasNotUploadedIsSkipped)
     EXPECT_TRUE(drawn.batch.Commands().empty());
 }
 
-// Del 0x35 al 0x40 (la capa 1 de 3 a 14) no los sube nadie y 0x6070a0 los suelta en cada carga.
+// Nobody uploads 0x35 to 0x40 (layer 1 from 3 to 14) and 0x6070a0 frees them on every load.
 TEST(TerrainGrassTest, TheSlotsAfterTheGrassAreEmpty)
 {
     for (const std::uint8_t layer : {std::uint8_t{3}, std::uint8_t{9}, std::uint8_t{14}})
@@ -233,8 +230,8 @@ TEST(TerrainGrassTest, TheSlotsAfterTheGrassAreEmpty)
     }
 }
 
-// Del 0x41 en adelante (la capa 1 de 15 o más) están las texturas que sube después 0x61a560 y las de
-// otras cargas, que MuRet no tiene: corta, no saltea.
+// From 0x41 on (layer 1 of 15 or more) are the textures 0x61a560 uploads later and those of other loads, which MuRet
+// does not have: it stops, it does not skip.
 TEST(TerrainGrassTest, ALayerThatReachesTheNextSlotsStops)
 {
     for (const std::uint8_t layer : {std::uint8_t{15}, std::uint8_t{255}})
@@ -248,7 +245,7 @@ TEST(TerrainGrassTest, ALayerThatReachesTheNextSlotsStops)
     }
 }
 
-// 0x5faad3: el pase lee el corrimiento de la fila; sin las 256 filas de 0x5f8300 corta.
+// 0x5faad3: the pass reads the row's offset; without the 256 rows of 0x5f8300 it stops.
 TEST(TerrainGrassTest, WithoutTheRowOffsetsTheGrassStops)
 {
     Terrain terrain;
@@ -259,7 +256,7 @@ TEST(TerrainGrassTest, WithoutTheRowOffsetsTheGrassStops)
     EXPECT_TRUE(drawn.batch.Commands().empty());
 }
 
-// 0x5fac90: el bit 0x40 fija la altura de la esquina, con y sin el alto del pasto encima.
+// 0x5fac90: the bit 0x40 fixes the height of the corner, with and without the grass's height on top.
 TEST(TerrainGrassTest, TheBit0x40FixesTheHeightOfTheGrassToo)
 {
     Terrain terrain;
@@ -271,8 +268,8 @@ TEST(TerrainGrassTest, TheBit0x40FixesTheHeightOfTheGrassToo)
     EXPECT_EQ(QuadVertex(drawn.batch, 3).position.z, 1201.0f);
 }
 
-// 0x5fab27..0x5fabbc (Q-C227): las de arriba suman en y la ola de la esquina 0 y la de la 1, aunque la
-// segunda está parada sobre la esquina 2; las de abajo no llevan ola.
+// 0x5fab27..0x5fabbc (Q-C227): the top ones add in y the wave of corner 0 and that of corner 1, even though the
+// second stands over corner 2; the bottom ones carry no wave.
 TEST(TerrainGrassTest, TheTopCornersTakeTheWavesOfTheFirstTwoCorners)
 {
     const Terrain terrain;
@@ -291,7 +288,7 @@ TEST(TerrainGrassTest, TheTopCornersTakeTheWavesOfTheFirstTwoCorners)
     EXPECT_EQ(QuadVertex(drawn.batch, 3).position.y, 900.0f);
 }
 
-// Las celdas de los pases del pasto, por su esquina de abajo (x, y).
+// The cells of the grass passes, by their bottom corner (x, y).
 std::vector<glm::ivec2> CellsOf(const ModelBatch& batch)
 {
     std::vector<glm::ivec2> cells;
@@ -299,7 +296,7 @@ std::vector<glm::ivec2> CellsOf(const ModelBatch& batch)
     {
         for (std::size_t first = 0; first < command.vertexCount; first += 6)
         {
-            // El vértice 5 es la esquina 3, abajo en (x, y).
+            // Vertex 5 is corner 3, at the bottom on (x, y).
             const glm::vec3 origin = batch.Vertices()[command.firstVertex + first + 5].position;
             cells.emplace_back(static_cast<int>(origin.x / 100.0f), static_cast<int>(origin.y / 100.0f));
         }
@@ -307,7 +304,7 @@ std::vector<glm::ivec2> CellsOf(const ModelBatch& batch)
     return cells;
 }
 
-// 0x5fc190 no mira 0x7d0d31c: el pasto va por los mismos bloques y celdas que el terreno.
+// 0x5fc190 does not look at 0x7d0d31c: the grass goes by the same blocks and cells as the terrain.
 TEST(TerrainGrassTest, TheGrassGoesByBlockAndThenByRow)
 {
     Terrain terrain;
@@ -327,7 +324,7 @@ TEST(TerrainGrassTest, TheGrassGoesByBlockAndThenByRow)
     EXPECT_EQ(cells[63], glm::ivec2(11, 19));
 }
 
-// El pase corta en la primera celda que corta, con lo dibujado antes en el lote.
+// The pass stops at the first cell that stops, with what was drawn before it in the batch.
 TEST(TerrainGrassTest, TheGrassStopsAtTheFirstCellThatStops)
 {
     Terrain terrain;

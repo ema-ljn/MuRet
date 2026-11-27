@@ -28,7 +28,7 @@ namespace
 using PickResult = Core::Expected<bool, std::string>;
 using PickStatus = Core::Expected<void, std::string>;
 
-// 06 § El rayo contra el terreno: constantes de 0x622430, 0x5fc190, 0x5fc0e0 y 0x59de49.
+// 06 § El rayo contra el terreno: constants of 0x622430, 0x5fc190, 0x5fc0e0 and 0x59de49.
 constexpr float InitialMaxT = std::bit_cast<float>(0x4B18967Fu);
 constexpr float CellsPerUnit = std::bit_cast<float>(0x3C23D70Au);
 constexpr int BlockSide = 4;
@@ -86,7 +86,7 @@ PickStatus Validate(const TerrainPickingState& state, const TerrainView& view, c
     return {};
 }
 
-// 0x622110 conserva -0; los min/max 0x622130/150 eligen primero/segundo en empate o unordered.
+// 0x622110 keeps -0; the min/max 0x622130/0x622150 pick the first/second on a tie or unordered.
 double BranchAbs(float value)
 {
     return value < 0.0f || std::isnan(value) ? -static_cast<double>(value) : static_cast<double>(value);
@@ -115,7 +115,7 @@ bool WithinBounds(const TerrainPickingSegment& segment, const glm::vec3& delta, 
         const double absY = BranchAbs(delta.y);
         omitted = absY == minimum || std::isnan(absY) ? 1 : 2;
     }
-    // Menor |delta|, prioridad x/y/z; órdenes y,z / z,x / x,y del ASM.
+    // Smallest |delta|, priority x/y/z; the ASM's orders y,z / z,x / x,y.
     for (int step = 1; step <= 2; ++step)
     {
         const int axis = (omitted + step) % 3;
@@ -145,7 +145,7 @@ double Edge(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b, int 
 
 bool Inside(const glm::vec3& point, const std::array<glm::vec3, 3>& triangle, const glm::vec3& normal)
 {
-    // 0x6226dc: prioridad x/y y umbral INCLUSIVO ±0,5, no argmax de la normal.
+    // 0x6226dc: priority x/y and an INCLUSIVE ±0.5 threshold, not the normal's argmax.
     const int axis = !(normal.x > -ProjectionThreshold && normal.x < ProjectionThreshold)
                          ? 0
                          : (!(normal.y > -ProjectionThreshold && normal.y < ProjectionThreshold) ? 1 : 2);
@@ -165,7 +165,7 @@ bool Inside(const glm::vec3& point, const std::array<glm::vec3, 3>& triangle, co
 
 bool Face(TerrainPickingState& state, const TerrainPickingSegment& segment, const std::array<glm::vec3, 3>& triangle)
 {
-    // En el dominio validado los dos anchos son positivos (~100) y nz > 0: FaceNormal tiene su largo.
+    // In the validated domain both widths are positive (~100) and nz > 0: FaceNormal has its length.
     const glm::vec3 normal = FaceNormal(triangle[0], triangle[1], triangle[2]);
     const glm::vec3 delta{F32(static_cast<double>(segment.end.x) - static_cast<double>(segment.origin.x)),
                           F32(static_cast<double>(segment.end.y) - static_cast<double>(segment.origin.y)),
@@ -216,7 +216,7 @@ Core::Expected<std::array<glm::vec3, 4>, std::string> Vertices(const TerrainView
         }
         heights[i] = height;
     }
-    // 0x5fac90 conserva X/Y en registros antes de los stores: no sumar 100 desde el float redondeado.
+    // 0x5fac90 keeps X/Y in registers before the stores: do not add 100 from the rounded float.
     const double x = static_cast<double>(xf) * static_cast<double>(TerrainCellSize);
     const double y = static_cast<double>(yf) * static_cast<double>(TerrainCellSize);
     std::array<glm::vec3, 4> vertices{{{F32(x), F32(y), heights[0]},
@@ -242,7 +242,7 @@ PickResult Cell(TerrainPickingState& state, const TerrainView& view, const Terra
         return Core::Unexpected(vertices.Error());
     }
     const auto& v = vertices.Value();
-    // Count=3 en ambos intentos; 023 sólo tras fallo de 012. Hidden0x08 no participa en picking.
+    // Count = 3 in both attempts; 023 only after 012 fails. Hidden 0x08 takes no part in picking.
     if (!Face(state, segment, {v[0], v[1], v[2]}) && !Face(state, segment, {v[0], v[2], v[3]}))
     {
         return false;
@@ -255,7 +255,7 @@ PickResult Cell(TerrainPickingState& state, const TerrainView& view, const Terra
 
 PickResult Retry(TerrainPickingState& state, const TerrainView& view, const TerrainPickingSegment& segment)
 {
-    // Hftol convierte Y antes de X; en el dominio acotado, trunc signed64 cabe en los índices.
+    // Hftol converts Y before X; in the bounded domain the signed64 trunc fits the indices.
     const auto yi = static_cast<int>(static_cast<std::int64_t>(state.selectedY));
     const auto xi = static_cast<int>(static_cast<std::int64_t>(state.selectedX));
     return Cell(state, view, segment, state.selectedX, state.selectedY, xi, yi);
@@ -325,8 +325,8 @@ PickStatus Pass(TerrainPickingState& state, const TerrainView& view, const Terra
 
 PickStatus PublishTarget(TerrainPickingTarget& target, const TerrainPickingState& state, const TerrainView& view)
 {
-    // Fuera del rayo del terreno cargado, no convertir un NaN/overflow a entero C++ (UB), ni
-    // atribuir al original un retorno ordinario de FISTP con excepciones cuyo mask no se comprobó.
+    // Outside the loaded terrain's ray, do not convert a NaN/overflow to a C++ integer (UB), or attribute to the
+    // original an ordinary FISTP return with exceptions whose mask was not checked.
     constexpr double Integer64Limit = 0x1p63;
     const auto fits = [](double product)
     { return std::isfinite(product) && product < Integer64Limit && product >= -Integer64Limit; };

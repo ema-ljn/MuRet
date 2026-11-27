@@ -14,8 +14,8 @@ namespace Client::Terrain
 {
 class ITerrainAttributeQuerySource;
 
-// 0x6ba110: el −0,01f de los dos fmul de 0x5f82c0. Es negativo: la fila y la columna salen negativas y
-// 0x7d0d348 − índice · 2 cae dentro de la tabla. Con +0,01 sólo la celda (0, 0) queda representada.
+// 0x6ba110: the −0.01f of the two fmul of 0x5f82c0. It is negative: the row and the column come out negative and
+// 0x7d0d348 − index · 2 falls inside the table. With +0.01 only cell (0, 0) would be represented.
 inline constexpr float TerrainAttributeQueryScale = std::bit_cast<float>(0xbc23d70au);
 
 enum class TerrainAttributeQueryError
@@ -23,13 +23,13 @@ enum class TerrainAttributeQueryError
     UnrepresentedAddress
 };
 
-// Proyección EAX/word de 0x5f82c0 (contrato cerrado): PC53/RN, invalid enmascarada.
-// Requiere binary32/binary64, RN del host, sin fast-math ni contracción; no reproduce
-// EDX, flags, status/traps ni otros PC/RC x87. No configura el entorno FP del proceso.
-// El error marca una dirección final fuera de la tabla prestada; no es una guarda nativa.
+// The EAX/word projection of 0x5f82c0 (a closed contract): PC53/RN, invalid masked. Requires binary32/binary64, the
+// host's RN, no fast-math and no contraction; it does not reproduce EDX, flags, status/traps or other x87 PC/RC. It
+// does not configure the process's FP environment. The error marks a final address outside the borrowed table; it is
+// not a native guard.
 [[nodiscard]] Core::Expected<std::uint32_t, TerrainAttributeQueryError>
 TerrainAttributeQueryAt(ITerrainAttributeQuerySource& source, float x, float y);
-// Consulta del mundo canónico con el factor de6ba110, sin proveedor mutable externo.
+// A query of the canonical world with the factor of 0x6ba110, without an external mutable provider.
 [[nodiscard]] Core::Expected<std::uint32_t, TerrainAttributeQueryError>
 TerrainAttributeQueryAt(const Data::Terrain::TerrainAttributes& attributes, float x, float y);
 } // namespace Client::Terrain

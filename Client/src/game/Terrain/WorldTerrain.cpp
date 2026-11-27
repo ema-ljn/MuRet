@@ -35,18 +35,18 @@ namespace Client::Terrain
 {
 namespace
 {
-// Los tiles de 0x61a560, en sus slots 0x23..0x30.
+// The tiles of 0x61a560, in their slots 0x23..0x30.
 constexpr std::array<std::string_view, 14> TileNames{
     "TileGrass01", "TileGrass02", "TileGround01", "TileGround02", "TileGround03", "TileWater01", "TileWood01",
     "TileRock01",  "TileRock02",  "TileRock03",   "TileRock04",   "TileRock05",   "TileRock06",  "TileRock07",
 };
 constexpr std::uint16_t FirstTile = 0x23;
-// Los nombres del pasto (0x6d1174, 0x6d1160 y 0x6d114c: "%s\\TileGrass0k.tga").
+// The grass names (0x6d1174, 0x6d1160 and 0x6d114c: "%s\\TileGrass0k.tga").
 constexpr std::array<std::string_view, GrassTextureCount> GrassNames{"TileGrass01", "TileGrass02", "TileGrass03"};
-// 0x63b870(…, 0x2600, 0x2901, …): GL_NEAREST y GL_REPEAT.
+// 0x63b870(…, 0x2600, 0x2901, …): GL_NEAREST and GL_REPEAT.
 constexpr Data::Textures::Sampling TileSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 
-// Los mapas que arman sus tiles en 0x4377a0: del 0x18 al 0x1d y el 0x24.
+// The maps that build their tiles in 0x4377a0: 0x18 to 0x1d and 0x24.
 bool HasOwnTiles(std::uint8_t map)
 {
     return (map >= 0x18 && map <= 0x1d) || map == 0x24;
@@ -65,7 +65,7 @@ enum class TerrainFileKind
     Light
 };
 
-// Distingue el fopen fallido del fread/parse inválido: sólo el primero pide "file not found".
+// Tells a failed fopen from an invalid fread/parse: only the first asks for "file not found".
 bool CannotOpen(const std::filesystem::path& dataRoot, const std::string& relative)
 {
     std::error_code error;
@@ -78,7 +78,7 @@ bool CannotOpen(const std::filesystem::path& dataRoot, const std::string& relati
 
 void RememberFatal(std::optional<std::string>& fatalMessage, std::string message)
 {
-    // WM_DESTROY ya fue pedido: ninguna carga posterior debe borrar ni reemplazar su aviso.
+    // WM_DESTROY was already requested: no later load may erase or replace its notice.
     if (!fatalMessage)
         fatalMessage = std::move(message);
 }
@@ -86,7 +86,7 @@ void RememberFatal(std::optional<std::string>& fatalMessage, std::string message
 void FileParseFailed(TerrainFileKind kind, const std::string& relative, Data::DataError error,
                      std::optional<std::string>& fatalMessage)
 {
-    // 61a65c/61a75d y 5f8588..5f8617. UnexpectedSize del ATT devuelve -1 sin aviso.
+    // 0x61a65c/0x61a75d and 0x5f8588..0x5f8617. The ATT's UnexpectedSize returns -1 without a notice.
     if (error == Data::DataError::WrongWorld)
         RememberFatal(fatalMessage, "Data\\" + relative + " file corrupted.");
     else if (kind == TerrainFileKind::Attributes && error == Data::DataError::InvalidData)
@@ -148,7 +148,7 @@ Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::
             -> Core::Expected<std::unique_ptr<Data::Terrain::TerrainAttributes>, Data::DataError>
         {
             auto decoded = Data::Terrain::LoadTerrainAttributes(bytes, world);
-            // 0x5f84fc devuelve −1 antes de escribir la tabla. 0x61a760 sigue al OBJ.
+            // 0x5f84fc returns −1 before writing the table. 0x61a760 goes on to the OBJ.
             if (reuseMappingForAttributes && !decoded.HasValue() && decoded.Error() == Data::DataError::UnexpectedSize)
                 return std::unique_ptr<Data::Terrain::TerrainAttributes>{};
             return decoded;
@@ -159,8 +159,8 @@ Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::
         terrain.attributes = std::move(attributes).Value();
     else if (!terrain.attributes)
         terrain.attributes = std::make_unique<Data::Terrain::TerrainAttributes>();
-    // Q-C27: el original continúa con defaults si el MAP no abre. MuRet llega al ATT fatal,
-    // pero si éste existe conserva el diagnóstico del MAP; nunca fabrica un terreno utilizable.
+    // Q-C27: the original goes on with defaults if the MAP does not open. MuRet reaches the fatal ATT, but if the ATT
+    // exists it keeps the MAP's diagnostic; it never fabricates a usable terrain.
     if (mappingCannotOpen)
         return Core::Unexpected(mapping.Error());
     return {};
@@ -189,7 +189,7 @@ Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem:
         terrain.rawLight = std::move(light).Value();
     else if (!terrain.rawLight)
         terrain.rawLight = std::make_unique<Data::Terrain::TerrainLight>();
-    // 0x5f8f40 sombrea la luz retenida con las alturas que se acaban de cargar.
+    // 0x5f8f40 shades the retained light with the heights just loaded.
     terrain.lighting = ShadeTerrainLight(*terrain.rawLight, *terrain.heights, map);
     if (lightCannotOpen)
         return Core::Unexpected(light.Error());
@@ -209,7 +209,8 @@ Core::Expected<void, std::string> ReloadWorldTerrainLight(const std::filesystem:
     auto light = LoadFile<Data::Terrain::TerrainLight>(dataRoot, relative, TerrainFileKind::Light, fatalMessage,
                                                        [](std::span<const std::byte> bytes)
                                                        { return Data::Terrain::LoadTerrainLight(bytes); });
-    // 0x5f8f4c: 0x5f8f40 no mira lo que devuelve 0x63b490; sin luz nueva queda la anterior, sombreada otra vez igual.
+    // 0x5f8f4c: 0x5f8f40 does not check what 0x63b490 returns; without a new light the previous one stays, shaded the
+    // same again.
     if (!light.HasValue())
     {
         if (terrain.rawLight)
@@ -230,7 +231,7 @@ Core::Expected<void, std::string> ReloadWorldTerrainAttributes(const std::filesy
     auto attributes = LoadFile<Data::Terrain::TerrainAttributes>(
         dataRoot, relative, TerrainFileKind::Attributes, fatalMessage,
         [](std::span<const std::byte> bytes) { return Data::Terrain::LoadTerrainAttributesOfAnyWorld(bytes); });
-    // 0x42ffe8: el BD 00 no mira lo que devuelve 0x5f8390; los avisos fatales ya quedaron.
+    // 0x42ffe8: BD 00 does not check what 0x5f8390 returns; the fatal notices already stand.
     if (!attributes.HasValue())
         return {};
     terrain.attributes = std::move(attributes).Value();
@@ -256,7 +257,7 @@ LoadWorldObjects(const std::filesystem::path& dataRoot, std::uint8_t map, std::o
     const Core::Expected<std::vector<char>, std::string> file = ReadWorldFile(dataRoot, relative);
     if (!file.HasValue())
     {
-        // 607395..6073ca: el OBJ ausente también avisa antes de WM_DESTROY.
+        // 0x607395..0x6073ca: a missing OBJ also warns before WM_DESTROY.
         if (fatalMessage && CannotOpen(dataRoot, relative))
             RememberFatal(*fatalMessage, "Data\\" + relative + " file not found.");
         return Core::Unexpected(file.Error());
@@ -299,7 +300,7 @@ std::vector<WorldTileTexture> WorldGrassTextures(std::uint8_t map)
     const std::string folder = Maps::WorldFolder(map) + "\\";
     for (std::size_t texture = 0; texture < GrassNames.size(); ++texture)
     {
-        // 0x63bd00(…, 0x32 + k, 0x2600, 0x2901, 0, 0): el sexto argumento en 0, no avisa.
+        // 0x63bd00(…, 0x32 + k, 0x2600, 0x2901, 0, 0): the sixth argument at 0, it does not warn.
         grass.push_back(WorldTileTexture{.path = folder + std::string(GrassNames[texture]) + ".tga",
                                          .slot = static_cast<std::uint16_t>(FirstGrassSlot + texture),
                                          .sampling = TileSampling,
@@ -312,8 +313,8 @@ std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map)
 {
     if (HasOwnTiles(map))
         return {};
-    // 61ac64/61ac92 cargan primero la TGA y después la JPG sobre el MISMO slot64.
-    // Todos llevan sexto argumento0: faltar o fallar al leer no elimina la alternativa anterior.
+    // 0x61ac64/0x61ac92 load the TGA first and then the JPG into the SAME slot 0x64. All take a sixth argument of 0:
+    // missing or failing to read does not remove the earlier alternative.
     constexpr Data::Textures::Sampling sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
     constexpr std::uint8_t CrywolfMap = Maps::CrywolfMap;
     const std::string folder = Maps::WorldFolder(map) + "\\";
@@ -345,8 +346,8 @@ WorldTileTexture DropTexture()
 
 std::vector<WorldTileTexture> CausticTextures(std::uint8_t /*map*/)
 {
-    // 0x617753..0x617788 en 7; 0x618dd1..0x618e29 en los demás, una sola vez y en el mismo orden.
-    // El caller 0x61a560 recibe el mapa byte de la red o 54/55 desde la escena, nunca el sentinel DWORD −1.
+    // 0x617753..0x617788 on map 7; 0x618dd1..0x618e29 on the others, only once and in the same order. The caller
+    // 0x61a560 receives the network's byte map or 54/55 from the scene, never the DWORD sentinel −1.
     constexpr std::uint16_t Count = 32;
     constexpr std::uint16_t FirstSlot = 65;
     constexpr Data::Textures::Sampling Sampling{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};

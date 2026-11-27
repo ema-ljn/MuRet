@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 
-// 06 § Después de los objetos, P-C55 (b): contratos estáticos de 0x52dc20 y 0x53d2c0,
-// build c32bbd5f. Pruebas de la reimplementación, sin ejecutar el binario original.
+// 06 § Después de los objetos, P-C55 (b): static contracts of 0x52dc20 and 0x53d2c0, build c32bbd5f. Tests of the
+// reimplementation, without running the original binary.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -41,7 +41,7 @@ using Client::World::ModelEffect;
 constexpr std::size_t RingVertices = 12u * 6u;
 constexpr std::size_t BothRings = 2u * RingVertices;
 
-// La geometría sigue en dos tramos; los perfiles intermedios se acreditan aparte como operaciones.
+// The geometry still comes in two spans; the intermediate profiles are proven separately as operations.
 std::vector<Client::Render::ModelDrawCommand> GeometryCommands(const ModelBatch& batch)
 {
     std::vector<Client::Render::ModelDrawCommand> commands;
@@ -117,7 +117,7 @@ TEST(GroundEffectDrawingTest, ArrivalDrawsTwoWhiteToBlackRingsBeforeTheTerrainDe
     EXPECT_EQ(effect.life, 19);
 }
 
-// 0x5fc9c0 es la transpuesta de AngleMatrix: el primer giro es horario.
+// 0x5fc9c0 is AngleMatrix's transpose: the first turn is clockwise.
 TEST(GroundEffectDrawingTest, ArrivalTruncatesTheClockAndTurnsItsRingsInOppositeDirections)
 {
     const auto heights = std::make_unique<TerrainHeights>();
@@ -234,7 +234,7 @@ TEST(GroundEffectDrawingTest, Type5deUsesItsExtraRandomExceptWithSubtypeThree)
     const Drawn drawn = Draw(effect, *heights, random);
     ASSERT_FALSE(drawn.error.has_value()) << *drawn.error;
     ASSERT_EQ(drawn.batch.Vertices().size(), 49u * 6u);
-    // 9 por el float de 0x6b87b8, un ULP por arriba del literal 0,9f.
+    // 9 times the float of 0x6b87b8, one ULP above the literal 0.9f.
     constexpr float Light = std::bit_cast<float>(0x3f666667u);
     EXPECT_EQ(drawn.batch.Vertices()[0].color, (Color{Light, Light, Light, 1.0f}));
     EXPECT_EQ(random.State(), expected.State());
@@ -294,7 +294,7 @@ TEST(GroundEffectDrawingTest, Type61eStopsWithoutAnOwnerOrAColorAndHidesItsSpawn
         const char* address;
     };
     const auto heights = std::make_unique<TerrainHeights>();
-    // El /7 sin un personaje de dueño (0x52ded0) y un subtipo sin color (0x52dfdc, la luz local de antes).
+    // /7 without a character as owner (0x52ded0) and a subtype without color (0x52dfdc, the earlier local light).
     for (const Probe& probe : {Probe{7, 10, "0x52ded0"}, Probe{11, 10, "0x52dfdc"}})
     {
         ModelEffect effect = Effect(0x61e);
@@ -319,8 +319,8 @@ TEST(GroundEffectDrawingTest, Type61eStopsWithoutAnOwnerOrAColorAndHidesItsSpawn
     }
 }
 
-// 0x52e010..0x52e0a2: el /6 cada 25 vidas suelta un 0x61e/7 (su rand() % 360) y el /8 en las vidas pares un /9 (sin
-// rand()), en el primer lugar libre de la tabla del pase, con su posición, sus ángulos, su luz y su dueño. Llena, nada.
+// 0x52e010..0x52e0a2: /6 every 25 lives sheds a 0x61e/7 (its rand() % 360) and /8 on even lives a /9 (without rand()),
+// in the first free place of the pass's table, with their position, angles, light and owner. Full, nothing.
 TEST(GroundEffectDrawingTest, Type61eSpawnersDropTheirChildIntoThePassTable)
 {
     const auto heights = std::make_unique<TerrainHeights>();
@@ -377,8 +377,8 @@ TEST(GroundEffectDrawingTest, Type61eSpawnersDropTheirChildIntoThePassTable)
     }
 }
 
-// 0x52ddf0..0x52df00 y 0x52dfa0: el /7 se pone en la posición de su dueño y gira 10 más en cada dibujo; con más de 30
-// de vida, la luz (40 − vida) · 0,1f; el lado vida · 0,07f y el color (0,9; 0,4; 0,2) por la luz.
+// 0x52ddf0..0x52df00 and 0x52dfa0: /7 moves to its owner's position and turns 10 more on each drawing; above 30 life,
+// the light is (40 − life) · 0.1f; the side life · 0.07f and the color (0.9, 0.4, 0.2) times the light.
 TEST(GroundEffectDrawingTest, Type61eChildFollowsItsOwnerAndTurns)
 {
     const auto heights = std::make_unique<TerrainHeights>();
@@ -429,7 +429,7 @@ TEST(GroundEffectDrawingTest, Type61ePulsesSubtypeFourAndTenWithTheStoredScale)
         ASSERT_FALSE(drawn.error.has_value()) << *drawn.error;
         ASSERT_EQ(drawn.batch.Vertices().size(), 49u * 6u);
         const Color& color = drawn.batch.Vertices()[0].color;
-        // sin(50 * f32(0,05)) + 0,5; productos antes de guardar la luz en float.
+        // sin(50 * f32(0.05)) + 0.5; products before storing the light as float.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(color.red), subtype == 4 ? 0x3f8c9abcu : 0x3de0f793u);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(color.green), 0x3f0c9abcu);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(color.blue), subtype == 4 ? 0x3de0f793u : 0x3f8c9abcu);

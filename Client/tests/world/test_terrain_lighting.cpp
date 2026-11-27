@@ -19,9 +19,9 @@
 #include <memory>
 #include <string>
 
-// Client::Terrain::ShadeTerrainLight y LightAt, con alturas y luces armadas a mano: la sombra de una
-// celda sale de las alturas de sus vecinas (0x5f8b10 y 0x5f8d90), y la luz en un punto, de las cuatro
-// celdas de alrededor (0x5f99e0).
+// Client::Terrain::ShadeTerrainLight and LightAt, with hand-built heights and lights: a cell's shade comes from the
+// heights of its neighbors (0x5f8b10 and 0x5f8d90), and the light at a point from the four cells around it
+// (0x5f99e0).
 namespace
 {
 using Client::Data::Terrain::CellIndex;
@@ -61,13 +61,13 @@ std::unique_ptr<TerrainLight> EvenLight()
     return light;
 }
 
-// La sombra que quedó en la celda (x, y): la luz de la celda sobre la de base, en el rojo.
+// The shade left on cell (x, y): the cell's light over the base one, in the red.
 float ShadeAt(const TerrainLighting& lighting, std::uint8_t x, std::uint8_t y)
 {
     return lighting.cells[CellIndex(x, y)][0] / Base[0];
 }
 
-// Sin pendiente, la normal es (0, 0, 1) y la sombra 0,5 + 0,5: la luz queda como está.
+// Without a slope, the normal is (0, 0, 1) and the shade 0.5 + 0.5: the light stays as it is.
 TEST(TerrainLightingTest, AFlatTerrainKeepsItsLight)
 {
     const auto lighting =
@@ -80,8 +80,8 @@ TEST(TerrainLightingTest, AFlatTerrainKeepsItsLight)
     }
 }
 
-// Las alturas que suben 100 por celda en x: la normal es (−1, 0, 1) / √2, y la sombra 0,5. Cada
-// canal va por ella.
+// Heights that rise 100 per cell in x: the normal is (−1, 0, 1) / √2, and the shade 0.5. Each channel is
+// multiplied by it.
 TEST(TerrainLightingTest, ASlopeInXShadesHalf)
 {
     const auto lighting = ShadeTerrainLight(
@@ -91,8 +91,8 @@ TEST(TerrainLightingTest, ASlopeInXShadesHalf)
     EXPECT_NEAR(lighting->cells[CellIndex(10, 20)][2], Base[2] * 0.5f, Rounding);
 }
 
-// En y la cuenta da −0,5 · n.y: la pendiente que sube hacia +y da 1,207 y queda en 1, y la que baja,
-// 0,5.
+// In y the arithmetic gives −0.5 · n.y: the slope rising toward +y gives 1.207 and stays at 1, and the falling one,
+// 0.5.
 TEST(TerrainLightingTest, TheShadeGoesFromZeroToOne)
 {
     const auto up = ShadeTerrainLight(
@@ -101,7 +101,7 @@ TEST(TerrainLightingTest, TheShadeGoesFromZeroToOne)
     const auto down = ShadeTerrainLight(
         *EvenLight(), *HeightsOf([](std::size_t, std::size_t y) { return -100.0f * static_cast<float>(y); }), Lorencia);
     EXPECT_NEAR(ShadeAt(*down, 30, 40), 0.5f, Rounding);
-    // Con x − y por 1000, la normal va a (−1, 1, 0,1) y la cuenta da −0,17: queda en 0.
+    // With x − y times 1000, the normal goes to (−1, 1, 0.1) and the arithmetic gives −0.17: it stays at 0.
     const auto steep =
         ShadeTerrainLight(*EvenLight(),
                           *HeightsOf([](std::size_t x, std::size_t y)
@@ -110,7 +110,7 @@ TEST(TerrainLightingTest, TheShadeGoesFromZeroToOne)
     EXPECT_FLOAT_EQ(ShadeAt(*steep, 30, 40), 0.0f);
 }
 
-// El mapa 30 sombrea con −1 y 1: la pendiente en x da 0,5 · (−0,707) + 0,707 + 0,5 = 0,854.
+// Map 30 shades with −1 and 1: the slope in x gives 0.5 · (−0.707) + 0.707 + 0.5 = 0.854.
 TEST(TerrainLightingTest, MapThirtyShadesBrighter)
 {
     const auto heights = HeightsOf([](std::size_t x, std::size_t) { return 100.0f * static_cast<float>(x); });
@@ -119,7 +119,7 @@ TEST(TerrainLightingTest, MapThirtyShadesBrighter)
     EXPECT_NEAR(ShadeAt(*lighting, 10, 20), expected, Rounding);
 }
 
-// Un terreno en 0 salvo las tres alturas que usa la celda (10, 20): las de (11, 20), (11, 21) y (10, 21).
+// A terrain at 0 except the three heights cell (10, 20) uses: those of (11, 20), (11, 21) and (10, 21).
 std::unique_ptr<TerrainHeights> CornersOfTenTwenty(float right, float topRight, float top)
 {
     return HeightsOf(
@@ -143,11 +143,10 @@ std::array<std::uint32_t, 3> BitsOf(const TerrainLightColor& light)
             std::bit_cast<std::uint32_t>(light[2])};
 }
 
-// Los bits del perfil del ASM (Client/docs/research/scripts/game/maps/terrain_light.py): la normal de
-// 0x5fd000, la sombra de 0x5f8d90 en su orden y en 53 bits, y cada producto redondeado a 53 bits y
-// después a float. Con la normal en float (glm::cross y glm::length), con la sombra en float, o con la
-// sombra guardada en float antes de los productos, los tres canales darían otros bits; en el mapa 0,
-// 0x3ee01e7a, 0x3ea816dc y 0x3e601e7a.
+// The bits of the ASM profile (Client/docs/research/scripts/game/maps/terrain_light.py): the normal of 0x5fd000,
+// the shade of 0x5f8d90 in its order and in 53 bits, and each product rounded to 53 bits and then to float. With the
+// normal in float (glm::cross and glm::length), with the shade in float, or with the shade stored as float before
+// the products, the three channels would give other bits; on map 0, 0x3ee01e7a, 0x3ea816dc and 0x3e601e7a.
 TEST(TerrainLightingTest, AShadedCellKeepsTheBitsOfTheAsmProfile)
 {
     const auto lighting = ShadeTerrainLight(*EvenLight(), *CornersOfTenTwenty(345.0f, 279.0f, 256.5f), Lorencia);
@@ -158,10 +157,10 @@ TEST(TerrainLightingTest, AShadedCellKeepsTheBitsOfTheAsmProfile)
               (std::array<std::uint32_t, 3>{0x3e326fd9U, 0x3e05d3e3U, 0x3db26fd9U}));
 }
 
-// La columna 255 busca la altura de la x + 1 en un byte, la 0, pero la posición sigue en 25.600: con
-// las alturas que bajan 100 por celda en x, la de al lado sube 25.500 en 100 unidades, la normal se va
-// casi a −x y la sombra a 0,002. Con la altura de la 255, la celda sería plana, y la sombra 1. Lo
-// mismo en la fila 255 con las que suben en y.
+// Column 255 looks up the height of x + 1 in a byte, column 0, but the position stays at 25,600: with heights that
+// drop 100 per cell in x, the neighbor rises 25,500 in 100 units, the normal goes almost to −x and the shade to
+// 0.002. With the height of column 255 the cell would be flat, and the shade 1. The same on row 255 with heights
+// that rise in y.
 TEST(TerrainLightingTest, TheLastColumnAndRowTakeTheHeightsOfTheFirst)
 {
     const float wrapped = (-0.5f * 2550000.0f / std::sqrt((2550000.0f * 2550000.0f) + (10000.0f * 10000.0f))) +
@@ -190,7 +189,7 @@ std::unique_ptr<TerrainLighting> LightingOf(const std::function<float(std::size_
     return lighting;
 }
 
-// Entre las cuatro celdas: con la luz x + 10 · y en el rojo, en (150, 250) da 1,5 + 25.
+// Between the four cells: with the light x + 10 · y in the red, (150, 250) gives 1.5 + 25.
 TEST(TerrainLightingTest, TheLightAtAPointIsBetweenItsFourCells)
 {
     const auto lighting = LightingOf([](std::size_t x, std::size_t y)
@@ -199,13 +198,13 @@ TEST(TerrainLightingTest, TheLightAtAPointIsBetweenItsFourCells)
     EXPECT_NEAR(light.x, 26.5f, Rounding);
     EXPECT_NEAR(light.y, 13.25f, Rounding);
     EXPECT_FLOAT_EQ(light.z, 0.0f);
-    // Con otro valor en cada celda, el bilineal no es el plano: (1, 1) en 1 y las demás en 0.
+    // With a different value on each cell, the bilinear is not the plane: (1, 1) at 1 and the rest at 0.
     const auto peak = LightingOf([](std::size_t x, std::size_t y) { return x == 1 && y == 1 ? 1.0f : 0.0f; });
     EXPECT_NEAR(LightAt(*peak, 125.0f, 175.0f).x, 0.25f * 0.75f, Rounding);
 }
 
-// En la banda ordinaria, sin reducción low32: −100 exacto se rechaza; entre −100 y 0
-// la celda es 0 y extrapola.
+// In the ordinary band, without the low32 reduction: exactly −100 is rejected; between −100 and 0 the cell is 0
+// and it extrapolates.
 TEST(TerrainLightingTest, OutsideTheGridThereIsNoLight)
 {
     const auto lighting = LightingOf([](std::size_t x, std::size_t) { return 1.0f + static_cast<float>(x); });
@@ -216,17 +215,17 @@ TEST(TerrainLightingTest, OutsideTheGridThereIsNoLight)
     EXPECT_NEAR(LightAt(*lighting, 25499.0f, 500.0f).x, 255.99f, 1e-3f);
     EXPECT_NEAR(LightAt(*lighting, -50.0f, 500.0f).x, 0.5f, Rounding);
 }
-// Vectores analíticos del contrato 5f99e0 bajo el perfil portable enmascarado/PC53/RN,
-// con tabla estable: no son capturas nuevas del original ni fijan su CW efectivo.
+// Analytic vectors of the 0x5f99e0 contract under the masked portable PC53/RN profile, with a stable table: they
+// are not new captures of the original and do not pin its effective CW.
 TEST(TerrainLightingTest, LargeFiniteCoordinatesUseSigned64Low32OnBothAxes)
 {
     const auto lighting = LightingOf([](std::size_t x, std::size_t y)
                                      { return 1.0f + static_cast<float>(x) + (2.0f * static_cast<float>(y)); });
-    // Tras el store F32, ±100·2^32 pasa a ±2^32: FTOL64 válido, low32=0.
+    // After the F32 store, ±100·2^32 becomes ±2^32: a valid FTOL64, low32=0.
     constexpr float LargeCoordinate = 0x1.9p38f;
-    // Con V(x,y)=1+x+2·y, los pesos siguen siendo ±2^32, no su parte fraccionaria.
-    // En PC53 queda ±2^32+1 en X, ±2^33+1 en Y y ±3·2^32+1 en la diagonal;
-    // el store F32 pierde el +1 en los tres casos.
+    // With V(x,y)=1+x+2·y, the weights stay ±2^32, not their fractional part.
+    // In PC53 that leaves ±2^32+1 in X, ±2^33+1 in Y and ±3·2^32+1 on the diagonal;
+    // the F32 store loses the +1 in all three.
     for (const float sign : {1.0f, -1.0f})
     {
         const float coordinate = sign * LargeCoordinate;
@@ -246,11 +245,11 @@ TEST(TerrainLightingTest, Signed64BoundaryCoordinatesContinueWithLow32Zero)
 {
     const auto lighting = LightingOf([](std::size_t x, std::size_t y)
                                      { return 1.0f + static_cast<float>(x) + (2.0f * static_cast<float>(y)); });
-    // El store da ±2^63: −2^63 es válido; +2^63 es invalid enmascarada. Ambos low32 son 0.
+    // The store gives ±2^63: −2^63 is valid; +2^63 is a masked invalid. Both low32 are 0.
     constexpr float BoundaryCoordinate = 0x1.9p69f;
-    // Con V(x,y)=1+x+2·y, X solo da ±2^63 y Y solo ±2^64 tras redondear.
-    // En la diagonal PC53 redondea L=±2^64+1 y R=±2^64+2 al mismo ±2^64:
-    // R−L=0, así que el resultado no es ±3·2^63. El verde es la mitad.
+    // With V(x,y)=1+x+2·y, X alone gives ±2^63 and Y alone ±2^64 after rounding.
+    // On the diagonal PC53 rounds L=±2^64+1 and R=±2^64+2 to the same ±2^64:
+    // R−L=0, so the result is not ±3·2^63. Green is half of it.
     for (const float sign : {1.0f, -1.0f})
     {
         const float coordinate = sign * BoundaryCoordinate;
@@ -293,12 +292,12 @@ TEST(TerrainLightingTest, MaskedInvalidCoordinatesInterpolateInsteadOfReturningZ
     {
         for (const glm::vec3 light : {LightAt(*lighting, coordinate, 0.0f), LightAt(*lighting, 0.0f, coordinate)})
         {
-            // No se fija signo/payload de NaN: 0 por un peso no finito sigue hasta interpolar.
+            // The NaN's sign and payload are not pinned: 0 times a non-finite weight carries on to the interpolation.
             EXPECT_TRUE(std::isnan(light.x));
             EXPECT_TRUE(std::isnan(light.y));
             EXPECT_TRUE(std::isnan(light.z));
         }
-        // El otro eje sí rechaza: low32=0 no saltea las cuatro guardas espaciales.
+        // The other axis does reject: low32=0 does not skip the four spatial guards.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, coordinate, -100.0f).x), 0U);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, 25500.0f, coordinate).x), 0U);
     }
@@ -307,7 +306,7 @@ TEST(TerrainLightingTest, MaskedInvalidCoordinatesInterpolateInsteadOfReturningZ
 TEST(TerrainLightingTest, BothScaledCoordinatesAreStoredAsFloatBeforeConversion)
 {
     const auto lighting = LightingOf([](std::size_t x, std::size_t y) { return x == 1 && y == 1 ? 0.0f : 1.0f; });
-    // 100·K en double es menor que 1; el store F32 da 1 exacto en ambos ejes.
+    // 100·K in double is below 1; the F32 store gives exactly 1 on both axes.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, 100.0f, 100.0f).x), 0U);
 }
 
@@ -318,15 +317,14 @@ TEST(TerrainLightingTest, Pc53ColumnsRetainTheBitUntilTheFinalFloatStore)
     lighting->cells[CellIndex(0, 0)].fill(std::bit_cast<float>(0x3f000000U));
     lighting->cells[CellIndex(0, 1)].fill(std::bit_cast<float>(0x3f000001U));
     // X=1/4, Y=1/2; L=1/2+2^-25, R=0; store(3/8+3·2^-27) = 0x3ec00001.
-    // Redondear L a F32 antes de interpolar X perdería el bit: 0x3ec00000.
+    // Rounding L to F32 before interpolating X would lose the bit: 0x3ec00000.
     const glm::vec3 light = LightAt(*lighting, 25.0f, 50.0f);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0x3ec00001U);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0x3ec00001U);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light.z), 0x3ec00001U);
 }
 
-// Sin la carpeta del mundo, el error nombra el primer archivo que falta, en la carpeta del mapa (el 55
-// es World56).
+// Without the world's folder, the error names the first missing file, in the map's folder (map 55 is World56).
 TEST(TerrainLightingTest, LoadingAWorldWithoutItsFilesNamesWhatIsMissing)
 {
     const Client::Tests::TemporaryFolder folder("terrain-lighting");
@@ -335,7 +333,7 @@ TEST(TerrainLightingTest, LoadingAWorldWithoutItsFilesNamesWhatIsMissing)
     EXPECT_NE(loaded.Error().find("World56\\TerrainHeight.OZB"), std::string::npos) << loaded.Error();
 }
 
-// Detecta perder el +3 inclusivo, recortar al borde o resetear la tabla completa.
+// Catches losing the inclusive +3, clipping at the edge or resetting the whole table.
 TEST(TerrainLightingTest, CopiesOnlyTheInclusiveWrappedWindow)
 {
     const auto source = std::make_unique<TerrainLighting>();
@@ -356,8 +354,8 @@ TEST(TerrainLightingTest, CopiesOnlyTheInclusiveWrappedWindow)
     EXPECT_EQ(destination->cells[CellIndex(100, 100)], (TerrainLightColor{7.0f, 8.0f, 9.0f}));
 }
 
-// Observa el wrap y los bits copiados. Recopiar índices ya visitados es idempotente, así que el
-// estado final no distingue recorrer la ventana completa de limitarla a 256 columnas contiguas.
+// Observes the wrap and the copied bits. Copying already visited indices again is idempotent, so the final state does
+// not tell walking the whole window from limiting it to 256 contiguous columns.
 TEST(TerrainLightingTest, CopiesRepeatedWrapsAndPreservesNanPayloadsAndSignedZero)
 {
     const auto source = std::make_unique<TerrainLighting>();
@@ -376,7 +374,7 @@ TEST(TerrainLightingTest, CopiesRepeatedWrapsAndPreservesNanPayloadsAndSignedZer
     EXPECT_EQ(std::bit_cast<std::uint32_t>(copied[1]), 0x80000000u);
 }
 
-// Una ventana vacía no modifica el destino (el bloque escalar de 0x5fbf60 queda fuera de esta API).
+// An empty window leaves the destination untouched (the scalar block of 0x5fbf60 is outside this API).
 TEST(TerrainLightingTest, AnEmptyLightWindowPreservesTheDestination)
 {
     const auto source = std::make_unique<TerrainLighting>();
@@ -384,15 +382,15 @@ TEST(TerrainLightingTest, AnEmptyLightWindowPreservesTheDestination)
     destination->cells.fill({1.0f, 2.0f, 3.0f});
     CopyTerrainLightWindow(*source, *destination, 5, 1, 0, 0);
     CopyTerrainLightWindow(*source, *destination, 0, 0, 5, 1);
-    // Normalizar los extremos invertidos también dejaría (0,0) intacta: se observa toda la tabla.
+    // Normalizing the inverted endpoints would also leave (0,0) untouched: the whole table is observed.
     for (const TerrainLightColor& cell : destination->cells)
     {
         ASSERT_EQ(cell, (TerrainLightColor{1.0f, 2.0f, 3.0f}));
     }
 }
 
-// first > last todavía copia cuando alcanza la cola +3. Cada celda tiene un color distinto;
-// salir antes por extremos invertidos, normalizarlos o escribir fuera de la ventana debe fallar.
+// first > last still copies when it reaches the +3 tail. Each cell has a different color; returning early on
+// inverted endpoints, normalizing them or writing outside the window must fail.
 TEST(TerrainLightingTest, CopiesTheRemainingTailWhenWindowEndpointsAreInverted)
 {
     const auto source = std::make_unique<TerrainLighting>();
@@ -424,8 +422,8 @@ TEST(TerrainLightingTest, CopiesTheRemainingTailWhenWindowEndpointsAreInverted)
     }
 }
 
-// Pesos exactos: centro 1, cardinal a distancia 1 de radio 2 = 1/2, borde = 0.
-// Detecta otro radio fijo, techo en 1, falta del piso y suma fuera del círculo.
+// Exact weights: center 1, cardinal at distance 1 with radius 2 = 1/2, edge = 0.
+// Catches another fixed radius, a ceiling at 1, a missing floor and a sum outside the circle.
 TEST(TerrainLightingTest, AddsRadialLightWithoutAnUpperClamp)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -434,14 +432,14 @@ TEST(TerrainLightingTest, AddsRadialLightWithoutAnUpperClamp)
     EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{2.25f, 0.0f, 0.75f}));
     EXPECT_EQ(destination->cells[CellIndex(11, 10)], (TerrainLightColor{1.25f, 0.0f, 0.5f}));
     EXPECT_EQ(destination->cells[CellIndex(10, 9)], (TerrainLightColor{1.25f, 0.0f, 0.5f}));
-    // Diagonal: peso F32((2 - sqrt(2)) / 2) = 0x3e95f61a. Con 2 y base 1/4: 0x3f55f61a.
+    // Diagonal: weight F32((2 - sqrt(2)) / 2) = 0x3e95f61a. With 2 and a base of 1/4: 0x3f55f61a.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0x3f55f61au);
     EXPECT_EQ(destination->cells[CellIndex(12, 10)], (TerrainLightColor{0.25f, 0.25f, 0.25f}));
     EXPECT_EQ(destination->cells[CellIndex(12, 12)], (TerrainLightColor{0.25f, 0.25f, 0.25f}));
 }
 
-// En el borde exacto el peso ancho es cero y no hay store ni piso: un destino negativo sobrevive.
-// Procesar también ese cero cambiaría el rojo a +0, aunque el aporte de luz fuera cero.
+// On the exact edge the wide weight is zero and there is no store or floor: a negative destination survives.
+// Processing that zero too would turn the red into +0, even though the light it adds is zero.
 TEST(TerrainLightingTest, SkipsZeroWeightBoundaryCellsWithoutClampingTheirDestination)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -450,7 +448,7 @@ TEST(TerrainLightingTest, SkipsZeroWeightBoundaryCellsWithoutClampingTheirDestin
     EXPECT_EQ(destination->cells[CellIndex(12, 10)], (TerrainLightColor{-1.0f, -2.0f, -3.0f}));
 }
 
-// 100 * float(0,01) queda justo en 1 después del store F32. La distancia usa ese valor almacenado.
+// 100 * float(0.01) lands exactly on 1 after the F32 store. The distance uses that stored value.
 TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTheDistanceCalculation)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -462,8 +460,8 @@ TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTheDistanceCalculation)
     EXPECT_EQ(destination->cells[CellIndex(255, 0)], (TerrainLightColor{2.0f, 2.5f, 3.0f}));
 }
 
-// 005f97f6..005f97ff resta la coordenada de celda al X escalado float32, sin perder su fracción.
-// Centro X=10,5, radio 2: distancias 0,5 y 1,5 dan pesos exactos 3/4 y 1/4.
+// 0x5f97f6..0x5f97ff subtracts the cell coordinate from the scaled float32 X without losing its fraction.
+// Center X=10.5, radius 2: distances 0.5 and 1.5 give exact weights 3/4 and 1/4.
 TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalX)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -475,7 +473,7 @@ TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalX)
     EXPECT_EQ(destination->cells[CellIndex(8, 20)], TerrainLightColor{});
 }
 
-// 005f97ed..005f97f4 conserva también la fracción Y. El wrap afecta el índice, no la distancia.
+// 0x5f97ed..0x5f97f4 keeps the Y fraction too. The wrap affects the index, not the distance.
 TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalNegativeY)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -487,8 +485,8 @@ TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalNegativeY)
     EXPECT_EQ(destination->cells[CellIndex(10, 248)], TerrainLightColor{});
 }
 
-// sx = 10401874 * 2^-25; hacia x=-1, dx = 43956306 * 2^-25 requiere más de 24 bits.
-// Radio 2: el peso exacto es 11576279 * 2^-25. Una resta F32 daría 0x3eb0a3d8.
+// sx = 10401874 * 2^-25; toward x=-1, dx = 43956306 * 2^-25 needs more than 24 bits.
+// Radius 2: the exact weight is 11576279 * 2^-25. An F32 subtraction would give 0x3eb0a3d8.
 TEST(TerrainLightingTest, KeepsTheFractionalXDifferenceWide)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -496,7 +494,7 @@ TEST(TerrainLightingTest, KeepsTheFractionalXDifferenceWide)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(255, 0)][0]), 0x3eb0a3d7u);
 }
 
-// La misma diferencia en Y observa el temporal conservado durante toda la fila.
+// The same difference in Y observes the temporary kept for the whole row.
 TEST(TerrainLightingTest, KeepsTheFractionalYDifferenceWide)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -504,7 +502,7 @@ TEST(TerrainLightingTest, KeepsTheFractionalYDifferenceWide)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(0, 255)][0]), 0x3eb0a3d7u);
 }
 
-// El radio 8 tiene peso 1/4 a distancia 6 y envuelve x e y negativos.
+// Radius 8 has weight 1/4 at distance 6 and wraps negative x and y.
 TEST(TerrainLightingTest, UsesTheSuppliedRadiusAndWrapsBothAxes)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -514,8 +512,8 @@ TEST(TerrainLightingTest, UsesTheSuppliedRadiusAndWrapsBothAxes)
     EXPECT_EQ(destination->cells[CellIndex(248, 0)], TerrainLightColor{});
 }
 
-// sqrt(10) se conserva en double: (4 - sqrt(10))/4 redondea a 0x3e5674f9.
-// Redondear primero la raíz a float daría 0x3e5674f8 (un bit menos).
+// sqrt(10) is kept in double: (4 - sqrt(10))/4 rounds to 0x3e5674f9.
+// Rounding the root to float first would give 0x3e5674f8 (one bit less).
 TEST(TerrainLightingTest, KeepsTheDistanceWideUntilTheWeightStore)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -523,8 +521,8 @@ TEST(TerrainLightingTest, KeepsTheDistanceWideUntilTheWeightStore)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(13, 11)][0]), 0x3e5674f9u);
 }
 
-// PC53/RN: F32((5 - sqrt(2))/5) = 0x3f37979f. Guardar antes la diferencia en F32 o dividir en
-// float produce 0x3f37979e: el radio no es potencia de dos y la distancia es irracional.
+// PC53/RN: F32((5 - sqrt(2))/5) = 0x3f37979f. Storing the difference as F32 first or dividing in
+// float gives 0x3f37979e: the radius is not a power of two and the distance is irrational.
 TEST(TerrainLightingTest, KeepsTheDifferenceAndDivisionWideUntilTheWeightStore)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -532,8 +530,8 @@ TEST(TerrainLightingTest, KeepsTheDifferenceAndDivisionWideUntilTheWeightStore)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0x3f37979fu);
 }
 
-// El peso guardado de la diagonal es el mismo literal que el rojo inicial: -pesoF32 + pesoF32 = +0.
-// Usar el peso ancho en el producto deja un positivo que el piso no borra.
+// The stored weight of the diagonal is the same literal as the initial red: -weightF32 + weightF32 = +0.
+// Using the wide weight in the product leaves a positive value the floor does not clear.
 TEST(TerrainLightingTest, MultipliesTheColorByTheStoredFloatWeight)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -542,9 +540,9 @@ TEST(TerrainLightingTest, MultipliesTheColorByTheStoredFloatWeight)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0u);
 }
 
-// El barrido de radio 257 alcanza (0,0) nueve veces; cinco visitas tienen peso positivo:
-// centro y cuatro cardinales a 256, con peso F32 1/257. La suma almacenada da bits 0x3f81fe01;
-// no se deduplica ni se capa el radio a 256.
+// The sweep of radius 257 reaches (0,0) nine times; five visits have a positive weight:
+// the center and four cardinals at 256, with F32 weight 1/257. The stored sum gives the bits 0x3f81fe01;
+// it is not deduplicated and the radius is not capped at 256.
 TEST(TerrainLightingTest, ALongRadiusAccumulatesRepeatedVisitsToTheSameCell)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -552,7 +550,7 @@ TEST(TerrainLightingTest, ALongRadiusAccumulatesRepeatedVisitsToTheSameCell)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(0, 0)][0]), 0x3f81fe01u);
 }
 
-// El piso se aplica después de cada luz: invertirlas cambia el resultado.
+// The floor applies after each light: reversing them changes the result.
 TEST(TerrainLightingTest, SerialLightsPreserveTheirOrderAcrossNegativeClamps)
 {
     auto forward = std::make_unique<TerrainLighting>();
@@ -565,7 +563,7 @@ TEST(TerrainLightingTest, SerialLightsPreserveTheirOrderAcrossNegativeClamps)
     EXPECT_EQ(reverse->cells[CellIndex(0, 0)][0], 0.0f);
 }
 
-// En fila 9 el color fuente sube de 1 a 1,5; fila 10 debe leer ese 1,5, no una copia inicial.
+// On row 9 the source color rises from 1 to 1.5; row 10 must read that 1.5, not an initial copy.
 TEST(TerrainLightingTest, AnAliasedColorIsReadLiveInRowOrder)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -576,8 +574,8 @@ TEST(TerrainLightingTest, AnAliasedColorIsReadLiveInRowOrder)
     EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{1.5f, 1.5f, 1.5f}));
 }
 
-// La fuente en columna 9 sube de 1 a 1,5 antes del centro en la misma fila: copiar por fila falla.
-// Recorrer las columnas en orden descendente también dejaría el centro en 1.
+// The source on column 9 rises from 1 to 1.5 before the center on the same row: copying by row fails.
+// Walking the columns in descending order would also leave the center at 1.
 TEST(TerrainLightingTest, AnAliasedColorIsReadLiveWithinTheSameRow)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -588,8 +586,8 @@ TEST(TerrainLightingTest, AnAliasedColorIsReadLiveWithinTheSameRow)
     EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{1.5f, 1.5f, 1.5f}));
 }
 
-// (13,6) está a distancia 5 del centro y gana peso 1/2. Por filas cambia antes que el centro;
-// por columnas cambia después y el centro recibiría 1 en vez de 1,5.
+// (13,6) is at distance 5 from the center and gets weight 1/2. By rows it changes before the center;
+// by columns it changes after, and the center would get 1 instead of 1.5.
 TEST(TerrainLightingTest, VisitsRowsBeforeColumnsWhenTheColorAliasesTheDestination)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -600,8 +598,8 @@ TEST(TerrainLightingTest, VisitsRowsBeforeColumnsWhenTheColorAliasesTheDestinati
     EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{1.5f, 1.5f, 1.5f}));
 }
 
-// -denorm_min * 1/4 + -0 es negativo en double pero almacena -0 en float: comparar el store falla.
-// En cambio -0 * 1 + -0 es igual a cero y debe preservar el signo, sin clamp a +0.
+// -denorm_min * 1/4 + -0 is negative in double but stores -0 in float: comparing the store fails.
+// Whereas -0 * 1 + -0 equals zero and must keep its sign, without a clamp to +0.
 TEST(TerrainLightingTest, ClampsTheWideNegativeSumBeforeReloadingItsNegativeZeroStore)
 {
     auto destination = std::make_unique<TerrainLighting>();

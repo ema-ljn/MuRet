@@ -844,6 +844,8 @@ modules.
 - The float constants still named by their number after AR1.1's `Math/FloatConstants.h` take its names where type and
   initializer are token-identical, and `Client/tools/architecture/named-values.tsv` matches its spaces by type instead
   of by name (Task 9 of the [named-values plan](2026-11-23-named-values.md)).
+- Backlog from the [library review](../../audits/2026-11-25-library-review.md), each after Emanuel's yes: gMock for the
+  spy test doubles (LIB-1) and magic_enum for the GoogleTest printers (LIB-2).
 
 ## Epic AR7: wrap-up
 
@@ -854,6 +856,9 @@ modules.
 - `Client/README.md` with the module map; the AR0 ADR becomes accepted.
 - The last comments PR, with what no move touched (tests included), and a CI step that rejects a `Client/` comment with
   Spanish characters (`ñ`, accented vowels, `¿`, `¡`), so they do not come back.
+- Backlog from the [library review](../../audits/2026-11-25-library-review.md), each after Emanuel's yes: clang-tidy's
+  `bugprone-unsafe-functions` for most of `check_rounded_math.py` once CI has clang-tidy 20 (LIB-3), and tree-sitter
+  for the architecture checks at their first regex miss (LIB-4).
 
 ## Order and parallelism
 

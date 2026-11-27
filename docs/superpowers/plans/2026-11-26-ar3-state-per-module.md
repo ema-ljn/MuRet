@@ -291,6 +291,14 @@ PR `refactor(AR3.2): split Crywolf's globals and the mouse's arbitration`, branc
 - `game/Kernel` has fewer rows in `layers-baseline.tsv` than the 80 of 736b5544.
 - No `Actors()[…hero]` is left.
 
+## Where AR3 ended (2026-11-27)
+
+- Done on `main`: Tasks 1 to 5, Task 6's Step 1 and the castle's loose fields gathered into `castleSiege` (#517), and
+  Task 7's Step 1 (`field_users.py`, #518).
+- Moved to AR4 by Emanuel (2026-11-26, "En AR4, módulo por módulo"): Task 6's Step 2, Task 7's Steps 2 and 3, and
+  Task 8. Each state and field leaves `WorldRuntime` in its module's design, where its handlers already receive it
+  ([AR4 plan](2026-11-27-ar4-scenes-into-modules.md), "What AR2 and AR3 leave here").
+
 ## Decisions
 
 Emanuel took the three as written, with option A for the first (2026-11-26).

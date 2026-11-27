@@ -433,6 +433,19 @@ PR `refactor(AR2.3): drop the session's event variant`, branch `refactor/ar2.3-n
 - The last PR's description answers the master plan's question: does the repetition left in the layouts justify a code
   generator (CODING_RULES §10)?
 
+## Where AR2 ended (2026-11-27)
+
+- Done: Tasks 1 to 11 on `main`; Task 12's first half (`Route`, #521) and Tasks 13 to 17 (#522 to #529), stacked.
+- Moved to AR4 by Emanuel: Task 12's second half, the session split ("Dejarla para AR4"), and Task 18 ("La 18 con
+  AR4, y su plan"). What the sink still carries is the output of the login, the selection and the server change, which
+  stay in the session until `FrontEnd`'s design: Tasks 39 and 40 of the
+  [AR4 plan](2026-11-27-ar4-scenes-into-modules.md).
+- Steps 2 and 3 of Tasks 14 to 17 (the `In/` and `Out/` files and the test split) go with each module's design in
+  AR4 (Emanuel, 2026-11-27, "Rutear a los aplicadores de hoy").
+- **A code generator: no.** The protocol's 102 layouts are 293 `Field` aliases and one `PacketLayout` constant, and its
+  133 readers are one `ReadPacket` call each: every offset is written once, next to its reader's address. A generator
+  would add an input format and a build step to review for the same lines (CODING_RULES §10).
+
 ## Decisions
 
 Emanuel took the three as this plan writes them (2026-11-26).

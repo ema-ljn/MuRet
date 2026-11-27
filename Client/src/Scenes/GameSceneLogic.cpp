@@ -28,6 +28,7 @@
 #include "Models/Skeleton.h"
 #include "Scenes/CameraTour.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
@@ -138,7 +139,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .groundMarks = &m_context.states->terrain.groundMarks,
             .trapezoid = &m_context.states->camera.trapezoid,
             .dynamicLighting = &DynamicLight().Lighting(),
-            .faunaModels = &LoadedFaunaModels()});
+            .faunaModels = &LoadedFaunaModels(),
+            .reportedCell = &m_context.states->actors.reportedCell});
         !stepped.HasValue())
     {
         return stepped;

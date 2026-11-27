@@ -34,6 +34,7 @@
 #include "Scenes/LoginModels.h"
 #include "Actors/MovementReplies.h"
 #include "Scenes/SelectionState.h"
+#include "Actors/ActorsState.h"
 #include "Actors/ViewportPacketRing.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -256,7 +257,7 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
         EXPECT_EQ(effect.disturbanceState, 0xffffu);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
         // The session makes the dispatcher's copy (0x4e372e) before the reader; 0x4c8860 copies only with state 1.
-        EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
+        EXPECT_EQ(game->states.actors.viewportPackets.count, 0);
     }
 }
 
@@ -392,7 +393,7 @@ TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
     EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0010), Client::Actors::CreatedActorSearch);
     EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0011), 1u);
     EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0012), 2u);
-    EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
+    EXPECT_EQ(game->states.actors.viewportPackets.count, 0);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * FreshRecordDraws).State());
 }
 
@@ -449,7 +450,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     EXPECT_EQ(effects[1].ownerContext, &actor);
     EXPECT_EQ(effects[1].disturbanceState, 0xffffu);
     // 0x4c8a43..0x4c8ad4: state 1 copies the whole packet (Q-C801), besides the dispatcher's copy.
-    const auto& ring = game->world.Runtime().viewportPackets;
+    const auto& ring = game->states.actors.viewportPackets;
     EXPECT_EQ(ring.count, 1);
     EXPECT_EQ(ring.sizes[0], 5 + 0x2c);
     EXPECT_EQ(std::to_integer<std::uint8_t>(ring.slots[0][3]), 0x12);
@@ -486,7 +487,7 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
         EXPECT_EQ(Actor(1).animation.action, tested.others);
         EXPECT_EQ(Actor(2).characterClass, 2);
         EXPECT_EQ(Actor(2).animation.action, tested.elf);
-        EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
+        EXPECT_EQ(game->states.actors.viewportPackets.count, 0);
     }
 }
 

@@ -32,6 +32,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/SkillReplies.h"
 #include "Scenes/SocialEvents.h"
+#include "Actors/ActorsState.h"
 #include "Actors/ViewportPacketRing.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -98,9 +99,13 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App
     return ApplyWorldContent(event, session);
 }
 
-void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
+Core::Expected<void, std::string> SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
 {
-    Actors::StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
+    Actors::ActorsState* const actors = ActorsOf(m_resources);
+    if (actors == nullptr)
+        return Core::Unexpected(std::string("0x4e2b10: no Actors state for the viewport's queue (0x77f27b4)"));
+    Actors::StoreViewportPacket(actors->viewportPackets, packet);
+    return {};
 }
 
 void SessionEventApplier::ClearLogoutRequest()

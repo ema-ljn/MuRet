@@ -55,6 +55,11 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::Camera
 
+namespace Client::Actors
+{
+struct ActorsState;
+} // namespace Client::Actors
+
 namespace Client::Assets
 {
 class FaunaModels;
@@ -139,6 +144,8 @@ struct WorldEntryResources
 [[nodiscard]] Terrain::TerrainLighting* DynamicLightingOf(const WorldEntryResources& resources);
 // The models a creation loads (0x5769ad8, Assets::AssetsState::fauna). nullptr without `states`.
 [[nodiscard]] Assets::FaunaModels* FaunaModelsOf(const WorldEntryResources& resources);
+// The viewport's queue and the reported cell (Actors::ActorsState). nullptr without `states`.
+[[nodiscard]] Actors::ActorsState* ActorsOf(const WorldEntryResources& resources);
 
 // Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para
 // diagnóstico y fixtures.

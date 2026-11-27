@@ -23,6 +23,7 @@
 #include "Actors/ActorCreation.h"
 #include "Actors/ActorMotion.h"
 #include "Actors/ActorRemains.h"
+#include "Actors/ActorsState.h"
 #include "Actors/ActorWalk.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/ActorCombat.h"
@@ -608,25 +609,27 @@ std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRando
 // Each comparison opens and closes its entry.
 Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
 {
-    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    if (context.reportedCell == nullptr)
+        return Core::Unexpected(std::string("0x4fbe10: no reported cell (Actors::ActorsState) for the hero's cell"));
+    ReportedCell& reported = *context.reportedCell;
     Kernel::ActorState& hero = context.world.Hero();
     Crt::CrtRandom& random = context.random;
-    if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
-        ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
+    if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == reported.x &&
+        ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == reported.y)
     {
         // 0x4fbea8..0x4fbec5: fld, fsub, fmul and fcomp with 10; less (or unordered), nothing.
         constexpr double Thousandth = Math::ThousandthAsDouble;
         constexpr double ReportDelay = 10.0;
         const double waited =
-            (static_cast<double>(context.worldClock) - static_cast<double>(runtime.reportedCellTime)) * Thousandth;
+            (static_cast<double>(context.worldClock) - static_cast<double>(reported.time)) * Thousandth;
         if (!(waited >= ReportDelay))
             return {};
         const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
         if (terrain.attributes == nullptr)
             return Core::Unexpected(std::string("0x4fbed9: falta el .att del mapa (0x7d0d348)"));
         constexpr std::uint16_t ReportedCellBit = 8;
-        const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(runtime.reportedCellX),
-                                                   static_cast<std::uint8_t>(runtime.reportedCellY));
+        const auto cell =
+            Data::Terrain::CellIndex(static_cast<std::uint8_t>(reported.x), static_cast<std::uint8_t>(reported.y));
         if ((terrain.attributes->cells[cell] & ReportedCellBit) == ReportedCellBit)
         {
             // 0x4fbeed..0x4fc231: C1, the length, AF, 02 and the low byte of 0x743a180 and of 0x743a184, with the XOR
@@ -636,20 +639,20 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
             if (!context.sendChaosCastleReposition)
                 return Core::Unexpected(std::format("0x4fbee8: el héroe lleva 10 s en la celda ({}; {}) con el bit 8 "
                                                     "y no hay sesión para el C1 06 AF 02",
-                                                    runtime.reportedCellX, runtime.reportedCellY));
+                                                    reported.x, reported.y));
             // 0x4fc30b and 0x4fc355: with the send failed it also stores the clock before leaving.
-            auto sent = context.sendChaosCastleReposition(static_cast<std::uint8_t>(runtime.reportedCellX),
-                                                          static_cast<std::uint8_t>(runtime.reportedCellY));
-            runtime.reportedCellTime = context.worldClock;
+            auto sent = context.sendChaosCastleReposition(static_cast<std::uint8_t>(reported.x),
+                                                          static_cast<std::uint8_t>(reported.y));
+            reported.time = context.worldClock;
             return sent;
         }
         // 0x4fc39d: without the bit, the world clock to 0x743a188.
-        runtime.reportedCellTime = context.worldClock;
+        reported.time = context.worldClock;
         return {};
     }
-    runtime.reportedCellX = ReadHeroCell(hero.cellX, hero.cellXAccesses, random);
-    runtime.reportedCellY = ReadHeroCell(hero.cellY, hero.cellYAccesses, random);
-    runtime.reportedCellTime = context.worldClock;
+    reported.x = ReadHeroCell(hero.cellX, hero.cellXAccesses, random);
+    reported.y = ReadHeroCell(hero.cellY, hero.cellYAccesses, random);
+    reported.time = context.worldClock;
     return {};
 }
 

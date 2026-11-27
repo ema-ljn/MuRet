@@ -35,10 +35,11 @@ public:
     virtual Core::Expected<void, std::string> ApplyCharacter(const CharacterEvent& event,
                                                              const ServerSession& session) = 0;
     virtual Core::Expected<void, std::string> ApplyWorld(const WorldEvent& event, ServerSession& session) = 0;
-    // The dispatcher (0x4e2b10) copies the whole packet to the queue of 0x77f27b4 (Scenes/ViewportPacketRing.h) before
+    // The dispatcher (0x4e2b10) copies the whole packet to the queue of 0x77f27b4 (Actors/ViewportPacketRing.h) before
     // the handler of the 0x0B, the 0x12, the 0x1C, the 0x24 and the 0x2A, without looking at the encryption flag or
-    // whether it can be read: the session hands it here, raw, before its row's handler or its rejection.
-    virtual void CopyToPacketRing(std::span<const std::byte> packet) = 0;
+    // whether it can be read: the session hands it here, raw, before its row's handler or its rejection. An error stops
+    // the session before the handler.
+    [[nodiscard]] virtual Core::Expected<void, std::string> CopyToPacketRing(std::span<const std::byte> packet) = 0;
     // 0x4c273f: todo F1/02 legible libera la salida pedida, incluso en claro o con motivo desconocido.
     // Los consumidores sin UI no conservan ese global.
     virtual void ClearLogoutRequest() {}

@@ -24,6 +24,7 @@
 #include "Kernel/OwnInventory.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Actors/ActorsState.h"
 #include "Actors/ViewportPacketRing.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -406,11 +407,22 @@ TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
     const auto teleport = Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 0, 30, 31, 0});
     online->socket.reads = {teleport};
     ASSERT_TRUE(online->session.Poll().HasValue());
-    const Client::Actors::ViewportPacketRing& ring = tested->world.Runtime().viewportPackets;
+    const Client::Actors::ViewportPacketRing& ring = tested->states.actors.viewportPackets;
     ASSERT_EQ(ring.count, 1);
     EXPECT_EQ(ring.sizes[0], 8);
     EXPECT_TRUE(Client::Tests::SameBytes(std::span(ring.slots[0]).first(teleport.size()), teleport));
     EXPECT_EQ(online->session.State(), Client::App::SessionState::LoggedIn);
+}
+
+TEST(SessionEventApplierTest, ThePacketRingNeedsTheModulesStates)
+{
+    const auto tested = std::make_unique<Applier>();
+    Client::Scenes::WorldEntryResources resources = *tested->applier.RoutedWorld();
+    resources.states = nullptr;
+    Client::Scenes::SessionEventApplier stateless(resources);
+    const auto copied = stateless.CopyToPacketRing(Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 0, 30, 31, 0}));
+    ASSERT_FALSE(copied.HasValue());
+    EXPECT_NE(copied.Error().find("0x4e2b10"), std::string::npos) << copied.Error();
 }
 
 TEST(SessionEventApplierTest, ALogoutResponseReleasesOnlyThePendingRequest)

@@ -9,6 +9,7 @@
 #include "Models/IModelLibrary.h"
 #include "Models/LogicalAccess.h"
 #include "Actors/ActorActions.h"
+#include "Actors/ActorsState.h"
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorEquipment.h"
 #include "Kernel/ActorState.h"
@@ -308,6 +309,11 @@ Terrain::TerrainLighting* DynamicLightingOf(const WorldEntryResources& resources
 Assets::FaunaModels* FaunaModelsOf(const WorldEntryResources& resources)
 {
     return resources.states != nullptr ? &resources.states->assets.fauna : nullptr;
+}
+
+Actors::ActorsState* ActorsOf(const WorldEntryResources& resources)
+{
+    return resources.states != nullptr ? &resources.states->actors : nullptr;
 }
 
 Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply,

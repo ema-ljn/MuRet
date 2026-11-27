@@ -71,6 +71,7 @@ class WorldState;
 namespace Client::Actors
 {
 class PlayerActionSpeeds;
+struct ReportedCell;
 
 // 0x5fba90 as 0x508f00 (0x50916d..0x50918c) and 0x508ea0 (0x508eac..0x508ecb) call it: the character's place
 // times 0.01f (0x6b88d4), stored as float, with the margin of −20 (0xc1a00000).
@@ -152,6 +153,9 @@ struct CharacterStepContext
     Terrain::TerrainLighting* dynamicLighting = nullptr;
     // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
     Assets::FaunaModels* faunaModels = nullptr;
+    // The hero's cell 0x4fbe10 stores (Actors::ActorsState::reportedCell). nullptr: on maps 18 to 23 the step stops
+    // there.
+    ReportedCell* reportedCell = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

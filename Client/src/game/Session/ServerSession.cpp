@@ -205,8 +205,8 @@ void ServerSession::RegisterTheRows(Protocol::Dispatcher& dispatcher, std::span<
             continue;
         Protocol::Handler call = [this, &row, handle = *handler](const Network::Packet& packet)
         {
-            if (row.copiesToRing)
-                m_eventSink.CopyToPacketRing(packet.Bytes());
+            if (row.copiesToRing && !CheckApplication(m_eventSink.CopyToPacketRing(packet.Bytes())))
+                return;
             handle(*this, packet);
         };
         [[maybe_unused]] const bool registered = row.subcode ? dispatcher.On(row.opcode, *row.subcode, std::move(call))

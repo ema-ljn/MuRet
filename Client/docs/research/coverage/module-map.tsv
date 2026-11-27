@@ -30,7 +30,7 @@ App/GameLoop.cpp	166	App	app/App	high	engine or protocol layer, no game state
 App/GameLoop.h	82	App	app/App	high	engine or protocol layer, no game state
 App/IChatRoomLinks.h	37	App	app/App	high	engine or protocol layer, no game state
 App/ILoopClient.h	40	App	app/App	high	engine or protocol layer, no game state
-game/Session/ISessionEventSink.h	41	game/Session	game/Session	medium	the session with the servers
+game/Session/ISessionEventSink.h	54	game/Session	game/Session	medium	the session with the servers
 App/LabXorRemapTables.h	46	App	app/App	high	composition root: the lab server's values for the XOR and remap layer (AR1.1)
 App/LoopTiming.h	43	App	app/App	high	engine or protocol layer, no game state
 App/MakeObfuscation.h	12	App	app/App	high	composition root: the build's choice of obfuscation layer (AR1.1)
@@ -41,7 +41,7 @@ engine/Platform/Resolution.cpp	36	engine/Platform	engine/Platform	high	included 
 engine/Platform/Resolution.h	36	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 App/ServerAddress.cpp	75	App	app/App	high	engine or protocol layer, no game state
 App/ServerAddress.h	38	App	app/App	high	engine or protocol layer, no game state
-game/Session/ServerSession.cpp	2878	game/Session	game/Session	medium	the session with the servers
+game/Session/ServerSession.cpp	1530	game/Session	game/Session	medium	the session with the servers
 game/Session/ServerSession.h	603	game/Session	game/Session	medium	the session with the servers
 App/SessionState.h	49	App	app/App	high	engine or protocol layer, no game state
 engine/Platform/VSyncMode.h	19	engine/Platform	engine/Platform	high	included by Render, UI and Platform
@@ -557,6 +557,7 @@ game/Actors/ActorShock.h	16	game/Actors	game/Actors	medium	actor record/pool, cr
 game/Kernel/ActorState.h	398	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 game/Actors/ActorWalk.cpp	377	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 game/Actors/ActorWalk.h	33	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
+game/Actors/ActorsState.h	25	game/Actors	game/Actors	high	what the actors own of the original's globals: the viewport's queue and the reported cell (AR4.1)
 Scenes/AidaObjectServices.cpp	234	Scenes	game/MapScripts/Aida	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/AidaObjectServices.h	24	Scenes	game/MapScripts/Aida	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/ArrivalSparks.h	21	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
@@ -627,11 +628,11 @@ game/Kernel/CharacterHead.cpp	47	game/Kernel	game/Kernel	high	shared core every 
 game/Kernel/CharacterHead.h	33	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 game/Actors/CharacterPicking.cpp	155	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 game/Actors/CharacterPicking.h	39	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/CharacterSelectScene.cpp	1944	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
+Scenes/CharacterSelectScene.cpp	1948	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
 Scenes/CharacterSelectScene.h	294	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
 Scenes/CharacterSlots.h	26	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-game/Actors/CharacterStep.cpp	1504	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
-game/Actors/CharacterStep.h	148	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
+game/Actors/CharacterStep.cpp	1508	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
+game/Actors/CharacterStep.h	182	game/Actors	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
 Scenes/ChatBubbleDraw.cpp	406	Scenes	game/Chat	high	the chat that was in Social (2026-11-21 review)
 Scenes/ChatBubbleDraw.h	76	Scenes	game/Chat	high	the chat that was in Social (2026-11-21 review)
 Scenes/ChatBubbles.cpp	361	Scenes	game/Chat	high	the chat that was in Social (2026-11-21 review)
@@ -795,7 +796,7 @@ game/Actors/Drawing/GameRibbonCreation.h	31	game/Actors/Drawing	game/Actors/Draw
 Scenes/GameScene.cpp	1351	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Assets (8 vs 7 own)
 Scenes/GameScene.h	275	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Assets (8 vs 7 own)
 Scenes/GameSceneFrameProjection.h	53	Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
-Scenes/GameSceneLogic.cpp	473	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Effects.Models (5 vs 1 o
+Scenes/GameSceneLogic.cpp	476	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Effects.Models (5 vs 1 o
 Scenes/GameSceneMovement.cpp	258	Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to WorldObjects (3 vs 1 own
 Scenes/GameSceneProjection.cpp	101	Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
 Scenes/GameSceneTail.cpp	275	Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
@@ -929,7 +930,7 @@ Scenes/KundunFallEffects.cpp	448	Scenes	game/Effects	medium	model effects; uses 
 Scenes/KundunFallEffects.h	95	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/LandOfTrialsObjectServices.cpp	159	Scenes	game/MapScripts/LandOfTrials	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/LandOfTrialsObjectServices.h	43	Scenes	game/MapScripts/LandOfTrials	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
-Scenes/LetterPortrait.cpp	953	Scenes	game/Messenger	medium	friends and letters (2026-11-21 review)
+Scenes/LetterPortrait.cpp	956	Scenes	game/Messenger	medium	friends and letters (2026-11-21 review)
 Scenes/LetterPortrait.h	173	Scenes	game/Messenger	medium	friends and letters (2026-11-21 review)
 game/Player/LevelUpPointReply.cpp	79	game/Player	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 game/Player/LevelUpPointReply.h	27	game/Player	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
@@ -1103,8 +1104,8 @@ Scenes/SelectionState.cpp	262	Scenes	game/FrontEnd	medium	login and selection lo
 Scenes/SelectionState.h	95	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/SelectionWorld.cpp	536	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/SelectionWorld.h	194	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
-game/Session/SessionEventApplier.cpp	172	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-game/Session/SessionEventApplier.h	50	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/SessionEventApplier.cpp	177	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/SessionEventApplier.h	46	game/Session	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/ShopSigns.cpp	445	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
 Scenes/ShopSigns.h	165	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
 Scenes/SiegeBattleUi.cpp	404	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
@@ -1181,7 +1182,7 @@ game/Actors/ViewportHooks.h	69	game/Actors	game/Actors	high	what the viewport's 
 game/Actors/ViewportRecord.h	46	game/Actors	game/Actors	high	what the viewport's creations share: the protected cell, the angle, the path and the hidden name (AR4.1)
 game/Actors/ViewportRecord.cpp	113	game/Actors	game/Actors	high	what the viewport's creations share: the protected cell, the angle, the path and the hidden name (AR4.1)
 game/Actors/In/ViewportPlayers.h	46	game/Actors/In	game/Actors	high	the handler of the 0x12, the players entering the viewport (AR4.1)
-game/Actors/In/ViewportPlayers.cpp	220	game/Actors/In	game/Actors	high	the handler of the 0x12, the players entering the viewport (AR4.1)
+game/Actors/In/ViewportPlayers.cpp	224	game/Actors/In	game/Actors	high	the handler of the 0x12, the players entering the viewport (AR4.1)
 game/Actors/In/ViewportLeave.h	28	game/Actors/In	game/Actors	high	the handler of the 0x14, the characters leaving the viewport (AR4.1)
 game/Actors/In/ViewportLeave.cpp	23	game/Actors/In	game/Actors	high	the handler of the 0x14, the characters leaving the viewport (AR4.1)
 game/Actors/In/Transformed.h	44	game/Actors/In	game/Actors	high	the handler of the 0x45, the transformed players entering the viewport (AR4.1)
@@ -1203,8 +1204,8 @@ Scenes/WizardEffectDrawing.cpp	107	Scenes	game/Effects	high	model effects; uses 
 Scenes/WizardEffectDrawing.h	40	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/WizardEffects.cpp	213	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/WizardEffects.h	77	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
-game/Session/WorldEntry.cpp	377	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-game/Session/WorldEntry.h	145	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldEntry.cpp	385	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
+game/Session/WorldEntry.h	180	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/WorldLoadingScene.cpp	130	Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 Scenes/WorldLoadingScene.h	50	Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 game/Kernel/WorldMap.h	34	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
@@ -1214,7 +1215,7 @@ game/Assets/WorldModels.cpp	484	game/Assets	game/Assets	high	models and textures
 game/Assets/WorldModels.h	115	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 Scenes/WorldObjectsDrawing.cpp	1030	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldObjectsDrawing.h	241	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
-game/Kernel/WorldRuntime.h	586	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
+game/Kernel/WorldRuntime.h	577	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Kernel/WorldState.cpp	266	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
@@ -1506,7 +1507,7 @@ game/Kernel/PlayerKey.h	11	game/Kernel	game/Kernel	high	the key of the player's 
 game/Kernel/IPacketSender.h	15	game/Kernel	game/Kernel	high	the port a module sends a world packet through (AR4.1)
 game/Kernel/ISoundRequests.h	22	game/Kernel	game/Kernel	high	the port a module requests a sound through (AR4.1)
 game/Kernel/IOnScreenMessages.h	19	game/Kernel	game/Kernel	high	the port a module writes an on-screen message through (AR4.1)
-game/Session/ModuleStates.h	15	game/Session	game/Session	high	each module's state, owned beside the world state and handed by the routes (AR4.1)
+game/Session/ModuleStates.h	19	game/Session	game/Session	high	each module's state, owned beside the world state and handed by the routes (AR4.1)
 game/Session/SessionPacketSender.h	23	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)
 game/Session/SessionPacketSender.cpp	16	game/Session	game/Session	high	the kernel's packet sender over the session's GameServer (AR4.1)
 game/Session/ViewportHooks.h	64	game/Session	game/Session	high	the viewport's slots over the world, which the route builds per packet (AR4.1)

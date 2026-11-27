@@ -44,9 +44,10 @@ public:
     }
 
     // La copia del dispatcher a la cola de 0x77f27b4: se guarda aparte, sin entrar en `world` ni en `trace`.
-    void CopyToPacketRing(std::span<const std::byte> packet) override
+    Core::Expected<void, std::string> CopyToPacketRing(std::span<const std::byte> packet) override
     {
         packetCopies.emplace_back(packet.begin(), packet.end());
+        return {};
     }
 
     void ClearLogoutRequest() override

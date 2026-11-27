@@ -4,6 +4,7 @@
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
 #include "Actors/ActorEffectFlags.h"
+#include "Actors/ActorsState.h"
 #include "Actors/ViewportHooks.h"
 #include "Actors/ViewportPacketRing.h"
 #include "Actors/ViewportRecord.h"
@@ -108,7 +109,10 @@ Core::Expected<void, std::string> StartTheState(Kernel::ActorState& actor, std::
         if (auto teleported = hooks.StartTheTeleportAction(actor); !teleported.HasValue())
             return teleported;
         // 0x4c8a43..0x4c8ad4: the whole packet to the queue again (Q-C801).
-        StoreViewportPacket(resources.world.Runtime().viewportPackets, packet);
+        ActorsState* const actors = Scenes::ActorsOf(resources);
+        if (actors == nullptr)
+            return Core::Unexpected(std::string("0x4c8a43: no Actors state for the viewport's queue"));
+        StoreViewportPacket(actors->viewportPackets, packet);
         return {};
     }
     const auto action = StateAction(state, actor.characterClass);

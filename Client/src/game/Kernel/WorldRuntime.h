@@ -29,7 +29,6 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
-#include "Actors/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/ChatInput.h"
@@ -375,9 +374,6 @@ struct WorldRuntime
     // before closing. Unsupported-map and errors without a notice do not write it.
     std::optional<std::string> fatalDataMessage{};
     Actors::Drawing::GameItemRenderState itemRender{};
-    // 0x77f3ba0, 0x77e1bb0 and 0x77f27b4: the queue of the last 0x0B, 0x12, 0x1C, 0x24 and 0x2A
-    // (ViewportPacketRing.h).
-    Actors::ViewportPacketRing viewportPackets{};
     // The panels' bytes (0x7d53708..0x7d53718 and the globals their functions write), the dialogs (0x7d3a10c,
     // 0x7d3a110) and the rest of the game UI (CL8 milestone 1): the .bss, which nobody clears on a scene change.
     UI::PanelState panels{};
@@ -465,11 +461,6 @@ struct WorldRuntime
     // 0x5763538 (.bss 0): 0x6046a0's counter, which wraps from 1 to 41 at the start of each objects' drawing, in the
     // login, the selection and the game (0x6046be..0x6046ce). Only Crywolf's 0x29 reads it.
     std::int32_t objectDrawCounter = 0;
-    // 0x743a180, 0x743a184 and 0x743a188 (.bss 0): the hero's cell and the world clock that 0x4fbe10 stores on maps
-    // 18 to 23. Nothing else writes them: they survive another map's load.
-    std::int32_t reportedCellX = 0;
-    std::int32_t reportedCellY = 0;
-    float reportedCellTime = 0.0f;
     // DAT_006c9dd0, the current world. Whoever calls 0x61a560 writes it just before (05, "La carpeta de cada mapa"):
     // the login with 55 (06, "El login, al entrar") and the selection with 54 in 0x633f20 (06, "Al entrar"). That 54
     // stays in the world's load and in scene 5's wait, which runs with what the selection left until the F3 03 reply

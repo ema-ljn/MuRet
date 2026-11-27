@@ -37,9 +37,9 @@
 #include <system_error>
 #include <vector>
 
-// Client::Kernel::LoadedWorld con una copia del World56 del laboratorio (y el accept_box01 de
-// Interface\ y la gota de Object8\), a la que cada test le saca o le rompe un archivo (06 § El terreno del login,
-// Review Focus 2 del plan de la CL7: lo que falta se saltea con un aviso y el login sigue).
+// Client::Kernel::LoadedWorld with a copy of the lab's World56 (and Interface\accept_box01 and Object8\drop01), from
+// which each test removes or breaks a file (06 § El terreno del login, Review Focus 2 of the CL7 plan: what is
+// missing is skipped with a notice and the login goes on).
 namespace
 {
 using Client::Kernel::LoadedWorld;
@@ -50,9 +50,8 @@ constexpr std::uint8_t Login = 55;
 constexpr std::uint16_t FirstTile = 0x23;
 constexpr std::uint16_t LastTile = 0x30;
 constexpr std::uint16_t AcceptBox = 0x122;
-// 61ac3e..61ad7a: 64/65 del World56 y66/67/68 de World1/World10; falta sólo la alternativa JPG64. Con la gota de
-// 0x616ec0 (Object8\drop01, 0x607).
-// 32 cáusticas nuevas; light01 ocupa68 antes de que rain03 reemplace ese mismo slot.
+// 0x61ac3e..0x61ad7a: 64/65 from World56 and 66/67/68 from World1/World10; only the JPG64 alternative is missing. With
+// 0x616ec0's drop (Object8\drop01, 0x607). 32 new caustics; light01 takes 68 before rain03 replaces that same slot.
 constexpr std::size_t LoadedLoginTextureCount = 21 + 32;
 constexpr std::uint16_t CausticFirstSlot = 0x41;
 constexpr std::uint16_t CausticCount = 32;
@@ -86,7 +85,7 @@ protected:
         }
         std::vector<std::string> globalFiles{"World1/rain01.OZT", "World1/rain02.OZT", "World10/rain03.OZT",
                                              "Object8/drop01.OZJ", "Object8/light01.OZJ"};
-        // 618ddc..618e29: wt00..wt31, antes de light01 (618e40) y de los tiles de61a560.
+        // 0x618ddc..0x618e29: wt00..wt31, before light01 (0x618e40) and 0x61a560's tiles.
         for (std::uint16_t index = 0; index < CausticCount; ++index)
             globalFiles.push_back("Object8/wt" + std::string(index < 10 ? "0" : "") + std::to_string(index) + ".OZJ");
         for (const std::string& relative : globalFiles)
@@ -104,13 +103,13 @@ protected:
         std::error_code error;
         const auto world = Client::Data::ResolveDataPath(m_dataRoot, folder, error);
         ASSERT_TRUE(world.has_value()) << folder;
-        // World10 ya contiene rain03 global desde SetUp; la copia completa conserva el mismo recurso.
+        // World10 already holds the global rain03 since SetUp; the full copy keeps the same resource.
         std::filesystem::copy(*world, m_copy.Path() / folder,
                               std::filesystem::copy_options::recursive |
                                   std::filesystem::copy_options::overwrite_existing);
     }
 
-    // Los archivos de la copia cuyo nombre sin extensión es `stem`, sin mirar mayúsculas.
+    // The copy's files whose name without extension is `stem`, case-insensitive.
     std::vector<std::filesystem::path> FilesNamed(const std::string& folder, const std::string& stem) const
     {
         std::vector<std::filesystem::path> files;
@@ -148,7 +147,7 @@ protected:
     FakeTextureStore m_store;
 };
 
-// Con todo: los 14 tiles en 0x23..0x30 y el 0x122; al soltarlo, la tabla queda vacía.
+// With everything: the 14 tiles at 0x23..0x30 and the 0x122; on release, the table is empty.
 TEST_F(GoldenLoadedWorld, LoadsTheFourteenTilesAndTheAcceptBox)
 {
     LoadedWorld world(m_store);
@@ -167,7 +166,7 @@ TEST_F(GoldenLoadedWorld, LoadsTheFourteenTilesAndTheAcceptBox)
     }
     EXPECT_TRUE(m_store.Find(TextureSlot{AcceptBox}).has_value());
     EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount);
-    // La tabla literal del ASM: drop,32 aguas, light01, 14 tiles, cinco texturas de clima y accept_box.
+    // The ASM's literal table: drop, 32 waters, light01, 14 tiles, five weather textures and accept_box.
     std::vector<std::uint16_t> uploads{0x607};
     for (std::uint16_t index = 0; index < CausticCount; ++index)
     {
@@ -226,7 +225,7 @@ TEST_F(GoldenLoadedWorld, DrawingUsesTheDynamicLightWithoutReplacingItsBase)
     EXPECT_EQ(world.Lighting()->cells[1000][0], base);
 }
 
-// Las tablas siguen vivas entre escenas; los tiles siguen perteneciendo al LoadedWorld.
+// The tables stay alive between scenes; the tiles still belong to the LoadedWorld.
 TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTilesOnce)
 {
     std::optional<Client::Terrain::WorldTerrain> retained;
@@ -258,7 +257,7 @@ TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTi
     EXPECT_DOUBLE_EQ(Client::Terrain::TerrainHeightAt(*retained->heights, *retained->attributes, 50.0f, 50.0f), height);
 }
 
-// Un tile que no avisa y falta (0x63b870 con el sexto argumento en 0) se saltea, y el resto sube.
+// A tile that does not warn and is missing (0x63b870 with the sixth argument at 0) is skipped, and the rest uploads.
 TEST_F(GoldenLoadedWorld, AMissingTileIsSkipped)
 {
     Remove("World56", "TileRock07");
@@ -271,8 +270,8 @@ TEST_F(GoldenLoadedWorld, AMissingTileIsSkipped)
     EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount - 1);
 }
 
-// Y uno que está pero no se lee, también (Q-C14: el original devuelve false sin avisar y sigue): no se
-// lleva el terreno.
+// And so is one that is there but unreadable (Q-C14: the original returns false without a notice and goes on): the
+// terrain still loads.
 TEST_F(GoldenLoadedWorld, ABrokenTileIsSkippedToo)
 {
     Break("World56", "TileRock07");
@@ -287,8 +286,8 @@ TEST_F(GoldenLoadedWorld, ABrokenTileIsSkippedToo)
     EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount - 1);
 }
 
-// TileGrass01 avisa (el sexto argumento en 1): sin él no hay terreno, el error lo nombra y no queda
-// nada subido.
+// TileGrass01 warns (the sixth argument at 1): without it there is no terrain, the error names it and nothing stays
+// uploaded.
 TEST_F(GoldenLoadedWorld, WithoutTileGrass01ThereIsNoTerrain)
 {
     Remove("World56", "TileGrass01");
@@ -302,7 +301,7 @@ TEST_F(GoldenLoadedWorld, WithoutTileGrass01ThereIsNoTerrain)
     EXPECT_EQ(m_store.Size(), 0u);
 }
 
-// El 0x122 también avisa (0x61ae60 con el sexto argumento en 1).
+// The 0x122 warns too (0x61ae60 with the sixth argument at 1).
 TEST_F(GoldenLoadedWorld, WithoutTheAcceptBoxThereIsNoTerrain)
 {
     Remove("Interface", "accept_box01");
@@ -315,7 +314,7 @@ TEST_F(GoldenLoadedWorld, WithoutTheAcceptBoxThereIsNoTerrain)
     EXPECT_EQ(world.LoadedMap(), std::nullopt);
 }
 
-// Sin el .map, el .att y el .obj no hay terreno.
+// Without the .map, the .att and the .obj there is no terrain.
 TEST_F(GoldenLoadedWorld, WithoutTheEncTerrainFilesThereIsNoTerrain)
 {
     Remove("World56", "EncTerrain56");
@@ -327,7 +326,7 @@ TEST_F(GoldenLoadedWorld, WithoutTheEncTerrainFilesThereIsNoTerrain)
     EXPECT_EQ(m_store.Size(), 0u);
 }
 
-// Si la tabla no sube, no queda nada subido ni cargado.
+// If the table does not upload, nothing stays uploaded or loaded.
 TEST_F(GoldenLoadedWorld, ATableThatDoesNotUploadLeavesNothing)
 {
     m_store.failNextLoad = true;
@@ -339,8 +338,8 @@ TEST_F(GoldenLoadedWorld, ATableThatDoesNotUploadLeavesNothing)
     EXPECT_EQ(m_store.Size(), 0u);
 }
 
-// Cada entrada al login lo vuelve a cargar (0x61a560): el segundo Load suelta lo del primero y sube lo
-// mismo, sin dejar nada de más.
+// Each entry to the login loads it again (0x61a560): the second Load releases the first's and uploads the same,
+// leaving nothing extra.
 TEST_F(GoldenLoadedWorld, LoadingAgainReleasesTheFirst)
 {
     LoadedWorld world(m_store);
@@ -353,8 +352,8 @@ TEST_F(GoldenLoadedWorld, LoadingAgainReleasesTheFirst)
     EXPECT_EQ(m_store.Size(), 0u);
 }
 
-// Sólo está World10 en la copia además del login: ambos pedidos deben cargar ese mismo Data real.
-// Perder la normalización dejaría LoadedMap=32 aunque la carpeta legacy ya diera World10.
+// Only World10 is in the copy besides the login: both requests must load that same real Data. Losing the
+// normalization would leave LoadedMap=32 even though the legacy folder already gave World10.
 TEST_F(GoldenLoadedWorld, ThirtyTwoLoadsTheSameTerrainAndTilesAsNineAndPublishesNine)
 {
     CopyWorld("World10");
@@ -396,7 +395,7 @@ TEST_F(GoldenLoadedWorld, ThirtyTwoLoadsTheSameTerrainAndTilesAsNineAndPublishes
     nine.Release();
 }
 
-// Compartir World12 no convierte a los mapas 11 y 17 en el ID de su carpeta ni entre sí.
+// Sharing World12 does not turn maps 11 and 17 into their folder's ID or into each other.
 TEST_F(GoldenLoadedWorld, SharedFolderPreservesEachMapIdentity)
 {
     CopyWorld("World12");
@@ -425,7 +424,7 @@ TEST_F(GoldenLoadedWorld, LorenciaAndSceneMapsKeepTheirIdentity)
     EXPECT_EQ(world.LoadedMap(), std::nullopt);
 }
 
-// La carga local suelta el mundo previo al reentrar: un error no conserva el ID del éxito anterior.
+// The local load releases the previous world on reentry: an error does not keep the previous success's ID.
 TEST_F(GoldenLoadedWorld, ReenteringFromThirtyTwoReplacesIdentityAndFailureClearsIt)
 {
     CopyWorld("World10");

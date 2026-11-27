@@ -7,27 +7,26 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-// La cabeza de un personaje (cierre del login): el tramo de 0x505de0 que la mueve (0x5068eb..0x5069ab), en
-// cada paso de 0x508ea0, después de 0x4fd5f0 (el cuerpo y el cuervo). La pose la lee en 0x4eb860
-// (Models::PoseSkeleton, `headAngles`). La corren el paso de los personajes (Actors::StepCharacters,
-// con ActorState::headTurn) y, por su cuenta, el login. Contrato: 06 § Lo demás del login y § Los efectos de
-// los personajes (0x505de0). Verificado bit a bit contra el código real emulado
-// (tests/vectors/world55/head.txt).
+// A character's head (end of the login): the stretch of 0x505de0 that moves it (0x5068eb..0x5069ab), on each step of
+// 0x508ea0, after 0x4fd5f0 (the body and the raven). The pose reads it at 0x4eb860 (Models::PoseSkeleton,
+// `headAngles`). The characters' step runs it (Actors::StepCharacters, with ActorState::headTurn) and, on its own, the
+// login. Contract: 06 § Lo demás del login and § Los efectos de los personajes (0x505de0). Verified bit for bit against
+// the emulated original (tests/vectors/world55/head.txt).
 namespace Client::Kernel
 {
 struct CharacterHead
 {
-    glm::vec2 angles{}; // +0x28, +0x2c: los de la cabeza, en grados
-    glm::vec2 target{}; // +0x34, +0x38: hacia dónde gira
+    glm::vec2 angles{}; // +0x28, +0x2c: the head's, in degrees
+    glm::vec2 target{}; // +0x34, +0x38: where it turns to
 };
 
-// Con `sorts` (el personaje no es el héroe de 0x743a170 ni se está muriendo, +0x389), rand() % 32 en 0
-// sortea el blanco: x = rand() % 128 − 64 e y = rand() % 32 − 16, con 360 más si da negativo. Después, cada
-// ángulo gira hacia su blanco (0x4e9560) a lo sumo el 20 % de lo que los separa (0x4e96f0 sin signo, por
-// 0,2f y guardado en float). Lo que se saltea antes (las banderas 0x20 y 0x1000 de +0x78, y que se vea,
-// +0x16c) lo mira el que llama. Es el tramo del modelo 0x20a, el de los jugadores: con otro modelo, 0x505de0
-// llama antes a 0x4ea190 (0x5068da..0x5068e8), que según +0x111 sortea otro blanco (con 0: rand() % 32 en 0,
-// x = rand() % 128 − 64 e y = rand() % 48 − 16), mira a otro personaje (con 2 y +0x3a4 distinto de −1,
-// 0x4ea0e0), no hace nada (con 6) o lo pone en 0; un NPC puede sortear dos veces por paso (08, P-C17).
+// With `sorts` (the character is neither the hero of 0x743a170 nor dying, +0x389), a rand() % 32 of 0 draws the
+// target: x = rand() % 128 − 64 and y = rand() % 32 − 16, plus 360 if negative. Then each angle turns toward its target
+// (0x4e9560) by at most 20 % of the gap (0x4e96f0 unsigned, times 0.2f and stored as a float). What is skipped before
+// (flags 0x20 and 0x1000 of +0x78, and whether it is visible, +0x16c) is the caller's check. This is the stretch of
+// model 0x20a, the players': with another model, 0x505de0 first calls 0x4ea190 (0x5068da..0x5068e8), which by +0x111
+// draws another target (with 0: a rand() % 32 of 0, x = rand() % 128 − 64 and y = rand() % 48 − 16), looks at another
+// character (with 2 and +0x3a4 other than −1, 0x4ea0e0), does nothing (with 6) or sets it to 0; an NPC can draw twice
+// per step (08, P-C17).
 void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random);
 } // namespace Client::Kernel

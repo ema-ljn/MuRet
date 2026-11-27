@@ -17,8 +17,8 @@ namespace
 {
 using Metadata = std::span<const std::byte, Tables::ItemRecordSize>;
 
-// Los offsets y literales de estas fases son los de 0x54bf40 (CL7.L3); su contrato todavía no está
-// documentado en el research (P-C36 del 08).
+// The offsets and literals of these phases are 0x54bf40's (CL7.L3); their contract is not in the research yet (P-C36
+// of 08).
 constexpr std::uint32_t LowLevelMaximum = 9;
 constexpr std::uint32_t FirstTableLevel = 10;
 constexpr std::array<std::uint32_t, 4> LevelBonuses{4, 9, 15, 22};
@@ -52,7 +52,7 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-// Un índice inválido es un bug del caller; como Expected, se corta también en Release.
+// An invalid index is a caller bug; like Expected, it stops in Release too.
 void RequireOptionIndex(std::uint8_t index)
 {
     if (index < MaxItemOptions)
@@ -139,7 +139,7 @@ void AdjustFirstWord(std::uint16_t& destination, std::size_t field, const Calcul
     }
     if (calculation.q != 0 && Word(calculation.metadata, 0x20) != 0)
     {
-        // Incluso D+e toma T+26 en este cociente, no T+27.
+        // Even D+e takes T+26 in this quotient, not T+27.
         AddWord(destination, FirstBonus(calculation, Byte(calculation.metadata, 0x26)));
     }
     if (calculation.p)
@@ -237,7 +237,7 @@ void InitializeWord28(ItemState& item, const Calculation& calculation)
     {
         return;
     }
-    // La prioridad original impide que 1807, 1a00 y 1a25 lleguen al ajuste siguiente.
+    // The original's precedence keeps 1807, 1a00 and 1a25 from reaching the next adjustment.
     if (InRange(id, 0, 0x17ff) || id == 0x1a25 || InRange(id, 0x1807, 0x1a00))
     {
         item.word28 = static_cast<std::uint16_t>(raw);
@@ -256,7 +256,7 @@ std::uint16_t Requirement(std::uint32_t base, std::uint32_t value, std::uint32_t
     {
         return 0;
     }
-    // IMUL guarda low32 antes del IDIV signed. Precisión infinita cambia el resultado.
+    // IMUL keeps the low 32 bits before the signed IDIV: infinite precision changes the result.
     const std::uint32_t product = base * value * multiplier;
     const std::int32_t quotient = std::bit_cast<std::int32_t>(product) / 100;
     return static_cast<std::uint16_t>(quotient + 20);
@@ -265,8 +265,8 @@ std::uint16_t Requirement(std::uint32_t base, std::uint32_t value, std::uint32_t
 void InitializeRequirements(ItemState& item, const Calculation& calculation)
 {
     std::uint32_t base = Word(calculation.metadata, 0x20);
-    // 0x54bf40/c47f..c495: Prepare fuerza Q=1 cuando P es true, por eso P usa +25.
-    // Se conserva la rama original +30, aunque sea inviable desde argumentos válidos.
+    // 0x54bf40/c47f..c495: Prepare forces Q=1 when P is true, so P uses +25. The original +30 branch stays, though no
+    // valid arguments reach it.
     if (calculation.q != 0)
     {
         base += 25;
@@ -545,7 +545,7 @@ std::uint8_t Classify(const ItemState& item, std::uint32_t level)
         std::int32_t last;
         std::uint8_t classification;
     };
-    // Se mantiene el orden original, incluido 1a19..1a1c antes del rango general que lo cubre.
+    // The original order, with 1a19..1a1c before the general range that covers it.
     constexpr std::array Ranges{
         RangeClass{0, 0xbff, 0},        RangeClass{0xc00, 0xdff, 1},    RangeClass{0xe00, 0xfff, 2},
         RangeClass{0x1000, 0x11ff, 3},  RangeClass{0x1200, 0x13ff, 4},  RangeClass{0x1400, 0x15ff, 5},
@@ -582,7 +582,7 @@ void InitializeItemState(ItemState& item, std::span<const std::byte, Tables::Ite
 {
     const auto a = static_cast<std::uint8_t>(scalars.b1);
     const auto b = static_cast<std::uint8_t>(scalars.b3);
-    item.scalar1Low = a; // Primer store de 0x54bf40, antes de leer metadata.
+    item.scalar1Low = a; // 0x54bf40's first store, before it reads the metadata.
     const Calculation calculation = Prepare(item, metadata, scalars);
     CopyMetadata(item, metadata);
     AdjustStatistics(item, calculation);

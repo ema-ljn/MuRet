@@ -33,31 +33,30 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-// Lo que WinMain deja en cero y dura de una escena a otra: el pool de 401 registros de personaje
-// (REP STOSD en 0x4bafa6..0x4bafb3, con el héroe en el primero, 0x4bafdf), el registro propio
-// ([0x7681eb0], 0x4bafbc..0x4bafc2), las grillas del inventario propio (0x78a9bb0 y 0x78ab0b8, en la
-// .bss), los 10 ayudantes de 0x7d335d0 (también en la .bss: HelperTable.h) y los globales en claro
-// (WorldRuntime). Además, lo que 0x550d10 deja en el objeto de los conjuntos ([0x6eed3c], el estático
-// de 0x6e5930), que arranca en cero y no lo vuelve a vaciar nadie. main es su único dueño y lo presta:
-// no se copia ni se mueve, para que no haya otra copia de la historia.
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los personajes de la lista".
+// What WinMain zeroes and lasts from one scene to another: the pool of 401 character records (REP STOSD at
+// 0x4bafa6..0x4bafb3, with the hero in the first, 0x4bafdf), the own record ([0x7681eb0], 0x4bafbc..0x4bafc2), the own
+// inventory's grids (0x78a9bb0 and 0x78ab0b8, in the .bss), the 10 helpers of 0x7d335d0 (also in the .bss:
+// HelperTable.h) and the plain globals (WorldRuntime). Also what 0x550d10 leaves in the sets' object ([0x6eed3c], the
+// static of 0x6e5930), which starts at zero and nobody clears again. main is its only owner and lends it: it is
+// neither copied nor moved, so there is no other copy of the history.
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "Los personajes de la lista".
 namespace Client::Kernel
 {
-// 0x4c20a0 pone cada personaje de la lista en chars[lugar], con el lugar de 0 a 4.
+// 0x4c20a0 puts each list character in chars[place], with the place from 0 to 4.
 inline constexpr std::size_t SelectionActorCount = 5;
 
-// +0x68 y +0x6c..+0x74 de un modelo compartido (0x5769ad8 + tipo · 0xe0): la escala y la posición del último
-// objeto de ese tipo que las copió. 0x4ec110 con Translate en 1 las suma a los huesos que le pasan, aunque
-// sean de otro objeto del mismo tipo.
+// +0x68 and +0x6c..+0x74 of a shared model (0x5769ad8 + type · 0xe0): the scale and the position of the last object
+// of that type that copied them. 0x4ec110 with Translate at 1 adds them to the bones it is passed, even if they belong
+// to another object of the same type.
 struct SharedModelPlacement
 {
     float scale = 0.0f;
     glm::vec3 origin{};
-    // BYTE +0xa0: publicado antes del cuerpo; la acción del actor puede cambiar después.
+    // BYTE +0xa0: published before the body; the actor's action can change afterwards.
     std::uint8_t action = 0;
 };
 
-// 0x6b88d4 (0,01f): con menos alpha, 0x6001b0 sale sin copiar nada al modelo.
+// 0x6b88d4 (0.01f): with less alpha, 0x6001b0 leaves without copying anything to the model.
 inline constexpr float PlayerModelAlpha = 0.01f;
 
 class WorldState
@@ -82,23 +81,23 @@ public:
     [[nodiscard]] std::span<const Actors::Drawing::CharacterCloth, ActorPoolSize> ActorCloths() const;
     [[nodiscard]] OwnCharacterRecord& OwnCharacter();
     [[nodiscard]] const OwnCharacterRecord& OwnCharacter() const;
-    // Lo que llena el F3 10 fuera del equipo (06, "El F3 10, el inventario").
+    // What the F3 10 fills outside the equipment (06, "El F3 10, el inventario").
     [[nodiscard]] OwnInventory& Inventory();
     [[nodiscard]] const OwnInventory& Inventory() const;
     [[nodiscard]] WorldRuntime& Runtime();
     [[nodiscard]] const WorldRuntime& Runtime() const;
-    // Lo que la última carga de mapa (0x61a560) dejó en la CPU.
+    // What the last map load (0x61a560) left on the CPU.
     [[nodiscard]] WorldMap& Map();
     [[nodiscard]] const WorldMap& Map() const;
     [[nodiscard]] Player::ItemSetState& ItemSets();
     [[nodiscard]] const Player::ItemSetState& ItemSets() const;
-    // Los ayudantes del juego (0x7d335d0): el caballo oscuro de cada jinete.
+    // The game's helpers (0x7d335d0): each rider's dark horse.
     [[nodiscard]] Scenes::HelperTable& Helpers();
     [[nodiscard]] const Scenes::HelperTable& Helpers() const;
-    // 0x743a198 y su viento: un pool para login, selección y juego, en el heap por su tamaño.
+    // 0x743a198 and its wind: one pool for the login, the selection and the game, on the heap because of its size.
     [[nodiscard]] World::Particles& Particles();
     [[nodiscard]] const World::Particles& Particles() const;
-    // 0x7b4ccc4 y los límites del último 0x5fbb00: una historia para las tres escenas.
+    // 0x7b4ccc4 and the last 0x5fbb00's bounds: one history for the three scenes.
     [[nodiscard]] Terrain::DynamicWorldLight& DynamicLighting();
     [[nodiscard]] const Terrain::DynamicWorldLight& DynamicLighting() const;
     [[nodiscard]] Actors::PlayerActionSpeeds& ActionSpeeds();
@@ -113,35 +112,32 @@ public:
     [[nodiscard]] const Scenes::GameDrawTailState& DrawTail() const;
     [[nodiscard]] World::Leaves& Leaves();
     [[nodiscard]] const World::Leaves& Leaves() const;
-    // Player.bmd (0x20a), compartido por todos los jugadores: lo copian el paso de cada uno (0x505ec6) y la
-    // pose de su cuerpo (0x6001b0, con el alpha desde 0,01), en el juego, el login y la selección. Lo lee el
-    // cuervo en la zona segura (0x4178d2 y 0x4179a5), antes del 0x505ec6 de su dueño (Q-C412). Arranca en
-    // cero: antes de la primera copia, MuRet suma nada.
+    // Player.bmd (0x20a), shared by all players: each one's step (0x505ec6) and its body's pose (0x6001b0, with alpha
+    // from 0.01) copy it, in the game, the login and the selection. The raven reads it in the safe zone (0x4178d2 and
+    // 0x4179a5), before its owner's 0x505ec6 (Q-C412). It starts at zero: before the first copy, MuRet adds nothing.
     [[nodiscard]] SharedModelPlacement& PlayerModel();
     [[nodiscard]] const SharedModelPlacement& PlayerModel() const;
-    // Lo que 0x505ec6 y 0x6001b0 copian de `actor` si es un 0x20a; con otro tipo, a otro modelo.
+    // What 0x505ec6 and 0x6001b0 copy from `actor` if it is a 0x20a; with another type, to another model.
     void PlacePlayerModel(const ActorState& actor);
-    // Lo mismo con el origen `origin`: el de 0x6001b0 en 0x50ba30 es la posición de antes del suelo de la sombra de
-    // Blood Castle (0x600247..0x600256 corre en 0x50bbf7, antes de 0x50bcaf).
+    // The same with origin `origin`: 0x6001b0's in 0x50ba30 is the position before Blood Castle's shadow floor
+    // (0x600247..0x600256 runs at 0x50bbf7, before 0x50bcaf).
     void PlacePlayerModel(const ActorState& actor, const glm::vec3& origin);
-    // Lo que 0x60cf70 copia de `actor` al 0x20b (Player\Shadow01) cuando 0x50ba30 dibuja su sombra (0x50bcec): la
-    // escala (+0x68, 0x60cff1) y el origen (+0x6c, 0x60d009); la acción (+0xa0) queda como estaba. La lee el joint
-    // 0x632/0 y /1 al llegar al suelo (0x53c1eb).
+    // What 0x60cf70 copies from `actor` to the 0x20b (Player\Shadow01) when 0x50ba30 draws its shadow (0x50bcec): the
+    // scale (+0x68, 0x60cff1) and the origin (+0x6c, 0x60d009); the action (+0xa0) stays as it was. Joint 0x632/0 and
+    // /1 read it on reaching the ground (0x53c1eb).
     void PlaceShadowModel(const ActorState& actor);
-    // 0x505ec6 y 0x4ec110: copia escala y origen al modelo compartido de su tipo (el 0x20a, a PlayerModel).
+    // 0x505ec6 and 0x4ec110: copies the scale and the origin to its type's shared model (the 0x20a, to PlayerModel).
     void PlaceModel(const ActorState& actor);
     void PlaceModel(std::uint16_t type, const SharedModelPlacement& placement);
-    // La escala y la posición que tiene el modelo `type` (0x5769ad8 + tipo · 0xe0, +0x68 y +0x6c). En cero hasta la
-    // primera copia, como el de Player.bmd. 0x4ec110 la publica al dibujar el cuerpo en un frame del original (P-C241
-    // g).
+    // The scale and the position model `type` holds (0x5769ad8 + type · 0xe0, +0x68 and +0x6c). Zero until the first
+    // copy, like Player.bmd's. 0x4ec110 publishes it when it draws the body in a frame of the original (P-C241 g).
     [[nodiscard]] SharedModelPlacement ModelPlacement(std::uint16_t type) const;
 
-    // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
-    // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
-    // 0x634546..0x634638 y el botón de 0x633c10, hasta 0x633f05): abre el registro propio, le copia
-    // el nivel, la clase, la piel y el nombre, lo cierra con sus 3.848 rand() de `random` si queda sin
-    // accesos (0x40f370 o 0x40b4d0) y baja loadingOnceFlag. La escena suelta lo suyo en su Leave
-    // (0x61cc50).
+    // What the selection does when it goes to scene 3 with `chosen` (06, "La lógica" and "La entrada al mundo", step
+    // 1; the three paths: Enter 0x6343e2..0x634470, double click 0x634546..0x634638 and 0x633c10's button, up to
+    // 0x633f05): it opens the own record, copies the level, the class, the skin and the name into it, closes it with
+    // its 3,848 rand() calls of `random` if no access is left (0x40f370 or 0x40b4d0) and clears loadingOnceFlag. The
+    // scene frees its own in its Leave (0x61cc50).
     void PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& chosen, Crt::CrtRandom& random);
 
 private:

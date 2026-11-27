@@ -8,8 +8,8 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>
 
-// Client::Scenes::SceneCameras: el pase del mundo de 0x620db0 y las cámaras fijas que 0x635ae0 pone
-// en la escena 4 y en la 2 (06 § Cámara). Los números son los del 06.
+// Camera/SceneCameras.h: 0x620db0's world pass and the fixed cameras 0x635ae0 sets in scene 4 and in scene 2 (06 §
+// Cámara). The numbers are 06's.
 namespace
 {
 using Client::Camera::LoginCamera;
@@ -27,8 +27,8 @@ TEST(SceneCamerasTest, TheWorldViewportIsThatOf0x620db0)
     EXPECT_EQ(WorldViewport.height, 430);
 }
 
-// La escena 4: fov 35, near 20, el far 11.519,9 de 0x6d5d44 con DAT_07d3a0ec en 0, x −84,5° y
-// z −45°, y la posición (13.909; 14.482; 543). En 1024 × 768, el viewport de la traza.
+// Scene 4: fov 35, near 20, 0x6d5d44's far 11519.9 with DAT_07d3a0ec at 0, x −84.5° and z −45°, and the position
+// (13909, 14482, 543). At 1024 × 768, the trace's viewport.
 TEST(SceneCamerasTest, TheSelectionCameraIsThatOfSceneFour)
 {
     const Camera3D camera = SelectionCamera();
@@ -42,7 +42,7 @@ TEST(SceneCamerasTest, TheSelectionCameraIsThatOfSceneFour)
     EXPECT_EQ(MakePass3D(PixelSize{1024, 768}, WorldViewport, camera).viewport, glm::ivec4(0, 40, 1024, 688));
 }
 
-// La escena 2: el far 20.400, x −96,5° y z −36°, y la posición (12.778; 12.678; 579).
+// Scene 2: far 20400, x −96.5° and z −36°, and the position (12778, 12678, 579).
 TEST(SceneCamerasTest, TheLoginCameraIsThatOfSceneTwo)
 {
     const Camera3D camera = LoginCamera();

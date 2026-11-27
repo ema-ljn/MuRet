@@ -259,9 +259,9 @@ const World::Leaves& WorldState::Leaves() const
     return *m_leaves;
 }
 
-// El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la
-// clase de 0x517270, la piel 0 (0x4c21d9; la de crear es la de la vista previa, que nadie escribe),
-// el nivel de [0xc] y los diez bytes del nombre con el cero de +0x1e3. MuRet los toma de la entrada.
+// The original copies from chars[chosen] what 0x4c20a0 set with the list (0x4c21dd..0x4c220c): 0x517270's class,
+// skin 0 (0x4c21d9; the creation's is the preview's, which nothing writes), the level of [0xc] and the ten name bytes
+// with +0x1e3's zero. MuRet takes them from the entry.
 void WorldState::PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& chosen, Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = m_context.Runtime();
@@ -271,8 +271,8 @@ void WorldState::PrepareSelectedActor(const Protocol::FrontEnd::CharacterEntry& 
         own.level = chosen.level;
         own.characterClass = Protocol::FrontEnd::CharacterClassOf(chosen.classByte);
         own.skin = 0;
-        // 0x634433..0x63444e: un strcpy desde +0x1d9. Copia hasta el primer cero, incluido, y lo que
-        // sigue en el registro queda como estaba.
+        // 0x634433..0x63444e: a strcpy from +0x1d9. It copies up to the first zero, included, and the rest of the
+        // record stays as it was.
         std::size_t length = 0;
         while (length < chosen.name.size() && chosen.name[length] != std::byte{0})
         {

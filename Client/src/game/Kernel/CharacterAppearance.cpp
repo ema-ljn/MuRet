@@ -12,46 +12,44 @@ namespace Client::Kernel
 {
 namespace
 {
-// HelmClass a BootClass: las partes de la clase (0x2212, 0x221a, 0x2222, 0x222a y 0x2232).
+// HelmClass to BootClass: the class's parts (0x2212, 0x221a, 0x2222, 0x222a and 0x2232).
 constexpr std::array<std::uint16_t, BodyPartCount> ClassPartBase = {0x2212, 0x221a, 0x2222, 0x222a, 0x2232};
 
-// El primer modelo de cada parte del equipo: 0x212 más los grupos 7 a 11 (HelmMale a BootMale).
+// Each equipment part's first model: 0x212 plus groups 7 to 11 (HelmMale to BootMale).
 constexpr std::array<std::uint16_t, BodyPartCount> EquipmentPartBase = {0x1012, 0x1212, 0x1412, 0x1612, 0x1812};
 
-// El índice que es "vacío" en una parte del cuerpo.
+// The index that means "empty" in a body part.
 constexpr std::uint16_t EmptyPartIndex = 0x1ff;
-// 0x513a35/0x513a79: CMP AX,0x1fff. El tipo de doce bits no alcanza este valor (Q-C102).
+// 0x513a35/0x513a79: CMP AX,0x1fff. The twelve-bit type never reaches this value (Q-C102).
 constexpr std::uint16_t EmptyHandType = 0x1fff;
-// El primer modelo de un ítem: el tipo va sumado.
+// An item's first model: the type is added.
 constexpr std::uint16_t FirstItemModel = 0x212;
 
-// La clase 4 con el tipo 0xa05 en la izquierda (0x420cf0).
+// Class 4 with type 0xa05 on the left (0x420cf0).
 constexpr Kernel::CharacterClass RavenClass = Kernel::CharacterClass::DarkLord;
 constexpr std::uint16_t RavenType = 0xa05;
 constexpr std::uint16_t RavenModel = 0x1c17;
 
-// Las alas: 0x1a12 más los bits 2 y 3 de b[4]; con 3, b[8] & 7: ninguna, la capa o 0x1a14 más el
-// valor.
+// The wings: 0x1a12 plus b[4]'s bits 2 and 3; with 3, b[8] & 7: none, the cape or 0x1a14 plus the value.
 constexpr std::uint16_t FirstWings = 0x1a12;
 constexpr std::uint16_t SecondWings = 0x1a14;
 constexpr std::uint16_t Cape = 0x1c30;
 constexpr std::uint8_t CapeValue = 5;
 
-// La mascota: 0x1c12 más los bits 0 y 1 de b[4]; con 3, el bit 0 de b[9]; después, los bits 0 y 2
-// de b[11], que la pisan.
+// The pet: 0x1c12 plus b[4]'s bits 0 and 1; with 3, b[9]'s bit 0; then b[11]'s bits 0 and 2, which override it.
 constexpr std::uint16_t FirstPet = 0x1c12;
 constexpr std::uint16_t ThirdValuePet = 0x1c15;
 constexpr std::uint16_t Byte11Bit0Pet = 0x1c16;
 constexpr std::uint16_t Byte11Bit2Pet = 0x1c37;
 
-// Los cascos que dejan ver la cabeza (0x512930).
+// The helmets that show the head (0x512930).
 constexpr std::array<std::uint16_t, 6> OpenHelmets = {0x1012, 0x1014, 0x101c, 0x101d, 0x101e, 0x101f};
 
-// La tabla de 0x51338c.
+// 0x51338c's table.
 constexpr std::array<std::uint8_t, 8> ItemLevels = {0, 3, 5, 7, 9, 11, 12, 13};
 
-// De dónde salen los 9 bits del índice de cada parte: el bit alto de b[8], el nibble de b[12] a
-// b[14] que va por 2 (el de arriba o el de abajo) y el nibble de b[2] a b[4] de abajo de todo.
+// Where each part's 9 index bits come from: b[8]'s high bit, the nibble of b[12] to b[14] two per byte (high or low)
+// and the low nibble of b[2] to b[4].
 struct PartBits
 {
     int byte8Bit = 0;
@@ -68,8 +66,8 @@ constexpr std::array<PartBits, BodyPartCount> PartLayout = {{
     {3, 14, false, 4, true},
 }};
 
-// Dónde van los 3 bits del nivel de cada parte en L = b[5] << 16 | b[6] << 8 | b[7], y los de las
-// manos; y el bit de excelente (b[9]) y de set (b[10]) de cada una.
+// Where each part's 3 level bits go in L = b[5] << 16 | b[6] << 8 | b[7], and the hands'; and each one's excellent
+// (b[9]) and set (b[10]) bit.
 constexpr std::array<int, BodyPartCount> PartLevelShift = {6, 9, 12, 15, 18};
 constexpr int RightLevelShift = 0;
 constexpr int LeftLevelShift = 3;
@@ -100,7 +98,7 @@ std::uint16_t PartIndex(Equipment equipment, const PartBits& bits)
     return static_cast<std::uint16_t>((high + extended * 2) * 16 + low);
 }
 
-// La mano: el tipo de 12 bits, ((b[alto] & 0xf0) << 4) | b[bajo].
+// The hand: the 12-bit type, ((b[high] & 0xf0) << 4) | b[low].
 std::uint16_t HandType(Equipment equipment, std::size_t lowByte, std::size_t highByte)
 {
     return static_cast<std::uint16_t>(((ByteOf(equipment, highByte) & 0xF0) << 4) | ByteOf(equipment, lowByte));
@@ -144,7 +142,7 @@ std::optional<std::uint16_t> PetOf(Equipment equipment)
     return pet;
 }
 
-// 0x512930: la cabeza con los cascos abiertos y la escala.
+// 0x512930: the head with the open helmets, and the scale.
 void FinishAppearance(CharacterAppearance& appearance)
 {
     const std::uint16_t helm = appearance.bodyParts[static_cast<std::size_t>(BodyPart::Helm)].model;

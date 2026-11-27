@@ -55,221 +55,221 @@
 #include <string>
 #include <vector>
 
-// Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
-// de la velocidad y lo que hace falta para la espera de la entrada al mundo (06, "La entrada al mundo",
-// pasos 1 a 4 y 6). Arrancan en 0, como la .bss del original; las cuentas de accesos de la tabla de
-// protección, que el original guarda al lado de cada entrada, las pone MuRet en 0 sin haberlas leído
-// (CL7.P, P-C22 c).
+// The plain globals that survive scene changes: the current world, the shared speed state and what the wait of the
+// world entry needs (06, "La entrada al mundo", steps 1 to 4 and 6). They start at 0, like the original's .bss; the
+// access counts of the protection table, which the original keeps beside each entry, MuRet sets to 0 without having
+// read them (CL7.P, P-C22 c).
 namespace Client::Kernel
 {
-// Una entrada de la cola de las barras de vida (0x7239a8, de 0x10 bytes): la posición del personaje con la z sobre el
-// techo de su caja (+0x18 + +0x138 + 100) y su +0x93, el byte bajo del cuarto DWORD (los otros tres son lo que había en
-// la pila, que 0x42a53d descarta).
+// An entry of the health bars' queue (0x7239a8, 0x10 bytes): the character's position with z over the top of its box
+// (+0x18 + +0x138 + 100) and its +0x93, the low byte of the fourth DWORD (the other three are what was on the stack,
+// which 0x42a53d discards).
 struct QueuedHealthBar
 {
     glm::vec3 position{};
     std::uint8_t fill = 0;
 };
 
-// .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
+// .data[0x6c8c5c] = 1e 00 00 00; the weather's other four fields are in the .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
-// Los globales de la interfaz de Crywolf que escriben el BD 00 (0x42fe80), los BD 02 a 09 y el dibujo (0x4365c0), y que
-// 0x42fdc0 vuelve a su valor inicial (no todos: los de la .data en 0x6c73cc.., los demás en la .bss).
+// The Crywolf interface's globals that the BD 00 (0x42fe80), the BD 02 to 09 and the drawing (0x4365c0) write, and that
+// 0x42fdc0 puts back to their initial value (not all: the .data ones at 0x6c73cc.., the rest in the .bss).
 struct CrywolfInterface
 {
-    // 0x723a40: un float (FLD, FADD y FSTP en 0x4370d6 y 0x4372dc), lo que baja el adorno 0x6b8 del estado: sube de a
-    // 1 hasta 21 con 0x723a3d en 1 y vuelve de a 1 a 0 con 0x723a3d en 0. 0x42fdc0 escribe el dword 0.
+    // 0x723a40: a float (FLD, FADD and FSTP at 0x4370d6 and 0x4372dc), how far the state's ornament 0x6b8 drops: it
+    // rises by 1 up to 21 with 0x723a3d at 1 and goes back by 1 to 0 with 0x723a3d at 0. 0x42fdc0 writes the dword 0.
     float float723a40 = 0.0f;
-    // 0x723a3d: la barra de 0x6b7 (con 0x723a40 en 21); la pone y la saca el BD 05 por el signo de su dword.
+    // 0x723a3d: 0x6b7's bar (with 0x723a40 at 21); the BD 05 shows and hides it by its dword's sign.
     std::uint8_t byte723a3d = 0;
-    // 0x723a44: la ventana del contrato de los altares (06 § La interfaz de Crywolf), 1 con Sí y No o 2 con OK. La
-    // abre 0x435b00 y la cierran el dibujo (0x436240, con el botón apretado bajo el mouse), el de los resultados
-    // (0x436b15) y 0x42fdc0.
+    // 0x723a44: the altars' contract window (06 § La interfaz de Crywolf), 1 with Yes and No or 2 with OK. 0x435b00
+    // opens it; the drawing (0x436240, with the button pressed under the mouse), the results window (0x436b15) and
+    // 0x42fdc0 close it.
     std::uint8_t byte723a44 = 0;
-    // 0x723a48 y 0x723b10: los dos renglones de 200 bytes de esa ventana, que llena 0x435b00 (strcpy de Text.bmd o
-    // wsprintfA) y dibuja 0x436240. 0x42fdc0 no los toca.
+    // 0x723a48 and 0x723b10: that window's two 200-byte lines, which 0x435b00 fills (strcpy from Text.bmd or
+    // wsprintfA) and 0x436240 draws. 0x42fdc0 does not touch them.
     std::array<std::array<char, 200>, 2> contractLines{};
     std::uint8_t byte723ca0 = 0;
     std::uint8_t byte723bec = 0;
-    // 0x723bd8: pkt[8] del BD 05 (0x435a8e): el número del texto 1948 y el ícono 0x6bb (o 0x6bc con 0).
+    // 0x723bd8: the BD 05's pkt[8] (0x435a8e): text number 1948 and icon 0x6bb (or 0x6bc with 0).
     std::int32_t dword723bd8 = 0;
-    // 0x723bdc, 0x723be0, 0x723be4 y 0x723be8, en 0 en 0x42fdc0. El primero es el botón apretado: 5 el de los
-    // resultados, que con el mouse encima el dibujo cierra (0x436ad8), y 1 (No), 2 (Sí) o 3 (OK) los del contrato
-    // (0x435c5c, 0x436274); el segundo, el valor de 0x435b00 (la clave del altar, que manda el Sí); el tercero y el
-    // cuarto son pkt[4] y pkt[5] del BD 04 (0x435a46, con la etapa 4 en el 34), el cuarto los minutos del reloj del
-    // estado.
+    // 0x723bdc, 0x723be0, 0x723be4 and 0x723be8, at 0 in 0x42fdc0. The first is the pressed button: 5 the results
+    // one, which the drawing closes with the mouse over it (0x436ad8), and 1 (No), 2 (Yes) or 3 (OK) the contract's
+    // (0x435c5c, 0x436274); the second, 0x435b00's value (the altar's key, which Yes sends); the third and the fourth
+    // are the BD 04's pkt[4] and pkt[5] (0x435a46, with stage 4 on map 34), the fourth the state clock's minutes.
     std::array<std::int32_t, 4> dwords723bdc{};
-    // 0x7239f4: GetTickCount del BD 04 (0x435a51), desde donde cuenta el reloj del estado.
+    // 0x7239f4: the BD 04's GetTickCount (0x435a51), which the state clock counts from.
     std::int32_t dword7239f4 = 0;
-    // 0x6c73d1 (.data 0xff): el aviso, con −1 (con signo) 0x4365c0 no dibuja el cartel (0x436bc7).
+    // 0x6c73d1 (.data 0xff): the notice; with −1 (signed) 0x4365c0 does not draw the banner (0x436bc7).
     std::int8_t message = -1;
-    // 0x6c73d4 (.data 0x64): el dword del BD 05 (0x436590), el largo de la barra 0x6b7.
+    // 0x6c73d4 (.data 0x64): the BD 05's dword (0x436590), the length of bar 0x6b7.
     std::int32_t dword6c73d4 = 0x64;
-    // 0x6c73d8 (.data 1): la cuenta de los frames del cartel.
+    // 0x6c73d8 (.data 1): the banner's frame count.
     std::int32_t dword6c73d8 = 1;
-    // 0x6c73dc (.data 0xa): el cartel es 0x6b6 + esto (0x6c0, icon_failure; 0x6c1, icon_success con el estado 1).
+    // 0x6c73dc (.data 0xa): the banner is 0x6b6 + this (0x6c0, icon_failure; 0x6c1, icon_success with state 1).
     std::int32_t dword6c73dc = 0x0a;
-    // 0x6c73e0..0x6c73f4, seis dwords en −1: el primero, el consejo de 0x430180 (de 0 a 3); los otros cinco, los
-    // puntos de los resultados (0x6c73e4 + 4 · lugar, del BD 08), con −1 una fila vacía.
+    // 0x6c73e0..0x6c73f4, six dwords at −1: the first, 0x430180's tip (0 to 3); the other five, the results' points
+    // (0x6c73e4 + 4 · place, from the BD 08), with −1 an empty row.
     std::array<std::int32_t, 6> dwords6c73e0{-1, -1, -1, -1, -1, -1};
-    // 0x6c73f8 (.data 0x186): lo que le falta al rango (0x6d1) para llegar; baja de a 15 por frame.
+    // 0x6c73f8 (.data 0x186): how far the rank (0x6d1) still has to go; it drops by 15 per frame.
     std::int32_t dword6c73f8 = 0x186;
-    // 0x723c08: la luz de los dos 0x4ecc30 del estado 2 (0x430a33) y el largo de la barra 0x6bf; la escribe el BD 02.
+    // 0x723c08: the light of state 2's two 0x4ecc30 (0x430a33) and the length of bar 0x6bf; the BD 02 writes it.
     std::int32_t light = 0;
-    // 0x6c73cc..0x6c73d0 (.data 02 × 5): los cinco altares del BD 02 (0x430000): con 0x1? en el nibble alto, 0x6cd,
-    // 0x6ce o 0x6cf por el bajo (1, 2 u otro); si no, 0x6bd o 0x6be con 1 o 2, y nada con otro.
+    // 0x6c73cc..0x6c73d0 (.data 02 × 5): the BD 02's five altars (0x430000): with 0x1? in the high nibble, 0x6cd,
+    // 0x6ce or 0x6cf by the low one (1, 2 or other); otherwise 0x6bd or 0x6be with 1 or 2, and nothing with other.
     std::array<std::uint8_t, 5> altars{2, 2, 2, 2, 2};
-    // 0x723bed y 0x723bf0: el rango (0x6d2 + esto) y la experiencia (nueve cifras) del BD 07 (0x437600).
+    // 0x723bed and 0x723bf0: the BD 07's rank (0x6d2 + this) and experience (nine digits), 0x437600.
     std::uint8_t byte723bed = 0;
     std::int32_t dword723bf0 = 0;
-    // 0x723a30 + lugar y 0x7239f8 + 11 · lugar: la clase y el nombre (10 bytes y el 0) de los resultados (0x437620).
+    // 0x723a30 + place and 0x7239f8 + 11 · place: the results' class and name (10 bytes and the 0), 0x437620.
     std::array<std::uint8_t, 5> rankingClasses{};
     std::array<std::array<char, 11>, 5> rankingNames{};
-    // 0x723bf9: la ventana de los resultados, que abre el BD 08 y cierra el botón (0x436b21).
+    // 0x723bf9: the results window, which the BD 08 opens and the button closes (0x436b21).
     std::uint8_t byte723bf9 = 0;
-    // 0x723bf8: en 1 con el BD 04 y con cada dibujo del estado (0x4373fb).
+    // 0x723bf8: at 1 with the BD 04 and with each drawing of the state (0x4373fb).
     std::uint8_t byte723bf8 = 0;
-    // 0x723bf4, 0x723bfc y 0x723c00 (.bss 0): los minutos que quedan, los segundos que van (de 0 a 59) y el último
-    // segundo contado desde 0x7239f4 (0x437412..0x437490).
+    // 0x723bf4, 0x723bfc and 0x723c00 (.bss 0): the minutes left, the seconds gone (0 to 59) and the last second
+    // counted from 0x7239f4 (0x437412..0x437490).
     std::int32_t dword723bf4 = 0;
     std::int32_t dword723bfc = 0;
     std::int32_t dword723c00 = 0;
-    // 0x7d3a0e4 y 0x7d3a0e8 (.bss 0): el reloj de 0x63b0e3, que solo pide 0x430180 (cada 10.000 ms de timeGetTime).
+    // 0x7d3a0e4 and 0x7d3a0e8 (.bss 0): 0x63b0e3's timer, which only 0x430180 asks for (every 10,000 ms of
+    // timeGetTime).
     std::uint8_t tipTimerRestart = 0;
     std::uint32_t tipTimerStart = 0;
-    // 0x7d2dc9d: pkt[4] del BD 09 (y de 0x4e1629); lo lee la caja del caos (0x5ff2f2, CL9.3) y lo borra 0x65a94f.
+    // 0x7d2dc9d: the BD 09's pkt[4] (and 0x4e1629's); the chaos box reads it (0x5ff2f2, CL9.3) and 0x65a94f clears
+    // it.
     std::uint8_t byte7d2dc9d = 0;
 };
 
-// Los globales de Crywolf (el mapa 34), todos en la .bss.
+// Crywolf's globals (map 34), all in the .bss.
 struct CrywolfGlobals
 {
-    // 0x723c05: la etapa que leen los dibujos del chat (con 3 o 4 bajan sus renglones). Solo la escriben el BD 00
-    // (0x42fe80, CL9 hito 11) y 0x42fdc0 (la vuelta a la selección y la etapa 6).
+    // 0x723c05: the stage the chat's drawings read (with 3 or 4 their lines drop). Only the BD 00 (0x42fe80, CL9
+    // milestone 11) and 0x42fdc0 (the return to the selection and stage 6) write it.
     std::uint8_t stage = 0;
-    // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el BD 00 (0x42fe80, CL9 hito 11) y lo vuelve
-    // a 0 0x42fdc0. Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight (0x61a560) y el dibujo de sus
-    // objetos, los casos del estado 0 (Q-C340).
+    // 0x723c04: the event's state, which 0x42fe50 reads. Only the BD 00 changes it (0x42fe80, CL9 milestone 11) and
+    // 0x42fdc0 resets it to 0. With 0, map 34's load takes EncTerrain35.att and TerrainLight (0x61a560), and the
+    // drawing of its objects takes state 0's cases (Q-C340).
     std::uint8_t state = 0;
     CrywolfInterface ui{};
-    // 0x5763358: el clima, rand() % 3 cada 70.001 frames de sus objetos (0x430510). Lo leen las hojas (0x530490
-    // y 0x5306a0) y el 0x49 del dibujo (0x430942).
+    // 0x5763358: the weather, rand() % 3 every 70,001 frames of its objects (0x430510). The leaves (0x530490 and
+    // 0x5306a0) and the drawing's 0x49 (0x430942) read it.
     std::int32_t weather = 0;
-    // 0x723c0c: los frames de los objetos desde el último sorteo del clima (0x430523).
+    // 0x723c0c: the objects' frames since the last weather draw (0x430523).
     std::int32_t frameCount = 0;
-    // 0x723c10: el giro del segundo sprite 0x60f del 0x29, de 0 a 359 (0x4305db).
+    // 0x723c10: the spin of 0x29's second sprite 0x60f, 0 to 359 (0x4305db).
     float glowRotation = 0.0f;
-    // 0x576353c: el 0x49 lo pone en 1 con el clima en 0 (0x430950); lo gasta el HUD (0x5a7520 → 0x435930, CL8),
-    // que MuRet no tiene.
+    // 0x576353c: the 0x49 sets it to 1 with the weather at 0 (0x430950); the HUD spends it (0x5a7520 → 0x435930,
+    // CL8), which MuRet does not have.
     std::uint8_t sandOverlay = 0;
 };
 
-// El chat (CL8 hito 3; 06 § El chat), que vive del login al juego: el registro nuevo (el objeto de 0x576350c) y el
-// área vieja y los avisos (0x77d9868 y 0x77f3b88 con sus relojes). Lo que escriben sus dibujos va en HudState.
+// The chat (CL8 milestone 3; 06 § El chat), which lives from the login to the game: the new log (0x576350c's object)
+// and the old area and the notices (0x77d9868 and 0x77f3b88 with their clocks). What its drawings write goes in
+// HudState.
 struct ChatRuntime
 {
     UI::ChatLogState log{};
     UI::MessageAreaState area{};
-    // 0x77f3b78 (.bss 0): el sonido de los avisos del filtro. Lo cambian el F3 30 (0x4dd570) y el menú de Esc
-    // (0x62567b).
+    // 0x77f3b78 (.bss 0): the sound of the filter's notices. The F3 30 (0x4dd570) and the Esc menu (0x62567b) change
+    // it.
     bool noticeSound = false;
-    // 0x77f3b98 (.bss 0): con 1, el 02 no hace nada (0x4e34f1). Lo escriben /whisper off y on y el menú de Esc.
+    // 0x77f3b98 (.bss 0): with 1, the 02 does nothing (0x4e34f1). /whisper off and on and the Esc menu write it.
     bool whisperBlocked = false;
-    // 0x57678c4: los 11 bytes del destino del último susurro que salió (0x4b87e9, al mandar). El 0C con 0 los da de
-    // nombre al error (0x4e3684); sin ninguno, vacío como la .bss.
+    // 0x57678c4: the 11 bytes of the last outgoing whisper's target (0x4b87e9, on sending). The 0C with 0 names the
+    // error with them (0x4e3684); with none, empty like the .bss.
     std::string lastWhisperTarget{};
-    // 0x77997f8 y 0x77f3b9c: los que susurraron con el nivel propio menor que 10 (0x554d20).
+    // 0x77997f8 and 0x77f3b9c: those who whispered while the own level was below 10 (0x554d20).
     UI::WhisperSenders whisperSenders{};
-    // 0x77e1be0: los globos.
+    // 0x77e1be0: the bubbles.
     Scenes::ChatBubbleTable bubbles{};
-    // +0x510 y +0x511 de la barra de la selección (la ventana +0x7f50 de la UI nueva, 0x7d53728): el primer 0D con 1
-    // que llega en la selección (0x63eda0) y no se vuelve a escribir, porque la barra se arma una vez (0x63e6e0).
-    // Vacío, +0x510 en 0.
+    // +0x510 and +0x511 of the selection's bar (the new UI's window +0x7f50, 0x7d53728): the first 0D with 1 that
+    // arrives in the selection (0x63eda0), never written again because the bar is built once (0x63e6e0). Empty, +0x510
+    // at 0.
     std::optional<std::string> selectionNotice{};
-    // 0x6c7a8c (.data 1): los carteles de Slide.bmd prendidos. Lo apaga el bit 0x10 del F3 30 (0x4dd7fa).
+    // 0x6c7a8c (.data 1): Slide.bmd's banners on. The F3 30's bit 0x10 turns it off (0x4dd7fa).
     bool slidesOn = true;
-    // La entrada del chat (los EDIT de [0x57634f8], sus buffers, el freno y las macros).
+    // The chat input (the EDITs of [0x57634f8], their buffers, the throttle and the macros).
     UI::ChatInputState input{};
 };
 
-// Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
+// The game HUD's globals (0x5a7320 and its children, CL8 milestone 2), in the .bss unless they say otherwise.
 struct HudState
 {
-    // 0x78aba48: cuántos hay en la party. Lo pone en 0 abrir la ventana (0x659aa0) y lo escribe la lista (C1 42,
+    // 0x78aba48: how many are in the party. Opening the window zeroes it (0x659aa0) and the list writes it (C1 42,
     // 0x4d67e0, CL9.4).
     std::int32_t partyCount = 0;
-    // 0x78a7068 y 0x78a706c: la esquina de la ventana de la party, que pone su dibujo (0x5f0be0) con la ventana
-    // abierta, en (0x1c2, 0). La lee su paso (0x5e3c80), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
+    // 0x78a7068 and 0x78a706c: the party window's corner, which its drawing (0x5f0be0) sets with the window open, at
+    // (0x1c2, 0). Its step (0x5e3c80) reads it and sees the .bss zeros before the first drawing (Q-C650).
     std::int32_t partyX = 0;
     std::int32_t partyY = 0;
-    // 0x78a5a1c y 0x78a5a18: la esquina de la ventana del comercio, que pone su dibujo (0x5f3b40) en (0x104, 0). La lee
-    // su paso (0x5ecde0), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
+    // 0x78a5a1c and 0x78a5a18: the trade window's corner, which its drawing (0x5f3b40) sets at (0x104, 0). Its step
+    // (0x5ecde0) reads it and sees the .bss zeros before the first drawing (Q-C650).
     std::int32_t tradeX = 0;
     std::int32_t tradeY = 0;
-    // +0xc y +0x10 de [0x6e592c]: la esquina de la ventana de los comandos, que pone su dibujo (0x40a650) con la
-    // ventana abierta, en (0x1c2, 0). La lee su paso (0x40a450), que antes del primer dibujo ve los ceros del
-    // constructor (*inferido*, Q-C650).
+    // +0xc and +0x10 of [0x6e592c]: the commands window's corner, which its drawing (0x40a650) sets with the window
+    // open, at (0x1c2, 0). Its step (0x40a450) reads it and sees the constructor's zeros before the first drawing
+    // (*inferred*, Q-C650).
     std::int32_t commandsX = 0;
     std::int32_t commandsY = 0;
-    // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
+    // 0x5767960: the summon's life, 0 to 100. Its packet writes it (CL9.2).
     std::int32_t summonLife = 0;
-    // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a
-    // uno por paso; con más de 0 no sale ninguna (0x5a116f) y el HUD dibuja "Macro Time" (0x5a7369).
+    // 0x77f3b74: the macros' throttle. One that reaches it sets it to 0x64 (0x5a1ea1) and 0x637d44 lowers it by one
+    // per step; above 0 none goes out (0x5a116f) and the HUD draws "Macro Time" (0x5a7369).
     std::int32_t macroTime = 0;
     Scenes::QuickSlots quickSlots{};
-    // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada
-    // texto del HUD deja los suyos y el que sigue sin poner otros sale con ellos, también en el frame siguiente.
+    // 0x6c8e5c (.data −1) and 0x6c8e64 (.data 0x80000000): the text color and the background color 0x465950 reads.
+    // Each HUD text leaves its own, and the next one that sets none comes out with them, also in the next frame.
     Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
-    // 0x77f3b66: lo prenden un aviso de durabilidad (0x5aac20) y un globo (0x555b00), y lo apaga la barra (0x5a9290).
-    // Lo leen 0x554000, que con él corre la y de los textos (MuRet, solo en los globos: 08, P-C83), y el inventario
-    // (hito 4).
+    // 0x77f3b66: a durability warning (0x5aac20) and a bubble (0x555b00) set it, and the bar (0x5a9290) clears it.
+    // 0x554000 reads it to shift the texts' y (MuRet, only in the bubbles: 08, P-C83), and so does the inventory
+    // (milestone 4).
     std::uint8_t durabilityWarning = 0;
-    // 0x77f31b8 y 0x77f31bc: el tamaño en 640 × 480 del último texto que lo guardó: las flechas o los virotes
-    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810); el de un globo (0x555b00) es en píxeles.
+    // 0x77f31b8 and 0x77f31bc: the 640 × 480 size of the last text that stored it: the arrows or the bolts
+    // (0x5ab810), the old area (0x5554e0) and the notices (0x554810); a bubble's (0x555b00) is in pixels.
     std::int32_t arrowsTextWidth = 0;
     std::int32_t arrowsTextHeight = 0;
-    // 0x77f3b5c: con el botón izquierdo abajo, el cursor 0xa (CursorDontMove) en vez del 3 (0x5ac7a2). Quién lo
-    // escribe, sin leer: queda en 0.
+    // 0x77f3b5c: with the left button down, cursor 0xa (CursorDontMove) instead of 3 (0x5ac7a2). Who writes it,
+    // unread: it stays at 0.
     std::uint8_t pushCursor = 0;
-    // Lo que escriben los dibujos del chat (hito 3): el marco del registro (su esquina la pone el paso), los anchos y
-    // los parpadeos del área vieja y de los avisos.
+    // What the chat's drawings write (milestone 3): the log's frame (the step sets its corner), the widths and the
+    // blinks of the old area and the notices.
     UI::ChatLogFrame chatFrame{};
     UI::MessageFrameState messageFrame{};
-    // La fuente del último SelectObject sobre el DC de los textos (0x57634f4), que miden 0x45bb20, 0x555190 y
-    // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
-    // MuRet empieza con la normal.
+    // The font of the last SelectObject on the texts' DC (0x57634f4), which 0x45bb20, 0x555190 and 0x554610 measure.
+    // 0x61bcd0 creates the DC with none (the system's) and the login draws with one before the first message: MuRet
+    // starts with the normal one.
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
-    // 0x78a5a14 y 0x78a5a10: la esquina del inventario, que pone su dibujo (0x5f2340) en cada frame: x en 0x104 con
-    // el personaje o la party abiertos y en 0x1c2 si no, y siempre y en 0. Los leen los ítems 3D de sus grillas
-    // (0x5f7610) y las cifras (0x5f7840) del mismo frame (CL8 hito 4).
+    // 0x78a5a14 and 0x78a5a10: the inventory's corner, which its drawing (0x5f2340) sets each frame: x at 0x104 with
+    // the character or the party open and at 0x1c2 otherwise, and y always at 0. The 3D items of its grids (0x5f7610)
+    // and the figures (0x5f7840) of the same frame read them (CL8 milestone 4).
     std::int32_t inventoryX = 0;
     std::int32_t inventoryY = 0;
-    // 0x78aba14 y 0x78aba18: la esquina de la ventana del personaje, que pone su dibujo (0x5ee2e0) en cada frame, en
-    // (0x1c2, 0). Los leen su paso (0x5e4510) y su botón de cerrar (0x5f74b4), CL8 hito 5.
+    // 0x78aba14 and 0x78aba18: the character window's corner, which its drawing (0x5ee2e0) sets each frame, at (0x1c2,
+    // 0). Its step (0x5e4510) and its close button (0x5f74b4) read them, CL8 milestone 5.
     std::int32_t characterX = 0;
     std::int32_t characterY = 0;
-    // 0x78aadcc..0x78aadd4 (.bss, en 0): los ángulos con que 0x5e0720 posa cada ítem de la UI. Los escribe en cada
-    // ítem y duran al siguiente y al frame siguiente: el 0x1e1e con un paso que no es 0, 1 ni 2 posa con los del
-    // anterior (Q-C478).
+    // 0x78aadcc..0x78aadd4 (.bss, at 0): the angles 0x5e0720 poses each UI item with. It writes them on each item and
+    // they last to the next item and the next frame: the 0x1e1e with a step other than 0, 1 or 2 poses with the
+    // previous one's (Q-C478).
     glm::vec3 uiItemAngles{};
-    // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
-    // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
+    // [0x5763528]: Slide.bmd's banner (0x46aea0), which the 15 draws (0x46b090) and writes while drawing (the opacity,
+    // the shift, the scrolling text and 0x5762ee4). The 0x3eb timer and the 0D fill it, and the UI step advances it.
     UI::SlideBanner slides{};
-    // [0x5763534]: el cartel con el nombre del mapa (Scenes/MapBanner.h), que dibuja el 19 (0x65dd70).
+    // [0x5763534]: the banner with the map's name (Scenes/MapBanner.h), which the 19 draws (0x65dd70).
     Scenes::MapBanner mapBanner = Scenes::MakeTheMapBanner();
-    // 0x78793c8, 0x787a560 y 0x78a9230: los renglones de los tooltips, sus colores y sus negritas (CL8 hito 5).
+    // 0x78793c8, 0x787a560 and 0x78a9230: the tooltips' lines, their colors and their bold flags (CL8 milestone 5).
     Scenes::TooltipLines tooltip{};
-    // 0x787a15c y 0x6c9334: la tabla por nivel de la ayuda del ítem y su ítem (−1 en la .data), que llena 0x5afc00.
+    // 0x787a15c and 0x6c9334: the item help's per-level table and its item (−1 in the .data), which 0x5afc00 fills.
     Scenes::ItemHelpLevels itemHelp{};
 };
 
-// 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
-// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet levanta del
-// inventario, de las grillas del comercio y de la tienda personal (CL9 hito 7, 0x5c4110) y de la grilla de la tienda de
-// NPC y del almacén, de la caja del caos y de la del entrenador (CL9 hito 6). 0x5be150 vuelve el ítem a la propia del
-// comercio y a la de la tienda (0x5be191 y 0x5be3eb); la del otro (0x78a5a20) no tiene rama y sigue como la del
-// inventario.
+// 0x78ab9b8, the cursor item's grid: a pointer in the .bss (0 at start). Picking up from a grid (0x5c52e2, with that
+// grid) and from the equipment, and MoveHero (0x5c2d37 and 0x59bf32, with 0x78a9bb0) write it. MuRet picks up from the
+// inventory, the trade and personal shop grids (CL9 milestone 7, 0x5c4110) and the NPC shop, warehouse, chaos box and
+// trainer grids (CL9 milestone 6). 0x5be150 returns the item to the own trade grid and to the shop's (0x5be191 and
+// 0x5be3eb); the other's (0x78a5a20) has no branch and goes on like the inventory's.
 enum class CursorGrid : std::uint8_t
 {
     None,         // 0
@@ -282,40 +282,40 @@ enum class CursorGrid : std::uint8_t
     TrainerBox,   // 0x723c80
 };
 
-// Las mascotas de 0x723960 (CL9 hito 4): 0x14 bytes por tipo, tres (0x420cd0 pone en 0 quince dwords).
+// The pets of 0x723960 (CL9 milestone 4): 0x14 bytes per type, three (0x420cd0 zeroes fifteen dwords).
 inline constexpr std::size_t PetStatsCount = 3;
 inline constexpr std::size_t RavenPetStats = 0;
 inline constexpr std::size_t DarkHorsePetStats = 1;
 
 struct PetStats
 {
-    std::uint32_t experience = 0;     // +0: el DWORD del A9 (pkt[8])
-    std::uint32_t nextExperience = 0; // +4: (nivel + 11) · (nivel + 1)³ · 100, en 32 bits (0x4221d0)
+    std::uint32_t experience = 0;     // +0: the A9's DWORD (pkt[8])
+    std::uint32_t nextExperience = 0; // +4: (level + 11) · (level + 1)³ · 100, in 32 bits (0x4221d0)
     std::uint16_t level = 0;          // +8: pkt[6]
-    std::uint16_t durability = 0;     // +0xa: la durabilidad del caballo del registro propio (+0xdc6) o del cartel
-    // +0xc a +0x12: lo que 0x4221d0 calcula con el nivel, el liderazgo (+0x36 + +0x20 del registro propio) y, en el
-    // caballo, la fuerza y +0x2a. Los lee la ventana de la mascota (0x4249a0) y su tooltip (0x422990).
+    std::uint16_t durability = 0;     // +0xa: the durability of the own record's horse (+0xdc6) or of the label
+    // +0xc to +0x12: what 0x4221d0 computes from the level, the leadership (+0x36 + +0x20 of the own record) and, for
+    // the horse, the strength and +0x2a. The pet window (0x4249a0) and its tooltip (0x422990) read them.
     std::uint16_t word0c = 0;
     std::uint16_t word0e = 0;
     std::uint16_t word10 = 0;
     std::uint16_t word12 = 0;
 };
 
-// 0x723914, 0x723918 y 0x72391c: el último ítem del que el tooltip de las mascotas (0x422990) pidió el A9. Si el ítem
-// que muestra no es ese (otro lugar de la caja, otro tipo u otro D+4), lo anota, pide el A9 y no dibuja nada en ese
-// frame. Arrancan en 0 (la .bss). 0x421d90, desde el comercio (0x44b910, CL9.3), pone en 0 dieciocho dwords desde
-// 0x723918: el tipo y D+4, no la clave.
+// 0x723914, 0x723918 and 0x72391c: the last item the pets' tooltip (0x422990) asked the A9 for. If the item it shows
+// is not that one (another place in the box, another type or another D+4), it notes it, asks for the A9 and draws
+// nothing that frame. They start at 0 (the .bss). 0x421d90, from the trade (0x44b910, CL9.3), zeroes eighteen dwords
+// from 0x723918: the type and D+4, not the key.
 struct PetTooltipQuery
 {
-    // ((y & 0xffff) << 16) | (x & 0xffff), con la x y la y de 0x422990: el centro de arriba de la caja.
+    // ((y & 0xffff) << 16) | (x & 0xffff), with 0x422990's x and y: the box's top center.
     std::uint32_t key = 0;
     std::uint16_t type = 0;
-    // D+4 del ítem (World::ItemState::scalar1Low).
+    // The item's D+4 (Kernel::ItemState::scalar1Low).
     std::uint32_t scalar = 0;
 };
 
-// Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
-// nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).
+// A node of [0x6e5640]'s named bone list (0x401000 → 0x4011c0): the character (its pool place), the name the
+// monster's creator gives it and its model's bone. The effects read it (CL11).
 struct NamedBone
 {
     std::size_t actor = 0;
@@ -323,9 +323,9 @@ struct NamedBone
     std::uint32_t bone = 0;
 };
 
-// Lo que un alta de monstruo escribe en la tabla de modelos (0x5769ad8, de a 0xe0 bytes por modelo): el byte `offset`
-// del modelo o, con `mesh`, el byte +0 de esa malla (06, "El alta de un monstruo"). Lo lee el dibujo de los monstruos,
-// sin portar (08, P-C176).
+// What a monster's creation writes in the model table (0x5769ad8, 0xe0 bytes per model): the model's byte `offset` or,
+// with `mesh`, byte +0 of that mesh (06, "El alta de un monstruo"). The monsters' drawing reads it, unported (08,
+// P-C176).
 struct ModelBytePatch
 {
     std::uint16_t model = 0;
@@ -334,20 +334,20 @@ struct ModelBytePatch
     std::uint8_t value = 0;
 };
 
-// Los globales de los ítems del piso (CL9 hito 5; 06 § Los ítems del piso).
+// The floor items' globals (CL9 milestone 5; 06 § Los ítems del piso).
 struct FloorItemGlobals
 {
-    // 0x77f27b0 (.bss 0): el ítem del piso que se va a levantar. Lo escriben la barra (0x5ac9a1) y MoveHero (0x59dc8e);
-    // lo leen 0x5650c0 (su caso 1) y el aviso del 22 (0x4d0f5f).
+    // 0x77f27b0 (.bss 0): the floor item about to be picked up. The bar (0x5ac9a1) and MoveHero (0x59dc8e) write it;
+    // 0x5650c0 (its case 1) and the 22's notice (0x4d0f5f) read it.
     std::int32_t chosen = 0;
-    // 0x77f3b40 (.bss 0): en 1 solo mientras la barra llama a 0x5650c0 (0x5ac9a7..0x5ac9bc), que así no mira la
-    // distancia al destino.
+    // 0x77f3b40 (.bss 0): at 1 only while the bar calls 0x5650c0 (0x5ac9a7..0x5ac9bc), which then skips the distance
+    // to the target.
     std::uint8_t fromSpace = 0;
-    // 0x6c82e8 (.data −1): el ítem pedido con el C1 22. Mientras no es −1, 0x5650c0 no pide otro; lo vuelven a −1 el
-    // 22 (0x4d10b9) y 0x4c2480 (0x4c24cf).
+    // 0x6c82e8 (.data −1): the item asked for with the C1 22. While it is not −1, 0x5650c0 asks for no other; the 22
+    // (0x4d10b9) and 0x4c2480 (0x4c24cf) set it back to −1.
     std::int32_t pendingPickUp = -1;
-    // 0x6c82ec (.data −1): el lugar del ítem tirado con el C1 23 (0x5e068d). Lo vuelve a −1 el 23 (0x4d13d1, 0x4d13e5)
-    // y nadie lo lee.
+    // 0x6c82ec (.data −1): the place of the item dropped with the C1 23 (0x5e068d). The 23 sets it back to −1
+    // (0x4d13d1, 0x4d13e5) and nobody reads it.
     std::int32_t pendingDrop = -1;
 };
 
@@ -356,239 +356,230 @@ struct WorldRuntime
     void RequestSound(std::int32_t id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false);
     void StopSound(std::int32_t id, bool rewind);
     void SetSoundVolume(std::uint8_t level);
-    // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
-    // main muestra el modal antes de cerrar. Unsupported-map y errores sin aviso no lo escriben.
+    // Q-C180/Q-C27: the first data notice that asked for WM_DESTROY. It lasts even if Poll fails; main shows the modal
+    // before closing. Unsupported-map and errors without a notice do not write it.
     std::optional<std::string> fatalDataMessage{};
     Actors::Drawing::GameItemRenderState itemRender{};
-    // 0x77f3ba0, 0x77e1bb0 y 0x77f27b4: la cola de los últimos 0x0B, 0x12, 0x1C, 0x24 y 0x2A (ViewportPacketRing.h).
+    // 0x77f3ba0, 0x77e1bb0 and 0x77f27b4: the queue of the last 0x0B, 0x12, 0x1C, 0x24 and 0x2A
+    // (ViewportPacketRing.h).
     Actors::ViewportPacketRing viewportPackets{};
-    // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos
-    // (0x7d3a10c, 0x7d3a110) y lo demás de la UI del juego (CL8 hito 1): la .bss, que nadie vacía al cambiar de
-    // escena.
+    // The panels' bytes (0x7d53708..0x7d53718 and the globals their functions write), the dialogs (0x7d3a10c,
+    // 0x7d3a110) and the rest of the game UI (CL8 milestone 1): the .bss, which nobody clears on a scene change.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
-    // Lo que guardan los paquetes del castillo fuera de la batalla (CL9 hito 12): la .bss 0x7d5c504..0x7d5c658, los
-    // campos de [0x7d536f8] y [0x7d53700] que escriben y 0x78aba30/0x78aba34.
+    // What the castle packets keep outside the battle (CL9 milestone 12): the .bss 0x7d5c504..0x7d5c658, the fields of
+    // [0x7d536f8] and [0x7d53700] they write, and 0x78aba30/0x78aba34.
     UI::CastleSiegeState castleSiege{};
-    // El gremio, la alianza y la guerra (CL9 hito 8): la tabla de los gremios (0x787aa48), los miembros (0x787a5e8),
-    // los globales de la guerra y lo que los paquetes guardan en las dos ventanas del gremio.
+    // The guild, the alliance and the war (CL9 milestone 8): the guild table (0x787aa48), the members (0x787a5e8), the
+    // war's globals and what the packets keep in the two guild windows.
     Scenes::GuildState guild{};
-    // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
+    // 0x7d36a98, 0x7d368e4, 0x7d368b8 and 0x7d3a0f4..0x7d3a0f9: the old boxes' text and buttons (milestone 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
-    // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6).
+    // The NPC windows' grids and globals (CL9 milestone 6).
     Scenes::NpcWindowState npcWindows{};
-    // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
-    // WinMain y duran todo el juego.
+    // *(0x5763514), the old windows' manager, and [0x5763524]'s window list (milestone 7): WinMain builds them and
+    // they last the whole game.
     UI::OldWindowManager oldWindows{};
     HudState hud{};
     ChatRuntime chat{};
     Scenes::GameMovementState movement{};
-    // Los cinco selectores del mouse arrancan en -1 en la .data.
+    // The five mouse selectors start at -1 in the .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
-    // 0x723c18: la cola de los textos 3D (WorldTexts.h). La llena 0x4381f0 desde el cuerpo de los personajes
-    // (0x4fd603, el 0xc5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
+    // 0x723c18: the 3D texts' queue (WorldTexts.h). 0x4381f0 fills it from the characters' body (0x4fd603, the 0xc5)
+    // and its drawing (0x4383f0) empties it each game frame.
     Scenes::WorldTextQueue worldTexts{};
-    // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
-    // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
+    // 0x723c68 (+8, the list; +0xc, the count): movereq.bmd's destinations, which 0x448440 reads at load (0x61ccb0)
+    // and the /move window walks in its step (0x448580) and drawing (0x448fa0). main.cpp copies them from GameData.
     std::vector<Tables::MoveRequirement> moves{};
-    // [0x710148]: el objeto de las misiones (CL9 hito 2). main.cpp copia los registros de quest.bmd (GameData::quests).
+    // [0x710148]: the quests' object (CL9 milestone 2). main.cpp copies quest.bmd's records (GameData::quests).
     Scenes::QuestState quest{};
-    // 0x7688ac0: los 200 diálogos de Dialog.bmd, que main.cpp copia de GameData::dialogs. Vacío: el que muestra uno
-    // corta.
+    // 0x7688ac0: Dialog.bmd's 200 dialogs, which main.cpp copies from GameData::dialogs. Empty, showing one aborts.
     Tables::DialogTable dialogTable{};
-    // 0x7681eb8 (CL9 hito 2): los 512 nombres de NpcName(%s).txt que busca 0x54ebb0 (el título de la ventana de las
-    // misiones, 0x41be2c) y que la cola del alta (0x5140c0) copia al nombre. main.cpp les copia GameData::npcNames
-    // (0x61ed05); sin el archivo quedan en 0.
+    // 0x7681eb8 (CL9 milestone 2): NpcName(%s).txt's 512 names, which 0x54ebb0 looks up (the quest window's title,
+    // 0x41be2c) and the creation's tail (0x5140c0) copies to the name. main.cpp copies GameData::npcNames into them
+    // (0x61ed05); without the file they stay at 0.
     Scenes::NpcNameTable npcNames = Scenes::NpcNameTable(Tables::NpcNameCount);
-    // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
-    // las misiones (0x41ba20) con la clase 3 o 4.
+    // 0x6eeda8: the A0 sets it to 0 and reaching an NPC (0x569593) to 1 if it is 0xe5. The quests' dialog drawing
+    // (0x41ba20) reads it with class 3 or 4.
     std::uint8_t byte6eeda8 = 0;
-    // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
+    // 0x7879f80: the cursor item, a 0x48-byte ItemState in the .bss. 0x5f7b10 draws it (CL8 milestone 4).
     Kernel::ItemState cursorItem{};
-    // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
-    // quien levanta o suelta el ítem escribe los dos.
+    // 0x7879fbc, cursorItem's +0x3c (occupied): above 0 with an item on the cursor. MuRet keeps it apart, and whoever
+    // picks up or drops the item writes both.
     std::int32_t cursorItemCount = 0;
     FloorItemGlobals floor{};
-    // 0x78ab9b8: la grilla de donde salió el ítem del cursor (CL8 hito 4).
+    // 0x78ab9b8: the grid the cursor item came from (CL8 milestone 4).
     CursorGrid cursorGrid = CursorGrid::None;
-    // 0x78a59c8: el ítem de los diálogos (0x633110 lo dibuja, 0x63330f lo nombra, 0x623e70 lo usa), con la casilla de
-    // la grilla en el byte +9 (0x78a59d1), que en el ItemState es relleno. Lo escribe la fruta (0x5c8083, CL9 hito 5).
+    // 0x78a59c8: the dialogs' item (0x633110 draws it, 0x63330f names it, 0x623e70 uses it), with the grid cell in
+    // byte +9 (0x78a59d1), padding in the ItemState. The fruit writes it (0x5c8083, CL9 milestone 5).
     Kernel::ItemState dialogItem{};
     std::uint8_t dialogItemCell = 0;
-    // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).
+    // 0x77f3cc8: the place the outgoing C1 .. 24 goes to (0x5ca4b0, 0x5bf209, 0x59bf46).
     std::int32_t itemMoveTarget = 0;
-    // 0x787a518: la copia del ítem bajo el mouse que lee el cartel (0x5c42a7 y 0x5c3aba). Levantar un ítem le pone el
-    // tipo en 0xffff (0x5c5358, 0x5c2d74).
+    // 0x787a518: the copy of the item under the mouse that the label reads (0x5c42a7 and 0x5c3aba). Picking up an
+    // item sets its type to 0xffff (0x5c5358, 0x5c2d74).
     Kernel::ItemState hoveredItemCopy{};
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<std::int32_t> lastSoundId{};
-    // 0x743748c, 0x74374bc y 0x74374ec: las matrices que copia el dibujo del +0x376 0x4d (0x50c177): los huesos 23 y 14
-    // de su segundo modelo (el 0x18a) y el 24 del primero (el 0x189), de +0x120. Las lee el ataque de 0x4f5b70
-    // (0x4f840e y 0x4f8b92, hito 3).
+    // 0x743748c, 0x74374bc and 0x74374ec: the matrices the +0x376 0x4d drawing copies (0x50c177): bones 23 and 14 of
+    // its second model (the 0x18a) and 24 of the first (the 0x189), from +0x120. 0x4f5b70's attack reads them
+    // (0x4f840e and 0x4f8b92, milestone 3).
     std::array<Math::BoneTransform, 3> phoenixBones{};
     World::ObjectModelStepState objectModelState{};
-    // 7d365a0, .bss0.6061c0 lee el count retenido antes de60657a;6063d0 lo produce
-    // sólo paraIcarus/Chaos/asedio. Kalima conserva0 después del reset del pase exitoso.
+    // 0x7d365a0, .bss 0. 0x6061c0 reads the retained count before 0x60657a; 0x6063d0 produces it only for Icarus,
+    // Chaos Castle and the siege. Kalima keeps 0 after the successful pass's reset.
     std::int32_t objectSelectionCount = 0;
-    // 0x723c4c, .bss 0: la hora del sistema (timeGetTime) del último ambiente 0x1ef de Land of Trials (0x44016b).
+    // 0x723c4c, .bss 0: the system time (timeGetTime) of Land of Trials' last 0x1ef ambience (0x44016b).
     std::uint32_t trialsAmbientTime = 0;
-    // DAT_00723c60, el objeto de evento que arma 0x447d70. Vacío como la .bss; sólo 0x447d70 lo suelta
-    // (0x447eb0), y sólo para armar otro: al salir del evento a un mapa común sigue vivo (Q-C320).
+    // DAT_00723c60, the event object 0x447d70 builds. Empty like the .bss; only 0x447d70 frees it (0x447eb0), and only
+    // to build another: leaving the event for a common map, it stays alive (Q-C320).
     std::optional<Scenes::EventMapObject> eventObject{};
-    // 0x6c634c (.data 0xff): el área de Chaos Castle que leen 0x404e20 y 0x405e00 (Q-C229); 0x404d60 la vuelve
-    // a poner en 0xff.
+    // 0x6c634c (.data 0xff): the Chaos Castle area that 0x404e20 and 0x405e00 read (Q-C229); 0x404d60 sets it back to
+    // 0xff.
     std::uint8_t chaosCastleArea = 0xff;
-    // 0x6c634d (.data 1): la trampa de Chaos Castle armada. 0x4055b0 la gasta con el primer 3 visto; solo el
-    // 9B de Chaos Castle (0x404e45, CL9 hito 11) la vuelve a armar.
+    // 0x6c634d (.data 1): the Chaos Castle trap armed. 0x4055b0 spends it on the first 3 seen; only Chaos Castle's 9B
+    // (0x404e45, CL9 milestone 11) arms it again.
     std::uint8_t chaosCastleTrapArmed = 1;
-    // Lo demás que escriben los paquetes de los eventos (CL9 hito 11).
+    // The rest the events' packets write (CL9 milestone 11).
     Scenes::EventGlobals events{};
-    // Lo de Crywolf que leen y escriben la carga, sus objetos y sus hojas.
+    // Crywolf's part that the load, its objects and its leaves read and write.
     CrywolfGlobals crywolf{};
-    // 0x5763538 (.bss 0): el contador de 0x6046a0, que da la vuelta de 1 a 41 al empezar cada dibujo de los
-    // objetos, en el login, la selección y el juego (0x6046be..0x6046ce). Solo lo lee el 0x29 de Crywolf.
+    // 0x5763538 (.bss 0): 0x6046a0's counter, which wraps from 1 to 41 at the start of each objects' drawing, in the
+    // login, the selection and the game (0x6046be..0x6046ce). Only Crywolf's 0x29 reads it.
     std::int32_t objectDrawCounter = 0;
-    // 0x743a180, 0x743a184 y 0x743a188 (.bss 0): la celda del héroe y el reloj del mundo que 0x4fbe10 guarda en
-    // los mapas 18 a 23. Nadie más los escribe: sobreviven a la carga de otro mapa.
+    // 0x743a180, 0x743a184 and 0x743a188 (.bss 0): the hero's cell and the world clock that 0x4fbe10 stores on maps
+    // 18 to 23. Nothing else writes them: they survive another map's load.
     std::int32_t reportedCellX = 0;
     std::int32_t reportedCellY = 0;
     float reportedCellTime = 0.0f;
-    // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
-    // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20
-    // (06, "Al entrar"). Ese 54 sigue en la carga del mundo y en la espera de la escena 5, que corre
-    // con lo que dejó la selección hasta que la respuesta del F3 03 escribe el del juego (06, "La
-    // entrada al mundo", paso 1 y fila 1).
-    // El −1 de antes de la primera escritura es el que MuRet ya usaba; el inicial del original no
-    // está leído. Con −1, 0x511290 no suma el corrimiento de la mascota (06, CL7.3 B).
+    // DAT_006c9dd0, the current world. Whoever calls 0x61a560 writes it just before (05, "La carpeta de cada mapa"):
+    // the login with 55 (06, "El login, al entrar") and the selection with 54 in 0x633f20 (06, "Al entrar"). That 54
+    // stays in the world's load and in scene 5's wait, which runs with what the selection left until the F3 03 reply
+    // writes the game's (06, "La entrada al mundo", step 1 and row 1).
+    // The −1 before the first write is the one MuRet already used; the original's initial value is unread. With −1,
+    // 0x511290 does not add the pet's shift (06, CL7.3 B).
     std::int32_t map = -1;
-    // 0x7d3a0d0 y 0x7d3a0d4, los de Fenrir: uno solo para todos los personajes (06, "Caminar", la
-    // velocidad). 0x4f2250 pone el primero en 0 (0x4f22a4). Los ceros del DTO no afirman el inicial del
-    // original.
+    // 0x7d3a0d0 and 0x7d3a0d4, Fenrir's: one for all characters (06, "Caminar", the speed). 0x4f2250 zeroes the first
+    // (0x4f22a4). The DTO's zeros do not claim the original's initial value.
     GameLogic::MovementSpeedSharedState movementSpeed;
 
-    // DAT_07d3a101, el mundo cargado: en 0, el paso del juego sale en 0x636db5 y su dibujo devuelve
-    // 0 en 0x6371a6, sin leer el contador. Lo ponen en 1 la carga del 54 de la selección (0x633f30,
-    // dentro de 0x633f20) y el paso del juego con el estado 0x3d (0x636dac), y en 0 solo el F1 02
-    // (0x4c2f39 con 2 y 0x4c38f9 con 1, que MuRet sigue: ApplyReturnToSelection). El login también lo
-    // pone en 1 al cargar el 55 (0x6349ab); MuRet no lo escribe ahí porque el juego, su único lector
-    // portado, llega siempre después de 0x633f20.
+    // DAT_07d3a101, the world loaded: at 0, the game step leaves at 0x636db5 and its drawing returns 0 at 0x6371a6,
+    // without reading the counter. The selection's load of 54 (0x633f30, inside 0x633f20) and the game step with state
+    // 0x3d (0x636dac) set it to 1, and only the F1 02 to 0 (0x4c2f39 with 2 and 0x4c38f9 with 1, which MuRet follows:
+    // ApplyReturnToSelection). The login also sets it to 1 when it loads 55 (0x6349ab); MuRet does not write it there
+    // because the game, its only ported reader, always comes after 0x633f20.
     bool drawingEnabled = false;
-    // DAT_006d5dc8 escrito por un paquete: el F1 02 con 1 pone la 4 (0x4c363f) mientras se lee la red, y
-    // el próximo paso del original ya es el de la selección. MuRet la deja acá y el SceneManager la toma
-    // después del Poll (main.cpp) y entra en su próximo paso. Vacía, nadie la pidió.
+    // DAT_006d5dc8 written by a packet: the F1 02 with 1 sets 4 (0x4c363f) while the network is read, and the
+    // original's next step is already the selection's. MuRet leaves it here and the SceneManager takes it after the
+    // Poll (main.cpp) and enters it on its next step. Empty, nobody asked for it.
     std::optional<Scenes::SceneId> orderedScene{};
-    // DAT_07d3a13e: si la carga del mundo (0x6356f0) ya armó el contador y subió sus texturas. La
-    // baja la selección justo antes de pasar a la escena 3 (0x633efe, 0x634469, 0x634631) y la sube
-    // 0x6356f0 (0x635980). Nadie más la escribe.
+    // DAT_07d3a13e: whether the world's load (0x6356f0) already set up the counter and uploaded its textures. The
+    // selection clears it just before going to scene 3 (0x633efe, 0x634469, 0x634631) and 0x6356f0 sets it
+    // (0x635980). Nothing else writes it.
     std::uint8_t loadingOnceFlag = 0;
-    // DAT_077f3b04, el contador de la espera y de los gates, que vive en la tabla de protección
-    // (06, "La tabla de protección"): 9.999.999 en la escena 3 y en un pedido de gate, 30 en la
-    // respuesta del F3 03, y baja de a 1 en MoveHero (0x59af01). Con más de 30 el dibujo del juego no
-    // presenta (0x63722e).
+    // DAT_077f3b04, the counter of the wait and of the gates, which lives in the protection table (06, "La tabla de
+    // protección"): 9,999,999 in scene 3 and in a gate request, 30 in the F3 03 reply, and it drops by 1 in MoveHero
+    // (0x59af01). Above 30 the game's drawing does not present (0x63722e).
     std::int32_t warpCounter = 0;
-    // Cuántos accesos tienen abierto el contador: el byte que sigue a su copia cifrada.
+    // How many accesses hold the counter open: the byte after its encrypted copy.
     std::uint8_t warpDepth = 0;
-    // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
+    // How many accesses hold the own record open ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
-    // 0x723960: lo de cada mascota que escribe el A9 (0x421db0 y 0x4221d0, Scenes/PetInfo.h), por el tipo: el 0 el
-    // cuervo y el 1 el caballo. 0x420cd0 pone en 0 los tres. El nivel del caballo ([0x72397c]) lo leen 0x4225d0 (el
-    // byte de abajo) y 0x422930; el del cuervo ([0x723968]), el requisito de liderazgo del 0x1a5 (0x5bf027) y 0x422930.
+    // 0x723960: what the A9 writes for each pet (0x421db0 and 0x4221d0, Protocol/Pets/PetInfo.h), by type: 0 the
+    // raven and 1 the horse. 0x420cd0 zeroes the three. The horse's level ([0x72397c]) is read by 0x4225d0 (the low
+    // byte) and 0x422930; the raven's ([0x723968]) by the leadership requirement of 0x1a5 (0x5bf027) and 0x422930.
     std::array<PetStats, PetStatsCount> pets{};
-    // 0x723910: la pestaña de la ventana de la mascota (0 el caballo, que dibuja 0x424e40, y 1 el cuervo, 0x416670),
-    // que eligen los dos botones de 0x424759. El 0x723911 de al lado es UI::DelegatedPanels::pet.
+    // 0x723910: the pet window's tab (0 the horse, which 0x424e40 draws, and 1 the raven, 0x416670), which
+    // 0x424759's two buttons choose. The 0x723911 next to it is UI::DelegatedPanels::pet.
     std::uint8_t petTab = 0;
-    // 0x723914, 0x723918 y 0x72391c: de qué ítem pidió el A9 el tooltip de las mascotas (0x422990).
+    // 0x723914, 0x723918 and 0x72391c: which item the pets' tooltip (0x422990) asked the A9 for.
     PetTooltipQuery petTooltipQuery{};
-    // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
-    // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
-    // sortear.
+    // DAT_057678b0: the pool place the F3 03 reply picks for the hero, rand() % 400 (0x4c44d4, the only write; 06,
+    // "La entrada al mundo", row 3). Each reply draws it again.
     std::int32_t heroSlot = 0;
-    // DAT_0743a170, el héroe publicado, como lugar del pool: WinMain lo deja en el 0 (0x4bafdf) y la
-    // respuesta del F3 03 lo pasa al de heroSlot recién después de vestirlo con 0x512a30 (0x4c4725). No
-    // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior, y después de la vuelta
-    // a la selección sigue en el lugar del juego (Q-C213).
+    // DAT_0743a170, the published hero, as a pool place: WinMain leaves it at 0 (0x4bafdf) and the F3 03 reply moves
+    // it to heroSlot's only after dressing it with 0x512a30 (0x4c4725). Nothing else writes it: on a second reply,
+    // until then it is the previous hero, and after the return to the selection it stays on the game's place (Q-C213).
     std::size_t hero = 0;
-    // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
-    // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes
-    // (0x50ba30 en 0x50c91e), el del login y el de la selección (ScanTheDrawnCharacter). nullopt después de un
-    // frame del juego que llega a los personajes (0x6374dd → 0x510d00), que MuRet no dibuja: no se sabe qué
-    // dejó, y 0x550990 corta con error si lo lee.
+    // [0x743a178] and [0x743a17c], what the last 0x505820 left (06, "El conjunto completo de 0x505820"): in the .bss,
+    // 0 at start. 0x512a30 writes it with the published hero, and so do the characters' drawing (0x50ba30 at
+    // 0x50c91e), the login's and the selection's (ScanTheDrawnCharacter). nullopt after a game frame that reaches the
+    // characters (0x6374dd → 0x510d00), which MuRet does not draw: what it left is unknown, and 0x550990 stops with an
+    // error if it reads it.
     std::optional<Actors::Scan505820> fullSetScan = Actors::Scan505820{};
-    // El comercio, la party y el duelo (CL9 hito 7).
+    // The trade, the party and the duel (CL9 milestone 7).
     Scenes::SocialState social{};
-    // [0x78a6758], en la .bss: 0 al arrancar. 0x5bc740, después de poner un ítem en una de las grillas del
-    // inventario, lo compara con signo con 12 (0x5bcd0b y 0x5bd08b) y, con menos, abre el registro propio
-    // para las velocidades (0x54fe10). Lo escriben quince lugares de la interfaz del inventario y del juego
-    // (0x44add8, 0x561b6d, 0x561bf7, 0x59bf3c, 0x5c2d5c, 0x5c5131, 0x5c5154, 0x5c51c3, 0x5c51f8, 0x5c5277,
-    // 0x5c5301, 0x5c5330, 0x5c6c15, 0x5c8edd y 0x5c8f53; estático). MuRet tiene los del inventario: levantar de la
-    // grilla (0x5c5301) y del equipo (0x5c2d5c) y MoveHero (0x59bf3c), el lugar de donde salió el ítem del cursor.
+    // [0x78a6758], in the .bss: 0 at start. 0x5bc740, after putting an item in one of the inventory grids, compares it
+    // signed with 12 (0x5bcd0b and 0x5bd08b) and, if lower, opens the own record for the speeds (0x54fe10). Fifteen
+    // places of the inventory and game interface write it (0x44add8, 0x561b6d, 0x561bf7, 0x59bf3c, 0x5c2d5c, 0x5c5131,
+    // 0x5c5154, 0x5c51c3, 0x5c51f8, 0x5c5277, 0x5c5301, 0x5c5330, 0x5c6c15, 0x5c8edd and 0x5c8f53; *static*). MuRet has
+    // the inventory's: picking up from the grid (0x5c5301) and from the equipment (0x5c2d5c) and MoveHero (0x59bf3c),
+    // the place the cursor item came from.
     std::int32_t slot78a6758 = 0;
-    // El trapecio del último 0x5fb570, en celdas: las Y en 0x78ecbf0 y las X en 0x78ecc00, que solo escriben
-    // 0x5fba55 y 0x5fba68 (por su dirección, en .text). A 0x5fb570 lo llama solo 0x5fbb00 (0x5fbeef), y a
-    // 0x5fbb00 los dibujos del login (0x6351b7), de la selección (0x63475c) y del juego (0x637366): es uno
-    // para las tres escenas. Lo lee solo 0x5fba90, con la escena de ese momento (0x6d5dc8): el primer paso del
-    // juego después de la espera (0x508f00) lee el del último dibujo de la selección, y el primer paso del
-    // login, el que haya. En la .bss (más allá de los 0x20000 bytes de la .data del archivo, desde 0x6c6000):
-    // ceros, un trapecio sin área en (0, 0) con el que 0x5fba90 da 0 en los cuatro lados (*estático*, 06 § El
-    // paso de los personajes y Q-C217).
+    // The trapezoid of the last 0x5fb570, in cells: the Ys at 0x78ecbf0 and the Xs at 0x78ecc00, which only 0x5fba55
+    // and 0x5fba68 write (by their address, in .text). Only 0x5fbb00 calls 0x5fb570 (0x5fbeef), and the drawings of
+    // the login (0x6351b7), the selection (0x63475c) and the game (0x637366) call 0x5fbb00: one for the three scenes.
+    // Only 0x5fba90 reads it, with the scene of the moment (0x6d5dc8): the game's first step after the wait (0x508f00)
+    // reads the selection's last drawing's, and the login's first step, whatever is there. In the .bss (past the
+    // file's 0x20000 bytes of .data, from 0x6c6000): zeros, a trapezoid with no area at (0, 0) for which 0x5fba90
+    // gives 0 on the four sides (*static*, 06 § El paso de los personajes and Q-C217).
     Terrain::TerrainPolygon terrainPolygon{};
-    // 0x7b4ccb8, el nivel efectivo del trapecio de un 0x5fb570 al siguiente, en las tres escenas: solo lo
-    // escribe 0x5fb570 (0x5fb731). En la .bss: 0.
+    // 0x7b4ccb8, the trapezoid's effective level from one 0x5fb570 to the next, in the three scenes: only 0x5fb570
+    // writes it (0x5fb731). In the .bss: 0.
     Terrain::TerrainPolygonState terrainPolygonState{};
-    // Las marcas del suelo, 0x760cab0..0x760f990, en la .bss: todas apagadas al arrancar. Solo las tocan
-    // 0x548fe0, 0x549090 y 0x549130, y ninguna carga las vacía: 0x6070a0 apaga las tablas de al lado y no esta
-    // (Q-C228). Las llenan 0x505de0 con el modelo 0x182 (0x507486), que MuRet corta antes (0x507414, 08 P-C241 a), y
-    // 0x52e810 (0x52e96c, Actors::LeaveTheRemains, CL9 hito 3), desde el paso del cuerpo (0x4fd5f0 → 0x4fcd00).
+    // The ground marks, 0x760cab0..0x760f990, in the .bss: all off at start. Only 0x548fe0, 0x549090 and 0x549130
+    // touch them, and no load clears them: 0x6070a0 turns off the tables next to them, not this one (Q-C228). 0x505de0
+    // fills them with model 0x182 (0x507486), which MuRet cuts off before (0x507414, 08 P-C241 a), and so does
+    // 0x52e810 (0x52e96c, Actors::LeaveTheRemains, CL9 milestone 3), from the body's step (0x4fd5f0 → 0x4fcd00).
     Terrain::GroundMarkTable groundMarks{};
-    // 0x77f36d0, la capa 1 de la celda del héroe, en la .bss: 0 al arrancar. La escribe MoveHero (0x59e2ba),
-    // después del contador. La leen el paso de los objetos
-    // (los techos de 0x604ab0, 0x604bc4 y 0x604c06) y el de las hojas (0x637082..0x6370e5), entre otros.
+    // 0x77f36d0, layer 1 of the hero's cell, in the .bss: 0 at start. MoveHero writes it (0x59e2ba), after the
+    // counter. The objects' step (the roofs of 0x604ab0, 0x604bc4 and 0x604c06) and the leaves' (0x637082..0x6370e5)
+    // read it, among others.
     std::int32_t heroCellLayer = 0;
-    // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
-    // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
+    // 0x75fdc38: the 0F's target. 0x75fdc3c is the current count, which that packet does not change. 0x530490's
+    // durable state for the future leaves binder; receiving a 0F does not create rain.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
-    // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
-    // el 0x19 (0x4cce7d) y el 0x69 (0x4cc2e1) con la fuente, pero sólo si encuentran el blanco (0x4cce68, 0x4cc2c0),
-    // y el 0x1A (0x4cedf7) siempre; el lugar que escriben es el 400 si no encuentran a quien buscan. Lo lee sólo el D7
-    // que le pega al héroe con el escudo (0x4cb32f, Scenes::RaiseTheShield).
+    // [0x5767964] (.bss, 0): the place of the last one that hit. The 18 with actions 0x78 and 0x79 (0x4cb849), the
+    // 0x19 (0x4cce7d) and the 0x69 (0x4cc2e1) write it with the source, but only if they find the target (0x4cce68,
+    // 0x4cc2c0), and the 0x1A (0x4cedf7) always; the place they write is 400 if they do not find whom they look for.
+    // Only the D7 that hits the hero with the shield reads it (0x4cb32f, Actors::RaiseTheShield).
     std::int32_t lastAttacker = 0;
-    // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
-    // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
+    // [0x6c88ac] (.data, 15): after how many steps of +0x381 0x4fd5f0's skill runs (0x4fdbe5, signed). Only 0x4f97b0
+    // writes it: 15 at 0x4f987d, before its switch, and 5 at 0x4f9ee2, a skill case (milestone 4).
     std::int32_t skillThreshold = 15;
-    // [0x5767948]: un único estado para el tiro de H3 y las skills de H4.
+    // [0x5767948]: one state for H3's shot and H4's skills.
     std::uint32_t lastShotSkill = 0;
-    // +0xaa..+0xbc de los modelos de [0x5769ad8]: lo que 0x612c80 escribió desde el alta de cada monstruo (0x612d90,
-    // MonsterSounds.h), que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3, fase 2c). No se vacía: nadie más escribe esas WORD,
-    // y un modelo que se suelta conserva las suyas.
+    // +0xaa..+0xbc of [0x5769ad8]'s models: what 0x612c80 wrote from each monster's creation (0x612d90,
+    // MonsterSounds.h), which 0x4f4a10 and 0x4f5660 read (CL9 milestone 3, phase 2c). Never cleared: nothing else
+    // writes those WORDs, and a model that is freed keeps its own.
     Sound::ModelSoundTable modelSounds{};
-    // [0x7437670]: las skills de los monstruos de MonsterSkill.bmd (0x54a440), que main.cpp copia de
-    // GameData::monsterSkills y lee 0x4f92f0 (CL9 hito 3, fase 2c). Sin el archivo, la .bss.
+    // [0x7437670]: the monsters' skills from MonsterSkill.bmd (0x54a440), which main.cpp copies from
+    // GameData::monsterSkills and 0x4f92f0 reads (CL9 milestone 3, phase 2c). Without the file, the .bss.
     Tables::MonsterSkillTable monsterSkills{};
-    // 0x7239a8: la cola de las barras de vida, un std::deque de bloques de 0x1000 bytes que 0x42a2b0 llena desde el
-    // paso de los personajes (el 0x1a8 con +0x93 debajo de 5) y 0x42a4d0 vacía de a la mitad en el HUD
-    // (Scenes/HealthBars.h). Solo la tocan esas dos y su constructor estático (0x4293d0): no se vacía al cambiar de
-    // mapa.
+    // 0x7239a8: the health bars' queue, a std::deque of 0x1000-byte blocks that 0x42a2b0 fills from the characters'
+    // step (the 0x1a8 with +0x93 below 5) and 0x42a4d0 empties half at a time in the HUD (Scenes/HealthBars.h). Only
+    // those two and its static constructor (0x4293d0) touch it: a map change does not clear it.
     std::deque<QueuedHealthBar> healthBars{};
-    // 0x7437488, con el bit 0 de 0x743a174 de guarda (.bss): el timeGetTime() del último mensaje del nombre de 0x6c88b0
-    // (0x4fcd65..0x4fce15). El primer paso de un personaje lo pone en ahora − 5.000; vacío antes. Nadie lo vuelve a 0.
+    // 0x7437488, guarded by bit 0 of 0x743a174 (.bss): the timeGetTime() of 0x6c88b0's last name message
+    // (0x4fcd65..0x4fce15). A character's first step sets it to now − 5,000; empty before. Nothing resets it.
     std::optional<std::uint32_t> namedLineTime{};
-    // 0x743a190 (.bss, 0): con 1 el próximo mensaje del nombre es el Text 1167 y con 0 el 1168; cambia con cada uno.
+    // 0x743a190 (.bss, 0): with 1 the next name message is Text 1167 and with 0 it is 1168; it flips with each one.
     bool namedLineFirst = false;
-    // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
-    // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
-    // personaje. En qué orden los recorre quien los lee, sin leer (CL11).
+    // [0x6e5640]: the characters' named bones (0x401000). 0x4011c0 removes the one of the same character and name
+    // before adding the new one; 0x401410 (from 0x401040, at 0x512870, 0x510ff0 and 0x510f70) removes all of a
+    // character's. In what order their reader walks them, unread (CL11).
     std::vector<NamedBone> namedBones{};
-    // Lo que las altas escribieron en la tabla de modelos (ModelBytePatch), en orden.
+    // What the creations wrote in the model table (ModelBytePatch), in order.
     std::vector<ModelBytePatch> modelPatches{};
     Audio::IPlayback* audio = nullptr;
     Audio::Music music{};
 };
 
-// 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.
+// 0x63722e and 0x59afd6: with the counter above this, the game neither draws nor moves the hero.
 inline constexpr std::int32_t WaitDrawThreshold = 30;
-// 0x6357eb: lo que deja la carga del mundo en el contador, 0x98967f.
+// 0x6357eb: what the world's load leaves in the counter, 0x98967f.
 inline constexpr std::int32_t WorldLoadingWait = 9'999'999;
 } // namespace Client::Kernel

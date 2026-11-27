@@ -72,12 +72,12 @@ void OwnCharacterRecord::ApplyStats(const Protocol::FrontEnd::CharacterSelectRes
     addedPoints = reply.addedPoints;
     maxAddedPoints = reply.maxAddedPoints;
     leadership = reply.leadership;
-    // 04: "además pone en 0 el byte de +0x3c y los WORD de +0x3e, +0x40 y +0x42".
+    // 04: it also zeroes the byte of +0x3c and the WORDs of +0x3e, +0x40 and +0x42.
     speedAdjustBits = 0;
     word3e = 0;
     word40 = 0;
     word42 = 0;
-    // Q-C144: lo que el original lee fuera del paquete no se inventa.
+    // Q-C144: what the original reads outside the packet is not invented.
     word48 = 0;
     word4a = 0;
     log.Warning("Q-C144: la respuesta del F3 03 no trae pkt[0x34..0x37]: +0x48 y +0x4a del registro propio quedan "
@@ -86,8 +86,7 @@ void OwnCharacterRecord::ApplyStats(const Protocol::FrontEnd::CharacterSelectRes
 
 void OwnCharacterRecord::ClearEquipmentForEntry()
 {
-    // 0x4c47c8..0x4c47da, de a 0x48 desde +0xb70: [eax−4] = bx (−1 desde 0x4c47a8), [eax] = 0 y
-    // [eax+0x17] = 0.
+    // 0x4c47c8..0x4c47da, every 0x48 from +0xb70: [eax−4] = bx (−1 from 0x4c47a8), [eax] = 0 and [eax+0x17] = 0.
     for (Kernel::ItemState& item : equipment)
     {
         item.id = EmptyOwnItemId;
@@ -98,8 +97,7 @@ void OwnCharacterRecord::ClearEquipmentForEntry()
 
 void OwnCharacterRecord::ClearEquipmentForInventory()
 {
-    // 0x4c564d..0x4c565f, de a 0x48 desde +0xba8: [eax−0x3c] = di (−1 desde 0x4c55d6), [eax] = 0 y
-    // [eax−0x21] = 0.
+    // 0x4c564d..0x4c565f, every 0x48 from +0xba8: [eax−0x3c] = di (−1 from 0x4c55d6), [eax] = 0 and [eax−0x21] = 0.
     for (Kernel::ItemState& item : equipment)
     {
         item.id = EmptyOwnItemId;

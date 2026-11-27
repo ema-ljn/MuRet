@@ -10,7 +10,11 @@ class ServerSession;
 
 namespace Client::Scenes
 {
+struct CastleReceiveContext;
 struct ChatReceiveContext;
+struct EventPacketContext;
+struct GuildReceiveContext;
+struct InventoryServices;
 struct WorldEntryResources;
 } // namespace Client::Scenes
 
@@ -28,6 +32,20 @@ namespace Client::Session
 // through the session's GameServer.
 [[nodiscard]] Scenes::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& resources,
                                                        App::ServerSession& session);
+
+// What the guild's packets send goes through the session's GameServer, also the C1 18 of the war's gesture (0x576a60).
+[[nodiscard]] Scenes::GuildReceiveContext GuildContextOf(const Scenes::WorldEntryResources& resources,
+                                                         App::ServerSession& session);
+
+// What the castle's packets send goes through the session's GameServer.
+[[nodiscard]] Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& resources,
+                                                           App::ServerSession& session);
+
+// GetTickCount is the session's clock in ms (App::TickCountMs), 0 without a clock. What the events send goes through
+// the session's GameServer.
+[[nodiscard]] Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources,
+                                                        App::ServerSession& session,
+                                                        const Scenes::InventoryServices& inventory);
 
 // The 0x3d of a reply, and what a map change asks for, go to the session that applies it.
 class SessionPublisher final : public Scenes::IWorldEntryPublisher, public Scenes::IWorldTransitionPublisher

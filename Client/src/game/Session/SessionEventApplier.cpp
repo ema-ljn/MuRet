@@ -1,36 +1,23 @@
 #include "Session/SessionEventApplier.h"
 
 #include "Session/CharacterEvent.h"
-#include "App/FaithfulPacer.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionContexts.h"
 #include "Session/WorldEvent.h"
 #include "Core/Expected.h"
-#include "Core/IClock.h"
-#include "Core/Log.h"
-#include "Core/PixelSize.h"
 #include "Tables/PlayerModels.h"
-#include "Protocol/CastleSiege/CastleBattle.h"
-#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
-#include "Protocol/Guild/Guild.h"
-#include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorCombat.h"
-#include "Scenes/CastleBattleReceive.h"
-#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/LevelUpPointReply.h"
 #include "Session/MapServerMoveApply.h"
 #include "Scenes/ChatReceive.h"
-#include "Scenes/EventPackets.h"
 #include "Scenes/FloorItemPackets.h"
-#include "Scenes/GuildReceive.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameLetters.h"
@@ -54,13 +41,11 @@
 #include "Session/WorldTransitions.h"
 #include "UI/LetterWindows.h"
 
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
-#include <utility>
 #include <variant>
 
 namespace Client::Scenes
@@ -70,45 +55,6 @@ namespace
 using Session::ChatContextOf;
 using Session::SessionPublisher;
 using Session::WithTheSession;
-
-// Lo que los paquetes del gremio leen del juego y de la sesión (CL9 hito 8): lo que mandan va por el GameServer de la
-// sesión, también los C1 18 del gesto de la guerra (0x576a60, el emote del hito 1, con los modelos de la escena).
-GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::ServerSession& session)
-{
-    const std::uint32_t now =
-        resources.clock != nullptr
-            ? static_cast<std::uint32_t>(
-                  std::chrono::duration_cast<std::chrono::milliseconds>(resources.clock->Now()).count())
-            : 0U;
-    return GuildReceiveContext{.world = resources.world,
-                               .random = resources.cloth.random,
-                               .measure = resources.textMeasure,
-                               .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
-                               .texts = resources.texts,
-                               .playerKey = session.PlayerIndex(),
-                               .now = now,
-                               .send = [&session](Protocol::Outgoing packet)
-                               { session.SendGuildPacket(std::move(packet)); },
-                               .models = &resources.models,
-                               .worldEntry = &resources};
-}
-
-// Lo que los paquetes del castillo leen del juego (CL9 hito 12); lo que mandan va por el GameServer de la sesión.
-CastleReceiveContext CastleContextOf(const WorldEntryResources& resources, App::ServerSession& session)
-{
-    return CastleReceiveContext{.world = resources.world,
-                                .random = resources.cloth.random,
-                                .log = resources.log,
-                                .measure = resources.textMeasure,
-                                .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
-                                .texts = resources.texts,
-                                .send = [&session](Protocol::Outgoing packet)
-                                { session.SendCastlePacket(std::move(packet)); },
-                                .dataRoot = resources.dataRoot,
-                                .tick = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
-                                .entryResources = &resources};
-}
-
 } // namespace
 
 SessionEventApplier::SessionEventApplier(const WorldEntryResources& resources) : m_resources(resources) {}
@@ -141,8 +87,6 @@ void SessionEventApplier::AfterWorldReception(App::ServerSession& session)
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App::WorldEvent& event,
                                                                        App::ServerSession& session)
 {
-    if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
-        return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
     if (const auto* room = std::get_if<App::ChatRoomPacket>(&event))
         return ApplyRoomPacket(room->window, room->packet, ChatContextOf(m_resources, session));
     if (const auto* closed = std::get_if<App::ChatRoomClosed>(&event))
@@ -187,10 +131,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     {
         return ApplyReturnToServerList(m_resources);
     }
-    if (const auto* castle = std::get_if<Protocol::CastleSiege::CastleSiegePacket>(&event))
-        return ApplyCastleSiegePacket(*castle, CastleContextOf(m_resources, session));
-    if (const auto* battle = std::get_if<Protocol::CastleSiege::CastleBattlePacket>(&event))
-        return ApplyCastleBattlePacket(*battle, CastleContextOf(m_resources, session));
     if (std::holds_alternative<App::MapServerLeft>(event))
     {
         const Protocol::FrontEnd::CharacterEntry* chosen = session.ChosenCharacter();
@@ -242,35 +182,6 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         {
             return Core::Unexpected(applied.Error());
         }
-        return {};
-    }
-    if (const auto* packet = std::get_if<Protocol::Events::EventPacket>(&event))
-    {
-        // CL9 hito 11: GetTickCount es el reloj de la sesión en ms (App::TickCountMs); sin reloj, 0.
-        const InventoryServices inventory = InventoryServicesOf(m_resources);
-        const EventPacketContext context{
-            .world = m_resources.world,
-            .random = m_resources.cloth.random,
-            .texts = m_resources.texts,
-            .items = m_resources.items,
-            .measure = m_resources.textMeasure,
-            .screen = m_resources.screen ? m_resources.screen() : Core::PixelSize{640, 480},
-            .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
-            .playerSkeleton = m_resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
-            .models = &m_resources.models,
-            .sendWindowClose = [&session] { session.SendWindowClose(); },
-            // SendChat manda cualquier paquete de mundo, como el de los demás pasos.
-            .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },
-            .dataRoot = m_resources.dataRoot,
-            .sendNpcWindow = [&session](Protocol::Outgoing outgoing)
-            { return session.SendNpcWindowPacket(std::move(outgoing)); },
-            .inventory = &inventory};
-        const auto applied = ApplyEventPacket(*packet, context);
-        if (!applied.HasValue())
-            return Core::Unexpected(applied.Error());
-        // Lo que el original hace fuera de sus tablas se descarta con un aviso, y la sesión sigue (Q-C174, Q-C778).
-        if (applied.Value().discarded)
-            m_resources.log.Warning("se descarta el resto del paquete de evento: {}", *applied.Value().discarded);
         return {};
     }
     const auto& reply = std::get<Protocol::FrontEnd::CharacterSelectResult>(event);

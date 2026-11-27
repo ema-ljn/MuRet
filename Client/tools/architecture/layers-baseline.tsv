@@ -1052,8 +1052,6 @@ Scenes/WorldRuntime.h	UI/GameUiState.h	game/Kernel	game/Ui
 Scenes/WorldRuntime.h	UI/MessageArea.h	game/Kernel	game/Ui
 Scenes/WorldRuntime.h	UI/OldWindows.h	game/Kernel	game/Ui
 Scenes/WorldRuntime.h	UI/PanelRegistry.h	game/Kernel	game/Ui
-Scenes/WorldRuntime.h	UI/SiegeBattleUiState.h	game/Kernel	game/CastleSiege
-Scenes/WorldRuntime.h	UI/SiegePanelState.h	game/Kernel	game/CastleSiege
 Scenes/WorldRuntime.h	UI/SlideBanner.h	game/Kernel	game/Ui
 Scenes/WorldRuntime.h	UI/WhisperSenders.h	game/Kernel	game/Chat
 Scenes/WorldRuntime.h	World/GroundMarks.h	game/Kernel	game/Terrain
@@ -1174,7 +1172,7 @@ game/Session/ServerSession.cpp	App/SessionState.h	game/Session	app
 game/Session/ServerSession.h	App/IChatRoomLinks.h	game/Session	app
 game/Session/ServerSession.h	App/ServerAddress.h	game/Session	app
 game/Session/ServerSession.h	App/SessionState.h	game/Session	app
-game/Session/SessionEventApplier.cpp	App/FaithfulPacer.h	game/Session	app
+game/Session/SessionContexts.cpp	App/FaithfulPacer.h	game/Session	app
 game/Session/WorldEntry.cpp	Scenes/SceneId.h	game/Session	game/Scenes
 game/Session/WorldEntry.h	Scenes/SceneId.h	game/Session	game/Scenes
 game/Session/WorldTransitionSupport.cpp	Scenes/GameDrawTail.h	game/Session	game/Scenes

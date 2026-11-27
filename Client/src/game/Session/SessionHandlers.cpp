@@ -1,10 +1,14 @@
 #include "Session/SessionHandlers.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Protocol/Events/Events.h"
 #include "Protocol/Movement/World.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Protocol/Social/Trade.h"
+#include "Scenes/EventPackets.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/SocialEvents.h"
 #include "Session/ServerSession.h"
@@ -41,6 +45,19 @@ Core::Expected<void, std::string> ReceiveTradeRequest(const Protocol::Social::Tr
         return Core::Unexpected(std::move(reply).Error());
     if (std::optional<Protocol::Outgoing>& answer = reply.Value())
         session.SendGamePacket(std::move(*answer));
+    return {};
+}
+
+Core::Expected<void, std::string> ReceiveEventPacket(const Protocol::Events::EventPacket& packet,
+                                                     App::ServerSession& session,
+                                                     const Scenes::WorldEntryResources& resources)
+{
+    const Scenes::InventoryServices inventory = Scenes::InventoryServicesOf(resources);
+    auto applied = Scenes::ApplyEventPacket(packet, EventContextOf(resources, session, inventory));
+    if (!applied.HasValue())
+        return Core::Unexpected(std::move(applied).Error());
+    if (const std::optional<std::string>& discarded = applied.Value().discarded)
+        resources.log.Warning("se descarta el resto del paquete de evento: {}", *discarded);
     return {};
 }
 

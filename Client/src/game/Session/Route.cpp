@@ -3,7 +3,9 @@
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorCombat.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/GuildReceive.h"
 #include "Scenes/SocialEvents.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionContexts.h"
@@ -18,6 +20,19 @@ Scenes::ChatReceiveContext RoutedPart<const Scenes::ChatReceiveContext&>::Of(con
                                                                              App::ServerSession& session)
 {
     return ChatContextOf(world, session);
+}
+
+Scenes::GuildReceiveContext RoutedPart<const Scenes::GuildReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
+                                                                               App::ServerSession& session)
+{
+    return GuildContextOf(world, session);
+}
+
+Scenes::CastleReceiveContext
+RoutedPart<const Scenes::CastleReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
+                                                    App::ServerSession& session)
+{
+    return CastleContextOf(world, session);
 }
 
 Scenes::ActorCombatContext RoutedPart<const Scenes::ActorCombatContext&>::Of(const Scenes::WorldEntryResources& world,

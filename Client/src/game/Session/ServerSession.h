@@ -446,12 +446,6 @@ private:
     void OnDeleteResult(const Network::Packet& packet);
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
-    // CL9 hito 11, los eventos (04 § Los eventos): los lee con Protocol::Events::ReadEventPacket.
-    void OnEventPacket(const Network::Packet& packet);
-    // CL9 hito 12: los paquetes del castillo fuera de la batalla (Protocol::CastleSiege::ReadCastleSiegePacket).
-    void OnCastleSiege(const Network::Packet& packet);
-    // CL9 hito 13: los de la batalla (Protocol::CastleSiege::ReadCastleBattlePacket).
-    void OnCastleBattle(const Network::Packet& packet);
     // CL9 hito 13: el B1 00, el cambio de servidor del mapa (0x4e5056 → 0x412b30).
     void OnMapServerMove(const Network::Packet& packet);
     // 0x4c1e20 con [0x5767928] distinto de 0: el saludo de un GameServer con el login ya mandado.
@@ -462,8 +456,6 @@ private:
     void OnLogoutResult(const Network::Packet& packet);
     void ReturnToServerList(bool encrypted);
     void OnMainCheck(const Network::Packet& packet);
-    // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
-    void OnGuild(const Network::Packet& packet);
     void OnReport73(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);

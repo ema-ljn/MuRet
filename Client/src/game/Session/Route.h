@@ -9,7 +9,9 @@
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorCombat.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/GuildReceive.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -148,6 +150,18 @@ template <> struct RoutedPart<Kernel::PlayerKey>
 template <> struct RoutedPart<const Scenes::ChatReceiveContext&>
 {
     static Scenes::ChatReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
+};
+
+// The guild's context, with the session's player and GameServer.
+template <> struct RoutedPart<const Scenes::GuildReceiveContext&>
+{
+    static Scenes::GuildReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
+};
+
+// The castle's context, with the session's GameServer.
+template <> struct RoutedPart<const Scenes::CastleReceiveContext&>
+{
+    static Scenes::CastleReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
 };
 
 template <> struct RoutedPart<const Scenes::ActorCombatContext&>

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Protocol/Events/Events.h"
 #include "Session/SessionContexts.h"
 #include "Session/WorldEntry.h"
 
@@ -48,6 +49,11 @@ namespace Client::Session
 [[nodiscard]] Core::Expected<void, std::string> ReceiveShopItemList(const Protocol::PersonalShop::ShopItemList& list,
                                                                     App::ServerSession& session,
                                                                     const Scenes::WorldEntryResources& resources);
+
+// What the original does outside its tables is discarded with a warning, and the session goes on (Q-C174, Q-C778).
+[[nodiscard]] Core::Expected<void, std::string> ReceiveEventPacket(const Protocol::Events::EventPacket& packet,
+                                                                   App::ServerSession& session,
+                                                                   const Scenes::WorldEntryResources& resources);
 
 // `Apply` with the bag bound to the session's senders (WithTheSession): the NPC windows and the trade's answer.
 template <typename Received,

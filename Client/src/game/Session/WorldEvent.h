@@ -1,13 +1,9 @@
 #pragma once
 
 #include "Network/Packet.h"
-#include "Protocol/CastleSiege/CastleBattle.h"
-#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Items/InventoryList.h"
-#include "Protocol/Events/Events.h"
 #include "Protocol/Items/FloorItems.h"
-#include "Protocol/Guild/Guild.h"
 
 #include <cstdint>
 #include <variant>
@@ -94,8 +90,6 @@ using WorldEvent =
                  ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
                  Protocol::Items::PickUpResult, Protocol::Items::DropResult, Protocol::Items::StatFruit,
                  Protocol::Items::ShortPickUpResult, Protocol::Items::ShortZenPickUp, Protocol::Items::ShortDropResult,
-                 Protocol::Items::ShortStatFruit, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket,
-                 ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket,
-                 Protocol::CastleSiege::CastleBattlePacket, MapServerLeft, MapServerJoined,
-                 MapServerAuthenticationPrepared, GuildTableReset>;
+                 Protocol::Items::ShortStatFruit, ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, MapServerLeft,
+                 MapServerJoined, MapServerAuthenticationPrepared, GuildTableReset>;
 } // namespace Client::App

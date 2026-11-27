@@ -1,13 +1,21 @@
 #include "Session/SessionContexts.h"
 
+#include "App/FaithfulPacer.h"
+#include "Core/IClock.h"
 #include "Core/PixelSize.h"
 #include "Models/Cloth.h"
+#include "Models/IModelLibrary.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/Outgoing.h"
+#include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/EventPackets.h"
+#include "Scenes/GuildReceive.h"
 #include "Session/ServerSession.h"
 #include "Session/WorldEntry.h"
+#include "Tables/PlayerModels.h"
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -46,6 +54,63 @@ Scenes::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& reso
         .requestServerList = [&session] { session.ResendServerListRequest(); },
         .rooms = &session,
         .worldEntry = &resources};
+}
+
+Scenes::GuildReceiveContext GuildContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
+{
+    const std::uint32_t now =
+        resources.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(resources.clock->Now()).count())
+            : 0U;
+    return Scenes::GuildReceiveContext{.world = resources.world,
+                                       .random = resources.cloth.random,
+                                       .measure = resources.textMeasure,
+                                       .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
+                                       .texts = resources.texts,
+                                       .playerKey = session.PlayerIndex(),
+                                       .now = now,
+                                       .send = [&session](Protocol::Outgoing packet)
+                                       { session.SendGuildPacket(std::move(packet)); },
+                                       .models = &resources.models,
+                                       .worldEntry = &resources};
+}
+
+Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
+{
+    return Scenes::CastleReceiveContext{
+        .world = resources.world,
+        .random = resources.cloth.random,
+        .log = resources.log,
+        .measure = resources.textMeasure,
+        .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
+        .texts = resources.texts,
+        .send = [&session](Protocol::Outgoing packet) { session.SendCastlePacket(std::move(packet)); },
+        .dataRoot = resources.dataRoot,
+        .tick = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
+        .entryResources = &resources};
+}
+
+Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session,
+                                          const Scenes::InventoryServices& inventory)
+{
+    return Scenes::EventPacketContext{
+        .world = resources.world,
+        .random = resources.cloth.random,
+        .texts = resources.texts,
+        .items = resources.items,
+        .measure = resources.textMeasure,
+        .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
+        .tickCount = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
+        .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel),
+        .models = &resources.models,
+        .sendWindowClose = [&session] { session.SendWindowClose(); },
+        // SendChat sends any world packet.
+        .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },
+        .dataRoot = resources.dataRoot,
+        .sendNpcWindow = [&session](Protocol::Outgoing outgoing)
+        { return session.SendNpcWindowPacket(std::move(outgoing)); },
+        .inventory = &inventory};
 }
 
 SessionPublisher::SessionPublisher(App::ServerSession& session) : m_session(session) {}

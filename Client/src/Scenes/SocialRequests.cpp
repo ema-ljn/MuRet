@@ -15,6 +15,7 @@
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/ChatCommands.h"
 #include "UI/GameText.h"

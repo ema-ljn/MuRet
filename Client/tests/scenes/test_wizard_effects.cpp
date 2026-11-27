@@ -12,6 +12,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldMap.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"

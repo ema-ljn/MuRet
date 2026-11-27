@@ -12,6 +12,7 @@
 #include "Models/PassColors.h"
 #include "Render/SpriteVertex.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/ActorSpirit.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaDrawing.h"

@@ -8,6 +8,7 @@
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleBurst.h"

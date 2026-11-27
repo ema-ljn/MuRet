@@ -45,6 +45,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"

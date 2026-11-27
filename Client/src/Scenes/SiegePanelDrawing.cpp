@@ -12,6 +12,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"

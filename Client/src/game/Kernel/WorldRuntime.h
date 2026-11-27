@@ -5,6 +5,7 @@
 #include "Tables/MonsterSkillTable.h"
 #include "Tables/DialogTable.h"
 #include "Tables/MoveRequirements.h"
+#include "Tables/NpcNames.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Math/HalfLifeMath.h"
 #include "Render/Text/FontSet.h"

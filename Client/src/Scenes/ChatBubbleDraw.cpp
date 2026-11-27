@@ -15,6 +15,7 @@
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/ShopSigns.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>

@@ -41,6 +41,7 @@
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"

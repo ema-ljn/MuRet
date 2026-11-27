@@ -22,6 +22,7 @@
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/Leaves.h"
 #include "World/KalimaWorld.h"

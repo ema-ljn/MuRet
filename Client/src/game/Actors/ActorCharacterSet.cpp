@@ -10,6 +10,7 @@
 #include "Scenes/HelperTable.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Session/WorldTransitionSupport.h"
 

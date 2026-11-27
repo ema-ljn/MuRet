@@ -26,6 +26,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"

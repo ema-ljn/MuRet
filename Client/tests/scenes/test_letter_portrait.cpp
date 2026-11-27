@@ -41,6 +41,7 @@
 #include "Scenes/TooltipLines.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
 #include "UI/LetterModel.h"

@@ -30,6 +30,7 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
 #include "World/Leaves.h"

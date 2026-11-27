@@ -13,6 +13,7 @@
 #include "Render/Frame/ITextDrawer.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"

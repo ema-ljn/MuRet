@@ -9,6 +9,7 @@
 #include "Scenes/ShopSigns.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"

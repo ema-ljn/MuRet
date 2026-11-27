@@ -264,7 +264,7 @@ TEST(GameItemSpecialDrawingTest, OrbPulseUpdatesAfterItsPassAndMissingPulsePrese
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FLOAT_EQ(pulse.x, 0.99f);
     EXPECT_FLOAT_EQ(pulse.y, -0.01f);
-    // 60a4ff..60a50a: el último 0x44 recibe alpha.3 y deja sus FSTP sobre model RGB.
+    // 0x60a4ff..0x60a50a: the last 0x44 receives alpha 0.3 and leaves its FSTP on the model's RGB.
     EXPECT_EQ(object.color, glm::vec3(0.3f));
     EXPECT_FLOAT_EQ(batch.Vertices().back().color.red, 0.3f);
     EXPECT_FLOAT_EQ(object.alpha, 1);
@@ -314,8 +314,8 @@ TEST(GameItemSpecialDrawingTest, PulsingModelColorRoundsOnlyAtTheAsmStore)
         std::uint16_t model;
         std::uint32_t bits;
     };
-    // Evaluación independiente PC53 de sin(0.5 * F32(0.001)), constantes del PE;
-    // el RGB no tiene un spill intermedio antes de multiplicarlo por el rojo inicial.
+    // An independent PC53 evaluation of sin(0.5 * F32(0.001)), with the PE's constants; the RGB has no intermediate
+    // spill before it is multiplied by the initial red.
     for (const auto test : {Case{0x619, 0x3df5f6fe}, Case{0x231, 0x3e4ce704}, Case{0xe21, 0x3e75d789}})
     {
         SCOPED_TRACE(test.model);
@@ -386,7 +386,7 @@ TEST(GameItemSpecialDrawingTest, EveryMeshPassUsesTheExplicitNativeWorldClock)
         Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_GE(batch.Vertices().size(), 6u);
-    // 4ecc30 trunca el reloj para t=(T%10000)*F32(.0001), con normal(0,0,1).
+    // 0x4ecc30 truncates the clock for t = (T % 10000) * F32(.0001), with the normal (0, 0, 1).
     EXPECT_FLOAT_EQ(batch.Vertices()[3].uv.x, 0.6f);
     EXPECT_FLOAT_EQ(batch.Vertices()[3].uv.y, 0.2f);
 }
@@ -492,7 +492,7 @@ TEST(GameItemSpecialDrawingTest, ChromeFourKeepsTheFractionalNativeClockForItsSi
         Client::Actors::Drawing::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(batch.Vertices().size(), 30u);
-    // F32(1 + 3*F32(sin(1234.5*F32(.002)))), con normal(0,0,1).
+    // F32(1 + 3 * F32(sin(1234.5 * F32(.002)))), with the normal (0, 0, 1).
     EXPECT_EQ(std::bit_cast<std::uint32_t>(batch.Vertices()[27].uv.x), 0x40379e7cu);
 }
 

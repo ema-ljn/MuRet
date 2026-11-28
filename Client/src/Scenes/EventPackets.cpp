@@ -6,6 +6,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/DialogTable.h"
 #include "Tables/TextTable.h"
+#include "Tables/PlayerActions.h"
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Movement/Movement.h"
@@ -250,7 +251,7 @@ constexpr std::uint8_t ContractFailed = 0;
 constexpr std::uint8_t ContractSigned = 1;
 constexpr std::int32_t ContractLevel = 0x15e;
 constexpr std::int32_t FirstAltarKey = 0x13c;
-constexpr std::uint8_t SittingAction = 0xca;
+using Tables::SittingAction;
 // 0x4303c0: the map 0x22, which the BD 04 tests with the started stage (0x4359f0).
 using Maps::CrywolfMap;
 // 0x437620: cinco lugares (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 y 0x7239f8..0x723a2e).

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Kernel/CharacterClass.h"
 #include "Models/LogicalAccess.h"
@@ -39,10 +40,10 @@ constexpr std::uint32_t LevelMask = 0xf;
 // 0xcc and those from 0x22 to 0x97.
 constexpr std::int32_t FirstNoStopMap = 18;
 constexpr std::int32_t LastNoStopMap = 23;
-constexpr std::uint8_t FirstNoStopAction = 0xc5;
-constexpr std::uint8_t LastNoStopAction = 0xcc;
-constexpr std::uint8_t FirstBusyAction = 0x22;
-constexpr std::uint8_t LastBusyAction = 0x97;
+constexpr std::uint8_t FirstNoStopAction = Tables::FirstEmoteAction;
+constexpr std::uint8_t LastNoStopAction = Tables::LastEmoteAction;
+using Tables::FirstBusyAction;
+using Tables::LastBusyAction;
 
 // The pet 0x511290 looks at in the previous word318.
 constexpr std::uint16_t HeightOffsetPet = 0x1c15;

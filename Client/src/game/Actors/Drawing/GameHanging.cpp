@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Tables/PlayerBones.h"
 #include "Tables/PlayerModels.h"
 #include "Math/X87.h"
 #include "Models/Animation.h"

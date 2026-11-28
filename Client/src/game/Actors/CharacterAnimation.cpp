@@ -2,6 +2,7 @@
 
 #include "App/LoopTiming.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
@@ -15,8 +16,8 @@ namespace Client::Actors
 {
 namespace
 {
-constexpr std::uint8_t FastWingAction = 0x1e;
-constexpr std::uint8_t OtherFastWingAction = 0x1f;
+constexpr std::uint8_t FastWingAction = Tables::FirstFlyingAction;
+constexpr std::uint8_t OtherFastWingAction = Tables::SecondFlyingAction;
 constexpr float FastWingKeys = 1.0f;
 constexpr float WingKeys = 0.25f;
 } // namespace

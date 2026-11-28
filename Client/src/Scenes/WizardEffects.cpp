@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Models/Animation.h"
 #include "Models/Skeleton.h"
 #include "Actors/ActorShock.h"
@@ -131,11 +132,11 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
         .pushAround = [&world, hero = runtime.hero, models = parts.models,
                        faunaModels = parts.faunaModels](float x, float y) -> Core::Expected<void, std::string>
         {
-            constexpr std::size_t PooledActors = 400;       // 0x524b1b: 0x69780 / 0x438.
-            constexpr double PushRadius = 200.0;            // 0x6b8928
-            constexpr std::uint16_t FenrirPet = 0x1c37;     // 0x524aef: +0x318 del 0x20a con Fenrir
-            constexpr std::uint8_t PlayerPushAction = 0xc2; // 0x524b03
-            constexpr std::uint8_t MonsterPushAction = 5;   // 0x524b0a
+            constexpr std::size_t PooledActors = 400;                      // 0x524b1b: 0x69780 / 0x438.
+            constexpr double PushRadius = 200.0;                           // 0x6b8928
+            constexpr std::uint16_t FenrirPet = 0x1c37;                    // 0x524aef: +0x318 del 0x20a con Fenrir
+            constexpr std::uint8_t PlayerPushAction = Tables::ShockAction; // 0x524b03
+            constexpr std::uint8_t MonsterPushAction = 5;                  // 0x524b0a
             const auto actors = world.Actors().first<PooledActors>();
             for (std::size_t index = 0; index < actors.size(); ++index)
             {

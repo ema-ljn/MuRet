@@ -10,6 +10,7 @@
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 #include "Audio/SoundId.h"
+#include "Tables/PlayerActions.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -181,8 +182,6 @@ Core::Expected<void, std::string> KickObject(WorldObject& object, const ObjectSt
         return Core::Unexpected(std::string("0x52f556: la patada 0x52f550 lee la posición y la acción del héroe "
                                             "(0x743a170)"));
     // 0x6b87b8 (0,1f), 0x6b86b0 (50), 0x6ba18c (−0,4f), 0x6ba2bc (−4) y 0x6b8a20 (0,6f).
-    constexpr std::uint8_t FirstKickAction = 0xd;
-    constexpr std::uint8_t LastKickAction = 0x21;
     constexpr float StillSpeed = std::bit_cast<float>(0x3dcccccdu);
     constexpr double KickReach = 50.0;
     constexpr double Push = static_cast<double>(std::bit_cast<float>(0xbecccccdu));
@@ -190,7 +189,7 @@ Core::Expected<void, std::string> KickObject(WorldObject& object, const ObjectSt
     constexpr double Decay = static_cast<double>(std::bit_cast<float>(0x3f19999au));
     constexpr Audio::SoundId KickSound{0x7c};
     const std::uint8_t action = *globals.heroAction;
-    if (action >= FirstKickAction && action <= LastKickAction && !(object.velocity.x >= StillSpeed))
+    if (action >= Tables::FirstWalkAction && action <= Tables::LastWalkAction && !(object.velocity.x >= StillSpeed))
     {
         const double dx =
             static_cast<double>(globals.heroPosition->x) - static_cast<double>(object.transform.position.x);

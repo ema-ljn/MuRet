@@ -5,6 +5,7 @@
 #include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
+#include "Tables/PlayerActions.h"
 #include "Models/Animation.h"
 #include "Kernel/ActorState.h"
 #include "Sound/MonsterSounds.h"
@@ -243,9 +244,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseAction(const Kern
 
 std::optional<std::int32_t> FootstepSound(const Kernel::ActorState& actor, std::int32_t map, std::int32_t layer)
 {
-    constexpr std::uint8_t FirstFlyingAction = 0x1e;
-    constexpr std::uint8_t SecondFlyingAction = 0x1f;
-    if (actor.animation.action == FirstFlyingAction || actor.animation.action == SecondFlyingAction)
+    if (actor.animation.action == Tables::FirstFlyingAction || actor.animation.action == Tables::SecondFlyingAction)
     {
         return std::nullopt;
     }
@@ -352,16 +351,13 @@ Core::Expected<ActorWalkResult, std::string> SetActorWalk(Kernel::ActorState& ac
 std::array<std::optional<std::int32_t>, 2> TakeActorFootstepSounds(Kernel::ActorState& actor, std::int32_t map,
                                                                    std::int32_t heroCellLayer)
 {
-    constexpr std::uint8_t FirstWalkAction = 0xd;
-    constexpr std::uint8_t LastWalkAction = 0x21;
     constexpr std::uint8_t SpecialWalkAction = 0x8b;
     constexpr std::uint8_t SpecialRunAction = 0x8c;
-    constexpr std::uint8_t HorseWalkAction = 0x4b;
     std::array<std::optional<std::int32_t>, 2> sounds{};
     const auto action = actor.animation.action;
     if (actor.type != Tables::PlayerSkeletonModel ||
-        !((action >= FirstWalkAction && action <= LastWalkAction) || action == SpecialWalkAction ||
-          action == SpecialRunAction || action == HorseWalkAction))
+        !((action >= Tables::FirstWalkAction && action <= Tables::LastWalkAction) || action == SpecialWalkAction ||
+          action == SpecialRunAction || action == Tables::HorseWalkAction))
     {
         return sounds;
     }

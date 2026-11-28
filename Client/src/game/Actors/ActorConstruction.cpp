@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Tables/PlayerBones.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Models/Cloth.h"

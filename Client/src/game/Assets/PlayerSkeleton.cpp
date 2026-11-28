@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Tables/PlayerActions.h"
-#include "Tables/PlayerModels.h"
+#include "Tables/PlayerBones.h"
 #include "Models/Skeleton.h"
 
 #include <cstddef>

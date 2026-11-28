@@ -5,6 +5,7 @@
 #include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Protocol/Movement/Movement.h"
+#include "Protocol/Combat/Combat.h"
 #include "Models/Animation.h"
 #include "Models/Cloth.h"
 #include "Models/Skeleton.h"
@@ -44,10 +45,10 @@ constexpr std::uint8_t ShieldAction = 0x12;
 constexpr std::uint8_t ShieldAnimation = 0x98;
 constexpr Audio::SoundId ShieldSound{0x6f};
 // 0x4cb820: 0x78 and 0x79 go to 0x4f4a10 (Strike).
-constexpr std::uint8_t FirstStrikeAction = 0x78;
+constexpr std::uint8_t FirstStrikeAction = Protocol::Combat::AttackAction;
 constexpr std::uint8_t LastStrikeAction = 0x79;
 // 0x4cb812: 0x7a and 0x7b go to 0x4f2250.
-constexpr std::uint8_t FirstStopAction = 0x7a;
+constexpr std::uint8_t FirstStopAction = Protocol::Movement::FacingAction;
 constexpr std::uint8_t LastStopAction = 0x7b;
 // 0x4cbc92: 0x7e sets 5.
 constexpr std::uint8_t SalutedAction = 0x7e;

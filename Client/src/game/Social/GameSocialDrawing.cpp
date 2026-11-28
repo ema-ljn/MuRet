@@ -38,8 +38,8 @@ using Render::Text::FontKind;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
-// 0x5a6cf9..0x5a6dbd: la franja (glColor4f(0, 0, 0, 0,5)) y su marco (glColor4f(0,65; 0,53; 0,34; 1)), desde
-// centro ∓ 150 (0x6b87ac) en y 20, de 300 × 40.
+// 0x5a6cf9..0x5a6dbd: the band (glColor4f(0, 0, 0, 0.5)) and its frame (glColor4f(0.65, 0.53, 0.34, 1)), from
+// center ∓ 150 (0x6b87ac) at y 20, 300 × 40.
 constexpr Render::Color ScoreBand{0.0f, 0.0f, 0.0f, 0.5f};
 constexpr Render::Color ScoreFrame{0.65f, 0.53f, 0.34f, 1.0f};
 constexpr float ScoreHalfWidth = 150.0f;
@@ -48,8 +48,8 @@ constexpr float ScoreBottom = 60.0f;
 constexpr float ScoreWidth = 300.0f;
 constexpr float ScoreHeight = 40.0f;
 constexpr float ScoreLine = 1.0f;
-// 0x5a6e25..0x5a6fa8: los colores del texto (0x6c8e5c) y las x desde la mitad del ancho del mundo (· 0,5,
-// 0x6b882c): 79 (0x6ba450), 80 (0x6b9ffc) y 81 (0x6ba44c).
+// 0x5a6e25..0x5a6fa8: the text colors (0x6c8e5c) and the x's from half the world's width (· 0.5, 0x6b882c): 79
+// (0x6ba450), 80 (0x6b9ffc) and 81 (0x6ba44c).
 constexpr std::uint32_t ShadowColor = 0xff000000u;
 constexpr std::uint32_t HeroColor = 0xffff9600u;
 constexpr std::uint32_t VersusColor = 0xff0096ffu;
@@ -63,8 +63,8 @@ constexpr std::int32_t PointsTop = 0x30;
 // 0x6c9284.
 constexpr std::string_view Versus = "vs";
 
-// 0x5f3807..0x5f38cb: la caja, Message_box2 (0xfc) arriba y abajo de 5 y Message_box1 (0xfb) cuatro veces de 40,
-// desde y 110 (0x6ba184) + 5, en x 213 de 213 de ancho, con du 0,83203125 y dv 0,625.
+// 0x5f3807..0x5f38cb: the box, Message_box2 (0xfc) at top and bottom, 5 high, and Message_box1 (0xfb) four times 40,
+// from y 110 (0x6ba184) + 5, at x 213, 213 wide, with du 0.83203125 and dv 0.625.
 constexpr std::uint16_t BoxEdgeSlot = 0xfc;
 constexpr std::uint16_t BoxMiddleSlot = 0xfb;
 constexpr float BoxLeft = 213.0f;
@@ -75,13 +75,14 @@ constexpr float BoxMiddleHeight = 40.0f;
 constexpr std::int32_t BoxMiddleRows = 4;
 constexpr float BoxDu = 0.83203125f;
 constexpr float BoxDv = 0.625f;
-// 0x5f38ce..0x5f3915: Interface\DuelWindow.jpg (0x650) sumada, de 128 × 128 en (256, 120).
+// 0x5f38ce..0x5f3915: Interface\DuelWindow.jpg (0x650) added, 128 × 128 at (256, 120).
 constexpr std::uint16_t DuelImageSlot = 0x650;
 constexpr float DuelImageLeft = 256.0f;
 constexpr float DuelImageTop = 120.0f;
 constexpr float DuelImageSize = 128.0f;
-// 0x5f3922..0x5f3a2e: ok.jpg y ok2.jpg (0xf1 y 0xf2) en (237, 250) y cancel.jpg y cancel2.jpg (0xf3 y 0xf4) en (332,
-// 250), de 70 × 21 con du 0,546875 y dv 0,65625; el segundo con el mouse encima, en las cajas del paso (0x5ebca0).
+// 0x5f3922..0x5f3a2e: ok.jpg and ok2.jpg (0xf1 and 0xf2) at (237, 250) and cancel.jpg and cancel2.jpg (0xf3 and 0xf4)
+// at (332, 250), 70 × 21 with du 0.546875 and dv 0.65625; the second with the mouse over it, in the step's boxes
+// (0x5ebca0).
 constexpr std::uint16_t YesSlot = 0xf1;
 constexpr std::uint16_t YesHoverSlot = 0xf2;
 constexpr std::uint16_t NoSlot = 0xf3;
@@ -99,7 +100,7 @@ constexpr std::int32_t NoLeft = 0x14c;
 constexpr std::int32_t NoRight = 0x192;
 constexpr std::int32_t ButtonTop = 0xfa;
 constexpr std::int32_t ButtonBottom = 0x10f;
-// 0x5f3a55..0x5f3b26: los textos, con su sombra un punto abajo a la derecha.
+// 0x5f3a55..0x5f3b26: the texts, with their shadow one point down and right.
 constexpr std::uint32_t RequestNameColor = 0xff18cfffu;
 constexpr std::uint32_t RequestTextColor = 0xffdcdcdcu;
 constexpr std::int32_t ShadowX = 0x140;
@@ -107,7 +108,7 @@ constexpr std::int32_t TextX = 0x13f;
 constexpr std::int32_t RequestNameTop = 0x8c;
 constexpr std::int32_t FirstLineTop = 0xb4;
 constexpr std::int32_t SecondLineTop = 0xc8;
-// Text.bmd 910 y 911 (0x76ffc44 y 0x76ffd70).
+// Text.bmd 910 and 911 (0x76ffc44 and 0x76ffd70).
 constexpr std::size_t FirstRequestText = 910;
 constexpr std::size_t SecondRequestText = 911;
 
@@ -119,7 +120,7 @@ std::string_view NameView(std::span<const std::byte> name)
     return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
 }
 
-// 0x5bb8d0 (con sus consultas) · 0,5 + `offset`, con _ftol: los anchos son pares y las sumas, enteras.
+// 0x5bb8d0 (with its queries) · 0.5 + `offset`, with _ftol: the widths are even and the sums integers.
 std::int32_t FromTheMiddle(Ui::PanelRegistry& panels, double offset)
 {
     return static_cast<std::int32_t>(static_cast<double>(panels.WorldWidth()) * 0.5 + offset);
@@ -146,7 +147,7 @@ void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
     if (duel.active == 0)
         return;
     Render::SpriteBatch& sprites = context.sprites;
-    // 0x5a6cd6..0x5a6ce8: la mitad con CDQ y SAR, hacia el 0.
+    // 0x5a6cd6..0x5a6ce8: the half with CDQ and SAR, toward 0.
     const auto middle = static_cast<float>(panels.WorldWidth() / 2);
     const float left = F32(static_cast<double>(middle) - ScoreHalfWidth);
     sprites.SetBlend(BlendMode::Alpha);
@@ -159,7 +160,7 @@ void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
     sprites.ColorQuad(F32(static_cast<double>(middle) + ScoreHalfWidth), ScoreTop, ScoreLine, ScoreHeight);
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Alpha);
-    // 0x5a6dd8..0x5a6e02: sprintf("%d") de los dos puntos.
+    // 0x5a6dd8..0x5a6e02: sprintf("%d") of the two scores.
     const std::string ownPoints = std::format("{}", duel.ownScore);
     const std::string rivalPoints = std::format("{}", duel.rivalScore);
     const std::string_view hero = NameView(context.world.Hero().name);
@@ -217,7 +218,7 @@ Core::Expected<void, std::string> DrawTheDuelRequest(Hud::GameHudContext& contex
     Quad(sprites, over(NoLeft, NoRight) ? NoHoverSlot : NoSlot, NoX, ButtonY, ButtonWidth, ButtonHeight, ButtonDu,
          ButtonDv);
     sprites.SetBlend(BlendMode::Alpha);
-    // 0x5f3a3d..0x5f3ab0: sprintf("[%s]") con el nombre del rival (0x78abae0).
+    // 0x5f3a3d..0x5f3ab0: sprintf("[%s]") with the rival's name (0x78abae0).
     const std::string name = std::format("[{}]", NameView(runtime.social.duel.rivalName));
     SelectFont(context, FontKind::BigBold);
     context.hud.textColors.background = 0;

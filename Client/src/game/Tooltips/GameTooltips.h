@@ -11,46 +11,46 @@ namespace Client::Hud
 struct GameHudContext;
 } // namespace Client::Hud
 
-// Los tooltips del juego (06 § Los tooltips, CL8 hito 5): 0x5f7bc0, lo que el dibujo del juego llama en 0x63769b
-// (el ítem bajo el mouse, la skill de la barra y la ventana del set del inventario), el cartel de un conjunto
-// (0x40eca0, en 0x6376c6) y la caja que dibujan todos (0x5af090). Los renglones van en HudState::tooltip, que dura de
-// un frame al otro como los arreglos de la .bss.
+// The game's tooltips (06 § Los tooltips, CL8 milestone 5): 0x5f7bc0, what the game's drawing calls at 0x63769b (the
+// item under the mouse, the bar's skill and the inventory's set window), a set's label (0x40eca0, at 0x6376c6) and the
+// box they all draw (0x5af090). The lines go in HudState::tooltip, which lasts from one frame to the next like the .bss
+// arrays.
 namespace Client::Tooltips
 {
 struct TooltipLines;
 
-// 0x5af090(x, y, renglones, ancho, modo, marco): la caja de los primeros `count` renglones de HudState::tooltip, hasta
-// el primero vacío. Mide cada uno con su fuente (la negrita con bold distinto de 0) y arma, en 640 × 480:
-//   - el ancho, el mayor cx / rx (o 2 · ancho / rx con un ancho mayor que 0) + 4, centrado en x, sin pasar del borde
-//     izquierdo ni del derecho (W / rx − ancho − 1);
-//   - el alto, (cy · enteros + cy · 0,5 · medios) / (ry · 0,90909088), donde un renglón que empieza con '\n' es un
-//     medio y cy es el del último medido;
-//   - con el marco en 1, los cuatro bordes negros de 1 y el fondo negro con 0,8 de alfa (0x621aa0);
-//   - cada renglón con su color (el glColor3f y el fondo de 0x6c8e5c y 0x6c8e64), con el modo de 0x467060 en una caja
-//     de (ancho − 2) · rx píxeles desde x + 1, con el fondo en toda ella (ITextDrawer::DrawColumns): el 1 pone el
-//     texto contra el borde izquierdo (la ayuda del retrato de las cartas, 0x497f3f), el 2 lo centra
-//     (Render::Text::CenterInBox) y el 3 lo pone contra el borde derecho; uno con '\n' o " " solo baja medio o un
-//     renglón, sin dibujar.
-// Cada renglón baja (cy / ry) · 1,1. Termina con el color blanco y sin mezcla. Los modos que no son 1, 2 ni 3 cortan.
+// 0x5af090(x, y, lines, width, mode, frame): the box of the first `count` lines of HudState::tooltip, up to the first
+// empty one. It measures each one with its font (bold with bold non-zero) and builds, in 640 × 480:
+//   - the width, the largest cx / rx (or 2 · width / rx with a width above 0) + 4, centered on x, without passing the
+//     left or the right edge (W / rx − width − 1);
+//   - the height, (cy · wholes + cy · 0.5 · halves) / (ry · 0.90909088), where a line that starts with '\n' is a half
+//     and cy is the last measured one's;
+//   - with the frame at 1, the four black edges of 1 and the black background with 0.8 alpha (0x621aa0);
+//   - each line with its color (the glColor3f and the background of 0x6c8e5c and 0x6c8e64), with the 0x467060 mode in
+//     a box of (width − 2) · rx pixels from x + 1, with the background over all of it (ITextDrawer::DrawColumns): 1
+//     puts the text against the left edge (the cards' portrait help, 0x497f3f), 2 centers it
+//     (Render::Text::CenterInBox) and 3 puts it against the right edge; one with '\n' or " " only moves down half a
+//     line or one, without drawing.
+// Each line moves down (cy / ry) · 1.1. It ends with the color white and no blending. Modes other than 1, 2 or 3 cut.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context, std::int32_t x,
                                                                   std::int32_t y, std::int32_t count,
                                                                   std::int32_t widthOverride, std::int32_t textMode,
                                                                   std::int32_t frame);
 
-// 0x40d530(renglón, opción, valor): la opción de un conjunto con su valor (el byte de abajo) en el texto de Text.bmd
-// que le toca, de formato: 950 + opción hasta la 6, el 632 para la 7, 949 + opción de la 8 a la 0x14, el 970, el 984
-// y el 983 para la 0x15 a la 0x17 y 947 + opción de la 0x18 a la 0x23. Con otra, el renglón queda como estaba.
+// 0x40d530(line, option, value): a set's option with its value (the low byte) in its Text.bmd format text: 950 +
+// option up to 6, 632 for 7, 949 + option from 8 to 0x14, 970, 984 and 983 for 0x15 to 0x17 and 947 + option from 0x18
+// to 0x23. With another, the line stays as it was.
 [[nodiscard]] Core::Expected<void, std::string> WriteTheSetOption(const Tables::TextTable* texts, std::string& line,
                                                                   std::uint8_t option, std::uint8_t value);
 
-// 0x5f7bc0: sin mezcla y con 0x77f3b66 en 0; el modo de reparar (0x78abb0c) distinto de 0 pasa a 1. Con un ítem
-// bajo el mouse (0x78abaa8), con el registro propio abierto alrededor, 0x5b8150 (reparar, con el mouse sobre el
-// inventario) o 0x5b2aa0; con la skill de la barra (0x6c9320), 0x5b90b0; con el inventario abierto, la ventana del
-// set (0x40e850). Los cuerpos que MuRet no tiene cortan con su dirección.
+// 0x5f7bc0: no blending and 0x77f3b66 at 0; a non-zero repair mode (0x78abb0c) becomes 1. With an item under the mouse
+// (0x78abaa8), with the own record open around it, 0x5b8150 (repairing, with the mouse over the inventory) or
+// 0x5b2aa0; with the bar's skill (0x6c9320), 0x5b90b0; with the inventory open, the set window (0x40e850). The bodies
+// MuRet does not have cut with their address.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context);
 
-// 0x40eca0: con +0x9305, el cartel del conjunto +0x9305 − 1 de ItemSetOption.bmd arriba a la izquierda: su nombre
-// (con el 1089 y el 159) en dorado y cada opción de sus pares, sus dos extras y sus cinco del conjunto completo en
-// azul. Un conjunto sin usar (+0x3c en 0xff) lo apaga.
+// 0x40eca0: with +0x9305, the label of set +0x9305 − 1 of ItemSetOption.bmd at the top left: its name (with 1089 and
+// 159) in gold and each option of its pairs, its two extras and the full set's five in blue. An unused set (+0x3c at
+// 0xff) turns it off.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheSetLabel(Hud::GameHudContext& context);
 } // namespace Client::Tooltips

@@ -30,8 +30,8 @@
 #include <string_view>
 #include <vector>
 
-// Scenes/GameSocialDrawing (CL9 hito 7, fase 2): el marcador del duelo (0x5a6cc0) y la caja del pedido (0x5f37f0),
-// contra su ASM, en Lorencia (0) y en Devias (2). Los nombres y los textos son inventados.
+// Social/GameSocialDrawing (CL9 milestone 7, phase 2): the duel scoreboard (0x5a6cc0) and the request box (0x5f37f0),
+// against their ASM, in Lorencia (0) and in Devias (2). The names and texts are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -164,7 +164,6 @@ protected:
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{910, "quiere un duelo"}, {911, "acepta o no"}});
 };
 
-// Sin el duelo en curso, nada.
 TEST_P(GameSocialDrawingTest, WithoutADuelTheScoreDrawsNothing)
 {
     Runtime().panels.inventory = 1;
@@ -173,8 +172,8 @@ TEST_P(GameSocialDrawingTest, WithoutADuelTheScoreDrawsNothing)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x5a6cc0 con el mundo entero (640): la franja y su marco desde 170, los nombres, "vs" y los puntos. Sin el
-// inventario, 0x5bb8d0 no consulta nada.
+// 0x5a6cc0 with the whole world (640): the band and its frame from 170. Without the inventory, 0x5bb8d0 queries
+// nothing.
 TEST_P(GameSocialDrawingTest, TheScoreDrawsTheBandTheNamesAndThePoints)
 {
     Client::Social::DuelState& duel = Runtime().social.duel;
@@ -193,7 +192,7 @@ TEST_P(GameSocialDrawingTest, TheScoreDrawsTheBandTheNamesAndThePoints)
     EXPECT_EQ(quads[4].color.red, 0.65f);
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 7u);
-    // 0x623690: x − ancho / 2 (seis columnas por letra).
+    // 0x623690: x − width / 2 (six columns per letter).
     const std::vector<std::string> expected{"Tejon", "Tejon", "vs", "Brezal", "Brezal", "3", "12"};
     const std::vector<int> xs{241 - 15, 240 - 15, 320 - 6, 401 - 18, 400 - 18, 240 - 3, 400 - 6};
     const std::vector<int> ys{0x1f, 0x1e, 0x1e, 0x1f, 0x1e, 0x30, 0x30};
@@ -216,8 +215,8 @@ TEST_P(GameSocialDrawingTest, TheScoreDrawsTheBandTheNamesAndThePoints)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con el inventario abierto, el mundo de 450 corre el centro a 225 y cada una de las ocho llamadas a 0x5bb8d0 consulta
-// la tienda de NPC (0x10000) y el comercio (0x20): 16 rand().
+// With the inventory open, the 450 world moves the center to 225 and each of the eight calls to 0x5bb8d0 queries the
+// NPC shop (0x10000) and the trade (0x20): 16 rand().
 TEST_P(GameSocialDrawingTest, EachWorldWidthOfTheScoreDrawsItsQueries)
 {
     Runtime().social.duel.active = 1;
@@ -230,7 +229,7 @@ TEST_P(GameSocialDrawingTest, EachWorldWidthOfTheScoreDrawsItsQueries)
     EXPECT_EQ(Draws(m_random), 8 * 2);
 }
 
-// 0x5f37f0: sin el pedido, nada; con él, la caja, la imagen sumada, los botones y los textos.
+// 0x5f37f0: without the request, nothing; with it, the box, the additive image, the buttons and the texts.
 TEST_P(GameSocialDrawingTest, TheRequestDrawsTheBoxTheImageAndTheButtons)
 {
     ASSERT_TRUE(Request(0, 0).HasValue());
@@ -266,7 +265,7 @@ TEST_P(GameSocialDrawingTest, TheRequestDrawsTheBoxTheImageAndTheButtons)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// El no con el mouse encima (0x14c..0x192) y, sin Text.bmd, el corte.
+// The no with the mouse over it (0x14c..0x192) and, without Text.bmd, the cut.
 TEST_P(GameSocialDrawingTest, TheNoButtonLightsAndMissingTextsCut)
 {
     Runtime().ui.field78abad9 = 1;

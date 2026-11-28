@@ -21,50 +21,50 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// Las dos ventanas del gremio y el diálogo de los paneles en el registro (CL9 hito 8; 06 § El gremio): lo que hacen al
-// cerrarse (0x6522f0 y 0x6570b0) y las dos funciones que responden al diálogo (0x4d6b60 y 0x653c00). Lo que mandan va
-// por `send` (el GameServer de la sesión, en claro).
+// The two guild windows and the panels' dialog in the registry (CL9 milestone 8; 06 § El gremio): what they do when
+// closed (0x6522f0 and 0x6570b0) and the two functions that answer the dialog (0x4d6b60 and 0x653c00). What they send
+// goes through `send` (the session's GameServer, in the clear).
 namespace Client::Guild
 {
 
-// El envío de los paquetes del gremio (la sesión, o lo que la UI le pide).
+// The guild packets' send (the session, or whatever the UI asks of it).
 using GuildSender = std::function<void(Protocol::Outgoing)>;
 
-// 0x6600d0 (CUIPopup::SetPopup, por sus OutputDebugStringA de 0x6d69c4 y 0x6d69f4) desde el juego: abre el diálogo de
-// los paneles y devuelve lo que da, el GetTickCount() de la apertura (+0x10), o 0 sin abrirlo. Con más de diez
-// renglones, 0. Con otro abierto (0x6600f7..0x66011d), el aviso de 0x6d69a8 al chat (0x555190("", aviso, 1)) y 0, sin
-// tocar el abierto. Un renglón de 0x100 bytes o más corta (Q-C1305).
+// 0x6600d0 (CUIPopup::SetPopup, from its OutputDebugStringA of 0x6d69c4 and 0x6d69f4) from the game: opens the panels'
+// dialog and returns what it gives, the GetTickCount() of the opening (+0x10), or 0 without opening it. With more than
+// ten rows, 0. With another one open (0x6600f7..0x66011d), the notice of 0x6d69a8 to the chat (0x555190("", notice,
+// 1)) and 0, without touching the open one. A row of 0x100 bytes or more stops (Q-C1305).
 [[nodiscard]] Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(Kernel::WorldRuntime& runtime,
                                                                              const Ui::PanelDialogRequest& request,
                                                                              const Render::Text::ITextMeasure& measure,
                                                                              Core::PixelSize screen, std::uint32_t now);
 
-// 0x4d6b60 (el 50: con 8 acepta, C1 06 51 01; con cualquier otro motivo, 00) y 0x653c00 (el E5: con 8, C1 08 E6 con 1;
-// con 0x10, con 0; con los demás, nada). Las dos devuelven 1: el diálogo se cierra. Sin `send`, corta.
+// 0x4d6b60 (the 50: with 8 it accepts, C1 06 51 01; with any other reason, 00) and 0x653c00 (the E5: with 8, C1 08 E6
+// with 1; with 0x10, with 0; with the others, nothing). Both return 1: the dialog closes. Without `send`, it stops.
 [[nodiscard]] Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world, const GuildSender& send,
                                                                      Ui::PanelDialogOwner owner, std::uint32_t reason);
 
-// 0x6522f0, la vtable + 0x2c de [0x7d536f0]: abierta, la cierra (+0x7c), vuelve a la pestaña 1 (+0x80 = 1, +0x84 = 0),
-// suena el 0x1c y cancela el diálogo si es el suyo (0x64fbd0: el abierto es +0x428).
+// 0x6522f0, the vtable + 0x2c of [0x7d536f0]: open, it closes it (+0x7c), goes back to tab 1 (+0x80 = 1, +0x84 = 0),
+// plays 0x1c and cancels the dialog if it is its own (0x64fbd0: the open one is +0x428).
 [[nodiscard]] Core::Expected<void, std::string> CloseTheGuildWindow(Kernel::WorldState& world, const GuildSender& send);
 
-// 0x64fbd0: si el diálogo de los paneles abierto (0x660340) es el de la ventana del gremio (+0x428; los dos en 0
-// también), lo cancela (0x6603c0, con la respuesta de quien lo abrió).
+// 0x64fbd0: if the open panels' dialog (0x660340) is the guild window's (+0x428; both at 0 too), it cancels it
+// (0x6603c0, with the answer of whoever opened it).
 [[nodiscard]] Core::Expected<void, std::string> CancelTheGuildWindowDialog(Kernel::WorldState& world,
                                                                            const GuildSender& send);
 
-// 0x6570b0, la vtable + 0x2c de [0x7d536f4]: abierta, la cierra; el héroe con el gremio 1999 vuelve a −1; suena el
-// 0x1c; 0x7d536e4, 0x7d536ec y 0x77f3b68 en 0; cancela el diálogo si es suyo (0x654f50: +0x2a0 o +0x2a4) y manda C1 04
-// 54 00.
+// 0x6570b0, the vtable + 0x2c of [0x7d536f4]: open, it closes it; the hero with guild 1999 goes back to −1; plays
+// 0x1c; 0x7d536e4, 0x7d536ec and 0x77f3b68 to 0; cancels the dialog if it is its own (0x654f50: +0x2a0 or +0x2a4) and
+// sends C1 04 54 00.
 [[nodiscard]] Core::Expected<void, std::string> CloseTheSecondGuildWindow(Kernel::WorldState& world,
                                                                           const GuildSender& send);
 
-// Los ganchos del gremio en el contexto del registro: abrir el gremio pide la lista, cerrar las dos ventanas y
-// responder al diálogo. Sin `send`, no pone ninguno y lo que los usa corta.
+// The guild hooks in the registry's context: opening the guild asks for the list, closing both windows and answering
+// the dialog. Without `send`, it sets none and whatever uses them stops.
 void LendTheGuildTo(Ui::PanelContext& context, Kernel::WorldState& world, const GuildSender& send);
 
-// 0x6605b0 en el paso de la UI: el diálogo con el mouse (640 × 480), los globales de la UI vieja y el reloj (el
-// GetTickCount() del paso). Con los ganchos de la ventana de los cargos (+8), su paso (0x64e600, que manda por `send`).
+// 0x6605b0 in the UI step: the dialog with the mouse (640 × 480), the old UI's globals and the clock (the step's
+// GetTickCount()). With the positions window's hooks (+8), its step (0x64e600, which sends through `send`).
 void LendThePanelDialogStepTo(Ui::PanelContext& context, Kernel::WorldState& world, const GuildSender& send,
                               std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now);
 } // namespace Client::Guild

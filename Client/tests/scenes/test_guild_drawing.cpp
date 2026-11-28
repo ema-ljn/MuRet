@@ -40,9 +40,9 @@
 #include <utility>
 #include <vector>
 
-// Guild::DrawTheWarScore y DrawThePanelDialog (CL9 hito 8, fase 2): el marcador de la guerra de gremios (0x5a7640) y
-// el diálogo de los paneles (0x660830), contra su ASM, en Lorencia (0), en Devias (2) y en Arena (6, la del fútbol de
-// la guerra). Los nombres y los textos son inventados.
+// Guild::DrawTheWarScore and DrawThePanelDialog (CL9 milestone 8, phase 2): the guild war score (0x5a7640) and the
+// panels' dialog (0x660830), against their ASM, in Lorencia (0), Devias (2) and Arena (6, the war's soccer one). The
+// names and the texts are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -127,7 +127,7 @@ int MarkSlot(std::int32_t index)
     return GuildMarkTextures::SlotOf(index, true).value;
 }
 
-// Los textos de los botones del diálogo (0x65feb0), inventados.
+// The dialog buttons' texts (0x65feb0), invented.
 Client::Tables::TextTable ButtonTexts()
 {
     const std::map<std::size_t, std::string> texts{
@@ -312,7 +312,7 @@ TEST_P(GuildDrawingTest, TheOutcomeReadsTenBytesAndTheAdjacentSecondScore)
     ExpectQuadAt(quads.back(), 0xf1, 285, 280, 70, 20);
 }
 
-// 0x5a7649..0x5a7672: sin la guerra, o con el héroe sin gremio, solo la mezcla apagada y el fondo de los textos.
+// 0x5a7649..0x5a7672: without the war, or with the hero without a guild, only blending off and the text background.
 TEST_P(GuildDrawingTest, WithoutAWarOnlyTheStateChanges)
 {
     m_sprites.SetBlend(BlendMode::Additive);
@@ -329,9 +329,9 @@ TEST_P(GuildDrawingTest, WithoutAWarOnlyTheStateChanges)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con la guerra: x = 640 · 0,5 − 20 = 300; la marca del héroe en (300, 4) y la del rival en (300, 19), de 8 × 8 y
-// mezcladas; los puntajes en 313 y los nombres en 330, en la negrita, rojos los del héroe y naranjas los del rival
-// sin equipo. Sin el inventario, 0x5bb8d0 no consulta nada.
+// With the war: x = 640 · 0.5 − 20 = 300; the hero's mark at (300, 4) and the rival's at (300, 19), 8 × 8 and blended;
+// the scores at 313 and the names at 330, in bold, the hero's red and the rival's orange without a team. Without the
+// inventory, 0x5bb8d0 queries nothing.
 TEST_P(GuildDrawingTest, TheScoreDrawsBothMarksScoresAndNames)
 {
     Runtime().guild.warOn = 1;
@@ -360,7 +360,7 @@ TEST_P(GuildDrawingTest, TheScoreDrawsBothMarksScoresAndNames)
         EXPECT_EQ(texts[at].style.colors.background, 0x80000000u);
         EXPECT_EQ(texts[at].style.font, Client::Render::Text::FontKind::Bold);
     }
-    // Las dos marcas, subidas con el fondo transparente: roja (4) la del héroe y azul (12) la del rival.
+    // Both marks, uploaded with the clear background: the hero's red (4) and the rival's blue (12).
     const auto ours = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(MarkSlot(HeroGuild))});
     const auto theirs = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(MarkSlot(RivalGuild))});
     ASSERT_TRUE(ours.has_value());
@@ -373,9 +373,9 @@ TEST_P(GuildDrawingTest, TheScoreDrawsBothMarksScoresAndNames)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con el equipo (0x576796e) los colores se dan vuelta; un rival que no está en la tabla dibuja la marca de la entrada
-// 0 (0x5a78ba); un nombre vacío no se dibuja. Con el inventario abierto, el mundo de 450 deja x en 205 y la única
-// llamada a 0x5bb8d0 consulta la tienda y el comercio: 2 rand().
+// With the team (0x576796e) the colors swap; a rival not in the table draws entry 0's mark (0x5a78ba); an empty name
+// is not drawn. With the inventory open, the 450 world leaves x at 205 and the only call to 0x5bb8d0 queries the shop
+// and the trade: 2 rand().
 TEST_P(GuildDrawingTest, TheTeamSwapsTheColorsAndAnUnknownRivalShowsTheFirstMark)
 {
     Client::Guild::GuildState& guild = Runtime().guild;
@@ -404,7 +404,7 @@ TEST_P(GuildDrawingTest, TheTeamSwapsTheColorsAndAnUnknownRivalShowsTheFirstMark
     EXPECT_EQ(m_text.texts[1].text, "12");
 }
 
-// Sin la tabla de las marcas, la guerra corta; sin la guerra, no hace falta.
+// Without the marks table, the war stops; without the war, it is not needed.
 TEST_P(GuildDrawingTest, WithoutTheMarksTheWarIsCut)
 {
     Hero().word1f2 = HeroGuild;
@@ -415,8 +415,8 @@ TEST_P(GuildDrawingTest, WithoutTheMarksTheWarIsCut)
     EXPECT_NE(cut.Error().find("0x5a76d8"), std::string::npos);
 }
 
-// 0x5a7a01..0x5a7cbd: el F3 23 no pide gremio propio ni la guerra. Los nombres buscan las primeras 1999
-// entradas, aunque tableCount sea menor; el segundo nombre que no existe usa la marca 0.
+// 0x5a7a01..0x5a7cbd: the F3 23 needs neither the own guild nor the war. The names look up the first 1999 entries,
+// even if tableCount is lower; the second name that does not exist uses mark 0.
 TEST_P(GuildDrawingTest, SoccerDrawsTheReceivedTeamsWithoutTheHeroGuild)
 {
     auto& soccer = Runtime().events.soccer;
@@ -463,10 +463,10 @@ TEST_P(GuildDrawingTest, SoccerFollowsTheWarAndDoesNotSearchTheLastGuild)
     EXPECT_EQ(Draws(m_random), 4);
 }
 
-// 0x660830 con Confirmar y Cancelar y dos renglones: alto 2 · (13 + 2) + 0x3f = 93 e y = 0x82 − 46 = 84. La caja
-// (0x6576a0) sin alpha test y con el alfa en 0,8: el filo, dos filas de 40, el resto de 83 − 80 = 3 (dv 3 · 0,025 ·
-// 0,625) y el otro filo. Los renglones centrados en 0x140 desde 104, de 15 en 15, en la fuente normal y en blanco; los
-// botones en y = 104 + 30 + 9 = 143, en 0x104 y 0x14a, con sus textos. No saca rand().
+// 0x660830 with Confirm and Cancel and two lines: height 2 · (13 + 2) + 0x3f = 93 and y = 0x82 − 46 = 84. The box
+// (0x6576a0) without alpha test and with alpha 0.8: the edge, two rows of 40, the rest of 83 − 80 = 3 (dv 3 · 0.025 ·
+// 0.625) and the other edge. The lines centered on 0x140 from 104, 15 apart, in the normal font and in white; the
+// buttons at y = 104 + 30 + 9 = 143, at 0x104 and 0x14a, with their texts. No rand().
 TEST_P(GuildDrawingTest, ThePanelDialogDrawsItsBoxLinesAndButtons)
 {
     Open({"Una alianza", "con Teros"}, Client::Ui::PanelDialogConfirm, 0);
@@ -517,8 +517,8 @@ TEST_P(GuildDrawingTest, ThePanelDialogDrawsItsBoxLinesAndButtons)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con +0xa24 la caja va en y = 10; un renglón: alto 15 + 0x3f = 78, una fila y el resto de 28 (dv 0,4375). Aceptar
-// solo, en 0x127 e y = 30 + 15 + 9 = 54.
+// With +0xa24 the box goes at y = 10; one line: height 15 + 0x3f = 78, one row and the rest of 28 (dv 0.4375). Accept
+// alone, at 0x127 and y = 30 + 15 + 9 = 54.
 TEST_P(GuildDrawingTest, AtTheTopWithOneButton)
 {
     Open({"Listo"}, Client::Ui::PanelDialogOk, 1);
@@ -536,7 +536,7 @@ TEST_P(GuildDrawingTest, AtTheTopWithOneButton)
     EXPECT_EQ(m_text.texts[1].text, "Dale");
 }
 
-// Cerrado no dibuja; los botones todavía necesitan sus textos cuando se copian por primera vez.
+// Closed, it does not draw; the buttons still need their texts when they are copied for the first time.
 TEST_P(GuildDrawingTest, ThePanelDialogNeedsItsButtonTexts)
 {
     ASSERT_TRUE(Dialog().HasValue());

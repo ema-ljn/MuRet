@@ -27,11 +27,11 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-// Los carteles de las tiendas personales sobre las cabezas (CL9 hito 7, fase 6b; 06 § Lo social en pantalla, "Las
-// tiendas personales", "Los carteles"): el hijo 13 del HUD (0x451c20) con el lugar (0x451d60 → 0x452110), el reparto
-// (0x451e40) y cada cartel (0x452a10, con su caja 0x452d50 y su quad 0x452e50); lo que el alta mide para él (0x452540:
-// el texto 1104, las dos líneas de 0x452f80 y el tamaño de 0x4531b0), y lo que leen los globos de chat: el título corto
-// (0x4518b0) y los colores del título (0x4517c0, 0x451af0, 0x451b50 y 0x451bb0). Solo 0x5bb8d0 saca rand().
+// The personal shops' signs over the heads (CL9 milestone 7, phase 6b; 06 § Lo social en pantalla, "Las tiendas
+// personales", "Los carteles"): the HUD's child 13 (0x451c20) with the position (0x451d60 → 0x452110), the spread
+// (0x451e40) and each sign (0x452a10, with its box 0x452d50 and its quad 0x452e50); what the add measures for it
+// (0x452540: text 1104, 0x452f80's two lines and 0x4531b0's size), and what the chat bubbles read: the short title
+// (0x4518b0) and the title's colors (0x4517c0, 0x451af0, 0x451b50 and 0x451bb0). Only 0x5bb8d0 draws rand().
 namespace Client::Render::Frame
 {
 class ITextDrawer;
@@ -56,14 +56,14 @@ struct ShopTitle;
 namespace Client::PersonalShop
 {
 
-// 0x770df9c: el texto 1104 de Text.bmd, la cabeza de los carteles y del título del globo.
+// 0x770df9c: Text.bmd's text 1104, the head of the signs and of the bubble's title.
 inline constexpr std::size_t ShopSignHeaderText = 1104;
 
-// El texto 1104, o el error con la dirección que lo lee si no hay Text.bmd.
+// Text 1104, or the error with the address that reads it if there is no Text.bmd.
 [[nodiscard]] Core::Expected<std::string_view, std::string> ShopSignHeader(const Tables::TextTable* texts,
                                                                            std::string_view address);
 
-// +0x20 y +0x30 del cartel.
+// +0x20 and +0x30 of the sign.
 struct ShopTitleLines
 {
     std::string first;
@@ -72,37 +72,36 @@ struct ShopTitleLines
     friend bool operator==(const ShopTitleLines&, const ShopTitleLines&) = default;
 };
 
-// 0x452f80(título, +0x20, +0x30): con 20 bytes o menos, el título entero en la primera y la segunda vacía; con más, la
-// primera hasta el primer corte desde la mitad (largo >> 1) que no parte una letra de dos bytes (un byte de 0x80 o más
-// cuenta 2, con el que lo sigue) y la segunda con el resto.
+// 0x452f80(title, +0x20, +0x30): with 20 bytes or fewer, the whole title in the first and the second empty; with more,
+// the first up to the first cut from the middle (length >> 1) that does not split a two-byte letter (a byte of 0x80 or
+// more counts 2, with the one after it) and the second with the rest.
 [[nodiscard]] ShopTitleLines SplitTheShopTitle(std::string_view title);
 
-// 0x4518b0(personaje, salida): sin cartel, nada (la salida queda como estaba: el texto vacío de 0x556dd0). Con él, el
-// título entero si tiene 14 bytes o menos; si no, los primeros 12, o 13 si el 12 es la segunda mitad de una letra de
-// dos bytes, y ".." (0x6c7970).
+// 0x4518b0(character, output): without a sign, nothing (the output stays as it was: 0x556dd0's empty text). With one,
+// the whole title if it has 14 bytes or fewer; otherwise, the first 12, or 13 if the 12th is the second half of a
+// two-byte letter, and ".." (0x6c7970).
 [[nodiscard]] std::string ShortShopTitle(const Social::PersonalShopState& shops, std::size_t index);
 [[nodiscard]] std::string ShortShopTitle(std::string_view title);
 
-// Lo que 0x452540 deja en el cartel para el dibujo, con las medidas de GetTextExtentPoint32A.
+// What 0x452540 leaves in the sign for the draw, with GetTextExtentPoint32A's measures.
 struct ShopSignLayout
 {
-    // +0x58: el ancho del texto 1104 en negrita.
+    // +0x58: the width of text 1104 in bold.
     std::int32_t header = 0;
     ShopTitleLines lines;
-    // +0x50 y +0x54 (0x4531b0).
+    // +0x50 and +0x54 (0x4531b0).
     std::int32_t width = 0;
     std::int32_t height = 0;
 };
 
-// 0x452540 → 0x452f80 y 0x4531b0: el nombre (+0) en negrita y las dos líneas en la normal; el ancho es el mayor del
-// texto 1104 más el nombre y de las líneas que hay, y el alto, el paso de la letra por los renglones (el nombre y una o
-// dos líneas). El original lo mide al poner el cartel (0x4511f0); MuRet, en cada dibujo: las fuentes no cambian en el
-// juego
-// (*inferido*), así que da lo mismo.
+// 0x452540 → 0x452f80 and 0x4531b0: the name (+0) in bold and the two lines in the normal font; the width is the
+// largest of text 1104 plus the name and of the lines there are, and the height, the letter step times the rows (the
+// name and one or two lines). The original measures it when placing the sign (0x4511f0); MuRet, on each draw: the fonts
+// do not change in the game (*inferred*), so it is the same.
 [[nodiscard]] ShopSignLayout MeasureTheShopSign(const Social::ShopTitle& sign, std::string_view header,
                                                 const Render::Text::ITextMeasure& measure, int fontStep);
 
-// +0x48..+0x54 de un cartel, en píxeles.
+// +0x48..+0x54 of a sign, in pixels.
 struct ShopSignBox
 {
     std::int32_t x = 0;
@@ -113,25 +112,25 @@ struct ShopSignBox
     friend bool operator==(const ShopSignBox&, const ShopSignBox&) = default;
 };
 
-// 0x452110: el punto 60 sobre el techo del dueño (+0x138 + z + 60, como el globo) proyectado con 0x6205b0 a 640 × 480 y
-// pasado a píxeles con IMUL y la división con signo; la x, menos la mitad del ancho, y la y, menos 36 · H / 480.
+// 0x452110: the point 60 above the owner's top (+0x138 + z + 60, like the bubble) projected with 0x6205b0 to 640 × 480
+// and turned into pixels with IMUL and the signed division; x, minus half the width, and y, minus 36 · H / 480.
 [[nodiscard]] Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjection& projection,
                                                                       const Kernel::ActorState& owner,
                                                                       std::int32_t width, Core::PixelSize screen);
 
-// 0x451e40, en el orden del mapa: para cada par que se pisa (comparaciones con signo), el primero sube hasta el borde
-// de arriba del otro si su borde de abajo está antes de la mitad del otro, y si no baja a su borde de abajo; la x no
-// cambia. Después cada uno contra los bordes, sin signo: la x en 0 o, desde W − ancho, en W − ancho − 4; la y en 0 o,
-// desde H − alto, en H − alto.
+// 0x451e40, in the map's order: for each overlapping pair (signed comparisons), the first goes up to the other's top
+// edge if its bottom edge is before the other's middle, and otherwise goes down to its bottom edge; x does not change.
+// Then each against the edges, unsigned: x at 0 or, from W − width, at W − width − 4; y at 0 or, from H − height, at
+// H − height.
 void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen);
 
-// 0x452e50(lugar, tamaño): el quad de un renglón, en píxeles. La x en 0 y, si x + ancho pasa de W (sin signo), en
-// W − ancho; la y en 0 y, si y + alto pasa de H − H · 47 / 480 (sin signo), en H − H · 47 / 480: sin restar el alto, y
-// con 480 donde 0x554000 tiene 640 (07 Q-C976).
+// 0x452e50(position, size): a row's quad, in pixels. x at 0 and, if x + width passes W (unsigned), at W − width; y at
+// 0 and, if y + height passes H − H · 47 / 480 (unsigned), at H − H · 47 / 480: without subtracting the height, and
+// with 480 where 0x554000 has 640 (07 Q-C976).
 [[nodiscard]] Ui::Point ShopSignRowAt(Ui::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen);
 
-// Los colores de un cartel (0x452a10, por el PK) y del título de un globo (0x451af0, 0x451b50 y 0x451bb0, que miran
-// también +0x370): el del nombre y el título, el del texto 1104 y el fondo.
+// The colors of a sign (0x452a10, by the PK) and of a bubble's title (0x451af0, 0x451b50 and 0x451bb0, which also look
+// at +0x370): the name and title's, text 1104's and the background.
 struct ShopSignColors
 {
     std::uint32_t name = 0;
@@ -141,41 +140,40 @@ struct ShopSignColors
     friend bool operator==(const ShopSignColors&, const ShopSignColors&) = default;
 };
 
-// 0x452a10: con el PK 4, 5 o 6, el texto 1104 y el nombre en 0xff00b4e6, 0xff006ee6 o 0xff0014f0 y el fondo en
-// 0x8029396c (0x80527ab6 con +0x60); con otro, el nombre en 0xff00e6e6 (0xffffe6e6), el texto 1104 en 0xff0096fa
-// (0xff29396c) y el fondo en 0x8029396c (0x800096fa).
+// 0x452a10: with PK 4, 5 or 6, text 1104 and the name in 0xff00b4e6, 0xff006ee6 or 0xff0014f0 and the background in
+// 0x8029396c (0x80527ab6 with +0x60); with another, the name in 0xff00e6e6 (0xffffe6e6), text 1104 in 0xff0096fa
+// (0xff29396c) and the background in 0x8029396c (0x800096fa).
 [[nodiscard]] ShopSignColors ShopSignColorsOf(std::uint8_t pk, bool hovered);
 
-// 0x451af0, 0x451b50 y 0x451bb0: como el cartel con +0x370 en 2 u 8 tomado como el PK 6.
+// 0x451af0, 0x451b50 and 0x451bb0: like the sign with +0x370 at 2 or 8 taken as PK 6.
 [[nodiscard]] ShopSignColors ShopBubbleColorsOf(const Kernel::ActorState& owner, bool hovered);
 
-// 0x4517c0: +0x60 del cartel del personaje; sin cartel, falso.
+// 0x4517c0: the character's sign's +0x60; without a sign, false.
 [[nodiscard]] bool ShopSignHovered(const Social::PersonalShopState& shops, std::size_t index);
 
-// Lo que el dibujo de los carteles lee y deja.
 struct ShopSignDrawContext
 {
     Kernel::WorldState& world;
-    // 0x5bb8d0 (con las consultas de 0x20 y 0x10000 y sus rand()) e IsOpen(0x200).
+    // 0x5bb8d0 (with the 0x20 and 0x10000 queries and their rand()) and IsOpen(0x200).
     Ui::PanelRegistry& panels;
-    // 0x6203c0 del pase del mundo de este frame: 0x451d60 arma con 0x620db0 el mismo rectángulo (0, 0, w, 432) con la
-    // misma cámara, y 0x6205b0 lee lo mismo (*inferido*). Sin ella, un cartel corta.
+    // 0x6203c0 of this frame's world pass: 0x451d60 builds with 0x620db0 the same rectangle (0, 0, w, 432) with the
+    // same camera, and 0x6205b0 reads the same (*inferred*). Without it, a sign stops.
     const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
-    // El SelectObject de 0x452d50: queda la fuente del último renglón dibujado.
+    // 0x452d50's SelectObject: the last drawn row's font stays.
     Render::Text::FontKind& dcFont;
     const Tables::TextTable* texts = nullptr;
-    // Un dibujo intermedio de MuRet no escribe +0x10, los +0x60 ni los lugares (+0x48 y +0x4c): van a una copia.
+    // A MuRet intermediate draw does not write +0x10, the +0x60 or the positions (+0x48 and +0x4c): they go to a copy.
     bool projecting = false;
 };
 
-// 0x451c20, el hijo 13 del HUD: con el mapa vacío (+0xc en 0), nada. Si no, 0x451d60 (0x5bb8d0 con sus rand(), y el
-// lugar de cada cartel), 0x451e40 (el lugar repartido queda en +0x48 y +0x4c de cada uno) y la cuenta de +0x10 (de 0
-// a 7). Cada cartel, en el orden del mapa: con un elegido
-// (0x6c8e30), +0x10 menor que 3, la ventana de los comandos (0x200) abierta y su comando 2 (la tienda), +0x60 en 1 si
-// es el del elegido (los otros lo guardan, 07 Q-C977); si no, +0x60 en 0. A la vista (+0x44) y con +0x14 del mapa (que
-// apaga "/no ver puestos", 0x56d776), 0x452a10 con su PK: el texto 1104 y el nombre en negrita en el primer renglón y
-// las líneas del título debajo, en blanco sobre 0xc829396c con la normal, cada uno con su quad de 0x452e50.
+// 0x451c20, the HUD's child 13: with the map empty (+0xc at 0), nothing. Otherwise, 0x451d60 (0x5bb8d0 with its
+// rand(), and each sign's position), 0x451e40 (the spread position stays in each one's +0x48 and +0x4c) and the +0x10
+// count (from 0 to 7). Each sign, in the map's order: with a chosen one (0x6c8e30), +0x10 below 3, the commands window
+// (0x200) open and its command 2 (the shop), +0x60 at 1 if it is the chosen one's (the others keep it, 07 Q-C977);
+// otherwise, +0x60 at 0. In view (+0x44) and with the map's +0x14 (which "/no ver puestos" turns off, 0x56d776),
+// 0x452a10 with its PK: text 1104 and the name in bold in the first row and the title's lines below, in white on
+// 0xc829396c with the normal font, each with its 0x452e50 quad.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context);
 } // namespace Client::PersonalShop

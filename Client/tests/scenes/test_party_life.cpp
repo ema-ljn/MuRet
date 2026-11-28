@@ -55,8 +55,8 @@
 #include <utility>
 #include <vector>
 
-// La vida de la party sobre las cabezas (0x5a89b0, CL9 hito 7, fase 2) con los otros jugadores que trae el 0x12 (hito
-// 1) y el picking del frame (0x59ec80), en Lorencia (0) y Devias (2). Los nombres son inventados.
+// The party's life over the heads (0x5a89b0, CL9 milestone 7, phase 2) with the other players the 0x12 brings
+// (milestone 1) and the frame's picking (0x59ec80), in Lorencia (0) and Devias (2). The names are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -83,7 +83,6 @@ void Name(std::span<std::byte> name, std::string_view text)
         name[at] = at < text.size() ? static_cast<std::byte>(text[at]) : std::byte{0};
 }
 
-// El mundo del juego, en el heap.
 struct Game
 {
     Game()
@@ -126,8 +125,8 @@ struct Game
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
 
-// Una proyección de prueba: el ojo en (x − 10.000, y − 10.000, −1.000), sin giro ni altura, con las escalas en −0,01:
-// 10 unidades del mundo por punto desde el centro de 640 × 480.
+// A test projection: the eye at (x − 10000, y − 10000, −1000), with no turn or height, with the scales at −0.01: 10
+// world units per point from the center of 640 × 480.
 Client::Scenes::GameProjection TestProjection()
 {
     return Client::Scenes::GameProjection{
@@ -193,7 +192,7 @@ protected:
         m_sprites.Begin(Client::Core::PixelSize{640, 480});
     }
 
-    // La primera fila libre de cinco celdas desde (100, 100).
+    // The first free row of five cells from (100, 100).
     [[nodiscard]] std::array<std::uint8_t, 2> FreeRow() const
     {
         const auto& cells = game->states.terrain.current.attributes->cells;
@@ -210,8 +209,8 @@ protected:
         return {};
     }
 
-    // El 0x12 con dos jugadores recién llegados en la fila libre, y lo que el paso les hace antes del primer dibujo
-    // (0x508f00 los ve y el alpha sube; los dos, sin portar acá).
+    // The 0x12 with two players just arrived in the free row, and what the step does to them before the first drawing
+    // (0x508f00 sees them and the alpha rises; both not ported here).
     void TwoPlayersArrive()
     {
         const auto [x, y] = FreeRow();
@@ -235,7 +234,7 @@ protected:
         }
     }
 
-    // El 42 con los tres y el 44 con sus décimos.
+    // The 42 with the three and the 44 with their tenths.
     void ThePartyArrives()
     {
         Client::Protocol::Party::PartyList list;
@@ -252,7 +251,7 @@ protected:
         Client::Social::ApplyPartyLife(life, game->world, game->log);
     }
 
-    // 0x59ec80 antes del primer dibujo: sin segmento.
+    // 0x59ec80 before the first drawing: without a segment.
     void Pick()
     {
         auto& runtime = game->world.Runtime();
@@ -293,8 +292,9 @@ protected:
     Client::Ui::Point m_mouse{};
 };
 
-// Los dos del 0x12 encuentran su lugar en el picking (el héroe también, que se ve) y cada uno con personaje tiene su
-// barra sobre la cabeza: la sombra con la mezcla normal y, sumados, el borde, el fondo y sus décimos. Sin rand().
+// The two from the 0x12 find their slot in the picking (the hero too, who is visible) and each one with a character
+// has its bar over the head: the shadow with normal blending and, added, the border, the background and its tenths.
+// No rand().
 TEST_P(PartyLifeTest, TheMembersInTheViewportShowTheirLifeOverTheirHeads)
 {
     TwoPlayersArrive();
@@ -309,7 +309,7 @@ TEST_P(PartyLifeTest, TheMembersInTheViewportShowTheirLifeOverTheirHeads)
     EXPECT_EQ(m_random.State(), before.State());
 
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
-    // Zorzal (7 décimos) y Brezal (10 de 0xa): sombra, borde, fondo y los décimos.
+    // Zorzal (7 tenths) and Brezal (10 of 0xa): shadow, border, background and the tenths.
     ASSERT_EQ(quads.size(), (3U + 7U) + (3U + 10U));
     const ActorState& zorzal = game->world.Actors()[2];
     const auto above = Client::Scenes::ProjectGamePoint(
@@ -333,7 +333,7 @@ TEST_P(PartyLifeTest, TheMembersInTheViewportShowTheirLifeOverTheirHeads)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// 0x5a8a42..0x5a8b3e: con el mouse en [x, x + 38) × [y − 2, y + 6), "HP : %d0%" 6 arriba, antes de la barra.
+// 0x5a8a42..0x5a8b3e: with the mouse in [x, x + 38) × [y − 2, y + 6), "HP : %d0%" 6 higher, before the bar.
 TEST_P(PartyLifeTest, TheMouseOverABarShowsTheTenths)
 {
     TwoPlayersArrive();
@@ -359,7 +359,7 @@ TEST_P(PartyLifeTest, TheMouseOverABarShowsTheTenths)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// Sin la proyección del pase del mundo, un miembro con personaje corta; sin ninguno, nada.
+// Without the world pass's projection, a member with a character fails; with none, nothing.
 TEST_P(PartyLifeTest, WithoutTheProjectionAMemberInViewCuts)
 {
     ThePartyArrives();

@@ -22,15 +22,15 @@ namespace Client::Tooltips
 {
 namespace
 {
-// D+0x1b: los bits de las opciones excelentes.
+// D+0x1b
 constexpr std::uint8_t ExcellentBits = 0x3f;
-// D+0x1c & 3: la clase de pieza de un conjunto; 0, ninguna.
+// D+0x1c & 3: a set piece's kind; 0, none.
 constexpr std::uint8_t SetKindMask = 3;
-// En ItemSetType.bmd, ningún conjunto (0x40cf51 y 0x40cf55).
+// No set in ItemSetType.bmd (0x40cf51 and 0x40cf55).
 constexpr std::uint8_t NoSet = 0xff;
-// 0x40cf72: el nombre se copia con 8 dwords.
+// 0x40cf72: the name is copied with 8 dwords.
 constexpr std::size_t SetNameBytes = 0x20;
-// Skill.bmd: el byte +0x21, el word +0x22 (el maná), el word +0x24 y el byte +0x26 (0x551e25..0x551e51).
+// Skill.bmd: byte +0x21, word +0x22 (the mana), word +0x24 and byte +0x26 (0x551e25..0x551e51).
 constexpr std::size_t SkillByte21 = 0x21;
 constexpr std::size_t SkillMana = 0x22;
 constexpr std::size_t SkillStamina = 0x24;

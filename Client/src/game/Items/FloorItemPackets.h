@@ -13,9 +13,9 @@
 #include <optional>
 #include <string>
 
-// Los paquetes de los ítems del piso (CL9 hito 5; 06 § Los ítems del piso): el 20 (0x4d0ba0, con 0x608350, 0x607b60
-// y 0x607fb0), el 21 (0x4e3849), el 22 (0x4d0cc0) y la fruta de stats, el 2C (0x4de500). El 23 está en
-// InventoryMoves (ApplyDropResult): es del ítem del cursor.
+// The floor item packets (CL9 milestone 5; 06 § Los ítems del piso): 0x20 (0x4d0ba0, with 0x608350, 0x607b60 and
+// 0x607fb0), 0x21 (0x4e3849), 0x22 (0x4d0cc0) and the stat fruit, 0x2C (0x4de500). The 23 is in InventoryMoves
+// (ApplyDropResult): it is the cursor item's.
 namespace Client::Crt
 {
 class CrtRandom;
@@ -45,70 +45,71 @@ struct WorldEntryResources;
 namespace Client::Items
 {
 
-// 0x20: la entrada de 0x220 bytes de `key & 0x7fff` (0 si pasa de 999) en 0x77f46c8.
+// 0x20: the 0x220-byte entry of `key & 0x7fff` (0 past 999) at 0x77f46c8.
 inline constexpr std::uint16_t FloorItemIndexMask = 0x7fff;
 inline constexpr std::int32_t FloorItemCount = 1000;
-// 0x608369: el tipo del zen.
+// 0x608369.
 inline constexpr std::int16_t ZenItem = 0x1c0f;
 
-// Lo que 0x608350 lee de afuera.
+// What 0x608350 reads from outside.
 struct FloorItemCreation
 {
     Crt::CrtRandom& random;
-    // 0x5f93c0, la altura del terreno en (x, y): la de Terrain::TerrainHeightAt con la del mapa.
+    // 0x5f93c0, the terrain height at (x, y): Terrain::TerrainHeightAt's with the map's.
     std::function<Core::Expected<double, std::string>(float x, float y)> height{};
-    // El reloj del mundo (0x5767b88) de la luz que late de algunos modelos en 0x607b60.
+    // The world clock (0x5767b88) for the pulsing light of some models in 0x607b60.
     Core::Duration clock{};
-    // 0x41ed10 con el ítem recién caído (CL10): queda el último en lastSoundId.
+    // 0x41ed10 with the just dropped item (CL10): the last one stays in lastSoundId.
     std::optional<Audio::SoundId>* sound = nullptr;
     std::function<void(Audio::SoundId, const glm::vec3&)> soundRequest{};
-    // 0x518cf0: la tabla de efectos del mapa, donde la medalla recién caída crea sus dos grietas. Sin ella, la medalla
-    // corta (falta el servicio, no es la entrada).
+    // 0x518cf0: the map's effect table, where the just dropped medal creates its two cracks. Without it, the medal
+    // stops (the service is missing, not the input).
     Effects::ModelEffects* effects = nullptr;
 };
 
-// 0x608350(entrada, ítem, posición, recién caído): el tipo (0x54b3a0) en +4, el valor, la durabilidad y las opciones,
-// el modelo (tipo + 0x212, con los que cambian por nivel), 0x607b60 con sus rand() (CharacterDrawing::
-// HangingRandomCount), la caja de ±30, la posición y la altura: con `dropped`, 180 por encima del terreno y la
-// velocidad 20 (las medallas de plata y de oro, los modelos 0x2242 y 0x2243, crean antes las grietas 0x100 y 0xfe con
-// la medalla de dueño, sin rand(), y quedan a 3 con la velocidad 50); si no, en el terreno. Termina con 0x607fb0.
+// 0x608350(entry, item, position, justDropped): the type (0x54b3a0) in +4, the value, the durability and the options,
+// the model (type + 0x212, with those that change by level), 0x607b60 with its rand()
+// (CharacterDrawing::HangingRandomCount), the ±30 box, the position and the height: with `dropped`, 180 above the
+// terrain and the speed 20 (the silver and gold medals, models 0x2242 and 0x2243, first create the cracks 0x100 and
+// 0xfe with the medal as owner, with no rand(), and stay at 3 with the speed 50); otherwise, on the terrain. It ends
+// with 0x607fb0.
 [[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(Kernel::FloorItemState& item,
                                                                 const Protocol::Items::ItemData& bytes,
                                                                 const glm::vec3& position, bool dropped,
                                                                 const FloorItemCreation& creation);
 
-// 0x4d0ba0: cada entrada en (x + 0,5, y + 0,5) · 100, en orden; el 0x54b3a0 que sigue no deja nada.
+// 0x4d0ba0: each entry at (x + 0.5, y + 0.5) · 100, in order; the 0x54b3a0 that follows leaves nothing.
 [[nodiscard]] Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::FloorItemsCreate& create,
                                                                       const Scenes::WorldEntryResources& resources);
 
-// 0x4e3849: apaga (+0x4c en 0) la entrada de cada clave, con las de 1000 o más en la 0.
+// 0x4e3849: turns off (+0x4c at 0) each key's entry, with those of 1000 or more at 0.
 void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Kernel::WorldState& world);
 
-// 0x4d0cc0: con 0xfe, el zen en el registro propio (3.848 rand() al cerrarlo sin accesos) y, con el elegido
-// (0x77f27b0) vivo, el aviso "%d %s %s" con su valor y los textos 224 y 918; con un lugar, 0x5bc740 (salvo 0xfd) y el
-// aviso "%s %s" con el nombre del elegido (0x5b1c70) y el 918. Después el sonido por el tipo de pkt[4..] (0x45 o 0x1d,
-// CL10) y, también con 0xff, el pedido (0x6c82e8) en −1.
+// 0x4d0cc0: with 0xfe, zen in the own record (3848 rand() when closing it with no accesses) and, with the picked one
+// (0x77f27b0) alive, the notice "%d %s %s" with its value and texts 224 and 918; with a slot, 0x5bc740 (except 0xfd)
+// and the notice "%s %s" with the picked one's name (0x5b1c70) and 918. Then the sound by the type in pkt[4..] (0x45
+// or 0x1d, CL10) and, also with 0xff, the request (0x6c82e8) at −1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickUpResult& result,
                                                                   const Scenes::WorldEntryResources& resources);
 
-// El 22 con 0xfe y corto (07 Q-C1240, el GCMoneySend del GameServer 0.97): de 0x4d0cc0, lo que no lee más allá de
-// pkt[7], en su orden: el zen con el registro propio abierto (0x4d0d9b), el aviso con el elegido vivo (0x4d0f5f) y el
-// pedido en −1 (0x4d10b9). El sonido (0x4d1051) no sale: su tipo cae en pkt[8..10], fuera del paquete.
+// The short 22 with 0xfe (07 Q-C1240, the GameServer 0.97's GCMoneySend): of 0x4d0cc0, what does not read past
+// pkt[7], in its order: zen with the own record open (0x4d0d9b), the notice with the picked one alive (0x4d0f5f) and
+// the request at −1 (0x4d10b9). The sound (0x4d1051) does not play: its type falls in pkt[8..10], outside the packet.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::ShortZenPickUp& result,
                                                                     const Scenes::WorldEntryResources& resources);
 
-// Un 22 corto (07 Q-C1240): de 0x4d0cc0, solo el pedido (0x6c82e8) en −1, que 0x4d10b9 escribe en todos los caminos.
-// Sin él, RequestThePickUp (0x5667d7, 0x566e90) no vuelve a pedir nada.
+// A short 22 (07 Q-C1240): of 0x4d0cc0, only the request (0x6c82e8) at −1, which 0x4d10b9 writes on every path.
+// Without it, RequestThePickUp (0x5667d7, 0x566e90) never requests again.
 void ApplyShortPickUpResult(Kernel::WorldState& world);
 
-// 0x4de500, el 2C: con 0 y un stat de 0 a 4, el stat del registro propio y +0x44 suben los puntos; con 3, el stat baja
-// y +0x68 y +0x48 suben; cada uno con su aviso (0x632e30) armado con los textos 379, el del stat y 1412 o 1903. Los
-// resultados 1, 2, 4, 5, 0x10, 0x21, 0x25 y 0x26 abren su aviso. Siempre, 0x5767954 en 0.
+// 0x4de500, the 2C: with 0 and a stat from 0 to 4, the own record's stat and +0x44 go up by the points; with 3, the
+// stat goes down and +0x68 and +0x48 go up; each with its notice (0x632e30) built from texts 379, the stat's and 1412
+// or 1903. Results 1, 2, 4, 5, 0x10, 0x21, 0x25 and 0x26 open their notice. Always, 0x5767954 at 0.
 [[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFruit& fruit,
                                                                Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                const Tables::TextTable* texts);
 
-// Un 2C corto (07 Q-C1240): de 0x4de500, solo la espera del uso (0x5767954) en 0, que escribe en todos los caminos.
-// Sin ella, el JG de 0x5c5920 y 0x5a2bea no deja usar otro ítem.
+// A short 2C (07 Q-C1240): of 0x4de500, only the use wait (0x5767954) at 0, which it writes on every path. Without
+// it, the JG of 0x5c5920 and 0x5a2bea does not let another item be used.
 void ApplyShortStatFruit(Kernel::WorldState& world);
 } // namespace Client::Items

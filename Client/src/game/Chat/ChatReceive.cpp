@@ -41,31 +41,31 @@ namespace Client::Chat
 {
 namespace
 {
-// 0x4c62ed..0x4c6326: las marcas de pkt[0xd].
+// 0x4c62ed..0x4c6326: the marks of pkt[0xd].
 constexpr char PartyMark = '~';
 constexpr char GuildMark = '@';
 constexpr char BubbleMark = '#';
-// 0x4c62f6, 0x4c6334, 0x4c6352 y 0x4c6386: 0xe DWORD y 3 bytes (59), 0xe DWORD y 2 (58), o 0xf DWORD (60).
+// 0x4c62f6, 0x4c6334, 0x4c6352 and 0x4c6386: 0xe DWORDs and 3 bytes (59), 0xe DWORDs and 2 (58), or 0xf DWORDs (60).
 constexpr std::size_t MarkedTextBytes = 59;
 constexpr std::size_t GuildNoticeTextBytes = 58;
-// Text.bmd: el error del susurro (0x76e06b4) y el formato del aviso del gremio (0x76e07e0).
+// Text.bmd: the whisper's error (0x76e06b4) and the guild notice's format (0x76e07e0).
 constexpr std::size_t WhisperFailedText = 482;
 constexpr std::size_t GuildNoticeText = 483;
-// 0x4e3550: el sonido del susurro con 0x77f3b78.
+// 0x4e3550: the whisper sound with 0x77f3b78.
 constexpr Audio::SoundId WhisperSound = Sound::WhisperSound;
-// 0x4e341d: el héroe en +0x368 con 0x80; 0x6c8404: "길드 마스터" en EUC-KR, los 12 bytes que compara REPE CMPSB.
+// 0x4e341d: the hero at +0x368 with 0x80; 0x6c8404: "길드 마스터" in EUC-KR, the 12 bytes REPE CMPSB compares.
 constexpr std::uint8_t GuildMasterStatus = 0x80;
 constexpr std::array<std::uint8_t, 12> GuildMasterName{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8,
                                                        0xb6, 0xbd, 0xba, 0xc5, 0xcd, 0x00};
-// 0x4c65b0: los tipos del 0D.
+// 0x4c65b0: the 0D's types.
 constexpr std::uint8_t CenterNotice = 0;
 constexpr std::uint8_t SystemNotice = 1;
 constexpr std::uint8_t GuildNotice = 2;
 constexpr std::uint8_t FirstSlideNotice = 10;
 constexpr std::uint8_t LastSlideNotice = 15;
-// 0x6b8a34: 0,1f, la velocidad del cartel por cada unidad de pkt[0xc].
+// 0x6b8a34: 0.1f, the banner's speed per unit of pkt[0xc].
 constexpr float SlideSpeedStep = 0.1f;
-// 0x4dd7c3..0x4dd88d: las banderas y los campos del F3 30.
+// 0x4dd7c3..0x4dd88d: the flags and the fields of the F3 30.
 constexpr std::uint8_t AutoAttackFlag = 0x01;
 constexpr std::uint8_t NoticeSoundFlag = 0x04;
 constexpr std::uint8_t SlidesOffFlag = 0x10;
@@ -73,18 +73,18 @@ constexpr std::int32_t QuickSlotBase = 0x1c00;
 constexpr std::uint8_t RowsPerStep = 3;
 constexpr std::uint8_t NibbleShift = 4;
 constexpr std::uint8_t LowNibble = 0x0f;
-// 0x6b87b8: 0,1f.
+// 0x6b87b8: 0.1f.
 constexpr float AlphaStep = 0.1f;
 using Tables::NoSkill;
 
-// Hasta el primer '\0', como lo leen strlen y strcpy.
+// Up to the first '\0', as strlen and strcpy read it.
 std::string_view CString(std::string_view text)
 {
     const std::size_t end = text.find('\0');
     return end == std::string_view::npos ? text : text.substr(0, end);
 }
 
-// El nombre de pkt[3..12] en el buffer de 11 bytes en cero.
+// The name of pkt[3..12] in the zeroed 11-byte buffer.
 std::string SpeakerName(const Protocol::Chat::SpokenText& spoken)
 {
     std::string name;
@@ -97,7 +97,7 @@ std::string SpeakerName(const Protocol::Chat::SpokenText& spoken)
     return name;
 }
 
-// `count` bytes desde pkt[0xd + skip] en el buffer de 61 en cero: lo que no llegó es '\0'.
+// `count` bytes from pkt[0xd + skip] in the zeroed 61-byte buffer: what did not arrive is '\0'.
 std::string_view CopiedText(std::string_view raw, std::size_t skip, std::size_t count)
 {
     if (skip >= raw.size())
@@ -130,7 +130,7 @@ Core::Expected<std::string_view, std::string> TextOf(const ChatReceiveContext& c
     return CString(*text);
 }
 
-// REPE CMPSB de 12 bytes desde +0x1d9: los diez del nombre, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
+// REPE CMPSB of 12 bytes from +0x1d9: the name's ten, +0x1e3 and +0x1e4, which MuRet does not have and takes as 0.
 bool IsTheGuildMaster(const Kernel::ActorState& actor)
 {
     for (std::size_t i = 0; i < actor.name.size(); ++i)
@@ -141,19 +141,19 @@ bool IsTheGuildMaster(const Kernel::ActorState& actor)
     return actor.byte1e3 == GuildMasterName[actor.name.size()];
 }
 
-// 0x4e3450..0x4e34b4: 0x6599a0(0x40000, 0) sin mirar lo que devuelve; 0x77f3b68 en 1 y 0x6c8e68 en 0; 0x553570(0);
-// 0x6c8e78 en 8 (el tope de la entrada sin EDIT, que MuRet no guarda) y 0x6c8e6c en 0; el héroe con +0x1f2 en −1 pasa
-// al gremio nuevo (0x7cf).
+// 0x4e3450..0x4e34b4: 0x6599a0(0x40000, 0) without looking at what it returns; 0x77f3b68 at 1 and 0x6c8e68 at 0;
+// 0x553570(0); 0x6c8e78 at 8 (the limit of the input without an EDIT, which MuRet does not keep) and 0x6c8e6c at 0;
+// the hero with +0x1f2 at −1 goes to the new guild (0x7cf).
 Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     Hud::GamePanels panels(world, context.random);
-    // 0x4e345c → 0x6599a0: abrir el gremio pasa por los cierres compartidos de NPC, castillo y batalla.
+    // 0x4e345c → 0x6599a0: opening the guild goes through the shared closes of NPC, castle and battle.
     CastleSiege::LendTheCastlePanelServices(
         panels, world, context.random, context.guildSend, context.worldEntry,
         {.measure = context.measure, .texts = context.texts, .screen = context.screen});
-    // Conserva el cierre local del gremio también sin socket (LendTheSession sólo presta cables no vacíos).
+    // It keeps the guild's local close also without a socket (LendTheSession only lends non-empty wires).
     panels.LendTheGuild(world, context.guildSend);
     if (auto opened = panels.Registry().Open(Ui::SecondGuildPanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
@@ -227,7 +227,7 @@ Core::Expected<void, std::string> ApplyWhisper(const Protocol::Chat::Whisper& wh
         return {};
     const std::string name = SpeakerName(whisper);
     const std::string_view text = CopiedText(whisper.text, 0, Protocol::Chat::SpokenTextSize);
-    // 0x554d20(10, nombre): el nivel (+0xe) se lee con el registro abierto, y la lista se mira después de cerrarlo.
+    // 0x554d20(10, name): the level (+0xe) is read with the record open, and the list is looked at after closing it.
     std::uint16_t level = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -266,10 +266,10 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
     }
     if (notice.type == SystemNotice)
     {
-        // 0x4c65d8: fuera de la selección, 0x555190 con el "" de 0x5767980.
+        // 0x4c65d8: outside the selection, 0x555190 with the "" of 0x5767980.
         if (context.scene != Kernel::SceneId::CharacterSelect)
             return AddMessage(context, {}, text, Ui::SystemMessage);
-        // 0x4c65f9..0x4c662a: la franja de la barra (+0x510), una vez; después, con el "" de 0x5767984.
+        // 0x4c65f9..0x4c662a: the bar's strip (+0x510), once; then, with the "" of 0x5767984.
         if (runtime.chat.selectionNotice)
             return AddMessage(context, {}, text, Ui::SystemMessage);
         runtime.chat.selectionNotice = std::string(text);
@@ -283,19 +283,19 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
         auto measure = MeasureOf(context, "0x554610");
         if (!measure.HasValue())
             return Core::Unexpected(measure.Error());
-        // 0x4c6645: sprintf a un buffer de 100 bytes, sin tope (Q-C514).
+        // 0x4c6645: sprintf to a 100-byte buffer, without a limit (Q-C514).
         const std::array<std::string_view, 1> arguments{text};
         const std::string line = Ui::PlaceArguments(format.Value(), arguments);
         Ui::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, line, 1);
-        // 0x4c665f: 0x651680 con el texto del paquete, a la lista del aviso de la ventana del gremio.
+        // 0x4c665f: 0x651680 with the packet's text, to the list of the guild window's notice.
         return Guild::AddTheGuildNotice(runtime.guild.window, *measure.Value(), runtime.hud.dcFont, context.screen,
                                         text);
     }
     if (notice.type < FirstSlideNotice || notice.type > LastSlideNotice || text.empty())
         return {};
-    // 0x4c667d..0x4c66b3: 0x46b720(pkt[4], pkt[6..7], texto, tipo − 10, pkt[0xc] · 0,1f, pkt[8..0xb]). La x87
-    // multiplica el byte por el float y guarda en float: el producto es exacto y se redondea una vez. 0x46b720 y
-    // 0x46abf0 solo encolan en la escena 5.
+    // 0x4c667d..0x4c66b3: 0x46b720(pkt[4], pkt[6..7], text, type − 10, pkt[0xc] · 0.1f, pkt[8..0xb]). The x87
+    // multiplies the byte by the float and stores as float: the product is exact and is rounded once. 0x46b720 and
+    // 0x46abf0 only queue in scene 5.
     if (context.scene != Kernel::SceneId::Game)
         return {};
     const auto speed = static_cast<float>(static_cast<double>(notice.speed) * static_cast<double>(SlideSpeedStep));
@@ -308,7 +308,7 @@ Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::Option
                                                   const ChatReceiveContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    // 0x4dd632..0x4dd645: +0x26c + [0x6d5edc] · 0x100. Con −1 serían +0x16c..+0x26b, que MuRet no tiene.
+    // 0x4dd632..0x4dd645: +0x26c + [0x6d5edc] · 0x100. With −1 it would be +0x16c..+0x26b, which MuRet does not have.
     if (!context.chosenSlot || *context.chosenSlot >= Kernel::OwnSkillKeyPlaces)
         return Core::Unexpected(std::string("0x4dd645: sin elegido (0x6d5edc), el F3 30 escribe fuera de las teclas "
                                             "de las skills (+0x16c del registro propio)"));
@@ -337,17 +337,17 @@ Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::Option
     runtime.chat.slidesOn = (data.flags & SlidesOffFlag) != SlidesOffFlag;
     for (std::size_t slot = 0; slot < data.quickSlots.size(); ++slot)
         runtime.hud.quickSlots.types[slot] = QuickSlotBase + data.quickSlots[slot];
-    // 0x4dd82c..0x4dd839: IMUL de un byte: (pkt[0x12] >> 4) · 3, que no pasa de 45.
+    // 0x4dd82c..0x4dd839: a byte IMUL: (pkt[0x12] >> 4) · 3, which does not go past 45.
     const auto rows = static_cast<std::uint8_t>((data.chatWindow >> NibbleShift) * RowsPerStep);
     if (rows == 0)
         runtime.ui.chatModes.placement = 0;
     else
     {
         runtime.ui.chatModes.placement = 1;
-        // vtable + 0x3c del registro: 0x472020, +0x104.
+        // The log's vtable + 0x3c: 0x472020, +0x104.
         runtime.chat.log.rows = rows;
     }
-    // 0x4dd87e: FILD, FMUL por el float y FSTP: el producto es exacto y se redondea una vez.
+    // 0x4dd87e: FILD, FMUL by the float and FSTP: the product is exact and is rounded once.
     runtime.chat.log.alpha =
         static_cast<float>(static_cast<double>(data.chatWindow & LowNibble) * static_cast<double>(AlphaStep));
     return {};

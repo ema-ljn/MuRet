@@ -37,9 +37,9 @@
 #include <utility>
 #include <vector>
 
-// La ayuda del ítem (CL8; 06 § HUD y ventanas, "La ayuda del ítem"): el modo 3 de 0x5b0550, con la tabla por nivel
-// de 0x5afc00, la caja de arriba (0x5af090 con marco) y las columnas de 0x5afb00 y 0x5af9b0. El texto mide como el
-// rasterizador falso: 6 columnas por letra y 13 filas. Los ítems, los textos y el personaje son inventados.
+// The item help (CL8; 06 § HUD y ventanas, "La ayuda del ítem"): mode 3 of 0x5b0550, with the per-level table of
+// 0x5afc00, the top box (0x5af090, framed) and the columns of 0x5afb00 and 0x5af9b0. The text measures like the fake
+// rasterizer: 6 columns per letter and 13 rows. The items, the texts and the character are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -60,11 +60,11 @@ constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color Red{1.0f, 0.2f, 0.1f, 1.0f};
 constexpr Color Green{0.1f, 1.0f, 0.5f, 1.0f};
 constexpr Color LightBlue{0.5f, 0.7f, 1.0f, 1.0f};
-// Una tabla nueva: 14 cierres del registro propio, de 3.848 rand() cada uno.
+// A new table: 14 closes of the own record, of 3848 rand() each.
 constexpr std::uint32_t FillRandoms = 14 * Client::Models::OwnRecordCloseRandoms;
 
-// Una espada (la franja 1), un escudo y una armadura de conjunto (la 3 y la 4), un bastón y un cetro, un pergamino
-// (la 5) y un ítem con requisitos que envuelven.
+// A sword (range 1), a shield and a set armor (3 and 4), a staff and a scepter, a scroll (5) and an item with
+// requirements that wrap.
 constexpr std::uint16_t Sword = 0x0010;
 constexpr std::uint16_t Staff = 0x0a05;
 constexpr std::uint16_t Scepter = 0x0408;
@@ -85,7 +85,7 @@ std::map<std::size_t, std::string> HelpTexts()
             {1239, "Cetro"}, {1900, "Lid"},     {1931, "Req"}};
 }
 
-// Item.bmd en claro.
+// Item.bmd in clear.
 class ItemRecords
 {
 public:
@@ -129,7 +129,7 @@ private:
 Client::Tables::ItemTable Items()
 {
     return ItemRecords()
-        // Daño 10 a 15, nivel 20, fuerza 40, agilidad 30 y energía 10; la usa la clase 0.
+        // Damage 10 to 15, level 20, strength 40, agility 30 and energy 10; class 0 uses it.
         .Named(Sword, "Hoja Prueba")
         .Word(Sword, 0x20, 20)
         .Byte(Sword, 0x26, 10)
@@ -149,7 +149,7 @@ Client::Tables::ItemTable Items()
         .Byte(Armor, 0x29, 5)
         .Named(SetArmor, "Coraza Prueba")
         .Byte(SetArmor, 0x29, 6)
-        // Energía 15 y nivel 30, desde el nivel 10.
+        // Energy 15 and level 30, from level 10.
         .Named(Scroll, "Pergamino")
         .Word(Scroll, 0x20, 10)
         .Word(Scroll, 0x34, 15)
@@ -160,7 +160,7 @@ Client::Tables::ItemTable Items()
         .Table();
 }
 
-// La armadura de conjunto: el 3 en la pieza 1 y el 5 en la 2, con las mezclas 1 (byte 2) y 2 (byte 3).
+// The set armor: 3 in piece 1 and 5 in piece 2, with mixes 1 (byte 2) and 2 (byte 3).
 Client::Tables::ItemSetTables Sets()
 {
     std::vector<std::byte> types(Client::Tables::ItemSetTypeTableSize);
@@ -182,7 +182,7 @@ Client::Tables::ItemSetTables Sets()
     return Client::Tests::ItemSetTablesFrom(std::move(types), std::move(options));
 }
 
-// El color de la marca de cada texto, en orden.
+// The color of each text's mark, in order.
 std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
 {
     std::vector<Color> colors;
@@ -197,7 +197,7 @@ std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
     return colors;
 }
 
-// El fondo de la caja con marco: el quinto quad sin textura (los cuatro bordes van antes).
+// The framed box's background: the fifth untextured quad (the four edges go first).
 std::pair<float, float> BackgroundXOf(const SpriteBatch& sprites)
 {
     std::vector<float> xs;
@@ -274,7 +274,7 @@ protected:
         return Hud().itemHelp;
     }
 
-    // El primer texto `text` dibujado, o el tamaño de la lista.
+    // The first drawn text `text`, or the list's size.
     [[nodiscard]] std::size_t Find(std::string_view text) const
     {
         for (std::size_t i = 0; i < m_text.texts.size(); ++i)
@@ -298,8 +298,8 @@ protected:
     bool m_withSets = true;
 };
 
-// 0x5afc00: cada nivel suma 3 hasta el 9 y 4, 9, 15 y 22 más del 10 al 13; los requisitos, (20 + 3 · nivel) ·
-// requisito · 3 (4 la energía) / 100 + 20; la columna 1, si el registro propio cumple (fuerza 50 + 5).
+// 0x5afc00: each level adds 3 up to 9 and 4, 9, 15 and 22 more from 10 to 13; the requirements, (20 + 3 · level) ·
+// requirement · 3 (4 for energy) / 100 + 20; column 1, whether the own record meets them (strength 50 + 5).
 TEST_P(GameItemHelpTest, TheTableHasEachLevel)
 {
     ASSERT_TRUE(Help(Sword).HasValue());
@@ -325,19 +325,19 @@ TEST_P(GameItemHelpTest, TheTableHasEachLevel)
     EXPECT_EQ(last[Client::Tooltips::ItemHelpStrength], 90);
     EXPECT_EQ(last[Client::Tooltips::ItemHelpAgility], 73);
     EXPECT_EQ(last[Client::Tooltips::ItemHelpEnergy], 43);
-    // La fuerza pide 54 en el nivel 3 y 58 en el 4.
+    // Strength asks for 54 at level 3 and 58 at 4.
     EXPECT_EQ(levels.rows[3][Client::Tooltips::ItemHelpUsable], 1);
     EXPECT_EQ(levels.rows[4][Client::Tooltips::ItemHelpUsable], 0);
     EXPECT_EQ(last[Client::Tooltips::ItemHelpUsable], 0);
-    // Las columnas que nadie escribe.
+    // The columns nobody writes.
     EXPECT_EQ(first[11], 0);
     EXPECT_EQ(first[12], 0);
     EXPECT_EQ(first[16], 0);
 }
 
-// 0x5afce1..0x5afd8d: el poder a la mitad más 2 · nivel (salvo los cetros, en la columna 5), la defensa del escudo
-// más el nivel y la de los demás como el daño; 0x5afdea: en 32 bits con signo, un requisito que envuelve queda
-// negativo y no pide nada.
+// 0x5afce1..0x5afd8d: the power halved plus 2 · level (except the scepters, in column 5), the shield's defense plus the
+// level and the others' like the damage; 0x5afdea: in signed 32 bits, a requirement that wraps stays negative and asks
+// for nothing.
 TEST_P(GameItemHelpTest, TheMagicTheDefenseAndTheWrappedRequirements)
 {
     ASSERT_TRUE(Help(Staff).HasValue());
@@ -352,14 +352,14 @@ TEST_P(GameItemHelpTest, TheMagicTheDefenseAndTheWrappedRequirements)
     EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpDefenseRate], 57);
     ASSERT_TRUE(Help(Armor).HasValue());
     EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpDefense], 54);
-    // 65.535 · 65.535 · 3 envuelve a −393.213: / 100 + 20.
+    // 65535 · 65535 · 3 wraps to −393213: / 100 + 20.
     ASSERT_TRUE(Help(Heavy).HasValue());
     EXPECT_EQ(Levels().rows[0][Client::Tooltips::ItemHelpStrength], -3912);
     EXPECT_EQ(Levels().rows[0][Client::Tooltips::ItemHelpUsable], 1);
 }
 
-// 0x5afc09 y 0x5aff9b..0x5b04c3: la tabla se llena una vez por ítem, con 14 cierres del registro propio; con el
-// mismo ítem no saca nada aunque cambien los stats (Q-C750), y con el registro ya abierto, tampoco.
+// 0x5afc09 and 0x5aff9b..0x5b04c3: the table fills once per item, with 14 closes of the own record; with the same item
+// it draws nothing even if the stats change (Q-C750), and with the record already open, neither.
 TEST_P(GameItemHelpTest, TheTableFillsOncePerItem)
 {
     CrtRandom expected = m_random;
@@ -383,14 +383,14 @@ TEST_P(GameItemHelpTest, TheTableFillsOncePerItem)
     EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpUsable], 1);
 }
 
-// 0x5b09b0..0x5b0dea: "\n", el 160 en azul y negrita, el nombre en negrita, "\n", " ", "\n", 46 espacios, 13 " ",
-// las clases y "\n"; la caja de 2 · 104 + 4 (el ancho de 6,1 columnas de 17) con marco, arriba a la izquierda.
+// 0x5b09b0..0x5b0dea: "\n", 160 in blue and bold, the name in bold, "\n", " ", "\n", 46 spaces, 13 " ", the classes
+// and "\n"; the box of 2 · 104 + 4 (the width of 6.1 columns of 17), framed, top left.
 TEST_P(GameItemHelpTest, TheBoxHasTheTitleTheNameAndTheBlankRows)
 {
     ASSERT_TRUE(Help(Sword).HasValue());
     EXPECT_EQ(Hud().durabilityWarning, 1);
     const Client::Tooltips::TooltipLines& lines = Hud().tooltip;
-    // Los renglones de abajo de las columnas quedan como los dejó la caja.
+    // The lines below the columns stay as the box left them.
     for (std::size_t line = 14; line <= 19; ++line)
         EXPECT_EQ(lines.text[line], " ") << line;
     EXPECT_EQ(lines.text[20], "\n");
@@ -424,9 +424,9 @@ TEST_P(GameItemHelpTest, TheBoxHasTheTitleTheNameAndTheBlankRows)
     EXPECT_EQ(m_sprites.Blend(), BlendMode::Opaque);
 }
 
-// 0x5b0dfb..0x5b10b6 en 640 × 480: desde x 24 (0x870 / 90), el nivel, el daño (el mínimo, el título, "~" y el
-// máximo), la fuerza, la agilidad y la energía; los títulos en y 38 y las filas en y 52, cada caja centrada en su x y
-// el texto contra su borde. Las filas que el registro propio no cumple, en rojo.
+// 0x5b0dfb..0x5b10b6 at 640 × 480: from x 24 (0x870 / 90), the level, the damage (the minimum, the title, "~" and the
+// maximum), the strength, the agility and the energy; the titles at y 38 and the rows at y 52, each box centered on
+// its x and the text against its edge. The rows the own record does not meet, in red.
 TEST_P(GameItemHelpTest, TheColumnsGoLeftToRight)
 {
     ASSERT_TRUE(Help(Sword).HasValue());
@@ -439,7 +439,7 @@ TEST_P(GameItemHelpTest, TheColumnsGoLeftToRight)
         std::int32_t firstColumn = 0;
         std::int32_t columns = 0;
     };
-    // Cada caja: el más ancho + 4 desde x − la mitad; el texto en left + 1, en las columnas de la caja − 2.
+    // Each box: the widest + 4 from x − half; the text at left + 1, in the box's columns − 2.
     const std::vector<std::pair<std::size_t, Expected>> expected{
         {4, {"Niv", 14, 38, -2, 20}},    {5, {"+0", 14, 52, -8, 20}},    {6, {"+1", 14, 66, -8, 20}},
         {18, {"+13", 14, 237, -2, 20}},  {19, {" 10", 50, 52, -2, 20}},  {32, {" 59", 50, 237, -2, 20}},
@@ -466,8 +466,8 @@ TEST_P(GameItemHelpTest, TheColumnsGoLeftToRight)
     EXPECT_EQ(Hud().dcFont, FontKind::Normal);
 }
 
-// En 800 × 600: el mismo divisor (90) y la misma x, con los títulos en y 33 y las filas en y 47; la caja de arriba de
-// 2 · 104 / 1,25 + 4 y cada columna corre lo que mide su muestra / 1,25.
+// At 800 × 600: the same divisor (90) and the same x, with the titles at y 33 and the rows at y 47; the top box of 2 ·
+// 104 / 1.25 + 4 and each column moves by what its sample measures / 1.25.
 TEST_P(GameItemHelpTest, AtAnotherResolution)
 {
     m_sprites.Begin(Screen800);
@@ -484,17 +484,17 @@ TEST_P(GameItemHelpTest, AtAnotherResolution)
     EXPECT_EQ(level.y, 33);
     EXPECT_EQ(level.columns, 20);
     EXPECT_EQ(m_text.texts[5].y, 47);
-    // "000000" mide 36 / 1,25 = 28,8: el mínimo va en 24 + 28, con su caja de 18,4 desde 52 − 9,2.
+    // "000000" measures 36 / 1.25 = 28.8: the minimum goes at 24 + 28, with its box of 18.4 from 52 − 9.2.
     const std::size_t damage = Find(" 10");
     ASSERT_LT(damage, m_text.texts.size());
     EXPECT_EQ(m_text.texts[damage].x, 43);
-    // Y la energía en 52 + 14 + 14 + 24 + 24 + 24.
+    // And the energy at 52 + 14 + 14 + 24 + 24 + 24.
     const std::size_t energy = Find("Ene");
     ASSERT_LT(energy, m_text.texts.size());
     EXPECT_EQ(m_text.texts[energy].x, 143);
 }
 
-// 0x5b0bf2: con más de 800 de ancho, 51 espacios; en 1.024, el divisor 103 y la x 2.160 / 103.
+// 0x5b0bf2: with a width above 800, 51 spaces; at 1024, divisor 103 and x 2160 / 103.
 TEST_P(GameItemHelpTest, AWiderScreenHasMoreSpaces)
 {
     m_sprites.Begin(Client::Core::PixelSize{1024, 768});
@@ -503,8 +503,8 @@ TEST_P(GameItemHelpTest, AWiderScreenHasMoreSpaces)
     EXPECT_EQ(m_text.texts[4].text, "Niv");
 }
 
-// La franja 5 (0x1e00..0x1fff): sin renglones en blanco, desde x 66 (0x1734 / 90); el nivel y la energía con una
-// sola fila y el nivel pedido con las 14, que pasan la caja de arriba (Q-C752). Sin daño y sin agilidad.
+// Range 5 (0x1e00..0x1fff): no blank lines, from x 66 (0x1734 / 90); the level and the energy with a single row and
+// the required level with the 14, which pass the top box (Q-C752). No damage and no agility.
 TEST_P(GameItemHelpTest, AScrollHasOneRowInItsLevelColumns)
 {
     ASSERT_TRUE(Help(Scroll).HasValue());
@@ -522,15 +522,15 @@ TEST_P(GameItemHelpTest, AScrollHasOneRowInItsLevelColumns)
     EXPECT_EQ(m_text.texts[20].text, "Ene");
     EXPECT_EQ(m_text.texts[20].x, 144 - 11 + 1);
     EXPECT_EQ(m_text.texts[21].text, " 26");
-    // El nivel pedido (30) pasa el del personaje (10): rojo.
+    // The required level (30) passes the character's (10): red.
     const std::vector<Color> colors = TextColorsOf(m_sprites);
     EXPECT_EQ(colors[21], Red);
-    // La caja de arriba: 2 · 90 + 4.
+    // The top box: 2 · 90 + 4.
     EXPECT_FLOAT_EQ(BackgroundXOf(m_sprites).second, 184.0f);
 }
 
-// 0x5b0c97..0x5b0d9f: un renglón verde por pieza con su conjunto: la 1 con el byte 3 de ItemSetType.bmd y la 2 con
-// el 2; desde x 20 (0x708 / 90), con la defensa y la agilidad (que se dibuja siempre fuera de la franja 5).
+// 0x5b0c97..0x5b0d9f: one green line per piece with its set: 1 with byte 3 of ItemSetType.bmd and 2 with byte 2; from
+// x 20 (0x708 / 90), with the defense and the agility (which is always drawn outside range 5).
 TEST_P(GameItemHelpTest, ASetItemListsItsPieces)
 {
     ASSERT_TRUE(Help(SetArmor).HasValue());
@@ -554,8 +554,8 @@ TEST_P(GameItemHelpTest, ASetItemListsItsPieces)
     EXPECT_EQ(m_text.texts[agility + 1].text, "  0");
 }
 
-// Q-C751: el título de la primera columna usa la negrita que haya en el renglón 0; las filas de 0x5af9b0 la ponen
-// en 0, y desde el segundo dibujo va sin negrita.
+// Q-C751: the first column's title uses whatever bold is on line 0; the rows of 0x5af9b0 set it to 0, and from the
+// second drawing on it goes without bold.
 TEST_P(GameItemHelpTest, TheFirstTitleKeepsTheBoldOfLineZero)
 {
     Hud().tooltip.bold[0] = 1;
@@ -568,8 +568,8 @@ TEST_P(GameItemHelpTest, TheFirstTitleKeepsTheBoldOfLineZero)
     EXPECT_EQ(m_text.texts[4].style.font, FontKind::Normal);
 }
 
-// Lo que corta: sin Item.bmd (0x5b098f), sin el texto 160 (0x5b09f0) o con uno de 100 bytes (0x5b0a03, Q-C613), sin
-// ItemSetType.bmd (0x40cf13).
+// What cuts: without Item.bmd (0x5b098f), without text 160 (0x5b09f0) or with one of 100 bytes (0x5b0a03, Q-C613),
+// without ItemSetType.bmd (0x40cf13).
 TEST_P(GameItemHelpTest, WhatItCannotReadCuts)
 {
     const auto cutsAt = [this](std::string_view where)
@@ -593,8 +593,8 @@ TEST_P(GameItemHelpTest, WhatItCannotReadCuts)
     cutsAt("0x40cf13");
 }
 
-// 0x5afb00 con un texto vacío en Text.bmd: el renglón 0 queda vacío y su caja (0x5af090 hasta el primero vacío) no
-// dibuja nada; la columna sigue igual.
+// 0x5afb00 with an empty text in Text.bmd: line 0 stays empty and its box (0x5af090 up to the first empty one) draws
+// nothing; the column goes on the same.
 TEST_P(GameItemHelpTest, AnEmptyTitleDrawsNothing)
 {
     std::map<std::size_t, std::string> texts = HelpTexts();

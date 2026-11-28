@@ -41,9 +41,9 @@ using Ui::OldDraw::ToFloat;
 using Ui::OldDraw::Truncate;
 using Ui::OldDraw::WhiteWithTexture;
 
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300): las columnas de la lista de amigos (0x7707e58 y
-// 0x7707f84) y la de la lista de ventanas (0x7708434), el botón del estado (0x7708ec0) y el lugar de un amigo: fuera de
-// línea con 0xff, 0xfe y 0xfc (0x7709370), 0xfd (0x77095c8) o el servidor + 1 (0x77096f4, un formato).
+// The Text.bmd texts (the address − 0x76bd1dc, divided by 300): the friend list's columns (0x7707e58 and 0x7707f84)
+// and the window list's (0x7708434), the state button (0x7708ec0) and a friend's place: offline with 0xff, 0xfe and
+// 0xfc (0x7709370), 0xfd (0x77095c8) or the server + 1 (0x77096f4, a format).
 constexpr std::size_t NameColumnText = 1021;
 constexpr std::size_t PlaceColumnText = 1022;
 constexpr std::size_t WindowColumnText = 1026;
@@ -54,63 +54,63 @@ constexpr std::size_t ServerPlaceText = 1042;
 constexpr std::uint8_t FdState = 0xfd;
 constexpr std::uint8_t FeState = 0xfe;
 constexpr std::uint8_t FfState = 0xff;
-// Los colores de 0x6c8e5c: el blanco del encabezado a la vista o bajo el mouse y el de los demás.
+// 0x6c8e5c's colors: the white of the header on view or under the mouse and that of the others.
 constexpr std::uint32_t LitColor = 0xffffffffu;
 constexpr std::uint32_t DimColor = 0xffc8dce6u;
-// Los índices de 0x491960.
+// 0x491960's indices.
 constexpr std::int32_t BlackIndex = 7;
 constexpr std::int32_t LineIndex = 2;
 constexpr std::int32_t ColumnBarIndex = 5;
 constexpr std::int32_t ColumnTickIndex = 14;
-// 0x4a2620: la franja de 20 de alto (0x41a00000) arriba del área de adentro, los tres encabezados de 0x35 × 0x13 en
-// y + 2 y la raya del 2 desde x + 0x9f, 0x12 debajo de ellos.
+// 0x4a2620: the 20-high band (0x41a00000) above the inner area, the three 0x35 × 0x13 headers at y + 2 and the
+// palette 2 line from x + 0x9f, 0x12 below them.
 constexpr float HeaderBarHeight = 20.0f;
 constexpr std::int32_t HeaderY = 2;
 constexpr std::int32_t HeaderWidth = 0x35;
 constexpr std::int32_t HeaderHeight = 0x13;
 constexpr std::int32_t HeaderLineX = 0x9f;
 constexpr std::int32_t HeaderLineBelow = 0x12;
-// Los títulos, centrados con ((52 − cx / rx) + 0,5) · 0,5 (0x6ba060) y ((24 − cy / ry) + 0,5) · 0,5 (0x6b8800) en
-// x + 0, x + 0x36 y x + 0x6b: un punto a la derecha de su encabezado, salvo el primero.
+// The titles, centered with ((52 − cx / rx) + 0.5) · 0.5 (0x6ba060) and ((24 − cy / ry) + 0.5) · 0.5 (0x6b8800) at
+// x + 0, x + 0x36 and x + 0x6b: one point right of their header, except the first.
 constexpr std::array<std::int32_t, FriendsTabCount> HeaderTextX{0, 0x36, 0x6b};
 constexpr double HeaderTextWidth = 52.0;
 constexpr double HeaderTextHeight = 24.0;
 constexpr double Half = Math::HalfAsDouble;
-// El texto del botón del estado, 2 antes del borde derecho (0x6b8818), y la casilla 14 (0x6b881c) y 1 (0x6b87d4) más a
-// la izquierda y 1 más arriba.
+// The state button's text, 2 before the right edge (0x6b8818), and the checkbox 14 (0x6b881c) and 1 (0x6b87d4)
+// further left and 1 higher.
 constexpr double StateTextInset = 2.0;
 constexpr double CheckboxGap = 14.0;
 constexpr double One = 1.0;
-// 0x49cc20 y 0x49e7f0: el negro debajo de la lista desde 0x12 bajo su alto (con 18 menos, 0x6b886c); la franja de las
-// columnas de 16 (0x41800000) con su raya debajo; la raya sobre los botones, 0x11 bajo el alto de la lista.
+// 0x49cc20 and 0x49e7f0: the black under the list from 0x12 below its height (with 18 less, 0x6b886c); the columns'
+// band of 16 (0x41800000) with its line below; the line over the buttons, 0x11 below the list's height.
 constexpr std::int32_t BelowTheList = 0x12;
 constexpr double BelowTheListCut = 18.0;
 constexpr float ColumnBarHeight = 16.0f;
 constexpr std::int32_t ColumnLineY = 0x10;
 constexpr std::int32_t ListLineBelow = 0x11;
-// 0x49cc20: la raya entre las columnas desde y + 0x11 con 22 y 17 menos de alto (0x6b8820 y 0x6b8868), y su marca en
-// la franja, de 10 (0x41200000) desde y + 3.
+// 0x49cc20: the line between the columns from y + 0x11 with 22 and 17 less height (0x6b8820 and 0x6b8868), and its
+// mark on the band, of 10 (0x41200000) from y + 3.
 constexpr std::int32_t SeparatorY = 0x11;
 constexpr double SeparatorCut = 22.0;
 constexpr double SeparatorCutAgain = 17.0;
 constexpr std::int32_t TickY = 3;
 constexpr float TickHeight = 10.0f;
-// Los títulos de las columnas en (x + 4, y + 3) y (x + 8, y + 3); el mouse las toma de 0x13 de alto.
+// The column titles at (x + 4, y + 3) and (x + 8, y + 3); the mouse takes them as 0x13 high.
 constexpr std::int32_t ColumnTextX = 4;
 constexpr std::int32_t WindowColumnTextX = 8;
 constexpr std::int32_t ColumnTextY = 3;
 constexpr std::int32_t ColumnHeight = 0x13;
-// 0x461cd0 y 0x462a60: el nombre en x + 3 y el lugar 4 después de la columna; el título de una ventana en x + 8.
+// 0x461cd0 and 0x462a60: the name at x + 3 and the place 4 after the column; a window's title at x + 8.
 constexpr std::int32_t FriendNameX = 3;
 constexpr std::int32_t PlaceGap = 4;
 constexpr std::int32_t WindowTitleX = 8;
-// 0x4a0a30 (CL9 hito 10): los títulos de las columnas de la lista de las cartas (0x770868c, 0x77087b8 y 0x77088e4).
+// 0x4a0a30 (CL9 milestone 10): the letter list's column titles (0x770868c, 0x77087b8 and 0x77088e4).
 constexpr std::size_t SenderColumnText = 1028;
 constexpr std::size_t DateColumnText = 1029;
 constexpr std::size_t SubjectColumnText = 1030;
-// 0x4a0a30 y 0x4641f0: la casilla en x + 1 (la de todas en y + 3, la de una carta 1 más arriba que su renglón) y
-// win_mail.tga (0x64b) en x + 0xb, de 13 × 9 desde arriba (0, 0, 0,8125 y 0,28125); la de una carta leída (+0x134 en
-// 1), de 13 × 10 desde 0,28125 con 0,3125 de alto, 2 más arriba que su renglón.
+// 0x4a0a30 and 0x4641f0: the checkbox at x + 1 (the all one at y + 3, a letter's 1 above its row) and win_mail.tga
+// (0x64b) at x + 0xb, 13 × 9 from the top (0, 0, 0.8125 and 0.28125); a read letter's (+0x134 at 1), 13 × 10 from
+// 0.28125 with 0.3125 of height, 2 above its row.
 constexpr std::uint16_t MailSlot = 0x64b;
 constexpr std::int32_t LetterCheckboxX = 1;
 constexpr std::int32_t MailX = 0xb;
@@ -123,12 +123,12 @@ constexpr float OpenedMailHeight = 10.0f;
 constexpr float OpenedMailV = 0.28125f;
 constexpr float OpenedMailDv = 0.3125f;
 constexpr std::int32_t OpenedMailRise = 2;
-// 0x4641f0: el nombre y el asunto 4 después de su columna, en una caja de 4 menos (0x6b8a44); la fecha desde +0x115,
-// sin sus dos primeros caracteres.
+// 0x4641f0: the name and the subject 4 after their column, in a box 4 smaller (0x6b8a44); the date from +0x115,
+// without its first two characters.
 constexpr std::int32_t LetterTextGap = 4;
 constexpr double LetterBoxCut = 4.0;
 constexpr std::size_t DateSkip = 2;
-// 0x4670ba..0x4670d0: un texto vacío mide el "0" de 0x6c7ae4.
+// 0x4670ba..0x4670d0: an empty text measures 0x6c7ae4's "0".
 constexpr std::string_view EmptyTextMeasure = "0";
 
 std::string TextAt(const Ui::OldWindowDrawView& view, std::size_t index)
@@ -138,7 +138,7 @@ std::string TextAt(const Ui::OldWindowDrawView& view, std::size_t index)
 
 using Math::F32;
 
-// 0x461e31..0x461ebd: sprintf del texto del lugar en el buffer del renglón.
+// 0x461e31..0x461ebd: sprintf of the place text into the row's buffer.
 std::string PlaceOf(const Ui::OldWindowDrawView& view, std::uint8_t state)
 {
     if (state == FfState || state == FeState || state == AllOfflineState)
@@ -148,7 +148,7 @@ std::string PlaceOf(const Ui::OldWindowDrawView& view, std::uint8_t state)
     return Crt::Sprintf(TextAt(view, ServerPlaceText), static_cast<std::int32_t>(state) + 1);
 }
 
-// 0x462a60, la vtable + 0x80 de la lista de ventanas: el renglón y el título (sprintf "%s"). Da 1.
+// 0x462a60, the window list's vtable + 0x80: the row and the title (sprintf "%s"). Returns 1.
 std::int32_t DrawTheWindowRow(const Ui::OldWindowDrawContext& context, const Ui::OldWindow& tab, std::int32_t row,
                               std::size_t at, const Ui::OldWindowDrawView& view)
 {
@@ -161,8 +161,8 @@ std::int32_t DrawTheWindowRow(const Ui::OldWindowDrawContext& context, const Ui:
     return 1;
 }
 
-// El principio de 0x49cc20 y 0x49e7f0: con la mezcla normal, el negro debajo de la lista, hasta el borde de abajo;
-// después, el blanco con textura.
+// The start of 0x49cc20 and 0x49e7f0: with the normal blend, the black under the list, down to the bottom edge; then,
+// the white with texture.
 void DrawTheTabBottom(Render::SpriteBatch& sprites, const Ui::OldWindow& tab)
 {
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -175,7 +175,7 @@ void DrawTheTabBottom(Render::SpriteBatch& sprites, const Ui::OldWindow& tab)
     WhiteWithTexture(sprites);
 }
 
-// La lista de la pestaña (su vtable + 0x14) con la barra (+0x7c) y sus renglones (+0x80), y sus botones (0x45b2e0).
+// The tab's list (its vtable + 0x14) with the bar (+0x7c) and its rows (+0x80), and its buttons (0x45b2e0).
 template <typename RowDraw>
 void DrawTheTabList(const Ui::OldWindowDrawContext& context, Ui::OldWindow& tab, std::size_t size,
                     const Ui::OldWindowDrawView& view, const RowDraw& rowDraw)
@@ -191,8 +191,8 @@ void DrawTheTabList(const Ui::OldWindowDrawContext& context, Ui::OldWindow& tab,
         DrawTheButton(context, button, view);
 }
 
-// Con la mezcla normal: la raya del 2 en y + 16, la franja de las columnas (el 5, de 16) y la raya sobre los botones.
-// La pestaña de amigos pone la primera con ClientY(0x10); la de ventanas, con ClientY(0) + 16 en float: lo mismo.
+// With the normal blend: the palette 2 line at y + 16, the columns' band (the 5, of 16) and the line over the buttons.
+// The friends tab places the first with ClientY(0x10); the windows tab, with ClientY(0) + 16 in float: the same.
 void DrawTheColumnBar(Render::SpriteBatch& sprites, const Ui::OldWindow& tab)
 {
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -206,8 +206,8 @@ void DrawTheColumnBar(Render::SpriteBatch& sprites, const Ui::OldWindow& tab)
     sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(tab, tab.tab.list.base.height + ListLineBelow)), width, 1.0f);
 }
 
-// 0x49cf3c..0x49d099: el título de una columna, en blanco con el mouse sobre ella o con el orden de la columna (+0 del
-// modelo, 0x5763518), y si no, con el color que haya (el de los botones de la pestaña).
+// 0x49cf3c..0x49d099: a column's title, in white with the mouse over it or with the column's order (+0 of the model,
+// 0x5763518), and otherwise with whatever color there is (the tab's buttons').
 void DrawTheColumnTitle(const Ui::OldWindowDrawContext& context, const Ui::OldWindowDrawView& view, std::int32_t hitX,
                         std::int32_t hitY, std::int32_t hitWidth, bool lit, std::int32_t textX, std::int32_t textY,
                         std::string_view text)
@@ -222,9 +222,9 @@ void DrawTheColumnTitle(const Ui::OldWindowDrawContext& context, const Ui::OldWi
     context.textColors.text = DimColor;
 }
 
-// 0x465950(x, y, texto, caja, 0, 5, 0, 0x280) → 0x467060 con el modo 5 (0x4670df..0x4670fd): con caja, el texto desde
-// su columna 0 en una caja de ese ancho, cortado a la derecha; sin caja (0 o menos), de su ancho. Vacío y sin caja no
-// dibuja nada (0x467077..0x467098).
+// 0x465950(x, y, text, box, 0, 5, 0, 0x280) → 0x467060 with mode 5 (0x4670df..0x4670fd): with a box, the text from its
+// column 0 in a box of that width, cut on the right; without a box (0 or less), its own width. Empty and without a box
+// it draws nothing (0x467077..0x467098).
 void DrawInABox(const Ui::OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                 std::int32_t box)
 {
@@ -235,7 +235,7 @@ void DrawInABox(const Ui::OldWindowDrawContext& context, std::int32_t x, std::in
                              0, box > 0 ? box : width);
 }
 
-// 0x465950(x, y, texto, caja, 0, 2, 0, 0x280) → 0x467060 con el modo 2: el texto centrado en la caja.
+// 0x465950(x, y, text, box, 0, 2, 0, 0x280) → 0x467060 with mode 2: the text centered in the box.
 void DrawCenteredInABox(const Ui::OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                         std::int32_t box)
 {
@@ -246,10 +246,10 @@ void DrawCenteredInABox(const Ui::OldWindowDrawContext& context, std::int32_t x,
                              -placed.textColumn, placed.width);
 }
 
-// 0x4641f0, la vtable + 0x80 de la lista de las cartas (0x463190, CL9 hito 10), en su y (la + 0x9c, 0x464190, igual a
-// 0x461c70): el renglón (DrawTheChosenRow), su casilla (0x463090, marcada con +0 en 1), el sobre, el nombre (strncpy de
-// 0xff) en la caja de su columna (+0x134), la fecha centrada en la suya (+0x138) y el asunto (+0x13) en lo que queda
-// hasta la barra, con 0x465950 directo: las cajas en píxeles (ftol(ancho · rx)). Termina sin mezcla; da 1.
+// 0x4641f0, the letter list's vtable + 0x80 (0x463190, CL9 milestone 10), at its y (the + 0x9c, 0x464190, equal to
+// 0x461c70): the row (DrawTheChosenRow), its checkbox (0x463090, checked with +0 at 1), the envelope, the name (strncpy
+// of 0xff) in its column's box (+0x134), the date centered in its own (+0x138) and the subject (+0x13) in what is left
+// up to the bar, with 0x465950 directly: the boxes in pixels (ftol(width · rx)). It ends without blend; returns 1.
 std::int32_t DrawTheLetterRow(const Ui::OldWindowDrawContext& context, const Ui::OldWindow& tab, std::int32_t row,
                               std::size_t at, const Ui::OldWindowDrawView& view)
 {
@@ -271,7 +271,7 @@ std::int32_t DrawTheLetterRow(const Ui::OldWindowDrawContext& context, const Ui:
     const std::int32_t mark = list.headers;
     DrawInABox(context, x + mark + LetterTextGap, y, entry.name,
                Truncate(static_cast<double>(list.nameWidth) * rx - LetterBoxCut));
-    // strncpy desde +0x115: la fecha (+0x113) sin sus dos primeros caracteres (*inferido* para una más corta).
+    // strncpy from +0x115: the date (+0x113) without its first two characters (*inferred* for a shorter one).
     const std::string date = entry.date.size() > DateSkip ? entry.date.substr(DateSkip) : std::string();
     DrawCenteredInABox(context, x + mark + list.nameWidth, y, date,
                        Truncate(static_cast<double>(list.placeWidth) * rx));
@@ -283,12 +283,12 @@ std::int32_t DrawTheLetterRow(const Ui::OldWindowDrawContext& context, const Ui:
     return 1;
 }
 
-// 0x4a0a30, la vtable + 0x14 de la pestaña de las cartas (CL9 hito 10; la ubicación del principio, el 8 a la lista y a
-// los cuatro botones y el 9 a la lista, está en SettleTheFriendsForTheDraw): el negro de abajo, la lista sin mezcla
-// (0x47eed0, la plantilla de 0x47a810 con los elementos de 0x138, con la barra 0x463db0, igual a 0x461890, y los
-// renglones 0x4641f0), la franja de las columnas con sus tres rayas y sus marcas al final de la marca, del nombre y de
-// la fecha, la casilla de todas (+0x414) y el sobre, los títulos de las columnas (en blanco el del mouse o el del
-// orden de [0x576351c]) y, sin mezcla, los cuatro botones.
+// 0x4a0a30, the letters tab's vtable + 0x14 (CL9 milestone 10; the placing at the start, the 8 to the list and to the
+// four buttons and the 9 to the list, is in SettleTheFriendsForTheDraw): the black at the bottom, the list without
+// blend (0x47eed0, 0x47a810's template with 0x138 elements, with bar 0x463db0, equal to 0x461890, and rows 0x4641f0),
+// the columns' band with its three lines and its marks at the end of the mark, the name and the date, the all checkbox
+// (+0x414) and the envelope, the column titles (in white the mouse's or that of [0x576351c]'s order) and, without
+// blend, the four buttons.
 void DrawTheLettersTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, const Ui::OldWindowDrawContext& context,
                        const Ui::OldWindowDrawView& view)
 {
@@ -304,7 +304,8 @@ void DrawTheLettersTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, 
                                     { return DrawTheLetterRow(context, tab, row, at, view); },
                                     .tail = {}});
     DrawTheColumnBar(sprites, tab);
-    // 0x4a0c53..0x4a0e70: FILD de x y FIADD de la suma de las columnas de antes, con la raya del 2 que dejó la franja.
+    // 0x4a0c53..0x4a0e70: FILD of x and FIADD of the sum of the previous columns, with the palette 2 line that the band
+    // left.
     const std::int32_t left = Ui::Steps::ClientX(tab, 0);
     const std::array<std::int32_t, 3> ends{list.headers, list.headers + list.nameWidth,
                                            list.headers + list.nameWidth + list.placeWidth};
@@ -336,8 +337,7 @@ void DrawTheLettersTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, 
         DrawTheButton(context, button, view);
 }
 
-// 0x49cc20, la vtable + 0x14 de la pestaña de amigos (la ubicación del principio está en
-// SettleTheFriendsForTheDraw).
+// 0x49cc20, the friends tab's vtable + 0x14 (the placing at the start is in SettleTheFriendsForTheDraw).
 void DrawTheFriendTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, const Ui::OldWindowDrawContext& context,
                       const Ui::OldWindowDrawView& view)
 {
@@ -367,7 +367,7 @@ void DrawTheFriendTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, c
     sprites.SetBlend(Render::BlendMode::Opaque);
 }
 
-// 0x49e7f0, la vtable + 0x14 de la pestaña de las ventanas.
+// 0x49e7f0, the windows tab's vtable + 0x14.
 void DrawTheWindowsTab(Ui::OldWindow& tab, const Ui::OldWindowDrawContext& context, const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -382,14 +382,14 @@ void DrawTheWindowsTab(Ui::OldWindow& tab, const Ui::OldWindowDrawContext& conte
     sprites.SetBlend(Render::BlendMode::Opaque);
 }
 
-// La y de un texto de la franja de los encabezados: ClientY(0) + ((24 − cy / ry) + 0,5) · 0,5, sin truncar.
+// ClientY(0) + ((24 − cy / ry) + 0.5) · 0.5, without truncating.
 double HeaderTextTop(const Ui::OldWindow& window, const Render::Text::TextExtent& extent, Core::PixelSize screen)
 {
     return static_cast<double>(Ui::Steps::ClientY(window, 0)) +
            ((HeaderTextHeight - static_cast<double>(extent.height) / RatioY(screen)) + Half) * Half;
 }
 
-// 0x4a2827..0x4a2a98: los títulos de las tres pestañas, si tienen, en blanco el de la vista o el del mouse (+0xb4).
+// 0x4a2827..0x4a2a98: the three tabs' titles, if they have one, in white the one on view or under the mouse (+0xb4).
 void DrawTheHeaderTitles(const Ui::OldWindow& window, const Ui::OldWindowDrawContext& context)
 {
     const Core::PixelSize screen = context.sprites.Screen();
@@ -410,7 +410,7 @@ void DrawTheHeaderTitles(const Ui::OldWindow& window, const Ui::OldWindowDrawCon
     }
 }
 
-// 0x4a2a9b..0x4a2bc6: el texto del botón del estado contra el borde derecho y su casilla a la izquierda.
+// 0x4a2a9b..0x4a2bc6: the state button's text against the right edge and its checkbox to the left.
 void DrawTheStateButton(const Ui::OldWindowManager& manager, const Ui::OldWindow& window,
                         const Ui::OldWindowDrawContext& context, const Ui::OldWindowDrawView& view)
 {
@@ -422,7 +422,7 @@ void DrawTheStateButton(const Ui::OldWindowManager& manager, const Ui::OldWindow
     const double textLeft = right - static_cast<double>(extent.width) / RatioX(screen) - StateTextInset;
     const double top = HeaderTextTop(window, extent, screen);
     static_cast<void>(DrawText(context, Truncate(textLeft), Truncate(top), label));
-    // FSTP en float de la x de la casilla antes de restarle 1.
+    // FSTP as float of the checkbox's x before subtracting 1.
     const float boxLeft = F32(textLeft - CheckboxGap);
     Ui::OldDraw::DrawTheCheckbox(context.sprites, Truncate(static_cast<double>(boxLeft) - One), Truncate(top - One),
                                  manager.offlineSent == 1);
@@ -438,7 +438,7 @@ std::int32_t DrawTheFriendRow(const Ui::OldWindowDrawContext& context, const Ui:
     const FriendEntry& entry = friends[at];
     const std::int32_t x = list.base.x + FriendNameX;
     const std::int32_t y = Ui::ListRowY(list, size, row);
-    // 0x465950 directo, sin el corte de 0x5542f0 para el texto vacío: vacío, tampoco dibuja nada.
+    // 0x465950 directly, without 0x5542f0's cut for the empty text: empty, it also draws nothing.
     static_cast<void>(DrawText(context, x, y, entry.name));
     if (list.headers == 1)
         static_cast<void>(DrawText(context, list.nameWidth + x + PlaceGap, y, PlaceOf(view, entry.state)));

@@ -46,7 +46,7 @@ constexpr std::size_t CannotDeleteText = 1052;
 constexpr std::size_t OtherLevelText = 1068;
 constexpr std::size_t LettersText = 1072;
 constexpr std::size_t OfflineUntilBothText = 1075;
-// 0x4dc3d0: los resultados de agregar.
+// 0x4dc3d0: the add results.
 constexpr std::uint8_t NoSuchCharacter = 0;
 constexpr std::uint8_t Added = 1;
 constexpr std::uint8_t ListFull = 3;
@@ -55,21 +55,21 @@ constexpr std::uint8_t NotYourself = 5;
 constexpr std::uint8_t OtherLevelTooLow = 6;
 // 0x4dc690.
 constexpr std::uint8_t Deleted = 1;
-// 0x41ed10(0x2a, 0, 0): el pedido de amistad.
+// 0x41ed10(0x2a, 0, 0): the friend request.
 constexpr Audio::SoundId RequestSound{0x2a};
-// 0x491080: 0x46b720(1, 0, 1244, 2, 2,5, 0xffc8dce6).
+// 0x491080: 0x46b720(1, 0, 1244, 2, 2.5, 0xffc8dce6).
 constexpr std::int32_t HelpRepeats = 1;
 constexpr std::uint16_t HelpGap = 0;
 constexpr std::int32_t HelpKind = 2;
 constexpr float HelpSpeed = 2.5f;
 constexpr std::uint32_t HelpColor = 0xffc8dce6;
-// Los textos de la caja de mensaje.
+// The message box's texts.
 constexpr std::size_t NoticeTitle = 228;
 constexpr std::size_t QuestionTitle = 991;
 constexpr std::size_t YesLabel = 1037;
 constexpr std::size_t NoLabel = 1038;
 
-// Hasta el primer '\0', como lo leen strlen y strcpy.
+// Up to the first '\0', as strlen and strcpy read it.
 std::string CString(std::string_view text)
 {
     return std::string(text.substr(0, text.find('\0')));
@@ -83,8 +83,8 @@ Core::Expected<std::string, std::string> TextOf(const Tables::TextTable* texts, 
     return CString(*text);
 }
 
-// 0x555190("", texto, 1): el nombre vacío es la cadena 0x6e57a4 en 0x491080 y los de la .bss 0x5767a94 y 0x5767a98 en
-// 0x4dc010 y 0x4dc3d0 (*estático*).
+// 0x555190("", text, 1): the empty name is the string 0x6e57a4 in 0x491080 and the .bss ones 0x5767a94 and 0x5767a98
+// in 0x4dc010 and 0x4dc3d0 (*static*).
 Core::Expected<void, std::string> SystemMessage(Kernel::WorldRuntime& runtime,
                                                 const Render::Text::ITextMeasure* measure, Core::PixelSize screen,
                                                 std::string_view text, std::string_view where)
@@ -94,7 +94,7 @@ Core::Expected<void, std::string> SystemMessage(Kernel::WorldRuntime& runtime,
     return Chat::AddGameMessage(runtime, *measure, screen, "", text, Ui::SystemMessage);
 }
 
-// 0x48ee60(caso, −1, −1, texto, aux, 0) para una caja.
+// 0x48ee60(case, −1, −1, text, aux, 0) for a box.
 Core::Expected<std::int32_t, std::string> OpenABox(const Chat::ChatReceiveContext& context, std::int32_t kind,
                                                    const std::string& text, std::int32_t aux, std::string_view where)
 {
@@ -102,7 +102,7 @@ Core::Expected<std::int32_t, std::string> OpenABox(const Chat::ChatReceiveContex
         return Core::Unexpected(std::string(where) + ": la caja sin con qué medir su texto");
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Ui::OldWindowTexts texts = OldWindowTextsOf(context.texts);
-    // 0x48f700 destruye los botones si la cascada aborta: también las cajas recibidas prestan la pulsación real.
+    // 0x48f700 destroys the buttons if the cascade aborts: the received boxes also lend the real press.
     const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
     return Ui::CreateTheOldWindow(
         runtime.oldWindows, Ui::OldWindowRequest{.kind = kind, .x = -1, .y = -1, .data = text, .aux = aux, .flags = 0},
@@ -120,7 +120,7 @@ Core::Expected<void, std::string> Notice(const Chat::ChatReceiveContext& context
     return {};
 }
 
-// "<nombre><texto>" o el texto solo.
+// "<name><text>" or the text alone.
 Core::Expected<std::string, std::string> NoticeText(const Chat::ChatReceiveContext& context, std::size_t index,
                                                     const std::string* name)
 {
@@ -197,7 +197,7 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::ForgetTheHiddenWindows(runtime.oldWindows);
-    // 0x491096: con 0x6c7b8c en 0, el texto 992 y nada más; está en 1.
+    // 0x491096: with 0x6c7b8c at 0, text 992 and nothing else; it is at 1.
     std::uint16_t level = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -218,7 +218,7 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
         return Core::Unexpected(std::move(opened).Error());
     if (!opened.Value())
         return {};
-    // 0x4914a1: 0x46b7d0, las dos colas sin nada que pasar.
+    // 0x4914a1: 0x46b7d0, both queues with nothing to pass.
     Ui::SlideBanner& slides = runtime.hud.slides;
     if (!Ui::SlideQueueIsIdle(slides.bold) || !Ui::SlideQueueIsIdle(slides.normal))
         return {};
@@ -241,14 +241,14 @@ Core::Expected<void, std::string> ApplyFriendList(const Protocol::Messenger::Fri
     Messenger::SortTheFriends(manager.friendModel, Messenger::ByStateSort);
     Messenger::RefreshTheFriendTab(manager);
     Messenger::MarkTheFriendList(manager, 1, OldWindowTextsOf(context.texts));
-    // 0x4dc0d7..0x4dc37a: el C4 02 que manda con 0x6c7b8c en 0 no sale nunca (Q-C886).
+    // 0x4dc0d7..0x4dc37a: the C4 02 that it sends with 0x6c7b8c at 0 never goes out (Q-C886).
     manager.letterLimit = list.maxLetters;
     if (list.letters == 0)
         return {};
     auto format = TextOf(context.texts, LettersText);
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    // 0x4dc38f..0x4dc395: los dos sin signo (AND con 0xff y MOVZX).
+    // 0x4dc38f..0x4dc395: both unsigned (AND with 0xff and MOVZX).
     const std::string text = Crt::Sprintf(format.Value(), static_cast<std::int32_t>(list.letters),
                                           static_cast<std::int32_t>(list.maxLetters));
     return SystemMessage(runtime, context.measure, context.screen, text, "0x4dc3b5");
@@ -275,7 +275,7 @@ Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger
         Messenger::AddAFriend(manager.friendModel, name, 0, result.state);
         Messenger::SortTheFriends(manager.friendModel, Messenger::SameSort);
         Messenger::RefreshTheFriendTab(manager);
-        // 0x4a6840: los chats con la lista de invitar abierta la rehacen.
+        // 0x4a6840: the chats with the invite list open rebuild it.
         Messenger::RefreshTheInvites(manager, Actors::HeroNameOf(context.world.Hero()));
         return {};
     }
@@ -351,7 +351,7 @@ Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::Fr
         Messenger::SetAllTheFriends(manager.friendModel, 0, Messenger::AllOfflineState);
         Messenger::SortTheFriends(manager.friendModel, Messenger::SameSort);
         Messenger::RefreshTheFriendTab(manager);
-        // 0x4a75c0: todos los chats con un amigo reciben el 402 y se cierran.
+        // 0x4a75c0: every chat with a friend receives the 402 and closes.
         std::optional<Ui::OldWindowMeasure> measure;
         if (context.measure != nullptr)
             measure.emplace(Ui::OldWindowMeasure{
@@ -364,8 +364,8 @@ Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::Fr
     Messenger::SetAFriend(manager.friendModel, state.name, 0, state.state);
     Messenger::SortTheFriends(manager.friendModel, Messenger::SameSort);
     Messenger::RefreshTheFriendTab(manager);
-    // 0x4dc7f4: 0x4a6840 y el chat con el amigo (0x4a6430; el −1 pasa el JBE y 0x490a00 no lo encuentra): con el
-    // estado desde 0xfd (fuera de línea), 0x495630(1); si no, 0x495630(0).
+    // 0x4dc7f4: 0x4a6840 and the chat with the friend (0x4a6430; the −1 passes the JBE and 0x490a00 does not find it):
+    // with the state from 0xfd (offline), 0x495630(1); otherwise, 0x495630(0).
     const std::string_view hero = Actors::HeroNameOf(context.world.Hero());
     Messenger::RefreshTheInvites(manager, hero);
     const std::int32_t id = Messenger::FindTheChatWith(manager, Messenger::FriendName(state.name), hero);

@@ -16,26 +16,26 @@ namespace Client::Scenes
 struct WorldEntryResources;
 } // namespace Client::Scenes
 
-// El F3 10, 0x4c55a0 desde 0x4e309c. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El F3 10, el
-// inventario", y 04-protocolo.md, "La entrada al mundo: la respuesta del F3 03 y el F3 10".
+// The F3 10, 0x4c55a0 from 0x4e309c. Contract: Client/docs/research/06-render-escenas-y-ui.md, "El F3 10, el
+// inventario", and 04-protocolo.md, "La entrada al mundo: la respuesta del F3 03 y el F3 10".
 namespace Client::Items
 {
 
-// Los sonidos de Fenrir que pide cada 0x4f2250 dentro de 0x512a30, en el orden en que los pide.
+// The Fenrir sounds each 0x4f2250 inside 0x512a30 asks for, in the order it asks for them.
 struct InventoryReplyResult
 {
     std::vector<Audio::SoundId> sounds;
 };
 
-// La inicialización común de 0x4c55a0 (0x4c55c4..0x4c56e0), que corre antes de mirar si llegó cifrado y
-// también con la cantidad en 0: abre el registro propio, vacía su equipo (ClearEquipmentForInventory), lo
-// cierra (3.848 rand() si lo deja sin accesos) y vacía las dos grillas del inventario.
+// 0x4c55a0's common initialization (0x4c55c4..0x4c56e0), which runs before checking whether it came encrypted and
+// also with the count at 0: opens the own record, empties its equipment (ClearEquipmentForInventory), closes it (3848
+// rand() if left with no accesses) and empties both inventory grids.
 void ClearForInventoryReply(const Scenes::WorldEntryResources& resources);
 
-// 0x4c55a0 con el paquete cifrado: la inicialización común; 0x443d40 con el héroe publicado, que apaga su
-// caballo (TurnOffHelpersOf), y 0x421d60, que en MuRet no suelta nada; y 0x5bc740 por cada entrada, en
-// orden y con las repetidas (Items::PlaceInventoryItem). La primera que corta deja lo que hicieron las de
-// antes.
+// 0x4c55a0 with the encrypted packet: the common initialization; 0x443d40 with the published hero, which turns off
+// its horse (TurnOffHelpersOf), and 0x421d60, which in MuRet releases nothing; and 0x5bc740 for each entry, in order
+// and including the repeated ones (Items::PlaceInventoryItem). The first one that stops keeps what the earlier ones
+// did.
 [[nodiscard]] Core::Expected<InventoryReplyResult, std::string>
 ApplyInventory(const Protocol::Items::InventoryList& list, const Scenes::WorldEntryResources& resources);
 } // namespace Client::Items

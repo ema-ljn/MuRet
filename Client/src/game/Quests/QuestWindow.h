@@ -4,10 +4,11 @@
 
 #include <string>
 
-// La ventana de las misiones (CL9 hito 2; 06 § Las misiones, "La ventana"): el paso (0x41b5a0, con 0x41a9e0 y 0x419bd0
-// para el diálogo con el NPC y 0x41b170 para la lista) y el dibujo (0x41ca40, con 0x41ba20 y 0x41c600), del objeto
-// [0x710148] (WorldRuntime::quest) con su ventana en +0x21383 (Ui::DelegatedPanels::quest: 1 el diálogo, 2 la lista).
-// Mandan el C3 A2 (aceptar o terminar la misión, con los dos rand() del C3) y el C1 03 31 (0x419900, cerrarla).
+// The quest window (CL9 milestone 2; 06 § Las misiones, "La ventana"): the step (0x41b5a0, with 0x41a9e0 and 0x419bd0
+// for the NPC dialog and 0x41b170 for the list) and the drawing (0x41ca40, with 0x41ba20 and 0x41c600), of the object
+// [0x710148] (WorldRuntime::quest) with its window at +0x21383 (Ui::DelegatedPanels::quest: 1 the dialog, 2 the
+// list). They send the C3 A2 (accept or finish the quest, with the C3's two rand()) and the C1 03 31 (0x419900, close
+// it).
 namespace Client::Ui
 {
 class PanelRegistry;
@@ -22,52 +23,52 @@ struct GameUiContext;
 namespace Client::Quests
 {
 
-// 0x41b5a0, desde 0x5ee140 (0x5ee20d), después de los comandos: la esquina de la ventana en +0x21390 y +0x21394,
-// (0x104, 0) con el personaje abierto y (0x1c2, 0) si no. Con el personaje abierto, el clic en el botón de las misiones
-// ([0x1f9, 0x211) × [0x18b, 0x1a3)) lo gasta, pone 0x77f3b10 en 0 y 0x6c8dcc en 6 y cierra (Close(8)) o abre (Open(8),
-// la lista) las misiones. Después, con la ventana en 1, 0x41a9e0; con 2, 0x41b170. El mouse de la UI se compara con
-// la esquina que acaba de poner.
+// 0x41b5a0, from 0x5ee140 (0x5ee20d), after the commands: the window's corner at +0x21390 and +0x21394, (0x104, 0)
+// with the character open and (0x1c2, 0) otherwise. With the character open, the click on the quest button
+// ([0x1f9, 0x211) × [0x18b, 0x1a3)) spends it, sets 0x77f3b10 to 0 and 0x6c8dcc to 6 and closes (Close(8)) or opens
+// (Open(8), the list) the quests. Then, with the window at 1, 0x41a9e0; with 2, 0x41b170. The UI mouse is compared
+// with the corner just set.
 //
-// 0x41a9e0: el mouse sobre la ventana (0xbe × 0x1b1) es de la UI; las respuestas (0x419bd0); con 0x419b10 (la misión
-// en curso con sus ítems), el clic en el botón de terminar ([x + 0x23, + 0x78) × [0x163, 0x17b)) manda el C3 A2 con la
-// misión y 1, gasta el clic, suelta el botón (0x7d36874) y suena (0x1c); el clic en el de cerrar ([x + 0x19, + 0x18) ×
-// [y + 0x18b, + 0x18)) lo gasta y cierra con 0x419900, sin el sonido del registro; y apaga el soltado (0x7d366ec).
+// 0x41a9e0: the mouse over the window (0xbe × 0x1b1) belongs to the UI; the answers (0x419bd0); with 0x419b10 (the
+// current quest with its items), the click on the finish button ([x + 0x23, + 0x78) × [0x163, 0x17b)) sends the C3 A2
+// with the quest and 1, spends the click, releases the button (0x7d36874) and sounds (0x1c); the click on the close
+// button ([x + 0x19, + 0x18) × [y + 0x18b, + 0x18)) spends it and closes with 0x419900, without the registry's sound;
+// and turns off the release (0x7d366ec).
 //
-// 0x419bd0: el clic sobre las respuestas, que empiezan en ((7 − respuestas − renglones) · 0x12) / 2 + 0x42 + renglones
-// · 0x12 (en 0xfa con el estado distinto de 1), de 0x12 cada una, a no más de 0x6a de x = 0x236 (Q-C871), lo gasta,
-// suelta el botón y pone 0x77f3b10 en 0 y 0x6c8dcc en 6; la respuesta es (y − arriba) / 0x12 con la división de C, y
-// la fila de 1 a 17 píxeles por encima de la primera es la 0 (Q-C870). Su acción en Dialog.bmd: 1 mira las condiciones
-// con el zen (0x418fb0) y, si no se cumplen, muestra el diálogo que dejaron (0x419710); si se cumplen, el A2; 2 cierra
-// con 0x419900; 3 manda el A2. Con cualquiera suena (0x1c), y si la respuesta lleva a un diálogo (mayor que 0) y las
-// condiciones no fallaron, 0x419710 lo muestra.
+// 0x419bd0: the click on the answers, which start at ((7 − answers − lines) · 0x12) / 2 + 0x42 + lines · 0x12 (at
+// 0xfa with the state other than 1), 0x12 each, no more than 0x6a from x = 0x236 (Q-C871), spends it, releases the
+// button and sets 0x77f3b10 to 0 and 0x6c8dcc to 6; the answer is (y − top) / 0x12 with C division, and the row from
+// 1 to 17 pixels above the first is answer 0 (Q-C870). Its action in Dialog.bmd: 1 checks the conditions with the zen
+// (0x418fb0) and, if they are not met, shows the dialog they left (0x419710); if they are, the A2; 2 closes with
+// 0x419900; 3 sends the A2. With any of them it sounds (0x1c), and if the answer leads to a dialog (greater than 0)
+// and the conditions did not fail, 0x419710 shows it.
 //
-// 0x41b170: el mouse sobre la ventana; el clic en la pestaña 0 ([x + 0x14, + 0x31) × [0xeb, 0xfb), o [0xed, 0xfb) si no
-// es la elegida) la elige (el C1 9F que le sigue no se alcanza, Q-C845); en la 1 y la 2, nada, y el clic sigue. El clic
-// en el botón de cerrar cierra con Close(8), que suena.
+// 0x41b170: the mouse over the window; the click on tab 0 ([x + 0x14, + 0x31) × [0xeb, 0xfb), or [0xed, 0xfb) if it
+// is not the chosen one) chooses it (the C1 9F that follows is not reached, Q-C845); on tabs 1 and 2, nothing, and the
+// click goes on. The click on the close button closes with Close(8), which sounds.
 [[nodiscard]] Core::Expected<void, std::string> StepTheQuestWindow(const Hud::GameUiContext& context,
                                                                    Ui::PanelRegistry& panels);
 
-// 0x41ca40, desde 0x5f7440 (0x5f75db), después de la ventana de 0x78abb00: con la ventana en 1, el diálogo con el NPC
-// (0x41ba20); con 2, la lista (0x41c600). Después, con el personaje abierto, el botón de las misiones (0x103 con la
-// ventana abierta, 0x102 cerrada) de 24 × 24 en (505, y + 0x18b) y, con el mouse encima, su ayuda: el texto 1140 y
-// "(T)".
+// 0x41ca40, from 0x5f7440 (0x5f75db), after the window of 0x78abb00: with the window at 1, the NPC dialog (0x41ba20);
+// with 2, the list (0x41c600). Then, with the character open, the quest button (0x103 with the window open, 0x102
+// closed) of 24 × 24 at (505, y + 0x18b) and, with the mouse over it, its help: text 1140 and "(T)".
 //
-// 0x41ba20: el fondo con la línea (0x5ee220(x, y, 1)); con el estado 1, la línea de y + 325, los ítems pedidos con su
-// nombre y cuántos (0x41b810(1, 1)), el botón de terminar (gris si falta alguno, más oscuro con el clic encima, que con
-// el soltado se gasta) con el texto 699; con el 3, el zen que pide (el texto 198 y 0x5b1130 con el color de 0x5b10f0);
-// el botón de cerrar con su ayuda (1002); el título, el nombre del NPC de la misión en la tabla de 0x7681eb8 (sin él,
-// nada); el nombre de la misión; y el texto y las respuestas del diálogo (0x41b680(1)). Con el héroe de clase 3 o 4 y
-// 0x6eeda8, el NPC de la misión 2 y sin el nombre de la misión.
+// 0x41ba20: the background with the line (0x5ee220(x, y, 1)); with state 1, the line at y + 325, the requested items
+// with their name and how many (0x41b810(1, 1)), the finish button (gray if one is missing, darker with the click over
+// it, which is spent on release) with text 699; with state 3, the zen it requires (text 198 and 0x5b1130 with the
+// color of 0x5b10f0); the close button with its help (1002); the title, the name of the quest's NPC in the table at
+// 0x7681eb8 (without it, nothing); the quest's name; and the dialog's text and answers (0x41b680(1)). With a class 3
+// or 4 hero and 0x6eeda8, the NPC of quest 2 and without the quest's name.
 //
-// 0x41c600: el fondo con la línea, el marco de abajo, las tres pestañas (1140 a 1142; la 1 y la 2 en rojo), el botón
-// de cerrar con su ayuda (el texto 927 con "T") y la pestaña elegida: la 0 (0x41c2a0) con "Quest", el nombre de la más
-// alta, el texto del diálogo sin respuestas y el estado (930 a 932); la 1 y la 2 (0x41c420 y 0x41c4a0) no se alcanzan
-// (solo la 0 se elige) y van como el original.
+// 0x41c600: the background with the line, the bottom frame, the three tabs (1140 to 1142; tabs 1 and 2 in red), the
+// close button with its help (text 927 with "T") and the chosen tab: tab 0 (0x41c2a0) with "Quest", the name of the
+// highest, the dialog's text without answers and the state (930 to 932); tabs 1 and 2 (0x41c420 and 0x41c4a0) are not
+// reached (only tab 0 is chosen) and go as in the original.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheQuestWindow(Hud::GameHudContext& context,
                                                                    Ui::PanelRegistry& panels);
 
-// 0x41b9e0, lo primero del 3D de la UI (0x5ac120, 0x5ac1c7): con la ventana en 1, los ítems pedidos de la misión en
-// curso con el estado 1 (0x41b810(1, 0)), cada uno con 0x5e1480 en (480, 235 + 25 · i) de 20 × 20 con el nivel << 3;
-// con la lista y +0x21380 (que nadie prende), los del estado 1 o 2 según +0x21381.
+// 0x41b9e0, the first thing of the UI's 3D (0x5ac120, 0x5ac1c7): with the window at 1, the requested items of the
+// current quest with state 1 (0x41b810(1, 0)), each with 0x5e1480 at (480, 235 + 25 · i) of 20 × 20 with the level
+// << 3; with the list and +0x21380 (which nobody turns on), those of state 1 or 2 by +0x21381.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheQuestItems(Hud::GameHudContext& context);
 } // namespace Client::Quests

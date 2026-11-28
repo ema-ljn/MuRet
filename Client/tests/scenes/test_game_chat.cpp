@@ -54,8 +54,8 @@
 #include <utility>
 #include <vector>
 
-// La entrada del chat en el juego (CL8 hito 3; 06 § El chat): Enter, lo tecleado, el C1 00 y el C1 02, y las macros.
-// Los textos y los nombres son inventados.
+// The chat input in the game (CL8 milestone 3; 06 § El chat): Enter, what is typed, the C1 00 and the C1 02, and the
+// macros. The texts and the names are made up.
 namespace
 {
 using Client::Chat::GameChatContext;
@@ -65,7 +65,7 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 
-// 0x554a40: el registro propio, abierto y cerrado una vez.
+// 0x554a40: the own record, opened and closed once.
 constexpr int WhisperRandoms = 3848;
 
 class LetterMeasure final : public ITextMeasure
@@ -109,7 +109,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Un paquete en claro: el tipo, el largo, el código, el nombre de diez bytes hasta su '\0' y el texto hasta el suyo.
+// A packet in the clear: the type, the length, the code, the ten-byte name up to its '\0' and the text up to its own.
 struct Said
 {
     std::uint8_t opcode = 0;
@@ -190,8 +190,7 @@ protected:
         return window->second.add.edit;
     }
 
-    // Los modelos de la fauna conservan el backend hasta destruirse: debe vivir más que ellos, incluso si falla un
-    // ASSERT.
+    // The fauna models keep the backend until they are destroyed: it must outlive them, even if an ASSERT fails.
     Client::Tests::FakeTextureStore m_faunaStore;
     Client::Assets::FaunaModels faunaModels;
     WorldState world;
@@ -204,14 +203,15 @@ protected:
     FakeClipboard clipboard;
 };
 
-// Un C1 05 18 [direction] [action] en claro, con el XOR32.
+// A C1 05 18 [direction] [action] in the clear, with the XOR32.
 bool IsTheAction(const Client::Protocol::Outgoing& sent, std::uint8_t direction, std::uint8_t action)
 {
     return Client::Tests::SameBytes(Client::Network::Xor32Decode(sent.packet).Bytes(),
                                     Client::Tests::Bytes({0xc1, 5, 0x18, direction, action}));
 }
 
-// 0x4b5468..0x4b5554: con el campo vacío, Enter lo abre (los EDIT a la vista y el foco en el del mensaje) o lo cierra.
+// 0x4b5468..0x4b5554: with the field empty, Enter opens it (the EDITs in view and the focus on the message one) or
+// closes it.
 TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
 {
     const auto before = random.State();
@@ -220,7 +220,7 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     EXPECT_TRUE(Input().shown);
     EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
     EXPECT_EQ(world.Runtime().ui.focusedList, Client::Chat::ChatMessageEditId);
-    // Lo de antes de abrir lo descartó la ventana del juego.
+    // What was there before opening was dropped by the game window.
     EXPECT_EQ(Input().message.text.Value(), "");
 
     ASSERT_TRUE(Type("\r").HasValue());
@@ -231,10 +231,10 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     EXPECT_EQ(random.State(), before);
 }
 
-// Los casos de Enter con los diálogos del zen y de la tienda personal, en Lorencia y en Devias.
+// The Enter cases with the zen and personal shop dialogs, in Lorencia and in Devias.
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
-// 0x4b54e1: el diálogo del zen del comercio y del almacén.
+// 0x4b54e1: the zen dialog of the trade and the warehouse.
 constexpr std::int32_t MoneyDialog = 0x73;
 
 class GameChatOnTheMaps : public GameChat, public ::testing::WithParamInterface<std::int32_t>
@@ -246,7 +246,7 @@ protected:
     }
 };
 
-// 0x4b5515..0x4b554d: abrir el chat deja el largo del campo en 0x2a y apaga el modo del zen (0x77f3b6a).
+// 0x4b5515..0x4b554d: opening the chat leaves the field's length at 0x2a and turns off the zen mode (0x77f3b6a).
 TEST_P(GameChatOnTheMaps, OpeningTheChatLeavesTheMoneyMode)
 {
     world.Runtime().social.moneyField = 1;
@@ -257,9 +257,9 @@ TEST_P(GameChatOnTheMaps, OpeningTheChatLeavesTheMoneyMode)
     EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 0x2a);
 }
 
-// 0x4b54e1..0x4b5513: con el campo cerrado, el EDIT de [0x5763504] vacío (lo que se lee) y el diálogo 0x73, Enter no
-// abre el chat: le pone el texto en 0 al EDIT y el foco en la ventana del juego (el dibujo del 0x73 se lo devuelve,
-// 0x6308b8).
+// 0x4b54e1..0x4b5513: with the field closed, the EDIT of [0x5763504] empty (what is read) and the dialog 0x73, Enter
+// does not open the chat: it sets the EDIT's text to 0 and the focus on the game window (the 0x73's draw gives it
+// back, 0x6308b8).
 TEST_P(GameChatOnTheMaps, TheMoneyDialogEmptiesItsEdit)
 {
     world.Runtime().dialogs.current = MoneyDialog;
@@ -274,7 +274,7 @@ TEST_P(GameChatOnTheMaps, TheMoneyDialogEmptiesItsEdit)
     EXPECT_EQ(random.State(), before);
 }
 
-// 0x4b5397..0x4b5435: con el campo cerrado, lo que se lee es el EDIT del diálogo; con el modo del zen va con atoi.
+// 0x4b5397..0x4b5435: with the field closed, what is read is the dialog's EDIT; with the zen mode, through atoi.
 TEST_P(GameChatOnTheMaps, TheDialogEditIsReadWithTheFieldClosed)
 {
     world.Runtime().dialogs.current = MoneyDialog;
@@ -291,9 +291,9 @@ TEST_P(GameChatOnTheMaps, TheDialogEditIsReadWithTheFieldClosed)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x4b5563..0x4b55ae: con el modo del zen, lo escrito va con atoi a 0x77f3b6c (los blancos, el signo y las cifras hasta
-// la primera que no lo es) y no se dice; después, el EDIT de [0x5763504] vacío y oculto, y el salto a 0x4b8886, que
-// cierra el campo.
+// 0x4b5563..0x4b55ae: with the zen mode, what was typed goes through atoi to 0x77f3b6c (the blanks, the sign and the
+// digits up to the first one that is not) and is not said; then, the EDIT of [0x5763504] empty and hidden, and the
+// jump to 0x4b8886, which closes the field.
 TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
 {
     for (const auto& [typed, money] : {std::pair<std::string_view, std::int32_t>{" 1234\r", 1234},
@@ -317,8 +317,8 @@ TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
     }
 }
 
-// 0x4b55b3..0x4b560f: con 0x78aba60 en 1, lo escrito es el título de la tienda personal y no se dice: si 0x5ebbd0 lo
-// deja va a 0x78aba64; si no, el aviso 1130 del tipo 1 sin nombre.
+// 0x4b55b3..0x4b560f: with 0x78aba60 at 1, what was typed is the personal shop's title and is not said: if 0x5ebbd0
+// allows it, it goes to 0x78aba64; if not, the notice 1130 of type 1 without a name.
 TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
 {
     auto& shop = world.Runtime().social.personalShop;
@@ -329,7 +329,7 @@ TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 
-    // Dos blancos seguidos al final: 0x5ebbd0 no lo deja y el título queda.
+    // Two blanks in a row at the end: 0x5ebbd0 does not allow it and the title stays.
     ASSERT_TRUE(Type("\rOtra  \r").HasValue());
     EXPECT_EQ(shop.ownTitle, "Tienda inventada");
     const auto& entries = world.Runtime().chat.log.entries;
@@ -339,8 +339,8 @@ TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x56d776: "/no ver puestos" apaga los carteles del mapa (+0x14 de 0x7245c8) con el aviso 1139 del tipo 2, y después
-// sale como chat; "/ver puestos" los prende con el 1138 del tipo 1.
+// 0x56d776: "/no ver puestos" turns off the map's signs (+0x14 of 0x7245c8) with the notice 1139 of type 2, and then
+// goes out as chat; "/ver puestos" turns them on with the 1138 of type 1.
 TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
 {
     auto& shops = world.Runtime().social.personalShop;
@@ -364,8 +364,8 @@ TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, GameChatOnTheMaps, ::testing::Values(Lorencia, Devias));
 
-// El chat: el C1 00 con el nombre del héroe, el freno, el historial, el área vieja al final y el campo cerrado. No
-// saca ningún rand().
+// The chat: the C1 00 with the hero's name, the brake, the history, the old area at the end and the field closed. It
+// draws no rand().
 TEST_F(GameChat, EnterSaysWhatWasTyped)
 {
     world.Runtime().chat.area.firstShown = 0;
@@ -412,8 +412,8 @@ TEST_F(GameChat, MessageAndWhisperFieldsUseXpWindows1252BytesOnTheWire)
     EXPECT_TRUE(whisper.text == messageBytes);
 }
 
-// 0x4691e0 → 0x467fe0 → 0x467b10: mensaje y destinatario usan el mismo EDIT; las teclas de navegación
-// pasan al procedimiento anterior del control, no al WndProc del juego que sólo entiende Tab/Enter/Backspace.
+// 0x4691e0 → 0x467fe0 → 0x467b10: the message and the recipient use the same EDIT; the navigation keys go to the
+// control's previous procedure, not to the game's WndProc, which only understands Tab/Enter/Backspace.
 TEST_F(GameChat, OrderedInputEventsMoveAndEditBothChatCarets)
 {
     ASSERT_TRUE(Type("\r").HasValue());
@@ -1038,8 +1038,8 @@ TEST_F(GameChat, OrderedEnterKeyUsesTheLegacyGameChatExactlyOnce)
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
 }
 
-// 0x4b56cc y 0x576eb0: un emote en lo dicho, con el héroe parado, lo anima y manda dos C1 05 18 iguales antes del
-// C1 00 (Q-C776), con la dirección de su ángulo. No saca ningún rand().
+// 0x4b56cc and 0x576eb0: an emote in what was said, with the hero standing, animates it and sends two equal C1 05 18
+// before the C1 00 (Q-C776), with its angle's direction. It draws no rand().
 TEST_F(GameChat, AnEmoteSendsItsActionsBeforeTheChat)
 {
     auto& hero = world.Hero();
@@ -1059,8 +1059,8 @@ TEST_F(GameChat, AnEmoteSendsItsActionsBeforeTheChat)
     EXPECT_EQ(random.State(), before);
 }
 
-// El modelo del transformado se carga realmente en fauna; el proveedor base sólo tiene Player.
-// 0x576abf→0x4ea030 debe consultar ese modelo incluso antes de que el primer dibujo ligue WorldModels.
+// The transformed one's model is really loaded in fauna; the base provider only has Player.
+// 0x576abf→0x4ea030 must query that model even before the first draw binds WorldModels.
 TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
 {
     Client::Tests::TemporaryFolder folder{"emote-fauna"};
@@ -1096,12 +1096,11 @@ TEST_F(GameChat, ATransformedHeroUsesItsLoadedFaunaModelBeforeSendingTheChat)
     EXPECT_TRUE(IsTheAction(sent[0], 3, 0x8e));
     EXPECT_TRUE(IsTheAction(sent[1], 3, 0x8e));
     EXPECT_EQ(Decode(sent[2]).text, "hola ^^");
-    EXPECT_EQ(hero.animation.action, 1); // El modelo de ocho acciones no contiene 0xaf; 0x4ea030 no la cambia.
+    EXPECT_EQ(hero.animation.action, 1); // The eight-action model does not contain 0xaf; 0x4ea030 does not change it.
     EXPECT_EQ(random.State(), before);
 }
 
-// Caminando, solo el C1 18 del caso y el héroe no se anima; montado fuera de la zona segura (la compuerta de la CL8),
-// ninguno.
+// Walking, only the case's C1 18 and the hero is not animated; mounted outside the safe zone (the CL8 gate), none.
 TEST_F(GameChat, AWalkingHeroSendsOnlyTheCaseAndAMountedOneNone)
 {
     auto& hero = world.Hero();
@@ -1123,7 +1122,7 @@ TEST_F(GameChat, AWalkingHeroSendsOnlyTheCaseAndAMountedOneNone)
     EXPECT_EQ(hero.animation.action, 1);
 }
 
-// 0x5767940: con el freno arriba de 0x32 no sale nada; con menos, no sale lo mismo que antes.
+// 0x5767940: with the brake above 0x32 nothing goes out; with less, the same as before does not go out.
 TEST_F(GameChat, TheBrakeStopsTheChat)
 {
     ASSERT_TRUE(Type("\runo\r").HasValue());
@@ -1140,8 +1139,8 @@ TEST_F(GameChat, TheBrakeStopsTheChat)
     EXPECT_EQ(sent.size(), 3u);
 }
 
-// El susurro: con el nombre del campo de al lado y el modo de F3, 0x554a40 abre y cierra el registro propio (3.848
-// rand()), y con el nivel manda el C1 02 y lo pone en el registro con el nombre del héroe y el tipo 0.
+// The whisper: with the name of the field next to it and the F3 mode, 0x554a40 opens and closes the own record (3848
+// rand()), and with the level it sends the C1 02 and puts it in the log with the hero's name and type 0.
 TEST_F(GameChat, TheWhisperGoesToTheNameOfTheSecondField)
 {
     ASSERT_TRUE(Type("\rpsst\tAlguien").HasValue());
@@ -1161,11 +1160,10 @@ TEST_F(GameChat, TheWhisperGoesToTheNameOfTheSecondField)
     EXPECT_EQ(entries.front().name, "Heroe");
     EXPECT_EQ(entries.front().text, "psst");
     EXPECT_EQ(entries.front().type, Client::Ui::WhisperMessage);
-    // El susurro no frena el chat.
     EXPECT_EQ(Input().brake, 0);
 }
 
-// Por debajo del nivel 6 y sin el nombre en la lista de 0x77997f8: el aviso 479, sin paquete.
+// Below level 6 and without the name in the list of 0x77997f8: the notice 479, without a packet.
 TEST_F(GameChat, ALowLevelCannotWhisper)
 {
     world.OwnCharacter().level = 5;
@@ -1179,7 +1177,7 @@ TEST_F(GameChat, ALowLevelCannotWhisper)
     EXPECT_EQ(world.Runtime().chat.log.entries.front().type, Client::Ui::SystemMessage);
 }
 
-// Con el nombre entre los que susurraron (0x77997f8, que llena el 02 que llega), el nivel bajo no frena.
+// With the name among those who whispered (0x77997f8, which the incoming 02 fills), the low level does not stop it.
 TEST_F(GameChat, ALowLevelMayAnswerWhoWhispered)
 {
     world.OwnCharacter().level = 5;
@@ -1189,7 +1187,7 @@ TEST_F(GameChat, ALowLevelMayAnswerWhoWhispered)
     EXPECT_EQ(Decode(sent[0]).opcode, 0x02);
 }
 
-// Sin el modo de F3, o con '/' adelante, va al chat aunque haya un nombre.
+// Without the F3 mode, or with '/' in front, it goes to the chat even if there is a name.
 TEST_F(GameChat, WithoutTheWhisperModeItGoesToTheChat)
 {
     Input().whisperMode = false;
@@ -1198,7 +1196,7 @@ TEST_F(GameChat, WithoutTheWhisperModeItGoesToTheChat)
     EXPECT_EQ(Decode(sent[0]).opcode, 0x00);
 }
 
-// 0x4b5a4f..0x4b5b00: /whisper off y on (los textos 264 y 265) cambian 0x77f3b98 y avisan, sin paquete.
+// 0x4b5a4f..0x4b5b00: /whisper off and on (the texts 264 and 265) change 0x77f3b98 and notify, without a packet.
 TEST_F(GameChat, TheWhisperSwitchesWarnWithoutSending)
 {
     ASSERT_TRUE(Type("\r/callar\r").HasValue());
@@ -1211,7 +1209,7 @@ TEST_F(GameChat, TheWhisperSwitchesWarnWithoutSending)
     EXPECT_TRUE(sent.empty());
 }
 
-// Muriéndose, /move no sale; lo demás sí.
+// Dying, /move does not go out; the rest does.
 TEST_F(GameChat, ADyingHeroDoesNotSayMove)
 {
     world.Hero().dying = 1;
@@ -1220,7 +1218,7 @@ TEST_F(GameChat, ADyingHeroDoesNotSayMove)
     EXPECT_EQ(world.Runtime().panels.overlayMode, Client::Ui::MoveOverlayMode);
 }
 
-// 0x622b40 con 1: lo que tiene una palabra de Filter.bmd sale como el texto 570.
+// 0x622b40 with 1: what has a Filter.bmd word goes out as the text 570.
 TEST_F(GameChat, AFilteredWordSaysTheDots)
 {
     filter = {"feo"};
@@ -1229,7 +1227,7 @@ TEST_F(GameChat, AFilteredWordSaysTheDots)
     EXPECT_EQ(Decode(sent[0]).text, "...");
 }
 
-// Con "webzen" en el nombre del héroe solo sale lo que empieza con '/' o con '!'.
+// With "webzen" in the hero's name only what starts with '/' or with '!' goes out.
 TEST_F(GameChat, AWebzenNameOnlySaysCommands)
 {
     SetTheHeroName("webzenA");
@@ -1240,7 +1238,7 @@ TEST_F(GameChat, AWebzenNameOnlySaysCommands)
     EXPECT_EQ(sent.size(), 1u);
 }
 
-// 0x4b5269: en Chaos Castle, fuera de la zona segura, Enter no hace nada; tampoco con el diálogo 0x7d.
+// 0x4b5269: in Chaos Castle, outside the safe zone, Enter does nothing; nor with the dialog 0x7d.
 TEST_F(GameChat, ChaosCastleAndSomeDialogsBlockEnter)
 {
     world.Runtime().map = 18;
@@ -1252,10 +1250,10 @@ TEST_F(GameChat, ChaosCastleAndSomeDialogsBlockEnter)
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
 }
 
-// CL9 hito 11: con el foco en el EDIT de [0x5763504] (la entrada del número de serie), la subclase 0x467b10 filtra lo
-// tecleado con +0x4c en 2 (cifras y letras, las minúsculas en mayúscula), el borrar es del EDIT y el Tab y el Enter van
-// a la ventana del juego: con 0x78abb00 en 3 el Enter solo prende 0x5763588 (0x4b52f6). Nada llega a los campos del
-// chat.
+// CL9 milestone 11: with the focus on the EDIT of [0x5763504] (the serial number input), the subclass 0x467b10
+// filters what is typed with +0x4c at 2 (digits and letters, lowercase to uppercase), the erasing is the EDIT's and
+// the Tab and the Enter go to the game window: with 0x78abb00 at 3 the Enter only sets 0x5763588 (0x4b52f6). Nothing
+// reaches the chat fields.
 TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
 {
     world.Runtime().panels.field78abb00 = 3;
@@ -1272,8 +1270,8 @@ TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x4b540a: con el campo cerrado, Enter lee el texto del EDIT de [0x5763504] y, sin el modo del zen ni el del título,
-// lo dice; el salto a 0x4b8886 no vacía el EDIT, y sale otra vez con el Enter siguiente.
+// 0x4b540a: with the field closed, Enter reads the text of the EDIT of [0x5763504] and, without the zen mode or the
+// title one, says it; the jump to 0x4b8886 does not empty the EDIT, and it goes out again with the next Enter.
 TEST_F(GameChat, WithTheFieldClosedEnterSaysTheSerialEdit)
 {
     Input().dialogEdit.text.SetText("AB12");
@@ -1284,8 +1282,9 @@ TEST_F(GameChat, WithTheFieldClosedEnterSaysTheSerialEdit)
     EXPECT_EQ(Input().dialogEdit.text.Value(), "AB12");
 }
 
-// 0x4b5616 y 0x4b8888: con 0x77f3b6b prendido y 0x78abb00 en otro valor (un 94 de otro tipo sobre la entrada, Q-C1346),
-// Enter pone el campo elegido en 0 y nada más: no dice, no vacía el buffer y no cierra el campo.
+// 0x4b5616 and 0x4b8888: with 0x77f3b6b set and 0x78abb00 at another value (a 94 of another type over the input,
+// Q-C1346), Enter sets the chosen field to 0 and nothing more: it does not say, does not empty the buffer and does not
+// close the field.
 TEST_F(GameChat, AStuckSerialEntrySwallowsEnter)
 {
     world.Runtime().panels.field78abb00 = 1;
@@ -1304,7 +1303,7 @@ TEST_F(GameChat, AStuckSerialEntrySwallowsEnter)
     EXPECT_EQ(random.State(), before);
 }
 
-// Un comando que se atiende (/1) no manda nada ni vuelve el área vieja, pero cierra el campo.
+// A command that is handled (/1) sends nothing and does not bring back the old area, but closes the field.
 TEST_F(GameChat, AHandledCommandOnlyClosesTheField)
 {
     world.Runtime().chat.area.firstShown = 0;
@@ -1316,8 +1315,8 @@ TEST_F(GameChat, AHandledCommandOnlyClosesTheField)
     EXPECT_EQ(world.Runtime().lastSoundId, Client::Chat::ChatButtonSound);
 }
 
-// 0x56c68b..0x56cdfc desde el chat: /trade con el elegido al lado manda el C1 05 36 y el aviso 475 sale armado con su
-// nombre (0x69fd9b) en el registro.
+// 0x56c68b..0x56cdfc from the chat: /trade with the selected one next to it sends the C1 05 36 and the notice 475
+// goes out built with its name (0x69fd9b) in the log.
 TEST_F(GameChat, TradeWithTheChosenSaysWhoWasAsked)
 {
     auto& runtime = world.Runtime();
@@ -1337,8 +1336,8 @@ TEST_F(GameChat, TradeWithTheChosenSaysWhoWasAsked)
     EXPECT_EQ(runtime.chat.log.entries.front().text, "pediste comerciar con Brezal");
 }
 
-// 0x5a119f..0x5a2b47: cada macro apretada sale como chat y deja el freno de las macros en 0x64, aunque el freno del
-// chat la pare.
+// 0x5a119f..0x5a2b47: each pressed macro goes out as chat and leaves the macros' brake at 0x64, even if the chat
+// brake stops it.
 TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
 {
     Input().macros[0] = "uno";
@@ -1355,7 +1354,7 @@ TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
     EXPECT_EQ(random.State(), before);
 }
 
-// Desde una macro (0x56c440 con 1), "/1 …" no guarda nada: sale como chat y frena.
+// From a macro (0x56c440 with 1), "/1 …" stores nothing: it goes out as chat and brakes.
 TEST_F(GameChat, FromAMacroTheNumbersAreNotCommands)
 {
     Input().macros[0] = "/1x";

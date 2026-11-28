@@ -19,10 +19,10 @@ namespace Client::Render
 class SpriteBatch;
 }
 
-// El dibujo de los globos (CL8 hito 3; 06 § El chat, "Los globos"): el 12 del HUD, 0x5a9050, con la medida (0x555840),
-// la proyección (0x6205b0) y el dibujo de cada uno (0x555b00 con TextOut distinto de 1, 0x553e50 y 0x554000). Nada de
-// esto saca rand(). Escribe en cada entrada dónde quedó y cuánto mide (+0x278..+0x284), que lee el clic derecho del
-// paso (0x557650).
+// The bubbles' drawing (CL8 milestone 3; 06 § El chat, "Los globos"): the HUD's 12, 0x5a9050, with the measurement
+// (0x555840), the projection (0x6205b0) and each one's draw (0x555b00 with TextOut other than 1, 0x553e50 and
+// 0x554000). None of this calls rand(). It writes in each entry where it ended up and how big it is (+0x278..+0x284),
+// which the step's right click reads (0x557650).
 namespace Client::Render::Frame
 {
 class ITextDrawer;
@@ -41,47 +41,46 @@ namespace Client::Chat
 {
 struct ChatBubble;
 
-// 0x555840(entrada) con la fuente normal en el DC: el ancho (+0x280) es el mayor de los del nombre más 3, el gremio y
-// el puesto, con el renglón de abajo si alguno de los dos tiene tiempo y el de arriba si lo tiene el de arriba; el alto
-// (+0x284), el paso de la letra (0x7758568) por las cinco medidas que dan TRUE, que son todas (Q-C520). Con el título
-// corto de una tienda personal (+0x54, 0x5559c2..0x555a62), el ancho es al menos el de él más el del texto 1104, los
-// dos en negrita, y el alto suma un renglón; sin Text.bmd, corta.
+// 0x555840(entry) with the normal font in the DC: the width (+0x280) is the largest of the name's plus 3, the guild's
+// and the post's, with the lower line if either of the two has time and the upper one if the upper one has; the height
+// (+0x284), the font step (0x7758568) times the five measurements that return TRUE, which are all of them (Q-C520).
+// With a personal shop's short title (+0x54, 0x5559c2..0x555a62), the width is at least its own plus the text 1104's,
+// both in bold, and the height adds a line; without Text.bmd, it stops.
 [[nodiscard]] Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble,
                                                                      const Render::Text::ITextMeasure& measure,
                                                                      int fontStep, const Tables::TextTable* texts);
 
-// Lo que el dibujo lee y deja.
 struct ChatBubbleDrawContext
 {
     Kernel::WorldState& world;
-    // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, un globo vivo corta.
+    // 0x6203c0 of this frame's world pass, the one 0x6205b0 reads. Without it, a live bubble stops.
     const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
-    // El SelectObject de 0x5a9050 (la normal) y los de la tienda de 0x555b00 (la negrita y la normal).
+    // The SelectObject of 0x5a9050 (the normal font) and those of 0x555b00's shop (the bold and the normal).
     Render::Text::FontKind& dcFont;
-    // 0x6c8e5c y 0x6c8e64: quedan los del último renglón.
+    // 0x6c8e5c and 0x6c8e64: the last line's colors stay.
     Render::Text::TextColors& textColors;
-    // 0x77f3b66, que 0x555b00 prende, y 0x77f31b8 y 0x77f31bc, el ancho (hasta 1.280) y el alto del último globo.
+    // 0x77f3b66, which 0x555b00 sets, and 0x77f31b8 and 0x77f31bc, the last bubble's width (up to 1280) and height.
     std::uint8_t& clampBoxes;
     std::int32_t& boxWidth;
     std::int32_t& boxHeight;
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
+    // 0x7d3682c and 0x7d36828: the mouse in 640 × 480.
     Ui::Point mouse{};
-    // 0x77f3b94: el contador del área vieja.
+    // 0x77f3b94: the old area's counter.
     std::int32_t blink = 0;
-    // Un dibujo intermedio de MuRet no escribe la tabla: el paso del original lee lo del último frame suyo.
+    // An intermediate MuRet draw does not write the table: the original's step reads what its own last frame left.
     bool projecting = false;
-    // Text.bmd, con el texto 1104 (0x770df9c) del título de una tienda.
+    // Text.bmd, with the text 1104 (0x770df9c) of a shop's title.
     const Tables::TextTable* texts = nullptr;
 };
 
-// 0x5a9050: SelectObject de la normal; cada entrada con el nombre o el renglón de abajo con tiempo va 60 sobre el
-// techo de su dueño (+0x138, 0x6b86cc), proyectada a 640 × 480, se mide, y queda centrada en la x y 0x24 más arriba;
-// después, cada par que se pisa corre la y del primero arriba o abajo del otro, según de qué lado de su mitad esté, y
-// cada una va contra los bordes (la x con W − ancho y la y con H − alto, en píxeles, Q-C522) y se dibuja con 0x555b00:
-// si el dueño tiene cartel (0x451810), el texto 1104 y el título corto en negrita con los colores de 0x451af0, 0x451b50
-// y 0x451bb0 dos renglones arriba, y los demás renglones uno más arriba (Q-C978). Un globo sin dueño (+0x288, que no
-// escribe nadie: 0x557430 no tiene quien la llame, *estático*) corta.
+// 0x5a9050: SelectObject of the normal font; each entry with the name or the lower line with time goes 60 above its
+// owner's top (+0x138, 0x6b86cc), projected to 640 × 480, is measured, and ends up centered on the x and 0x24 higher;
+// then each overlapping pair moves the first one's y above or below the other, depending on which side of its middle
+// it is, and each one goes against the edges (the x with W − width and the y with H − height, in pixels, Q-C522) and
+// is drawn with 0x555b00: if the owner has a sign (0x451810), the text 1104 and the short title in bold with the colors
+// of 0x451af0, 0x451b50 and 0x451bb0 two lines up, and the other lines one higher (Q-C978). A bubble without an owner
+// (+0x288, which nobody writes: 0x557430 has no caller, *static*) stops.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& context);
 } // namespace Client::Chat

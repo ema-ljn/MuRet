@@ -47,9 +47,9 @@
 #include <utility>
 #include <vector>
 
-// La ventana de la party vacía (CL8 hito 6, 08 P-C92; 06 § HUD y ventanas, "La party y los comandos"): el paso
-// 0x5e3c80 y el dibujo 0x5f0be0, en (0x1c2, 0) de 640 × 480. Los textos son inventados y miden 6 columnas por letra.
-// Cada test corre en Lorencia y en Devias.
+// The empty party window (CL8 milestone 6, 08 P-C92; 06 § HUD y ventanas, "La party y los comandos"): step 0x5e3c80
+// and drawing 0x5f0be0, at (0x1c2, 0) in 640 × 480. The texts are made up and measure 6 columns per letter. Each test
+// runs in Lorencia and in Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -67,10 +67,10 @@ constexpr Client::Core::PixelSize Screen800{800, 600};
 constexpr std::uint32_t Seed = 0x5eed4242u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
-// 0x5f7465: la esquina con la que 0x5f7440 llama al dibujo.
+// 0x5f7465: the corner 0x5f7440 calls the drawing with.
 constexpr std::int32_t Left = 0x1c2;
 constexpr std::int32_t Top = 0;
-// El botón de cerrar: de (Left + 25, 395) a 24 más.
+// The close button: from (Left + 25, 395) to 24 more.
 constexpr std::int32_t CloseX = Left + 25;
 constexpr std::int32_t CloseY = 395;
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
@@ -84,8 +84,8 @@ std::map<std::size_t, std::string> PartyTexts()
             {32, "Devias"},       {55, "Tierra"},      {189, "Echar"}};
 }
 
-// Un quad del lote: el slot (NoTexture sin textura, Marker si es la marca de un texto), la mezcla, el color y las
-// esquinas 0 y 2 del fan.
+// A quad of the batch: the slot (NoTexture without a texture, Marker for a text's mark), the blend, the color and the
+// fan's corners 0 and 2.
 struct DrawnQuad
 {
     int slot = NoTexture;
@@ -119,7 +119,7 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// Las esquinas en píxeles de GL, con lo que pierden las cuentas en float de 0x621b60 (H − (y + h) · ry).
+// The corners in GL pixels, with what 0x621b60's float arithmetic loses (H − (y + h) · ry).
 void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width, float height)
 {
     constexpr float Tolerance = 1e-3f;
@@ -130,7 +130,7 @@ void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width
     EXPECT_NEAR(quad.third.y, 480.0f - y - height, Tolerance);
 }
 
-// Lo que pide la UI: solo la lista de la party.
+// What the UI asks for: only the party list.
 class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
@@ -150,7 +150,7 @@ public:
     {
         requests.emplace_back("guild");
     }
-    // El 43 que echa, como sale: los bytes sin el XOR32.
+    // The kicking 43 as it goes out: the bytes without the XOR32.
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {
         const Client::Network::Packet decoded = Client::Network::Xor32Decode(outgoing.packet);
@@ -237,7 +237,7 @@ protected:
         return Client::Party::DrawThePartyWindow(context, panels.Registry(), Left, Top);
     }
 
-    // Tres miembros con nombres inventados: el héroe de jefe, uno fuera del viewport y uno con +0x78 & 8.
+    // Three members with made-up names: the hero as leader, one outside the viewport and one with +0x78 & 8.
     void ThreeMembers()
     {
         const auto setName = [](auto& name, std::string_view text)
@@ -289,7 +289,7 @@ protected:
         m_input.Apply(Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = key});
     }
 
-    // La ventana como la deja el primer dibujo.
+    // The window as the first drawing leaves it.
     void OpenAndPlace()
     {
         Runtime().panels.party = 1;
@@ -308,8 +308,8 @@ protected:
     bool m_leftDown = false;
 };
 
-// 0x5a4c6e..0x5a4ea6: la P abre la party, que cierra lo demás, pone la cuenta en 0 y pide la lista (C1 03 42); el
-// paso de la ventana no corrió todavía (0x5ee140 va antes de las letras).
+// 0x5a4c6e..0x5a4ea6: the P opens the party, which closes the rest, sets the count to 0 and asks for the list
+// (C1 03 42); the window's step has not run yet (0x5ee140 goes before the letters).
 TEST_P(GamePartyWindowTest, ThePLetterOpensThePartyAndAsksForItsList)
 {
     RecordingRequests requests;
@@ -323,15 +323,15 @@ TEST_P(GamePartyWindowTest, ThePLetterOpensThePartyAndAsksForItsList)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
 
-    // 0x5e3cb5: el paso siguiente mira el mouse desde la esquina de 0x78a7068, que sin un dibujo sigue en (0, 0).
-    // Debajo del registro del chat, que con el mouse encima no deja correr los paneles (0x5ee174).
+    // 0x5e3cb5: the next step looks at the mouse from 0x78a7068's corner, which without a drawing is still (0, 0).
+    // Below the chat log, which with the mouse over it does not let the panels run (0x5ee174).
     const auto again = StepTheUi(100, 200, &requests);
     ASSERT_TRUE(again.HasValue()) << again.Error();
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     EXPECT_EQ(requests.requests.size(), 1U);
 }
 
-// 0x5a03c3..0x5a05e5: el botón de la party del HUD hace lo mismo que la P; sin el cable, abrirla corta.
+// 0x5a03c3..0x5a05e5: the HUD's party button does the same as the P; without the wire, opening it fails.
 TEST_P(GamePartyWindowTest, TheHudButtonOpensThePartyAndWithoutTheWireItCuts)
 {
     RecordingRequests requests;
@@ -348,8 +348,8 @@ TEST_P(GamePartyWindowTest, TheHudButtonOpensThePartyAndWithoutTheWireItCuts)
     EXPECT_EQ(Runtime().panels.party, 0);
 }
 
-// 0x5e3cb5..0x5e3ceb: con la party abierta, el mouse en [x, x + 0xbe) × [y, y + 0x1b1) es de la UI. Cerrada, el paso
-// no hace nada. No saca rand().
+// 0x5e3cb5..0x5e3ceb: with the party open, the mouse in [x, x + 0xbe) × [y, y + 0x1b1) belongs to the UI. Closed, the
+// step does nothing. No rand().
 TEST_P(GamePartyWindowTest, TheMouseOverTheWindowIsOfTheUi)
 {
     Client::Ui::GameUiState& ui = Runtime().ui;
@@ -371,8 +371,9 @@ TEST_P(GamePartyWindowTest, TheMouseOverTheWindowIsOfTheUi)
     EXPECT_EQ(Runtime().panels.party, 1);
 }
 
-// 0x5e40d4..0x5e411d: el clic en [x + 0x19, + 0x18) × [y + 0x18b, + 0x18) lo gasta, pone 0x77f3b10 en 0 y 0x6c8dcc
-// en 6 y cierra con Close(4), que suena sin sacar rand(). El botón abajo (0x7d36874) queda.
+// 0x5e40d4..0x5e411d: the click in [x + 0x19, + 0x18) × [y + 0x18b, + 0x18) is spent, sets 0x77f3b10 to 0 and
+// 0x6c8dcc to 6 and closes with Close(4), which plays a sound without taking rand(). The button down (0x7d36874)
+// stays.
 TEST_P(GamePartyWindowTest, TheCloseButtonClosesTheParty)
 {
     OpenAndPlace();
@@ -399,7 +400,7 @@ TEST_P(GamePartyWindowTest, TheCloseButtonClosesTheParty)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// Antes del primer dibujo la esquina es (0, 0): el botón de cerrar está en (25, 395).
+// Before the first drawing the corner is (0, 0): the close button is at (25, 395).
 TEST_P(GamePartyWindowTest, BeforeTheFirstDrawTheCornerIsZero)
 {
     Runtime().panels.party = 1;
@@ -409,9 +410,9 @@ TEST_P(GamePartyWindowTest, BeforeTheFirstDrawTheCornerIsZero)
     EXPECT_EQ(Runtime().panels.party, 0);
 }
 
-// 0x5e3cf0..0x5e40b6: con miembros, el jefe (el primero de 0x77f3cd0) puede echar a cualquiera; los demás, solo a sí
-// mismos. El clic en el botón de echar (0x8c, 0x37 + 0x23 · lugar) lo gasta, suena y manda el C1 04 43 con el número
-// del lugar, en claro y sin rand().
+// 0x5e3cf0..0x5e40b6: with members, the leader (the first of 0x77f3cd0) can kick anyone; the others, only themselves.
+// The click on the kick button (0x8c, 0x37 + 0x23 · slot) is spent, plays a sound and sends the C1 04 43 with the
+// slot's number, in the clear and without rand().
 TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
 {
     OpenAndPlace();
@@ -434,7 +435,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
         Client::Hud::GamePanels panels(*m_world, m_random);
         return Client::Party::StepThePartyWindow(UiContext(x, y, &requests), panels.Registry());
     };
-    // El jefe echa al segundo.
+    // The leader kicks the second.
     Click();
     ASSERT_TRUE(step(Left + 0x8c, Top + 0x37 + 0x23).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"C1 04 43 07 "}));
@@ -443,7 +444,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     EXPECT_EQ(m_random.State(), Seed);
 
-    // Un miembro que no es el jefe no puede echar a otro, pero sí salir.
+    // A member who is not the leader cannot kick another, but can leave.
     setName(m_world->Hero().name, "Brezal");
     requests.requests.clear();
     Click();
@@ -452,7 +453,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     ASSERT_TRUE(step(Left + 0x8c + 0x17, Top + 0x37 + 0x23 + 0x17).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"C1 04 43 07 "}));
 
-    // Sin el clic, nada; sin el cable, corta.
+    // Without the click, nothing; without the wire, it fails.
     requests.requests.clear();
     ASSERT_TRUE(step(Left + 0x8c, Top + 0x37 + 0x23).HasValue());
     EXPECT_TRUE(requests.requests.empty());
@@ -461,13 +462,13 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5e3ded"), std::string::npos) << cut.Error();
 
-    // Con la cuenta negativa, como sin miembros.
+    // With a negative count, as without members.
     Runtime().hud.partyCount = -1;
     ASSERT_TRUE(Step(Left + 5, 5).HasValue());
 }
 
-// 0x5f12d0..0x5f130a: cerrada, el ancho del mundo (dos consultas con el inventario abierto) y los colores −1 y 0; sin
-// miembros no dibuja nada.
+// 0x5f12d0..0x5f130a: closed, the world's width (two queries with the inventory open) and colors −1 and 0; without
+// members it draws nothing.
 TEST_P(GamePartyWindowTest, TheClosedPartyOnlyAsksTheWorldWidth)
 {
     Runtime().hud.textColors = {.text = 0xffff8080u, .background = 0x12345678u};
@@ -486,16 +487,16 @@ TEST_P(GamePartyWindowTest, TheClosedPartyOnlyAsksTheWorldWidth)
     EXPECT_EQ(Runtime().hud.partyX, 0) << "cerrada no pone la esquina";
 }
 
-// 0x5f130a..0x5f168a: cerrada y con miembros, la lista de la derecha desde (640 − 50, 5): el fondo (ninguno con +0x1c
-// en −1), la barra, los décimos, el rojo del que no está o el verde de +0x20 & 8, el nombre, y los bordes y los
-// costados.
+// 0x5f130a..0x5f168a: closed and with members, the right-hand list from (640 − 50, 5): the background (none with +0x1c
+// at −1), the bar, the tenths, red for the one not present or green for +0x20 & 8, the name, and the edges and the
+// sides.
 TEST_P(GamePartyWindowTest, TheClosedPartyListsItsMembersOnTheRight)
 {
     ThreeMembers();
     ASSERT_TRUE(Draw(0, 0).HasValue());
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 8U + 13U + 4U + 4U);
-    // El primero: el fondo oscuro, la barra, cinco décimos y el nombre.
+    // The first: the dark background, the bar, five tenths and the name.
     ExpectQuadAt(quads[0], NoTexture, 587.0f, 5.0f, 50.0f, 19.0f);
     EXPECT_EQ(quads[0].color, (Color{0.1f, 0.1f, 0.1f, 0.7f}));
     EXPECT_EQ(quads[0].blend, BlendMode::Alpha);
@@ -503,17 +504,17 @@ TEST_P(GamePartyWindowTest, TheClosedPartyListsItsMembersOnTheRight)
     for (std::size_t tenth = 0; tenth < 5; ++tenth)
         ExpectQuadAt(quads[2 + tenth], NoTexture, 590.0f + 4.0f * static_cast<float>(tenth), 18.0f, 3.0f, 2.0f);
     EXPECT_EQ(quads[7].slot, Marker);
-    // El segundo, fuera del viewport: sin fondo, diez décimos (tenía 12) y el rojo encima.
+    // The second, outside the viewport: no background, ten tenths (it had 12) and the red on top.
     ExpectQuadAt(quads[8], NoTexture, 588.0f, 36.0f, 43.0f, 4.0f);
     ExpectQuadAt(quads[18], NoTexture, 626.0f, 37.0f, 3.0f, 2.0f);
     ExpectQuadAt(quads[19], NoTexture, 587.0f, 24.0f, 50.0f, 19.0f);
     EXPECT_EQ(quads[19].color, (Color{0.3f, 0.0f, 0.0f, 0.5f}));
-    // El tercero, con +0x78 & 8: el fondo, la barra sin décimos y el verde.
+    // The third, with +0x78 & 8: the background, the bar without tenths and the green.
     ExpectQuadAt(quads[21], NoTexture, 587.0f, 43.0f, 50.0f, 19.0f);
     ExpectQuadAt(quads[22], NoTexture, 588.0f, 55.0f, 43.0f, 4.0f);
     ExpectQuadAt(quads[23], NoTexture, 587.0f, 43.0f, 50.0f, 19.0f);
     EXPECT_EQ(quads[23].color, (Color{0.2f, 1.0f, 0.2f, 0.2f}));
-    // Message_box2 arriba y abajo, y los costados de 3 · 19.
+    // Message_box2 at top and bottom, and the sides of 3 · 19.
     ExpectQuadAt(quads[25], 0xfc, 585.0f, 2.0f, 54.0f, 3.0f);
     ExpectQuadAt(quads[26], 0xfc, 585.0f, 62.0f, 54.0f, 3.0f);
     ExpectQuadAt(quads[27], NoTexture, 586.0f, 5.0f, 1.0f, 57.0f);
@@ -531,8 +532,8 @@ TEST_P(GamePartyWindowTest, TheClosedPartyListsItsMembersOnTheRight)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5f1343..0x5f13eb: el fondo de un miembro con personaje se aclara con el mouse en [x − 3, x + 50] × [y, y + 19];
-// con el inventario abierto, el ancho del mundo es 450 y saca sus dos rand().
+// 0x5f1343..0x5f13eb: a member with a character gets a lighter background with the mouse in [x − 3, x + 50] ×
+// [y, y + 19]; with the inventory open, the world's width is 450 and takes its two rand().
 TEST_P(GamePartyWindowTest, TheListLightsUnderTheMouseAndFollowsTheWorldWidth)
 {
     ThreeMembers();
@@ -558,8 +559,9 @@ TEST_P(GamePartyWindowTest, TheListLightsUnderTheMouseAndFollowsTheWorldWidth)
     EXPECT_NE(cut.Error().find("0x5f130a"), std::string::npos) << cut.Error();
 }
 
-// 0x5f0c01..0x5f11c2: abierta y vacía, la esquina, el fondo sin mezcla (0x104 y 0x105), el título centrado en la caja
-// de 120 desde x + 0x23, los renglones 191 a 197 en x + 0x14 (el vacío no se dibuja) y el botón de cerrar.
+// 0x5f0c01..0x5f11c2: open and empty, the corner, the background without blending (0x104 and 0x105), the title
+// centered in the 120 box from x + 0x23, lines 191 to 197 at x + 0x14 (the empty one is not drawn) and the close
+// button.
 TEST_P(GamePartyWindowTest, TheEmptyPartyDrawsItsFrameTitleAndLines)
 {
     Runtime().panels.party = 1;
@@ -586,7 +588,7 @@ TEST_P(GamePartyWindowTest, TheEmptyPartyDrawsItsFrameTitleAndLines)
 
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 7U);
-    // La caja de 120 desde 485, con el fondo en toda ella y el texto corrido (120 − 30) / 2.
+    // The 120 box from 485, with the background across it and the text shifted (120 − 30) / 2.
     EXPECT_EQ(texts[0].text, "Grupo");
     EXPECT_EQ(texts[0].x, 485);
     EXPECT_TRUE(texts[0].windowed);
@@ -609,7 +611,7 @@ TEST_P(GamePartyWindowTest, TheEmptyPartyDrawsItsFrameTitleAndLines)
         EXPECT_EQ(texts[line + 1].style.colors.text, 0xffe6e6e6u);
         EXPECT_EQ(texts[line + 1].style.colors.background, 0U);
     }
-    // La medida del último renglón, en 640 × 480.
+    // The last line's size, in 640 × 480.
     EXPECT_EQ(Runtime().hud.arrowsTextWidth, 66);
     EXPECT_EQ(Runtime().hud.arrowsTextHeight, 13);
     EXPECT_EQ(Runtime().hud.dcFont, FontKind::Normal);
@@ -617,8 +619,8 @@ TEST_P(GamePartyWindowTest, TheEmptyPartyDrawsItsFrameTitleAndLines)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5f11c2..0x5f12c6: con el mouse sobre el botón de cerrar (izquierda ≤ mouse < izquierda + 24), su ayuda (221) 13
-// más arriba, que deja la fuente normal y los colores −1 y 0.
+// 0x5f11c2..0x5f12c6: with the mouse over the close button (left ≤ mouse < left + 24), its help (221) 13 higher, which
+// leaves the normal font and colors −1 and 0.
 TEST_P(GamePartyWindowTest, TheCloseButtonShowsItsHelpUnderTheMouse)
 {
     Runtime().panels.party = 1;
@@ -643,7 +645,7 @@ TEST_P(GamePartyWindowTest, TheCloseButtonShowsItsHelpUnderTheMouse)
     EXPECT_EQ(help.style.colors.background, 0U);
     EXPECT_EQ(Runtime().hud.textColors.text, 0xffffffffu);
     EXPECT_EQ(Runtime().hud.textColors.background, 0U);
-    // El marco y el fondo de la ayuda, después del botón, y la mezcla de antes.
+    // The help's frame and background, after the button, and the previous blend.
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 16U);
     for (std::size_t quad = 10; quad < 15; ++quad)
@@ -652,9 +654,9 @@ TEST_P(GamePartyWindowTest, TheCloseButtonShowsItsHelpUnderTheMouse)
     EXPECT_EQ(m_sprites.Blend(), BlendMode::Alpha);
 }
 
-// 0x5f0df0..0x5f11ad: abierta, cada miembro de a 0x23: el nombre en negrita (el jefe con fondo rojo), el mapa
-// (0x5f0b40: el 2 es el texto 32 y el 10, el 55) y la celda, la barra de 92 × 5 y la vida (la menor sobre la máxima,
-// · 90) con sus números, y el botón de echar en cada uno porque el héroe es el jefe.
+// 0x5f0df0..0x5f11ad: open, each member every 0x23: the name in bold (the leader on a red background), the map
+// (0x5f0b40: 2 is text 32 and 10, 55) and the cell, the 92 × 5 bar and the life (the lesser over the maximum, · 90)
+// with its numbers, and the kick button on each because the hero is the leader.
 TEST_P(GamePartyWindowTest, TheOpenPartyDrawsItsMembers)
 {
     Runtime().panels.party = 1;
@@ -698,14 +700,14 @@ TEST_P(GamePartyWindowTest, TheOpenPartyDrawsItsMembers)
     ExpectQuadAt(bars[1], NoTexture, Left + 0x14, 0x46 + 0x23, 90.0f, 3.0f);
     ExpectQuadAt(bars[2], NoTexture, Left + 0x14, 0x46 + 0x46, 30.0f, 3.0f);
     EXPECT_EQ(bars[0].color, (Color{225.0f / 255.0f, 15.0f / 255.0f, 0.0f, 1.0f}));
-    // Los tres botones de echar y el de cerrar.
+    // The three kick buttons and the close one.
     ASSERT_EQ(kicks.size(), 4U);
     ExpectQuadAt(kicks[1], 0x118, Left + 140.0f, 55.0f + 0x23, 24.0f, 24.0f);
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5f1137..0x5f11a1: con el mouse en el botón de echar y el izquierdo abajo, exit_02 (0x119) encima y la ayuda (189)
-// 13 arriba; sin ser el jefe, solo el propio. Sin Text.bmd, corta en el título.
+// 0x5f1137..0x5f11a1: with the mouse on the kick button and the left down, exit_02 (0x119) on top and the help (189)
+// 13 higher; when not the leader, only one's own. Without Text.bmd, it fails at the title.
 TEST_P(GamePartyWindowTest, TheKickButtonPressesAndShowsItsHelp)
 {
     Runtime().panels.party = 1;
@@ -741,8 +743,8 @@ TEST_P(GamePartyWindowTest, TheKickButtonPressesAndShowsItsHelp)
     EXPECT_NE(missing.Error().find("0x5f0cf6"), std::string::npos) << missing.Error();
 }
 
-// En 800 × 600 la caja del título es de 150 píxeles: DrawColumns la pone en _ftol(485 · 1,25) = 606, con el texto
-// corrido (150 − 30) / 2 = 60 columnas, sin pasar la x por 640 × 480.
+// In 800 × 600 the title box is 150 pixels: DrawColumns places it at _ftol(485 · 1.25) = 606, with the text shifted
+// (150 − 30) / 2 = 60 columns, without passing x through 640 × 480.
 TEST_P(GamePartyWindowTest, TheTitleBoxScalesWithTheScreen)
 {
     Runtime().panels.party = 1;
@@ -755,8 +757,8 @@ TEST_P(GamePartyWindowTest, TheTitleBoxScalesWithTheScreen)
     EXPECT_EQ(m_text.texts[0].columns, 150);
 }
 
-// 0x554180 con caja llama a 0x467060 aunque el título esté vacío: mide el "0" (6 columnas) y dibuja solo el fondo, en
-// 6 + 2 · ((120 − 6) / 2) columnas.
+// 0x554180 with a box calls 0x467060 even with an empty title: it measures the "0" (6 columns) and draws only the
+// background, in 6 + 2 · ((120 − 6) / 2) columns.
 TEST_P(GamePartyWindowTest, AnEmptyTitleDrawsOnlyItsBox)
 {
     std::map<std::size_t, std::string> texts = PartyTexts();

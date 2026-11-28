@@ -71,31 +71,31 @@ namespace Client::Messenger
 namespace
 {
 constexpr std::uint16_t HeightOffsetPet = 0x1c15;
-// 0x4963fd: el lugar del personaje después de 0x511290, (−300, −300, −300) (0xc3960000).
+// 0x4963fd: the character's place after 0x511290, (−300, −300, −300) (0xc3960000).
 constexpr float HiddenCoordinate = -300.0f;
-// 0x4978a0..0x4978b6: los ángulos de 0x497890.
+// 0x4978a0..0x4978b6: 0x497890's angles.
 constexpr float PortraitPitch = -20.0f;
 constexpr float PortraitRoll = 5.0f;
 constexpr float PortraitYaw = 60.0f;
-// 0x6b8a5c: lo que 0x497810 y la cola de 0x496530 multiplican por la escala del ayudante.
+// 0x6b8a5c: what 0x497810 and 0x496530's tail multiply the helper's scale by.
 constexpr float HelperScaleFactor = 0.7f;
-// 0x497862: de 0x83 en adelante, con alas, la zona segura.
+// 0x497862: from 0x83 on, with wings, the safe zone.
 constexpr std::int32_t LastGroundAction = 0x82;
-// 0x495b2a: el blanco (+0x3a4) de la acción 0x78.
+// 0x495b2a: action 0x78's target (+0x3a4).
 constexpr std::uint16_t NoAttackTarget = 0xffff;
-// 0x5130cc..0x513124: 0x513100 no llama a 0x4f2250 con la acción entre 0x22 y 0x97 o entre 0xc5 y 0xcc.
+// 0x5130cc..0x513124: 0x513100 does not call 0x4f2250 with the action between 0x22 and 0x97 or between 0xc5 and 0xcc.
 using Tables::FirstBusyAction;
 using Tables::FirstEmoteAction;
 using Tables::LastBusyAction;
 using Tables::LastEmoteAction;
-// El registro propio: las manos en 0 y 1, el cuerpo de 2 a 6, las alas en 7 y la mascota en 8 (+0xb6c + 0x48 · i).
+// The own record: the hands at 0 and 1, the body from 2 to 6, the wings at 7 and the pet at 8 (+0xb6c + 0x48 · i).
 constexpr std::size_t FirstBodySlot = 2;
 constexpr std::size_t WingsSlot = 7;
 constexpr std::size_t PetSlot = 8;
 constexpr int LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
-// 0x495a20: las acciones que recorre. 0x6c7b08, con el ayudante montado (0xc6, 0x110, 0xbf y 0x14a..0x14c), y
-// 0x6c7b14, los gestos. Con el índice negativo suma 300 (0x12c) o 2400 (0x960) antes del resto.
+// 0x495a20: the actions it goes through. 0x6c7b08, with the helper ridden (0xc6, 0x110, 0xbf and 0x14a..0x14c), and
+// 0x6c7b14, the gestures. With a negative index it adds 300 (0x12c) or 2400 (0x960) before the remainder.
 constexpr std::array<std::int32_t, 3> RidingActions{0x7a, 0x7c, 0x78};
 constexpr std::int32_t RidingWrap = 300;
 constexpr std::array<std::int32_t, 24> GestureActions{0x7a, 0x83, 0x85, 0x86, 0x87, 0x8b, 0x89, 0x8c,
@@ -107,7 +107,7 @@ constexpr std::int32_t StopAction = Protocol::Movement::FacingAction;
 constexpr std::int32_t WalkAction = 0x7c;
 constexpr std::int32_t FirstGesture = 0x80;
 constexpr std::int32_t LastGesture = 0x94;
-// Los ayudantes montados de 0x495a2b..0x495a57.
+// The ridden helpers of 0x495a2b..0x495a57.
 constexpr std::uint16_t GuardianPet = 0x1c12;
 constexpr std::uint16_t UniliaHelper = 0xc6;
 constexpr std::uint16_t DinorantHelper = 0x110;
@@ -136,7 +136,7 @@ Actors::ActorStopContext StopContextOf(const Scenes::WorldEntryResources& resour
                                     .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr};
 }
 
-// [0x6c9dd0] en 0 mientras vive: 0x495a20 lo baja alrededor de 0x4f2250, 0x4f4a10 y 0x4f37c0 y lo vuelve a poner.
+// [0x6c9dd0] at 0 while it lives: 0x495a20 zeroes it around 0x4f2250, 0x4f4a10 and 0x4f37c0 and sets it back.
 class MapAtZero
 {
 public:
@@ -168,7 +168,7 @@ Core::Expected<void, std::string> StopThePortrait(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x513100 sobre el personaje del retrato (0x4977d0 y 0x496575).
+// 0x513100 over the portrait's character (0x4977d0 and 0x496575).
 Core::Expected<void, std::string> ApplyTheClassParts(Kernel::ActorState& actor,
                                                      const Scenes::WorldEntryResources& resources)
 {
@@ -182,9 +182,9 @@ Core::Expected<void, std::string> ApplyTheClassParts(Kernel::ActorState& actor,
         if (auto stopped = StopThePortrait(actor, resources, "0x513135"); !stopped.HasValue())
             return stopped;
     }
-    // 0x513146..0x51324d: cada parte con el modelo base de la clase (la clase & 7, sin las vueltas) pasa al de la clase
-    // entera con el nivel y los bytes +3 y +4 en 0. La comparación de la parte 0 lee la suya; las de las partes 1 a 4
-    // leen el word de la parte siguiente (+0x258, +0x278, +0x298 y la mano derecha, +0x2b8), Q-C1024.
+    // 0x513146..0x51324d: each part with the class's base model (class & 7, without the evolution) goes to the whole
+    // class's with the level and bytes +3 and +4 at 0. Part 0's comparison reads its own; those of parts 1 to 4 read
+    // the next part's word (+0x258, +0x278, +0x298 and the right hand, +0x2b8), Q-C1024.
     const std::uint8_t characterClass = actor.characterClass;
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {
@@ -206,7 +206,7 @@ Core::Expected<void, std::string> ApplyTheClassParts(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x496430: el word del modelo, el nivel (+2) y el byte +3.
+// 0x496430: the model's word, the level (+2) and byte +3.
 bool SamePart(const Kernel::ActorItemPart& part, const Kernel::ActorItemPart& other)
 {
     return part.model == other.model && part.level == other.level && part.flags1b == other.flags1b;
@@ -217,8 +217,8 @@ std::uint8_t LevelOf(const Kernel::ItemState& item)
     return static_cast<std::uint8_t>((item.scalar1Low >> LevelShift) & LevelMask);
 }
 
-// 0x496470(parte, ítem, el de la clase): sin ítem (0xffff), el modelo con signo igual a `empty`; si no, al índice con
-// signo + 0x212. Después el nivel ((D+4 >> 3) & 0xf) y el byte +3 con el D+0x1b.
+// 0x496470(part, item, the class's): without an item (0xffff), the signed model equal to `empty`; otherwise, to the
+// signed index + 0x212. Then the level ((D+4 >> 3) & 0xf) and byte +3 with D+0x1b.
 bool SameAsItem(const Kernel::ActorItemPart& part, const Kernel::ItemState& item, std::int32_t empty)
 {
     const std::int32_t model = static_cast<std::int16_t>(part.model);
@@ -227,7 +227,7 @@ bool SameAsItem(const Kernel::ActorItemPart& part, const Kernel::ItemState& item
     return model == expected && part.level == LevelOf(item) && part.flags1b == item.flags1b;
 }
 
-// 0x4964f0(parte, ítem, el de la clase): el modelo (el word de `empty` sin ítem), el nivel y el byte +3; el +4 queda.
+// 0x4964f0(part, item, the class's): the model (`empty`'s word without an item), the level and byte +3; +4 stays.
 void FillFromItem(Kernel::ActorItemPart& part, const Kernel::ItemState& item, std::uint16_t empty)
 {
     part.model = item.id == Kernel::NoItemModel ? empty : static_cast<std::uint16_t>(item.id + Tables::FirstItemModel);
@@ -248,12 +248,12 @@ struct Differences
     bool pet = false;
 };
 
-// 0x496595..0x496658: con +0x3e3 del héroe en 0, contra el héroe.
+// 0x496595..0x496658: with the hero's +0x3e3 at 0, against the hero.
 Differences CompareWithTheHero(const Kernel::ActorState& actor, const Kernel::ActorState& hero)
 {
     Differences differ;
-    // 0x49659b..0x4965c5: la cabeza (+0x1f8) y las cinco partes, cortando en la primera distinta. De la cabeza MuRet
-    // guarda solo el word: el nivel y el +3 los deja en 0 0x511290 en los dos (*inferido*).
+    // 0x49659b..0x4965c5: the head (+0x1f8) and the five parts, stopping at the first different one. Of the head MuRet
+    // keeps only the word: 0x511290 leaves the level and +3 at 0 in both (*inferred*).
     differ.body = actor.head != hero.head;
     for (std::size_t part = 0; !differ.body && part < actor.body.size(); ++part)
         differ.body = !SamePart(actor.body[part], hero.body[part]);
@@ -264,7 +264,7 @@ Differences CompareWithTheHero(const Kernel::ActorState& actor, const Kernel::Ac
     return differ;
 }
 
-// 0x49665d..0x496975: con +0x3e3 del héroe distinto de 0, contra el registro propio, con su acceso abierto.
+// 0x49665d..0x496975: with the hero's +0x3e3 other than 0, against the own record, with its access open.
 Differences CompareWithTheRecord(const Kernel::ActorState& actor, std::uint8_t heroClass,
                                  const Scenes::WorldEntryResources& resources)
 {
@@ -283,17 +283,17 @@ Differences CompareWithTheRecord(const Kernel::ActorState& actor, std::uint8_t h
     return differ;
 }
 
-// 0x4969b2..0x496a5e: del héroe tal cual, de a partes de 0x20 bytes.
+// 0x4969b2..0x496a5e: from the hero as is, in 0x20-byte parts.
 void CopyFromTheHero(LetterPortrait& portrait, const Kernel::ActorState& hero, const Differences& differ)
 {
     Kernel::ActorState& actor = portrait.actor;
     if (differ.body)
     {
-        // 0x4969bd: 0x4fb1a0(personaje, 0, 0), las telas.
+        // 0x4969bd: 0x4fb1a0(character, 0, 0), the cloths.
         portrait.cloth = Actors::Drawing::CharacterCloth{};
         actor.head = hero.head;
         actor.body = hero.body;
-        // 0x4969e3..0x4969f7: el byte +0x14 y los dwords +0x18 y +0x1c de las seis partes en 0; MuRet no los tiene.
+        // 0x4969e3..0x4969f7: byte +0x14 and dwords +0x18 and +0x1c of the six parts at 0; MuRet does not have them.
     }
     if (differ.hands)
         actor.hands = hero.hands;
@@ -306,7 +306,7 @@ void CopyFromTheHero(LetterPortrait& portrait, const Kernel::ActorState& hero, c
     }
 }
 
-// 0x496a65..0x497636: del registro propio, cada grupo con su acceso (y los 3.848 rand() de su cierre).
+// 0x496a65..0x497636: from the own record, each group with its access (and the 3848 rand() of its close).
 void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const Differences& differ,
                        const Scenes::WorldEntryResources& resources)
 {
@@ -317,7 +317,7 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
     const auto& equipment = world.OwnCharacter().equipment;
     if (differ.body)
     {
-        // 0x496a79: 0x4fb1a0 antes de abrir el registro.
+        // 0x496a79: 0x4fb1a0 before opening the record.
         portrait.cloth = Actors::Drawing::CharacterCloth{};
         {
             const Models::LogicalAccess own(depth, random, Models::OwnRecordCloseRandoms);
@@ -325,7 +325,7 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
             for (std::size_t part = 0; part < actor.body.size(); ++part)
                 FillFromItem(actor.body[part], equipment[FirstBodySlot + part], ClassPart(part, heroClass));
         }
-        // 0x496e30..0x496e52: el byte +0x14 y los dwords +0x18 y +0x1c de las seis partes en 0; MuRet no los tiene.
+        // 0x496e30..0x496e52: byte +0x14 and dwords +0x18 and +0x1c of the six parts at 0; MuRet does not have them.
     }
     if (differ.hands)
     {
@@ -346,8 +346,8 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
     }
 }
 
-// 0x497676..0x49777c: el ayudante de nuevo por la mascota (las tablas 0x4977a4 y 0x49778c), su alpha (+0x174) en 0 y
-// +0x688 con la escala del personaje del retrato.
+// 0x497676..0x49777c: the helper again by the pet (tables 0x4977a4 and 0x49778c), its alpha (+0x174) at 0 and +0x688
+// with the portrait character's scale.
 Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait,
                                                    const Scenes::WorldEntryResources& resources)
 {
@@ -370,7 +370,7 @@ Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait,
         type = DarkHorseHelper;
         break;
     case 0x1c37:
-        // 0x49770a..0x497753: por +0x31b, el byte +3 de la mascota.
+        // 0x49770a..0x497753: by +0x31b, the pet's byte +3.
         type = actor.pet.flags1b == 1   ? std::uint16_t{0x14a}
                : actor.pet.flags1b == 2 ? std::uint16_t{0x14c}
                                         : std::uint16_t{0x14b};
@@ -423,7 +423,7 @@ Actors::CharacterStepContext StepContextOf(const Scenes::WorldEntryResources& re
         .effectHooks = resources.effectHooks};
 }
 
-// 0x495796: el paso del ayudante con lo del mundo de `resources`.
+// 0x495796: the helper's step with the world of `resources`.
 Pets::HelperStepContext HelperStepContextOf(const Scenes::WorldEntryResources& resources)
 {
     const float worldClock =
@@ -449,8 +449,8 @@ bool RidesTheHelper(const Kernel::HelperState& helper)
            (type >= FirstFenrirHelper && type <= LastFenrirHelper);
 }
 
-// 0x495a59..0x495aba: el índice de `action` en la lista (el tamaño si no está), más `delta`, con la vuelta si quedó
-// negativo y el resto con signo.
+// 0x495a59..0x495aba: `action`'s index in the list (the size if absent), plus `delta`, wrapping if it went negative,
+// and the signed remainder.
 template <std::size_t N>
 Core::Expected<std::int32_t, std::string> NextIn(const std::array<std::int32_t, N>& actions, std::int32_t wrap,
                                                  std::int32_t action, std::int32_t delta)
@@ -472,12 +472,12 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait,
                                                    const Scenes::WorldEntryResources& resources)
 {
     Crt::CrtRandom& random = resources.cloth.random;
-    // 0x4961d9..0x4961ec: el ayudante en cero (0x75 dwords).
+    // 0x4961d9..0x4961ec: the helper zeroed (0x75 dwords).
     portrait.helper = Kernel::HelperState{};
     Kernel::ActorState& actor = portrait.actor;
     {
-        // 0x4961ee..0x4962b7: abre +0x41c y +0x420; 0x4962bc..0x4962c7 borra los 0x438 bytes (las entradas de la tabla
-        // quedan); 0x4962c9..0x496354 cierra la X y después la Y.
+        // 0x4961ee..0x4962b7: opens +0x41c and +0x420; 0x4962bc..0x4962c7 clears the 0x438 bytes (the table entries
+        // stay); 0x4962c9..0x496354 closes X and then Y.
         std::optional<Models::LogicalAccess> cellX;
         cellX.emplace(actor.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
         std::optional<Models::LogicalAccess> cellY;
@@ -489,12 +489,12 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait,
         actor.cellXAccesses = xDepth;
         actor.cellYAccesses = yDepth;
         actor.byte38eAccesses = byte38eDepth;
-        // Las telas (+0x18c y +0x190) también quedan en cero, sin soltarlas.
+        // The cloths (+0x18c and +0x190) are zeroed too, without releasing them.
         portrait.cloth = Actors::Drawing::CharacterCloth{};
         cellX.reset();
         cellY.reset();
     }
-    // 0x496354..0x4963e0: la celda lógica del héroe publicado, la Y y después la X.
+    // 0x496354..0x4963e0: the published hero's logical cell, Y and then X.
     const Actors::LogicalCell cell = Actors::ReadLogicalCell(HeroOf(resources), random);
     Kernel::WorldState& world = resources.world;
     const Actors::ActorConstructionContext construction{Scenes::TerrainOf(resources), world.Runtime().map,
@@ -510,7 +510,8 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait,
 Core::Expected<void, std::string> SetThePortraitClass(LetterPortrait& portrait, std::uint8_t characterClass,
                                                       const Scenes::WorldEntryResources& resources)
 {
-    // 0x4977de..0x497804: [0x743a16c] (el pool) apunta al personaje del retrato mientras dura; 0x513100 no lo lee.
+    // 0x4977de..0x497804: [0x743a16c] (the pool) points to the portrait's character meanwhile; 0x513100 does not read
+    // it.
     portrait.actor.characterClass = characterClass;
     return ApplyTheClassParts(portrait.actor, resources);
 }
@@ -522,7 +523,7 @@ Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, Ker
     const Pets::OwnHelper helper(portrait.helper, actor, resources.world, &resources.cloth.random);
     if (auto dressed = Actors::ApplyCharacterSetTo(actor, helper, equipment, resources); !dressed.HasValue())
         return dressed;
-    // 0x497836..0x497855: la x87 con la escala del héroe publicado, guardada en float.
+    // 0x497836..0x497855: the x87 with the published hero's scale, stored as float.
     portrait.helperScale =
         static_cast<float>(static_cast<double>(portrait.helper.scale) * static_cast<double>(HelperScaleFactor) /
                            static_cast<double>(HeroOf(resources).scale));
@@ -543,7 +544,7 @@ Core::Expected<bool, std::string> CopyTheHeroToThePortrait(LetterPortrait& portr
         if (auto parts = ApplyTheClassParts(actor, resources); !parts.HasValue())
             return Core::Unexpected(parts.Error());
     }
-    // 0x496584: +0x3e3 del héroe, leído otra vez antes de copiar (0x49699b).
+    // 0x496584: the hero's +0x3e3, read again before copying (0x49699b).
     const bool fromTheRecord = hero.byte3e3 != 0;
     const Differences differ =
         fromTheRecord ? CompareWithTheRecord(actor, hero.characterClass, resources) : CompareWithTheHero(actor, hero);
@@ -564,7 +565,7 @@ Core::Expected<bool, std::string> CopyTheHeroToThePortrait(LetterPortrait& portr
     }
     else
     {
-        // 0x497655..0x497677: el `[EBP − 0xc] == 1` de la mascota no se cumple acá; queda el de las manos.
+        // 0x497655..0x497677: the pet's `[EBP − 0xc] == 1` does not hold here; the hands' remains.
         auto shown = ShowThePortraitAction(portrait, portrait.shownAction, 0, resources);
         if (!shown.HasValue())
             return Core::Unexpected(shown.Error());
@@ -587,7 +588,7 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     const std::int32_t chosen = next.Value();
     Kernel::ActorState& actor = portrait.actor;
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
-    // 0x495adb: la tabla 0x495dd4, de 0x78 a 0x94.
+    // 0x495adb: table 0x495dd4, from 0x78 to 0x94.
     if (chosen == StopAction)
     {
         const MapAtZero map(runtime);
@@ -596,8 +597,8 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     }
     else if (chosen == StrikeAction)
     {
-        // 0x495b00..0x495b33: SetActorAttack (0x4f4a10, con sus rand()) con el mundo en 0; con el mundo de vuelta,
-        // +0x381 en 1, el frame (+0x114) en 0 y el blanco (+0x3a4) en 0xffff.
+        // 0x495b00..0x495b33: SetActorAttack (0x4f4a10, with its rand()) with the world at 0; with the world back,
+        // +0x381 at 1, the frame (+0x114) at 0 and the target (+0x3a4) at 0xffff.
         {
             const MapAtZero map(runtime);
             if (auto attacked = Combat::SetActorAttack(actor, Combat::CombatContextOf(resources)); !attacked.HasValue())
@@ -620,11 +621,11 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
                                                                  .actorSkeleton = player});
         if (!walked.HasValue())
             return Core::Unexpected(walked.Error());
-        // StepSound (0x4f37c0) manda cada pedido en el orden original; el resultado conserva solo el último.
+        // StepSound (0x4f37c0) sends each request in the original order; the result keeps only the last.
     }
     else if (chosen >= FirstGesture && chosen <= LastGesture)
     {
-        // 0x495b56..0x495da7: 0x4ea030 con la animación de la tabla de los gestos.
+        // 0x495b56..0x495da7: 0x4ea030 with the gestures table's animation.
         const auto* skeleton = resources.models.SkeletonOf(Models::ModelId{actor.type});
         if (skeleton == nullptr)
             return Core::Unexpected(
@@ -632,7 +633,7 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
         Models::SetAction(actor.animation, *skeleton,
                           Actors::TableAnimationOf(actor.characterClass, static_cast<std::uint8_t>(chosen)));
     }
-    // 0x495daf..0x495db8: 0x4fd5f0 y 0x505de0 con el mundo en curso.
+    // 0x495daf..0x495db8: 0x4fd5f0 and 0x505de0 with the current world.
     if (auto stepped = Actors::StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
         return Core::Unexpected(stepped.Error());
     portrait.shownAction = chosen;
@@ -646,28 +647,28 @@ void TurnThePortrait(LetterPortrait& portrait)
 
 Render::Pass3D PortraitPass(Core::PixelSize screen, const Ui::OldWindowBase& base, const Kernel::ActorState& actor)
 {
-    // 0x6ba004: el alto del retrato.
+    // 0x6ba004.
     constexpr float PortraitHeight = 141.0f;
     constexpr float FieldOfView = 1.0f;
     constexpr float NearPlane = 2000.0f;
     constexpr float FarPlane = 20000.0f;
     constexpr float RightAngle = -90.0f;
     constexpr glm::vec3 Distance{-10000.0f, 0.0f, -75.0f};
-    // 0x6b86b0: lo que baja el caballo oscuro.
+    // 0x6b86b0.
     constexpr double HorseDrop = 50.0;
     constexpr std::uint16_t DarkHorsePet = 0x1c16;
     const double rx = static_cast<double>(Render::ScaleX(1.0f, screen));
     const double ry = static_cast<double>(Render::ScaleY(1.0f, screen));
-    // 0x4957bd..0x4957fc: _ftol trunca hacia el 0.
+    // 0x4957bd..0x4957fc: _ftol truncates toward 0.
     const auto x = static_cast<int>(static_cast<double>(base.x) * rx);
     const auto y = static_cast<int>(static_cast<double>(base.y) * ry);
     const auto width = static_cast<int>(static_cast<double>(base.width) * rx);
     const auto height = static_cast<int>(ry * static_cast<double>(PortraitHeight));
     Render::Pass3D pass;
     pass.screen = screen;
-    // 0x620d10: la y de GL desde abajo.
+    // 0x620d10: GL's y from the bottom.
     pass.viewport = {x, screen.height - y - height, width, height};
-    // 0x495801..0x495826: la x87, guardada en float.
+    // 0x495801..0x495826: the x87, stored as float.
     const auto aspect =
         static_cast<float>((static_cast<double>(base.width) * rx) / (ry * static_cast<double>(PortraitHeight)));
     pass.projection = Math::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
@@ -687,16 +688,15 @@ Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const Ui::OldPortraitP
     Kernel::ActorState& actor = portrait.actor;
     // 0x4957a4..0x4958c6.
     Render::Pass3D pass = PortraitPass(screen, part.base, actor);
-    // 0x495849: 0x620370 guarda la modelview en la identidad en 0x7d366f0, la cámara de las billboards, y nadie la
-    // vuelve a poner hasta el pase del mundo siguiente. En MuRet cada dibujo de billboards lee la vista de su pase, y
-    // el retrato no dibuja ninguna.
+    // 0x495849: 0x620370 stores the identity modelview at 0x7d366f0, the billboards' camera, and nobody sets it again
+    // until the next world pass. In MuRet each billboard draw reads its pass's view, and the portrait draws none.
     // 0x4958cc..0x4958df.
     actor.angles = {0.0f, 0.0f, part.angle};
-    // 0x49594f..0x49596f: la del ayudante, que 0x445260 pisa con su segundo argumento en 1 (Q-C1010).
+    // 0x49594f..0x49596f: the helper's, which 0x445260 overwrites with its second argument at 1 (Q-C1010).
     actor.scale = static_cast<float>(static_cast<double>(part.zoom) * static_cast<double>(HelperScaleFactor));
     portrait.helper.scale =
         static_cast<float>(static_cast<double>(portrait.helperScale) * static_cast<double>(part.zoom));
-    // 0x495975..0x495993: las luces (+0xf4..+0xfc) del personaje y del ayudante en 1.
+    // 0x495975..0x495993: the lights (+0xf4..+0xfc) of the character and the helper at 1.
     actor.light = glm::vec3(1.0f);
     portrait.helper.light = glm::vec3(1.0f);
     // 0x4959a1..0x4959bf.
@@ -710,7 +710,7 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
                                                                    const Scenes::WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
-    // 0x497cac..0x497d3d: el frame contra +0x6a8 (la x87: el int a la pila y el float del frame).
+    // 0x497cac..0x497d3d: the frame against +0x6a8 (the x87: the int onto the x87 stack and the frame's float).
     if (static_cast<double>(actor.animation.frame) < static_cast<double>(portrait.frameMark))
     {
         constexpr int IdleOdds = 4;
@@ -732,16 +732,16 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
     {
         portrait.frameMark = static_cast<std::int32_t>(actor.animation.frame);
     }
-    // 0x497d3d..0x497d4f: +0x360 por debajo de 4, 0x414340.
+    // 0x497d3d..0x497d4f: +0x360 below 4, 0x414340.
     constexpr std::uint8_t FirstKeptLayer = 4;
     if (actor.byte360 < FirstKeptLayer)
         Kernel::ReleaseTheLayer(actor);
     {
-        // 0x495766..0x49579e: con el mundo en 0.
+        // 0x495766..0x49579e: with the world at 0.
         const MapAtZero map(resources.world.Runtime());
         if (auto stepped = Actors::StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
             return Core::Unexpected(stepped.Error());
-        // 0x495796: 0x444010(ayudante, 1), vivo o no.
+        // 0x495796: 0x444010(helper, 1), alive or not.
         auto helped = Pets::StepTheHelperOutsideTheTable(portrait.helper, actor, HelperStepContextOf(resources));
         if (!helped.HasValue())
             return Core::Unexpected(helped.Error());
@@ -757,7 +757,7 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
         return Core::Unexpected(std::string("0x4959cc: falta el flujo global de rand del dibujo del retrato"));
     if (draw.helperModels == nullptr)
         return Core::Unexpected(std::string("0x4959cc: faltan los modelos de los ayudantes del dibujo del retrato"));
-    // 0x4958e2..0x495949: el 2D de antes queda debajo; el material de 0x620db0 y la profundidad borrada.
+    // 0x4958e2..0x495949: the earlier 2D stays underneath; 0x620db0's material and the depth cleared.
     if (draw.flushSprites)
         draw.flushSprites();
     Render::Pass3D cleared = pass;
@@ -790,7 +790,8 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
         drawn =
             Actors::Drawing::DrawCharacterOutsideThePool(draw.batch, resources.models, resources.world, portrait.actor,
                                                          portrait.cloth, characters, draw.originalFrame);
-    // 0x4959dd..0x495a0c: las matrices y el viewport de la pantalla (0x620d10(0, 0, W, H)), que el lote 2D pone solo.
+    // 0x4959dd..0x495a0c: the matrices and the screen viewport (0x620d10(0, 0, W, H)), which the 2D batch sets on its
+    // own.
     if (draw.flushModels)
         draw.flushModels();
     return drawn;
@@ -798,7 +799,7 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
 
 namespace
 {
-// 0x497c22..0x497ca2: el cuadro negro y el logo.
+// 0x497c22..0x497ca2: the black square and the logo.
 void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const Ui::OldWindowBase& base)
 {
     constexpr float BlankWidth = 119.0f;  // 0x42ee0000
@@ -816,7 +817,7 @@ void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const Ui::OldWindowBase&
                       LogoWidth, LogoHeight, 0.0f, 0.0f, 1.0f, LogoDv);
 }
 
-// 0x497d56..0x497f44: con +0x4c & 1, el ícono de la ayuda y, con la ayuda a la vista, sus tres renglones.
+// 0x497d56..0x497f44: with +0x4c & 1, the help icon and, with the help on view, its three lines.
 Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart& part, Hud::GameHudContext& hud)
 {
     const Ui::OldWindowBase& base = part.base;
@@ -837,7 +838,7 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart&
                           1.0f);
         return {};
     }
-    // 0x497dda..0x497e50: gris (0x3f19999a) y de vuelta en blanco.
+    // 0x497dda..0x497e50: gray (0x3f19999a) and back to white.
     constexpr float PressedGray = std::bit_cast<float>(0x3f19999au);
     constexpr float PressedSize = 15.0f; // 0x41700000
     constexpr float PressedUv = 0.9375f; // 0x3f700000
@@ -847,7 +848,7 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart&
                       static_cast<float>(base.y + base.height - PressedRise), PressedSize, PressedSize, 0.0f, 0.0f,
                       PressedUv, PressedUv);
     sprites.SetColor(Render::Color{});
-    // 0x497e52..0x497eec: los textos 997, 998 y 999 (0x7706238, 0x7706364 y 0x7706490) con el color 0 y sin negrita.
+    // 0x497e52..0x497eec: texts 997, 998 and 999 (0x7706238, 0x7706364 and 0x7706490) with color 0 and not bold.
     if (hud.texts == nullptr)
         return Core::Unexpected(std::string("0x497e62: la ayuda del retrato sin Text.bmd"));
     constexpr std::array<std::size_t, 3> HelpTexts{997, 998, 999};
@@ -864,7 +865,7 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart&
         lines.bold[line] = 0;
         ++lines.next;
     }
-    // 0x497ef1..0x497f3f: GetTextExtentPoint32A con "Z" (0x6c7af8) y la fuente del DC, cy / ry truncado.
+    // 0x497ef1..0x497f3f: GetTextExtentPoint32A with "Z" (0x6c7af8) and the DC's font, cy / ry truncated.
     const double ry = static_cast<double>(Render::ScaleY(1.0f, sprites.Screen()));
     const auto rowHeight =
         static_cast<std::int32_t>(static_cast<double>(hud.text.Measure(hud.hud.dcFont, "Z").height) / ry);

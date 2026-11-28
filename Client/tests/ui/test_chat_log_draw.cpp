@@ -18,8 +18,8 @@
 #include <utility>
 #include <vector>
 
-// El dibujo del registro del chat (CL8 hito 3; 06 § El chat): 0x479080 con el marco (0x45c460), los renglones
-// (0x45cbb0) y los botones (0x45d420). Los textos son inventados.
+// The chat log's draw (CL8 milestone 3; 06 § El chat): 0x479080 with the frame (0x45c460), the rows (0x45cbb0) and the
+// buttons (0x45d420). The texts are invented.
 namespace
 {
 using Client::Chat::ChatEntry;
@@ -63,7 +63,7 @@ protected:
         Client::Chat::DrawTheChatLog(m_log, m_frame, m_modes, context, m_view);
     }
 
-    // El registro fuera de su ventana, donde lo pone el paso de la UI: (−10, 0x65).
+    // The log outside its window, where the UI step puts it: (−10, 0x65).
     void AtTheTopLeft()
     {
         m_frame.x = -10;
@@ -76,7 +76,7 @@ protected:
     }
 };
 
-// 0x45cbb0: el nombre con ": " en x + 10 y el texto después, a ftol(cx / rx); de abajo hacia arriba desde y − 16.
+// 0x45cbb0: the name with ": " at x + 10 and the text after it, at ftol(cx / rx); bottom to top from y − 16.
 TEST_F(ChatLogDrawTest, RowsGoUpFromTheBottomWithTheNameBeforeTheText)
 {
     AtTheTopLeft();
@@ -101,7 +101,7 @@ TEST_F(ChatLogDrawTest, RowsGoUpFromTheBottomWithTheNameBeforeTheText)
     EXPECT_EQ(m_frame.blink, 1);
 }
 
-// El chat normal tiene un nombre (0xffefdccd) más claro que su texto (0xffc8dce6).
+// Normal chat has a name (0xffefdccd) lighter than its text (0xffc8dce6).
 TEST_F(ChatLogDrawTest, NormalChatHasALighterName)
 {
     AtTheTopLeft();
@@ -114,7 +114,7 @@ TEST_F(ChatLogDrawTest, NormalChatHasALighterName)
     EXPECT_EQ(m_text.texts[1].style.colors.text, 0xffc8dce6u);
 }
 
-// Fuera de su ventana y sin correr, la edad sube el renglón; con más edad que lugar, corta el dibujo.
+// Outside its window and not scrolled, the age lifts the row; with more age than room, it ends the draw.
 TEST_F(ChatLogDrawTest, AgeLiftsTheRowAndTooMuchAgeEndsTheDrawing)
 {
     AtTheTopLeft();
@@ -132,7 +132,7 @@ TEST_F(ChatLogDrawTest, AgeLiftsTheRowAndTooMuchAgeEndsTheDrawing)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// Sin F2, el chat normal no ocupa renglón.
+// Without F2, normal chat takes no row.
 TEST_F(ChatLogDrawTest, HiddenRowsTakeNoPlace)
 {
     AtTheTopLeft();
@@ -147,7 +147,7 @@ TEST_F(ChatLogDrawTest, HiddenRowsTakeNoPlace)
     EXPECT_EQ(m_text.texts[0].y, 85);
 }
 
-// El elegido cambia el texto y el fondo de su nombre tres dibujos de cada seis.
+// The selected one changes the text and its name's background three draws out of six.
 TEST_F(ChatLogDrawTest, TheSelectedNameBlinks)
 {
     AtTheTopLeft();
@@ -160,7 +160,8 @@ TEST_F(ChatLogDrawTest, TheSelectedNameBlinks)
     EXPECT_EQ(m_text.texts[1].style.colors, (TextColors{.text = 0xff000000u, .background = 0x9632c8ffu}));
 }
 
-// 0x45c460 en su ventana: el alto de 40 cada 3 renglones más 10 y un fondo negro con alfa 1 − 0,4, sin textura.
+// 0x45c460 in its window: a height of 40 every 3 rows plus 10 and a black background with alpha 1 − 0.4, without a
+// texture.
 TEST_F(ChatLogDrawTest, InItsWindowTheFrameSizesToTheRowsWithATranslucentBackground)
 {
     m_modes.placement = 1;
@@ -180,7 +181,7 @@ TEST_F(ChatLogDrawTest, InItsWindowTheFrameSizesToTheRowsWithATranslucentBackgro
     EXPECT_FALSE(m_sprites.Commands()[0].texture.has_value());
 }
 
-// El título del filtro, "754: palabras", en negrita sobre la esquina, también fuera de su ventana.
+// The filter title, "754: words", in bold over the corner, also outside its window.
 TEST_F(ChatLogDrawTest, TheFilterTitleIsDrawnInBold)
 {
     AtTheTopLeft();
@@ -200,7 +201,7 @@ TEST_F(ChatLogDrawTest, TheFilterTitleIsDrawnInBold)
     EXPECT_EQ(m_dcFont, FontKind::Normal);
 }
 
-// 0x45d420: los botones aparecen y se van de a 0,2 por dibujo, y con el campo del chat abierto no se ven.
+// 0x45d420: the buttons fade in and out by 0.2 per draw, and with the chat field open they are not shown.
 TEST_F(ChatLogDrawTest, TheButtonsFadeInAndOut)
 {
     AtTheTopLeft();
@@ -220,7 +221,7 @@ TEST_F(ChatLogDrawTest, TheButtonsFadeInAndOut)
     EXPECT_TRUE(m_sprites.Vertices().empty());
 }
 
-// En Crywolf (0x723c05 en 3 o 4), la lista de x = 0xba baja a y = 0x12f y los renglones van 0x65 por debajo.
+// In Crywolf (0x723c05 at 3 or 4), the list at x = 0xba moves down to y = 0x12f and the rows go 0x65 below.
 TEST_F(ChatLogDrawTest, InCrywolfTheListMovesAndRowsHangBelow)
 {
     m_view.crywolfStage = 3;

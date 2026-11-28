@@ -50,15 +50,15 @@ namespace
 {
 namespace Npc = Protocol::Npc;
 
-// 0x41ed10 (CL10): lo que dejan en WorldRuntime::lastSoundId.
+// 0x41ed10 (CL10): what they leave in WorldRuntime::lastSoundId.
 constexpr Audio::SoundId FirstTalkSound = Sound::ButtonClickSound;   // 0x4d2899
-constexpr Audio::SoundId FirstChaosSound{0x57};                      // 0x4c5f7f, 0x4c5fcb y 0x4da31b
-constexpr Audio::SoundId SecondTalkSound = Sound::CreateWindowSound; // 0x4d28a2, después del 0x19
-constexpr Audio::SoundId ItemSound = Sound::GetItemSound;            // 0x4e3c4e y 0x4e3cb0
+constexpr Audio::SoundId FirstChaosSound{0x57};                      // 0x4c5f7f, 0x4c5fcb and 0x4da31b
+constexpr Audio::SoundId SecondTalkSound = Sound::CreateWindowSound; // 0x4d28a2, after the 0x19
+constexpr Audio::SoundId ItemSound = Sound::GetItemSound;            // 0x4e3c4e and 0x4e3cb0
 constexpr Audio::SoundId RepairSound{0x25};                          // 0x4e3d1d
-constexpr Audio::SoundId ChaosListSound{0x44};                       // 0x4c5f88, después del 0x57
-constexpr Audio::SoundId ChaosSuccessSound = Sound::GemSound;        // 0x4da324, después del 0x57
-// La tabla de 0x4d2914 (pkt[3] − 2) y el default de 0x4d2881.
+constexpr Audio::SoundId ChaosListSound{0x44};                       // 0x4c5f88, after the 0x57
+constexpr Audio::SoundId ChaosSuccessSound = Sound::GemSound;        // 0x4da324, after the 0x57
+// The table at 0x4d2914 (pkt[3] − 2) and the default of 0x4d2881.
 constexpr std::uint8_t TalkWarehouse = 2;
 constexpr std::uint8_t TalkChaosBox = 3;
 constexpr std::uint8_t TalkEventNpc = 4;
@@ -69,10 +69,10 @@ constexpr std::uint8_t TalkBloodCastle = 9;
 constexpr std::uint8_t TalkCastleSiegeList = 12;
 constexpr std::uint8_t TalkCastleSiegeRequest = 13;
 constexpr std::int32_t BloodCastleDialog = 0xa1;
-// 0x4c5f6b y 0x4c5fb0: las grillas del 31 que no son la de 0x78a7070.
+// 0x4c5f6b and 0x4c5fb0: the 31's grids that are not the one at 0x78a7070.
 constexpr std::uint8_t ChaosBoxGrid = 3;
 constexpr std::uint8_t TrainerGrid = 5;
-// Los textos de Text.bmd de los mensajes (0x76bd1dc + 300 · índice) y su tipo de 0x555190.
+// The Text.bmd texts of the messages (0x76bd1dc + 300 · index) and their 0x555190 type.
 constexpr std::size_t ChaosBoxNotEmptyText = 593;    // 0x76e88c8, 0x65894f
 constexpr std::size_t TrainerBoxNotEmptyText = 1211; // 0x7715d00, 0x658de5
 constexpr std::size_t TrainerListText = 1208;        // 0x771597c, 0x4c5fb6
@@ -83,7 +83,7 @@ constexpr std::size_t MixNoticeText = 649;           // 0x76eca68, 0x4da352
 constexpr std::size_t SecondMixNoticeText = 689;     // 0x76ef948, 0x4da36c
 constexpr std::int32_t ErrorMessage = 2;
 constexpr std::int32_t SystemMessage = 1;
-// 0x4da38c/0x4da3a8: los resultados del 86.
+// 0x4da38c/0x4da3a8: the 86's results.
 constexpr std::uint8_t MixFailed = 0;
 constexpr std::uint8_t MixRefused = 2;
 constexpr std::uint8_t MixNotice = 4;
@@ -92,7 +92,7 @@ constexpr std::uint8_t SecondMixRefused = 0xb;
 // 0x7d2dc80.
 constexpr std::int32_t MixIdle = 0;
 constexpr std::int32_t MixReady = 2;
-// 0x4e60dc/0x4e60c0: el 83.
+// 0x4e60dc/0x4e60c0: the 83.
 constexpr std::uint8_t WarehouseUnlocked = 0;
 constexpr std::uint8_t WarehouseLockedState = 1;
 constexpr std::uint8_t WarehouseFirstDialog = 0xa;
@@ -102,18 +102,18 @@ constexpr std::uint8_t WarehouseThirdDialog = 0xd;
 constexpr std::int32_t FirstWarehouseDialog = 0x85;
 constexpr std::int32_t SecondWarehouseDialog = 0x86;
 constexpr std::int32_t ThirdWarehouseDialog = 0x89;
-// 0x4e477c: el lugar de lo que esperaba la contraseña cuando era zen.
+// 0x4e477c: the slot of what the password was waiting for when it was zen.
 constexpr std::int32_t PendingMoney = -1;
-// 0x4e4828: el diálogo que el 82 y el 87 cierran, y los campos de Tab que deja (0x4e484c).
+// 0x4e4828: the dialog that the 82 and the 87 close, and the Tab fields it leaves (0x4e484c).
 constexpr std::int32_t ClosedByTheServerDialog = 0x73;
 constexpr std::int32_t ClosedChatFieldCount = 2;
-// 0x4e483b: 0x6c8e78 en 0x2a.
+// 0x4e483b: 0x6c8e78 at 0x2a.
 constexpr std::int32_t ClosedFieldLimit = 0x2a;
-// 0x4d28a9..0x4d28f6: el mundo de 260 sobre 640 y la pantalla en 640 × 480.
+// 0x4d28a9..0x4d28f6: the world of 260 over 640 and the screen at 640 × 480.
 constexpr std::int32_t TalkWorldWidth = 260;
 constexpr std::int32_t VirtualWidth = 640;
 constexpr std::uint32_t VirtualHeight = 480;
-// 0x40b0a0: el relleno y el serial de un C3 que arma la UI.
+// 0x40b0a0: the padding and the serial of a C3 that the UI builds.
 constexpr std::size_t C3SendRandoms = 2;
 
 Core::Expected<void, std::string> Send(const NpcWindowSender& send, Protocol::Outgoing outgoing, std::string_view what)
@@ -123,7 +123,8 @@ Core::Expected<void, std::string> Send(const NpcWindowSender& send, Protocol::Ou
     return send(std::move(outgoing));
 }
 
-// 0x657ab0 vacía las grillas así: el tipo en 0xffff y +0x3c en 0, nada más (0x658545..0x658557, 0x658914..0x658926).
+// 0x657ab0 empties the grids like this: the type at 0xffff and +0x3c at 0, nothing more (0x658545..0x658557,
+// 0x658914..0x658926).
 void EmptyTheGrid(std::span<Kernel::ItemState> cells)
 {
     for (Kernel::ItemState& cell : cells)
@@ -133,7 +134,7 @@ void EmptyTheGrid(std::span<Kernel::ItemState> cells)
     }
 }
 
-// 0x5e3c20(grilla, columnas, filas): 1 si ninguna casilla tiene un tipo y +0x3c mayor que 0.
+// 0x5e3c20(grid, columns, rows): 1 if no cell has a type and +0x3c greater than 0.
 bool GridIsEmpty(std::span<const Kernel::ItemState> cells)
 {
     return std::ranges::none_of(
@@ -236,7 +237,8 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
     }
     case Ui::TrainerPanel:
     {
-        // 0x658dda..0x658dfd: con algo en la caja, el texto 1211 sin cerrar; si no, 0x4499b0, que vuelve a mirarla.
+        // 0x658dda..0x658dfd: with something in the box, text 1211 without closing; otherwise, 0x4499b0, which looks at
+        // it again.
         if (PetTrainer::TrainerBoxHasItems(context.world))
         {
             if (auto shown = Message(context.services, TrainerBoxNotEmptyText, ErrorMessage, "0x658def");
@@ -265,7 +267,7 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
 CursorWarp NpcTalkCursorWarp(std::int32_t mouseX, std::int32_t mouseY, std::int32_t screenWidth,
                              std::int32_t screenHeight)
 {
-    // 0x4d28bd..0x4d28f2: el IMUL con signo y el redondeo hacia el 0; los MUL, sin signo.
+    // 0x4d28bd..0x4d28f2: the signed IMUL and rounding toward 0; the MULs, unsigned.
     const std::int32_t worldX = (mouseX * TalkWorldWidth) / VirtualWidth;
     const auto x = (static_cast<std::uint32_t>(worldX) * static_cast<std::uint32_t>(screenWidth)) /
                    static_cast<std::uint32_t>(VirtualWidth);
@@ -320,7 +322,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk,
         done = open(Ui::WarehousePanel);
         break;
     case TalkChaosBox:
-        // 0x4d253b..0x4d2566: abre la caja y copia pkt[4..9] a 0x6c9da8, cada byte en un int.
+        // 0x4d253b..0x4d2566: opens the box and copies pkt[4..9] to 0x6c9da8, each byte into an int.
         done = open(Ui::ChaosBoxPanel);
         if (done.HasValue())
             std::ranges::copy(talk.rates, runtime.npcWindows.chaosRates.begin());
@@ -338,12 +340,12 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk,
         done = open(Ui::TrainerPanel);
         break;
     case TalkBloodCastle:
-        // 0x4d259d..0x4d25b4: sin abrir nada.
+        // 0x4d259d..0x4d25b4: without opening anything.
         if (runtime.npcWindows.field6e5798 == 0)
             Ui::PushDialog(runtime.dialogs, BloodCastleDialog);
         break;
     case TalkCastleSiegeList:
-        // 0x4d25bc: el byte se escribe ANTES del open; sólo el1 selecciona87 al cerrar.
+        // 0x4d25bc: the byte is written BEFORE the open; only the 1 selects the 87 on closing.
         runtime.castleSiege.senior.closeWith87 = talk.rates[0] == 1;
         done = open(Ui::CastleSiegeListPanel);
         break;
@@ -351,7 +353,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk,
         done = Send(resources.sendNpcWindowPacket, Protocol::CastleSiege::WriteStateRequest(), "0x4d25dd: el B2 00");
         break;
     default:
-        // 0x4d2881..0x4d288e: la tienda de NPC (0, 1, 8, 10, 11 y desde 14).
+        // 0x4d2881..0x4d288e: the NPC shop (0, 1, 8, 10, 11 and from 14).
         done = open(Ui::NpcShopPanel);
         break;
     }
@@ -359,7 +361,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk,
         return done;
     if (sendError)
         return Core::Unexpected(std::move(*sendError));
-    // 0x4d2893..0x4d28f6: los dos sonidos y el SetCursorPos.
+    // 0x4d2893..0x4d28f6: the two sounds and the SetCursorPos.
     runtime.RequestSound(FirstTalkSound);
     runtime.RequestSound(SecondTalkSound);
     runtime.npcWindows.cursorWarpRequested = true;
@@ -379,8 +381,8 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
     }
     else if (list.grid == TrainerGrid)
     {
-        // 0x4c5fb4..0x4c5fde: el aviso 1208 (con el nombre de 0x576797c, que nadie escribe), los dos sonidos de la caja
-        // del caos y la del entrenador vacía (0x449c40), sin tocar 0x7d2dc80.
+        // 0x4c5fb4..0x4c5fde: warning 1208 (with the name at 0x576797c, which nobody writes), the chaos box's two
+        // sounds and the trainer's box empty (0x449c40), without touching 0x7d2dc80.
         if (auto shown = Message(Items::InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
             !shown.HasValue())
             return shown;
@@ -401,7 +403,7 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
         if (list.grid == ChaosBoxGrid)
             placed = Items::PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
                                                  "0x4c6029, 0x5bc740(0x7d2d380)");
-        // 0x4c6042: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0) con su cola.
+        // 0x4c6042: 0x44ad70(slot, data, 0), 0x5bc740(0x723c80, 8, 4, slot, data, 0) with its tail.
         else if (list.grid == TrainerGrid)
             placed = Items::PlaceMovedItemInOtherGrid(npc.trainerBox, NpcGridColumns, entry.slot, entry.item, resources,
                                                       "0x4c6042, 0x5bc740(0x723c80)");
@@ -537,14 +539,14 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
     default:
         return {};
     }
-    // 0x4e4765..0x4e47d5: con la traba y sin 0x78abb1c, lo que esperaba; siempre, los dos en 1.
+    // 0x4e4765..0x4e47d5: with the lock and without 0x78abb1c, what was waiting; always, both at 1.
     if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
     {
         const PendingWarehouseMove pending = npc.pendingMove;
         if (pending.slot != PendingMoney)
         {
-            // 0x4e47b0..0x4e47c6: 0x449d80(origen, lugar, destino, lugar) con los cuatro, el 24 del ítem del cursor
-            // en C3 por la misma sesión.
+            // 0x4e47b0..0x4e47c6: 0x449d80(source, slot, target, slot) with the four, the cursor item's 24 in C3
+            // through the same session.
             Items::InventoryServices services = Items::InventoryServicesOf(resources);
             services.sendItemMove = [&resources](const Protocol::Items::ItemMove& move) {
                 return Send(resources.sendNpcWindowPacket, Protocol::Items::WriteItemMove(move),
@@ -557,7 +559,7 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
                 !sent.HasValue())
                 return sent;
         }
-        // 0x4e6f80(tipo, zen), con el XOR32 y en claro.
+        // 0x4e6f80(type, zen), with the XOR32 and in the clear.
         else if (auto sent = Send(resources.sendNpcWindowPacket,
                                   Npc::WriteWarehouseMoney(static_cast<std::uint8_t>(pending.second & 0xff),
                                                            static_cast<std::uint32_t>(pending.third)),
@@ -613,8 +615,8 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
     }
     case Npc::TrainerMixResult:
     {
-        // 0x4da373..0x4da385: la caja del entrenador vacía (0x449c40) y el ítem en su lugar 0 con 0x44ad70(0, datos,
-        // 1), sin la cola de 0x5bc740, sin sonido y sin tocar 0x7d2dc80.
+        // 0x4da373..0x4da385: the trainer box empty (0x449c40) and the item in its slot 0 with 0x44ad70(0, data, 1),
+        // without 0x5bc740's tail, without sound and without touching 0x7d2dc80.
         EmptyTheGrid(npc.trainerBox);
         const Items::InventoryItemBytes bytes(result.item);
         return Items::PlaceItemInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources,

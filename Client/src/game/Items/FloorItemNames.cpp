@@ -12,7 +12,7 @@
 #include "Hud/GameHud.h"
 #include "Items/HudItems.h"
 #include "Hud/HudText.h"
-#include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
+#include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer as ITextMeasure)
 #include "Items/ItemNames.h"
 #include "Tooltips/ItemTooltipParts.h"
 #include "Monsters/NpcNames.h"
@@ -37,9 +37,9 @@ using Render::Color;
 using Render::Text::FontKind;
 using Render::Text::TextColors;
 
-// Los glColor3f de 0x5ba790: el dorado (1; 0,8; 0,1) de casi todos los casos, el violeta de las armas del arcángel
-// (0x5bb51f), el de los excelentes (0x5bb489), los grises del nivel 0 y del 1 y 2, el naranja del 3 y 4, el celeste del
-// 5 y 6 o con opciones (0x5bb50e) y el blanco del conjunto (0x5bb55e).
+// 0x5ba790's glColor3f: gold for almost every case, the archangel weapons (0x5bb51f), the excellent ones (0x5bb489),
+// grey for level 0 and for 1 and 2, orange for 3 and 4, light blue for 5 and 6 or with options (0x5bb50e) and white
+// for the set (0x5bb55e).
 constexpr Color Gold{1.0f, 0.8f, 0.1f, 1.0f};
 constexpr Color Archangel{1.0f, 0.1f, 1.0f, 1.0f};
 constexpr Color Excellent{0.1f, 1.0f, 0.5f, 1.0f};
@@ -48,16 +48,16 @@ constexpr Color LowLevel{0.9f, 0.9f, 0.9f, 1.0f};
 constexpr Color MiddleLevel{1.0f, 0.5f, 0.2f, 1.0f};
 constexpr Color HighLevel{0.4f, 0.7f, 1.0f, 1.0f};
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
-// 0x5ba7bd..0x5ba7c7, 0x5bb585..0x5bb58f y 0x5bb89c..0x5bb8a6: 0x6c8e5c (el texto) y 0x6c8e64 (el fondo).
+// 0x5ba7bd..0x5ba7c7, 0x5bb585..0x5bb58f and 0x5bb89c..0x5bb8a6: 0x6c8e5c (text) and 0x6c8e64 (background).
 constexpr TextColors StartColors{.text = 0xffffffffu, .background = 0xff000000u};
 constexpr TextColors SetColors{.text = 0xff00ff00u, .background = 0xffc83c3cu};
 constexpr TextColors EndColors{.text = 0xffc8e6ffu, .background = 0xff000000u};
-// El modelo de un tipo (0x212, el de 0x608350) y la y del texto, 15 más arriba (0x5bb850 y 0x5bb873).
+// A type's model (0x212, as in 0x608350) and the text's y, 15 higher (0x5bb850 and 0x5bb873).
 constexpr std::int32_t ModelBase = 0x212;
 constexpr std::int32_t NameRise = 15;
 constexpr std::uint32_t DesignWidth = 640;
-// +8 de la entrada: el nivel (>> 3, & 0xf), la skill (0x80), la suerte (4) y la opción (3). +0x1f: las opciones
-// excelentes (0x3f) y una más (0x40).
+// The entry's +8: the level (>> 3, & 0xf), the skill (0x80), the luck (4) and the option (3). +0x1f: the excellent
+// options (0x3f) and one more (0x40).
 constexpr std::int32_t LevelShift = 3;
 constexpr std::int32_t LevelMask = 0xf;
 constexpr std::int32_t SkillBit = 0x80;
@@ -67,21 +67,20 @@ constexpr std::int32_t PlusLevelBits = 0x78;
 constexpr std::int32_t OptionColorBits = 0x87;
 constexpr std::uint8_t ExcellentBits = 0x3f;
 constexpr std::uint8_t ExcellentOptionBit = 0x40;
-// 0x5bb4bb, 0x5bb4e7 y 0x5bb4fd: los cortes del color por el nivel.
+// 0x5bb4bb, 0x5bb4e7 and 0x5bb4fd.
 constexpr std::int32_t GoldLevel = 7;
 constexpr std::int32_t MiddleFirstLevel = 3;
 constexpr std::int32_t HighFirstLevel = 5;
-// 0x5bae3e..0x5bae4f: la skill del 0x1a1d, nivel + 30 (0x76bd1d8 + 0x3c · (nivel + 30)), y el texto 102.
+// 0x5bae3e..0x5bae4f: 0x1a1d's skill, level + 30 (0x76bd1d8 + 0x3c · (level + 30)), and text 102.
 constexpr std::uint32_t FirstScrollSkill = 30;
-// 0x5bb5e7.., 0x5bb66f y 0x5bb696: los textos de la skill (176, y " +" y 179 con el 0x1c15), de la opción (177) y de
-// la suerte (178).
+// 0x5bb5e7.., 0x5bb66f and 0x5bb696: the texts of the skill (176, and " +" and 179 with 0x1c15), the option (177) and
+// the luck (178).
 constexpr std::size_t SkillText = 176;
 constexpr std::size_t DinorantSkillText = 179;
 constexpr std::size_t OptionText = 177;
 constexpr std::size_t LuckText = 178;
 constexpr std::int16_t DinorantModel = 0x1c15;
 
-// Lo que deja cada caso: el texto, o un corte.
 using Name = Core::Expected<std::string, std::string>;
 
 struct NameFrame
@@ -99,7 +98,7 @@ Core::Expected<std::string_view, std::string> TextOf(const NameFrame& frame, std
     return *text;
 }
 
-// El registro de Item.bmd del tipo (0x7758550 + 0x54 · tipo), hasta su '\0'.
+// The type's Item.bmd record (0x7758550 + 0x54 · type), up to its '\0'.
 Name RecordNameOf(const NameFrame& frame, std::int32_t type)
 {
     if (frame.context.items == nullptr)
@@ -117,7 +116,6 @@ Name ModelName(const NameFrame& frame)
     return RecordNameOf(frame, frame.item.type - ModelBase);
 }
 
-// sprintf(buffer, texto): el texto como formato, sin argumentos.
 Name TextAsFormat(const NameFrame& frame, std::size_t index)
 {
     const auto text = TextOf(frame, index);
@@ -126,7 +124,6 @@ Name TextAsFormat(const NameFrame& frame, std::size_t index)
     return Crt::Sprintf(text.Value());
 }
 
-// sprintf(buffer, "%s %s", texto, nombre del modelo).
 Name TextAndModelName(const NameFrame& frame, std::size_t index)
 {
     const auto text = TextOf(frame, index);
@@ -138,7 +135,8 @@ Name TextAndModelName(const NameFrame& frame, std::size_t index)
     return Crt::Sprintf("%s %s", text.Value(), std::string_view(name.Value()));
 }
 
-// Los casos que con otro nivel no escriben el buffer ([ebp-0x58]): el original dibuja lo que quedó en su pila.
+// The cases that leave the buffer unwritten with another level ([ebp-0x58]): the original draws what was left on its
+// stack.
 Name Unwritten(const NameFrame& frame, std::uint32_t address)
 {
     return Core::Unexpected(
@@ -157,7 +155,7 @@ void Paint(const NameFrame& frame, Color color)
     frame.context.sprites.SetColor(color);
 }
 
-// 0x5bb449..0x5bb52e: el color de los demás.
+// 0x5bb449..0x5bb52e.
 Color GenericColor(const NameFrame& frame)
 {
     const std::int16_t model = frame.item.type;
@@ -176,8 +174,7 @@ Color GenericColor(const NameFrame& frame)
     return frame.level < HighFirstLevel ? MiddleLevel : HighLevel;
 }
 
-// 0x5bb52e..0x5bb72e: el color, el conjunto (0x40cf30), el nombre con " +nivel" y los textos de la skill, la opción y
-// la suerte.
+// 0x5bb52e..0x5bb72e: the color, the set (0x40cf30), the name with " +level" and the skill, option and luck texts.
 Name GenericName(const NameFrame& frame)
 {
     Paint(frame, GenericColor(frame));
@@ -191,7 +188,7 @@ Name GenericName(const NameFrame& frame)
     std::string name = record.Value();
     if (set.Value())
     {
-        // 0x5bb55e..0x5bb5dc: blanco, negrita, 0xff00ff00 sobre 0xffc83c3c, y el nombre detrás del conjunto.
+        // 0x5bb55e..0x5bb5dc: white, bold, 0xff00ff00 on 0xffc83c3c, and the name after the set's.
         Paint(frame, White);
         Bold(frame);
         frame.context.hud.textColors = SetColors;
@@ -228,8 +225,7 @@ Name GenericName(const NameFrame& frame)
     return text;
 }
 
-// 0x5bae2e..0x5bb2e2: el orbe de invocación (el tipo 0x180b), con el acceso de su skill de Skill.bmd abierto mientras
-// escribe.
+// 0x5bae2e..0x5bb2e2: the summoning orb (type 0x180b), with its Skill.bmd skill's access open while it writes.
 Name ScrollName(const NameFrame& frame)
 {
     const auto text = TextOf(frame, 102);
@@ -242,7 +238,7 @@ Name ScrollName(const NameFrame& frame)
     return Crt::Sprintf("%s %s", std::string_view(skill.Value().name), text.Value());
 }
 
-// Un texto elegido por el nivel, del 0 en adelante; con otro, el buffer queda sin escribir.
+// A text picked by the level, from 0 on; with any other level the buffer stays unwritten.
 template <std::size_t Count>
 Name ByLevel(const NameFrame& frame, const std::array<std::size_t, Count>& texts, std::uint32_t unwritten)
 {
@@ -251,9 +247,9 @@ Name ByLevel(const NameFrame& frame, const std::array<std::size_t, Count>& texts
     return TextAsFormat(frame, texts[static_cast<std::size_t>(frame.level)]);
 }
 
-// 0x5bb2ed..0x5bb338: el anillo de transformación (el modelo 0x1c1c): el primer registro de 0x7681eb8 cuyo tipo (el
-// word, sin signo) es el monstruo del nivel (0x6c9338), y sprintf(buffer, "%s %s" (0x6c9cb4), +2 del registro, el 103).
-// Sin ninguno, salta a 0x5bb811 sin escribir el buffer (0x5bb30f).
+// 0x5bb2ed..0x5bb338: the transformation ring (model 0x1c1c): the first record of 0x7681eb8 whose type (the word,
+// unsigned) is the level's monster (0x6c9338), and sprintf(buffer, "%s %s" (0x6c9cb4), the record's +2, text 103).
+// With none, it jumps to 0x5bb811 without writing the buffer (0x5bb30f).
 Name TransformationRingName(const NameFrame& frame)
 {
     const std::optional<std::uint32_t> monster = TransformationMonsterOf(frame.level);
@@ -272,7 +268,7 @@ Name TransformationRingName(const NameFrame& frame)
     return Crt::Sprintf("%s %s", std::string_view(*name), text.Value());
 }
 
-// 0x5ba7d5..0x5bb811: el texto y su color según el modelo.
+// 0x5ba7d5..0x5bb811: the text and its color by the model.
 Name ComposeTheName(const NameFrame& frame)
 {
     const std::int16_t model = frame.item.type;
@@ -281,7 +277,7 @@ Name ComposeTheName(const NameFrame& frame)
     {
     case 0x1e21:
     {
-        // 0x5ba7db: el zen, "%s %d" con el valor entero (+8).
+        // 0x5ba7db: zen, "%s %d" with the integer value (+8).
         Paint(frame, Gold);
         const auto name = ModelName(frame);
         if (!name.HasValue())
@@ -296,7 +292,7 @@ Name ComposeTheName(const NameFrame& frame)
     case 0x1e31:
     case 0x1c20:
     {
-        // 0x5bb7bc: las joyas, en negrita.
+        // 0x5bb7bc: the jewels, in bold.
         Bold(frame);
         Paint(frame, Gold);
         const auto name = ModelName(frame);
@@ -307,7 +303,7 @@ Name ComposeTheName(const NameFrame& frame)
     case 0x1a30:
     case 0x1a31:
     {
-        // 0x5ba875 y 0x5ba8b9: en negrita, con el nombre de 0x1c0d (0x7758550 + 0x93444) o de 0x1c0e (+ 0x93498).
+        // 0x5ba875 and 0x5ba8b9: in bold, with the name of 0x1c0d (0x7758550 + 0x93444) or of 0x1c0e (+ 0x93498).
         Bold(frame);
         Paint(frame, Gold);
         const auto name = RecordNameOf(frame, model == 0x1a30 ? 0x1c0d : 0x1c0e);
@@ -319,7 +315,7 @@ Name ComposeTheName(const NameFrame& frame)
     case 0x1e24:
     case 0x1e25:
     {
-        // 0x5bb733: en negrita; con nivel (+8 & 0x78), " +nivel".
+        // 0x5bb733: in bold; with a level (+8 & 0x78), " +level".
         Bold(frame);
         Paint(frame, Gold);
         const auto name = ModelName(frame);
@@ -330,11 +326,11 @@ Name ComposeTheName(const NameFrame& frame)
         return Crt::Sprintf("%s", std::string_view(name.Value()));
     }
     case 0x1e1e:
-        // 0x5ba94c: sin glColor3f.
+        // 0x5ba94c: no glColor3f.
         return ByLevel(frame, std::array<std::size_t, 3>{100, 101, 104}, 0x5ba95b);
     case 0x1c21:
     {
-        // 0x5ba9a3, la tabla de 0x5bb8b4: "%s %s" con el texto del nivel y el nombre.
+        // 0x5ba9a3, the table at 0x5bb8b4: "%s %s" with the level's text and the name.
         Paint(frame, Gold);
         constexpr std::array<std::size_t, 5> Fruits{168, 169, 167, 166, 1900};
         if (level < 0 || static_cast<std::size_t>(level) >= Fruits.size())
@@ -364,7 +360,7 @@ Name ComposeTheName(const NameFrame& frame)
         return TextAsFormat(frame, level == 15 ? 1651 : 106);
     case 0x2240:
     {
-        // 0x5bac43: con el nivel 13, dorado y "%s" con el texto 117 (0x5bb809).
+        // 0x5bac43: with level 13, gold and "%s" with text 117 (0x5bb809).
         if (level != 13)
             return TextAsFormat(frame, 107);
         Paint(frame, Gold);
@@ -381,7 +377,7 @@ Name ComposeTheName(const NameFrame& frame)
         return TextAsFormat(frame, 110);
     case 0x2244:
     {
-        // 0x5bace0: "%s +%d" con el texto 115 y el nivel − 7.
+        // 0x5bace0: "%s +%d" with text 115 and the level − 7.
         const auto text = TextOf(frame, 115);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
@@ -420,7 +416,7 @@ Name ComposeTheName(const NameFrame& frame)
     default:
         break;
     }
-    // 0x5ba916 y 0x5bb33d: la caja de la suerte de nivel 7 y el 0x1e27 de nivel 3; con otro nivel, como los demás.
+    // 0x5ba916 and 0x5bb33d: the luck box of level 7 and the 0x1e27 of level 3; with another level, like the others.
     if (model == 0x1e1d && level == 7)
     {
         Paint(frame, Gold);
@@ -438,7 +434,7 @@ Name ComposeTheName(const NameFrame& frame)
 Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& context, const Kernel::FloorItemState& item,
                                                        bool atTheItem)
 {
-    // 0x5ba7a7..0x5ba7c7: SelectObject con la fuente normal (0x5763554) y los colores.
+    // 0x5ba7a7..0x5ba7c7: SelectObject with the normal font (0x5763554) and the colors.
     Kernel::HudState& hud = context.hud;
     hud.dcFont = FontKind::Normal;
     hud.textColors = StartColors;
@@ -446,8 +442,8 @@ Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& cont
     const Name name = ComposeTheName(frame);
     if (!name.HasValue())
         return Core::Unexpected(name.Error());
-    // 0x5bb811..0x5bb894: GetTextExtentPointA con la fuente del DC; la mitad de cx con signo (CDQ, SUB y SAR), por
-    // 640 y por W sin signo; 0x554180(x − eso, y − 15, texto, 0, 0, 3).
+    // 0x5bb811..0x5bb894: GetTextExtentPointA with the DC's font; half of cx, signed (CDQ, SUB and SAR), times 640 and
+    // by W unsigned; 0x554180(x − that, y − 15, text, 0, 0, 3).
     const Core::PixelSize screen = context.sprites.Screen();
     const Render::Text::TextExtent extent = context.text.Measure(hud.dcFont, name.Value());
     const std::int32_t x = atTheItem ? item.screenX : context.mouse.x;

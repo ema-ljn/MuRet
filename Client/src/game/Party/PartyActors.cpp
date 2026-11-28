@@ -24,39 +24,40 @@ namespace Client::Party
 {
 namespace
 {
-// +0x1c de un lugar: −1 no está en el viewport, −2 sin buscar y −3 el héroe publicado.
+// A slot's +0x1c: −1 not in the viewport, −2 not searched and −3 the published hero.
 constexpr std::int32_t NotInView = -1;
 constexpr std::int32_t NotSearched = -2;
 constexpr std::int32_t TheHero = -3;
-// 0x59e3cb: el tipo de los jugadores; 0x59e3d7: +0x88 en 1.
+// 0x59e3cb: the players' type; 0x59e3d7: +0x88 at 1.
 constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr std::uint8_t PlayerKind = 1;
 // 0x59e4fa..0x59e500: 400 registros de 0x438.
 constexpr std::size_t SearchedActors = 400;
 
-// 0x5e417f..0x5e4197: la x de la lista (el ancho menos 50, 0x6b86b0) y su primer renglón (5); 0x6b8870, el renglón.
+// 0x5e417f..0x5e4197: the list's x (the width minus 50, 0x6b86b0) and its first row (5); 0x6b8870, the row.
 constexpr double ListFromTheRight = 50.0;
 constexpr float ListTop = 5.0f;
 constexpr double RowHeight = 19.0;
-// 0x5e446d (0x6b86b8) y 0x5e4481 (0x6b86b0): el mouse desde x − 3 hasta x + 50.
+// 0x5e446d (0x6b86b8) and 0x5e4481 (0x6b86b0): the mouse from x − 3 to x + 50.
 constexpr double HoverLeft = 3.0;
 constexpr double HoverRight = 50.0;
-// 0x5e444b..0x5e4462: las skills que eligen desde la lista.
+// 0x5e444b..0x5e4462: the skills that choose from the list.
 constexpr std::array<std::uint8_t, 5> ListSkills{0x1a, 0x1b, 0x1c, 0x0f, 0x10};
 // 0x6c8e30.
 constexpr std::size_t ChosenTarget = 2;
 
 using Math::F32;
 
-// Un nombre hasta su primer 0: diez bytes en +0x1d9 (con +0x1e3 en 0, que ponen el 0x12 y el F3 03; *inferido*) o los
-// once del lugar, con el 0 de +0xa.
+// A name up to its first 0: ten bytes at +0x1d9 (with +0x1e3 at 0, set by the 0x12 and the F3 03; *inferred*) or the
+// slot's eleven, with the 0 at +0xa.
 std::string_view NameView(std::span<const std::byte> name)
 {
     const auto end = std::ranges::find(name, std::byte{0});
     return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
 }
 
-// 0x78aba48. Más de cinco no llega: el 42 que los trae se descarta (0x4d67e0, Q-C960); negativa, los lazos no corren.
+// 0x78aba48. More than five never arrives: the 42 that brings them is discarded (0x4d67e0, Q-C960); negative, the
+// loops do not run.
 std::size_t Members(const Kernel::WorldRuntime& runtime)
 {
     return static_cast<std::size_t>(std::clamp<std::int32_t>(runtime.hud.partyCount, 0, Social::PartySlots));
@@ -126,7 +127,7 @@ void FindThePartyInTheViewport(Kernel::WorldState& world)
         if (actor.type != PlayerType || actor.byte88 != PlayerKind || !actor.alive || !actor.seen ||
             !(actor.alpha > 0.0f) || actor.dying != 0)
             continue;
-        // 0x59e420: con la party vacía, el lazo de los lugares no corre.
+        // 0x59e420: with the party empty, the slots' loop does not run.
         MatchThePartyMembers(world, index);
     }
     MarkTheMissingMembers(world);
@@ -161,7 +162,7 @@ bool PickFromThePartyList(const Hud::FramePickingContext& context, Ui::PanelRegi
         {
             std::uint8_t skill = 0;
             {
-                // 0x5e41d7..0x5e4448: el registro propio abierto para leer el byte de la skill del lugar de +0x425.
+                // 0x5e41d7..0x5e4448: the own record opened to read the skill byte of +0x425's slot.
                 const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
                 skill = Kernel::OwnSkillByte(world.OwnCharacter(), hero.skillIndex);
             }

@@ -50,10 +50,10 @@
 #include <utility>
 #include <vector>
 
-// Los paquetes del gremio, de la alianza y de la guerra que llegan (CL9 hito 8; 06 § El gremio): 0x4e2b10 con el 50,
-// 51, 52, 53, 54, 56, 5D, 60..64, 66, E1, E5, E6, E9 y EB, las dos ventanas al cerrarse (0x6522f0, 0x6570b0) y las
-// respuestas del diálogo de los paneles (0x4d6b60, 0x653c00). El gesto de la guerra es el emote del hito 1
-// (Actors::PlayTheEmote). Los nombres de gremio, de personaje y los textos son inventados.
+// The incoming guild, union and war packets (CL9 milestone 8; 06 § El gremio): 0x4e2b10 with 50, 51, 52, 53, 54, 56,
+// 5D, 60..64, 66, E1, E5, E6, E9 and EB, the two windows on closing (0x6522f0, 0x6570b0) and the panels' dialog
+// answers (0x4d6b60, 0x653c00). The war gesture is milestone 1's emote (Actors::PlayTheEmote). The guild names, the
+// character names and the texts are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -147,7 +147,7 @@ std::vector<std::uint8_t> Plain(const Client::Protocol::Outgoing& sent)
     return bytes;
 }
 
-// Player.bmd con sus 205 acciones (las que mira 0x4ea030 en el gesto); ningún otro modelo.
+// Player.bmd with its 205 actions (the ones 0x4ea030 checks in the gesture); no other model.
 class GestureModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -166,7 +166,7 @@ public:
     Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
-// 0x576a84: las acciones de parado (1..12 y 0x8a), las únicas con las que 0x576a60 anima y manda.
+// 0x576a84: the standing actions (1..12 and 0x8a), the only ones with which 0x576a60 animates and sends.
 constexpr std::uint8_t Standing = 1;
 constexpr std::uint8_t Walking = 0x0d;
 constexpr std::uint8_t ElfClass = 2;
@@ -186,7 +186,7 @@ protected:
         return std::move(table).Value();
     }
 
-    // Un mundo nuevo en `map`, con el héroe en el lugar 0.
+    // A new world in `map`, with the hero in slot 0.
     void Reset(std::int32_t map)
     {
         m_world = std::make_unique<WorldState>();
@@ -245,7 +245,7 @@ protected:
         return Runtime().panels.delegated.panelDialog;
     }
 
-    // El registro del chat, del más viejo al más nuevo (0x45bb20 agrega adelante).
+    // The chat log, oldest to newest (0x45bb20 adds at the front).
     [[nodiscard]] std::vector<std::pair<std::int32_t, std::string>> Messages() const
     {
         std::vector<std::pair<std::int32_t, std::string>> messages;
@@ -339,9 +339,9 @@ TEST_F(GuildReceiveTest, TheMasterQuestionBorrowsBothCastleAndTrainerClosersFrom
     }
 }
 
-// 0x4e4279 abre la ventana 2 (0x6599a0 con 0x40000: CanOpen y CloseByMask, cuatro rand()); el 56 con 1 la cierra
-// (0x6570b0: el gremio 1999 vuelve a −1, suena el 0x1c y manda C1 04 54 00) y vacía el mensaje. En Lorencia, en Devias
-// y en Chaos Castle (18), donde los comandos no abren.
+// 0x4e4279 opens window 2 (0x6599a0 with 0x40000: CanOpen and CloseByMask, four rand()); the 56 with 1 closes it
+// (0x6570b0: guild 1999 goes back to −1, plays 0x1c and sends C1 04 54 00) and empties the message. In Lorencia,
+// Devias and Chaos Castle (18), where the commands do not open.
 TEST_F(GuildReceiveTest, CreatingAGuildOpensTheSecondWindowAndTheResultClosesIt)
 {
     for (const std::int32_t map : {0, 2, 18})
@@ -353,7 +353,7 @@ TEST_F(GuildReceiveTest, CreatingAGuildOpensTheSecondWindowAndTheResultClosesIt)
         EXPECT_EQ(DrawsSince(), 4);
         EXPECT_TRUE(m_sent.empty());
 
-        // 0x4e34a0 (el 01 del Guild Master, que corta): el héroe sin gremio queda con el 1999.
+        // 0x4e34a0 (the Guild Master's 01, which stops): the hero without a guild is left with 1999.
         m_world->Actors()[0].word1f2 = 1999;
         Runtime().chat.input.messageBuffer[0] = 'x';
         Runtime().chat.input.messageLength = 1;
@@ -371,7 +371,7 @@ TEST_F(GuildReceiveTest, CreatingAGuildOpensTheSecondWindowAndTheResultClosesIt)
     }
 }
 
-// 0x4d7ff0: los demás resultados son un mensaje de error (el 1 no tiene; 7 o más, nada).
+// 0x4d7ff0: the other results are an error message (1 has none; 7 or more, nothing).
 TEST_F(GuildReceiveTest, TheOtherCreateResultsAreMessages)
 {
     ASSERT_TRUE(Apply(Guild::CreateResult{0}).HasValue());
@@ -382,8 +382,8 @@ TEST_F(GuildReceiveTest, TheOtherCreateResultsAreMessages)
     EXPECT_EQ(Messages(), expected);
 }
 
-// 0x4d74b0: el 50 guarda la clave y abre el diálogo con el nombre; Confirmar (0x4d6b60 con 8) manda C1 06 51 01 y la
-// clave; Esc (0x50) manda el 00. Con el diálogo ocupado, el 00 sin preguntar.
+// 0x4d74b0: the 50 stores the key and opens the dialog with the name; Confirm (0x4d6b60 with 8) sends C1 06 51 01 and
+// the key; Esc (0x50) sends the 00. With the dialog busy, the 00 without asking.
 TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
 {
     for (const std::int32_t map : {0, 2})
@@ -400,14 +400,14 @@ TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
         EXPECT_EQ(Dialog().flags, Client::Ui::PanelDialogConfirm);
         EXPECT_TRUE(m_sent.empty());
 
-        // Otro pedido con el diálogo abierto: no, y la clave nueva queda.
+        // Another request with the dialog open: no, and the new key stays.
         Actor(6, "Calandria", 0x0456);
         ASSERT_TRUE(Apply(Guild::JoinRequest{0x0456}).HasValue());
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x06, 0x51, 0x00, 0x04, 0x56}}));
         EXPECT_EQ(GuildOf().requester, 0x0456);
         m_sent.clear();
 
-        // Confirmar responde con la clave guardada (0x78aba40), la del último.
+        // Confirm answers with the stored key (0x78aba40), the last one's.
         const auto answered =
             Client::Guild::AnswerThePanelDialog(*m_world, Context().send, Client::Ui::PanelDialogOwner::GuildJoin, 8);
         ASSERT_TRUE(answered.HasValue()) << answered.Error();
@@ -415,7 +415,7 @@ TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x06, 0x51, 0x01, 0x04, 0x56}}));
         m_sent.clear();
 
-        // Esc por el registro (0x657880 → 0x660410): 0x50, el no, y el diálogo cerrado.
+        // Esc through the registry (0x657880 → 0x660410): 0x50, the no, and the dialog closed.
         Client::Hud::GamePanels panels(*m_world, m_random);
         panels.LendTheGuild(*m_world, Context().send);
         const auto key = panels.Registry().PanelKey(0x1b);
@@ -426,9 +426,9 @@ TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
     }
 }
 
-// 0x4d74f8: sin el personaje de la clave, el original abre el diálogo con el nombre que lee después de los 400
-// (Q-C1297); MuRet descarta el 50 sin cortar (la sesión sigue): ni la clave, ni el diálogo, ni el no. Con el diálogo
-// ocupado, el no sale igual, que no busca a nadie. En Lorencia y en Devias.
+// 0x4d74f8: without the key's character, the original opens the dialog with the name it reads past the 400
+// (Q-C1297); MuRet drops the 50 without stopping (the session goes on): neither the key, nor the dialog, nor the no.
+// With the dialog busy, the no still goes out, since it looks for nobody. In Lorencia and Devias.
 TEST_F(GuildReceiveTest, AJoinRequestFromSomeoneOutOfSightIsDiscarded)
 {
     for (const std::int32_t map : {0, 2})
@@ -452,7 +452,7 @@ TEST_F(GuildReceiveTest, AJoinRequestFromSomeoneOutOfSightIsDiscarded)
     }
 }
 
-// 0x4d7a20: el resultado de 0 a 7 es un mensaje de error y siempre 0x6236f0(0).
+// 0x4d7a20: results 0 to 7 are an error message and always 0x6236f0(0).
 TEST_F(GuildReceiveTest, TheJoinResultIsAMessage)
 {
     Runtime().dialogs.current = 0x22;
@@ -463,7 +463,7 @@ TEST_F(GuildReceiveTest, TheJoinResultIsAMessage)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// 0x4d7b60: la cuenta, el puntaje sin negativos, el nombre y cada miembro con su servidor (bit 7) o 0xff.
+// 0x4d7b60: the count, the score without negatives, the name and each member with its server (bit 7) or 0xff.
 TEST_F(GuildReceiveTest, TheMemberListFillsTheSlotsAndTheWindow)
 {
     GuildOf().window.unions.push_back({});
@@ -491,8 +491,8 @@ TEST_F(GuildReceiveTest, TheMemberListFillsTheSlotsAndTheWindow)
     EXPECT_TRUE(GuildOf().window.unions.empty());
 }
 
-// 0x4d7bc2..0x4d7c1f: el miembro 80 en adelante cae sobre la tabla de los gremios (Q-C1303); MuRet descarta el 52
-// entero sin cortar: la cuenta, el puntaje, el nombre, los miembros y las dos listas de la ventana quedan como estaban.
+// 0x4d7bc2..0x4d7c1f: member 80 onward falls on the guild table (Q-C1303); MuRet drops the whole 52 without stopping:
+// the count, the score, the name, the members and the window's two lists stay as they were.
 TEST_F(GuildReceiveTest, AMemberListOfMoreThanEightyIsDiscarded)
 {
     GuildOf().memberCount = 3;
@@ -519,8 +519,8 @@ TEST_F(GuildReceiveTest, AMemberListOfMoreThanEightyIsDiscarded)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x4d7c30: el 4 saca al héroe del gremio y borra la entrada; el 1 y el 4 cierran el gremio (0x6522f0); el 5 pide la
-// lista (C1 03 52).
+// 0x4d7c30: 4 takes the hero out of the guild and erases the entry; 1 and 4 close the guild (0x6522f0); 5 asks for the
+// list (C1 03 52).
 TEST_F(GuildReceiveTest, LeavingTheGuildClosesTheWindow)
 {
     for (const std::int32_t map : {0, 2})
@@ -558,8 +558,8 @@ TEST_F(GuildReceiveTest, LeavingTheGuildClosesTheWindow)
     }
 }
 
-// 0x6599a0(0x10) por el registro con el gancho del gremio: CanOpen y CloseByMask (cuatro rand()), el C1 03 52 y el
-// byte; en Chaos Castle también abre.
+// 0x6599a0(0x10) through the registry with the guild hook: CanOpen and CloseByMask (four rand()), the C1 03 52 and the
+// byte; in Chaos Castle it opens too.
 TEST_F(GuildReceiveTest, OpeningTheGuildAsksForTheList)
 {
     for (const std::int32_t map : {0, 2, 18})
@@ -575,7 +575,7 @@ TEST_F(GuildReceiveTest, OpeningTheGuildAsksForTheList)
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x03, 0x52}}));
         EXPECT_EQ(DrawsSince(), 4);
 
-        // Con la ventana 2 abierta, CanOpen no deja abrir nada.
+        // With window 2 open, CanOpen lets nothing open.
         const auto closed = panels.Registry().Close(Client::Ui::GuildPanel);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
         Runtime().panels.delegated.secondGuild = 1;
@@ -585,7 +585,7 @@ TEST_F(GuildReceiveTest, OpeningTheGuildAsksForTheList)
     }
 }
 
-// 0x4e42f0: el 5D saca del gremio al personaje de la clave (sin el bit 7) y cierra la ventana.
+// 0x4e42f0: the 5D takes the key's character (without bit 7) out of the guild and closes the window.
 TEST_F(GuildReceiveTest, TheViewportGuildDeleteClearsTheActor)
 {
     ActorState& other = Actor(9, "Zorzal", 0x0077);
@@ -603,8 +603,8 @@ TEST_F(GuildReceiveTest, TheViewportGuildDeleteClearsTheActor)
     EXPECT_EQ(GuildOf().memberCount, -1);
 }
 
-// 0x4e4306: sin el personaje, el original escribe después de los 400 (Q-C1298); MuRet descarta el 5D entero sin cortar:
-// ni la cuenta, ni el personaje, ni el gremio cerrado (ni sus rand()). En Lorencia y en Devias.
+// 0x4e4306: without the character, the original writes past the 400 (Q-C1298); MuRet drops the whole 5D without
+// stopping: neither the count, nor the character, nor the guild closed (nor its rand()). In Lorencia and Devias.
 TEST_F(GuildReceiveTest, AViewportGuildDeleteOfSomeoneOutOfSightIsDiscarded)
 {
     for (const std::int32_t map : {0, 2})
@@ -628,8 +628,8 @@ TEST_F(GuildReceiveTest, AViewportGuildDeleteOfSomeoneOutOfSightIsDiscarded)
     }
 }
 
-// 0x447b90: el 66 escribe la entrada de la clave (0x447b00 mira hasta la cuenta inclusive) con los nombres y la marca
-// en nibbles; sin la clave, nada.
+// 0x447b90: the 66 writes the key's entry (0x447b00 looks up to the count inclusive) with the names and the mark in
+// nibbles; without the key, nothing.
 TEST_F(GuildReceiveTest, TheGuildInfoWritesTheEntryOfItsKey)
 {
     GuildOf().tableCount = 1;
@@ -652,9 +652,9 @@ TEST_F(GuildReceiveTest, TheGuildInfoWritesTheEntryOfItsKey)
     EXPECT_EQ(TextOf(GuildOf().table[2].guildName), "");
 }
 
-// 0x4d9260: cada entrada del 65 pone el puesto, +0x369 y la relación; con el gremio en la tabla, su índice; sin él,
-// el C1 08 66 que lo pide y 0x447b50, que lo agrega al final. +0x374: 1 con el gremio del héroe. Con la entrada del
-// héroe, 0x412120 copia su gremio y su puesto. En Lorencia, en Devias y en Arena (6, la del fútbol de la guerra).
+// 0x4d9260: each entry of the 65 sets the rank, +0x369 and the relation; with the guild in the table, its index;
+// without it, the C1 08 66 that asks for it and 0x447b50, which adds it at the end. +0x374: 1 with the hero's guild.
+// With the hero's entry, 0x412120 copies its guild and rank. In Lorencia, Devias and Arena (6, the war's soccer one).
 TEST_F(GuildReceiveTest, TheViewportGuildGivesEachActorItsIndexAndAsksForTheUnknownOnes)
 {
     for (const std::int32_t map : {0, 2, 6})
@@ -678,7 +678,7 @@ TEST_F(GuildReceiveTest, TheViewportGuildGivesEachActorItsIndexAndAsksForTheUnkn
         EXPECT_EQ(hero.byte374, 1);
         EXPECT_EQ(GuildOf().heroGuildIndex, 1);
         EXPECT_EQ(GuildOf().heroGuildStatus, 0x80);
-        // La tercera entrada pisa a la segunda: el gremio 99 no estaba, se pide y queda en la entrada 2.
+        // The third entry overwrites the second: guild 99 was not there, it is asked for and stays in entry 2.
         EXPECT_EQ(other.word1f2, 2);
         EXPECT_EQ(other.byte370, 1);
         EXPECT_EQ(other.byte374, 0);
@@ -690,8 +690,9 @@ TEST_F(GuildReceiveTest, TheViewportGuildGivesEachActorItsIndexAndAsksForTheUnkn
     }
 }
 
-// 0x4d96eb..0x4d976b: en guerra y sin el índice del rival, el 65 lo busca por el nombre y deja −1 si no está; con el
-// rival, +0x374 en 2. La tabla llena da −1 sin pedir nada más que el 66. Sin el personaje, corta.
+// 0x4d96eb..0x4d976b: at war and without the rival's index, the 65 looks it up by name and leaves −1 if absent; with
+// the rival, +0x374 at 2. The full table gives −1 without asking for anything but the 66. Without the character, it
+// stops.
 TEST_F(GuildReceiveTest, TheViewportGuildMarksTheRivalInAWar)
 {
     GuildOf().tableCount = 2;
@@ -712,15 +713,16 @@ TEST_F(GuildReceiveTest, TheViewportGuildMarksTheRivalInAWar)
     EXPECT_EQ(GuildOf().rivalIndex, -1);
     EXPECT_EQ(other.byte374, 0);
 
-    // Con la tabla llena, 0x447b00 leería la entrada 2.000 (Q-C1280): corta antes de 0x447b50.
+    // With the table full, 0x447b00 would read entry 2000 (Q-C1280): it stops before 0x447b50.
     GuildOf().tableCount = 2000;
     viewport.entries[0].guildKey = 5000;
     EXPECT_FALSE(Apply(viewport).HasValue());
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x4d92b2: una entrada sin su personaje, que el original escribe después de los 400 (Q-C1299), se descarta entera
-// (sin el 66 que pediría su gremio ni 0x447b50) y las demás siguen; la sesión sigue. En Lorencia y en Devias.
+// 0x4d92b2: an entry without its character, which the original writes past the 400 (Q-C1299), is dropped whole
+// (without the 66 that would ask for its guild or 0x447b50) and the others go on; the session goes on. In Lorencia and
+// Devias.
 TEST_F(GuildReceiveTest, AViewportGuildEntryOfSomeoneOutOfSightIsDiscarded)
 {
     for (const std::int32_t map : {0, 2})
@@ -744,8 +746,8 @@ TEST_F(GuildReceiveTest, AViewportGuildEntryOfSomeoneOutOfSightIsDiscarded)
     }
 }
 
-// 0x4e44aa: el 67 pone el nombre de la alianza en la entrada del gremio y la relación en el personaje; un gremio que
-// la tabla no tiene escribe en el miembro 74 (Q-C1284). La clave no pierde el bit 7, como en el 65: con él, nadie.
+// 0x4e44aa: the 67 sets the union name in the guild's entry and the relation in the character; a guild the table does
+// not have writes into member 74 (Q-C1284). The key does not lose bit 7, as in the 65: with it, nobody.
 TEST_F(GuildReceiveTest, TheViewportUnionNamesTheAllianceAndTheRelation)
 {
     GuildOf().tableCount = 1;
@@ -762,8 +764,8 @@ TEST_F(GuildReceiveTest, TheViewportUnionNamesTheAllianceAndTheRelation)
     ASSERT_TRUE(Apply(viewport).HasValue());
     EXPECT_EQ(std::string(GuildOf().members[74].name.data()), "Talas");
 
-    // 0x4e44f5: con la clave 0x8077 no hay nadie y el original escribe la relación después de los 400 (Q-C1300): MuRet
-    // descarta la entrada entera, también el nombre de la alianza, y la sesión sigue.
+    // 0x4e44f5: with key 0x8077 there is nobody and the original writes the relation past the 400 (Q-C1300): MuRet
+    // drops the whole entry, also the union name, and the session goes on.
     viewport.entries[0].key = 0x8077;
     viewport.entries[0].guildKey = 71;
     viewport.entries[0].relation = 2;
@@ -774,8 +776,8 @@ TEST_F(GuildReceiveTest, TheViewportUnionNamesTheAllianceAndTheRelation)
     EXPECT_EQ(other.byte370, 1);
 }
 
-// 0x6565e0: la alianza pide con el nombre de quien la propone; Confirmar (0x653c00 con 8) manda C1 08 E6 con 1. Con el
-// diálogo ocupado, el 0 sin preguntar.
+// 0x6565e0: the union asks with the name of whoever proposes it; Confirm (0x653c00 with 8) sends C1 08 E6 with 1. With
+// the dialog busy, the 0 without asking.
 TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
 {
     for (const std::int32_t map : {0, 2})
@@ -802,7 +804,7 @@ TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
         ASSERT_TRUE(answered.HasValue()) << answered.Error();
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x08, 0xe6, 0x01, 0x01, 0x01, 0x01, 0x23}}));
         m_sent.clear();
-        // 0x654289: lo que no es Confirmar ni Cancelar no manda nada.
+        // 0x654289: anything other than Confirm or Cancel sends nothing.
         ASSERT_TRUE(Client::Guild::AnswerThePanelDialog(*m_world, Context().send,
                                                         Client::Ui::PanelDialogOwner::Relationship, 0x50)
                         .HasValue());
@@ -810,9 +812,9 @@ TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
     }
 }
 
-// 0x656d44..0x656db1: con el personaje y una relación que no es 1 ni 2, el original abre el diálogo con la pila sin
-// inicializar (Q-C1302); MuRet descarta el E5 entero sin cortar. Sin el personaje (0x656ccb), guarda los cuatro bytes y
-// nada más, como el original. En Lorencia y en Devias.
+// 0x656d44..0x656db1: with the character and a relation that is neither 1 nor 2, the original opens the dialog with
+// the uninitialized stack (Q-C1302); MuRet drops the whole E5 without stopping. Without the character (0x656ccb), it
+// stores the four bytes and nothing else, like the original. In Lorencia and Devias.
 TEST_F(GuildReceiveTest, ARelationshipRequestOfAnotherRelationIsDiscarded)
 {
     for (const std::int32_t map : {0, 2})
@@ -843,7 +845,7 @@ TEST_F(GuildReceiveTest, ARelationshipRequestOfAnotherRelationIsDiscarded)
     }
 }
 
-// 0x6565e0 con la rivalidad (2): sus textos.
+// 0x6565e0 with the rivalry (2): its texts.
 TEST_F(GuildReceiveTest, ARivalryRequestHasItsOwnLines)
 {
     Actor(5, "Benteveo", 0x0123);
@@ -853,8 +855,8 @@ TEST_F(GuildReceiveTest, ARivalryRequestHasItsOwnLines)
     EXPECT_EQ(Dialog().lines[1], "rival otra");
 }
 
-// 0x4d9940: el E6 que rompe la alianza del héroe (la clave suya, 1, 2 y 1) borra el nombre de la alianza; los demás
-// solo son un mensaje (o "Invalid GuildRelationShipResult").
+// 0x4d9940: the E6 that breaks the hero's union (its key, 1, 2 and 1) erases the union name; the others are only a
+// message (or "Invalid GuildRelationShipResult").
 TEST_F(GuildReceiveTest, BreakingTheAllianceClearsItsName)
 {
     NameTheGuild(3, 77, "Horneros", "Ceibos");
@@ -870,13 +872,13 @@ TEST_F(GuildReceiveTest, BreakingTheAllianceClearsItsName)
         {Client::Ui::SystemMessage, "alianza rota"},
         {Client::Ui::SystemMessage, "alianza rota"},
         {Client::Ui::SystemMessage, "resultado 20"},
-        // 0x45bb20 corta desde 30 bytes en dos renglones.
+        // 0x45bb20 cuts from 30 bytes into two rows.
         {Client::Ui::SystemMessage, "Invalid GuildRelationShipResul"},
         {Client::Ui::SystemMessage, "t"}};
     EXPECT_EQ(Messages(), expected);
 }
 
-// 0x4d9940 sin gremio (−1): escribe el primer byte del miembro 74 (Q-C1281).
+// 0x4d9940 without a guild (−1): writes the first byte of member 74 (Q-C1281).
 TEST_F(GuildReceiveTest, BreakingWithoutAGuildWritesTheMemberBeforeTheTable)
 {
     Fill(GuildOf().members[74].name, "Chingolo");
@@ -886,8 +888,8 @@ TEST_F(GuildReceiveTest, BreakingWithoutAGuildWritesTheMemberBeforeTheTable)
     EXPECT_EQ(GuildOf().members[74].name[1], 'h');
 }
 
-// 0x4d9e50 agrega las filas con la marca en nibbles, cada una adelante (0x6517e0 → 0x46d900); 0x4d9b80 con 1 pide la
-// lista otra vez (con más de 2) y la vacía (0x651830); con 0, el mensaje.
+// 0x4d9e50 adds the rows with the mark in nibbles, each at the front (0x6517e0 → 0x46d900); 0x4d9b80 with 1 asks for
+// the list again (with more than 2) and empties it (0x651830); with 0, the message.
 TEST_F(GuildReceiveTest, TheUnionListAndItsRefresh)
 {
     Guild::UnionEntry entry{.byte0 = 3, .mark = {}, .name = GuildNameOf("Ceibos")};
@@ -912,7 +914,7 @@ TEST_F(GuildReceiveTest, TheUnionListAndItsRefresh)
     EXPECT_EQ(Messages(), expected);
 }
 
-// 0x4d9810: el E1 con 1 da el texto del tipo; con otro, el del resultado; si no, "Invalid GuildAssign".
+// 0x4d9810: the E1 with 1 gives the type's text; with another, the result's; otherwise, "Invalid GuildAssign".
 TEST_F(GuildReceiveTest, TheAssignResultIsASystemMessage)
 {
     ASSERT_TRUE(Apply(Guild::AssignResult{.type = 2, .result = 1}).HasValue());
@@ -922,10 +924,10 @@ TEST_F(GuildReceiveTest, TheAssignResultIsASystemMessage)
     EXPECT_EQ(Messages(), expected);
 }
 
-// La guerra: el 61 guarda al rival y abre el diálogo 0x7f; el 62 la empieza (el aviso, +0x374 de cada personaje, el
-// gesto 0x576a60 con 0xc0 y 0x94 y su C1 05 18); el 64 trae los puntajes; el 63 la termina con el gesto de ganar (0xa7,
-// 0x89) y su C1 18. Con el héroe parado, cada gesto anima y manda dos C1 18 iguales (el de 0x576a60 y el propio). En
-// Lorencia, en Devias y en Arena (6).
+// The war: the 61 stores the rival and opens dialog 0x7f; the 62 starts it (the notice, +0x374 of each character, the
+// 0x576a60 gesture with 0xc0 and 0x94 and its C1 05 18); the 64 brings the scores; the 63 ends it with the winning
+// gesture (0xa7, 0x89) and its C1 18. With the hero standing, each gesture animates and sends two equal C1 18
+// (0x576a60's and the own one). In Lorencia, Devias and Arena (6).
 TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
 {
     for (const std::int32_t map : {0, 2, 6})
@@ -958,7 +960,7 @@ TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
         EXPECT_EQ(m_world->Actors()[5].byte374, 1);
         EXPECT_EQ(m_world->Actors()[6].byte374, 2);
         EXPECT_EQ(m_world->Actors()[7].byte374, 0);
-        // (90 + 22.5) / 45 + 1 = 3.5: el sector 3.
+        // (90 + 22.5) / 45 + 1 = 3.5: sector 3.
         EXPECT_EQ(hero.animation.action, 0xc0);
         const std::vector<std::uint8_t> started{0xc1, 0x05, 0x18, 0x03, 0x94};
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{started, started}));
@@ -967,8 +969,8 @@ TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
         EXPECT_EQ(GuildOf().ourScore, 3);
         EXPECT_EQ(GuildOf().theirScore, 1);
 
-        // La animación del gesto terminó: el héroe está parado otra vez. 0x4d8958 pone en 0 el WORD 0x5767816, el
-        // tiempo del F3 22 que el AB del duelo también vacía (0x4e4d60).
+        // The gesture's animation ended: the hero is standing again. 0x4d8958 sets the WORD 0x5767816 to 0, the F3 22's
+        // time that the duel's AB also clears (0x4e4d60).
         hero.animation.action = Standing;
         Runtime().events.timeValue = 0x1234;
         ASSERT_TRUE(Apply(Guild::WarEnd{0}).HasValue());
@@ -986,15 +988,15 @@ TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
     }
 }
 
-// 0x4d8870: perder (1, 2 y 4) es el otro gesto (0xad, 0x8d; el elfo anima la siguiente, 0x576a9d); el 6 no tiene;
-// más de 6 muestra la pila sin inicializar (Q-C1301): MuRet descarta el 63 sin cortar y la guerra sigue. Caminando,
-// 0x576a60 no anima ni manda: queda solo el C1 18 propio.
+// 0x4d8870: losing (1, 2 and 4) is the other gesture (0xad, 0x8d; the elf animates the next one, 0x576a9d); 6 has
+// none; above 6 shows the uninitialized stack (Q-C1301): MuRet drops the 63 without stopping and the war goes on.
+// Walking, 0x576a60 neither animates nor sends: only the own C1 18 is left.
 TEST_F(GuildReceiveTest, TheWarEndGestureDependsOnTheResult)
 {
     ActorState& hero = m_world->Actors()[0];
     hero.characterClass = ElfClass;
     hero.animation.action = Standing;
-    // (0 + 22.5) / 45 + 1 = 1.5: el sector 1.
+    // (0 + 22.5) / 45 + 1 = 1.5: sector 1.
     const std::vector<std::uint8_t> lost{0xc1, 0x05, 0x18, 0x01, 0x8d};
     ASSERT_TRUE(Apply(Guild::WarEnd{2}).HasValue());
     EXPECT_EQ(hero.animation.action, 0xae);
@@ -1023,7 +1025,7 @@ TEST_F(GuildReceiveTest, TheWarEndGestureDependsOnTheResult)
     EXPECT_EQ(m_sent.size(), 3u);
 }
 
-// Sin los modelos de 0x4ea030, el 62 corta después de marcar a los personajes y antes del gesto y de los C1 18.
+// Without 0x4ea030's models, the 62 stops after marking the characters and before the gesture and the C1 18s.
 TEST_F(GuildReceiveTest, WithoutTheModelsTheWarStartIsCut)
 {
     NameTheGuild(2, 22, "Teros");
@@ -1036,7 +1038,7 @@ TEST_F(GuildReceiveTest, WithoutTheModelsTheWarStartIsCut)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x4d8150: con un resultado que no es 1 y sin guerra, apaga al rival y desmarca.
+// 0x4d8150: with a result other than 1 and without a war, it clears the rival and unmarks.
 TEST_F(GuildReceiveTest, ARefusedWarRequestForgetsTheRival)
 {
     Fill(GuildOf().rival, "Teros");

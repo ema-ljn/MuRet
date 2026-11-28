@@ -50,27 +50,27 @@ using Render::Text::FontKind;
 
 // 0x5a764e..0x5a7653.
 constexpr std::uint32_t ScoreBackground = 0x80000000u;
-// 0x5a768a..0x5a76a7: ancho del mundo · 0,5 (0x6b882c) − 20 (0x6b86d0), en float.
+// 0x5a768a..0x5a76a7: world width · 0.5 (0x6b882c) − 20 (0x6b86d0), in float.
 constexpr double HalfOfTheWorld = 0.5;
 constexpr double ScoreLeft = 20.0;
-// 0x5a76b0..0x5a76d3 y 0x5a7843..0x5a786a: NEG y SBB con el equipo (0x576796e).
+// 0x5a76b0..0x5a76d3 and 0x5a7843..0x5a786a: NEG and SBB with the team (0x576796e).
 constexpr std::uint32_t OrangeText = 0xffff9600u;
 constexpr std::uint32_t RedText = 0xff003cffu;
-// 0x5a76dd..0x5a7706 y 0x5a78c4..0x5a78ed: 0x621b60(0x22, x, y, 8, 8, 0, 0, 1, 1, 1, 1, 0).
+// 0x5a76dd..0x5a7706 and 0x5a78c4..0x5a78ed: 0x621b60(0x22, x, y, 8, 8, 0, 0, 1, 1, 1, 1, 0).
 constexpr float MarkSize = 8.0f;
 constexpr float OursTop = 4.0f;
 constexpr float TheirsTop = 19.0f;
 constexpr std::int32_t OursTextTop = 4;
 constexpr std::int32_t TheirsTextTop = 0x13;
-// 0x5a775a y 0x5a77fb: los textos en _ftol(x) + 0xd y + 0x1e.
+// 0x5a775a and 0x5a77fb: the texts at _ftol(x) + 0xd and + 0x1e.
 constexpr std::int32_t ScoreOffset = 0xd;
 constexpr std::int32_t NameOffset = 0x1e;
-// 0x5a785f..0x5a78b8: la búsqueda del rival, de la entrada 0 a la 1998 (EDI < 0x78a597d).
+// 0x5a785f..0x5a78b8: the rival search, from entry 0 to 1998 (EDI < 0x78a597d).
 constexpr std::size_t RivalSearched = GuildTableSize - 1;
 
-// 0x6576a0: Message_box1 (0xfb) y Message_box2 (0xfc) de 0x61ccb0, de 213 de ancho en x = 214, con las UV (0, 0,
-// 0,83203125, 0,625) y glColor4f(1, 1, 1, 0,8); los filos de 5 (0x6b87f8) y las filas de 40 (0x6b8bf4) por cada 40
-// de (alto − 10); el resto, (resto · 0,025 (0x6ba1fc)) · 40 de alto con dv = (resto · 0,025) · 0,625 (0x6baad0).
+// 0x6576a0: Message_box1 (0xfb) and Message_box2 (0xfc) of 0x61ccb0, 213 wide at x = 214, with the UVs (0, 0,
+// 0.83203125, 0.625) and glColor4f(1, 1, 1, 0.8); the edges of 5 (0x6b87f8) and the rows of 40 (0x6b8bf4) for every 40
+// of (height − 10); the rest, (rest · 0.025 (0x6ba1fc)) · 40 high with dv = (rest · 0.025) · 0.625 (0x6baad0).
 constexpr std::uint16_t BoxRowSlot = 0xfb;
 constexpr std::uint16_t BoxEdgeSlot = 0xfc;
 constexpr float BoxX = 214.0f;
@@ -84,15 +84,15 @@ constexpr float BoxDv = 0.625f;
 constexpr float BoxRestScale = 0.025f;
 constexpr Render::Color BoxColor{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 0.8f};
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
-// 0x6608c6..0x660968: los colores −1 y 0, los renglones centrados en 0x140 desde y + 0x14, de 15 (0x6b87bc) en 15.
+// 0x6608c6..0x660968: colors −1 and 0, the rows centered on 0x140 from y + 0x14, 15 (0x6b87bc) apart.
 constexpr Render::Text::TextColors DialogColors{.text = 0xffffffffu, .background = 0u};
 constexpr std::int32_t DialogCenterX = 0x140;
 constexpr std::int32_t FirstLineOffset = 0x14;
 constexpr float LineStep = 15.0f;
-// 0x65ff12..0x65ff9c: los textos que 0x65feb0 les copia a los botones (vtable + 0x2c, 0x45b170): Aceptar o Sí, No,
-// Confirmar y Cancelar.
+// 0x65ff12..0x65ff9c: the texts 0x65feb0 copies to the buttons (vtable + 0x2c, 0x45b170): Accept or Yes, No, Confirm
+// and Cancel.
 constexpr std::array<std::size_t, Ui::PanelDialogButtonCount> ButtonTexts{228, 229, 1037, 1038};
-// 0x64f1c0, la ventana de los cargos: la caja de 0x6576a0(0x96, −1), en (0xd6, 0x82 − 0x4b) con 40 de mínimo.
+// 0x64f1c0, the positions window: 0x6576a0(0x96, −1)'s box, at (0xd6, 0x82 − 0x4b) with a minimum of 40.
 constexpr std::int32_t PositionsBoxHeight = 0x96;
 constexpr std::int32_t PanelBoxLeft = 0xd6;
 constexpr std::int32_t PanelCenterY = 0x82;
@@ -100,9 +100,9 @@ constexpr std::int32_t PanelBoxMinimumTop = 40;
 constexpr std::int32_t PositionsBoxTop = PanelCenterY - PositionsBoxHeight / 2 < PanelBoxMinimumTop
                                              ? PanelBoxMinimumTop
                                              : PanelCenterY - PositionsBoxHeight / 2;
-// 0x64f1f4..0x64f377: las dos cajas de 170 × 20 en x + 0x14 (y + 0x13 y y + 0x27; rellena la del cargo elegido) y los
-// textos en x + 0x14 centrados en _ftol(rx · 170) (0x6b899c): el 1311 en y + 0x18, el 1312 en y + 0x2e, el 1314 con el
-// nombre y el 1301 o el 1302 en y + 0x4b y el 1315 en y + 0x5d.
+// 0x64f1f4..0x64f377: the two 170 × 20 boxes at x + 0x14 (y + 0x13 and y + 0x27; the chosen position's is filled) and
+// the texts at x + 0x14 centered in _ftol(rx · 170) (0x6b899c): 1311 at y + 0x18, 1312 at y + 0x2e, 1314 with the
+// name and 1301 or 1302 at y + 0x4b and 1315 at y + 0x5d.
 constexpr std::int32_t PositionsLeft = 0x14;
 constexpr std::int32_t AssistantFrameTop = 0x13;
 constexpr std::int32_t BattleMasterFrameTop = 0x27;
@@ -119,8 +119,8 @@ constexpr std::size_t AssistantNameText = 1301;
 constexpr std::size_t BattleMasterNameText = 1302;
 constexpr std::size_t PositionsHintText = 1315;
 constexpr std::int32_t PositionsHintTop = 0x5d;
-// 0x64f37c..0x64f3cb: los botones globales en (x + 0x37, y + 0x75) y (x + 0x6e, y + 0x75), con los textos que les pone
-// 0x64f3e0 (0x45b150).
+// 0x64f37c..0x64f3cb: the global buttons at (x + 0x37, y + 0x75) and (x + 0x6e, y + 0x75), with the texts 0x64f3e0
+// gives them (0x45b150).
 constexpr std::int32_t PositionsButtonsTop = 0x75;
 constexpr std::array<std::int32_t, GuildPositionsButtonCount> PositionsButtonLefts{0x37, 0x6e};
 constexpr std::array<std::size_t, GuildPositionsButtonCount> PositionsButtonTexts{228, 229};
@@ -143,7 +143,7 @@ Core::Expected<std::string_view, std::string> PositionsTextOf(const Hud::GameHud
     return *text;
 }
 
-// 0x5542f0(x, y, texto, caja, 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
+// 0x5542f0(x, y, text, box, 2, 0): the text centered in the box (0x467060 in mode 2), without measuring.
 void DrawInTheMiddle(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                      std::int32_t box)
 {
@@ -155,7 +155,7 @@ void DrawInTheMiddle(Hud::GameHudContext& context, std::int32_t x, std::int32_t 
                              -placed.textColumn, placed.width);
 }
 
-// 0x5a7870..0x5a78b8: strcmp de +0xd de cada entrada con el rival; sin ninguna, EAX queda en 0 (0x5a78ba).
+// 0x5a7870..0x5a78b8: strcmp of each entry's +0xd with the rival; with none, EAX stays at 0 (0x5a78ba).
 std::int32_t MarkOf(const GuildState& guild, std::string_view rival)
 {
     for (std::size_t index = 0; index < RivalSearched; ++index)
@@ -166,7 +166,7 @@ std::int32_t MarkOf(const GuildState& guild, std::string_view rival)
     return 0;
 }
 
-// 0x5f16a0(índice, 1) y el quad del slot donde quedó, en (x, top).
+// 0x5f16a0(index, 1) and the quad of the slot where it landed, at (x, top).
 Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, const GuildState& guild, std::int32_t index,
                                               float x, float top)
 {
@@ -177,14 +177,14 @@ Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, cons
     return {};
 }
 
-// 0x6576a0(alto, y): la caja desde la y que eligió (un entero, sin redondeo en float).
+// 0x6576a0(height, y): the box from the y it chose (an integer, without float rounding).
 void DrawTheDialogBox(Render::SpriteBatch& sprites, std::int32_t height, std::int32_t top)
 {
     sprites.SetBlendWithoutAlphaTest();
     sprites.SetColor(BoxColor);
     auto y = static_cast<float>(top);
     Quad(sprites, BoxEdgeSlot, BoxX, y, BoxWidth, BoxEdge, BoxDu, BoxDv);
-    // 0x657741..0x657764: (alto − 10) / 40 con el redondeo hacia 0 de la división con signo.
+    // 0x657741..0x657764: (height − 10) / 40 with the signed division's rounding toward 0.
     const std::int32_t rest = height - BoxMargin;
     const std::int32_t rows = rest / BoxRowStep;
     y = F32(static_cast<double>(y) + static_cast<double>(BoxEdge));
@@ -195,7 +195,7 @@ void DrawTheDialogBox(Render::SpriteBatch& sprites, std::int32_t height, std::in
     }
     if (rest > rows * BoxRowStep)
     {
-        // 0x6577c5..0x6577e8: el producto queda en la x87 y se guarda en float dos veces; con un resto chico, exacto.
+        // 0x6577c5..0x6577e8: the product stays on the x87 and is stored as a float twice; with a small rest, exact.
         const double scaled = static_cast<double>(rest - rows * BoxRowStep) * static_cast<double>(BoxRestScale);
         const float last = F32(scaled * static_cast<double>(BoxRow));
         Quad(sprites, BoxRowSlot, BoxX, y, BoxWidth, last, BoxDu, F32(scaled * static_cast<double>(BoxDv)));
@@ -206,8 +206,8 @@ void DrawTheDialogBox(Render::SpriteBatch& sprites, std::int32_t height, std::in
     sprites.SetBlend(BlendMode::Opaque);
 }
 
-// 0x5542f0(x, y, texto, 0, 1, 0): 0x465950 con la fuente del DC y los colores de 0x6c8e5c; uno vacío no se dibuja. No
-// mide (0x77f31b8 es de 0x554180).
+// 0x5542f0(x, y, text, 0, 1, 0): 0x465950 with the DC's font and 0x6c8e5c's colors; an empty one is not drawn. It does
+// not measure (0x77f31b8 is 0x554180's).
 void DrawTheLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     if (text.empty())
@@ -246,12 +246,12 @@ Core::Expected<void, std::string> DrawTheGuildWarScore(Hud::GameHudContext& cont
     if (auto drawn = DrawTheMark(context, guild, MarkOf(guild, NameOf(guild.rival)), x, TheirsTop); !drawn.HasValue())
         return drawn;
     DrawText(context, left + ScoreOffset, TheirsTextTop, std::format("{}", guild.theirScore));
-    // 0x5a79b0: 0x5542f0(…, 0, 1, 0) es el modo 1 de 0x554180 y mide lo mismo que la medida de 0x5a79ba que sigue.
+    // 0x5a79b0: 0x5542f0(…, 0, 1, 0) is 0x554180's mode 1 and measures the same as the 0x5a79ba measure that follows.
     DrawText(context, left + NameOffset, TheirsTextTop, NameOf(guild.rival));
     return {};
 }
 
-// 0x5a7a01..0x5a7cbd: los nombres recibidos buscan sus marcas en la tabla actual, incluso sin guerra.
+// 0x5a7a01..0x5a7cbd: the received names look up their marks in the current table, even without a war.
 Core::Expected<void, std::string> DrawTheSoccerScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     const auto& soccer = context.world.Runtime().events.soccer;
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext
 {
     auto& events = context.world.Runtime().events;
     auto& hud = context.hud;
-    // 0x5a7f1c..0x5a8006: ambos textos usan el mismo ancho de mundo y la fuente grande; el segundo es la sombra.
+    // 0x5a7f1c..0x5a8006: both texts use the same world width and the big font; the second is the shadow.
     if (events.timeValue != 0 && events.timeValue / 60 <= 10)
     {
         SelectFont(context, FontKind::BigBold);
@@ -315,7 +315,7 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext
         SelectFont(context, FontKind::Normal);
     }
     const auto& outcome = events.guildWarOutcome;
-    // 0x5a801e: el strcmp compara sólo un byte con el vacío, sin consultar present.
+    // 0x5a801e: the strcmp compares only one byte with the empty string, without checking present.
     if (outcome.firstName[0] == '\0')
         return {};
     auto& sprites = context.sprites;
@@ -342,7 +342,7 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext
         return drawn;
     hud.textColors.text = 0xffffffffu;
     const std::string first(NameOf(outcome.firstName));
-    // 0x5767904 sigue inmediatamente al segundo nombre: el sprintf lee sus bytes si falta el cero en los diez.
+    // 0x5767904 follows right after the second name: the sprintf reads its bytes if the zero is missing in the ten.
     std::array<char, 13> secondBytes{};
     std::ranges::copy(outcome.secondName, secondBytes.begin());
     secondBytes[10] = static_cast<char>(outcome.secondScore & 0xffu);
@@ -406,7 +406,7 @@ Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& con
     if (!battleMaster.HasValue())
         return Core::Unexpected(std::move(battleMaster).Error());
     DrawInTheMiddle(context, left, y + BattleMasterTextTop, battleMaster.Value(), box);
-    // 0x64f2e8..0x64f310: sprintf con el 1314, el nombre de 0x7d535a8 y el cargo (el 1301 con 0x40, si no el 1302).
+    // 0x64f2e8..0x64f310: sprintf with 1314, the name from 0x7d535a8 and the position (1301 with 0x40, otherwise 1302).
     auto question = PositionsTextOf(context, PositionsQuestionText, "0x64f30a");
     if (!question.HasValue())
         return Core::Unexpected(std::move(question).Error());
@@ -444,12 +444,12 @@ Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& contex
 {
     if (Ui::PanelDialogHandle(dialog) == 0)
         return {};
-    // 0x660846: +0xc, el dibujo propio que pone 0x6602b0, en lugar de todo.
+    // 0x660846: +0xc, the own drawing that 0x6602b0 sets, instead of everything.
     if (dialog.hooks == Ui::PanelDialogHooks::GuildPositions)
         return DrawTheGuildPositions(context);
     for (std::size_t button = 0; button < dialog.buttons.size(); ++button)
     {
-        // 0x65feb0 los copia al armarse, después de Text.bmd (0x4b9b9f); MuRet, la primera vez que dibuja.
+        // 0x65feb0 copies them when it is built, after Text.bmd (0x4b9b9f); MuRet, the first time it draws.
         if (dialog.buttons[button].label)
             continue;
         const std::optional<std::string_view> label = Ui::TextAt(context.texts, ButtonTexts[button]);
@@ -459,7 +459,7 @@ Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& contex
                             ButtonTexts[button]));
         dialog.buttons[button].label = std::string(*label);
     }
-    // 0x660856..0x6608a1 y los 0x45a9d0 de los botones: la esquina de la caja y la y de los botones.
+    // 0x660856..0x6608a1 and the buttons' 0x45a9d0: the box's corner and the buttons' y.
     const Ui::Point corner = Ui::PlaceThePanelDialog(dialog);
     Render::SpriteBatch& sprites = context.sprites;
     DrawTheDialogBox(sprites, dialog.height, corner.y);
@@ -471,7 +471,7 @@ Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& contex
     for (std::int32_t line = 0; line < count; ++line)
     {
         const std::string& text = dialog.lines[static_cast<std::size_t>(line)];
-        // 0x6608f2..0x66093f: GetTextExtentPoint32A con el DC, cx / rx con _ftol y la mitad con signo.
+        // 0x6608f2..0x66093f: GetTextExtentPoint32A with the DC, cx / rx with _ftol and the signed half.
         const std::int32_t width =
             Render::Text::DesignX(context.text.Measure(context.hud.dcFont, text).width, sprites.Screen());
         DrawTheLine(context, DialogCenterX - width / 2, static_cast<std::int32_t>(y), text);

@@ -72,9 +72,9 @@
 #include <utility>
 #include <vector>
 
-// Los ítems del piso (CL9 hito 5; 06 § Los ítems del piso): el 20, el 21, el 22, el 23 y el 2C que llegan, levantar
-// (0x5650c0, la barra), la búsqueda del picking (0x59e2e0), el lugar en la grilla (0x5c9d20) y el nombre (0x5ba790).
-// Item.bmd y Text.bmd son sintéticos, con nombres y textos inventados.
+// The floor items (CL9 milestone 5; 06 § Los ítems del piso): the incoming 20, 21, 22, 23 and 2C, picking up
+// (0x5650c0, the space bar), the picking search (0x59e2e0), the room in the grid (0x5c9d20) and the name (0x5ba790).
+// Item.bmd and Text.bmd are synthetic, with made-up names and texts.
 namespace
 {
 using Client::Core::Expected;
@@ -94,7 +94,6 @@ constexpr std::uint32_t Seed = 0x2468aceu;
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr int SendRandoms = 2;
 constexpr std::size_t HeroSlot = 42;
-// La altura de todo el terreno sintético.
 constexpr float Ground = 170.0f;
 
 constexpr std::uint16_t Sword = 0x0001;
@@ -112,7 +111,7 @@ struct NamedItem
     std::uint8_t height = 1;
 };
 
-// Item.bmd sintético: el nombre (+0), el ancho (+0x24) y el alto (+0x25) de cada tipo.
+// Synthetic Item.bmd: each type's name (+0), width (+0x24) and height (+0x25).
 Client::Tables::ItemTable NamedItems(std::initializer_list<NamedItem> named)
 {
     using Client::Tables::ItemRecordSize;
@@ -129,7 +128,7 @@ Client::Tables::ItemTable NamedItems(std::initializer_list<NamedItem> named)
     return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
-// Los siete bytes de un ítem (0x54b3a0 al revés).
+// An item's seven bytes (0x54b3a0 in reverse).
 ItemData ItemBytes(std::uint16_t type, std::uint8_t byte1 = 0, std::uint8_t durability = 20, std::uint8_t byte3 = 0,
                    std::uint8_t byte4 = 0)
 {
@@ -155,8 +154,8 @@ CrtRandom Advanced(CrtRandom from, std::size_t count)
     return from;
 }
 
-// Lo que dura una prueba: el mundo, el terreno plano en `Ground`, Player.bmd para 0x512a30, los textos y el medidor
-// de los mensajes. En el heap, por el tamaño de WorldState.
+// Per test: the world, the flat terrain at `Ground`, Player.bmd for 0x512a30, the texts and the message meter. On the
+// heap, because of WorldState's size.
 struct Stage
 {
     explicit Stage(std::int32_t map)
@@ -244,19 +243,17 @@ FloorItemsCreate ThreeItems()
 {
     return FloorItemsCreate{
         .items = {
-            // El zen recién caído en la 5: 0x01 0x02 en b1 y b2, 0x05 en b4.
+            // The just dropped zen in 5: 0x01 0x02 in b1 and b2, 0x05 in b4.
             FloorItemEntry{.key = 0x8005, .x = 130, .y = 120, .item = ItemBytes(Zen, 1, 2, 0, 5)},
-            // Una poción en el piso en la 7.
             FloorItemEntry{.key = 7, .x = 10, .y = 20, .item = ItemBytes(Potion, 0, 1)},
-            // Una espada +3 con opciones en la clave 1005, que va a la 0.
+            // A +3 sword with options at key 1005, which goes to 0.
             FloorItemEntry{.key = 1005, .x = 1, .y = 2, .item = ItemBytes(Sword, 3 << 3, 30, 0x01, 0x05)},
         }};
 }
 
-// 0x4d0ba0 → 0x608350: cada entrada en (celda + 0,5) · 100, el tipo en +4, el modelo, el valor y las opciones; el
-// recién caído 180 por encima del terreno con la velocidad 20 y el sonido del zen; los demás en el terreno. Los rand()
-// son los de 0x607b60 de cada modelo. Igual en Lorencia, Devias e Icarus (el 10, que solo cambia el dibujo de
-// 0x608a00).
+// 0x4d0ba0 → 0x608350: each entry at (cell + 0.5) · 100, the type in +4, the model, the value and the options; the
+// just dropped one 180 above the terrain with the speed 20 and the zen's sound; the others on the terrain. The rand()
+// are 0x607b60's for each model. The same in Lorencia, Devias and Icarus (10, which only changes 0x608a00's draw).
 TEST(FloorItemsSceneTest, TheCreateFillsEachEntryInEveryMap)
 {
     for (const std::int32_t map : {0, 2, 10})
@@ -296,16 +293,16 @@ TEST(FloorItemsSceneTest, TheCreateFillsEachEntryInEveryMap)
         EXPECT_EQ(sword.ancient, 0x05);
         EXPECT_EQ(sword.boundingMin, glm::vec3(-30.0f));
         EXPECT_EQ(sword.boundingMax, glm::vec3(30.0f));
-        // 0x6083a5: solo el recién caído suena (CL10).
+        // 0x6083a5: only the just dropped one sounds (CL10).
         EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1f});
     }
 }
 
-// 0x608614..0x608722: la medalla de plata (el 0x1c0b de nivel 5, el modelo 0x2242) y la de oro (nivel 6, 0x2243)
-// recién caídas crean la grieta 0x100 (0x6086ce) y la 0xfe (0x6086f1) con 0x518cf0: a 3 sobre el terreno en la
-// posición pedida, ángulos en 0, luz 1, subtipo 0, la medalla de dueño y el tamaño 0x37 (vida 35, escala 0,55f), sin
-// rand(); la medalla queda a 3 con la velocidad 50. La que ya estaba en el piso, en el terreno y sin grietas. Igual en
-// Lorencia, Devias (el 2, donde el GS 0.97 suelta la de plata) y Lost Tower (el 4, la de oro).
+// 0x608614..0x608722: the silver medal (the 0x1c0b of level 5, model 0x2242) and the gold one (level 6, 0x2243) just
+// dropped create the crack 0x100 (0x6086ce) and the 0xfe (0x6086f1) with 0x518cf0: 3 above the terrain at the
+// requested position, angles at 0, light 1, subtype 0, the medal as owner and size 0x37 (life 35, scale 0.55f), with no
+// rand(); the medal stays at 3 with the speed 50. The one already on the floor, on the terrain and without cracks. The
+// same in Lorencia, Devias (2, where the GS 0.97 drops the silver one) and Lost Tower (4, the gold one).
 TEST(FloorItemsSceneTest, TheDroppedMedalsCrackTheGroundInEveryMap)
 {
     constexpr std::int16_t SilverMedal = 0x2242;
@@ -373,8 +370,8 @@ TEST(FloorItemsSceneTest, TheDroppedMedalsCrackTheGroundInEveryMap)
     }
 }
 
-// Con un solo lugar libre en la tabla de efectos, 0x518cf0 crea la 0x100 y no la 0xfe; con la tabla llena, ninguna.
-// La medalla sigue igual, a 3 con la velocidad 50, y no hay rand() de más.
+// With only one free slot in the effect table, 0x518cf0 creates the 0x100 and not the 0xfe; with the table full,
+// none. The medal is the same, at 3 with the speed 50, and there are no extra rand().
 TEST(FloorItemsSceneTest, WithTheEffectsFullTheDroppedMedalStillFalls)
 {
     constexpr std::int16_t GoldMedal = 0x2243;
@@ -408,7 +405,7 @@ TEST(FloorItemsSceneTest, WithTheEffectsFullTheDroppedMedalStillFalls)
     }
 }
 
-// 0x4e3849: cada clave apaga su entrada, sin la máscara del 20: las de 1000 o más, la 0.
+// 0x4e3849: each key turns off its entry, without the 20's mask: those of 1000 or more, 0.
 TEST(FloorItemsSceneTest, TheDeleteTurnsOffEachKey)
 {
     auto stage = StageIn(0);
@@ -419,8 +416,8 @@ TEST(FloorItemsSceneTest, TheDeleteTurnsOffEachKey)
     EXPECT_TRUE(stage->Item(7).alive);
 }
 
-// 0x59e2e0: sin rand(); los vivos y a la vista con la luz 0,2 del pase de vértices, y el primero que toca el rayo con
-// 1,5 y sin el pase. Los que no están a la vista no se tocan.
+// 0x59e2e0: no rand(); the live ones in view with the vertex pass's light 0.2, and the first the ray touches with 1.5
+// and without the pass. The ones not in view are not touched.
 TEST(FloorItemsSceneTest, ThePickingSearchLightsTheItemsAndTakesTheFirstHit)
 {
     auto items = std::make_unique<std::array<FloorItemState, 1000>>();
@@ -450,7 +447,7 @@ TEST(FloorItemsSceneTest, ThePickingSearchLightsTheItemsAndTakesTheFirstHit)
     EXPECT_EQ(Client::Items::PickTheFloorItem(*items, away), -1);
 }
 
-// 0x5c9d20: entra si hay algún lugar con todas sus casillas vacías.
+// 0x5c9d20.
 TEST(FloorItemsSceneTest, TheRoomInTheGridLooksForEmptyCells)
 {
     auto stage = StageIn(0);
@@ -468,8 +465,9 @@ TEST(FloorItemsSceneTest, TheRoomInTheGridLooksForEmptyCells)
     EXPECT_TRUE(Client::Items::HasRoomFor(&stage->items, cells, SwordType).Value());
 }
 
-// El caso 1 de 0x5650c0 con el héroe a menos de 150 del centro de la celda del destino: la espera del mouse en 6, el
-// pedido en 0x6c82e8 y el C1 05 22 con el índice, en C3. Con el pedido puesto, no pide otro. Lejos, nada.
+// Case 1 of 0x5650c0 with the hero within 150 of the target cell's center: the mouse wait at 6, the request in
+// 0x6c82e8 and the C1 05 22 with the index, in C3. With the request set, it does not request another. Far away,
+// nothing.
 TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
 {
     for (const std::int32_t map : {0, 2, 10})
@@ -512,7 +510,7 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
     }
 }
 
-// 0x566e0a..0x566e76: sin lugar en la grilla, el aviso 375 del tipo 1, el ítem 3 sobre el terreno y su caída en 50.
+// 0x566e0a..0x566e76: with no room in the grid, notice 375 of type 1, the item 3 above the terrain and its drop at 50.
 TEST(FloorItemsSceneTest, WithoutRoomTheItemJumpsAndWarns)
 {
     auto stage = StageIn(2);
@@ -541,8 +539,8 @@ TEST(FloorItemsSceneTest, WithoutRoomTheItemJumpsAndWarns)
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
 }
 
-// 0x5ac928..0x5ac9c2: la barra elige el primer ítem vivo y a la vista a menos de 300 del héroe y lo pide sin mirar el
-// destino; después +0x379 del héroe y 0x77f3b40 vuelven a 0.
+// 0x5ac928..0x5ac9c2: the space bar picks the first live item in view within 300 of the hero and requests it without
+// checking the target; then the hero's +0x379 and 0x77f3b40 go back to 0.
 TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
 {
     auto stage = StageIn(0);
@@ -576,8 +574,8 @@ TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
     EXPECT_EQ(sent.size(), 1u);
 }
 
-// 0x4d0cc0: con 0xfe, el zen en el registro propio (su cierre) y, con el elegido vivo, "%d %s %s"; el sonido por los
-// bytes del paquete y el pedido en −1. Con 0xff, solo el pedido. Con 0xfd, el nombre del elegido (0x5b1c70).
+// 0x4d0cc0: with 0xfe, the zen in the own record (its close) and, with the picked one alive, "%d %s %s"; the sound by
+// the packet's bytes and the request at −1. With 0xff, only the request. With 0xfd, the picked one's name (0x5b1c70).
 TEST(FloorItemsSceneTest, ThePickUpResultTakesTheZenOrNamesTheItem)
 {
     auto stage = StageIn(0);
@@ -603,13 +601,13 @@ TEST(FloorItemsSceneTest, ThePickUpResultTakesTheZenOrNamesTheItem)
     ASSERT_TRUE(
         Client::Items::ApplyPickUpResult({.result = 0xfd, .item = ItemBytes(Jewel)}, stage->Resources()).HasValue());
     ASSERT_EQ(runtime.chat.log.entries.size(), 2u);
-    // El registro guarda el último primero.
+    // The log keeps the last one first.
     EXPECT_EQ(runtime.chat.log.entries[0].text, "Espada inventada +3 levantado");
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x45});
 }
 
-// 0x4d10d0: rechazado, el ítem del cursor vuelve (0x5be150); tirado desde la grilla, sale de ella. Los dos dejan
-// [0x6c82ec] en −1.
+// 0x4d10d0: refused, the cursor item returns (0x5be150); dropped from the grid, it leaves it. Both leave [0x6c82ec] at
+// −1.
 TEST(FloorItemsSceneTest, TheDropResultReturnsOrRemovesTheCursorItem)
 {
     auto stage = StageIn(0);
@@ -639,8 +637,8 @@ TEST(FloorItemsSceneTest, TheDropResultReturnsOrRemovesTheCursorItem)
     EXPECT_EQ(cell.id, Client::Kernel::EmptyOwnItemId);
 }
 
-// 0x4de500: con 0, el stat y +0x44 suben dentro del registro propio, con su aviso; con 3, el stat baja y +0x68 y +0x48
-// suben; con 1, el aviso 378. Siempre 0x5767954 en 0.
+// 0x4de500: with 0, the stat and +0x44 go up inside the own record, with their notice; with 3, the stat goes down and
+// +0x68 and +0x48 go up; with 1, notice 378. Always 0x5767954 at 0.
 TEST(FloorItemsSceneTest, TheStatFruitChangesTheStatAndWarns)
 {
     auto stage = StageIn(0);
@@ -668,9 +666,9 @@ TEST(FloorItemsSceneTest, TheStatFruitChangesTheStatAndWarns)
     EXPECT_EQ(stage->world.Runtime().ui.field5767954, 0);
 }
 
-// 07 Q-C1240: de un 22, un 23 o un 2C cortos, solo lo que el original escribe en todos sus caminos. 0x4d10b9 suelta el
-// pedido; 0x4d13d1 y 0x4d13e5, el lugar tirado, y con pkt[3] distinto de 0, 0x4d13c7 vacía el cursor; 0x4deb0e y las
-// otras salidas de 0x4de500, la espera del uso. Sin ellos, no se vuelve a levantar ni a usar nada.
+// 07 Q-C1240: of a short 22, 23 or 2C, only what the original writes on all its paths. 0x4d10b9 releases the request;
+// 0x4d13d1 and 0x4d13e5, the dropped slot, and with pkt[3] other than 0, 0x4d13c7 empties the cursor; 0x4deb0e and
+// 0x4de500's other exits, the use wait. Without them, nothing is picked up or used again.
 TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
 {
     auto stage = StageIn(0);
@@ -701,10 +699,10 @@ TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
     EXPECT_EQ(runtime.cursorItem.occupied, 0u);
 }
 
-// 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen. 0x4d0cc0 lo
-// escribe con el registro abierto (su cierre) y, con el elegido vivo, el aviso "%d %s %s", como con el paquete entero,
-// y suelta el pedido. Lo que no sale es el sonido de 0x4d1051, que lee el tipo de pkt[4..10] y aquí cae fuera del
-// paquete.
+// 07 Q-C1240: the GameServer 0.97's C3 08 22 FE (the zen when buying, selling or repairing) carries the zen. 0x4d0cc0
+// writes it with the record open (its close) and, with the picked one alive, the notice "%d %s %s", as with the whole
+// packet, and releases the request. What does not come out is 0x4d1051's sound, which reads the type from pkt[4..10]
+// and here falls outside the packet.
 TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
 {
     auto stage = StageIn(0);
@@ -712,7 +710,7 @@ TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
     Client::Kernel::WorldRuntime& runtime = stage->world.Runtime();
     runtime.floor.pendingPickUp = 5;
     runtime.floor.chosen = 5;
-    // El de los ítems que cayeron recién.
+    // The just dropped items' sound.
     runtime.lastSoundId.reset();
     const CrtRandom expected = Advanced(stage->cloth.random, Own);
     ASSERT_TRUE(Client::Items::ApplyShortZenPickUp({.zen = 123456}, stage->Resources()).HasValue());
@@ -723,7 +721,7 @@ TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
     EXPECT_FALSE(runtime.lastSoundId.has_value());
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
 
-    // Con el elegido sin ítem (0x77f4714 en 0), el zen sin el aviso.
+    // With the picked one without an item (0x77f4714 at 0), the zen without the notice.
     runtime.floor.chosen = 3;
     runtime.floor.pendingPickUp = 5;
     ASSERT_TRUE(Client::Items::ApplyShortZenPickUp({.zen = 1000}, stage->Resources()).HasValue());
@@ -732,7 +730,7 @@ TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
 }
 
-// 0x4c24cf: la vuelta a la selección suelta el pedido del C1 22 y 0x4c24c9 la espera del uso.
+// 0x4c24cf: the return to selection releases the C1 22 request and 0x4c24c9 the use wait.
 TEST(FloorItemsSceneTest, TheReturnToSelectionClearsThePickUpRequest)
 {
     auto stage = StageIn(0);
@@ -743,7 +741,7 @@ TEST(FloorItemsSceneTest, TheReturnToSelectionClearsThePickUpRequest)
     EXPECT_EQ(stage->world.Runtime().ui.field5767954, 0);
 }
 
-// El nombre del piso (0x5ba790) sobre un GameHudContext con Item.bmd y Text.bmd sintéticos.
+// The floor name (0x5ba790) on a GameHudContext with synthetic Item.bmd and Text.bmd.
 class FloorItemNameTest : public ::testing::Test
 {
 protected:
@@ -815,8 +813,8 @@ void ExpectColor(Client::Render::Color color, float red, float green, float blue
     EXPECT_FLOAT_EQ(color.blue, blue);
 }
 
-// 0x5ba7d5: el zen, "%s %d" con el valor, en dorado; en el mouse, centrado con la mitad del ancho y 15 más arriba. Los
-// colores del texto quedan en (0xffc8e6ff, 0xff000000).
+// 0x5ba7d5: zen, "%s %d" with the value, in gold; at the mouse, centered with half the width and 15 higher. The text
+// colors stay at (0xffc8e6ff, 0xff000000).
 TEST_F(FloorItemNameTest, TheZenGoesWithItsValueAtTheMouse)
 {
     ASSERT_TRUE(Draw(Item(Zen, 66053)).HasValue());
@@ -830,7 +828,7 @@ TEST_F(FloorItemNameTest, TheZenGoesWithItsValueAtTheMouse)
     EXPECT_EQ(m_hud.textColors.text, 0xffc8e6ffu);
 }
 
-// 0x5bb7bc: las joyas en negrita y dorado; con Alt, en la proyección del ítem.
+// 0x5bb7bc: the jewels in bold and gold; with Alt, at the item's projection.
 TEST_F(FloorItemNameTest, TheJewelsGoInBoldAtTheItem)
 {
     ASSERT_TRUE(Draw(Item(Jewel, 0), true).HasValue());
@@ -841,8 +839,8 @@ TEST_F(FloorItemNameTest, TheJewelsGoInBoldAtTheItem)
     ExpectColor(LastColor(), 1.0f, 0.8f, 0.1f);
 }
 
-// 0x5bb449..0x5bb72e: los demás, con el color del nivel o de las opciones, " +nivel" y los textos de la skill, la
-// opción y la suerte.
+// 0x5bb449..0x5bb72e: the others, with the color of the level or the options, " +level" and the skill, option and
+// luck texts.
 TEST_F(FloorItemNameTest, TheOthersGoWithTheColorOfTheirLevelAndTheirOptions)
 {
     ASSERT_TRUE(Draw(Item(Sword, 0)).HasValue());
@@ -866,13 +864,13 @@ TEST_F(FloorItemNameTest, TheOthersGoWithTheColorOfTheirLevelAndTheirOptions)
     ASSERT_TRUE(Draw(Item(Sword, 1 << 3, 0x02)).HasValue());
     ExpectColor(LastColor(), 0.1f, 1.0f, 0.5f);
 
-    // 0x5bb6c5: la opción excelente 0x40 también agrega el texto de la opción.
+    // 0x5bb6c5: the excellent option 0x40 also adds the option text.
     ASSERT_TRUE(Draw(Item(Sword, 0, 0x40)).HasValue());
     EXPECT_EQ(Last().text, "Espada inventada +opcion");
 }
 
-// 0x5bace0: la caja de la suerte de nivel 8 a 12 (el modelo 0x2244), "%s +%d" con el texto 115 y el nivel − 7.
-// 0x5ba94c: la del 0x1c0c (0x1e1e) de nivel 0 a 2 con su texto; con otro nivel, el original dibuja la pila.
+// 0x5bace0: the box of luck of level 8 to 12 (model 0x2244), "%s +%d" with text 115 and the level − 7. 0x5ba94c: the
+// 0x1c0c's (0x1e1e) of level 0 to 2 with its text; with another level, the original draws the stack.
 TEST_F(FloorItemNameTest, TheBoxesGoWithTheirTexts)
 {
     FloorItemState box = Item(BoxOfLuck, 9 << 3);
@@ -889,8 +887,8 @@ TEST_F(FloorItemNameTest, TheBoxesGoWithTheirTexts)
     EXPECT_NE(unwritten.Error().find("Q-C1242"), std::string::npos) << unwritten.Error();
 }
 
-// 0x5bb2eb..0x5bb338: el anillo de transformación en el piso (el modelo 0x1c1c): el monstruo del nivel en 0x6c9338 y el
-// primer registro de 0x7681eb8 con ese tipo, "%s %s" con su nombre y el 103. Sin ninguno, el buffer queda sin escribir
+// 0x5bb2eb..0x5bb338: the transformation ring on the floor (model 0x1c1c): the level's monster at 0x6c9338 and the
+// first record of 0x7681eb8 with that type, "%s %s" with its name and the 103. With none, the buffer stays unwritten
 // (0x5bb30f, Q-C1242).
 TEST_F(FloorItemNameTest, TheTransformationRingNamesItsFirstMonster)
 {
@@ -906,9 +904,9 @@ TEST_F(FloorItemNameTest, TheTransformationRingNamesItsFirstMonster)
     EXPECT_NE(unwritten.Error().find("0x5bb30f"), std::string::npos) << unwritten.Error();
 }
 
-// 0x60848b..0x608491: la caja de la suerte de nivel 13 escribe el modelo 0x2240 y sigue en el caso de abajo, que lo
-// pisa con 0x223f; el nombre es el de 0x223f (el 106), y el nivel 13 de 0x2240 (0x5bac43, el 117) no se alcanza desde
-// el piso (07 Q-C1243).
+// 0x60848b..0x608491: the box of luck of level 13 writes model 0x2240 and goes on into the case below, which
+// overwrites it with 0x223f; the name is 0x223f's (the 106), and 0x2240's level 13 (0x5bac43, the 117) is not reached
+// from the floor (07 Q-C1243).
 TEST_F(FloorItemNameTest, TheBoxOfLevelThirteenTakesTheModelOfTheNextCase)
 {
     const FloorItemsCreate create{
@@ -921,8 +919,8 @@ TEST_F(FloorItemNameTest, TheBoxOfLevelThirteenTakesTheModelOfTheNextCase)
     EXPECT_EQ(Last().text, "caja dos");
 }
 
-// 0x5bbd31..0x5bbde7: el hover nombra al elegido en el mouse y, con Alt, a los demás vivos y a la vista en su
-// proyección.
+// 0x5bbd31..0x5bbde7: the hover names the picked one at the mouse and, with Alt, the other live ones in view at their
+// projection.
 TEST_F(FloorItemNameTest, TheHoverNamesThePickedItemAndAltTheOthers)
 {
     auto tail = std::make_unique<Client::Kernel::GameDrawTailState>();

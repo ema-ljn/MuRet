@@ -27,20 +27,20 @@ namespace Client::Chat
 {
 namespace
 {
-// 0x56c4a1..0x56c4b7: la primera palabra, hasta el espacio, en 0x100 bytes.
+// 0x56c4a1..0x56c4b7: the first word, up to the space, in 0x100 bytes.
 constexpr std::size_t FirstWordLimit = 0x100;
-// 0x56c54d y los demás: Chaos Castle, del 18 al 23.
+// 0x56c54d and the others: Chaos Castle, from 18 to 23.
 using Maps::IsChaosCastle;
-// 0x56f0c1: "/N " antes de la macro.
+// 0x56f0c1: "/N " before the macro.
 constexpr std::size_t MacroCommandPrefix = 3;
-// 0x5768a2: el byte +0x24 de un ítem con nombre; 0x40ec0c: el +0x3c de un conjunto, 0xff sin conjunto.
+// 0x5768a2: the +0x24 byte of a named item; 0x40ec0c: the +0x3c of a set, 0xff without a set.
 constexpr std::size_t ItemNamedByte = 0x24;
 constexpr std::size_t SetOptionUsedByte = 0x3c;
 constexpr std::byte UnusedSetOption{0xff};
 
 using Tables::TextOr;
 
-// 0x6ada60, _stricmp con el locale "C": solo A..Z se pliegan.
+// 0x6ada60, _stricmp with the "C" locale: only A..Z fold.
 bool EqualsIgnoringCase(std::string_view left, std::string_view right)
 {
     const auto lower = [](char letter)
@@ -48,7 +48,7 @@ bool EqualsIgnoringCase(std::string_view left, std::string_view right)
     return std::ranges::equal(left, right, [&](char a, char b) { return lower(a) == lower(b); });
 }
 
-// El nombre de un registro como lo lee sprintf("%s"): hasta su '\0', dentro del registro.
+// A record's name as sprintf("%s") reads it: up to its '\0', within the record.
 template <std::size_t Size> std::string NameOf(std::span<const std::byte, Size> record)
 {
     std::string name;
@@ -61,8 +61,8 @@ template <std::size_t Size> std::string NameOf(std::span<const std::byte, Size> 
     return name;
 }
 
-// 0x573f49 (/guild) y 0x570d48 (/union, /rival y /rivaloff): en Chaos Castle, el aviso 1150 y devuelve 0 (el texto
-// sale como chat); si no, el pedido de la escena.
+// 0x573f49 (/guild) and 0x570d48 (/union, /rival and /rivaloff): in Chaos Castle, the notice 1150 and it returns 0
+// (the text goes out as chat); if not, the scene's request.
 Core::Expected<ChatCommandOutcome, std::string> GuildCommand(const ChatCommandContext& context, std::string_view text)
 {
     if (IsChaosCastle(context.map))
@@ -83,9 +83,9 @@ Core::Expected<ChatCommandOutcome, std::string> GuildCommand(const ChatCommandCo
     return context.requestAGuildRelation(command);
 }
 
-// 0x5766ce..0x576890: /personalshop. En Chaos Castle, el aviso 1150 y 0; con el entrenador abierto, el 1121 y 0; si no,
-// el nivel del registro propio (+0xe, abriéndolo y cerrándolo): desde el 6, Open(0x800) y 1; si no, sprintf del texto
-// 1123 con el 6 en los 0x30 bytes de la pila (EBP − 0xf0, en ceros) y 1. Los avisos van con el tipo 1.
+// 0x5766ce..0x576890: /personalshop. In Chaos Castle, the notice 1150 and 0; with the trainer open, the 1121 and 0; if
+// not, the own record's level (+0xe, opening and closing it): from 6, Open(0x800) and 1; if not, sprintf of the text
+// 1123 with the 6 into the 0x30 stack bytes (EBP − 0xf0, zeroed) and 1. The notices go with type 1.
 Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCommandContext& context)
 {
     constexpr std::size_t LevelTextBufferSize = 0x30;
@@ -112,11 +112,11 @@ Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCo
         .notices = {ChatCommandNotice{.text = ShopLevelText, .type = Ui::SystemMessage, .formatted = std::move(text)}}};
 }
 
-// 0x574c8c: sscanf(texto, "%s %s", EBP − 0x108, EBP − 0xc0). Cada %s salta los blancos (isspace del locale "C") y lee
-// hasta el siguiente, y el espacio del formato salta los que haya: lo que importa es la segunda palabra, el nombre.
-// Sin ella, el segundo buffer queda con lo que había en la pila (sin valor). Una primera palabra de 0x48 bytes o más
-// pisa el segundo buffer y una segunda de 0x90 o más llega a EBP − 0x30, que 0x575503 pisa: MuRet no lo modela (el
-// campo del chat tiene 0x32 bytes) y devuelve el error.
+// 0x574c8c: sscanf(text, "%s %s", EBP − 0x108, EBP − 0xc0). Each %s skips the blanks (isspace of the "C" locale) and
+// reads up to the next one, and the format's space skips any there are: what matters is the second word, the name.
+// Without it, the second buffer keeps what was on the stack (no value). A first word of 0x48 bytes or more overwrites
+// the second buffer and a second one of 0x90 or more reaches EBP − 0x30, which 0x575503 overwrites: MuRet does not
+// model it (the chat field has 0x32 bytes) and returns the error.
 Core::Expected<std::optional<std::string_view>, std::string> ScanTheName(std::string_view text)
 {
     constexpr std::size_t FirstWordBuffer = 0x48;
@@ -145,8 +145,8 @@ Core::Expected<std::optional<std::string_view>, std::string> ScanTheName(std::st
     return std::optional<std::string_view>{second};
 }
 
-// 0x574bd6..0x57694d: /purchase. En Chaos Castle, el aviso 1150 y 0; si no, lo demás (los paneles, el elegido, el
-// nombre que sscanf leyó o el que está enfrente) es del pedido de la escena.
+// 0x574bd6..0x57694d: /purchase. In Chaos Castle, the notice 1150 and 0; if not, the rest (the panels, the selected
+// one, the name sscanf read or the one in front) belongs to the scene's request.
 Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatCommandContext& context,
                                                                 std::string_view text)
 {
@@ -160,8 +160,9 @@ Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatComman
     return context.requestShopItems(name.Value());
 }
 
-// 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
-// aviso 478 y 1. Con él, el pedido al elegido (0x6c8e30) o al que está enfrente (0x56ce1e), con el C1 05 36.
+// 0x56c54d..0x56c690: /trade. Outside Chaos Castle, the own record's level against 0x6c8dc8: without reaching it, the
+// notice 478 and 1. With it, the request to the selected one (0x6c8e30) or to the one in front (0x56ce1e), with the
+// C1 05 36.
 Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandContext& context)
 {
     if (IsChaosCastle(context.map))
@@ -175,9 +176,9 @@ Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandCo
     return context.requestATrade();
 }
 
-// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, 0x40ebd0 compara con "/" y el
-// nombre de cada conjunto usado (strncmp en los dos sentidos: iguales), y antes de cada comparación pone el cartel
-// (+0x9305) en 0. Con uno igual, 0x77f3b08 en 0 y el cartel en su índice + 1. Devuelve 0 (0x576912).
+// 0x576894..0x576922 and 0x40ebd0: "/" and an item's name opens its help; if not, 0x40ebd0 compares with "/" and the
+// name of each used set (strncmp both ways: equal), and before each comparison sets the label (+0x9305) to 0. With an
+// equal one, 0x77f3b08 at 0 and the label at its index + 1. It returns 0 (0x576912).
 Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandContext& context, std::string_view text,
                                                              ChatCommandOutcome outcome)
 {
@@ -190,7 +191,7 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
                 continue;
             if (text != "/" + NameOf(*record))
                 continue;
-            // 0x576923..0x576952: sin el cartel del conjunto (0x5ae360), la ayuda del ítem (el modo 3), el 0x19 y 1.
+            // 0x576923..0x576952: without the set's label (0x5ae360), the item's help (mode 3), the 0x19 and 1.
             if (context.setLabel != nullptr)
                 *context.setLabel = 0;
             context.overlayMode = Ui::ItemHelpMode;
@@ -198,7 +199,7 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
         }
     }
-    // 0x576900..0x576912: 0x40ebd0 y 0, que manda el texto como chat.
+    // 0x576900..0x576912: 0x40ebd0 and 0, which sends the text as chat.
     if (text.empty() || text.front() != '/' || context.setOptions == nullptr)
         return outcome;
     for (std::size_t index = 0; index < context.setOptions->Count(); ++index)
@@ -219,8 +220,8 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
     return outcome;
 }
 
-// 0x56efdc..0x56f104: "/1" a "/9" y "/0" guardan lo que sigue en su macro, salvo un comando que una macro no puede
-// guardar (0x56c1f0): ese texto sale como chat, sin la cola.
+// 0x56efdc..0x56f104: "/1" to "/9" and "/0" store what follows in their macro, except a command a macro cannot store
+// (0x56c1f0): that text goes out as chat, without the tail.
 ChatCommandOutcome SetTheMacro(const ChatCommandContext& context, std::string_view text, std::size_t macro)
 {
     if (IsAForbiddenMacro(context.texts, text))
@@ -230,7 +231,7 @@ ChatCommandOutcome SetTheMacro(const ChatCommandContext& context, std::string_vi
     return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
 }
 
-// El número de la macro de "/N", o MacroCount: solo miran los dos primeros bytes.
+// The macro number of "/N", or MacroCount: only the first two bytes are looked at.
 std::size_t MacroOf(std::string_view text)
 {
     if (text.size() < 2 || text[0] != '/')
@@ -258,7 +259,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
             EqualsIgnoringCase(word, "/trade"))
             return TradeCommand(context);
     }
-    // 0x56d624..0x56d66a: /move abre la ventana y sigue.
+    // 0x56d624..0x56d66a: /move opens the window and goes on.
     if (text == TextOr(texts, MoveCommandText) || EqualsIgnoringCase(text, "/move"))
         context.overlayMode = Ui::MoveOverlayMode;
     if (text == TextOr(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
@@ -266,9 +267,9 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if (FrontEnd::ContainsLikeTheOriginal(text, TextOr(texts, BuyCommandText)) ||
         FrontEnd::ContainsLikeTheOriginal(text, "/purchase"))
         return PurchaseCommand(context, text);
-    // 0x56d6ee..0x56d796: "/ver puestos" (strcmp con el texto 1136) prende los carteles (0x4516a0 sobre 0x451d10) con
-    // el aviso 1138 del tipo 1, y su par (el 1137) los apaga (0x4516b0) con el 1139 del tipo 2. Las dos comparaciones
-    // corren siempre y la cadena sigue.
+    // 0x56d6ee..0x56d796: "/ver puestos" (strcmp with the text 1136) turns the signs on (0x4516a0 over 0x451d10) with
+    // the notice 1138 of type 1, and its pair (the 1137) turns them off (0x4516b0) with the 1139 of type 2. Both
+    // comparisons always run and the chain goes on.
     ChatCommandOutcome outcome;
     if (text == TextOr(texts, ShopViewOnCommandText))
     {
@@ -284,8 +285,8 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         *context.signsShown = 0;
         outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOffNoticeText, .type = Ui::ErrorMessage});
     }
-    // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915; sin él, el AA al elegido o al que está
-    // enfrente. Con o sin él, sigue la cadena (0x56ea05 y 0x56e07c).
+    // 0x56d7e0..0x56d82b: /duelstart. With the duel in progress, the notice 915; without it, the AA to the selected one
+    // or to the one in front. With or without it, the chain goes on (0x56ea05 and 0x56e07c).
     if (text == TextOr(texts, DuelStartCommandText) || EqualsIgnoringCase(text, "/duelstart"))
     {
         if (IsChaosCastle(context.map))
@@ -300,7 +301,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         else if (auto asked = context.requestADuel(); !asked.HasValue())
             return Core::Unexpected(std::move(asked).Error());
     }
-    // 0x56ea29..0x56ee40: /duelend. Con el duelo en curso, el C1 03 AB en C3; con o sin él, sigue la cadena.
+    // 0x56ea29..0x56ee40: /duelend. With the duel in progress, the C1 03 AB in C3; either way, the chain goes on.
     if (text == TextOr(texts, DuelEndCommandText) || EqualsIgnoringCase(text, "/duelend"))
     {
         if (IsChaosCastle(context.map))
@@ -324,7 +325,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if (text == TextOr(texts, PartyCommandText) || EqualsIgnoringCase(text, "/party") ||
         EqualsIgnoringCase(text, "/pt"))
     {
-        // 0x56f109..0x56f13e: en Chaos Castle, el aviso 1150 y 0; si no, el pedido de 0x56f13f.
+        // 0x56f109..0x56f13e: in Chaos Castle, the notice 1150 and 0; if not, the request of 0x56f13f.
         if (IsChaosCastle(context.map))
             return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, Ui::SystemMessage}}};
         if (!context.requestAParty)
@@ -333,7 +334,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     }
     if (const std::size_t macro = MacroOf(text); macro < MacroCount)
         return SetTheMacro(context, text, macro);
-    // 0x56f02e..0x56f0ab: "/filter" (el texto 753, si no está vacío, o el literal) y la cola.
+    // 0x56f02e..0x56f0ab: "/filter" (the text 753, if not empty, or the literal) and the tail.
     const std::string_view filter = TextOr(texts, FilterCommandText);
     if ((!filter.empty() && text.starts_with(filter)) || text.starts_with("/filter"))
     {

@@ -60,34 +60,34 @@ constexpr std::size_t OfflineText = 1070;
 constexpr std::size_t LettersFullText = 1073;
 constexpr std::size_t InviteFullText = 1074;
 constexpr std::size_t SeventhSendText = 423;
-// 0x49e480 con FD_CLOSE: se cortó la conexión de la sala.
+// 0x49e480 with FD_CLOSE: the room's connection was cut.
 constexpr std::size_t RoomClosedText = 402;
-// 0x4dc840 con el 1 y 0x49d0b0: el costo de una carta.
+// 0x4dc840 with the 1 and 0x49d0b0.
 constexpr std::int32_t LetterCost = 1000;
-// 0x41ed10(0x29, 0, 0): llegó una carta. Queda en lastSoundId (CL10).
+// 0x41ed10(0x29, 0, 0): a letter arrived. It stays in lastSoundId (CL10).
 constexpr Audio::SoundId NewLetterSound{0x29};
-// 0x4dcb70: la ventana de leer, en (100, 100) sin el lugar de la anterior.
+// 0x4dcb70: the read window, at (100, 100) without the previous one's place.
 constexpr std::int32_t ReadPlace = 100;
-// 0x4dce10: el chat, en (100, 100).
+// 0x4dce10.
 constexpr std::int32_t ChatPlace = 100;
-// 0x4dcd16..0x4dcd69: la clase, la acción, el ángulo y el zoom del retrato.
+// 0x4dcd16..0x4dcd69: the portrait's class, action, angle and zoom.
 constexpr std::int32_t ActionBase = 0x78;
 constexpr std::int32_t AngleUnit = 6;
 constexpr float ZoomUnit = 0.01f;
-// El nombre de 0x6c8610.
+// 0x6c8610.
 constexpr std::string_view WebzenName = "webzen";
-// Los que compara _strnicmp (0x4dccbd).
+// The ones _strnicmp compares (0x4dccbd).
 constexpr std::size_t WebzenCompared = 10;
 // 0x49e280: 0x555190(0x6e57a4, "max chat count over", 1).
 constexpr std::string_view MaxChatCountOver = "max chat count over";
-// 0x4dd3d0: la ventana del chat minimizada (5) u oculta (3).
+// 0x4dd3d0: the chat window's states.
 constexpr std::int32_t MinimizedState = 5;
 constexpr std::int32_t HiddenState = 3;
-// 0x4dd1e0 y 0x4dd3d0: el renglón del sistema (1) y el de un miembro (3), y el que habla sin número (0xff).
+// 0x4dd1e0 and 0x4dd3d0: the system line (1) and a member's (3), and the speaker without a number (0xff).
 constexpr std::int32_t SystemLine = 1;
 constexpr std::int32_t MemberLine = 3;
 constexpr std::uint8_t NoSpeaker = 0xff;
-// El lugar de la marca del modelo: 0x4a0270 deja la de 0x4dcb70 en 1.
+// The model's mark: 0x4a0270 leaves 0x4dcb70's at 1.
 constexpr std::int32_t ReadType = 1;
 
 std::string CString(std::string_view text)
@@ -104,7 +104,7 @@ Core::Expected<std::string, std::string> TextOf(const Chat::ChatReceiveContext& 
     return CString(*text);
 }
 
-// 0x555190(vacío, texto, 1).
+// 0x555190(empty, text, 1).
 Core::Expected<void, std::string> SystemMessage(const Chat::ChatReceiveContext& context, std::string_view text,
                                                 std::string_view where)
 {
@@ -113,7 +113,7 @@ Core::Expected<void, std::string> SystemMessage(const Chat::ChatReceiveContext& 
     return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, "", text, Ui::SystemMessage);
 }
 
-// GetTextExtentPointA sobre el DC con su fuente, si hay con qué medir.
+// GetTextExtentPointA over the DC with its font, if there is something to measure with.
 std::optional<Ui::OldWindowMeasure> OldWindowMeasureOf(const Chat::ChatReceiveContext& context)
 {
     if (context.measure == nullptr)
@@ -122,8 +122,8 @@ std::optional<Ui::OldWindowMeasure> OldWindowMeasureOf(const Chat::ChatReceiveCo
         .measure = *context.measure, .dcFont = context.world.Runtime().hud.dcFont, .screen = context.screen};
 }
 
-// Lo que la fábrica y los pasos de las ventanas viejas leen del juego desde un paquete: los textos, la medida, los
-// globales y la vista sin el mouse ni las teclas (el cable no está: lo que manda, corta).
+// What the factory and the old windows' steps read from the game from a packet: the texts, the measure, the globals
+// and the view without the mouse or the keys (the cable is absent: what it sends cuts).
 class OldWindowsFromAPacket
 {
 public:
@@ -135,7 +135,7 @@ public:
         m_view.texts = &m_texts;
         m_view.measure = m_measure ? &*m_measure : nullptr;
         m_view.heroName = std::string(Actors::HeroNameOf(context.world.Hero()));
-        // CL9 hito 10: el personaje del retrato (0x4dcd0e..0x4dcd69).
+        // CL9 milestone 10: the portrait's character (0x4dcd0e..0x4dcd69).
         if (context.worldEntry != nullptr)
             m_view.portrait = LetterPortraitHook(*context.worldEntry);
         m_view.field78abaac = runtime.ui.field78abaac;
@@ -163,7 +163,7 @@ public:
         return m_view.measure;
     }
 
-    // 0x48ee60(caso, x, y, texto, 0, banderas).
+    // 0x48ee60(case, x, y, text, 0, flags).
     [[nodiscard]] Core::Expected<std::int32_t, std::string> Create(Ui::OldWindowManager& manager, std::int32_t kind,
                                                                    std::int32_t x, std::int32_t y, std::string text,
                                                                    std::int32_t flags, std::string_view where) const
@@ -198,17 +198,18 @@ Core::Expected<void, std::string> Notice(const Chat::ChatReceiveContext& context
     return {};
 }
 
-// 0x4a0960 sobre la pestaña de las cartas, con la de amigos.
+// 0x4a0960 over the letters tab, with the friends window.
 void RefreshTheTab(Ui::OldWindowManager& manager)
 {
     Messenger::RefreshTheLettersTab(manager);
 }
 
-// 0x493530(ip, sala, ticket) sobre el chat: +0x770 = sala y 0x49de50: un lugar (0x49e280; sin ninguno, "max chat
-// count over" y nada más), la conexión al puerto 55980 con el mensaje 0x500 + lugar y la sala anotada con la ventana; y
-// por ella, el C1 10 00 con la sala y el ticket. El connect del original espera (0x4e8570): si falla, la sala no se
-// anota, no sale nada y el lugar queda tomado (Q-C1005). En MuRet conecta sin esperar: la sala se anota al empezar,
-// el C1 10 00 espera en la cola y, si el connect falla, ApplyChatRoomClosed la olvida.
+// 0x493530(ip, room, ticket) over the chat: +0x770 = room and 0x49de50: a slot (0x49e280; without any, "max chat
+// count over" and nothing else), the connection to port 55980 with message 0x500 + slot and the room noted with the
+// window; and through it, the C1 10 00 with the room and the ticket. The original's connect waits (0x4e8570): if it
+// fails, the room is not noted, nothing goes out and the slot stays taken (Q-C1005). MuRet connects without waiting:
+// the room is noted at the start, the C1 10 00 waits in the queue and, if the connect fails, ApplyChatRoomClosed
+// forgets it.
 Core::Expected<void, std::string> JoinTheRoom(const Chat::ChatReceiveContext& context, Ui::OldWindow& chat,
                                               const Protocol::Messenger::RoomAnswer& answer)
 {
@@ -224,7 +225,7 @@ Core::Expected<void, std::string> JoinTheRoom(const Chat::ChatReceiveContext& co
     return {};
 }
 
-// El chat de la ventana `id`, si está y es un chat (0x490a00).
+// Window `id`, if it exists and is a chat (0x490a00).
 Ui::OldWindow* ChatOf(Ui::OldWindowManager& manager, std::int32_t id)
 {
     Ui::OldWindow* window = Ui::FindTheOldWindow(manager, id);
@@ -247,7 +248,7 @@ Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Messenge
         break;
     case 1:
     {
-        // 0x4dc87a: el 4 a la ventana y sprintf(1046, 1000) al chat.
+        // 0x4dc87a: the 4 to the window and sprintf(1046, 1000) to the chat.
         if (window != 0)
             Ui::PostToTheManager(manager, Ui::CloseMessage, window, 0);
         auto sent = TextOf(context, LetterSentText, "0x4dc840(1)");
@@ -274,7 +275,8 @@ Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Messenge
     default:
         return {};
     }
-    // +0x778 de la ventana de 0x490a00, sin mirar que esté (Q-C1001): MuRet no escribe en una que no está.
+    // +0x778 of 0x490a00's window, without checking that it exists (Q-C1001): MuRet does not write into one that does
+    // not exist.
     if (window != 0)
     {
         if (Ui::OldWindow* write = Ui::FindTheOldWindow(manager, window); write != nullptr)
@@ -295,7 +297,7 @@ Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Messenger::Lett
     }
     else if (row.type == 2)
     {
-        // (CL10) El sonido queda pedido.
+        // (CL10) The sound stays requested.
         runtime.RequestSound(NewLetterSound);
         manager.windowList.list.newLetter = 1;
         auto text = TextOf(context, NewLetterText, "0x4dcaa4");
@@ -351,19 +353,19 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Messenger::Let
         return Core::Unexpected(std::string("0x4dcb70: la ventana de leer no se armó y el original sigue con NULL"));
     if (auto set = Messenger::SetTheLetter(manager, *read, shown, letter.body, windows.Measure()); !set.HasValue())
         return set;
-    // 0x491720: la ventana de la carta, si 0x491570 la había anotado.
+    // 0x491720: the letter's window, if 0x491570 had noted it.
     if (const auto found = manager.letterWindows.find(shown.index); found != manager.letterWindows.end())
         found->second = id;
     if (LetterFromWebzen(shown.name))
     {
-        // 0x4dccda: +0x770 de la de leer, que es también +0x6c0 de su retrato (+0xb0): en blanco.
+        // 0x4dccda: +0x770 of the read window, which is also +0x6c0 of its portrait (+0xb0): blank.
         read->letter.fromWebzen = 1;
         read->letter.portrait.blank = 1;
     }
     else
     {
-        // La clase (los bits 4..6 y el 4 de pkt[8], 0x4977d0), el equipo (0x497810), la acción (0x4978f0), el ángulo
-        // (0x497890, con el personaje armado) y el zoom (0x4978d0).
+        // The class (bits 4..6 and the 4 of pkt[8], 0x4977d0), the gear (0x497810), the action (0x4978f0), the angle
+        // (0x497890, with the character built) and the zoom (0x4978d0).
         Ui::OldPortraitPart& portrait = read->letter.portrait;
         const std::uint8_t packed = letter.portraitClass;
         portrait.portraitClass = static_cast<std::uint8_t>(
@@ -436,7 +438,7 @@ Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::Messenger::Roo
     }
     if (answer.type == 1)
     {
-        // 0x4a6430: el chat que ya está con el amigo sale de su sala y entra a la nueva.
+        // 0x4a6430: the chat already open with the friend leaves its room and joins the new one.
         const std::int32_t open = Messenger::FindTheChatWith(manager, answer.name, windows.View().heroName);
         if (open == -1)
             return {};
@@ -447,16 +449,15 @@ Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::Messenger::Roo
                 return Core::Unexpected(std::string("0x4dcf58: el chat de 0x4a6430 no está"));
             if (auto left = Messenger::LeaveTheChatRoom(manager, *chat); !left.HasValue())
                 return left;
-            // 0x493a70 manda el C1 03 01 y cierra la conexión vieja (0x49dfd0) en el momento, antes de que 0x493530
-            // abra la nueva: con el mismo número de sala, la nueva no puede ser la vieja.
+            // 0x493a70 sends the C1 03 01 and closes the old connection (0x49dfd0) at once, before 0x493530 opens the
+            // new one: with the same room number, the new one cannot be the old one.
             FlushTheChatRoomOrders(manager.chatRooms, context.rooms);
             return JoinTheRoom(context, *chat, answer);
         }
     }
     else if (answer.type != 2)
         return {};
-    // 0x4dcf7e: el 2 (minimizado), la sala, el estado 5, al fondo (el 5 al administrador) y fuera de la pestaña de
-    // las ventanas.
+    // 0x4dcf7e: the 2 (minimized), the room, state 5, to the back (the 5 to the manager) and out of the windows tab.
     auto created =
         windows.Create(manager, Ui::CalledChatCase, ChatPlace, ChatPlace, title.Value(), 0, "0x4dce10(1, 2)");
     if (!created.HasValue())
@@ -489,7 +490,7 @@ Core::Expected<void, std::string> ApplyInviteResult(const Protocol::Messenger::I
         break;
     case 1:
     {
-        // 0x4dd04f: el elegido de la lista de invitar (la vtable + 0x64), si hay, con el 1057 detrás.
+        // 0x4dd04f: the invite list's chosen one (the vtable + 0x64), if any, with the 1057 after it.
         Ui::OldChatPart& part = chat->chat;
         const std::optional<std::size_t> at = Ui::SelectedInTheList(part.invite, part.invitable.size());
         if (!at || *at >= part.invitable.size())
@@ -522,8 +523,8 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     if (!opcode)
         return {};
     const OldWindowsFromAPacket windows(context);
-    // Uno más corto que lo que lee su handler no se aplica (Q-C1011): ServerSession lo ignora antes, con su aviso
-    // (Protocol::Messenger::CheckRoomPacket), y acá tampoco cierra nada.
+    // One shorter than what its handler reads is not applied (Q-C1011): ServerSession ignores it earlier, with its
+    // warning (Protocol::Messenger::CheckRoomPacket), and here nothing closes either.
     switch (Network::ByteOf(*opcode))
     {
     case Network::ByteOf(Protocol::Messenger::RoomJoinOpcode):
@@ -588,7 +589,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     }
     case Network::ByteOf(Protocol::Messenger::RoomMembersOpcode):
     {
-        // 0x4dd350: 0x490a00 y 0x493c90 sin mirar que la ventana esté.
+        // 0x4dd350: 0x490a00 and 0x493c90 without checking that the window exists.
         auto members = Chat::ReadMembers(packet);
         if (!members.HasValue())
             return {};
@@ -633,7 +634,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     }
     case Network::ByteOf(Protocol::Messenger::RoomNoticeOpcode):
     {
-        // 0x4dd549: pkt[0x68] = 0 y, si hay texto, al chat.
+        // 0x4dd549: pkt[0x68] = 0 and, if there is text, to the chat.
         auto notice = Chat::ReadNotice(packet);
         if (!notice.HasValue())
             return {};
@@ -655,7 +656,7 @@ Core::Expected<void, std::string> ApplyChatRoomClosed(const App::ChatRoomClosed&
         Messenger::ForgetTheChatRoom(manager.chatRooms, closed.room);
         return {};
     }
-    // 0x49e480 con FD_CLOSE: el chat de la sala, si está, con el 402 de nadie (0x493f80 con 0xff y 1).
+    // 0x49e480 with FD_CLOSE: the room's chat, if it exists, with nobody's 402 (0x493f80 with 0xff and 1).
     Ui::OldWindow* chat = ChatOf(manager, closed.window);
     if (chat == nullptr)
         return {};

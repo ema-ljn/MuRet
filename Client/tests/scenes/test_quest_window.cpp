@@ -56,10 +56,10 @@
 #include <utility>
 #include <vector>
 
-// La ventana de las misiones (CL9 hito 2; 06 § Las misiones, "La ventana"): el paso 0x41b5a0 (0x41a9e0, 0x419bd0 y
-// 0x41b170), el dibujo 0x41ca40 (0x41ba20, 0x41b680, 0x41b810 y 0x41c600) y el 3D 0x41b9e0, en 640 × 480. Las
-// misiones, los diálogos, los textos y los nombres son inventados. Cada test corre en Lorencia y en Devias: nada de la
-// ventana mira el mapa.
+// The quest window (CL9 milestone 2; 06 § Las misiones, "La ventana"): the step 0x41b5a0 (0x41a9e0, 0x419bd0 and
+// 0x41b170), the drawing 0x41ca40 (0x41ba20, 0x41b680, 0x41b810 and 0x41c600) and the 3D 0x41b9e0, in 640 × 480. The
+// quests, dialogs, texts and names are made up. Each test runs in Lorencia and in Devias: nothing in the window looks
+// at the map.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -76,20 +76,20 @@ constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4242u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
-// Un registro propio que se cierra hasta 0 gasta 3.848 rand() (0x40b4d0); el C3 saca el relleno y el serial.
+// An own record closed down to 0 spends 3848 rand() (0x40b4d0); the C3 draws the padding and the serial.
 constexpr int OwnRecordClose = 0xf08;
 constexpr int C3Randoms = 2;
 // 0x41b5bb..0x41b64c.
 constexpr std::int32_t Alone = 0x1c2;
 constexpr std::int32_t Beside = 0x104;
-// El pergamino de la misión 0, el primero de los ítems de misión (grupo 14, índice 23).
+// Quest 0's scroll, the first of the quest items (group 14, index 23).
 constexpr std::int32_t ScrollType = 0x1c17;
 constexpr std::int32_t NpcType = 0xeb;
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
-// 0x419bf7..0x419c3a con un renglón y tres respuestas: el texto en 93 y las respuestas desde 111 con el estado 1, o
-// desde 0xfa con otro.
+// 0x419bf7..0x419c3a with one line and three answers: the text at 93 and the answers from 111 with state 1, or from
+// 0xfa with another.
 constexpr std::int32_t TextRowTop = 93;
 constexpr std::int32_t AnswersTopInProgress = 111;
 constexpr std::int32_t AnswersTopOtherwise = 0xfa;
@@ -109,7 +109,7 @@ void PutText(std::span<char> to, std::string_view value)
     std::ranges::copy(value, to.begin());
 }
 
-// Item.bmd con los nombres de los cuatro ítems de misión, el de una espada (el tipo 1) y nada más.
+// Item.bmd with the names of the four quest items, that of a sword (type 1) and nothing else.
 Client::Tables::ItemTable QuestItems()
 {
     using Client::Tables::ItemRecordSize;
@@ -133,7 +133,6 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Lo que pide la UI, en orden.
 class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
@@ -179,7 +178,7 @@ public:
     std::vector<std::string> requests;
 };
 
-// Un quad del lote: el slot (Marker si es la marca de un texto), el color y las esquinas 0 y 2 del fan.
+// A batch quad: the slot (Marker for a text's mark), the color and corners 0 and 2 of the fan.
 struct DrawnQuad
 {
     int slot = NoTexture;
@@ -209,7 +208,7 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// El primer quad con ese slot y esa esquina (en 640 × 480, la y de GL es 480 − y).
+// The first quad with that slot and that corner (in 640 × 480, the GL y is 480 − y).
 const DrawnQuad* FindQuad(const std::vector<DrawnQuad>& quads, int slot, float x, float y)
 {
     constexpr float Tolerance = 1e-3f;
@@ -248,7 +247,7 @@ protected:
         Hero().characterClass = 0;
         Client::Quests::QuestState& quest = Quest();
         quest.characterClass = 0;
-        // La misión 0: el pergamino para la clase 0, con nivel 10 y 1.000 de zen.
+        // Quest 0: the scroll for class 0, with level 10 and 1000 zen.
         Client::Tables::QuestRecord& first = quest.records[0];
         first.entryCount = 1;
         first.conditionCount = 1;
@@ -271,7 +270,7 @@ protected:
         PutText(quest.records[1].name, "La segunda");
         quest.records[2].npcType = 0xe5;
         PutText(quest.records[2].name, "La tercera");
-        // Dialog.bmd: el 10 con tres respuestas (mirar y aceptar → 11, cerrar, aceptar → 12).
+        // Dialog.bmd: dialog 10 with three answers (check and accept → 11, close, accept → 12).
         runtime.dialogTable.assign(Client::Tables::DialogCount, {});
         for (const std::size_t index : {10U, 11U, 12U, 20U})
             PutText(runtime.dialogTable[index].text, "Un texto inventado");
@@ -312,7 +311,7 @@ protected:
         return Runtime().panels.delegated.quest;
     }
 
-    // La ventana del diálogo con el NPC con la misión 0 en `state` y el diálogo 10 (0x4198b0 sin su 0x419600).
+    // The NPC dialog window with quest 0 in `state` and dialog 10 (0x4198b0 without its 0x419600).
     void OpenTheDialog(std::uint8_t state)
     {
         Window() = Client::Quests::QuestDialogWindow;
@@ -389,8 +388,8 @@ protected:
     Client::Tables::ItemTable m_items = QuestItems();
 };
 
-// 0x41b5bb..0x41b64c: la esquina, (0x104, 0) con el personaje abierto y (0x1c2, 0) sin él, en cada paso. Con la ventana
-// cerrada no hace nada más ni saca rand().
+// 0x41b5bb..0x41b64c: the corner, (0x104, 0) with the character open and (0x1c2, 0) without it, every step. With the
+// window closed it does nothing more and draws no rand().
 TEST_P(QuestWindowTest, TheCornerFollowsTheCharacterWindow)
 {
     Quest().x = 7;
@@ -405,9 +404,9 @@ TEST_P(QuestWindowTest, TheCornerFollowsTheCharacterWindow)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x41b5cf..0x41b63b: con el personaje abierto, el clic en [0x1f9, 0x211) × [0x18b, 0x1a3) abre la lista (Open(8),
-// 0x419840 con el diálogo de la misión más alta) y otro la cierra (Close(8), el C1 03 31); los dos suenan. Sin el
-// personaje, el botón no está.
+// 0x41b5cf..0x41b63b: with the character open, the click in [0x1f9, 0x211) × [0x18b, 0x1a3) opens the list (Open(8),
+// 0x419840 with the highest quest's dialog) and another closes it (Close(8), the C1 03 31); both sound. Without the
+// character, the button is not there.
 TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
 {
     RecordingRequests requests;
@@ -434,7 +433,7 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
     EXPECT_EQ(Mouse().updateTime, 0);
     EXPECT_EQ(Mouse().updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
-    // 0x419840: la misión 0 disponible, con las condiciones sin el zen, y su diálogo 10.
+    // 0x419840: quest 0 available, with the conditions without the zen, and its dialog 10.
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 10);
     EXPECT_TRUE(requests.requests.empty());
 
@@ -446,8 +445,8 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
 }
 
-// 0x419bd0, la acción 2: el clic sobre la segunda respuesta (las respuestas en 0xfa con el estado 3) gasta el clic,
-// suelta el botón, cierra con 0x419900 (el C1 03 31, sin el sonido del registro) y suena; el diálogo 0 no se muestra.
+// 0x419bd0, action 2: the click on the second answer (the answers at 0xfa with state 3) spends the click, releases the
+// button, closes with 0x419900 (the C1 03 31, without the registry's sound) and sounds; dialog 0 is not shown.
 TEST_P(QuestWindowTest, TheCloseAnswerClosesTheWindow)
 {
     RecordingRequests requests;
@@ -469,7 +468,7 @@ TEST_P(QuestWindowTest, TheCloseAnswerClosesTheWindow)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x419bd0, la acción 3: el A2 con la misión y 1 (los dos rand() del C3) y el diálogo 12 al que lleva la respuesta.
+// 0x419bd0, action 3: the A2 with the quest and 1 (the C3's two rand()) and dialog 12 that the answer leads to.
 TEST_P(QuestWindowTest, TheAcceptAnswerSendsTheQuestAndShowsTheNextDialog)
 {
     RecordingRequests requests;
@@ -482,7 +481,7 @@ TEST_P(QuestWindowTest, TheAcceptAnswerSendsTheQuestAndShowsTheNextDialog)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, C3Randoms).State());
 
-    // Sin el cable, el A2 corta antes de sacar los rand().
+    // Without the wiring, the A2 cuts before drawing the rand().
     OpenTheDialog(Client::Quests::QuestAvailable);
     Click();
     const std::uint32_t before = m_random.State();
@@ -492,8 +491,8 @@ TEST_P(QuestWindowTest, TheAcceptAnswerSendsTheQuestAndShowsTheNextDialog)
     EXPECT_EQ(m_random.State(), before);
 }
 
-// 0x419bd0, la acción 1: con las condiciones (el nivel y el zen, cada uno con su apertura del registro propio), el A2
-// y el diálogo 11; sin el zen, el diálogo de la condición (20) y ni el A2 ni el 11.
+// 0x419bd0, action 1: with the conditions (the level and the zen, each with its own record opening), the A2 and dialog
+// 11; without the zen, the condition's dialog (20) and neither the A2 nor 11.
 TEST_P(QuestWindowTest, TheCheckingAnswerLooksAtTheConditionsWithTheZen)
 {
     RecordingRequests requests;
@@ -517,9 +516,9 @@ TEST_P(QuestWindowTest, TheCheckingAnswerLooksAtTheConditionsWithTheZen)
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{before}, 2 * OwnRecordClose).State());
 }
 
-// Q-C870 y Q-C871: la fila sale de (y − arriba) / 0x12 con la división de C, así que de 1 a 17 píxeles por encima de
-// la primera respuesta es la 0; desde 18, la −1, que sale después de gastar el clic. La x se mide contra 0x236, no
-// contra la ventana: con el personaje abierto (la ventana en 0x104) las respuestas no se eligen donde se dibujan.
+// Q-C870 and Q-C871: the row comes from (y − top) / 0x12 with C division, so 1 to 17 pixels above the first answer is
+// row 0; from 18, row −1, which leaves after spending the click. The x is measured against 0x236, not the window: with
+// the character open (the window at 0x104) the answers are not chosen where they are drawn.
 TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
 {
     RecordingRequests requests;
@@ -540,7 +539,7 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_EQ(m_random.State(), before);
 
-    // 0x419c62..0x419c71: |0x236 − x| hasta 0x6a.
+    // 0x419c62..0x419c71: |0x236 − x| up to 0x6a.
     for (const auto& [x, inside] : {std::pair{AnswersCenterX - 0x6a, true}, std::pair{AnswersCenterX + 0x6a, true},
                                     std::pair{AnswersCenterX - 0x6b, false}, std::pair{AnswersCenterX + 0x6b, false},
                                     std::pair{Beside + 0x64, false}})
@@ -554,9 +553,9 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
     }
 }
 
-// 0x41aa4a..0x41b0cc: con la misión en curso y el pergamino en el inventario (0x419b10), el clic en el botón de
-// terminar, [x + 0x23, + 0x78) × [0x163, 0x17b), manda el A2, gasta el clic y suelta el botón, y suena; 0x77f3b10 y
-// 0x6c8dcc quedan. Sin el pergamino, el botón no hace nada.
+// 0x41aa4a..0x41b0cc: with the quest in progress and the scroll in the inventory (0x419b10), the click on the finish
+// button, [x + 0x23, + 0x78) × [0x163, 0x17b), sends the A2, spends the click and releases the button, and sounds;
+// 0x77f3b10 and 0x6c8dcc stay. Without the scroll, the button does nothing.
 TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
 {
     RecordingRequests requests;
@@ -586,8 +585,8 @@ TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, C3Randoms).State());
 }
 
-// 0x41aa0e..0x41aa3a y 0x41b0e7..0x41b14c: el mouse sobre la ventana es de la UI; el botón de cerrar gasta el clic y
-// cierra con 0x419900 sin sonar; el soltado (0x7d366ec) se apaga en cada paso.
+// 0x41aa0e..0x41aa3a and 0x41b0e7..0x41b14c: the mouse over the window belongs to the UI; the close button spends the
+// click and closes with 0x419900 without sounding; the release (0x7d366ec) goes off every step.
 TEST_P(QuestWindowTest, TheDialogCloseButtonAndTheMouse)
 {
     RecordingRequests requests;
@@ -610,8 +609,8 @@ TEST_P(QuestWindowTest, TheDialogCloseButtonAndTheMouse)
     EXPECT_EQ(Runtime().lastSoundId, std::nullopt);
 }
 
-// 0x41b170: la pestaña 0 se elige y gasta el clic, sin el C1 9F (Q-C845); la 1 y la 2 no gastan nada. La elegida va de
-// 0xeb a 0xfb y las otras de 0xed; el botón de cerrar cierra con Close(8), que suena.
+// 0x41b170: tab 0 is chosen and spends the click, without the C1 9F (Q-C845); tabs 1 and 2 spend nothing. The chosen
+// one goes from 0xeb to 0xfb and the others from 0xed; the close button closes with Close(8), which sounds.
 TEST_P(QuestWindowTest, TheListTabsAndItsCloseButton)
 {
     RecordingRequests requests;
@@ -637,13 +636,12 @@ TEST_P(QuestWindowTest, TheListTabsAndItsCloseButton)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5ee20d: el paso de la UI llega a la ventana después de los comandos; con el personaje abierto, el botón abre la
-// lista.
+// 0x5ee20d: the UI step reaches the window after the commands; with the character open, the button opens the list.
 TEST_P(QuestWindowTest, TheGameUiStepsTheWindow)
 {
     RecordingRequests requests;
     Runtime().panels.character = 1;
-    // 0x424230: el pedido del caballo oscuro ya salió.
+    // 0x424230: the dark horse request already went out.
     Runtime().panels.delegated.pet = 1;
     Quest().states[0] = Client::Quests::QuestAvailable;
     Click();
@@ -653,9 +651,9 @@ TEST_P(QuestWindowTest, TheGameUiStepsTheWindow)
     EXPECT_EQ(Quest().x, Beside);
 }
 
-// 0x41ba20 con la misión en curso: el fondo con la línea, la línea de y + 325, el pergamino "Pergamino x 1" en negrita
-// en (0x1fe, 240), el botón de terminar (blanco con el pergamino, gris sin él) con el 699, el de cerrar, el nombre de
-// la misión en su caja de 150, el texto y las respuestas desde 111.
+// 0x41ba20 with the quest in progress: the background with the line, the line at y + 325, the scroll "Pergamino x 1"
+// in bold at (0x1fe, 240), the finish button (white with the scroll, gray without it) with 699, the close one, the
+// quest's name in its box of 150, the text and the answers from 111.
 TEST_P(QuestWindowTest, TheDialogInProgressDrawsTheItemsAndTheFinishButton)
 {
     OpenTheDialog(Client::Quests::QuestInProgress);
@@ -705,15 +703,15 @@ TEST_P(QuestWindowTest, TheDialogInProgressDrawsTheItemsAndTheFinishButton)
         EXPECT_EQ(drawn->style.font, FontKind::Bold);
         EXPECT_EQ(drawn->style.colors.text, 0xff67bfdfu);
     }
-    // Sin la tabla de 0x7681eb8 (P-C174), el NPC no tiene nombre: no hay título.
+    // Without the table at 0x7681eb8 (P-C174), the NPC has no name: there is no title.
     EXPECT_EQ(std::ranges::count_if(texts, [](const RecordedText& drawn) { return drawn.y == 0xc; }), 0);
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5b1c70 desde 0x41b810 (Items::ItemNameOf): el 0x1c17 y el 0x1c18 con nivel 1 se llaman con los textos 906 y 907;
-// con otro nivel distinto de 0 el buffer queda sin iniciar y corta (Q-C874), igual que otro tipo con un nivel sin
-// nombre (el 0x1c09 con el 2). Un ítem que no es de misión lleva el nombre de Item.bmd y, con nivel, " +nivel"; con un
-// grupo de 128 o más el tipo lee fuera de Item.bmd.
+// 0x5b1c70 from 0x41b810 (Items::ItemNameOf): the 0x1c17 and the 0x1c18 with level 1 are named with texts 906 and 907;
+// with another level other than 0 the buffer stays uninitialized and it cuts (Q-C874), as does another type with an
+// unnamed level (the 0x1c09 with 2). An item that is not a quest item takes its Item.bmd name and, with a level,
+// " +level"; with a group of 128 or more the type reads outside Item.bmd.
 TEST_P(QuestWindowTest, TheAskedItemNamesFollowTheLevel)
 {
     auto& entry = Quest().records[0].entries[0];
@@ -770,8 +768,8 @@ TEST_P(QuestWindowTest, WithoutTheItemsTheFinishButtonIsGrey)
     EXPECT_EQ(item->style.colors.text, 0xff1e1effu);
 }
 
-// 0x41bb03..0x41bb84: con el clic sobre el botón de terminar, más oscuro; con el soltado, el clic y el botón abajo se
-// gastan (no en un dibujo intermedio de MuRet).
+// 0x41bb03..0x41bb84: with the click over the finish button, darker; on release, the click and the button down are
+// spent (not in an intermediate MuRet drawing).
 TEST_P(QuestWindowTest, ThePressedFinishButtonSpendsTheReleasedClick)
 {
     OpenTheDialog(Client::Quests::QuestInProgress);
@@ -797,8 +795,8 @@ TEST_P(QuestWindowTest, ThePressedFinishButtonSpendsTheReleasedClick)
     EXPECT_FALSE(Mouse().leftHeld);
 }
 
-// 0x41bc0b..0x41bcca con la misión disponible: el fondo del zen en (x + 50, y + 367,7), el 198 en (x + 20, 370) y el
-// zen que pide la condición con su color.
+// 0x41bc0b..0x41bcca with the quest available: the zen background at (x + 50, y + 367.7), the 198 at (x + 20, 370)
+// and the zen the condition requires with its color.
 TEST_P(QuestWindowTest, TheAvailableQuestShowsItsZen)
 {
     OpenTheDialog(Client::Quests::QuestAvailable);
@@ -818,14 +816,14 @@ TEST_P(QuestWindowTest, TheAvailableQuestShowsItsZen)
     EXPECT_EQ(amount->x, Alone + 60);
     EXPECT_EQ(amount->style.colors.text, Client::Ui::ZenColor(1234567));
     EXPECT_EQ(FindQuad(quads, 0xf0, static_cast<float>(Alone + 35), 355.0f), nullptr);
-    // Las respuestas, en 0xfa.
+    // The answers, at 0xfa.
     const RecordedText* answer = FindText(m_text.texts, "1) Acepto");
     ASSERT_NE(answer, nullptr);
     EXPECT_EQ(answer->y, AnswersTopOtherwise);
 }
 
-// 0x41b72e..0x41b7ac: la respuesta bajo el mouse va en rojo si el mouse está a no más de 0x6a de x + 0x6a; la fila de
-// 1 a 17 píxeles por encima es la 0 (Q-C870).
+// 0x41b72e..0x41b7ac: the answer under the mouse goes red if the mouse is no more than 0x6a from x + 0x6a; the row 1 to
+// 17 pixels above is row 0 (Q-C870).
 TEST_P(QuestWindowTest, TheAnswerUnderTheMouseIsRed)
 {
     OpenTheDialog(Client::Quests::QuestInProgress);
@@ -838,8 +836,8 @@ TEST_P(QuestWindowTest, TheAnswerUnderTheMouseIsRed)
     EXPECT_EQ(FindText(m_text.texts, "2) Me voy")->style.colors.text, 0xff67bfdfu);
 }
 
-// 0x41bde0..0x41be9e: el título es el nombre del NPC de la misión en la tabla de 0x7681eb8; con el héroe de clase 3 o 4
-// y 0x6eeda8, el de la misión 2, y sin el nombre de la misión.
+// 0x41bde0..0x41be9e: the title is the name of the quest's NPC in the table at 0x7681eb8; with a class 3 or 4 hero and
+// 0x6eeda8, that of quest 2, and without the quest's name.
 TEST_P(QuestWindowTest, TheTitleIsTheNameOfTheNpc)
 {
     OpenTheDialog(Client::Quests::QuestAvailable);
@@ -865,15 +863,15 @@ TEST_P(QuestWindowTest, TheTitleIsTheNameOfTheNpc)
     EXPECT_EQ(FindText(m_text.texts, "La primera"), nullptr);
     EXPECT_EQ(FindText(m_text.texts, "La tercera"), nullptr);
 
-    // La clase entera de +0x1d4: un 4 con evolución no es la 4.
+    // The whole class of +0x1d4: a 4 with evolution is not class 4.
     m_text.texts.clear();
     Hero().characterClass = 4 + 8;
     ASSERT_TRUE(Draw(0, 0).HasValue());
     EXPECT_NE(FindText(m_text.texts, "Guardia inventado"), nullptr);
 }
 
-// 0x41c600 y 0x41c2a0: la lista con sus tres pestañas (la elegida más alta y en otro color; la 1 y la 2 en rojo), el
-// título "Quest", el nombre de la más alta, el texto sin respuestas y el estado en la negrita grande.
+// 0x41c600 and 0x41c2a0: the list with its three tabs (the chosen one taller and in another color; tabs 1 and 2 in
+// red), the title "Quest", the highest's name, the text without answers and the state in the large bold.
 TEST_P(QuestWindowTest, TheListDrawsItsTabsAndTheState)
 {
     Window() = Client::Quests::QuestListWindow;
@@ -917,12 +915,12 @@ TEST_P(QuestWindowTest, TheListDrawsItsTabsAndTheState)
     ASSERT_NE(state, nullptr);
     EXPECT_EQ(state->style.font, FontKind::BigBold);
     EXPECT_EQ(state->y, 0x131);
-    // La ayuda del botón de cerrar: el 927 con "T".
+    // The close button's help: text 927 with "T".
     EXPECT_NE(FindText(texts, "Cerrar (T)"), nullptr);
 }
 
-// 0x41ca66..0x41cb44: con el personaje abierto, el botón de las misiones en (505, 395), 0x102 con la ventana cerrada y
-// 0x103 abierta, y su ayuda "Misiones(T)" con el mouse encima.
+// 0x41ca66..0x41cb44: with the character open, the quest button at (505, 395), 0x102 with the window closed and 0x103
+// open, and its help "Misiones(T)" with the mouse over it.
 TEST_P(QuestWindowTest, TheCharacterWindowHasTheQuestButton)
 {
     ASSERT_TRUE(Draw(0x1f9, 0x18b).HasValue());
@@ -945,8 +943,8 @@ TEST_P(QuestWindowTest, TheCharacterWindowHasTheQuestButton)
     EXPECT_EQ(Runtime().hud.textColors, (TextColors{.text = 0xffffffffu, .background = 0}));
 }
 
-// 0x41b9e0: con el diálogo y la misión en curso, cada ítem pedido con 0x5e1480 en (480, 235), con sus rand(); con la
-// lista (sin +0x21380) o cerrada, nada.
+// 0x41b9e0: with the dialog and the quest in progress, each requested item with 0x5e1480 at (480, 235), with its
+// rand(); with the list (without +0x21380) or closed, nothing.
 TEST_P(QuestWindowTest, TheUi3DPassDrawsTheAskedItems)
 {
     Window() = Client::Quests::QuestListWindow;
@@ -973,9 +971,9 @@ TEST_P(QuestWindowTest, TheUi3DPassDrawsTheAskedItems)
 
 INSTANTIATE_TEST_SUITE_P(Maps, QuestWindowTest, ::testing::Values(Lorencia, Devias));
 
-// Los casos de 0x5b1c70 que no escriben el buffer, los que 0x41b810 lee sin iniciar (Q-C874): los niveles sin nombre
-// de los tipos con un nombre por nivel. El 0x180b, las cajas +1..+5 del 0x1c0b, el 0x1c0c de nivel 2 y los demás tipos
-// escriben con cualquier nivel.
+// The cases of 0x5b1c70 that do not write the buffer, which 0x41b810 reads uninitialized (Q-C874): the unnamed levels
+// of the types with one name per level. The 0x180b, boxes +1..+5 of the 0x1c0b, the level 2 0x1c0c and the other types
+// write with any level.
 TEST(QuestItemNamesTest, OnlyTheLevelsWithoutANameAreNotWritten)
 {
     struct Case

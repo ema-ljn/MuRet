@@ -28,45 +28,45 @@ namespace
 {
 constexpr std::int32_t TopLeftRect = 1;
 constexpr std::int32_t RowHeight = 0xd;
-// 0x45cbb0: el renglón sobre el borde de abajo, o 0x65 debajo de él en Crywolf, y en Crywolf la lista de x = 0xba
-// sube a y = 0x12f.
+// 0x45cbb0: the line above the bottom edge, or 0x65 below it in Crywolf, and in Crywolf the list at x = 0xba goes up
+// to y = 0x12f.
 constexpr std::int32_t RowsBottom = 0x10;
 constexpr std::int32_t CrywolfRowsBelow = 0x65;
 constexpr std::int32_t CrywolfListX = 0xba;
 constexpr std::int32_t CrywolfListY = 0x12f;
 constexpr std::int32_t NameX = 10;
-// 0x45c460: 40 de alto cada 3 renglones, más 10.
+// 0x45c460: 40 high every 3 lines, plus 10.
 constexpr std::int32_t RowsPerSide = 3;
 constexpr std::int32_t SideHeight = 0x28;
 constexpr std::int32_t FrameExtra = 10;
-// 0x6b8864, 0x6b87f8 y 0x6b8820: el fondo 12 más alto, los lados de 5 de ancho y el último par 22 más arriba.
+// 0x6b8864, 0x6b87f8 and 0x6b8820: the background 12 taller, the sides 5 wide and the last pair 22 higher.
 constexpr float BackgroundExtra = 12.0f;
 constexpr float SideWidth = 5.0f;
 constexpr float LastSideRise = 22.0f;
-// 0x6b8b10, 0x6b86c4 y 0x6b8a44: las flechas, 21 desde el borde derecho, la de arriba 8 debajo del borde de arriba y
-// la de abajo, dada vuelta, 4 sobre el de abajo.
+// 0x6b8b10, 0x6b86c4 and 0x6b8a44: the arrows, 21 from the right edge, the upper one 8 below the top edge and the
+// lower one, flipped, 4 above the bottom one.
 constexpr float ArrowInset = 21.0f;
 constexpr float ArrowTop = 8.0f;
 constexpr float ArrowBottom = 4.0f;
 constexpr float ArrowSize = 13.0f;
-// 0x6b8878 y 0x6b8818: el cursor, 7 desde el borde derecho menos su ancho y 2 más angosto.
+// 0x6b8878 and 0x6b8818: the thumb, 7 from the right edge minus its width and 2 narrower.
 constexpr float TrackInset = 8.0f;
 constexpr float ThumbInset = 7.0f;
 constexpr float ThumbNarrower = 2.0f;
-// 0x6b880c, 0x6b86c4 y 0x6b8a44: el agarre, 28 desde el borde derecho y en (y − h) − 8 + 4.
+// 0x6b880c, 0x6b86c4 and 0x6b8a44: the grip, 28 from the right edge and at (y − h) − 8 + 4.
 constexpr float GripInset = 28.0f;
 constexpr float GripAbove = 8.0f;
 constexpr float GripDown = 4.0f;
 constexpr float GripWidth = 22.0f;
 constexpr float GripHeight = 12.0f;
-// Las UV de 0x45c460: 0x3f550000, 0x3f200000, 0x3f500000, 0x3f300000 y 0x3f400000.
+// 0x45c460's UVs: 0x3f550000, 0x3f200000, 0x3f500000, 0x3f300000 and 0x3f400000.
 constexpr float FrameDu = 0.83203125f;
 constexpr float FrameDv = 0.625f;
 constexpr float SideUv = 0.625f;
 constexpr float TrackUv = 0.8125f;
 constexpr float ThumbUv = 0.6875f;
 constexpr float GripDv = 0.75f;
-// 0x3f19999a, 0x3dcccccd, 0x3e4ccccd, 0x3f333333 y 0x3f4ccccd.
+// 0x3f19999a, 0x3dcccccd, 0x3e4ccccd, 0x3f333333 and 0x3f4ccccd.
 constexpr float ArrowAlpha = 0.6f;
 constexpr float HighlightAlpha = 0.1f;
 constexpr float HoverAlpha = 0.2f;
@@ -74,20 +74,20 @@ constexpr float Pressed = 0.7f;
 constexpr float Darker = 0.8f;
 // 0x6b8850: 1/16.
 constexpr float Sixteenth = 0.0625f;
-// 0x45d420: los botones, desde (295, 417) de a 18, de 16 × 16; su transparencia sube o baja de a 0,2 (0x6b8854).
+// 0x45d420: the buttons, from (295, 417) every 18, of 16 × 16; their transparency goes up or down by 0.2 (0x6b8854).
 constexpr float ButtonsX = 295.0f;
 constexpr float ButtonsY = 417.0f;
 constexpr float ButtonsStep = 18.0f;
 constexpr float ButtonSize = 16.0f;
 constexpr std::int32_t ButtonPixels = 0x10;
 constexpr float ButtonsFade = 0.2f;
-// 0x3f700000: el botón del F2 apagado.
+// 0x3f700000: the F2 button turned off.
 constexpr float OffButtonUv = 0.9375f;
-// 0x6b87a8 y 0x6b8f00: la ayuda, 10 más arriba y 16 más a la izquierda.
+// 0x6b87a8 and 0x6b8f00: the help, 10 higher and 16 more to the left.
 constexpr float HelpRise = 10.0f;
 constexpr float HelpLeft = 16.0f;
 
-// _ftol (0x69fd3c): trunca hacia el 0.
+// _ftol (0x69fd3c): truncates toward 0.
 std::int32_t Truncate(double value)
 {
     return static_cast<std::int32_t>(value);
@@ -105,7 +105,7 @@ bool InRect(const ChatLogDrawView& view, std::int32_t x, std::int32_t y, std::in
     return MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
 }
 
-// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): escalado, con el color que haya.
+// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): scaled, with whatever color is set.
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u,
           float v, float du, float dv)
 {
@@ -128,9 +128,9 @@ void White(Render::SpriteBatch& sprites, float alpha)
     sprites.SetColor(Render::Color{1.0f, 1.0f, 1.0f, alpha});
 }
 
-// 0x45d230(slot, apretado, x, y, w, h, alfa, al revés): un botón de 16 píxeles por cuadro. Suelto, el quad (dado
-// vuelta con la altura negativa); apretado con el botón abajo, más oscuro y corrido un punto; apretado sin el botón,
-// con un velo blanco de alfa 0,1 encima. Deja el color en (1, 1, 1, alfa).
+// 0x45d230(slot, pressed, x, y, w, h, alpha, flipped): a button of 16 pixels per frame. Released, the quad (flipped
+// with the negative height); pressed with the button down, darker and moved by one point; pressed without the button,
+// with a white veil of alpha 0.1 on top. It leaves the color at (1, 1, 1, alpha).
 void Button(Render::SpriteBatch& sprites, std::uint16_t slot, bool pressed, bool leftDown, float x, float y,
             float width, float height, float alpha, bool flipped)
 {
@@ -169,7 +169,7 @@ void Button(Render::SpriteBatch& sprites, std::uint16_t slot, bool pressed, bool
     White(sprites, alpha);
 }
 
-// 0x45c460, la vtable + 0x7c. El marco y la barra solo con el registro en su ventana; el título del filtro, siempre.
+// 0x45c460, the vtable + 0x7c. The frame and the bar only with the log in its window; the filter's title, always.
 void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
                   const ChatLogDrawView& view)
 {
@@ -200,7 +200,7 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
         Quad(sprites, ChatSideSlot, x, lastY, SideWidth, F32(SideHeight), 0.0f, 0.0f, SideUv, SideUv);
         Quad(sprites, ChatSideSlot, right, lastY, SideWidth, F32(SideHeight), 0.0f, 0.0f, SideUv, SideUv);
 
-        // Con la barra de antes (la de este dibujo la calcula 0x47a230 después de las flechas).
+        // With the previous bar (this draw's is computed by 0x47a230 after the arrows).
         int hover = 0;
         if (InRect(view, frame.x - 0x15 + frame.width, frame.y - frame.height + 8, 0xd, 0xd))
             hover = 1;
@@ -271,7 +271,7 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
     const std::string joined = JoinedChatFilter(log);
     if (!joined.empty())
     {
-        // sprintf("%s: %s", Text.bmd 754, las palabras).
+        // sprintf("%s: %s", Text.bmd 754, the words).
         const std::string title = std::string(Ui::TextAt(view.texts, FilterTitleText).value_or("")) + ": " + joined;
         context.textColors =
             Render::Text::TextColors{.text = 0xffc8dce6u, .background = modes.placement != 1 ? 0x96000000u : 0u};
@@ -286,7 +286,7 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
     ++frame.blink;
 }
 
-// 0x45cbb0: los colores del nombre por tipo; 0x45cbb0 no tiene caso para 7 o más y quedan los de antes.
+// 0x45cbb0: the name's colors by type; 0x45cbb0 has no case for 7 or more and the previous ones stay.
 void NameColors(std::int32_t type, Render::Text::TextColors& colors)
 {
     switch (type)
@@ -317,7 +317,7 @@ void NameColors(std::int32_t type, Render::Text::TextColors& colors)
     }
 }
 
-// Los del texto: el chat normal más claro y sin caso para 6.
+// The text's: the normal chat lighter and no case for 6.
 void TextColors(std::int32_t type, Render::Text::TextColors& colors)
 {
     if (type == 3)
@@ -326,15 +326,15 @@ void TextColors(std::int32_t type, Render::Text::TextColors& colors)
         NameColors(type, colors);
 }
 
-// Con el registro en su ventana, un fondo negro no se dibuja.
+// With the log in its window, a black background is not drawn.
 void ClearBlackBackground(ChatModes modes, Render::Text::TextColors& colors)
 {
     if (modes.placement == 1 && (colors.background & 0xffffffu) == 0)
         colors.background = 0;
 }
 
-// 0x45cbb0, la vtable + 0x80: el renglón `row` (el modo de 0x5763510 + 8 es 0 en este main.exe: sin los códigos de
-// color de "%c%c%s"). Devuelve lo mismo que 0x45dec0.
+// 0x45cbb0, the vtable + 0x80: the line `row` (the mode of 0x5763510 + 8 is 0 in this main.exe: without the color
+// codes of "%c%c%s"). It returns the same as 0x45dec0.
 std::int32_t DrawTheRow(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
                         const ChatLogDrawContext& context, const ChatLogDrawView& view, std::size_t at,
                         std::int32_t row)
@@ -399,9 +399,9 @@ std::int32_t DrawTheRow(const ChatLogState& log, ChatLogFrame& frame, ChatModes 
     return 1;
 }
 
-// 0x45d420, por 0x45cba0 (la vtable + 0x84): los botones aparecen y se van de a 0,2 por dibujo; sin el campo del
-// chat abierto, el del F2 (apagado, más oscuro y corrido un punto), el del tamaño y el de la transparencia, y la
-// ayuda del que tiene el mouse encima.
+// 0x45d420, through 0x45cba0 (the vtable + 0x84): the buttons appear and leave by 0.2 per draw; without the chat field
+// open, the F2 one (turned off, darker and moved by one point), the size one and the transparency one, and the help of
+// the one under the mouse.
 void DrawTheButtons(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
                     const ChatLogDrawView& view)
 {
@@ -446,7 +446,7 @@ void DrawTheButtons(const ChatLogState& log, ChatLogFrame& frame, ChatModes mode
         const std::array<float, 3> xs{ButtonsX, second, third};
         const auto index = static_cast<std::size_t>(hover - 1);
         const std::string_view help = Ui::TextAt(view.texts, ChatButtonHelpTexts[index]).value_or("");
-        // 0x554340 deja el texto en blanco sobre un fondo transparente.
+        // 0x554340 leaves the text white on a transparent background.
         Ui::DrawHelp(sprites, context.text, Truncate(static_cast<double>(xs[index]) - static_cast<double>(HelpLeft)),
                      Truncate(static_cast<double>(ButtonsY) - static_cast<double>(HelpRise)), help);
         context.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};

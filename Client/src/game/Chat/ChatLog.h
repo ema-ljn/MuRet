@@ -16,44 +16,44 @@
 #include <string_view>
 #include <vector>
 
-// El registro del chat, la lista nueva de 0x576350c (CL8 hito 3; 06 § El chat): el objeto de 0x640 bytes que arma
-// 0x45b620 desde WinMain (vtable 0x6b8dd0) y que agrega 0x555190 antes del área vieja. Sus entradas van en un
-// std::deque de 0x11c bytes, la más nueva adelante (push_front). Lo que leen sus funciones de afuera (el lugar del
-// registro, 0x6c7a88, y F2, 0x6c8dd1) llega en ChatModes; lo que escriben el dibujo y el paso y dura (el lugar, el
-// tamaño, la barra, los botones y el parpadeo), en ChatLogFrame, que el juego copia en sus dibujos intermedios.
+// The chat log, the new list of 0x576350c (CL8 milestone 3; 06 § El chat): the 0x640-byte object that 0x45b620 builds
+// from WinMain (vtable 0x6b8dd0) and that 0x555190 adds to before the old area. Its entries go in a std::deque of
+// 0x11c bytes, the newest first (push_front). What its functions read from outside (the log's place, 0x6c7a88, and F2,
+// 0x6c8dd1) comes in ChatModes; what the draw and the step write and lasts (the place, the size, the bar, the buttons
+// and the blink), in ChatLogFrame, which the game copies in its intermediate draws.
 namespace Client::Chat
 {
-// +0x40: el id de la ventana, del contador 0x5762eb0 (0x459ef0). *Inferido*: antes que este arma WinMain ocho
-// ventanas viejas (0x4674c0), que se llevan del 1 al 8.
+// +0x40: the window's id, from the counter 0x5762eb0 (0x459ef0). *Inferred*: before this one WinMain builds eight
+// old windows (0x4674c0), which take 1 to 8.
 inline constexpr std::int32_t ChatLogId = 9;
-// +4 (strncpy de 0xb) y +0xf (0x100). Un nombre de 11 bytes queda sin '\0' y se lee seguido del texto.
+// +4 (strncpy of 0xb) and +0xf (0x100). An 11-byte name is left without '\0' and is read followed by the text.
 inline constexpr std::size_t ChatNameBytes = 0xb;
 inline constexpr std::size_t ChatTextBytes = 0x100;
 // +0x140: 5 palabras de 0x100 bytes.
 inline constexpr std::size_t ChatFilterWords = 5;
-// 0x45dc40: la suma de los largos de las 5 palabras tiene que quedar por debajo de 31.
+// 0x45dc40: the sum of the 5 words' lengths has to stay below 31.
 inline constexpr std::size_t ChatFilterTotalBytes = 0x1f;
-// 0x45bb20 corta en 2 renglones de 180 de ancho (0x459c70(texto, 2 × 0x100, 0xb4, 2, 0x100, 0, 0)).
+// 0x45bb20 splits into 2 lines 180 wide (0x459c70(text, 2 × 0x100, 0xb4, 2, 0x100, 0, 0)).
 inline constexpr int ChatWrapWidth = 0xb4;
-// Text.bmd: el aviso del filtro puesto (755) y el del filtro sacado (756), y los de los botones (750, 751, 752).
+// Text.bmd: the notice of the filter set (755) and of the filter removed (756), and the buttons' ones (750, 751, 752).
 inline constexpr std::size_t FilterOnText = 755;
 inline constexpr std::size_t FilterOffText = 756;
 inline constexpr std::size_t FilterTitleText = 754;
 inline constexpr std::array<std::size_t, 3> ChatButtonHelpTexts{750, 751, 752};
-// 0x41ed10(id, 0, 0): los sonidos que pide.
+// 0x41ed10(id, 0, 0): the sounds it asks for.
 inline constexpr Audio::SoundId ChatButtonSound = Sound::ButtonClickSound;
 inline constexpr Audio::SoundId ChatFilterSound = Sound::WhisperSound;
 
 struct ChatEntry
 {
-    // +0: lo cambia de paridad el mouse sobre el nombre (0x45dec0). Nadie lo lee.
+    // +0: the mouse over the name flips its parity (0x45dec0). Nobody reads it.
     std::int32_t blink = 0;
     std::string name;
     std::string text;
     std::int32_t type = 0;
-    // +0x114: el cuarto argumento de 0x45bb20, que 0x555190 da en 0.
+    // +0x114: 0x45bb20's fourth argument, which 0x555190 gives as 0.
     std::int32_t param = 0;
-    // +0x118: cuántos agregados vacíos pasaron con el registro arriba (0x45bb10). 0x45bfe0 lo suma sin signo.
+    // +0x118: how many empty adds passed with the log up (0x45bb10). 0x45bfe0 adds it unsigned.
     std::uint32_t age = 0;
 
     friend bool operator==(const ChatEntry&, const ChatEntry&) = default;
@@ -61,97 +61,94 @@ struct ChatEntry
 
 struct ChatLogState
 {
-    // La más nueva primero.
+    // The newest first.
     std::deque<ChatEntry> entries;
-    // +0x48: 0 quieta, 1 cambiando el alto (el borde de arriba) y 2 arrastrando la barra.
+    // +0x48: 0 still, 1 changing the height (the top edge) and 2 dragging the bar.
     std::int32_t state = 0;
-    // +0xc4: el renglón elegido, contando desde 1 entre los que se ven; 0, ninguno.
+    // +0xc4: the selected line, counting from 1 among the visible ones; 0, none.
     std::int32_t selection = 0;
     // +0xfc.
     std::int32_t maxEntries = 150;
-    // +0x100: cuántos de los que se ven quedan abajo, por debajo del último renglón.
+    // +0x100: how many of the visible ones remain below, under the last line.
     std::int32_t scroll = 0;
-    // +0x104: los renglones que muestra.
+    // +0x104
     std::int32_t rows = 6;
-    // +0x11c: dónde agarró la barra el mouse, desde su borde de arriba.
+    // +0x11c: where the mouse grabbed the bar, from its top edge.
     float dragOffset = 0.0f;
-    // +0x120 y +0x124: cuántos pasos lleva apretada una flecha o la pista. Con 16, repite en cada paso.
+    // +0x120 and +0x124: how many steps an arrow or the track has been pressed. With 16, it repeats each step.
     std::int32_t arrowRepeat = 0;
     std::int32_t trackRepeat = 0;
-    // +0x12c: 0 desde el constructor; con 1, la barra sería la de las otras listas (otros bordes).
+    // +0x12c: 0 from the constructor; with 1, the bar would be the other lists' one (other edges).
     std::int32_t barMode = 0;
-    // +0x134: la transparencia del fondo (el fondo sale con 1 − esto). La cambia el tercer botón y el F3 30.
+    // +0x134: the background's transparency (drawn with 1 − this). The third button and the F3 30 change it.
     float alpha = 0.4f;
-    // +0x138: los botones a la vista (el mouse pasó por abajo).
+    // +0x138: the buttons in view (the mouse passed below).
     std::int32_t buttonsShown = 0;
     // +0x140.
     std::array<std::string, ChatFilterWords> filter{};
 };
 
-// Lo que el dibujo y el paso escriben y dura.
 struct ChatLogFrame
 {
-    // +0x50 y +0x54: la esquina de abajo a la izquierda. El paso la pone en cada vuelta (0x637036..0x637056) y el
-    // dibujo de un renglón, en Crywolf, deja la y en 0x12f (0x45cbb0).
+    // +0x50 and +0x54: the bottom-left corner. The step sets it on each round (0x637036..0x637056) and a line's draw,
+    // in Crywolf, leaves the y at 0x12f (0x45cbb0).
     std::int32_t x = 0xba;
     std::int32_t y = 0x1a4;
-    // +0x58 y +0x5c. El marco (0x45c460) deja el alto con el registro en su ventana.
+    // +0x58 and +0x5c. The frame (0x45c460) leaves the height with the log in its window.
     std::int32_t width = 0x10c;
     std::int32_t height = 0xfa;
-    // +0x108, +0x10c, +0x110, +0x114 y +0x118: la barra (0x47a230).
+    // +0x108, +0x10c, +0x110, +0x114 and +0x118: the bar (0x47a230).
     float barTop = 0.0f;
     float barBottom = 0.0f;
     float thumbY = 0.0f;
     float thumbWidth = 13.0f;
     float thumbHeight = 0.0f;
-    // +0x130: sube uno por dibujo del marco (0x45c460), también con el registro fuera de su ventana.
+    // +0x130: goes up by one per frame draw (0x45c460), also with the log outside its window.
     std::int32_t blink = 0;
-    // +0x13c: la transparencia de los botones, que sube y baja de a 0,2 (0x45d420).
+    // +0x13c: the buttons' transparency, which goes up and down by 0.2 (0x45d420).
     float buttonsAlpha = 0.0f;
 };
 
-// Los globales que leen las funciones de la lista: 0x6c7a88 (.data 1, el constructor lo pone en 0) y 0x6c8dd1
-// (.data 1, F2).
+// The globals the list reads: 0x6c7a88 (.data 1, the constructor sets it to 0) and 0x6c8dd1 (.data 1, F2).
 struct ChatModes
 {
     std::int32_t placement = 0;
     bool showChat = true;
 };
 
-// El nombre (+4) como lo leen lstrlenA, strcmp y sprintf: uno de 11 bytes no tiene '\0' y sigue con el texto.
+// The name (+4) as lstrlenA, strcmp and sprintf read it: an 11-byte one has no '\0' and runs on into the text.
 [[nodiscard]] std::string NameOf(const ChatEntry& entry);
 
-// 0x45c140: el que no se ve. El chat normal (3) sin F2; el de sistema y el de error (1 y 2) con el registro en su
-// ventana.
+// 0x45c140: the one not shown. The normal chat (3) without F2; system and error (1 and 2) with the log in its window.
 [[nodiscard]] bool IsHiddenInTheLog(const ChatEntry& entry, ChatModes modes);
 
-// 0x45c2e0: los que se ven. Cuenta los escondidos solo sin F2 o con el registro en su ventana.
+// 0x45c2e0: the visible ones. It counts the hidden ones only without F2 or with the log in its window.
 [[nodiscard]] std::int32_t VisibleInTheLog(const ChatLogState& log, ChatModes modes);
 
-// 0x45c3a0: el primero que dibuja, después de saltear `scroll` de los que se ven. Puede ser el final.
+// 0x45c3a0: the first one it draws, after skipping `scroll` of the visible ones. It can be the end.
 [[nodiscard]] std::size_t FirstShownInTheLog(const ChatLogState& log, ChatModes modes);
 
-// 0x45c190: el elegido, el `selection`-ésimo de los que se ven. Sin él, el final.
+// 0x45c190: the selected one, the `selection`-th of the visible ones. Without it, the end.
 [[nodiscard]] std::size_t SelectedInTheLog(const ChatLogState& log, ChatModes modes);
 
-// 0x45bfe0(n), la vtable + 0x34: corre `lines` hacia arriba con n negativo. Solo con tantos como renglones o más
-// (sin signo). Con el registro fuera de su ventana, sin correr y n = −6, busca por las edades cuántos entran.
+// 0x45bfe0(n), the vtable + 0x34: scrolls `lines` up with n negative. Only with as many as the lines or more
+// (unsigned). With the log outside its window, not scrolled and n = −6, it searches by the ages how many fit.
 void ScrollTheLog(ChatLogState& log, ChatModes modes, std::int32_t lines);
 
-// 0x479760, la vtable + 0x58: la elección, hasta los que se ven.
+// 0x479760, the vtable + 0x58: the selection, up to the visible ones.
 void SelectInTheLog(ChatLogState& log, ChatModes modes, std::int32_t row);
 
-// 0x47a050, la vtable + 0x6c: con 150 o más, saca los viejos de atrás y vuelve la elección a 0.
+// 0x47a050, the vtable + 0x6c: with 150 or more, it removes the old ones at the back and sets the selection to 0.
 void TrimTheLog(ChatLogState& log, ChatModes modes);
 
-// 0x478d10, la vtable + 0x2c: vacía la lista, la elección y el corrimiento.
+// 0x478d10, the vtable + 0x2c: empties the list, the selection and the scroll.
 void ClearTheLog(ChatLogState& log, ChatModes modes);
 
-// 0x459c70(texto, renglones de 0x100, ancho, cuántos, 0x100, sangría, 0): corta `text` en hasta `lines` renglones de
-// `width` en 640 × 480, midiendo con GetTextExtentPointA sobre el DC (`font`) y pasando a 640 con ftol(cx / rx). Un
-// renglón que no entra se busca a saltos de la mitad: entra si mide entre el ancho − 4 y el ancho + 4. Devuelve los
-// renglones escritos (los que no, vacíos) y lo que devuelve el original: los usados, o uno más si sobra texto. La
-// división por el ancho medio de una letra (0x459d21) se rompe con un texto de letras de menos de un punto: el error.
+// 0x459c70(text, lines of 0x100, width, how many, 0x100, indent, 0): splits `text` into up to `lines` lines of `width`
+// in 640 × 480, measuring with GetTextExtentPointA on the DC (`font`) and going to 640 with ftol(cx / rx). A line that
+// does not fit is searched by halving jumps: it fits if it measures between the width − 4 and the width + 4. It returns
+// the lines written (the others, empty) and what the original returns: the used ones, or one more if text is left
+// over. The division by a letter's average width (0x459d21) breaks with a text of letters under one point: the error.
 struct WrappedText
 {
     std::vector<std::string> lines;
@@ -162,7 +159,7 @@ struct WrappedText
                                                                    Render::Text::FontKind font, Core::PixelSize screen,
                                                                    int width, int lines, int indent);
 
-// Lo que necesita medir 0x45bb20 al cortar.
+// What 0x45bb20 needs to measure when splitting.
 struct ChatMeasure
 {
     const Render::Text::ITextMeasure& measure;
@@ -170,37 +167,37 @@ struct ChatMeasure
     Core::PixelSize screen{};
 };
 
-// 0x45bb20(nombre, texto, tipo, param), la vtable + 0x94:
-//   - los dos vacíos: con el registro fuera de su ventana y sin correr, todas las entradas suben su edad;
-//   - el chat normal sin F2 no entra; con F2, si el filtro (0x45ddc0) no deja pasar al nombre ni al texto, tampoco, y
-//     con el filtro puesto y el sonido de los avisos (0x77f3b78) pide el 0x26;
-//   - con menos de 20 bytes entre los dos, una entrada; si no, el texto cortado en 2 de 180 (WrapByWidth), con el
-//     nombre en el primero;
-//   - después, TrimTheLog, la elección en 0, el corrimiento uno más (si corría y el tipo se ve) y lo acota.
-// Devuelve el sonido que pide.
+// 0x45bb20(name, text, type, param), the vtable + 0x94:
+//   - both empty: with the log outside its window and not scrolled, all the entries raise their age;
+//   - the normal chat without F2 does not go in; with F2, if the filter (0x45ddc0) lets neither the name nor the text
+//     through, neither, and with the filter set and the notices' sound (0x77f3b78) it asks for the 0x26;
+//   - with fewer than 20 bytes between the two, one entry; if not, the text split into 2 of 180 (WrapByWidth), with the
+//     name in the first;
+//   - then TrimTheLog, the selection at 0, the scroll one more (if it was scrolled and the type is shown), bounded.
+// It returns the sound it asks for.
 [[nodiscard]] Core::Expected<std::optional<Audio::SoundId>, std::string>
 AddToTheLog(ChatLogState& log, ChatModes modes, const ChatMeasure& measure, std::string_view name,
             std::string_view text, std::int32_t type, std::int32_t param, bool noticeSound);
 
-// 0x45ddc0: sin filtro, todo pasa; con él, `text` tiene que tener alguna de las palabras (0x576960).
+// 0x45ddc0: without a filter, everything passes; with one, `text` has to have one of the words (0x576960).
 [[nodiscard]] bool PassesTheChatFilter(const ChatLogState& log, std::string_view text);
 
-// 0x45de20: las palabras separadas por ", ". Con las cinco puestas, lee un byte más allá del objeto (+0x640): MuRet
-// lo toma en 0 y no agrega la coma del final.
+// 0x45de20: the words separated by ", ". With all five set, it reads one byte past the object (+0x640): MuRet takes
+// it as 0 and does not add the final comma.
 [[nodiscard]] std::string JoinedChatFilter(const ChatLogState& log);
 
 // 0x45db50.
 void ClearTheChatFilter(ChatLogState& log);
 
-// 0x45dc40(/filter palabras): las palabras después del comando, hasta 5, mientras la suma de los largos de todas
-// (con las que quedaban de antes) no llegue a 31: la primera que no entra corta todo si es la primera, o queda vacía.
-// Devuelve el aviso de Text.bmd que agrega 0x555190("", aviso, 1): 755 con un filtro puesto, 756 si se sacó uno que
-// había, ninguno si no.
+// 0x45dc40(/filter words): the words after the command, up to 5, while the sum of the lengths of all (with the ones
+// left from before) does not reach 31: the first that does not fit cuts everything if it is the first, or stays
+// empty. It returns the Text.bmd notice that 0x555190("", notice, 1) adds: 755 with a filter set, 756 if one that was
+// there was removed, none if not.
 [[nodiscard]] std::optional<std::size_t> SetTheChatFilter(ChatLogState& log, std::string_view command);
 
-// 0x45db70(texto, n): entre los primeros n, uno con los mismos 16 primeros bytes de texto o con edad.
+// 0x45db70(text, n): among the first n, one with the same first 16 bytes of text or with an age.
 [[nodiscard]] bool SaidRecently(const ChatLogState& log, std::string_view text, std::int32_t count);
 
-// 0x45d8c0, F4 y el segundo botón: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6), y después ScrollTheLog(0).
+// 0x45d8c0, F4 and the second button: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6), and then ScrollTheLog(0).
 void CycleTheLogSize(ChatLogState& log, ChatModes& modes);
 } // namespace Client::Chat

@@ -11,8 +11,8 @@
 
 #include <string_view>
 
-// Los mensajes del juego sobre WorldRuntime (CL8 hito 3; 06 § El chat): 0x555190 y los relojes de 0x637700. Los
-// textos son inventados.
+// The game messages on WorldRuntime (CL8 milestone 3; 06 § El chat): 0x555190 and the clocks of 0x637700. The texts
+// are made up.
 namespace
 {
 using Client::Kernel::WorldRuntime;
@@ -32,7 +32,7 @@ public:
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen1280{1280, 960};
 
-// Un mensaje entra en el registro y, con el nombre vacío, en el área vieja; el reloj del área vuelve a 150.
+// A message goes to the log and, with the name empty, to the old area; the area's clock goes back to 150.
 TEST(GameMessagesTest, AMessageGoesToTheLogAndTheOldArea)
 {
     WorldRuntime runtime;
@@ -83,8 +83,8 @@ TEST(GameMessagesTest, TheModulesMessagesWithoutAScreenAreMeasuredAt640)
     EXPECT_EQ(asked.chat.log.entries.size(), 2u);
 }
 
-// 0x637cf3 y 0x637cf8: con los relojes vencidos, un aviso vacío (300) y un mensaje vacío (150), que envejece los
-// renglones del registro fuera de su ventana y sin correr.
+// 0x637cf3 and 0x637cf8: with the clocks run out, an empty notice (300) and an empty message (150), which ages the
+// log's lines outside its window and not scrolled.
 TEST(GameMessagesTest, TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut)
 {
     WorldRuntime runtime;
@@ -100,13 +100,13 @@ TEST(GameMessagesTest, TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut)
     EXPECT_EQ(runtime.chat.log.entries[0].age, 1u);
     EXPECT_EQ(runtime.hud.dcFont, FontKind::Bold);
 
-    // Sin vencer, solo bajan.
+    // Not run out yet, they only go down.
     ASSERT_TRUE(Client::Chat::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
     EXPECT_EQ(runtime.chat.area.clock, Client::Ui::MessageClockSteps - 1);
     EXPECT_EQ(runtime.chat.log.entries[0].age, 1u);
 }
 
-// 0x637d2c y 0x637d44: el freno del chat y el de las macros bajan de a uno por paso, hasta 0.
+// 0x637d2c and 0x637d44: the chat brake and the macros' one go down by one per step, down to 0.
 TEST(GameMessagesTest, TheBrakesGoDownOnePerStep)
 {
     WorldRuntime runtime;

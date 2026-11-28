@@ -17,7 +17,7 @@ std::string_view WhisperSenderAt(const WhisperSenders& senders, std::size_t slot
 
 void RememberTheWhisperSender(WhisperSenders& senders, std::uint16_t level, std::string_view name)
 {
-    // 0x554f89: el WORD del nivel, sin signo, contra el 10 del argumento.
+    // 0x554f89: the level's WORD, unsigned, against the argument's 10.
     if (level >= WhisperSenderLevel)
         return;
     const std::size_t end = name.find('\0');

@@ -35,9 +35,8 @@
 #include <string_view>
 #include <vector>
 
-// Los amigos del juego (CL9 hito 9; 04 § Los amigos): 0x491080 con el registro propio y los paquetes C0..C4
-// (0x4dc010..0x4dc720) sobre el administrador de las ventanas viejas y [0x5763518]. Los nombres y los textos son
-// inventados.
+// The game's friends (CL9 milestone 9; 04 § Los amigos): 0x491080 with its own record and the C0..C4 packets
+// (0x4dc010..0x4dc720) on the old windows' manager and [0x5763518]. The names and texts are made up.
 namespace
 {
 using Client::Chat::ChatReceiveContext;
@@ -59,7 +58,7 @@ using Client::Ui::OldWindowKind;
 
 constexpr std::uint32_t Seed = 4242;
 constexpr std::uint8_t EnterKey = 0x0d;
-// 0x48ee60: ocupación de las diagonales y filas de la cascada para la caja de 150 × 100 que parte de (0, 332).
+// 0x48ee60: occupancy of the cascade's diagonals and rows for the 150 × 100 box that starts at (0, 332).
 constexpr std::int32_t CascadeStep = 20;
 constexpr std::int32_t DefaultBoxY = 332;
 constexpr std::int32_t LastBlockedX = 460;
@@ -72,7 +71,7 @@ class LetterMeasure final : public ITextMeasure
 public:
     [[nodiscard]] TextExtent Measure(FontKind /*font*/, std::string_view text) const override
     {
-        // De a 2 por letra: ninguna caja corta su texto en dos renglones (0x7d).
+        // 2 per letter: no box splits its text into two rows (0x7d).
         return {static_cast<int>(text.size()) * 2, 13};
     }
 };
@@ -173,7 +172,6 @@ protected:
         return names;
     }
 
-    // Las cajas de mensaje abiertas, con su primer renglón.
     [[nodiscard]] std::vector<std::string> BoxLines()
     {
         std::vector<std::string> lines;
@@ -187,7 +185,7 @@ protected:
 
     void BlockTheFactoryCascade()
     {
-        // 191 marcos con KeepPlace: ocupación fija, sin simular la lógica de búsqueda de la fábrica.
+        // 191 frames with KeepPlace: fixed occupancy, without simulating the factory's search logic.
         const auto block = [this](std::int32_t x, std::int32_t y)
         {
             const auto created =
@@ -224,8 +222,8 @@ protected:
     std::vector<FriendSend> m_sent;
 };
 
-// 0x491080 con menos de nivel 6: el registro propio se cierra una vez (3.848 rand()) y el 1067 va al chat como mensaje
-// del sistema, salvo que esté entre los últimos (0x45db70 con 1).
+// 0x491080 below level 6: its own record closes once (3848 rand()) and the 1067 goes to the chat as a system message,
+// unless it is among the last ones (0x45db70 with 1).
 TEST_F(GameFriendsTest, BelowLevelSixOpeningSaysTheLevelText)
 {
     m_world->OwnCharacter().level = 5;
@@ -243,8 +241,8 @@ TEST_F(GameFriendsTest, BelowLevelSixOpeningSaysTheLevelText)
     EXPECT_EQ(Runtime().chat.log.entries.size(), 1u);
 }
 
-// Con nivel 6, la ventana, los mismos 3.848 rand() y, con las dos colas del cartel quietas, el 1244 en la normal (el
-// tipo 2).
+// At level 6, the window, the same 3848 rand() and, with the banner's two queues still, the 1244 in the normal (type
+// 2).
 TEST_F(GameFriendsTest, AtLevelSixOpeningBuildsTheWindowAndTheHelpBanner)
 {
     m_world->OwnCharacter().level = 6;
@@ -260,7 +258,6 @@ TEST_F(GameFriendsTest, AtLevelSixOpeningBuildsTheWindowAndTheHelpBanner)
     EXPECT_TRUE(Runtime().chat.log.entries.empty());
 }
 
-// Con el registro propio ya abierto, el cierre no saca nada; la ventana a la vista se suelta.
 TEST_F(GameFriendsTest, OpeningAgainWithTheRecordOpenDropsTheWindowWithoutRandoms)
 {
     m_world->OwnCharacter().level = 40;
@@ -272,8 +269,8 @@ TEST_F(GameFriendsTest, OpeningAgainWithTheRecordOpenDropsTheWindowWithoutRandom
     EXPECT_EQ(Manager().friends, 0);
 }
 
-// 0x4dc010: la lista entera por nombre y después por estado, la pestaña, +0xe8 en 1 con el título 990, el tope de las
-// cartas y el 1072 con cuántas y el tope.
+// 0x4dc010: the whole list by name and then by state, the tab, +0xe8 at 1 with title 990, the letters cap and the
+// 1072 with the count and the cap.
 TEST_F(GameFriendsTest, TheListFillsTheModelSortedAndSaysTheLetters)
 {
     m_world->OwnCharacter().level = 6;
@@ -300,7 +297,7 @@ TEST_F(GameFriendsTest, TheListFillsTheModelSortedAndSaysTheLetters)
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "cartas 2 de 50");
 }
 
-// 0x4dc38a: con 0 cartas, nada; las cuentas van sin signo.
+// 0x4dc38a: with 0 letters, nothing; the counts are unsigned.
 TEST_F(GameFriendsTest, AListWithoutLettersSaysNothingAndTheLettersHaveNoSign)
 {
     ASSERT_TRUE(Client::Messenger::ApplyFriendList(FriendList{.letters = 0, .maxLetters = 10, .friends = {}}, Context())
@@ -314,7 +311,7 @@ TEST_F(GameFriendsTest, AListWithoutLettersSaysNothingAndTheLettersHaveNoSign)
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "cartas 255 de 10");
 }
 
-// 0x4dc3d0 con 1: el 1075 al chat y el amigo al final, ordenado con el orden de antes.
+// 0x4dc3d0 with 1: the 1075 to the chat and the friend at the end, sorted with the previous order.
 TEST_F(GameFriendsTest, AnAddedFriendJoinsTheListInTheSameOrder)
 {
     ASSERT_TRUE(
@@ -331,8 +328,8 @@ TEST_F(GameFriendsTest, AnAddedFriendJoinsTheListInTheSameOrder)
     EXPECT_TRUE(BoxLines().empty());
 }
 
-// 0x4dc3d0 con 0, 3, 4, 5 y 6: una caja de un botón con el 1047 (con el nombre), 1048, 1049 (con el nombre), 1050 o
-// 1068; con otro, nada.
+// 0x4dc3d0 with 0, 3, 4, 5 and 6: a one-button box with the 1047 (with the name), 1048, 1049 (with the name), 1050 or
+// 1068; with another, nothing.
 TEST_F(GameFriendsTest, TheAddFailuresOpenANoticeBox)
 {
     struct Case
@@ -359,7 +356,7 @@ TEST_F(GameFriendsTest, TheAddFailuresOpenANoticeBox)
     }
 }
 
-// 0x4dc3d0 → 0x48ee60: el destructor del cuadro recibido que no entró debe escribir el global real del juego.
+// 0x4dc3d0 → 0x48ee60: the destructor of the received box that did not fit must write the game's real global.
 TEST_F(GameFriendsTest, AReceivedNoticeReleasesTheReusedButtonWhenItsCascadeAborts)
 {
     ASSERT_TRUE(
@@ -381,13 +378,13 @@ TEST_F(GameFriendsTest, AReceivedNoticeReleasesTheReusedButtonWhenItsCascadeAbor
     EXPECT_EQ(Manager().windows.size(), windowCount);
     EXPECT_EQ(Manager().order.size(), windowCount);
     EXPECT_EQ(BoxLines(), std::vector<std::string>{"Hornero no existe"});
-    // 0x4917ea → 0x4918a0 deduplica el ID antes del abandono; la fábrica sí consumió los dos IDs de botón.
+    // 0x4917ea → 0x4918a0 dedupes the ID before the abort; the factory did consume both button IDs.
     EXPECT_EQ(Manager().boxes.size(), 1u);
     EXPECT_EQ(Manager().lastId, firstId + 2);
 }
 
-// 0x4dc5b0: "<nombre><1051>" en una caja de dos botones con dueño −1 que guarda el nombre, y el sonido 0x2a; el sí
-// (Enter sobre la de arriba) manda C1 0E C2 01 con el nombre.
+// 0x4dc5b0: "<name><1051>" in a two-button box with owner −1 that keeps the name, and sound 0x2a; the yes (Enter on
+// the top one) sends C1 0E C2 01 with the name.
 TEST_F(GameFriendsTest, ARequestAsksAndTheYesGoesBackWithTheName)
 {
     const auto applied = Client::Messenger::ApplyFriendRequest(FriendRequest{.name = "Calandria"}, Context());
@@ -398,7 +395,7 @@ TEST_F(GameFriendsTest, ARequestAsksAndTheYesGoesBackWithTheName)
     EXPECT_EQ(Manager().windows.at(box).box.owner, -1);
     EXPECT_EQ(Manager().windows.at(box).box.friendName, "Calandria");
 
-    // El paso que lee Enter le encola el 10 con 1 (0x4a43c0); el que sigue lo atiende (0x4a3b80) y la cierra.
+    // The step that reads Enter queues the 10 with 1 (0x4a43c0); the next one handles it (0x4a3b80) and closes it.
     m_keys.insert(EnterKey);
     auto stepped = StepTheWindows();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -412,7 +409,7 @@ TEST_F(GameFriendsTest, ARequestAsksAndTheYesGoesBackWithTheName)
     EXPECT_FALSE(Manager().windows.contains(box));
 }
 
-// 0x4dc690: con 0, la caja con el 1052; con 1, fuera de la lista; con otro, nada.
+// 0x4dc690: with 0, the box with the 1052; with 1, out of the list; with another, nothing.
 TEST_F(GameFriendsTest, TheDeleteResultRemovesOrSaysItCouldNot)
 {
     ASSERT_TRUE(
@@ -432,7 +429,7 @@ TEST_F(GameFriendsTest, TheDeleteResultRemovesOrSaysItCouldNot)
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Zorzal"}));
 }
 
-// 0x4dc720: el estado del amigo y la lista vuelta a ordenar; con 0xfc, todos fuera de línea y el título 1066.
+// 0x4dc720: the friend's state and the list sorted again; with 0xfc, all offline and title 1066.
 TEST_F(GameFriendsTest, TheStateChangesOneFriendOrAllOfThem)
 {
     m_world->OwnCharacter().level = 6;
@@ -455,7 +452,6 @@ TEST_F(GameFriendsTest, TheStateChangesOneFriendOrAllOfThem)
     EXPECT_EQ(Manager().windows.at(Manager().friends).frame.title, std::optional<std::string>("Amigos sin servidor"));
 }
 
-// El paquete de cada pedido de la ventana (Messenger::FriendPacketOf).
 TEST_F(GameFriendsTest, EachSendBecomesItsPacket)
 {
     const auto bytesOf = [](const Client::Protocol::Outgoing& sent)

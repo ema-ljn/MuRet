@@ -35,9 +35,9 @@
 #include <tuple>
 #include <vector>
 
-// El dibujo de las ventanas de los NPC (CL9 hito 6, fase 3; 06 § Los dibujos de las ventanas de los NPC): la tienda
-// (0x5f4720) y el almacén (0x5f4e30), en 640 × 480. Los textos y los precios son inventados y los textos miden 6
-// columnas por letra. Cada test corre en Lorencia, Devias y Noria.
+// The NPC windows' drawing (CL9 milestone 6, phase 3; 06 § Los dibujos de las ventanas de los NPC): the shop
+// (0x5f4720) and the warehouse (0x5f4e30), in 640 × 480. The texts and prices are made up and the texts measure 6
+// columns per letter. Each test runs in Lorencia, Devias and Noria.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -54,9 +54,8 @@ constexpr std::uint32_t Seed = 0x6a3c19e5u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
 constexpr std::int32_t Noria = 3;
-// 0x5f474c: la esquina de la tienda.
+// 0x5f474c: the shop's corner.
 constexpr float Left = 260.0f;
-// Los botones del pie: y + 365 y x + 25, 55, 85 y 115.
 constexpr float FootY = 365.0f;
 constexpr float BuyX = Left + 25.0f;
 constexpr float SellX = Left + 55.0f;
@@ -75,8 +74,8 @@ std::map<std::size_t, std::string> ShopTexts()
             {224, "Zen"},          {266, "Costo"},          {235, "Meter"},   {236, "Sacar"},   {242, "Trabar"}};
 }
 
-// Un quad del lote: el slot (NoTexture sin textura, Marker si es la marca de un texto), la mezcla, el color y las
-// esquinas 0 y 2 del fan.
+// A batch quad: the slot (NoTexture without a texture, Marker for a text's mark), the blend, the color and corners 0
+// and 2 of the fan.
 struct DrawnQuad
 {
     int slot = NoTexture;
@@ -110,7 +109,7 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// Los quads con textura que no son marcas de texto, en su orden.
+// The textured quads that are not text marks, in order.
 std::vector<DrawnQuad> TexturedQuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> textured;
@@ -122,7 +121,7 @@ std::vector<DrawnQuad> TexturedQuadsOf(const SpriteBatch& sprites)
     return textured;
 }
 
-// Las esquinas en píxeles de GL (H − (y + h)).
+// The corners in GL pixels (H − (y + h)).
 void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width, float height)
 {
     constexpr float Tolerance = 1e-3f;
@@ -188,8 +187,8 @@ protected:
         return Client::Npc::DrawTheWarehouse(context, panels.Registry());
     }
 
-    // La tienda abierta, como la dejan el 30 con 0 (0x65ba67, el byte protegido sin accesos abiertos) y el 31 con la
-    // grilla vacía (el tipo en 0xffff).
+    // The shop open, as the 30 with 0 (0x65ba67, the protected byte with no open accesses) and the 31 with the empty
+    // grid (the type at 0xffff) leave it.
     void Open()
     {
         Runtime().panels.npcShop = 1;
@@ -197,7 +196,7 @@ protected:
             cell.id = Client::Kernel::EmptyOwnItemId;
     }
 
-    // El almacén abierto como lo deja el 31 con la grilla vacía, con el nivel y el zen guardado.
+    // The warehouse open as the 31 with the empty grid leaves it, with the level and the stored zen.
     void OpenTheWarehouse(std::uint16_t level, std::uint32_t zen)
     {
         Runtime().panels.warehouse = 1;
@@ -207,7 +206,6 @@ protected:
         m_world->OwnCharacter().warehouseZen = zen;
     }
 
-    // Los textos de un dibujo, en su orden.
     std::vector<std::string> TextsDrawn() const
     {
         std::vector<std::string> drawn;
@@ -225,7 +223,7 @@ protected:
     const Client::Tables::TextTable* m_drawnTexts = &m_texts;
 };
 
-// 0x5f7180: posición, instrucciones y botones conservados en todos los mapas de la ventana NPC.
+// 0x5f7180: position, instructions and buttons kept on every map of the NPC window.
 TEST_P(NpcWindowDrawingTest, ThePanel2000DrawsTheAcceptanceAndBothButtons)
 {
     Runtime().panels.panel2000 = 1;
@@ -268,7 +266,7 @@ TEST_P(NpcWindowDrawingTest, ThePanel2000DrawsTheAcceptanceAndBothButtons)
     }
 }
 
-// 0x5f4736..0x5f473d: cerrada, solo la consulta del byte protegido (1 rand()); la esquina queda como estaba.
+// 0x5f4736..0x5f473d: closed, only the query of the protected byte (1 rand()); the corner stays as it was.
 TEST_P(NpcWindowDrawingTest, TheClosedShopOnlySpendsItsQuery)
 {
     Runtime().ui.npcWindowX = 7;
@@ -281,9 +279,9 @@ TEST_P(NpcWindowDrawingTest, TheClosedShopOnlySpendsItsQuery)
     EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
-// 0x5f4743..0x5f4a40: la esquina (0x104, 0), el fondo, las 120 casillas, el título y el impuesto (sprintf con
-// 0x78aba30) en negrita y en cajas de 120, y comprar (suelto con 0x78abb27 en 0) y vender (apretado). Sin 0x78abb09,
-// nada más. Solo el rand() de la consulta.
+// 0x5f4743..0x5f4a40: the corner (0x104, 0), the background, the 120 cells, the title and the tax (sprintf with
+// 0x78aba30) in bold and in boxes of 120, and buy (released with 0x78abb27 at 0) and sell (pressed). Without
+// 0x78abb09, nothing more. Only the query's rand().
 TEST_P(NpcWindowDrawingTest, TheShopDrawsItsBackGridTitleTaxAndTwoButtons)
 {
     Open();
@@ -322,7 +320,7 @@ TEST_P(NpcWindowDrawingTest, TheShopDrawsItsBackGridTitleTaxAndTwoButtons)
     EXPECT_EQ(Runtime().hud.dcFont, FontKind::Bold);
 }
 
-// 0x5f4882..0x5f49af: con el modo de la tienda en 1 (vender), comprar se dibuja apretado y vender suelto.
+// 0x5f4882..0x5f49af: with the shop mode at 1 (sell), buy is drawn pressed and sell released.
 TEST_P(NpcWindowDrawingTest, TheShopModePressesBuyOrSell)
 {
     Open();
@@ -336,9 +334,9 @@ TEST_P(NpcWindowDrawingTest, TheShopModePressesBuyOrSell)
     ExpectQuadAt(quads[3 + GridCells], 0x11d, SellX, FootY, 24.0f, 24.0f);
 }
 
-// 0x5f4a46..0x5f4e13: con 0x78abb09, reparar (0x11e suelto con 0x78abb0c en 0), reparar todo en celeste y el precio
-// de reparar todo (0x78ababc) sobre su fondo, en blanco: el texto 239 en x − 0x23 y el monto con comas en x + 10, en
-// el color de su monto.
+// 0x5f4a46..0x5f4e13: with 0x78abb09, repair (0x11e released with 0x78abb0c at 0), repair all in light blue and the
+// repair-all price (0x78ababc) over its background, in white: text 239 at x − 0x23 and the amount with commas at
+// x + 10, in its amount's color.
 TEST_P(NpcWindowDrawingTest, TheRepairingShopDrawsRepairAndItsPrice)
 {
     Open();
@@ -374,8 +372,8 @@ TEST_P(NpcWindowDrawingTest, TheRepairingShopDrawsRepairAndItsPrice)
     EXPECT_EQ(texts[3].style.colors.background, 0xff282828u);
 }
 
-// 0x5f4882 y 0x5f4a4c: reparar con 0x78abb0c prendido, apretado; el precio de más de 10 millones, en rojo, y sin
-// signo (el DIV de 0x5f4cc1 y los JC).
+// 0x5f4882 and 0x5f4a4c: repair with 0x78abb0c on, pressed; the price over 10 million, in red, and unsigned (the DIV
+// of 0x5f4cc1 and the JCs).
 TEST_P(NpcWindowDrawingTest, TheRepairModePressesRepairAndBigPricesAreRed)
 {
     Open();
@@ -394,8 +392,8 @@ TEST_P(NpcWindowDrawingTest, TheRepairModePressesRepairAndBigPricesAreRed)
     EXPECT_EQ(texts[3].style.colors.text, 0xff0000ffu);
 }
 
-// 0x5f48d3..0x5f494f: el mouse en [x, x + 24) × [y, y + 24) de un botón dibuja su ayuda con la fuente normal en
-// (x, y − 12); afuera, nada.
+// 0x5f48d3..0x5f494f: the mouse in [x, x + 24) × [y, y + 24) of a button draws its help with the normal font at
+// (x, y − 12); outside, nothing.
 TEST_P(NpcWindowDrawingTest, AButtonUnderTheMouseShowsItsHelp)
 {
     Open();
@@ -432,8 +430,9 @@ TEST_P(NpcWindowDrawingTest, AButtonUnderTheMouseShowsItsHelp)
     }
 }
 
-// 0x5f4be3..0x5f4c55: reparar todo con el mouse encima y el clic pendiente (0x7d366d4) lo gasta y se dibuja apretado
-// (0x11f) en celeste, con su ayuda; en un dibujo intermedio de MuRet el clic queda. Sin clic, solo la ayuda.
+// 0x5f4be3..0x5f4c55: repair all with the mouse over it and the click pending (0x7d366d4) spends it and is drawn
+// pressed (0x11f) in light blue, with its help; in an intermediate MuRet drawing the click stays. Without a click,
+// only the help.
 TEST_P(NpcWindowDrawingTest, RepairAllSpendsThePendingClick)
 {
     Open();
@@ -466,7 +465,6 @@ TEST_P(NpcWindowDrawingTest, RepairAllSpendsThePendingClick)
     EXPECT_EQ(m_text.texts[2].text, "Reparar todo");
 }
 
-// Sin el texto del título, corta con la dirección.
 TEST_P(NpcWindowDrawingTest, AMissingTextStopsWithItsAddress)
 {
     Open();
@@ -478,7 +476,7 @@ TEST_P(NpcWindowDrawingTest, AMissingTextStopsWithItsAddress)
     EXPECT_NE(drawn.Error().find("0x5f4807"), std::string::npos) << drawn.Error();
 }
 
-// 0x5f4e3f..0x5f4e48: el almacén cerrado no dibuja nada ni saca rand() (0x40 es un byte sin protección).
+// 0x5f4e3f..0x5f4e48: the closed warehouse draws nothing and draws no rand() (0x40 is an unprotected byte).
 TEST_P(NpcWindowDrawingTest, TheClosedWarehouseDrawsNothing)
 {
     Runtime().ui.npcWindowX = 7;
@@ -490,9 +488,9 @@ TEST_P(NpcWindowDrawingTest, TheClosedWarehouseDrawsNothing)
     EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
-// 0x5f4e4e..0x5f58e6: la esquina (0x104, 0), el fondo, las casillas, el título "%s (%s)" con el texto 240, el zen
-// guardado sobre su fondo en (x + 50, y + 352,7f), el texto 266 en rojo con lo que cuesta (60² · 0,04f = 144,
-// redondeado a 140) y los tres botones en y + 390. Dos veces el registro propio: 2 · 3.848 rand().
+// 0x5f4e4e..0x5f58e6: the corner (0x104, 0), the background, the cells, the title "%s (%s)" with text 240, the stored
+// zen over its background at (x + 50, y + 352.7f), text 266 in red with the fee (60² · 0.04f = 144, rounded to 140)
+// and the three buttons at y + 390. The own record twice: 2 · 3848 rand().
 TEST_P(NpcWindowDrawingTest, TheWarehouseDrawsItsZenItsFeeAndItsButtons)
 {
     OpenTheWarehouse(60, 1234567);
@@ -533,8 +531,8 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseDrawsItsZenItsFeeAndItsButtons)
     EXPECT_EQ(texts[4].style.colors.text, 0xff96dcffu);
 }
 
-// 0x5f5457..0x5f55fc: _ftol(nivel² · 0,04f) más 2 · nivel con la traba; menos de 1 es 1, desde 1.000 baja a la
-// centena y desde 100 a la decena.
+// 0x5f5457..0x5f55fc: _ftol(level² · 0.04f) plus 2 · level when locked; below 1 is 1, from 1000 it drops to the
+// hundred and from 100 to the ten.
 TEST_P(NpcWindowDrawingTest, TheWarehouseFeeRoundsByItsSize)
 {
     for (const auto& [level, locked, fee] :
@@ -557,8 +555,8 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseFeeRoundsByItsSize)
     }
 }
 
-// 0x5f4eec..0x5f4f6b y 0x5f574d..0x5f575a: con la traba (0x6c932f), el título dice el texto 241 en amarillo y la traba
-// es lock_03 (0x128).
+// 0x5f4eec..0x5f4f6b and 0x5f574d..0x5f575a: with the lock (0x6c932f), the title says text 241 in yellow and the lock
+// is lock_03 (0x128).
 TEST_P(NpcWindowDrawingTest, TheLockedWarehouseTintsItsTitleAndShowsTheLock)
 {
     OpenTheWarehouse(60, 5);
@@ -578,8 +576,8 @@ TEST_P(NpcWindowDrawingTest, TheLockedWarehouseTintsItsTitleAndShowsTheLock)
     EXPECT_EQ(quads[2 + GridCells].color, White);
 }
 
-// 0x5f57ab..0x5f5887: el mouse sobre un botón dibuja su ayuda en (x, y − 13), y con el izquierdo abajo (0x7d36874) el
-// botón apretado antes; la traba también se aprieta con el teclado abierto (0x78abb20).
+// 0x5f57ab..0x5f5887: the mouse over a button draws its help at (x, y − 13), and with the left button down (0x7d36874)
+// the button pressed first; the lock is also pressed with the keypad open (0x78abb20).
 TEST_P(NpcWindowDrawingTest, TheWarehouseButtonsPressAndShowTheirHelp)
 {
     OpenTheWarehouse(60, 5);
@@ -594,7 +592,7 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseButtonsPressAndShowTheirHelp)
     EXPECT_EQ(std::tuple(m_text.texts[5].x, m_text.texts[5].y), std::tuple(260 + 0x4c, 390 - 13));
     EXPECT_EQ(m_text.texts[5].style.font, FontKind::Normal);
 
-    // Sin el izquierdo, solo la ayuda; afuera (x + 24), nada.
+    // Without the left button, only the help; outside (x + 24), nothing.
     m_text.texts.clear();
     m_sprites.Begin(Screen640);
     ASSERT_TRUE(DrawTheWarehouse(260 + 0x1a + 23, 413).HasValue());
@@ -607,7 +605,7 @@ TEST_P(NpcWindowDrawingTest, TheWarehouseButtonsPressAndShowTheirHelp)
     EXPECT_EQ(TexturedQuadsOf(m_sprites).size(), 2 + GridCells + 4);
     EXPECT_EQ(m_text.texts.size(), 5U);
 
-    // Con el teclado abierto y la traba, lock_04 (0x129) encima de lock_03.
+    // With the keypad open and the lock, lock_04 (0x129) over lock_03.
     Runtime().npcWindows.warehouseLocked = 1;
     Runtime().ui.field78abb20 = 1;
     m_text.texts.clear();

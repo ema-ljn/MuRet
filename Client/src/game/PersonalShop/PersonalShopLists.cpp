@@ -38,27 +38,27 @@ namespace
 {
 namespace Shop = Protocol::PersonalShop;
 
-// El relleno y el serial de un C3 (0x40b0a0).
+// The padding and the serial of a C3 (0x40b0a0).
 constexpr std::uint32_t C3Randoms = 2;
-// 0x5eb910..0x5eb92a: los diálogos de la tienda que cierra 0x5eb020 (el 0x94 con 0x78abb14 en 5).
+// 0x5eb910..0x5eb92a: the shop dialogs that 0x5eb020 closes (the 0x94 with 0x78abb14 at 5).
 constexpr std::int32_t ShopPriceDialog = 0x91;
 constexpr std::int32_t ShopWarningDialog = 0x94;
 constexpr std::int32_t ShopWarningKind = 5;
-// Los textos de Text.bmd ((dirección − 0x76bd1dc) / 300).
-constexpr std::size_t ShopListRefusedText = 1120; // 0x770f25c, el 3F 05 con 3
-constexpr std::size_t ShopGoneText = 1166;        // 0x7712844, el 3F 06 con 6
-constexpr std::size_t PurchaseSevenText = 423;    // 0x76dc190, el 3F 06 con 7
-constexpr std::size_t PurchaseEightText = 375;    // 0x76d8950, el 3F 06 con 8
-// 0x4db8a1 y 0x4dbcc0: los resultados.
+// The Text.bmd texts ((address − 0x76bd1dc) / 300).
+constexpr std::size_t ShopListRefusedText = 1120; // 0x770f25c, the 3F 05 with 3
+constexpr std::size_t ShopGoneText = 1166;        // 0x7712844, the 3F 06 with 6
+constexpr std::size_t PurchaseSevenText = 423;    // 0x76dc190, the 3F 06 with 7
+constexpr std::size_t PurchaseEightText = 375;    // 0x76d8950, the 3F 06 with 8
+// 0x4db8a1 and 0x4dbcc0
 constexpr std::uint8_t ListRefused = 3;
 constexpr std::uint8_t Bought = 1;
 constexpr std::uint8_t ShopGone = 6;
 constexpr std::uint8_t PurchaseSeven = 7;
 constexpr std::uint8_t PurchaseEight = 8;
-// 0x4dba89..0x4dba94: el personaje del dueño, del 0 al 399.
+// 0x4dba89..0x4dba94: the owner's character, from 0 to 399.
 constexpr std::size_t KeysSearched = 400;
 
-// 0x5be150 con lo que el original lee del mundo.
+// 0x5be150 with what the original reads from the world.
 Core::Expected<void, std::string> ReturnTheCursor(const Scenes::WorldEntryResources& resources)
 {
     const Items::InventoryServices services = Items::InventoryServicesOf(resources);
@@ -66,7 +66,7 @@ Core::Expected<void, std::string> ReturnTheCursor(const Scenes::WorldEntryResour
         Items::InventoryMoveContext{.world = resources.world, .random = resources.cloth.random, .services = services});
 }
 
-// 0x4db933..0x4db951 y 0x4dbb64..0x4dbb82: en las 32 casillas de 0x78ab0b8, el tipo en −1, +0x3c y +0x1b en 0.
+// 0x4db933..0x4db951 and 0x4dbb64..0x4dbb82: in the 32 cells of 0x78ab0b8, the type at −1, +0x3c and +0x1b at 0.
 void ClearTheShopGrid(Kernel::WorldState& world)
 {
     for (Kernel::ItemState& cell : world.Inventory().secondCells)
@@ -77,8 +77,8 @@ void ClearTheShopGrid(Kernel::WorldState& world)
     }
 }
 
-// 0x4db9e2..0x4dba5a y 0x4dbc01..0x4dbc6e: 0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0) y, con el mapa, el precio en su
-// lugar (find, erase y el insert de 0x4e7440: queda el último).
+// 0x4db9e2..0x4dba5a and 0x4dbc01..0x4dbc6e: 0x5bc740(0x78a9bb0, 8, 8, slot, item, 0) and, with the map, the price in
+// its slot (find, erase and 0x4e7440's insert: the last stays).
 Core::Expected<void, std::string> PlaceTheEntry(const Shop::ShopListEntry& entry,
                                                 const Scenes::WorldEntryResources& resources)
 {
@@ -90,9 +90,9 @@ Core::Expected<void, std::string> PlaceTheEntry(const Shop::ShopListEntry& entry
     return {};
 }
 
-// 0x5bc740 con 0x78a9bb0 escribe la huella sin tope (Q-C200): el aviso de la primera de `entries` que pasaría su
-// grilla, mirado antes de escribir nada. Sin el registro de Item.bmd no hay aviso: la puesta corta en su lugar, después
-// de lo que el original hace antes.
+// 0x5bc740 with 0x78a9bb0 writes the footprint without bound (Q-C200): the warning of the first of `entries` that would
+// overrun its grid, checked before writing anything. Without the Item.bmd record there is no warning: the placement
+// stops in its place, after what the original does before.
 std::optional<std::string> AnEntryPastTheGrid(std::span<const Shop::ShopListEntry> entries,
                                               const Scenes::WorldEntryResources& resources)
 {
@@ -107,7 +107,7 @@ std::optional<std::string> AnEntryPastTheGrid(std::span<const Shop::ShopListEntr
     return std::nullopt;
 }
 
-// Close(0x800, 0) y Close(0x20000, 0), como 0x4dbad2..0x4dbaf4 y 0x4dbdfe..0x4dbe20.
+// Close(0x800, 0) and Close(0x20000, 0), like 0x4dbad2..0x4dbaf4 and 0x4dbdfe..0x4dbe20.
 Core::Expected<void, std::string> CloseBothShops(const Scenes::WorldEntryResources& resources,
                                                  const Social::GamePacketSender& send)
 {
@@ -122,8 +122,8 @@ Core::Expected<void, std::string> CloseBothShops(const Scenes::WorldEntryResourc
     return {};
 }
 
-// strncpy(0x78aba64, pkt + 0x12, 0x24): hasta el primer 0. Sin ninguno en los 36 bytes, el original no termina el
-// texto y lo que sigue en la .bss (0x78aba88..) entra en él (*inferido*, 07 Q-C962): MuRet se queda con los 36.
+// strncpy(0x78aba64, pkt + 0x12, 0x24): up to the first 0. With none in the 36 bytes, the original does not terminate
+// the text and what follows in the .bss (0x78aba88..) goes into it (*inferred*, 07 Q-C962): MuRet keeps the 36.
 std::string TitleOf(const std::array<std::byte, Shop::TitleSize>& title)
 {
     std::string text;
@@ -143,14 +143,14 @@ Core::Expected<void, std::string> OpenThePersonalShop(Kernel::WorldState& world,
     Social::PersonalShopState& shops = world.Runtime().social.personalShop;
     if (shops.mode != Social::NoShopView)
     {
-        // 0x65ac75 y 0x65b347: el log 0x6d67dc y el C1 04 F3 10 con el XOR32, en C3.
+        // 0x65ac75 and 0x65b347: the log 0x6d67dc and the C1 04 F3 10 with the XOR32, in C3.
         if (!send)
             return Core::Unexpected(std::format("{}: el C1 04 F3 10 al abrir la tienda sin el cable",
                                                 id == Ui::PersonalShopPanel ? "0x65ac87" : "0x65b359"));
         random.Discard(C3Randoms);
         send(Shop::WriteInventoryRequest());
     }
-    // 0x65b194..0x65b210 y 0x65b888..0x65ba2a: los dos std::map de 0x10 bytes, solo si los dos punteros están en 0.
+    // 0x65b194..0x65b210 and 0x65b888..0x65ba2a: the two 0x10-byte std::maps, only if both pointers are at 0.
     if (!shops.pricesBuilt)
     {
         shops.ownPrices.clear();
@@ -180,12 +180,12 @@ Core::Expected<void, std::string> CloseThePersonalShop(Kernel::WorldState& world
     Social::PersonalShopState& shops = runtime.social.personalShop;
     if (shops.mode == Social::OtherShopView)
     {
-        // 0x5eb052..0x5eb066: la grilla propia vuelve de su copia.
+        // 0x5eb052..0x5eb066: the own grid comes back from its copy.
         world.Inventory().secondCells = shops.ownGridBackup;
-        // 0x5eb069..0x5eb0e5: el título del cartel del héroe (0x743a170) o vacío.
+        // 0x5eb069..0x5eb0e5: the title of the hero's sign (0x743a170) or empty.
         const auto title = shops.titles.find(runtime.hero);
         shops.ownTitle = HasShopTitle(shops, runtime.hero) ? title->second.title : std::string{};
-        // 0x5eb0ec..0x5eb90f: con la clave del dueño, C1 10 3F 07 con su clave y su nombre, en C3.
+        // 0x5eb0ec..0x5eb90f: with the owner's key, C1 10 3F 07 with their key and name, in C3.
         if (shops.ownerKey != 0)
         {
             if (!send)
@@ -217,7 +217,7 @@ Core::Expected<void, std::string> ApplyPriceResult(const Shop::PriceResult& resu
         if (auto returned = ReturnTheCursor(resources); !returned.HasValue())
             return returned;
     }
-    // 0x4db16b..0x4db19d: el lugar de pkt[5] sale del mapa de la tienda propia.
+    // 0x4db16b..0x4db19d: pkt[5]'s slot leaves the own shop's map.
     if (shops.pricesBuilt)
         shops.ownPrices.erase(result.slot);
     if (!send)
@@ -233,10 +233,10 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
 {
     if (list.result == ListRefused)
         return Social::AddSocialNotice(resources, ShopListRefusedText, Ui::ErrorMessage, "0x4dbb2f");
-    // 0x4dbb04..0x4dbb14: otro resultado, el log 0x6c8578.
+    // 0x4dbb04..0x4dbb14: another result, the log 0x6c8578.
     if (list.result != Shop::ListedResult)
         return {};
-    // Las entradas que se ponen (hasta el primer precio de 0 o menos), antes de cerrar o abrir nada.
+    // The entries that are placed (up to the first price of 0 or less), before closing or opening anything.
     const auto unpriced =
         std::ranges::find_if(list.entries, [](const Shop::ShopListEntry& entry) { return entry.price <= 0; });
     if (const auto past = AnEntryPastTheGrid(std::span(list.entries.begin(), unpriced), resources))
@@ -247,10 +247,10 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
     Kernel::WorldState& world = resources.world;
     Social::PersonalShopState& shops = world.Runtime().social.personalShop;
     Hud::GamePanels panels(world, resources.cloth.random);
-    // Abrir la tienda de otro (0x65b319) cierra lo demás: el comercio con el 3D y las misiones con el 31.
+    // Opening someone else's shop (0x65b319) closes the rest: the trade with the 3D and the quests with the 31.
     CastleSiege::LendTheCastlePanelServices(panels, resources, send);
     Ui::PanelRegistry& registry = panels.Registry();
-    // 0x4db8a7..0x4db8e8: el almacén y el inventario, si están abiertos (IsOpen de los dos sin rand()).
+    // 0x4db8a7..0x4db8e8: the warehouse and the inventory, if they are open (IsOpen of both without rand()).
     for (const Ui::PanelId id : {Ui::WarehousePanel, Ui::InventoryPanel})
     {
         if (!registry.IsOpen(id))
@@ -261,26 +261,26 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
     }
     shops.ownerKey = 0;
     shops.ownerName = {};
-    // 0x4db8f9..0x4db91e: la copia de la grilla propia, salvo con la de otro ya abierta.
+    // 0x4db8f9..0x4db91e: the copy of the own grid, unless the other's is already open.
     if (!registry.IsOpen(Ui::OtherShopPanel))
         shops.ownGridBackup = world.Inventory().secondCells;
     shops.ownTitle = TitleOf(list.title);
     ClearTheShopGrid(world);
     if (auto opened = registry.Open(Ui::OtherShopPanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
-    // 0x4db965..0x4db9ca: el mapa de la de otro vacío (clear o el erase de cada uno, lo mismo).
+    // 0x4db965..0x4db9ca: the other's map emptied (clear or the erase of each, the same).
     if (shops.pricesBuilt)
         shops.otherPrices.clear();
     for (const Shop::ShopListEntry& entry : list.entries)
     {
-        // 0x4db9e2..0x4db9e7 y 0x4dbabf..0x4dbaf4: un precio de 0 o menos cierra las dos y sale, sin la copia del
-        // dueño.
+        // 0x4db9e2..0x4db9e7 and 0x4dbabf..0x4dbaf4: a price of 0 or less closes both and leaves, without the owner's
+        // copy.
         if (entry.price <= 0)
             return CloseBothShops(resources, send);
         if (auto placed = PlaceTheEntry(entry, resources); !placed.HasValue())
             return placed;
     }
-    // 0x4dba76..0x4dbab6: la copia del registro del dueño (0x438 bytes) si 0x5110d0 lo encuentra.
+    // 0x4dba76..0x4dbab6: the copy of the owner's record (0x438 bytes) if 0x5110d0 finds it.
     const std::size_t owner = Kernel::ActorWithKey(world, list.key);
     if (owner >= KeysSearched)
         return {};
@@ -307,7 +307,7 @@ Core::Expected<void, std::string> ApplyShopPurchase(const Shop::ShopPurchase& pu
         }
         if (shops.mode == Social::OtherShopView)
         {
-            // 0x4dbccf..0x4dbd14: el lugar de 0x78a6758 sale del mapa y de la grilla (0x5bd750 con 0x78a9bb0).
+            // 0x4dbccf..0x4dbd14: 0x78a6758's slot leaves the map and the grid (0x5bd750 with 0x78a9bb0).
             if (shops.pricesBuilt)
                 shops.otherPrices.erase(runtime.slot78a6758);
             const Items::InventoryServices services = Items::InventoryServicesOf(resources);
@@ -319,10 +319,10 @@ Core::Expected<void, std::string> ApplyShopPurchase(const Shop::ShopPurchase& pu
         }
         else if (shops.pricesBuilt)
         {
-            // 0x4dbd3c..0x4dbdc2: el mapa de la de otro vacío.
+            // 0x4dbd3c..0x4dbdc2
             shops.otherPrices.clear();
         }
-        // 0x4dbd19..0x4dbd2e y 0x4dbdc5..0x4dbdda: el ítem comprado en su lugar.
+        // 0x4dbd19..0x4dbd2e and 0x4dbdc5..0x4dbdda
         return Items::PlaceMovedItem(purchase.slot, purchase.item, resources);
     }
     if (purchase.result == ShopGone)
@@ -332,7 +332,7 @@ Core::Expected<void, std::string> ApplyShopPurchase(const Shop::ShopPurchase& pu
             return shown;
         return CloseBothShops(resources, send);
     }
-    // 0x4dbe2b..0x4dbe8b: 7 y 8 con su texto; otro, el log 0x6c85e0. Los tres, 0x5be150.
+    // 0x4dbe2b..0x4dbe8b: 7 and 8 with their text; another, the log 0x6c85e0. All three, 0x5be150.
     if (purchase.result == PurchaseSeven || purchase.result == PurchaseEight)
     {
         const std::size_t text = purchase.result == PurchaseSeven ? PurchaseSevenText : PurchaseEightText;
@@ -347,7 +347,7 @@ Core::Expected<void, std::string> ApplyShopRefresh(const Shop::ShopRefresh& refr
 {
     Kernel::WorldState& world = resources.world;
     Social::PersonalShopState& shops = world.Runtime().social.personalShop;
-    // 0x4dbc8f: si no, el log 0x6c85b0.
+    // 0x4dbc8f: otherwise, the log 0x6c85b0.
     if (refresh.result != Shop::ListedResult || shops.mode != Social::OtherShopView)
         return {};
     if (const auto past = AnEntryPastTheGrid(refresh.entries, resources))

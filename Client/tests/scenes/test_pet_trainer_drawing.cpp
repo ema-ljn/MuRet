@@ -36,9 +36,9 @@
 #include <utility>
 #include <vector>
 
-// El dibujo del entrenador (0x44b510, CL9 hito 6, fase 4b): el menú (0x44b610), recuperar (0x44c850, con los rand()
-// del registro propio de 0x44b190 y del suyo) y la caja (0x44d680), en 640 × 480. Los textos y el nombre son
-// inventados y miden 6 columnas por letra; el mundo, en Lorencia (0) y Devias (2).
+// The trainer's drawing (0x44b510, CL9 milestone 6, phase 4b): the menu (0x44b610), recovery (0x44c850, with the
+// rand() of 0x44b190's own record and its own) and the box (0x44d680), in 640 × 480. The texts and the name are made
+// up and measure 6 columns per letter; the world in Lorencia (0) and Devias (2).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -83,7 +83,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Los slots de los quads del lote, en orden (NoTexture sin textura, Marker si es la marca de un texto).
+// The slots of the batch's quads, in order (NoTexture without a texture, Marker for a text's mark).
 std::vector<int> SlotsOf(const SpriteBatch& sprites)
 {
     std::vector<int> slots;
@@ -100,7 +100,7 @@ std::vector<int> SlotsOf(const SpriteBatch& sprites)
     return slots;
 }
 
-// Los slots sin las marcas de los textos.
+// The slots without the texts' marks.
 std::vector<int> QuadsOf(const SpriteBatch& sprites)
 {
     std::vector<int> quads;
@@ -112,7 +112,7 @@ std::vector<int> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// La x de un texto centrado en `x` (0x623690): 6 columnas por letra en 640.
+// The x of a text centered on `x` (0x623690): 6 columns per letter in 640.
 std::int32_t Centered(std::int32_t x, const std::string& text)
 {
     return x - static_cast<std::int32_t>(text.size()) * 3;
@@ -187,7 +187,7 @@ void ExpectCentered(const RecordedText& text, std::int32_t x, std::int32_t y, co
     EXPECT_EQ(text.style.font, font) << expected;
 }
 
-// 0x44b510 con 0, 4 o fuera de 1..3: nada.
+// 0x44b510
 TEST_F(PetTrainerDrawingTest, TheIdleModesDrawNothing)
 {
     for (const std::int32_t mode : {0, 4, 5, -1})
@@ -199,9 +199,9 @@ TEST_F(PetTrainerDrawingTest, TheIdleModesDrawNothing)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x44b610: cinco tiras de 0xfb, las dos líneas de 0xfc, los dos marcos de 0xf0 y el botón de cerrar; el título en la
-// caja de 203 columnas, negro sobre gris; el 1202 y el 1203 con el nombre centrados en 0x13f; los dos rótulos en
-// 0xb9 y 0xd7, el primero en gruesa con el mouse encima. Sin rand().
+// 0x44b610: five strips of 0xfb, the two lines of 0xfc, the two frames of 0xf0 and the close button; the title in the
+// 203-column box, black on gray; 1202 and 1203 with the name centered on 0x13f; the two labels at 0xb9 and 0xd7, the
+// first in bold with the mouse over it. No rand().
 TEST_F(PetTrainerDrawingTest, TheMenuDrawsItsTitleLinesAndLabels)
 {
     for (const std::int32_t map : Maps)
@@ -218,7 +218,7 @@ TEST_F(PetTrainerDrawingTest, TheMenuDrawsItsTitleLinesAndLabels)
         EXPECT_EQ(title.text, "Entrenador");
         EXPECT_EQ(title.x, 0xda);
         EXPECT_EQ(title.y, 0x64);
-        // cx + 2 · ((203 − cx) / 2): con un texto de ancho par, la caja impar pierde una columna.
+        // cx + 2 · ((203 − cx) / 2): with an even-width text, the odd box loses a column.
         EXPECT_EQ(title.columns, 202);
         EXPECT_EQ(title.style.colors.text, 0u);
         EXPECT_EQ(title.style.colors.background, 0xc8c8c8c8u);
@@ -230,8 +230,8 @@ TEST_F(PetTrainerDrawingTest, TheMenuDrawsItsTitleLinesAndLabels)
     }
 }
 
-// 0x44b89b..0x44b8f6: la ayuda del botón de cerrar en [0x18a, 0x1a2) × [0x109, 0x121), una columna a la derecha del
-// que cierra en el paso ([0x189, 0x1a1), Q-C958).
+// 0x44b89b..0x44b8f6: the close button's help in [0x18a, 0x1a2) × [0x109, 0x121), one column right of the one that
+// closes in the step ([0x189, 0x1a1), Q-C958).
 TEST_F(PetTrainerDrawingTest, TheMenuCloseHelpIsOneColumnRightOfTheStep)
 {
     ASSERT_TRUE(Draw(1, 0x18a, 0x109).HasValue());
@@ -239,7 +239,7 @@ TEST_F(PetTrainerDrawingTest, TheMenuCloseHelpIsOneColumnRightOfTheStep)
     EXPECT_EQ(help.text, "cerrar");
     EXPECT_EQ(help.x, 0x18a);
     EXPECT_EQ(help.y, 0xfc);
-    // 0x44b8ec escribe 0xff000000 de fondo, que 0x554340 pisa en 0x55450f.
+    // 0x44b8ec writes a 0xff000000 background, which 0x554340 overwrites at 0x55450f.
     EXPECT_EQ(help.style.colors.background, 0u);
     EXPECT_EQ(Runtime().hud.textColors.background, 0u);
     EXPECT_EQ(Runtime().hud.dcFont, FontKind::Normal);
@@ -252,9 +252,9 @@ TEST_F(PetTrainerDrawingTest, TheMenuCloseHelpIsOneColumnRightOfTheStep)
     }
 }
 
-// 0x44c850 con el caballo a 100 de 255 y sin el cuervo, sin zen: el caballo cuesta 221.000 y faltan todos (blanco
-// sobre rojo); sin el cuervo, su rótulo en rojo con la fuente normal y "no esta", también sobre rojo. Los rand(): dos
-// cierres de 0x44b190 y el del dibujo con el caballo, uno y el del dibujo sin el cuervo.
+// 0x44c850 with the horse at 100 of 255 and without the raven, with no zen: the horse costs 221000 and all of it is
+// missing (white on red); without the raven, its label in red in the normal font and "no esta", also on red. The
+// rand(): two closes of 0x44b190 and the drawing's with the horse, one and the drawing's without the raven.
 TEST_F(PetTrainerDrawingTest, TheRecoveryQuotesEachPetWithItsRecordCloses)
 {
     for (const std::int32_t map : Maps)
@@ -284,8 +284,8 @@ TEST_F(PetTrainerDrawingTest, TheRecoveryQuotesEachPetWithItsRecordCloses)
     }
 }
 
-// Con zen de sobra, el precio sin el doble (Q-C955) en el color de los rótulos; un dibujo intermedio de MuRet saca los
-// mismos rand() pero no escribe 0x78abb10. Lleno, "esta entero" con un solo cierre en 0x44b190.
+// With plenty of zen, the price without the doubling (Q-C955) in the labels' color; a MuRet intermediate draw takes
+// the same rand() but does not write 0x78abb10. Full, "esta entero" with a single close in 0x44b190.
 TEST_F(PetTrainerDrawingTest, TheRecoveryWithZenShowsTheCost)
 {
     m_world->OwnCharacter().equipment[HorseSlot] = ItemState{.id = Horse, .durability = 100, .occupied = 1};
@@ -305,9 +305,9 @@ TEST_F(PetTrainerDrawingTest, TheRecoveryWithZenShowsTheCost)
     EXPECT_EQ(m_text.texts[3].text, "esta entero");
 }
 
-// 0x44d680 sin mezcla: la ventana (0x104, 0x105), la grilla de la caja (0x115 vacías, 0x116 con un tipo), las dos
-// barras 0x117, el botón de mezclar 0x124 y el de cerrar; el título 1205 y la tasa en la caja de 120; "sin mezcla" en
-// rojo en 0x32, la chance 0 en 65 y los avisos en 215 y 230. Sin rand().
+// 0x44d680 without a mix: the window (0x104, 0x105), the box's grid (0x115 empty, 0x116 with a type), the two 0x117
+// bars, mix button 0x124 and the close one; title 1205 and the rate in the 120 box; "sin mezcla" in red at 0x32, rate
+// 0 at 65 and the warnings at 215 and 230. No rand().
 TEST_F(PetTrainerDrawingTest, TheBoxWithoutAMixShowsTheEmptyName)
 {
     for (const std::int32_t map : Maps)
@@ -343,8 +343,8 @@ TEST_F(PetTrainerDrawingTest, TheBoxWithoutAMixShowsTheEmptyName)
     }
 }
 
-// Con la mezcla del caballo (1) y la del cuervo (2): el nombre "%s %s" en celeste, la chance 60 y el precio con el
-// impuesto (5.000.000 y 1.000.000 al 4%) en 80. Con otra mezcla corta.
+// With the horse mix (1) and the raven's (2): the name "%s %s" in light blue, rate 60 and the taxed price (5000000 and
+// 1000000 at 4%) at 80. With another mix it fails.
 TEST_F(PetTrainerDrawingTest, TheBoxShowsTheMixOfTheLastStep)
 {
     Runtime().npcWindows.chaosTaxRate = 4;
@@ -369,8 +369,8 @@ TEST_F(PetTrainerDrawingTest, TheBoxShowsTheMixOfTheLastStep)
     EXPECT_NE(cut.Error().find("0x44da59"), std::string::npos);
 }
 
-// 0x44d76d..0x44d834: con el mouse en [335, 379) × [300, 332) la ayuda 1212 en (0x14f, 0x11f) y, con el botón abajo,
-// el 0x125; 0x44db2b..0x44dba1: la de cerrar en [280, 304) × [395, 419), en (0x118, 0x17e).
+// 0x44d76d..0x44d834: with the mouse in [335, 379) × [300, 332) help 1212 at (0x14f, 0x11f) and, with the button
+// down, the 0x125; 0x44db2b..0x44dba1: the close one's in [280, 304) × [395, 419), at (0x118, 0x17e).
 TEST_F(PetTrainerDrawingTest, TheBoxButtonsShowTheirHelp)
 {
     ASSERT_TRUE(Draw(3, 378, 331, true).HasValue());

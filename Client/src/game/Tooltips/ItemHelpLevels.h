@@ -12,28 +12,28 @@ namespace Client::Hud
 struct GameHudContext;
 } // namespace Client::Hud
 
-// La tabla por nivel de la ayuda del ítem (06 § HUD y ventanas, "La ayuda del ítem"): 0x5afc00 la llena en 0x787a15c
-// (14 niveles de 0x44 bytes, 17 dwords cada uno) y la guarda para el ítem de 0x6c9334. La leen la cola de 0x5b0550 (el
-// ancho de la caja y qué columnas dibuja) y 0x5af9b0 (una columna en los renglones).
+// The item help's per-level table (06 § HUD y ventanas, "La ayuda del ítem"): 0x5afc00 fills it at 0x787a15c (14
+// levels of 0x44 bytes, 17 dwords each) and keeps it for the item at 0x6c9334. It is read by the tail of 0x5b0550 (the
+// box width and which columns it draws) and by 0x5af9b0 (one column in the lines).
 namespace Client::Tooltips
 {
 
 inline constexpr std::size_t ItemHelpLevelCount = 14;
 inline constexpr std::size_t ItemHelpColumnCount = 17;
-// 0x6c9334 (.data −1): ningún ítem todavía.
+// 0x6c9334 (.data −1)
 inline constexpr std::int32_t NoItemHelpTable = -1;
 
-// El dword de cada columna, 0x787a15c + 0x44 · nivel + 4 · columna. La 11, la 12 y la 16 no las escribe nadie: quedan
-// en 0, como la .bss.
+// Each column's dword, 0x787a15c + 0x44 · level + 4 · column. Nobody writes 11, 12 and 16: they stay at 0, like the
+// .bss.
 enum ItemHelpColumn : std::size_t
 {
     ItemHelpLevel = 0,
-    // 1 si el registro propio cumple los requisitos del nivel, 0 si no.
+    // 1 if the own record meets the level's requirements, 0 if not.
     ItemHelpUsable = 1,
     ItemHelpMinDamage = 2,     // Item.bmd+0x26
     ItemHelpMaxDamage = 3,     // +0x27
-    ItemHelpMagic = 4,         // +0x2f, salvo de 0x408 a 0x40d
-    ItemHelpScepterMagic = 5,  // +0x2f, de 0x408 a 0x40d
+    ItemHelpMagic = 4,         // +0x2f, except from 0x408 to 0x40d
+    ItemHelpScepterMagic = 5,  // +0x2f, from 0x408 to 0x40d
     ItemHelpDefense = 6,       // +0x29
     ItemHelpDefenseRate = 7,   // +0x28
     ItemHelpStrength = 8,      // +0x30
@@ -48,20 +48,20 @@ using ItemHelpRow = std::array<std::int32_t, ItemHelpColumnCount>;
 
 struct ItemHelpLevels
 {
-    // 0x787a15c: un renglón por nivel, del 0 al 13.
+    // 0x787a15c: one row per level, from 0 to 13.
     std::array<ItemHelpRow, ItemHelpLevelCount> rows{};
-    // 0x6c9334: el ítem de la tabla. Nadie más lo escribe: ni cerrar la ayuda ni cambiar los stats la vuelven a llenar
-    // para el mismo ítem (Q-C750).
+    // 0x6c9334: the table's item. Nobody else writes it: neither closing the help nor changing the stats refill it for
+    // the same item (Q-C750).
     std::int32_t item = NoItemHelpTable;
 };
 
-// 0x5afc00(ítem): con el ítem de la tabla, nada. Si no, lo guarda y llena los 14 niveles con el registro de Item.bmd
-// del ítem (`record`, el de 0x77f3b0c): cada byte de +0x26, +0x27, +0x28 y +0x29 (distinto de 0) más 3 · min(nivel, 9)
-// y, del 10 al 13, 4, 9, 15 y 22 más (el escudo, de 0xc00 a 0xdff, suma solo el nivel a +0x29); +0x2f igual, a la
-// mitad y, salvo de 0x408 a 0x40d, más 2 · nivel; cada requisito de +0x30 a +0x38 distinto de 0, (Item.bmd+0x20 + 3 ·
-// nivel) · requisito · 3 (4 la energía) / 100 + 20, en 32 bits con signo; y +0x3a tal cual. Después, con el registro
-// propio abierto (3.848 rand() al cerrarlo si queda sin accesos, uno por nivel), si cumple los requisitos (los stats
-// más lo de los ítems, en 16 bits, y el nivel).
+// 0x5afc00(item): with the table's item, nothing. Otherwise, it keeps it and fills the 14 levels with the item's
+// Item.bmd record (`record`, the one of 0x77f3b0c): each byte of +0x26, +0x27, +0x28 and +0x29 (non-zero) plus 3 ·
+// min(level, 9) and, from 10 to 13, 4, 9, 15 and 22 more (the shield, from 0xc00 to 0xdff, adds only the level to
+// +0x29); +0x2f the same, halved and, except from 0x408 to 0x40d, plus 2 · level; each non-zero requirement from +0x30
+// to +0x38, (Item.bmd+0x20 + 3 · level) · requirement · 3 (4 for energy) / 100 + 20, in signed 32 bits; and +0x3a as
+// is. Then, with the own record open (3848 rand() on closing it if it is left with no accesses, one per level),
+// whether it meets the requirements (the stats plus the items', in 16 bits, and the level).
 void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item,
                            std::span<const std::byte, Tables::ItemRecordSize> record);
 } // namespace Client::Tooltips

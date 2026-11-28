@@ -13,10 +13,10 @@ namespace Client::Chat
 {
 namespace
 {
-// El fin de archivo del modo texto de la CRT (_read).
+// The end of file of the CRT's text mode (_read).
 constexpr std::byte TextModeEnd{0x1a};
 
-// isspace() del locale "C", el que usa "%s".
+// isspace() of the "C" locale, the one "%s" uses.
 bool IsBlank(std::byte byte)
 {
     const auto value = std::to_integer<unsigned>(byte);

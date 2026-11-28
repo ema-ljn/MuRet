@@ -17,13 +17,13 @@ namespace Client::Chat
 {
 namespace
 {
-// 0x468260: SW_HIDE con 3.
+// 0x468260: SW_HIDE with 3.
 constexpr std::int32_t HiddenState = 3;
-// 0x469450(0): el foco al del mensaje.
+// 0x469450(0): the focus to the message one.
 constexpr std::int32_t FocusedState = 0;
-// 0x4693e0 y la vtable + 0x50: GetText con 0xff.
+// 0x4693e0 and the vtable + 0x50: GetText with 0xff.
 constexpr std::size_t GetTextLimit = 0xff;
-// 0x467ee0: SetText solo con menos de 0x100 bytes.
+// 0x467ee0: SetText only with fewer than 0x100 bytes.
 constexpr std::size_t SetTextLimit = 0x100;
 
 Ui::TextField& FieldOf(ChatInputState& input, ChatFocus focus)
@@ -36,14 +36,14 @@ std::int32_t LengthOf(const ChatBuffer& buffer)
     return static_cast<std::int32_t>(CStringOf(buffer).size());
 }
 
-// 0x467ec0, la vtable + 0x50: WM_GETTEXT, hasta `limit` bytes y el '\0'.
+// 0x467ec0, the vtable + 0x50: WM_GETTEXT, up to `limit` bytes and the '\0'.
 void GetTextInto(ChatBuffer& buffer, const Ui::TextField& field)
 {
     const std::string_view value = field.Value();
     CopyIntoTheBuffer(buffer, value.substr(0, std::min(value.size(), GetTextLimit)));
 }
 
-// 0x467ee0, la vtable + 0x4c.
+// 0x467ee0, the vtable + 0x4c.
 void SetTextOf(Ui::TextField& field, std::string_view text)
 {
     const std::string_view value = text.substr(0, text.find('\0'));
@@ -51,17 +51,17 @@ void SetTextOf(Ui::TextField& field, std::string_view text)
         field.SetText(value);
 }
 
-// 0x4682a0(con selección): el foco al EDIT; con 1, EM_SETSEL(−2, −1) deja el cursor al final.
+// 0x4682a0(with selection): the focus to the EDIT; with 1, EM_SETSEL(−2, −1) leaves the cursor at the end.
 void SetFocusOn(ChatInputState& input, ChatFocus focus, std::int32_t* focusedList = nullptr)
 {
     input.focus = focus;
-    // 0x4682f1..0x4682f7: tomar el foco mueve también la lista de las flechas, aunque el control sea un EDIT.
+    // 0x4682f1..0x4682f7: taking the focus also moves the arrows' list, even if the control is an EDIT.
     if (focusedList != nullptr)
         if (const Ui::OldEdit* edit = ChatEditWithFocus(input); edit != nullptr)
             *focusedList = edit->base.id;
 }
 
-// strncpy(destino, origen, 0xb): los once primeros bytes, con ceros detrás del '\0'.
+// strncpy(target, source, 0xb): the first eleven bytes, with zeros after the '\0'.
 void CopyTheName(ChatBuffer& target, const ChatBuffer& source)
 {
     const std::size_t length = std::min(CStringOf(source).size(), WhisperNameCopy);
@@ -112,7 +112,7 @@ void ResetTheTextBuffers(ChatInputState& input, bool second)
         input.whisperBuffer.fill('\0');
         input.whisperLength = 0;
     }
-    // 0x5535bd..0x5535db: la vtable + 0x4c (SetText) con 0 en los dos.
+    // 0x5535bd..0x5535db: the vtable + 0x4c (SetText) with 0 on both.
     input.dialogEdit.text.SetText({});
     input.numberField.text.SetText({});
 }
@@ -146,8 +146,8 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state, std::int32_t* 
     input.whisper.base.state = state;
     if (!input.shown)
     {
-        // 0x468260(3) es ShowWindow(SW_HIDE) de los dos EDIT del chat: el foco de otro EDIT (el del diálogo, el del
-        // número o el de una ventana vieja) no cambia.
+        // 0x468260(3) is ShowWindow(SW_HIDE) of the chat's two EDITs: the focus of another EDIT (the dialog's, the
+        // number's or an old window's) does not change.
         if (input.focus == ChatFocus::Message || input.focus == ChatFocus::Whisper)
             input.focus = ChatFocus::Game;
         return;

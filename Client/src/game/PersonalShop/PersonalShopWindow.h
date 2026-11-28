@@ -6,11 +6,12 @@
 #include <string>
 #include <string_view>
 
-// La ventana de la tienda personal propia (CL9 hito 7, fase 5; 04 § Las tiendas personales y 06 § Lo social en
-// pantalla, "Las tiendas personales"): su paso (0x5ea290), el diálogo 0x91 del título y del precio (0x5eba70), la caja
-// de confirmación 0x9c (0x4716e0, su paso 0x471930 y su respuesta 0x623750) y las respuestas de los avisos que 0x5d8d50
-// mira antes del ítem del cursor (0x5d8dee..0x5deac5). Lo que mandan sale por InventoryServices::sendGamePacket, con
-// los dos rand() de cada C3 antes. El GameServer 0.97 no tiene el 3F: el oráculo es el ASM del cliente (*estático*).
+// The own personal shop's window (CL9 milestone 7, phase 5; 04 § Las tiendas personales and 06 § Lo social en
+// pantalla, "Las tiendas personales"): its step (0x5ea290), the 0x91 title and price dialog (0x5eba70), the 0x9c
+// confirm box (0x4716e0, its step 0x471930 and its answer 0x623750) and the answers to the warnings that 0x5d8d50
+// checks before the cursor item (0x5d8dee..0x5deac5). What they send goes out through
+// InventoryServices::sendGamePacket, with each C3's two rand() before. GameServer 0.97 has no 3F: the oracle is the
+// client's ASM (*static*).
 namespace Client::Ui
 {
 class PanelRegistry;
@@ -40,79 +41,81 @@ struct ConfirmBoxState;
 namespace Client::PersonalShop
 {
 
-// 0x5eba70: los dos modos del diálogo 0x91, que quedan en 0x78aba60.
+// 0x5eba70: the 0x91 dialog's two modes, kept in 0x78aba60.
 inline constexpr std::int32_t ShopTitleMode = 1;
 inline constexpr std::int32_t ShopPriceMode = 2;
-// 0x5ea9c8..0x5eaa1c: la caja 0x9c de abrir la tienda, que responde a 0x623750 con el 1000.
+// 0x5ea9c8..0x5eaa1c: the 0x9c open-shop box, which answers 0x623750 with the 1000.
 inline constexpr std::int32_t OpenShopConfirm = 1000;
 
-// 0x5eba70(modo): con 1 o 2, el diálogo 0x91 (0x6236f0), 0x78aba60 en el modo, el campo del chat cerrado (0x6c8e68), el
-// modo del zen (0x77f3b6a) en 0 con el título y en 1 con el precio, los campos de texto vacíos (0x553570(0), con el
-// EDIT de [0x5763504]) y el largo del campo (0x6c8e78) en 0x1c o en 8. Con 0x6c7b8c en 1 (la .data) arma además ese
-// EDIT (ChatInputState::dialogEdit): a la vista, +0x4c en 0xc o 9 (solo cifras), el fondo en 0, el tope de 0x1c o 8, el
-// tamaño de 0x85 o 0x3c por 10 y el lugar en (0xfd o 0x125, 0x8a). Con otro modo, nada. Sin rand().
+// 0x5eba70(mode): with 1 or 2, dialog 0x91 (0x6236f0), 0x78aba60 at the mode, the chat field closed (0x6c8e68), the
+// zen mode (0x77f3b6a) at 0 with the title and at 1 with the price, the text fields emptied (0x553570(0), with the EDIT
+// of [0x5763504]) and the field length (0x6c8e78) at 0x1c or 8. With 0x6c7b8c at 1 (the .data) it also builds that
+// EDIT (ChatInputState::dialogEdit): in view, +0x4c at 0xc or 9 (digits only), the background at 0, the cap of 0x1c or
+// 8, the size of 0x85 or 0x3c by 10 and the position at (0xfd or 0x125, 0x8a). With another mode, nothing. No rand().
 void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 
-// 0x6260f6..0x6262e8, el paso del 0x91: el OK (x de 0xff a 0x133, y de 0xa0 a 0xb0, con los bordes) con el clic lo
-// gasta, lee el EDIT al buffer del mensaje y, con el título, lo guarda en 0x78aba64 si 0x5ebbd0 lo deja (si no, el
-// texto 1130 del tipo 1), o con el precio guarda su atoi en 0x77f3b6c; el cancelar (x de 0x14a a 0x17e) con el clic que
-// quede lo gasta. Enter (0x5763588, que apaga) vale como el OK aunque se haya apretado el cancelar, sin leer el EDIT;
-// sin Enter ni botón, nada. Después, 0x6c932e en 1 con el OK y un título no vacío o un precio mayor que 0 (con signo),
-// y en 2 si no; los campos de texto vacíos (0x553570(0)), el campo del chat cerrado, el foco a la ventana del juego y
-// el diálogo que espera abierto. Sin rand().
+// 0x6260f6..0x6262e8, the 0x91's step: the OK (x from 0xff to 0x133, y from 0xa0 to 0xb0, with the edges) with the
+// click spends it, reads the EDIT into the message buffer and, with the title, keeps it in 0x78aba64 if 0x5ebbd0
+// allows it (otherwise, text 1130 of type 1), or with the price keeps its atoi in 0x77f3b6c; the cancel (x from 0x14a
+// to 0x17e) with the remaining click spends it. Enter (0x5763588, which it turns off) counts as the OK even if the
+// cancel was pressed, without reading the EDIT; without Enter or a button, nothing. Then, 0x6c932e at 1 with the OK and
+// a non-empty title or a price above 0 (signed), and at 2 otherwise; the text fields emptied (0x553570(0)), the chat
+// field closed, the focus to the game's window and the pending dialog open. No rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& context);
 
-// 0x4716e0(id, texto, tipo) sobre 0x575d9d0: con el 0x9c abierto (0x7d3a10c), false. Si no, el 0x9c por 0x6236f0 (con
-// otro abierto, esperando) y, con el tipo fuera de 1..2, false con el diálogo ya pedido. Si no, el id, el tipo y los
-// renglones de nuevo: el texto en pedazos que se cortan al pasar de 24 bytes (los de 0x80 o más cuentan 2, sin mirar
-// el que sigue) o en el final justo; el pedazo que termina con un byte de 0x80 o más pasado del final se pierde
-// (Q-C966). true.
+// 0x4716e0(id, text, type) on 0x575d9d0: with the 0x9c open (0x7d3a10c), false. Otherwise, the 0x9c through 0x6236f0
+// (with another open, waiting) and, with the type outside 1..2, false with the dialog already requested. Otherwise,
+// the id, the type and the rows again: the text in pieces cut when they pass 24 bytes (those of 0x80 or more count 2,
+// without looking at the next one) or at the exact end; the piece that ends with a byte of 0x80 or more past the end
+// is lost (Q-C966). true.
 [[nodiscard]] bool OpenTheConfirmBox(Social::ConfirmBoxState& box, Ui::DialogState& dialogs, std::int32_t id,
                                      std::string_view text, std::int32_t type);
 
-// 0x471930, el paso del 0x9c (0x6260d1): con el 0x9c abierto y el clic, los botones en y de h + 140 a h + 156 con los
-// bordes (h: los renglones por el paso de la letra (0x7758568) + 2, comparados en la x87). Con dos botones, el de x de
-// 0xff a 0x133 responde 1 y el de 0x14a a 0x17e responde 2; con uno, el de 0x127 a 0x15b responde 1. Cada uno gasta
-// el clic y llama a 0x623750 con el id de la caja.
+// 0x471930, the 0x9c's step (0x6260d1): with the 0x9c open and the click, the buttons in y from h + 140 to h + 156 with
+// the edges (h: the rows times the letter step (0x7758568) + 2, compared in the x87). With two buttons, the one with x
+// from 0xff to 0x133 answers 1 and the one from 0x14a to 0x17e answers 2; with one, the one from 0x127 to 0x15b answers
+// 1. Each spends the click and calls 0x623750 with the box's id.
 [[nodiscard]] Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& context);
 
-// 0x623750(id, respuesta): con el 1000 y el 1, el C1 28 3F 02 con el título (0x78aba64) en C3, todos los paneles
-// cerrados (0x657a90) y el diálogo que espera abierto (0x7d3a110 a 0x7d3a10c); con el 1000 y el 2, solo esto último.
-// Con otro id o respuesta, nada. No es el diálogo del título (ese es el 0x91 de 0x5eba70).
+// 0x623750(id, answer): with the 1000 and the 1, the C1 28 3F 02 with the title (0x78aba64) in C3, all panels closed
+// (0x657a90) and the pending dialog open (0x7d3a110 to 0x7d3a10c); with the 1000 and the 2, only the latter. With
+// another id or answer, nothing. It is not the title dialog (that is 0x5eba70's 0x91).
 [[nodiscard]] Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& context, std::int32_t id,
                                                                     std::int32_t answer);
 
-// 0x5ea290 (desde 0x5ee1c5): con la tienda propia o la ajena abiertas (0x800 y 0x20000, sin rand()) y 0x6c931c en 1:
-// - el título respondido (0x78aba60 en 1 con 0x6c932e en 1 o 2) deja los dos en 0 y 0xff;
-// - la esquina de la ventana en (0x104, 0) (0x78aba58 y 0x78aba5c);
-// - el botón de abrir (x de 0x122 a 0x15a e y de 0x18c a 0x1a4, sin los bordes de la derecha y de abajo, con el clic,
-//   que gasta): cada ítem de la grilla 0x78ab0b8 (tipo con signo de 0 o más) necesita un precio de más de 0 en el mapa
-//   del modo (0x5f8110 y 0x5f80c0, en su lugar columna + fila · 8 + 0x4c), y tiene que haber alguno y un título; si no,
-//   el aviso 1119 con el tipo 2. Con la tienda abierta (0x78aba50), el C1 28 3F 02 con el título en C3 y el inventario
-//   cerrado (0x65cae0(0x4000000)); cerrada, la caja 0x9c con el 1000, el texto 1131 y dos botones;
-// - el de cerrar (x de x + 0x69 a x + 0xa1, la misma y, con el clic, que gasta): con la tienda abierta, el C1 04 3F 03
-//   en C3;
-// - el del título (x de x + 0x14 a x + 0xaa e y de y + 0x41 a y + 0x59, con el clic, que no gasta): 0x5eba70(1).
+// 0x5ea290 (from 0x5ee1c5): with the own shop or the other's open (0x800 and 0x20000, no rand()) and 0x6c931c at 1:
+// - the answered title (0x78aba60 at 1 with 0x6c932e at 1 or 2) leaves both at 0 and 0xff;
+// - the window's corner at (0x104, 0) (0x78aba58 and 0x78aba5c);
+// - the open button (x from 0x122 to 0x15a and y from 0x18c to 0x1a4, without the right and bottom edges, with the
+//   click, which it spends): each item of grid 0x78ab0b8 (signed type of 0 or more) needs a price above 0 in the mode's
+//   map (0x5f8110 and 0x5f80c0, at its slot column + row · 8 + 0x4c), and there must be some and a title; otherwise,
+//   warning 1119 with type 2. With the shop open (0x78aba50), the C1 28 3F 02 with the title in C3 and the inventory
+//   closed (0x65cae0(0x4000000)); closed, the 0x9c box with the 1000, text 1131 and two buttons;
+// - the close one (x from x + 0x69 to x + 0xa1, the same y, with the click, which it spends): with the shop open, the
+//   C1 04 3F 03 in C3;
+// - the title one (x from x + 0x14 to x + 0xaa and y from y + 0x41 to y + 0x59, with the click, which it does not
+//   spend): 0x5eba70(1).
 [[nodiscard]] Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiContext& context,
                                                                           Ui::PanelRegistry& panels);
 
-// 0x5d8dee..0x5dc798 y 0x5deaa7..0x5deac0: lo que 0x5d8d50 hace antes del ítem del cursor, ya sin la traba de C3 24.
-// Con 0x78abb14 de 1 a 6 (en ese orden) o, si no, con 0x78aba60 en 2, la respuesta de 0x6c932e: con 1 o 2 la atiende
-// y la borra; con otra el paso termina sin hacer nada más (el aviso sigue esperando). Devuelve si el paso sigue con el
-// ítem del cursor (0x5deac5):
-// - 1, 2 y 4 son de las ventanas de NPC (Npc::AnswerTheNpcWarning, CL9 hito 6): la venta valiosa, la mezcla y el
-//   teclado del almacén;
-// - 3, el aviso del OK del comercio (0x5ecf67): con el sí, el OK propio da vuelta, 0x78abaa5 en 1 y el C1 04 3C con el
-//   OK nuevo en C3; con el no, se borra;
-// - 5, la compra en la tienda de otro (0x5c5181): con el sí y la clave del dueño (0x78a6514), el C1 11 3F 06 con la
-//   clave, el nombre y el lugar [0x78a6758] en C3; con el no, se borra;
-// - 6, el precio menor que el valor del ítem (0x5dc7e9): con el sí, el precio (abajo); con el no, 0x5eba70(2);
-// - 0x78aba60 en 2, el diálogo del precio: con el sí, 0x78aba60 en 0 y el precio escrito (0x77f3b6c, sin signo) contra
-//   el valor del ítem de 0x78a59c8 (0x54d0f0 con el modo 2): menor, el aviso 0x633300(2, 1132, 0x99) y 0x78abb14 en
-//   6; si no, el precio. Con el no, 0x78aba60 en 0 y 0x5be150.
-// El precio (0x5da5ac.. y 0x5dc807..): con la tienda abierta, el C1 04 3F 03 en C3; con un ítem en el cursor, el C1 09
-// 3F 01 con el lugar [0x78a6758] y el precio en C3, el 24 de la grilla 0 a la 4 (con la traba suelta) y el precio en el
-// mapa del modo en 0x77f3cc8; sin ítem, el 3F 01 y el precio en el mapa en [0x78a6758]. Al final 0x77f3b6c en 0.
+// 0x5d8dee..0x5dc798 and 0x5deaa7..0x5deac0: what 0x5d8d50 does before the cursor item, already without the C3 24
+// lock. With 0x78abb14 from 1 to 6 (in that order) or, otherwise, with 0x78aba60 at 2, the answer of 0x6c932e: with 1
+// or 2 it handles and clears it; with another the step ends without doing anything else (the warning keeps waiting).
+// Returns whether the step continues with the cursor item (0x5deac5):
+// - 1, 2 and 4 belong to the NPC windows (Npc::AnswerTheNpcWarning, CL9 milestone 6): the valuable sale, the mix and
+//   the warehouse keypad;
+// - 3, the trade OK warning (0x5ecf67): with yes, the own OK flips, 0x78abaa5 at 1 and the C1 04 3C with the new OK in
+//   C3; with no, it is cleared;
+// - 5, the purchase in another's shop (0x5c5181): with yes and the owner's key (0x78a6514), the C1 11 3F 06 with the
+//   key, the name and the slot [0x78a6758] in C3; with no, it is cleared;
+// - 6, the price below the item's value (0x5dc7e9): with yes, the price (below); with no, 0x5eba70(2);
+// - 0x78aba60 at 2, the price dialog: with yes, 0x78aba60 at 0 and the typed price (0x77f3b6c, unsigned) against the
+//   value of 0x78a59c8's item (0x54d0f0 with mode 2): lower, the warning 0x633300(2, 1132, 0x99) and 0x78abb14 at 6;
+//   otherwise, the price. With no, 0x78aba60 at 0 and 0x5be150.
+// The price (0x5da5ac.. and 0x5dc807..): with the shop open, the C1 04 3F 03 in C3; with an item on the cursor, the
+// C1 09 3F 01 with the slot [0x78a6758] and the price in C3, the 24 from grid 0 to 4 (with the lock released) and the
+// price in the mode's map at 0x77f3cc8; without an item, the 3F 01 and the price in the map at [0x78a6758]. At the
+// end 0x77f3b6c at 0.
 [[nodiscard]] Core::Expected<bool, std::string> StepTheWarningAnswers(const Hud::GameUiContext& context,
                                                                       const Items::InventoryMoveContext& moves);
 } // namespace Client::PersonalShop

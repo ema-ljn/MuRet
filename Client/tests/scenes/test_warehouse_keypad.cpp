@@ -46,10 +46,10 @@
 #include <utility>
 #include <vector>
 
-// La caja de la contraseña del almacén (CL9 hito 6, fase 3; 06 § Los dibujos de las ventanas de los NPC y 04 § Las
-// ventanas de los NPC): lo que hay bajo el mouse (0x5e7b50), el paso (0x5e7bf0, con el 83 y el 99 byte a byte y sus
-// rand()) y el dibujo (0x5e9b10), en 640 × 480. Los textos, los números y el chat son inventados y los textos miden 6
-// columnas por letra. Cada test corre en Lorencia, Devias y Noria.
+// The warehouse password box (CL9 milestone 6, phase 3; 06 § Los dibujos de las ventanas de los NPC and 04 § Las
+// ventanas de los NPC): what is under the mouse (0x5e7b50), the step (0x5e7bf0, with the 83 and the 99 byte by byte
+// and their rand()) and the drawing (0x5e9b10), in 640 × 480. The texts, the numbers and the chat are made up and the
+// texts measure 6 columns per letter. Each test runs in Lorencia, Devias and Noria.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -74,10 +74,9 @@ constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color HoveredKey{1.0f, 1.0f, 0.8f, 1.0f};
 constexpr Color Key{0.85f, 0.85f, 0.65f, 1.0f};
 constexpr int NoTexture = -1;
-// El marco (6), la barra (1), dos por tecla (22) y el OK y cancelar (2).
+// The frame (6), the bar (1), two per key (22) and the OK and cancel (2).
 constexpr std::size_t KeypadQuads = 6 + 1 + 22 + 2;
-// El rand() del relleno y el del serial de un C1 en C3; las consultas del comercio (0x20) y de la tienda (0x10000) de
-// 0x657a90.
+// The padding's rand() and the serial's of a C1 in C3; 0x657a90's trade (0x20) and shop (0x10000) queries.
 constexpr std::uint32_t C3 = 2;
 constexpr std::uint32_t CloseAllRandoms = 2;
 constexpr int EraseKey = 10;
@@ -104,7 +103,7 @@ struct DrawnQuad
     SpriteVertex third{};
 };
 
-// Los quads con textura que no son marcas de texto, en su orden.
+// The textured quads that are not text marks, in their order.
 std::vector<DrawnQuad> TexturedQuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -135,7 +134,7 @@ void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width
     EXPECT_NEAR(quad.third.y, 480.0f - y - height, Tolerance);
 }
 
-// La esquina de la tecla `key` en el dibujo: de a 40 en x desde 0xdf y de a 38 en y desde 0x9a.
+// Key `key`'s corner in the drawing: every 40 in x from 0xdf and every 38 in y from 0x9a.
 std::tuple<float, float> KeyCorner(int key)
 {
     return {static_cast<float>((key % 5) * 40 + 0xdf), static_cast<float>((key / 5) * 38 + 0x9a)};
@@ -148,7 +147,7 @@ protected:
     {
         m_sprites.Begin(Screen640);
         m_world->Runtime().map = GetParam();
-        // Un teclado barajado inventado.
+        // A made-up shuffled keypad.
         Runtime().npcWindows.keypad = {7, 3, 9, 0, 5, 1, 8, 2, 6, 4};
     }
 
@@ -185,7 +184,7 @@ protected:
             Runtime().npcWindows.typedNumber[i] = static_cast<std::uint8_t>(digits[i]);
     }
 
-    // 0x5e7bf0 con el mouse en (x, y), con los cables de las ventanas de los NPC como los presta el paso de la UI.
+    // 0x5e7bf0 with the mouse at (x, y), with the NPC windows' wiring as the UI step lends it.
     Client::Core::Expected<bool, std::string> Step(std::int32_t x, std::int32_t y)
     {
         Client::Hud::GamePanels panels(*m_world, m_random);
@@ -200,7 +199,7 @@ protected:
         return Client::Warehouse::StepTheKeypad(context, panels.Registry());
     }
 
-    // El clic sobre la tecla `key` (0 a 12), adentro de lo que toca 0x5e7b50.
+    // The click on key `key` (0 to 12), inside what 0x5e7b50 hits.
     Client::Core::Expected<bool, std::string> Press(int key)
     {
         Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
@@ -209,7 +208,7 @@ protected:
         return Step((key % 5) * 40 + 0xdf + 5, (key / 5) * 40 + 0x96 + 5);
     }
 
-    // Las teclas con las cifras de `digits`, por lo que dice el teclado barajado.
+    // The keys with the digits of `digits`, per the shuffled keypad.
     void PressDigits(std::string_view digits)
     {
         for (const char digit : digits)
@@ -229,7 +228,7 @@ protected:
         return {typed.begin(), std::ranges::find(typed, std::uint8_t{0})};
     }
 
-    // El C1 del paquete `index` sin el XOR32.
+    // Packet `index`'s C1 without the XOR32.
     [[nodiscard]] Client::Network::Packet Plain(std::size_t index) const
     {
         return Xor32Decode(m_sent.at(index).packet);
@@ -246,8 +245,8 @@ protected:
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
-// 0x5e7b50: las once teclas de 32 desde (0xdf, 0x96) de a 40, y el OK y cancelar de 0x46 × 0x15 desde (0x109, 0xeb)
-// de a 0x4e, con los bordes de arriba y de la izquierda adentro.
+// 0x5e7b50: the eleven keys of 32 from (0xdf, 0x96) every 40, and the OK and cancel of 0x46 × 0x15 from (0x109, 0xeb)
+// every 0x4e, with the top and left edges inside.
 TEST_P(WarehouseKeypadTest, TheKeyUnderTheMouse)
 {
     for (const auto& [x, y, key] :
@@ -263,7 +262,7 @@ TEST_P(WarehouseKeypadTest, TheKeyUnderTheMouse)
     }
 }
 
-// 0x5e9b16..0x5e9b1d: con el modo en 0, nada.
+// 0x5e9b16..0x5e9b1d
 TEST_P(WarehouseKeypadTest, ClosedItDrawsNothing)
 {
     ASSERT_TRUE(Draw(0, 0).HasValue());
@@ -272,8 +271,8 @@ TEST_P(WarehouseKeypadTest, ClosedItDrawsNothing)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// 0x5e9b23..0x5ea042 con el modo 1 (la contraseña de cuatro cifras): el marco, los dos renglones (690 y 695), la barra
-// de 52 centrada en 320, las teclas con su número y el OK y cancelar. Sin rand().
+// 0x5e9b23..0x5ea042 with mode 1 (the four-digit password): the frame, the two lines (690 and 695), the 52 bar
+// centered on 320, the keys with their number and the OK and cancel. No rand().
 TEST_P(WarehouseKeypadTest, ThePasswordModeDrawsTheFrameTheBarAndTheKeys)
 {
     Runtime().ui.field78abb20 = 1;
@@ -313,7 +312,7 @@ TEST_P(WarehouseKeypadTest, ThePasswordModeDrawsTheFrameTheBarAndTheKeys)
     EXPECT_EQ(texts[0].style.colors.background, 0u);
     EXPECT_EQ(texts[1].text, "Cuatro");
     EXPECT_EQ(std::tuple(texts[1].x, texts[1].y), std::tuple(320 - 18, 0x7a));
-    // El "*" de lo tecleado vacío no se dibuja; los números, con la fuente gruesa grande.
+    // The "*" of the empty typed digits is not drawn; the numbers, in the big bold font.
     EXPECT_EQ(texts[2].text, "7");
     EXPECT_EQ(std::tuple(texts[2].x, texts[2].y), std::tuple(0xdf + 0xc, 0x9a + 6));
     EXPECT_EQ(texts[2].style.font, FontKind::BigBold);
@@ -322,8 +321,8 @@ TEST_P(WarehouseKeypadTest, ThePasswordModeDrawsTheFrameTheBarAndTheKeys)
     EXPECT_EQ(std::tuple(texts[11].x, texts[11].y), std::tuple(0xdf + 160 + 0xc, 0x9a + 38 + 6));
 }
 
-// 0x5e9d7b..0x5e9e12: lo tecleado, un "*" por byte, en (cifras − _ftol(mitad − 320), 0x84): con cuatro cifras, 4 +
-// 294; con siete (modos 2, 3 y 6), la barra de 91 y 7 − _ftol(−274,5) = 281.
+// 0x5e9d7b..0x5e9e12: the typed digits, a "*" per byte, at (digits − _ftol(half − 320), 0x84): with four digits,
+// 4 + 294; with seven (modes 2, 3 and 6), the 91 bar and 7 − _ftol(−274.5) = 281.
 TEST_P(WarehouseKeypadTest, TheTypedDigitsAreStars)
 {
     Runtime().ui.field78abb20 = 1;
@@ -348,8 +347,8 @@ TEST_P(WarehouseKeypadTest, TheTypedDigitsAreStars)
     EXPECT_EQ(m_text.texts[2].x, 281);
 }
 
-// 0x5e9c15..0x5e9cb3: el título 690 + (modo − 1) entre 0 y 4, el 6 con el 691; el pedido 697 con 2, 3 y 6, 696 con
-// 5 y 695 con los demás.
+// 0x5e9c15..0x5e9cb3: title 690 + (mode − 1) between 0 and 4, 6 with 691; prompt 697 with 2, 3 and 6, 696 with 5 and
+// 695 with the others.
 TEST_P(WarehouseKeypadTest, TheModeChoosesTheTitleAndThePrompt)
 {
     for (const auto& [mode, title, prompt] :
@@ -365,9 +364,9 @@ TEST_P(WarehouseKeypadTest, TheModeChoosesTheTitleAndThePrompt)
     }
 }
 
-// 0x5e9e1c..0x5e9fb4: la tecla del mouse (por 0x5e7b50, de a 40 desde 0x96) va en (1, 1, 0,8) con el texto en
-// 0xff00c4c4; apretada (0x78abb3a), InventoryBox2 encima y el número un punto más arriba. La tecla 8 se dibuja en
-// y = 0x9a + 38 = 192 y se toca desde y = 190.
+// 0x5e9e1c..0x5e9fb4: the hovered key (by 0x5e7b50, every 40 from 0x96) goes in (1, 1, 0.8) with the text in
+// 0xff00c4c4; pressed (0x78abb3a), InventoryBox2 on top and the number one point higher. Key 8 is drawn at
+// y = 0x9a + 38 = 192 and is hit from y = 190.
 TEST_P(WarehouseKeypadTest, TheKeyUnderTheMouseLightsUpAndPresses)
 {
     Runtime().ui.field78abb20 = 1;
@@ -395,8 +394,8 @@ TEST_P(WarehouseKeypadTest, TheKeyUnderTheMouseLightsUpAndPresses)
     EXPECT_EQ(m_text.texts[2 + key + 1].y, 192 + 6);
 }
 
-// 0x5e9ee3..0x5e9f27 y 0x5e9fee..0x5ea02a: borrar es back1 (0xfe), back2 con el mouse y back3 apretada; el OK y
-// cancelar suben uno con el mouse.
+// 0x5e9ee3..0x5e9f27 and 0x5e9fee..0x5ea02a: erase is back1 (0xfe), back2 hovered and back3 pressed; the OK and cancel
+// go up one when hovered.
 TEST_P(WarehouseKeypadTest, TheEraseKeyAndTheButtonsLightUp)
 {
     Runtime().ui.field78abb20 = 5;
@@ -422,7 +421,6 @@ TEST_P(WarehouseKeypadTest, TheEraseKeyAndTheButtonsLightUp)
     EXPECT_EQ(quads[30].slot, 0xf4);
 }
 
-// Sin el texto del título, corta con la dirección.
 TEST_P(WarehouseKeypadTest, AMissingTextStopsWithItsAddress)
 {
     Runtime().ui.field78abb20 = 3;
@@ -434,7 +432,7 @@ TEST_P(WarehouseKeypadTest, AMissingTextStopsWithItsAddress)
     EXPECT_NE(drawn.Error().find("0x5e9c63"), std::string::npos) << drawn.Error();
 }
 
-// 0x5e7c12..0x5e7c19: con el modo en 0 devuelve 0 sin tocar el clic, y 0x5ee140 sigue.
+// 0x5e7c12..0x5e7c19: with the mode at 0 it returns 0 without touching the click, and 0x5ee140 goes on.
 TEST_P(WarehouseKeypadTest, ClosedTheStepLetsTheClickThrough)
 {
     Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
@@ -449,9 +447,9 @@ TEST_P(WarehouseKeypadTest, ClosedTheStepLetsTheClickThrough)
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
 }
 
-// 0x5e7c2b..0x5e7ce5 y 0x5e9aad..0x5e9ae1: la cifra de la tecla se agrega con el sonido 0x19 hasta las cuatro del
-// modo 1; la tecla queda apretada (0x78abb3a) y el clic y el botón abajo en 0. Borrar saca la última; sin clic el paso
-// también devuelve 1, y el botón suelto suelta la tecla. Sin rand().
+// 0x5e7c2b..0x5e7ce5 and 0x5e9aad..0x5e9ae1: the key's digit is appended with sound 0x19 up to mode 1's four; the key
+// stays pressed (0x78abb3a) and the click and the button down at 0. Erase removes the last; without a click the step
+// also returns 1, and the released button releases the key. No rand().
 TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
 {
     Runtime().ui.field78abb20 = 1;
@@ -480,7 +478,7 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
     EXPECT_EQ(Runtime().npcWindows.keypadPressed, 0);
     EXPECT_EQ(Runtime().ui.field78abb20, 1);
 
-    // El clic fuera de las teclas también la aprieta y se gasta.
+    // The click outside the keys also presses it and is spent.
     Runtime().mouse.releasedClick = false;
     Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     ASSERT_TRUE(Step(0, 0).HasValue());
@@ -490,7 +488,8 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x5e7cf9..0x5e7d0a y 0x5e7cea: el OK con menos cifras no hace nada; cancelar pone el modo en 0 y deja lo tecleado.
+// 0x5e7cf9..0x5e7d0a and 0x5e7cea: the OK with fewer digits does nothing; cancel sets the mode to 0 and keeps the
+// typed digits.
 TEST_P(WarehouseKeypadTest, OkWaitsForEveryDigitAndCancelCloses)
 {
     Runtime().ui.field78abb20 = 2;
@@ -506,8 +505,8 @@ TEST_P(WarehouseKeypadTest, OkWaitsForEveryDigitAndCancelCloses)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5e931c..0x5e9a88 (Q-C924): el OK del modo 1 manda C1 10 83 00, el atoi de lo tecleado y los diez primeros bytes
-// del buffer del mensaje del chat (0x7798bf8), con el XOR32 y en C3 (sus 2 rand()), y deja el modo en 0.
+// 0x5e931c..0x5e9a88 (Q-C924): mode 1's OK sends C1 10 83 00, the atoi of the typed digits and the first ten bytes of
+// the chat message buffer (0x7798bf8), with the XOR32 and in C3 (its 2 rand()), and leaves the mode at 0.
 TEST_P(WarehouseKeypadTest, UnlockingSends83WithTheChatBuffer)
 {
     Runtime().ui.field78abb20 = 1;
@@ -527,8 +526,8 @@ TEST_P(WarehouseKeypadTest, UnlockingSends83WithTheChatBuffer)
     EXPECT_EQ(Typed(), "4821");
 }
 
-// 0x5e7d10..0x5e7d5b: con cuatro cifras, cuatro iguales vacían lo tecleado y abren el 0x87 sin cerrar el teclado; con
-// las siete del número personal, no se miran.
+// 0x5e7d10..0x5e7d5b: with four digits, four equal ones empty the typed digits and open the 0x87 without closing the
+// keypad; with the personal number's seven, they are not checked.
 TEST_P(WarehouseKeypadTest, FourEqualDigitsOpenTheDialog)
 {
     Runtime().ui.field78abb20 = 4;
@@ -547,9 +546,9 @@ TEST_P(WarehouseKeypadTest, FourEqualDigitsOpenTheDialog)
     ASSERT_EQ(m_sent.size(), 1U);
 }
 
-// 0x5e7d80..0x5e7e8b y 0x5e7e90..0x5e854d: el modo 4 guarda la contraseña (0x78aba07) y baraja otra vez (40 rand())
-// en 5; la misma pasa su atoi a 0x78abb24 y sigue en 2 sin barajar; el número personal manda C1 10 83 01 con la
-// contraseña y los diez bytes de lo tecleado, con el XOR32 y en C3.
+// 0x5e7d80..0x5e7e8b and 0x5e7e90..0x5e854d: mode 4 stores the password (0x78aba07) and shuffles again (40 rand()) in
+// 5; the same one moves its atoi to 0x78abb24 and goes on in 2 without shuffling; the personal number sends
+// C1 10 83 01 with the password and the ten bytes of the typed digits, with the XOR32 and in C3.
 TEST_P(WarehouseKeypadTest, SettingAPasswordSends83WithOne)
 {
     Runtime().ui.field78abb20 = 4;
@@ -584,7 +583,7 @@ TEST_P(WarehouseKeypadTest, SettingAPasswordSends83WithOne)
                                                    '7', 0x00, 0x00, 0x00})));
 }
 
-// 0x5e7e7e..0x5e7e8b: la contraseña repetida distinta abre el 0x88 con el teclado ya cerrado.
+// 0x5e7e7e..0x5e7e8b: a different repeated password opens the 0x88 with the keypad already closed.
 TEST_P(WarehouseKeypadTest, ADifferentRepeatOpensTheDialog)
 {
     Runtime().ui.field78abb20 = 5;
@@ -601,7 +600,7 @@ TEST_P(WarehouseKeypadTest, ADifferentRepeatOpensTheDialog)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5e8c02..0x5e931a: el modo 3 (la traba) manda C1 10 83 02 con la contraseña en 0 y lo tecleado.
+// 0x5e8c02..0x5e931a: mode 3 (the lock) sends C1 10 83 02 with the password at 0 and the typed digits.
 TEST_P(WarehouseKeypadTest, RemovingThePasswordSends83WithTwo)
 {
     Runtime().ui.field78abb20 = 3;
@@ -618,8 +617,8 @@ TEST_P(WarehouseKeypadTest, RemovingThePasswordSends83WithTwo)
                                                    '1', 0x00, 0x00, 0x00})));
 }
 
-// 0x5e8552..0x5e8bfd (Q-C925): el modo 6 manda el C1 03 31 en claro, cierra todo (0x657a90: el almacén manda su C1 03
-// 82) y manda C1 0D 99 con lo tecleado, con el XOR32 y en C3.
+// 0x5e8552..0x5e8bfd (Q-C925): mode 6 sends the C1 03 31 in the clear, closes everything (0x657a90: the warehouse
+// sends its C1 03 82) and sends C1 0D 99 with the typed digits, with the XOR32 and in C3.
 TEST_P(WarehouseKeypadTest, ThePersonalNumberClosesEverythingAndSends99)
 {
     Runtime().ui.field78abb20 = 6;

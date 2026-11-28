@@ -28,7 +28,7 @@ constexpr std::int32_t Counted1c0a = 0x1c0a;
 constexpr std::int32_t Counted1c14 = 0x1c14;
 constexpr std::size_t GridSide = 8;
 
-// Los tipos que la ranura recorre, de `last` a `first`, y si cuenta casillas (0x558490) en vez de sumar.
+// The types the slot walks, from `last` to `first`, and whether it counts cells (0x558490) instead of adding up.
 struct SlotRange
 {
     std::int32_t first = 0;
@@ -41,14 +41,14 @@ bool InRange(std::int32_t type, std::int32_t first, std::int32_t last)
     return type >= first && type <= last;
 }
 
-// La elección de 0x558110 (0x558149..0x5582be) y de 0x558490 (0x5584a1..0x55862c), que dan los mismos rangos.
+// The choice of 0x558110 (0x558149..0x5582be) and of 0x558490 (0x5584a1..0x55862c), which give the same ranges.
 Core::Expected<SlotRange, std::string> RangeOf(const QuickSlots& slots, int slot, const char* function)
 {
     if (slot < 0 || slot > 2)
         return Core::Unexpected(
             std::format("{}({}): sin ranura, el rango sale de locales sin inicializar", function, slot));
     const std::int32_t type = slots.types[static_cast<std::size_t>(slot)];
-    // La ranura 2 empieza en 0x1c09: su 0x1c08 cae en el rango propio, que es el mismo.
+    // Slot 2 starts at 0x1c09: its 0x1c08 falls in the own range, which is the same.
     const std::int32_t ownFirst = slot == 2 ? Counted1c09 : Antidote;
     if (InRange(type, ownFirst, Counted1c0a) || type == Counted1c14)
     {
@@ -79,8 +79,8 @@ std::int32_t LevelOf(const Kernel::ItemState& item)
     return static_cast<std::int32_t>((item.scalar1Low >> 3) & 0xfu);
 }
 
-// 0x5582fd..0x558350 y 0x558650..0x5586a3: el tipo con signo, +0x3c mayor que 0 y el nivel de la ranura en los que
-// lo piden.
+// 0x5582fd..0x558350 and 0x558650..0x5586a3: the type signed, +0x3c greater than 0 and the slot's level in the ones
+// that ask for it.
 bool Matches(const Kernel::ItemState& item, std::int32_t type, std::int32_t level)
 {
     const auto id = static_cast<std::int16_t>(item.id);
@@ -91,7 +91,7 @@ bool Matches(const Kernel::ItemState& item, std::int32_t type, std::int32_t leve
     return id != ByLevel || LevelOf(item) == level;
 }
 
-// 0x5582e5..0x55838e: los tipos de arriba abajo, las columnas de la 7 a la 0 y, en cada una, las filas de la 7 a la 0.
+// 0x5582e5..0x55838e: the types from top to bottom, columns 7 to 0 and, in each one, rows 7 to 0.
 std::optional<std::size_t> FindInTheGrid(std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
                                          const SlotRange& range, std::int32_t level)
 {
@@ -115,7 +115,7 @@ Core::Expected<std::optional<std::size_t>, std::string>
 FindQuickSlotItem(const QuickSlots& slots, std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells,
                   int slot, bool requestBlocked)
 {
-    // 0x558119..0x558141: las pociones de las skills, sin mirar la ranura; 0x55815d las lleva a 0x5582c1.
+    // 0x558119..0x558141: the skills' potions, without looking at the slot; 0x55815d takes them to 0x5582c1.
     if (slot == ManaPotionSlot || slot == LifePotionSlot)
     {
         const SlotRange potions = slot == ManaPotionSlot ? SlotRange{.first = ManaFirst, .last = ManaLast}
@@ -125,7 +125,7 @@ FindQuickSlotItem(const QuickSlots& slots, std::span<const Kernel::ItemState, Ke
     auto range = RangeOf(slots, slot, "0x558110");
     if (!range.HasValue())
         return Core::Unexpected(range.Error());
-    // 0x5582c1: con el pedido trabado, el 0x1c0a no se usa.
+    // 0x5582c1: with the request locked, the 0x1c0a is not used.
     if (requestBlocked && range.Value().last == Counted1c0a && range.Value().first == Counted1c0a)
         return std::optional<std::size_t>{};
     return FindInTheGrid(cells, range.Value(), slots.levels[static_cast<std::size_t>(slot)]);
@@ -166,7 +166,7 @@ std::int32_t CountTheAmmo(std::uint8_t characterClass, std::uint16_t rightHandTy
         ammo = Arrows;
     else if (InRange(right, 0x808, 0x80e) || InRange(right, 0x810, 0x9ff))
         ammo = Bolts;
-    // Sin arma de las dos, el tipo buscado es el puntero del registro (local_20): ninguna casilla lo tiene.
+    // Without either weapon, the searched type is the record's pointer (local_20): no cell has it.
     if (!ammo)
         return 0;
     std::int32_t count = 0;

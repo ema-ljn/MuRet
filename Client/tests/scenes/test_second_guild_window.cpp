@@ -49,10 +49,10 @@
 #include <utility>
 #include <vector>
 
-// La ventana 2 del gremio (CL9 hito 8, fase 3): 0x654900 con su paso (0x45aa80(0) y 0x656df0), su dibujo (0x656e70),
-// las cuatro páginas (0x655d70, 0x654f80, 0x655c10 y 0x6552b0, y sus dibujos), el editor de la marca (0x6535c0 y
-// 0x653750) y el alta de punta a punta: el 54 que la abre, Crear, el nombre y la marca, y el C1 55. En Lorencia (0) y
-// en Devias (2, la del Guild Master). Los nombres y los textos son inventados.
+// Guild window 2 (CL9 milestone 8, phase 3): 0x654900 with its step (0x45aa80(0) and 0x656df0), its draw (0x656e70),
+// the four pages (0x655d70, 0x654f80, 0x655c10 and 0x6552b0, and their draws), the mark editor (0x6535c0 and
+// 0x653750) and the creation end to end: the 54 that opens it, Create, the name and the mark, and the C1 55. In
+// Lorencia (0) and Devias (2, the Guild Master's). The names and the texts are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -68,7 +68,6 @@ constexpr std::uint32_t Seed = 11;
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
-// La ventana en (0x1c2, 0).
 constexpr std::int32_t WindowX = 0x1c2;
 constexpr std::int32_t WindowY = 0;
 constexpr float Left = 450.0f;
@@ -157,7 +156,7 @@ int Draws(const CrtRandom& random)
     return -1;
 }
 
-// Los textos de la ventana, inventados.
+// The window's texts, invented.
 Client::Tables::TextTable WindowTexts()
 {
     const std::map<std::size_t, std::string> texts{
@@ -205,7 +204,7 @@ protected:
         return [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); };
     }
 
-    // Lo que hace el 54 (0x4e4279): abre el panel 0x40000.
+    // What the 54 does (0x4e4279): opens panel 0x40000.
     void OpenIt()
     {
         Client::Hud::GamePanels panels(*m_world, m_random);
@@ -249,7 +248,7 @@ protected:
         return Client::Guild::DrawTheSecondGuildWindow(context);
     }
 
-    // Un cuadro de la escena: el paso de la UI y el dibujo, con el lote vacío.
+    // A scene frame: the UI step and the draw, with the batch empty.
     void Frame()
     {
         auto stepped = Step();
@@ -260,7 +259,7 @@ protected:
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     }
 
-    // 0x45b200: el flanco sobre el botón y, el cuadro que sigue, soltarlo encima.
+    // 0x45b200: the edge over the button and, the next frame, the release over it.
     void Click(std::size_t button)
     {
         const Client::Ui::OldWindowBase& base = Guild().secondWindow.buttons[button].base;
@@ -277,7 +276,7 @@ protected:
         mouse.releasedClick = false;
     }
 
-    // El izquierdo abajo sobre el cuadro (fila, columna) de la grilla de la marca.
+    // The left button down over the mark grid's square (row, column).
     void Paint(std::int32_t row, std::int32_t column)
     {
         m_mouseX = WindowX + 0x32 + column * 15 + 7;
@@ -287,7 +286,7 @@ protected:
         Runtime().mouse.leftHeld = false;
     }
 
-    // El flanco del clic sobre el color (fila, columna) de la paleta.
+    // The click's edge over the palette's color (row, column).
     void Choose(std::int32_t row, std::int32_t column)
     {
         m_mouseX = WindowX + 0xf + column * 20 + 10;
@@ -311,8 +310,8 @@ protected:
     GuildMarkTextures m_marks{m_store};
 };
 
-// 0x654900: la ventana en (0x1c2, 0) de 0xbe × 0x5a, la página 0, y los botones de 100 × 20 y de 50 × 18 colgados de
-// ella con los comandos 1, 2, 5 y 4.
+// 0x654900: the window at (0x1c2, 0), 0xbe × 0x5a, page 0, and the 100 × 20 and 50 × 18 buttons hanging from it with
+// commands 1, 2, 5 and 4.
 TEST_P(SecondGuildWindowTest, TheWindowStartsOnTheQuestion)
 {
     const Client::Guild::SecondGuildWindowState& window = Guild().secondWindow;
@@ -333,8 +332,9 @@ TEST_P(SecondGuildWindowTest, TheWindowStartsOnTheQuestion)
     EXPECT_EQ(window.buttons[3].base.y, 0x168);
 }
 
-// 0x656e70 y 0x6563e0 sin gremio: el fondo opaco, el título "Gremio" en negrita centrado en 120, la pregunta en
-// (x + 0x19, y + 0x3c), Crear a la vista y la marca apagada en x + 0x2d, 0x1e y 0x36 más abajo, y el botón de cerrar.
+// 0x656e70 and 0x6563e0 without a guild: the opaque background, the title "Gremio" in bold centered in 120, the
+// question at (x + 0x19, y + 0x3c), Create shown and the mark off at x + 0x2d, 0x1e and 0x36 lower, and the close
+// button.
 TEST_P(SecondGuildWindowTest, TheQuestionPageDrawsTheQuestionAndPlacesTheButtons)
 {
     ASSERT_TRUE(Draw().HasValue());
@@ -365,8 +365,8 @@ TEST_P(SecondGuildWindowTest, TheQuestionPageDrawsTheQuestionAndPlacesTheButtons
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con gremio (+0x368 distinto de 0xff), su nombre y el puntaje centrados en la caja de 140 (0x5542f0 con 2), Crear
-// apagado y la marca a la vista; con el mouse sobre el botón de cerrar, su ayuda.
+// With a guild (+0x368 other than 0xff), its name and the score centered in the 140 box (0x5542f0 with 2), Create off
+// and the mark shown; with the mouse over the close button, its help.
 TEST_P(SecondGuildWindowTest, WithAGuildTheQuestionPageShowsTheGuildAndTheScore)
 {
     Hero().guildStatus = 0x80;
@@ -387,7 +387,7 @@ TEST_P(SecondGuildWindowTest, WithAGuildTheQuestionPageShowsTheGuildAndTheScore)
     EXPECT_EQ(Guild().secondWindow.buttons[1].base.state, Client::Ui::ShownWindow);
 }
 
-// 0x655d70: Crear arma un gremio (las dos en 1, el campo del alta prendido) y manda C1 04 54 01.
+// 0x655d70: Create builds a guild (both at 1, the creation field on) and sends C1 04 54 01.
 TEST_P(SecondGuildWindowTest, CreateGoesToTheNamePageAndAnswersYes)
 {
     OpenIt();
@@ -398,11 +398,11 @@ TEST_P(SecondGuildWindowTest, CreateGoesToTheNamePageAndAnswersYes)
     EXPECT_TRUE(Input().dialogFieldOn);
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x04, 0x54, 0x01}));
-    // 0x45b200: el sonido del botón, 0x19.
+    // 0x45b200: the button's sound, 0x19.
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 }
 
-// 0x6560b3: la marca abre el diálogo de los paneles con el 1269 y Aceptar, y lo guarda en +0x2a0.
+// 0x6560b3: the mark opens the panels' dialog with 1269 and Accept, and stores it in +0x2a0.
 TEST_P(SecondGuildWindowTest, TheMarkButtonOpensTheNotEnabledDialog)
 {
     Hero().guildStatus = 0x80;
@@ -417,9 +417,9 @@ TEST_P(SecondGuildWindowTest, TheMarkButtonOpensTheNotEnabledDialog)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x6560b3 con el diálogo abierto (un segundo clic: 0x657930 da el paso del diálogo y después el de la ventana):
-// 0x6600d0 da el aviso de 0x6d69a8 en el chat (0x555190 con el tipo 1) y 0, que va a +0x2a0; el abierto sigue. Sin
-// cortar.
+// 0x6560b3 with the dialog open (a second click: 0x657930 gives the dialog's step and then the window's): 0x6600d0
+// gives the notice of 0x6d69a8 in the chat (0x555190 with type 1) and 0, which goes to +0x2a0; the open one stays.
+// Without stopping.
 TEST_P(SecondGuildWindowTest, ASecondClickOnTheMarkGetsTheBusyNotice)
 {
     Hero().guildStatus = 0x80;
@@ -447,8 +447,9 @@ TEST_P(SecondGuildWindowTest, ASecondClickOnTheMarkGetsTheBusyNotice)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x6560c3..0x656124: el flanco sobre el botón de cerrar (0x18 × 0x18 en x + 0x19, y + 0x18b) lo apaga, deja
-// 0x77f3b10 en 0 y 0x6c8dcc en 6, manda 54 00, suena el 0x19 y cierra con 0x6570b0, que manda otro 54 00 (Q-C1289).
+// 0x6560c3..0x656124: the edge over the close button (0x18 × 0x18 at x + 0x19, y + 0x18b) turns it off, leaves
+// 0x77f3b10 at 0 and 0x6c8dcc at 6, sends 54 00, plays 0x19 and closes with 0x6570b0, which sends another 54 00
+// (Q-C1289).
 TEST_P(SecondGuildWindowTest, TheCloseButtonAnswersNoTwiceAndClosesTheWindow)
 {
     OpenIt();
@@ -464,12 +465,12 @@ TEST_P(SecondGuildWindowTest, TheCloseButtonAnswersNoTwiceAndClosesTheWindow)
     ASSERT_EQ(m_sent.size(), 2u);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x04, 0x54, 0x00}));
     EXPECT_EQ(PlainOf(m_sent[1]), BytesOf({0xc1, 0x04, 0x54, 0x00}));
-    // 0x41ed10(0x19) y después el 0x1c de 0x6570b0.
+    // 0x41ed10(0x19) and then 0x6570b0's 0x1c.
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
 }
 
-// 0x45aa80(0): con el mouse sobre la ventana y otra que agarró el mouse, no da su paso; sin nadie, la toma y, con el
-// mouse en su alto de 0x1b1, prende 0x775857c.
+// 0x45aa80(0): with the mouse over the window and another one that grabbed the mouse, it does not take its step; with
+// nobody, it takes it and, with the mouse within its 0x1b1 height, turns 0x775857c on.
 TEST_P(SecondGuildWindowTest, TheGateSkipsTheStepWhenAnotherWindowHoldsTheMouse)
 {
     OpenIt();
@@ -486,8 +487,8 @@ TEST_P(SecondGuildWindowTest, TheGateSkipsTheStepWhenAnotherWindowHoldsTheMouse)
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
 }
 
-// 0x6535c0: el ángulo del héroe en 112,5; el izquierdo pinta con el color elegido, el derecho borra, y el flanco
-// sobre la paleta elige (fila · 8 + columna) y suena el 0x19.
+// 0x6535c0: the hero's angle at 112.5; the left button paints with the chosen color, the right one erases, and the
+// edge over the palette chooses (row · 8 + column) and plays 0x19.
 TEST_P(SecondGuildWindowTest, TheEditorPaintsErasesAndChoosesColors)
 {
     OpenIt();
@@ -508,9 +509,9 @@ TEST_P(SecondGuildWindowTest, TheEditorPaintsErasesAndChoosesColors)
     EXPECT_EQ(Guild().table[Creating].mark[2 * 8 + 5], 0);
 }
 
-// 0x655130 y 0x653750: la caja del nombre, "nombre" en negrita, lo tecleado en (x + 0x3f, y + 0x3c), la grilla de
-// 13 en (x + 51, y + 101) de a 15 con su marco 0x116, la paleta de 18 en (x + 16, y + 261) de a 20, el color elegido
-// de 23 en (x + 16, y + 231), los dos renglones y Regreso y Próximo.
+// 0x655130 and 0x653750: the name box, "nombre" in bold, what was typed at (x + 0x3f, y + 0x3c), the grid of 13 at
+// (x + 51, y + 101) every 15 with its 0x116 frame, the palette of 18 at (x + 16, y + 261) every 20, the chosen color of
+// 23 at (x + 16, y + 231), the two rows and Back and Next.
 TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
 {
     OpenIt();
@@ -522,7 +523,7 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
-    // 0x655232: el id del EDIT en 0x5762ec0, así las flechas ya no mueven otra lista.
+    // 0x655232: the EDIT's id in 0x5762ec0, so the arrows no longer move another list.
     EXPECT_EQ(Runtime().ui.focusedList, Client::Chat::DialogFieldId);
     Client::Chat::TypeInTheChat(Input(), "Ceibo");
     m_sprites.Begin(Screen640);
@@ -531,10 +532,10 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 175u);
     ExpectQuadAt(quads[3], 0x10f, Left + 0x3a, 56.0f, 110.0f, 18.0f);
-    // 0x468320, después de "nombre" (4): la caja del EDIT en el fondo de +0xa0 (0), alta como el EDIT (0xe), y el texto
-    // (6). Cada WM_CHAR de "Ceibo" pone +0x80 en 0 (la subclase, 0x467b9d), y el cursor del segundo dibujo (+0x80 en 0,
-    // prendido) va en la columna 3 + cx + 1 de un bitmap de ftol(3 + cx): al final del texto queda recortado (el editor
-    // XP de Ui::OldDraw::DrawTheOldEdit).
+    // 0x468320, after "nombre" (4): the EDIT's box on +0xa0's background (0), as high as the EDIT (0xe), and the text
+    // (6). Each WM_CHAR of "Ceibo" sets +0x80 to 0 (the subclass, 0x467b9d), and the second draw's cursor (+0x80 at 0,
+    // on) goes at column 3 + cx + 1 of a bitmap of ftol(3 + cx): at the end of the text it is clipped (the XP edit of
+    // Ui::OldDraw::DrawTheOldEdit).
     constexpr float Tolerance = 1e-3f;
     EXPECT_EQ(quads[4].slot, Marker);
     EXPECT_EQ(quads[5].slot, NoTexture);
@@ -543,7 +544,7 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_NEAR(quads[5].third.y, 480.0f - 0x3c - 0xe, Tolerance);
     EXPECT_EQ(quads[6].slot, Marker);
     EXPECT_EQ(Input().dialogEdit.draws, 1);
-    // La grilla empieza en el 7: su marco y el cuadrado del 0 (el 9 es el 4).
+    // The grid starts at 7: its frame and color 0's square (cell 9 is color 4).
     ExpectQuadAt(quads[7], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
     ExpectQuadAt(quads[8], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);
     ExpectQuadAt(quads[7 + 2 * 9 + 1], SwatchSlot(4), Left + 51.0f + 15.0f, 101.0f + 15.0f, 13.0f, 13.0f);
@@ -568,7 +569,7 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_EQ(texts[4].y, 0xf5);
     EXPECT_EQ(texts[5].text, "Vuelve");
     EXPECT_EQ(texts[6].text, "Sigue");
-    // 0x5f1bb0 con el 0: negro con las diagonales grises.
+    // 0x5f1bb0 with 0: black with the gray diagonals.
     const auto black = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(SwatchSlot(0))});
     ASSERT_TRUE(black.has_value());
     EXPECT_EQ(black->texture.pixels[0], 0x80);
@@ -578,8 +579,8 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_EQ(black->texture.pixels[4 * 4 + 3], 0xff);
 }
 
-// 0x654f80: Próximo con un nombre filtrado (0x72), un byte malo (0x7a), corto (0x79) o la marca vacía (0x7e) avisa y se
-// queda; el EDIT queda vacío y oculto igual.
+// 0x654f80: Next with a filtered name (0x72), a bad byte (0x7a), a short one (0x79) or the empty mark (0x7e) gives
+// the notice and stays; the EDIT is emptied and hidden anyway.
 TEST_P(SecondGuildWindowTest, TheNameChecksOpenTheirNotices)
 {
     OpenIt();
@@ -605,7 +606,7 @@ TEST_P(SecondGuildWindowTest, TheNameChecksOpenTheirNotices)
     }
 }
 
-// 0x654f80, Regreso: el héroe sin gremio, el buffer del mensaje y su largo en 0 y la pregunta.
+// 0x654f80, Back: the hero without a guild, the message buffer and its length at 0 and the question.
 TEST_P(SecondGuildWindowTest, BackFromTheNameReturnsToTheQuestion)
 {
     OpenIt();
@@ -624,8 +625,8 @@ TEST_P(SecondGuildWindowTest, BackFromTheNameReturnsToTheQuestion)
     EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow);
 }
 
-// 0x655c10 (la marca sola, Q-C1288): Próximo con la marca vacía avisa 0x7e; con color, la confirmación; en la
-// confirmación, Próximo manda solo los dos 54 00.
+// 0x655c10 (the mark alone, Q-C1288): Next with the empty mark gives notice 0x7e; with a color, the confirmation; on
+// the confirmation, Next sends only the two 54 00.
 TEST_P(SecondGuildWindowTest, TheMarkOnlyPagesSendNoCreate)
 {
     OpenIt();
@@ -650,8 +651,8 @@ TEST_P(SecondGuildWindowTest, TheMarkOnlyPagesSendNoCreate)
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
 }
 
-// 0x655ac0: el marco del nombre (0x117 arriba y abajo, 0x104 a los costados), "nombre : <nombre>" centrado en 140 en
-// (x + 0x19, y + 0x47), el marco de 53 y la marca nueva de 48 en (x + 0x48, y + 0x6b).
+// 0x655ac0: the name frame (0x117 above and below, 0x104 on the sides), "nombre : <name>" centered in 140 at
+// (x + 0x19, y + 0x47), the 53 frame and the new 48 mark at (x + 0x48, y + 0x6b).
 TEST_P(SecondGuildWindowTest, TheConfirmationDrawsTheNameAndTheMark)
 {
     Guild().createKind = 1;
@@ -679,7 +680,7 @@ TEST_P(SecondGuildWindowTest, TheConfirmationDrawsTheNameAndTheMark)
     EXPECT_EQ(texts[1].style.colors.background, 0u);
 }
 
-// Sin la tabla de las marcas, la página del nombre corta; sin Text.bmd, el título.
+// Without the marks table, the name page stops; without Text.bmd, the title.
 TEST_P(SecondGuildWindowTest, WithoutTheMarksOrTheTextsTheDrawIsCut)
 {
     Guild().createStep = 1;
@@ -698,25 +699,24 @@ TEST_P(SecondGuildWindowTest, WithoutTheMarksOrTheTextsTheDrawIsCut)
     EXPECT_FALSE(Client::Guild::DrawTheSecondGuildWindow(context).HasValue());
 }
 
-// El alta de punta a punta: el 54 abre la ventana; Crear manda 54 01; el nombre tecleado (el Enter no lo toma el
-// chat: 0x4b5115), la marca pintada con dos colores, Próximo a la confirmación y Próximo otra vez: C1 2C 55 00, el
-// nombre en 8 bytes y los 64 nibbles de a dos (el par primero arriba), después 54 00 y el 54 00 de 0x6570b0. La
-// ventana queda cerrada, el campo del alta apagado, y el 56 con 1 vacía el buffer del mensaje.
+// The creation end to end: the 54 opens the window; Create sends 54 01; the typed name (the chat does not take the
+// Enter: 0x4b5115), the mark painted with two colors, Next to the confirmation and Next again: C1 2C 55 00, the name
+// in 8 bytes and the 64 nibbles two by two (the first of the pair high), then 54 00 and 0x6570b0's 54 00. The window
+// is left closed, the creation field off, and the 56 with 1 empties the message buffer.
 TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
 {
     Client::Guild::GuildReceiveContext receive{
         .world = *m_world, .random = m_random, .measure = &m_text, .texts = &m_texts, .now = Now, .send = Sender()};
     ASSERT_TRUE(Client::Guild::ApplyGuildPacket(Client::Protocol::Guild::MasterQuestion{}, receive).HasValue());
     ASSERT_EQ(Runtime().panels.delegated.secondGuild, 1);
-    // El primer cuadro: el paso con los botones sin ubicar y el dibujo que los ubica.
+    // The first frame: the step with the buttons not yet placed and the draw that places them.
     Frame();
     Click(Client::Guild::SecondGuildCreateButton);
     ASSERT_EQ(Guild().createStep, 1);
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
 
-    // Los cuadros de la página del nombre: el EDIT cuenta sus dibujos (0x468320) y el WM_CHAR los vuelve a 0
-    // (0x467b9d).
+    // The name page's frames: the EDIT counts its draws (0x468320) and the WM_CHAR resets them to 0 (0x467b9d).
     Frame();
     Frame();
     EXPECT_GE(Input().dialogEdit.draws, 2);

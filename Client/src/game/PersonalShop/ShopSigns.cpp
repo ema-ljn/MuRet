@@ -39,42 +39,42 @@ namespace
 {
 using Render::Text::FontKind;
 
-// 0x452f8f: con más de 20 bytes, el título va en dos líneas.
+// 0x452f8f: with more than 20 bytes, the title goes in two lines.
 constexpr std::size_t OneLineBytes = 0x14;
-// 0x451916 y 0x45196b: con más de 14 bytes, el título corto es de 12 (o 13) y "..".
+// 0x451916 and 0x45196b: with more than 14 bytes, the short title is 12 (or 13) and "..".
 constexpr std::size_t ShortTitleBytes = 0xe;
 constexpr std::size_t ShortTitleCut = 0xc;
 // 0x6c7970.
 constexpr std::string_view ShortTitleTail = "..";
-// Un byte de 0x80 o más empieza una letra de dos bytes (TEST 0x80).
+// A byte of 0x80 or more starts a two-byte letter (TEST 0x80).
 constexpr unsigned char DoubleByteFlag = 0x80;
-// 0x452131: 60 (0x6b86cc) sobre el techo del dueño, como el globo.
+// 0x452131: 60 (0x6b86cc) above the owner's top, like the bubble.
 constexpr double AboveTheTop = 60.0;
 constexpr std::int32_t DesignWidth = 640;
 constexpr std::int32_t DesignHeight = 480;
-// 0x452191..0x4521a3: lea esi·9 y shl 2, 36 filas de 480 más arriba.
+// 0x452191..0x4521a3: lea esi·9 and shl 2, 36 rows of 480 higher.
 constexpr std::int32_t RaisedRows = 36;
-// 0x451f5f: contra el borde derecho, 4 más adentro.
+// 0x451f5f: against the right edge, 4 further in.
 constexpr std::int32_t RightMargin = 4;
-// 0x452eee..0x452ef4: lea esi·3, shl 4 y sub esi, H · 47 / 480 para la barra.
+// 0x452eee..0x452ef4: lea esi·3, shl 4 and sub esi, H · 47 / 480 for the bar.
 constexpr std::int32_t BarRows = 47;
-// 0x452b12: la caja de los renglones mide el ancho del cartel más 4.
+// 0x452b12: the rows' box measures the sign's width plus 4.
 constexpr std::int32_t BoxMargin = 4;
-// 0x451c41..0x451c50: +0x10 cuenta de 0 a 7; 0x451c71, el elegido parpadea con 0, 1 y 2.
+// 0x451c41..0x451c50: +0x10 counts from 0 to 7; 0x451c71, the chosen one blinks with 0, 1 and 2.
 constexpr std::int32_t LastBlinkStep = 6;
 constexpr std::int32_t BlinkShown = 3;
-// 0x451c6c: 0x6c8e30, el elegido; en MuRet, el lugar 2 de WorldRuntime::selectedTargets.
+// 0x451c6c: 0x6c8e30, the chosen one; in MuRet, slot 2 of WorldRuntime::selectedTargets.
 constexpr std::size_t ChosenTarget = 2;
-// 0x451c90: el comando 2 de la ventana de los comandos (+0x20 de [0x6e592c]), la tienda.
+// 0x451c90: command 2 of the commands window (+0x20 of [0x6e592c]), the shop.
 constexpr std::int32_t ShopCommand = 2;
-// 0x452a90..0x452afa: el PK de los colores.
+// 0x452a90..0x452afa: the colors' PK values.
 constexpr std::uint8_t PkFour = 4;
 constexpr std::uint8_t PkFive = 5;
 constexpr std::uint8_t PkSix = 6;
-// 0x451afc y 0x451b00: +0x370 en 2 u 8 va como el PK 6.
+// 0x451afc and 0x451b00: +0x370 at 2 or 8 counts as PK 6.
 constexpr std::uint8_t RelationTwo = 2;
 constexpr std::uint8_t RelationEight = 8;
-// 0x452c0d: las líneas del título, en blanco sobre este fondo.
+// 0x452c0d: the title's lines, in white on this background.
 constexpr std::uint32_t LineText = 0xffffffffu;
 constexpr std::uint32_t LineBackground = 0xc829396cu;
 
@@ -98,7 +98,7 @@ std::int32_t Subtract(std::int32_t a, std::int32_t b)
     return Wrapped(Bits(a) - Bits(b));
 }
 
-// IMUL en 32 bits y la división con signo por la constante (el mul por el número mágico, que trunca hacia el 0).
+// 32-bit IMUL and the signed division by the constant (the mul by the magic number, which truncates toward 0).
 std::int32_t Scaled(std::int32_t value, std::int32_t factor, std::int32_t divisor)
 {
     return Wrapped(Bits(value) * Bits(factor)) / divisor;
@@ -109,8 +109,8 @@ bool HighByte(char letter)
     return (static_cast<unsigned char>(letter) & DoubleByteFlag) != 0;
 }
 
-// El primer corte desde `from` que no parte una letra de dos bytes. Pasado el final, operator[] da el "" de 0x6b85ec
-// (0x45195b), que cuenta 1.
+// The first cut from `from` that does not split a two-byte letter. Past the end, operator[] gives the "" of 0x6b85ec
+// (0x45195b), which counts 1.
 std::size_t CutAfter(std::string_view text, std::size_t from)
 {
     std::size_t at = 0;
@@ -124,16 +124,17 @@ std::int32_t Width(const Render::Text::ITextMeasure& measure, FontKind font, std
     return measure.Measure(font, text).width;
 }
 
-// Lo que el dibujo escribe del mapa: el vivo o, en un dibujo intermedio, una copia.
+// What the draw writes of the map: the live one or, in an intermediate draw, a copy.
 struct SignState
 {
     std::map<std::size_t, Social::ShopTitle>& titles;
     std::int32_t& blink;
 };
 
-// 0x452d50 y 0x452e50 de un renglón: la caja con el texto en (0, 0), sin columnas de adelante, en el quad corrido por
-// ShopSignRowAt. 0x452d50 pinta la caja del ancho del cartel más 4 (0x452b12) y el quad muestra sus primeras `width`
-// columnas; MuRet pinta solo esas, que son las que se ven (las otras, del mismo color en cada columna, quedan fuera).
+// 0x452d50 and 0x452e50 for one row: the box with the text at (0, 0), without leading columns, in the quad shifted by
+// ShopSignRowAt. 0x452d50 paints the box of the sign's width plus 4 (0x452b12) and the quad shows its first `width`
+// columns; MuRet paints only those, which are the visible ones (the others, of the same color in each column, stay
+// outside).
 void DrawTheRow(ShopSignDrawContext& context, Ui::Point at, std::int32_t width, int rows, std::string_view text,
                 const Render::Text::TextStyle& style, Core::PixelSize screen)
 {
@@ -144,24 +145,24 @@ void DrawTheRow(ShopSignDrawContext& context, Ui::Point at, std::int32_t width, 
     context.dcFont = style.font;
 }
 
-// 0x452a10(PK), con el cartel en su lugar.
+// 0x452a10(PK), with the sign in its place.
 void DrawTheSign(ShopSignDrawContext& context, const Social::ShopTitle& sign, const ShopSignLayout& layout,
                  Ui::Point at, std::uint8_t pk, std::string_view header, int rows, Core::PixelSize screen)
 {
     const ShopSignColors colors = ShopSignColorsOf(pk, sign.hovered != 0);
     const std::int32_t box = Add(layout.width, BoxMargin);
-    // 0x452b28..0x452bb7: el texto 1104 en negrita, de su ancho (+0x58).
+    // 0x452b28..0x452bb7: text 1104 in bold, of its width (+0x58).
     DrawTheRow(context, at, layout.header, rows, header,
                Render::Text::TextStyle{.font = FontKind::Bold,
                                        .colors = {.text = colors.header, .background = colors.background}},
                screen);
-    // 0x452bbc..0x452bfc: el nombre en negrita, a su derecha, con lo que queda de la caja.
+    // 0x452bbc..0x452bfc: the name in bold, to its right, with what is left of the box.
     DrawTheRow(context, Ui::Point{.x = Add(at.x, layout.header), .y = at.y}, Subtract(box, layout.header), rows,
                sign.name,
                Render::Text::TextStyle{.font = FontKind::Bold,
                                        .colors = {.text = colors.name, .background = colors.background}},
                screen);
-    // 0x452c01..0x452cbb: con la segunda línea, las dos; si no, la primera si tiene; en la normal.
+    // 0x452c01..0x452cbb: with the second line, both; otherwise, the first if there is one; in the normal font.
     const Render::Text::TextStyle lineStyle{.font = FontKind::Normal,
                                             .colors = {.text = LineText, .background = LineBackground}};
     if (!layout.lines.second.empty())
@@ -191,20 +192,20 @@ Core::Expected<std::string_view, std::string> ShopSignHeader(const Tables::TextT
 
 ShopTitleLines SplitTheShopTitle(std::string_view title)
 {
-    // 0x453142..0x45319b: el título entero y la segunda línea en "" (0x6e57a4).
+    // 0x453142..0x45319b: the whole title and the second line at "" (0x6e57a4).
     if (title.size() <= OneLineBytes)
         return ShopTitleLines{.first = std::string(title), .second = {}};
-    // 0x452f98..0x452fc3: desde la mitad; 0x452fc6..0x45307a, la primera hasta el corte; 0x45307e.., el resto.
+    // 0x452f98..0x452fc3: from the middle; 0x452fc6..0x45307a, the first up to the cut; 0x45307e.., the rest.
     const std::size_t cut = std::min(CutAfter(title, title.size() >> 1), title.size());
     return ShopTitleLines{.first = std::string(title.substr(0, cut)), .second = std::string(title.substr(cut))};
 }
 
 std::string ShortShopTitle(std::string_view title)
 {
-    // 0x451a8c..0x451a9c: con 14 bytes o menos, entero (0x4532f0).
+    // 0x451a8c..0x451a9c: with 14 bytes or fewer, whole (0x4532f0).
     if (title.size() <= ShortTitleBytes)
         return std::string(title);
-    // 0x451924..0x45196e: hasta 12 o más, de a una letra; 0x451970..0x451a85, ese pedazo y "..".
+    // 0x451924..0x45196e: up to 12 or more, one letter at a time; 0x451970..0x451a85, that piece and "..".
     const std::size_t cut = std::min(CutAfter(title, ShortTitleCut), title.size());
     std::string shortTitle(title.substr(0, cut));
     shortTitle += ShortTitleTail;
@@ -213,7 +214,7 @@ std::string ShortShopTitle(std::string_view title)
 
 std::string ShortShopTitle(const Social::PersonalShopState& shops, std::size_t index)
 {
-    // 0x4518d8..0x4518e5: 0x453b60 busca el personaje; sin él, la salida no cambia.
+    // 0x4518d8..0x4518e5: 0x453b60 looks for the character; without it, the output does not change.
     const auto found = shops.titles.find(index);
     if (found == shops.titles.end())
         return {};
@@ -224,29 +225,29 @@ ShopSignLayout MeasureTheShopSign(const Social::ShopTitle& sign, std::string_vie
                                   const Render::Text::ITextMeasure& measure, int fontStep)
 {
     ShopSignLayout layout;
-    // 0x452760..0x452793: el texto 1104 con la negrita.
+    // 0x452760..0x452793: text 1104 in bold.
     layout.header = Width(measure, FontKind::Bold, header);
-    // 0x4527a7: las dos líneas.
+    // 0x4527a7: the two lines.
     layout.lines = SplitTheShopTitle(sign.title);
-    // 0x4531b6..0x453245: el nombre con la negrita y las dos líneas con la normal.
+    // 0x4531b6..0x453245: the name in bold and the two lines in the normal font.
     const std::int32_t name = Add(layout.header, Width(measure, FontKind::Bold, sign.name));
     const std::int32_t first = Width(measure, FontKind::Normal, layout.lines.first);
     const std::int32_t second = Width(measure, FontKind::Normal, layout.lines.second);
     if (!layout.lines.second.empty())
     {
-        // 0x45324e..0x453287: el mayor, en tres renglones.
+        // 0x45324e..0x453287: the largest, in three rows.
         layout.width = std::max(name, std::max(first, second));
         layout.height = Wrapped(Bits(3) * Bits(fontStep));
     }
     else if (!layout.lines.first.empty())
     {
-        // 0x453295..0x4532b8: en dos.
+        // 0x453295..0x4532b8: in two.
         layout.width = std::max(name, first);
         layout.height = Wrapped(Bits(2) * Bits(fontStep));
     }
     else
     {
-        // 0x4532c2..0x4532da: el nombre solo.
+        // 0x4532c2..0x4532da: the name alone.
         layout.width = name;
         layout.height = fontStep;
     }
@@ -257,16 +258,16 @@ Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjec
                                                         const Kernel::ActorState& owner, std::int32_t width,
                                                         Core::PixelSize screen)
 {
-    // 0x45211c..0x452143: FLD, FADD y FADD en la x87, y FSTP en float.
+    // 0x45211c..0x452143: FLD, FADD and FADD in the x87, and FSTP to float.
     const glm::vec3 above{
         owner.position.x, owner.position.y,
         static_cast<float>(static_cast<double>(owner.boundsTop) + static_cast<double>(owner.position.z) + AboveTheTop)};
     const auto projected = Scenes::ProjectGamePoint(projection, above);
     if (!projected.HasValue())
         return Core::Unexpected(projected.Error());
-    // 0x45214b..0x45217f: x · W / 640 menos la mitad del ancho (cdq, sub y sar, hacia el 0).
+    // 0x45214b..0x45217f: x · W / 640 minus half the width (cdq, sub and sar, toward 0).
     const std::int32_t x = Subtract(Scaled(screen.width, projected.Value().x, DesignWidth), width / 2);
-    // 0x452181..0x4521b8: y · H / 480 menos 36 · H / 480.
+    // 0x452181..0x4521b8: y · H / 480 minus 36 · H / 480.
     const std::int32_t y = Subtract(Scaled(screen.height, projected.Value().y, DesignHeight),
                                     Scaled(screen.height, RaisedRows, DesignHeight));
     return Ui::Point{.x = x, .y = y};
@@ -274,7 +275,7 @@ Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjec
 
 void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen)
 {
-    // 0x451e5e..0x451f13: cada par (a, b) distinto, con el rectángulo de a vuelto a leer después de moverlo.
+    // 0x451e5e..0x451f13: each distinct pair (a, b), with a's rectangle read again after moving it.
     for (std::size_t a = 0; a < signs.size(); ++a)
     {
         for (std::size_t b = 0; b < signs.size(); ++b)
@@ -289,12 +290,12 @@ void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen)
             const std::int32_t otherBottom = Add(other.y, other.height);
             if (movedRight <= other.x || moved.x >= otherRight || movedBottom <= other.y || moved.y >= otherBottom)
                 continue;
-            // 0x451eb7..0x451ed8: la mitad del otro con cdq, sub y sar; arriba, y − abajo + arriba del otro.
+            // 0x451eb7..0x451ed8: the other's middle with cdq, sub and sar; up, y − bottom + the other's top.
             const std::int32_t middle = Add(otherBottom, other.y) / 2;
             moved.y = movedBottom < middle ? Add(Subtract(moved.y, movedBottom), other.y) : otherBottom;
         }
     }
-    // 0x451f1a..0x451fce: contra los bordes, con las comparaciones sin signo.
+    // 0x451f1a..0x451fce: against the edges, with unsigned comparisons.
     for (ShopSignBox& sign : signs)
     {
         if (sign.x < 0)
@@ -317,7 +318,7 @@ Ui::Point ShopSignRowAt(Ui::Point at, std::int32_t width, std::int32_t rows, Cor
         at.x = 0;
     if (Bits(Add(width, at.x)) > Bits(screen.width))
         at.x = Subtract(screen.width, width);
-    // 0x452eda..0x452f12: el tope es la línea de la barra, y la y queda en ella.
+    // 0x452eda..0x452f12: the cap is the bar's line, and y stays on it.
     if (at.y < 0)
         at.y = 0;
     const std::int32_t limit = Subtract(screen.height, Scaled(screen.height, BarRows, DesignHeight));
@@ -328,7 +329,7 @@ Ui::Point ShopSignRowAt(Ui::Point at, std::int32_t width, std::int32_t rows, Cor
 
 ShopSignColors ShopSignColorsOf(std::uint8_t pk, bool hovered)
 {
-    // 0x452a2f..0x452a8a: neg, sbb, and y add con +0x60.
+    // 0x452a2f..0x452a8a: neg, sbb, and, add with +0x60.
     const std::uint32_t background = hovered ? 0x800096fau : 0x8029396cu;
     ShopSignColors colors{.name = hovered ? 0xffffe6e6u : 0xff00e6e6u,
                           .header = hovered ? 0xff29396cu : 0xff0096fau,
@@ -348,7 +349,7 @@ ShopSignColors ShopSignColorsOf(std::uint8_t pk, bool hovered)
     default:
         return colors;
     }
-    // 0x452a9b..0x452b02: los dos textos del mismo color y el fondo de los tres casos.
+    // 0x452a9b..0x452b02: both texts in the same color and the background of the three cases.
     return ShopSignColors{.name = text, .header = text, .background = hovered ? 0x80527ab6u : 0x8029396cu};
 }
 
@@ -360,7 +361,7 @@ ShopSignColors ShopBubbleColorsOf(const Kernel::ActorState& owner, bool hovered)
 
 bool ShopSignHovered(const Social::PersonalShopState& shops, std::size_t index)
 {
-    // 0x4517cd..0x451806: lower_bound del personaje; con el suyo, +0x60.
+    // 0x4517cd..0x451806: lower_bound of the character; with its own, +0x60.
     const auto found = shops.titles.find(index);
     return found != shops.titles.end() && found->second.hovered != 0;
 }
@@ -369,10 +370,10 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::PersonalShopState& shops = runtime.social.personalShop;
-    // 0x451c27..0x451c2c: el mapa vacío.
+    // 0x451c27..0x451c2c
     if (shops.titles.empty())
         return {};
-    // Un dibujo intermedio escribe +0x10, los +0x60 y los lugares en una copia.
+    // An intermediate draw writes +0x10, the +0x60 and the positions to a copy.
     std::optional<std::map<std::size_t, Social::ShopTitle>> scratchTitles;
     std::int32_t scratchBlink = shops.signBlink;
     if (context.projecting)
@@ -380,7 +381,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
     SignState state{.titles = scratchTitles ? *scratchTitles : shops.titles,
                     .blink = context.projecting ? scratchBlink : shops.signBlink};
 
-    // 0x451d6a: 0x5bb8d0, el ancho del mundo, con sus rand(); el rectángulo es el del pase del mundo.
+    // 0x451d6a: 0x5bb8d0, the world's width, with its rand(); the rectangle is the world pass's.
     static_cast<void>(context.panels.WorldWidth());
     const Core::PixelSize screen = context.sprites.Screen();
     const int rows = Render::Text::FontStepFor(screen.width);
@@ -389,7 +390,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
         return Core::Unexpected(header.Error());
     const std::span<const Kernel::ActorState, Kernel::ActorPoolSize> actors = context.world.Actors();
 
-    // 0x451daf..0x451e23: el lugar de cada uno (0x452110), en el orden del mapa.
+    // 0x451daf..0x451e23: each one's position (0x452110), in the map's order.
     std::vector<ShopSignLayout> layouts;
     std::vector<ShopSignBox> boxes;
     layouts.reserve(state.titles.size());
@@ -417,7 +418,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
     std::size_t at = 0;
     for (auto& [index, sign] : state.titles)
     {
-        // 0x451de3 y 0x451e40: el lugar de cada uno, ya repartido y contra los bordes, queda en +0x48 y +0x4c
+        // 0x451de3 and 0x451e40: each one's position, already spread and against the edges, stays in +0x48 and +0x4c
         // (0x4527d0).
         sign.x = boxes[at].x;
         sign.y = boxes[at].y;
@@ -432,7 +433,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
         {
             sign.hovered = 0;
         }
-        // 0x451cc5..0x451cec: a la vista y con los carteles prendidos.
+        // 0x451cc5..0x451cec: in view and with the signs on.
         if (sign.visible && shops.signsShown != 0)
         {
             const ShopSignBox& box = boxes[at];

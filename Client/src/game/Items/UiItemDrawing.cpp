@@ -46,9 +46,8 @@ float Bits(std::uint32_t bits)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x5e1480: el punto de la caja.
+// 0x5e1480: the box's point.
 
-// Los factores de la tabla, con sus direcciones.
 constexpr float F40 = 0.4f;   // 0x6b87b4
 constexpr float F45 = 0.45f;  // 0x6ba224
 constexpr float F50 = 0.5f;   // 0x6b882c
@@ -64,7 +63,7 @@ constexpr float F95 = 0.95f;  // 0x6ba30c
 constexpr float F105 = 1.05f; // 0x6ba3d4
 constexpr float F110 = 1.1f;  // 0x6b8830
 
-// x + w · x e y + h · y; con `plusHeight` (0x5e1d44), y + h sin producto.
+// x + w · x and y + h · y; with `plusHeight` (0x5e1d44), y + h with no product.
 struct AnchorFactors
 {
     float x = 0.0f;
@@ -72,7 +71,7 @@ struct AnchorFactors
     bool plusHeight = false;
 };
 
-// La tabla de 0x5e14ef..0x5e1d4f en su orden. Sin valor, la esquina de la caja.
+// The table of 0x5e14ef..0x5e1d4f in its order. Without a value, the box's corner.
 std::optional<AnchorFactors> AnchorFactorsOf(std::int32_t type, std::uint32_t level)
 {
     const std::int32_t step = static_cast<std::int32_t>(level) >> 3;
@@ -110,7 +109,7 @@ std::optional<AnchorFactors> AnchorFactorsOf(std::int32_t type, std::uint32_t le
             return AnchorFactors{F50, F105};
         if (type == 0x1003 || type == 0x1008)
             return AnchorFactors{F50, F110};
-        // El 0x1011, el 0x1012 y el 0x1014 saltan al 0,8 de 0x5e1c00: el mismo que los demás.
+        // 0x1011, 0x1012 and 0x1014 jump to 0x5e1c00's 0.8: the same as the others.
         return AnchorFactors{F50, F80};
     }
     if (type >= 0x1200 && type < 0x1800)
@@ -222,14 +221,14 @@ std::optional<AnchorFactors> AnchorFactorsOf(std::int32_t type, std::uint32_t le
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x5e0720: los ángulos, los corrimientos y la escala.
+// 0x5e0720: the angles, the shifts and the scale.
 
 constexpr std::uint16_t PlayerModel = Tables::PlayerSkeletonModel;
 constexpr std::int32_t FirstArmor = 0x1012;
 constexpr std::int32_t EndArmor = 0x1a12;
 constexpr std::int32_t Zen = 0x1e1e;
 
-// Los corrimientos del punto: cada uno, fld, fadd o fsub de un float y fstp.
+// The point's shifts: each one fld, fadd or fsub of a float and fstp.
 constexpr float Shift001 = 0.01f;   // 0x6b88d4
 constexpr float Shift002 = 0.02f;   // 0x6b8b90
 constexpr float Shift0025 = 0.025f; // 0x6b8bd0
@@ -240,7 +239,7 @@ constexpr float Shift006 = 0.06f;   // 0x6ba230
 constexpr float Shift007 = 0.07f;   // 0x6ba190
 constexpr float Shift01 = 0.1f;     // 0x6b87b8
 constexpr float Shift012 = 0.12f;   // 0x6ba1d8
-// 0x6ba618: el del 0x620 es un double (fsub qword).
+// 0x6ba618: 0x620's is a double (fsub qword).
 constexpr double Shift001Double = 0.01;
 
 void Add(float& value, float shift)
@@ -253,7 +252,7 @@ void Subtract(float& value, float shift)
     value = F32(static_cast<double>(value) - static_cast<double>(shift));
 }
 
-// 0x5e078e..0x5e0dd6: los ángulos y los corrimientos de la tabla, en su orden.
+// 0x5e078e..0x5e0dd6: the table's angles and shifts, in its order.
 Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t step, const Tables::ItemTable* items,
                                             glm::vec3& position, glm::vec3& angles)
 {
@@ -309,7 +308,7 @@ Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t ste
         set(180.0f, 270.0f, 20.0f);
     else if (model >= 0x212 && model < 0xe12)
     {
-        // 0x5e09bd: el byte +0x1e del registro de Item.bmd del tipo (las dos manos): 15 en 0, 25 si no.
+        // 0x5e09bd: the byte +0x1e of the type's Item.bmd record (two hands): 15 at 0, 25 otherwise.
         const auto type = static_cast<std::size_t>(model - 0x212);
         if (items == nullptr)
             return Core::Unexpected(std::string("0x5e09bd: sin Item.bmd"));
@@ -376,7 +375,7 @@ Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t ste
         set(360.0f, 0.0f, 0.0f);
     else if (model == Zen)
     {
-        // 0x5e0cd9: con otro paso, sin tocarlos (Q-C478).
+        // 0x5e0cd9: with another step, without touching them (Q-C478).
         if (step == 0)
             set(180.0f, 0.0f, 0.0f);
         else if (step == 1)
@@ -393,8 +392,8 @@ Core::Expected<void, std::string> SetAngles(std::int32_t model, std::int32_t ste
     return {};
 }
 
-// 0x5e0ef8..0x5e13be: la escala por el que dibuja, con los bits del binario; el 0x225, el 0xc1c y el 0xa24 con un
-// nivel negativo dejan el nivel en 0, y el 0x1e32 al 0x1e34 corren la y y apagan dos ángulos.
+// 0x5e0ef8..0x5e13be: the scale by the drawing model, with the binary's bits; 0x225, 0xc1c and 0xa24 with a negative
+// level leave the level at 0, and 0x1e32 to 0x1e34 shift the y and turn off two angles.
 float ScaleOf(std::int32_t model, std::int32_t& level, glm::vec3& position, glm::vec3& angles)
 {
     if (model >= FirstArmor && model < EndArmor)
@@ -609,7 +608,7 @@ bool UiItemHovered(const UiItemBox& box, Ui::Point mouse, std::int32_t cursorIte
 {
     if (cursorItemCount != 0 && !always)
         return false;
-    // fild del mouse, y la suma de la caja en la x87.
+    // fild of the mouse, and the box's sum on the x87.
     const auto x = static_cast<double>(mouse.x);
     const auto y = static_cast<double>(mouse.y);
     return static_cast<double>(box.x) <= x && x < static_cast<double>(box.x) + static_cast<double>(box.width) &&
@@ -640,10 +639,10 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
     UiItemPlacement placement;
     std::int32_t model = call.model;
     placement.level = call.level;
-    // 0x5e073c: sar y and, del nivel que llega.
+    // 0x5e073c: sar and and, of the incoming level.
     const std::int32_t step = (call.level >> 3) & 0xf;
-    // 0x5e072f..0x5e075d: el punto menos la cámara (fsub y fstp), y 0x5fc790: la cámara más 0,07 (siempre) o 0,1 de
-    // eso, en la x87 con el fstp.
+    // 0x5e072f..0x5e075d: the point minus the camera (fsub and fstp), and 0x5fc790: the camera plus 0.07 (always) or
+    // 0.1 of that, on the x87 with the fstp.
     const float toCamera = always ? Bits(0x3d8f5c29u) : Bits(0x3dcccccdu);
     for (int axis = 0; axis < 3; ++axis)
     {
@@ -654,10 +653,10 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
     }
     if (auto set = SetAngles(model, step, items, placement.position, angles); !set.HasValue())
         return Core::Unexpected(set.Error());
-    // 0x5e0de0: bajo el mouse, la y gira con el reloj (0x6ba224, 0,45).
+    // 0x5e0de0: under the mouse, the y turns with the clock (0x6ba224, 0.45).
     if (hovered)
         angles.y = F32(static_cast<double>(worldClock) * static_cast<double>(F45));
-    // 0x5e0df8..0x5e0e4b: el que posa, y el 0x1e1e cambia el que dibuja con el paso 0 o 2.
+    // 0x5e0df8..0x5e0e4b: the posing one, and 0x1e1e changes the drawing one with step 0 or 2.
     std::int32_t poseModel = model;
     if (model >= FirstArmor && model < EndArmor)
         poseModel = PlayerModel;
@@ -676,8 +675,8 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
 
 Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, float farPlane)
 {
-    // 0x5ac15f..0x5ac17f: fild del ancho, fidiv del alto y fstp; 0x6203c0(1, aspecto, 20, 2.000). 0x633110
-    // (0x633199..0x6331d2): lo mismo con [0x6d5d40] y [0x6d5d44].
+    // 0x5ac15f..0x5ac17f: fild of the width, fidiv of the height and fstp; 0x6203c0(1, aspect, 20, 2000). 0x633110
+    // (0x633199..0x6331d2): the same with [0x6d5d40] and [0x6d5d44].
     constexpr float FieldOfView = 1.0f;
     constexpr float NearPlane = 20.0f;
     UiItemPass made;
@@ -706,26 +705,26 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     {
         if (resources.flushSprites)
             resources.flushSprites();
-        // 0x5ac120 no pasa por 0x620db0: el material, la niebla y el modo de la textura siguen como estaban.
+        // 0x5ac120 does not go through 0x620db0: the material, the fog and the texture mode stay as they were.
         resources.batch.Begin(resources.pass.pass, false);
         resources.open = true;
     }
-    // 0x5e13c5: 0x4eb860 con el modelo que posa en el buffer global, la acción (+0xa0 del modelo), el frame y el
-    // anterior en 0, los ángulos de 0x78aadcc, los de la cabeza (0x78aadd8, que nadie escribe) en 0 y sin la escala ni
-    // la posición en la raíz.
+    // 0x5e13c5: 0x4eb860 with the posing model in the global buffer, the action (the model's +0xa0), the frame and the
+    // previous one at 0, the angles of 0x78aadcc, the head's (0x78aadd8, which nobody writes) at 0 and without the
+    // scale or the position at the root.
     Actors::Drawing::DrawnObject object;
     object.model = placement.poseModel;
     object.transform = Models::ObjectTransform{.position = placement.position,
                                                .angles = placement.angles,
                                                .scale = placement.scale,
                                                .lockedRootHeight = placement.rootHeight};
-    // Sin el skin de la pose: lo hace 0x4ebc80 con el modelo que dibuja.
+    // Without the pose's skin: 0x4ebc80 does it with the drawing model.
     object.alpha = 0.0f;
     if (auto posed = Actors::Drawing::PublishFloorPose(resources.poseCarry, resources.models, object);
         !posed.HasValue())
         return posed;
-    // 0x5e13f3: 0x607b60 con el que dibuja en +2, con sus rand(); 0x5e1404..0x5e1466: la escala, la posición, la luz
-    // por vértice en 0 y +0x1d4 en 2. El alpha (+0x174) y la luz, en 1.
+    // 0x5e13f3: 0x607b60 with the drawing one at +2, with its rand(); 0x5e1404..0x5e1466: the scale, the position, the
+    // per-vertex light at 0 and +0x1d4 at 2. The alpha (+0x174) and the light, at 1.
     Models::ObjectRandoms randoms{};
     for (std::size_t index = 0; index < Actors::Drawing::HangingRandomCount(placement.model); ++index)
         randoms[index] = random.Next();
@@ -734,21 +733,21 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     object.color = glm::vec3(1.0f);
     object.alpha = 1.0f;
     object.vertexLight = false;
-    // 0x60cf70: 0x4ebc80 sobre el buffer global y 0x60b3d0, sin dueño (los efectos de 0x60cf70 no corren).
+    // 0x60cf70: 0x4ebc80 on the global buffer and 0x60b3d0, with no owner (0x60cf70's effects do not run).
     if (auto skinned = Actors::Drawing::TransformPose(resources.poseCarry, resources.models, object);
         !skinned.HasValue())
         return skinned;
     Actors::Drawing::ItemDrawContext context = resources.itemContext;
     Actors::Drawing::ItemSpecialDrawContext special =
         context.special != nullptr ? *context.special : Actors::Drawing::ItemSpecialDrawContext{};
-    // +0xf4..+0xfc del objeto local, que 0x607b60 pone en 0,3.
+    // +0xf4..+0xfc of the local object, which 0x607b60 sets to 0.3.
     glm::vec3 objectLight(0.3f);
     special.objectLight = &objectLight;
     special.publishedObject = &object;
     context.special = &special;
-    // 0x5e13de y 0x5e1443: el objeto local, que 0x60b3d0 da de dueño a las uniones del 0x1a18 (Q-C1821).
+    // 0x5e13de and 0x5e1443: the local object, which 0x60b3d0 gives as owner to the 0x1a18's joints (Q-C1821).
     context.ownerContext = UiItemLocalObject();
-    // 0x60b3d0 desempaca el nivel: (nivel >> 3) & 15.
+    // 0x60b3d0 unpacks the level.
     const auto level = static_cast<std::uint8_t>((placement.level >> 3) & 15);
     return Actors::Drawing::DrawItemFromMeshes(resources.batch, resources.models, object, resources.frameClock,
                                                resources.poseCarry.meshes, level, excellent, set, context);
@@ -765,7 +764,7 @@ void CloseUiItemPass(UiItemResources& resources)
 
 void* UiItemLocalObject()
 {
-    // Una ficha: nadie la lee, solo se compara.
+    // A token: nobody reads it, it is only compared.
     static std::byte localObject{};
     return &localObject;
 }

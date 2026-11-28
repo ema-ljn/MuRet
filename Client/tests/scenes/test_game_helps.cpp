@@ -28,9 +28,9 @@
 #include <string>
 #include <vector>
 
-// Las ayudas de las superposiciones (CL8 hito 6; 06 § HUD y ventanas, "Las ayudas de F1"): los modos 1, 2 y 3 de
-// 0x5b0550, que dibujan con la caja de los tooltips (0x5af090, Tooltips::DrawTheTooltipBox). El texto mide como el
-// rasterizador falso: 6 columnas por letra y 13 filas (también el '\n'). Los textos son inventados.
+// The overlay helps (CL8 milestone 6; 06 § HUD y ventanas, "Las ayudas de F1"): modes 1, 2 and 3 of 0x5b0550, which
+// draw with the tooltip box (0x5af090, Tooltips::DrawTheTooltipBox). The text measures like the fake rasterizer: 6
+// columns per letter and 13 rows (also the '\n'). The texts are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -47,7 +47,7 @@ constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color LightBlue{0.5f, 0.7f, 1.0f, 1.0f};
 
-// Los textos de las dos ayudas: el 125 es el más ancho de la primera (24 letras, 144 columnas).
+// The texts of the two helps: 125 is the widest of the first (24 letters, 144 columns).
 std::map<std::size_t, std::string> HelpTexts()
 {
     std::map<std::size_t, std::string> texts;
@@ -68,7 +68,7 @@ struct DrawnQuad
     SpriteVertex third{};
 };
 
-// Los quads sin textura del lote (los de 0x621aa0), en orden.
+// The batch's untextured quads (those of 0x621aa0), in order.
 std::vector<DrawnQuad> ColorQuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -87,7 +87,7 @@ std::vector<DrawnQuad> ColorQuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// El color de la marca de cada texto, en orden.
+// The color of each text's mark, in order.
 std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
 {
     std::vector<Color> colors;
@@ -152,8 +152,8 @@ protected:
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(HelpTexts());
 };
 
-// 0x5b0559..0x5b069d: los renglones de la primera ayuda ("\n", el título, "\n", los 19 textos y "\n"), 0x78abb30 en
-// 23 y 0x77f3b66.
+// 0x5b0559..0x5b069d: the first help's lines ("\n", the title, "\n", the 19 texts and "\n"), 0x78abb30 at 23 and
+// 0x77f3b66.
 TEST_F(GameHelpsTest, TheFirstHelpFillsTheTooltipLines)
 {
     Mode() = Client::Ui::FirstHelpMode;
@@ -174,10 +174,10 @@ TEST_F(GameHelpsTest, TheFirstHelpFillsTheTooltipLines)
     EXPECT_EQ(Mode(), Client::Ui::FirstHelpMode);
 }
 
-// 0x5af090(1, 1, 23, 0, 2, 1): la caja de 144 + 4 contra el borde izquierdo, de (3 · 13 · 0,5 + 20 · 13) / 0,9090909
-// de alto, con el marco negro y el fondo al 80 %; cada texto centrado en la caja de 146 columnas desde x 1 y bajando
-// 1,1 veces su alto (el '\n', la mitad). El título en negrita y celeste; el resto en blanco. Termina en blanco y sin
-// mezcla.
+// 0x5af090(1, 1, 23, 0, 2, 1): the box of 144 + 4 against the left edge, (3 · 13 · 0.5 + 20 · 13) / 0.9090909 high,
+// with the black frame and the background at 80 %; each text centered in the box of 146 columns from x 1 and moving
+// down 1.1 times its height (the '\n', half). The title in bold and light blue; the rest in white. It ends in white and
+// without blending.
 TEST_F(GameHelpsTest, TheFirstHelpDrawsItsBox)
 {
     Mode() = Client::Ui::FirstHelpMode;
@@ -188,12 +188,12 @@ TEST_F(GameHelpsTest, TheFirstHelpDrawsItsBox)
     for (std::size_t i = 0; i < 4; ++i)
         EXPECT_EQ(quads[i].color, (Color{0.0f, 0.0f, 0.0f, 1.0f})) << i;
     EXPECT_EQ(quads[4].color, (Color{0.0f, 0.0f, 0.0f, 0.8f}));
-    // El fondo: x de 0 a 148 y la y de GL de 480 − 1 a 480 − (1 + 307,45).
+    // The background: x from 0 to 148 and the GL y from 480 − 1 to 480 − (1 + 307.45).
     EXPECT_FLOAT_EQ(quads[4].first.x, 0.0f);
     EXPECT_FLOAT_EQ(quads[4].third.x, 148.0f);
     EXPECT_FLOAT_EQ(quads[4].first.y, 479.0f);
     EXPECT_NEAR(quads[4].third.y, 480.0f - 308.45f, 1e-3f);
-    // El marco de la derecha, en x = −1 + 148 + 1.
+    // The right frame, at x = −1 + 148 + 1.
     EXPECT_FLOAT_EQ(quads[2].first.x, 148.0f);
 
     const auto& texts = m_text.texts;
@@ -223,7 +223,7 @@ TEST_F(GameHelpsTest, TheFirstHelpDrawsItsBox)
     EXPECT_EQ(Hud().dcFont, Client::Render::Text::FontKind::Normal);
 }
 
-// 0x5b06ac..0x5b07ef: la segunda, del 140 al 156.
+// 0x5b06ac..0x5b07ef: the second one, from 140 to 156.
 TEST_F(GameHelpsTest, TheSecondHelpListsItsTexts)
 {
     Mode() = Client::Ui::SecondHelpMode;
@@ -236,7 +236,7 @@ TEST_F(GameHelpsTest, TheSecondHelpListsItsTexts)
     EXPECT_EQ(m_text.texts.size(), 17U);
 }
 
-// Q-C613: un texto de 100 bytes o más no entra en su renglón.
+// Q-C613: a text of 100 bytes or more does not fit in its line.
 TEST_F(GameHelpsTest, ALongTextCuts)
 {
     std::map<std::size_t, std::string> texts = HelpTexts();
@@ -248,7 +248,7 @@ TEST_F(GameHelpsTest, ALongTextCuts)
     EXPECT_NE(drawn.Error().find("Q-C613"), std::string::npos);
 }
 
-// 0x5b089c..0x5b0944: las flechas, los virotes y los que no tienen franja cierran la ayuda del ítem.
+// 0x5b089c..0x5b0944: the arrows, the bolts and the ones without a range close the item help.
 TEST_F(GameHelpsTest, TheItemHelpClosesForArrowsAndUnknownItems)
 {
     for (const std::int32_t item : {0x807, 0x80f, 0x1800, 0x1dff, 0x2000, -1})
@@ -260,14 +260,14 @@ TEST_F(GameHelpsTest, TheItemHelpClosesForArrowsAndUnknownItems)
     }
     EXPECT_EQ(m_sprites.Blend(), BlendMode::Opaque);
     EXPECT_TRUE(m_text.texts.empty());
-    // Un dibujo intermedio no la cierra.
+    // An intermediate drawing does not close it.
     Mode() = Client::Ui::ItemHelpMode;
     ASSERT_TRUE(Overlays(true).HasValue());
     EXPECT_EQ(Mode(), Client::Ui::ItemHelpMode);
 }
 
-// 0x5b097b y 0x5b098f: en 1.600 de ancho, las franjas 1 a 4 dividen por 0; con 640, o con la franja 5 (que no
-// divide), sin Item.bmd corta donde lo lee (la ayuda dibujada está en GameItemHelpTest).
+// 0x5b097b and 0x5b098f: at a width of 1600, ranges 1 to 4 divide by 0; with 640, or with range 5 (which does not
+// divide), without Item.bmd it cuts where it reads it (the drawn help is in GameItemHelpTest).
 TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
 {
     Mode() = Client::Ui::ItemHelpMode;
@@ -287,7 +287,7 @@ TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
     EXPECT_NE(fifth.Error().find("0x5b098f"), std::string::npos);
 }
 
-// 0x5af471 y 0x5af0c5: la caja corta con otro modo de 0x467060 que el 1, el 2 y el 3, y con más renglones que los 30.
+// 0x5af471 and 0x5af0c5: the box cuts with a 0x467060 mode other than 1, 2 and 3, and with more lines than the 30.
 TEST_F(GameHelpsTest, TheBoxCutsWithAnotherModeAndPastItsLines)
 {
     Hud().tooltip.text[0] = "algo";
@@ -302,8 +302,8 @@ TEST_F(GameHelpsTest, TheBoxCutsWithAnotherModeAndPastItsLines)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// 0x5af0c5..0x5af13d con lo que las ayudas no usan: un espacio solo baja un renglón sin dibujarse y, con ancho, la
-// caja mide su doble más 4 y se centra en x.
+// 0x5af0c5..0x5af13d with what the helps do not use: a space only moves down a line without being drawn and, with a
+// width, the box measures its double plus 4 and centers on x.
 TEST_F(GameHelpsTest, ASpaceOnlyMovesDownAndAWidthSetsTheBox)
 {
     Client::Tooltips::TooltipLines& lines = Hud().tooltip;
@@ -317,11 +317,11 @@ TEST_F(GameHelpsTest, ASpaceOnlyMovesDownAndAWidthSetsTheBox)
     ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 320, 50, 4, 50, 2, 0).HasValue());
     ASSERT_EQ(m_text.texts.size(), 1U);
     EXPECT_EQ(m_text.texts[0].text, "dos");
-    // La caja: 2 · 50 + 4 = 104 de ancho desde 320 − 52; el texto en sus 102 columnas desde 269.
+    // The box: 2 · 50 + 4 = 104 wide from 320 − 52; the text in its 102 columns from 269.
     EXPECT_EQ(m_text.texts[0].x, 269);
     EXPECT_EQ(m_text.texts[0].firstColumn, -(102 - 18) / 2);
     EXPECT_EQ(m_text.texts[0].columns, 102);
-    // 50 + 13 · 1,1.
+    // 50 + 13 · 1.1.
     EXPECT_EQ(m_text.texts[0].y, 64);
     EXPECT_TRUE(ColorQuadsOf(m_sprites).empty());
     EXPECT_EQ(TextColorsOf(m_sprites)[0], (Color{0.1f, 1.0f, 0.5f, 1.0f}));

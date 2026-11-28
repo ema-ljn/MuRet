@@ -23,12 +23,12 @@ void ClearForInventoryReply(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     {
-        // 0x4c55c4..0x4c563c lo abre y 0x4c5661..0x4c56a3 lo cierra (0x40b4d0).
+        // 0x4c55c4..0x4c563c opens it and 0x4c5661..0x4c56a3 closes it (0x40b4d0).
         const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
                                            Models::OwnRecordCloseRandoms);
         world.OwnCharacter().ClearEquipmentForInventory();
     }
-    // 0x4c56a8..0x4c56e0, ya con el registro cerrado.
+    // 0x4c56a8..0x4c56e0, with the record already closed.
     world.Inventory().ClearForInventoryReply();
 }
 
@@ -36,10 +36,10 @@ Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol:
                                                                  const Scenes::WorldEntryResources& resources)
 {
     ClearForInventoryReply(resources);
-    // 0x4c5e4f..0x4c5e61: 0x443d40 apaga las entradas vivas de la tabla de 0x7d335d0 cuyo jinete (+0x108) es
-    // el héroe publicado, y 0x421d60 suelta su cuervo (+0x430), que MuRet no tiene en el mundo.
+    // 0x4c5e4f..0x4c5e61: 0x443d40 turns off the live entries of 0x7d335d0's table whose rider (+0x108) is the
+    // published hero, and 0x421d60 releases its raven (+0x430), which MuRet does not have in the world.
     Kernel::TurnOffHelpersOf(resources.world.Helpers(), resources.world.Runtime().hero);
-    // 0x4c5e6c..0x4c5e9f: la cantidad de p+5, releída después de cada 0x5bc740, que no escribe el paquete.
+    // 0x4c5e6c..0x4c5e9f: the count from p+5, read again after each 0x5bc740, which does not write the packet.
     InventoryReplyResult result;
     for (std::size_t index = 0; index < list.items.size(); ++index)
     {

@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <string>
 
-// 0x554d20 y 0x555030 (CL8 hito 3; Q-C453): la lista de los que susurraron. Los nombres son inventados.
+// 0x554d20 and 0x555030 (CL8 milestone 3; Q-C453): the list of those who whispered. The names are invented.
 namespace
 {
 using Client::Chat::ClearTheWhisperSenders;
@@ -25,7 +25,6 @@ TEST(WhisperSendersTest, RemembersEachSenderOnceBelowLevelTen)
     EXPECT_EQ(senders.next, 1);
 }
 
-// Diez lugares: el undécimo vuelve al primero.
 TEST(WhisperSendersTest, TheNextSlotWrapsAfterTen)
 {
     WhisperSenders senders;
@@ -37,8 +36,7 @@ TEST(WhisperSendersTest, TheNextSlotWrapsAfterTen)
     EXPECT_EQ(senders.next, 1);
 }
 
-// strcpy de un nombre de 10 bytes deja su '\0' en el lugar que sigue: los dos se leen seguidos hasta que el de al
-// lado se escribe.
+// strcpy of a 10-byte name leaves its '\0' in the next slot: the two read as one until the neighbor is written.
 TEST(WhisperSendersTest, ATenByteNameRunsIntoTheNextSlot)
 {
     WhisperSenders senders;
@@ -57,7 +55,7 @@ TEST(WhisperSendersTest, ATenByteNameRunsIntoTheNextSlot)
     EXPECT_EQ(WhisperSenderAt(crossed, 0), "zzzzzzzzzzw");
 }
 
-// 0x555030: los 110 bytes en 0, el próximo queda.
+// 0x555030: the 110 bytes at 0, the next one stays.
 TEST(WhisperSendersTest, ClearingKeepsTheNextSlot)
 {
     WhisperSenders senders;

@@ -21,8 +21,8 @@ namespace Client::Items
 {
 namespace
 {
-// Cómo escribe un caso de 0x5b1c70: el nombre del registro ("%s"), un texto de Text.bmd como "%s", un texto con el
-// nombre detrás ("%s %s"), un texto como formato sin argumentos (sprintf(buffer, texto)) o nada.
+// How a case of 0x5b1c70 writes: the record's name ("%s"), a Text.bmd text as "%s", a text with the name after it
+// ("%s %s"), a text as the format with no arguments (sprintf(buffer, text)) or nothing.
 enum class NameKind : std::uint8_t
 {
     None,
@@ -53,7 +53,7 @@ constexpr NameCase TextAsFormat(std::size_t text)
     return NameCase{.kind = NameKind::TextAsFormat, .text = text};
 }
 
-// Los tipos con un nombre por nivel, del nivel 0 en adelante; más allá, nada.
+// The types with one name per level, from level 0 on; past the end, nothing.
 struct LeveledName
 {
     std::uint16_t type = 0;
@@ -64,7 +64,7 @@ constexpr std::array<LeveledName, 9> LeveledNames{{
     // 0x5b1ca1..0x5b1d24.
     {.type = 0x1c17, .levels = {Record, Text(906), Nothing, Nothing, Nothing}},
     {.type = 0x1c18, .levels = {Record, Text(907), Nothing, Nothing, Nothing}},
-    // 0x5b1ebf.. (0x5b22e8): las cajas de la fruta de stats.
+    // 0x5b1ebf.. (0x5b22e8): the stat fruit boxes.
     {.type = 0x1a0f,
      .levels = {TextAndRecord(168), TextAndRecord(169), TextAndRecord(167), TextAndRecord(166), TextAndRecord(1900)}},
     // 0x5b1f5a.
@@ -77,11 +77,11 @@ constexpr std::array<LeveledName, 9> LeveledNames{{
     {.type = 0x1a14, .levels = {Record, Text(922), Text(928), Text(929), Nothing}},
     // 0x5b20ef.
     {.type = 0x1c09, .levels = {Record, Text(108), Nothing, Nothing, Nothing}},
-    // 0x5b1d39..0x5b1da7: el nivel 2 corta (abajo).
+    // 0x5b1d39..0x5b1da7: level 2 stops (below).
     {.type = 0x1c0c, .levels = {Text(100), Text(101), Nothing, Nothing, Nothing}},
 }};
 
-// 0x1c0b, la caja de la suerte, del nivel 0 al 15 (0x5b1da8.., la tabla 0x5b22a8): del 8 al 12, el 115 con nivel − 7.
+// 0x1c0b, the box of luck, from level 0 to 15 (0x5b1da8.., the table 0x5b22a8): from 8 to 12, the 115 with level − 7.
 constexpr std::array<NameCase, 16> BoxOfLuckNames{
     Record,  Text(105), Text(106), Text(107), Nothing, Text(109),         Text(110),          Text(111),
     Nothing, Nothing,   Nothing,   Nothing,   Nothing, TextAsFormat(117), TextAsFormat(1650), TextAsFormat(1651)};
@@ -90,7 +90,7 @@ constexpr std::int32_t LastPlusBox = 12;
 constexpr std::int32_t PlusBoxBase = 7;
 constexpr std::size_t PlusBoxText = 115;
 
-// 0x5b2131: el 0x180b, "%s %s" con los textos 738 y 102.
+// 0x5b2131: "%s %s" with texts 738 and 102.
 constexpr std::uint16_t Type180b = 0x180b;
 constexpr std::size_t Type180bFirst = 738;
 constexpr std::size_t Type180bSecond = 102;
@@ -105,7 +105,7 @@ std::optional<NameCase> FixedCase(std::uint16_t type, std::int32_t level)
             return Nothing;
         return named.levels[static_cast<std::size_t>(level)];
     }
-    // 0x5b1c96..0x5b1d38 y 0x5b205a, 0x5b2155..0x5b21a5: solo el nombre, con cualquier nivel.
+    // 0x5b1c96..0x5b1d38 and 0x5b205a, 0x5b2155..0x5b21a5: only the name, with any level.
     if (type == 0x1c19 || type == 0x1c1a || type == 0x1c20 || type == 0x1c21 || type == 0x1c22)
         return Record;
     if (type == 0x1a13)
@@ -126,16 +126,16 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
         return Core::Unexpected(std::format("0x5b1c70: falta el texto {} de Text.bmd", index));
     return *text;
 }
-// 0x6c9338..0x6c9377 del c32bbd5f: del 0x18 en adelante, los bytes de 0x6c9350.
+// 0x6c9338..0x6c9377 of the c32bbd5f: from 0x18 on, the bytes of 0x6c9350.
 constexpr std::array<std::uint32_t, 16> TransformationMonsters{
     0x2, 0x7, 0xe, 0x8, 0x9, 0x29, 0xf9b5f7c8, 0xb020a9c5, 0x20e2c7ed, 0xe0c7a9bf, 0xc7b1, 0x0, 0x0, 0x0, 0x0, 0x0};
 constexpr std::uint16_t TransformationRing = 0x1a0a;
 constexpr std::size_t TransformationRingText = 103;
 
-// 0x6c9350..0x6c9737 del c32bbd5f: los diez premios del boleto, de a 100 bytes, cada uno hasta su '\0' (EUC-KR). Del 0
-// al 9: 히딩크 고향 여행권, 펜티엄4 컴퓨터, 디지탈카메라, 로지텍 무선 마우스+키보드 세트, 256M 램, 6개월 잡지 구독권,
-// 문화상품권(만원), 뮤 머그컵, 뮤 T셔츠 y 뮤 10시간 무료이용권. Ningún código los escribe: solo los leen 0x5b1d60 y
-// 0x5b3835.
+// 0x6c9350..0x6c9737 of the c32bbd5f: the ticket's ten prizes, 100 bytes each, each up to its '\0' (EUC-KR). From 0
+// to 9: 히딩크 고향 여행권, 펜티엄4 컴퓨터, 디지탈카메라, 로지텍 무선 마우스+키보드 세트, 256M 램, 6개월 잡지 구독권,
+// 문화상품권(만원), 뮤 머그컵, 뮤 T셔츠 and 뮤 10시간 무료이용권. No code writes them: only 0x5b1d60 and 0x5b3835 read
+// them.
 constexpr std::array<std::string_view, 10> EventTicketPrizes{
     "\xc8\xf7\xb5\xf9\xc5\xa9 \xb0\xed\xc7\xe2 \xbf\xa9\xc7\xe0\xb1\xc7",
     "\xc6\xe6\xc6\xbc\xbe\xf6"
@@ -151,10 +151,10 @@ constexpr std::array<std::string_view, 10> EventTicketPrizes{
 };
 constexpr std::uint16_t EventTicket = 0x1c0c;
 constexpr std::int32_t EventTicketTableLevel = 2;
-// Item.bmd+0x2d: el byte que 0x5b1d54 lee del registro.
+// Item.bmd+0x2d: the byte 0x5b1d54 reads from the record.
 constexpr std::size_t EventTicketPrizeOffset = 0x2d;
 
-// 0x5b21b6..0x5b21e9: los registros de 0x7681eb8 con el tipo del monstruo, sin cortar en el primero.
+// 0x5b21b6..0x5b21e9: the records of 0x7681eb8 with the monster's type, without stopping at the first.
 bool HasTheMonster(const Monsters::NpcNameTable& table, std::uint32_t monster)
 {
     return std::ranges::any_of(table, [monster](const Monsters::NpcName& entry)
@@ -172,14 +172,14 @@ TransformationRingName(const Tables::TextTable* texts, const Monsters::NpcNameTa
         return Core::Unexpected(std::format("0x5b21bb: el nivel {} del anillo de transformación lee 0x6c9338 fuera "
                                             "de lo que MuRet tiene de la .data",
                                             level));
-    // Sin ninguno, el buffer queda sin escribir.
+    // With none, the buffer stays unwritten.
     std::string name;
     for (std::size_t index = 0; index < npcNames->size(); ++index)
     {
-        // 0x5b21c2..0x5b21ca: el word del tipo, sin signo, contra el dword del nivel, que se vuelve a leer.
+        // 0x5b21c2..0x5b21ca: the type's word, unsigned, against the level's dword, which is read again.
         if (std::uint32_t{(*npcNames)[index].type} != *monster)
             continue;
-        // 0x5b21cc..0x5b21d8: sprintf(buffer, "%s %s" (0x6c9998), +2 del registro, el 103 (0x76c4a90)).
+        // 0x5b21cc..0x5b21d8: sprintf(buffer, "%s %s" (0x6c9998), the record's +2, the 103 (0x76c4a90)).
         const auto text = TextOf(texts, TransformationRingText);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
@@ -209,7 +209,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* ite
 {
     if (type == TransformationRing)
         return TransformationRingName(texts, npcNames, level);
-    // 0x5b1c76..0x5b1c8d: el registro de Item.bmd (ECX), que leen los casos con el nombre y el boleto.
+    // 0x5b1c76..0x5b1c8d: the Item.bmd record (ECX), which the cases with the name and the ticket read.
     const auto recordOf = [&]() -> Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
     {
         if (items == nullptr)
@@ -226,7 +226,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* ite
             return Core::Unexpected(record.Error());
         return ItemRecordName(record.Value());
     };
-    // 0x5b1d52..0x5b1d6e: el boleto de nivel 2, sprintf(buffer, "%s" (0x6c98f0), 0x6c9350 + byte [ECX + 0x2d] · 100).
+    // 0x5b1d52..0x5b1d6e: the level 2 ticket, sprintf(buffer, "%s" (0x6c98f0), 0x6c9350 + byte [ECX + 0x2d] · 100).
     if (type == EventTicket && level == EventTicketTableLevel)
     {
         const auto record = recordOf();
@@ -285,8 +285,8 @@ Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* ite
         }
         }
     }
-    // 0x5b21f0..0x5b22a3: los demás (también 0x1803..0x1806 y 0x13, 0x812, 0xa0a y 0x40d, que hacen lo mismo): el
-    // nombre y, con nivel, " +nivel".
+    // 0x5b21f0..0x5b22a3: the others (also 0x1803..0x1806 and 0x13, 0x812, 0xa0a and 0x40d, which do the same): the
+    // name and, with a level, " +level".
     auto name = recordName();
     if (!name.HasValue() || level == 0)
         return name;
@@ -300,7 +300,7 @@ bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const Monsters::N
         const std::optional<std::uint32_t> monster = TransformationMonsterOf(level);
         return !monster || HasTheMonster(*npcNames, *monster);
     }
-    // El 0x180b, las cajas de 0x1c0b del 8 al 12 y el 0x1c0c de nivel 2 (0x5b1d52) escriben antes de la tabla.
+    // The 0x180b, the 0x1c0b boxes from 8 to 12 and the 0x1c0c of level 2 (0x5b1d52) write before the table.
     if (type == Type180b || (type == 0x1c0b && level >= FirstPlusBox && level <= LastPlusBox) ||
         (type == 0x1c0c && level == 2))
         return true;

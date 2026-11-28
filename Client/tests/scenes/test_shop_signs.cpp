@@ -32,11 +32,12 @@
 #include <utility>
 #include <vector>
 
-// Los carteles de las tiendas personales (CL9 hito 7, fase 6b; 06 § Lo social en pantalla, "Los carteles"): 0x451c20
-// con 0x451d60, 0x452110, 0x451e40, 0x452a10 y 0x452e50, la medida (0x452540, 0x452f80 y 0x4531b0), el título corto
-// del globo (0x4518b0) y los colores del título (0x4517c0, 0x451af0, 0x451b50 y 0x451bb0), contra su ASM, en Lorencia
-// (0) y en Devias (2). La proyección deja la x de 640 × 480 en el centro menos la x del dueño y la y en el centro más
-// su techo, su z y 60, menos 300. El texto mide 6 columnas por letra. Nombres, títulos y el texto 1104, inventados.
+// The personal shops' signs (CL9 milestone 7, phase 6b; 06 § Lo social en pantalla, "Los carteles"): 0x451c20 with
+// 0x451d60, 0x452110, 0x451e40, 0x452a10 and 0x452e50, the measure (0x452540, 0x452f80 and 0x4531b0), the bubble's
+// short title (0x4518b0) and the title's colors (0x4517c0, 0x451af0, 0x451b50 and 0x451bb0), against their ASM, in
+// Lorencia (0) and in Devias (2). The projection puts 640 × 480's x at the center minus the owner's x and y at the
+// center plus its top, its z and 60, minus 300. The text measures 6 columns per letter. Names, titles and text 1104,
+// made up.
 namespace
 {
 using Client::Core::PixelSize;
@@ -64,10 +65,10 @@ constexpr int Step1024 = 14;
 constexpr float PlayerTop = 120.0f;
 constexpr std::size_t Seller = 7;
 constexpr std::size_t Buyer = 9;
-// El texto 1104: 8 letras, 48 columnas.
+// Text 1104: 8 letters, 48 columns.
 constexpr std::string_view Header = "[Puesto]";
 constexpr int HeaderWidth = 48;
-// 0x452a10: los colores sin el PK 4, 5 o 6, quieto y elegido, y los de las líneas.
+// 0x452a10: the colors without PK 4, 5 or 6, still and chosen, and the lines'.
 constexpr ShopSignColors Plain{.name = 0xff00e6e6u, .header = 0xff0096fau, .background = 0x8029396cu};
 constexpr ShopSignColors Hovered{.name = 0xffffe6e6u, .header = 0xff29396cu, .background = 0x800096fau};
 constexpr TextColors LineColors{.text = 0xffffffffu, .background = 0xc829396cu};
@@ -197,8 +198,8 @@ protected:
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{1104, std::string(Header)}});
 };
 
-// 0x452f80: con 20 bytes o menos, entero en la primera; con más, la primera hasta el primer corte desde la mitad que no
-// parte una letra de dos bytes, y la segunda con el resto.
+// 0x452f80: with 20 bytes or fewer, whole in the first; with more, the first up to the first cut from the middle that
+// does not split a two-byte letter, and the second with the rest.
 TEST_P(ShopSignsTest, TheTitleSplitsFromTheMiddle)
 {
     using Client::PersonalShop::SplitTheShopTitle;
@@ -207,14 +208,14 @@ TEST_P(ShopSignsTest, TheTitleSplitsFromTheMiddle)
               (ShopTitleLines{.first = "abcdefghijklmnopqrst", .second = ""}));
     EXPECT_EQ(SplitTheShopTitle("abcdefghijklmnopqrstu"),
               (ShopTitleLines{.first = "abcdefghij", .second = "klmnopqrstu"}));
-    // 23 bytes, la mitad en 11: la letra de dos bytes de 10 y 11 va entera en la primera.
+    // 23 bytes, the middle at 11: the two-byte letter at 10 and 11 goes whole in the first.
     const std::string wide = std::string(10, 'a') + "\xb0\xa1" + std::string(11, 'b');
     EXPECT_EQ(SplitTheShopTitle(wide),
               (ShopTitleLines{.first = std::string(10, 'a') + "\xb0\xa1", .second = std::string(11, 'b')}));
 }
 
-// 0x4518b0: con 14 bytes o menos, entero; si no, los primeros 12 (13 si el 12 es la segunda mitad de una letra de dos
-// bytes) y "..". Sin cartel, vacío.
+// 0x4518b0: with 14 bytes or fewer, whole; otherwise, the first 12 (13 if the 12th is the second half of a two-byte
+// letter) and "..". Without a sign, empty.
 TEST_P(ShopSignsTest, TheShortTitleKeepsTwelveBytesAndTwoDots)
 {
     using Client::PersonalShop::ShortShopTitle;
@@ -227,8 +228,8 @@ TEST_P(ShopSignsTest, TheShortTitleKeepsTwelveBytesAndTwoDots)
     EXPECT_EQ(ShortShopTitle(Shops(), Buyer), "");
 }
 
-// 0x452540 y 0x4531b0: el texto 1104 y el nombre en negrita, las líneas en la normal; el ancho es el mayor y el alto,
-// un renglón por cada uno que hay.
+// 0x452540 and 0x4531b0: text 1104 and the name in bold, the lines in the normal font; the width is the largest and
+// the height, one row for each there is.
 TEST_P(ShopSignsTest, TheMeasureCountsTheRows)
 {
     using Client::PersonalShop::MeasureTheShopSign;
@@ -248,8 +249,8 @@ TEST_P(ShopSignsTest, TheMeasureCountsTheRows)
     EXPECT_EQ(layout.height, 3 * Step1024);
 }
 
-// 0x451c27: con el mapa vacío no hay nada, ni los rand() de 0x5bb8d0, ni la cuenta de +0x10; ni hace falta la
-// proyección.
+// 0x451c27: with the map empty there is nothing, neither 0x5bb8d0's rand() nor the +0x10 count; not even the
+// projection is needed.
 TEST_P(ShopSignsTest, WithoutSignsNothingHappens)
 {
     Runtime().panels.inventory = 1;
@@ -260,8 +261,8 @@ TEST_P(ShopSignsTest, WithoutSignsNothingHappens)
     EXPECT_EQ(m_dcFont, FontKind::BigBold);
 }
 
-// 0x452110 y 0x452a10: 60 sobre el techo del dueño, centrado y 36 filas más arriba; el texto 1104 y el nombre en
-// negrita y el título debajo, en blanco, cada uno con su quad. El DC queda en la normal y +0x10 cuenta 1.
+// 0x452110 and 0x452a10: 60 above the owner's top, centered and 36 rows higher; text 1104 and the name in bold and the
+// title below, in white, each with its quad. The DC stays in the normal font and +0x10 counts 1.
 TEST_P(ShopSignsTest, ASignGoesAboveItsOwnerWithItsRows)
 {
     Sign(Seller, "Brezal", "Arcos");
@@ -274,14 +275,14 @@ TEST_P(ShopSignsTest, ASignGoesAboveItsOwnerWithItsRows)
     ExpectRow(Texts()[1], "Brezal", 178 + HeaderWidth, 94, FontKind::Bold, NameColors(Plain), 88 - HeaderWidth,
               Step640);
     ExpectRow(Texts()[2], "Arcos", 178, 94 + Step640, FontKind::Normal, LineColors, 88, Step640);
-    // 0x4527d0: el lugar queda en +0x48 y +0x4c.
+    // 0x4527d0: the position stays in +0x48 and +0x4c.
     EXPECT_EQ(Shops().titles[Seller].x, 178);
     EXPECT_EQ(Shops().titles[Seller].y, 94);
     EXPECT_EQ(m_dcFont, FontKind::Normal);
     EXPECT_EQ(Shops().signBlink, 1);
     EXPECT_EQ(Draws(m_random), 0);
 
-    // Sin título, el DC queda en la negrita del nombre.
+    // Without a title, the DC stays in the name's bold font.
     Shops().titles[Seller].title.clear();
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
@@ -289,8 +290,8 @@ TEST_P(ShopSignsTest, ASignGoesAboveItsOwnerWithItsRows)
     EXPECT_EQ(m_dcFont, FontKind::Bold);
 }
 
-// En 1024 × 768, la x y la y de 640 × 480 pasan a píxeles con IMUL y la división con signo, con el paso de 14 y las
-// dos líneas.
+// At 1024 × 768, the 640 × 480 x and y become pixels with IMUL and the signed division, with step 14 and the two
+// lines.
 TEST_P(ShopSignsTest, OnAWiderScreenTheSignIsInPixels)
 {
     UseTheScreen(Screen1024);
@@ -298,7 +299,7 @@ TEST_P(ShopSignsTest, OnAWiderScreenTheSignIsInPixels)
 
     ASSERT_TRUE(Draw().HasValue());
 
-    // (512 − 100) · 640 / 1024 = 257 y (384 − 110) · 480 / 768 = 171; 1024 · 257 / 640 − 42 y 768 · 171 / 480 − 57.
+    // (512 − 100) · 640 / 1024 = 257 and (384 − 110) · 480 / 768 = 171; 1024 · 257 / 640 − 42 and 768 · 171 / 480 − 57.
     ASSERT_EQ(Texts().size(), 4u);
     ExpectRow(Texts()[0], Header, 369, 216, FontKind::Bold, HeaderColors(Plain), HeaderWidth, Step1024);
     ExpectRow(Texts()[1], "Brezal", 369 + HeaderWidth, 216, FontKind::Bold, NameColors(Plain), 88 - HeaderWidth,
@@ -307,8 +308,8 @@ TEST_P(ShopSignsTest, OnAWiderScreenTheSignIsInPixels)
     ExpectRow(Texts()[3], "chas de caza", 369, 216 + 2 * Step1024, FontKind::Normal, LineColors, 88, Step1024);
 }
 
-// 0x451d6a: 0x5bb8d0 con el inventario abierto consulta la tienda de NPC (0x10000) y el comercio (0x20): 2 rand() por
-// dibujo, aunque los carteles estén apagados.
+// 0x451d6a: 0x5bb8d0 with the inventory open queries the NPC shop (0x10000) and the trade (0x20): 2 rand() per draw,
+// even if the signs are off.
 TEST_P(ShopSignsTest, TheWorldWidthDrawsItsQueries)
 {
     Sign(Seller, "Brezal", "Arcos");
@@ -320,8 +321,8 @@ TEST_P(ShopSignsTest, TheWorldWidthDrawsItsQueries)
     EXPECT_EQ(Draws(m_random), 4);
 }
 
-// 0x451e40: el primero de un par que se pisa baja al borde de abajo del otro si su borde de abajo no está antes de la
-// mitad del otro, y si no sube hasta que su borde de abajo toca el de arriba del otro.
+// 0x451e40: the first of an overlapping pair goes down to the other's bottom edge if its bottom edge is not before the
+// other's middle, and otherwise goes up until its bottom edge touches the other's top.
 TEST_P(ShopSignsTest, OverlappingSignsMoveDownOrUp)
 {
     Sign(Seller, "Brezal", "Arcos");
@@ -331,11 +332,11 @@ TEST_P(ShopSignsTest, OverlappingSignsMoveDownOrUp)
     ASSERT_EQ(Texts().size(), 6u);
     EXPECT_EQ(Texts()[0].y, 94 + 24);
     EXPECT_EQ(Texts()[3].y, 94);
-    // Lo que queda en +0x4c es el lugar ya repartido.
+    // What stays in +0x4c is the position already spread.
     EXPECT_EQ(Shops().titles[Seller].y, 94 + 24);
     EXPECT_EQ(Shops().titles[Buyer].y, 94);
 
-    // El del vendedor 15 más arriba (79..103) termina antes de la mitad del otro (106): sube a 70.
+    // The seller's, 15 higher (79..103), ends before the other's middle (106): it goes up to 70.
     m_world->Actors()[Seller].position.z = -5.0f;
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
@@ -344,7 +345,7 @@ TEST_P(ShopSignsTest, OverlappingSignsMoveDownOrUp)
     EXPECT_EQ(Texts()[3].y, 94);
 }
 
-// Un cartel escondido (+0x44) también se ubica y empuja: el reparto no mira si se ve.
+// A hidden sign (+0x44) is also placed and pushes: the spread does not look at whether it shows.
 TEST_P(ShopSignsTest, AHiddenSignStillPushes)
 {
     Sign(Seller, "Brezal", "Arcos");
@@ -356,7 +357,7 @@ TEST_P(ShopSignsTest, AHiddenSignStillPushes)
     EXPECT_EQ(Texts()[1].text, "Brezal");
     EXPECT_EQ(Texts()[0].y, 94 + 24);
 
-    // 0x4516c0: con +0x14 apagado ("/ver puestos") no se dibuja ninguno, pero +0x10 cuenta.
+    // 0x4516c0: with +0x14 off ("/ver puestos") none is drawn, but +0x10 counts.
     Shops().signsShown = 0;
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
@@ -364,8 +365,8 @@ TEST_P(ShopSignsTest, AHiddenSignStillPushes)
     EXPECT_EQ(Shops().signBlink, 2);
 }
 
-// 0x451f1a: contra los bordes, la x en 0 o, desde W − ancho (sin signo), en W − ancho − 4; la y en 0 o en H − alto. Un
-// cartel más ancho que la pantalla da un W − ancho negativo, que sin signo es enorme: no se corre.
+// 0x451f1a: against the edges, x at 0 or, from W − width (unsigned), at W − width − 4; y at 0 or at H − height. A
+// sign wider than the screen gives a negative W − width, which unsigned is huge: it does not move.
 TEST_P(ShopSignsTest, TheEdgesKeepTheSignsOnTheScreen)
 {
     std::array<ShopSignBox, 5> signs{{{.x = -5, .y = -3, .width = 84, .height = 24},
@@ -373,7 +374,7 @@ TEST_P(ShopSignsTest, TheEdgesKeepTheSignsOnTheScreen)
                                       {.x = 555, .y = 455, .width = 84, .height = 24},
                                       {.x = 556, .y = 456, .width = 84, .height = 24},
                                       {.x = 10, .y = 5, .width = 700, .height = 500}}};
-    // De a uno, para que no se pisen.
+    // One at a time, so they do not overlap.
     for (ShopSignBox& sign : signs)
         Client::PersonalShop::SpreadTheShopSigns(std::span<ShopSignBox>(&sign, 1), Screen640);
     EXPECT_EQ(signs[0], (ShopSignBox{.x = 0, .y = 0, .width = 84, .height = 24}));
@@ -383,8 +384,8 @@ TEST_P(ShopSignsTest, TheEdgesKeepTheSignsOnTheScreen)
     EXPECT_EQ(signs[4], (ShopSignBox{.x = 10, .y = 5, .width = 700, .height = 500}));
 }
 
-// Q-C976, 0x452e50: la x contra W; la y, si su renglón pasa de H − H · 47 / 480, queda en ese tope (no en el tope menos
-// el alto, ni con el 640 de 0x554000).
+// Q-C976, 0x452e50: x against W; y, if its row passes H − H · 47 / 480, stays at that cap (not at the cap minus the
+// height, nor with 0x554000's 640).
 TEST_P(ShopSignsTest, TheRowStopsAtTheBarLine)
 {
     using Client::PersonalShop::ShopSignRowAt;
@@ -394,7 +395,8 @@ TEST_P(ShopSignsTest, TheRowStopsAtTheBarLine)
     EXPECT_EQ(ShopSignRowAt(Point{.x = 552, .y = 425}, 88, Step640, Screen640), (Point{.x = 552, .y = 433}));
     EXPECT_EQ(ShopSignRowAt(Point{.x = 0, .y = 690}, 88, Step1024, Screen1024), (Point{.x = 0, .y = 693}));
 
-    // Un cartel abajo de todo: el reparto lo deja en H − alto (456) y el renglón del título baja al tope (433).
+    // A sign at the very bottom: the spread leaves it at H − height (456) and the title's row goes down to the cap
+    // (433).
     Sign(Seller, "Brezal", "Arcos");
     m_world->Actors()[Seller].position.z = 400.0f;
     ASSERT_TRUE(Draw().HasValue());
@@ -403,9 +405,9 @@ TEST_P(ShopSignsTest, TheRowStopsAtTheBarLine)
     EXPECT_EQ(Texts()[2].y, 433);
 }
 
-// 0x451c67..0x451cc0: con un elegido (0x6c8e30), +0x10 menor que 3, la ventana de los comandos abierta y su comando 2,
-// el cartel del elegido prende +0x60 y se dibuja con los otros colores; los demás guardan el suyo (Q-C977). Si no,
-// todos en 0. +0x10 cuenta de 0 a 7.
+// 0x451c67..0x451cc0: with a chosen one (0x6c8e30), +0x10 below 3, the commands window open and its command 2, the
+// chosen one's sign turns on +0x60 and is drawn with the other colors; the others keep theirs (Q-C977). Otherwise,
+// all at 0. +0x10 counts from 0 to 7.
 TEST_P(ShopSignsTest, TheChosenSignBlinksWithTheShopCommand)
 {
     Sign(Seller, "Brezal", "Arcos");
@@ -434,7 +436,7 @@ TEST_P(ShopSignsTest, TheChosenSignBlinksWithTheShopCommand)
     EXPECT_EQ(hovered, (std::vector<int>{11, 11, 0, 0, 0, 0, 0, 10, 10}));
     EXPECT_EQ(Shops().signBlink, 1);
 
-    // Con otro comando, con la ventana cerrada o sin elegido, en 0.
+    // With another command, with the window closed or without a chosen one, at 0.
     const auto hoveredAfter = [&]
     {
         Shops().signBlink = 0;
@@ -453,7 +455,7 @@ TEST_P(ShopSignsTest, TheChosenSignBlinksWithTheShopCommand)
     EXPECT_EQ(hoveredAfter(), 0);
 }
 
-// 0x452a10: con el PK 4, 5 o 6, el texto 1104 y el nombre del mismo color y el fondo de los tres casos.
+// 0x452a10: with PK 4, 5 or 6, text 1104 and the name in the same color and the background of the three cases.
 TEST_P(ShopSignsTest, ThePkColorsTheSign)
 {
     using Client::PersonalShop::ShopSignColorsOf;
@@ -475,8 +477,8 @@ TEST_P(ShopSignsTest, ThePkColorsTheSign)
     EXPECT_EQ(Texts()[2].style.colors, LineColors);
 }
 
-// 0x4517c0, 0x451af0, 0x451b50 y 0x451bb0: +0x60 del cartel del personaje (falso sin cartel), y los colores del cartel
-// con +0x370 en 2 u 8 como el PK 6.
+// 0x4517c0, 0x451af0, 0x451b50 and 0x451bb0: the character's sign's +0x60 (false without a sign), and the sign's
+// colors with +0x370 at 2 or 8 as PK 6.
 TEST_P(ShopSignsTest, TheBubbleColorsFollowTheSign)
 {
     using Client::PersonalShop::ShopBubbleColorsOf;
@@ -496,7 +498,7 @@ TEST_P(ShopSignsTest, TheBubbleColorsFollowTheSign)
     EXPECT_EQ(ShopBubbleColorsOf(owner, false).name, 0xff00b4e6u);
 }
 
-// Un dibujo intermedio de MuRet dibuja igual, pero no escribe +0x10, los +0x60 ni los lugares.
+// A MuRet intermediate draw draws the same, but does not write +0x10, the +0x60 or the positions.
 TEST_P(ShopSignsTest, AnIntermediateDrawLeavesTheStateAlone)
 {
     Sign(Seller, "Brezal", "Arcos").hovered = 1;
@@ -511,7 +513,7 @@ TEST_P(ShopSignsTest, AnIntermediateDrawLeavesTheStateAlone)
     EXPECT_EQ(Shops().titles[Seller].y, -1);
 }
 
-// Sin la proyección del pase del mundo o sin Text.bmd, un cartel corta con su dirección.
+// Without the world pass's projection or without Text.bmd, a sign stops with its address.
 TEST_P(ShopSignsTest, WithoutTheProjectionOrTheTextsASignIsCut)
 {
     Sign(Seller, "Brezal", "Arcos");

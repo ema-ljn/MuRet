@@ -60,45 +60,45 @@ using Render::Text::FontKind;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 
-// 0x656df0: el rectángulo del mouse de la UI, 0xbe (+0x58) × 0x1b1, con el modo 1.
+// 0x656df0: the UI's mouse rectangle, 0xbe (+0x58) × 0x1b1, with mode 1.
 constexpr std::int32_t MouseHeight = 0x1b1;
 constexpr std::int32_t TopLeftRect = 1;
-// Las páginas (0x7d536ec) y lo que arman (0x7d536e4).
+// The pages (0x7d536ec) and what they build (0x7d536e4).
 constexpr std::int32_t QuestionPage = 0;
 constexpr std::int32_t NamePage = 1;
 constexpr std::int32_t MarkPage = 2;
 constexpr std::int32_t ConfirmPage = 3;
 constexpr std::int32_t NewGuild = 1;
 constexpr std::int32_t NewMark = 2;
-// 0x655d70 y 0x6552b0: C1 04 54 01 (crear) y 54 00.
+// 0x655d70 and 0x6552b0: C1 04 54 01 (create) and 54 00.
 constexpr std::uint8_t CreateAnswer = 1;
 constexpr std::uint8_t ClosedAnswer = 0;
-// 0x6560c3..0x6560e9: el botón de cerrar, 0x18 × 0x18 en (0x19, 0x18b) de la esquina, y lo que deja en 0x6c8dcc.
+// 0x6560c3..0x6560e9: the close button, 0x18 × 0x18 at (0x19, 0x18b) from the corner, and what it leaves in 0x6c8dcc.
 constexpr std::int32_t CloseLeft = 0x19;
 constexpr std::int32_t CloseTop = 0x18b;
 constexpr std::int32_t CloseSize = 0x18;
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
-// 0x41ed10(0x19, 0, 0): el clic del botón de cerrar y de la paleta (CL10).
+// 0x41ed10(0x19, 0, 0): the click of the close button and of the palette (CL10).
 constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
-// 0x6236f0: los avisos de 0x654f80 y 0x655c10.
+// 0x6236f0: the notices of 0x654f80 and 0x655c10.
 constexpr std::int32_t FilteredNameDialog = 0x72;
 constexpr std::int32_t ForbiddenSymbolDialog = 0x7a;
 constexpr std::int32_t ShortNameDialog = 0x79;
 constexpr std::int32_t EmptyMarkDialog = 0x7e;
-// 0x654e70: un nombre de menos de 4 bytes es corto.
+// 0x654e70: a name of fewer than 4 bytes is short.
 constexpr std::size_t ShortestName = 4;
-// 0x6550cf, 0x6550e0..0x655120: el héroe sin gremio (+0x1f2 en 0xffff) y los diez bytes de 0x7798bf8 (dos DWORD y un
-// WORD) en 0.
+// 0x6550cf, 0x6550e0..0x655120: the hero without a guild (+0x1f2 at 0xffff) and the ten bytes of 0x7798bf8 (two
+// DWORDs and a WORD) at 0.
 constexpr std::uint16_t NoGuildWord = 0xffff;
 constexpr std::size_t ClearedMessageBytes = 10;
-// 0x468260: el EDIT a la vista (0) y oculto (3).
+// 0x468260: the EDIT shown (0) and hidden (3).
 constexpr std::int32_t ShownField = 0;
 constexpr std::int32_t HiddenField = 3;
-// 0x655202: EM_LIMITTEXT del nombre.
+// 0x655202: the name's EM_LIMITTEXT.
 constexpr std::size_t GuildNameLimit = 8;
-// 0x6535d1: el ángulo que 0x6535c0 le pone al héroe (+0x24) en cada paso del editor.
+// 0x6535d1: the angle 0x6535c0 gives the hero (+0x24) on every editor step.
 constexpr float EditorHeroAngle = 112.5f;
-// 0x6535c0 y 0x653750: la grilla de 8 × 8 de 15 en (x + 0x32, y + 0x64) y la paleta de 2 × 8 de 20 en
+// 0x6535c0 and 0x653750: the 8 × 8 grid of 15 at (x + 0x32, y + 0x64) and the 2 × 8 palette of 20 at
 // (x + 0xf, y + 0x104).
 constexpr std::int32_t GridSide = 8;
 constexpr std::int32_t GridStep = 15;
@@ -108,9 +108,9 @@ constexpr std::int32_t PaletteRows = 2;
 constexpr std::int32_t PaletteStep = 20;
 constexpr std::int32_t PaletteLeft = 0xf;
 constexpr std::int32_t PaletteTop = 0x104;
-// 0x653750: los cuadrados de la grilla en (x + 50 + 1, y + 100 + 1) de 13, los de la paleta en (x + 15 + 1,
-// y + 260 + 1) de 18 y el elegido en (x + 15 + 1, y + 230 + 1) de 23, las sumas en la x87; los dos renglones en
-// (x + 0x32, y + 0xe6) y (x + 0x32, y + 0xf5).
+// 0x653750: the grid squares at (x + 50 + 1, y + 100 + 1) of 13, the palette ones at (x + 15 + 1, y + 260 + 1) of 18
+// and the chosen one at (x + 15 + 1, y + 230 + 1) of 23, the sums on the x87; the two rows at (x + 0x32, y + 0xe6)
+// and (x + 0x32, y + 0xf5).
 constexpr double GridDrawLeft = 50.0;
 constexpr double GridDrawTop = 100.0;
 constexpr double PaletteDrawLeft = 15.0;
@@ -123,53 +123,51 @@ constexpr std::int32_t ChosenSwatch = 23;
 constexpr std::int32_t HelpLeft = 0x32;
 constexpr std::int32_t FirstHelpTop = 0xe6;
 constexpr std::int32_t SecondHelpTop = 0xf5;
-// 0x5f1bb0: el marco del cuadrado (Interface\..., el 0x116) 1 afuera y 2 más grande, con du = w · 0,03125 y
-// dv = h · 0,033333335 (0x6b8880 y 0x6ba29c), y el cuadrado con du = dv = 1.
+// 0x5f1bb0: the square's frame (Interface\..., 0x116) 1 outside and 2 bigger, with du = w · 0.03125 and
+// dv = h · 0.033333335 (0x6b8880 and 0x6ba29c), and the square with du = dv = 1.
 constexpr std::uint16_t SwatchFrameSlot = 0x116;
 constexpr double SwatchFrameOut = 1.0;
 constexpr double SwatchFrameGrow = 2.0;
 constexpr float SwatchDuStep = 0.03125f;
 constexpr float SwatchDvStep = 0.033333335f;
-// 0x655ac0: los dos marcos (140 × 20 en (x + 0x19, y + 0x41) y 53 × 53 en (x + 0x45, y + 0x68)), el texto en
-// (x + 0x19, y + 0x47) y la marca de 48 en (x + 0x48, y + 0x6b).
+// 0x655ac0: the two frames (140 × 20 at (x + 0x19, y + 0x41) and 53 × 53 at (x + 0x45, y + 0x68)), the text at
+// (x + 0x19, y + 0x47) and the 48 mark at (x + 0x48, y + 0x6b).
 constexpr float NameBoxWidth = 140.0f;
 constexpr float NameBoxHeight = 20.0f;
 constexpr float MarkBoxSide = 53.0f;
 constexpr float MarkSide = 48.0f;
-// 0x655130: la caja del nombre (el 0x10f de 110 × 18 en (x + 0x3a, y + 0x38), du 0,859375 y dv 0,5625) y el EDIT de
-// 0x46 × 0xe en (x + 0x3f, y + 0x3c).
+// 0x655130: the name box (0x10f, 110 × 18 at (x + 0x3a, y + 0x38), du 0.859375 and dv 0.5625) and the 0x46 × 0xe EDIT
+// at (x + 0x3f, y + 0x3c).
 constexpr std::uint16_t NameFieldSlot = 0x10f;
 constexpr float NameFieldWidth = 110.0f;
 constexpr float NameFieldHeight = 18.0f;
 constexpr float NameFieldDu = 0.859375f;
 constexpr float NameFieldDv = 0.5625f;
-// 0x6563e0..0x656504: el texto de la página en (x + 0x19, y + 0x3c) y los dos botones en x + 0x2d, 0x1e y 0x36 más
-// abajo.
+// 0x6563e0..0x656504: the page's text at (x + 0x19, y + 0x3c) and the two buttons at x + 0x2d, 0x1e and 0x36 lower.
 constexpr std::int32_t PageLeft = 0x19;
 constexpr std::int32_t PageTop = 0x3c;
 constexpr std::int32_t ButtonsLeft = 0x2d;
 constexpr std::int32_t FirstButtonBelow = 0x1e;
 constexpr std::int32_t SecondButtonBelow = 0x18;
-// 0x656e70: el título en (x + 0x23, y + 0xc).
+// 0x656e70: the title at (x + 0x23, y + 0xc).
 constexpr std::int32_t TitleLeft = 0x23;
 constexpr std::int32_t TitleTop = 0xc;
-// 0x6563e0, 0x655c70 y 0x655ac0: 0x5542f0(…, _ftol(rx · 140), 2, 0), el texto centrado en una caja de 140 · rx.
+// 0x6563e0, 0x655c70 and 0x655ac0: 0x5542f0(…, _ftol(rx · 140), 2, 0), the text centered in a 140 · rx box.
 constexpr double TextBox = 140.0;
-// Los colores de 0x6c8e5c y 0x6c8e64 del título (0x656f2e) y de las páginas (0x6563f6).
+// The colors of 0x6c8e5c and 0x6c8e64 for the title (0x656f2e) and the pages (0x6563f6).
 constexpr Render::Text::TextColors TitleColors{.text = 0xffdcdcdcu, .background = 0xff141414u};
 constexpr Render::Text::TextColors PageColors{.text = 0xffe6e6e6u, .background = 0};
-// 0x6551e8..0x655223: el EDIT sin filtro (+0x4c en 0), el fondo en 0 (+0x44(0, 0, 0, 0)), de 0x46 × 0xe en
+// 0x6551e8..0x655223: the EDIT without a filter (+0x4c at 0), the background at 0 (+0x44(0, 0, 0, 0)), 0x46 × 0xe at
 // (x + 0x3f, y + 0x3c).
 constexpr std::int32_t FieldWidth = 0x46;
 constexpr std::int32_t FieldHeight = 0xe;
 constexpr std::int32_t FieldLeft = 0x26;
-// El héroe sin gremio en +0x368.
+// The hero's +0x368 without a guild.
 constexpr std::uint8_t NoGuildStatus = 0xff;
 
-// Text.bmd (la dirección − 0x76bd1dc, sobre 300): el título de cada página (0x76ca4cc, 0x771c8d0, 0x771c9fc y
-// 0x76cdd0c), la pregunta (0x76ca5f8), "nombre" (0x76ca724), los dos renglones del editor (0x76ca850 y 0x76ca97c),
-// la ayuda del botón de cerrar (0x7706814), el aviso del botón de la marca (0x771a0f8) y los textos de los botones
-// (0x45b170 en 0x654900).
+// Text.bmd (the address − 0x76bd1dc, over 300): each page's title (0x76ca4cc, 0x771c8d0, 0x771c9fc and 0x76cdd0c),
+// the question (0x76ca5f8), "name" (0x76ca724), the editor's two rows (0x76ca850 and 0x76ca97c), the close button's
+// help (0x7706814), the mark button's notice (0x771a0f8) and the buttons' texts (0x45b170 in 0x654900).
 constexpr std::size_t GuildTitleText = 180;
 constexpr std::size_t QuestionText = 181;
 constexpr std::size_t NameText = 182;
@@ -181,7 +179,7 @@ constexpr std::size_t NotEnabledText = 1269;
 constexpr std::size_t CreateText = 1303;
 constexpr std::size_t MarkText = 1304;
 constexpr std::array<std::size_t, SecondGuildButtonCount> ButtonTexts{1303, 1304, 1305, 1306};
-// 0x622c70: los textos 457 y 458.
+// 0x622c70: texts 457 and 458.
 constexpr std::size_t OperationText = 457;
 constexpr std::size_t ServerText = 458;
 
@@ -218,7 +216,7 @@ Ui::OldButton& ButtonOf(GuildState& guild, std::size_t button)
     return guild.secondWindow.buttons[button];
 }
 
-// 0x654f00: la página que sigue (1: 0 → 1 → 3; 2: 0 → 2 → 3).
+// 0x654f00: the next page (1: 0 → 1 → 3; 2: 0 → 2 → 3).
 void NextPage(GuildState& guild)
 {
     if (guild.createKind == NewGuild)
@@ -237,7 +235,8 @@ void NextPage(GuildState& guild)
     }
 }
 
-// 0x654eb0: la de antes (1: 3 → 1, y de 1 a la pregunta con el 0x7d536e4 en 0; 2: 3 → 2, y de 2 a la pregunta).
+// 0x654eb0: the previous one (1: 3 → 1, and from 1 to the question with 0x7d536e4 at 0; 2: 3 → 2, and from 2 to the
+// question).
 void PreviousPage(GuildState& guild)
 {
     if (guild.createKind == NewGuild)
@@ -262,14 +261,14 @@ void PreviousPage(GuildState& guild)
     }
 }
 
-// 0x654e90: algún nibble de la marca nueva distinto de 0.
+// 0x654e90: some nibble of the new mark other than 0.
 bool MarkHasColor(const GuildState& guild)
 {
     return std::ranges::any_of(guild.table[CreatingIndex].mark, [](std::uint8_t nibble) { return nibble != 0; });
 }
 
-// 0x6535c0(x, y): el ángulo del héroe; la grilla de la marca (el izquierdo abajo pinta con el color elegido, el
-// derecho borra: los dos, borra); la paleta, con el flanco del clic, elige el color (fila · 8 + columna) y suena.
+// 0x6535c0(x, y): the hero's angle; the mark grid (the left button down paints with the chosen color, the right one
+// erases: both, erases); the palette, with the click's edge, chooses the color (row · 8 + column) and plays the sound.
 void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y, std::int32_t mouseX,
                        std::int32_t mouseY)
 {
@@ -286,7 +285,7 @@ void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y
             if (mouseX < left || mouseX >= left + GridStep || mouseY < top || mouseY >= top + GridStep)
                 continue;
             const auto cell = static_cast<std::size_t>(row * GridSide + column);
-            // 0x65364c: el byte de abajo de 0x78aba44.
+            // 0x65364c: the low byte of 0x78aba44.
             if (runtime.mouse.leftHeld)
                 mark[cell] = static_cast<std::uint8_t>(static_cast<std::uint32_t>(guild.markColor) & 0xffu);
             if (runtime.ui.rightDown)
@@ -309,24 +308,24 @@ void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y
     }
 }
 
-// 0x6236f0 con el aviso.
+// 0x6236f0 with the notice.
 void Notice(Kernel::WorldRuntime& runtime, std::int32_t dialog)
 {
     Ui::PushDialog(runtime.dialogs, dialog);
 }
 
-// 0x655087..0x6550b4 y 0x6550d8..0x655100: con el EDIT (0x6c7b8c en 1), SetText(0), 0x467360 (el modo del IME, que
-// MuRet no tiene) y oculto.
+// 0x655087..0x6550b4 and 0x6550d8..0x655100: with the EDIT (0x6c7b8c at 1), SetText(0), 0x467360 (the IME mode, which
+// MuRet does not have) and hidden.
 void HideTheNameField(Chat::ChatInputState& input)
 {
     input.dialogEdit.text.SetText({});
     Chat::ShowTheDialogField(input, HiddenField);
 }
 
-// 0x655d70, la página 0: Crear (la ventana arma un gremio: 0x7d536e4 y 0x7d536ec en 1, 0x77f3b68 en 1 y C1 04 54 01);
-// Cambiar la marca (el diálogo de los paneles con el 1269, Aceptar, sin función, a +0x2a0); el flanco sobre el botón
-// de cerrar lo apaga, 0x77f3b10 en 0 y 0x6c8dcc en 6, manda C1 04 54 00, suena el 0x19 y cierra la ventana con la
-// vtable + 0x2c (0x6570b0, que manda otro 54 00: Q-C1289).
+// 0x655d70, page 0: Create (the window builds a guild: 0x7d536e4 and 0x7d536ec at 1, 0x77f3b68 at 1 and C1 04 54
+// 01); Change the mark (the panels' dialog with 1269, Accept, no function, to +0x2a0); the edge over the close button
+// turns it off, 0x77f3b10 at 0 and 0x6c8dcc at 6, sends C1 04 54 00, plays 0x19 and closes the window with the vtable
+// + 0x2c (0x6570b0, which sends another 54 00: Q-C1289).
 Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& context,
                                                   const Ui::OldWindowGlobals& globals)
 {
@@ -349,8 +348,8 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
             return Core::Unexpected(std::move(text).Error());
         if (context.measure == nullptr)
             return Core::Unexpected(std::string("0x6560b3: el diálogo de los paneles (0x6600d0) sin medidor"));
-        // 0x6560b3: lo que da, a +0x2a0; con otro abierto (el mismo, con un segundo clic: 0x657930 da el paso del
-        // diálogo y después el de la ventana), el aviso de 0x6d69a8 y 0.
+        // 0x6560b3: what it gives, to +0x2a0; with another one open (the same one, with a second click: 0x657930 gives
+        // the dialog's step and then the window's), the notice of 0x6d69a8 and 0.
         const std::array<std::string, 1> lines{std::string(text.Value())};
         auto opened = PopUpThePanelDialog(
             runtime,
@@ -374,11 +373,12 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
     return CloseTheSecondGuildWindow(context.world, context.send);
 }
 
-// 0x654f80, la página 1: el editor; Próximo lee el EDIT al nombre del gremio nuevo (0x78a597d) y al buffer del mensaje
-// (0x7798bf8) y mira, en orden, el nombre filtrado (0x622c70 sobre el buffer, el aviso 0x72), un byte malo (0x447ca0,
-// 0x7a), menos de 4 bytes (0x79) y la marca vacía (0x7e); sin aviso, el EDIT vacío y oculto y la página que sigue. Con
-// aviso o sin él, el EDIT vacío y oculto otra vez. Regreso: el héroe sin gremio, el EDIT vacío y oculto, los diez bytes
-// del buffer y su largo en 0 (0x6c8e78 en 10, el tope de la entrada sin EDIT, MuRet no lo guarda) y la página de antes.
+// 0x654f80, page 1: the editor; Next reads the EDIT into the new guild's name (0x78a597d) and the message buffer
+// (0x7798bf8) and checks, in order, the filtered name (0x622c70 on the buffer, notice 0x72), a bad byte (0x447ca0,
+// 0x7a), fewer than 4 bytes (0x79) and the empty mark (0x7e); without a notice, the EDIT emptied and hidden and the
+// next page. With a notice or without, the EDIT emptied and hidden again. Back: the hero without a guild, the EDIT
+// emptied and hidden, the buffer's ten bytes and its length at 0 (0x6c8e78 at 10, the limit of the input without an
+// EDIT, MuRet does not store it) and the previous page.
 Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& context,
                                               const Ui::OldWindowGlobals& globals)
 {
@@ -389,8 +389,9 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
     if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
     {
-        // 0x654fb3..0x654fda: GetText(0x78a597d, 0xff) y GetText(0x7798bf8, 0xff). El nombre tiene 9 bytes hasta la
-        // marca (+0x16): el EDIT, con EM_LIMITTEXT 8, no pasa de ahí.
+        // 0x654fb3..0x654fda: GetText(0x78a597d, 0xff) and GetText(0x7798bf8, 0xff). The name has 9 bytes up to the
+        // mark
+        // (+0x16): the EDIT, with EM_LIMITTEXT 8, does not go past it.
         std::array<char, GuildTableEntry{}.guildName.size()>& name = guild.table[CreatingIndex].guildName;
         const std::string_view typed = input.dialogEdit.text.Value();
         if (typed.size() >= name.size())
@@ -437,8 +438,8 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
     return {};
 }
 
-// 0x655c10, la página 2: el editor; Próximo con la marca vacía, el aviso 0x7e, y si no, la página que sigue; Regreso,
-// la de antes.
+// 0x655c10, page 2: the editor; Next with the empty mark, notice 0x7e, and otherwise the next page; Back, the previous
+// one.
 void StepTheMark(const SecondGuildStepContext& context, const Ui::OldWindowGlobals& globals)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -456,9 +457,10 @@ void StepTheMark(const SecondGuildStepContext& context, const Ui::OldWindowGloba
         PreviousPage(guild);
 }
 
-// 0x6552b0, la página 3: Próximo junta los 64 nibbles de a dos (el par primero arriba, 0x6552f1..0x655335); armando
-// un gremio, manda el C1 55 con el nombre (los 8 bytes de 0x78a597d) y la marca; siempre manda C1 04 54 00 y cierra la
-// ventana (0x6570b0, otro 54 00: Q-C1289). La marca sola (2) no manda nada más (Q-C1288). Regreso, la página de antes.
+// 0x6552b0, page 3: Next packs the 64 nibbles two by two (the first of the pair high, 0x6552f1..0x655335); building a
+// guild, it sends the C1 55 with the name (the 8 bytes of 0x78a597d) and the mark; it always sends C1 04 54 00 and
+// closes the window (0x6570b0, another 54 00: Q-C1289). The mark alone (2) sends nothing more (Q-C1288). Back, the
+// previous page.
 Core::Expected<void, std::string> StepTheConfirmation(const SecondGuildStepContext& context,
                                                       const Ui::OldWindowGlobals& globals)
 {
@@ -490,7 +492,7 @@ Core::Expected<void, std::string> StepTheConfirmation(const SecondGuildStepConte
     return {};
 }
 
-// 0x621b60 con u y v.
+// 0x621b60 with u and v.
 void QuadAt(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u,
             float v, float du, float dv)
 {
@@ -508,7 +510,7 @@ void QuadAt(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, 
                                       .alpha = 0.0f});
 }
 
-// 0x5f1bb0(x, y, w, h, color): el marco 0x116 y el cuadrado del color.
+// 0x5f1bb0(x, y, w, h, color): the 0x116 frame and the color's square.
 Core::Expected<void, std::string> DrawTheSwatch(Hud::GameHudContext& context, float x, float y, std::int32_t width,
                                                 std::int32_t height, std::int32_t color)
 {
@@ -529,7 +531,7 @@ Core::Expected<void, std::string> DrawTheSwatch(Hud::GameHudContext& context, fl
     return {};
 }
 
-// 0x653750(x, y): la grilla con la marca nueva, la paleta y el color elegido, y los dos renglones con la fuente normal.
+// 0x653750(x, y): the grid with the new mark, the palette and the chosen color, and the two rows in the normal font.
 Core::Expected<void, std::string> DrawTheMarkEditor(Hud::GameHudContext& context, const GuildState& guild,
                                                     std::int32_t x, std::int32_t y)
 {
@@ -576,7 +578,7 @@ Core::Expected<void, std::string> DrawTheMarkEditor(Hud::GameHudContext& context
     return {};
 }
 
-// 0x5542f0(x, y, texto, caja, 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
+// 0x5542f0(x, y, text, box, 2, 0): the text centered in the box (0x467060 in mode 2), without measuring.
 void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen()));
@@ -589,7 +591,7 @@ void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, 
                              -placed.textColumn, placed.width);
 }
 
-// El gremio del héroe (+0x1f2) en la tabla, para "%s ( Score:%d )" (0x6d67cc).
+// The hero's guild (+0x1f2) in the table, for "%s ( Score:%d )" (0x6d67cc).
 Core::Expected<std::string, std::string> HeroGuildLine(Hud::GameHudContext& context, std::string_view where)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -600,7 +602,7 @@ Core::Expected<std::string, std::string> HeroGuildLine(Hud::GameHudContext& cont
                        runtime.guild.score);
 }
 
-// 0x5f16a0(1999, 1) sin quad: sube la marca nueva y la pisa el primer cuadrado del editor (Q-C1290).
+// 0x5f16a0(1999, 1) without a quad: uploads the new mark and the editor's first square overwrites it (Q-C1290).
 Core::Expected<void, std::string> UploadTheNewMark(Hud::GameHudContext& context, const GuildState& guild)
 {
     if (context.guildMarks == nullptr)
@@ -620,9 +622,9 @@ void DrawTheButton(Hud::GameHudContext& context, const Ui::OldButton& button)
     Ui::DrawTheOldButton(buttons, button, Ui::OldWindowDrawView{.mouseX = context.mouse.x, .mouseY = context.mouse.y});
 }
 
-// 0x6563e0, la página 0: sin gremio (+0x368 en 0xff), la pregunta (el 181) con Crear a la vista y Cambiar la marca
-// apagado; con gremio, su nombre y el puntaje (0x78aba3c) centrados, Crear apagado y la marca a la vista. Los dos
-// botones debajo, y el botón de cerrar con su ayuda (el 1002) con el mouse encima.
+// 0x6563e0, page 0: without a guild (+0x368 at 0xff), the question (181) with Create shown and Change the mark off;
+// with a guild, its name and the score (0x78aba3c) centered, Create off and the mark shown. The two buttons below,
+// and the close button with its help (1002) with the mouse over it.
 Core::Expected<void, std::string> DrawTheQuestion(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                                   std::int32_t y)
 {
@@ -665,9 +667,9 @@ Core::Expected<void, std::string> DrawTheQuestion(Hud::GameHudContext& context, 
     return {};
 }
 
-// 0x655130, la página 1: la caja del nombre, "nombre" en negrita, el EDIT (a la vista, el fondo en 0, EM_LIMITTEXT 8,
-// en (x + 0x3f, y + 0x3c), el foco sin cambiar lo elegido y su dibujo), la marca nueva (sin quad), el editor y
-// Regreso y Próximo.
+// 0x655130, page 1: the name box, "name" in bold, the EDIT (shown, the background at 0, EM_LIMITTEXT 8, at
+// (x + 0x3f, y + 0x3c), the focus without changing the selection and its draw), the new mark (without a quad), the
+// editor and Back and Next.
 Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                               std::int32_t y)
 {
@@ -691,10 +693,11 @@ Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, Guil
     field.base.height = FieldHeight;
     field.base.x = x + PageLeft + FieldLeft;
     field.base.y = y + PageTop;
-    // 0x655232: la vtable + 0x30 (0x4682a0), el foco y el id del EDIT (7) en 0x5762ec0 (la lista que toma las flechas).
+    // 0x655232: the vtable + 0x30 (0x4682a0), the focus and the EDIT's id (7) in 0x5762ec0 (the list that takes the
+    // arrows).
     Chat::FocusTheDialogField(input);
     context.world.Runtime().ui.focusedList = field.base.id;
-    // 0x65523d: la vtable + 0x14 del EDIT (0x468320), con el cursor si tiene el foco.
+    // 0x65523d: the EDIT's vtable + 0x14 (0x468320), with the cursor if it has the focus.
     Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = context.sprites,
                                                          .text = context.text,
                                                          .dcFont = context.hud.dcFont,
@@ -710,8 +713,8 @@ Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, Guil
     return {};
 }
 
-// 0x655c70, la página 2: "nombre" en negrita y, en el mismo lugar, el gremio del héroe con el puntaje centrado
-// (Q-C1288); la fuente normal, la marca nueva (sin quad), el editor y los dos botones.
+// 0x655c70, page 2: "name" in bold and, in the same place, the hero's guild with the score centered (Q-C1288); the
+// normal font, the new mark (without a quad), the editor and the two buttons.
 Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                               std::int32_t y)
 {
@@ -735,8 +738,8 @@ Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, Guil
     return {};
 }
 
-// 0x655ac0, la página 3: la fuente normal, el fondo de los textos en 0, el marco del nombre con "nombre : <nombre>"
-// centrado, el marco de la marca con la marca nueva de 48 y los dos botones.
+// 0x655ac0, page 3: the normal font, the text background at 0, the name frame with "name : <name>" centered, the mark
+// frame with the new 48 mark and the two buttons.
 Core::Expected<void, std::string> DrawTheConfirmation(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                                       std::int32_t y)
 {
@@ -803,7 +806,7 @@ Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& 
     SecondGuildWindowState& window = guild.secondWindow;
     for (std::size_t button = 0; button < window.buttons.size(); ++button)
     {
-        // 0x654900 los copia al armarse (0x45b170), después de Text.bmd; MuRet, la primera vez que dibuja.
+        // 0x654900 copies them when it is built (0x45b170), after Text.bmd; MuRet, the first time it draws.
         if (window.buttons[button].label)
             continue;
         auto label = TextOf(context.texts, ButtonTexts[button], "0x6549a7");

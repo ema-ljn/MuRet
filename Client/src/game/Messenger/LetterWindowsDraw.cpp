@@ -39,21 +39,21 @@ using Ui::OldDraw::ToFloat;
 using Ui::OldDraw::Truncate;
 using Ui::OldDraw::WhiteWithTexture;
 
-// Los índices de 0x491960.
+// 0x491960's indices.
 constexpr std::int32_t EdgeIndex = 1;
 constexpr std::int32_t LineIndex = 2;
 constexpr std::int32_t BlackIndex = 7;
-// 0x460550: el renglón `row` en y − 13 · row − 0x10 (su y, el borde de abajo de la lista), el nombre en x + 8 y el
-// texto después del ancho del nombre.
+// 0x460550: row `row` at y − 13 · row − 0x10 (its y, the list's bottom edge), the name at x + 8 and the text after the
+// name's width.
 constexpr std::int32_t ChatRowHeight = 13;
 constexpr std::int32_t ChatRowDrop = 0x10;
 constexpr std::int32_t ChatNameX = 8;
 constexpr std::string_view NameEnd = ": ";
-// 0x460631 y 0x46089b: con 0x6c7a88 en 1, un fondo de 0 en el color (sin mirar el alfa) queda en 0.
+// 0x460631 and 0x46089b: with 0x6c7a88 at 1, a background of 0 in the color (ignoring the alpha) stays at 0.
 constexpr std::uint32_t BackgroundColorMask = 0xffffffu;
-// 0x493fc0: los miembros se ven con más de 2 (su vtable + 0x54, 0x4720e0) o con la lista de invitar (+0xb0 en 2); sus
-// rayas, 0xa0 y 0x50 antes del borde derecho, 16 (0x6b8f00) más cortas que el área de adentro; la raya del 2, 16 sobre
-// el borde de abajo, y el negro, los 15 (0x6b87bc y 0x41700000) de abajo.
+// 0x493fc0: the members show with more than 2 (their vtable + 0x54, 0x4720e0) or with the invite list (+0xb0 at 2);
+// their lines, 0xa0 and 0x50 before the right edge, 16 (0x6b8f00) shorter than the inner area; the palette 2 line, 16
+// above the bottom edge, and the black, the bottom 15 (0x6b87bc and 0x41700000).
 constexpr std::int32_t MembersShown = 2;
 constexpr std::int32_t WithInvites = 2;
 constexpr std::int32_t InvitesSeparatorX = 0xa0;
@@ -62,18 +62,18 @@ constexpr double SeparatorCut = 16.0;
 constexpr double BottomLineRise = 16.0;
 constexpr double BottomBarRise = 15.0;
 constexpr float BottomBarHeight = 15.0f;
-// 0x491ba0: los filos del 2 en x y x + 4 (0x6b8a44), y el medio del 1 de 3 de ancho (0x40400000) en x + 1
+// 0x491ba0: the palette 2 edges at x and x + 4 (0x6b8a44), and the palette 1 middle, 3 wide (0x40400000), at x + 1
 // (0x6b87d4).
 constexpr double SeparatorFarEdge = 4.0;
 constexpr double SeparatorMiddleX = 1.0;
 constexpr float SeparatorMiddleWidth = 3.0f;
 
-// 0x465770: el renglón del cuerpo en x + 10, en 0xffc8dce6 sin fondo.
+// 0x465770: the body line at x + 10, in 0xffc8dce6 without background.
 constexpr std::int32_t BodyTextX = 10;
 constexpr std::uint32_t BodyTextColor = 0xffc8dce6u;
-// 0x499e44..0x49a0f4: el retrato ocupa los 0x78 (0x6b86c8, 120) de la derecha; abajo, la raya del 2 a 20 (0x6b86d0)
-// del borde y el negro de 18 (0x41900000) desde 19 (0x6b8870), y la raya del costado de 19 (0x41980000); arriba, la
-// raya del 2 en y + 0xe y el negro de 14 (0x41600000).
+// 0x499e44..0x49a0f4: the portrait takes the right 0x78 (0x6b86c8, 120); at the bottom, the palette 2 line 20
+// (0x6b86d0) from the edge and the black of 18 (0x41900000) from 19 (0x6b8870), and the side line of 19 (0x41980000);
+// at the top, the palette 2 line at y + 0xe and the black of 14 (0x41600000).
 constexpr std::int32_t ReadPortraitShown = 2;
 constexpr std::int32_t PortraitX = 0x78;
 constexpr double PortraitWidth = 120.0;
@@ -83,38 +83,39 @@ constexpr float ButtonsBarHeight = 18.0f;
 constexpr float PortraitLineHeight = 19.0f;
 constexpr std::int32_t HeaderLineY = 0xe;
 constexpr float HeaderBarHeight = 14.0f;
-// 0x49a10e..0x49a164: el texto 1014 en (x + 3, y + 3).
+// 0x49a10e..0x49a164: text 1014 at (x + 3, y + 3).
 constexpr std::size_t ReadHeaderText = 1014;
 constexpr std::int32_t ReadHeaderX = 3;
 constexpr std::int32_t ReadHeaderY = 3;
 
-// 0x498537..0x4986e8: arriba, el negro de 29 (0x41e80000) con las rayas del 2 en y + 0xe y en y + 0x1d; abajo, el negro
-// de 19 (0x41980000) desde 19 (0x6b8870) sobre el borde y su raya.
+// 0x498537..0x4986e8: at the top, the black of 29 (0x41e80000) with the palette 2 lines at y + 0xe and y + 0x1d; at
+// the bottom, the black of 19 (0x41980000) from 19 (0x6b8870) above the edge and its line.
 constexpr float WriteHeaderHeight = 29.0f;
 constexpr std::int32_t WriteToLineY = 0xe;
 constexpr std::int32_t WriteSubjectLineY = 0x1d;
 constexpr double WriteBottomRise = 19.0;
 constexpr float WriteBottomHeight = 19.0f;
-// 0x4986f5..0x49876d: el 1000 y el 1005 en x + 3 y en y + 3 y y + 0x12, en 0xffc8dce6, en la caja del ancho del 1000.
+// 0x4986f5..0x49876d: the 1000 and the 1005 at x + 3 and at y + 3 and y + 0x12, in 0xffc8dce6, in the box of the
+// 1000's width.
 constexpr std::uint32_t WriteTextColor = 0xffc8dce6u;
 constexpr std::size_t ToText = 1000;
 constexpr std::size_t SubjectText = 1005;
 constexpr std::int32_t WriteLabelX = 3;
 constexpr std::int32_t ToLabelY = 3;
 constexpr std::int32_t SubjectLabelY = 0x12;
-// 0x4987c7: los botones +0xb54 y +0xbdc, con +0xb0 en 1.
+// 0x4987c7: buttons +0xb54 and +0xbdc, with +0xb0 at 1.
 constexpr std::int32_t WithThePortrait = 1;
-// +0xa44, +0xacc, +0xb54 y +0xbdc (0x48f4ee).
+// +0xa44, +0xacc, +0xb54 and +0xbdc (0x48f4ee).
 constexpr std::size_t WriteButtonCount = 4;
-// 0x4670ba..0x4670d0: un texto vacío mide el "0" de 0x6c7ae4.
+// 0x4670ba..0x4670d0: an empty text measures 0x6c7ae4's "0".
 constexpr std::string_view EmptyTextMeasure = "0";
 
-// 0x4a5490 y 0x4a5750: los índices de 0x491960 del fondo (la sombra, con su 179), del borde, del elegido y de los que
-// esperan; el margen del renglón (0x6b8a44), su franja (1 más abajo, de 3 más, 0x6b86b8, desde x + 1 y 2 menos ancha)
-// y el texto en x + 2 y 3 más abajo; el alfa del texto, ftol(parpadeo · 255) (0x6b9f98), sobre 0xc8dce6 o sobre negro.
-// 0x4a5120: los íconos de la barra. win_letter.jpg (0x64d) de 15 × 9 con 0,9375 × 0,5625; win_man.jpg (0x64e) de
-// 25 × 14 con 0,78125 × 0,4375 (con la de amigos, desde v = 0,4375); win_push.jpg (0x64f) con w · 1/64 y h · 1/32
-// (0x6ba064 y 0x6b8880).
+// 0x4a5490 and 0x4a5750: the 0x491960 indices of the background (the shadow, with its 179), the edge, the chosen one
+// and the waiting ones; the row's margin (0x6b8a44), its band (1 lower, 3 more, 0x6b86b8, from x + 1 and 2 narrower)
+// and the text at x + 2 and 3 lower; the text's alpha, ftol(blink · 255) (0x6b9f98), over 0xc8dce6 or over black.
+// 0x4a5120: the bar's icons. win_letter.jpg (0x64d) of 15 × 9 with 0.9375 × 0.5625; win_man.jpg (0x64e) of 25 × 14
+// with 0.78125 × 0.4375 (with the friends window, from v = 0.4375); win_push.jpg (0x64f) with w · 1/64 and h · 1/32
+// (0x6ba064 and 0x6b8880).
 constexpr std::uint16_t LetterSlot = 0x64d;
 constexpr std::uint16_t ManSlot = 0x64e;
 constexpr std::uint16_t PushSlot = 0x64f;
@@ -147,12 +148,12 @@ constexpr double TextAlphaScale = 255.0;
 constexpr std::uint32_t ChatRowColor = 0xc8dce6u;
 constexpr std::uint32_t AlphaShift = 24;
 constexpr std::uint32_t ByteMask = 0xffu;
-// 0x4a5943..0x4a5a68: strncpy de 0x100 del título, strtok con "," (0x6c7b88) y el resto en w − 8, un renglón.
+// 0x4a5943..0x4a5a68: strncpy of 0x100 of the title, strtok with "," (0x6c7b88) and the rest in w − 8, one line.
 constexpr std::size_t ChatTitleCopy = 0x100;
 constexpr char TitleDelimiter = ',';
 constexpr std::int32_t ChatTextCut = 8;
-// 0x4a5ac2..0x4a5b5a: con más de dos miembros, win_mark.tga de 4 × 6 (0, 0, 0,5, 0,75) en x + w − 7 (0x6b8878) y 5
-// más abajo (0x6b87f8) que el renglón, con glColor3f(255, 0, 0) y después glColor3f(255, 255, 255).
+// 0x4a5ac2..0x4a5b5a: with more than two members, win_mark.tga of 4 × 6 (0, 0, 0.5, 0.75) at x + w − 7 (0x6b8878) and
+// 5 lower (0x6b87f8) than the row, with glColor3f(255, 0, 0) and then glColor3f(255, 255, 255).
 constexpr std::int32_t ManyMembers = 2;
 constexpr std::uint16_t MarkSlot = 0x64c;
 constexpr double MarkInset = 7.0;
@@ -165,8 +166,8 @@ constexpr float FullColor = 255.0f;
 
 using Math::F32;
 
-// 0x46057d..0x460631 con 0x5763510 + 8 en 0 (el de este main.exe, como el registro del chat de 0x45cbb0): los colores
-// del nombre por el tipo (+0x110); 0x460550 no tiene caso para 6 o más y quedan los de antes.
+// 0x46057d..0x460631 with 0x5763510 + 8 at 0 (this main.exe's, like the chat record of 0x45cbb0): the name's colors by
+// the kind (+0x110); 0x460550 has no case for 6 or more and the previous ones stay.
 void ChatNameColors(std::int32_t kind, Render::Text::TextColors& colors)
 {
     switch (kind)
@@ -194,7 +195,7 @@ void ChatNameColors(std::int32_t kind, Render::Text::TextColors& colors)
     }
 }
 
-// 0x460819..0x46089b: los del texto, con el 1 y el 3 más claros.
+// 0x460819..0x46089b: the text's, with 1 and 3 lighter.
 void ChatTextColors(std::int32_t kind, Render::Text::TextColors& colors)
 {
     if (kind == 1)
@@ -205,9 +206,9 @@ void ChatTextColors(std::int32_t kind, Render::Text::TextColors& colors)
         ChatNameColors(kind, colors);
 }
 
-// 0x460550, la vtable + 0x80 de los renglones del chat (0x45f240, vtable 0x6b9030) con 0x5763510 + 8 en 0: con la
-// mezcla normal, el nombre con ": " (sprintf "%s: ", 0x6c7aa8) y su ancho en 640 × 480 (GetTextExtentPointA con el
-// DC, ftol(cx / rx)), y el texto (sprintf "%s") después, con 0x465950 directo. Da 1.
+// 0x460550, the vtable + 0x80 of the chat's lines (0x45f240, vtable 0x6b9030) with 0x5763510 + 8 at 0: with the
+// normal blend, the name with ": " (sprintf "%s: ", 0x6c7aa8) and its width in 640 × 480 (GetTextExtentPointA with the
+// DC, ftol(cx / rx)), and the text (sprintf "%s") after it, with 0x465950 directly. Returns 1.
 std::int32_t DrawTheChatRow(const Ui::OldWindowDrawContext& context, const Ui::OldList& list, const Ui::ChatLine& line,
                             std::int32_t row, const Ui::OldWindowDrawView& view)
 {
@@ -231,10 +232,10 @@ std::int32_t DrawTheChatRow(const Ui::OldWindowDrawContext& context, const Ui::O
     return 1;
 }
 
-// 0x45f9c0, la vtable + 0x14 de los renglones (0x47a810 con los elementos de 0x11c del registro del chat): la barra
-// (0x45fac0, igual a 0x461890) y los renglones. Con +0xc8 en 1 (0x45f240) la lista muestra su segundo deque (+0xcc),
-// que 0x460130 llena con push_front: el primero es el último pedazo del renglón más nuevo, partido en el ancho de la
-// lista menos 0x1e (0x459c70). El iterador corre hasta el final de ese deque (+0xe8, 0x45f9fd).
+// 0x45f9c0, the lines' vtable + 0x14 (0x47a810 with the chat record's 0x11c elements): the bar (0x45fac0, equal to
+// 0x461890) and the lines. With +0xc8 at 1 (0x45f240) the list shows its second deque (+0xcc), which 0x460130 fills
+// with push_front: the first is the last piece of the newest line, split at the list's width minus 0x1e (0x459c70).
+// The iterator runs to the end of that deque (+0xe8, 0x45f9fd).
 void DrawTheChatLines(const Ui::OldWindowDrawContext& context, Ui::OldChatPart& chat, const Ui::OldWindowDrawView& view)
 {
     Ui::OldList& list = chat.lines;
@@ -247,7 +248,8 @@ void DrawTheChatLines(const Ui::OldWindowDrawContext& context, Ui::OldChatPart& 
                                     .tail = {}});
 }
 
-// 0x491ba0(x, y, h): la raya entre dos listas, sin cambiar la mezcla: los filos del 2 y el medio del 1.
+// 0x491ba0(x, y, h): the line between two lists, without changing the blend: the palette 2 edges and the palette 1
+// middle.
 void DrawTheListSeparator(Render::SpriteBatch& sprites, float x, float y, float height)
 {
     SetThePalette(sprites, LineIndex, 1.0f);
@@ -257,7 +259,7 @@ void DrawTheListSeparator(Render::SpriteBatch& sprites, float x, float y, float 
     sprites.ColorQuad(F32(static_cast<double>(x) + SeparatorMiddleX), y, SeparatorMiddleWidth, height);
 }
 
-// La raya a `fromRight` del borde derecho del área de adentro: FILD de x + w − fromRight y de y, y h − 16 en float.
+// The line `fromRight` from the inner area's right edge: FILD of x + w − fromRight and of y, and h − 16 in float.
 void DrawTheMembersSeparator(Render::SpriteBatch& sprites, const Ui::OldWindow& chat, std::int32_t fromRight)
 {
     DrawTheListSeparator(sprites, ToFloat(Ui::Steps::ClientX(chat, 0) + Ui::Steps::ClientWidth(chat) - fromRight),
@@ -265,7 +267,7 @@ void DrawTheMembersSeparator(Render::SpriteBatch& sprites, const Ui::OldWindow& 
                          F32(static_cast<double>(Ui::Steps::ClientHeight(chat)) - SeparatorCut));
 }
 
-// La y de un quad desde el borde de abajo: FILD h, FADD de y en float y FSUB.
+// A quad's y from the bottom edge: FILD h, FADD of y in float and FSUB.
 float FromTheBottom(const Ui::OldWindow& window, double rise)
 {
     return F32(static_cast<double>(Ui::Steps::ClientHeight(window)) +
@@ -277,19 +279,19 @@ std::string TextAt(const Ui::OldWindowDrawView& view, std::size_t index)
     return view.texts != nullptr ? view.texts->At(index) : std::string();
 }
 
-// La ventana `id` de la lista minimizada (0x490a00 y 0x45a9c0 con 5). Una que no está, que el original no ve (lee la
-// de 0), no.
+// Whether window `id` of the list is minimized (0x490a00 and 0x45a9c0 with 5). One that does not exist, which the
+// original does not see (it reads that of 0), is not.
 bool IsMinimized(Ui::OldWindowManager& manager, std::int32_t id)
 {
     const Ui::OldWindow* window = Ui::FindTheOldWindow(manager, id);
     return window != nullptr && window->base.state == Ui::MinimizedWindow;
 }
 
-// 0x4a5943..0x4a5a68: el texto del renglón de un chat, del título de su ventana (+0x98, strncpy de 0x100): strtok(","),
-// el primer pedazo sin las comas de adelante; si es más largo que el 994, lo que sigue al 994 (y al 995 si empieza
-// con él) cortado por 0x459c70 en w − 8 y un renglón (de 0x40 bytes: los títulos de MuRet no llegan); si no, el 995.
-// Sin pedazo (un título de comas, que el original no ve: strlen de NULL) o pasando el final del pedazo, MuRet no lee
-// nada (*inferido*).
+// 0x4a5943..0x4a5a68: the text of a chat's row, from its window's title (+0x98, strncpy of 0x100): strtok(","), the
+// first piece without the leading commas; if it is longer than the 994, what follows the 994 (and the 995 if it starts
+// with it) cut by 0x459c70 at w − 8 and one line (of 0x40 bytes: MuRet's titles do not reach it); otherwise, the 995.
+// Without a piece (a title of commas, which the original does not see: strlen of NULL) or past the piece's end, MuRet
+// reads nothing (*inferred*).
 Core::Expected<std::string, std::string> TextOfTheChatRow(const Ui::OldWindow* chat, const Ui::OldWindow& window,
                                                           const Ui::OldWindowDrawContext& context,
                                                           const Ui::OldWindowDrawView& view)
@@ -310,8 +312,8 @@ Core::Expected<std::string, std::string> TextOfTheChatRow(const Ui::OldWindow* c
     return wrapped.Value().lines.empty() ? std::string() : wrapped.Value().lines.front();
 }
 
-// 0x4a5750, desde 0x4a5490 con el blanco con textura: los renglones de los chats de abajo hacia arriba, el n de
-// (renglón + 4) · n sobre +0x104 (uno minimizado no cuenta).
+// 0x4a5750, from 0x4a5490 with the textured white: the chats' rows from bottom to top, the n of (row + 4) · n over
+// +0x104 (a minimized one does not count).
 Core::Expected<void, std::string> DrawTheChatRowsOfTheList(Ui::OldWindowManager& manager, const Ui::OldWindow& window,
                                                            const Ui::OldWindowDrawContext& context,
                                                            const Ui::OldWindowDrawView& view)
@@ -354,7 +356,7 @@ Core::Expected<void, std::string> DrawTheChatRowsOfTheList(Ui::OldWindowManager&
         auto text = TextOfTheChatRow(chat, window, context, view);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        // FILD de n y FSTP en float: el mismo n.
+        // FILD of n and FSTP as float: the same n.
         static_cast<void>(DrawText(
             context, base.x + ChatTextX,
             Truncate(bottom - step * static_cast<double>(static_cast<float>(row)) + ChatTextDrop), text.Value()));
@@ -368,9 +370,9 @@ Core::Expected<void, std::string> DrawTheChatRowsOfTheList(Ui::OldWindowManager&
     return {};
 }
 
-// 0x5542f0(x, y, texto, caja, 3, 0) → 0x465950 → 0x467060 con el modo 3 (0x467134..0x467144): TextOutA pone el texto
-// en la columna caja − cx del DIB, que tiene la caja de ancho: alineado a la derecha de la caja, cortado a la izquierda
-// si es más ancho. Sin texto y sin caja no dibuja nada (0x5542f8..0x55430f); vacío y con caja, el fondo solo.
+// 0x5542f0(x, y, text, box, 3, 0) → 0x465950 → 0x467060 with mode 3 (0x467134..0x467144): TextOutA puts the text at
+// column box − cx of the DIB, which is box wide: right-aligned in the box, cut on the left if wider. Without text and
+// without a box it draws nothing (0x5542f8..0x55430f); empty and with a box, the background only.
 void DrawRightAligned(const Ui::OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                       std::int32_t box)
 {
@@ -381,9 +383,9 @@ void DrawRightAligned(const Ui::OldWindowDrawContext& context, std::int32_t x, s
                              width - box, box);
 }
 
-// 0x465770, la vtable + 0x80 de la lista del cuerpo (0x464620, vtable 0x6b93d4): con la mezcla normal, el renglón
-// (sprintf "%s", 0x6c7084) en x + 10 y en su y (0x465710, igual a 0x461c70), con 0x465950 directo. Con 0x6c7a88 en 1
-// vuelve a poner el fondo en 0, que ya está en 0 (0x4657a5..0x4657be). Da 1.
+// 0x465770, the body list's vtable + 0x80 (0x464620, vtable 0x6b93d4): with the normal blend, the line (sprintf "%s",
+// 0x6c7084) at x + 10 and at its y (0x465710, equal to 0x461c70), with 0x465950 directly. With 0x6c7a88 at 1 it sets
+// the background to 0 again, which is already 0 (0x4657a5..0x4657be). Returns 1.
 std::int32_t DrawTheBodyRow(const Ui::OldWindowDrawContext& context, const Ui::OldList& list, std::size_t size,
                             const std::string& line, std::int32_t row)
 {
@@ -395,9 +397,8 @@ std::int32_t DrawTheBodyRow(const Ui::OldWindowDrawContext& context, const Ui::O
     return 1;
 }
 
-// 0x464d90, la vtable + 0x14 del cuerpo (0x47a810 con los elementos de 0x3f0): la barra (0x464e90, igual a 0x461890) y
-// los renglones. Como la de los renglones del chat, muestra su segundo deque, que 0x465450 llena con push_front y
-// partido.
+// 0x464d90, the body's vtable + 0x14 (0x47a810 with 0x3f0 elements): the bar (0x464e90, equal to 0x461890) and the
+// lines. Like the chat's lines, it shows its second deque, which 0x465450 fills with push_front, wrapped.
 void DrawTheBodyLines(const Ui::OldWindowDrawContext& context, Ui::OldLetterPart& letter,
                       const Ui::OldWindowDrawView& view)
 {
@@ -411,8 +412,8 @@ void DrawTheBodyLines(const Ui::OldWindowDrawContext& context, Ui::OldLetterPart
                                     .tail = {}});
 }
 
-// Lo que mide el 9 de los renglones al volver a partirlos durante el dibujo: GetTextExtentPointA sobre el DC, con la
-// fuente que tenga en ese momento.
+// What the lines' 9 measures when wrapping them again during the drawing: GetTextExtentPointA over the DC, with
+// whatever font it has at that moment.
 Ui::OldWindowMeasure MeasureOfTheDraw(const Ui::OldWindowDrawContext& context)
 {
     return Ui::OldWindowMeasure{.measure = context.text, .dcFont = context.dcFont, .screen = context.sprites.Screen()};
@@ -492,7 +493,7 @@ Core::Expected<void, std::string> DrawTheReadWindow(Ui::OldWindowManager& manage
     SetThePalette(sprites, BlackIndex, 1.0f);
     sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(read, 0)), ToFloat(width), HeaderBarHeight);
     WhiteWithTexture(sprites);
-    // sprintf(1014, +0x780, +0x88b, +0x89b) con los colores que haya: los del último renglón del cuerpo.
+    // sprintf(1014, +0x780, +0x88b, +0x89b) with whatever colors there are: those of the body's last line.
     const LetterEntry& entry = letter.entry;
     static_cast<void>(DrawText(context, Ui::Steps::ClientX(read, ReadHeaderX), Ui::Steps::ClientY(read, ReadHeaderY),
                                Crt::Sprintf(TextAt(view, ReadHeaderText), entry.name, entry.date, entry.time)));
@@ -523,15 +524,15 @@ Core::Expected<void, std::string> DrawTheWriteWindow(Ui::OldWindowManager& manag
     SetThePalette(sprites, LineIndex, 1.0f);
     sprites.ColorQuad(left, FromTheBottom(write, WriteBottomRise), width, 1.0f);
     WhiteWithTexture(sprites);
-    // Solo el color del texto (0x6c8e5c): el fondo queda el que haya.
+    // Only the text color (0x6c8e5c): the background stays whatever it is.
     context.textColors.text = WriteTextColor;
-    // GetTextExtentPointA del 1000 con el DC (0x498702..0x49871b): la caja de los dos.
+    // GetTextExtentPointA of the 1000 with the DC (0x498702..0x49871b): the box for both.
     const std::string to = TextAt(view, ToText);
     const std::int32_t box = context.text.Measure(context.dcFont, to).width;
     DrawRightAligned(context, Ui::Steps::ClientX(write, WriteLabelX), Ui::Steps::ClientY(write, ToLabelY), to, box);
     DrawRightAligned(context, Ui::Steps::ClientX(write, WriteLabelX), Ui::Steps::ClientY(write, SubjectLabelY),
                      TextAt(view, SubjectText), box);
-    // 0x498772..0x4987a1: la vtable + 0x14 (0x468320) del nombre, del asunto y del cuerpo, con la mezcla normal.
+    // 0x498772..0x4987a1: the vtable + 0x14 (0x468320) of the name, the subject and the body, with the normal blend.
     const auto drawTheEdit = [&](Ui::OldEdit& edit)
     { Ui::OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view); };
     drawTheEdit(letter.to);
@@ -553,9 +554,9 @@ void DrawTheFriendBarIcons(Ui::OldWindowManager& manager, Render::SpriteBatch& s
 {
     Ui::OldWindow& windowList = manager.windowList;
     Ui::OldWindowListPart& list = windowList.list;
-    // 0x4a512f..0x4a5146: IDIV con signo y SETL.
+    // 0x4a512f..0x4a5146: signed IDIV and SETL.
     const bool lit = list.barBlink % BarBlinkPeriod < BarBlinkLit;
-    // El += de +0x148 en todas las salidas; en 32 bits, como el original.
+    // The += of +0x148 on every exit; in 32 bits, like the original.
     const auto nextDraw = [&list]
     { list.barBlink = static_cast<std::int32_t>(static_cast<std::uint32_t>(list.barBlink) + 1u); };
     const std::int32_t x = windowList.base.x;
@@ -570,7 +571,7 @@ void DrawTheFriendBarIcons(Ui::OldWindowManager& manager, Render::SpriteBatch& s
     std::int32_t letterY = 0;
     if (Ui::FindTheOldWindow(manager, manager.friends) != nullptr)
     {
-        // FILD y FMUL de los float: w / 64 y h / 32, exactos.
+        // FILD and FMUL of the floats: w / 64 and h / 32, exact.
         const float width = ToFloat(windowList.base.width);
         const float height = ToFloat(list.rowStep);
         Ui::OldDraw::Quad(sprites, PushSlot, ToFloat(x), ToFloat(y), width, height, 0.0f, 0.0f, width * PushDu,
@@ -588,7 +589,7 @@ void DrawTheFriendBarIcons(Ui::OldWindowManager& manager, Render::SpriteBatch& s
             nextDraw();
             return;
         }
-        // 0x4a5230: sin ninguna sin leer, 0x4a6420(0); dibuja igual.
+        // 0x4a5230: with no unread one, 0x4a6420(0); it draws anyway.
         if (!unread())
             list.newLetter = 0;
     }
@@ -639,7 +640,7 @@ Core::Expected<void, std::string> DrawTheChatsInTheList(Ui::OldWindowManager& ma
     if (count == 0)
         return {};
     Render::SpriteBatch& sprites = context.sprites;
-    // ftol((renglón + 4) · cuántos), y el alto en float (FILD y FSTP).
+    // ftol((row + 4) · count), and the height in float (FILD and FSTP).
     const std::int32_t height =
         Truncate((static_cast<double>(list.rowHeight) + ChatRowMargin) * static_cast<double>(count));
     const float tall = ToFloat(height);

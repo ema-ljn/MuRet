@@ -42,9 +42,9 @@
 #include <utility>
 #include <vector>
 
-// El tooltip de las mascotas, 0x422990 (CL9 hito 4; 06 § El A9 de las mascotas, "El tooltip de las mascotas"), por el
-// cuerpo del ítem (0x5b2aa0) con el registro propio abierto alrededor como 0x5f7bc0, en 640 × 480 (ry = 1) y con el
-// texto falso de RecordingTextDrawer (13 de alto). Los textos son inventados. Cada test corre en Lorencia y en Devias.
+// The pets' tooltip, 0x422990 (CL9 milestone 4; 06 § El A9 de las mascotas, "El tooltip de las mascotas"), through
+// the item body (0x5b2aa0) with the own record open around it like 0x5f7bc0, at 640 × 480 (ry = 1) and with the fake
+// text of RecordingTextDrawer (13 high). The texts are invented. Each test runs in Lorencia and in Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -59,21 +59,21 @@ constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
-// El IsOpen(0x10000) del precio (un byte protegido) y un acceso de Skill.bmd que cierra en 0.
+// The price's IsOpen(0x10000) (a protected byte) and a Skill.bmd access that closes at 0.
 constexpr std::uint32_t NpcShopQuery = 1;
 constexpr auto SkillAccess = static_cast<std::uint32_t>(Client::Tables::SkillRecordSize);
-// Lo que había en las negritas antes: 0x422990 no las limpia.
+// What was in the bolds before: 0x422990 does not clear them.
 constexpr std::int32_t StaleBold = 7;
 
 constexpr std::uint16_t DarkHorse = 0x1a04;
 constexpr std::uint16_t DarkRaven = 0x1a05;
-// La skill del caballo (el tag de su opción de skill) con su maná en Skill.bmd (+0x22).
+// The horse's skill (the tag of its skill option) with its mana in Skill.bmd (+0x22).
 constexpr std::uint8_t HorseSkill = 0x3e;
 constexpr std::uint16_t HorseSkillMana = 30;
-// La caja: el centro de arriba.
+// The box's top center.
 constexpr std::int32_t BoxX = 320;
 constexpr std::int32_t BoxY = 300;
-// 0x78abb28 y 0x78abb2c: el inventario y la casilla del ítem.
+// 0x78abb28 and 0x78abb2c: the inventory and the item's cell.
 constexpr std::int32_t HoveredSlot = 20;
 
 std::map<std::size_t, std::string> PetTooltipTexts()
@@ -125,7 +125,7 @@ struct Line
     std::int32_t bold = 0;
 };
 
-// El caballo como lo deja 0x54bf40: la opción de skill y la 0x96 (con un valor viejo) desde la segunda.
+// The horse as 0x54bf40 leaves it: the skill option and the 0x96 (with an old value) from the second.
 ItemState TheHorse()
 {
     ItemState item;
@@ -138,7 +138,7 @@ ItemState TheHorse()
     return item;
 }
 
-// El cuervo con una opción 0x50.
+// The raven with a 0x50 option.
 ItemState TheRaven()
 {
     ItemState item;
@@ -209,7 +209,7 @@ protected:
                               { m_sent.push_back(std::move(packet)); }};
     }
 
-    // 0x5f7bc0: el cuerpo del ítem (0x5b2aa0) con el registro propio abierto alrededor.
+    // 0x5f7bc0: the item body (0x5b2aa0) with the own record open around it.
     Client::Core::Expected<void, std::string> Hover(ItemState& item, std::int32_t y = BoxY)
     {
         GameHudContext context = Context();
@@ -218,7 +218,7 @@ protected:
             Client::Tooltips::ItemTooltipContext{.hud = context, .x = BoxX, .y = y, .item = item});
     }
 
-    // Dos pasadas: la primera pide el A9 y la segunda dibuja. Devuelve la segunda.
+    // Two passes: the first requests the A9 and the second draws. Returns the second.
     Client::Core::Expected<void, std::string> HoverTwice(ItemState& item, std::int32_t y = BoxY)
     {
         if (auto first = Hover(item, y); !first.HasValue())
@@ -245,12 +245,12 @@ protected:
         }
         for (std::size_t i = expected.size(); i < Client::Tooltips::TooltipLineCount; ++i)
             EXPECT_TRUE(lines.text[i].empty()) << "renglón " << i;
-        // 0x422990 cuenta en EBX y [EBP−0x24]: 0x78abb30 y 0x78abb34 quedan en el 0 de 0x5b2aa0.
+        // 0x422990 counts in EBX and [EBP−0x24]: 0x78abb30 and 0x78abb34 stay at the 0 of 0x5b2aa0.
         EXPECT_EQ(lines.next, 0);
         EXPECT_EQ(lines.halves, 0);
     }
 
-    // El A9 que salió, en claro.
+    // The A9 that went out, in clear.
     std::vector<std::byte> SentBytes(std::size_t index) const
     {
         const Client::Network::Packet decoded = Client::Network::Xor32Decode(m_sent.at(index).packet);
@@ -270,8 +270,8 @@ protected:
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
-// 0x4229d4..0x422a12 y 0x423c65..0x42403d: la primera vez anota el ítem, pide su A9 (la mascota, 0x78abb28 y 0x78abb2c)
-// y no dibuja nada, con los renglones ya limpios por 0x5b2aa0.
+// 0x4229d4..0x422a12 and 0x423c65..0x42403d: the first time it notes the item, requests its A9 (the pet, 0x78abb28
+// and 0x78abb2c) and draws nothing, with the lines already cleared by 0x5b2aa0.
 TEST_P(PetTooltipTest, TheFirstHoverAsksForThePetAndDrawsNothing)
 {
     Lines().text[4] = "viejo";
@@ -290,12 +290,12 @@ TEST_P(PetTooltipTest, TheFirstHoverAsksForThePetAndDrawsNothing)
     EXPECT_TRUE(Lines().text[4].empty());
     EXPECT_TRUE(m_text.texts.empty());
     EXPECT_EQ(m_random.State(), expected.State());
-    // Sin el 0x4221d0 ni el 0x4225d0 de la pasada que dibuja.
+    // Without the 0x4221d0 or the 0x4225d0 of the drawing pass.
     EXPECT_EQ(Runtime().pets[Client::Kernel::DarkHorsePetStats].nextExperience, 0u);
     EXPECT_EQ(horse.optionBytes[Client::Kernel::ItemOptionValueOffset + 1], 99);
 }
 
-// Cualquier cambio del lugar, del tipo o de D+4 vuelve a pedir; el cuervo pide la mascota 0.
+// Any change of the place, the type or D+4 asks again; the raven asks for pet 0.
 TEST_P(PetTooltipTest, AnotherPlaceTypeOrScalarAsksAgain)
 {
     ItemState horse = TheHorse();
@@ -312,9 +312,9 @@ TEST_P(PetTooltipTest, AnotherPlaceTypeOrScalarAsksAgain)
     EXPECT_EQ(Runtime().petTooltipQuery.type, DarkRaven);
 }
 
-// La segunda pasada del caballo: 0x4221d0, el nombre, la experiencia, el nivel, la durabilidad, el nivel pedido (3 · 2
-// + 0xda = 224, y al héroe de 200 le faltan 24), las clases, las dos opciones (la de skill lee su maná en Skill.bmd; la
-// 0x96 la reescribe 0x4225d0: 40 / 20 + 2 · 3 + 5), la defensa ((3 + 30) / 2) y la skill.
+// The horse's second pass: 0x4221d0, the name, the experience, the level, the durability, the required level (3 · 2 +
+// 0xda = 224, and the level 200 hero is missing 24), the classes, the two options (the skill one reads its mana in
+// Skill.bmd; 0x4225d0 rewrites the 0x96: 40 / 20 + 2 · 3 + 5), the defense ((3 + 30) / 2) and the skill.
 TEST_P(PetTooltipTest, TheSecondHoverDrawsTheHorse)
 {
     ItemState horse = TheHorse();
@@ -345,13 +345,13 @@ TEST_P(PetTooltipTest, TheSecondHoverDrawsTheHorse)
     EXPECT_EQ(m_random.State(), expected.State());
     EXPECT_EQ(Runtime().ownRecordDepth, 0);
     EXPECT_EQ(Runtime().movement.skillDepths[HorseSkill], 0);
-    // 0x423c0f..0x423c3d: 14 renglones y 11 medios, (14 − 11) · 13 + 11 · 13 / 2 = 110 arriba de y.
+    // 0x423c0f..0x423c3d: 14 lines and 11 halves, (14 − 11) · 13 + 11 · 13 / 2 = 110 above y.
     ASSERT_FALSE(m_text.texts.empty());
     EXPECT_EQ(m_text.texts[0].text, "Corcel");
     EXPECT_EQ(m_text.texts[0].y, BoxY - 110);
 }
 
-// Con el nivel pedido cumplido, el renglón en blanco y sin lo que falta; sin lugar arriba, la caja va en y.
+// With the required level met, the line in white and without what is missing; with no room above, the box goes at y.
 TEST_P(PetTooltipTest, AHeroWithTheLevelGetsAWhiteLineAndTheBoxStaysAtYWithoutRoom)
 {
     m_world->OwnCharacter().level = 224;
@@ -366,12 +366,12 @@ TEST_P(PetTooltipTest, AHeroWithTheLevelGetsAWhiteLineAndTheBoxStaysAtYWithoutRo
     EXPECT_EQ(lines.bold[6], 0);
     EXPECT_EQ(lines.text[7], "\n");
     EXPECT_EQ(lines.text[8], "Si: Senor");
-    // 13 renglones y 11 medios: 26 + 71 = 97, más que 50.
+    // 13 lines and 11 halves: 26 + 71 = 97, more than 50.
     ASSERT_FALSE(m_text.texts.empty());
     EXPECT_EQ(m_text.texts[0].y, 50);
 }
 
-// 0x423adc..0x423ae7: el caballo sin opciones no entra al lazo, y 0x4225d0 no corre ni le agrega la 0x96.
+// 0x423adc..0x423ae7: the horse without options does not enter the loop, and 0x4225d0 neither runs nor adds the 0x96.
 TEST_P(PetTooltipTest, AHorseWithoutOptionsSkipsTheLoop)
 {
     ItemState horse = TheHorse();
@@ -387,9 +387,9 @@ TEST_P(PetTooltipTest, AHorseWithoutOptionsSkipsTheLoop)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// Q-C1044: con la 0x96 en la primera opción, cada 0x4225d0 del lazo agrega otra (Q-C415) y la cuenta sube con el
-// índice. El original sigue hasta que el byte da la vuelta, escribiendo más allá del ítem; MuRet corta cuando la 0x96
-// cae fuera de las nueve que guarda.
+// Q-C1044: with the 0x96 in the first option, each 0x4225d0 of the loop adds another (Q-C415) and the count rises with
+// the index. The original goes on until the byte wraps around, writing beyond the item; MuRet cuts when the 0x96 falls
+// outside the nine it keeps.
 TEST_P(PetTooltipTest, AHorseWithItsDefenseFirstGrowsItsOptionsUntilItCuts)
 {
     ItemState horse = TheHorse();
@@ -404,8 +404,9 @@ TEST_P(PetTooltipTest, AHorseWithItsDefenseFirstGrowsItsOptionsUntilItCuts)
     EXPECT_EQ(Lines().text[17], "Defensa 13");
 }
 
-// El cuervo: el daño (+0xc, +0xe y +0x12) y la velocidad (+0x10) que calcula 0x4221d0 con el liderazgo 10 + 300, la
-// durabilidad, el liderazgo pedido (2 · 15 + 0xb9 = 215, cumplido) y su opción, sin la defensa ni la skill del caballo.
+// The raven: the damage (+0xc, +0xe and +0x12) and the speed (+0x10) that 0x4221d0 computes with leadership 10 + 300,
+// the durability, the required leadership (2 · 15 + 0xb9 = 215, met) and its option, without the horse's defense or
+// skill.
 TEST_P(PetTooltipTest, TheSecondHoverDrawsTheRaven)
 {
     ItemState raven = TheRaven();
@@ -429,12 +430,12 @@ TEST_P(PetTooltipTest, TheSecondHoverDrawsTheRaven)
                  {"Opcion +4", 1, 0}});
     EXPECT_EQ(raven.optionCount, 1);
     EXPECT_EQ(m_random.State(), expected.State());
-    // 12 renglones y 11 medios: 13 + 71 = 84.
+    // 12 lines and 11 halves: 13 + 71 = 84.
     ASSERT_FALSE(m_text.texts.empty());
     EXPECT_EQ(m_text.texts[0].y, BoxY - 84);
 }
 
-// 0x423839..0x423887: el liderazgo del héroe se suma en 16 bits: 65.500 + 100 es 64, y le faltan 151.
+// 0x423839..0x423887: the hero's leadership adds in 16 bits: 65500 + 100 is 64, and 151 are missing.
 TEST_P(PetTooltipTest, TheRavenLeadershipAddsInSixteenBits)
 {
     Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
@@ -455,7 +456,7 @@ TEST_P(PetTooltipTest, TheRavenLeadershipAddsInSixteenBits)
     EXPECT_EQ(lines.text[10], "\n");
 }
 
-// 0x422a43..0x422ad4: el precio propio de la mascota, dividido por 3 y truncado a centenas, antes del nombre.
+// 0x422a43..0x422ad4: the pet's own price, divided by 3 and truncated to hundreds, before the name.
 TEST_P(PetTooltipTest, TheNpcShopShowsThePetPriceBeforeItsName)
 {
     for (const bool horse : {true, false})
@@ -478,7 +479,7 @@ TEST_P(PetTooltipTest, TheNpcShopShowsThePetPriceBeforeItsName)
     }
 }
 
-// 0x422ad9..0x42303d: la mascota usa los mismos mapas del precio personal, con contadores locales.
+// 0x422ad9..0x42303d: the pet uses the same maps as the personal price, with local counters.
 TEST_P(PetTooltipTest, TheOtherShopPetPriceWarnsWhenZenIsMissing)
 {
     Runtime().panels.personalShop = 1;
@@ -502,7 +503,7 @@ TEST_P(PetTooltipTest, TheOtherShopPetPriceWarnsWhenZenIsMissing)
     EXPECT_EQ(Lines().halves, 0);
 }
 
-// Un dibujo intermedio de MuRet no anota ni pide, y dibuja sobre copias: la tabla de las mascotas y el ítem quedan.
+// A MuRet intermediate drawing neither notes nor requests, and draws on copies: the pets table and the item stay.
 TEST_P(PetTooltipTest, AProjectedDrawNeitherAsksNorWrites)
 {
     ItemState& cell = m_world->Inventory().cells[3];
@@ -535,7 +536,7 @@ TEST_P(PetTooltipTest, AProjectedDrawNeitherAsksNorWrites)
     EXPECT_EQ(cell.optionBytes[Client::Kernel::ItemOptionValueOffset + 1], 13);
 }
 
-// Con otro tipo, 0x422990 devuelve 0 sin tocar nada (0x4229c3).
+// With another type, 0x422990 returns 0 without touching anything (0x4229c3).
 TEST_P(PetTooltipTest, AnotherTypeIsNotAPet)
 {
     ItemState item;

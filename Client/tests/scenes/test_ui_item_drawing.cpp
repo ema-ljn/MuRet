@@ -38,9 +38,9 @@
 #include <utility>
 #include <vector>
 
-// El ítem 3D de la UI (CL8 hito 4, 06 § El inventario, "El ítem de la UI"): la cámara de 0x620480 en el pase de
-// 0x5ac120, el punto de la caja de 0x5e1480, la pose de 0x5e0720 y el dibujo con el pase abierto por el primero. Los
-// valores esperados salen de la x87 a mano (los floats con sus bits); los modelos son inventados.
+// The UI's 3D item (CL8 milestone 4, 06 § El inventario, "El ítem de la UI"): the camera of 0x620480 in the pass of
+// 0x5ac120, the box point of 0x5e1480, the pose of 0x5e0720 and the drawing with the pass the first one opened. The
+// expected values come from the x87 by hand (the floats with their bits); the models are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -59,7 +59,7 @@ std::uint32_t BitsOf(float value)
     return std::bit_cast<std::uint32_t>(value);
 }
 
-// Item.bmd con el byte de las dos manos (+0x1e) del tipo `type` en `twoHands`.
+// Item.bmd with the two-hands byte (+0x1e) of type `type` at `twoHands`.
 Client::Tables::ItemTable ItemsWithTwoHands(std::size_t type, std::uint8_t twoHands)
 {
     using Client::Tables::ItemRecordSize;
@@ -70,14 +70,14 @@ Client::Tables::ItemTable ItemsWithTwoHands(std::size_t type, std::uint8_t twoHa
     return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
-// Item.bmd con todo en 0: las armas, con una mano.
+// Item.bmd with everything at 0: the weapons, one-handed.
 const Client::Tables::ItemTable& PlainItems()
 {
     static const Client::Tables::ItemTable items = ItemsWithTwoHands(0, 0);
     return items;
 }
 
-// La cámara de la UI en el origen y el punto (481, 251) de 640 × 480: (11,708546; −0,7999627; −2.000).
+// The UI camera at the origin and the point (481, 251) of 640 × 480: (11.708546; −0.7999627; −2000).
 UnprojectedPoint Anchor640()
 {
     return UnprojectedPoint{.camera = glm::vec3(0.0f),
@@ -94,8 +94,8 @@ Client::Core::Expected<UiItemPlacement, std::string> Place(std::int32_t model, s
 }
 } // namespace
 
-// 0x5ac120: 0x6203c0(1°, W / H, 20, 2.000) en la pantalla entera y la vista en la identidad. Las escalas y el centro
-// de 0x6203c0 y 0x620d10 con los bits de la x87.
+// 0x5ac120: 0x6203c0(1°, W / H, 20, 2000) on the whole screen and the view at the identity. The scales and the center
+// of 0x6203c0 and 0x620d10 with the x87's bits.
 TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
 {
     struct Case
@@ -122,8 +122,8 @@ TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
     }
 }
 
-// 0x620480 con la cámara de la UI: el píxel de 640 × 480 escalado en enteros sin signo, menos el centro, por la
-// escala y por ±2.000; la cámara en el origen. En 1.024 × 768 los mismos puntos caen en otros píxeles enteros.
+// 0x620480 with the UI camera: the 640 × 480 pixel scaled in unsigned integers, minus the center, times the scale and
+// times ±2000; the camera at the origin. At 1024 × 768 the same points fall on other integer pixels.
 TEST(UiItemDrawingTest, TheUnprojectedPointFollowsThePixelsOfEachResolution)
 {
     struct Case
@@ -157,9 +157,9 @@ TEST(UiItemDrawingTest, TheUnprojectedPointFollowsThePixelsOfEachResolution)
     }
 }
 
-// 0x5e14e9..0x5e1d69: x + w · kx e y + h · ky en la x87 con los floats de la tabla, y _ftol. El 0,7 de 0x6b8a5c es
-// 0,69999998: con 20 de ancho, 13,9999997 y la casilla de al lado. El 0x1a0e suma la altura entera; el 0x1a13 con el
-// paso 3 y el 0x1a0b con el 2, la esquina (Q-C481).
+// 0x5e14e9..0x5e1d69: x + w · kx and y + h · ky in the x87 with the table's floats, and _ftol. The 0.7 at 0x6b8a5c is
+// 0.69999998: with a width of 20, 13.9999997 and the cell next to it. 0x1a0e adds the whole height; 0x1a13 with step 3
+// and 0x1a0b with 2, the corner (Q-C481).
 TEST(UiItemDrawingTest, TheAnchorTakesTheFactorsOfTheTypeInTheX87)
 {
     struct Case
@@ -193,7 +193,7 @@ TEST(UiItemDrawingTest, TheAnchorTakesTheFactorsOfTheTypeInTheX87)
     EXPECT_NE(far.Error().find("0x5e1d58"), std::string::npos) << far.Error();
 }
 
-// 0x5e1486..0x5e14e5: x ≤ mx < x + w e y ≤ my < y + h, si nadie tiene un ítem en el cursor o con el último argumento.
+// 0x5e1486..0x5e14e5: x ≤ mx < x + w and y ≤ my < y + h, if nobody has an item on the cursor or with the last argument.
 TEST(UiItemDrawingTest, TheHoverIsHalfOpenAndWaitsForAnEmptyCursor)
 {
     const UiItemBox box{100.0f, 100.0f, 20.0f, 40.0f};
@@ -206,7 +206,7 @@ TEST(UiItemDrawingTest, TheHoverIsHalfOpenAndWaitsForAnEmptyCursor)
     EXPECT_TRUE(Client::Items::UiItemHovered(box, {110, 120}, 1, true));
 }
 
-// 0x5e1d6c..0x5e2267: el modelo y el nivel que 0x5e1480 le pasa a 0x5e0720.
+// 0x5e1d6c..0x5e2267: the model and the level that 0x5e1480 passes to 0x5e0720.
 TEST(UiItemDrawingTest, TheCallTakesTheModelAndTheLevelOfTheType)
 {
     struct Case
@@ -238,8 +238,8 @@ TEST(UiItemDrawingTest, TheCallTakesTheModelAndTheLevelOfTheType)
     }
 }
 
-// 0x5e072f..0x5e075d y 0x5fc790: a 0,1 del camino de la cámara al punto, o a 0,07 con el último argumento; el 0x1031
-// corre la x y la y con floats, y el 0x620 la x con el double de 0x6ba618.
+// 0x5e072f..0x5e075d and 0x5fc790: at 0.1 of the way from the camera to the point, or at 0.07 with the last argument;
+// 0x1031 shifts x and y with floats, and 0x620 shifts x with the double at 0x6ba618.
 TEST(UiItemDrawingTest, ThePlacementMovesTowardTheCameraWithItsShifts)
 {
     glm::vec3 angles{};
@@ -263,8 +263,7 @@ TEST(UiItemDrawingTest, ThePlacementMovesTowardTheCameraWithItsShifts)
     EXPECT_EQ(shield.Value().angles, glm::vec3(180.0f, 90.0f, 13.0f));
 }
 
-// 0x5e09bd: las armas de 0x212 a 0xe11 se inclinan 15 o 25 por el byte de las dos manos de Item.bmd; sin la tabla,
-// corta.
+// 0x5e09bd: the weapons from 0x212 to 0xe11 lean 15 or 25 by Item.bmd's two-hands byte; without the table, it cuts.
 TEST(UiItemDrawingTest, TheWeaponsLeanByTheirTwoHandsByte)
 {
     glm::vec3 angles{};
@@ -283,7 +282,7 @@ TEST(UiItemDrawingTest, TheWeaponsLeanByTheirTwoHandsByte)
     EXPECT_NE(missing.Error().find("0x5e09bd"), std::string::npos) << missing.Error();
 }
 
-// 0x5e0de0: bajo el mouse, la y gira con el reloj por 0,45; los globales quedan con el giro.
+// 0x5e0de0: under the mouse, y turns with the clock times 0.45; the globals keep the turn.
 TEST(UiItemDrawingTest, TheHoveredItemSpinsWithTheClock)
 {
     glm::vec3 angles{};
@@ -295,8 +294,8 @@ TEST(UiItemDrawingTest, TheHoveredItemSpinsWithTheClock)
     EXPECT_EQ(angles, spun.Value().angles);
 }
 
-// El zen (0x1e1e): con el paso 0 o 2 dibuja y posa otro modelo; con un paso que no es 0, 1 ni 2 no escribe los
-// ángulos y se queda con los del ítem anterior (Q-C478).
+// The zen (0x1e1e): with step 0 or 2 it draws and poses another model; with a step that is not 0, 1 or 2 it does not
+// write the angles and keeps the previous item's (Q-C478).
 TEST(UiItemDrawingTest, TheZenKeepsThePreviousAnglesWithAnUnknownStep)
 {
     glm::vec3 angles{};
@@ -322,8 +321,8 @@ TEST(UiItemDrawingTest, TheZenKeepsThePreviousAnglesWithAnUnknownStep)
     EXPECT_EQ(BitsOf(unknown.Value().scale), 0x3b656042u);
 }
 
-// 0x5e0e7c..0x5e13be: las armaduras posan con el 0x20a y la altura de la raíz de su familia; la escala, con los bits
-// del binario.
+// 0x5e0e7c..0x5e13be: the armors pose with 0x20a and the root height of their family; the scale, with the binary's
+// bits.
 TEST(UiItemDrawingTest, TheArmorsPoseWithThePlayerAndTheirFamilyHeight)
 {
     struct Case
@@ -355,8 +354,8 @@ TEST(UiItemDrawingTest, TheArmorsPoseWithThePlayerAndTheirFamilyHeight)
     }
 }
 
-// El 0x225, el 0xc1c y el 0xa24 con el nivel en −1 (los del 0x1a13) van con otra escala y el nivel en 0; el 0x1e32
-// sube 0,05 y apaga la x y la z de los ángulos.
+// 0x225, 0xc1c and 0xa24 with the level at −1 (those of 0x1a13) go with another scale and the level at 0; 0x1e32 rises
+// 0.05 and turns off the x and the z of the angles.
 TEST(UiItemDrawingTest, TheScaleTableRewritesTheLevelAndTheAngles)
 {
     glm::vec3 angles{};
@@ -378,7 +377,7 @@ TEST(UiItemDrawingTest, TheScaleTableRewritesTheLevelAndTheAngles)
 
 namespace
 {
-// Un triángulo con el vértice 0 en el origen del hueso: la x, la y y la z del primero son la posición del objeto.
+// A triangle with vertex 0 at the bone's origin: the first one's x, y and z are the object's position.
 class UiModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -446,8 +445,8 @@ struct UiDrawing
 };
 } // namespace
 
-// 0x5e13c5..0x5e146d: el primer ítem cierra el 2D y abre el pase de la UI; el modelo va en la posición de la pose, con
-// los rand() de 0x607b60 (uno con el 0x220). El final de 0x5ac120 dibuja el lote una vez; sin ítems, nada.
+// 0x5e13c5..0x5e146d: the first item closes the 2D and opens the UI pass; the model goes at the pose's position, with
+// the rand() of 0x607b60 (one with 0x220). The end of 0x5ac120 draws the batch once; with no items, nothing.
 TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
 {
     for (const Client::Core::PixelSize screen : {Client::Core::PixelSize{640, 480}, Client::Core::PixelSize{1024, 768}})
@@ -481,9 +480,9 @@ TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
     }
 }
 
-// 0x60cc1c: con el set, el rand() % 100 del pase sale con el pulso de la x87 sin redondear en 0,01f o menos. Sin el
-// float del mundo, con el reloj del frame: a los 4.036.258.298 ns el pulso todavía pasa el 0,01f (su float no) y no
-// sale; a los 4.036.258.300, sí, después del de 0x607b60.
+// 0x60cc1c: with the set, the pass's rand() % 100 comes out with the x87 pulse unrounded at 0.01f or less. Without the
+// world's float, with the frame clock: at 4036258298 ns the pulse still passes 0.01f (its float does not) and it does
+// not come out; at 4036258300, it does, after the one of 0x607b60.
 TEST(UiItemDrawingTest, TheSetRandomWaitsForTheUnroundedPulse)
 {
     for (const std::int64_t nanoseconds : {std::int64_t{4036258298}, std::int64_t{4036258300}})
@@ -534,7 +533,8 @@ TEST(UiItemDrawingTest, TheGlowDetailOfTheOptionsTrimsTheLevel)
     }
 }
 
-// Sin el modelo que dibuja o sin el esqueleto del que posa, corta (el original no dibujaría nada).
+// Without the model that draws or without the skeleton of the one that poses, it cuts (the original would draw
+// nothing).
 TEST(UiItemDrawingTest, AMissingModelStopsWithItsAddress)
 {
     UiDrawing drawing;

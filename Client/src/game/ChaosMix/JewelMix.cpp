@@ -33,50 +33,50 @@ namespace Client::ChaosMix
 {
 namespace
 {
-// 0x41ed10(0x19, 0, 0) y 0x6c8dcc: el sonido de los botones de los diálogos y el máximo de MouseUpdateTime.
+// 0x41ed10(0x19, 0, 0) and 0x6c8dcc: the dialogs' button sound and the maximum of MouseUpdateTime.
 constexpr Audio::SoundId DialogSound = Sound::ButtonClickSound;
 constexpr std::int32_t DialogMouseUpdateTimeMax = 6;
-// 0x6e5794: juntar (el 0xa2) o deshacer (el 0xa4).
+// 0x6e5794: mix (the 0xa2) or unmix (the 0xa4).
 constexpr std::int32_t MixMode = 0;
 constexpr std::int32_t UnmixMode = 1;
 constexpr std::int32_t ChoiceDialog = 0xa2;
 constexpr std::int32_t UnmixDialog = 0xa4;
-// 0x6284e5: el que espera el BC después del sí del 0xa3.
+// 0x6284e5: the one that waits for the BC after the 0xa3's yes.
 constexpr std::int32_t WaitingDialog = 0xa5;
-// 0x6c62e0 y 0x6c62e1 sin elegir.
+// 0x6c62e0 and 0x6c62e1 unchosen.
 constexpr std::uint8_t Unchosen = 0xff;
-// 0x6c932e: las respuestas del 0xa3 (0x6284b6 y 0x628490).
+// 0x6c932e: the 0xa3's answers (0x6284b6 and 0x628490).
 constexpr std::uint8_t YesAnswer = 1;
 constexpr std::uint8_t NoAnswer = 2;
 
-// 0x402bc0: las joyas (0x1c0d bendición, 0x1c0e alma) y los paquetes (0x181e y 0x181f).
+// 0x402bc0: the jewels and the bundles.
 constexpr std::uint16_t BlessJewel = 0x1c0d;
 constexpr std::uint16_t SoulJewel = 0x1c0e;
 constexpr std::uint16_t BlessBundle = 0x181e;
 constexpr std::uint16_t SoulBundle = 0x181f;
 constexpr std::uint8_t BlessKind = 0;
 constexpr std::uint8_t SoulKind = 1;
-// 0x402c61, 0x402cc9 y 0x402cdf: por qué no.
+// 0x402c61, 0x402cc9 and 0x402cdf: the reasons for a no.
 constexpr std::uint8_t MissingJewels = 2;
 constexpr std::uint8_t NoBundle = 4;
 constexpr std::uint8_t OtherRefusal = 5;
-// 0x402cb2: lo que deja con la mezcla posible.
+// 0x402cb2: what it leaves when the mix is possible.
 constexpr std::uint8_t Possible = 100;
-// 0x402c7e: la casilla del paquete, de 0 a 0x3f.
+// 0x402c7e: the bundle's cell, 0 to 0x3f.
 constexpr std::int32_t BundleCells = 0x40;
-// 0x402cf9 y 0x402d04..0x402d1a: el precio, 1.000.000 al deshacer y las joyas · 5⁵ · 16 al juntar.
+// 0x402cf9 and 0x402d04..0x402d1a: the price, 1000000 to unmix and jewels · 5⁵ · 16 to mix.
 constexpr std::int32_t UnmixPrice = 1000000;
 constexpr std::int32_t PricePerJewel = 50000;
-// 0x402b8c y 0x402b95: los avisos de 0x402b70 (Text.bmd), de error.
+// 0x402b8c and 0x402b95: 0x402b70's error warnings (Text.bmd).
 constexpr std::size_t MissingJewelsText = 1817;
 constexpr std::size_t NoBundleText = 1818;
-// 0x401f55: la casilla del paquete pasa a lugar del inventario.
+// 0x401f55: the bundle's cell becomes an inventory slot.
 constexpr std::int32_t InventorySlotBase = 12;
-// 0x402500: el paquete del BC 00, de a 10.
+// 0x402500: the BC 00's bundle, in tens.
 constexpr std::int32_t JewelsPerBundle = 10;
 
-// Los botones, de 0x6259df..0x625b07 (0xa1), 0x625b3c..0x625c7e (0xa2) y 0x625fad..0x626002 (0xa6), con los
-// bordes.
+// The buttons, from 0x6259df..0x625b07 (0xa1), 0x625b3c..0x625c7e (0xa2) and 0x625fad..0x626002 (0xa6), edges
+// included.
 constexpr std::int32_t ButtonLeft = 245;
 constexpr std::int32_t ButtonRight = 395;
 constexpr std::int32_t MenuFirstTop = 190;
@@ -96,18 +96,18 @@ constexpr std::int32_t ChoiceCloseTop = 365;
 constexpr std::int32_t ChoiceCloseBottom = 390;
 constexpr std::int32_t ResultLeft = 287;
 constexpr std::int32_t ResultRight = 352;
-// 0x625d00..0x625d6f: las dos joyas del 0xa4, de 80 desde x = 235, en y de 160 a 185.
+// 0x625d00..0x625d6f: the 0xa4's two jewels, 80 wide from x = 235, with y from 160 to 185.
 constexpr float UnmixKindLeft = 235.0f;
 constexpr float UnmixKindWidth = 80.0f;
 constexpr float UnmixKindTop = 160.0f;
 constexpr float UnmixKindBottom = 185.0f;
-// 0x625f4d..0x625f96: sin joya, el cancelar del 0xa4.
+// 0x625f4d..0x625f96: without a jewel, the 0xa4's cancel.
 constexpr float UnmixCloseLeft = 279.5f;
 constexpr float UnmixCloseRight = 359.5f;
 constexpr float UnmixCloseTop = 200.0f;
 constexpr float UnmixCloseBottom = 225.0f;
-// 0x625dc3..0x625f37: con la joya, el OK y el cancelar de 80 × 25, desde 10 debajo de la lista (su borde de abajo
-// en alto + 0xf0).
+// 0x625dc3..0x625f37: with the jewel, the OK and the cancel of 80 × 25, from 10 below the list (its bottom edge at
+// height + 0xf0).
 constexpr std::int32_t UnmixListBottom = 0xf0;
 constexpr float UnmixButtonsDrop = 10.0f;
 constexpr float UnmixButtonHeight = 25.0f;
@@ -115,20 +115,20 @@ constexpr float UnmixOkLeft = 234.5f;
 constexpr float UnmixOkRight = 314.5f;
 constexpr float UnmixCancelLeft = 324.5f;
 constexpr float UnmixCancelRight = 404.5f;
-// 0x402a20: el nivel del paquete, (+4 >> 3) & 0xf.
+// 0x402a20: the bundle's level, (+4 >> 3) & 0xf.
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
 constexpr std::int32_t ResultTop = 170;
 constexpr std::int32_t ResultBottom = 195;
 
-// x en [left, right] e y en [top, bottom], con los bordes: los FCOM de los floats con el mouse entero.
+// x in [left, right] and y in [top, bottom], edges included: the FCOMs of the floats with the integer mouse.
 bool Within(const Hud::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
             std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX <= right && context.mouseY >= top && context.mouseY <= bottom;
 }
 
-// Lo mismo con los bordes en float (0x625d17..0x625d59 y 0x625f4d..0x625f96).
+// The same with the edges in float (0x625d17..0x625d59 and 0x625f4d..0x625f96).
 bool WithinFloat(const Hud::GameUiContext& context, float left, float right, float top, float bottom)
 {
     const auto x = static_cast<float>(context.mouseX);
@@ -142,14 +142,14 @@ void LeaveTheMouseTime(Kernel::WorldRuntime& runtime)
     runtime.mouse.updateTimeMax = DialogMouseUpdateTimeMax;
 }
 
-// El diálogo que espera pasa a abierto (0x6236f0(0) y los MOV de 0x625a49, 0x625cbc y 0x6284ce).
+// The waiting dialog becomes the open one (0x6236f0(0) and the MOVs of 0x625a49, 0x625cbc and 0x6284ce).
 void CloseTheDialog(Ui::DialogState& dialogs)
 {
     dialogs.current = dialogs.pending;
     dialogs.pending = 0;
 }
 
-// Abrir `id` como lo hacen 0x625a5f..0x625a97 y 0x6284e3: esperando si hay uno abierto.
+// Opens `id` as 0x625a5f..0x625a97 and 0x6284e3 do: waiting if one is open.
 void OpenAfter(Ui::DialogState& dialogs, std::int32_t id)
 {
     if (dialogs.current != 0)
@@ -171,7 +171,7 @@ Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protoc
     return Send(context.sendNpcWindow, std::move(packet), what);
 }
 
-// 0x402eb0: 0x402e10, el diálogo cerrado y el C1 03 31 en claro.
+// 0x402eb0: 0x402e10, the dialog closed and the C1 03 31 in the clear.
 Core::Expected<void, std::string> CloseTheJewelMix(Kernel::WorldState& world, const JewelMixSender& send)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -190,7 +190,7 @@ Core::Expected<void, std::string> ReturnToTheChoice(const Hud::GameUiContext& co
     return ReturnToTheJewelChoice(context.world, context.sendNpcWindow);
 }
 
-// 0x402cf0: el precio.
+// 0x402cf0
 void PriceTheMix(Npc::JewelMixState& jewels)
 {
     if (jewels.mode != MixMode)
@@ -199,8 +199,8 @@ void PriceTheMix(Npc::JewelMixState& jewels)
         jewels.price = static_cast<std::int8_t>(jewels.count) * PricePerJewel;
 }
 
-// 0x402bc0: si alcanza para mezclar. Al juntar cuenta las joyas del tipo en las 64 casillas, fila por fila, y alcanza
-// en cuanto la cuenta (un byte) llega a 0x6c62e1 con signo; al deshacer mira el paquete de la casilla 0x6c62d8.
+// 0x402bc0: whether there is enough to mix. To mix it counts the jewels of the kind in the 64 cells, row by row, and
+// it is enough once the count (a byte) reaches 0x6c62e1, signed; to unmix it checks the bundle in cell 0x6c62d8.
 Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
 {
     Npc::JewelMixState& jewels = world.Runtime().npcWindows.jewels;
@@ -238,7 +238,7 @@ Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
         jewels.refusal = OtherRefusal;
         return false;
     }
-    // 0x402c74..0x402c81: −1 y desde 0x40 no; otro negativo leería antes de la grilla.
+    // 0x402c74..0x402c81: −1 and from 0x40 on, no; another negative would read before the grid.
     if (jewels.cell < -1)
         return Core::Unexpected(std::format("0x402c83: la casilla {} lee antes del inventario", jewels.cell));
     if (jewels.cell != -1 && jewels.cell < BundleCells)
@@ -255,7 +255,7 @@ Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
     return false;
 }
 
-// 0x402b70: si alcanza; si no, el aviso (2 y 4) y la vuelta de 0x402e50.
+// 0x402b70: whether there is enough; if not, the warning (2 and 4) and 0x402e50's return.
 Core::Expected<bool, std::string> AskForTheJewels(const Hud::GameUiContext& context)
 {
     auto enough = CheckTheJewels(context.world);
@@ -271,7 +271,7 @@ Core::Expected<bool, std::string> AskForTheJewels(const Hud::GameUiContext& cont
             return Core::Unexpected(std::format("0x402b9f: sin el texto {} de Text.bmd", index));
         if (context.measure == nullptr)
             return Core::Unexpected(std::format("0x402b9f: el mensaje del texto {} sin medidor", index));
-        // 0x555190(0x6e57a4, texto, 2): el nombre es una cadena vacía de la .bss.
+        // 0x555190(0x6e57a4, text, 2): the name is an empty .bss string.
         if (auto added = Chat::AddGameMessage(runtime, *context.measure, context.screen, {}, *text, Ui::ErrorMessage);
             !added.HasValue())
             return Core::Unexpected(std::move(added).Error());
@@ -281,7 +281,7 @@ Core::Expected<bool, std::string> AskForTheJewels(const Hud::GameUiContext& cont
     return false;
 }
 
-// 0x4029e0: una vez, y sin un "no" pendiente, el BC.
+// 0x4029e0: the BC, once and without a pending "no".
 Core::Expected<void, std::string> SendTheJewelMix(const Hud::GameUiContext& context)
 {
     Npc::NpcWindowState& windows = context.world.Runtime().npcWindows;
@@ -291,11 +291,11 @@ Core::Expected<void, std::string> SendTheJewelMix(const Hud::GameUiContext& cont
     windows.field6e5798 = 1;
     if (jewels.mode == MixMode)
     {
-        // 0x40276b..0x402794: el paquete con signo / 10, hacia el cero, menos 1, en un byte.
+        // 0x40276b..0x402794: the signed bundle / 10, toward zero, minus 1, in a byte.
         const auto bundle = static_cast<std::uint8_t>(static_cast<std::int8_t>(jewels.count) / JewelsPerBundle - 1);
         return Send(context, Protocol::ChaosMix::WriteJewelMix(jewels.kind, bundle), "0x402500: el BC 00");
     }
-    // 0x401f4e..0x401f5a: la casilla queda como lugar en el global.
+    // 0x401f4e..0x401f5a: the cell stays as a slot in the global.
     jewels.cell += InventorySlotBase;
     return Send(context,
                 Protocol::ChaosMix::WriteJewelUnmix(jewels.kind, static_cast<std::uint8_t>(jewels.level),
@@ -303,7 +303,7 @@ Core::Expected<void, std::string> SendTheJewelMix(const Hud::GameUiContext& cont
                 "0x401f30: el BC 01");
 }
 
-// 0x625cbc..0x625ce5: cierra y abre el 0xa3 con su texto.
+// 0x625cbc..0x625ce5: closes and opens the 0xa3 with its text.
 Core::Expected<void, std::string> AskTheQuestion(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -322,8 +322,8 @@ Core::Expected<void, std::string> AskTheQuestion(const Hud::GameUiContext& conte
     return {};
 }
 
-// 0x402a10 y 0x402a20: la lista de 0x6e5660 vacía (0x482f80) y llena, casilla por casilla, con los paquetes de la
-// joya elegida (0x181e con 0, 0x181f con 1) y su nivel (0x46e940).
+// 0x402a10 and 0x402a20: 0x6e5660's list emptied (0x482f80) and filled, cell by cell, with the chosen jewel's
+// bundles (0x181e with 0, 0x181f with 1) and their level (0x46e940).
 void FillTheBundles(Kernel::WorldState& world)
 {
     Npc::JewelMixState& jewels = world.Runtime().npcWindows.jewels;
@@ -339,8 +339,8 @@ void FillTheBundles(Kernel::WorldState& world)
     }
 }
 
-// 0x402a90(casilla, nivel): los guarda en 0x6c62d8 y 0x6c62dc y pregunta con 0x402b70; si alcanza, cierra y abre el
-// 0xa3 con su texto, como el 0xa2 (0x402aad..0x402acf).
+// 0x402a90(cell, level): stores them in 0x6c62d8 and 0x6c62dc and asks with 0x402b70; if enough, closes and opens the
+// 0xa3 with its text, like the 0xa2 (0x402aad..0x402acf).
 Core::Expected<void, std::string> AskForTheBundle(const Hud::GameUiContext& context, std::int32_t cell,
                                                   std::int32_t level)
 {
@@ -356,7 +356,7 @@ Core::Expected<void, std::string> AskForTheBundle(const Hud::GameUiContext& cont
 }
 } // namespace
 
-// 0x402e10: todo a su valor de arranque.
+// 0x402e10: everything to its startup value.
 void ResetTheJewelMix(Npc::NpcWindowState& windows)
 {
     Npc::JewelMixState& jewels = windows.jewels;
@@ -423,11 +423,11 @@ Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& c
     if (!click)
         return {};
     click = false;
-    // 0x625b42: BL, la joya, que se guarda al final.
+    // 0x625b42: BL, the jewel, which is stored at the end.
     std::uint8_t kind = jewels.kind;
     for (std::int32_t button = 0; button < 2; ++button)
     {
-        // 0x625b59..0x625bbf: x desde 245 + 80 · k, y el dibujo las pone desde 235 + 90 · k (07 Q-C951).
+        // 0x625b59..0x625bbf: x from 245 + 80 · k, while the drawing places them from 235 + 90 · k (07 Q-C951).
         const std::int32_t left = ButtonLeft + button * KindWidth;
         if (!Within(context, left, left + KindWidth, KindTop, KindTop + KindHeight))
             continue;
@@ -435,7 +435,7 @@ Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& c
         LeaveTheMouseTime(runtime);
         break;
     }
-    // 0x625bf9: con BL negativo (sin joya), los paquetes no se miran.
+    // 0x625bf9: with BL negative (no jewel), the bundles are not checked.
     std::int32_t top = KindTop + KindRowStep;
     for (std::size_t count = 0; count < Counts.size() && static_cast<std::int8_t>(kind) >= 0; ++count)
     {
@@ -455,7 +455,7 @@ Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& c
             if (auto asked = AskTheQuestion(context); !asked.HasValue())
                 return asked;
         }
-        // 0x625c5f: el cierre, con la joya ya guardada.
+        // 0x625c5f: the close, with the jewel already stored.
         if (Within(context, CloseLeft, CloseRight, ChoiceCloseTop, ChoiceCloseBottom))
             return CloseTheJewelMix(context);
         return {};
@@ -472,7 +472,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
     bool& click = runtime.mouse.pendingClick;
-    // 0x625d0c: el clic, leído antes de las joyas (DL).
+    // 0x625d0c: the click, read before the jewels (DL).
     const bool clicked = click;
     float left = UnmixKindLeft;
     for (std::uint8_t kind = 0; kind < 2; ++kind, left += UnmixKindWidth)
@@ -490,8 +490,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
                 return Core::Unexpected(std::format("0x625d9a: sin el texto {} de Text.bmd", NoBundleText));
             if (context.measure == nullptr)
                 return Core::Unexpected(std::format("0x625da4: el mensaje del texto {} sin medidor", NoBundleText));
-            // 0x555190(0x7d3a158, texto, 2): el nombre es una cadena de la .bss que solo lee este PUSH (*inferido*:
-            // vacía).
+            // 0x555190(0x7d3a158, text, 2): the name is a .bss string only this PUSH reads (*inferred*: empty).
             if (auto added =
                     Chat::AddGameMessage(runtime, *context.measure, context.screen, {}, *text, Ui::ErrorMessage);
                 !added.HasValue())
@@ -503,20 +502,20 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
     }
     if (jewels.kind == Unchosen)
     {
-        // 0x625f4d..0x625f96 y 0x625f1f..0x625f37: el cancelar, sin apagar el clic (07 Q-C952).
+        // 0x625f4d..0x625f96 and 0x625f1f..0x625f37: the cancel, without clearing the click (07 Q-C952).
         if (WithinFloat(context, UnmixCloseLeft, UnmixCloseRight, UnmixCloseTop, UnmixCloseBottom) && click)
             return CloseTheJewelMix(context);
         return {};
     }
-    // 0x625dbe: el paso de la lista. El doble clic izquierdo sobre una fila pide su paquete desde adentro (0x46f297).
+    // 0x625dbe: the list's step. The left double click on a row asks for its bundle from inside (0x46f297).
     if (const BundleListStep listed = StepTheBundleList(context); listed.asked)
     {
         if (auto asked = AskForTheBundle(context, listed.asked->cell, static_cast<std::int8_t>(listed.asked->level));
             !asked.HasValue())
             return asked;
     }
-    // 0x625dc3..0x625eb8: el OK, x en [234,5; 314,5] e y en [alto + 0xf0 + 10, + 25], con el clic (que apaga) pide el
-    // elegido (la vtable + 0x64) con su nivel con signo (0x625ea7); sin elegido, nada.
+    // 0x625dc3..0x625eb8: the OK, x in [234.5, 314.5] and y in [height + 0xf0 + 10, + 25]; the click (which it clears)
+    // asks for the chosen one (vtable + 0x64) with its signed level (0x625ea7); without a chosen one, nothing.
     const float top = static_cast<float>(jewels.bundles.height + UnmixListBottom) + UnmixButtonsDrop;
     if (WithinFloat(context, UnmixOkLeft, UnmixOkRight, top, top + UnmixButtonHeight) && click)
     {
@@ -528,7 +527,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
                 return asked;
         }
     }
-    // 0x625ebe..0x625f37: el cancelar, x en [324,5; 404,5], con el clic (que no apaga) cierra todo.
+    // 0x625ebe..0x625f37: the cancel, x in [324.5, 404.5]; the click (which it does not clear) closes everything.
     if (WithinFloat(context, UnmixCancelLeft, UnmixCancelRight, top, top + UnmixButtonHeight) && click)
         return CloseTheJewelMix(context);
     return {};

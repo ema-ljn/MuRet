@@ -35,25 +35,25 @@ namespace Client::Items
 {
 namespace
 {
-// 0x59e30e y 0x59e37f: la luz de los ítems a la vista (0x3e4ccccd) y la del elegido (0x3fc00000).
+// 0x59e30e (0x3e4ccccd) and 0x59e37f (0x3fc00000).
 constexpr float SeenLight = 0.2f;
 constexpr float PickedLight = 1.5f;
-// 0x566767..0x56679b: el centro de la celda (· 100 + 50, 0x6b86b4 y 0x6b86b0) y los 150 de 0x6b87ac.
+// 0x566767..0x56679b: the cell center (· 100 + 50, 0x6b86b4 and 0x6b86b0) and the 150 at 0x6b87ac.
 using Terrain::CellSize;
 constexpr float CellHalf = 50.0f;
 constexpr double ArrivalDistance = 150.0;
-// 0x5667ac: la espera del mouse.
+// 0x5667ac.
 constexpr std::int32_t PickUpMouseUpdateTimeMax = 6;
-// 0x566e29: "no hay lugar" (0x76d8950); 0x566e69 y 0x566e76: 3 (0x6b86b8) sobre el terreno y la caída en 50.
+// 0x566e29: the "no room" text (0x76d8950); 0x566e69 and 0x566e76: 3 (0x6b86b8) above the terrain and the drop at 50.
 constexpr std::size_t NoRoomText = 375;
 constexpr double NoRoomHeight = 3.0;
 constexpr float NoRoomDropSpeed = 50.0f;
-// 0x5ac970: los 300 de 0x6b8900.
+// 0x5ac970: the 300 at 0x6b8900.
 constexpr double SpaceDistance = 300.0;
-// 0x5650ef: el caso 1 de la tabla de 0x56ab20.
+// 0x5650ef: case 1 of 0x56ab20's table.
 constexpr std::uint8_t PickUpMovement = 1;
 
-// 0x5667d7..0x566b40 y 0x566e90..: el pedido y el C1 05 22, si no hay otro.
+// 0x5667d7..0x566b40 and 0x566e90..: the request and the C1 05 22, if there is no other one.
 Core::Expected<void, std::string> RequestThePickUp(const InventoryMoveContext& context)
 {
     Kernel::FloorItemGlobals& floor = context.world.Runtime().floor;
@@ -125,7 +125,7 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
     Kernel::FloorItemGlobals& floor = runtime.floor;
     if (floor.fromSpace == 0)
     {
-        // 0x56675e..0x5667ac: en la x87, con el destino como entero con signo (FILD); con NaN sigue.
+        // 0x56675e..0x5667ac: on the x87, with the target as a signed integer (FILD); with NaN it goes on.
         const auto center = [](std::uint32_t cell)
         { return static_cast<double>(static_cast<std::int32_t>(cell)) * CellSize + static_cast<double>(CellHalf); };
         const double dx = static_cast<double>(actor.x) - center(runtime.movement.targetX);
@@ -146,7 +146,7 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
         return Core::Unexpected(room.Error());
     if (room.Value())
         return RequestThePickUp(context);
-    // 0x566e23..0x566e42: sprintf(buffer, 375) y 0x555190 con el nombre vacío de 0x77f3bec.
+    // 0x566e23..0x566e42: sprintf(buffer, 375) and 0x555190 with the empty name at 0x77f3bec.
     const std::optional<std::string_view> format = Ui::TextAt(context.services.texts, NoRoomText);
     if (!format)
         return Core::Unexpected(std::format("0x566e2f: falta el texto {} de Text.bmd", NoRoomText));
@@ -175,12 +175,12 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
         const Kernel::FloorItemState& item = items[index];
         if (!item.alive || !item.seen)
             continue;
-        // 0x5ac947..0x5ac97b: la distancia en 3D a la posición del héroe (+0x10), en la x87.
+        // 0x5ac947..0x5ac97b: the 3D distance to the hero's position (+0x10), on the x87.
         const glm::vec3& hero = world.Hero().position;
         const double dx = static_cast<double>(item.position.x) - static_cast<double>(hero.x);
         const double dy = static_cast<double>(item.position.y) - static_cast<double>(hero.y);
         const double dz = static_cast<double>(item.position.z) - static_cast<double>(hero.z);
-        // TEST AH, 1: menos de 300 o NaN.
+        // TEST AH, 1: under 300 or NaN.
         if (std::sqrt(dx * dx + dy * dy + dz * dz) >= SpaceDistance)
             continue;
         // 0x5ac996..0x5ac9c2.

@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-// La lista de amigos de [0x5763518] (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"). Los nombres son inventados.
+// The friend list at [0x5763518] (CL9 milestone 9; 06 § HUD y ventanas, "Los amigos"). The names are made up.
 namespace
 {
 using Client::Messenger::AddAFriend;
@@ -39,7 +39,7 @@ std::vector<std::uint8_t> StatesOf(const FriendModel& model)
     return states;
 }
 
-// 0x49b220: al final, con el nombre cortado en 10.
+// 0x49b220
 TEST(FriendModelTest, AddingGoesAtTheEndWithTheNameCutAtTen)
 {
     FriendModel model;
@@ -52,7 +52,7 @@ TEST(FriendModelTest, AddingGoesAtTheEndWithTheNameCutAtTen)
     EXPECT_TRUE(model.entries.empty());
 }
 
-// 0x49b690 y 0x49c010: el primero con el nombre (strncmp de 10); sin él, nada.
+// 0x49b690 and 0x49c010: strncmp of 10; without the name, nothing.
 TEST(FriendModelTest, RemovingAndSettingTouchTheFirstWithTheName)
 {
     FriendModel model;
@@ -71,8 +71,8 @@ TEST(FriendModelTest, RemovingAndSettingTouchTheFirstWithTheName)
     EXPECT_EQ(StatesOf(model), (std::vector<std::uint8_t>{0xfc, 0xfc}));
 }
 
-// 0x49c190: de la Z a la A, con los char con signo (lo de Latin-1 al final) y sin decidir entre uno que empieza como
-// el otro (Q-C881).
+// 0x49c190: from Z to A, with signed chars (Latin-1 at the end) and without deciding between one that starts like the
+// other (Q-C881).
 TEST(FriendModelTest, TheNameOrderGoesBackwardsWithSignedChars)
 {
     FriendModel model;
@@ -92,7 +92,7 @@ TEST(FriendModelTest, TheNameOrderGoesBackwardsWithSignedChars)
     EXPECT_FALSE(NameComesFirst(tordos, tordo));
 }
 
-// 0x49c240: el estado más alto primero; −1 ordena con el que quedó.
+// 0x49c240: the highest state first; −1 sorts with the one that was left.
 TEST(FriendModelTest, TheStateOrderPutsTheHighestFirstAndMinusOneKeepsTheMode)
 {
     FriendModel model;
@@ -108,8 +108,8 @@ TEST(FriendModelTest, TheStateOrderPutsTheHighestFirstAndMinusOneKeepsTheMode)
     EXPECT_EQ(NamesOf(model), (std::vector<std::string>{"Tordo", "Zorzal", "Hornero", "Benteveo"}));
 }
 
-// Con más de 16, el _Sort de VC6 deja los iguales en su propio orden, no en el de llegada (Q-C881). El orden esperado
-// sale del <algorithm> de VC6 escrito aparte, en Python.
+// With more than 16, VC6's _Sort leaves the equals in its own order, not in the arrival order (Q-C881). The expected
+// order comes from VC6's <algorithm> written separately, in Python.
 TEST(FriendModelTest, MoreThanSixteenLeaveTheEqualsWhereTheVc6SortLeavesThem)
 {
     constexpr std::array<const char*, 20> Names{"Aguila",  "Benteveo",  "Calandria",  "Carancho", "Chimango",

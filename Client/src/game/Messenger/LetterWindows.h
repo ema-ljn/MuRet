@@ -12,10 +12,10 @@
 #include <string>
 #include <string_view>
 
-// El chat con un amigo y las cartas en las ventanas viejas (CL9 hito 10; 06 § HUD y ventanas, "Las cartas y el chat
-// con un amigo"): lo que los paquetes (Scenes/GameLetters) y la de amigos le piden a las ventanas de los casos 1, 2, 6
-// y 7 de 0x48ee60, a la lista de ventanas de [0x5763524] y a la pestaña de las cartas. La vtable de esas ventanas
-// está en UI/LetterWindows.cpp, detrás de UI/OldWindowSteps.h.
+// The chat with a friend and the letters in the old windows (CL9 milestone 10; 06 § HUD y ventanas, "Las cartas y el
+// chat con un amigo"): what the packets (Messenger/GameLetters) and the friends window ask of the windows of cases 1,
+// 2, 6 and 7 of 0x48ee60, the window list at [0x5763524] and the letters tab. Those windows' vtable is in
+// Messenger/LetterWindows.cpp, behind Ui/OldWindowSteps.h.
 namespace Client::Messenger
 {
 // Text.bmd.
@@ -23,79 +23,78 @@ inline constexpr std::size_t ChatTitleText = 994;
 inline constexpr std::size_t ChatClosedText = 995;
 inline constexpr std::size_t ChatLeftText = 402;
 inline constexpr std::size_t LetterReadTitleText = 1054;
-// 0x41ed10: un mensaje en un chat que no está a la vista (0x4a5e50).
+// 0x41ed10: a message in a chat that is not on view (0x4a5e50).
 inline constexpr Audio::SoundId ChatWaitingSound{0x28};
-// El primer estado fuera de línea de un amigo para el chat (0x4942d0 y 0x4dc81e miran desde 0xfd; 0xfc es el de todos).
+// For the chat (0x4942d0 and 0x4dc81e check from 0xfd; 0xfc is the everyone-offline one).
 inline constexpr std::uint8_t FirstOfflineFriendState = 0xfd;
 
-// 0x4a6430: el chat con el amigo `name` entre los de la lista de ventanas (0x495530 de 10 bytes, salteando los de un
-// tipo 0 o 2); −1 si el amigo de uno está vacío; 0 sin ninguno.
+// 0x4a6430: the chat with friend `name` among the window list's (0x495530 of 10 bytes, skipping those of type 0 or 2);
+// −1 if one's friend is empty; 0 without any.
 [[nodiscard]] std::int32_t FindTheChatWith(Ui::OldWindowManager& manager, std::string_view name, std::string_view hero);
-// 0x4a6af0, 0x4a6910 y 0x4a6bc0: los amigos con el C1 CA pedido (+0x158).
+// 0x4a6af0, 0x4a6910 and 0x4a6bc0: the friends with the C1 CA requested (+0x158).
 [[nodiscard]] bool IsAPendingChat(const Ui::OldWindowManager& manager, std::string_view name);
 void AddAPendingChat(Ui::OldWindowManager& manager, std::string_view name);
 void ForgetAPendingChat(Ui::OldWindowManager& manager, std::string_view name);
-// 0x4a4990: el chat al final de +0xb4.
+// 0x4a4990: the chat at the end of +0xb4.
 void AddTheChatToTheList(Ui::OldWindowManager& manager, std::int32_t id);
-// 0x4a5e50: el sonido 0x28 y, si no estaba, el chat al final de +0x118.
+// 0x4a5e50: sound 0x28 and, if it was not there, the chat at the end of +0x118.
 void MarkTheChatWaiting(Ui::OldWindowManager& manager, std::int32_t id, std::optional<Audio::SoundId>& sound,
                         std::function<void(Audio::SoundId)> soundRequest = {});
-// 0x495530: el amigo del chat (el primer miembro que no es el héroe con menos de 3; tipo 1), ninguno (tipo 0) o la sala
-// de 3 o más (tipo 2).
+// 0x495530: the chat's friend (the first member who is not the hero, with under 3; type 1), none (type 0) or the room
+// of 3 or more (type 2).
 [[nodiscard]] std::string ChatFriend(const Ui::OldWindow& chat, std::string_view hero, std::int32_t& kind);
-// 0x493f80: un renglón con el nombre del miembro `speaker` (0x461530; 0xff o ninguno, vacío) a la vtable + 0x94 de
-// los renglones (0x45f6f0): con el nombre y el texto vacíos, nada; si no, al primer deque y todos vueltos a partir en
-// el ancho de la lista (0x45fea0). Partir un renglón de 20 bytes o más mide con `measure`: sin ella, corta.
+// 0x493f80: a line with the name of member `speaker` (0x461530; 0xff or none, empty) to the lines' vtable + 0x94
+// (0x45f6f0): with the name and the text empty, nothing; otherwise, to the first deque and all wrapped again at the
+// list's width (0x45fea0). Wrapping a line of 20 bytes or more measures with `measure`: without it, it cuts.
 [[nodiscard]] Core::Expected<void, std::string> AddAChatLine(Ui::OldWindowManager& manager, Ui::OldWindow& chat,
                                                              std::uint8_t speaker, std::string_view text,
                                                              std::int32_t kind, std::int32_t extra,
                                                              const Ui::OldWindowMeasure* measure);
-// 0x493c90: el miembro nuevo o su número y estado; el título (994 y los nombres, 0x461600), la pestaña de las ventanas
-// (0x4914f0), 0x495630(0) con 2 o más y la lista de renglones más angosta con 3 o más (el 9, que vuelve a partir los
-// renglones). Da cuántos miembros hay.
+// 0x493c90: the new member or its number and state; the title (994 and the names, 0x461600), the windows tab
+// (0x4914f0), 0x495630(0) with 2 or more and the lines list narrower with 3 or more (the 9, which wraps the lines
+// again). Returns how many members there are.
 [[nodiscard]] Core::Expected<std::int32_t, std::string>
 AddAChatMember(Ui::OldWindowManager& manager, Ui::OldWindow& chat, std::string_view name, std::uint8_t index,
                std::uint8_t state, const Ui::OldWindowTexts& texts, std::string_view hero,
                const Ui::OldWindowMeasure* measure);
-// 0x493e90: con 3 o más, saca al miembro y rehace el título; con menos de 3 después, la lista de renglones ancha.
+// 0x493e90: with 3 or more, removes the member and rebuilds the title; with under 3 afterwards, the lines list wide.
 [[nodiscard]] Core::Expected<void, std::string>
 RemoveAChatMember(Ui::OldWindowManager& manager, Ui::OldWindow& chat, std::string_view name,
                   const Ui::OldWindowTexts& texts, std::string_view hero, const Ui::OldWindowMeasure* measure);
-// 0x4942d0: los amigos que se pueden invitar: los del modelo, menos los miembros y los que no están en línea (0xfd+).
+// 0x4942d0: the friends that can be invited: the model's, minus the members and those offline (0xfd+).
 void FillTheInvites(Ui::OldWindowManager& manager, Ui::OldWindow& chat, std::string_view hero);
-// 0x495630: con 1, el EDIT apagado y el título con el 995 adelante; con 0, el EDIT prendido y el título sin él.
+// 0x495630: with 1, the EDIT off and the title with the 995 in front; with 0, the EDIT on and the title without it.
 void CloseTheChat(Ui::OldWindow& chat, std::int32_t closed, const Ui::OldWindowTexts& texts);
-// 0x4a6840 y 0x4a75c0 sobre los chats de +0xb4: los que tienen la lista de invitar la rehacen; todos reciben el 402 y
-// se cierran.
+// 0x4a6840 and 0x4a75c0 over the chats of +0xb4: those with the invite list rebuild it; all receive the 402 and close.
 void RefreshTheInvites(Ui::OldWindowManager& manager, std::string_view hero);
 [[nodiscard]] Core::Expected<void, std::string>
 CloseTheChats(Ui::OldWindowManager& manager, const Ui::OldWindowTexts& texts, const Ui::OldWindowMeasure* measure);
-// 0x4a0960 sobre la pestaña de las cartas de la de amigos, si está.
+// 0x4a0960 over the friends window's letters tab, if it exists.
 void RefreshTheLettersTab(Ui::OldWindowManager& manager);
-// 0x499cb0: la carta (0x138 bytes a +0x778) y el cuerpo partido por '\n' (strtok, sin los vacíos) a la lista de +0x8b0
-// (0x464ae0, que vuelve a partir todos en el ancho de la lista con cada uno), con el 0xe.
+// 0x499cb0: the letter (0x138 bytes at +0x778) and the body split by '\n' (strtok, without the empty ones) to the list
+// at +0x8b0 (0x464ae0, which wraps them all again at the list's width with each one), with the 0xe.
 [[nodiscard]] Core::Expected<void, std::string> SetTheLetter(Ui::OldWindowManager& manager, Ui::OldWindow& read,
                                                              const LetterEntry& entry, std::string_view body,
                                                              const Ui::OldWindowMeasure* measure);
-// 0x493a70, desde el destructor del chat (0x493160): el C1 03 01 por la conexión de la sala (0x493510) y 0x49dfd0.
+// 0x493a70, from the chat's destructor (0x493160): the C1 03 01 through the room's connection (0x493510) and 0x49dfd0.
 [[nodiscard]] Core::Expected<void, std::string> LeaveTheChatRoom(Ui::OldWindowManager& manager,
                                                                  const Ui::OldWindow& chat);
-// 0x4a6550, el timer 1002 (WM_TIMER, 0x4b1a5b): cada chat de +0xb4 de la lista de ventanas, en su orden, que esté
-// (0x490a00) y tenga la conexión de su sala (0x493510), le manda el C1 03 05.
+// 0x4a6550, timer 1002 (WM_TIMER, 0x4b1a5b): the C1 03 05 for each chat of +0xb4 of the window list, in its order,
+// that exists (0x490a00) and has its room's connection (0x493510).
 void PingTheChatRooms(Ui::OldWindowManager& manager);
-// Lo que el dibujo del chat (0x493fc0), de la de leer (0x499d60) y de la de escribir (0x498480) hace antes de dibujar:
-// arrastradas o cambiando de tamaño (el estado en 4 o 1), el 8 de 0x45aa50 a sus hijas y, cambiando de tamaño, el 9 a
-// sus listas (la de escribir no tiene listas ni manda el 9; el 9 de los renglones del chat y del cuerpo de una carta
-// los vuelve a partir midiendo con `measure`, el DC del dibujo). El dibujo en sí está en UI/LetterWindowsDraw.
+// What the drawing of the chat (0x493fc0), the read window (0x499d60) and the writing window (0x498480) does before
+// drawing: dragged or resizing (the state at 4 or 1), 0x45aa50's 8 to their children and, resizing, the 9 to their
+// lists (the writing window has no lists and sends no 9; the 9 of the chat's lines and a letter's body wraps them
+// again measuring with `measure`, the drawing's DC). The drawing itself is in Messenger/LetterWindowsDraw.
 [[nodiscard]] Core::Expected<void, std::string> SettleTheLetterKindsForTheDraw(Ui::OldWindowManager& manager,
                                                                                Ui::OldWindow& window,
                                                                                const Ui::OldWindowMeasure& measure);
 
-// 0x497890 (la vtable + 0x40 del retrato): con el personaje armado, sus ángulos (Scenes, PortraitCallKind::SetAngle) y
-// +0x6ac y +0x6b0 en `angle`; sin armar, nada.
+// 0x497890 (the portrait's vtable + 0x40): with the character built, its angles (Messenger,
+// PortraitCallKind::SetAngle) and +0x6ac and +0x6b0 at `angle`; unbuilt, nothing.
 [[nodiscard]] Core::Expected<void, std::string> SetThePortraitAngle(const Ui::OldWindowStepView* view,
                                                                     Ui::OldPortraitPart& portrait, float angle,
                                                                     std::string_view where);
-// 0x4978d0 (la vtable + 0x44): +0x6b8 y +0x6bc en `zoom`.
+// 0x4978d0 (the vtable + 0x44): +0x6b8 and +0x6bc at `zoom`.
 void SetThePortraitZoom(Ui::OldPortraitPart& portrait, float zoom);
 } // namespace Client::Messenger

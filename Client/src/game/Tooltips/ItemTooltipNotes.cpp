@@ -15,9 +15,9 @@
 #include <string>
 #include <string_view>
 
-// 0x5b58ea..0x5b6a3b del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): los paquetes de joyas, el texto
-// de cada joya y de cada objeto de evento, las alas y las capas. Los textos son los de Text.bmd (la dirección −
-// 0x76bd1dc, sobre 300).
+// 0x5b58ea..0x5b6a3b of the item body (06 § Los tooltips, "El cuerpo del ítem"): the jewel bundles, the text of each
+// jewel and of each event object, the wings and the capes. The texts are the Text.bmd ones (the address − 0x76bd1dc,
+// over 300).
 namespace Client::Tooltips
 {
 namespace
@@ -29,8 +29,8 @@ bool InRange(std::int32_t type, std::int32_t first, std::int32_t last)
     return type >= first && type <= last;
 }
 
-// 0x402b30 y 0x402d30: los paquetes de Bless (2) y de Soul (3) cuentan (5 · nivel + 5) · 2 joyas, en un byte con
-// signo: del nivel 12 en adelante da negativo y no hay renglón.
+// 0x402b30 and 0x402d30: the Bless (2) and Soul (3) bundles count (5 · level + 5) · 2 jewels, in a signed byte: from
+// level 12 on it is negative and there is no line.
 constexpr std::uint16_t BlessBundle = 0x181e;
 constexpr std::uint16_t SoulBundle = 0x181f;
 constexpr std::size_t BundleText = 1819;
@@ -38,7 +38,7 @@ constexpr std::size_t UnbundleText = 1820;
 constexpr std::size_t BlessText = 1806;
 constexpr std::size_t SoulText = 1807;
 
-// 0x5b5a11..0x5b5c60: un texto suelto por tipo, en blanco.
+// 0x5b5a11..0x5b5c60: one loose text per type, in white.
 struct TypeText
 {
     std::uint16_t type = 0;
@@ -61,7 +61,7 @@ constexpr std::int32_t GuardianLife = 0x32;
 constexpr std::uint16_t Imp = 0x1a01;
 constexpr std::size_t ImpText = 576;
 
-// 0x5b5c66..0x5b5e2a: las alas y el 0x1a03 con el daño que suman, el que absorben y el 579.
+// 0x5b5c66..0x5b5e2a: the wings and 0x1a03 with the damage they add, the one they absorb and 579.
 constexpr std::int32_t FirstWing = 0x1800;
 constexpr std::int32_t LastWing = 0x1802;
 constexpr std::int32_t FirstHighWing = 0x1803;
@@ -103,9 +103,9 @@ constexpr std::uint16_t Archer = 0x1a07;
 constexpr std::array<std::size_t, 2> ArcherTexts{1460, 1461};
 constexpr std::uint16_t GuardianScroll = 0x1a0b;
 constexpr std::array<std::size_t, 2> GuardianScrollTexts{1416, 1462};
-// 0x5b63b7..0x5b69e7: la armadura de Chaos Castle y sus niveles.
+// 0x5b63b7..0x5b69e7: the Chaos Castle armor and its levels.
 constexpr std::uint16_t ChaosCastleArmor = 0x1a1d;
-// 0x5b63c0..0x5b63d0: las clases 3 y 4 (+0x1d4 & 7, sin la evolución) leen desde la séptima fila de 0x6ba598.
+// 0x5b63c0..0x5b63d0: classes 3 and 4 (+0x1d4 & 7, without the evolution) read from the seventh row of 0x6ba598.
 constexpr std::uint8_t HeroClassBits = 7;
 constexpr std::uint8_t FirstClassOfTheSecondTable = 3;
 constexpr std::uint8_t SecondClassOfTheSecondTable = 4;
@@ -115,9 +115,9 @@ struct LevelRange
     std::int32_t minimum = 0;
     std::int32_t maximum = 0;
 };
-// 0x6ba598, dwords con signo (0x5b68cd apunta al máximo, 0x6ba59c, y lee el mínimo en −4): el nivel mínimo y el
-// máximo de cada castillo, seis filas para las otras clases y seis para la 3 y la 4. En el build 2f16a9c6 los dos
-// últimos máximos son 999.
+// 0x6ba598, signed dwords (0x5b68cd points at the maximum, 0x6ba59c, and reads the minimum at −4): each castle's
+// minimum and maximum level, six rows for the other classes and six for 3 and 4. In build 2f16a9c6 the last two
+// maximums are 999.
 constexpr std::array<LevelRange, 2 * ChaosCastleCount> ChaosCastleLevels{{{15, 49},
                                                                           {50, 119},
                                                                           {120, 179},
@@ -130,11 +130,11 @@ constexpr std::array<LevelRange, 2 * ChaosCastleCount> ChaosCastleLevels{{{15, 4
                                                                           {160, 219},
                                                                           {220, 279},
                                                                           {280, 400}}};
-// 0x6ba5f8..0x6ba610: la entrada a cada castillo, en miles de zen; la misma para las dos tablas.
+// 0x6ba5f8..0x6ba610: each castle's entry, in thousands of zen; the same for both tables.
 constexpr std::array<std::int32_t, ChaosCastleCount> ChaosCastleThousands{25, 80, 150, 250, 400, 650};
-// 0x5b68dd: el máximo escrito, con signo (JLE); la comparación con el nivel usa el de la tabla.
+// 0x5b68dd: the written maximum, signed (JLE); the comparison with the level uses the table's.
 constexpr std::int32_t ShownMaximumLevel = 400;
-// 0x6c9b80 y 0x6c9b98, de la .data.
+// 0x6c9b80 and 0x6c9b98, from the .data.
 constexpr std::string_view ChaosCastleHeaderFormat = "%s %s    %s      %s    ";
 constexpr std::string_view ChaosCastleRowFormat = "        %d             %3d~%3d     %3d,000";
 constexpr std::size_t ChaosCastleText = 1147;       // 0x7711200
@@ -146,10 +146,10 @@ constexpr std::uint16_t LordSign = 0x1c15;
 constexpr std::int32_t LordSignLevel = 3;
 constexpr std::size_t LordSignText = 1291;
 constexpr std::uint16_t LostMap = 0x1c1c;
-// 0x437d14..0x437d26: las clases 3 y 4 (+0x1d4 & 7) leen desde la octava fila de 0x6b8b18 ([EBP − 4] en 7).
+// 0x437d14..0x437d26: classes 3 and 4 (+0x1d4 & 7) read from the eighth row of 0x6b8b18 ([EBP − 4] at 7).
 constexpr std::size_t KalimaCount = 7;
-// 0x6b8b18 (.rdata), dwords con signo: el nivel mínimo y el máximo de cada Kalima, siete filas para las otras clases y
-// siete para la 3 y la 4. 0x4380c1 apunta al máximo (0x6b8b1c) y lee el mínimo en −4.
+// 0x6b8b18 (.rdata), signed dwords: each Kalima's minimum and maximum level, seven rows for the other classes and
+// seven for 3 and 4. 0x4380c1 points at the maximum (0x6b8b1c) and reads the minimum at −4.
 constexpr std::array<LevelRange, 2 * KalimaCount> KalimaLevels{{{40, 999},
                                                                 {131, 999},
                                                                 {181, 999},
@@ -164,7 +164,7 @@ constexpr std::array<LevelRange, 2 * KalimaCount> KalimaLevels{{{40, 999},
                                                                 {261, 999},
                                                                 {311, 999},
                                                                 {350, 999}}};
-// 0x6c7468 y 0x6c7444, de la .data.
+// 0x6c7468 and 0x6c7444, from the .data.
 constexpr std::string_view KalimaHeaderFormat = "%s %s       %s    ";
 constexpr std::string_view KalimaRowFormat = "        %d             %3d~%3d     ";
 // 0x6c6484.
@@ -213,7 +213,7 @@ void WriteTheTypeText(Frame& frame)
         lines.Line(TooltipWhite, ImpText);
 }
 
-// 0x5b5c66..0x5b5e2a. false si no es un ala ni el 0x1a03.
+// 0x5b5c66..0x5b5e2a. false if it is not a wing or 0x1a03.
 bool WriteTheWings(Frame& frame, std::int32_t type)
 {
     TooltipWriter& lines = frame.lines;
@@ -242,7 +242,7 @@ bool WriteTheWings(Frame& frame, std::int32_t type)
     return false;
 }
 
-// 0x5b5f03..0x5b60c3: el 0x1a0f, sin negritas. Un nivel de más de 4 deja dos renglones vacíos.
+// 0x5b5f03..0x5b60c3: 0x1a0f, without bold. A level above 4 leaves two empty lines.
 void WriteTheStatFruit(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -264,14 +264,14 @@ void WriteTheStatFruit(Frame& frame)
     lines.Next();
 }
 
-// Un texto por nivel (0 y 1) en `color`: con otro nivel, nada.
+// One text per level (0 and 1) in `color`: with another level, nothing.
 void WriteALevelText(TooltipWriter& lines, std::int32_t level, const std::array<std::size_t, 2>& texts)
 {
     if (level == 0 || level == 1)
         lines.PrintText(texts[static_cast<std::size_t>(level)]);
 }
 
-// 0x437c90 con el 0x1c1d: las marcas, sin color, y si alcanzan para el mapa.
+// 0x437c90 with 0x1c1d: the marks, without color, and whether they are enough for the map.
 void WriteTheMarks(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -287,13 +287,13 @@ void WriteTheMarks(Frame& frame)
     lines.Next();
 }
 
-// 0x437d49..0x4381e0: el 0x1c1c (el Mapa perdido) en 0x437c90, que 0x5b6a2f llama con el renglón y que devuelve el que
-// sigue (0x5b6a37 lo guarda en 0x78abb30 y no toca 0x78abb34: sus "\n" no son medios renglones). La clase del héroe
-// (+0x1d4 & 7) elige la tabla; abre el registro propio (en línea, como 0x40b240), lee su nivel (el word +0xe de
-// [0x7681eb0]) y lo cierra: 3.848 rand() si su cuenta vuelve a 0. Después, la cabecera en el 0 y sin negrita; las siete
-// filas con el máximo escrito hasta 400 (JLE) y en el 8 la del nivel del mapa ((D+4 >> 3) & 0xf), sin negrita; un "\n"
-// sin color ni negrita; el 1184 en el 7, sin escribir la negrita; y, con el nivel propio por debajo del mínimo de la
-// primera fila (JGE, con signo), otro "\n" y el 1123 con ese mínimo en el 5.
+// 0x437d49..0x4381e0: 0x1c1c (the Lost Map) in 0x437c90, which 0x5b6a2f calls with the line and which returns the next
+// one (0x5b6a37 keeps it in 0x78abb30 and does not touch 0x78abb34: its "\n" are not half lines). The hero's class
+// (+0x1d4 & 7) picks the table; it opens the own record (inline, like 0x40b240), reads its level (the word +0xe of
+// [0x7681eb0]) and closes it: 3848 rand() if its count returns to 0. Then, the header in color 0 and without bold; the
+// seven rows with the maximum written up to 400 (JLE) and the map level's one ((D+4 >> 3) & 0xf) in color 8, without
+// bold; a "\n" without color or bold; 1184 in color 7, without writing the bold; and, with the own level below the
+// first row's minimum (JGE, signed), another "\n" and 1123 with that minimum in color 5.
 void WriteTheKalimaLevels(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -341,11 +341,11 @@ void WriteTheKalimaLevels(Frame& frame)
     lines.Next();
 }
 
-// 0x5b63b7..0x5b69e7: el 0x1a1d. Antes de escribir, abre el registro propio (en línea, como 0x40b240 y 0x40b4d0),
-// lee su nivel (el word +0xe de [0x7681eb0]) y lo cierra: 3.848 rand() si su cuenta vuelve a 0. Después, la cabecera
-// en blanco; una fila por castillo de la tabla de la clase del héroe, con el máximo escrito hasta 400 y en el 8 la de
-// su nivel (con signo y los dos bordes, contra el máximo de la tabla), sin negrita; un "\n" sin color ni negrita; y
-// el 1157 en el 7, sin escribir la negrita.
+// 0x5b63b7..0x5b69e7: 0x1a1d. Before writing, it opens the own record (inline, like 0x40b240 and 0x40b4d0), reads its
+// level (the word +0xe of [0x7681eb0]) and closes it: 3848 rand() if its count returns to 0. Then, the header in
+// white; one row per castle from the table of the hero's class, with the maximum written up to 400 and the one of its
+// level in color 8 (signed and with both edges, against the table's maximum), without bold; a "\n" without color or
+// bold; and 1157 in color 7, without writing the bold.
 void WriteTheChaosCastleLevels(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -384,7 +384,7 @@ void WriteTheChaosCastleLevels(Frame& frame)
     lines.Next();
 }
 
-// 0x5b5e34..0x5b6a2f: el resto de la cadena.
+// 0x5b5e34..0x5b6a2f: the rest of the chain.
 Core::Expected<void, std::string> WriteTheEventItem(Frame& frame, std::int32_t type)
 {
     TooltipWriter& lines = frame.lines;

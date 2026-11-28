@@ -31,38 +31,38 @@
 #include <string_view>
 #include <utility>
 
-// La ayuda del ítem (06 § HUD y ventanas, "La ayuda del ítem"): el modo 3 de 0x5b0550, desde 0x5b0802, con la tabla
-// por nivel (ItemHelpLevels.h), la caja de arriba (0x5af090 con marco) y las columnas (0x5afb00 y 0x5af9b0).
+// The item help (06 § HUD y ventanas, "La ayuda del ítem"): mode 3 of 0x5b0550, from 0x5b0802, with the per-level
+// table (ItemHelpLevels.h), the top box (0x5af090, framed) and the columns (0x5afb00 and 0x5af9b0).
 namespace Client::Tooltips
 {
 namespace
 {
 using Record = std::span<const std::byte, Tables::ItemRecordSize>;
 
-// 0x5b089c..0x5b0944: las flechas y los virotes cierran la ayuda; las franjas de tipos.
+// 0x5b089c..0x5b0944: the arrows and the bolts close the help; the type ranges.
 constexpr std::int32_t BoltsItem = 0x807;
 constexpr std::int32_t ArrowsItem = 0x80f;
 constexpr std::int32_t FifthKind = 5;
-// 0x5b0932..0x5b0944 y 0x5b0ae2..0x5b0aee: la quinta franja, la de los pergaminos.
+// 0x5b0932..0x5b0944 and 0x5b0ae2..0x5b0aee: the fifth range, the scrolls'.
 constexpr std::int32_t FirstScroll = 0x1e00;
 constexpr std::int32_t ScrollsEnd = 0x2000;
 
-// 0x5b0aa5: la caja de arriba es la de las ayudas de F1, arriba a la izquierda, centrada y con marco.
+// 0x5b0aa5: the top box is the one of the F1 helps, top left, centered and framed.
 constexpr std::int32_t HelpCorner = 1;
 constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t RightAlignedMode = 3;
-// 0x5b09d3: el título, "\n" y los renglones de 0x6c9758..0x6c9768.
+// 0x5b09d3: the title, "\n" and the lines of 0x6c9758..0x6c9768.
 constexpr std::size_t TitleText = 160;
 constexpr std::string_view LineBreak = "\n";
 constexpr std::string_view BlankLine = " ";
-// 0x5b0bf2..0x5b0c0a: 46 espacios, 51 con más de 800 de ancho.
+// 0x5b0bf2..0x5b0c0a: 46 spaces, 51 with a width above 800.
 constexpr std::size_t NarrowSpaces = 46;
 constexpr std::size_t WideSpaces = 51;
 constexpr std::int32_t WideScreen = 800;
-// 0x5b0983: los renglones en blanco para las 14 filas de las columnas (ninguno en los pergaminos).
+// 0x5b0983: the blank lines for the columns' 14 rows (none in the scrolls).
 constexpr std::int32_t BlankRows = 13;
-// 0x5b0cb3 y 0x5b0d29: el conjunto de cada pieza con su mezcla de 0 a 3, en verde: "%s %s %s:(%s+%d)" con su nombre,
-// el 1089, el 591 y el 1090.
+// 0x5b0cb3 and 0x5b0d29: each piece's set with its mix from 0 to 3, in green: "%s %s %s:(%s+%d)" with its name, 1089,
+// 591 and 1090.
 constexpr std::uint8_t LastMix = 3;
 constexpr std::string_view SetFormat = "%s %s %s:(%s+%d)";
 constexpr std::size_t SetText = 1089;
@@ -73,7 +73,7 @@ constexpr std::size_t HighMixByte = 3;
 constexpr std::uint8_t FirstPiece = 1;
 constexpr std::uint8_t SecondPiece = 2;
 
-// 0x5b0ac7..0x5b0bf0: el ancho de la caja, en columnas de divisor · 17 / 90 (6b87d4, 6b8818, 6b8830 y 6b882c).
+// 0x5b0ac7..0x5b0bf0: the box width, in columns of divisor · 17 / 90 (0x6b87d4, 0x6b8818, 0x6b8830 and 0x6b882c).
 constexpr double OneColumn = 1.0;
 constexpr double TwoColumns = 2.0;
 constexpr float WideColumn = 1.1f;
@@ -81,9 +81,9 @@ constexpr float Rounding = 0.5f;
 constexpr std::int32_t ColumnNumerator = 17;
 constexpr std::int32_t ColumnDenominator = 90;
 
-// 0x5af9b0: 14 filas, una en los pergaminos.
+// 0x5af9b0: 14 rows, one in the scrolls.
 constexpr std::int32_t LastRow = 13;
-// 0x5b0e33 y 0x5b0e63: lo que se corre la x alrededor del nivel pedido.
+// 0x5b0e33 and 0x5b0e63: how far x moves around the required level.
 constexpr std::int32_t BeforeRequiredLevel = 2;
 constexpr std::int32_t AfterRequiredLevel = 10;
 
@@ -93,7 +93,7 @@ struct ItemKind
     std::int32_t dividend = 0;
 };
 
-// 0x5b08b4..0x5b0975: la franja del ítem y lo que divide por el ancho de la pantalla; sin franja, nada.
+// 0x5b08b4..0x5b0975: the item's range and what divides by the screen width; without a range, nothing.
 std::optional<ItemKind> KindOf(std::int32_t item, std::int32_t screenWidth)
 {
     if (item >= 0 && item < 0xa00)
@@ -106,7 +106,7 @@ std::optional<ItemKind> KindOf(std::int32_t item, std::int32_t screenWidth)
         return ItemKind{.kind = 4, .dividend = 0x708};
     if (item >= FirstScroll && item < ScrollsEnd)
     {
-        // 0x5b094f..0x5b0975: 0x1734 en 640 y 1.280, 0x1450 en 800 y 1.024 y, con otro, sin división.
+        // 0x5b094f..0x5b0975: 0x1734 at 640 and 1280, 0x1450 at 800 and 1024 and, with another, no division.
         if (screenWidth == 640 || screenWidth == 1280)
             return ItemKind{.kind = FifthKind, .dividend = 0x1734};
         if (screenWidth == 800 || screenWidth == 1024)
@@ -116,8 +116,8 @@ std::optional<ItemKind> KindOf(std::int32_t item, std::int32_t screenWidth)
     return std::nullopt;
 }
 
-// 0x5b0807..0x5b088c: por ancho de pantalla, el divisor (0x6d5d60), la y de los títulos y la de las filas; con otro
-// ancho, todo en 0.
+// 0x5b0807..0x5b088c: per screen width, the divisor (0x6d5d60), the titles' y and the rows' y; with another width, all
+// at 0.
 struct HelpLayout
 {
     std::int32_t divisor = 0;
@@ -149,9 +149,9 @@ bool IsScroll(std::int32_t item)
 
 using Math::Truncate;
 
-// 0x5b0ac7..0x5b0bf0: el ancho que se le pasa a la caja, de la fila del nivel 0, en double (la x87 con 53 bits): una
-// columna, o dos con el daño mínimo (salvo los pergaminos), más una por cada columna que se dibuja (1,1 las anchas).
-// Nunca menos que el divisor.
+// 0x5b0ac7..0x5b0bf0: the width passed to the box, from level 0's row, in double (the x87 with 53 bits): one column,
+// or two with the min damage (except in the scrolls), plus one per drawn column (1.1 the wide ones). Never less than
+// the divisor.
 std::int32_t HelpWidth(const ItemHelpRow& first, std::int32_t item, std::int32_t divisor)
 {
     const bool scroll = IsScroll(item);
@@ -184,8 +184,8 @@ std::int32_t HelpWidth(const ItemHelpRow& first, std::int32_t item, std::int32_t
     return std::max(divisor, width);
 }
 
-// 0x5b0c97..0x5b0d9f: 0x40cf00(ítem), los bytes 2 y 3 de ItemSetType.bmd, y un renglón por pieza (la 1 con el 3 y la
-// 2 con el 2) con su mezcla de 0 a 3 y un conjunto (0x40cf30).
+// 0x5b0c97..0x5b0d9f: 0x40cf00(item), bytes 2 and 3 of ItemSetType.bmd, and one line per piece (1 with 3 and 2 with 2)
+// with its mix from 0 to 3 and a set (0x40cf30).
 Core::Expected<void, std::string> WriteTheSetLines(Hud::GameHudContext& context, TooltipWriter& lines,
                                                    std::int32_t item)
 {
@@ -216,8 +216,8 @@ Core::Expected<void, std::string> WriteTheSetLines(Hud::GameHudContext& context,
     return {};
 }
 
-// 0x5b09b0..0x5b0dea: los renglones de la caja de arriba, desde el 0, y la caja. El título se copia con strcpy y el
-// nombre del ítem con "%s"; los "\n" y " " no tocan su color ni su negrita.
+// 0x5b09b0..0x5b0dea: the top box's lines, from 0, and the box. The title is copied with strcpy and the item's name
+// with "%s"; the "\n" and " " do not touch their color or their bold.
 Core::Expected<void, std::string> DrawTheHelpBox(Hud::GameHudContext& context, std::int32_t item,
                                                  std::int32_t blankRows, Record record, std::int32_t width)
 {
@@ -243,7 +243,7 @@ Core::Expected<void, std::string> DrawTheHelpBox(Hud::GameHudContext& context, s
         lines.Print(text);
         lines.Next();
     }
-    // 0x5b0acc: 0x77f3b66 en 1.
+    // 0x5b0acc: 0x77f3b66 at 1.
     context.hud.durabilityWarning = 1;
     lines.At("0x5b0c25");
     const std::size_t spaces = context.sprites.Screen().width > WideScreen ? WideSpaces : NarrowSpaces;
@@ -252,8 +252,8 @@ Core::Expected<void, std::string> DrawTheHelpBox(Hud::GameHudContext& context, s
     lines.Color(TooltipWhite);
     lines.Bold(0);
     lines.Next();
-    // 0x5b0c5a..0x5b0c8f: los colores van uno más abajo que los renglones: el del primero queda como estaba y el
-    // siguiente al último, en 0.
+    // 0x5b0c5a..0x5b0c8f: the colors go one below the lines: the first one's stays as it was and the one after the
+    // last, at 0.
     for (std::int32_t row = 0; row < blankRows; ++row)
     {
         lines.Bold(0);
@@ -274,8 +274,8 @@ Core::Expected<void, std::string> DrawTheHelpBox(Hud::GameHudContext& context, s
     return DrawTheTooltipBox(context, HelpCorner, HelpCorner, written.next, width, CenteredMode, 1);
 }
 
-// 0x5afb00: el texto de Text.bmd del título de cada columna; la 1, la 11, la 12 y las de más de 15, ninguno (NULL, y
-// sprintf corta en 0x5afb7a), aunque 0x5b0550 no las pide.
+// 0x5afb00: the Text.bmd text of each column's title; 1, 11, 12 and those above 15, none (NULL, and sprintf cuts at
+// 0x5afb7a), although 0x5b0550 does not ask for them.
 std::optional<std::size_t> ColumnTitleText(ItemHelpColumn column)
 {
     switch (column)
@@ -310,8 +310,8 @@ std::optional<std::size_t> ColumnTitleText(ItemHelpColumn column)
     }
 }
 
-// Las columnas de 0x5b0dfb..0x5b10b6, de izquierda a derecha desde la x de 0x5b097d: cada una es un título
-// (0x5afb00) y sus filas (0x5af9b0), con las cajas sin marco y contra el borde. El primer error corta lo que sigue.
+// The columns of 0x5b0dfb..0x5b10b6, left to right from the x of 0x5b097d: each one is a title (0x5afb00) and its rows
+// (0x5af9b0), with frameless boxes against the edge. The first error cuts what follows.
 class HelpColumns
 {
 public:
@@ -320,8 +320,8 @@ public:
     {
     }
 
-    // 0x5afb00(columna, x, y): el título como formato de sprintf, sin argumentos, en el renglón 0 (0x78abb30), con el
-    // color 1 y la negrita que haya quedado, y la caja de ese renglón en (x, y). Después, 0x78abb30 en 0.
+    // 0x5afb00(column, x, y): the title as a sprintf format, with no arguments, on line 0 (0x78abb30), with color 1 and
+    // whatever bold was left, and that line's box at (x, y). Then, 0x78abb30 at 0.
     void Title(ItemHelpColumn column)
     {
         if (!m_error.empty())
@@ -348,10 +348,10 @@ public:
         written.next = 0;
     }
 
-    // 0x5af9b0(columna, formato, &x, muestra, y, franja): las 14 filas de la columna (una con la franja 5) desde el
-    // renglón 0x78abb30, con `format` y el valor de cada nivel; el color (0 si el registro propio cumple el nivel, 2 si
-    // no) y la negrita en 0 van por fila, no por renglón. La caja en (x, y) y, con la fuente que deja, x crece lo
-    // que mide `sample` / rx. 0x78abb30 vuelve a donde estaba.
+    // 0x5af9b0(column, format, &x, sample, y, range): the column's 14 rows (one with range 5) from line 0x78abb30, with
+    // `format` and each level's value; the color (0 if the own record meets the level, 2 if not) and bold at 0 go per
+    // row, not per line. The box at (x, y) and, with the font it leaves, x grows by what `sample` / rx measures.
+    // 0x78abb30 goes back to where it was.
     void Column(ItemHelpColumn column, std::string_view format, std::string_view sample, std::int32_t kind = 0)
     {
         if (!m_error.empty())
@@ -381,7 +381,7 @@ public:
         written.next -= last + 1;
     }
 
-    // La x corre sola entre columnas (0x5b0e37 y 0x5b0e63).
+    // x moves by itself between columns (0x5b0e37 and 0x5b0e63).
     void Advance(std::int32_t step)
     {
         m_x += step;
@@ -407,7 +407,7 @@ private:
     std::string m_error;
 };
 
-// 0x5b0dfb..0x5b10b6: las columnas que tiene la fila del nivel 0, en el orden del original.
+// 0x5b0dfb..0x5b10b6: the columns that level 0's row has, in the original's order.
 Core::Expected<void, std::string> DrawTheColumns(Hud::GameHudContext& context, std::int32_t item, std::int32_t kind,
                                                  std::int32_t x, const HelpLayout& layout)
 {
@@ -426,14 +426,14 @@ Core::Expected<void, std::string> DrawTheColumns(Hud::GameHudContext& context, s
     }
     if (first[ItemHelpMinDamage] > 0 && !scroll)
     {
-        // 0x5b0e85..0x5b0ebc: el mínimo, el título de los dos en la x que sigue y la columna "~" (la del nivel).
+        // 0x5b0e85..0x5b0ebc: the minimum, the title of both at the next x and the "~" column (the level's).
         columns.Column(ItemHelpMinDamage, "%3d", "00 ");
         columns.Title(ItemHelpMinDamage);
         columns.Column(ItemHelpLevel, "~", " 00");
     }
     if (first[ItemHelpMaxDamage] > 0 && !scroll)
         columns.Column(ItemHelpMaxDamage, "%3d", "00000");
-    // 0x5b0efb..0x5b10b3: las demás, cada una con su título.
+    // 0x5b0efb..0x5b10b3: the others, each with its title.
     struct Titled
     {
         ItemHelpColumn column;
@@ -478,7 +478,7 @@ Core::Expected<void, std::string> DrawTheItemHelp(Hud::GameHudContext& context)
         item == BoltsItem || item == ArrowsItem ? std::nullopt : KindOf(item, screenWidth);
     if (!kind)
     {
-        // 0x5b10c2: 0x77f3b08 en 0.
+        // 0x5b10c2: 0x77f3b08 at 0.
         if (!context.projecting)
             panels.overlayMode = 0;
         return {};
@@ -487,7 +487,7 @@ Core::Expected<void, std::string> DrawTheItemHelp(Hud::GameHudContext& context)
     if (kind->dividend != 0 && layout.divisor == 0)
         return Core::Unexpected(std::format(
             "0x5b097b: la ayuda del ítem {} divide por 0 con una pantalla de {} de ancho (Q-C615)", item, screenWidth));
-    // 0x5b097a..0x5b098c: la x de la primera columna y los renglones en blanco.
+    // 0x5b097a..0x5b098c: the first column's x and the blank lines.
     const std::int32_t x = kind->dividend != 0 ? kind->dividend / layout.divisor : 0;
     const std::int32_t blankRows = kind->kind == FifthKind ? 0 : BlankRows;
     if (context.items == nullptr)
@@ -495,7 +495,7 @@ Core::Expected<void, std::string> DrawTheItemHelp(Hud::GameHudContext& context)
     const auto record = context.items->Record(static_cast<std::size_t>(item));
     if (!record)
         return Core::Unexpected(std::format("0x5b098f: el ítem {} lee fuera de Item.bmd", item));
-    // 0x5b09f0..0x5b0a0b: el strcpy del título; uno de 100 bytes o más sigue en el renglón de abajo (Q-C613).
+    // 0x5b09f0..0x5b0a0b: the title's strcpy; one of 100 bytes or more continues on the line below (Q-C613).
     const std::optional<std::string_view> title =
         context.texts == nullptr ? std::nullopt : context.texts->Text(TitleText);
     if (!title)
@@ -504,7 +504,7 @@ Core::Expected<void, std::string> DrawTheItemHelp(Hud::GameHudContext& context)
         return Core::Unexpected(
             std::format("0x5b0a03: el texto {} ({} bytes) no entra en un renglón de la ayuda del ítem (Q-C613)",
                         TitleText, title->size()));
-    // 0x5b09a8: la tabla por nivel, que solo se llena con otro ítem.
+    // 0x5b09a8: the per-level table, which only refills with another item.
     FillTheItemHelpLevels(context, item, *record);
     const std::int32_t width = HelpWidth(context.hud.itemHelp.rows[0], item, layout.divisor);
     if (auto box = DrawTheHelpBox(context, item, blankRows, *record, width); !box.HasValue())

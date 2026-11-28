@@ -31,9 +31,9 @@
 #include <string_view>
 #include <vector>
 
-// El cuerpo del tooltip de una skill de la barra (0x5b90b0) y la ayuda de los comandos del cuervo (0x421c10), CL8
-// hito 5, con Text.bmd y Skill.bmd inventados, el texto falso de RecordingTextDrawer (13 de alto) y 640 × 480, donde
-// ry es 1. Nadie abre el registro propio alrededor, como en 0x5f7bc0: su cierre gasta 3.848 rand().
+// The body of a bar skill's tooltip (0x5b90b0) and the help of the raven's commands (0x421c10), CL8 milestone 5, with
+// invented Text.bmd and Skill.bmd, the fake text of RecordingTextDrawer (13 high) and 640 × 480, where ry is 1. Nobody
+// opens the own record around it, as in 0x5f7bc0: its close spends 3848 rand().
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -45,18 +45,18 @@ using Client::Tooltips::TooltipLines;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};
-// Un acceso de Skill.bmd que cierra en 0 (0x3c bytes).
+// A Skill.bmd access that closes at 0 (0x3c bytes).
 constexpr int SkillAccess = 60;
-// Los de toda skill: 0x5513d0, 0x5516e0, 0x551c70, 0x5519f0 y el acceso en línea de su entrada.
+// Every skill's: 0x5513d0, 0x5516e0, 0x551c70, 0x5519f0 and the inline access of its entry.
 constexpr int SkillAccesses = 5 * SkillAccess;
-// Lo que había en los colores, las negritas y los dos contadores antes del cuerpo: no los limpia ni los toca.
+// What was in the colors, the bolds and the two counters before the body: it neither clears nor touches them.
 constexpr std::int32_t StaleColor = 8;
 constexpr std::int32_t StaleBold = 7;
 constexpr std::int32_t StaleNext = 11;
 constexpr std::int32_t StaleHalves = 2;
 constexpr std::int32_t Height = Client::Tests::RecordingTextDrawer::Height;
 
-// Las clases del héroe (+0x1d4 & 7).
+// The hero's classes (+0x1d4 & 7).
 constexpr std::uint8_t Wizard = 0;
 constexpr std::uint8_t Knight = 1;
 constexpr std::uint8_t Elf = 2;
@@ -64,7 +64,7 @@ constexpr std::uint8_t Gladiator = 3;
 constexpr std::uint8_t DarkLord = 4;
 constexpr std::uint8_t FifthClass = 5;
 
-// Las skills inventadas, en los números que el tooltip mira.
+// The invented skills, at the numbers the tooltip looks at.
 constexpr std::uint8_t Slash = 0x07;
 constexpr std::uint8_t Bolt = 0x05;
 constexpr std::uint8_t Absorb = 0x10;
@@ -117,7 +117,7 @@ Client::Tables::TextTable Texts()
                                          {1927, ""}});
 }
 
-// Skill.bmd en claro: todas sin atributo (+0x30 en 0xff) salvo las que dicen otra cosa.
+// Skill.bmd in clear: all without an attribute (+0x30 at 0xff) except the ones that say otherwise.
 class SkillRecords
 {
 public:
@@ -147,7 +147,7 @@ public:
         return *this;
     }
 
-    // El daño (+0x21), el maná (+0x22), la stamina (+0x24) y el alcance (+0x26).
+    // The damage (+0x21), the mana (+0x22), the stamina (+0x24) and the range (+0x26).
     SkillRecords& Costs(std::uint8_t skill, std::uint8_t damage, std::uint16_t mana, std::uint16_t stamina,
                         std::uint8_t range)
     {
@@ -188,7 +188,7 @@ SkillRecords BaseSkills()
     records.Named(Pet, "Corcel").Costs(Pet, 0, 3, 0, 0);
     records.Named(Party, "Llamado").Costs(Party, 0, 4, 0, 0);
     records.Named(StatDamage, "Furia").Costs(StatDamage, 9, 40, 0, 0);
-    // Un nombre que llena la entrada entera, sin '\0'.
+    // A name that fills the whole entry, without '\0'.
     for (std::size_t i = 0; i < Client::Tables::SkillRecordSize; ++i)
         records.Byte(Nameless, i, 'x');
     return records;
@@ -201,7 +201,7 @@ struct Line
     std::int32_t bold = StaleBold;
 };
 
-// Los renglones que el cuerpo escribe siempre: el "\n", el nombre en azul y negrita y otro "\n".
+// The lines the body always writes: the "\n", the name in blue and bold and another "\n".
 std::vector<Line> Header(std::string_view name)
 {
     return {{"\n"}, {std::string(name), 1, 1}, {"\n"}};
@@ -214,14 +214,14 @@ protected:
     {
         sprites.Begin(Screen640);
         Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
-        // El ataque (0x5b8b80): las manos vacías y los dos pares iguales.
+        // The attack (0x5b8b80): the empty hands and the two equal pairs.
         for (Client::Kernel::ItemState& item : own.equipment)
             item.id = 0xffff;
         own.word50 = 6;
         own.word54 = 6;
         own.word52 = 9;
         own.word56 = 9;
-        // La magia (0x5513d0).
+        // The magic (0x5513d0).
         own.word5a = 10;
         own.word5c = 20;
         own.level = 150;
@@ -265,7 +265,7 @@ protected:
         Hero().characterClass = characterClass;
     }
 
-    // La skill `skill` en el lugar `slot` del registro (+0x6c + lugar).
+    // Skill `skill` in slot `slot` of the record (+0x6c + slot).
     void SkillIn(std::size_t slot, std::uint8_t skill)
     {
         std::uint32_t& word = world.OwnCharacter().words6c[slot / 4];
@@ -273,7 +273,7 @@ protected:
         word = (word & ~(0xffu << shift)) | (std::uint32_t{skill} << shift);
     }
 
-    // 0x5f7bc0 con la skill `skill` en el lugar 2.
+    // 0x5f7bc0 with skill `skill` in slot 2.
     Client::Core::Expected<void, std::string> Draw(std::uint8_t skill, std::int32_t siegeSkill = 0,
                                                    std::int32_t x = 320, std::int32_t y = 300)
     {
@@ -293,7 +293,7 @@ protected:
         return world.Runtime().hud.tooltip;
     }
 
-    // Los renglones vacíos, y los colores, las negritas y los contadores con lo que había antes.
+    // The lines empty, and the colors, the bolds and the counters with what was there before.
     void ResetLines()
     {
         TooltipLines& lines = Lines();
@@ -304,7 +304,7 @@ protected:
         lines.halves = StaleHalves;
     }
 
-    // Los renglones escritos, y los dos contadores de 0x78abb30 y 0x78abb34 como estaban.
+    // The written lines, and the two counters of 0x78abb30 and 0x78abb34 as they were.
     void ExpectLines(const std::vector<Line>& expected)
     {
         const TooltipLines& lines = Lines();
@@ -331,7 +331,7 @@ protected:
         return from;
     }
 
-    // Lo que dibujó la caja, sin los "\n".
+    // What the box drew, without the "\n".
     std::vector<std::string> DrawnTexts() const
     {
         std::vector<std::string> drawn;
@@ -340,7 +340,7 @@ protected:
         return drawn;
     }
 
-    // La y del primer texto de la caja que 0x5af090 dibuja con `count` renglones arriba en `top`.
+    // The y of the first text of the box that 0x5af090 draws with `count` lines above at `top`.
     std::int32_t FirstTextYOfABoxAt(std::int32_t top, std::int32_t count)
     {
         const std::vector<Client::Tests::RecordedText> drawn = text.texts;
@@ -363,8 +363,8 @@ protected:
     bool withTexts = true;
 };
 
-// Las clases 1 a 4: el daño de la skill (0x5516e0, s y s + s / 2) más el del ataque (0x5b8b80), el alcance y el maná.
-// Sin atributo (0xff), el acceso de 0x5519f0 se abre igual. Cinco accesos de Skill.bmd y el cierre del registro.
+// Classes 1 to 4: the skill's damage (0x5516e0, s and s + s / 2) plus the attack's (0x5b8b80), the range and the mana.
+// Without an attribute (0xff), the access of 0x5519f0 opens anyway. Five Skill.bmd accesses and the record's close.
 TEST_F(SkillTooltipTest, AKnightSeesTheSkillDamagePlusTheAttack)
 {
     const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + SkillAccesses);
@@ -381,7 +381,7 @@ TEST_F(SkillTooltipTest, AKnightSeesTheSkillDamagePlusTheAttack)
     EXPECT_EQ(DrawnTexts(), (std::vector<std::string>{"Tajo", "Golpe 26~39", "Alcance 3", "Mana 12"}));
 }
 
-// El Gladiator, el Dark Lord y la elfa ven el mismo daño; las clases 5 a 7, ninguno.
+// The Gladiator, the Dark Lord and the elf see the same damage; classes 5 to 7, none.
 TEST_F(SkillTooltipTest, TheOtherClassesShareTheDamageLineButTheFifthHasNone)
 {
     for (const std::uint8_t heroClass : {Gladiator, DarkLord, Elf})
@@ -400,8 +400,8 @@ TEST_F(SkillTooltipTest, TheOtherClassesShareTheDamageLineButTheFifthHasNone)
     ExpectLines(lines);
 }
 
-// El Wizard ve la magia (0x5513d0: +0x5a + s y +0x5c + s + s / 2) y el atributo 0 (el texto 1080) en azul, salvo con
-// una skill de asedio de 0x43 a 0x45 en el cuarto argumento (Q-C722).
+// The Wizard sees the magic (0x5513d0: +0x5a + s and +0x5c + s + s / 2) and attribute 0 (text 1080) in blue, except
+// with a siege skill from 0x43 to 0x45 in the fourth argument (Q-C722).
 TEST_F(SkillTooltipTest, AWizardSeesTheMagicUnlessTheSiegeSkillIsOneOfThree)
 {
     HeroIs(Wizard);
@@ -421,14 +421,14 @@ TEST_F(SkillTooltipTest, AWizardSeesTheMagicUnlessTheSiegeSkillIsOneOfThree)
     EXPECT_EQ(Lines().text[3], "Magia 28~47");
 }
 
-// La 0x10 del Wizard: la absorción con la x87, donde 0,02f es un poco menos que 0,02: 250 · 0,02f da 4, no 5.
+// The Wizard's 0x10: the absorption with the x87, where 0.02f is a bit less than 0.02: 250 · 0.02f gives 4, not 5.
 TEST_F(SkillTooltipTest, TheWizardAbsorptionTruncatesTheFloatProducts)
 {
     HeroIs(Wizard);
 
     ASSERT_TRUE(Draw(Absorb).HasValue());
 
-    // 45 · 0,02f + 120 · 0,005f + 10 = 11,49…; 120 · 0,025f + 60 = 63,00…
+    // 45 · 0.02f + 120 · 0.005f + 10 = 11.49…; 120 · 0.025f + 60 = 63.00…
     std::vector<Line> lines = Header("Velo");
     lines.insert(
         lines.end(),
@@ -436,7 +436,7 @@ TEST_F(SkillTooltipTest, TheWizardAbsorptionTruncatesTheFloatProducts)
     ExpectLines(lines);
 }
 
-// La elfa: lo de la energía de sus tres skills, que no tienen renglón de daño.
+// The elf: the energy lines of her three skills, which have no damage line.
 TEST_F(SkillTooltipTest, TheElfSeesTheEnergyOfItsThreeSkills)
 {
     HeroIs(Elf);
@@ -456,8 +456,8 @@ TEST_F(SkillTooltipTest, TheElfSeesTheEnergyOfItsThreeSkills)
     EXPECT_EQ(Lines().text[3], "Alcance 5");
 }
 
-// El Dark Knight: la 0x2f con el 96 después de la stamina, y el combo con el +0x390 del héroe en 1, nivel 220 o más
-// y una skill del combo.
+// The Dark Knight: 0x2f with 96 after the stamina, and the combo with the hero's +0x390 at 1, level 220 or more and a
+// combo skill.
 TEST_F(SkillTooltipTest, TheDarkKnightSeesTheLanceNoteAndTheComboAfterTheQuest)
 {
     ASSERT_TRUE(Draw(Lance).HasValue());
@@ -485,8 +485,8 @@ TEST_F(SkillTooltipTest, TheDarkKnightSeesTheLanceNoteAndTheComboAfterTheQuest)
     EXPECT_EQ(Lines().text[6], "\n");
 }
 
-// La 0x4c: el byte +0x21 de su entrada (0x552470, un acceso más) más los stats de cada clase, hasta 30 más, y las dos
-// notas 1926 y 1927, vacías en el Text.bmd del cliente: la caja deja de dibujar ahí (Q-C723).
+// 0x4c: the +0x21 byte of its entry (0x552470, one more access) plus each class's stats, up to 30 more, and the two
+// notes 1926 and 1927, empty in the client's Text.bmd: the box stops drawing there (Q-C723).
 TEST_F(SkillTooltipTest, TheStatDamageAddsTheStatsOfEachClass)
 {
     const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + SkillAccesses + SkillAccess);
@@ -507,22 +507,22 @@ TEST_F(SkillTooltipTest, TheStatDamageAddsTheStatsOfEachClass)
     HeroIs(Elf);
     ASSERT_TRUE(Draw(StatDamage).HasValue());
     EXPECT_EQ(Lines().text[3], "Golpe 73~103");
-    // Más 30 / 3 del comando.
+    // Plus 30 / 3 from the command.
     HeroIs(DarkLord);
     ASSERT_TRUE(Draw(StatDamage).HasValue());
     EXPECT_EQ(Lines().text[3], "Golpe 93~123");
-    // Las clases 5 a 7: el de la skill más el del ataque, 9 + 6.
+    // Classes 5 to 7: the skill's plus the attack's, 9 + 6.
     HeroIs(FifthClass);
     ASSERT_TRUE(Draw(StatDamage).HasValue());
     EXPECT_EQ(Lines().text[3], "Golpe 15~45");
-    // El Wizard tiene también su magia: 90 / 5 + 45 / 5 + 50 / 7 + 120 / 3 + 9.
+    // The Wizard also has his magic: 90 / 5 + 45 / 5 + 50 / 7 + 120 / 3 + 9.
     HeroIs(Wizard);
     ASSERT_TRUE(Draw(StatDamage).HasValue());
     EXPECT_EQ(Lines().text[3], "Magia 19~33");
     EXPECT_EQ(Lines().text[4], "Golpe 83~113");
 }
 
-// La 0x3c con la opción 0x42 en el lugar 0 y algo en la mano derecha del héroe se llama como el texto 1200.
+// 0x3c with option 0x42 in slot 0 and something in the hero's right hand is named like text 1200.
 TEST_F(SkillTooltipTest, TheForceSkillTakesTheWaveNameWithItsOption)
 {
     Client::Kernel::ItemState& right = world.OwnCharacter().equipment[0];
@@ -541,7 +541,7 @@ TEST_F(SkillTooltipTest, TheForceSkillTakesTheWaveNameWithItsOption)
     ASSERT_TRUE(Draw(Force).HasValue());
     EXPECT_EQ(Lines().text[1], "Golpe Fuerte");
 
-    // Sin la 0x42 en sus 17 bytes, el lazo sigue por D+0x3c.
+    // Without 0x42 in its 17 bytes, the loop goes on through D+0x3c.
     right.optionCount = 20;
     right.optionBytes[1] = 0x11;
     const auto drawn = Draw(Force);
@@ -549,7 +549,7 @@ TEST_F(SkillTooltipTest, TheForceSkillTakesTheWaveNameWithItsOption)
     EXPECT_NE(drawn.Error().find("0x5b9271"), std::string::npos);
 }
 
-// La 0x3e de las clases 1 a 4 dice el 1237 en vez del daño; la 0x3f del Dark Lord, el 1185 sin party.
+// The 0x3e of classes 1 to 4 says 1237 instead of the damage; the Dark Lord's 0x3f, 1185 without a party.
 TEST_F(SkillTooltipTest, ThePetAndThePartySkillsWriteTheirNotes)
 {
     ASSERT_TRUE(Draw(Pet).HasValue());
@@ -567,8 +567,8 @@ TEST_F(SkillTooltipTest, ThePetAndThePartySkillsWriteTheirNotes)
     EXPECT_EQ(Lines().text[4], "\n");
 }
 
-// El +0x31 de la entrada: con 2, la skill del +0x32 (su nombre y su +0x21, con su acceso adentro: 60 más si no es la
-// misma); con 1, la guerra de guilds y el +0x33.
+// The entry's +0x31: with 2, the skill at +0x32 (its name and its +0x21, with its access inside: 60 more if it is not
+// the same); with 1, the guild war and +0x33.
 TEST_F(SkillTooltipTest, TheOriginNamesTheGiverOrTheGuildWar)
 {
     CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + SkillAccesses + SkillAccess);
@@ -591,7 +591,7 @@ TEST_F(SkillTooltipTest, TheOriginNamesTheGiverOrTheGuildWar)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Una skill que se da a sí misma: el acceso de adentro es el mismo y no saca nada.
+// A skill that gives itself: the inner access is the same and draws nothing.
 TEST_F(SkillTooltipTest, ASkillThatGivesItselfOpensItsEntryTwice)
 {
     skills = BaseSkills().Byte(Given, 0x32, Given).Table();
@@ -604,7 +604,7 @@ TEST_F(SkillTooltipTest, ASkillThatGivesItselfOpensItsEntryTwice)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// La caja va arriba de y: ((N − 3) · cy + 3 · cy / 2) / ry, con N = 7 y cy = 13; en 800 × 600, ry = 1,25.
+// The box goes above y: ((N − 3) · cy + 3 · cy / 2) / ry, with N = 7 and cy = 13; at 800 × 600, ry = 1.25.
 TEST_F(SkillTooltipTest, TheBoxGoesAboveYInEachResolution)
 {
     ASSERT_TRUE(Draw(Slash, 0, 320, 300).HasValue());
@@ -615,14 +615,14 @@ TEST_F(SkillTooltipTest, TheBoxGoesAboveYInEachResolution)
     sprites.Begin(Screen800);
     text.texts.clear();
     ASSERT_TRUE(Draw(Slash, 0, 320, 300).HasValue());
-    // 71 / 1,25 = 56,8: _ftol trunca.
+    // 71 / 1.25 = 56.8: _ftol truncates.
     ASSERT_FALSE(text.texts.empty());
     EXPECT_EQ(text.texts[0].y, FirstTextYOfABoxAt(300 - 56, 7));
     EXPECT_NE(text.texts[0].y, FirstTextYOfABoxAt(300 - 57, 7));
 }
 
-// 0x421c10: los lugares 0x78 a 0x7b del Dark Lord son la ayuda de los comandos, sin rand(): el nombre en azul y
-// negrita, el color del renglón 1 en 0 y los demás como estaban (Q-C720), con la altura de 4 medios (Q-C721).
+// 0x421c10: the Dark Lord's slots 0x78 to 0x7b are the commands' help, without rand(): the name in blue and bold, line
+// 1's color at 0 and the rest as they were (Q-C720), with the height of 4 halves (Q-C721).
 TEST_F(SkillTooltipTest, TheDarkLordCommandsShowTheirHelpWithoutTheRecord)
 {
     HeroIs(DarkLord);
@@ -641,8 +641,8 @@ TEST_F(SkillTooltipTest, TheDarkLordCommandsShowTheirHelpWithoutTheRecord)
     EXPECT_EQ(Lines().text[3], "Ayuda D");
 }
 
-// Fuera de 0x78 a 0x7b, o con otra clase, el cuerpo de la skill: el byte +0x6c + lugar, de los 256 que escribe el
-// F3 11 (0x4c5070, CL9 hito 4). Fuera de ellos corta.
+// Outside 0x78 to 0x7b, or with another class, the skill body: byte +0x6c + slot, of the 256 that F3 11 writes
+// (0x4c5070, CL9 milestone 4). Outside them it cuts.
 TEST_F(SkillTooltipTest, OtherSlotsReadTheSkillByteOfTheRecord)
 {
     HeroIs(DarkLord);
@@ -664,8 +664,8 @@ TEST_F(SkillTooltipTest, OtherSlotsReadTheSkillByteOfTheRecord)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// Lo que MuRet no tiene corta con su dirección: Skill.bmd, un nombre sin '\0' en su entrada (el de la skill y el de
-// la que la dio) y Text.bmd.
+// What MuRet does not have cuts with its address: Skill.bmd, a name without '\0' in its entry (the skill's and the
+// giver's) and Text.bmd.
 TEST_F(SkillTooltipTest, WhatMuRetLacksStopsWithItsAddress)
 {
     withSkills = false;
@@ -691,7 +691,7 @@ TEST_F(SkillTooltipTest, WhatMuRetLacksStopsWithItsAddress)
     EXPECT_EQ(world.Runtime().movement.skillDepths[Slash], 0);
 }
 
-// 0x5f7bc0: con 0x6c9320 distinto de −1, el cuerpo de la skill de ese lugar con el cuarto argumento en 0.
+// 0x5f7bc0: with 0x6c9320 other than −1, the skill body of that slot with the fourth argument at 0.
 TEST_F(SkillTooltipTest, TheTooltipsDrawTheSkillOfTheHoveredSlot)
 {
     SkillIn(4, Slash);

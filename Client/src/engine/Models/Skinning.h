@@ -7,6 +7,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstddef>
 #include <span>
 #include <vector>
 
@@ -22,6 +23,28 @@ struct SkinnedMesh
     // the object's position. With the scale inside only if the bone carries it: the world bones of 0x4eb860 with the
     // flag at 1 (SkinMeshInWorld); with Translate at 1 (SkinMesh), without it. Whoever draws them adds nothing.
     std::vector<glm::vec3> normals;
+};
+
+// A model's skinned meshes in buffers that outlive the draw. Reset hands out the first `count`, emptied; the ones past
+// it keep their capacity for a bigger model, so skinning model after model allocates only while the biggest grows them.
+class SkinnedMeshes
+{
+public:
+    [[nodiscard]] std::span<SkinnedMesh> Reset(std::size_t count)
+    {
+        if (m_meshes.size() < count)
+            m_meshes.resize(count);
+        const std::span<SkinnedMesh> meshes = std::span(m_meshes).first(count);
+        for (SkinnedMesh& mesh : meshes)
+        {
+            mesh.positions.clear();
+            mesh.normals.clear();
+        }
+        return meshes;
+    }
+
+private:
+    std::vector<SkinnedMesh> m_meshes;
 };
 
 // 0x4ebc80 with its last argument at 1, as 0x60cf70 draws each part of a character with the bones 0x6001b0 posed: each

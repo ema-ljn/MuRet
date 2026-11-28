@@ -83,25 +83,19 @@ bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const Math::BoneT
         return false;
     }
     // 0x4ebde2 and 0x4ebf70: 0x5fccc0 and 0x5fcbd0 read the bone's 3 × 4 by rows.
-    std::vector<Math::OriginalMatrix> matrices;
-    matrices.reserve(worldBones.size());
-    for (const Math::BoneTransform& bone : worldBones)
-    {
-        matrices.push_back(Math::OriginalMatrixOf(bone));
-    }
+    const auto rowsOf = [worldBones](std::int16_t bone)
+    { return Math::OriginalMatrixOf(worldBones[static_cast<std::size_t>(bone)]); };
     out.positions.clear();
     out.positions.reserve(mesh.vertices.size());
     for (const Data::Models::Vertex& vertex : mesh.vertices)
     {
-        out.positions.push_back(
-            Math::OriginalVectorTransform(ToVec3(vertex.position), matrices[static_cast<std::size_t>(vertex.bone)]));
+        out.positions.push_back(Math::OriginalVectorTransform(ToVec3(vertex.position), rowsOf(vertex.bone)));
     }
     out.normals.clear();
     out.normals.reserve(mesh.normals.size());
     for (const Data::Models::Normal& normal : mesh.normals)
     {
-        out.normals.push_back(
-            Math::OriginalVectorRotate(ToVec3(normal.normal), matrices[static_cast<std::size_t>(normal.bone)]));
+        out.normals.push_back(Math::OriginalVectorRotate(ToVec3(normal.normal), rowsOf(normal.bone)));
     }
     return true;
 }

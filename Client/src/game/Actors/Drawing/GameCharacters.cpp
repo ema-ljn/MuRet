@@ -169,6 +169,7 @@ DrawnCharacter CharacterToDraw(Kernel::ActorState& actor, std::size_t slot, Char
     character.sprites = pass.sprites;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
     character.pace = pass.pace;
+    character.drawBuffers = pass.drawBuffers;
     character.onPartBox = [&actor, slot, boxes = pass.pickingBoxes](const glm::vec3& position)
     {
         const glm::vec3 max{actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop};

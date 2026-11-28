@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Session/ServerSession.h"
+#include "Models/SkinningBuffers.h"
 #include "Core/PixelSize.h"
 #include "Tables/GateTable.h"
 #include "Tables/ItemSetTables.h"
@@ -282,6 +283,7 @@ private:
     bool m_projectingFrame = false;
     FaunaDrawCarry m_projectedPoseCarry;
     FaunaDrawCarry* m_framePoseCarry = nullptr;
+    Models::SkinningBuffers m_characterBuffers;
     Terrain::SphereFrustum m_frustum;
     Render::Camera3D m_drawnCamera;
     Terrain::TerrainPickingState m_picking;

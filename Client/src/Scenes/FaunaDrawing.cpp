@@ -288,7 +288,7 @@ void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model, std
         carry.meshes.resize(model.meshes.size());
     for (std::size_t i = 0; i < model.meshes.size(); ++i)
     {
-        Models::SkinnedMesh mesh;
+        Models::SkinnedMesh& mesh = carry.skinned;
         auto& output = carry.meshes[i];
         const bool skinned = world ? Models::SkinMeshInWorld(model.meshes[i], bones, mesh)
                                    : Models::SkinMesh(model.meshes[i], bones, transform, mesh);

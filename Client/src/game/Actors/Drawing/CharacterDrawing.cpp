@@ -1,4 +1,5 @@
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Models/SkinningBuffers.h"
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
 #include "Scenes/CrywolfAltarDrawing.h"
@@ -173,8 +174,8 @@ Render::Color ShineColorOf(Models::ShinePass pass, std::uint16_t model, Render::
     return Render::Color{base.red * factor.x, base.green * factor.y, base.blue * factor.z, base.alpha};
 }
 
-// What a character's models share in a frame: the batch, the library, the character, the clock and the rand() of the
-// objects of what hangs (0x607b60).
+// What a character's models share in a frame: the batch, the library, the character, the clock, the rand() of the
+// objects of what hangs (0x607b60) and the buffers they are posed and skinned into.
 struct CharacterFrame
 {
     Render::ModelBatch& batch;
@@ -182,7 +183,14 @@ struct CharacterFrame
     const DrawnCharacter& character;
     Core::Duration clock{};
     std::minstd_rand& random;
+    Models::SkinningBuffers& buffers;
 };
+
+// The buffers the draw of `character` uses: those its owner lends or, without them, `own`.
+Models::SkinningBuffers& BuffersOf(const DrawnCharacter& character, Models::SkinningBuffers& own)
+{
+    return character.drawBuffers != nullptr ? *character.drawBuffers : own;
+}
 
 // What the load read of mesh `index` (0x4f13d0 and 0x60ff50); a mesh the library has no traits for is drawn plainly.
 Models::MeshTraits TraitsOf(std::span<const Models::MeshTraits> traits, std::size_t index)
@@ -261,10 +269,11 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
     return glm::vec2{texCoord.u, texCoord.v} + uv.shift;
 }
 
-// The mesh's triangles with a state, a color and their UVs; with `normalLight`, the color of each corner by the light
-// of its normal (0x4ecc30 with +0x44, in the textured pass).
-void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::ModelDrawState& state,
-               Render::Color color, const PassUv& uv, bool normalLight = false)
+// The mesh's triangles with a state, a color and their UVs, each corner at `positionOf(vertex)`; with `normalLight`,
+// the color of each corner by the light of its normal (0x4ecc30 with +0x44, in the textured pass).
+template <typename PositionOf>
+void TrianglesAt(Render::ModelBatch& batch, const MeshDraw& draw, const Render::ModelDrawState& state,
+                 Render::Color color, const PassUv& uv, bool normalLight, const PositionOf& positionOf)
 {
     batch.SetState(state);
     const std::optional<ItemShineClock> itemClock = ItemShineClockOfPass(draw, uv);
@@ -281,11 +290,28 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
                 const float light = Models::NormalLight(draw.skinned->normals[normal]);
                 shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
             }
-            corners[corner] = Render::ModelVertex{draw.skinned->positions[vertex],
-                                                  CornerUv(draw, triangle, corner, uv, itemClock), shaded};
+            corners[corner] =
+                Render::ModelVertex{positionOf(vertex), CornerUv(draw, triangle, corner, uv, itemClock), shaded};
         }
         batch.Triangle(corners);
     }
+}
+
+// TrianglesAt with each corner at its skinned vertex.
+void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::ModelDrawState& state,
+               Render::Color color, const PassUv& uv, bool normalLight = false)
+{
+    TrianglesAt(batch, draw, state, color, uv, normalLight,
+                [&draw](std::size_t vertex) { return draw.skinned->positions[vertex]; });
+}
+
+// 0x4eff40: the mesh's triangles with each corner flattened on the ground from `origin` with `spread` as it goes to
+// glVertex3fv, the skinned vertices left as they are.
+void FlatTriangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::ModelDrawState& state,
+                   Render::Color color, const glm::vec3& origin, float spread)
+{
+    TrianglesAt(batch, draw, state, color, PassUv{}, false, [&draw, &origin, spread](std::size_t vertex)
+                { return Models::FlattenOnTheGround(draw.skinned->positions[vertex], origin, spread); });
 }
 
 // What is added to the mesh's UVs in a textured pass: the object's U and V if 0x4ecc30 scrolls them, or if it is the
@@ -552,18 +578,17 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
     }
 }
 
-// The meshes of `modelId` that are drawn, taken to the world with `bones` and `object` in `skinned` (one per mesh):
+// The meshes of `modelId` that are drawn, taken to the world with `bones` and `object` in `buffers` (one per mesh):
 // each with its role, its texture (skin and hair `skin`, +0x98 of the model), `shade` and `state`. Those of H, the
 // hidden one (0x12d), the broken ones and those that cannot be taken to the world do not go.
 std::vector<MeshDraw> MeshDrawsOf(const Models::IModelLibrary& models, std::uint16_t modelId,
                                   const Data::Models::Model& model, std::span<const BoneTransform> bones,
                                   const Models::ObjectTransform& object, std::uint8_t skin, Render::Color shade,
-                                  const ObjectState& state, Core::Duration clock,
-                                  std::vector<Models::SkinnedMesh>& skinned)
+                                  const ObjectState& state, Core::Duration clock, Models::SkinnedMeshes& buffers)
 {
     const std::span<const Render::TextureSlot> slots = models.MeshTextures(Models::ModelId{modelId});
     const std::span<const Models::MeshTraits> traits = models.MeshTraitsOf(Models::ModelId{modelId});
-    skinned.assign(model.meshes.size(), Models::SkinnedMesh{});
+    const std::span<Models::SkinnedMesh> skinned = buffers.Reset(model.meshes.size());
     std::vector<MeshDraw> draws;
     draws.reserve(model.meshes.size());
     for (std::size_t index = 0; index < model.meshes.size(); ++index)
@@ -608,11 +633,10 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     const glm::vec3 light =
         use.hanging ? frame.character.hangingLight.value_or(frame.character.light) : frame.character.light;
     const glm::vec3 shade = light * use.glow.baseFactor;
-    std::vector<Models::SkinnedMesh> skinned;
     std::vector<MeshDraw> draws =
         MeshDrawsOf(frame.models, modelId, *model, bones, frame.character.object,
                     SkinIndexOf(frame.character.appearance.characterClass),
-                    Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
+                    Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, frame.buffers.meshes);
     for (MeshDraw& draw : draws)
     {
         draw.alpha = frame.character.alpha;
@@ -680,22 +704,20 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
     {
         return;
     }
-    for (const Data::Models::Mesh& mesh : model->meshes)
+    const std::span<Models::SkinnedMesh> meshes = frame.buffers.shadowMeshes.Reset(model->meshes.size());
+    for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         // 0x4eff40 does not look at the texture: Shadow01's mesh is the hidden one (hide_m) and goes anyway.
-        Models::SkinnedMesh skinned;
-        if (!IndicesInRange(mesh) || !Models::SkinMesh(mesh, body, character.object, skinned))
+        const Data::Models::Mesh& mesh = model->meshes[index];
+        if (!IndicesInRange(mesh) || !Models::SkinMesh(mesh, body, character.object, meshes[index]))
         {
             continue;
         }
-        for (glm::vec3& position : skinned.positions)
-        {
-            position = Models::FlattenOnTheGround(position, character.object.position, ShadowSpreadOf(character.map));
-        }
         MeshDraw draw;
         draw.mesh = &mesh;
-        draw.skinned = &skinned;
-        Triangles(frame.batch, draw, ShadowState, ShadowColor, PassUv{});
+        draw.skinned = &meshes[index];
+        FlatTriangles(frame.batch, draw, ShadowState, ShadowColor, character.object.position,
+                      ShadowSpreadOf(character.map));
     }
 }
 
@@ -814,7 +836,8 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     {
         return;
     }
-    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(frame.character.poseBones ? 0.0f : 1.0f));
+    std::vector<BoneTransform>& bones = frame.buffers.attachedBones;
+    bones.assign(skeleton->bones.size(), BoneTransform(frame.character.poseBones ? 0.0f : 1.0f));
     if (frame.character.poseBones)
     {
         const auto retained = frame.character.poseBones(modelId);
@@ -1012,14 +1035,20 @@ std::size_t HangingRandomCount(std::uint16_t model)
     return 0;
 }
 
-std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models, const DrawnCharacter& character)
+namespace
 {
+// PoseCharacterBody into `body`, which keeps its capacity: empty without the skeleton or if the pose fails.
+std::span<const BoneTransform> PoseCharacterBodyInto(std::vector<BoneTransform>& body,
+                                                     const Models::IModelLibrary& models,
+                                                     const DrawnCharacter& character)
+{
+    body.clear();
     const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModelId);
     if (skeleton == nullptr)
     {
         return {};
     }
-    std::vector<BoneTransform> body(skeleton->bones.size(), BoneTransform(character.poseBones ? 0.0f : 1.0f));
+    body.assign(skeleton->bones.size(), BoneTransform(character.poseBones ? 0.0f : 1.0f));
     if (character.poseBones)
     {
         const auto retained = character.poseBones(Tables::PlayerSkeletonModel);
@@ -1027,15 +1056,25 @@ std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models
     }
     if (!Models::PoseSkeleton(*skeleton, character.body, character.object, character.headAngles, body))
     {
-        return {};
+        body.clear();
     }
+    return body;
+}
+} // namespace
+
+std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models, const DrawnCharacter& character)
+{
+    std::vector<BoneTransform> body;
+    PoseCharacterBodyInto(body, models, character);
     return body;
 }
 
 void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock, CharacterDrawPass pass)
 {
-    const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
+    Models::SkinningBuffers own;
+    Models::SkinningBuffers& buffers = BuffersOf(character, own);
+    const std::span<const BoneTransform> body = PoseCharacterBodyInto(buffers.bones, models, character);
     if (body.empty())
     {
         return;
@@ -1044,7 +1083,7 @@ void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& model
         character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
     const Kernel::CharacterAppearance& appearance = character.appearance;
     std::minstd_rand random(RandomSeedOf(frameClock));
-    const CharacterFrame frame{batch, models, character, frameClock, random};
+    const CharacterFrame frame{batch, models, character, frameClock, random, buffers};
     if (!DrawTheBodyPass(frame, body, pass))
     {
         return;
@@ -1076,7 +1115,9 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
 {
     if (!(character.alpha > PartBoxAlphaThreshold))
         return {};
-    const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
+    Models::SkinningBuffers own;
+    Models::SkinningBuffers& buffers = BuffersOf(character, own);
+    const std::span<const BoneTransform> body = PoseCharacterBodyInto(buffers.bones, models, character);
     if (body.empty())
         return {};
     if (character.onPose)
@@ -1097,19 +1138,18 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
     {
         // 0x60d04d: the outline, before 0x5ffce0 and 0x60b3d0.
         std::minstd_rand random(RandomSeedOf(frameClock));
-        const CharacterFrame frame{batch, angelModels, character, frameClock, random};
-        std::vector<Models::SkinnedMesh> outlineMeshes;
+        const CharacterFrame frame{batch, angelModels, character, frameClock, random, buffers};
         std::vector<MeshDraw> draws =
             MeshDrawsOf(angelModels, ChaosCastleBodyModel, *model, body, character.object, ChaosCastleBodySkin,
                         Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
-                        outlineMeshes);
+                        buffers.meshes);
         for (MeshDraw& draw : draws)
             draw.alpha = character.alpha;
         DrawOutline(frame, draws, body);
     }
     if (character.alpha > PartBoxAlphaThreshold && character.onPartBox)
         character.onPartBox(character.object.position);
-    std::vector<Models::SkinnedMesh> meshes(model->meshes.size());
+    const std::span<Models::SkinnedMesh> meshes = buffers.posedMeshes.Reset(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         if (!IndicesInRange(model->meshes[index]) ||
@@ -1158,17 +1198,19 @@ MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, 
     return draw;
 }
 
-std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& models, const DrawnObject& object,
-                                              Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
-                                              bool forceVisible = false, bool rawMesh = false,
-                                              bool originalClock = false)
+// Each mesh of `object`'s model drawn from `meshes`, in its order, to `visit`: none without the model or, unless
+// `forceVisible`, with the alpha below 0.01; not the hidden one (unless `rawMesh`), those not drawn, the broken ones
+// and those `meshes` does not cover.
+template <typename Visit>
+void ForEachRetainedMeshDraw(const Visit& visit, const Models::IModelLibrary& models, const DrawnObject& object,
+                             Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
+                             bool forceVisible = false, bool rawMesh = false, bool originalClock = false)
 {
     const auto* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr || (!forceVisible && object.alpha < 0.01f))
-        return {};
+        return;
     const auto slots = models.MeshTextures(Models::ModelId{object.model});
     const auto traits = models.MeshTraitsOf(Models::ModelId{object.model});
-    std::vector<MeshDraw> draws;
     for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
     {
         const auto& mesh = model->meshes[index];
@@ -1177,9 +1219,19 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& model
         if ((!rawMesh && role.hidden) || !texture.drawn || !IndicesInRange(mesh) ||
             meshes[index].positions.size() < mesh.vertices.size() || meshes[index].normals.size() < mesh.normals.size())
             continue;
-        draws.push_back(
-            RetainedMeshDraw(object, frameClock, mesh, meshes[index], index, role, texture.slot, originalClock));
+        visit(RetainedMeshDraw(object, frameClock, mesh, meshes[index], index, role, texture.slot, originalClock));
     }
+}
+
+// ForEachRetainedMeshDraw's draws, for the passes that go over them more than once.
+std::vector<MeshDraw> RetainedObjectMeshDraws(const Models::IModelLibrary& models, const DrawnObject& object,
+                                              Core::Duration frameClock, std::span<const Models::SkinnedMesh> meshes,
+                                              bool forceVisible = false, bool rawMesh = false,
+                                              bool originalClock = false)
+{
+    std::vector<MeshDraw> draws;
+    ForEachRetainedMeshDraw([&draws](const MeshDraw& draw) { draws.push_back(draw); }, models, object, frameClock,
+                            meshes, forceVisible, rawMesh, originalClock);
     return draws;
 }
 } // namespace
@@ -1205,18 +1257,31 @@ std::vector<Models::SkinnedMesh> WorldScratchOf(const Models::IModelLibrary& mod
 namespace
 {
 // The meshes of a world object posed like 0x5ffdf0 with the second argument at 0, with its alpha and its per-vertex
-// light, or none if 0x5ffdf0 does not draw it (the alpha below 0.01, 0x6b88d4) or its model is missing. Without the
-// published scratch, WorldScratchOf builds it in `skinned`.
+// light, to `visit`, or none if 0x5ffdf0 does not draw it (the alpha below 0.01, 0x6b88d4) or its model is missing.
+// Without the published scratch, WorldScratchOf builds it in `skinned`.
+template <typename Visit>
+void ForEachObjectMeshDraw(const Visit& visit, const Models::IModelLibrary& models, const DrawnObject& object,
+                           Core::Duration clock, std::vector<Models::SkinnedMesh>& skinned)
+{
+    if (!object.retainedMeshes.empty())
+    {
+        ForEachRetainedMeshDraw(visit, models, object, clock, object.retainedMeshes);
+        return;
+    }
+    constexpr float VisibleAlpha = 0.01f;
+    if (object.alpha < VisibleAlpha)
+        return;
+    skinned = WorldScratchOf(models, object);
+    ForEachRetainedMeshDraw(visit, models, object, clock, skinned);
+}
+
+// ForEachObjectMeshDraw's draws, for the passes that look them up or go over them more than once.
 std::vector<MeshDraw> ObjectMeshDraws(const Models::IModelLibrary& models, const DrawnObject& object,
                                       Core::Duration clock, std::vector<Models::SkinnedMesh>& skinned)
 {
-    if (!object.retainedMeshes.empty())
-        return RetainedObjectMeshDraws(models, object, clock, object.retainedMeshes);
-    constexpr float VisibleAlpha = 0.01f;
-    if (object.alpha < VisibleAlpha)
-        return {};
-    skinned = WorldScratchOf(models, object);
-    return RetainedObjectMeshDraws(models, object, clock, skinned);
+    std::vector<MeshDraw> draws;
+    ForEachObjectMeshDraw([&draws](const MeshDraw& draw) { draws.push_back(draw); }, models, object, clock, skinned);
+    return draws;
 }
 
 // The last of the four meshes of Lorencia's fountain (0x600ad6), which is also its blendMesh.
@@ -1246,21 +1311,21 @@ void DrawObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, 
                 Core::Duration frameClock)
 {
     std::vector<Models::SkinnedMesh> skinned;
-    for (const MeshDraw& draw : ObjectMeshDraws(models, object, frameClock, skinned))
-    {
-        DrawBase(batch, draw);
-    }
+    ForEachObjectMeshDraw([&batch](const MeshDraw& draw) { DrawBase(batch, draw); }, models, object, frameClock,
+                          skinned);
 }
 
 void DrawObjectWithTexture(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                            Core::Duration frameClock, Render::TextureSlot texture)
 {
     std::vector<Models::SkinnedMesh> skinned;
-    for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
-    {
-        draw.texture = texture;
-        DrawBaseWith(batch, draw, false);
-    }
+    ForEachObjectMeshDraw(
+        [&batch, texture](MeshDraw draw)
+        {
+            draw.texture = texture;
+            DrawBaseWith(batch, draw, false);
+        },
+        models, object, frameClock, skinned);
 }
 
 void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
@@ -1268,15 +1333,15 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary
                           std::optional<Models::ShinePass> shine)
 {
     SetFade fade{object.alpha, 1.0f};
-    for (const auto& draw : RetainedObjectMeshDraws(models, object, frameClock, meshes, shine.has_value()))
+    const auto drawMesh = [&](const MeshDraw& draw)
     {
         if (!shine)
         {
             DrawBase(batch, draw);
-            continue;
+            return;
         }
         if (!draw.role.shines || Models::PassHiddenMesh(draw.model, *shine, draw.object->hiddenMesh) == draw.index)
-            continue;
+            return;
         if (*shine == Models::ShinePass::Chrome || *shine == Models::ShinePass::Shiny)
         {
             // 0x60b130 → 0x608e00 gets alpha and scale before RenderBody; the color includes that product.
@@ -1285,8 +1350,24 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary
         }
         else
             DrawShinePass(batch, draw, *shine, fade);
+    };
+    ForEachRetainedMeshDraw(drawMesh, models, object, frameClock, meshes, shine.has_value());
+}
+
+namespace
+{
+// SkinObjectMeshes into `skinned`, one empty mesh per mesh of `model`.
+void SkinEachMesh(const Data::Models::Model& model, const DrawnObject& object, std::span<const BoneTransform> bones,
+                  float boneScale, std::span<Models::SkinnedMesh> skinned)
+{
+    for (std::size_t index = 0; index < model.meshes.size(); ++index)
+    {
+        if (IndicesInRange(model.meshes[index]))
+            static_cast<void>(
+                Models::SkinMeshAroundBones(model.meshes[index], bones, object.transform, boneScale, skinned[index]));
     }
 }
+} // namespace
 
 std::vector<Models::SkinnedMesh> SkinObjectMeshes(const Models::IModelLibrary& models, const DrawnObject& object,
                                                   std::span<const BoneTransform> bones, float boneScale)
@@ -1295,12 +1376,19 @@ std::vector<Models::SkinnedMesh> SkinObjectMeshes(const Models::IModelLibrary& m
     if (model == nullptr)
         return {};
     std::vector<Models::SkinnedMesh> skinned(model->meshes.size());
-    for (std::size_t index = 0; index < model->meshes.size(); ++index)
-    {
-        if (IndicesInRange(model->meshes[index]))
-            static_cast<void>(
-                Models::SkinMeshAroundBones(model->meshes[index], bones, object.transform, boneScale, skinned[index]));
-    }
+    SkinEachMesh(*model, object, bones, boneScale, skinned);
+    return skinned;
+}
+
+std::span<Models::SkinnedMesh> SkinObjectMeshesInto(Models::SkinnedMeshes& buffers, const Models::IModelLibrary& models,
+                                                    const DrawnObject& object, std::span<const BoneTransform> bones,
+                                                    float boneScale)
+{
+    const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
+    if (model == nullptr)
+        return buffers.Reset(0);
+    const std::span<Models::SkinnedMesh> skinned = buffers.Reset(model->meshes.size());
+    SkinEachMesh(*model, object, bones, boneScale, skinned);
     return skinned;
 }
 
@@ -1311,7 +1399,7 @@ void DrawObjectOutline(Render::ModelBatch& batch, const Models::IModelLibrary& m
     const Data::Models::Model* model = models.Find(Models::ModelId{object.model});
     if (model == nullptr)
         return;
-    std::vector<Models::SkinnedMesh> skinned;
+    Models::SkinnedMeshes skinned;
     const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, object.skin,
                                                     Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
                                                     object.state, frameClock, skinned);
@@ -1379,13 +1467,11 @@ void DrawObjectShadow(Render::ModelBatch& batch, const Models::IModelLibrary& mo
             mesh.texture == object.state.blendMesh || !IndicesInRange(mesh) ||
             meshes[index].positions.size() < mesh.vertices.size())
             continue;
-        Models::SkinnedMesh flat = meshes[index];
-        for (glm::vec3& position : flat.positions)
-            position = Models::FlattenOnTheGround(position, object.transform.position, spread);
         MeshDraw draw;
         draw.mesh = &mesh;
-        draw.skinned = &flat;
-        Triangles(batch, draw, faint ? BlendedShadowState : ShadowState, faint ? color : ShadowColor, PassUv{});
+        draw.skinned = &meshes[index];
+        FlatTriangles(batch, draw, faint ? BlendedShadowState : ShadowState, faint ? color : ShadowColor,
+                      object.transform.position, spread);
     }
 }
 
@@ -1772,7 +1858,9 @@ Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, co
     // 0x60cf99: with the alpha at 0.01 or below (or NaN), nothing.
     if (!(character.alpha > PartBoxAlphaThreshold))
         return {};
-    const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
+    Models::SkinningBuffers own;
+    Models::SkinningBuffers& buffers = BuffersOf(character, own);
+    const std::span<const BoneTransform> body = PoseCharacterBodyInto(buffers.bones, models, character);
     if (body.empty())
         return {};
     if (character.onPose)
@@ -1791,19 +1879,18 @@ Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, co
     {
         // 0x60d04d: the outline, with the object's hidden mesh +0x58 (0x60ce68), before 0x5ffce0 and 0x60b3d0.
         std::minstd_rand random(RandomSeedOf(frameClock));
-        const CharacterFrame frame{batch, models, character, frameClock, random};
-        std::vector<Models::SkinnedMesh> outlineMeshes;
+        const CharacterFrame frame{batch, models, character, frameClock, random, buffers};
         std::vector<MeshDraw> draws =
             MeshDrawsOf(models, model, *found, body, character.object, SkeletonBodySkin,
                         Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
-                        outlineMeshes);
+                        buffers.meshes);
         for (MeshDraw& draw : draws)
             draw.alpha = character.alpha;
         DrawOutline(frame, draws, body);
     }
     if (character.onPartBox)
         character.onPartBox(character.object.position);
-    std::vector<Models::SkinnedMesh> meshes(found->meshes.size());
+    const std::span<Models::SkinnedMesh> meshes = buffers.posedMeshes.Reset(found->meshes.size());
     for (std::size_t index = 0; index < found->meshes.size(); ++index)
     {
         if (!IndicesInRange(found->meshes[index]) ||
@@ -2032,14 +2119,7 @@ void DrawDarkHorse(Render::ModelBatch& batch, const Models::IModelLibrary& model
     // 0x4eff40(−1, −1, 8, 9): mesh 8. It comes from MeshDrawsOf, like the chrome.
     if (const auto shadow = std::ranges::find(draws, DarkHorseShadowMesh, &MeshDraw::index); shadow != draws.end())
     {
-        Models::SkinnedMesh flat = *shadow->skinned;
-        for (glm::vec3& position : flat.positions)
-        {
-            position = Models::FlattenOnTheGround(position, horse.transform.position, ShadowSpreadOf(map));
-        }
-        MeshDraw draw = *shadow;
-        draw.skinned = &flat;
-        Triangles(batch, draw, BlendedShadowState, shadowColor, PassUv{});
+        FlatTriangles(batch, *shadow, BlendedShadowState, shadowColor, horse.transform.position, ShadowSpreadOf(map));
     }
 }
 
@@ -2068,16 +2148,7 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Models::IModelLibrary& mode
     const glm::vec3 ground(spirit.transform.position.x, spirit.transform.position.y, groundHeight);
     const float spread = ShadowSpreadOf(map);
     for (const MeshDraw& draw : draws)
-    {
-        Models::SkinnedMesh flat = *draw.skinned;
-        for (glm::vec3& position : flat.positions)
-        {
-            position = Models::FlattenOnTheGround(position, ground, spread);
-        }
-        MeshDraw shadow = draw;
-        shadow.skinned = &flat;
-        Triangles(batch, shadow, BlendedShadowState, shadowColor, PassUv{});
-    }
+        FlatTriangles(batch, draw, BlendedShadowState, shadowColor, ground, spread);
 }
 
 void DrawBloodCastleShadow(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
@@ -2092,12 +2163,7 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const Models::IModelLibrar
     {
         if (draw.index == SkippedMesh || draw.mesh->texture == object.state.blendMesh || draw.mesh->triangles.empty())
             continue;
-        Models::SkinnedMesh flat = *draw.skinned;
-        for (glm::vec3& position : flat.positions)
-            position = Models::FlattenOnTheGround(position, ground, DefaultShadowSpread);
-        MeshDraw shadow = draw;
-        shadow.skinned = &flat;
-        Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
+        FlatTriangles(batch, draw, BlendedShadowState, DarkSpiritShadowColor, ground, DefaultShadowSpread);
     }
 }
 
@@ -2131,13 +2197,10 @@ void DrawCastleSiegeShadow(Render::ModelBatch& batch, const Data::Models::Model&
         {
             continue;
         }
-        Models::SkinnedMesh flat = meshes[index];
-        for (glm::vec3& position : flat.positions)
-            position = Models::FlattenOnTheGround(position, object.transform.position, spread);
         MeshDraw draw;
         draw.mesh = &mesh;
-        draw.skinned = &flat;
-        Triangles(batch, draw, ShadowState, ShadowColor, PassUv{});
+        draw.skinned = &meshes[index];
+        FlatTriangles(batch, draw, ShadowState, ShadowColor, object.transform.position, spread);
     }
 }
 
@@ -2225,13 +2288,10 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
         const Data::Models::Mesh& mesh = model->meshes[index];
         if (mesh.triangles.empty() || !IndicesInRange(mesh) || meshes[index].positions.size() < mesh.vertices.size())
             continue;
-        Models::SkinnedMesh flat = meshes[index];
-        for (glm::vec3& position : flat.positions)
-            position = Models::FlattenOnTheGround(position, fenrir.transform.position, spread);
         MeshDraw draw;
         draw.mesh = &mesh;
-        draw.skinned = &flat;
-        Triangles(batch, draw, BlendedShadowState, shadowColor, PassUv{});
+        draw.skinned = &meshes[index];
+        FlatTriangles(batch, draw, BlendedShadowState, shadowColor, fenrir.transform.position, spread);
     }
     return {};
 }

@@ -24,7 +24,8 @@ can look inside one, change a text or an item, and get a file the client reads, 
   operations in a console UI.
 - **Goal:** a codebase that shows Python done well: typed, layered (ports and adapters), small modules, tested.
 - **Non-goal:** a 3D modeling tool. Geometry and animation are editable through JSON, not by hand in the UI.
-- **Non-goal:** importing from or exporting to Blender, glTF or OBJ. It can be a later stage.
+- **Non-goal:** importing from or exporting to OBJ, or meshes from Blender. Stage 9 takes a model's skeleton and
+  actions to Blender as glTF and brings animations back as actions.
 - **Non-goal:** touching the client (`Client/src`), its build or its tests. The tool stands alone under
   `Client/tools/mutools/`.
 - **It would be a failure:** a file read and written without changes that is not byte-identical to the original; an
@@ -470,6 +471,33 @@ chose three.js's `TransformControls` for it on 2026-11-27 over a gizmo of our ow
   three inside NiceGUI through a module of ours named `three` in the import map. A test pins its SHA-256 and another
   checks that the module gives every name the file imports.
 
+### The Blender bridge
+
+Stage 9, stage C of the action editor: `mutools gltf export` writes a model as a glTF binary file (`.glb`) and
+`mutools gltf import` brings an animation of one back as an action. The plan, with every decision, is
+[`2026-11-28-mutools-gltf-bridge.md`](../plans/2026-11-28-mutools-gltf-bridge.md).
+
+- **The math stays in Python.** `app/gltf_rig.py` turns a model into a neutral description of a glTF scene (nodes, a
+  skin, meshes, images, animations), and `app/gltf_animation.py` turns an animation of such a scene into an action
+  file of stage 7, which `with_action` puts into the model. `app/gltf_actions.py` holds the two use cases.
+- **MU's space inside glTF's.** glTF is Y up and MU is Z up. The root bones carry the turn from one to the other and
+  every other bone keeps MU's own numbers, so Blender shows the model standing, in MU's numbers, under an armature
+  that is not turned. Import takes each root bone through whatever nodes the file has above it and back through the
+  same turn.
+- **Rest pose and time.** Joints, meshes and inverse bind matrices are at key 0 of action 0, as the studio frames a
+  model. One key is one frame at 24 frames a second; import counts the keys from the smallest step between the times
+  it reads, at most a frame at 24 frames a second, and samples step, linear (with slerp) and cubic-spline channels.
+- **What import keeps.** Each real bone needs a joint of its name under the same parent; names that repeat get the
+  bone's number. Over an action, a key that comes back as it was, within what float32 and Blender's matrices change
+  (0.01 units or 1/50,000 of the model's largest place, whichever is more, and 0.001 rad), keeps its stored floats,
+  and the action keeps its lock: every action of `player/Player.bmd` goes through Blender 5.3 and back byte for byte.
+- **The extra.** pygltflib 1.16.5 writes the `.glb` (`mutools[gltf]`; without it export answers `USAGE`). The reader
+  is the standard library's: pygltflib took 16 s to read Blender's export of `Player.bmd`, and `json` takes 0.3 s.
+  Only `adapters/gltf/writer.py` imports pygltflib.
+- **Tests.** A round trip through the writer and the reader for every action of `Player.bmd`, and tests marked
+  `blender` that run Blender's own importer and exporter through `bpy` (Python 3.13, about 1 GB, left out of CI):
+  every action comes back as it was, and a turn made in Blender comes back on that key of that bone only.
+
 ### AI friendliness
 
 Three parts: the CLI above, a skill that teaches it, and tests that keep both honest.
@@ -553,6 +581,8 @@ leaves its own checks green, and the workflow lands with the first code PR.
 8. **Editing actions in the studio:** `mutools web --edit`, stage B of the action editor; see "Editing actions in the
    studio" above. Its plan is
    [`2026-11-27-mutools-action-editing.md`](../plans/2026-11-27-mutools-action-editing.md).
+9. **The Blender bridge:** `mutools gltf export` and `import`, stage C of the action editor; see "The Blender bridge"
+   above. Its plan is [`2026-11-28-mutools-gltf-bridge.md`](../plans/2026-11-28-mutools-gltf-bridge.md).
 
 Each stage ends with the round trip over its files passing.
 

@@ -11,6 +11,7 @@ import typer
 from mutools import __version__
 from mutools.adapters.cli.envelope import to_json_value
 from mutools.adapters.cli.exit_codes import EXIT_FINDINGS, EXIT_OK
+from mutools.adapters.gltf.reader import read_glb
 from mutools.adapters.storage import LocalFileStore
 from mutools.app.actions import ActionEdit, ActionExport, export_action, import_action, remove_action
 from mutools.app.documents import EditResult, parse_json
@@ -25,6 +26,8 @@ from mutools.app.folders import (
     roundtrip,
     validate,
 )
+from mutools.app.gltf_actions import GltfExport, export_gltf, import_gltf
+from mutools.app.gltf_rig import Rig
 from mutools.app.paging import DEFAULT_LIMIT, Page, page
 from mutools.app.queries import (
     FormatInfo,
@@ -68,6 +71,20 @@ class EditData:
 @dataclass(frozen=True, slots=True)
 class ActionData:
     path: Path
+    action: int
+    actions: int
+    changed: bool
+    dry_run: bool
+    changes: tuple[Change, ...]
+    total: int
+    next_offset: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class GltfImportData:
+    path: Path
+    animation: str
+    keys: int
     action: int
     actions: int
     changed: bool
@@ -127,6 +144,8 @@ OUTPUT_TYPES: Final[dict[str, Any]] = {
     "action export": ActionExport,
     "action import": ActionData,
     "action remove": ActionData,
+    "gltf export": GltfExport,
+    "gltf import": GltfImportData,
     "roundtrip": RoundtripResult,
     "tui": TuiData,
     "web": WebData,
@@ -149,6 +168,9 @@ EXAMPLES: Final = {
     "action export": "mutools action export ~/mu/Data/player/Player.bmd 194 --output action.json",
     "action import": "mutools action import ~/mu/Data/player/Player.bmd action.json --dry-run",
     "action remove": "mutools action remove ~/mu/Data/player/Player.bmd 205",
+    "gltf export": "mutools gltf export ~/mu/Data/player/Player.bmd --output player.glb --part "
+    "~/mu/Data/player/ArmorMale01.bmd --action 194",
+    "gltf import": "mutools gltf import ~/mu/Data/player/Player.bmd player.glb --animation '194 Action 194' --dry-run",
     "roundtrip": "mutools roundtrip ~/mu/Data",
     "tui": "mutools tui ~/mu/Data",
     "web": "mutools web ~/mu/Data",
@@ -183,6 +205,12 @@ workspace_app = typer.Typer(context_settings={"help_option_names": []})
 app.add_typer(workspace_app, name="workspace", help="Working copies of a reference Data folder")
 action_app = typer.Typer(context_settings={"help_option_names": []})
 app.add_typer(action_app, name="action", help="A model's actions (its animations) as files of their own")
+gltf_app = typer.Typer(context_settings={"help_option_names": []})
+app.add_typer(
+    gltf_app,
+    name="gltf",
+    help="A model as a glTF binary file (.glb) for Blender, and an animation from one back into the model as an action",
+)
 
 
 @contextmanager
@@ -509,6 +537,106 @@ def action_remove_command(
     with about(file):
         edit = remove_action(STORE, expanded(file), action, yes=yes, dry_run=dry_run)
     return action_outcome("action remove", edit, limit, offset)
+
+
+def load_gltf_writer() -> Callable[[Rig], bytes]:
+    from mutools.adapters.gltf.writer import write_glb  # noqa: PLC0415  pygltflib is an extra; only export needs it.
+
+    return write_glb
+
+
+@gltf_app.command(
+    "export",
+    help="Write a model to --output as a .glb: its skeleton as joints, its actions as animations named NNN Name (one "
+    "key a frame, 24 frames a second) and its meshes with their textures; --part adds the meshes of a model that "
+    "borrows its skeleton, as player/Player.bmd's armor does. untextured lists the meshes whose texture was not found",
+)
+def gltf_export_command(
+    file: ModelArgument,
+    output: OutputOption,
+    part: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--part",
+            help="A model whose meshes hang from this one's skeleton, as player/ArmorMale01.bmd from Player.bmd; "
+            "repeat it for more",
+            show_default=False,
+        ),
+    ] = None,
+    action: Annotated[
+        list[int] | None,
+        typer.Option("--action", min=0, help="Only this action; repeat it for more (default: every action)"),
+    ] = None,
+    dry_run: DryRunOption = False,
+) -> Outcome:
+    try:
+        write = load_gltf_writer()
+    except ModuleNotFoundError as error:
+        if (error.name or "").startswith("mutools"):
+            raise
+        raise MutoolsError(
+            ErrorCode.USAGE,
+            f"mutools gltf export needs the gltf extra, and {error.name} is not installed",
+            suggestion="pip install 'mutools[gltf]'",
+        ) from error
+    parts = tuple(expanded(found) for found in part or ())
+    with about(file):
+        result = export_gltf(
+            STORE, write, expanded(file), expanded(output), parts=parts, actions=action, dry_run=dry_run
+        )
+    return Outcome("gltf export", result, GltfExport)
+
+
+@gltf_app.command(
+    "import",
+    help="Put an animation of a .glb, as Blender exports one, into a model with the same skeleton (a joint of each "
+    "bone's name under the same parent): after its last action, or over action --at, where a key that comes back as "
+    "it was keeps its stored numbers. animation is the one taken, keys how many it has, total counts the changes and "
+    "changes holds --limit of them",
+)
+def gltf_import_command(
+    file: ModelArgument,
+    source: Annotated[
+        Path,
+        typer.Argument(
+            metavar="GLB_FILE", help="A .glb, as Blender's glTF Binary export writes one", show_default=False
+        ),
+    ],
+    animation: Annotated[
+        str | None,
+        typer.Option(
+            "--animation",
+            help="The animation to take, by its name or its number from 0; needed when the file has more than one",
+            show_default=False,
+        ),
+    ] = None,
+    at: Annotated[
+        int | None,
+        typer.Option("--at", min=0, help="Put it over this action instead of after the last one", show_default=False),
+    ] = None,
+    dry_run: DryRunOption = False,
+    limit: LimitOption = DEFAULT_LIMIT,
+    offset: OffsetOption = 0,
+) -> Outcome:
+    with about(file):
+        found = import_gltf(
+            STORE, read_glb, expanded(file), expanded(source), animation=animation, at=at, dry_run=dry_run
+        )
+    result = found.edit.result
+    shown = page(list(result.changes), limit, offset)
+    data = GltfImportData(
+        result.path,
+        found.animation,
+        found.keys,
+        found.edit.action,
+        found.edit.actions,
+        result.changed,
+        result.dry_run,
+        tuple(map(outlined, shown.items)),
+        shown.total,
+        shown.next_offset,
+    )
+    return Outcome("gltf import", data, GltfImportData, warnings=result.warnings)
 
 
 @app.command("roundtrip", help="Decode and encode every .bmd of a folder and report any file that changes")

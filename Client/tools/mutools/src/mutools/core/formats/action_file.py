@@ -52,7 +52,7 @@ def is_dummy(bone: JsonObject) -> bool:
     return bone.keys() == DUMMY_MEMBERS
 
 
-def _name_text(name: JsonValue) -> JsonValue:
+def name_text(name: JsonValue) -> JsonValue:
     text = leaf_text(name)
     return name if text is None else text
 
@@ -61,7 +61,7 @@ def _exported_bone(bone: JsonObject, index: int) -> JsonObject:
     if is_dummy(bone):
         return dict(bone)
     pose = _object(_list(bone["actions"])[index])
-    return {"name": _name_text(bone["name"]), "parent": bone["parent"], **deepcopy(pose)}
+    return {"name": name_text(bone["name"]), "parent": bone["parent"], **deepcopy(pose)}
 
 
 def action_file(view: JsonObject, index: int) -> JsonObject:
@@ -138,7 +138,7 @@ def read_action_file(value: JsonValue) -> JsonObject:
 def _bone_label(bone: JsonObject) -> str:
     if is_dummy(bone):
         return "a dummy bone"
-    name = _name_text(bone["name"])
+    name = name_text(bone["name"])
     parent = bone["parent"]
     return f"{name!r}, a root" if parent == ROOT_PARENT else f"{name!r} under bone {parent}"
 
@@ -146,7 +146,7 @@ def _bone_label(bone: JsonObject) -> str:
 def _same_bone(model_bone: JsonObject, file_bone: JsonObject) -> bool:
     if is_dummy(model_bone) or is_dummy(file_bone):
         return is_dummy(model_bone) and is_dummy(file_bone)
-    return _name_text(model_bone["name"]) == file_bone["name"] and model_bone["parent"] == file_bone["parent"]
+    return name_text(model_bone["name"]) == file_bone["name"] and model_bone["parent"] == file_bone["parent"]
 
 
 def _check_skeleton(model_bones: list[JsonValue], file_bones: list[JsonValue]) -> None:

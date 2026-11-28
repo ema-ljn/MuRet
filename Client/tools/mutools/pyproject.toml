@@ -18,8 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 web = ["nicegui==4.1.0"]
+gltf = ["pygltflib==1.16.5"]
 dev = [
-    "mutools[web]",
+    "mutools[web,gltf]",
     "pytest==8.4.2",
     "pytest-asyncio==1.5.0",
     "pytest-textual-snapshot==1.1.0",
@@ -39,8 +40,11 @@ packages = ["src/mutools"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-m 'not browser'"
-markers = ["browser: drives the web viewer in Chromium; run with pytest -m browser"]
+addopts = "-m 'not browser and not blender'"
+markers = [
+    "browser: drives the web viewer in Chromium; run with pytest -m browser",
+    "blender: runs Blender's own glTF importer and exporter through bpy; run with pytest -m blender",
+]
 main_file = ""
 
 [tool.mypy]
@@ -48,7 +52,7 @@ strict = true
 python_version = "3.12"
 
 [[tool.mypy.overrides]]
-module = ["jsonschema"]
+module = ["jsonschema", "pygltflib"]
 ignore_missing_imports = true
 
 [tool.ruff]

@@ -17,6 +17,8 @@ COMMANDS = {
     "action export",
     "action import",
     "action remove",
+    "gltf export",
+    "gltf import",
     "roundtrip",
 }
 
@@ -62,6 +64,13 @@ def test_help_of_a_subcommand(cli: Cli) -> None:
 def test_help_of_a_group_describes_its_commands(cli: Cli) -> None:
     commands = cli("action", "--help").json["data"]["commands"]
     assert [command["name"] for command in commands] == ["action export", "action import", "action remove"]
+
+
+def test_a_repeatable_option_takes_a_list(cli: Cli) -> None:
+    (command,) = cli("gltf", "export", "--help").json["data"]["commands"]
+
+    types = {param["name"]: param["type"] for param in command["params"]}
+    assert (types["--part"], types["--action"]) == ("list of path", "list of integer")
 
 
 def test_human_help_is_text(cli: Cli) -> None:

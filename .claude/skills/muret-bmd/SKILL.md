@@ -1,6 +1,6 @@
 ---
 name: muret-bmd
-description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file - a table (Text.bmd, item.bmd, skill.bmd, Gate.bmd, Dialog.bmd, quest.bmd, movereq.bmd and the other tables under `Data` and `Data/Local`) or a 3D model (its meshes, texture names, bones and actions, in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC` and the `Object` folders) - when a task names `mutools`, a game text, item, skill, gate, dialog or quest by its number or name, or a model's texture, bone, action (an animation, to copy, add or remove) or version (K16), or when `mutools` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED, INVALID_VALUE or STALE_FILE or a finding such as TEXTURE_NOT_FOUND or OUT_OF_RANGE.
+description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file - a table (Text.bmd, item.bmd, skill.bmd, Gate.bmd, Dialog.bmd, quest.bmd, movereq.bmd and the other tables under `Data` and `Data/Local`) or a 3D model (its meshes, texture names, bones and actions, in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC` and the `Object` folders) - when a task names `mutools`, a game text, item, skill, gate, dialog or quest by its number or name, or a model's texture, bone, action (an animation, to copy, add or remove, or to take to Blender and back as a .glb) or version (K16), or when `mutools` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED, INVALID_VALUE or STALE_FILE or a finding such as TEXTURE_NOT_FOUND or OUT_OF_RANGE.
 ---
 
 # Editing .bmd files with mutools
@@ -135,6 +135,14 @@ list cut to one item:
   and any other needs `--yes`, because every later action moves down one number and the client and the server name
   a character's actions by their number. A new action of `player/Player.bmd` is 205; numbers up to 255 reach the
   other players, because the action travels in one byte.
+- **Blender goes through a `.glb`.** `gltf export FILE --output M.glb` writes the skeleton as joints named after the
+  bones (a repeated name gets ` (N)`, the bone's number), every action as an animation `NNN Name`, one key per frame
+  at 24 frames a second, and the meshes with their textures; `--action N` exports only some (repeat it), and `--part
+  P.bmd` adds the meshes of a model that borrows the skeleton (`player/Player.bmd` has none of its own: add
+  `ArmorMale01.bmd` and the rest). `gltf import FILE M.glb --animation NAME` takes an animation of the `.glb` Blender
+  wrote (by name, or by its number from 0) and adds it after the last action, or over action N with `--at N`; over an
+  action, a key that comes back as it was keeps its stored numbers, so exporting and importing without changes
+  writes nothing (`changed: false`). Export needs `mutools[gltf]`; without it, `USAGE` says how to add it.
 - **`raw_0x...` are bytes the client does not use.** They show only when they are not zero. Leave them as they are.
 - **The version is the cipher, and only `build` changes it.** 12 is K16 (encrypted) and any other is plain: write 10,
   as 1,142 of the game's 1,146 plain models do. An edited model keeps its version. `set` and `apply` refuse
@@ -191,6 +199,8 @@ reports none of those, and `TEXTURE_ELSEWHERE` is only for a name you write.
 | Copy an action to a file | `action export FILE N --output A.json` | `output`, `keys` |
 | Add an action from a file | `action import FILE A.json --limit 1` | `action`: the new action's number; `actions` |
 | Take out the last action | `action remove FILE N --limit 1` | `actions`: how many are left |
+| Take a model to Blender | `gltf export FILE --output M.glb` | `joints`, `meshes`, `animations`, `untextured`, `size` |
+| Bring an animation back from Blender | `gltf import FILE M.glb --animation NAME --limit 1` | `animation`, `keys`, `action`, `changed` |
 | Check a file or a folder | `validate PATH` | `files: [{path, findings}]`, `checked`, `skipped` |
 | What changed since the reference | `diff REFERENCE_FILE FILE` | `changes: [{pointer, old, new}]`, `total` |
 
@@ -429,6 +439,17 @@ mutools action import $WORK/NPC/BloodCastle01.bmd $TMP/stand.json --limit 1
 mutools action remove $WORK/NPC/BloodCastle01.bmd 1 --limit 1
 ```
 
+Take a model to Blender and bring its animation back. In Blender the person poses the bones and exports as glTF
+Binary (`.glb`); here the export comes back unchanged, so the import over the same action writes nothing. A model
+with one action needs no `--animation`.
+
+<!-- recipe: blender-round-trip -->
+```bash
+mutools gltf export $WORK/NPC/BloodCastle01.bmd --output $TMP/gate.glb
+mutools gltf import $WORK/NPC/BloodCastle01.bmd $TMP/gate.glb --at 0 --limit 1
+mutools gltf import $WORK/NPC/BloodCastle01.bmd $TMP/gate.glb --animation '000 Action 0' --dry-run --limit 1
+```
+
 Make a working copy from somewhere that is not the repo, and check that a change to the tool keeps every file
 byte-exact.
 
@@ -473,8 +494,8 @@ is not `null`, is the next command to run or the flag to use.
 
 | Code | Exit | The way out |
 | --- | ---: | --- |
-| `USAGE` | 2 | `mutools <command> --help`; on `action remove`, an action that is not the last needs `--yes` |
-| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a number field a number inside its size, a hex field exactly its bytes, a patch is a list, `--field` a name `schema` lists; in a model, two lists that must agree do not, or the pointer is `/version` (only `build` changes it); on `action import`, the action file is for another skeleton (`error.pointer` is its first bone that differs) |
+| `USAGE` | 2 | `mutools <command> --help`; on `action remove`, an action that is not the last needs `--yes`; on `gltf import`, a `.glb` with several animations needs `--animation` (its message names the first and the last) |
+| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a number field a number inside its size, a hex field exactly its bytes, a patch is a list, `--field` a name `schema` lists; in a model, two lists that must agree do not, or the pointer is `/version` (only `build` changes it); on `action import`, the action file is for another skeleton (`error.pointer` is its first bone that differs), and on `gltf import` the `.glb` is (a bone with no joint of its name under the same parent) |
 | `TEXT_TOO_LONG` | 2 | Shorten the text; the message gives its size and the field's in bytes |
 | `NOT_ENCODABLE` | 2 | Replace the character the file's encoding does not have |
 | `FILE_NOT_FOUND` | 20 | Check the path; names keep the case they have on disk, and the gates are in `Data`, not `Data/Local` |

@@ -41,6 +41,9 @@ _TYPE_NAMES: Final[dict[Any, str]] = {Path: "path", int: "integer", str: "string
 def _type_name(annotation: Any) -> str:
     if isinstance(annotation, types.UnionType):
         (annotation,) = (arg for arg in typing.get_args(annotation) if arg is not type(None))
+    if typing.get_origin(annotation) is list:
+        (item,) = typing.get_args(annotation)
+        return f"list of {_TYPE_NAMES[item]}"
     return _TYPE_NAMES[annotation]
 
 

@@ -1,7 +1,7 @@
 #include "Scenes/LoginModels.h"
 
 #include "Crt/CrtRandom.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Assets/ModelTable.h"
 
 #include "Core/IClock.h"

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege/SiegeControls.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

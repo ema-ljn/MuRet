@@ -5,7 +5,7 @@
 #include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 

@@ -4,7 +4,7 @@
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameText.h"

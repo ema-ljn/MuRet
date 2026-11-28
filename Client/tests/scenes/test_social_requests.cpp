@@ -27,7 +27,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/LoginModels.h"

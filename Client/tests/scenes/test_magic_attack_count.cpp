@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MagicAttackCount.h"
+#include "Combat/MagicAttackCount.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"

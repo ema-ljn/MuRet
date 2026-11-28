@@ -9,7 +9,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HudItems.h"

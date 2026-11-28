@@ -5,7 +5,7 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/BlastEffectCalls.h"
+#include "Combat/BlastEffectCalls.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"

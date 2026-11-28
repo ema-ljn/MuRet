@@ -9,7 +9,7 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/NpcWindowState.h"
 #include "Kernel/OwnInventory.h"

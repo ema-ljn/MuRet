@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Kernel/JointRequest.h"
 #include "Scenes/FaunaJointCreation.h"
-#include "Scenes/MonsterDrawing.h"
+#include "Monsters/Drawing/MonsterDrawing.h"
 
 #include <cstddef>
 #include <optional>

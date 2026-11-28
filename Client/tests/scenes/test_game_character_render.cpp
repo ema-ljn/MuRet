@@ -19,7 +19,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Scenes/EventGlobals.h"
 #include "Kernel/PoseBuffer.h"
 #include "Actors/FullSetScan.h"

@@ -15,7 +15,7 @@
 #include "Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"

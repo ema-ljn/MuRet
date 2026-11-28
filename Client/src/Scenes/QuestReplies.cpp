@@ -14,7 +14,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
-#include "Scenes/MonsterCreation.h"
+#include "Monsters/MonsterCreation.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/Quests.h"

@@ -12,7 +12,7 @@
 #include "Protocol/Social/Trade.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/InventoryMoves.h"

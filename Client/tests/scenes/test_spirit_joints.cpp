@@ -15,7 +15,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
-#include "Scenes/SkillHits.h"
+#include "Skills/SkillHits.h"
 #include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"

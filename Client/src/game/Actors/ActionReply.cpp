@@ -11,7 +11,7 @@
 #include "Models/Skeleton.h"
 #include "Actors/ActionSend.h"
 #include "Actors/ActorActions.h"
-#include "Scenes/ActorCombat.h"
+#include "Combat/ActorCombat.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Session/WorldEntry.h"

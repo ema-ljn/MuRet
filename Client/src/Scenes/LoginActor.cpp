@@ -8,7 +8,7 @@
 #include "Actors/ActorActions.h"
 #include "Actors/ActorConstruction.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneId.h"
 #include "Terrain/TerrainHeight.h"

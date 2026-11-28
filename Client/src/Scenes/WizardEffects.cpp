@@ -13,7 +13,7 @@
 #include "Actors/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/SkillHits.h"
+#include "Skills/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/BlastModelEffects.h"

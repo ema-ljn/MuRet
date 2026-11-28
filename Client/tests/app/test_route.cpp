@@ -14,7 +14,7 @@
 #include "Protocol/Movement/World.h"
 #include "Protocol/Outgoing.h"
 #include "Actors/ActionSend.h"
-#include "Scenes/ActorCombat.h"
+#include "Combat/ActorCombat.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/SocialEvents.h"
 #include "Kernel/WorldState.h"

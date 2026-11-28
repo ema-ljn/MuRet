@@ -11,7 +11,7 @@
 #include "support/ItemSetFiles.h"
 #include "Tables/FilterWords.h"
 #include "Tables/MoveRequirements.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Tables/TextTable.h"
 #include "support/SceneDataFiles.h"
 #include "support/GateFiles.h"

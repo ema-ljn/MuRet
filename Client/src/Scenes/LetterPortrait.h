@@ -9,7 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/GameCharacters.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 

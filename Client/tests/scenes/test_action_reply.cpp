@@ -15,7 +15,7 @@
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/ModelBody.h"
+#include "Monsters/ModelBody.h"
 #include "Scenes/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"

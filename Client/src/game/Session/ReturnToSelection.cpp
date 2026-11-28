@@ -14,7 +14,7 @@
 #include "Session/MapLoad.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/PersonalShopLists.h"
-#include "Scenes/PetStats.h"
+#include "Pets/PetStats.h"
 #include "Scenes/PetTrainer.h"
 #include "Scenes/NpcWindows.h"
 #include "Protocol/Outgoing.h"

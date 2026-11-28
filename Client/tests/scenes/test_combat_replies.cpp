@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/CombatReplies.h"
+#include "Combat/CombatReplies.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -16,7 +16,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ActorCombat.h"
+#include "Combat/ActorCombat.h"
 #include "Actors/ActorDying.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ChatReceive.h"

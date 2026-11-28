@@ -14,7 +14,7 @@
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 
 #include <glm/ext/vector_float3.hpp>
 

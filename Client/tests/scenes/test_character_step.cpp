@@ -23,7 +23,7 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/CharacterHead.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Terrain/DynamicWorldLight.h"
 #include "Scenes/GameDrawTail.h"
 #include "Assets/FaunaModels.h"

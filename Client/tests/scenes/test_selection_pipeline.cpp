@@ -24,7 +24,7 @@
 #include "Actors/FullSetScan.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/LoginScene.h"

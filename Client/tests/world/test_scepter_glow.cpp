@@ -1,4 +1,4 @@
-#include "World/ScepterGlow.h"
+#include "Actors/Drawing/ScepterGlow.h"
 
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"

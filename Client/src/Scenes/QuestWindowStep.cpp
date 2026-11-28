@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Tables/DialogTable.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/Quests.h"

@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterCloth.h"
+#include "Actors/Drawing/MonsterCloth.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"

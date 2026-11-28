@@ -11,7 +11,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameChat.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/InventoryMoves.h"

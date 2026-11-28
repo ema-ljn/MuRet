@@ -15,7 +15,7 @@
 #include "Scenes/ItemTooltips.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/OwnItemPlacement.h"
-#include "Scenes/PetStats.h"
+#include "Pets/PetStats.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
 #include "Kernel/WorldRuntime.h"

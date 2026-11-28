@@ -1,4 +1,4 @@
-#include "Scenes/PetStats.h"
+#include "Pets/PetStats.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -11,7 +11,7 @@
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"

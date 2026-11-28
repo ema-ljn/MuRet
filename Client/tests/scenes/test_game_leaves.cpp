@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "GameLogic/MovementSpeed.h"
+#include "Actors/MovementSpeed.h"
 #include "Kernel/ActorState.h"
 #include "World/ILeafWaveEvaluator.h"
 #include "World/LeafWeather.h"

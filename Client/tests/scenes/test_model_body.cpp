@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/ModelBody.h"
+#include "Monsters/ModelBody.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"

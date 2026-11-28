@@ -8,7 +8,7 @@
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GuildState.h"
-#include "Scenes/MonsterCreation.h"
+#include "Monsters/MonsterCreation.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

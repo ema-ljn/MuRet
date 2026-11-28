@@ -20,9 +20,9 @@
 #include <cmath>
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Scenes/FaunaObject.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "World/WorldObjects.h"

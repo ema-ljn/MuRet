@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/HeroSkillsTail.h"
+#include "Skills/HeroSkillsTail.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -11,8 +11,8 @@
 #include "Protocol/Outgoing.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameMovementState.h"
-#include "Scenes/HeroSkills.h"
+#include "Movement/GameMovementState.h"
+#include "Skills/HeroSkills.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

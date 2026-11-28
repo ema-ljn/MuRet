@@ -1,5 +1,5 @@
-#include "Scenes/AttackStep.h"
-#include "Scenes/AttackSkillCases.h"
+#include "Combat/AttackStep.h"
+#include "Skills/AttackSkillCases.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -9,7 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Session/CharacterStepHooks.h"
-#include "Scenes/HeroAttack.h"
+#include "Hero/HeroAttack.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GuildState.h"

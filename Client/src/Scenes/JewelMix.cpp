@@ -5,7 +5,7 @@
 #include "Protocol/ChaosMix/JewelMix.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/JewelBundleList.h"
 #include "Scenes/NpcWindowState.h"

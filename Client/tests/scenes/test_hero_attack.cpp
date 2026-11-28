@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/HeroAttack.h"
+#include "Hero/HeroAttack.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -8,9 +8,9 @@
 #include "Protocol/Combat/Combat.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/Skeleton.h"
-#include "Scenes/ActorCombat.h"
+#include "Combat/ActorCombat.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/SocialState.h"
 #include "Kernel/WorldRuntime.h"

@@ -14,7 +14,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/RingEffects.h"
-#include "Scenes/SkillHits.h"
+#include "Skills/SkillHits.h"
 #include "Math/Ftol.h"
 #include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"

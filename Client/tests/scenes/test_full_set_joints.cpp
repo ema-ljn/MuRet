@@ -9,7 +9,7 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Scenes/JointKernels.h"
 #include "Kernel/JointRequest.h"
 #include "World/Sprites.h"

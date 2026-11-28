@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/GameMovement.h"
+#include "Movement/GameMovement.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -19,7 +19,7 @@
 #include "Actors/CharacterStep.h"
 #include "Session/CharacterStepHooks.h"
 #include "Scenes/EventMapObject.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Session/MapLoad.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/PlayerActionSpeeds.h"

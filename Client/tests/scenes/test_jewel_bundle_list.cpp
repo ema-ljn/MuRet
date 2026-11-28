@@ -11,7 +11,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"

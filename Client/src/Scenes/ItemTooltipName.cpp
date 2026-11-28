@@ -3,7 +3,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemNames.h"
 #include "Scenes/ItemTooltipParts.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
 #include "Kernel/WorldRuntime.h"

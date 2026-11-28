@@ -16,7 +16,7 @@
 #include "Scenes/EventDrawing.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GuildState.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Scenes/JewelBundleList.h"

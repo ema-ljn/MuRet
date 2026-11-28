@@ -1,11 +1,11 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/GameGates.h"
+#include "Movement/GameGates.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
-#include "GameLogic/GateDecision.h"
+#include "Movement/GateDecision.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"

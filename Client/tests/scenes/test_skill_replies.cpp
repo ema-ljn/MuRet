@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/SkillReplies.h"
+#include "Skills/SkillReplies.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -20,7 +20,7 @@
 #include "Actors/ActorFlags.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ActorEffectHooks.h"
-#include "Scenes/BlastEffectCalls.h"
+#include "Combat/BlastEffectCalls.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"

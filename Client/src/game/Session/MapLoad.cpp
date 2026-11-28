@@ -17,7 +17,7 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Scenes/MapModelEffectServices.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SceneId.h"

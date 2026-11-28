@@ -15,7 +15,7 @@
 #include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
 #include "Scenes/ItemNames.h"
 #include "Scenes/ItemTooltipParts.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameText.h"

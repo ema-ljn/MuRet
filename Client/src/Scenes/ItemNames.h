@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 
 #include <cstdint>
 #include <optional>

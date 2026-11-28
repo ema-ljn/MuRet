@@ -14,7 +14,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GamePanels.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"

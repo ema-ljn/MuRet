@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 
 #include "Data/Textures/Sampling.h"
 #include "Kernel/CharacterAppearance.h"

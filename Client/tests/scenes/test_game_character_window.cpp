@@ -11,7 +11,7 @@
 #include "Models/LogicalAccess.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameChat.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
 #include "Player/ItemSetState.h"

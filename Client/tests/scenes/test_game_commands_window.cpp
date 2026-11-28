@@ -13,7 +13,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

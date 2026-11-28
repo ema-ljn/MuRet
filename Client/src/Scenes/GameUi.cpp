@@ -35,7 +35,7 @@
 #include "Scenes/GameLetters.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GamePartyWindow.h"

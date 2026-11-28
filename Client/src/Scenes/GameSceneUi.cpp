@@ -29,7 +29,7 @@
 #include "Scenes/GameInventoryHud.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"

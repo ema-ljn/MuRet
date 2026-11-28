@@ -9,7 +9,7 @@
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaEffects.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameMovement.h"
+#include "Movement/GameMovement.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Tables/GameData.h"
 #include "Protocol/FrontEnd/CharacterList.h"

@@ -23,7 +23,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/CharacterSelectScene.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaState.h"

@@ -14,7 +14,7 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/ItemPrice.h"
 #include "Player/ItemSetState.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Scenes/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"

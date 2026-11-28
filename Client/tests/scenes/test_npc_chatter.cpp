@@ -1,4 +1,4 @@
-#include "Scenes/NpcChatter.h"
+#include "Monsters/NpcChatter.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"

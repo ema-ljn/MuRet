@@ -19,7 +19,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorCharacterSet.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Scenes/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"

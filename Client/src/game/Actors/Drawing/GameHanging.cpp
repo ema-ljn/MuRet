@@ -26,7 +26,7 @@
 #include "World/ChaosCastle.h"
 #include "Kernel/JointRequest.h"
 #include "World/Particles.h"
-#include "World/ScepterGlow.h"
+#include "Actors/Drawing/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/WeaponSparkKernels.h"
 

@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterBody.h"
+#include "Monsters/Drawing/MonsterBody.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -19,7 +19,7 @@
 #include "Scenes/ActorEffectHooks.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/MonsterBodyPasses.h"
+#include "Monsters/Drawing/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"

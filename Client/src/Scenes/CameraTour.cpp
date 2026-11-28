@@ -21,7 +21,7 @@
 #include "World/Particles.h"
 #include "Scenes/EventGlobals.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/MonsterCreation.h"
+#include "Monsters/MonsterCreation.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

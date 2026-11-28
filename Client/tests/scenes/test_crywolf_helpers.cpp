@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/ModelEffects.h"
+#include "Monsters/ModelEffects.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldRuntime.h"

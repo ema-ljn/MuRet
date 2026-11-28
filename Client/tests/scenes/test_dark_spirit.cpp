@@ -1,4 +1,4 @@
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Actors/Drawing/GameCharacterEffects.h"
 
 #include "Crt/CrtRandom.h"

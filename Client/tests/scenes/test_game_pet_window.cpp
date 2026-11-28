@@ -1,4 +1,4 @@
-#include "Scenes/GamePetWindow.h"
+#include "Pets/GamePetWindow.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -11,7 +11,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
 #include "Kernel/OwnCharacterRecord.h"

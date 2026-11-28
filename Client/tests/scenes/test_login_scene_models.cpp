@@ -20,7 +20,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/DarkHorse.h"
+#include "Pets/DarkHorse.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameDrawTail.h"

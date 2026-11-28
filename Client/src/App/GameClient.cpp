@@ -17,7 +17,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"

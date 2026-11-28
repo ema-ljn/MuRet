@@ -14,7 +14,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildPanels.h"

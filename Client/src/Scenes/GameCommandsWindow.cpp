@@ -23,7 +23,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/GuildState.h"

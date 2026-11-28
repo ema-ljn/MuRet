@@ -2,7 +2,7 @@
 
 #include "Protocol/Outgoing.h"
 #include "Actors/ActionSend.h"
-#include "Scenes/ActorCombat.h"
+#include "Combat/ActorCombat.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GuildReceive.h"

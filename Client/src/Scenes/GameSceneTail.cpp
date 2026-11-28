@@ -21,7 +21,7 @@
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameTailPasses.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneId.h"
 #include "Session/ModuleStates.h"

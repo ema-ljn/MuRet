@@ -13,7 +13,7 @@
 #include "Render/Text/FontSet.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GuildDrawing.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildPanels.h"

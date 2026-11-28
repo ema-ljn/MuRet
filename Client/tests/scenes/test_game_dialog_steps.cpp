@@ -18,7 +18,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"

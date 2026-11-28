@@ -8,7 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ChaosMix.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"

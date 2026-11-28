@@ -5,7 +5,7 @@
 #include "Protocol/Items/InventoryList.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"

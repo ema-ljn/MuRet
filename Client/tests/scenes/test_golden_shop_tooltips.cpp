@@ -27,7 +27,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/LoginModels.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Scenes/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"

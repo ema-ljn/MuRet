@@ -35,7 +35,7 @@
 #include "Actors/Drawing/GameItemGlowSpecialDrawing.h"
 #include "Math/Ftol.h"
 #include "World/ObjectModelStepState.h"
-#include "World/ScepterGlow.h"
+#include "Actors/Drawing/ScepterGlow.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float2.hpp>

@@ -12,7 +12,7 @@
 #include "Actors/ActionSend.h"
 #include "Actors/ActorShock.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/MonsterCreation.h"
+#include "Monsters/MonsterCreation.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

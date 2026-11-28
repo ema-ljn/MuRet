@@ -12,7 +12,7 @@
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
-#include "Scenes/MonsterCreation.h"
+#include "Monsters/MonsterCreation.h"
 #include "Scenes/SelectionState.h"
 #include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"

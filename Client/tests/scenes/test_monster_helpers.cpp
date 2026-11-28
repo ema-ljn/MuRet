@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterHelpers.h"
+#include "Monsters/Drawing/MonsterHelpers.h"
 
 #include "Scenes/GameDrawTail.h"
 #include "Audio/SoundId.h"

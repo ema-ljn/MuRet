@@ -18,7 +18,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GameChat.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildReceive.h"

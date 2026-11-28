@@ -1,4 +1,4 @@
-#include "Scenes/PetOrders.h"
+#include "Pets/PetOrders.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -7,7 +7,7 @@
 #include "Kernel/ActorSpirit.h"
 #include "Models/Cloth.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
 #include "Session/WorldEntry.h"

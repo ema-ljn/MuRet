@@ -28,7 +28,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/LoginModels.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Session/ReturnToSelection.h"

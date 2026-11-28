@@ -13,7 +13,7 @@
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/AttackStep.h"
+#include "Combat/AttackStep.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Kernel/OwnCharacterRecord.h"

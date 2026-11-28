@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterDrawing.h"
+#include "Monsters/Drawing/MonsterDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -29,7 +29,7 @@
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/SkillReplies.h"
+#include "Skills/SkillReplies.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"

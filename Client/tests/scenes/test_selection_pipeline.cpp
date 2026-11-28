@@ -23,7 +23,7 @@
 #include "FrontEnd/CharacterSlots.h"
 #include "Actors/FullSetScan.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Pets/HelperTable.h"
 #include "Scenes/IScene.h"
 #include "FrontEnd/LoginModels.h"
@@ -77,7 +77,7 @@ namespace
 {
 using Client::FrontEnd::CharacterSlotHeight;
 using Client::FrontEnd::CharacterSlots;
-using Client::Scenes::SceneId;
+using Client::Kernel::SceneId;
 using Client::Session::SessionFailure;
 using Client::Session::SessionState;
 using Client::Tests::CharacterEntryFields;

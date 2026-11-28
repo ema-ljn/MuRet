@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "Warehouse/WarehouseKeypad.h"
 
 #include "Core/Expected.h"
@@ -202,7 +203,7 @@ protected:
     // El clic sobre la tecla `key` (0 a 12), adentro de lo que toca 0x5e7b50.
     Client::Core::Expected<bool, std::string> Press(int key)
     {
-        Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
         if (key == OkKey || key == CancelKey)
             return Step(0x109 + 0x4e * (key - OkKey) + 5, 0xeb + 5);
         return Step((key % 5) * 40 + 0xdf + 5, (key / 5) * 40 + 0x96 + 5);
@@ -436,14 +437,14 @@ TEST_P(WarehouseKeypadTest, AMissingTextStopsWithItsAddress)
 // 0x5e7c12..0x5e7c19: con el modo en 0 devuelve 0 sin tocar el clic, y 0x5ee140 sigue.
 TEST_P(WarehouseKeypadTest, ClosedTheStepLetsTheClickThrough)
 {
-    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+    Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
 
     const auto stepped = Step(0xdf + 5, 0x96 + 5);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(stepped.Value());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
-    EXPECT_TRUE(Runtime().movement.leftHeld);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.leftHeld);
     EXPECT_EQ(Runtime().npcWindows.keypadPressed, 0);
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
 }
@@ -459,8 +460,8 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
     EXPECT_EQ(Typed(), "90");
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_EQ(Runtime().npcWindows.keypadPressed, 1);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_FALSE(Runtime().movement.leftHeld);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.leftHeld);
 
     PressDigits("123");
     EXPECT_EQ(Typed(), "9012");
@@ -472,7 +473,7 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
     ASSERT_TRUE(Press(EraseKey).HasValue());
     EXPECT_EQ(Typed(), "");
 
-    Runtime().movement.releasedClick = true;
+    Runtime().mouse.releasedClick = true;
     const auto released = Step(0, 0);
     ASSERT_TRUE(released.HasValue()) << released.Error();
     EXPECT_TRUE(released.Value());
@@ -480,11 +481,11 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
     EXPECT_EQ(Runtime().ui.field78abb20, 1);
 
     // El clic fuera de las teclas también la aprieta y se gasta.
-    Runtime().movement.releasedClick = false;
-    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+    Runtime().mouse.releasedClick = false;
+    Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     ASSERT_TRUE(Step(0, 0).HasValue());
     EXPECT_EQ(Runtime().npcWindows.keypadPressed, 1);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(m_random.State(), Seed);
     EXPECT_TRUE(m_sent.empty());
 }

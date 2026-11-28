@@ -10,7 +10,7 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Kernel/WorldState.h"

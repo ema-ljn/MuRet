@@ -659,7 +659,7 @@ TEST(HeroSkillsElfTest, TheApproachWalksTheSameWithACrywolfAltar)
         auto tested = AnElf(0x4c, 34);
         tested->Movement().selectedSkillRange = 1.0f;
         tested->world.Runtime().crywolf.stage = 3;
-        tested->world.Runtime().movement.chosenNpc = 30;
+        tested->world.Runtime().chosenNpc.index = 30;
         tested->world.Actors()[30].type = chosenType;
         const auto expected = Advanced(tested->random, HeadDraws + 2 * HeroCellDraws);
         const auto used = tested->Use();

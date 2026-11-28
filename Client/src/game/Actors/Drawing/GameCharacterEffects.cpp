@@ -23,7 +23,7 @@
 #include "Actors/EffectHooks.h"
 #include "Actors/JointHooks.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Party/PartyActors.h"
 #include "Kernel/SceneId.h"
 #include "Social/SocialState.h"
@@ -445,7 +445,7 @@ Result Flags(Tail& tail)
         return Core::Unexpected(std::string("0x50fcff: faltan los joints del frame (0x534fd0)"));
     const bool bound =
         std::ranges::any_of(tail.pass.joints,
-                            [&actor](const Scenes::JointState& joint)
+                            [&actor](const Kernel::JointState& joint)
                             {
                                 return joint.alive && joint.type == AuraType && joint.ownerContext == &actor &&
                                        (joint.subtype == BindingSubtype || joint.subtype == RiderBindingSubtype);
@@ -540,7 +540,7 @@ Result BootsMist(Tail& tail, const glm::vec3& offset, std::string_view call)
     Kernel::ActorState& actor = tail.actor;
     const auto created = tail.pass.particles->CreateKalimaChecked(
         BootsParticle, point.Value(), actor.angles, actor.light, BootsSubtype, 1.0f, tail.pass.worldClock,
-        tail.pass.random, static_cast<std::int32_t>(Scenes::SceneId::Game));
+        tail.pass.random, static_cast<std::int32_t>(Kernel::SceneId::Game));
     if (!created.HasValue())
         return Core::Unexpected(std::format("{}: la partícula {:#x}/{} falla con el error {}", call, BootsParticle,
                                             BootsSubtype, static_cast<unsigned>(created.Error())));

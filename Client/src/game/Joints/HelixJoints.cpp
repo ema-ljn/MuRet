@@ -4,7 +4,7 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -37,7 +37,7 @@ bool IsHelix(std::int32_t type, std::int32_t subtype)
     return (type == DropJoint || type == SecondHelixJoint) && (subtype == HelixSubtype || subtype == WideHelixSubtype);
 }
 
-Core::Expected<void, std::string> CreateHelixJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateHelixJoint(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa. 0x533faf: el ancho.
@@ -87,7 +87,7 @@ Core::Expected<void, std::string> CreateHelixJoint(Scenes::JointState& joint, co
     return {};
 }
 
-Core::Expected<void, std::string> StepHelixJoint(Scenes::JointState& joint)
+Core::Expected<void, std::string> StepHelixJoint(Kernel::JointState& joint)
 {
     // 0x53b08a..0x53b10e: el giro a = (vida + vx) · 0,1f y, en la x87, el radio horizontal h y el vertical v.
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8

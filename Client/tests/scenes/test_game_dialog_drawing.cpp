@@ -12,7 +12,6 @@
 #include "Kernel/ActorState.h"
 #include "Events/EventMapObject.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Guild/GuildState.h"
 #include "ChaosMix/JewelBundleList.h"
 #include "Npc/NpcWindowState.h"
@@ -350,13 +349,13 @@ TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
     runtime.dialogs.current = Client::Ui::PagedDialog;
     runtime.dialogBox.page = 0;
     runtime.dialogBox.lastPage = 2;
-    runtime.movement.pendingClick = true;
+    runtime.mouse.pendingClick = true;
     tested.mouse = {0x180, 0xd0};
 
     ASSERT_TRUE(tested.Draw(true).HasValue());
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
     ASSERT_TRUE(tested.Draw().HasValue());
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 
     const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
     // El marco (6) y las dos flechas, dos veces.

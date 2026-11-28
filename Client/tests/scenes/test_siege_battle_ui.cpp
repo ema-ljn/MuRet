@@ -109,8 +109,8 @@ protected:
     }
     void Click()
     {
-        world->Runtime().movement.pendingClick = true;
-        world->Runtime().movement.leftHeld = true;
+        world->Runtime().mouse.pendingClick = true;
+        world->Runtime().mouse.leftHeld = true;
     }
     void BattleRole()
     {
@@ -245,7 +245,7 @@ TEST_F(SiegeUiTest, TheWeaponChoiceAndConfirmationProduceTheLiteralB7Then31)
     Click();
     ASSERT_TRUE(Client::CastleSiege::StepTheSiegeControls(StepContext(528, 140)).HasValue());
     EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 2);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_TRUE(requests.packets.empty());
     Click();
     ASSERT_TRUE(Client::CastleSiege::StepTheSiegeControls(StepContext(620, 378)).HasValue());
@@ -255,7 +255,7 @@ TEST_F(SiegeUiTest, TheWeaponChoiceAndConfirmationProduceTheLiteralB7Then31)
     EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
     EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 0);
     // 0x44e444..0x44e6a8: confirmar no consume el clic, a diferencia de escoger y cancelar.
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
 }
 
 TEST_F(SiegeUiTest, CancelTheWeaponConsumesTheClickAndSendsOnly31)
@@ -268,7 +268,7 @@ TEST_F(SiegeUiTest, CancelTheWeaponConsumesTheClickAndSendsOnly31)
     ASSERT_EQ(requests.packets.size(), 1u);
     ExpectPacket(0, Bytes({0xc1, 3, 0x31}), false);
     EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 }
 
 TEST_F(SiegeUiTest, OpeningTheGateReadsTheActorAndTheWideActionRectangleUsesStrictRightBorder)
@@ -286,7 +286,7 @@ TEST_F(SiegeUiTest, OpeningTheGateReadsTheActorAndTheWideActionRectangleUsesStri
     ASSERT_EQ(requests.packets.size(), 2u);
     ExpectPacket(0, Bytes({0xc1, 7, 0xb2, 1, 0, 0x12, 0x34}));
     ExpectPacket(1, Bytes({0xc1, 3, 0x31}), false);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.castleSiege.siegeBattleUi.gateKey, 0);
     EXPECT_EQ(runtime.panels.delegated.siegeGate, 0);
 }
@@ -313,7 +313,7 @@ TEST_F(SiegeUiTest, TheCommanderChoosesAnOrderThenSendsCoordinatesFromTheLastMap
     EXPECT_EQ(panel.targetTtl, 100);
     EXPECT_EQ(panel.command, 3);
     EXPECT_EQ(panel.selected, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 }
 
 TEST_F(SiegeUiTest, ARightClickOnTheCommanderRowCancelsWithoutConsumingTheRightClick)
@@ -622,8 +622,8 @@ TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
         ASSERT_TRUE(Client::CastleSiege::StepTheBattlePanel(StepContext(494, 287)).HasValue());
         EXPECT_EQ(runtime.castleSiege.siegePanel.alpha, 1.0f);
         EXPECT_EQ(runtime.castleSiege.siegePanel.page, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
-        EXPECT_FALSE(runtime.movement.leftHeld);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
+        EXPECT_FALSE(runtime.mouse.leftHeld);
         EXPECT_TRUE(requests.packets.empty());
         EXPECT_EQ(random.State(), before);
     }

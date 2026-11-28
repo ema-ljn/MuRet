@@ -10,14 +10,10 @@
 // Contract: Client/docs/research/06-render-escenas-y-ui.md, "Las skills que llegan".
 namespace Client::Kernel
 {
-struct ActorState;
 class WorldState;
-} // namespace Client::Kernel
-
-namespace Client::Scenes
-{
+struct ActorState;
 struct JointState;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 namespace Client::Actors
 {
@@ -25,7 +21,7 @@ class IEffectHooks;
 
 // 0x534f90(type, owner, subtype): the same among the 500 joints (type at +4, owner at +0x54 and subtype at +0xc),
 // returning nothing. No rand().
-void KillJointsOf(std::span<Scenes::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype);
+void KillJointsOf(std::span<Kernel::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype);
 
 // 0x4e6910(mask, character): lowers the flag of +0x78 (or of +0x7c) if it is set and, depending on which, turns off
 // the effects and joints that go with it (0x518ac0, through `effects`, and 0x534f90), in `world`. With another mask,

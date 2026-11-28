@@ -264,7 +264,7 @@ TEST_F(CursorItemTest, AnItemFitsWhereItsWholeFootprintIsFree)
 TEST_F(CursorItemTest, PickingUpFromTheGridAndReturningItRestoresTheFootprint)
 {
     Put(Sword, 2, 1);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     world.Runtime().ui.hoveredItem =
         Client::Ui::HoveredItem{.place = Client::Ui::HoveredItem::Place::InventoryCell, .index = 2 * 8 + 2};
     const CrtRandom before = random;
@@ -277,7 +277,7 @@ TEST_F(CursorItemTest, PickingUpFromTheGridAndReturningItRestoresTheFootprint)
     EXPECT_EQ(runtime.cursorItemCount, 1);
     EXPECT_EQ(runtime.slot78a6758, 12 + 1 * 8 + 2);
     EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::Inventory);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
     EXPECT_EQ(runtime.hoveredItemCopy.id, EmptyOwnItemId);
     for (const std::int32_t row : {1, 2, 3})
@@ -331,9 +331,9 @@ TEST_F(CursorItemTest, TheTrainerBoxTakesOnlyItsJewels)
         };
 
         Put(Jewel, 0, 0);
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         const CrtRandom sent = Advanced(random, SendRandoms);
         const auto dropped = drop(3, 1);
         ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
@@ -350,9 +350,9 @@ TEST_F(CursorItemTest, TheTrainerBoxTakesOnlyItsJewels)
         runtime.ui.field78abb39 = 0;
         runtime.cursorItemCount = 0;
         Put(Sword, 2, 0);
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 2).HasValue());
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         const CrtRandom refused = random;
         const auto kept = drop(5, 0);
         ASSERT_TRUE(kept.HasValue()) << kept.Error();
@@ -389,7 +389,7 @@ TEST_F(CursorItemTest, TheTrainerBoxItemGoesBackOrToTheInventory)
             box[cell].occupied = cell == 10 ? 1u : 0u;
         }
         const CrtRandom before = random;
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromOtherGrid(Moves(), Client::Kernel::CursorGrid::TrainerBox, 18).HasValue());
         EXPECT_EQ(runtime.cursorGrid, Client::Kernel::CursorGrid::TrainerBox);
         EXPECT_EQ(runtime.cursorItem.id, Sword);
@@ -406,9 +406,9 @@ TEST_F(CursorItemTest, TheTrainerBoxItemGoesBackOrToTheInventory)
         }
         EXPECT_EQ(random.State(), before.State());
 
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromOtherGrid(Moves(), Client::Kernel::CursorGrid::TrainerBox, 10).HasValue());
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         const CrtRandom sent = Advanced(random, SendRandoms);
         const auto dropped = Client::Items::DropOnTheInventoryGrid(
             Moves(),
@@ -430,9 +430,9 @@ TEST_F(CursorItemTest, TheTrainerBoxItemGoesBackOrToTheInventory)
 TEST_F(CursorItemTest, DroppingOnAFreePlaceOfTheGridSendsTheMove)
 {
     Put(Sword, 2, 1);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 2 * 8 + 2).HasValue());
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     const CrtRandom expected = Advanced(random, SendRandoms);
 
     const auto dropped = Client::Items::DropOnTheInventoryGrid(
@@ -463,9 +463,9 @@ TEST_F(CursorItemTest, TheGridRefusesOccupiedPlacesAndTakesItsOwnPlaceBack)
 {
     Put(Sword, 2, 1);
     Put(Shield, 5, 5);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 2 * 8 + 2).HasValue());
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     const auto drop = [&](std::int32_t column, std::int32_t row, bool open)
     {
         return Client::Items::DropOnTheInventoryGrid(Moves(), Client::Items::GridDrop{.mouseX = MouseX(column, 1),
@@ -528,10 +528,10 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
         {
             runtime.ui.field78abb39 = 0;
             runtime.cursorItemCount = 0;
-            runtime.movement.pendingClick = true;
+            runtime.mouse.pendingClick = true;
             ASSERT_TRUE(Client::Items::PickUpFromOtherGrid(Moves(), grid, cell).HasValue());
             EXPECT_EQ(runtime.cursorGrid, grid);
-            runtime.movement.pendingClick = true;
+            runtime.mouse.pendingClick = true;
         };
 
         place(npc.grid, Helm, {9, 10, 17, 18});
@@ -554,7 +554,7 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
         npc.warehouseLocked = 1;
         npc.field78abb1c = 0;
         npc.typedNumber.fill(0x37);
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         CrtRandom shuffled = random;
         std::array<std::uint16_t, Client::Npc::WarehouseKeyCount> keys{};
         Client::Items::ShuffleTheKeypad(shuffled, keys);
@@ -600,7 +600,7 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
 
         runtime.cursorGrid = Client::Kernel::CursorGrid::None;
         runtime.ui.field78abb39 = 0;
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         const CrtRandom before = random;
         const auto droppedOther = Client::Items::DropOnTheEquipment(Moves(), 1);
         ASSERT_TRUE(droppedOther.HasValue()) << droppedOther.Error();
@@ -626,7 +626,7 @@ TEST_F(CursorItemTest, TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment)
                 runtime.slot78a6758 = 0x109;
                 runtime.cursorItemCount = 1;
                 runtime.ui.field78abb39 = locked;
-                runtime.movement.pendingClick = true;
+                runtime.mouse.pendingClick = true;
                 runtime.social.trade.ownOk = ownOk;
                 runtime.social.trade.okWait = 7;
                 outside.sent.clear();
@@ -666,7 +666,7 @@ TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
 {
     world.Actors()[0].characterClass = DarkKnight;
     Put(Helm, 0, 0);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
 
     ASSERT_TRUE(Client::Items::DropOnTheEquipment(Moves(), 0).HasValue());
@@ -675,10 +675,10 @@ TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
     EXPECT_EQ(world.OwnCharacter().equipment[HeadSlot].warning, 2);
     EXPECT_TRUE(outside.sent.empty());
 
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     const CrtRandom expected = Advanced(random, SendRandoms);
     ASSERT_TRUE(Client::Items::DropOnTheEquipment(Moves(), HeadSlot).HasValue());
-    EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(world.Runtime().mouse.pendingClick);
     EXPECT_EQ(world.Runtime().ui.field78abaac, 1);
     EXPECT_EQ(world.Runtime().itemMoveTarget, HeadSlot);
     EXPECT_EQ(random.State(), expected.State());
@@ -687,16 +687,16 @@ TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
     EXPECT_EQ(outside.sent.front().targetSlot, HeadSlot);
 
     world.Runtime().ui.field78abb39 = 0;
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::DropOnTheEquipment(Moves(), 0).HasValue());
     EXPECT_EQ(world.Runtime().cursorItemCount, 0);
     EXPECT_EQ(Cell(0, 0).id, Helm);
     EXPECT_EQ(outside.sent.size(), 1u);
 
     Put(Sword, 4, 0);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 4).HasValue());
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::DropOnTheEquipment(Moves(), 1).HasValue());
     EXPECT_EQ(world.Runtime().itemMoveTarget, 0);
     ASSERT_EQ(outside.sent.size(), 2u);
@@ -785,7 +785,7 @@ TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)
     ItemState& helm = world.OwnCharacter().equipment[HeadSlot];
     helm = Invented(Helm);
     helm.occupied = 1;
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
 
     ASSERT_TRUE(Client::Items::PickUpFromTheEquipment(Moves(), HeadSlot).HasValue());
 
@@ -797,12 +797,12 @@ TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)
     EXPECT_EQ(helm.occupied, 1u);
     EXPECT_EQ(outside.dressed, 1);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 
     world.Runtime().cursorItemCount = 0;
     world.Runtime().map = 10;
     world.OwnCharacter().equipment[WingSlot] = Invented(Wings);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheEquipment(Moves(), WingSlot).HasValue());
     EXPECT_EQ(world.OwnCharacter().equipment[WingSlot].id, Wings);
     EXPECT_EQ(world.Runtime().cursorItemCount, 0);
@@ -838,7 +838,7 @@ TEST_F(CursorItemTest, WhatCannotBeDroppedGoesBackWithItsWarning)
     const auto hold = [&](std::uint16_t type)
     {
         Put(type, 0, 0);
-        world.Runtime().movement.pendingClick = true;
+        world.Runtime().mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
     };
     const auto ground = [&](std::int32_t mouseX, bool open) {
@@ -877,7 +877,7 @@ TEST_F(CursorItemTest, WhatCannotBeDroppedGoesBackWithItsWarning)
 TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
 {
     Put(Shield, 2, 1);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 1 * 8 + 2).HasValue());
     ASSERT_EQ(world.Runtime().slot78a6758, 12 + 10);
     std::vector<Drop> sent;
@@ -890,7 +890,7 @@ TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
     Client::Hud::GamePanels panels(world, random);
     // IsOpen(0x10000) y IsOpen(0x20) de las ventanas, el registro propio, IsOpen(0x20) otra vez y el envío.
     const CrtRandom expected = Advanced(random, 1 + 1 + Own + 1 + SendRandoms);
-    world.Runtime().movement.mouseUpdateTime = 3;
+    world.Runtime().mouse.updateTime = 3;
 
     const auto dropped = Client::Items::DropOnTheGround(
         Moves(), Client::Items::GroundDrop{.mouseX = 100, .inventoryOpen = false, .panels = &panels.Registry()});
@@ -901,8 +901,8 @@ TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
     const auto packet = Client::Protocol::Items::WriteDrop(sent.front());
     EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x23, 130, 121, 22})));
     EXPECT_EQ(world.Runtime().floor.pendingDrop, 22);
-    EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
-    EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(world.Runtime().mouse.updateTime, 0);
+    EXPECT_EQ(world.Runtime().mouse.updateTimeMax, 6);
     // El ítem queda en el cursor hasta el 23.
     EXPECT_EQ(world.Runtime().cursorItemCount, 1);
     EXPECT_EQ(Cell(2, 1).id, EmptyOwnItemId);
@@ -913,7 +913,7 @@ TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
 TEST_F(CursorItemTest, WithoutGroundOrOverTheInventoryNothingIsDropped)
 {
     Put(Potion, 0, 0);
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
     int sent = 0;
     services.sendDrop = [&sent](const Drop&)
@@ -959,7 +959,7 @@ TEST_F(CursorItemTest, WithTheTradeOpenTheItemGoesBackWithOrWithoutTheWindow)
     const auto drawsOf = [this](std::int32_t mouseX, Client::Hud::GamePanels& registry)
     {
         Put(Potion, 0, 0);
-        world.Runtime().movement.pendingClick = true;
+        world.Runtime().mouse.pendingClick = true;
         EXPECT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
         const CrtRandom start = random;
         const auto dropped = Client::Items::DropOnTheGround(
@@ -1002,7 +1002,7 @@ TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)
     {
         Put(WizardsRing, 0, 0);
         Cell(0, 0).scalar1Low = level << 3u;
-        world.Runtime().movement.pendingClick = true;
+        world.Runtime().mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
         ASSERT_TRUE(Client::Items::DropOnTheGround(
                         Moves(), Client::Items::GroundDrop{.mouseX = 100, .panels = &panels.Registry()})
@@ -1027,7 +1027,7 @@ TEST_F(CursorItemTest, NpcWindowsKeepTheDropOnlyOnTheirSideOfTheScreen)
             runtime.panels.delegated.trainer = kind == 3 ? 3 : 0;
             runtime.ui.npcWindowX = 260;
             Put(Potion, 0, 0);
-            runtime.movement.pendingClick = true;
+            runtime.mouse.pendingClick = true;
             ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
             std::vector<Drop> sent;
             services.sendDrop = [&sent](const Drop& drop)
@@ -1076,7 +1076,7 @@ TEST_F(CursorItemTest, TheSeniorCraftWindowKeepsTheDropWithItsNativeSignedGuildM
         hero.word1f2 = given.mark;
         hero.guildStatus = given.guildStatus;
         Put(Potion, 0, 0);
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
         std::vector<Drop> sent;
         services.sendDrop = [&sent](const Drop& drop)
@@ -1134,7 +1134,7 @@ TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
         world.OwnCharacter().level = entry.heroLevel;
         Put(EntryTicket, 0, 0);
         Cell(0, 0).scalar1Low = entry.itemLevel << 3;
-        runtime.movement.pendingClick = true;
+        runtime.mouse.pendingClick = true;
         ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 0).HasValue());
         std::vector<Drop> sent;
         services.sendDrop = [&sent](const Drop& drop)
@@ -1364,7 +1364,7 @@ TEST_F(CursorItemTest, WithoutItsServicesAMoveStopsWithItsAddress)
 {
     Put(Sword, 2, 1);
     services.sendItemMove = {};
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(Moves(), 2 * 8 + 2).HasValue());
     const CrtRandom expected = Advanced(random, SendRandoms);
     const auto sent = Client::Items::SendTheCursorItem(Moves(), 30);

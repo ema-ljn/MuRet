@@ -146,7 +146,7 @@ Core::Expected<void, std::string> ConstructSelectionActor(Kernel::WorldState& wo
     }
     actor.head = Kernel::HeadUnder(actor.body[0].model, characterClass).value_or(Kernel::NoItemModel);
     auto stopped = Actors::SetActorStop(actor, {.runtime = world.Runtime(),
-                                                .scene = Scenes::SceneId::CharacterSelect,
+                                                .scene = Kernel::SceneId::CharacterSelect,
                                                 .playerSkeleton = skeleton,
                                                 .random = cloth.random});
     if (!stopped.HasValue())

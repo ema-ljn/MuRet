@@ -5,7 +5,6 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
-#include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Math/HalfLifeMath.h"
 #include "support/PlayerActors.h"

@@ -5,7 +5,6 @@
 #include "Protocol/ChaosMix/JewelMix.h"
 #include "Protocol/Outgoing.h"
 #include "Chat/GameMessages.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "ChaosMix/JewelBundleList.h"
 #include "Npc/NpcWindowState.h"
@@ -139,8 +138,8 @@ bool WithinFloat(const Hud::GameUiContext& context, float left, float right, flo
 
 void LeaveTheMouseTime(Kernel::WorldRuntime& runtime)
 {
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = DialogMouseUpdateTimeMax;
 }
 
 // El diálogo que espera pasa a abierto (0x6236f0(0) y los MOV de 0x625a49, 0x625cbc y 0x6284ce).
@@ -394,7 +393,7 @@ Core::Expected<void, std::string> ReturnToTheJewelChoice(Kernel::WorldState& wor
 Core::Expected<void, std::string> StepTheJewelMenu(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (!click)
         return {};
     click = false;
@@ -420,7 +419,7 @@ Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& c
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (!click)
         return {};
     click = false;
@@ -472,7 +471,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     // 0x625d0c: el clic, leído antes de las joyas (DL).
     const bool clicked = click;
     float left = UnmixKindLeft;
@@ -538,7 +537,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
 Core::Expected<void, std::string> StepTheJewelResult(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (!click)
         return {};
     click = false;

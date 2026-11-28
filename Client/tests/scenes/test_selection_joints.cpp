@@ -7,7 +7,7 @@
 #include "Models/Cloth.h"
 #include "Kernel/ActorState.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
@@ -29,7 +29,7 @@ namespace
 {
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 // El 0x614/0xc con un personaje de dueño se pone en el modelo compartido del tipo del dueño (0x536b1d, 0x5769ad8): en
 // la selección también, sin cortar.

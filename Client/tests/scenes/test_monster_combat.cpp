@@ -280,7 +280,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     context.soundRequest = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
     for (int step = 1; step < 4; ++step)
     {
-        const auto stepped = Client::Combat::StepTheAttack(monster, slot, context);
+        const auto stepped = Client::Skills::StepTheAttack(monster, slot, context);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(monster.byte381, step + 1);
     }
@@ -288,7 +288,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     EXPECT_EQ(DrawsSince(before, game->cloth.random), 3 * 4);
 
     monster.animation.frame = 5.0f;
-    const auto struck = Client::Combat::StepTheAttack(monster, slot, context);
+    const auto struck = Client::Skills::StepTheAttack(monster, slot, context);
     ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(monster.byte381, 0);
     // El paso con el registro propio (4 + 3.848) y la habilidad con blanco (3.853).
@@ -331,7 +331,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     while (monster.alive && steps < 200)
     {
         const auto stepped = Client::Actors::StepActorDying(
-            monster, slot, {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random});
+            monster, slot, {.map = 0, .scene = Client::Kernel::SceneId::Game, .random = game->cloth.random});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ++steps;
     }
@@ -407,7 +407,7 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
     {
         const auto stepped = Client::Actors::StepActorDying(
             monster, slot,
-            {.map = 0, .scene = Client::Scenes::SceneId::Game, .random = game->cloth.random, .world = &game->world});
+            {.map = 0, .scene = Client::Kernel::SceneId::Game, .random = game->cloth.random, .world = &game->world});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ++steps;
     }

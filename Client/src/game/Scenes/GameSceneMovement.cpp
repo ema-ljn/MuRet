@@ -19,6 +19,7 @@
 #include "Weather/GameLeaves.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/ModuleStates.h"
+#include "Session/HeroMovementHooks.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -61,6 +62,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     context.terrain = &MapTerrain();
     context.dynamicLighting = &DynamicLight().Lighting();
     context.faunaModels = &LoadedFaunaModels();
+    const Session::HeroMovementHooks hooks{};
+    context.hooks = &hooks;
     context.saveOptionsAndMacros = [this, &world]() -> Core::Expected<void, std::string>
     {
         std::optional<std::uint8_t> chosenSlot;

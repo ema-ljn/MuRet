@@ -8,7 +8,7 @@
 #include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/GameParticles.h"
 #include "MapScripts/Noria/NoriaObjectServices.h"
 #include "Assets/WorldModels.h"
@@ -136,7 +136,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     ASSERT_EQ(representatives.size(), 44u);
     Client::Kernel::PoseBuffer pose;
     Client::Particles::FrameSprites sprites;
-    std::vector<Client::Scenes::JointState> joints(100);
+    std::vector<Client::Kernel::JointState> joints(100);
     Client::WorldObjects::GameObjectPass pass;
     pass.map = 3;
     pass.random = &random;

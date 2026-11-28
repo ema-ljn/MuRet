@@ -7,7 +7,7 @@
 #include "Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/SceneId.h"
 #include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainCulling.h"
@@ -96,7 +96,7 @@ struct CharacterStepContext
     Crt::CrtRandom& random;
     // DAT_006d5dc8: the selection (4) decides the end of the animation with the frame + 2 (Q-C21), and the 0x607
     // of map 7 of 0x505de0 belongs to scene 5 only (0x506cf8).
-    Scenes::SceneId scene = Scenes::SceneId::Game;
+    Kernel::SceneId scene = Kernel::SceneId::Game;
     // Player.bmd, the model 0x5769ad8 + 0x20a · 0xe0 of the actions 0x4f9580 and 0x4ec200 read. Without it,
     // the body stops at 0x4f9580.
     const Models::Skeleton* playerSkeleton = nullptr;
@@ -117,7 +117,7 @@ struct CharacterStepContext
     Particles::FrameSprites* sprites = nullptr;
     // The game's joints (0x74a8d78, GameDrawTailState::joints), for the 0x618/0 and /1 of the killer (0x505169).
     // Empty, the attack step stops there.
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // The loose object of 0x7437050 (NewFace 0xa8..0xac), outside the pool's 400.

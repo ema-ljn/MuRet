@@ -8,7 +8,7 @@
 #include "Actors/Drawing/GameCharacters.h"
 #include "Monsters/MonsterCreation.h"
 #include "Kernel/WorldRuntime.h"
-#include "Hud/WorldTexts.h"
+#include "Kernel/WorldTextQueue.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "support/SceneDataFiles.h"
 
@@ -54,7 +54,7 @@ ActorState NamedGate(std::string_view name, std::uint16_t level)
     return gate;
 }
 
-std::string QueuedText(const Client::Hud::WorldText& entry)
+std::string QueuedText(const Client::Kernel::WorldText& entry)
 {
     const auto end = std::ranges::find(entry.text, '\0');
     return {entry.text.begin(), end};
@@ -66,7 +66,7 @@ TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
     const ActorState gate = NamedGate("Portal", 3);
-    Client::Hud::WorldTextQueue queue;
+    Client::Kernel::WorldTextQueue queue;
 
     const auto queued = Client::Monsters::QueueTheGateName(gate, &texts, queue);
 
@@ -81,7 +81,7 @@ TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
 TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
-    Client::Hud::WorldTextQueue queue;
+    Client::Kernel::WorldTextQueue queue;
 
     ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Magic stone of Carpincho", 3), &texts, queue).HasValue());
     ASSERT_EQ(queue.size(), 1u);
@@ -99,7 +99,7 @@ TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
 TEST(MonsterStepCasesTest, TheGateNameCutsWithoutTextsOrPastItsBuffer)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, std::string(90, 'x') + "%d"}});
-    Client::Hud::WorldTextQueue queue;
+    Client::Kernel::WorldTextQueue queue;
 
     ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Portal", 3), &texts, queue).HasValue());
     ASSERT_EQ(queue.size(), 1u);

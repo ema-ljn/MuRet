@@ -30,7 +30,7 @@
 #include "Effects/ActorEffectHooks.h"
 #include "Pets/DarkSpirit.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Chat/GameMessages.h"
 #include "Pets/HelperTable.h"
 #include "Assets/FaunaModels.h"
@@ -518,7 +518,7 @@ TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
 
         const auto& joints = game->world.DrawTail().joints;
         const bool kalima = map != 0 && map != 2;
-        const Client::Scenes::JointState& joint = joints[0];
+        const Client::Kernel::JointState& joint = joints[0];
         ASSERT_EQ(joint.alive, kalima);
         for (std::size_t i = 1; i < joints.size(); ++i)
             ASSERT_FALSE(joints[i].alive) << i;

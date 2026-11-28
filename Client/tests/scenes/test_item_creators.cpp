@@ -7,7 +7,7 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/JointRequest.h"
 #include "Kernel/PoseBuffer.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/ModelEffects.h"
 #include "WorldObjects/ObjectModelStepState.h"
 #include "Particles/Sprites.h"
@@ -55,7 +55,7 @@ protected:
     [[nodiscard]] std::size_t LiveJoints() const
     {
         return static_cast<std::size_t>(
-            std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }));
+            std::ranges::count_if(m_joints, [](const Client::Kernel::JointState& joint) { return joint.alive; }));
     }
 
     [[nodiscard]] std::vector<std::int16_t> LiveEffects() const
@@ -76,7 +76,7 @@ protected:
     Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
     Client::WorldObjects::ObjectModelStepState m_modelState;
-    std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(4);
+    std::vector<Client::Kernel::JointState> m_joints = std::vector<Client::Kernel::JointState>(4);
     std::unique_ptr<Client::Effects::ModelEffects> m_effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Actors::Drawing::ItemDrawResources m_resources{.random = m_random,
                                                            .itemRender = m_render,

@@ -39,8 +39,6 @@ class CharacterStepHooks final : public Actors::ICharacterStepHooks
 public:
     [[nodiscard]] Core::Expected<void, std::string> RefreshTheSiegePanel(Kernel::WorldRuntime& runtime) const override;
 
-    [[nodiscard]] bool CrywolfAltarGoal(const Kernel::WorldState& world) const override;
-
     [[nodiscard]] Core::Expected<void, std::string>
     QueueTheGateName(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context) const override;
     [[nodiscard]] Core::Expected<void, std::string>

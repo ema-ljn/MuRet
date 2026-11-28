@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "Hud/Dialogs/GameDialogSteps.h"
 
 #include "Core/Expected.h"
@@ -9,7 +10,6 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/OwnInventory.h"
@@ -94,7 +94,7 @@ public:
 
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Hud::LatchTheLeftButton(world->Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world->Runtime().mouse, true, true);
         return Client::Hud::StepTheGameDialogs(GameUiContext{.world = *world,
                                                              .random = random,
                                                              .input = input,
@@ -166,7 +166,7 @@ TEST(JewelMixDialogsTest, TheChaosMixModeButtonsLeaveTheModeAndClose)
         ASSERT_TRUE(tested.Click(MixButtonX, 180 + 85).HasValue());
         EXPECT_EQ(runtime.npcWindows.chaosMixMode, 1);
         EXPECT_EQ(runtime.dialogs.current, 0);
-        EXPECT_TRUE(runtime.movement.pendingClick);
+        EXPECT_TRUE(runtime.mouse.pendingClick);
         EXPECT_FALSE(runtime.lastSoundId.has_value());
         runtime.dialogs.current = 0x8e;
         runtime.dialogs.pending = 0x94;
@@ -190,13 +190,13 @@ TEST(JewelMixDialogsTest, TheMenuChoosesMixingOrUnmixingAndTheCloseSends31)
         auto& runtime = tested.Runtime();
         const CrtRandom before = tested.random;
         runtime.dialogs.current = 0xa1;
-        runtime.movement.mouseUpdateTime = 3;
+        runtime.mouse.updateTime = 3;
         ASSERT_TRUE(tested.Click(MixButtonX, MixY).HasValue());
         EXPECT_EQ(runtime.dialogs.current, 0xa2);
         EXPECT_EQ(tested.Jewels().mode, 0);
-        EXPECT_FALSE(runtime.movement.pendingClick);
-        EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
+        EXPECT_EQ(runtime.mouse.updateTime, 0);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
         runtime.dialogs.current = 0xa1;
         ASSERT_TRUE(tested.Click(395, UnmixY + 35).HasValue());
         EXPECT_EQ(runtime.dialogs.current, 0xa4);

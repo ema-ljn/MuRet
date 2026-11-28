@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Kernel/MouseState.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Tables/TextTable.h"
@@ -252,7 +253,7 @@ protected:
 
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
     }
 
     // El C1 del paquete `index` sin el XOR32, para compararlo byte a byte.
@@ -357,7 +358,7 @@ TEST_F(NpcWindowStepsTest, TheShopBuysTheItemUnderTheMouseByteByByte)
         EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
         EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x32, 82})));
         EXPECT_EQ(Npc().buyLock, static_cast<std::int32_t>(SwordPrice));
-        EXPECT_FALSE(world.Runtime().movement.pendingClick);
+        EXPECT_FALSE(world.Runtime().mouse.pendingClick);
         for (const std::size_t cell : {82u, 90u, 98u})
             EXPECT_EQ(Npc().grid[cell].warning, 2) << cell;
         const auto& ui = world.Runtime().ui;
@@ -373,7 +374,7 @@ TEST_F(NpcWindowStepsTest, TheShopBuysTheItemUnderTheMouseByteByByte)
         Click();
         ASSERT_TRUE(Step(x, y).HasValue());
         EXPECT_EQ(sent.size(), 1u);
-        EXPECT_FALSE(world.Runtime().movement.pendingClick);
+        EXPECT_FALSE(world.Runtime().mouse.pendingClick);
     }
 }
 
@@ -393,7 +394,7 @@ TEST_F(NpcWindowStepsTest, SellingAPlainItemSendsItsPlace)
         runtime.cursorItemCount = 1;
         runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
         runtime.slot78a6758 = 12 + 20;
-        runtime.movement.mouseUpdateTimeMax = 0;
+        runtime.mouse.updateTimeMax = 0;
         const CrtRandom expected = Advanced(random, QuietStepRandoms + CursorTradeQuery + 1 + C3);
         Click();
         const auto stepped = Step(NpcX + 0x20, 300);
@@ -404,7 +405,7 @@ TEST_F(NpcWindowStepsTest, SellingAPlainItemSendsItsPlace)
         EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x33, 32})));
         EXPECT_EQ(Trade().warningKind, 0);
         EXPECT_EQ(Trade().warningByte, 0xff);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
     }
 }
 
@@ -434,8 +435,8 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_EQ(Trade().warningByte, 1);
     EXPECT_EQ(runtime.dialogBox.buttons[0].state, 2);
-    EXPECT_FALSE(runtime.movement.pendingClick);
-    EXPECT_FALSE(runtime.movement.leftHeld);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
+    EXPECT_FALSE(runtime.mouse.leftHeld);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 
     const CrtRandom sold = Advanced(random, QuietStepRandoms + C3);
@@ -490,14 +491,14 @@ TEST_F(NpcWindowStepsTest, RepairingEverythingSendsFfAndPricesTheWornItems)
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x05, 0x34, 0xff, 0x00})));
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
     EXPECT_EQ(Npc().repairAllPrice, total);
 
-    runtime.movement.pendingClick = true;
+    runtime.mouse.pendingClick = true;
     ASSERT_TRUE(Step(NpcX + 0x19, 0x16d).HasValue());
     EXPECT_EQ(runtime.panels.repairCursor, 2);
     EXPECT_EQ(runtime.panels.repairMode, 1);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 }
 
 // 0x5c2dd5..0x5c3594: con el modo de reparar, el clic sobre el arma del lugar 0 del equipo manda C1 05 34 00 y
@@ -515,7 +516,7 @@ TEST_F(NpcWindowStepsTest, RepairModeRepairsAnEquipmentPlace)
     EXPECT_EQ(random.State(), expected.State());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x05, 0x34, 0x00, 0x01})));
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(world.OwnCharacter().equipment[0].id, Sword);
 }
 
@@ -553,7 +554,7 @@ TEST_F(NpcWindowStepsTest, StoringAnItemInTheWarehouseSendsTheMove)
                               Bytes({0xc1, 0x0e, 0x24, 0x00, 12, 0x01, 0x18, 25, 0x10, 0x00, 0x00, 0x00, 0x02, 67})));
         EXPECT_EQ(runtime.itemMoveTarget, 67);
         EXPECT_EQ(runtime.ui.field78abb39, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
     }
 }
 
@@ -573,7 +574,7 @@ TEST_F(NpcWindowStepsTest, TheWarehouseRightClickMovesThroughTheWholeUiStep)
     EXPECT_EQ(world.Inventory().cells[9].id, EmptyOwnItemId);
     EXPECT_EQ(runtime.cursorItemCount, 1);
     EXPECT_EQ(runtime.ui.field78abb39, 1);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.itemMoveTarget, 103);
 }
 
@@ -641,7 +642,7 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
         EXPECT_EQ(Npc().typedNumber[1], 0);
         EXPECT_EQ(Npc().keypadPressed, 1);
         EXPECT_EQ(runtime.ui.field78abb20, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_TRUE(sent.empty());
     }
 }
@@ -762,7 +763,7 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     EXPECT_EQ(world.Runtime().social.moneyField, 1);
     EXPECT_EQ(runtime.chat.input.fieldCount, 1);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 
     world.Runtime().social.typedMoney = 1000;
     runtime.ui.enterPressed = true;
@@ -806,7 +807,7 @@ TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
     auto stepped = Client::Npc::StepThePanel2000(context, panels);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.panels.field78abb08, 1);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.ui.mouseOnUi, 1);
     const auto before = random.State();
     Click();
@@ -833,7 +834,7 @@ TEST_F(NpcWindowStepsTest, TheMainUiStepUsesThePanel2000Checkbox)
     const auto stepped = Step(475, 240);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.panels.field78abb08, 1);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.ui.mouseOnUi, 1);
     EXPECT_TRUE(sent.empty());
 }
@@ -858,9 +859,9 @@ TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
         EXPECT_EQ(runtime.panels.panel2000, 0);
         EXPECT_EQ(runtime.panels.field78abb08, 0);
         EXPECT_EQ(runtime.panels.field78abb00, cross ? 0 : 7);
-        EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.mouse.updateTime, 0);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_TRUE(SameBytes(Plain(sent.size() - 1).Bytes(), Bytes({0xc1, 3, 0x31})));
         EXPECT_EQ(random.State(), Advanced(before, 2).State());
     }
@@ -940,8 +941,8 @@ TEST_F(NpcWindowStepsTest, TheWarehouseButtonsOpenTheKeypadAndClose)
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x03, 0x82})));
-    EXPECT_FALSE(runtime.movement.pendingClick);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
+    EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
 }
 
 // 0x5d934f..0x5d9633: con 0x78abb14 en 2 y el sí, la mezcla pedida (0x7d2dc80 en 1) y el C1 04 86 con el tipo, con
@@ -1070,7 +1071,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "mezclar ya?");
         EXPECT_EQ(Trade().warningKind, 2);
         EXPECT_EQ(Trade().warningByte, 0xff);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
         EXPECT_TRUE(Errors().empty());
 
@@ -1090,7 +1091,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
         EXPECT_EQ(sent.size(), 1u);
         EXPECT_EQ(runtime.dialogs.current, 0);
-        EXPECT_TRUE(runtime.movement.pendingClick);
+        EXPECT_TRUE(runtime.mouse.pendingClick);
     }
 }
 
@@ -1114,7 +1115,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
     EXPECT_EQ(random.State(), poor.State());
     EXPECT_EQ(Errors(), std::vector<std::string>{"sin zen"});
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0});
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.dialogs.current, 0);
 
     // El ojo +1 y la llave +2 con la joya del caos.
@@ -1206,7 +1207,7 @@ TEST_F(NpcWindowStepsTest, TheYesNoDialogsLeaveTheirAnswer)
     Click();
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x94);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(Trade().warningByte, 0xff);
     Click();
     ASSERT_TRUE(Dialogs(0x15 + 0xd5 + 0x46, 0x5a + 0x64 + 0x15).HasValue());

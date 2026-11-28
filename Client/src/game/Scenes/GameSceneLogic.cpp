@@ -8,6 +8,7 @@
 #include "Effects/GameParticles.h"
 #include "Effects/HandShine.h"
 #include "Effects/HighModelEffects.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Fauna/FaunaEffects.h"
@@ -84,7 +85,7 @@ Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
 {
     const auto& terrain = StepTerrain();
     auto& floorItems = m_context.world->DrawTail().floorItems;
-    if (std::ranges::any_of(floorItems, [](const FloorItemState& item) { return item.alive; }))
+    if (std::ranges::any_of(floorItems, [](const Kernel::FloorItemState& item) { return item.alive; }))
     {
         if (!terrain.heights || !terrain.attributes)
             return Core::Unexpected(std::string("0x608880: falta el terreno para los ítems del piso"));
@@ -106,7 +107,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
     if (auto stepped = Actors::StepCharacters(Actors::CharacterStepContext{
             .world = *m_context.world,
             .random = m_context.cloth->random,
-            .scene = SceneId::Game,
+            .scene = Kernel::SceneId::Game,
             .playerSkeleton = player,
             .items = m_items,
             .skills = m_skills,
@@ -200,7 +201,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .hero = &m_context.world->Hero(),
         .skillHits = [this](const Effects::ModelEffect& flame, float radius) -> Core::Expected<void, std::string>
         {
-            const Skills::SkillHitsRequest request{.skillIndex = flame.byte89,
+            const Actors::SkillHitsRequest request{.skillIndex = flame.byte89,
                                                    .point = flame.transform.position,
                                                    .radius = radius,
                                                    .volley = static_cast<std::uint8_t>(flame.word8c & 0xff),
@@ -211,7 +212,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                                          { session->SendChat(std::move(packet)); })
                                                    : std::function<void(Protocol::Outgoing)>{};
             const auto hit =
-                Skills::HitTheTargetsAround(request, *m_context.world, MapTerrain(), m_context.cloth->random, send);
+                Actors::HitTheTargetsAround(request, *m_context.world, MapTerrain(), m_context.cloth->random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
@@ -409,14 +410,14 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     const Joints::JointKernels::VolleyServices volley{
         .siegeActive = runtime.castleSiege.siegeActive,
         .attributes = terrain.attributes.get(),
-        .skillHits = [this](const Skills::SkillHitsRequest& request) -> Core::Expected<void, std::string>
+        .skillHits = [this](const Actors::SkillHitsRequest& request) -> Core::Expected<void, std::string>
         {
             const auto send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
                                                          [session = m_session](Protocol::Outgoing packet)
                                                          { session->SendChat(std::move(packet)); })
                                                    : std::function<void(Protocol::Outgoing)>{};
             const auto hit =
-                Skills::HitTheTargetsAround(request, *m_context.world, MapTerrain(), m_context.cloth->random, send);
+                Actors::HitTheTargetsAround(request, *m_context.world, MapTerrain(), m_context.cloth->random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};

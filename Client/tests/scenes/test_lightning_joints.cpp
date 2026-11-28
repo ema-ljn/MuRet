@@ -9,6 +9,7 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/WorldState.h"
@@ -37,7 +38,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::uint32_t Seed = 0x51c0ffeu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);

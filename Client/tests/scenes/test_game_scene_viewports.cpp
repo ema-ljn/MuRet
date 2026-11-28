@@ -186,7 +186,7 @@ protected:
     void StartGame()
     {
         m_manager = std::make_unique<Client::Scenes::SceneManager>(
-            [this](Client::Scenes::SceneId /*id*/)
+            [this](Client::Kernel::SceneId /*id*/)
             {
                 const Client::Scenes::SceneContext context{.dataRoot = m_dataRoot,
                                                            .textures = m_store,
@@ -206,7 +206,7 @@ protected:
                 return game;
             },
             m_target, m_clock, nullptr, m_log);
-        const auto started = m_manager->Start(Client::Scenes::SceneId::Game);
+        const auto started = m_manager->Start(Client::Kernel::SceneId::Game);
         ASSERT_TRUE(started.HasValue()) << started.Error();
     }
 

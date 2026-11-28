@@ -15,7 +15,6 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
 #include "Effects/KundunEffects.h"
 #include "Effects/KundunFallEffects.h"
 #include "Monsters/Drawing/MonsterBodyPasses.h"

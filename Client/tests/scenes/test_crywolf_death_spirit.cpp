@@ -4,7 +4,7 @@
 #include "Kernel/ActorState.h"
 #include "Effects/CharacterEffectSteps.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Particles/Sprites.h"
 #include "Audio/SoundId.h"
@@ -180,7 +180,7 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     decal.life = 20;
     decal.ownerContext = &parent;
     decal.owner.effect = &parent;
-    std::vector<Client::Scenes::JointState> joints(3);
+    std::vector<Client::Kernel::JointState> joints(3);
     Client::Crt::CrtRandom random(7), expected(7);
     const Client::Session::CharacterDrawHooks hooks;
     expected.Discard(13);

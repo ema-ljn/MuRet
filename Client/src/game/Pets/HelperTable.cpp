@@ -20,7 +20,7 @@
 #include "Pets/DarkHorse.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Pets/HelperStepParts.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Pets/PetHelperSteps.h"
@@ -473,7 +473,7 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
                                              const HelperStepContext& context)
 {
     // 0x44402a..0x444047: solo en la escena 5, con el jinete muerto o sin el 1 en +0x88.
-    if (context.scene == Scenes::SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
+    if (context.scene == Kernel::SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
     {
         helper.alive = false;
         return {};
@@ -499,7 +499,7 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
     }
     // 0x445006..0x445039: +0xa0 del modelo con la acción, que lo portado no lee, y el avance.
     AdvanceDarkHorse(helper.horse, *skeleton,
-                     context.scene == Scenes::SceneId::CharacterSelect ? Models::AnimationScene::CharacterSelect
+                     context.scene == Kernel::SceneId::CharacterSelect ? Models::AnimationScene::CharacterSelect
                                                                        : Models::AnimationScene::Other);
     if (helper.type == RiderlessHelper)
     {
@@ -510,13 +510,13 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
 
 // 0x4452db..0x445309: con el segundo argumento en 0, 1,6 en la escena 2 y 1 en la 4; en las demás, los Fenrir se
 // quedan con la de 0x443d70 (0,9) y los demás van a 1.
-float DrawScaleOf(const Kernel::HelperState& helper, Scenes::SceneId scene)
+float DrawScaleOf(const Kernel::HelperState& helper, Kernel::SceneId scene)
 {
-    if (scene == Scenes::SceneId::Login)
+    if (scene == Kernel::SceneId::Login)
     {
         return DarkHorseLoginScale; // 0x3fcccccd
     }
-    if (scene != Scenes::SceneId::CharacterSelect && IsFenrir(helper.type))
+    if (scene != Kernel::SceneId::CharacterSelect && IsFenrir(helper.type))
     {
         return helper.scale;
     }

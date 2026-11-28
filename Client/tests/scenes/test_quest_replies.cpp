@@ -9,7 +9,7 @@
 #include "Protocol/Quests/Quest.h"
 #include "Models/Cloth.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Quests/QuestState.h"

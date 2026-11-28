@@ -14,11 +14,11 @@
 // (test_scene_manager.cpp).
 namespace
 {
+using Client::Kernel::SceneId;
+using Client::Kernel::SceneName;
 using Client::Scenes::FirstScene;
 using Client::Scenes::IsOriginalTransition;
 using Client::Scenes::OriginalTransitions;
-using Client::Scenes::SceneId;
-using Client::Scenes::SceneName;
 using Client::Scenes::SceneTransition;
 
 constexpr std::array<SceneId, 5> AllScenes = {SceneId::Loading, SceneId::Login, SceneId::WorldLoading,

@@ -16,7 +16,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/SkillHits.h"
@@ -741,13 +741,13 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(Effects::ModelEffect& ef
     }
     // 0x520474..0x5204a1: 0x517a20(+0x89, la posición, 100, el byte +0x8c, +0x8a, 0); sin blancos, nada.
     constexpr float HitRadius = 100.0f; // 0x42c80000
-    const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+    const Actors::SkillHitsRequest request{.skillIndex = effect.byte89,
                                            .point = effect.transform.position,
                                            .radius = HitRadius,
                                            .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                            .key = effect.disturbanceState,
                                            .extra = 0};
-    const auto hit = Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+    const auto hit = Actors::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
                                                  context.random, context.send);
     if (!hit.HasValue())
         return Core::Unexpected(hit.Error());
@@ -1159,13 +1159,13 @@ Core::Expected<void, std::string> StepAquagoldArrow(Effects::ModelEffect& effect
         constexpr std::int32_t MarkedSubtype = 0x63;
         if (effect.ownerContext == &context.world.Hero() && effect.subtype != MarkedSubtype)
         {
-            const Skills::SkillHitsRequest hits{.skillIndex = effect.byte89,
+            const Actors::SkillHitsRequest hits{.skillIndex = effect.byte89,
                                                 .point = position,
                                                 .radius = 100.0f,
                                                 .volley = static_cast<std::uint8_t>(effect.word8c),
                                                 .key = static_cast<std::uint16_t>(effect.disturbanceState),
                                                 .extra = 0};
-            if (auto hit = Skills::HitTheTargetsAround(hits, context.world, Terrain::TerrainOrEmpty(context.terrain),
+            if (auto hit = Actors::HitTheTargetsAround(hits, context.world, Terrain::TerrainOrEmpty(context.terrain),
                                                        context.random, context.send);
                 !hit.HasValue())
                 return Core::Unexpected(hit.Error());

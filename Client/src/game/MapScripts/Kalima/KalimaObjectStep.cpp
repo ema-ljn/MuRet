@@ -111,7 +111,7 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldS
     position.z = static_cast<float>(static_cast<double>(hero.position.z) + ParticleHeight);
     const auto created = world.Particles().CreateKalimaChecked(
         0x5ac, position, hero.angles, light, 7, 1.0f, 0.0f, cloth.random,
-        static_cast<std::int32_t>(Scenes::SceneId::Game), {Particles::ParticleOwnerKind::Actor, world.Runtime().hero});
+        static_cast<std::int32_t>(Kernel::SceneId::Game), {Particles::ParticleOwnerKind::Actor, world.Runtime().hero});
     if (!created.HasValue())
         return Core::Unexpected(std::string("0x4389ca: falló el alta5ac/7 del héroe"));
     if (cloth.random.Next() % EffectGate == 0)

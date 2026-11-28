@@ -1,11 +1,11 @@
 #include "Network/Xor32Packet.h"
 #include "Events/Crywolf/CrywolfContract.h"
+#include "Actors/WalkPath.h"
 
 #include "Core/Expected.h"
 #include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Kernel/ActorState.h"
-#include "Movement/GameMovementState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 
@@ -95,8 +95,8 @@ protected:
 
     void Click()
     {
-        Runtime().movement.leftHeld = true;
-        Runtime().movement.pendingClick = true;
+        Runtime().mouse.leftHeld = true;
+        Runtime().mouse.pendingClick = true;
     }
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
@@ -235,15 +235,15 @@ TEST_F(CrywolfContractTest, TheQuestionTakesEveryClick)
         EXPECT_EQ(Ui().dwords723bdc[0], refused ? 1 : 0);
         EXPECT_EQ(Ui().byte723a44, refused ? 2 : 1);
         EXPECT_EQ(LineOf(Ui().contractLines[0]), refused ? "no se firmo" : "");
-        EXPECT_FALSE(Runtime().movement.leftHeld);
-        EXPECT_FALSE(Runtime().movement.pendingClick);
+        EXPECT_FALSE(Runtime().mouse.leftHeld);
+        EXPECT_FALSE(Runtime().mouse.pendingClick);
         EXPECT_TRUE(sent.empty());
     }
     Enter(CrywolfMap, 3);
     Ui().byte723a44 = 1;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step(0x150, 0x100).HasValue());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Ui().dwords723bdc[0], 0);
 }
 
@@ -258,7 +258,7 @@ TEST_F(CrywolfContractTest, TheAcceptSendsTheAltarKey)
     ASSERT_TRUE(Step(0xfb, 0x117).HasValue());
     EXPECT_EQ(Ui().dwords723bdc[0], 2);
     EXPECT_EQ(Ui().byte723a44, 1);
-    EXPECT_FALSE(Runtime().movement.leftHeld);
+    EXPECT_FALSE(Runtime().mouse.leftHeld);
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(SameBytes(sent[0].packet.Bytes(), Bytes({0xC1, 0x06, 0xBD, 0x37, 0x8A, 0x05})));
     EXPECT_TRUE(SameBytes(Xor32Decode(sent[0].packet).Bytes(), Bytes({0xC1, 0x06, 0xBD, 0x03, 0x01, 0x3D})));
@@ -274,14 +274,14 @@ TEST_F(CrywolfContractTest, TheAcceptSendsTheAltarKey)
         EXPECT_EQ(Ui().dwords723bdc[0], 0);
         EXPECT_EQ(Ui().byte723a44, 2);
         EXPECT_EQ(LineOf(Ui().contractLines[0]), "sin mascota");
-        EXPECT_FALSE(Runtime().movement.pendingClick);
+        EXPECT_FALSE(Runtime().mouse.pendingClick);
     }
     sent.clear();
     Enter(CrywolfMap, 4);
     Ui().byte723a44 = 1;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step(0x100, 0x100).HasValue());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 }
 
@@ -298,8 +298,8 @@ TEST_F(CrywolfContractTest, TheNoticeOnlyTakesTheOk)
         Click();
         ASSERT_TRUE(Step(x, y).HasValue());
         EXPECT_EQ(Ui().dwords723bdc[0], confirmed ? 3 : 0);
-        EXPECT_EQ(Runtime().movement.leftHeld, !confirmed);
-        EXPECT_EQ(Runtime().movement.pendingClick, !confirmed);
+        EXPECT_EQ(Runtime().mouse.leftHeld, !confirmed);
+        EXPECT_EQ(Runtime().mouse.pendingClick, !confirmed);
         EXPECT_EQ(Ui().byte723a44, 2);
     }
 }
@@ -374,10 +374,10 @@ TEST_F(CrywolfContractTest, TheAltarGoalNeedsTheDefenseInCrywolfAndAChosenAltar)
     const auto goal = [this](std::int32_t map, std::uint8_t stage, std::int32_t chosen, std::uint16_t type)
     {
         Enter(map, stage);
-        Runtime().movement.chosenNpc = chosen;
+        Runtime().chosenNpc.index = chosen;
         world->Actors()[AltarSlot] = ActorState{};
         world->Actors()[AltarSlot].type = type;
-        return Client::Events::Crywolf::CrywolfAltarGoal(*world);
+        return Client::Actors::CrywolfAltarGoal(*world);
     };
     const auto slot = static_cast<std::int32_t>(AltarSlot);
     for (const std::uint8_t stage : {std::uint8_t{3}, std::uint8_t{4}})

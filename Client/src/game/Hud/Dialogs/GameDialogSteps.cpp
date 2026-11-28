@@ -18,7 +18,6 @@
 #include "Chat/GameMessages.h"
 #include "Events/EventGlobals.h"
 #include "Chat/GameChat.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Guild/GuildReceive.h"
@@ -268,8 +267,8 @@ bool InBox(const GameUiContext& context, std::int32_t left, std::int32_t top, st
 // Lo que dejan los botones: MouseUpdateTime (0x77f3b10) en 0, su máximo en 6 y el sonido.
 void PressTheButton(Kernel::WorldRuntime& runtime, bool sound = true)
 {
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = DialogMouseUpdateTimeMax;
     if (sound)
         runtime.RequestSound(DialogSound);
 }
@@ -408,9 +407,9 @@ Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context
         // 0x623fdf..0x623fe6: (6 + 3i) · 10.
         const std::int32_t top = (6 + 3 * button) * 10;
         if (!InBox(context, EscapeMenuLeft, top, EscapeMenuRight - EscapeMenuLeft, EscapeMenuButtonHeight) ||
-            !runtime.movement.pendingClick)
+            !runtime.mouse.pendingClick)
             continue;
-        runtime.movement.pendingClick = false;
+        runtime.mouse.pendingClick = false;
         // 0x62402f: la tabla 0x62dac4 para los cuatro primeros; los tres que piden algo vuelven a 0x62409b.
         const bool openedTheOptions = button == OptionsButton && dialogs.current == 0;
         if (auto pressed = PressTheEscapeMenuButton(context, button); !pressed.HasValue())
@@ -440,7 +439,7 @@ void StepTheVolume(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (!InBox(context, OptionsLeft, VolumeRowY, OptionsWidth, OptionsRowHeight))
         return;
     std::int32_t volume = ui.volume;
@@ -460,8 +459,8 @@ void StepTheVolume(const GameUiContext& context)
     if (click)
     {
         click = false;
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
+        runtime.mouse.updateTime = 0;
+        runtime.mouse.updateTimeMax = DialogMouseUpdateTimeMax;
         if (wasNotDragging)
             runtime.RequestSound(DialogSound);
         if (onTheBar(true))
@@ -499,7 +498,7 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
     Ui::DialogState& dialogs = runtime.dialogs;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (runtime.cursorItemCount > 0)
         return {};
     const auto pressed = [&](std::int32_t y)
@@ -560,7 +559,7 @@ Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
         return {};
     if (std::abs(Ui::AnswersCenterX - context.mouseX) > Ui::AnswersHalfWidth)
         return {};
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (!click)
         return {};
     // 0x62d98c..0x62d9a9: la división con signo, hacia el cero; un desvío negativo sale.
@@ -593,11 +592,11 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
     Ui::DialogBoxState& box = runtime.dialogBox;
     const Ui::Point mouse{context.mouseX, context.mouseY};
     const std::int32_t selected =
-        Ui::StepTheDialogButtons(box, mouse, runtime.movement.pendingClick, runtime.movement.leftHeld);
+        Ui::StepTheDialogButtons(box, mouse, runtime.mouse.pendingClick, runtime.mouse.leftHeld);
     // 0x62d7eb: las flechas leen el clic de después de los botones.
     if (runtime.dialogs.current == Ui::PagedDialog)
     {
-        if (auto paged = Ui::StepTheDialogPages(box, context.texts, mouse, runtime.movement.pendingClick);
+        if (auto paged = Ui::StepTheDialogPages(box, context.texts, mouse, runtime.mouse.pendingClick);
             !paged.HasValue())
             return paged;
     }
@@ -619,7 +618,7 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
 Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return {};
     for (std::int32_t mode = 0; mode < MixModes; ++mode)
     {
@@ -710,7 +709,7 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
     const std::int32_t id = runtime.dialogs.current;
     const bool enter = runtime.ui.enterPressed;
     runtime.ui.enterPressed = false;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (id != EnterOnlyDialog && InBox(context, OkLeft, OkTop, OkRight - OkLeft, OkBottom - OkTop) && click)
         click = false;
     else if (!enter)
@@ -763,15 +762,15 @@ std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, 
         button.state = static_cast<std::int32_t>(1 + 2 * index);
         if (!OverTheWarningButton(context, button, top))
             continue;
-        if (runtime.movement.pendingClick)
+        if (runtime.mouse.pendingClick)
             chosen[index] = static_cast<std::int32_t>(index);
         ++button.state;
     }
     if (id == Ui::ItemNameWithLuckDialog && OverTheWarningButton(context, box.thirdButton, top) &&
-        runtime.movement.pendingClick)
+        runtime.mouse.pendingClick)
         chosen[0] = ThirdChoice;
-    runtime.movement.pendingClick = false;
-    runtime.movement.leftHeld = false;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.leftHeld = false;
     if (escape)
         chosen[1] = id == Ui::ItemNameWithLuckDialog ? ThirdChoice : 1;
     return chosen;
@@ -836,8 +835,8 @@ Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, st
     {
         runtime.dialogs.current = runtime.dialogs.pending;
         runtime.dialogs.pending = 0;
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = DialogMouseUpdateTimeMax;
+        runtime.mouse.updateTime = 0;
+        runtime.mouse.updateTimeMax = DialogMouseUpdateTimeMax;
         return {};
     }
     runtime.ui.field78abb26 = static_cast<std::uint8_t>(entry);
@@ -1053,7 +1052,7 @@ Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::i
 Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     std::int32_t id = runtime.dialogs.current;
     const auto inButton = [&context](std::int32_t left, std::int32_t width)
     { return InBox(context, left, YesNoTop, width, YesNoBottom - YesNoTop); };
@@ -1101,7 +1100,7 @@ void StepTheWarOutcome(const GameUiContext& context)
     constexpr std::int32_t Right = 0x163;
     constexpr std::int32_t Top = 0x106;
     constexpr std::int32_t Bottom = 0x11a;
-    if (!runtime.movement.pendingClick || context.mouseX < Left || context.mouseX > Right || context.mouseY < Top ||
+    if (!runtime.mouse.pendingClick || context.mouseX < Left || context.mouseX > Right || context.mouseY < Top ||
         context.mouseY > Bottom)
         return;
     runtime.events.guildWarOutcome = {};

@@ -27,7 +27,7 @@
 #include "Kernel/PoseBuffer.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/SelectionState.h"
 #include "Skills/SkillReplies.h"
 #include "Session/WorldEntry.h"
@@ -261,7 +261,7 @@ protected:
     Client::Models::ClothWorld m_clothWorld;
     Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
-    std::vector<Client::Scenes::JointState> m_joints;
+    std::vector<Client::Kernel::JointState> m_joints;
     Client::Models::SkinningBuffers m_buffers;
     Client::Render::ModelBatch m_batch;
 };
@@ -1550,7 +1550,7 @@ TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
     EXPECT_EQ(sprites[13].position, glm::vec3(150.0f, 150.0f, 36.0f));
     // Los huesos 52 a 58 quedan fuera de la pose de prueba: la matriz en cero, la posición.
     EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 10.0f));
-    std::vector<const Client::Scenes::JointState*> links;
+    std::vector<const Client::Kernel::JointState*> links;
     for (const auto& joint : m_joints)
     {
         if (joint.alive)
@@ -1718,7 +1718,7 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
 {
     constexpr std::uint16_t Kundun = 0x192;
     constexpr std::size_t Rays = 0x56;
-    const auto alive = [](const Client::Scenes::JointState& joint) { return joint.alive; };
+    const auto alive = [](const Client::Kernel::JointState& joint) { return joint.alive; };
     m_models.SetActionCount(7);
     ActorState& kundun = Monster(4, Kundun, 0x113);
     kundun.animation = {.action = 6, .frame = 8.0f};

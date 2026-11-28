@@ -1168,7 +1168,7 @@ TEST(HeroSkillsWizardTest, TheApproachWalksTheSameWithACrywolfAltar)
         auto tested = AWizard(1, Wizard, 34);
         tested->Movement().selectedSkillRange = 1.0f;
         tested->world.Runtime().crywolf.stage = 3;
-        tested->world.Runtime().movement.chosenNpc = 30;
+        tested->world.Runtime().chosenNpc.index = 30;
         tested->world.Actors()[30].type = chosenType;
         const auto expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
         const auto used = tested->Use();

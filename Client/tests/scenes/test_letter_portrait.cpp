@@ -662,7 +662,7 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
                                             .models = &twin->drawn,
                                             .random = twin->cloth.random,
                                             .worldClock = 0.0f,
-                                            .scene = Client::Scenes::SceneId::Game,
+                                            .scene = Client::Kernel::SceneId::Game,
                                             .terrain = &twin->states.terrain.current,
                                             .logicSteps = twin->cloth.logicSteps,
                                             .cameraShake = &twin->input.shake});
@@ -1101,7 +1101,7 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
                                                        .random = game->cloth.random,
                                                        .measure = &m_letters,
                                                        .screen = Client::Core::PixelSize{640, 480},
-                                                       .scene = Client::Scenes::SceneId::Game,
+                                                       .scene = Client::Kernel::SceneId::Game,
                                                        .texts = &m_texts,
                                                        .worldEntry = &resources};
         const auto shown = Client::Messenger::ApplyLetterRead(read, context);

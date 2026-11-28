@@ -39,7 +39,7 @@ struct ActorStopContext
     // The current world (DAT_006c9dd0) and the Fenrir latch (0x7d3a0d0, movementSpeed.itemLatch).
     Kernel::WorldRuntime& runtime;
     // DAT_006d5dc8: the flying maps look at the cell only in scene 5 (0x4f23a2).
-    Scenes::SceneId scene;
+    Kernel::SceneId scene;
     // The actions of Player.bmd: 0x4ea030 does not set one the model lacks.
     const Models::Skeleton& playerSkeleton;
     // *[0x7758550], Item.bmd in memory: the weapon matrix reads byte +0x1e of the weapon's record

@@ -98,8 +98,8 @@ bool InsideInclusive(std::int32_t x, std::int32_t y, std::int32_t left, std::int
 
 void ConsumeLeft(Kernel::WorldRuntime& runtime)
 {
-    runtime.movement.pendingClick = false;
-    runtime.movement.leftHeld = false;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.leftHeld = false;
 }
 
 Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet)
@@ -142,19 +142,19 @@ Core::Expected<void, std::string> StepWeapon(const Hud::GameUiContext& context)
     const std::int32_t bottom = mode == 1 ? 172 : 182;
     for (std::int32_t index = 0; index < count; ++index)
     {
-        if (runtime.movement.pendingClick &&
+        if (runtime.mouse.pendingClick &&
             InsideInclusive(x, y, 470 + index * stride, 140, 470 + index * stride + width, bottom))
         {
             runtime.castleSiege.siegeBattleUi.weaponChoice = static_cast<std::uint8_t>(index + 1);
             ConsumeLeft(runtime);
         }
     }
-    if (count != 0 && runtime.movement.pendingClick && InsideInclusive(x, y, 500, 200, 590, 264))
+    if (count != 0 && runtime.mouse.pendingClick && InsideInclusive(x, y, 500, 200, 590, 264))
     {
         runtime.castleSiege.siegeBattleUi.weaponChoice = static_cast<std::uint8_t>(count + 1);
         ConsumeLeft(runtime);
     }
-    if (runtime.movement.pendingClick && runtime.castleSiege.siegeBattleUi.weaponChoice != 0 &&
+    if (runtime.mouse.pendingClick && runtime.castleSiege.siegeBattleUi.weaponChoice != 0 &&
         InsideInclusive(x, y, 470, 330, 620, 378))
     {
         auto sent = Send(context, Protocol::CastleSiege::WriteWeapon(runtime.castleSiege.siegeBattleUi.weaponKey,
@@ -164,7 +164,7 @@ Core::Expected<void, std::string> StepWeapon(const Hud::GameUiContext& context)
         if (auto closed = CloseWeapon(context); !closed.HasValue())
             return closed;
     }
-    if (runtime.movement.pendingClick && 470 <= x && x < 494 && 395 <= y && y < 419)
+    if (runtime.mouse.pendingClick && 470 <= x && x < 494 && 395 <= y && y < 419)
     {
         ConsumeLeft(runtime);
         return CloseWeapon(context);
@@ -181,7 +181,7 @@ Core::Expected<void, std::string> StepGate(const Hud::GameUiContext& context)
     const std::int32_t y = context.mouseY;
     if (450 <= x && x < 640 && 0 <= y && y < 400)
         runtime.ui.mouseOnUi = 1;
-    if (runtime.movement.pendingClick && 470 <= x && x < 683 && 325 <= y && y < 389)
+    if (runtime.mouse.pendingClick && 470 <= x && x < 683 && 325 <= y && y < 389)
     {
         ConsumeLeft(runtime);
         auto sent =
@@ -192,7 +192,7 @@ Core::Expected<void, std::string> StepGate(const Hud::GameUiContext& context)
             return sent;
         return CloseGate(context);
     }
-    if (runtime.movement.pendingClick && 470 <= x && x < 494 && 395 <= y && y < 419)
+    if (runtime.mouse.pendingClick && 470 <= x && x < 494 && 395 <= y && y < 419)
     {
         ConsumeLeft(runtime);
         return CloseGate(context);
@@ -358,12 +358,12 @@ Core::Expected<void, std::string> StepTheBattleSkillChoice(const Hud::GameUiCont
     if ((x < 0 || x >= 128 || y < 0 || y >= 32) && runtime.ui.wheel == 0)
         return {};
     std::uint8_t& pressed = runtime.castleSiege.siegeBattleUi.skillPressed;
-    if (runtime.ui.wheel > 0 || (43 <= x && x < 56 && 4 <= y && y < 15 && runtime.movement.leftHeld))
+    if (runtime.ui.wheel > 0 || (43 <= x && x < 56 && 4 <= y && y < 15 && runtime.mouse.leftHeld))
     {
         ConsumeLeft(runtime);
         pressed = 1;
     }
-    if (runtime.ui.wheel < 0 || (43 <= x && x < 56 && 17 <= y && y < 29 && runtime.movement.leftHeld))
+    if (runtime.ui.wheel < 0 || (43 <= x && x < 56 && 17 <= y && y < 29 && runtime.mouse.leftHeld))
     {
         ConsumeLeft(runtime);
         pressed = 2;

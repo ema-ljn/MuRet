@@ -144,8 +144,8 @@ std::string DecimalOf(std::int32_t value)
 void CloseTheWindow(Kernel::WorldRuntime& runtime)
 {
     runtime.panels.overlayMode = 0;
-    runtime.movement.leftHeld = false;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.leftHeld = false;
+    runtime.mouse.pendingClick = false;
 }
 
 Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
         const MoveCheck check = CheckTheMove(world, runtime.ownRecordDepth, context.random, move);
         // 0x44876c..0x4487a9.
         if (check.allowed && x >= 3 && x < columns.width - 2 && y >= rowTop && y < rowTop + rowHeight &&
-            runtime.movement.leftHeld)
+            runtime.mouse.leftHeld)
         {
             // 0x4487d7..0x4488d3: el texto 260, un espacio y el nombre de +4.
             if (context.chat == nullptr)
@@ -197,7 +197,7 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
         rowTop += rowHeight;
     }
     // 0x448f43..0x448f81: el renglón de abajo.
-    if (x >= 3 && x < columns.width - 2 && y >= bottom - rowHeight - 6 && y < bottom - 6 && runtime.movement.leftHeld)
+    if (x >= 3 && x < columns.width - 2 && y >= bottom - rowHeight - 6 && y < bottom - 6 && runtime.mouse.leftHeld)
         CloseTheWindow(runtime);
     return {};
 }

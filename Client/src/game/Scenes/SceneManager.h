@@ -33,7 +33,7 @@ namespace Client::Scenes
 {
 // Arma la escena de un SceneId: main.cpp con las de verdad, los tests con dobles. nullptr si no
 // tiene esa escena.
-using SceneFactory = std::function<std::unique_ptr<IScene>(SceneId)>;
+using SceneFactory = std::function<std::unique_ptr<IScene>(Kernel::SceneId)>;
 
 class SceneManager final : public Scenes::ILoopClient
 {
@@ -53,7 +53,7 @@ public:
     // presenta. La fábrica, el frame, el reloj y el log viven más.
     SceneManager(SceneFactory factory, Render::Frame::IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
-                 std::function<std::optional<SceneId>()> takeSceneOrder = {},
+                 std::function<std::optional<Kernel::SceneId>()> takeSceneOrder = {},
                  std::function<void(Core::Duration)> beforeSceneFrame = {},
                  std::function<void(Core::Duration)> afterSceneFrame = {},
                  std::function<Core::Expected<void, std::string>()> afterSceneStep = {},
@@ -68,7 +68,7 @@ public:
     // también en Failure. Con una escena ya entrada es un error y la de ahora sigue: para cambiar
     // está Request. Un error anterior de Poll es terminal, incluso antes de la primera escena:
     // devuelve el primer diagnóstico y no entra. Un Enter fallido sí permite reintentar Start.
-    Core::Expected<void, std::string> Start(SceneId first);
+    Core::Expected<void, std::string> Start(Kernel::SceneId first);
     // La red, también minimizada y antes de Start; sólo un fallo de Poll la detiene.
     // Un Enter fallido no corta la red mientras el host decide reintentar Start.
     void Poll() override;
@@ -86,10 +86,10 @@ public:
     // Cambia a `next` si de la escena de ahora se puede ir (IsOriginalTransition): Leave, la
     // fábrica y Enter. Si no se puede, un error en el log (una vez por pedido seguido igual) y nada
     // cambia. No se llama desde adentro de una escena: la escena lo pide con Next.
-    void Request(SceneId next);
+    void Request(Kernel::SceneId next);
 
     // La escena de ahora; vacío antes de Start o después de un Enter que falló.
-    [[nodiscard]] std::optional<SceneId> Current() const;
+    [[nodiscard]] std::optional<Kernel::SceneId> Current() const;
     // El error vigente de Enter, del paso o del dibujo de la escena, o el primer fallo terminal de Poll
     // (que gana al de Enter), o vacío.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
@@ -109,7 +109,7 @@ public:
 
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.
-    Core::Expected<void, std::string> Enter(SceneId id);
+    Core::Expected<void, std::string> Enter(Kernel::SceneId id);
     // IScene::PrepareFrame, una vez por frame.
     void PrepareFrame() const;
     // Si la escena falló en `where` (IScene::Failure): guarda el error, lo anota y devuelve true.
@@ -122,7 +122,7 @@ private:
     Core::IClock& m_clock;
     std::function<Core::Expected<void, std::string>()> m_pollNetwork;
     Core::Log& m_log;
-    std::function<std::optional<SceneId>()> m_takeSceneOrder;
+    std::function<std::optional<Kernel::SceneId>()> m_takeSceneOrder;
     // Prefijo global del dibujo, una vez por frame, antes del despacho y de la guarda de la escena.
     std::function<void(Core::Duration)> m_beforeSceneFrame;
     // Lo de la vuelta del bucle después del frame (FinishTheLoop).
@@ -133,14 +133,14 @@ private:
     std::function<Core::Expected<void, std::string>()> m_beforeSceneDraw;
     std::function<Core::Expected<void, std::string>(Render::Frame::SceneCanvas&)> m_afterSceneDraw;
     // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
-    std::optional<SceneId> m_networkOrder;
+    std::optional<Kernel::SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;
-    std::optional<SceneId> m_current;
+    std::optional<Kernel::SceneId> m_current;
     std::optional<std::string> m_failure;
     // Distingue el aborto fatal de Poll del Enter fallido que Start puede reintentar.
     bool m_pollFailed = false;
     // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
-    std::optional<SceneId> m_rejected;
+    std::optional<Kernel::SceneId> m_rejected;
     bool m_sceneChanged = false;
     // Si la escena de ahora ya corrió PrepareFrame en este frame. Es mutable porque la decide la
     // consulta const HoldsTheLastFrame, como el aviso OnFrameHeld.

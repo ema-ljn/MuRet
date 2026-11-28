@@ -34,13 +34,13 @@ namespace
 {
 using Client::Assets::WorldLoadingTextureSet;
 using Client::Crt::CrtRandom;
+using Client::Kernel::SceneId;
 using Client::Kernel::WorldLoadingWait;
 using Client::Kernel::WorldRuntime;
 using Client::Kernel::WorldState;
 using Client::Models::ClothWorld;
 using Client::Render::TextureSlot;
 using Client::Scenes::SceneContext;
-using Client::Scenes::SceneId;
 using Client::Scenes::WorldLoadingScene;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::FrameEvent;

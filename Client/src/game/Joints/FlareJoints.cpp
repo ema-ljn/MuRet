@@ -3,7 +3,7 @@
 #include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -27,7 +27,7 @@ using Math::F32;
 // 0x535a07..0x535a61 y 0x535aa0..0x535b0c: un tramo con la matriz de los ángulos (0x535520) y después el avance,
 // (0, −velocidad, 0) girado y sumado a la posición. 0x535a1d..0x535a3f y 0x535ab6..0x535ad8: 0x5fcbd0 recibe el mismo
 // vector [ebp−0x2c] de entrada y de salida, así que la y relee la x ya girada y la z relee las dos.
-Core::Expected<void, std::string> Advance(Scenes::JointState& joint, const Math::OriginalMatrix& matrix)
+Core::Expected<void, std::string> Advance(Kernel::JointState& joint, const Math::OriginalMatrix& matrix)
 {
     if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
         return appended;
@@ -39,7 +39,7 @@ Core::Expected<void, std::string> Advance(Scenes::JointState& joint, const Math:
 }
 } // namespace
 
-void CreateFlareJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
+void CreateFlareJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     // 0x530c93: todos sin la cola común.
     joint.tailEnabled = false;
@@ -90,7 +90,7 @@ void CreateFlareJoint(Scenes::JointState& joint, const Kernel::JointRequest& req
         joint.maximumCount = MostPoints;
 }
 
-Core::Expected<void, std::string> StepFlareJoint(Scenes::JointState& joint)
+Core::Expected<void, std::string> StepFlareJoint(Kernel::JointState& joint)
 {
     if (joint.subtype == 0 && joint.life > 16)
     {

@@ -83,9 +83,9 @@ Core::Expected<void, std::string> CancelPopup(Kernel::WorldState& world, const C
 
 void ConsumeClick(Kernel::WorldRuntime& runtime)
 {
-    runtime.movement.pendingClick = false;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = 6;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = 6;
 }
 
 bool HeroCanRegister(Kernel::WorldState& world, Crt::CrtRandom& random)

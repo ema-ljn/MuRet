@@ -6,6 +6,7 @@
 #include "Render/Text/FontSet.h"
 #include "Scenes/GameProjection.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldTextQueue.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -23,10 +24,10 @@
 namespace
 {
 using Client::Core::PixelSize;
-using Client::Hud::WorldText;
 using Client::Hud::WorldTextDrawContext;
-using Client::Hud::WorldTextQueue;
 using Client::Kernel::HudState;
+using Client::Kernel::WorldText;
+using Client::Kernel::WorldTextQueue;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameProjection;
@@ -121,7 +122,7 @@ TEST_F(WorldTextsTest, AnEntryOffTheScreenIsDroppedWithoutDrawing)
 // strlen sobre los 64 bytes: sin 0, los 64.
 TEST_F(WorldTextsTest, AFullEntryReadsItsSixtyFourBytes)
 {
-    const std::string full(Client::Hud::WorldTextSize, 'a');
+    const std::string full(Client::Kernel::WorldTextSize, 'a');
     m_queue.push_back(Entry(full, glm::vec3(0.0f, 0.0f, 0.0f)));
     ASSERT_TRUE(Draw().HasValue());
     ASSERT_EQ(m_text.texts.size(), 1U);

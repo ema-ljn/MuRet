@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/WorldState.h"
 #include "Effects/GameModelEffects.h"

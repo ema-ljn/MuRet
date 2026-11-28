@@ -17,6 +17,7 @@
 #include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/WorldMap.h"
@@ -612,7 +613,7 @@ TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
 {
     {
         auto world = std::make_unique<Client::Kernel::WorldState>();
-        for (Client::Scenes::JointState& joint : world->DrawTail().joints)
+        for (Client::Kernel::JointState& joint : world->DrawTail().joints)
             joint.alive = true;
         CrtRandom creation(Seed);
         const auto made = Client::Effects::CreateHighModelEffect(

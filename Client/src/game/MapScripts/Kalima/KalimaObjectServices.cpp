@@ -153,7 +153,7 @@ Core::Expected<void, std::string> EmitParticle(WorldObjects::WorldObject& object
                           : Particles::ParticleOwner{};
     const auto made = pass.particles->CreateKalimaChecked(type, object.transform.position, object.transform.angles,
                                                           light, subtype, 1.0f, pass.worldClock, *pass.random,
-                                                          static_cast<std::int32_t>(Scenes::SceneId::Game), owner);
+                                                          static_cast<std::int32_t>(Kernel::SceneId::Game), owner);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x53fe70: alta Kalima {:#x}/{} falla con {}", type, subtype,
                                             static_cast<unsigned>(made.Error())));

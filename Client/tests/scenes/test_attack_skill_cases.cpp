@@ -13,7 +13,7 @@
 #include "Effects/ArrowEffects.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Effects/SkillBurstEffects.h"
@@ -55,8 +55,8 @@ namespace
 using Client::Actors::CharacterStepContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
+using Client::Kernel::JointState;
 using Client::Kernel::WorldState;
-using Client::Scenes::JointState;
 using Client::Skills::SparkTheTarget;
 using Client::Skills::StepTheHeadSkill;
 using Client::Skills::StepTheTargetSkill;

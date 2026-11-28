@@ -53,12 +53,12 @@ using Client::Actors::Drawing::ClothWearer;
 using Client::Crt::CrtRandom;
 using Client::Events::EventMapKind;
 using Client::Events::EventMapObject;
+using Client::Kernel::SceneId;
 using Client::Kernel::WorldRuntime;
 using Client::Kernel::WorldState;
 using Client::Scenes::ArmEventMapObject;
 using Client::Scenes::LoadMap;
 using Client::Scenes::MapLoadContext;
-using Client::Scenes::SceneId;
 
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t PlayerKey = 5;

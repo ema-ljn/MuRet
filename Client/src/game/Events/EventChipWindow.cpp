@@ -14,7 +14,6 @@
 #include "Chat/GameChat.h"
 #include "Hud/GameHud.h"
 #include "Hud/GameInventoryHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Monsters/NpcNames.h"
@@ -227,7 +226,7 @@ Result StepTheSerialNumber(const Hud::GameUiContext& context)
     const std::int32_t top =
         Truncate(F32(static_cast<double>(runtime.hud.inventoryY) + static_cast<double>(ConfirmStepTop)));
     if (!InBox(context.mouseX, context.mouseY, left, top, ButtonWidth, ChipButtonHeight) ||
-        !runtime.movement.releasedClick)
+        !runtime.mouse.releasedClick)
         return {};
     if (CountInventoryItems(context.world.Inventory(), AnyItem, AnyItem) == 0)
     {
@@ -246,7 +245,7 @@ Result StepTheSerialNumber(const Hud::GameUiContext& context)
             return sent;
     }
     // 0x5e7248.
-    runtime.movement.leftHeld = false;
+    runtime.mouse.leftHeld = false;
     return {};
 }
 
@@ -263,14 +262,14 @@ void ForgetTheMoneyField(Social::SocialState& social)
 Result StepTheCloseButton(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (!InBox(context.mouseX, context.mouseY, runtime.hud.inventoryX + CloseLeft, runtime.hud.inventoryY + CloseTop,
                CloseSize, CloseSize) ||
-        !movement.pendingClick)
+        !mouse.pendingClick)
         return {};
-    movement.pendingClick = false;
-    movement.mouseUpdateTime = 0;
-    movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
+    mouse.pendingClick = false;
+    mouse.updateTime = 0;
+    mouse.updateTimeMax = CloseMouseUpdateTimeMax;
     if (auto sent = Send(context, Protocol::Events::WriteEventWindowLeave(), "0x5e739e"); !sent.HasValue())
         return sent;
     runtime.panels.field78abb00 = 0;
@@ -337,17 +336,17 @@ void PressTheButton(Hud::GameHudContext& context)
 {
     Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.sprites.SetColor(Pressed);
-    Movement::GameMovementState& movement = context.world.Runtime().movement;
-    if (!movement.releasedClick || context.projecting)
+    Kernel::MouseState& mouse = context.world.Runtime().mouse;
+    if (!mouse.releasedClick || context.projecting)
         return;
-    movement.pendingClick = false;
-    movement.leftHeld = false;
+    mouse.pendingClick = false;
+    mouse.leftHeld = false;
 }
 
 // 0x5f6646..0x5f6865: el botón del 4, o el de los otros salvo el 3.
 Result DrawTheTopButton(Hud::GameHudContext& context, std::int32_t window, std::int32_t items)
 {
-    const bool click = context.world.Runtime().movement.pendingClick;
+    const bool click = context.world.Runtime().mouse.pendingClick;
     if (window == MutoNumberWindow)
     {
         const auto top = static_cast<float>(MutoButtonTop);
@@ -412,7 +411,7 @@ Result DrawTheSerialEntry(Hud::GameHudContext& context)
     top = F32(static_cast<double>(top) + static_cast<double>(ConfirmBelow));
     if (Hovered(context, left, top, static_cast<float>(ButtonWidth), static_cast<float>(ChipButtonHeight)))
     {
-        if (context.world.Runtime().movement.pendingClick)
+        if (context.world.Runtime().mouse.pendingClick)
             PressTheButton(context);
         else
             context.hud.textColors = HoveredConfirmColors;
@@ -547,7 +546,7 @@ Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContex
     const std::int32_t window = runtime.panels.field78abb00;
     if (window == 0)
         return {};
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (InBox(context.mouseX, context.mouseY, WindowLeft, WindowTop, WindowRight - WindowLeft,
               WindowBottom - WindowTop))
         runtime.ui.mouseOnUi = 1;
@@ -555,20 +554,20 @@ Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContex
     {
         // 0x5e6594..0x5e6864.
         if (InBox(context.mouseX, context.mouseY, ButtonLeft, MutoButtonTop, ButtonWidth, MutoButtonHeight) &&
-            movement.releasedClick)
+            mouse.releasedClick)
         {
             if (auto sent = Send(context, Protocol::Events::WriteMutoNumberRequest(), "0x5e67a0"); !sent.HasValue())
                 return sent;
-            movement.releasedClick = false;
+            mouse.releasedClick = false;
         }
     }
     else if (window != SerialNumberWindow)
     {
         // 0x5e687b..0x5e6c94: con 2 la piedra; con 1 o cualquier otro, la Rena.
         if (InBox(context.mouseX, context.mouseY, ButtonLeft, ChipButtonTop, ButtonWidth, ChipButtonHeight) &&
-            movement.releasedClick)
+            mouse.releasedClick)
         {
-            movement.releasedClick = false;
+            mouse.releasedClick = false;
             const std::int32_t level = window == StoneChipWindow ? StoneLevel : 0;
             const std::int32_t place = FindInventoryItem(context.world.Inventory(), ChipItem, level);
             if (place != -1)
@@ -587,7 +586,7 @@ Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContex
     if (auto closed = StepTheCloseButton(context, panels); !closed.HasValue())
         return closed;
     // 0x5e74cc..0x5e74d8.
-    movement.releasedClick = false;
+    mouse.releasedClick = false;
     return {};
 }
 

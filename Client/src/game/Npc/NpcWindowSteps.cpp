@@ -9,7 +9,6 @@
 #include "Models/LogicalAccess.h"
 #include "ChaosMix/ChaosMix.h"
 #include "Chat/GameMessages.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Items/HudItems.h"
@@ -317,10 +316,10 @@ Core::Expected<void, std::string> PressTheMixButton(const Hud::GameUiContext& co
         // 0x5feafa..0x5feb0e.
         if (auto shown = TextMessage(context, NotEnoughZenText, "0x5feb06"); !shown.HasValue())
             return shown;
-        runtime.movement.pendingClick = false;
+        runtime.mouse.pendingClick = false;
         return {};
     }
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     switch (ChaosMix::MixButtonActionFor(npc.mixKind))
     {
     case ChaosMix::MixButtonAction::LevelTooLow:
@@ -394,7 +393,7 @@ void OpenTheKeypad(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random, std::i
 Core::Expected<void, std::string> StepTheNpcShop(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     Ui::PanelState& state = runtime.panels;
     if (!panels.IsOpen(Ui::NpcShopPanel))
         return {};
@@ -403,22 +402,22 @@ Core::Expected<void, std::string> StepTheNpcShop(const Hud::GameUiContext& conte
         const std::int32_t x = runtime.ui.npcWindowX;
         const std::int32_t top = runtime.ui.npcWindowY + RepairButtonsY;
         // 0x5ed9c1..0x5eda20: el cursor de reparar.
-        if (OnButton(context, x + RepairCursorButtonX, top) && movement.pendingClick)
+        if (OnButton(context, x + RepairCursorButtonX, top) && mouse.pendingClick)
         {
-            movement.pendingClick = false;
+            mouse.pendingClick = false;
             const bool on = state.repairCursor == 0;
             state.repairCursor = on ? RepairCursorOn : std::uint8_t{0};
             state.repairMode = on ? 1 : 0;
         }
         // 0x5eda2e..0x5eda71: el modo de reparar, al revés.
-        if (OnButton(context, x + RepairModeButtonX, top) && movement.pendingClick)
+        if (OnButton(context, x + RepairModeButtonX, top) && mouse.pendingClick)
         {
-            movement.pendingClick = false;
+            mouse.pendingClick = false;
             state.repairMode ^= 1;
             state.repairCursor = state.repairMode != 0 ? RepairCursorOn : std::uint8_t{0};
         }
         // 0x5eda76..0x5ee0b9: reparar todo, C1 05 34 FF 00 en C3, sin gastar el clic.
-        if (OnButton(context, x + RepairAllButtonX, top) && movement.pendingClick)
+        if (OnButton(context, x + RepairAllButtonX, top) && mouse.pendingClick)
         {
             if (auto sent = SendInC3(context, Npc::WriteRepair(Npc::RepairEverything, 0), "0x5edaa7: el C1 05 34 FF");
                 !sent.HasValue())
@@ -431,11 +430,11 @@ Core::Expected<void, std::string> StepTheNpcShop(const Hud::GameUiContext& conte
     // 0x5ee0c1..0x5ee128.
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
-    if (!OnButton(context, x + CloseButtonX, y + CloseButtonY) || !movement.pendingClick)
+    if (!OnButton(context, x + CloseButtonX, y + CloseButtonY) || !mouse.pendingClick)
         return {};
-    movement.pendingClick = false;
-    movement.mouseUpdateTime = 0;
-    movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    mouse.pendingClick = false;
+    mouse.updateTime = 0;
+    mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
@@ -481,7 +480,7 @@ Core::Expected<void, std::string> PriceTheRepairOfEverything(Kernel::WorldState&
 Core::Expected<void, std::string> StepTheWarehouse(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (!panels.IsOpen(Ui::WarehousePanel))
         return {};
     std::optional<std::int32_t> pressed{};
@@ -494,9 +493,9 @@ Core::Expected<void, std::string> StepTheWarehouse(const Hud::GameUiContext& con
             break;
         }
     }
-    if (!pressed || !movement.pendingClick)
+    if (!pressed || !mouse.pendingClick)
         return {};
-    movement.pendingClick = false;
+    mouse.pendingClick = false;
     runtime.RequestSound(ButtonSound);
     NpcWindowState& npc = runtime.npcWindows;
     Social::SocialState& social = runtime.social;
@@ -522,8 +521,8 @@ Core::Expected<void, std::string> StepTheWarehouse(const Hud::GameUiContext& con
         // 0x5ea24d..0x5ea261.
         if (auto closed = panels.Close(Ui::WarehousePanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
-        movement.mouseUpdateTime = 0;
-        movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        mouse.updateTime = 0;
+        mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
         return {};
     default:
         return {};
@@ -533,14 +532,14 @@ Core::Expected<void, std::string> StepTheWarehouse(const Hud::GameUiContext& con
 Core::Expected<void, std::string> StepTheChaosBox(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (!panels.IsOpen(Ui::ChaosBoxPanel))
         return {};
     // 0x5fe62e..0x5fe68a.
     const std::int32_t left = runtime.ui.npcWindowX + MixButtonX;
     const std::int32_t top = runtime.ui.npcWindowY + MixButtonY;
     if (runtime.npcWindows.chaosMixState == 0 &&
-        InRect(context, left, top, left + MixButtonWidth, top + MixButtonHeight) && movement.pendingClick)
+        InRect(context, left, top, left + MixButtonWidth, top + MixButtonHeight) && mouse.pendingClick)
     {
         if (auto mixed = PressTheMixButton(context); !mixed.HasValue())
             return mixed;
@@ -548,9 +547,9 @@ Core::Expected<void, std::string> StepTheChaosBox(const Hud::GameUiContext& cont
     // 0x5feb15..0x5feb69: cerrar la caja, sin MouseUpdateTime.
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
-    if (!OnButton(context, x + CloseButtonX, y + CloseButtonY) || !movement.pendingClick)
+    if (!OnButton(context, x + CloseButtonX, y + CloseButtonY) || !mouse.pendingClick)
         return {};
-    movement.pendingClick = false;
+    mouse.pendingClick = false;
     if (auto closed = panels.Close(Ui::ChaosBoxPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
@@ -684,13 +683,13 @@ Core::Expected<void, std::string> LeaveThePanel2000(const Hud::GameUiContext& co
                                                     bool cross)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     if (cross)
         runtime.panels.field78abb00 = 0;
     else
-        runtime.movement.leftHeld = false;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        runtime.mouse.leftHeld = false;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     if (auto sent = Send(context, Protocol::Session::WriteWindowClose(), "0x5e7738/0x5e7992: el C1 03 31");
         !sent.HasValue())
         return sent;
@@ -707,13 +706,13 @@ Core::Expected<void, std::string> StepThePanel2000(const Hud::GameUiContext& con
     const auto y = runtime.hud.inventoryY;
     if (InRect(context, Panel2000Left, 0, Panel2000Right, Panel2000Bottom))
         runtime.ui.mouseOnUi = 1;
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return {};
     if (InRect(context, x + AcceptanceLeft, AcceptanceTop, x + AcceptanceLeft + AcceptanceSize,
                AcceptanceTop + AcceptanceSize))
     {
-        runtime.movement.pendingClick = false;
-        runtime.movement.leftHeld = false;
+        runtime.mouse.pendingClick = false;
+        runtime.mouse.leftHeld = false;
         runtime.panels.field78abb08 ^= 1;
         return {};
     }
@@ -724,8 +723,8 @@ Core::Expected<void, std::string> StepThePanel2000(const Hud::GameUiContext& con
     };
     if (runtime.panels.field78abb08 != 0 && on(Panel2000AcceptTop))
     {
-        runtime.movement.pendingClick = false;
-        runtime.movement.leftHeld = false;
+        runtime.mouse.pendingClick = false;
+        runtime.mouse.leftHeld = false;
         runtime.social.trade.warningKind = KeypadChoice;
         runtime.social.trade.warningByte = NoAnswerYet;
         return Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, 1, Panel2000QuestionText,

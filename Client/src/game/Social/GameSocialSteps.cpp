@@ -89,7 +89,7 @@ void PressTheMoneyButton(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     SocialState& social = runtime.social;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     Ui::PushDialog(runtime.dialogs, MoneyDialog);
     Chat::ResetTheTextBuffers(runtime.chat.input, false);
     social.dialogFieldLimit = MoneyFieldLimit;
@@ -106,7 +106,7 @@ Core::Expected<void, std::string> PressTheOkButton(const Hud::GameUiContext& con
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     runtime.RequestSound(ButtonSound);
     if (runtime.cursorItemCount != 0)
         return {};
@@ -126,15 +126,15 @@ Core::Expected<void, std::string> PressTheOkButton(const Hud::GameUiContext& con
 Core::Expected<void, std::string> PressTheCancelButton(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     runtime.RequestSound(ButtonSound);
     if (runtime.cursorItemCount != 0)
         return {};
     runtime.social.trade.changed = 0;
     if (auto sent = SendInC3(context, Protocol::Social::WriteTradeCancel(), "0x5ed525"); !sent.HasValue())
         return sent;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     return {};
 }
 
@@ -154,17 +154,17 @@ Core::Expected<void, std::string> StepTheTradeWindow(const Hud::GameUiContext& c
     TradeState& trade = runtime.social.trade;
     const std::int32_t x = runtime.hud.tradeX;
     const std::int32_t y = runtime.hud.tradeY;
-    if (OnTheButton(context, x, y, MoneyButtonLeft) && runtime.movement.pendingClick)
+    if (OnTheButton(context, x, y, MoneyButtonLeft) && runtime.mouse.pendingClick)
         PressTheMoneyButton(context);
     if (trade.okWait > 0)
         --trade.okWait;
     if (trade.okWait == 0 && runtime.cursorItemCount == 0 && OnTheButton(context, x, y, OkButtonLeft) &&
-        runtime.movement.pendingClick)
+        runtime.mouse.pendingClick)
     {
         if (auto pressed = PressTheOkButton(context); !pressed.HasValue())
             return pressed;
     }
-    if (OnTheButton(context, x, y, CancelButtonLeft) && runtime.movement.pendingClick)
+    if (OnTheButton(context, x, y, CancelButtonLeft) && runtime.mouse.pendingClick)
         return PressTheCancelButton(context);
     return {};
 }
@@ -186,12 +186,12 @@ Core::Expected<void, std::string> StepTheDuelRequest(const Hud::GameUiContext& c
         runtime.ui.field78abad9 = 0;
         return {};
     };
-    if (InRange(context, DuelYesLeft, DuelYesRight, DuelButtonTop, DuelButtonBottom) && runtime.movement.pendingClick)
+    if (InRange(context, DuelYesLeft, DuelYesRight, DuelButtonTop, DuelButtonBottom) && runtime.mouse.pendingClick)
     {
         if (auto yes = answer(1, "0x5ebd3f"); !yes.HasValue())
             return yes;
     }
-    if (InRange(context, DuelNoLeft, DuelNoRight, DuelButtonTop, DuelButtonBottom) && runtime.movement.pendingClick)
+    if (InRange(context, DuelNoLeft, DuelNoRight, DuelButtonTop, DuelButtonBottom) && runtime.mouse.pendingClick)
         return answer(0, "0x5ec55d");
     return {};
 }

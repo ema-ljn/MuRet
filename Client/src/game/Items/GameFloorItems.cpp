@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainHeight.h"
 
@@ -27,7 +27,7 @@ bool Between(std::int16_t type, std::int16_t first, std::int16_t end)
 } // namespace
 
 // 607fb0..608348: ninguna rama consume RNG ni pone la velocidad en cero.
-void SettleFloorItem(Scenes::FloorItemState& item)
+void SettleFloorItem(Kernel::FloorItemState& item)
 {
     const auto type = item.type;
     item.angles = {0, 0, -45};
@@ -118,7 +118,7 @@ void SettleFloorItem(Scenes::FloorItemState& item)
 
 namespace
 {
-Core::Expected<void, std::string> Spark(Scenes::FloorItemState& item, const FloorItemStepContext& context)
+Core::Expected<void, std::string> Spark(Kernel::FloorItemState& item, const FloorItemStepContext& context)
 {
     constexpr std::int32_t Interval = 48;
     const auto old = item.effectCounter;
@@ -143,7 +143,7 @@ Core::Expected<void, std::string> Spark(Scenes::FloorItemState& item, const Floo
 }
 } // namespace
 
-Core::Expected<void, std::string> StepFloorItems(std::span<Scenes::FloorItemState> items,
+Core::Expected<void, std::string> StepFloorItems(std::span<Kernel::FloorItemState> items,
                                                  const FloorItemStepContext& context)
 {
     for (auto& item : items)

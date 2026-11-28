@@ -6,7 +6,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Effects/SkinShells.h"
@@ -41,7 +41,7 @@ using Math::F32;
 // 0,8f; 1) las otras; después la /5 pone la clave en 1 y la velocidad en −20, las otras apagan la cola, y la luz por
 // 0,8333333f. Siempre, el sprite con el giro rand() % 360: el 0x60f de escala 1 con la luz la /0 y la /1, de 2,5 la /5
 // y el 0x5fe de 1,6f con (0; 1; 1) la /2 y la /3.
-Core::Expected<void, std::string> StepFallingJoint(Scenes::JointState& joint,
+Core::Expected<void, std::string> StepFallingJoint(Kernel::JointState& joint,
                                                    const JointKernels::StepServices& services)
 {
     if (services.random == nullptr || services.sprites == nullptr || services.terrainHeight == nullptr ||
@@ -145,7 +145,7 @@ Core::Expected<void, std::string> StepFallingJoint(Scenes::JointState& joint,
 
 // 0x53be90..0x53bebd y 0x53c076..0x53c0a0: la /4 sigue a su dueño (el efecto 0x13a, 0x51e01a): sin él se apaga; con
 // él, toma su byte vivo y su posición, y con menos de 15 de vida la luz por 0,7692308f.
-Core::Expected<void, std::string> FollowTheBlast(Scenes::JointState& joint)
+Core::Expected<void, std::string> FollowTheBlast(Kernel::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
     {
@@ -168,7 +168,7 @@ Core::Expected<void, std::string> FollowTheBlast(Scenes::JointState& joint)
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateStormJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateStormJoint(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     if (request.subtype == StormSubtype)
@@ -290,7 +290,7 @@ namespace
 // velocidad (+0x9e4) en 0 o menos (fcomp, C0 o C3), la z en FSIN(velocidad) · 20 (0x52e3a0, retenido hasta el fmul);
 // la z de la posición en el suelo + 5 (fst) y la de la copia en ese valor sin redondear + 30; la partícula 0x6ac/2 de
 // escala 3 en la copia, con los ángulos y la luz del joint (0x53c04a).
-Core::Expected<void, std::string> HitTheGround(Scenes::JointState& joint, const JointKernels::StepServices& services,
+Core::Expected<void, std::string> HitTheGround(Kernel::JointState& joint, const JointKernels::StepServices& services,
                                                float ground)
 {
     glm::vec3 from = joint.position;
@@ -334,7 +334,7 @@ Core::Expected<void, std::string> HitTheGround(Scenes::JointState& joint, const 
 }
 } // namespace
 
-Core::Expected<void, std::string> StepStormJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepStormJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.subtype >= StormSubtype)
         return {}; // 0x53bec5: la /7 y las de más de 7 sólo pasan por la cola y la vida.

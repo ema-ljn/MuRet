@@ -21,7 +21,7 @@
 #include "Kernel/ActorState.h"
 #include "Chat/ChatReceive.h"
 #include "Events/EventMapObject.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Sound/MonsterSounds.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -228,7 +228,7 @@ TEST_F(CombatRepliesTest, AKillWithoutShockMarksTheVictimOnTheHeroAndAddsTheExpe
     EXPECT_EQ(dead.dying, 1);
     EXPECT_EQ(dead.movement, 0);
     EXPECT_EQ(dead.animation.action, 0);
-    const Client::Scenes::DamageNumberState& number = m_world->DrawTail().damage[0];
+    const Client::Kernel::DamageNumberState& number = m_world->DrawTail().damage[0];
     EXPECT_TRUE(number.alive);
     EXPECT_EQ(number.number, 77);
     EXPECT_EQ(number.position, glm::vec3(1000.0f, 2000.0f, 170.0f));

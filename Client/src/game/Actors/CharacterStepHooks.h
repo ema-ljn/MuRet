@@ -67,9 +67,6 @@ public:
     [[nodiscard]] virtual Core::Expected<void, std::string>
     RefreshTheSiegePanel(Kernel::WorldRuntime& runtime) const = 0;
 
-    // 0x508ba0, with anyone but the hero: whether the walk goes to Crywolf's altar.
-    [[nodiscard]] virtual bool CrywolfAltarGoal(const Kernel::WorldState& world) const = 0;
-
     // The body (0x4fd5f0).
     // 0x4fd603..0x4fd698: the 0xc5's name to 0x4381f0.
     [[nodiscard]] virtual Core::Expected<void, std::string>

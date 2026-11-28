@@ -347,7 +347,7 @@ bool InRow(const Hud::GameUiContext& context, double top, float height)
 Result StepTheDevilSquareWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return {};
     std::optional<std::size_t> chosen;
     double top = static_cast<double>(F32(SquareTop));
@@ -359,7 +359,7 @@ Result StepTheDevilSquareWindow(const Hud::GameUiContext& context, Ui::PanelRegi
     }
     if (!chosen)
         return {};
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     if (runtime.cursorItemCount != 0)
         return {};
     const std::size_t square = *chosen;
@@ -390,7 +390,7 @@ Result StepTheDevilSquareWindow(const Hud::GameUiContext& context, Ui::PanelRegi
 Result StepTheBloodCastleWindow(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return {};
     std::optional<std::int32_t> chosen;
     float top = F32(BridgeTop);
@@ -415,7 +415,7 @@ Result StepTheBloodCastleWindow(const Hud::GameUiContext& context)
     }
     if (!chosen)
         return {};
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     if (runtime.cursorItemCount != 0)
         return {};
     std::int32_t place = FindInventoryItem(context.world.Inventory(), CloakOfInvisibility, *chosen);

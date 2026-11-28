@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Protocol/CastleSiege/SiegeControls.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -31,8 +30,8 @@ bool Inside(std::int32_t x, std::int32_t y, std::int32_t left, std::int32_t top,
 }
 void ConsumeLeft(Kernel::WorldRuntime& runtime)
 {
-    runtime.movement.pendingClick = false;
-    runtime.movement.leftHeld = false;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.leftHeld = false;
 }
 Core::Expected<void, std::string> SendCommand(const Hud::GameUiContext& context)
 {
@@ -58,7 +57,7 @@ bool StepBase(const Hud::GameUiContext& context)
     const std::int32_t y = context.mouseY;
     if (panel.x < x && x <= panel.x + 151 && panel.y < y && y < panel.y + 173)
         runtime.ui.mouseOnUi = 1;
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return true;
     if (Inside(x, y, panel.x + 127, panel.y + 13, 24, 22))
     {
@@ -130,7 +129,7 @@ Core::Expected<void, std::string> PlaceCommand(const Hud::GameUiContext& context
     if (!Inside(context.mouseX, context.mouseY, panel.x + MapInsetX, panel.y + MapInsetY, MapSize, MapSize) ||
         panel.selected == 0 || panel.selected >= 8 || panel.command == NoCommand)
         return {};
-    if (runtime.movement.pendingClick)
+    if (runtime.mouse.pendingClick)
     {
         // 0x41085e..0x4108a3: coordenadas en el mapa, truncadas por _ftol y después al byte bajo.
         const double x = static_cast<double>(panel.offsetX + context.mouseX) - static_cast<double>(panel.x + MapInsetX);
@@ -165,7 +164,7 @@ Core::Expected<void, std::string> StepTheBattlePanel(const Hud::GameUiContext& c
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.castleSiege.siegePanelKind || !StepBase(context))
         return {};
-    if (*runtime.castleSiege.siegePanelKind != 2 || (!runtime.movement.pendingClick && !runtime.ui.rightClick))
+    if (*runtime.castleSiege.siegePanelKind != 2 || (!runtime.mouse.pendingClick && !runtime.ui.rightClick))
         return {};
     if (!ChooseCommand(context))
         return {};

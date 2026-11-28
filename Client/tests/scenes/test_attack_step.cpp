@@ -9,9 +9,9 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Session/CharacterStepHooks.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Guild/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldMap.h"
@@ -47,20 +47,20 @@
 #include <utility>
 #include <vector>
 
-// Client::Combat::StepTheAttack: 0x4fdb9a..0x50539e con 0x4f97b0 y 0x4f5b70, y ChosenKeyOf (0x558eb0). 06, "El paso
+// Client::Skills::StepTheAttack: 0x4fdb9a..0x50539e con 0x4f97b0 y 0x4f5b70, y ChosenKeyOf (0x558eb0). 06, "El paso
 // del ataque".
 namespace
 {
 const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Actors::CharacterStepContext;
 using Client::Actors::StepCharacters;
-using Client::Combat::StepTheAttack;
+using Client::Combat::ChosenKeyOf;
 using Client::Crt::CrtRandom;
-using Client::Hero::ChosenKeyOf;
 using Client::Kernel::ActorState;
+using Client::Kernel::JointState;
 using Client::Kernel::WorldState;
 using Client::Models::ActionInfo;
-using Client::Scenes::JointState;
+using Client::Skills::StepTheAttack;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;

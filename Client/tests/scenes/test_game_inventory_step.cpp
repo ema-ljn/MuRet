@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Kernel/MouseState.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Pathfinding/PathCell.h"
@@ -88,7 +89,7 @@ protected:
 
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
     }
 
     static void ExpectCut(const Client::Core::Expected<void, std::string>& stepped, std::string_view address)
@@ -157,13 +158,13 @@ TEST_F(InventoryStepTest, TheEventNpcWindowTakesTheMouseFromItsCornerAfterTheFir
 // El botón de cerrar (x + 0x14 a x + 0x2c, y + 0x18b a y + 0x1a3) consume el clic y cierra el inventario.
 TEST_F(InventoryStepTest, TheCloseButtonClosesTheInventory)
 {
-    world.Runtime().movement.mouseUpdateTime = 4;
+    world.Runtime().mouse.updateTime = 4;
     Click();
     ASSERT_TRUE(Step(WindowX + 0x14, 0x18b).HasValue());
     EXPECT_EQ(world.Runtime().panels.inventory, 0);
-    EXPECT_FALSE(world.Runtime().movement.pendingClick);
-    EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
-    EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(world.Runtime().mouse.pendingClick);
+    EXPECT_EQ(world.Runtime().mouse.updateTime, 0);
+    EXPECT_EQ(world.Runtime().mouse.updateTimeMax, 6);
 }
 
 // 0x65cbe6→0x661b90 mira el WORD de los 32 lugares, aunque +0x3c esté en cero. El paso real del botón no cierra
@@ -184,7 +185,7 @@ TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySel
         EXPECT_EQ(world.Runtime().panels.inventory, 1);
         EXPECT_EQ(item.id, 7);
         EXPECT_EQ(item.occupied, 0u);
-        EXPECT_FALSE(world.Runtime().movement.pendingClick);
+        EXPECT_FALSE(world.Runtime().mouse.pendingClick);
 
         Client::FrontEnd::ClearSelectionInventory(world, random);
         EXPECT_EQ(item.id, Client::Kernel::EmptyOwnItemId);
@@ -193,7 +194,7 @@ TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySel
         stepped = Step(WindowX + 0x14, 0x18b);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(world.Runtime().panels.inventory, 0);
-        EXPECT_FALSE(world.Runtime().movement.pendingClick);
+        EXPECT_FALSE(world.Runtime().mouse.pendingClick);
     }
 }
 
@@ -205,13 +206,13 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
     ASSERT_TRUE(Step(WindowX + 0x30, 0x18b).HasValue());
     EXPECT_EQ(world.Runtime().panels.repairMode, 0);
     EXPECT_EQ(world.Runtime().field78abb10, 0);
-    EXPECT_TRUE(world.Runtime().movement.pendingClick);
+    EXPECT_TRUE(world.Runtime().mouse.pendingClick);
 
     world.OwnCharacter().level = 50;
     ASSERT_TRUE(Step(WindowX + 0x30, 0x18b).HasValue());
     EXPECT_EQ(world.Runtime().panels.repairMode, 1);
     EXPECT_EQ(world.Runtime().field78abb10, 1);
-    EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(world.Runtime().mouse.pendingClick);
 }
 
 // Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
@@ -357,7 +358,7 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(world.Runtime().slot78a6758, static_cast<std::int32_t>(PotionCell) + 12);
     EXPECT_EQ(world.Inventory().cells[PotionCell].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
-    EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(world.Runtime().mouse.pendingClick);
     EXPECT_EQ(random.State(), expected.State());
 
     world.Runtime().panels.inventory = 0;
@@ -466,15 +467,15 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     ASSERT_TRUE(Step(PotionX, PotionY, &services).HasValue());
     world.Runtime().panels.inventory = 0;
     Click();
-    world.Runtime().movement.mouseUpdateTime = 4;
+    world.Runtime().mouse.updateTime = 4;
     services.pickTheGround = []
     { return Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>(std::nullopt); };
     const auto dropped = Step(100, 300, &services);
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
     EXPECT_EQ(world.Runtime().cursorItemCount, 1);
-    EXPECT_FALSE(world.Runtime().movement.pendingClick);
-    EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
-    EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(world.Runtime().mouse.pendingClick);
+    EXPECT_EQ(world.Runtime().mouse.updateTime, 0);
+    EXPECT_EQ(world.Runtime().mouse.updateTimeMax, 6);
 
     world.Runtime().cursorItem.id = 0x1c0d;
     Click();
@@ -512,12 +513,12 @@ TEST_F(InventoryMovesStepTest, RepairModeSendsTheItemsPlaceByteByByte)
 
     world.Inventory().cells[PotionCell].id = 0x0001;
     world.Runtime().field78abb10 = 1;
-    world.Runtime().movement.pendingClick = true;
+    world.Runtime().mouse.pendingClick = true;
     const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms + 2);
     const auto stepped = step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(world.Runtime().mouse.pendingClick);
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
     EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(sent[0].packet).Bytes(),

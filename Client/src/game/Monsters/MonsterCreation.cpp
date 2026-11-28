@@ -11,7 +11,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/JointRequest.h"
 #include "Monsters/MonsterKinds.h"

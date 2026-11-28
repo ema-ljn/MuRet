@@ -115,7 +115,7 @@ protected:
     {
         return CharacterStepContext{.world = *m_world,
                                     .random = m_random,
-                                    .scene = Client::Scenes::SceneId::Game,
+                                    .scene = Client::Kernel::SceneId::Game,
                                     .playerSkeleton = &m_skeleton,
                                     .texts = m_withTexts ? &m_texts : nullptr,
                                     .textMeasure = m_withMeasure ? &m_letters : nullptr,

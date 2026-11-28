@@ -14,7 +14,7 @@
 #include "Models/Animation.h"
 #include "Render/SpriteVertex.h"
 #include "Assets/GameModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Session/MapLoad.h"
 #include "Kernel/WorldState.h"
@@ -103,7 +103,7 @@ protected:
         ASSERT_TRUE(models.HasValue()) << models.Error();
         frame.world.Runtime().map = 0;
         const auto loaded = Client::Scenes::LoadMap(
-            0, {m_dataRoot, frame.world, frame.states.terrain, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
+            0, {m_dataRoot, frame.world, frame.states.terrain, Client::Kernel::SceneId::Game, 0, frame.cloth.random});
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         frame.world.Runtime().drawingEnabled = true;
         frame.world.Actors()[0].position = {13550, 12550, 0};
@@ -148,20 +148,20 @@ protected:
                 .world = &frame.world,
                 .states = &frame.states};
     }
-    std::unique_ptr<Client::Scenes::SceneManager> MakeManager(Client::Scenes::SceneId first)
+    std::unique_ptr<Client::Scenes::SceneManager> MakeManager(Client::Kernel::SceneId first)
     {
         auto& frame = *m_frame;
         auto manager = std::make_unique<Client::Scenes::SceneManager>(
-            [&](Client::Scenes::SceneId id) -> std::unique_ptr<Client::Scenes::IScene>
+            [&](Client::Kernel::SceneId id) -> std::unique_ptr<Client::Scenes::IScene>
             {
-                if (id == Client::Scenes::SceneId::Game)
+                if (id == Client::Kernel::SceneId::Game)
                     return std::move(frame.scene);
-                if (id == Client::Scenes::SceneId::WorldLoading)
+                if (id == Client::Kernel::SceneId::WorldLoading)
                     return std::make_unique<Client::Scenes::WorldLoadingScene>(Context());
                 return nullptr;
             },
             frame.target, frame.clock, []() -> Client::Core::Expected<void, std::string> { return {}; }, frame.log,
-            []() -> std::optional<Client::Scenes::SceneId> { return std::nullopt; },
+            []() -> std::optional<Client::Kernel::SceneId> { return std::nullopt; },
             [this](Client::Core::Duration now) { PublishFrame(now); });
         EXPECT_TRUE(manager->Start(first).HasValue());
         return manager;
@@ -298,7 +298,7 @@ TEST_F(GameSceneTailIntegrationTest, KalimaWaterRunsBothModesWithAnExplicitEmpty
     auto& frame = *m_frame;
     frame.world.Runtime().map = 24;
     const auto loaded = Client::Scenes::LoadMap(
-        24, {m_dataRoot, frame.world, frame.states.terrain, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
+        24, {m_dataRoot, frame.world, frame.states.terrain, Client::Kernel::SceneId::Game, 0, frame.cloth.random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_NE(frame.world.Map().kalima, nullptr);
     // Aísla la cola de agua; no acredita los cuerpos por tipo de los objetos de este mapa.
@@ -347,7 +347,7 @@ TEST_F(GameSceneTailIntegrationTest, ReloadingTheSameMapInvalidatesTheGroundRepl
     const auto previousX = firstRingX(frame.target.frames.back());
     ASSERT_TRUE(previousX.has_value());
     const auto loaded = Client::Scenes::LoadMap(
-        0, {m_dataRoot, frame.world, frame.states.terrain, Client::Scenes::SceneId::Game, 0, frame.cloth.random});
+        0, {m_dataRoot, frame.world, frame.states.terrain, Client::Kernel::SceneId::Game, 0, frame.cloth.random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     arrival(100);
     Render();
@@ -365,7 +365,7 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
     for (const std::uint8_t map : std::array<std::uint8_t, 2>{0, 2})
     {
         ASSERT_TRUE(Client::Scenes::LoadMap(3, {m_dataRoot, frame.world, frame.states.terrain,
-                                                Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                                                Client::Kernel::SceneId::Game, 0, frame.cloth.random})
                         .HasValue());
         auto& state = frame.world.Runtime().objectModelState;
         for (const std::int16_t type : std::array<std::int16_t, 2>{0x2a, 0x2b})
@@ -377,7 +377,7 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
             ASSERT_EQ(state.unlitMeshes.at(type), 0);
         }
         ASSERT_TRUE(Client::Scenes::LoadMap(map, {m_dataRoot, frame.world, frame.states.terrain,
-                                                  Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                                                  Client::Kernel::SceneId::Game, 0, frame.cloth.random})
                         .HasValue());
         ASSERT_NO_FATAL_FAILURE(IntermediateRender());
         EXPECT_TRUE(state.unlitMeshes.empty()) << "la recarga debe limpiar el owner durable, no sólo la proyección";
@@ -395,7 +395,7 @@ TEST_F(GameSceneTailIntegrationTest, HeldGameLoopFramePublishesThePulseBeforeThe
     const auto frames = frame.target.frames.size();
     ASSERT_GT(frames, 0u);
     frame.world.Runtime().warpCounter = 31;
-    auto manager = MakeManager(Client::Scenes::SceneId::Game);
+    auto manager = MakeManager(Client::Kernel::SceneId::Game);
     frame.clock.Advance(std::chrono::milliseconds{1000});
     Client::Input::InputState input;
     Client::App::GameLoop loop(frame.clock, *manager, Client::Kernel::PacingMode::Decoupled, 0);
@@ -413,7 +413,7 @@ TEST_F(GameSceneTailIntegrationTest, ADisabledWorldPublishesWithoutReadingTheWar
     const auto frames = frame.target.frames.size();
     frame.world.Runtime().drawingEnabled = false;
     frame.world.Runtime().warpCounter = 123;
-    auto manager = MakeManager(Client::Scenes::SceneId::Game);
+    auto manager = MakeManager(Client::Kernel::SceneId::Game);
     frame.clock.Advance(std::chrono::milliseconds{1000});
     const auto random = frame.cloth.random.State();
     Client::Input::InputState input;
@@ -429,7 +429,7 @@ TEST_F(GameSceneTailIntegrationTest, ADisabledWorldPublishesWithoutReadingTheWar
 TEST_F(GameSceneTailIntegrationTest, TheOrchestratorPublishesDuringTheRealWorldLoadingSceneToo)
 {
     auto& frame = *m_frame;
-    auto manager = MakeManager(Client::Scenes::SceneId::WorldLoading);
+    auto manager = MakeManager(Client::Kernel::SceneId::WorldLoading);
     frame.clock.Advance(std::chrono::milliseconds{1000});
     Client::Input::InputState input;
     Client::App::GameLoop loop(frame.clock, *manager, Client::Kernel::PacingMode::Decoupled, 0);
@@ -448,7 +448,7 @@ TEST_F(GameSceneTailIntegrationTest, ReloadedProjectedMovingLightKeepsItsSprites
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
     ASSERT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
     ASSERT_TRUE(Client::Scenes::LoadMap(0, {m_dataRoot, frame.world, frame.states.terrain,
-                                            Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                                            Client::Kernel::SceneId::Game, 0, frame.cloth.random})
                     .HasValue());
     MovingLight(100);
     ASSERT_NO_FATAL_FAILURE(IntermediateRender());
@@ -472,7 +472,7 @@ TEST_F(GameSceneTailIntegrationTest, FreshProjectedMovingLightSurvivesTheSecondK
     auto& frame = *m_frame;
     Render();
     ASSERT_TRUE(Client::Scenes::LoadMap(24, {m_dataRoot, frame.world, frame.states.terrain,
-                                             Client::Scenes::SceneId::Game, 0, frame.cloth.random})
+                                             Client::Kernel::SceneId::Game, 0, frame.cloth.random})
                     .HasValue());
     frame.world.Map().objects.clear(); // Aislamiento explícito de la cola; no acredita objetos Kalima.
     frame.world.Actors()[0].position = {9850, 9850, 400};
@@ -488,7 +488,7 @@ TEST_F(GameSceneTailIntegrationTest, TheGlobalPrefixKeepsTheDurablePulseDuringAH
 {
     auto& frame = *m_frame;
     frame.world.Runtime().warpCounter = 31;
-    auto manager = MakeManager(Client::Scenes::SceneId::Game);
+    auto manager = MakeManager(Client::Kernel::SceneId::Game);
     ASSERT_TRUE(manager->HoldsTheLastFrame());
     EXPECT_FLOAT_EQ(frame.world.Runtime().itemRender.glowPulse, 0.6f);
     frame.world.Runtime().itemRender.glowPulse = 0.125f;

@@ -6,23 +6,20 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Kernel/CharacterClass.h"
 #include "Pathfinding/PathCell.h"
-#include "Pathfinding/PathFinder.h"
-#include "Maps/MapId.h"
+#include "Actors/WalkPath.h"
 #include "Protocol/Combat/Combat.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Combat/ActorCombat.h"
+#include "Combat/Attackable.h"
 #include "Kernel/ActorState.h"
-#include "Events/Crywolf/CrywolfContract.h"
 #include "Movement/GameMovementState.h"
-#include "Guild/GuildState.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkills.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Skills/Skill55cbc0.h"
 #include "Skills/Skill55faa0.h"
-#include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
@@ -45,15 +42,6 @@ namespace Client::Hero
 {
 namespace
 {
-constexpr std::uint8_t PlayerObject = 1;
-constexpr std::uint8_t MonsterObject = 2;
-using Maps::FirstChaosCastleMap;
-using Maps::LastChaosCastleMap;
-constexpr std::int32_t BrakeSkill = 0x28;
-constexpr std::int32_t BrakeMilliseconds = 300;
-constexpr std::uint32_t SiegeShield = 0x4000;
-constexpr std::uint8_t MinimumOutlawPk = 6;
-constexpr std::uint16_t NoGuild = 0xffff;
 constexpr std::uint8_t ArrivalAttack = 3;
 constexpr std::uint8_t ArrivalSkill = 5;
 constexpr std::uint16_t UniriaModel = 0x1c14;
@@ -66,70 +54,6 @@ constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});    
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
 // 0x6c8ff0: el nombre con el que el héroe no manda el D7.
 constexpr std::string_view NoAttackName = "webzen";
-
-bool IsSiegeAttacker(std::uint8_t role)
-{
-    return role == 9 || role == 6 || role == 10 || role == 11 || role == 7 || role == 8;
-}
-bool IsSiegeDefender(std::uint8_t role)
-{
-    return role == 13 || role == 12;
-}
-bool HasAnyFlag(std::uint32_t flags, std::uint32_t mask)
-{
-    return (flags & mask) == mask;
-}
-bool HasSiegeMark(std::uint32_t flags)
-{
-    return HasAnyFlag(flags, 0x80000) || HasAnyFlag(flags, 0x400000) || HasAnyFlag(flags, 0x800000);
-}
-
-// El nombre desde +0x1d9 como lo ve strcmp: los diez bytes, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
-std::string CNameOf(const Kernel::ActorState& actor)
-{
-    std::string name;
-    for (const std::byte letter : actor.name)
-    {
-        if (letter == std::byte{0})
-            return name;
-        name.push_back(static_cast<char>(letter));
-    }
-    if (actor.byte1e3 != 0)
-        name.push_back(static_cast<char>(actor.byte1e3));
-    return name;
-}
-
-std::string CNameOf(const std::array<std::byte, Social::DuelNameSize>& bytes)
-{
-    std::string name;
-    for (const std::byte letter : bytes)
-    {
-        if (letter == std::byte{0})
-            break;
-        name.push_back(static_cast<char>(letter));
-    }
-    return name;
-}
-
-// 0x558c2a..0x558d6d: con el asedio, los puestos +0x360 enfrentados y las marcas de +0x78 deciden por el escudo
-// 0x4000 del elegido; si no decide, sigue como sin asedio.
-std::optional<bool> SiegeDecides(const Kernel::ActorState& hero, const Kernel::ActorState& target)
-{
-    const bool shielded = (target.flags78 & SiegeShield) == SiegeShield;
-    if (IsSiegeAttacker(hero.byte360) && IsSiegeDefender(target.byte360))
-        return !shielded;
-    if (IsSiegeDefender(hero.byte360) && IsSiegeAttacker(target.byte360))
-        return !shielded;
-    if (HasSiegeMark(hero.flags78))
-    {
-        if (HasSiegeMark(target.flags78))
-            return std::nullopt;
-        return !shielded;
-    }
-    if (HasAnyFlag(hero.flags78, 0x40000) && !HasAnyFlag(target.flags78, 0x40000))
-        return !shielded;
-    return std::nullopt;
-}
 
 // 0x5650ef..0x565100: la tabla 0x56ab20 por +0x379 − 1.
 std::string_view ArrivalCaseOf(std::int32_t type)
@@ -193,7 +117,7 @@ Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::in
     Kernel::WorldState& world = context.combat.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = context.combat.random;
-    runtime.movement.mouseUpdateTime = runtime.movement.mouseUpdateTimeMax;
+    runtime.mouse.updateTime = runtime.mouse.updateTimeMax;
     if (auto attacked = Combat::SetActorAttack(hero, context.combat); !attacked.HasValue())
         return attacked;
     hero.byte381 = 1;
@@ -221,7 +145,7 @@ Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::in
     if (!direction.HasValue())
         return Core::Unexpected(direction.Error());
     // 0x5659e6..0x565a47: con "webzen" en el nombre del héroe publicado, no pega.
-    if (CNameOf(published).find(NoAttackName) != std::string::npos)
+    if (Combat::CNameOf(published).find(NoAttackName) != std::string::npos)
         return {};
     if (!context.sendAttack)
         return {};
@@ -250,8 +174,7 @@ Core::Expected<void, std::string> WalkIntoRange(Kernel::ActorState& hero, std::i
     const Pathfinding::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
     // 0x566272: PathFinding2 calcula primero la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance
     // distinto de 0 no cuenta (0x4eadd4).
-    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({x, y}, target, Events::Crywolf::CrywolfAltarGoal(context.combat.world), range);
+    const auto path = Actors::FindThePath(context.combat.world, terrain.attributes->cells, {x, y}, target, range);
     if (!path)
         return {};
     hero.path = *path;
@@ -463,148 +386,7 @@ Core::Expected<void, std::string> AttackOnArrival(Kernel::ActorState& hero, cons
     return HitTheTarget(hero, target, context);
 }
 
-// 0x558d97..0x558df3 (0x558aa9 en 0x5588d0, 0x558f29 en 0x558eb0): en la guerra de gremios (0x576796c), un jugador con
-// el PK de 6 o más y gremio (+0x1f2 distinto de 0xffff) compara con strcmp el nombre de su gremio (0x787aa55 + i ·
-// 0x58, el +0xd de la tabla) con el del héroe. El índice del héroe no se mira: con −1 lee lo que está antes de la tabla
-// (GuildNameAt, Q-C1281). Un índice fuera de la tabla leería otra memoria: corta.
-Core::Expected<bool, std::string> SameGuildAsTheHero(const Guild::GuildState& guild, const Kernel::ActorState& hero,
-                                                     const Kernel::ActorState& target, std::string_view where)
-{
-    const auto theirs = Guild::GuildNameAt(guild, static_cast<std::int16_t>(target.word1f2));
-    const auto ours = Guild::GuildNameAt(guild, static_cast<std::int16_t>(hero.word1f2));
-    if (!theirs || !ours)
-        return Core::Unexpected(std::format("{}: el gremio de +0x1f2 cae fuera de la tabla (0x787aa48)", where));
-    return *theirs == *ours;
-}
-
-// 0x558bb0 desde el chequeo del cursor con el elegido y 0x5588d0 con su argumento: el mismo código. `guildCompare` es
-// donde cada una compara los nombres de gremio (0x558da4 y 0x558aa9).
-Core::Expected<bool, std::string> AttackableTarget(const Kernel::WorldState& world, const Kernel::ActorState& target,
-                                                   bool controlDown, std::string_view guildCompare)
-{
-    const Kernel::WorldRuntime& runtime = world.Runtime();
-    const Kernel::ActorState& hero = world.Hero();
-    const bool isHero = &target == &hero;
-    const Guild::GuildState& guild = runtime.guild;
-    if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && !isHero)
-        return true;
-    // 0x558c07: en la guerra (0x576796c), un monstruo sólo con 0x576796d (el tipo de la guerra, el 61 y el 62).
-    if (target.byte88 == MonsterObject)
-        return guild.warOn == 0 || guild.warType != 0;
-    if (target.byte88 != PlayerObject)
-        return false;
-    if (runtime.castleSiege.siegeActive)
-    {
-        if (const auto decided = SiegeDecides(hero, target))
-            return *decided;
-    }
-    // 0x558d6e..0x558e9b (0x558a73..0x558ba3 en 0x5588d0).
-    if (target.byte370 == 2 || target.byte370 == 8)
-        return true;
-    if (guild.warOn != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-    {
-        const auto same = SameGuildAsTheHero(guild, hero, target, guildCompare);
-        if (!same.HasValue())
-            return Core::Unexpected(same.Error());
-        if (same.Value())
-            return false;
-    }
-    // 0x558dff..0x558e3d: con el duelo en curso (el BYTE de 0x78abad8), sólo el rival: la clave con MOVSX contra el
-    // DWORD de 0x78abadc y strcmp de +0x1d9 con 0x78abae0 (SocialState::duel, del hito 7).
-    const Social::DuelState& duel = runtime.social.duel;
-    if (duel.active != 0)
-    {
-        const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == duel.rivalKey;
-        return rival && CNameOf(target) == CNameOf(duel.rivalName);
-    }
-    if (guild.warOn != 0)
-        return target.byte374 == 2 && !isHero;
-    if (target.pk >= MinimumOutlawPk)
-        return true;
-    return controlDown && !isHero;
-}
 } // namespace
-
-Core::Expected<bool, std::string> IsAttackable(const Kernel::WorldState& world, bool controlDown)
-{
-    const Kernel::WorldRuntime& runtime = world.Runtime();
-    if (runtime.cursorItemCount > 0)
-        return false;
-    const std::int32_t chosen = runtime.selectedTargets[2];
-    if (chosen == -1)
-        return false;
-    const auto actors = world.Actors();
-    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
-        return Core::Unexpected(std::format("0x558bce: el elegido {} está fuera del pool", chosen));
-    return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown, "0x558da4");
-}
-
-Core::Expected<bool, std::string> IsAttackableActor(const Kernel::WorldState& world, const Kernel::ActorState& target,
-                                                    bool controlDown)
-{
-    if (world.Runtime().cursorItemCount > 0)
-        return false;
-    return AttackableTarget(world, target, controlDown, "0x558aa9");
-}
-
-Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker,
-                                                      bool controlDown)
-{
-    return ChosenKeyOf(world, attacker, world.Runtime().selectedTargets[2], controlDown);
-}
-
-Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker,
-                                                      std::int32_t chosen, bool controlDown)
-{
-    constexpr std::int32_t NoKey = -1;
-    const Kernel::WorldRuntime& runtime = world.Runtime();
-    // 0x558eb3..0x558ed8: el cursor (JG, con signo), el elegido y el héroe publicado.
-    if (runtime.cursorItemCount > 0 || chosen == -1 || attacker != runtime.hero)
-        return NoKey;
-    const auto actors = world.Actors();
-    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
-        return Core::Unexpected(std::format("0x558ede: el elegido {} está fuera del pool", chosen));
-    const Kernel::ActorState& target = actors[static_cast<std::size_t>(chosen)];
-    const bool isHero = static_cast<std::size_t>(chosen) == runtime.hero;
-    const auto key = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key));
-    // 0x558ef0..0x558f08.
-    if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
-        return key;
-    const Guild::GuildState& guild = runtime.guild;
-    // 0x558f09..0x558f7c: los nombres de gremio, como en 0x558da4; iguales, −1.
-    if (guild.warOn != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-    {
-        const auto same = SameGuildAsTheHero(guild, actors[attacker], target, "0x558f29");
-        if (!same.HasValue())
-            return Core::Unexpected(same.Error());
-        if (same.Value())
-            return NoKey;
-    }
-    // 0x558f84..0x558fed: con el duelo en curso, la clave del rival o −1, sin el nombre.
-    if (const Social::DuelState& duel = runtime.social.duel; duel.active != 0)
-        return key == duel.rivalKey ? key : NoKey;
-    if (target.byte370 == 2 || target.byte370 == 8)
-        return key;
-    if (guild.warOn != 0)
-        return target.byte374 == 2 && !isHero ? key : NoKey;
-    if (target.pk >= MinimumOutlawPk)
-        return key;
-    return controlDown && !isHero ? key : NoKey;
-}
-
-bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill, const std::function<std::uint32_t()>& tickCount)
-{
-    if (skill != BrakeSkill)
-    {
-        const auto difference = static_cast<std::int32_t>(tickCount() - last);
-        const auto magnitude =
-            difference < 0 ? static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(difference)) : difference;
-        if (magnitude <= BrakeMilliseconds)
-            return false;
-    }
-    last = tickCount();
-    return true;
-}
 
 Core::Expected<void, std::string> InteractOnArrival(Kernel::ActorState& hero, const HeroArrivalContext& context)
 {

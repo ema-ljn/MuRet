@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
@@ -12,7 +12,7 @@
 // la vida · 0,1f) está en GameJointDrawing.cpp.
 namespace Client::Joints::JointFamilies
 {
-void CreateFireTrailJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
+void CreateFireTrailJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x531229..0x531231: el ancho. 0x531238..0x531260: la /0, velocidad 0, 20 puntos, vida 20 y la textura del 0x60f.
     // 0x531265..0x53128f: la /1, velocidad 0, 15 puntos y vida 15. 0x532073: las demás sólo la luz, con los puntos y la
@@ -41,7 +41,7 @@ void CreateFireTrailJoint(Scenes::JointState& joint, const Kernel::JointRequest&
         joint.maximumCount = MostPoints;
 }
 
-Core::Expected<void, std::string> StepFireTrailJoint(Scenes::JointState& joint)
+Core::Expected<void, std::string> StepFireTrailJoint(Kernel::JointState& joint)
 {
     // 0x5366bd..0x5366ee: con dueño (+0x54) vivo (+0) y de tipo 0xc2 (+0x2), la posición es la suya (+0x10); si no,
     // queda donde la dejó el movimiento común. Sigue la cola común (0x53c393).

@@ -7,7 +7,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/ActorPickingBox.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -102,7 +102,7 @@ struct GameCharacterPass
     Kernel::PoseBuffer* poseCarry = nullptr;
     // The frame's joints (0x530860) and particles (0x53fe70), for what hangs and the full set, and the model effects
     // (0x518cf0), for the 0x5ac/3 of the +0x35c counter.
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     Particles::Particles* particles = nullptr;
     Effects::ModelEffects* effects = nullptr;
     const ItemDrawContext* itemContext = nullptr;

@@ -103,7 +103,7 @@ Core::Expected<void, std::string> StepFaunaLightning(Effects::ModelEffect& effec
     return {};
 }
 FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
-                                      std::span<Scenes::JointState> joints, Effects::ModelEffects& effects,
+                                      std::span<Kernel::JointState> joints, Effects::ModelEffects& effects,
                                       Crt::CrtRandom& random)
 {
     FaunaStepEffects result;

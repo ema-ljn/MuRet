@@ -154,7 +154,7 @@ Ui::OldWindowDrawView OldViewOf(const Hud::GameHudContext& context)
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     return Ui::OldWindowDrawView{.mouseX = context.mouse.x,
                                  .mouseY = context.mouse.y,
-                                 .leftClick = runtime.movement.pendingClick,
+                                 .leftClick = runtime.mouse.pendingClick,
                                  .focusedList = runtime.ui.focusedList};
 }
 

@@ -7,7 +7,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/GameParticles.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Effects/ModelEffects.h"
@@ -89,9 +89,9 @@ std::vector<Client::Particles::Particle> LiveParticles(Client::Particles::Partic
     return live;
 }
 
-std::vector<Client::Scenes::JointState> LiveJoints(std::span<const Client::Scenes::JointState> joints)
+std::vector<Client::Kernel::JointState> LiveJoints(std::span<const Client::Kernel::JointState> joints)
 {
-    std::vector<Client::Scenes::JointState> live;
+    std::vector<Client::Kernel::JointState> live;
     for (const auto& joint : joints)
     {
         if (joint.alive)
@@ -116,7 +116,7 @@ protected:
     ActorState m_actor;
     CrtRandom m_random{1};
     Client::Particles::Particles m_particles;
-    std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(16);
+    std::vector<Client::Kernel::JointState> m_joints = std::vector<Client::Kernel::JointState>(16);
     Client::Effects::ModelEffects m_effects;
 };
 

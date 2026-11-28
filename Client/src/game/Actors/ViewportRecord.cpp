@@ -5,8 +5,7 @@
 #include "Kernel/ActorState.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
-#include "Pathfinding/PathFinder.h"
-#include "Events/Crywolf/CrywolfContract.h"
+#include "Actors/WalkPath.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Session/WorldEntry.h"
 #include "Terrain/TerrainDefines.h"
@@ -96,9 +95,8 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
     const auto& attributes = Scenes::TerrainOf(resources).attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: no current walls for another player's path"));
-    Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: with a Crywolf altar at 0x6c8e54, the A* flag also on another character's path.
-    const auto path = finder.Find({x, y}, {targetX, targetY}, Events::Crywolf::CrywolfAltarGoal(resources.world));
+    const auto path = FindThePath(resources.world, attributes->cells, {x, y}, {targetX, targetY});
     if (!path)
         return {};
     actor.path = *path;

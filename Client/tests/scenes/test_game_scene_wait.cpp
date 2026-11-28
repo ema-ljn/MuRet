@@ -151,9 +151,9 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Client::Scenes::GameScene* game = nullptr;
     Client::Tests::RecordingFrameTarget target;
     Client::Scenes::SceneManager manager(
-        [&](Client::Scenes::SceneId scene) -> std::unique_ptr<Client::Scenes::IScene>
+        [&](Client::Kernel::SceneId scene) -> std::unique_ptr<Client::Scenes::IScene>
         {
-            if (scene == Client::Scenes::SceneId::WorldLoading)
+            if (scene == Client::Kernel::SceneId::WorldLoading)
                 return std::make_unique<Client::Scenes::WorldLoadingScene>(context);
             auto created = std::make_unique<Client::Scenes::GameScene>(
                 context, &online.session, &models, &data.Value().items->table, &models.TextureSlots(),
@@ -162,7 +162,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
             return created;
         },
         target, online.clock, nullptr, online.log);
-    const auto started = manager.Start(Client::Scenes::SceneId::WorldLoading);
+    const auto started = manager.Start(Client::Kernel::SceneId::WorldLoading);
     ASSERT_TRUE(started.HasValue()) << started.Error();
     manager.Render(0);
     ASSERT_EQ(manager.Failure(), std::nullopt);
@@ -170,7 +170,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_TRUE(target.frames.front().presented);
     const auto mosaicEvents = target.frames.front().events.size();
     manager.Step(input); // El paso de escena3 pasa a5 después de presentar el mosaico.
-    ASSERT_EQ(manager.Current(), Client::Scenes::SceneId::Game);
+    ASSERT_EQ(manager.Current(), Client::Kernel::SceneId::Game);
     ASSERT_NE(game, nullptr);
     ASSERT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     const auto before = cloth;

@@ -2,6 +2,7 @@
 #include "Models/IModelLibrary.h"
 #include "Skills/HeroSkills.h"
 #include "Movement/GameMovement.h"
+#include "Session/HeroMovementHooks.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -17,6 +18,7 @@
 #include "Models/Skeleton.h"
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Pets/DarkSpirit.h"
 #include "Movement/GameMovementState.h"
@@ -169,6 +171,11 @@ struct SkillHero
     {
         return world.Runtime().ui;
     }
+    Client::Kernel::MouseState& Mouse()
+    {
+        return world.Runtime().mouse;
+    }
+
     Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
@@ -455,13 +462,13 @@ TEST(HeroSkillsTest, ABlockedHeroUsesTheSkillWithTheLeftButton)
         SCOPED_TRACE(click);
         auto tested = std::make_unique<SkillHero>(std::uint8_t{0x13}, Wizard);
         tested->Movement().movementBlocked = true;
-        tested->Movement().pendingClick = click;
-        tested->Movement().leftHeld = !click;
+        tested->Mouse().pendingClick = click;
+        tested->Mouse().leftHeld = !click;
         const auto result = tested->Use();
         // Sin elegido, la rama del Wizard apunta al terreno (0x57ceea), que el contexto no trae.
         ASSERT_FALSE(result.HasValue());
         EXPECT_TRUE(Contains(result.Error(), "0x57ceea")) << result.Error();
-        EXPECT_FALSE(tested->Movement().pendingClick);
+        EXPECT_FALSE(tested->Mouse().pendingClick);
     }
 }
 
@@ -1399,7 +1406,9 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     AnyModels models;
     tested->Hero().type = 0x28;
     tested->Hero().animation.action = 0;
+    const Client::Session::HeroMovementHooks hooks{};
     Client::Movement::HeroMovementContext context{.world = tested->world, .random = tested->random};
+    context.hooks = &hooks;
     context.input.ticksMs = tested->ticks;
     context.input.worldTime = tested->worldTime;
     context.playerSkeleton = &tested->skeleton;
@@ -1426,7 +1435,7 @@ TEST(HeroSkillsTest, TheWeaponApproachWalksTheSameWithACrywolfAltar)
         auto tested = AHeroClicking(0x3c, Knight, 34);
         tested->world.Actors()[ChosenSlot].position = {19250.0f, 11550.0f, 0.0f};
         tested->world.Runtime().crywolf.stage = 3;
-        tested->world.Runtime().movement.chosenNpc = 30;
+        tested->world.Runtime().chosenNpc.index = 30;
         tested->world.Actors()[30].type = chosenType;
         const auto used = tested->Use();
         EXPECT_TRUE(used.HasValue()) << used.Error();

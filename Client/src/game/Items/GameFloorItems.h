@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 
 #include <span>
 #include <string>
@@ -28,10 +28,10 @@ struct FloorItemStepContext
     float fixedHeight = 1200;
 };
 // 0x607fb0: los ángulos y la escala del ítem quieto en el piso, por su modelo. No saca rand().
-void SettleFloorItem(Scenes::FloorItemState& item);
+void SettleFloorItem(Kernel::FloorItemState& item);
 
 // 637078→608880 (no608f70): todos los vivos, caída/contacto607fb0 y chispas608780.
 // El caller omite el paso si DAT_07d36899!=0. Un fallo conserva el prefijo del slot y los anteriores.
-[[nodiscard]] Core::Expected<void, std::string> StepFloorItems(std::span<Scenes::FloorItemState> items,
+[[nodiscard]] Core::Expected<void, std::string> StepFloorItems(std::span<Kernel::FloorItemState> items,
                                                                const FloorItemStepContext& context);
 } // namespace Client::Items

@@ -8,7 +8,7 @@
 #include "Kernel/ActorState.h"
 #include "Combat/CombatActionSpeeds.h"
 #include "Movement/GameMovementState.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkillSupport.h"
 #include "Skills/HeroSkills.h"
@@ -154,7 +154,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
     {
         // 0x55e67e..0x55e699: la clave por 0x558eb0(p1, blanco), sin rand(). Con el blanco en −1 el original deja
         // 0xffff, pero ese −1 ya cortó en 0x55ccd2 (Q-C1239): acá el blanco siempre está en el pool.
-        const auto chosen = Hero::ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
+        const auto chosen = Combat::ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
         const auto key = static_cast<std::uint16_t>(chosen.Value());

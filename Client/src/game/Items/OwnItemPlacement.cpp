@@ -316,7 +316,7 @@ Core::Expected<Actors::ActorStopResult, std::string> PlaceInEquipment(std::uint8
         .stop =
             Actors::ActorStopContext{
                 .runtime = runtime,
-                .scene = Scenes::SceneId::Game,
+                .scene = Kernel::SceneId::Game,
                 .playerSkeleton = *playerSkeleton,
                 .items = resources.items,
                 .random = resources.cloth.random,

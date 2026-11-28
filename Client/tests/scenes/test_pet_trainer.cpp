@@ -9,7 +9,6 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Items/HudItems.h"
@@ -17,6 +16,7 @@
 #include "Items/ItemPrice.h"
 #include "Npc/NpcWindowState.h"
 #include "Npc/NpcWindows.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -148,9 +148,9 @@ public:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool click = true)
     {
-        auto& movement = world->Runtime().movement;
-        movement.pendingClick = click;
-        movement.leftHeld = click;
+        Client::Kernel::MouseState& mouse = world->Runtime().mouse;
+        mouse.pendingClick = click;
+        mouse.leftHeld = click;
         Client::Core::Expected<void, std::string> stepped{};
         WithThePanels(
             [&](Client::Ui::PanelRegistry& panels)
@@ -265,8 +265,8 @@ TEST(PetTrainerTest, TheHorseButtonSendsTheRepairOfThePetSlotAndClosesTheTrainer
         EXPECT_EQ(runtime.petTooltipQuery.scalar, 0u);
         EXPECT_EQ(runtime.pets[0].experience, 987u);
         EXPECT_EQ(runtime.ui.mouseOnUi, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
-        EXPECT_FALSE(runtime.movement.leftHeld);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
+        EXPECT_FALSE(runtime.mouse.leftHeld);
         EXPECT_EQ(runtime.ownRecordDepth, 0);
     }
 }
@@ -307,7 +307,7 @@ TEST(PetTrainerTest, WithoutEnoughZenNothingIsSent)
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
         EXPECT_TRUE(trainer.sent.empty());
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, 2);
-        EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
+        EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
     }
 }
 
@@ -363,7 +363,7 @@ TEST(PetTrainerTest, TheCloseButtonClosesWithTheClearWindowClose)
         EXPECT_TRUE(SameBytes(trainer.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, 0);
         EXPECT_EQ(trainer.Runtime().panels.delegated.field724584, 0);
-        EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
+        EXPECT_FALSE(trainer.Runtime().mouse.leftHeld);
     }
 }
 
@@ -377,7 +377,7 @@ TEST(PetTrainerTest, WithoutTheClickOrOutsideTheButtonsNothingHappens)
     EXPECT_EQ(trainer.Runtime().ui.mouseOnUi, 1);
     ASSERT_TRUE(trainer.Step(0x17b, HorseY).HasValue());
     ASSERT_TRUE(trainer.Step(ButtonX, HorseY + 0x16).HasValue());
-    EXPECT_TRUE(trainer.Runtime().movement.pendingClick);
+    EXPECT_TRUE(trainer.Runtime().mouse.pendingClick);
     EXPECT_EQ(trainer.random.State(), expected.State());
     EXPECT_TRUE(trainer.sent.empty());
     EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, 2);
@@ -399,7 +399,7 @@ TEST(PetTrainerTest, TheIdleModesDoNothing)
         EXPECT_TRUE(trainer.sent.empty()) << mode;
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, mode);
         EXPECT_EQ(trainer.Runtime().ui.mouseOnUi, 0) << mode;
-        EXPECT_TRUE(trainer.Runtime().movement.pendingClick) << mode;
+        EXPECT_TRUE(trainer.Runtime().mouse.pendingClick) << mode;
     }
 }
 
@@ -415,8 +415,8 @@ TEST(PetTrainerTest, TheFirstMenuButtonGoesToTheRecovery)
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerRecoveryMode);
         EXPECT_EQ(trainer.Runtime().ui.mouseOnUi, 1);
-        EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
-        EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
+        EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
+        EXPECT_FALSE(trainer.Runtime().mouse.leftHeld);
         EXPECT_TRUE(trainer.sent.empty());
     }
 }
@@ -436,7 +436,7 @@ TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
         EXPECT_EQ(runtime.panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
         EXPECT_EQ(runtime.panels.inventory, 1);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_TRUE(trainer.sent.empty());
         trainer.WithThePanels([](Client::Ui::PanelRegistry& panels)
                               { EXPECT_TRUE(panels.IsOpen(Client::Ui::TrainerPanel)); });
@@ -465,12 +465,12 @@ TEST(PetTrainerTest, TheHiddenThirdMenuButtonOnlyEatsTheClick)
         ASSERT_TRUE(trainer.Step(ButtonX, MenuY + 2 * MenuStep).HasValue());
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerMenuMode);
-        EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
-        EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
+        EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
+        EXPECT_FALSE(trainer.Runtime().mouse.leftHeld);
         EXPECT_TRUE(trainer.sent.empty());
         // Debajo (0xb4 + 0x3c + 0x16) no hay botón: el clic sigue.
         ASSERT_TRUE(trainer.Step(ButtonX, MenuY + 2 * MenuStep + 0x16).HasValue());
-        EXPECT_TRUE(trainer.Runtime().movement.pendingClick);
+        EXPECT_TRUE(trainer.Runtime().mouse.pendingClick);
     }
 }
 
@@ -486,7 +486,7 @@ TEST(PetTrainerTest, TheMenuCloseButtonClosesUnlessTheBoxHasItems)
         ASSERT_EQ(trainer.messages.size(), 1u);
         EXPECT_EQ(trainer.messages[0], (std::pair<std::size_t, std::int32_t>{BoxNotEmptyText, 2}));
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerMenuMode);
-        EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
+        EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
 
         trainer.Runtime().npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
         const CrtRandom expected = trainer.random;
@@ -605,8 +605,8 @@ TEST(PetTrainerTest, TheMixButtonSendsTheMixOfThePreviousStep)
             ASSERT_EQ(trainer.sent.size(), 1u);
             EXPECT_EQ(trainer.sent[0].delivery, Delivery::Clear);
             EXPECT_TRUE(SameBytes(trainer.Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x86, code})));
-            EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
-            EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
+            EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
+            EXPECT_FALSE(trainer.Runtime().mouse.leftHeld);
             EXPECT_EQ(trainer.Runtime().panels.delegated.field724584, 0);
             EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
         }
@@ -622,7 +622,7 @@ TEST(PetTrainerTest, TheMixButtonWithoutAMixOnlyEatsTheClick)
         trainer.Runtime().panels.delegated.field724584 = kind;
         ASSERT_TRUE(trainer.Step(MixX, MixY).HasValue());
         EXPECT_TRUE(trainer.sent.empty());
-        EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
+        EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
     }
 }
 
@@ -643,7 +643,7 @@ TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
         EXPECT_EQ(trainer.messages[0], (std::pair<std::size_t, std::int32_t>{BoxNotEmptyText, 2}));
         EXPECT_EQ(runtime.panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
         EXPECT_EQ(runtime.panels.inventory, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
 
         runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
         runtime.lastSoundId = Client::Audio::SoundId{0};

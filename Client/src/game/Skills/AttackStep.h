@@ -19,7 +19,7 @@ struct ActorState;
 } // namespace Client::Kernel
 
 // CL9 hito 3, fase 2b: lo que el cuerpo de un personaje (0x4fd5f0) hace después de pegar. 06, "El paso del ataque".
-namespace Client::Combat
+namespace Client::Skills
 {
 
 // 0x4fdb9a..0x50539e, la habilidad del paso del cuerpo. Con +0x381 distinto de 0, 0x4f97b0 (los frames del ataque,
@@ -34,4 +34,4 @@ namespace Client::Combat
 [[nodiscard]] Core::Expected<void, std::string> StepTheAttack(Kernel::ActorState& actor, std::size_t slot,
                                                               const Actors::CharacterStepContext& context,
                                                               const glm::vec3& light = Skills::BodyLight);
-} // namespace Client::Combat
+} // namespace Client::Skills

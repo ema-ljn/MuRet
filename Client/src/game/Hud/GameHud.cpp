@@ -37,7 +37,7 @@
 #include "Hud/GameInventoryHud.h"
 #include "Hud/GameMoveWindow.h"
 #include "Hud/GamePanels.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Party/GamePartyWindow.h"
 #include "Pets/GamePetWindow.h"
 #include "Social/GameSocialDrawing.h"
@@ -1900,7 +1900,7 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     {
         // 0x5ac53c..0x5ac60b (CL9 hito 3): atacable (0x558bb0) y el mouse fuera de la UI (0x775857c), el de atacar (4,
         // o 0x68d en el 30); si no, el de los comandos con IsOpen(0x200) o el normal (0x5ac818).
-        const auto attackable = Hero::IsAttackable(world, context.controlDown);
+        const auto attackable = Combat::IsAttackable(world, context.controlDown);
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
         if (attackable.Value() && runtime.ui.mouseOnUi == 0)

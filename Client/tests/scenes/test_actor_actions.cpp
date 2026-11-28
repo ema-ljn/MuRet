@@ -36,7 +36,7 @@ using Client::Actors::ActorStopContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::NoItemModel;
-using Client::Scenes::SceneId;
+using Client::Kernel::SceneId;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 using Client::Tests::UnarmedPlayer;

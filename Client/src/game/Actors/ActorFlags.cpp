@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
 
@@ -45,9 +45,9 @@ void KillTheFlames(Kernel::ActorState& actor, Kernel::WorldState& world)
 }
 } // namespace
 
-void KillJointsOf(std::span<Scenes::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype)
+void KillJointsOf(std::span<Kernel::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype)
 {
-    for (Scenes::JointState& joint : joints)
+    for (Kernel::JointState& joint : joints)
     {
         if (!joint.alive || joint.type != type || joint.ownerContext != owner)
             continue;

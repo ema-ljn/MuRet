@@ -84,7 +84,7 @@ public:
     {
         ++m_calls.held;
     }
-    std::optional<Client::Scenes::SceneId> Next() const override
+    std::optional<Client::Kernel::SceneId> Next() const override
     {
         return std::nullopt;
     }
@@ -122,7 +122,7 @@ TEST(GameLoopTest, ASessionApplicationFailureStopsTheSceneInTheSameFrame)
             int polls = 0;
             {
                 Client::Scenes::SceneManager manager(
-                    [&calls, &clock, elapsed](Client::Scenes::SceneId)
+                    [&calls, &clock, elapsed](Client::Kernel::SceneId)
                     { return std::make_unique<AbortedFrameScene>(calls, clock, elapsed); }, target, clock,
                     [&polls]() -> Client::Core::Expected<void, std::string>
                     {
@@ -134,7 +134,7 @@ TEST(GameLoopTest, ASessionApplicationFailureStopsTheSceneInTheSameFrame)
                         return Client::Core::Unexpected(std::string("falló la recepción"));
                     },
                     log);
-                ASSERT_TRUE(manager.Start(Client::Scenes::SceneId::Loading).HasValue());
+                ASSERT_TRUE(manager.Start(Client::Kernel::SceneId::Loading).HasValue());
                 GameLoop loop(clock, manager, mode);
                 InputState input;
                 loop.RunFrame(WindowState{}, input);
@@ -146,7 +146,7 @@ TEST(GameLoopTest, ASessionApplicationFailureStopsTheSceneInTheSameFrame)
                 {
                     EXPECT_GE(attemptedSteps, 2);
                 }
-                manager.Request(Client::Scenes::SceneId::Login);
+                manager.Request(Client::Kernel::SceneId::Login);
                 EXPECT_TRUE(manager.Failure().has_value());
                 EXPECT_EQ(calls.steps, 0);
                 EXPECT_EQ(calls.renders, 0);

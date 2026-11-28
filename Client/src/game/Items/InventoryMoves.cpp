@@ -975,8 +975,8 @@ Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& c
         return sent;
     // 0x5e0685..0x5e069d.
     runtime.floor.pendingDrop = runtime.slot78a6758;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = DropMouseUpdateTimeMax;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = DropMouseUpdateTimeMax;
     return {};
 }
 } // namespace
@@ -1221,7 +1221,7 @@ Core::Expected<void, std::string> PickUpFromTheGrid(const InventoryMoveContext& 
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     const ItemState& hovered = world.Inventory().cells.at(cell);
     const std::int32_t topLeft = hovered.gridRow * Columns + hovered.gridColumn;
     auto source = CellAt(world.Inventory().cells, topLeft, "0x5c52b1");
@@ -1239,7 +1239,7 @@ Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::span<ItemState> cells = OtherGridCells(runtime.npcWindows, grid);
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     const ItemState& hovered = cells[cell];
     const std::int32_t topLeft = hovered.gridRow * Columns + hovered.gridColumn;
     auto source = CellAt(cells, topLeft, "0x5c52b1");
@@ -1257,7 +1257,7 @@ Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext
 Core::Expected<void, std::string> PickUpFromTheTradeGrid(const InventoryMoveContext& context, std::size_t cell)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     const std::span<ItemState> cells(runtime.social.trade.ownGrid);
     if (cell >= cells.size())
         return Core::Unexpected(std::format("0x5c52b1: la casilla {} está fuera de la grilla del comercio", cell));
@@ -1281,7 +1281,7 @@ Core::Expected<void, std::string> PickUpForTheShop(const InventoryMoveContext& c
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     // 0x5c5200..0x5c5213: la copia de la casilla de la grilla de 0x5c4110 (la de la tienda o la del inventario).
     auto source = slot >= FirstSecondSlot
                       ? CellAt(world.Inventory().secondCells, slot - FirstSecondSlot, "0x5c5110 (0x5c520b)")
@@ -1303,7 +1303,7 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     if (runtime.panels.repairMode != 0)
         return Core::Unexpected(
             std::format("0x5c2dd5: el caller debe reparar el {:#x} del lugar {} antes de levantarlo", item.id, slot));
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     const std::int32_t type = Signed(item.id);
     const auto isWingOrCape = [](std::int32_t id) { return InRange(id, FirstWing, LastWing) || id == CapeOfLord; };
     if (runtime.map == IcarusMap)
@@ -1489,19 +1489,19 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
     {
         // 0x5bf0ba..0x5bf0e7.
         place.warning = RefusedMark;
-        if (!runtime.movement.pendingClick)
+        if (!runtime.mouse.pendingClick)
             return {};
-        runtime.movement.pendingClick = false;
+        runtime.mouse.pendingClick = false;
         if (runtime.ui.field78abb39 != 0)
             return {};
         return ReturnTheCursorItem(context);
     }
     // 0x5bf1e1..0x5bf294.
     place.warning = FitsMark;
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return {};
     runtime.ui.field78abaac = 1;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     runtime.itemMoveTarget = static_cast<std::int32_t>(slot);
     const ItemState& cursor = runtime.cursorItem;
     const std::int32_t type = Signed(cursor.id);
@@ -1683,7 +1683,7 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     const bool fits = ItemFitsInTheGrid(cursor, cells, Columns, Rows, cell, footprint.Value());
     const bool jewelMark = MarkTheFootprint(cursor, cells, Rows, cell, footprint.Value(), fits);
     // 0x5ca456..0x5ca46c: el clic o el movimiento automático del almacén.
-    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
+    if (!runtime.mouse.pendingClick && !runtime.ui.automaticMove)
         return fits;
     if (!fits)
     {
@@ -1830,7 +1830,7 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
         }
     }
     // 0x5ca456..0x5ca471: sin el clic, o sin entrar (la joya sobre un ítem es solo del tipo 0, 0x5d8266).
-    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
+    if (!runtime.mouse.pendingClick && !runtime.ui.automaticMove)
         return fits;
     if (!fits)
         return false;
@@ -1872,7 +1872,7 @@ Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext&
         TheFootprintIsEmpty(cells, Social::TradeGridColumns, Social::TradeGridRows, cell, footprint.Value());
     static_cast<void>(MarkTheFootprint(cursor, cells, Social::TradeGridRows, cell, footprint.Value(), fits));
     // 0x5ca456..0x5ca46c: el clic o el movimiento automático del almacén.
-    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
+    if (!runtime.mouse.pendingClick && !runtime.ui.automaticMove)
         return fits;
     // 0x5d825b: la joya sobre un ítem es solo del inventario (el último argumento en 0); 0x5d8cd7 da falso.
     if (!fits)
@@ -1929,7 +1929,7 @@ Core::Expected<bool, std::string> DropOnTheShopGrid(const InventoryMoveContext& 
     const std::span<ItemState> cells(world.Inventory().secondCells);
     const bool fits = TheFootprintIsEmpty(cells, ShopGridColumns, ShopGridRows, cell, footprint.Value());
     static_cast<void>(MarkTheFootprint(cursor, cells, ShopGridRows, cell, footprint.Value(), fits));
-    if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
+    if (!runtime.mouse.pendingClick && !runtime.ui.automaticMove)
         return fits;
     // 0x5d825b: la joya sobre un ítem es solo del inventario; 0x5d8cd7 da falso.
     if (!fits)

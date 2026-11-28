@@ -11,6 +11,7 @@
 #include "Render/Billboard.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
@@ -257,7 +258,7 @@ TEST(GameSceneKalimaTailTest, EyeKeepsMaterialAndWorldRestoresItsNativeAxesWithT
 TEST(GameSceneKalimaTailTest, RealSpritesOverlapBothBandsWhileDamageOnlyUsesTheSecondBand)
 {
     Client::Particles::FrameSprites sprites;
-    std::array<Client::Scenes::DamageNumberState, 3> damage{};
+    std::array<Client::Kernel::DamageNumberState, 3> damage{};
     constexpr std::array heights{300.0f, 325.0f, 351.0f};
     for (std::size_t i = 0; i < heights.size(); ++i)
     {

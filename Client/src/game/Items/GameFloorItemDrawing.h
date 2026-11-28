@@ -6,9 +6,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct FloorItemState;
+} // namespace Client::Kernel
+
+namespace Client::Scenes
+{
 struct FloorItemDrawContext;
 } // namespace Client::Scenes
 
@@ -18,6 +22,6 @@ namespace Client::Items
 // signed as the original does. The inventory inlines the same rule (0x5e0e92..0x5e0ee6).
 [[nodiscard]] float BodyPartRootHeight(std::int16_t model);
 // 608a00: pose previa al alpha, RenderItem repetido y proyección de la posición original.
-[[nodiscard]] Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<Scenes::FloorItemState> items,
+[[nodiscard]] Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<Kernel::FloorItemState> items,
                                                                      const Scenes::FloorItemDrawContext& context);
 } // namespace Client::Items

@@ -7,10 +7,11 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/CharacterClass.h"
 #include "Pathfinding/Path.h"
 #include "Pathfinding/PathCell.h"
-#include "Pathfinding/PathFinder.h"
+#include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/IModelLibrary.h"
@@ -22,23 +23,16 @@
 #include "Actors/ActorMotion.h"
 #include "Actors/ActorWalk.h"
 #include "Chat/ChatBubbles.h"
-#include "Events/Crywolf/CameraTour.h"
-#include "Events/Crywolf/CrywolfContract.h"
-#include "Events/EventChipWindow.h"
 #include "Items/FloorItemActions.h"
 #include "Items/FloorItemPackets.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/SceneId.h"
 #include "Movement/GameMovementState.h"
 #include "Movement/GameGates.h"
 #include "Movement/GameHeroFacing.h"
-#include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
-#include "Hero/HeroAttack.h"
-#include "Skills/HeroSkills.h"
 #include "Items/InventoryMoves.h"
-#include "Npc/NpcTalk.h"
+#include "Movement/HeroMovementHooks.h"
 #include "Ui/OldControls.h"
 #include "Ui/OldWindowSteps.h"
 #include "Math/Ftol.h"
@@ -88,6 +82,7 @@ constexpr float HoldSecondsPerMillisecond = 0.001f;
 constexpr double MaximumHoldSeconds = 3600.0;
 // 0x5650ef: el caso 1 de 0x5650c0, levantar el ítem del piso (0x59dc6e y 0x5ac99a).
 constexpr std::uint8_t PickUpMovement = 1;
+constexpr std::string_view NoHooks = "0x59adf0: no hero movement hooks (Session::HeroMovementHooks)";
 
 // Cómo termina el clic de MoveHero: sigue hasta el final (0x59e248) o sale sin él (0x59e2c0).
 enum class MoveHeroEnd : std::uint8_t
@@ -119,7 +114,7 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForActor(const 
     }
 
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),
-                                    .scene = Scenes::SceneId::Game,
+                                    .scene = Kernel::SceneId::Game,
                                     .playerSkeleton = *playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
@@ -225,15 +220,14 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
     if (auto sent = context.sendEventWindowLeave(); !sent.HasValue())
         return sent;
     // 0x56b6a9..0x56b72a.
-    if (runtime.panels.field78abb00 == Events::SerialNumberWindow)
-        Events::CloseTheSerialEntry(runtime);
+    context.hooks->CloseTheSerialEntry(runtime);
     runtime.panels.field78abb00 = 0;
     // 0x56b77f: SetCursorPos mueve el cursor de Windows; queda pedido para la plataforma.
     const auto [x, y] =
         EventWindowCursor(context.input.mouseX, context.input.mouseY, context.screen.width, context.screen.height);
     runtime.movement.cursorWarpRequest = std::array<std::int32_t, 2>{x, y};
-    runtime.movement.mouseUpdateTimeMax = EventWindowUpdateTimeMax;
-    runtime.movement.leftHeld = false;
+    runtime.mouse.updateTimeMax = EventWindowUpdateTimeMax;
+    runtime.mouse.leftHeld = false;
     return {};
 }
 
@@ -241,21 +235,15 @@ Core::Expected<void, std::string> SendThePath(Kernel::ActorState& hero, Pathfind
                                               const HeroMovementContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& state = runtime.movement;
-    Hud::GamePanels panels(context.world, context.random);
-    panels.LendTheSession(context.world, context.random, context.sendGamePacket, context.sendWindowClose);
-    // 0x56b3d2, 0x56b41e y 0x56b48a: el almacén, la caja del caos y la tienda del NPC se cierran por 0x657ab0, que
-    // vacía sus grillas y manda lo suyo (Ui::PanelContext::npcWindowClosing).
-    panels.LendTheNpcWindows(context.world, context.random,
-                             context.inventory != nullptr ? *context.inventory : Items::InventoryServices{},
-                             context.sendNpcWindow);
+    Kernel::MouseState& mouse = runtime.mouse;
+    const IHeroMovementHooks& hooks = *context.hooks;
     // 0x56acf7: con el NPC de la caja abierto (0x8000), nada.
-    if (panels.Registry().IsOpen(Ui::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
+    if (hooks.IsPanelOpen(context, Ui::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
         return {};
     const auto maximum = Protocol::Movement::WalkUpdateTimeMax(hero.path.count);
     if (!maximum.HasValue())
         return Core::Unexpected(std::string("0x56acd0: cantidad de camino inválida"));
-    state.mouseUpdateTimeMax = static_cast<std::int32_t>(maximum.Value());
+    mouse.updateTimeMax = static_cast<std::int32_t>(maximum.Value());
     std::array<Protocol::Movement::Cell, Pathfinding::MaxPathCells> cells{};
     for (std::size_t i = 0; i < hero.path.count; ++i)
         cells[i] = {hero.path.cells[i].x, hero.path.cells[i].y};
@@ -272,10 +260,10 @@ Core::Expected<void, std::string> SendThePath(Kernel::ActorState& hero, Pathfind
     // estén cerradas.
     for (const Ui::PanelId id : PanelsClosedByWalking)
     {
-        if (!panels.Registry().IsOpen(id))
+        if (!hooks.IsPanelOpen(context, id))
             continue;
-        if (auto closed = panels.Registry().Close(id); !closed.HasValue())
-            return Core::Unexpected(std::move(closed).Error());
+        if (auto closed = hooks.ClosePanel(context, id); !closed.HasValue())
+            return closed;
     }
     // 0x56b4db: con la ventana de los eventos (0x78abb00), el C1 03 97 (CL9 hito 11).
     if (runtime.panels.field78abb00 == 0)
@@ -296,6 +284,7 @@ Core::Expected<void, std::string> UseGroundClick(Kernel::ActorState& hero, const
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     GameMovementState& state = context.world.Runtime().movement;
+    Kernel::MouseState& mouse = context.world.Runtime().mouse;
     if (hero.movement != 0)
     {
         const auto visibleX = Math::OriginalFtolLow(static_cast<double>(hero.position.x) * CellReciprocal);
@@ -313,17 +302,16 @@ Core::Expected<void, std::string> UseGroundClick(Kernel::ActorState& hero, const
     const auto x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
     if (x == target.x && ReadCell(hero.cellYAccesses, hero.cellY, context.random) == target.y && hero.movement != 0)
     {
-        state.mouseUpdateTime = 0;
+        mouse.updateTime = 0;
         return {};
     }
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, también el clic en el suelo pone en 0 la meta.
-    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({startX, startY}, target, Events::Crywolf::CrywolfAltarGoal(context.world));
+    const auto path = Actors::FindThePath(context.world, terrain.attributes->cells, {startX, startY}, target);
     if (!path)
     {
-        state.mouseUpdateTime = 0;
+        mouse.updateTime = 0;
         return {};
     }
     hero.path = *path;
@@ -340,27 +328,6 @@ bool AutoAttacksHere(const Kernel::WorldRuntime& runtime)
     using Maps::LastChaosCastleMap;
     return runtime.ui.autoAttack && runtime.map != SpectatorMap &&
            (runtime.map < FirstChaosCastleMap || runtime.map > LastChaosCastleMap);
-}
-
-// Lo que necesita 0x5650c0 desde MoveHero (0x59b2d2 y 0x59d670): el esqueleto del jugador va aparte, y los modelos
-// base siguen disponibles para acciones de héroes transformados.
-Hero::HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
-{
-    return Hero::HeroArrivalContext{.combat = {.world = context.world,
-                                               .random = context.random,
-                                               .playerSkeleton = context.playerSkeleton,
-                                               .models = context.models,
-                                               .items = context.items,
-                                               .terrain = context.terrain,
-                                               .dynamicLighting = context.dynamicLighting,
-                                               .faunaModels = context.faunaModels},
-                                    .sendWalk = context.sendWalk,
-                                    .sendAttack = context.sendAttack,
-                                    .skills = context.skills,
-                                    .tickCount = [ticks = context.input.ticksMs] { return ticks; },
-                                    .inventory = context.inventory,
-                                    .controlDown = context.input.controlDown,
-                                    .sendSkill = context.sendSkill};
 }
 
 // Las manos del registro propio (+0xb6c y +0xbb4, MOVSX), en un acceso.
@@ -441,8 +408,7 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
     const Pathfinding::PathCell target{static_cast<std::uint8_t>(*targetX), static_cast<std::uint8_t>(*targetY)};
     // 0x59d653: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41): sin distancia, con un altar
     // elegido la meta en el TerrainWall queda en 0.
-    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({startX, startY}, target, Events::Crywolf::CrywolfAltarGoal(context.world));
+    const auto path = Actors::FindThePath(context.world, terrain.attributes->cells, {startX, startY}, target);
     if (path)
     {
         hero.path = *path;
@@ -469,7 +435,7 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
         return Core::Unexpected(arrows.Error());
     if (!arrows.Value())
         return MoveHeroEnd::Leave;
-    if (auto arrived = Hero::InteractOnArrival(hero, ArrivalContextOf(context)); !arrived.HasValue())
+    if (auto arrived = context.hooks->InteractOnArrival(hero, context); !arrived.HasValue())
         return Core::Unexpected(arrived.Error());
     return MoveHeroEnd::Continue;
 }
@@ -480,8 +446,8 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
 // (hito 3) y el 4 y el 5 cortan.
 Core::Expected<void, std::string> ArriveAtTheTarget(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
-    if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(Npc::NpcTalkMovement))
-        return Npc::TalkToTheNpc(hero, context);
+    if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(NpcTalkMovement))
+        return context.hooks->TalkToTheNpc(hero, context);
     if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(PickUpMovement))
     {
         static const Items::InventoryServices NoServices{};
@@ -491,7 +457,7 @@ Core::Expected<void, std::string> ArriveAtTheTarget(Kernel::ActorState& hero, co
                                         .services = context.inventory != nullptr ? *context.inventory : NoServices},
             hero.position, Terrain::TerrainOrEmpty(context.terrain), context.fixedHeight);
     }
-    return Hero::InteractOnArrival(hero, ArrivalContextOf(context));
+    return context.hooks->InteractOnArrival(hero, context);
 }
 
 // 0x59daaf..0x59dc59 (CL9 hito 2): +0x379 en 2 salvo con el bit 0x10000000 de +0x7c; el NPC en 0x6c8ebc, su celda
@@ -505,8 +471,8 @@ Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const H
     GameMovementState& state = runtime.movement;
     if (npc < 0 || static_cast<std::size_t>(npc) >= context.world.Actors().size())
         return Core::Unexpected(std::format("0x59dad9: el NPC elegido {} está fuera de la tabla de personajes", npc));
-    if ((hero.flags7c & Npc::NpcTalkBlockedFlag) != Npc::NpcTalkBlockedFlag)
-        hero.movementType = Npc::NpcTalkMovement;
+    if ((hero.flags7c & NpcTalkBlockedFlag) != NpcTalkBlockedFlag)
+        hero.movementType = NpcTalkMovement;
     state.attackTarget = npc;
     const Kernel::ActorState& target = context.world.Actors()[static_cast<std::size_t>(npc)];
     const auto x = Math::OriginalFtolLow(static_cast<double>(target.position.x) * CellReciprocal);
@@ -515,9 +481,9 @@ Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const H
         return Core::Unexpected(std::string("0x59daef: la posición del NPC fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*x);
     state.targetY = std::bit_cast<std::uint32_t>(*y);
-    state.chosenNpc = npc;
-    state.chosenNpcType = static_cast<std::int16_t>(target.type);
-    state.chosenNpcAngle = std::bit_cast<std::uint32_t>(target.angles.z);
+    runtime.chosenNpc.index = npc;
+    runtime.chosenNpc.type = static_cast<std::int16_t>(target.type);
+    runtime.chosenNpc.angle = std::bit_cast<std::uint32_t>(target.angles.z);
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
@@ -528,8 +494,7 @@ Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const H
         return Core::Unexpected(std::format("0x59dc32: el destino ({}, {}) del NPC sale del mapa", *x, *y));
     // 0x4eac0a..0x4eac41: con Crywolf activo (0x435a00 y el mapa 34) y el altar recién elegido en 0x6c8e54
     // (0x204..0x208), el A* (0x4ead70) pone en 0 el word de su celda y el camino llega hasta el altar.
-    if (const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                              .Find({startX, startY}, goal, Events::Crywolf::CrywolfAltarGoal(context.world)))
+    if (const auto path = Actors::FindThePath(context.world, terrain.attributes->cells, {startX, startY}, goal))
     {
         hero.path = *path;
         return SendThePath(hero, goal, context);
@@ -566,8 +531,7 @@ Core::Expected<void, std::string> WalkToTheFloorItem(Kernel::ActorState& hero, c
         return Core::Unexpected(std::format("0x59ddbc: el destino ({}, {}) del ítem del piso sale del mapa", *x, *y));
     // 0x59ddbc: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41, Q-C1351): con un altar todavía en
     // 0x6c8e54, la celda del ítem queda en 0 en TerrainWall.
-    if (const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                              .Find({startX, startY}, target, Events::Crywolf::CrywolfAltarGoal(context.world)))
+    if (const auto path = Actors::FindThePath(context.world, terrain.attributes->cells, {startX, startY}, target))
     {
         hero.path = *path;
         return SendThePath(hero, target, context);
@@ -586,17 +550,18 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, 
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     // 0x59b846..0x59b85a: el modo del editor (0x77f3b18) y el mouse de la UI (0x775857c) saltan también la suma.
     if (state.inputBlocked || runtime.ui.mouseOnUi != 0)
         return MoveHeroEnd::Continue;
-    if (state.mouseUpdateTime >= state.mouseUpdateTimeMax && !state.movementBlocked)
+    if (mouse.updateTime >= mouse.updateTimeMax && !state.movementBlocked)
     {
         // 0x59b882..0x59b8cd: el clic pendiente (que se gasta), el botón apretado o el ataque automático con el otro
         // elegido (0x6c8e38) en 1, lo que deja el clic de ataque, y un elegido (0x6c8e30).
-        bool clicked = state.leftHeld;
-        if (state.pendingClick)
+        bool clicked = mouse.leftHeld;
+        if (mouse.pendingClick)
         {
-            state.pendingClick = false;
+            mouse.pendingClick = false;
             clicked = true;
         }
         if (AutoAttacksHere(runtime) && runtime.selectedTargets[4] == 1 && runtime.selectedTargets[2] != -1)
@@ -612,18 +577,18 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, 
                                    static_cast<double>(HoldSecondsPerMillisecond);
             state.heldElapsed = static_cast<float>(elapsed);
             if (elapsed >= MaximumHoldSeconds)
-                state.leftHeld = false;
+                mouse.leftHeld = false;
             else if (CanStartThePath(hero))
             {
                 if (const auto closed = CloseTheClickRecord(context); !closed.HasValue())
                     return Core::Unexpected(closed.Error());
-                state.mouseUpdateTime = 0;
+                mouse.updateTime = 0;
                 // 0x59cd2e..0x59cd43: fuera de la zona segura, 0x558bb0 dice si el personaje elegido se ataca (sin
                 // elegido, o con un ítem en el cursor, 0x7879fbc, da 0 y sigue en 0x59d8c3, como acá).
                 bool attacks = false;
                 if (hero.safeZone == 0)
                 {
-                    const auto attackable = Hero::IsAttackable(context.world, context.input.controlDown);
+                    const auto attackable = context.hooks->IsAttackable(context.world, context.input.controlDown);
                     if (!attackable.HasValue())
                         return Core::Unexpected(attackable.Error());
                     attacks = attackable.Value();
@@ -639,9 +604,8 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, 
                 bool toTheNpc = false;
                 if (!attacks && runtime.selectedTargets[1] != -1)
                 {
-                    Hud::GamePanels panels(context.world, context.random);
-                    toTheNpc =
-                        !panels.Registry().IsOpen(Ui::NpcShopPanel) && !panels.Registry().IsOpen(Ui::WarehousePanel);
+                    toTheNpc = !context.hooks->IsPanelOpen(context, Ui::NpcShopPanel) &&
+                               !context.hooks->IsPanelOpen(context, Ui::WarehousePanel);
                 }
                 if (attacks)
                 {
@@ -671,7 +635,7 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, 
         }
     }
     // 0x59e248: el contador nativo es un DWORD: conservar el wrap sin overflow con signo en C++.
-    state.mouseUpdateTime = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(state.mouseUpdateTime) + 1u);
+    mouse.updateTime = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(mouse.updateTime) + 1u);
     return MoveHeroEnd::Continue;
 }
 
@@ -746,7 +710,7 @@ Core::Expected<void, std::string> MoveTheHero(Kernel::ActorState& hero, const He
 
 // 0x59afdf..0x59b185, entre el contador y la cabeza: el clic derecho (0x7d36880) sobre el personaje elegido
 // (0x6c8e30, el picking del frame). Nada de esto saca rand().
-Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
+Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world, const IHeroMovementHooks& hooks)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     // 0x59afdf..0x59b033: con la caja de agregar un amigo (+0xf0 de [0x5763514], que solo escribe 0x49d0b0 y 0x490200
@@ -773,7 +737,7 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
             const std::string name = Actors::ChatNameOf(world.Actors()[static_cast<std::size_t>(named)]);
             if (name.size() < SetTextLimit)
                 edit.text.SetText(name);
-            Ui::Steps::FocusTheEdit(runtime.oldWindows, edit, Hud::OldWindowGlobalsOf(runtime));
+            Ui::Steps::FocusTheEdit(runtime.oldWindows, edit, hooks.OldWindowGlobalsOf(runtime));
             edit.text.Deselect();
         }
     }
@@ -816,12 +780,14 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
 
 Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context)
 {
+    if (context.hooks == nullptr)
+        return Core::Unexpected(std::string(NoHooks));
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
     // En el juego, StepTheDialogs ya lo hizo en este paso: acá no cambia nada.
-    Hud::LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
+    Kernel::LatchTheLeftButton(runtime.mouse, context.input.leftPressed, context.input.leftDown);
     // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).
-    if (Events::Crywolf::CameraTourRunning(runtime.events.cameraTour))
+    if (context.hooks->CameraTourRunning(runtime))
     {
         const auto& terrain = Terrain::TerrainOrEmpty(context.terrain);
         const auto stop =
@@ -839,26 +805,26 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         return {};
     if (StepTheCounter(runtime, context.random) > Kernel::WaitDrawThreshold)
         return {};
-    if (auto named = NameTheChosen(context.world); !named.HasValue())
+    if (auto named = NameTheChosen(context.world, *context.hooks); !named.HasValue())
         return named;
     // 0x59b188: el ancho del mundo, con sus consultas (2 rand() con el inventario abierto); la mitad, con signo.
-    Hud::GamePanels panels(context.world, context.random);
-    const std::int32_t center = panels.Registry().WorldWidth() / 2;
+    const std::int32_t center = context.hooks->WorldWidth(context) / 2;
     const bool keepsTheHead = AutoAttacksHere(runtime) && runtime.selectedTargets[4] != -1;
     if (auto head = UpdateTheHead(hero, context.input, center, keepsTheHead); !head.HasValue())
         return head;
     if (hero.movement == 0)
     {
         // 0x59b357: IsOpen(0x40000) no saca rand().
-        const auto facing = StepHeroFacing({.hero = hero,
-                                            .movement = runtime.movement,
-                                            .secondGuildOpen = panels.Registry().IsOpen(Ui::SecondGuildPanel),
-                                            .mouseOnUi = runtime.ui.mouseOnUi,
-                                            .mouseX = context.input.mouseX,
-                                            .mouseY = context.input.mouseY,
-                                            .centerX = center,
-                                            .headTurningAllowed = !keepsTheHead && hero.animation.action != 0x3e,
-                                            .sendFacing = context.sendFacing});
+        const auto facing =
+            StepHeroFacing({.hero = hero,
+                            .movement = runtime.movement,
+                            .secondGuildOpen = context.hooks->IsPanelOpen(context, Ui::SecondGuildPanel),
+                            .mouseOnUi = runtime.ui.mouseOnUi,
+                            .mouseX = context.input.mouseX,
+                            .mouseY = context.input.mouseY,
+                            .centerX = center,
+                            .headTurningAllowed = !keepsTheHead && hero.animation.action != 0x3e,
+                            .sendFacing = context.sendFacing});
         if (!facing.HasValue())
             return facing;
     }
@@ -882,24 +848,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     if (input.Value() == MoveHeroEnd::Leave)
         return {};
     // 0x59e255: 0x57cfc0, usar la skill (CL9 hito 4).
-    if (auto used = Skills::UseTheHeroSkill(
-            hero, Skills::HeroSkillContext{.world = context.world,
-                                           .random = context.random,
-                                           .skills = context.skills,
-                                           .playerSkeleton = context.playerSkeleton,
-                                           .items = context.items,
-                                           .models = context.models,
-                                           .tickCount = [ticks = context.input.ticksMs] { return ticks; },
-                                           .inventory = context.inventory,
-                                           .worldTime = context.input.worldTime,
-                                           .controlDown = context.input.controlDown,
-                                           .pickTerrainPoint = context.pickTerrainPoint,
-                                           .send = context.sendSkill,
-                                           .playerKey = context.playerKey,
-                                           .terrain = context.terrain,
-                                           .dynamicLighting = context.dynamicLighting,
-                                           .faunaModels = context.faunaModels});
-        !used.HasValue())
+    if (auto used = context.hooks->UseTheHeroSkill(hero, context); !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, Terrain::TerrainOrEmpty(context.terrain));
     return {};

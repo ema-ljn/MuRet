@@ -79,7 +79,7 @@ Core::Expected<void, std::string> ConstructLoginActor(Kernel::ActorState& actor,
     EquipTheLoginActor(actor);
     const auto stopped = Actors::SetActorStop(
         actor,
-        {.runtime = runtime, .scene = Scenes::SceneId::Login, .playerSkeleton = skeleton, .random = cloth.random});
+        {.runtime = runtime, .scene = Kernel::SceneId::Login, .playerSkeleton = skeleton, .random = cloth.random});
     if (!stopped.HasValue())
     {
         return Core::Unexpected(stopped.Error());

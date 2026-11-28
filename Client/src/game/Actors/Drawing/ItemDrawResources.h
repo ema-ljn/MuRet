@@ -2,7 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Models/ItemGlow.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 
 #include <cstdint>
 #include <span>
@@ -52,7 +52,7 @@ struct ItemDrawResources
     Particles::FrameSprites& sprites;
     Kernel::PoseBuffer& poseCarry;
     WorldObjects::ObjectModelStepState& modelState;
-    std::span<Scenes::JointState> joints;
+    std::span<Kernel::JointState> joints;
     Effects::ModelEffects& effects;
     std::int32_t map = 0;
     bool originalFrame = true;

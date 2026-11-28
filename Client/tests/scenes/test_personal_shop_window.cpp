@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "PersonalShop/PersonalShopWindow.h"
 
 #include "Core/Expected.h"
@@ -303,7 +304,7 @@ protected:
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool click, bool rightClick = false)
     {
         if (click)
-            Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+            Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
         if (rightClick)
             Runtime().ui.rightClick = true;
         mark = random;
@@ -314,7 +315,7 @@ protected:
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x, std::int32_t y, bool click)
     {
         if (click)
-            Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+            Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
         mark = random;
         return Client::Hud::StepTheGameDialogs(Context(x, y));
     }
@@ -418,7 +419,7 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
         EXPECT_EQ(text, MissingPriceText);
         EXPECT_EQ(type, 2);
     }
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_TRUE(sent.empty());
 
@@ -453,7 +454,7 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_EQ(Runtime().panels.inventory, 0);
     EXPECT_EQ(Runtime().panels.personalShop, 0);
     EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
 }
 
 // Con la tienda abierta (0x78aba50): cerrar manda el C1 04 3F 03 en C3; abrir manda el 3F 02 otra vez sin la caja y
@@ -472,7 +473,7 @@ TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
     ASSERT_EQ(sent.size(), 1U);
     EXPECT_EQ(sent[0].bytes, CloseShopBytes);
     EXPECT_TRUE(sent[0].encrypted);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
 
     // Cerrada, el botón de cerrar solo gasta el clic.
     sent.clear();
@@ -480,7 +481,7 @@ TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
     stepped = Step(CloseButtonX + 0x37, FootButtonY + 0x17, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sent.empty());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
 
     Shops().ownOpen = 1;
     stepped = Step(OpenButtonX + 0x37, FootButtonY, true);
@@ -566,7 +567,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
     const auto stepped = Dialogs(ShopOkRight, ShopButtonBottom, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), DialogStepRandoms);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Shops().ownTitle, "Mi puesto");
     EXPECT_EQ(Runtime().social.trade.warningByte, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0);
@@ -601,14 +602,14 @@ TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
     Runtime().social.trade.warningByte = 0xff;
     auto stepped = Dialogs(ShopCancelRight + 1, ShopButtonTop, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
 
-    Runtime().movement.pendingClick = false;
+    Runtime().mouse.pendingClick = false;
     stepped = Dialogs(ShopCancelLeft, ShopButtonBottom, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().social.trade.warningByte, 2);
     EXPECT_EQ(Shops().ownTitle, "");
@@ -643,7 +644,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
     LetterMeasure letters;
     Client::Hud::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
     context.measure = &letters;
-    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+    Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     const auto stepped = Client::Hud::StepTheGameDialogs(context);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Shops().ownTitle, "");
@@ -693,7 +694,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
     EXPECT_EQ(Runtime().hoveredItemCopy.id, StaffType);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
     // La poción de la tienda, con el cursor vacío otra vez.
@@ -729,7 +730,7 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
     EXPECT_EQ(Runtime().cursorItemCount, 0);
     EXPECT_EQ(ShopCells()[PotionCell + 2].id, PotionType);
     EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
 
     // El 0x94 (0x6282dc, CL9.3) deja la respuesta y se cierra. Sin respuesta todavía, el aviso sigue esperando.
     Runtime().dialogs.current = 0;
@@ -989,7 +990,7 @@ TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().cursorItemCount, 1);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
     Shops().mode = Client::Social::OtherShopView;
@@ -1031,7 +1032,7 @@ TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms);
     EXPECT_EQ(Runtime().cursorItemCount, 1);
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
     // El 1 con el no vuelve el ítem. Con el sí, el 1 manda el C1 04 33 (0x5d8e0d), el 2 el C1 04 86 (0x5d934f) y el 4
@@ -1108,7 +1109,7 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     RecordingRequests requests{sent};
     const auto step = [&](std::int32_t x, std::int32_t y)
     {
-        Client::Hud::LatchTheLeftButton(runtime.movement, true, true);
+        Client::Kernel::LatchTheLeftButton(runtime.mouse, true, true);
         return Client::Hud::StepTheGameDialogs(Client::Hud::GameUiContext{
             .world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y, .requests = &requests});
     };
@@ -1122,7 +1123,7 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.dialogs.current, 0x8c);
     EXPECT_EQ(runtime.dialogs.pending, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
     // Un botón, otro id: el clic se gasta y la caja queda.
@@ -1131,11 +1132,11 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     stepped = step(0x14a, row + 140);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.dialogs.current, 0x9c);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     // Fuera del botón (y + 157), el clic queda.
     stepped = step(0x14a, row + 157);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 }
 } // namespace

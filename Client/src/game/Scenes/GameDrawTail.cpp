@@ -1,3 +1,4 @@
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
@@ -95,7 +96,7 @@ bool OmittedEffect(const Effects::ModelEffect& effect)
            (effect.type == 0x115 && effect.subtype == 1);
 }
 } // namespace
-void StepDamage(std::span<DamageNumberState> damage)
+void StepDamage(std::span<Kernel::DamageNumberState> damage)
 {
     for (auto& number : damage)
     {
@@ -117,7 +118,8 @@ void StepDamage(std::span<DamageNumberState> damage)
     }
 }
 
-Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items, const Terrain::SphereFrustum& frustum)
+Core::Expected<void, std::string> DrawFloorItems(std::span<Kernel::FloorItemState> items,
+                                                 const Terrain::SphereFrustum& frustum)
 {
     constexpr float Radius = 400;
     for (std::size_t i = 0; i < items.size(); ++i)
@@ -134,11 +136,12 @@ Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items
     return {};
 }
 
-Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items, const FloorItemDrawContext& context)
+Core::Expected<void, std::string> DrawFloorItems(std::span<Kernel::FloorItemState> items,
+                                                 const FloorItemDrawContext& context)
 {
     return Items::DrawFloorItemDrawing(items, context);
 }
-Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch, std::span<const RibbonState> ribbons)
+Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch, std::span<const Kernel::RibbonState> ribbons)
 {
     for (std::size_t index = 0; index < ribbons.size(); ++index)
     {
@@ -160,7 +163,7 @@ Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch, std::sp
         state.texture = Render::TextureSlot{static_cast<std::uint16_t>(selector)};
         state.rawTextureName.reset();
         batch.ApplyOperation(state, Render::ModelStateOperation::Binding);
-        if (ribbon.count > static_cast<std::int32_t>(RibbonPointCount))
+        if (ribbon.count > static_cast<std::int32_t>(Kernel::RibbonPointCount))
             return Core::Unexpected(std::format("0x52e603: la cinta {} excede sus 30 puntos", index));
         for (std::int32_t j = 0; j < ribbon.count - 1; ++j)
         {
@@ -181,8 +184,8 @@ Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch, std::sp
     }
     return {};
 }
-Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
-                                             std::uint8_t mode)
+Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch,
+                                             std::span<const Kernel::DamageNumberState> damage, std::uint8_t mode)
 {
     Blend(batch, Render::ModelBlend::Alpha);
     auto state = batch.State();
@@ -218,7 +221,7 @@ void DamageGlyph(Render::ModelBatch& batch, const Math::OriginalMatrix& view, co
     Quad(batch, vertices);
 }
 
-void DamageDigits(Render::ModelBatch& batch, const DamageNumberState& number, const Math::OriginalMatrix& view)
+void DamageDigits(Render::ModelBatch& batch, const Kernel::DamageNumberState& number, const Math::OriginalMatrix& view)
 {
     const float alpha = F32(static_cast<double>(number.speed) * static_cast<double>(0.4f));
     if (number.number == -1)
@@ -245,8 +248,9 @@ void DamageDigits(Render::ModelBatch& batch, const DamageNumberState& number, co
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
-                                             std::uint8_t mode, const Math::OriginalMatrix& view)
+Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch,
+                                             std::span<const Kernel::DamageNumberState> damage, std::uint8_t mode,
+                                             const Math::OriginalMatrix& view)
 {
     Blend(batch, Render::ModelBlend::Alpha);
     auto state = batch.State();

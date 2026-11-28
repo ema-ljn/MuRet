@@ -21,15 +21,15 @@ namespace Client::Scenes
 namespace
 {
 // "Login (2)": el nombre y el número de DAT_006d5dc8.
-std::string Describe(SceneId scene)
+std::string Describe(Kernel::SceneId scene)
 {
-    return std::format("{} ({})", SceneName(scene), static_cast<int>(scene));
+    return std::format("{} ({})", Kernel::SceneName(scene), static_cast<int>(scene));
 }
 } // namespace
 
 SceneManager::SceneManager(SceneFactory factory, Render::Frame::IFrameTarget& frame, Core::IClock& clock,
                            std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
-                           std::function<std::optional<SceneId>()> takeSceneOrder,
+                           std::function<std::optional<Kernel::SceneId>()> takeSceneOrder,
                            std::function<void(Core::Duration)> beforeSceneFrame,
                            std::function<void(Core::Duration)> afterSceneFrame,
                            std::function<Core::Expected<void, std::string>()> afterSceneStep,
@@ -51,7 +51,7 @@ SceneManager::~SceneManager()
     }
 }
 
-Core::Expected<void, std::string> SceneManager::Start(SceneId first)
+Core::Expected<void, std::string> SceneManager::Start(Kernel::SceneId first)
 {
     if (m_pollFailed)
     {
@@ -89,7 +89,7 @@ void SceneManager::Poll()
     {
         return;
     }
-    if (const std::optional<SceneId> order = m_takeSceneOrder())
+    if (const std::optional<Kernel::SceneId> order = m_takeSceneOrder())
     {
         // Dos órdenes antes de un paso: el original solo ve la última escritura.
         m_networkOrder = order;
@@ -104,7 +104,7 @@ void SceneManager::Step(const Input::InputState& input)
     }
     m_framePrepared = false;
     // El original escribió la escena mientras leía la red: este paso ya es el de la nueva.
-    if (const std::optional<SceneId> order = std::exchange(m_networkOrder, std::nullopt))
+    if (const std::optional<Kernel::SceneId> order = std::exchange(m_networkOrder, std::nullopt))
     {
         Request(*order);
         if (m_failure || !m_scene)
@@ -126,7 +126,7 @@ void SceneManager::Step(const Input::InputState& input)
             return;
         }
     }
-    const std::optional<SceneId> next = m_scene->Next();
+    const std::optional<Kernel::SceneId> next = m_scene->Next();
     if (!next)
     {
         // La escena dejó de pedir: si el pedido rechazado vuelve, se avisa otra vez.
@@ -163,13 +163,13 @@ void SceneManager::Render(float alpha)
     m_framePrepared = false;
 }
 
-void SceneManager::Request(SceneId next)
+void SceneManager::Request(Kernel::SceneId next)
 {
     if (m_failure || !m_current)
     {
         return;
     }
-    const SceneId from = *m_current;
+    const Kernel::SceneId from = *m_current;
     if (!IsOriginalTransition(from, next))
     {
         if (m_rejected != next)
@@ -190,7 +190,7 @@ void SceneManager::Request(SceneId next)
     m_sceneChanged = true;
 }
 
-std::optional<SceneId> SceneManager::Current() const
+std::optional<Kernel::SceneId> SceneManager::Current() const
 {
     return m_current;
 }
@@ -270,7 +270,7 @@ bool SceneManager::TakeTheDrawFailure(const Core::Expected<void, std::string>& d
     return true;
 }
 
-Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
+Core::Expected<void, std::string> SceneManager::Enter(Kernel::SceneId id)
 {
     std::unique_ptr<IScene> scene = m_factory(id);
     if (!scene)

@@ -13,7 +13,7 @@ namespace Client::Scenes
 {
 struct SceneWorldEntry
 {
-    SceneId scene = SceneId::Login;
+    Kernel::SceneId scene = Kernel::SceneId::Login;
     Render::Frame::SceneWorld world;
 };
 
@@ -21,12 +21,12 @@ struct SceneWorldEntry
 // World55). Las demás no tienen uno fijo: la carga no dibuja un mundo, y el de la carga del mundo
 // y el del juego lo manda el servidor.
 inline constexpr std::array<SceneWorldEntry, 2> SceneWorlds = {{
-    {.scene = SceneId::Login, .world = {.map = 55}},
-    {.scene = SceneId::CharacterSelect, .world = {.map = 54}},
+    {.scene = Kernel::SceneId::Login, .world = {.map = 55}},
+    {.scene = Kernel::SceneId::CharacterSelect, .world = {.map = 54}},
 }};
 
 // El mundo de `scene` en la tabla, o vacío.
-[[nodiscard]] constexpr std::optional<Render::Frame::SceneWorld> WorldOf(SceneId scene)
+[[nodiscard]] constexpr std::optional<Render::Frame::SceneWorld> WorldOf(Kernel::SceneId scene)
 {
     for (const SceneWorldEntry& entry : SceneWorlds)
     {

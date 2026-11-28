@@ -133,7 +133,7 @@ protected:
         m_online.session.ChooseCharacter(slot);
         Client::Tests::TapKey(m_input, Client::Input::Key::Enter);
         choose.Step(m_input);
-        ASSERT_EQ(choose.Next(), Client::Scenes::SceneId::WorldLoading);
+        ASSERT_EQ(choose.Next(), Client::Kernel::SceneId::WorldLoading);
         m_input.ConsumeEdges();
         choose.Leave();
     }
@@ -146,7 +146,7 @@ protected:
         ASSERT_TRUE(m_online.session.Poll().HasValue());
         m_game->Leave();
         m_game.reset();
-        m_scene = Client::Scenes::SceneId::CharacterSelect;
+        m_scene = Client::Kernel::SceneId::CharacterSelect;
         Client::Tests::CharacterEntryFields knight{.slot = 0, .name = "knight", .classByte = 0x10};
         // Manos, alas y mascota vacías en la fotografía de la lista; no toca el registro propio.
         knight.equipment[0] = 0xff;
@@ -178,7 +178,7 @@ protected:
 
     void EnterWorld()
     {
-        m_scene = Client::Scenes::SceneId::Game;
+        m_scene = Client::Kernel::SceneId::Game;
         m_game.emplace(Context(), &m_online.session, &m_models, &m_data.items->table, &m_models.TextureSlots(),
                        &*m_data.gates, &*m_data.skills, &*m_data.text);
         ASSERT_TRUE(m_game->Enter().HasValue());
@@ -238,7 +238,7 @@ protected:
     std::optional<Client::Scenes::SessionEventApplier> m_applier;
     std::optional<Client::Scenes::GameScene> m_game;
     Client::Network::PacketSerials m_serverSends;
-    Client::Scenes::SceneId m_scene = Client::Scenes::SceneId::CharacterSelect;
+    Client::Kernel::SceneId m_scene = Client::Kernel::SceneId::CharacterSelect;
 };
 
 class FirstCreatedWorldEntryTest : public CharacterFirstWorldEntryTest, public ::testing::WithParamInterface<bool>
@@ -328,7 +328,7 @@ TEST_F(CharacterFirstWorldEntryTest, TheServerListResponseReturnsTheHeldItemBefo
     ASSERT_TRUE(returned.HasValue()) << returned.Error();
     EXPECT_EQ(m_online.session.State(), Client::Session::SessionState::Idle);
     EXPECT_EQ(m_online.connection.State(), Client::Network::LinkState::Closed);
-    EXPECT_EQ(m_world->Runtime().orderedScene, Client::Scenes::SceneId::Login);
+    EXPECT_EQ(m_world->Runtime().orderedScene, Client::Kernel::SceneId::Login);
     EXPECT_EQ(m_world->Runtime().cursorItemCount, 0);
     EXPECT_EQ(m_world->Inventory().cells[0].id, 0x1c00u);
     EXPECT_FALSE(m_world->Runtime().ui.logoutRequested);

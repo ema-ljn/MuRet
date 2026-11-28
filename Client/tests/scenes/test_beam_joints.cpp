@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
@@ -33,7 +33,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::uint32_t Seed = 0x618u;
 

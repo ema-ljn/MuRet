@@ -9,6 +9,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/PoseBuffer.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Terrain/SphereFrustum.h"
@@ -36,11 +37,11 @@ constexpr std::int16_t Money = 0x1e21;
 constexpr std::uint16_t Player = Tables::PlayerSkeletonModel;
 constexpr float VisibleAlpha = 0.01f;
 using Math::F32;
-std::uint8_t Level(const Scenes::FloorItemState& item)
+std::uint8_t Level(const Kernel::FloorItemState& item)
 {
     return static_cast<std::uint8_t>((item.value >> 3) & 15);
 }
-std::uint16_t Model(const Scenes::FloorItemState& item)
+std::uint16_t Model(const Kernel::FloorItemState& item)
 {
     if (item.type == 0x1e1e && Level(item) == 0)
         return 0x223a;
@@ -48,7 +49,7 @@ std::uint16_t Model(const Scenes::FloorItemState& item)
         return 0x223b;
     return static_cast<std::uint16_t>(item.type);
 }
-Actors::Drawing::DrawnObject Object(const Scenes::FloorItemState& item, const Scenes::FloorItemDrawContext& context)
+Actors::Drawing::DrawnObject Object(const Kernel::FloorItemState& item, const Scenes::FloorItemDrawContext& context)
 {
     Actors::Drawing::DrawnObject object;
     object.model = Model(item);
@@ -63,7 +64,7 @@ Actors::Drawing::DrawnObject Object(const Scenes::FloorItemState& item, const Sc
         object.color[component] = F32(static_cast<double>(terrain[component]) + item.light[component]);
     return object;
 }
-Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const Scenes::FloorItemState& item,
+Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const Kernel::FloorItemState& item,
                                        const Scenes::FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (item.type >= FirstArmor && item.type < EndArmor)
@@ -78,7 +79,7 @@ Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const Scenes::
         return context.onPose(object);
     return Actors::Drawing::PublishFloorPose(local, context.models, object);
 }
-Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, Scenes::FloorItemState& item,
+Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, Kernel::FloorItemState& item,
                                              const Scenes::FloorItemDrawContext& context,
                                              Actors::Drawing::DrawnObject object,
                                              std::span<const Models::SkinnedMesh> meshes)
@@ -101,7 +102,7 @@ Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, Scenes::
     item.alpha = object.alpha;
     return result;
 }
-Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, Scenes::FloorItemState& item,
+Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, Kernel::FloorItemState& item,
                                        const Scenes::FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (!(item.alpha > VisibleAlpha))
@@ -132,7 +133,7 @@ Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, Scenes::FloorI
     return RenderItem(local, item, context, object, meshes);
 }
 
-Core::Expected<void, std::string> Project(Scenes::FloorItemState& item, const Scenes::FloorItemDrawContext& context)
+Core::Expected<void, std::string> Project(Kernel::FloorItemState& item, const Scenes::FloorItemDrawContext& context)
 {
     if (!context.project)
         return Core::Unexpected(std::string("0x608da5: falta la proyección del ítem del piso"));
@@ -146,7 +147,7 @@ Core::Expected<void, std::string> Project(Scenes::FloorItemState& item, const Sc
     item.screenY = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(projected.Value().y));
     return {};
 }
-Core::Expected<void, std::string> Coins(Kernel::PoseBuffer& local, Scenes::FloorItemState& item,
+Core::Expected<void, std::string> Coins(Kernel::PoseBuffer& local, Kernel::FloorItemState& item,
                                         const Scenes::FloorItemDrawContext& context,
                                         const Actors::Drawing::DrawnObject& object, std::size_t slot)
 {
@@ -221,7 +222,7 @@ float BodyPartRootHeight(std::int16_t model)
     return 0;
 }
 
-Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<Scenes::FloorItemState> items,
+Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<Kernel::FloorItemState> items,
                                                        const Scenes::FloorItemDrawContext& context)
 {
     Kernel::PoseBuffer local;

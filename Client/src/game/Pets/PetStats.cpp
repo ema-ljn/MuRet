@@ -9,7 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Pets/DarkSpirit.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Hud/GamePanels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Player/OwnDerivedStats.h"
@@ -157,7 +157,7 @@ Core::Expected<void, std::string> SparkTheRaven(Kernel::DarkSpirit& raven, int j
 {
     constexpr std::int32_t SparkleJoint = 0x60f, SparkleSubtype = 0, OrderKey = 2, NoTarget = -1;
     constexpr float OrderWidth = 40.0f; // 0x42200000
-    std::span<Scenes::JointState> pool = resources.world.DrawTail().joints;
+    std::span<Kernel::JointState> pool = resources.world.DrawTail().joints;
     glm::vec3 start = raven.position;
     glm::vec3 angles = turned ? raven.angles : glm::vec3(0.0f);
     glm::vec3& target = turned ? raven.position : start;

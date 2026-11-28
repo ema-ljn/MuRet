@@ -15,6 +15,7 @@
 #include "Render/TextureSlot.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Fauna/FaunaObject.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Models/TextureMetadata.h"
 #include "Kernel/JointRequest.h"
@@ -134,7 +135,7 @@ protected:
 TEST_F(GameTailTextureTest, DamageGlyphBindingsResolveToTheUploadedNativeFontTestAtlas)
 {
     ASSERT_NO_FATAL_FAILURE(ExpectResource(DamageAtlas));
-    std::array<Client::Scenes::DamageNumberState, 2> damage{};
+    std::array<Client::Kernel::DamageNumberState, 2> damage{};
     for (auto& number : damage)
     {
         number.alive = true;
@@ -178,7 +179,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
     {
         SCOPED_TRACE(probe.type);
         SCOPED_TRACE(probe.subtype);
-        std::array<Client::Scenes::JointState, 1> joints{};
+        std::array<Client::Kernel::JointState, 1> joints{};
         Client::Fauna::FaunaObject owner;
         owner.active = 1;
         owner.position = {100, 200, 100};

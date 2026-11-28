@@ -5,7 +5,7 @@
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Sprites.h"
@@ -27,7 +27,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::uint32_t Seed = 0x61cu;
 

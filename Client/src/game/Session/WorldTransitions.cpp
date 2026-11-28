@@ -119,8 +119,8 @@ Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& reso
         const Models::LogicalAccess wait(runtime.warpDepth, resources.cloth.random, Models::SmallLogicalCloseRandoms);
         runtime.warpCounter = Kernel::WaitDrawThreshold;
     }
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = 6;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = 6;
     if (auto closed = CloseTransitionWindows(resources); !closed.HasValue())
         return closed;
     auto& hero = PublishedHero(resources);
@@ -246,7 +246,7 @@ Core::Expected<void, std::string> ApplyRegen(const Protocol::Movement::Regen& re
                                              const WorldEntryResources& resources)
 {
     auto& world = resources.world;
-    world.Runtime().movement.pendingClick = false;
+    world.Runtime().mouse.pendingClick = false;
     world.Runtime().movement.gateRequestBlocked = 0;
     PublishedHero(resources).alive = false;
     ApplyRegenStats(reply, resources);

@@ -1,4 +1,5 @@
 #include "Quests/QuestWindow.h"
+#include "Kernel/MouseState.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -297,6 +298,11 @@ protected:
     {
         return m_world->Hero();
     }
+    Client::Kernel::MouseState& Mouse()
+    {
+        return Runtime().mouse;
+    }
+
     Client::Movement::GameMovementState& Movement()
     {
         return Runtime().movement;
@@ -327,7 +333,7 @@ protected:
 
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(Movement(), true, true);
+        Client::Kernel::LatchTheLeftButton(Mouse(), true, true);
     }
 
     GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Hud::IGameUiRequests* requests)
@@ -409,7 +415,7 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
     Click();
     ASSERT_TRUE(Step(0x1f9, 0x18b, &requests).HasValue());
     EXPECT_EQ(Window(), 0) << "sin el personaje";
-    EXPECT_TRUE(Movement().pendingClick);
+    EXPECT_TRUE(Mouse().pendingClick);
 
     Runtime().panels.character = 1;
     for (const auto& [x, y] :
@@ -418,15 +424,15 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
         SCOPED_TRACE(testing::Message() << x << ", " << y);
         ASSERT_TRUE(Step(x, y, &requests).HasValue());
         EXPECT_EQ(Window(), 0);
-        EXPECT_TRUE(Movement().pendingClick);
+        EXPECT_TRUE(Mouse().pendingClick);
     }
-    Movement().mouseUpdateTime = 4;
-    Movement().mouseUpdateTimeMax = 12;
+    Mouse().updateTime = 4;
+    Mouse().updateTimeMax = 12;
     ASSERT_TRUE(Step(0x210, 0x1a2, &requests).HasValue());
     EXPECT_EQ(Window(), Client::Quests::QuestListWindow);
-    EXPECT_FALSE(Movement().pendingClick);
-    EXPECT_EQ(Movement().mouseUpdateTime, 0);
-    EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(Mouse().pendingClick);
+    EXPECT_EQ(Mouse().updateTime, 0);
+    EXPECT_EQ(Mouse().updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     // 0x419840: la misión 0 disponible, con las condiciones sin el zen, y su diálogo 10.
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 10);
@@ -450,14 +456,14 @@ TEST_P(QuestWindowTest, TheCloseAnswerClosesTheWindow)
     EXPECT_EQ(Window(), Client::Quests::QuestDialogWindow) << "sin el clic";
 
     Click();
-    Movement().mouseUpdateTime = 4;
+    Mouse().updateTime = 4;
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopOtherwise + 18, &requests).HasValue());
     EXPECT_EQ(Window(), 0);
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"31"}));
-    EXPECT_FALSE(Movement().pendingClick);
-    EXPECT_FALSE(Movement().leftHeld);
-    EXPECT_EQ(Movement().mouseUpdateTime, 0);
-    EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(Mouse().pendingClick);
+    EXPECT_FALSE(Mouse().leftHeld);
+    EXPECT_EQ(Mouse().updateTime, 0);
+    EXPECT_EQ(Mouse().updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 10);
     EXPECT_EQ(m_random.State(), Seed);
@@ -529,8 +535,8 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopInProgress - 18, &requests).HasValue());
     EXPECT_TRUE(requests.requests.empty());
-    EXPECT_FALSE(Movement().pendingClick) << "el clic se gasta igual";
-    EXPECT_FALSE(Movement().leftHeld);
+    EXPECT_FALSE(Mouse().pendingClick) << "el clic se gasta igual";
+    EXPECT_FALSE(Mouse().leftHeld);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_EQ(m_random.State(), before);
 
@@ -544,7 +550,7 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
         Click();
         ASSERT_TRUE(Step(x, AnswersTopInProgress + 18, &requests).HasValue());
         EXPECT_EQ(Window(), inside ? 0 : Client::Quests::QuestDialogWindow);
-        EXPECT_EQ(Movement().pendingClick, !inside);
+        EXPECT_EQ(Mouse().pendingClick, !inside);
     }
 }
 
@@ -558,7 +564,7 @@ TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
     Click();
     ASSERT_TRUE(Step(Alone + 0x23, 0x163, &requests).HasValue());
     EXPECT_TRUE(requests.requests.empty());
-    EXPECT_TRUE(Movement().pendingClick);
+    EXPECT_TRUE(Mouse().pendingClick);
 
     GiveTheScroll();
     for (const auto& [x, y] : {std::pair{Alone + 0x22, 0x163}, std::pair{Alone + 0x9b, 0x163},
@@ -568,14 +574,14 @@ TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
         ASSERT_TRUE(Step(x, y, &requests).HasValue());
         EXPECT_TRUE(requests.requests.empty());
     }
-    Movement().mouseUpdateTime = 4;
-    Movement().mouseUpdateTimeMax = 12;
+    Mouse().updateTime = 4;
+    Mouse().updateTimeMax = 12;
     ASSERT_TRUE(Step(Alone + 0x9a, 0x17a, &requests).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"A2 0 1"}));
-    EXPECT_FALSE(Movement().pendingClick);
-    EXPECT_FALSE(Movement().leftHeld);
-    EXPECT_EQ(Movement().mouseUpdateTime, 4);
-    EXPECT_EQ(Movement().mouseUpdateTimeMax, 12);
+    EXPECT_FALSE(Mouse().pendingClick);
+    EXPECT_FALSE(Mouse().leftHeld);
+    EXPECT_EQ(Mouse().updateTime, 4);
+    EXPECT_EQ(Mouse().updateTimeMax, 12);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, C3Randoms).State());
 }
@@ -586,10 +592,10 @@ TEST_P(QuestWindowTest, TheDialogCloseButtonAndTheMouse)
 {
     RecordingRequests requests;
     OpenTheDialog(Client::Quests::QuestAvailable);
-    Movement().releasedClick = true;
+    Mouse().releasedClick = true;
     ASSERT_TRUE(Step(Alone, 0, &requests).HasValue());
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
-    EXPECT_FALSE(Movement().releasedClick);
+    EXPECT_FALSE(Mouse().releasedClick);
     Runtime().ui.mouseOnUi = 0;
     ASSERT_TRUE(Step(Alone - 1, 0, &requests).HasValue());
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
@@ -598,9 +604,9 @@ TEST_P(QuestWindowTest, TheDialogCloseButtonAndTheMouse)
     ASSERT_TRUE(Step(Alone + 0x19 + 0x17, 0x18b + 0x17, &requests).HasValue());
     EXPECT_EQ(Window(), 0);
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"31"}));
-    EXPECT_FALSE(Movement().pendingClick);
-    EXPECT_TRUE(Movement().leftHeld);
-    EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(Mouse().pendingClick);
+    EXPECT_TRUE(Mouse().leftHeld);
+    EXPECT_EQ(Mouse().updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, std::nullopt);
 }
 
@@ -613,14 +619,14 @@ TEST_P(QuestWindowTest, TheListTabsAndItsCloseButton)
     Quest().tab = 1;
     Click();
     ASSERT_TRUE(Step(Alone + 0x14 + 0x33, 0xeb, &requests).HasValue());
-    EXPECT_TRUE(Movement().pendingClick) << "la pestaña 1";
+    EXPECT_TRUE(Mouse().pendingClick) << "la pestaña 1";
     EXPECT_EQ(Quest().tab, 1);
     ASSERT_TRUE(Step(Alone + 0x14, 0xec, &requests).HasValue());
-    EXPECT_TRUE(Movement().pendingClick) << "la 0 sin elegir arranca en 0xed";
+    EXPECT_TRUE(Mouse().pendingClick) << "la 0 sin elegir arranca en 0xed";
     ASSERT_TRUE(Step(Alone + 0x14 + 0x30, 0xfa, &requests).HasValue());
-    EXPECT_FALSE(Movement().pendingClick);
+    EXPECT_FALSE(Mouse().pendingClick);
     EXPECT_EQ(Quest().tab, 0);
-    EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
+    EXPECT_EQ(Mouse().updateTimeMax, 6);
     EXPECT_TRUE(requests.requests.empty());
 
     Click();
@@ -776,19 +782,19 @@ TEST_P(QuestWindowTest, ThePressedFinishButtonSpendsTheReleasedClick)
     const DrawnQuad* finish = FindQuad(quads, 0xf0, static_cast<float>(Alone + 35), 355.0f);
     ASSERT_NE(finish, nullptr);
     EXPECT_EQ(finish->color, (Color{0.4f, 0.4f, 0.4f, 1.0f}));
-    EXPECT_TRUE(Movement().pendingClick) << "sin el soltado";
+    EXPECT_TRUE(Mouse().pendingClick) << "sin el soltado";
 
-    Movement().releasedClick = true;
+    Mouse().releasedClick = true;
     {
         GameHudContext context = HudContext(Alone + 154, 378, m_random);
         context.projecting = true;
         Client::Hud::GamePanels panels(*m_world, m_random);
         ASSERT_TRUE(Client::Quests::DrawTheQuestWindow(context, panels.Registry()).HasValue());
-        EXPECT_TRUE(Movement().pendingClick) << "proyectado";
+        EXPECT_TRUE(Mouse().pendingClick) << "proyectado";
     }
     ASSERT_TRUE(Draw(Alone + 154, 378).HasValue());
-    EXPECT_FALSE(Movement().pendingClick);
-    EXPECT_FALSE(Movement().leftHeld);
+    EXPECT_FALSE(Mouse().pendingClick);
+    EXPECT_FALSE(Mouse().leftHeld);
 }
 
 // 0x41bc0b..0x41bcca con la misión disponible: el fondo del zen en (x + 50, y + 367,7), el 198 en (x + 20, 370) y el

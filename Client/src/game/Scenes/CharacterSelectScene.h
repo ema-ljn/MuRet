@@ -112,7 +112,7 @@ public:
     // Suelta sus slots.
     void Leave() override;
     // WorldLoading después de entrar. Si la sesión falla, la escena no se va: abre el aviso 0x70.
-    [[nodiscard]] std::optional<SceneId> Next() const override;
+    [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     // Con el OK del aviso 0x70, que cierra el juego (Q-C69).
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
@@ -304,7 +304,7 @@ private:
     Core::PixelSize m_screen{640, 480};
     // Los pasos desde que se entró: el reloj del doble clic.
     std::uint64_t m_steps = 0;
-    std::optional<SceneId> m_next;
+    std::optional<Kernel::SceneId> m_next;
     bool m_failureShown = false;
     bool m_quit = false;
     std::optional<std::string> m_failure;

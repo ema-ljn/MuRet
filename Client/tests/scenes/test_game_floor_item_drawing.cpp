@@ -19,6 +19,7 @@
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Items/GameFloorItemDrawing.h"
 #include "Terrain/SphereFrustum.h"
@@ -78,9 +79,9 @@ public:
     std::array<Client::Render::TextureSlot, 3> textures{
         Client::Render::TextureSlot{0x400}, Client::Render::TextureSlot{0x401}, Client::Render::TextureSlot{0x402}};
 };
-Client::Scenes::FloorItemState Item(std::int16_t type)
+Client::Kernel::FloorItemState Item(std::int16_t type)
 {
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = type;
     item.scale = 1;
@@ -502,7 +503,7 @@ TEST(GameFloorItemDrawingTest, FailedWaterSkinKeepsItsTemporaryPositionAndTheNex
     FloorModels models;
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    std::array<Client::Scenes::FloorItemState, 2> items{Item(0x212), Item(0x612)};
+    std::array<Client::Kernel::FloorItemState, 2> items{Item(0x212), Item(0x612)};
     items[0].position.z = 300;
     items[1].screenX = 17;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};

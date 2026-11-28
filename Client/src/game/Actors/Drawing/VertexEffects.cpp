@@ -9,8 +9,8 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/EffectHooks.h"
 #include "Actors/JointHooks.h"
-#include "Scenes/GameDrawTail.h"
 #include "Kernel/JointRequest.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Particles/Particles.h"
 #include "CastleSiege/SiegeVertexEffects.h"
 #include "Particles/Sprites.h"
@@ -62,7 +62,9 @@ void Siege(Effects::ModelEffects& effects, std::int16_t type, const glm::vec3& p
            const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     static_cast<void>(CastleSiege::CreateSiegeVertexEffect(
-        {.type = type, .position = position, .angles = angles, .light = light, .subtype = subtype}, effects, random));
+        Kernel::ModelEffectArguments{
+            .type = type, .position = position, .angles = angles, .light = light, .subtype = subtype},
+        effects, random));
 }
 
 // The same with the gates' stones 0x10c and 0x10d (0x51b99f).

@@ -70,7 +70,7 @@ Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, con
 {
     return Actors::ActorStopContext{
         .runtime = resources.world.Runtime(),
-        .scene = SceneId::Game,
+        .scene = Kernel::SceneId::Game,
         .playerSkeleton = player,
         .items = resources.items,
         .random = resources.cloth.random,
@@ -101,7 +101,7 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
     const auto loaded = LoadMap(map, MapLoadContext{.dataRoot = resources.dataRoot,
                                                     .world = world,
                                                     .terrain = terrain,
-                                                    .scene = SceneId::Game,
+                                                    .scene = Kernel::SceneId::Game,
                                                     .playerKey = playerKey,
                                                     .random = resources.cloth.random,
                                                     .requestCastleSiegeState = resources.requestCastleSiegeState,
@@ -327,7 +327,7 @@ Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::Fr
         return Core::Unexpected(player.Error());
     }
     // 0x4c405a: el latch izquierdo en cero antes de los stats.
-    resources.world.Runtime().movement.pendingClick = false;
+    resources.world.Runtime().mouse.pendingClick = false;
     ApplyTheStats(reply, resources);
     if (auto loaded = LoadTheWorld(reply.map, playerKey, resources); !loaded.HasValue())
     {

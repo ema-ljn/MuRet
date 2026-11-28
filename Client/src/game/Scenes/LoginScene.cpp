@@ -379,7 +379,7 @@ LoginScene::LoginScene(const SceneContext& context, const Tables::GameData& data
       m_localStates(context.states == nullptr ? std::make_unique<Session::ModuleStates>() : nullptr),
       m_localCloth{.random = Crt::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models), m_session(session),
       m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, Assets::LoginTextureSet),
-      m_windowTextures(context.textures, Assets::WindowTextureSet), m_world(WorldOf(SceneId::Login)),
+      m_windowTextures(context.textures, Assets::WindowTextureSet), m_world(WorldOf(Kernel::SceneId::Login)),
       m_terrain(context.textures), m_gameSlots(gameSlots),
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
@@ -887,7 +887,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
     return Actors::StepCharacters(
         {.world = CharacterWorld(),
          .random = cloth.random,
-         .scene = SceneId::Login,
+         .scene = Kernel::SceneId::Login,
          .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId),
          .terrain = m_terrain.Terrain(),
          .darkSpiritSkeleton = m_models.SkeletonOf(Models::ModelId{Pets::DarkSpiritModel}),
@@ -2130,11 +2130,11 @@ void LoginScene::Leave()
     }
 }
 
-std::optional<SceneId> LoginScene::Next() const
+std::optional<Kernel::SceneId> LoginScene::Next() const
 {
     if (m_session != nullptr && m_session->State() == Session::SessionState::LoggedIn)
     {
-        return SceneId::CharacterSelect;
+        return Kernel::SceneId::CharacterSelect;
     }
     return std::nullopt;
 }

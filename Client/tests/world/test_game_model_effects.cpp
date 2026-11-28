@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Joints/FaunaJointCreation.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Render/ModelBatch.h"
@@ -2121,7 +2122,7 @@ TEST(GameModelEffectsTest, TheDarkLordEarthquakeEmitsItsBurstEvenWhenThePoolsAre
         ModelEffect quake = Earthquake(0, 11, {.type = &ownerType, .effect = nullptr, .angles = &ownerAngles});
         QuakeScene scene;
         auto particles = std::make_unique<Client::Particles::Particles>();
-        auto tail = std::make_unique<Client::Scenes::GameDrawTailState>();
+        auto tail = std::make_unique<Client::Kernel::GameDrawTailState>();
         if (particlesFull)
             for (auto& particle : particles->All())
                 particle.alive = true;

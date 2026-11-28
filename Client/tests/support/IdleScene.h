@@ -24,7 +24,7 @@ public:
     void Step(const Input::InputState& /*input*/) override {}
     void Render(Render::Frame::SceneCanvas& /*canvas*/, float /*alpha*/) override {}
     void Leave() override {}
-    [[nodiscard]] std::optional<Scenes::SceneId> Next() const override
+    [[nodiscard]] std::optional<Kernel::SceneId> Next() const override
     {
         return std::nullopt;
     }

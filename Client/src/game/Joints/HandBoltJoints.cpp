@@ -5,7 +5,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Particles/Particles.h"
@@ -29,7 +29,7 @@ using Math::D;
 using Math::F32;
 } // namespace
 
-void CreateHandBoltJoint(Scenes::JointState& joint)
+void CreateHandBoltJoint(Kernel::JointState& joint)
 {
     // 0x5335cf..0x5335f3: velocidad 40, ancho 60, 50 puntos y vida 2.
     if (joint.type == RedHandBoltJoint)
@@ -56,7 +56,7 @@ void CreateHandBoltJoint(Scenes::JointState& joint)
 namespace
 {
 // 0x539def..0x539e6f: (rand() & 3) + 4 por 0,05f (0x6b8a48) en la luz dinámica de radio 2.
-Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, CrtRandom& random,
+Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRandom& random,
                                        Terrain::TerrainLighting* lighting)
 {
     constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
@@ -76,7 +76,7 @@ Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, CrtRando
 }
 
 // 0x539ed4..0x539f11: al llegar, una vez cada dos, tres rand() para un punto que nadie lee y el fuego 0x5d9/0.
-Core::Expected<void, std::string> Arrive(const Scenes::JointState& joint, CrtRandom& random,
+Core::Expected<void, std::string> Arrive(const Kernel::JointState& joint, CrtRandom& random,
                                          const JointKernels::StepServices& services)
 {
     if (random.Next() % 2 != 0)
@@ -95,7 +95,7 @@ Core::Expected<void, std::string> Arrive(const Scenes::JointState& joint, CrtRan
 }
 } // namespace
 
-Core::Expected<void, std::string> StepHandBoltJoint(Scenes::JointState& joint,
+Core::Expected<void, std::string> StepHandBoltJoint(Kernel::JointState& joint,
                                                     const JointKernels::StepServices& services)
 {
     if (joint.maximumCount <= 0)

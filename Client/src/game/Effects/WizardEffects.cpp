@@ -12,7 +12,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -61,7 +61,7 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
                   joints = parts.joints](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = Joints::CreateFaunaJoint(
-                joints.empty() ? std::span<Scenes::JointState>(world.DrawTail().joints) : joints, request, random);
+                joints.empty() ? std::span<Kernel::JointState>(world.DrawTail().joints) : joints, request, random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return {};
@@ -87,14 +87,14 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
                                                                    float radius) -> Core::Expected<void, std::string>
         {
             // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0).
-            const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+            const Actors::SkillHitsRequest request{.skillIndex = effect.byte89,
                                                    .point = effect.transform.position,
                                                    .radius = radius,
                                                    .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                                    .key = effect.disturbanceState,
                                                    .extra = 0};
             const auto hit =
-                Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(terrain), random, send);
+                Actors::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(terrain), random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};

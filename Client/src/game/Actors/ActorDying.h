@@ -33,7 +33,7 @@ struct ActorDyingContext
 {
     std::int32_t map = 0;
     // DAT_006d5dc8: the bubbles of map 7 belong to scene 5 only.
-    Scenes::SceneId scene = Scenes::SceneId::Game;
+    Kernel::SceneId scene = Kernel::SceneId::Game;
     // c == [0x743a170]: the hero sinks but is not erased.
     bool hero = false;
     Crt::CrtRandom& random;

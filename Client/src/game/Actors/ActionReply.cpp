@@ -121,7 +121,7 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
         actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     const ActorStopContext context{
         .runtime = resources.world.Runtime(),
-        .scene = Scenes::SceneId::Game,
+        .scene = Kernel::SceneId::Game,
         .playerSkeleton = *playerSkeleton,
         .items = resources.items,
         .random = resources.cloth.random,

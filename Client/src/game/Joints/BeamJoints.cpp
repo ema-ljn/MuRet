@@ -7,7 +7,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
 #include "Fauna/FaunaObject.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -51,7 +51,7 @@ struct BeamOwner
     std::optional<glm::vec3> point4c{};
 };
 
-std::optional<BeamOwner> OwnerOf(const Scenes::JointState& joint)
+std::optional<BeamOwner> OwnerOf(const Kernel::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return std::nullopt;
@@ -91,7 +91,7 @@ bool Swerves(std::int32_t subtype)
     return subtype == 0xc || subtype == 0xd || subtype == 0x10;
 }
 
-Core::Expected<glm::vec3, std::string> PointOf(const Scenes::JointState& joint, const BeamOwner& owner,
+Core::Expected<glm::vec3, std::string> PointOf(const Kernel::JointState& joint, const BeamOwner& owner,
                                                std::uint32_t address)
 {
     if (!FollowsThe4c(joint.subtype))
@@ -103,7 +103,7 @@ Core::Expected<glm::vec3, std::string> PointOf(const Scenes::JointState& joint, 
 }
 
 // 0x5322cc..0x5323ce: la luz de cada subtipo; la /7 y la /9 no la escriben aquí (la /9 ya tiene la suya).
-void PaintTheBeam(Scenes::JointState& joint)
+void PaintTheBeam(Kernel::JointState& joint)
 {
     const auto bits = [](std::uint32_t red, std::uint32_t green, std::uint32_t blue)
     { return glm::vec3(std::bit_cast<float>(red), std::bit_cast<float>(green), std::bit_cast<float>(blue)); };
@@ -152,7 +152,7 @@ void PaintTheBeam(Scenes::JointState& joint)
 
 // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en la posición y con los ángulos del joint. Todas las del
 // 0x618 (0x5d5/0, /1, /3, /4 y 0x5f2/0x1f) las acepta Particles::Particles; un error suyo corta con la dirección.
-Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, const JointKernels::StepServices& services,
+Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, const JointKernels::StepServices& services,
                                            std::uint32_t address, std::int32_t type, std::int32_t subtype,
                                            const glm::vec3& light, float scale)
 {
@@ -169,7 +169,7 @@ Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, cons
 }
 
 // 0x538352..0x538387 y 0x53840c..0x538441: rand() · el sentido, % 5 (el resto de C), en x y en y.
-void Jitter(Scenes::JointState& joint, CrtRandom& random)
+void Jitter(Kernel::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t Spread = 5;
     const auto step = [&random, &joint]
@@ -182,7 +182,7 @@ void Jitter(Scenes::JointState& joint, CrtRandom& random)
 }
 
 // 0x5383a6..0x5383e7: (rand() % 5 + 3) · el sentido, en x y en y.
-void WideJitter(Scenes::JointState& joint, CrtRandom& random)
+void WideJitter(Kernel::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t Spread = 5, Least = 3;
     const auto step = [&random, &joint]
@@ -197,7 +197,7 @@ void WideJitter(Scenes::JointState& joint, CrtRandom& random)
 // 0x538313..0x538470: con la vida en 100 o más, gira y sube. La /0 suma 10 al rumbo y 6 a la z; la /0xc, 15 y 6 con
 // dos rand() en x y en y; la /0x10 resta 20 · el sentido y suma 8, con dos rand(); la /0xd resta 20 y suma 6, con dos
 // rand(); las demás (la /1, /6 y /9) restan 10 y suman 5.
-Core::Expected<void, std::string> Spin(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Spin(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
     if (Swerves(subtype) && services.random == nullptr)
@@ -239,7 +239,7 @@ Core::Expected<void, std::string> Spin(Scenes::JointState& joint, const JointKer
 // las demás) y 0x4e9810 los gira hacia el destino: el propio en la /6 y la /9, y en las demás el dueño (+0x10, la z +
 // 120), que queda en +0x58. A 35 o menos (o NaN) muere y pide el 0x5d5/1 y el sonido 0x23; de 35 a 70, con el rumbo
 // girado más de 20 y la velocidad en 20 o más, la velocidad − 10.
-Core::Expected<void, std::string> Return(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Return(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
     const bool swerves = Swerves(subtype);
@@ -289,7 +289,7 @@ Core::Expected<void, std::string> Return(Scenes::JointState& joint, const JointK
 // 0x5385d3..0x538704: v = ((rand() & 3) + 8) · 0,03f, la luz dinámica de radio 2 (v · 0,4f; v; v · 0,8f) y lo que
 // deja cada uno: la /6 y la /9 el 0x5d5/3 (escala 0,05f), la /0xc y la /0xd los sprites 0x5ac y 0x5fd (el segundo
 // girado rand() % 360), la /0x10 el 0x5f2/0x1f (escala 0,8f, luz (0,4; 0,8; 1)) y la /0 y la /1 el 0x5d5/0.
-Core::Expected<void, std::string> Glow(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Glow(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.random == nullptr)
         return Core::Unexpected(
@@ -337,7 +337,7 @@ Core::Expected<void, std::string> Glow(Scenes::JointState& joint, const JointKer
 // 0x53820e..0x53830e: el byte vivo del dueño en 0 apaga el joint y sale del paso sin la cola ni la vida. Vivo, la
 // posición sigue su +0x40 (la /2, /4, /5, /8, /0xa, /0xe y /0x11; la /8 además ensancha 10,1f) o su +0x4c (la /3,
 // /0xb y /0xf). La /2 y la /3 dejan el 0x5d5/0 y la /0xe y la /0xf el 0x5d5/4, con la luz del seno del reloj.
-Core::Expected<void, std::string> Follow(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Follow(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const auto owner = OwnerOf(joint);
     if (!owner)
@@ -382,7 +382,7 @@ Core::Expected<void, std::string> Follow(Scenes::JointState& joint, const JointK
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateBeamJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateBeamJoint(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                   CrtRandom& random)
 {
     // 0x532125: el ancho; 0x534ebc elige el grupo.
@@ -457,7 +457,7 @@ Core::Expected<void, std::string> CreateBeamJoint(Scenes::JointState& joint, con
     return {};
 }
 
-Core::Expected<void, std::string> StepBeamJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepBeamJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     // 0x5381f3: la /7 (y lo que pasa de 0x11) va derecho a la cola.
     const std::int32_t subtype = joint.subtype;

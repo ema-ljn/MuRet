@@ -8,10 +8,10 @@
 #include "Scenes/GameProjection.h"
 #include "Hud/HudText.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldTextQueue.h"
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <algorithm>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -27,7 +27,7 @@ constexpr Render::Text::TextColors WorldTextColors{.text = 0xffc8e6ffu, .backgro
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
 // strlen sobre los 64 bytes de la entrada: 0x4381f0 copia los 64 que le pasan, con su '\0' adentro.
-std::string_view TextOf(const WorldText& entry)
+std::string_view TextOf(const Kernel::WorldText& entry)
 {
     const void* end = std::memchr(entry.text.data(), 0, entry.text.size());
     const std::size_t length = end != nullptr
@@ -36,7 +36,7 @@ std::string_view TextOf(const WorldText& entry)
     return {entry.text.data(), length};
 }
 
-Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const WorldText& entry)
+Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const Kernel::WorldText& entry)
 {
     if (context.projection == nullptr)
         return Core::Unexpected(std::string("0x438455: un texto 3D sin la proyección del pase del mundo (0x6203c0)"));
@@ -58,21 +58,13 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const W
 }
 } // namespace
 
-void QueueWorldText(WorldTextQueue& queue, std::string_view text, const glm::vec3& position)
-{
-    WorldText entry;
-    std::memcpy(entry.text.data(), text.data(), std::min(text.size(), entry.text.size()));
-    entry.position = position;
-    queue.push_back(entry);
-}
-
 Core::Expected<void, std::string> DrawTheWorldTexts(WorldTextDrawContext& context)
 {
     // 0x4383f6..0x438405.
     context.sprites.SetColor(White);
     if (context.projecting)
     {
-        for (const WorldText& entry : context.queue)
+        for (const Kernel::WorldText& entry : context.queue)
         {
             if (auto drawn = DrawOne(context, entry); !drawn.HasValue())
                 return drawn;
@@ -82,7 +74,7 @@ Core::Expected<void, std::string> DrawTheWorldTexts(WorldTextDrawContext& contex
     // 0x43840b..0x438584: la de adelante y pop_front, hasta vaciarla (0x69eff0 suelta cada bloque al pasarlo).
     while (!context.queue.empty())
     {
-        const WorldText entry = context.queue.front();
+        const Kernel::WorldText entry = context.queue.front();
         context.queue.pop_front();
         if (auto drawn = DrawOne(context, entry); !drawn.HasValue())
             return drawn;

@@ -4,7 +4,7 @@
 #include "Core/IClock.h"
 #include "Math/HalfLifeMath.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Social/SocialState.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -83,7 +83,7 @@ struct GameCharacterEffectsPass
     // The frame's particles (0x53fe70), joints (0x530860, born through `jointHooks`) and model effects (0x518cf0), for
     // what the full set creates. Needed only if a branch creates, in an original frame.
     Particles::Particles* particles = nullptr;
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
     Effects::ModelEffects* effects = nullptr;
     // Who creates those model effects (0x518cf0). Without it, they stop there.

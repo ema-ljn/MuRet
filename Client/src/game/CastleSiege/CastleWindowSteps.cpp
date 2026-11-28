@@ -61,7 +61,7 @@ bool Click(const Hud::GameUiContext& context, Ui::OldButton& button)
 Core::Expected<void, std::string> Close(const Hud::GameUiContext& context, Ui::PanelId id, std::int32_t x)
 {
     auto& runtime = context.world.Runtime();
-    if (!runtime.movement.pendingClick || !Hit(context, x, CastleUi::CloseY, CastleUi::CloseSize, CastleUi::CloseSize))
+    if (!runtime.mouse.pendingClick || !Hit(context, x, CastleUi::CloseY, CastleUi::CloseSize, CastleUi::CloseSize))
         return {};
     ConsumeClick(runtime);
     runtime.RequestSound(ClickSound);
@@ -110,7 +110,7 @@ void StepList(const Hud::GameUiContext& context, Ui::OldList& list, std::deque<C
         list.base.queue.pop_front();
         Ui::HandleTheListMessage(list, rows.size());
     }
-    Ui::OldListGlobals globals{.leftClick = runtime.movement.pendingClick,
+    Ui::OldListGlobals globals{.leftClick = runtime.mouse.pendingClick,
                                .wheel = ui.wheel,
                                .capture = ui.capture,
                                .focusedList = ui.focusedList,
@@ -130,12 +130,12 @@ void StepList(const Hud::GameUiContext& context, Ui::OldList& list, std::deque<C
                 const auto width =
                     static_cast<std::int32_t>(static_cast<float>(list.base.width) - list.thumbWidth + 1.0f);
                 if (Hit(context, list.base.x, Ui::ListRowY(list, rows.size(), row) - 3, width, 13) &&
-                    runtime.movement.pendingClick)
+                    runtime.mouse.pendingClick)
                 {
                     Ui::SelectInTheList(list, rows.size(), list.scroll + row + 1);
                     const std::uint32_t next = static_cast<std::uint32_t>(rows[at].toggled) + 1u;
                     rows[at].toggled = std::bit_cast<std::int32_t>(next) % 2;
-                    runtime.movement.pendingClick = false;
+                    runtime.mouse.pendingClick = false;
                 }
                 return 1;
             }));
@@ -165,7 +165,7 @@ Core::Expected<void, std::string> StepRegistration(const Hud::GameUiContext& con
 {
     auto& window = context.world.Runtime().castleSiege.registration;
     Cover(context, window.x, window.y);
-    if (context.world.Runtime().movement.leftHeld)
+    if (context.world.Runtime().mouse.leftHeld)
     {
         for (std::int32_t tab = 0; tab < 3; ++tab)
         {
@@ -246,7 +246,7 @@ Core::Expected<void, std::string> StepHunt(const Hud::GameUiContext& context)
     Cover(context, window.x, window.y);
     if (window.mode == 3)
     {
-        if (runtime.movement.pendingClick && Hit(context, window.x + 20, window.y + 115, 150, 24))
+        if (runtime.mouse.pendingClick && Hit(context, window.x + 20, window.y + 115, 150, 24))
         {
             ConsumeClick(runtime);
             if (auto sent = Send(context, Castle::WriteHuntZoneGate(static_cast<std::uint8_t>(window.allowed ^ 1u)));
@@ -321,7 +321,7 @@ Core::Expected<void, std::string> SeniorTabs(const Hud::GameUiContext& context)
         }
         else
         {
-            runtime.movement.pendingClick = false;
+            runtime.mouse.pendingClick = false;
             if (HeroCanCraftAtTheCastle(context.world))
             {
                 runtime.ui.npcWindowX = 0x104;
@@ -393,7 +393,7 @@ Core::Expected<void, std::string> SeniorNpcs(const Hud::GameUiContext& context, 
     auto& runtime = context.world.Runtime();
     constexpr std::array<Ui::Point, 6> Gates{{{532, 122}, {514, 170}, {550, 170}, {498, 222}, {532, 222}, {566, 222}}};
     constexpr std::array<Ui::Point, 4> Statues{{{532, 107}, {532, 152}, {514, 197}, {550, 197}}};
-    if (runtime.movement.pendingClick && Hit(context, 465, 87, 160, 165))
+    if (runtime.mouse.pendingClick && Hit(context, 465, 87, 160, 165))
     {
         const std::size_t count = statue ? Statues.size() : Gates.size();
         for (std::size_t i = 0; i < count; ++i)
@@ -511,7 +511,7 @@ Core::Expected<void, std::string> StepSenior(const Hud::GameUiContext& context)
     Cover(context, window.x, window.y);
     if (Ui::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
         return {};
-    if (runtime.movement.leftHeld)
+    if (runtime.mouse.leftHeld)
     {
         if (auto tabs = SeniorTabs(context); !tabs.HasValue())
             return tabs;

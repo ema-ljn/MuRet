@@ -1,3 +1,4 @@
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 
 #include "Math/X87.h"
@@ -33,7 +34,7 @@ using TailDrawing::Quad;
 
 namespace
 {
-void JointFace(Render::ModelBatch& batch, const JointState& joint, std::size_t segment, std::size_t first,
+void JointFace(Render::ModelBatch& batch, const Kernel::JointState& joint, std::size_t segment, std::size_t first,
                std::size_t second, float u, float nextU, float v, float otherV, const glm::vec3& light)
 {
     double factor = 1;
@@ -50,7 +51,7 @@ void JointFace(Render::ModelBatch& batch, const JointState& joint, std::size_t s
                   {joint.points[segment + 1][first], {nextU, v}, color}}});
 }
 
-glm::vec3 JointCenter(const JointState& joint, std::size_t segment)
+glm::vec3 JointCenter(const Kernel::JointState& joint, std::size_t segment)
 {
     glm::vec3 center{};
     for (int component = 0; component < 3; ++component)
@@ -63,7 +64,7 @@ glm::vec3 JointCenter(const JointState& joint, std::size_t segment)
     return center;
 }
 
-void IcarusSprites(JointState& joint, const JointDrawResources& resources)
+void IcarusSprites(Kernel::JointState& joint, const JointDrawResources& resources)
 {
     if (!resources.originalFrame && !joint.icarusRotations.has_value())
         return; // Sin muestra original previa no inventar giros para los dibujos intermedios.
@@ -82,13 +83,13 @@ void IcarusSprites(JointState& joint, const JointDrawResources& resources)
     static_cast<void>(resources.sprites.Create(0x5fd, center, secondScale, joint.light, second, 3));
 }
 
-bool HalfTexture(const JointState& joint)
+bool HalfTexture(const Kernel::JointState& joint)
 {
     return (joint.type == 0x62c && joint.subtype >= 0 && joint.subtype <= 4) ||
            (joint.subtype >= 11 && joint.subtype <= 13);
 }
 // u, la siguiente u y el corrimiento de 0x53c8ee (el de la segunda cara de 614 y 615).
-Core::Expected<std::array<float, 3>, std::string> JointUvs(const JointState& joint, std::int32_t segment,
+Core::Expected<std::array<float, 3>, std::string> JointUvs(const Kernel::JointState& joint, std::int32_t segment,
                                                            const JointDrawResources* resources)
 {
     const double divisor = static_cast<double>(joint.maximumCount) - 1;
@@ -130,7 +131,7 @@ Core::Expected<std::array<float, 3>, std::string> JointUvs(const JointState& joi
     return std::array<float, 3>{u, nextU, scroll};
 }
 
-Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const JointState& joint, std::int32_t segment,
+Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const Kernel::JointState& joint, std::int32_t segment,
                                                                const JointDrawResources* resources)
 {
     glm::vec3 segmentLight;
@@ -165,7 +166,7 @@ Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const JointState&
     return segmentLight;
 }
 
-Core::Expected<glm::vec3, std::string> EnergyArrowSegmentLight(JointState& joint, std::int32_t segment,
+Core::Expected<glm::vec3, std::string> EnergyArrowSegmentLight(Kernel::JointState& joint, std::int32_t segment,
                                                                const JointDrawResources* resources)
 {
     if (joint.ownerContext == nullptr)
@@ -184,7 +185,7 @@ Core::Expected<glm::vec3, std::string> EnergyArrowSegmentLight(JointState& joint
     return color;
 }
 
-Core::Expected<glm::vec3, std::string> JointSegmentLight(JointState& joint, std::int32_t segment,
+Core::Expected<glm::vec3, std::string> JointSegmentLight(Kernel::JointState& joint, std::int32_t segment,
                                                          const JointDrawResources* resources)
 {
     if (joint.type == 0x619 && (joint.subtype == 9 || joint.subtype == 10))
@@ -215,8 +216,8 @@ Core::Expected<glm::vec3, std::string> JointSegmentLight(JointState& joint, std:
     return segmentLight;
 }
 
-Core::Expected<void, std::string> DrawJointSegment(Render::ModelBatch& batch, JointState& joint, std::int32_t segment,
-                                                   const JointDrawResources* resources)
+Core::Expected<void, std::string> DrawJointSegment(Render::ModelBatch& batch, Kernel::JointState& joint,
+                                                   std::int32_t segment, const JointDrawResources* resources)
 {
     const auto uv = JointUvs(joint, segment, resources);
     if (!uv.HasValue())
@@ -264,7 +265,7 @@ Core::Expected<void, std::string> DrawJointSegment(Render::ModelBatch& batch, Jo
     return {};
 }
 
-Core::Expected<void, std::string> CommonJoint(Render::ModelBatch& batch, JointState& joint,
+Core::Expected<void, std::string> CommonJoint(Render::ModelBatch& batch, Kernel::JointState& joint,
                                               const JointDrawResources* resources)
 {
     if (joint.type == 0x62b && joint.subtype == 20)
@@ -291,7 +292,7 @@ Core::Expected<void, std::string> CommonJoint(Render::ModelBatch& batch, JointSt
 
 namespace
 {
-Core::Expected<void, std::string> DrawJointsChecked(Render::ModelBatch& batch, std::span<JointState> joints,
+Core::Expected<void, std::string> DrawJointsChecked(Render::ModelBatch& batch, std::span<Kernel::JointState> joints,
                                                     std::uint8_t mode, const JointDrawResources* resources)
 {
     for (std::size_t i = 0; i < joints.size(); ++i)
@@ -337,12 +338,13 @@ Core::Expected<void, std::string> DrawJointsChecked(Render::ModelBatch& batch, s
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::span<JointState> joints, std::uint8_t mode)
+Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::span<Kernel::JointState> joints,
+                                             std::uint8_t mode)
 {
     return DrawJointsChecked(batch, joints, mode, nullptr);
 }
-Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::span<JointState> joints, std::uint8_t mode,
-                                             const JointDrawResources& resources)
+Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::span<Kernel::JointState> joints,
+                                             std::uint8_t mode, const JointDrawResources& resources)
 {
     return DrawJointsChecked(batch, joints, mode, &resources);
 }

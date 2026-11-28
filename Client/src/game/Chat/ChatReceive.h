@@ -49,7 +49,7 @@ struct ChatReceiveContext
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
     // 0x6d5dc8, la escena en curso.
-    std::optional<Scenes::SceneId> scene{};
+    std::optional<Kernel::SceneId> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2.
     const Tables::TextTable* texts = nullptr;
     // 0x6d5edc: el lugar del elegido en la selección, de 0 a 4. Vacío, el −1.

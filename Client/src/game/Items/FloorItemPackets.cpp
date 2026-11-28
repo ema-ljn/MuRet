@@ -8,7 +8,7 @@
 #include "Models/LogicalAccess.h"
 #include "Models/ObjectState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Items/GameFloorItems.h"
 #include "Chat/GameMessages.h"
 #include "Items/InventoryMoves.h"
@@ -146,7 +146,7 @@ std::int16_t ModelOf(std::int32_t type, std::int32_t& value)
 }
 
 // 0x607b60 sobre el objeto del ítem: lo que el piso dibuja y pisa después.
-void InitializeTheObject(Scenes::FloorItemState& item, const FloorItemCreation& creation)
+void InitializeTheObject(Kernel::FloorItemState& item, const FloorItemCreation& creation)
 {
     item.light = glm::vec3(ObjectLight);
     item.vertexLight = true;
@@ -187,7 +187,7 @@ Core::Expected<void, std::string> PickUpMessage(const Protocol::Items::PickUpRes
     if (runtime.floor.chosen < 0 || runtime.floor.chosen >= FloorItemCount)
         return Core::Unexpected(
             std::format("0x4d0f5f: el elegido {} está fuera de la tabla 0x77f46c8", runtime.floor.chosen));
-    const Scenes::FloorItemState& chosen =
+    const Kernel::FloorItemState& chosen =
         resources.world.DrawTail().floorItems[static_cast<std::size_t>(runtime.floor.chosen)];
     const auto picked = TextOf(resources.texts, PickedUpText, "0x4d0f85");
     if (!picked.HasValue())
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> EatTheFruit(const Protocol::Items::StatFruit& 
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateFloorItem(Scenes::FloorItemState& item, const Protocol::Items::ItemData& bytes,
+Core::Expected<void, std::string> CreateFloorItem(Kernel::FloorItemState& item, const Protocol::Items::ItemData& bytes,
                                                   const glm::vec3& position, bool dropped,
                                                   const FloorItemCreation& creation)
 {

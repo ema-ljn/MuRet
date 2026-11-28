@@ -18,7 +18,7 @@
 #include "Protocol/Movement/World.h"
 #include "Models/Cloth.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -89,7 +89,7 @@ struct Applier
     Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    std::optional<Client::Scenes::SceneId> scene;
+    std::optional<Client::Kernel::SceneId> scene;
     Client::Scenes::SessionEventApplier applier;
 };
 
@@ -222,7 +222,7 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Kernel::SceneId::CharacterSelect);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_TRUE(tested.world.Runtime().drawingEnabled);
     EXPECT_EQ(tested.cloth.random.State(), 1u);
@@ -349,7 +349,7 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
         .cameraInput = tested.input,
         .models = tested.models,
         .log = tested.log,
-        .scene = [] { return std::optional<Client::Scenes::SceneId>(Client::Scenes::SceneId::Login); }}};
+        .scene = [] { return std::optional<Client::Kernel::SceneId>(Client::Kernel::SceneId::Login); }}};
     Client::Tests::LoggedInSession online(&inTheLogin);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     const std::size_t sent = online.socket.sent.size();
@@ -449,11 +449,11 @@ TEST(SessionEventApplierTest, TheServerListCleanupRunsOnlyInTheGameAndDoesNotRes
     tested->world.Actors()[5].key = 5;
     const auto random = tested->cloth.random.State();
     const Client::App::WorldEvent event = Client::App::ServerListLogoutCleanup{};
-    tested->scene = Client::Scenes::SceneId::CharacterSelect;
+    tested->scene = Client::Kernel::SceneId::CharacterSelect;
     ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
     EXPECT_TRUE(tested->world.Actors()[5].alive);
 
-    tested->scene = Client::Scenes::SceneId::Game;
+    tested->scene = Client::Kernel::SceneId::Game;
     ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
 
     EXPECT_FALSE(tested->world.Actors()[5].alive);
@@ -475,7 +475,7 @@ TEST(SessionEventApplierTest, TheServerListReturnResetsTheWorldAndOrdersTheLogin
 
     ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
 
-    EXPECT_EQ(tested->world.Runtime().orderedScene, Client::Scenes::SceneId::Login);
+    EXPECT_EQ(tested->world.Runtime().orderedScene, Client::Kernel::SceneId::Login);
     EXPECT_EQ(tested->world.Runtime().map, -1);
     EXPECT_FALSE(tested->world.Runtime().drawingEnabled);
     EXPECT_FALSE(tested->selection.HasReceivedList());
@@ -487,7 +487,7 @@ TEST(SessionEventApplierTest, TheServerListReturnAlsoKillsSelectionActorsWithout
 {
     auto tested = std::make_unique<Applier>();
     Client::Tests::LoggedInSession online;
-    tested->scene = Client::Scenes::SceneId::CharacterSelect;
+    tested->scene = Client::Kernel::SceneId::CharacterSelect;
     tested->world.Actors()[3].alive = true;
     tested->world.Actors()[3].key = 3;
     tested->world.Actors()[4].alive = true;
@@ -510,7 +510,7 @@ TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleas
         SCOPED_TRACE(serverList);
         auto tested = std::make_unique<Applier>();
         Client::Tests::LoggedInSession online;
-        tested->scene = Client::Scenes::SceneId::Game;
+        tested->scene = Client::Kernel::SceneId::Game;
         tested->world.Runtime().map = 2;
         tested->world.Actors()[3].alive = true;
         tested->world.Actors()[3].key = 3;

@@ -17,7 +17,7 @@
 #include "Kernel/ActorState.h"
 #include "Pets/DarkHorse.h"
 #include "Fauna/FaunaState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Guild/GuildState.h"
 #include "Pets/HelperTable.h"
 #include "Session/IWorldEntryPublisher.h"
@@ -238,7 +238,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         EXPECT_TRUE(tested.world.Actors()[survivor].alive);
         EXPECT_TRUE(tested.world.Actors()[LastActor].alive);
         EXPECT_EQ(runtime.hero, hero);
-        EXPECT_EQ(runtime.orderedScene, Client::Scenes::SceneId::CharacterSelect);
+        EXPECT_EQ(runtime.orderedScene, Client::Kernel::SceneId::CharacterSelect);
         EXPECT_FALSE(runtime.drawingEnabled);
         EXPECT_EQ(runtime.map, -1);
         EXPECT_EQ(tested.camera.level, 0);
@@ -268,7 +268,7 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     EXPECT_EQ(tested.cloth.random.State(), before.State());
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
     EXPECT_EQ(tested.world.OwnCharacter().word40, 0);
-    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Kernel::SceneId::CharacterSelect);
 }
 
 // 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 hito 4): la vuelta pone en 0 la pestaña, la ventana y las tres mascotas.

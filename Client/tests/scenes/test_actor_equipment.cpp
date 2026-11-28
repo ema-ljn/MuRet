@@ -101,7 +101,7 @@ protected:
                                                             .publishedHero = m_hero,
                                                             .fullSetScan = m_runtime.fullSetScan,
                                                             .stop = {.runtime = m_runtime,
-                                                                     .scene = Client::Scenes::SceneId::Game,
+                                                                     .scene = Client::Kernel::SceneId::Game,
                                                                      .playerSkeleton = m_skeleton,
                                                                      .items = &m_items,
                                                                      .random = m_random},

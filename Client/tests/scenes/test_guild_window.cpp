@@ -11,9 +11,9 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Render/Text/FontSet.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Guild/GuildDrawing.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildPanels.h"
@@ -350,16 +350,16 @@ protected:
     {
         m_mouseX = target.base.x + target.base.width / 2;
         m_mouseY = target.base.y + target.base.height / 2;
-        Client::Movement::GameMovementState& movement = Runtime().movement;
-        movement.pendingClick = true;
-        movement.leftHeld = true;
+        Client::Kernel::MouseState& mouse = Runtime().mouse;
+        mouse.pendingClick = true;
+        mouse.leftHeld = true;
         if (auto pressed = Step(); !pressed.HasValue())
             return pressed;
-        movement.pendingClick = false;
-        movement.leftHeld = false;
-        movement.releasedClick = true;
+        mouse.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.releasedClick = true;
         auto released = Step();
-        movement.releasedClick = false;
+        mouse.releasedClick = false;
         return released;
     }
 
@@ -397,16 +397,16 @@ protected:
     {
         m_mouseX = x;
         m_mouseY = y;
-        Client::Movement::GameMovementState& movement = Runtime().movement;
-        movement.pendingClick = true;
-        movement.leftHeld = true;
+        Client::Kernel::MouseState& mouse = Runtime().mouse;
+        mouse.pendingClick = true;
+        mouse.leftHeld = true;
         if (auto pressed = StepTheDialog(); !pressed.HasValue())
             return pressed;
-        movement.pendingClick = false;
-        movement.leftHeld = false;
-        movement.releasedClick = true;
+        mouse.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.releasedClick = true;
         auto released = StepTheDialog();
-        movement.releasedClick = false;
+        mouse.releasedClick = false;
         return released;
     }
 
@@ -558,10 +558,10 @@ TEST_P(GuildWindowTest, TheCloseButtonClosesTheWindow)
     Guild().window.tab = 2;
     m_mouseX = WindowX + 0x19 + 3;
     m_mouseY = 0x18b + 3;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step().HasValue());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
+    EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
     EXPECT_EQ(Runtime().panels.delegated.guild, 0);
     EXPECT_EQ(Guild().window.tab, 1);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
@@ -574,7 +574,7 @@ TEST_P(GuildWindowTest, TheCloseButtonClosesTheWindow)
 TEST_P(GuildWindowTest, TheTabsSwitchAndTheUnionTabAsksForTheListOnce)
 {
     JoinTheGuild("Ceibo");
-    Runtime().movement.leftHeld = true;
+    Runtime().mouse.leftHeld = true;
     PointAtTheTab(2);
     auto stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -598,7 +598,7 @@ TEST_P(GuildWindowTest, TheTabsSwitchAndTheUnionTabAsksForTheListOnce)
     EXPECT_EQ(m_sent.size(), 1U);
 
     // Sin el izquierdo abajo, la pestaña no cambia.
-    Runtime().movement.leftHeld = false;
+    Runtime().mouse.leftHeld = false;
     PointAtTheTab(1);
     static_cast<void>(Step());
     EXPECT_EQ(Guild().window.tab, 2);
@@ -609,7 +609,7 @@ TEST_P(GuildWindowTest, TheTabsSwitchAndTheUnionTabAsksForTheListOnce)
 TEST_P(GuildWindowTest, WithoutAnAllianceTheUnionTabSendsNothing)
 {
     JoinTheGuild("");
-    Runtime().movement.leftHeld = true;
+    Runtime().mouse.leftHeld = true;
     PointAtTheTab(2);
     static_cast<void>(Step());
     EXPECT_EQ(Guild().window.tab, 2);
@@ -673,16 +673,16 @@ TEST_P(GuildWindowTest, ClickingAMemberRowChoosesAndTogglesIt)
     AddMember("Tala", MemberStatus);
     m_mouseX = 0x1d2 + 4;
     m_mouseY = 139 - 3 + 2;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step().HasValue());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Guild().window.memberList.selection, 1);
     EXPECT_EQ(Guild().window.members[0].toggled, 1);
     EXPECT_EQ(Guild().window.members[1].toggled, 0);
 
     // El renglón 1, 13 más arriba.
     m_mouseY -= 13;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step().HasValue());
     EXPECT_EQ(Guild().window.memberList.selection, 2);
     EXPECT_EQ(Guild().window.members[1].toggled, 1);

@@ -1,7 +1,7 @@
 #include "Models/IModelLibrary.h"
 #include "Monsters/Drawing/MonsterHelpers.h"
 
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Audio/SoundId.h"
 #include <algorithm>
 
@@ -596,7 +596,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         EXPECT_EQ(Sound(), Client::Audio::SoundId{0x207});
         const std::array<glm::vec3, 3> points{hand, victim.position, edge.position};
         CrtRandom replay = AfterDraws(quiet, 1);
-        std::vector<Client::Scenes::JointState> twin(m_world->DrawTail().joints.size());
+        std::vector<Client::Kernel::JointState> twin(m_world->DrawTail().joints.size());
         const glm::vec3 down{-90.0f, 0.0f, 30.0f};
         for (const glm::vec3& at : points)
         {
@@ -1566,7 +1566,7 @@ TEST_F(MonsterHelpersTest, The1b6GlowsAndSparksAtItsFootAndTarget)
         for (auto& particle : m_particles->All())
             particle.alive = false;
         m_sprites.Clear();
-        for (Client::Scenes::JointState& joint : m_world->DrawTail().joints)
+        for (Client::Kernel::JointState& joint : m_world->DrawTail().joints)
             joint.alive = false;
         ActorState& actor = Monster(0x1b6, action, 6.0f);
         actor.subtype = 1;
@@ -1614,7 +1614,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         actor.attackTarget = 3;
         CrtRandom random(11);
         MonsterHelperPass pass = Pass(map, random);
-        for (Client::Scenes::JointState& joint : m_world->DrawTail().joints)
+        for (Client::Kernel::JointState& joint : m_world->DrawTail().joints)
             joint.alive = false;
         ActorState& victim = m_world->Actors()[3];
         victim.position = {300.0f, 400.0f, 50.0f};
@@ -1626,7 +1626,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         const float speed = static_cast<float>(static_cast<double>(expected.Next() % 10) + 20.0);
         const std::int32_t life = expected.Next() % 2 + 2;
         EXPECT_EQ(random.State(), expected.State());
-        const Client::Scenes::JointState& joint = m_world->DrawTail().joints[0];
+        const Client::Kernel::JointState& joint = m_world->DrawTail().joints[0];
         ASSERT_TRUE(joint.alive);
         EXPECT_EQ(joint.type, 0x614);
         EXPECT_EQ(joint.subtype, 0x10);
@@ -2180,7 +2180,7 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepPoolLimits)
         }
         const bool posed = !(value.type == 0x1ae && value.action == 8);
         EXPECT_EQ(m_world->PoseCarry().models.count(value.type), posed ? 1u : 0u);
-        std::vector<const Client::Scenes::RibbonState*> ribbons;
+        std::vector<const Client::Kernel::RibbonState*> ribbons;
         for (const auto& ribbon : m_world->DrawTail().ribbons)
         {
             if (ribbon.alive && ribbon.ownerContext == &actor)
@@ -2259,7 +2259,7 @@ TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
 {
     m_models.ResizeBones(90);
     ActorState& actor = Monster(0x1b1, 4, 3.0f);
-    m_world->DrawTail().ribbons.fill(Client::Scenes::RibbonState{.alive = true, .ownerContext = m_world.get()});
+    m_world->DrawTail().ribbons.fill(Client::Kernel::RibbonState{.alive = true, .ownerContext = m_world.get()});
     CrtRandom full(1);
     const auto fullPoolStep = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
                                                                                  full, m_particles.get(), 0.0f);
@@ -2269,7 +2269,7 @@ TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
     EXPECT_FLOAT_EQ(m_world->PoseCarry().models.at(actor.type).scale, actor.scale);
     EXPECT_EQ(m_faunaModels.PoseKey(actor.type), 2);
     EXPECT_TRUE(std::ranges::all_of(m_world->DrawTail().ribbons,
-                                    [](const Client::Scenes::RibbonState& ribbon) { return ribbon.count == 0; }));
+                                    [](const Client::Kernel::RibbonState& ribbon) { return ribbon.count == 0; }));
 
     m_world->DrawTail().ribbons = {};
     CrtRandom append(1);
@@ -2280,7 +2280,7 @@ TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
                                                                    m_particles.get(), 0.0f)
                     .HasValue());
     EXPECT_EQ(append.State(), AfterDraws(1, 2).State());
-    std::vector<const Client::Scenes::RibbonState*> own;
+    std::vector<const Client::Kernel::RibbonState*> own;
     for (const auto& ribbon : m_world->DrawTail().ribbons)
     {
         if (ribbon.alive && ribbon.ownerContext == &actor)

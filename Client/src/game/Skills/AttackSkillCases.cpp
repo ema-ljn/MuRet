@@ -17,8 +17,7 @@
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Effects/FireBreathEffect.h"
-#include "Scenes/GameDrawTail.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkills.h"
 #include "Effects/HighModelEffects.h"
@@ -834,7 +833,7 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
         bool candidate = other.alive && other.byte88 == MonsterObject && other.animation.action != MonsterFallAction;
         if (!candidate && other.alive && other.byte88 == PlayerObject && other.animation.action != PlayerFallAction)
         {
-            const auto attackable = Hero::IsAttackableActor(context.world, other, context.controlDown);
+            const auto attackable = Combat::IsAttackableActor(context.world, other, context.controlDown);
             if (!attackable.HasValue())
                 return Core::Unexpected(attackable.Error());
             candidate = attackable.Value();

@@ -23,7 +23,7 @@
 #include "Pets/DarkHorse.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/LoginActor.h"
 #include "FrontEnd/LoginModels.h"
 #include "Render/Frame/SceneCanvas.h"
@@ -947,7 +947,7 @@ TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
     for (auto& actor : world->Actors())
         actor.darkSpirit.reset();
     auto& joints = world->DrawTail().joints;
-    Client::Scenes::JointState& drawn = joints[0];
+    Client::Kernel::JointState& drawn = joints[0];
     drawn.alive = true;
     drawn.type = 0x60f;
     drawn.texture = 0x60f;
@@ -993,7 +993,7 @@ TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
                                                .skillSerial = 0,
                                                .target = -1};
     ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, cloth.random).HasValue());
-    const Client::Scenes::JointState& ray = joints[0];
+    const Client::Kernel::JointState& ray = joints[0];
     ASSERT_TRUE(ray.alive);
     ASSERT_EQ(ray.type, 0x613);
     const std::int32_t life = ray.life;

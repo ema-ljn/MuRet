@@ -12,7 +12,7 @@
 #include "Kernel/ActorState.h"
 #include "Skills/AttackStep.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Kernel/WorldMap.h"
@@ -47,11 +47,11 @@
 namespace
 {
 using Client::Actors::CharacterStepContext;
-using Client::Combat::StepTheAttack;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
+using Client::Kernel::JointState;
 using Client::Kernel::WorldState;
-using Client::Scenes::JointState;
+using Client::Skills::StepTheAttack;
 using Client::Skills::StepTheFrameSkill;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;

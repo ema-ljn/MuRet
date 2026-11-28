@@ -18,7 +18,7 @@
 #include "Kernel/ActorState.h"
 #include "Combat/BlastEffectCalls.h"
 #include "Combat/CombatActionSpeeds.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Kernel/OwnCharacterRecord.h"

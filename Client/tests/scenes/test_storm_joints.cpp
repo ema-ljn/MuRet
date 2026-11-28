@@ -13,7 +13,7 @@
 #include "Actors/ActorPickingBox.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
@@ -43,7 +43,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::uint32_t Seed = 0x632u;
 

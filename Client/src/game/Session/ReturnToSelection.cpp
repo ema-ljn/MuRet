@@ -7,7 +7,7 @@
 #include "Models/LogicalAccess.h"
 #include "Events/Crywolf/CameraTour.h"
 #include "Events/EventPackets.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Guild/GuildState.h"
 #include "Guild/GuildWindow.h"
 #include "Items/InventoryMoves.h"
@@ -153,7 +153,7 @@ Core::Expected<void, std::string> PrepareReturnToSelection(const WorldEntryResou
     if (auto released = ReleaseTheGame(resources); !released.HasValue())
         return released;
     ResetTheInterface(resources.world.Runtime());
-    resources.world.Runtime().orderedScene = SceneId::CharacterSelect; // 0x4c363f
+    resources.world.Runtime().orderedScene = Kernel::SceneId::CharacterSelect; // 0x4c363f
     return {};
 }
 
@@ -176,7 +176,7 @@ Core::Expected<void, std::string> ApplyReturnToSelection(const WorldEntryResourc
 Core::Expected<void, std::string> PrepareReturnToServerList(const WorldEntryResources& resources)
 {
     // 0x4c275c..0x4c2779: sólo en escena 5, pero ANTES de comprobar el cifrado.
-    if (!resources.scene || resources.scene() != SceneId::Game)
+    if (!resources.scene || resources.scene() != Kernel::SceneId::Game)
         return {};
     ResetTheInterface(resources.world.Runtime());
     StopAudioForSceneReturn(resources.world.Runtime());
@@ -193,7 +193,7 @@ Core::Expected<void, std::string> ApplyReturnToServerList(const WorldEntryResour
     KillOtherActors(resources.world, NoKey);
     // 0x4c2ef3..0x4c2f51: el socket ya está cerrado. Leave/Enter liberan los recursos de escena
     // (0x61cc50) y reconstruyen el login, cuyas banderas de primera vez se reinician aquí.
-    resources.world.Runtime().orderedScene = SceneId::Login;
+    resources.world.Runtime().orderedScene = Kernel::SceneId::Login;
     resources.selection.BeginSelection();
     resources.world.Runtime().drawingEnabled = false;
     return ResetAfterLogout(resources);

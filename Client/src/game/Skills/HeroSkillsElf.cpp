@@ -3,16 +3,15 @@
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Pathfinding/PathFinder.h"
+#include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
 #include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Combat/ActorCombat.h"
 #include "Kernel/ActorState.h"
-#include "Events/Crywolf/CrywolfContract.h"
 #include "Movement/GameMovementState.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkillSupport.h"
 #include "Skills/HeroSkills.h"
@@ -138,7 +137,7 @@ private:
     Core::Expected<bool, std::string> PassesTheHead();
     Core::Expected<bool, std::string> Attackable() const
     {
-        return Hero::IsAttackable(m_world, m_context.controlDown);
+        return Combat::IsAttackable(m_world, m_context.controlDown);
     }
     Kernel::ActorState& Published() const
     {
@@ -270,7 +269,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosen =
-            Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
+            Combat::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
         key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(chosen.Value()) & 0xffffu);
@@ -307,9 +306,8 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
     const auto path =
-        Pathfinding::PathFinder(terrain.attributes->cells)
-            .Find({start.x, start.y}, {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)},
-                  Events::Crywolf::CrywolfAltarGoal(m_world), distance);
+        Actors::FindThePath(m_world, terrain.attributes->cells, {start.x, start.y},
+                            {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)}, distance);
     if (!path)
         return {};
     m_hero.path = *path;
@@ -482,7 +480,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
         !delayed.HasValue())
         return delayed;
-    const auto key = Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
+    const auto key = Combat::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     m_hero.skillTarget4c = chosen;

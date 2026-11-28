@@ -220,7 +220,7 @@ void TaxArrow(Hud::GameHudContext& context, CastleSiege::CastleData& data, std::
               std::int32_t y, bool increment, bool& released)
 {
     const bool hit = Chat::MouseInRect(context.mouse.x, context.mouse.y, x, y, 13, 13, 1);
-    const bool pressed = context.world.Runtime().movement.pendingClick && hit;
+    const bool pressed = context.world.Runtime().mouse.pendingClick && hit;
     Ui::OldDraw::Quad(context.sprites, 0x649, static_cast<float>(x), static_cast<float>(y), 13, 13,
                       pressed ? 0.8125f : 0, increment ? (pressed ? 0.90625f : 0.09375f) : 0.5f,
                       pressed ? -0.8125f : 0.8125f, pressed ? -0.40625f : 0.40625f);
@@ -247,8 +247,8 @@ Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSieg
     context.sprites.ColorQuad(static_cast<float>(x + 20), Top + 22, 140, 24);
     context.sprites.ColorQuad(static_cast<float>(x + 20), Top + 47, 140, 24);
     Ui::OldDraw::WhiteWithTexture(context.sprites);
-    bool projectedRelease = context.world.Runtime().movement.releasedClick;
-    bool& release = context.projecting ? projectedRelease : context.world.Runtime().movement.releasedClick;
+    bool projectedRelease = context.world.Runtime().mouse.releasedClick;
+    bool& release = context.projecting ? projectedRelease : context.world.Runtime().mouse.releasedClick;
     TaxArrow(context, data, CastleSiege::ChaosTaxAt, x + 157, Top + 22, true, release);
     TaxArrow(context, data, CastleSiege::ChaosTaxAt, x + 157, Top + 34, false, release);
     TaxArrow(context, data, CastleSiege::StoreTaxAt, x + 157, Top + 47, true, release);

@@ -61,11 +61,6 @@ public:
     {
         return Record("RefreshTheSiegePanel");
     }
-    bool CrywolfAltarGoal(const WorldState&) const override
-    {
-        static_cast<void>(Record("CrywolfAltarGoal"));
-        return false;
-    }
     Expected<void, std::string> QueueTheGateName(const ActorState&, const CharacterStepContext&) const override
     {
         return Record("QueueTheGateName");
@@ -243,9 +238,8 @@ TEST(CharacterStepHooksTest, TheHeroAsksTheSlotsInTheOriginalsOrder)
     EXPECT_EQ(hooks.Calls(), expected);
 }
 
-// 0x508ba0 for anyone but the hero asks where the walk goes (Crywolf's altar) before the body, which does not step
-// the own record's timers.
-TEST(CharacterStepHooksTest, AnotherCharacterAsksForTheWalkFirstAndSkipsTheOwnTimers)
+// 0x508ba0 for anyone but the hero: the body does not step the own record's timers.
+TEST(CharacterStepHooksTest, AnotherCharacterSkipsTheOwnTimers)
 {
     StepWorld tested;
     tested.world->Actors()[HeroSlot].alive = false;
@@ -255,9 +249,9 @@ TEST(CharacterStepHooksTest, AnotherCharacterAsksForTheWalkFirstAndSkipsTheOwnTi
     const auto stepped = Client::Actors::StepCharacters(tested.Context(&hooks));
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const std::vector<std::string> expected{
-        "RefreshTheSiegePanel", "CrywolfAltarGoal", "StepTheAlpha",  "TurnTheNpc",        "SayTheNpcLine",
-        "SayTheNamedLine",      "ModelSpeedOf",     "StepTheAttack", "QueueTheHealthBar", "StepTheCastleObject"};
+    const std::vector<std::string> expected{"RefreshTheSiegePanel", "StepTheAlpha",      "TurnTheNpc",
+                                            "SayTheNpcLine",        "SayTheNamedLine",   "ModelSpeedOf",
+                                            "StepTheAttack",        "QueueTheHealthBar", "StepTheCastleObject"};
     EXPECT_EQ(hooks.Calls(), expected);
 }
 

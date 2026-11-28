@@ -25,7 +25,7 @@ protected:
     void Walk(Client::Kernel::ActorState& actor, bool hero = true)
     {
         auto walked = Client::Actors::SetActorWalk(
-            actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, &m_items, m_random}, m_speeds, hero});
+            actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, &m_items, m_random}, m_speeds, hero});
         ASSERT_TRUE(walked.HasValue()) << (walked.HasValue() ? "" : walked.Error());
     }
     Client::Kernel::WorldRuntime m_runtime = []
@@ -198,7 +198,7 @@ TEST_F(ActorWalkTest, MissingWeaponTableFailsAfterRunAndSharedSpeedWritesWithout
     actor.hands[0].model = 0x213;
     actor.run = 39;
     const auto walked = Client::Actors::SetActorWalk(
-        actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true});
+        actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true});
     EXPECT_FALSE(walked.HasValue());
     EXPECT_EQ(actor.run, 40);
     EXPECT_FLOAT_EQ(m_speeds.Speed(22, 9.0f), 0.34f);
@@ -212,7 +212,7 @@ TEST_F(ActorWalkTest, NonplayerUsesItsOwnSkeletonWithoutWritingPlayerSpeeds)
     m_speeds.SetWalking(true);
     const auto walked = Client::Actors::SetActorWalk(
         actor,
-        {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true, &m_skeleton});
+        {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true, &m_skeleton});
     ASSERT_TRUE(walked.HasValue()) << (walked.HasValue() ? "" : walked.Error());
     EXPECT_EQ(actor.animation.action, 2);
     EXPECT_EQ(actor.run, 1);
@@ -229,7 +229,7 @@ TEST_F(ActorWalkTest, MissingNonplayerSkeletonLeavesTheModelActionAloneAndKeepsW
     m_speeds.SetWalking(true);
 
     const auto walked =
-        Client::Actors::SetActorWalk(actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random},
+        Client::Actors::SetActorWalk(actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random},
                                              m_speeds,
                                              true,
                                              nullptr,
@@ -248,7 +248,7 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
     actor.type = 0x16d;
     const auto walked = Client::Actors::SetActorWalk(
         actor,
-        {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true, &m_skeleton});
+        {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true, &m_skeleton});
     ASSERT_TRUE(walked.HasValue()) << (walked.HasValue() ? "" : walked.Error());
     ASSERT_TRUE(walked.Value().sound.has_value());
     EXPECT_EQ(*walked.Value().sound, Client::Audio::SoundId{0x7c});
@@ -272,7 +272,7 @@ TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
         actor.subtype = subtype;
         return Client::Actors::SetActorWalk(
             actor,
-            {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false, &m_skeleton});
+            {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false, &m_skeleton});
     };
 
     const auto unwritten = walk(0);
@@ -382,7 +382,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
             actor.subtype = subtype;
             Client::Crt::CrtRandom random(seed);
             const auto walked = Client::Actors::SetActorWalk(
-                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
+                actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, random},
                         m_speeds,
                         false,
                         &m_skeleton,
@@ -398,7 +398,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
 
             Client::Crt::CrtRandom quiet(seed);
             const auto muted = Client::Actors::SetActorWalk(
-                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
+                actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, quiet},
                         m_speeds,
                         false,
                         &m_skeleton,
@@ -408,7 +408,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
 
             Client::Crt::CrtRandom missing(seed);
             const auto unknown = Client::Actors::SetActorWalk(
-                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, missing},
+                actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, missing},
                         m_speeds,
                         false,
                         &m_skeleton});
@@ -443,7 +443,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
         plain.type = 0x153;
         Client::Crt::CrtRandom reference(seed);
         const auto expected = Client::Actors::SetActorWalk(
-            plain, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, reference},
+            plain, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, reference},
                     m_speeds,
                     false,
                     &m_skeleton,
@@ -457,7 +457,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
             actor.subtype = subtype;
             Client::Crt::CrtRandom random(seed);
             const auto walked = Client::Actors::SetActorWalk(
-                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
+                actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, random},
                         m_speeds,
                         false,
                         &m_skeleton,
@@ -468,7 +468,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
 
             Client::Crt::CrtRandom quiet(seed);
             const auto muted = Client::Actors::SetActorWalk(
-                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
+                actor, {{m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, quiet},
                         m_speeds,
                         false,
                         &m_skeleton,

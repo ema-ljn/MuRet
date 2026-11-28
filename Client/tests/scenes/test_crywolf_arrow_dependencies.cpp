@@ -1,6 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/JointRequest.h"
 #include "Joints/FaunaJointCreation.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
@@ -32,7 +33,7 @@ struct Trigonometry final : Client::Particles::IParticleTrigonometry
 };
 TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyLifeAndColor)
 {
-    std::vector<Client::Scenes::JointState> joints(1);
+    std::vector<Client::Kernel::JointState> joints(1);
     Client::Effects::ModelEffect owner;
     owner.alive = true;
     Client::Crt::CrtRandom random(7);
@@ -60,7 +61,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
         for (const bool alive : {true, false})
         {
             SCOPED_TRACE(subtype);
-            std::vector<Client::Scenes::JointState> joints(1);
+            std::vector<Client::Kernel::JointState> joints(1);
             auto& joint = joints[0];
             Client::Effects::ModelEffect owner;
             owner.alive = alive;
@@ -152,7 +153,7 @@ TEST(CrywolfArrowDependenciesTest, TheFallingOrbitDescendsAndMovesOnlyItsAnchorX
 }
 TEST(CrywolfArrowDependenciesTest, TheFullPoolsDoNotReadTheOwnerOrAdvanceTheConstructorRandom)
 {
-    std::vector<Client::Scenes::JointState> joints(1);
+    std::vector<Client::Kernel::JointState> joints(1);
     joints[0].alive = true;
     Client::Crt::CrtRandom random(7);
     glm::vec3 empty{};

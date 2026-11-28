@@ -136,7 +136,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                 .worldEntry = &m_worldEntry,
                 .clipboard = devices.clipboard,
                 .states = &m_states},
-      m_manager([this](Scenes::SceneId id) { return MakeScene(id); }, devices.frame, devices.clock,
+      m_manager([this](Kernel::SceneId id) { return MakeScene(id); }, devices.frame, devices.clock,
                 [this] { return PollNetwork(); }, devices.log, [this] { return TakeSceneOrder(); },
                 [this](Core::Duration now) { BeforeSceneFrame(now); }, [this](Core::Duration now)
                 { AfterSceneFrame(now); }, [this] { return AfterSceneStep(); }, [this] { return BeforeSceneDraw(); },
@@ -183,7 +183,7 @@ Scenes::ILoopClient& GameClient::Loop()
     return m_manager;
 }
 
-std::optional<Scenes::SceneId> GameClient::CurrentScene() const
+std::optional<Kernel::SceneId> GameClient::CurrentScene() const
 {
     return m_manager.Current();
 }
@@ -226,22 +226,22 @@ ServerSession* GameClient::MutableSession()
     return m_online ? &m_online->session : nullptr;
 }
 
-std::unique_ptr<Scenes::IScene> GameClient::MakeScene(Scenes::SceneId id)
+std::unique_ptr<Scenes::IScene> GameClient::MakeScene(Kernel::SceneId id)
 {
     ServerSession* session = MutableSession();
     switch (id)
     {
-    case Scenes::SceneId::Loading:
+    case Kernel::SceneId::Loading:
         return std::make_unique<Scenes::LoadingScene>(m_context, &m_models);
-    case Scenes::SceneId::Login:
+    case Kernel::SceneId::Login:
         return std::make_unique<Scenes::LoginScene>(m_context, m_data, m_models, session, m_options.version,
                                                     m_options.loginSeed ? m_options.loginSeed() : 0,
                                                     &m_models.TextureSlots());
-    case Scenes::SceneId::CharacterSelect:
+    case Kernel::SceneId::CharacterSelect:
         return std::make_unique<Scenes::CharacterSelectScene>(m_context, m_data, m_models, session);
-    case Scenes::SceneId::WorldLoading:
+    case Kernel::SceneId::WorldLoading:
         return std::make_unique<Scenes::WorldLoadingScene>(m_context);
-    case Scenes::SceneId::Game:
+    case Kernel::SceneId::Game:
         return std::make_unique<Scenes::GameScene>(
             m_context, session, &m_models, m_data.items ? &m_data.items->table : nullptr, &m_models.TextureSlots(),
             m_data.gates ? &*m_data.gates : nullptr, m_data.skills ? &*m_data.skills : nullptr,
@@ -277,7 +277,7 @@ Core::Expected<void, std::string> GameClient::PollNetwork()
 }
 
 // 0x4c363f: the scene F1 02 with 1 ordered, once.
-std::optional<Scenes::SceneId> GameClient::TakeSceneOrder()
+std::optional<Kernel::SceneId> GameClient::TakeSceneOrder()
 {
     return std::exchange(m_world.Runtime().orderedScene, std::nullopt);
 }
@@ -304,7 +304,7 @@ void GameClient::AfterSceneFrame(Core::Duration now)
 {
     Scenes::FinishTheWinMainLoop(m_winMainLoop, m_world, m_cloth.random, now,
                                  Scenes::OriginalFramePaceOf(m_options.pacing),
-                                 m_manager.Current() == Scenes::SceneId::Game);
+                                 m_manager.Current() == Kernel::SceneId::Game);
     // P-C110: a held frame with the screenshot requested stops at the next step or draw.
     m_screenshots.FinishTheLoop(Connecting());
 }

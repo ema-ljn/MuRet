@@ -14,7 +14,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/PosePublishing.h"
 #include "Items/GameFloorItemDrawing.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "Ui/Widget.h"
@@ -770,9 +770,9 @@ void* UiItemLocalObject()
     return &localObject;
 }
 
-void HideUiItemJoints(Scenes::GameDrawTailState& tail)
+void HideUiItemJoints(Kernel::GameDrawTailState& tail)
 {
-    for (Scenes::JointState& joint : tail.joints)
+    for (Kernel::JointState& joint : tail.joints)
     {
         if (joint.alive && joint.ownerContext == UiItemLocalObject())
             joint.alive = false;

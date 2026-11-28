@@ -20,7 +20,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/LoginModels.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/ModuleStates.h"
@@ -220,7 +220,7 @@ TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
         tested->states.terrain.current.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         tested->world.Runtime().map = map;
         tested->world.Runtime().crywolf.stage = 4;
-        tested->world.Runtime().movement.chosenNpc = 9;
+        tested->world.Runtime().chosenNpc.index = 9;
         tested->world.Actors()[9].type = 0x206;
         auto& other = tested->world.Actors()[8];
         other = Client::Tests::UnarmedPlayer();

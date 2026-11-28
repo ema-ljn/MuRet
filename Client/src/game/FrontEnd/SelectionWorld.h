@@ -16,7 +16,7 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Assets/SceneTextures.h"
 #include "Assets/TerrainTiles.h"
 #include "Models/TextureMetadata.h"
@@ -147,7 +147,7 @@ public:
     [[nodiscard]] Models::ClothWorld& FrameCloth();
     [[nodiscard]] Particles::Particles& FrameParticles();
     [[nodiscard]] Effects::ModelEffects& FrameEffects();
-    [[nodiscard]] Scenes::GameDrawTailState& FrameTail();
+    [[nodiscard]] Kernel::GameDrawTailState& FrameTail();
     // La tabla de los sprites del frame (0x5491e0): la del mundo, o la proyectada en un dibujo intermedio.
     [[nodiscard]] Particles::FrameSprites& FrameSprites();
     [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
@@ -171,7 +171,7 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawEye(const Render::Pass3D& pass,
                                                             const SelectionWorldFrame& frame,
                                                             const Assets::SceneTextures& sceneTextures,
-                                                            std::span<const Scenes::DamageNumberState> damage);
+                                                            std::span<const Kernel::DamageNumberState> damage);
 
 private:
     struct Projection;

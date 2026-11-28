@@ -25,7 +25,7 @@
 #include "Pets/DarkHorse.h"
 #include "Actors/Drawing/PosePublishing.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Pets/PetHelperSteps.h"
 #include "Kernel/SceneId.h"
@@ -74,6 +74,8 @@ using Client::Kernel::ActorPoolSize;
 using Client::Kernel::ActorState;
 using Client::Kernel::HelperCount;
 using Client::Kernel::HelperState;
+using Client::Kernel::JointState;
+using Client::Kernel::SceneId;
 using Client::Kernel::TurnOffHelpersOf;
 using Client::Kernel::WorldState;
 using Client::Math::RoundedCos;
@@ -97,8 +99,6 @@ using Client::Pets::StepTheHelperOutsideTheTable;
 using Client::Pets::UniriaModel;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::Scenes::JointState;
-using Client::Scenes::SceneId;
 using Client::Terrain::TerrainPolygon;
 
 // Las semillas del rand() de la CRT, por su primer rand(): con QuietSeed, % 3 da 2 y % 2 da 1 (ni aliento

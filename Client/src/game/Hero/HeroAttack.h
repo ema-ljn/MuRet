@@ -6,7 +6,6 @@
 #include "Protocol/Outgoing.h"
 #include "Combat/ActorCombat.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -23,43 +22,8 @@ namespace Client::Items
 struct InventoryServices;
 } // namespace Client::Items
 
-// CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
-// (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.
 namespace Client::Hero
 {
-
-// 0x558bb0: si el personaje elegido (0x6c8e30, selectedTargets[2]) se puede atacar. Falso con un ítem en el cursor
-// ([0x7879fbc] > 0, con signo) o sin elegido; verdadero en Chaos Castle (18 a 23) con otro que el héroe. Un monstruo
-// (+0x88 en 2), salvo en la guerra de gremios; un jugador (+0x88 en 1) por el asedio (0x4294b0), +0x370, la guerra
-// de gremios, el duelo, el PK de 6 o más o, si no, con Ctrl abajo (GetAsyncKeyState(0x11) en 0x558e7f, `controlDown`)
-// y que no sea el héroe. En la guerra (GuildState::warOn y warType, 0x576796c y 0x576796d), un jugador con el PK de 6
-// o más y gremio no se ataca si su gremio se llama como el del héroe (strcmp en 0x558da4 sobre 0x787aa55); con un
-// índice fuera de la tabla, corta.
-[[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const Kernel::WorldState& world, bool controlDown);
-// 0x5588d0(blanco): lo mismo con `target` en vez del elegido (sin mirar 0x6c8e30), como la llama el lazo de los blancos
-// de la skill 0x4c del paso del ataque (0x5024c3, CL9 hito 4). Compara los nombres de gremio en 0x558aa9.
-[[nodiscard]] Core::Expected<bool, std::string> IsAttackableActor(const Kernel::WorldState& world,
-                                                                  const Kernel::ActorState& target, bool controlDown);
-
-// 0x558eb0(c, [0x6c8e30]), la hermana de 0x558bb0 que el paso de la habilidad deja en o+0x8a (0x4fdc10): la clave
-// (+0x1f4, MOVSX) del elegido si el héroe lo puede atacar, y −1 si no. −1 con un ítem en el cursor, sin elegido o si
-// `attacker` (el lugar de c) no es el héroe publicado ([0x743a170]). En Chaos Castle (18 a 23), la clave, también la
-// del héroe. Después, como 0x558bb0 sin el asedio ni el tipo del objeto: +0x370 en 2 u 8; fuera de la guerra de
-// gremios, el PK de 6 o más o Ctrl abajo (0x558fd6) con otro que el héroe; en ella, +0x374 en 2 con otro; en el duelo,
-// la clave del rival, sin comparar el nombre. Los nombres de gremio (0x558f29), como en 0x558bb0: iguales, −1. No saca
-// rand().
-[[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& world,
-                                                                    std::size_t attacker, bool controlDown);
-// 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3) y las
-// ramas del caballero (CL9 hito 4, fase 2c-C).
-[[nodiscard]] Core::Expected<std::int32_t, std::string>
-ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker, std::int32_t chosen, bool controlDown);
-
-// El freno de 300 ms (0x57f2d1..0x57f2f9, y el mismo en 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0): salvo con la skill
-// 0x28, si |GetTickCount() − [0x576791c]| (resta de 32 bits con signo, CDQ/XOR/SUB) es 300 o menos, no pasa; si
-// pasa, anota en `last` un GetTickCount nuevo (el original lo llama dos veces).
-[[nodiscard]] bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill,
-                                        const std::function<std::uint32_t()>& tickCount);
 
 // Lo que 0x5650c0 necesita además del mundo: los intentos del D3 de girar (C1 06 D3 X Y rumbo, como el SendMove de un
 // paso) y del D7 de pegar. Son best-effort como el socket original: que el transporte esté cerrado no corta la llegada.

@@ -10,7 +10,7 @@
 #include "Kernel/ActorState.h"
 #include "Events/EventGlobals.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/LoginModels.h"
 #include "Monsters/MonsterCreation.h"
 #include "FrontEnd/SelectionState.h"

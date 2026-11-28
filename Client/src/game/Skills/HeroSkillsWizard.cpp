@@ -5,16 +5,15 @@
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Kernel/CharacterClass.h"
-#include "Pathfinding/PathFinder.h"
+#include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
 #include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Kernel/ActorState.h"
 #include "Combat/CombatActionSpeeds.h"
-#include "Events/Crywolf/CrywolfContract.h"
 #include "Movement/GameMovementState.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkillSupport.h"
 #include "Skills/HeroSkills.h"
@@ -152,9 +151,8 @@ Core::Expected<void, std::string> WalkToward(Kernel::ActorState& hero, std::int3
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
     const auto path =
-        Pathfinding::PathFinder(terrain.attributes->cells)
-            .Find({start.x, start.y}, {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)},
-                  Events::Crywolf::CrywolfAltarGoal(context.world), distance);
+        Actors::FindThePath(context.world, terrain.attributes->cells, {start.x, start.y},
+                            {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)}, distance);
     if (!path)
         return {};
     hero.path = *path;
@@ -197,7 +195,7 @@ private:
     Core::Expected<bool, std::string> PassesTheHead();
     Core::Expected<bool, std::string> Attackable() const
     {
-        return Hero::IsAttackable(m_world, m_context.controlDown);
+        return Combat::IsAttackable(m_world, m_context.controlDown);
     }
     Core::Expected<Kernel::ActorState*, std::string> ChosenActor(std::string_view where) const;
     Core::Expected<void, std::string> SendTheMagicAttack(std::uint16_t key, std::string_view brake);
@@ -362,7 +360,7 @@ Core::Expected<void, std::string> WizardBranch::ShootTheCharge()
     if (!IsPlayer(m_hero))
         return {};
     const auto chosenKey =
-        Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_runtime.selectedTargets[2], m_context.controlDown);
+        Combat::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_runtime.selectedTargets[2], m_context.controlDown);
     if (!chosenKey.HasValue())
         return Core::Unexpected(chosenKey.Error());
     const std::uint16_t key =
@@ -508,7 +506,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
         !delayed.HasValue())
         return delayed;
-    const auto key = Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
+    const auto key = Combat::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     m_hero.skillTarget4c = chosen;
@@ -684,7 +682,7 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosenKey =
-            Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
+            Combat::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
         if (!chosenKey.HasValue())
             return Core::Unexpected(chosenKey.Error());
         key = static_cast<std::uint16_t>(chosenKey.Value());

@@ -92,7 +92,7 @@ protected:
         ASSERT_TRUE(models.HasValue()) << models.Error();
         m_world->Runtime().map = 0;
         const auto map = Client::Scenes::LoadMap(
-            0, {m_dataRoot, *m_world, m_states->terrain, Client::Scenes::SceneId::Game, 0, m_cloth.random});
+            0, {m_dataRoot, *m_world, m_states->terrain, Client::Kernel::SceneId::Game, 0, m_cloth.random});
         ASSERT_TRUE(map.HasValue()) << map.Error();
         m_world->Actors()[0].position = {13550.0f, 12550.0f, 0.0f};
         m_world->OwnCharacter().ClearEquipmentForEntry();
@@ -355,14 +355,14 @@ TEST_F(GameSceneOldWindowsTest, ADoubleClickReachesTheGameWithoutRearmingTheOrdi
 
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     EXPECT_TRUE(m_world->Runtime().ui.doubleClick);
-    EXPECT_FALSE(m_world->Runtime().movement.pendingClick);
-    EXPECT_FALSE(m_world->Runtime().movement.leftHeld);
+    EXPECT_FALSE(m_world->Runtime().mouse.pendingClick);
+    EXPECT_FALSE(m_world->Runtime().mouse.leftHeld);
     EXPECT_TRUE(m_input.IsDown(Client::Input::MouseButton::Left));
     m_input.ConsumeEdges();
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     EXPECT_TRUE(m_world->Runtime().ui.doubleClick);
-    EXPECT_FALSE(m_world->Runtime().movement.leftHeld);
+    EXPECT_FALSE(m_world->Runtime().mouse.leftHeld);
     m_input.Apply({.kind = Client::Input::InputEvent::Kind::Message});
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();

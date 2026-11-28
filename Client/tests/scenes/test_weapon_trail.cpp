@@ -9,7 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldState.h"
 #include "Particles/Particles.h"
 #include "support/PlayerActors.h"

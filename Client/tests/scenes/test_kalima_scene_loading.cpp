@@ -70,7 +70,7 @@ protected:
         return Client::Scenes::LoadMap(map, {.dataRoot = root,
                                              .world = *m_world,
                                              .terrain = m_terrain,
-                                             .scene = Client::Scenes::SceneId::Game,
+                                             .scene = Client::Kernel::SceneId::Game,
                                              .playerKey = 5,
                                              .random = m_random});
     }

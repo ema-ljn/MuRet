@@ -5,7 +5,7 @@
 #include "Tables/ItemTable.h"
 #include "Models/RayPicking.h"
 #include "Items/FloorItemPackets.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Items/InventoryMoves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -67,10 +67,10 @@ Core::Expected<void, std::string> RequestThePickUp(const InventoryMoveContext& c
 }
 } // namespace
 
-std::int32_t PickTheFloorItem(std::span<Scenes::FloorItemState> items, const Terrain::TerrainPickingSegment& ray)
+std::int32_t PickTheFloorItem(std::span<Kernel::FloorItemState> items, const Terrain::TerrainPickingSegment& ray)
 {
     // 0x59e2f0..0x59e31f.
-    for (Scenes::FloorItemState& item : items)
+    for (Kernel::FloorItemState& item : items)
     {
         if (!item.alive || !item.seen)
             continue;
@@ -80,7 +80,7 @@ std::int32_t PickTheFloorItem(std::span<Scenes::FloorItemState> items, const Ter
     // 0x59e321..0x59e3a6.
     for (std::size_t index = 0; index < items.size(); ++index)
     {
-        Scenes::FloorItemState& item = items[index];
+        Kernel::FloorItemState& item = items[index];
         if (!item.alive || !item.seen || !Models::SegmentHitsBox(ray.origin, ray.end, item.pickBox))
             continue;
         item.vertexLight = false;
@@ -132,12 +132,12 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
         const double dy = static_cast<double>(actor.y) - center(runtime.movement.targetY);
         if (std::sqrt(dx * dx + dy * dy) > ArrivalDistance)
             return {};
-        runtime.movement.mouseUpdateTimeMax = PickUpMouseUpdateTimeMax;
+        runtime.mouse.updateTimeMax = PickUpMouseUpdateTimeMax;
     }
     if (floor.chosen < 0 || floor.chosen >= FloorItemCount)
         return Core::Unexpected(
             std::format("0x5667c6: el ítem elegido {} está fuera de la tabla 0x77f46c8", floor.chosen));
-    Scenes::FloorItemState& item = world.DrawTail().floorItems[static_cast<std::size_t>(floor.chosen)];
+    Kernel::FloorItemState& item = world.DrawTail().floorItems[static_cast<std::size_t>(floor.chosen)];
     if (item.itemType == ZenItem)
         return RequestThePickUp(context);
     // 0x566e0a..0x566e1f.
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
     auto& items = world.DrawTail().floorItems;
     for (std::size_t index = 0; index < items.size(); ++index)
     {
-        const Scenes::FloorItemState& item = items[index];
+        const Kernel::FloorItemState& item = items[index];
         if (!item.alive || !item.seen)
             continue;
         // 0x5ac947..0x5ac97b: la distancia en 3D a la posición del héroe (+0x10), en la x87.

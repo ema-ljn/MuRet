@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -71,7 +71,7 @@ struct GameHangingPass
     // The frame's joints of 0x530860, who creates them, and the particles of 0x53fe70. Needed only if something
     // creates them: the 0x617 of action 0x8c (0x50a110), the 0x618/0x11 of 0xc1e, the 0x610/4 of 0x223 and the 0x614/10
     // of 0x224. The 0x610/4 and 0x618/0x11 keep the hanging character as owner (+0x54): an ActorState.
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
     Particles::Particles* particles = nullptr;
     // The globals of 0x60b3d0 the frame's owner lends (without it, those of an empty ItemDrawContext).

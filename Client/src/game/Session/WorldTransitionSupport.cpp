@@ -6,7 +6,6 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
-#include "Maps/MapId.h"
 #include "Models/Animation.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
@@ -16,8 +15,8 @@
 #include "Actors/ActorEquipment.h"
 #include "Kernel/ActorState.h"
 #include "Combat/CombatActionSpeeds.h"
-#include "Pets/DarkSpirit.h"
-#include "Scenes/GameDrawTail.h"
+#include "Pets/TransitionRaven.h"
+#include "Kernel/DrawTailState.h"
 #include "Chat/GameMessages.h"
 #include "Hud/GamePanels.h"
 #include "CastleSiege/CastleWindows.h"
@@ -39,13 +38,11 @@
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
 #include "Assets/FaunaModels.h"
-#include "Terrain/TerrainDefines.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <string>
 #include <string_view>
 
@@ -67,7 +64,7 @@ Core::Expected<Actors::ActorStopContext, std::string> TransitionStopContext(cons
     const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : Actors::MonsterSkeletonOf(resources, actor.type);
     return Actors::ActorStopContext{
         .runtime = resources.world.Runtime(),
-        .scene = SceneId::Game,
+        .scene = Kernel::SceneId::Game,
         .playerSkeleton = *playerSkeleton,
         .items = resources.items,
         .random = resources.cloth.random,
@@ -113,8 +110,8 @@ Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint1
         return Core::Unexpected(std::string("0x61a560: no hay estado del terreno para la carga"));
     Terrain::TerrainState& terrain = resources.states->terrain;
     const auto loaded =
-        LoadMap(map, {resources.dataRoot, resources.world, terrain, SceneId::Game, playerKey, resources.cloth.random,
-                      resources.requestCastleSiegeState, &resources.states->assets.fauna});
+        LoadMap(map, {resources.dataRoot, resources.world, terrain, Kernel::SceneId::Game, playerKey,
+                      resources.cloth.random, resources.requestCastleSiegeState, &resources.states->assets.fauna});
     if (!loaded.HasValue())
         return loaded;
     resources.selection.BorrowTerrain(resources.world.Runtime().map, &terrain.current);
@@ -136,46 +133,23 @@ Core::Expected<void, std::string> RefreshTransitionHeight(Kernel::ActorState& ac
 }
 namespace
 {
-// 0x420d1a..0x420d22: 0x420cf0 no crea el cuervo en los mapas 18 a 23 (Chaos Castle); 0x420d60 no mira el mapa.
-using Maps::FirstChaosCastleMap;
-using Maps::LastChaosCastleMap;
-
-// 0x4167b0 desde 0x420d60 o 0x420cf0: el cuervo nuevo en +0x430, en el centro de la celda del dueño y a la
-// altura del terreno ahí (0x5f93c0).
-Core::Expected<void, std::string> CreateTheRaven(Kernel::ActorState& actor, const WorldEntryResources& resources,
-                                                 std::string_view where)
+Pets::RavenPlacement RavenPlacementOf(const WorldEntryResources& resources)
 {
-    const auto& terrain = TerrainOf(resources);
-    if (!terrain.heights || !terrain.attributes)
-        return Core::Unexpected(std::format("{}: faltan alturas o atributos para el cuervo", where));
-    using Terrain::CellSize;
-    constexpr float Center = 50.0f;
-    const double height = Terrain::TerrainHeightAt(
-        *terrain.heights, *terrain.attributes, static_cast<float>(actor.cellX) * CellSize + Center,
-        static_cast<float>(actor.cellY) * CellSize + Center, resources.camera.fixedHeight);
-    actor.darkSpirit =
-        Pets::CreateDarkSpirit(actor.cellX, actor.cellY, height, resources.cloth.random,
-                               {actor.cellXAccesses, actor.cellYAccesses, resources.cloth.openCounterAccesses});
-    return {};
+    return {.terrain = TerrainOf(resources),
+            .fixedHeight = resources.camera.fixedHeight,
+            .random = resources.cloth.random,
+            .openCounterAccesses = resources.cloth.openCounterAccesses};
 }
 } // namespace
 
 Core::Expected<void, std::string> RecreateTransitionRaven(Kernel::ActorState& actor,
                                                           const WorldEntryResources& resources)
 {
-    constexpr std::uint16_t Raven = 0x1c17;
-    if (actor.hands[1].model != Raven)
-        return {};
-    actor.darkSpirit.reset();
-    return CreateTheRaven(actor, resources, "0x420d60");
+    return Pets::RecreateTheRaven(actor, RavenPlacementOf(resources));
 }
 Core::Expected<void, std::string> ReplaceTheRaven(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
-    actor.darkSpirit.reset();
-    const std::int32_t map = resources.world.Runtime().map;
-    if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
-        return {};
-    return CreateTheRaven(actor, resources, "0x420cf0");
+    return Pets::ReplaceTheRaven(actor, resources.world.Runtime().map, RavenPlacementOf(resources));
 }
 void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryResources& resources)
 {

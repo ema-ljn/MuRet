@@ -25,7 +25,7 @@
 #include <string_view>
 
 // 0x517a20, cotejada con el PE c32bbd5f (06, "La flecha", el choque de las flechas de skill).
-namespace Client::Skills
+namespace Client::Actors
 {
 namespace
 {
@@ -128,4 +128,4 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
         send(Protocol::Skills::WriteSkillHits(hits));
     return true;
 }
-} // namespace Client::Skills
+} // namespace Client::Actors

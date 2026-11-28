@@ -45,7 +45,7 @@
 #include "Fauna/FaunaState.h"
 #include "Weather/GameLeaves.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Assets/GameModels.h"
 #include "Pets/HelperTable.h"
 #include "Session/MapLoad.h"
@@ -111,6 +111,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::SceneId;
 using Client::Kernel::WaitDrawThreshold;
 using Client::Kernel::WorldLoadingWait;
 using Client::Kernel::WorldRuntime;
@@ -118,7 +119,6 @@ using Client::Kernel::WorldState;
 using Client::Models::ClothWorld;
 using Client::Scenes::GameScene;
 using Client::Scenes::SceneContext;
-using Client::Scenes::SceneId;
 using Client::Session::ModuleStates;
 using Client::Session::SessionState;
 using Client::Tests::FakeTextureStore;

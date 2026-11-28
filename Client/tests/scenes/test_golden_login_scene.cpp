@@ -35,7 +35,7 @@
 #include "Kernel/CharacterHead.h"
 #include "Pets/DarkHorse.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Assets/GameModels.h"
 #include "Scenes/LoadingScene.h"
 #include "Camera/SceneCameras.h"

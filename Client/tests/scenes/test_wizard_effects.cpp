@@ -11,7 +11,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/GameContext.h"
@@ -203,7 +203,7 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     Client::Effects::ModelEffect& circle = world->Map().effects.Effects()[*created.Value()];
     ASSERT_EQ(circle.life, 45);
 
-    auto twin = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
+    auto twin = std::make_unique<std::array<Client::Kernel::JointState, 500>>();
     Client::Crt::CrtRandom oracle = random;
     static_cast<void>(oracle.Next()); // 0x5208c5
     glm::vec3 point{1000.0f, 2000.0f, 400.0f};
@@ -236,8 +236,8 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     for (std::size_t slot = 0; slot < joints.size(); ++slot)
     {
         SCOPED_TRACE(slot);
-        const Client::Scenes::JointState& joint = joints[slot];
-        const Client::Scenes::JointState& expected = (*twin)[slot];
+        const Client::Kernel::JointState& joint = joints[slot];
+        const Client::Kernel::JointState& expected = (*twin)[slot];
         ASSERT_EQ(joint.alive, expected.alive);
         if (!joint.alive)
             continue;
@@ -250,7 +250,7 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
         EXPECT_EQ(joint.width, 60.0f);
         EXPECT_EQ(joint.ownerContext, &circle);
     }
-    EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }), 72);
+    EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Kernel::JointState& joint) { return joint.alive; }), 72);
 
     const auto advanced =
         Client::Joints::StepJoints(world->DrawTail().joints, random, nullptr, &world->Particles(), 1000.0f, &sprites);

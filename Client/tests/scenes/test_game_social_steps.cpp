@@ -113,14 +113,14 @@ protected:
 
     Client::Core::Expected<void, std::string> StepTheTrade(std::int32_t x, std::int32_t y, bool click = true)
     {
-        Runtime().movement.pendingClick = click;
+        Runtime().mouse.pendingClick = click;
         Client::Hud::GamePanels panels(*m_world, m_random);
         return Client::Social::StepTheTradeWindow(Context(x, y), panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> StepTheDuel(std::int32_t x, std::int32_t y, bool click = true)
     {
-        Runtime().movement.pendingClick = click;
+        Runtime().mouse.pendingClick = click;
         return Client::Social::StepTheDuelRequest(Context(x, y));
     }
 
@@ -153,7 +153,7 @@ TEST_P(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
     EXPECT_EQ(Draws(), 1);
     EXPECT_TRUE(m_requests.sent.empty());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
 }
 
 // 0x5ecf2d..0x5ed476: el OK da vuelta el propio, prende 0x78abaa5 y manda el C1 04 3C con el nuevo en C3.
@@ -167,7 +167,7 @@ TEST_P(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
     EXPECT_TRUE(m_requests.sent[0].encrypted);
     EXPECT_EQ(m_requests.sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x3c, 0x01}));
     EXPECT_EQ(Draws(), 1 + 2);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 
     // Con 0x78abaa5 prendido y el OK propio en 1, lo apaga.
@@ -198,7 +198,7 @@ TEST_P(GameSocialStepsTest, TheOkWaitsAndSkipsTheCursorItem)
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
     EXPECT_EQ(Runtime().social.trade.okWait, 1);
     EXPECT_TRUE(m_requests.sent.empty());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
     EXPECT_EQ(Runtime().social.trade.okWait, 0);
     EXPECT_EQ(m_requests.sent.size(), 1u);
@@ -221,7 +221,7 @@ TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
     EXPECT_EQ(Runtime().social.typedMoney, 0);
     EXPECT_EQ(Runtime().social.trade.field78abacc, 2);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(m_requests.sent.empty());
 }
 
@@ -235,7 +235,7 @@ TEST_P(GameSocialStepsTest, TheCancelButtonSendsTheCancel)
     EXPECT_TRUE(m_requests.sent[0].encrypted);
     EXPECT_EQ(m_requests.sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x03, 0x3d}));
     EXPECT_EQ(Draws(), 1 + 2);
-    EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
     EXPECT_EQ(Runtime().panels.trade, 1);
 }
 
@@ -262,7 +262,7 @@ TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
     EXPECT_EQ(m_requests.sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x10, 0xac, 0x01, 0x01, 0x02, 'B', 'r', 'e',
                                                                    'z', 'a', 'l', 0, 0, 0, 0}));
     EXPECT_EQ(Runtime().ui.field78abad9, 0);
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Draws(), 2);
 
     Runtime().ui.field78abad9 = 1;

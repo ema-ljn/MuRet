@@ -8,6 +8,11 @@
 #include <span>
 #include <string>
 
+namespace Client::Kernel
+{
+struct JointState;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -18,11 +23,6 @@ namespace Client::Kernel
 enum class JointOwnerKind : std::uint8_t;
 struct JointRequest;
 } // namespace Client::Kernel
-
-namespace Client::Scenes
-{
-struct JointState;
-} // namespace Client::Scenes
 
 namespace Client::Actors
 {
@@ -36,7 +36,7 @@ public:
 
     // `owner` says what is behind the request's `ownerContext` (Kernel/JointRequest.h).
     [[nodiscard]] virtual Core::Expected<std::optional<std::size_t>, std::string>
-    CreateTheJoint(std::span<Scenes::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
+    CreateTheJoint(std::span<Kernel::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
                    Kernel::JointOwnerKind owner) const = 0;
 };
 } // namespace Client::Actors

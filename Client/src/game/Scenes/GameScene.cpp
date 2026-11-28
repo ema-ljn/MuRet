@@ -27,7 +27,7 @@
 #include "Items/InventoryMoves.h"
 #include "FrontEnd/SelectionState.h"
 #include "Effects/GameParticles.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Fauna/FaunaEffects.h"
 #include "Chat/GameChat.h"
@@ -439,7 +439,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                                                  .models = m_models,
                                                                  .random = m_context.cloth->random,
                                                                  .worldClock = worldClock,
-                                                                 .scene = SceneId::Game,
+                                                                 .scene = Kernel::SceneId::Game,
                                                                  .terrain = &MapTerrain(),
                                                                  .logicSteps = m_context.cloth->logicSteps,
                                                                  .cameraShake = &CameraInputState().shake});
@@ -1228,8 +1228,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                                                                                                                                                             .count())]()
                                                                                           { return systemTime; },
                                                                                           .scene = static_cast<
-                                                                                              std::
-                                                                                                  int32_t>(SceneId::Game),
+                                                                                              std::int32_t>(Kernel::
+                                                                                                                SceneId::Game),
                                                                                           .terrainHeight =
                                                                                               [&](float x, float y)
                                                                                           {
@@ -1385,7 +1385,7 @@ void GameScene::Leave()
 }
 
 // Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.
-std::optional<SceneId> GameScene::Next() const
+std::optional<Kernel::SceneId> GameScene::Next() const
 {
     return std::nullopt;
 }

@@ -116,7 +116,7 @@ protected:
         button.base.x = 10;
         button.base.y = 10;
         m_world->Runtime().ui.pressedButton = button.base.id;
-        m_world->Runtime().movement.releasedClick = true;
+        m_world->Runtime().mouse.releasedClick = true;
     }
     void ExpectRandoms(int count)
     {
@@ -203,11 +203,11 @@ TEST_F(CastleWindowsTest, RegistrationTabTwoRequestsOnlyTheNativeStates)
         window.tab = 0;
         window.state = state;
         m_requests.sent.clear();
-        m_world->Runtime().movement.leftHeld = true;
+        m_world->Runtime().mouse.leftHeld = true;
         const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(580, 95), Client::Ui::CastleSiegePanel);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(window.tab, 2);
-        EXPECT_TRUE(m_world->Runtime().movement.leftHeld);
+        EXPECT_TRUE(m_world->Runtime().mouse.leftHeld);
         const bool request = state == 1 || state == 3 || state == 5 || state == 6;
         ASSERT_EQ(m_requests.sent.size(), request ? 1u : 0u);
         if (request)
@@ -290,7 +290,7 @@ TEST_F(CastleWindowsTest, SeniorModalBlocksTabsAndCloseAfterMarkingHover)
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.panels.delegated.panelDialog.opened = 5;
     runtime.castleSiege.senior.x = 450;
-    runtime.movement.leftHeld = true;
+    runtime.mouse.leftHeld = true;
     const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(590, 55), Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.panels.delegated.castleSiegeListMode, 0);
@@ -327,7 +327,7 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     auto& runtime = m_world->Runtime();
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.panels.delegated.castleSiegeListMode = 2;
-    runtime.movement.pendingClick = true;
+    runtime.mouse.pendingClick = true;
     runtime.castleSiege.data.SetU32(Client::CastleSiege::ChaosTaxAt, 2);
     // Draw usa su propio mouse, igual al de GameScene. Esta prueba pasa la posición en el contexto de abajo.
     m_sprites.Begin({640, 480});
@@ -347,11 +347,11 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     auto drawn = Client::CastleSiege::DrawTheCastleWindows(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::ChaosTaxAt), 2u);
-    runtime.movement.releasedClick = true;
+    runtime.mouse.releasedClick = true;
     drawn = Client::CastleSiege::DrawTheCastleWindows(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::ChaosTaxAt), 3u);
-    EXPECT_FALSE(runtime.movement.releasedClick);
+    EXPECT_FALSE(runtime.mouse.releasedClick);
     ExpectRandoms(0);
 }
 
@@ -475,13 +475,13 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     EXPECT_EQ(other, m_text.texts.end());
     ASSERT_NE(hero, m_text.texts.end());
     EXPECT_EQ(hero->y, 141);
-    runtime.movement.pendingClick = true;
+    runtime.mouse.pendingClick = true;
     const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(480, 139), Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(window.siegeGuilds[0].toggled, 1);
     EXPECT_EQ(window.siegeGuilds[1].toggled, 0);
     EXPECT_EQ(window.siegeGuildList.selection, 1);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_TRUE(m_requests.sent.empty());
     ExpectRandoms(0);
 }

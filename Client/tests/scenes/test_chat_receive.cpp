@@ -57,6 +57,7 @@ namespace
 using Client::Chat::ChatReceiveContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
+using Client::Kernel::SceneId;
 using Client::Kernel::WorldState;
 using Client::Protocol::Chat::Chat;
 using Client::Protocol::Chat::KeyChat;
@@ -67,7 +68,6 @@ using Client::Protocol::Player::OptionData;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::SceneId;
 
 class LetterMeasure final : public ITextMeasure
 {

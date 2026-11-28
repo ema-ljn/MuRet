@@ -13,7 +13,7 @@
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Fauna/FaunaState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -222,11 +222,11 @@ const PoseBuffer& WorldState::PoseCarry() const
 {
     return m_poseCarry;
 }
-Scenes::GameDrawTailState& WorldState::DrawTail()
+Kernel::GameDrawTailState& WorldState::DrawTail()
 {
     return *m_drawTail;
 }
-const Scenes::GameDrawTailState& WorldState::DrawTail() const
+const Kernel::GameDrawTailState& WorldState::DrawTail() const
 {
     return *m_drawTail;
 }

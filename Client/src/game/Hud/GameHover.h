@@ -37,9 +37,13 @@ struct GameDrawTailState;
 struct HudState;
 } // namespace Client::Kernel
 
+namespace Client::Ui
+{
+struct GameHudContext;
+} // namespace Client::Ui
+
 namespace Client::Hud
 {
-
 struct GameHoverContext
 {
     Kernel::WorldState& world;
@@ -80,8 +84,3 @@ struct GameHoverContext
 // of each live and visible floor item that is not the chosen one, at its projection (0x5ba790 with 1).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context);
 } // namespace Client::Hud
-
-namespace Client::Ui
-{
-struct GameHudContext;
-} // namespace Client::Ui

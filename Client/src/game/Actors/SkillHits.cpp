@@ -15,7 +15,6 @@
 #include "Math/Ftol.h"
 #include "Terrain/TerrainAttributeQuery.h"
 #include "Terrain/WorldTerrain.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <cmath>
@@ -94,7 +93,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     // 0x517af8..0x517b3f: on map 30 with the siege (0x4294b0), bit 0x100 of the point's cell (0x5f82c0) returns 0;
     // without it, a player enters even without the key.
     bool siegePlayers = false;
-    if (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive)
+    if (runtime.map == CastleSiegeMap && runtime.castleFlags.siegeActive)
     {
         const auto& attributes = terrain.attributes;
         if (!attributes)

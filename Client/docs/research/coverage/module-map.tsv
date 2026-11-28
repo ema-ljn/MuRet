@@ -1534,6 +1534,7 @@ game/Kernel/ActorSearch.h	16	game/Kernel	game/Kernel	high	the search of the acto
 game/Kernel/ActorSearch.cpp	22	game/Kernel	game/Kernel	high	the search of the actors' pool by key, which every module that reads a packet with a key asks (AR4.1)
 game/Kernel/ActorSpirit.h	51	game/Kernel	game/Kernel	high	the raven's per-actor fields, which the actor holds; its logic is game/Pets (AR3.1)
 game/Kernel/CharacterClass.h	31	game/Kernel	game/Kernel	high	the character class: its five base classes and the original's & 7 (AR3.1)
+game/Kernel/CastleSiegeFlags.h	30	game/Kernel	game/Kernel	high	the siege flags and map 30 globals (addr.) that characters, monsters, effects and objects read, below them and the castle (AR4.4 design)
 game/Kernel/GameContext.h	57	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
 game/Kernel/GameContext.cpp	83	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
 game/Session/Route.h	296	game/Session	game/Session	high	routes a row's packet to its handler with the parts of the world the handler names (AR2.2)

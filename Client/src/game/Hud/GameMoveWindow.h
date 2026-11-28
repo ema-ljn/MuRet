@@ -4,11 +4,16 @@
 
 #include <string>
 
+namespace Client::Ui
+{
+struct GameHudContext;
+struct GameUiContext;
+} // namespace Client::Ui
+
 // The /move window (CL8 milestone 6; 06 § HUD y ventanas, "La ventana /move"): mode 4 of 0x77f3b08 (Ui::MovePanel),
 // with the destinations of movereq.bmd (WorldRuntime::moves, the list at 0x723c68). *Static*.
 namespace Client::Hud
 {
-
 // 0x5ecdc0 → 0x449850 → 0x448580, in the UI step (0x636e24) with the window open and nobody holding the mouse. The
 // mouse over the window (0 < x ≤ width, 0 < y ≤ height) belongs to the UI (0x775857c). Each destination, in its order,
 // opens and closes the own record (3848 rand() when closing it, Q-C183) and passes with the level (2/3 of the required
@@ -24,9 +29,3 @@ namespace Client::Hud
 // zen in their colors; at the end, 1002 in the bottom row. Without Text.bmd, it stops.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheMoveWindow(Ui::GameHudContext& context);
 } // namespace Client::Hud
-
-namespace Client::Ui
-{
-struct GameHudContext;
-struct GameUiContext;
-} // namespace Client::Ui

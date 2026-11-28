@@ -612,7 +612,7 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
         SCOPED_TRACE(type);
         Load(30);
         auto& runtime = game->world.Runtime();
-        runtime.castleSiege.siegeActive = true;
+        runtime.castleFlags.siegeActive = true;
         runtime.quest.characterClass = 0;
         const Cell cell = FreeRow();
         const std::array<MonsterRecordBytes, 1> records{

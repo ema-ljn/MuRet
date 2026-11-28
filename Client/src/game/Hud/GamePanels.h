@@ -31,9 +31,14 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Ui
+{
+class IGameUiRequests;
+struct GameUiContext;
+} // namespace Client::Ui
+
 namespace Client::Hud
 {
-
 // What 0x550d10 reads from the load when opening the character calls it (0x65ca1e): Item.bmd (*[0x7758550]) and
 // ItemSetType.bmd with ItemSetOption.bmd (0x40c600). Only the UI step lends them, the only one that opens the
 // character; with one at nullptr, 0x550d10 stops with an error at the first thing that reads it.
@@ -133,9 +138,3 @@ private:
     Ui::PanelRegistry m_registry;
 };
 } // namespace Client::Hud
-
-namespace Client::Ui
-{
-class IGameUiRequests;
-struct GameUiContext;
-} // namespace Client::Ui

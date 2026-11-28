@@ -48,7 +48,6 @@
 #include "Terrain/TerrainLighting.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
-#include "CastleSiege/CastleSiegeState.h"
 #include "Events/EventGlobals.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -542,7 +541,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                       .worldClock = worldClock,
                                       .map = map,
                                       .heroByte1a1 = heroByte1a1,
-                                      .siegeActive = world.Runtime().castleSiege.siegeActive,
+                                      .siegeActive = world.Runtime().castleFlags.siegeActive,
                                       .logicSteps = pass.clothWorld->logicSteps,
                                       .originalFrame = originalFrame,
                                       .guild = &world.Runtime().guild,
@@ -715,13 +714,13 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const M
         // 0x510ea9..0x510eb3: with the 0x20a, 0x42afe0, which only in map 30, with the siege and with +0x16c calls
         // 0x42ddb0(character, 380); without the siege it does nothing.
         if (world.Runtime().map == 30 && actor.type == Tables::PlayerSkeletonModel &&
-            world.Runtime().castleSiege.siegeActive && actor.seen && originalFrame)
+            world.Runtime().castleFlags.siegeActive && actor.seen && originalFrame)
         {
             if (pass.clothWorld == nullptr || pass.particles == nullptr)
                 return Core::Unexpected(std::string("0x42de7f: faltan partículas o CRT para la bendición del asedio"));
             if (auto blessed = CastleSiege::DrawTheCastleBlessing(
-                    actor, world.Actors()[hero].word1f2, world.Runtime().castleSiege.castleMarkX,
-                    world.Runtime().castleSiege.castleMarkY, pass.clothWorld->logicSteps, *pass.particles,
+                    actor, world.Actors()[hero].word1f2, world.Runtime().castleFlags.castleMarkX,
+                    world.Runtime().castleFlags.castleMarkY, pass.clothWorld->logicSteps, *pass.particles,
                     pass.clothWorld->random);
                 !blessed.HasValue())
                 return blessed;
@@ -754,11 +753,11 @@ void FinishTheCastleFrame(Kernel::WorldRuntime* runtime, Data::Terrain::TerrainL
         Pathfinding::OpenTheGates(walls);
         return;
     }
-    runtime->castleSiege.castleMarkX = 0.0f;
-    runtime->castleSiege.castleMarkY = 0.0f;
-    if (runtime->castleSiege.castleGatesClosed == 0)
+    runtime->castleFlags.castleMarkX = 0.0f;
+    runtime->castleFlags.castleMarkY = 0.0f;
+    if (runtime->castleFlags.castleGatesClosed == 0)
         Pathfinding::OpenTheGates(walls);
-    runtime->castleSiege.castleGatesClosed = 0;
+    runtime->castleFlags.castleGatesClosed = 0;
 }
 
 Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, const Models::IModelLibrary& models,

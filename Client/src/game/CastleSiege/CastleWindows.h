@@ -27,16 +27,16 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
-{
-class GamePanels;
-} // namespace Client::Hud
-
 namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
 } // namespace Client::Ui
+
+namespace Client::Hud
+{
+class GamePanels;
+} // namespace Client::Hud
 
 // The three castle windows: 0x64d350, 0x6691c0 and 0x648a30, called by 0x657930, and their draws from 0x6579e0.
 // The open flags and Senior's tab stay in DelegatedPanels, without parallel copies.

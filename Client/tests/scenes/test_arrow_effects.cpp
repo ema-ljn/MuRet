@@ -32,7 +32,6 @@
 #include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/SameBytes.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -2246,7 +2245,7 @@ TEST(ArrowEffectsTest, TheTourProjectileCreatesAndStepsWithoutAttackingActors)
 TEST(ArrowEffectsTest, Attribute100StopsTheArrowAndHalvesLifeBeforeTheCommonEpilogue)
 {
     ArrowWorld tested(0);
-    tested.world.Runtime().castleSiege.siegeActive = true;
+    tested.world.Runtime().castleFlags.siegeActive = true;
     tested.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     tested.terrain.attributes->cells[513] = 0x100;
     ModelEffect arrow;

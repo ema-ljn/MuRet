@@ -36,7 +36,6 @@
 #include "Terrain/TerrainLighting.h"
 #include "Particles/WeaponSparkKernels.h"
 #include "Terrain/WorldTerrain.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -714,7 +713,7 @@ constexpr std::uint8_t ShownInTheSiege = 1;
 bool HiddenInTheSiege(const Kernel::WorldState& world, std::size_t rider)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
-    if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.castleSiege.siegeActive)
+    if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.castleFlags.siegeActive)
     {
         return false;
     }

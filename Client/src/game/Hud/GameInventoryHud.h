@@ -27,9 +27,13 @@ namespace Client::Items
 struct UiItemBox;
 } // namespace Client::Items
 
+namespace Client::Ui
+{
+struct GameHudContext;
+} // namespace Client::Ui
+
 namespace Client::Hud
 {
-
 // 0x5e1480(x, y, w, h, type, level, excellent, set, always): the item of `box` with the type and the level (+4, as
 // signed 32 bits). With the context's models (GameHudContext::uiItems), it places it in front of the UI camera and
 // draws it in its pass (Items/UiItemDrawing.h), with the rand() of 0x607b60, 0x609640 and 0x60b3d0's set pass; without
@@ -104,8 +108,3 @@ enum class DialogItemSource : std::uint8_t
 // box is fixed, not Item.bmd's. The rand() are 0x5e0720's. Without the UI resources, only the rand().
 [[nodiscard]] Core::Expected<void, std::string> DrawTheDialogItem(Ui::GameHudContext& context, float farPlane);
 } // namespace Client::Hud
-
-namespace Client::Ui
-{
-struct GameHudContext;
-} // namespace Client::Ui

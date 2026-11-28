@@ -18,7 +18,6 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
-#include "CastleSiege/CastleSiegeState.h"
 #include "Chat/ChatRuntime.h"
 #include "Social/SocialState.h"
 #include "Ui/GameUiState.h"
@@ -171,7 +170,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     if ((owner.flags7c & HiddenBubbleFlag) == HiddenBubbleFlag)
         return {};
     // 0x555b2a..0x555bda: 0x4294b0 reads the siege byte (0x7239ec).
-    if (ownerSlot != runtime.hero && runtime.castleSiege.siegeActive &&
+    if (ownerSlot != runtime.hero && runtime.castleFlags.siegeActive &&
         (owner.flags78 & SiegeSideFlag) == SiegeSideFlag && OfAnotherSiegeSide(hero.byte360, owner.byte360))
         return {};
     // 0x55627a..0x556291: 0x620a00(1) and glColor3f(1, 1, 1).

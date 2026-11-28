@@ -18,6 +18,7 @@
 #include "Kernel/WorldObject.h"
 #include "Kernel/HeldModules.h"
 #include "Kernel/ModelSounds.h"
+#include "Kernel/CastleSiegeFlags.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -358,6 +359,7 @@ struct WorldRuntime : RuntimeModules
     // The −1 before the first write is the one MuRet already used; the original's initial value is unread. With −1,
     // 0x511290 does not add the pet's shift (06, CL7.3 B).
     std::int32_t map = -1;
+    CastleSiegeFlags castleFlags{};
 
     // DAT_07d3a101, the world loaded: at 0, the game step leaves at 0x636db5 and its drawing returns 0 at 0x6371a6,
     // without reading the counter. The selection's load of 54 (0x633f30, inside 0x633f20) and the game step with state

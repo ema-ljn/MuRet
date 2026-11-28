@@ -54,7 +54,6 @@
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -424,7 +423,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
                           .worldClock = frame.worldClock,
                           .random = frame.random,
                           .cloth = *frame.pass.clothWorld,
-                          .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
+                          .siegeActive = frame.world.Runtime().castleFlags.siegeActive,
                           .soundRequest = [&runtime = frame.world.Runtime()](Audio::SoundId sound)
                           { runtime.RequestSound(sound); },
                           .originalFrame = frame.originalFrame,
@@ -871,7 +870,7 @@ Actors::Drawing::GameHangingPass HangingPassOf(MonsterFrame& frame, const Models
                                             .worldClock = frame.worldClock,
                                             .map = frame.map,
                                             .heroByte1a1 = frame.world.Hero().byte1a1,
-                                            .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
+                                            .siegeActive = frame.world.Runtime().castleFlags.siegeActive,
                                             .logicSteps = pass.clothWorld->logicSteps,
                                             .originalFrame = frame.originalFrame,
                                             .modelOrigin = frame.modelOrigin};
@@ -1233,7 +1232,7 @@ KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
                     : std::function<void(Audio::SoundId)>{},
             .worldClock = frame.worldClock,
             .map = frame.map,
-            .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
+            .siegeActive = frame.world.Runtime().castleFlags.siegeActive,
             .modelOrigin = frame.modelOrigin};
 }
 

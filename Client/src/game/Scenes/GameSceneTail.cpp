@@ -35,7 +35,6 @@
 #include "Ui/GameUiState.h"
 #include "Terrain/WorldTerrain.h"
 #include "Particles/Sprites.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <chrono>
 #include <algorithm>
@@ -190,7 +189,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     effectResources.sprites = &FrameSpritesForDraw();
     effectResources.dynamicLighting = &FrameLighting();
     effectResources.attributes = &attributes;
-    effectResources.siegeActive = runtime.castleSiege.siegeActive;
+    effectResources.siegeActive = runtime.castleFlags.siegeActive;
     effectResources.random = &FrameCloth().random;
     effectResources.itemContext = &itemContext;
     effectResources.kalimaPass = &kalimaPass;

@@ -22,7 +22,6 @@
 #include "Effects/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Assets/FaunaModels.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <algorithm>
 #include <cmath>
@@ -55,7 +54,7 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
         .terrainAttributes = terrain != nullptr ? terrain->attributes.get() : nullptr,
         .map = &runtime.map,
         .cameraShake = parts.cameraShake,
-        .siegeActive = runtime.castleSiege.siegeActive,
+        .siegeActive = runtime.castleFlags.siegeActive,
         .sound = parts.sound,
         .joint = [&world, &random,
                   joints = parts.joints](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>

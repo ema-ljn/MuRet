@@ -36,7 +36,6 @@
 #include "Terrain/DynamicWorldLight.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1038,7 +1037,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
         actor.dword58 = -2;
         const Kernel::WorldRuntime& runtime = pass.world.Runtime();
         constexpr std::uint32_t CrownOpen = 0x20000;
-        if (runtime.castleSiege.siegeActive && runtime.castleSiege.castleFlags7239e4 == CrownOpen)
+        if (runtime.castleFlags.siegeActive && runtime.castleFlags.castleFlags7239e4 == CrownOpen)
             actor.dword58 = -1;
         return false;
     }

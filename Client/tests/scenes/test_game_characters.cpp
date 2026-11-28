@@ -35,7 +35,6 @@
 #include "support/PlayerActors.h"
 #include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -406,7 +405,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
     EXPECT_FALSE(m_world->Particles().All().front().alive);
 
-    m_world->Runtime().castleSiege.siegeActive = true;
+    m_world->Runtime().castleFlags.siegeActive = true;
     m_cloth.random = Client::Crt::CrtRandom(1);
     m_batch.Begin({});
     const auto siege = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
@@ -427,7 +426,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
 TEST_F(UnarmedGameCharacterTest, TheCastleSiegeRequiresTheParticlePoolAfterTheBodyPrefix)
 {
     m_world->Runtime().map = 30;
-    m_world->Runtime().castleSiege.siegeActive = true;
+    m_world->Runtime().castleFlags.siegeActive = true;
 
     const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 

@@ -10,6 +10,12 @@ namespace Client::Chat
 struct GameChatContext;
 } // namespace Client::Chat
 
+namespace Client::Ui
+{
+struct GameHudContext;
+struct GameUiContext;
+} // namespace Client::Ui
+
 // The commands window (D, CL8 milestone 6, 08 P-C92): the object [0x6e592c], with its step (0x40a450) and its drawing
 // (0x40a650). Choosing a command, the notice it gives, closing it and the chosen character's card (0x6c8e30, which the
 // picking leaves since CL9 milestone 1; 0x40aa80..0x40abd8) are ported, and what the chosen command does on them with
@@ -17,7 +23,6 @@ struct GameChatContext;
 // whisper, follow and the duel; the four guild ones stop toward milestone 8 (08 P-C209).
 namespace Client::Hud
 {
-
 // 0x40a450, from 0x5ee140 with ECX = [0x6e592c]: with +4 at 1, the mouse over the window (from the corner the drawing
 // left, 0xbe × 0x1b1) belongs to the UI (0x775857c); 0x406050 sets the twelve states to 1 and, with a chosen command
 // and a chosen character, reads the four cells, chooses the target and the command's states and, with the right click,
@@ -46,9 +51,3 @@ RequestAGuildJoin(const Chat::GameChatContext& chat);
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 RequestAGuildRelation(const Chat::GameChatContext& chat, Chat::GuildRelationCommand command);
 } // namespace Client::Hud
-
-namespace Client::Ui
-{
-struct GameHudContext;
-struct GameUiContext;
-} // namespace Client::Ui

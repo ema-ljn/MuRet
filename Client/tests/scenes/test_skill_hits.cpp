@@ -13,7 +13,6 @@
 #include "Kernel/WorldState.h"
 
 #include "support/SameBytes.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -221,7 +220,7 @@ TEST(SkillHitsTest, WithoutTheSessionTheDeliveryStillDraws)
 TEST(SkillHitsTest, TheSiegeRequiresAttributesAndTheOutOfRangePointCuts)
 {
     HitsWorld siege(30, 0x18);
-    siege.world.Runtime().castleSiege.siegeActive = true;
+    siege.world.Runtime().castleFlags.siegeActive = true;
     siege.Put(5, 2, 0x1005, 1.0f);
     const auto cut = siege.Hit(Request(100.0f));
     ASSERT_FALSE(cut.HasValue());
@@ -266,7 +265,7 @@ TEST(SkillHitsTest, OnlyTheFourHundredNativeSlotsCanBeHitOrMarked)
 TEST(SkillHitsTest, WarIncludesOtherPlayersAndAttribute100StopsBeforeCollectingTargets)
 {
     HitsWorld tested(30, 0x18);
-    tested.world.Runtime().castleSiege.siegeActive = true;
+    tested.world.Runtime().castleFlags.siegeActive = true;
     tested.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     tested.Put(5, 1, 0x1005, 1.0f);
     const auto hit = tested.Hit(Request(100.0f));

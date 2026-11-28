@@ -53,7 +53,7 @@ using Tables::LastSiegeSkill;
 bool HasBattleRole(const Kernel::WorldRuntime& runtime, const Kernel::ActorState& hero, bool guildRequired)
 {
     const bool role = hero.byte360 == 6 || hero.byte360 == 7 || hero.byte360 == 8 || hero.byte360 == 12;
-    return runtime.castleSiege.siegeActive && role && hero.guildStatus != 0 &&
+    return runtime.castleFlags.siegeActive && role && hero.guildStatus != 0 &&
            (!guildRequired || static_cast<std::int16_t>(hero.word1f2) >= 0);
 }
 

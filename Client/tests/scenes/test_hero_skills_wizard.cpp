@@ -26,7 +26,6 @@
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1009,7 +1008,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
     {
         SCOPED_TRACE(castle);
         const auto tested = AWizard(0xf, Wizard, 30);
-        tested->world.Runtime().castleSiege.siegeActive = true;
+        tested->world.Runtime().castleFlags.siegeActive = true;
         tested->ChooseAnAlly();
         if (castle)
             tested->Hero().cellY = 0xc0;
@@ -1030,7 +1029,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
     {
         // With 0x576794c, it clears it and nothing else.
         const auto tested = AWizard(0xf, Wizard, 30);
-        tested->world.Runtime().castleSiege.siegeActive = true;
+        tested->world.Runtime().castleFlags.siegeActive = true;
         tested->ChooseAnAlly();
         tested->Movement().gateRequestBlocked = 1;
         ASSERT_TRUE(tested->Use().HasValue());
@@ -1040,7 +1039,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
     {
         // With the eight neighbor cells blocked outside the castle, nothing after 11 blocked cells.
         const auto tested = AWizard(0xf, Wizard, 30);
-        tested->world.Runtime().castleSiege.siegeActive = true;
+        tested->world.Runtime().castleFlags.siegeActive = true;
         tested->ChooseAnAlly();
         auto& cells = tested->terrain.attributes->cells;
         for (std::uint32_t y = 114; y <= 116; ++y)

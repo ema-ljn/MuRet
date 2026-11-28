@@ -20,7 +20,6 @@
 #include "Terrain/WorldTerrain.h"
 
 #include "support/SameBytes.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -145,7 +144,7 @@ void Attach(SweepWorld& sweep, HeroWorld& hero)
 {
     sweep.volley =
         std::make_unique<Client::Joints::JointKernels::VolleyServices>(Client::Joints::JointKernels::VolleyServices{
-            .siegeActive = hero.world.Runtime().castleSiege.siegeActive,
+            .siegeActive = hero.world.Runtime().castleFlags.siegeActive,
             .attributes = hero.terrain.attributes.get(),
             .skillHits = [&sweep, &hero](const Client::Actors::SkillHitsRequest& request)
                 -> Client::Core::Expected<void, std::string>
@@ -448,7 +447,7 @@ TEST(SweepJointsTest, TheSiegeStopsTheHeroSweepOnTheMarkedCells)
     {
         SCOPED_TRACE(attribute);
         HeroWorld hero;
-        hero.world.Runtime().castleSiege.siegeActive = true;
+        hero.world.Runtime().castleFlags.siegeActive = true;
         hero.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         hero.terrain.attributes->cells.fill(static_cast<std::uint16_t>(attribute));
         SweepWorld tested;

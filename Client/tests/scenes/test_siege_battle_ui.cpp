@@ -119,7 +119,7 @@ protected:
     {
         auto& runtime = world->Runtime();
         auto& hero = world->Hero();
-        runtime.castleSiege.siegeActive = true;
+        runtime.castleFlags.siegeActive = true;
         hero.byte360 = 6;
         hero.guildStatus = 0x80;
         hero.word1f2 = 0;
@@ -336,7 +336,7 @@ TEST_F(SiegeUiTest, ARightClickOnTheCommanderRowCancelsWithoutConsumingTheRightC
 TEST_F(SiegeUiTest, WarAloneDoesNotReadTheSkillTableOrChangeTheWheel)
 {
     auto& runtime = world->Runtime();
-    runtime.castleSiege.siegeActive = true;
+    runtime.castleFlags.siegeActive = true;
     runtime.ui.wheel = 120;
     const auto before = random.State();
     auto step = StepContext();
@@ -412,7 +412,7 @@ TEST_F(SiegeUiTest, TheSkillDrawConsumesSixtyRandomsAndResetsThePressedArrowOnly
 TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
 {
     auto& runtime = world->Runtime();
-    runtime.castleSiege.siegeActive = true;
+    runtime.castleFlags.siegeActive = true;
     runtime.map = 30;
     Client::CastleSiege::ResetSiegeClock(runtime);
     Client::CastleSiege::SetSiegeClock(runtime, 0, 0, 0xfffffff0u);

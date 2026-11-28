@@ -40,7 +40,6 @@
 
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -1729,7 +1728,7 @@ TEST(HelperTableTest, InTheSiegeTheFlag4000HidesTheHelperOfAnotherRiderUnlessIts
         tested.Horse().horse.alpha = 1.0f;
         tested.Rider().flags78 = 0x4000;
         tested.Rider().byte370 = probe.byte370;
-        tested.world.Runtime().castleSiege.siegeActive = probe.siege;
+        tested.world.Runtime().castleFlags.siegeActive = probe.siege;
         if (!probe.riderIsHero)
         {
             tested.world.Runtime().hero = OtherSlot;

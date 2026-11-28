@@ -30,7 +30,6 @@
 #include "Audio/SoundId.h"
 
 #include "support/LentWorld.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -239,7 +238,7 @@ TEST(HighModelEffectsTest, TheArrivalAuraHoldsWhileItsActorLivesAndHidesWithoutT
     {
         SCOPED_TRACE(siege);
         HighWorld tested;
-        tested.world->Runtime().castleSiege.siegeActive = siege;
+        tested.world->Runtime().castleFlags.siegeActive = siege;
         ActorState& owner = tested.world->Actors()[3];
         owner.alive = true;
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x134, .position = {100, 200, 300}, .owner = &owner, .key = 120},

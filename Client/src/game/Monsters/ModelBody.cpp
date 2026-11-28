@@ -10,7 +10,6 @@
 #include "Actors/ActorConstruction.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldRuntime.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <cmath>
@@ -111,7 +110,7 @@ bool FinishTheCastleObject(Kernel::ActorState& actor, const Models::Skeleton& sk
             PutTheAction(actor, OpenedAction);
             constexpr std::uint8_t Opened = 2;
             constexpr std::int32_t OpenedTime = 0x12c;
-            runtime.castleSiege.castleByte7239d8 = Opened;
+            runtime.castleFlags.castleByte7239d8 = Opened;
             actor.byte110 = 1;
             actor.dword100 = OpenedTime;
             return true;

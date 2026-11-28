@@ -382,7 +382,7 @@ void DrawTheSands(Frame& frame)
             frame.context.crywolfSandOverlay = 0;
         }
     }
-    else if (map == CastleSiegeMap && frame.runtime.castleSiege.siegeActive)
+    else if (map == CastleSiegeMap && frame.runtime.castleFlags.siegeActive)
     {
         // 0x42b100, with 0x4294b0.
         DrawSmoke(frame, Color{0.3f, 0.3f, 0.25f, 1.0f});
@@ -1289,7 +1289,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
         const std::int32_t map = frame.runtime.map;
         bool tinted = false;
         if ((skill == 0x2c || skill == 0x2d || skill == 0x2e || skill == 0x39 || skill == 0x49 || skill == 0x4a) &&
-            (map != CastleSiegeMap || !frame.runtime.castleSiege.siegeActive))
+            (map != CastleSiegeMap || !frame.runtime.castleFlags.siegeActive))
             tinted = true;
         if ((frame.hero.flags78 & 0x200u) != 0x200u && kind == 2)
             tinted = true;

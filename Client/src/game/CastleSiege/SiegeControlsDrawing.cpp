@@ -227,7 +227,7 @@ Core::Expected<void, std::string> DrawTheSiegeControls(Ui::GameHudContext& conte
 void DrawTheBattleClock(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.castleSiege.siegeActive || runtime.map != 30)
+    if (!runtime.castleFlags.siegeActive || runtime.map != 30)
         return;
     auto copy = runtime.castleSiege.siegeBattleUi.clock;
     auto& clock = context.projecting ? copy : runtime.castleSiege.siegeBattleUi.clock;
@@ -268,7 +268,7 @@ Core::Expected<void, std::string> DrawTheBattleSkill(Ui::GameHudContext& context
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
-    if (!runtime.castleSiege.siegeActive || !HasRole(hero) || static_cast<std::int16_t>(hero.word1f2) < 0 ||
+    if (!runtime.castleFlags.siegeActive || !HasRole(hero) || static_cast<std::int16_t>(hero.word1f2) < 0 ||
         hero.guildStatus == 0)
         return {};
     std::uint8_t cost = 0;

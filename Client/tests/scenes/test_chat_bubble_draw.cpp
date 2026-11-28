@@ -18,7 +18,6 @@
 #include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
-#include "CastleSiege/CastleSiegeState.h"
 #include "Chat/ChatRuntime.h"
 #include "Ui/GameUiState.h"
 
@@ -474,7 +473,7 @@ TEST_F(ChatBubbleDrawTest, SomeOwnersHaveNoBubble)
     owner.flags78 = 0x4000u;
     owner.byte360 = 10;
     m_world->Actors()[0].byte360 = 9;
-    m_world->Runtime().castleSiege.siegeActive = true;
+    m_world->Runtime().castleFlags.siegeActive = true;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_TRUE(Texts().empty());
 

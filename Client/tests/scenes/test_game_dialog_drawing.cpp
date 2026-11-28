@@ -11,7 +11,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Events/EventMapObject.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Guild/GuildState.h"
 #include "ChaosMix/JewelBundleList.h"
 #include "Npc/NpcWindowState.h"
@@ -52,7 +52,7 @@
 // with made-up texts and the world in Lorencia (0) and in Devias (2).
 namespace
 {
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;

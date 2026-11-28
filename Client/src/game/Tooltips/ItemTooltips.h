@@ -6,10 +6,10 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The bodies of an item's tooltips (06 § Los tooltips, CL8 milestone 5): the item's (0x5b2aa0) and the repair one
 // (0x5b8150); the skill's (0x5b90b0) is in SkillTooltip.h. Each one clears its lines of HudState::tooltip, fills them
@@ -19,7 +19,7 @@ namespace Client::Tooltips
 
 struct ItemTooltipContext
 {
-    Hud::GameHudContext& hud;
+    Ui::GameHudContext& hud;
     // 0x78a9bac and 0x78a9ba8: where it goes (the top center of the box).
     std::int32_t x = 0;
     std::int32_t y = 0;

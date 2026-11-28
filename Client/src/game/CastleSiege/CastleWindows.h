@@ -30,9 +30,13 @@ class WorldState;
 namespace Client::Hud
 {
 class GamePanels;
-struct GameUiContext;
-struct GameHudContext;
 } // namespace Client::Hud
+
+namespace Client::Ui
+{
+struct GameHudContext;
+struct GameUiContext;
+} // namespace Client::Ui
 
 // The three castle windows: 0x64d350, 0x6691c0 and 0x648a30, called by 0x657930, and their draws from 0x6579e0.
 // The open flags and Senior's tab stay in DelegatedPanels, without parallel copies.
@@ -51,7 +55,7 @@ struct CastleWindowServices
 [[nodiscard]] bool HeroCanCraftAtTheCastle(const Kernel::WorldState& world);
 void LendTheCastleLifecycleTo(Ui::PanelContext& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
                               const CastleSender& send, CastleWindowServices services = {});
-void LendTheCastleWindowStepsTo(Ui::PanelContext& panels, const Hud::GameUiContext& context);
+void LendTheCastleWindowStepsTo(Ui::PanelContext& panels, const Ui::GameUiContext& context);
 // The same lending for callers that get no Castle packet and have no log of their own.
 void LendTheCastlePanelServices(Hud::GamePanels& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
                                 const CastleSender& send, const Scenes::WorldEntryResources* entryResources,
@@ -60,8 +64,8 @@ void LendTheCastlePanelServices(Hud::GamePanels& panels, const CastleReceiveCont
 // For the closes of entry, teleport, quests, trade and shops: it also keeps their specific transports.
 void LendTheCastlePanelServices(Hud::GamePanels& panels, const Scenes::WorldEntryResources& resources,
                                 const CastleSender& send = {});
-[[nodiscard]] Core::Expected<void, std::string> StepTheCastleWindow(const Hud::GameUiContext& context, Ui::PanelId id);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheCastleWindows(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheCastleWindow(const Ui::GameUiContext& context, Ui::PanelId id);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheCastleWindows(Ui::GameHudContext& context);
 [[nodiscard]] Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState& world,
                                                                             const CastleSender& send,
                                                                             Ui::PanelDialogOwner owner,

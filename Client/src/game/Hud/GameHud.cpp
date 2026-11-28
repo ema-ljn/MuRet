@@ -169,7 +169,7 @@ using Math::Truncate;
 
 struct Frame
 {
-    GameHudContext& context;
+    Ui::GameHudContext& context;
     Kernel::WorldRuntime& runtime;
     Kernel::OwnCharacterRecord& own;
     Kernel::ActorState& hero;
@@ -186,7 +186,7 @@ Models::LogicalAccess OwnAccess(const Frame& frame)
 // An access to Skill.bmd entry `skill` (0x76bd1d8 + 0x3c · skill): 60 rand() when closing it at 0 (0x40f600).
 Models::LogicalAccess SkillAccess(const Frame& frame, std::uint32_t skill)
 {
-    return Models::LogicalAccess(frame.runtime.movement.skillDepths[skill], frame.context.random,
+    return Models::LogicalAccess(frame.runtime.skillDepths[skill], frame.context.random,
                                  static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
@@ -282,7 +282,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
 // (MapBannerQuadOf), glColor4f(1, 1, 1, 1) and 0x620980.
 void DrawTheMapBanner(Frame& frame)
 {
-    GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     MapBanner& banner = context.hud.mapBanner;
     StepTheMapBanner(banner, context.tickCount);
     if (banner.state == MapBannerState::Off)
@@ -579,7 +579,7 @@ void DrawTheMacroTime(Frame& frame)
 // 0x469350: both EDITs use the same vtable +0x14 (0x468320) as friends, letters and dialogs.
 void DrawTheChatEdit(Frame& frame, Ui::OldEdit& edit, bool focused)
 {
-    GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = context.sprites,
                                                          .text = context.text,
                                                          .dcFont = context.hud.dcFont,
@@ -593,7 +593,7 @@ void DrawTheChatEdit(Frame& frame, Ui::OldEdit& edit, bool focused)
 // too), and with the whisper mode (F3) its indicator.
 void DrawTheChatInput(Frame& frame)
 {
-    GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     Kernel::HudState& hud = context.hud;
     const Chat::ChatInputState& input = frame.runtime.chat.input;
     context.sprites.SetColor(White);
@@ -1691,7 +1691,7 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
 
 } // namespace
 
-Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheHud(Ui::GameHudContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -1836,7 +1836,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     return CastleSiege::DrawTheBattlePanel(context);
 }
 
-Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheOverlays(Ui::GameHudContext& context)
 {
     Kernel::WorldState& world = context.world;
     const std::int32_t& mode = world.Runtime().panels.overlayMode;
@@ -1857,7 +1857,7 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheGameCursor(Ui::GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::WorldState& world = context.world;

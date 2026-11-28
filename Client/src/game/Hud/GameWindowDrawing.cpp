@@ -10,7 +10,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Kernel/WorldRuntime.h"
 #include "Ui/HudPrimitives.h"
@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace Client::Hud::WindowDrawing
+namespace Client::Ui::WindowDrawing
 {
 namespace
 {
@@ -52,7 +52,7 @@ using Math::Truncate;
 
 // What 0x554180 and 0x5542f0 measure after drawing: GetTextExtentPoint32 with the DC's font, the width clipped to
 // `limit` if positive and smaller, and both scaled to 640 × 480 (fdiv by rx and ry and _ftol).
-void KeepTheMeasure(GameHudContext& context, std::string_view text, std::int32_t limit)
+void KeepTheMeasure(Ui::GameHudContext& context, std::string_view text, std::int32_t limit)
 {
     Kernel::HudState& hud = context.hud;
     const Render::Text::TextExtent extent = context.text.Measure(hud.dcFont, text);
@@ -148,12 +148,12 @@ void DrawTheWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_
          WindowWidth, WindowBottomHeight, WindowDu, WindowBottomDv);
 }
 
-void SelectFont(GameHudContext& context, Render::Text::FontKind font)
+void SelectFont(Ui::GameHudContext& context, Render::Text::FontKind font)
 {
     context.hud.dcFont = font;
 }
 
-void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawText(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     Kernel::HudState& hud = context.hud;
     if (!text.empty())
@@ -161,13 +161,13 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
     KeepTheMeasure(context, text, 0);
 }
 
-std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth)
+std::int32_t BoxWidth(const Ui::GameHudContext& context, std::uint32_t designWidth)
 {
     const auto screenWidth = static_cast<std::uint32_t>(context.sprites.Screen().width);
     return static_cast<std::int32_t>(screenWidth * designWidth / DesignWidth);
 }
 
-void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
+void DrawInBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
     Kernel::HudState& hud = context.hud;
     // 0x554180: 0x465950 with a text or with a box. 0x467060 in mode 2 (0x46711b..0x467132): the box of
@@ -182,13 +182,13 @@ void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::str
     KeepTheMeasure(context, text, box);
 }
 
-void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+void DrawInBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                std::uint32_t designWidth)
 {
     DrawInBox(context, x, y, text, BoxWidth(context, designWidth));
 }
 
-void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width)
+void DrawClipped(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width)
 {
     Kernel::HudState& hud = context.hud;
     const Render::Text::TextStyle style{.font = hud.dcFont, .colors = hud.textColors};
@@ -207,18 +207,18 @@ void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::s
     KeepTheMeasure(context, text, width);
 }
 
-void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawTitle(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     DrawInBox(context, x, y, text, BoxWidth(context, TitleBoxDesignWidth));
 }
 
-void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawCenteredText(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
     DrawText(context, Render::Text::CenteredAt(x, extent, context.sprites.Screen()), y, text);
 }
 
-bool DrawTheCloseButton(GameHudContext& context, std::int32_t x, std::int32_t y)
+bool DrawTheCloseButton(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(White);
@@ -228,7 +228,7 @@ bool DrawTheCloseButton(GameHudContext& context, std::int32_t x, std::int32_t y)
     return MouseInSquare(context.mouse, left, top, CloseSize);
 }
 
-void DrawTheCloseHelp(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
+void DrawTheCloseHelp(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
     const float left = F32(static_cast<double>(x) + CloseLeft);
     const float top = F32(static_cast<double>(y) + CloseTop);
@@ -240,4 +240,4 @@ void DrawTheCloseHelp(GameHudContext& context, std::int32_t x, std::int32_t y, s
     SelectFont(context, Render::Text::FontKind::Normal);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
 }
-} // namespace Client::Hud::WindowDrawing
+} // namespace Client::Ui::WindowDrawing

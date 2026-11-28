@@ -19,7 +19,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Chat/GameMessages.h"
 #include "Scenes/GameProjection.h"
 #include "Hud/GameWindowDrawing.h"
@@ -97,12 +97,12 @@ constexpr std::int32_t SiegeListWithInventory = 3;
 using Math::F32;
 using Math::Truncate;
 
-Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(Ui::GameHudContext& context)
 {
     return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -130,7 +130,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
 }
 
 // The mouse as float against the float box: left ≤ x < left + size, with the sum on the x87.
-bool MouseInSquare(const GameHudContext& context, float left, float top, float size)
+bool MouseInSquare(const Ui::GameHudContext& context, float left, float top, float size)
 {
     const auto x = static_cast<double>(static_cast<float>(context.mouse.x));
     const auto y = static_cast<double>(static_cast<float>(context.mouse.y));
@@ -139,13 +139,13 @@ bool MouseInSquare(const GameHudContext& context, float left, float top, float s
 }
 
 // SelectObject on the text DC: the font the following texts measure and draw with.
-void SelectFont(GameHudContext& context, Render::Text::FontKind font)
+void SelectFont(Ui::GameHudContext& context, Render::Text::FontKind font)
 {
     context.hud.dcFont = font;
 }
 
 // 0x554180(x, y, text, 0, 0, 0): mode 1 with no limit, from x, with whatever font and colors are set.
-void DrawText(GameHudContext& context, int x, int y, std::string_view text)
+void DrawText(Ui::GameHudContext& context, int x, int y, std::string_view text)
 {
     context.text.Draw(x, y, text,
                       Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors});
@@ -154,7 +154,7 @@ void DrawText(GameHudContext& context, int x, int y, std::string_view text)
 // 0x554180(x, y, text, width, 1, p6) → 0x467060 with mode 2: a box of `boxPixels` pixels starting at _ftol(x · rx),
 // with the text at column (width − cx) / 2 by C division and the background over the whole box, with whatever font and
 // colors are set (Render::Text::CenterInBox).
-void DrawTextCenteredInBox(GameHudContext& context, int x, int y, std::string_view text, int boxPixels)
+void DrawTextCenteredInBox(Ui::GameHudContext& context, int x, int y, std::string_view text, int boxPixels)
 {
     const Render::Text::CenteredInBox placed =
         Render::Text::CenterInBox(context.text, context.hud.dcFont, text, boxPixels);
@@ -164,7 +164,7 @@ void DrawTextCenteredInBox(GameHudContext& context, int x, int y, std::string_vi
 }
 
 // 0x623690(x, y, text): centered at x, with whatever font and colors are set.
-void DrawTextCenteredAt(GameHudContext& context, int x, int y, std::string_view text)
+void DrawTextCenteredAt(Ui::GameHudContext& context, int x, int y, std::string_view text)
 {
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
     DrawText(context, Render::Text::CenteredAt(x, extent, context.sprites.Screen()), y, text);
@@ -172,7 +172,7 @@ void DrawTextCenteredAt(GameHudContext& context, int x, int y, std::string_view 
 
 // 0x554340 with the normal font and the white and black colors set before it: the help leaves the text white on a
 // transparent background (0x6c8e5c at −1 and 0x6c8e64 at 0).
-void DrawHelp(GameHudContext& context, int x, int y, std::string_view help)
+void DrawHelp(Ui::GameHudContext& context, int x, int y, std::string_view help)
 {
     Ui::DrawHelp(context.sprites, context.text, x, y, help);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
@@ -223,7 +223,7 @@ void SetWarningColor(Render::SpriteBatch& sprites, const Kernel::ItemState& item
 // 0xc17 and 0xe20), those of 0x609640 (2 with 0xe21 and 0xe22) and the set pass's (0x60cc29: with the set at 1 or 2,
 // not excellent and the pulse off, rand() % 100 into the model's +0xc0; like DrawItemFromMeshes, only in a frame of
 // the original). The 0x1e1e changes model without changing the count.
-void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_t excellent, std::uint8_t set)
+void SpendUiItemRandoms(Ui::GameHudContext& context, std::int32_t model, std::uint8_t excellent, std::uint8_t set)
 {
     context.random.Discard(
         static_cast<std::uint32_t>(Actors::Drawing::HangingRandomCount(static_cast<std::uint16_t>(model))));
@@ -243,7 +243,7 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
 
 } // namespace
 
-Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
+Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const Ui::GameHudContext& context, std::int32_t type,
                                                          std::string_view where)
 {
     if (context.items == nullptr)
@@ -260,7 +260,7 @@ Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const GameHudContext& c
     return box;
 }
 
-Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const Items::UiItemBox& box, std::int32_t type,
+Core::Expected<void, std::string> DrawUiItem(Ui::GameHudContext& context, const Items::UiItemBox& box, std::int32_t type,
                                              std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)
 {
     // 0x5e1486..0x5e1d69: under the mouse, the box's point and 0x620480 with it (no effects outside 0x7d36834).
@@ -311,7 +311,7 @@ void DrawWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y
 // 0x5e2460: the backgrounds of the twelve equipment slots, each in its item's warning color, with the own record open
 // around them (3848 rand() when closing it without other accesses) and another access inside for the class: the
 // helmet has no background with class 3.
-void DrawTheEquipmentSlots(GameHudContext& context, std::int32_t x, std::int32_t y)
+void DrawTheEquipmentSlots(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
@@ -385,7 +385,7 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 namespace
 {
 // A 24 × 24 button at the window's foot and its help with the mouse over it, at (_ftol(x), _ftol(y) − above).
-Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::uint16_t slot, float x, float y,
+Core::Expected<void, std::string> DrawFootButton(Ui::GameHudContext& context, std::uint16_t slot, float x, float y,
                                                  std::size_t help, int above, std::string_view where)
 {
     Quad(context.sprites, slot, x, y, 24.0f, 24.0f, 0.75f, 0.75f);
@@ -402,7 +402,7 @@ Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::u
 
 // 0x40e720(x, y), the method of the sets object ([0x6eed3c]): the setitem label and "[text 989]" twice, in black and
 // shifted one point, and on top in gold with some set option (+0x9348 or +0x9349) or in grey.
-Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheSetLabel(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const float top = F32(static_cast<double>(y) + 22.0);
@@ -426,7 +426,7 @@ Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context, std::
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheInventory(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::InventoryPanel))
         return {};
@@ -564,19 +564,19 @@ constexpr std::array<EquipmentBox, 12> EquipmentBoxes{{
 constexpr std::size_t NpcWindowGridColumns = 8;
 constexpr std::size_t NpcWindowGridRows = 15;
 
-float NpcGridLeft(const GameHudContext& context)
+float NpcGridLeft(const Ui::GameHudContext& context)
 {
     return F32(static_cast<double>(context.world.Runtime().ui.npcWindowX) + 15.0);
 }
 
-float NpcGridTop(const GameHudContext& context)
+float NpcGridTop(const Ui::GameHudContext& context)
 {
     return F32(static_cast<double>(context.world.Runtime().ui.npcWindowY) + 50.0);
 }
 
 // 0x5e3760(x, y, grid, columns, rows, 0): each top-left cell's item (+0x3c > 0), in the cell
 // ((float)(20 · column) + x, (float)(20 · row) + y) with the fstp, of Item.bmd's size.
-Core::Expected<void, std::string> DrawTheGridModels(GameHudContext& context, float x, float y,
+Core::Expected<void, std::string> DrawTheGridModels(Ui::GameHudContext& context, float x, float y,
                                                     std::span<const Kernel::ItemState> cells, std::size_t columns,
                                                     std::size_t rows)
 {
@@ -639,12 +639,12 @@ void DrawTheGridCounts(Render::SpriteBatch& sprites, float x, float y, std::span
 constexpr std::size_t ChaosBoxGridColumns = 8;
 constexpr std::size_t ChaosBoxGridRows = 4;
 
-float ChaosBoxGridLeft(const GameHudContext& context)
+float ChaosBoxGridLeft(const Ui::GameHudContext& context)
 {
     return F32(static_cast<double>(context.world.Runtime().ui.npcWindowX) + 15.0);
 }
 
-float ChaosBoxGridTop(const GameHudContext& context)
+float ChaosBoxGridTop(const Ui::GameHudContext& context)
 {
     return F32(static_cast<double>(context.world.Runtime().ui.npcWindowY) + 110.0);
 }
@@ -655,7 +655,7 @@ constexpr float TrainerBoxGridLeft = 275.0f;
 constexpr float TrainerBoxGridTop = 110.0f;
 } // namespace
 
-Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheGridItems(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -752,7 +752,7 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheGridNumbers(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
     const Ui::DelegatedPanels& delegated = world.Runtime().panels.delegated;
@@ -808,7 +808,7 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheCursorItem(Ui::GameHudContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.cursorItemCount <= 0)
@@ -849,7 +849,7 @@ DialogItemSource DialogItemOf(std::int32_t dialog, std::int32_t warningKind)
     return DialogItemSource::Cursor;
 }
 
-Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, float farPlane)
+Core::Expected<void, std::string> DrawTheDialogItem(Ui::GameHudContext& context, float farPlane)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     const DialogItemSource source = DialogItemOf(runtime.dialogs.current, runtime.social.trade.warningKind);
@@ -963,7 +963,7 @@ float TradePlace(std::int32_t corner, double offset)
 
 // 0x5f3e0b..0x5f3ecf and its copies: with the mouse over the button, the normal font and the help at
 // (_ftol(x), _ftol(y) − 13), with whatever colors are set.
-Core::Expected<void, std::string> TradeHelp(GameHudContext& context, float x, float y, std::size_t help,
+Core::Expected<void, std::string> TradeHelp(Ui::GameHudContext& context, float x, float y, std::size_t help,
                                             std::string_view where)
 {
     SelectFont(context, FontKind::Normal);
@@ -975,7 +975,7 @@ Core::Expected<void, std::string> TradeHelp(GameHudContext& context, float x, fl
 }
 
 // 0x5f40cd..0x5f428b: the zen box with "Zen" and the amount in thousands, colored by how much it is.
-Core::Expected<void, std::string> DrawTradeMoney(GameHudContext& context, float x, float y, std::uint32_t zen)
+Core::Expected<void, std::string> DrawTradeMoney(Ui::GameHudContext& context, float x, float y, std::uint32_t zen)
 {
     Quad(context.sprites, MoneyBoxSlot, x, y, 113.0f, 18.0f, 0.8828125f, 0.5625f);
     const std::int32_t textY = Truncate(static_cast<double>(y)) + 2;
@@ -1007,7 +1007,7 @@ std::pair<std::int32_t, std::uint32_t> LevelBracket(std::int32_t level)
 // not −1 and equals the other's guild's (0x6c9324, the one the 37 brings) upload their mark (0x5f16a0(i, 0)), draw it
 // with 0x22 at (x − 32, y + 40), 32 × 32, and write the name (+0xd) at (x, y + 30) with 0x554240, which calls 0x465950
 // like 0x554180 without the box (*static*), with the font and colors left by what came before.
-Core::Expected<void, std::string> DrawTheOthersGuild(GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheOthersGuild(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     constexpr float MarkLeft = 32.0f;
     constexpr float MarkTop = 40.0f;
@@ -1042,7 +1042,7 @@ std::string_view NameUntilZero(std::span<const std::byte> name)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheTradeWindow(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::TradePanel))
         return {};
@@ -1055,7 +1055,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
     const std::int32_t x = hud.tradeX;
     const std::int32_t y = hud.tradeY;
     // 0x5f3b78: 0x5ee220(x, y, 1), the trade's background and line.
-    WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     Quad(sprites, TradingLineSlot, static_cast<float>(x),
          F32(static_cast<double>(static_cast<float>(y)) + TradingLineTop), 190.0f, 10.0f, 0.7421875f, 0.625f);
     // 0x5f3b7d..0x5f3bda: the two grids' backgrounds (0x5e3660).
@@ -1072,7 +1072,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
     auto title = TextOf(context, TradeTitleText, "0x5f3cf8");
     if (!title.HasValue())
         return Core::Unexpected(title.Error());
-    WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
+    Ui::WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
     // 0x5f3d04..0x5f3d9e: the other's OK, red while 0x78abac4 is above 0.
     const Color okColor = trade.field78abac4 > 0 ? Color{1.0f, 0.0f, 0.0f, 1.0f} : White;
     sprites.SetColor(okColor);
@@ -1260,30 +1260,30 @@ constexpr std::array<ShopLine, 2> PulsingShopLines{
     {{ShopSoldOutText, 0x14a, "0x5f367d"}, {ShopZenOnlyText, 0x159, "0x5f36a7"}}};
 
 // 0x554180(x, y, text, 0, 0, 0) with text `index`.
-Core::Expected<void, std::string> DrawShopText(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawShopText(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                std::size_t index, std::string_view where)
 {
     auto text = TextOf(context, index, where);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
-    WindowDrawing::DrawText(context, x, y, text.Value());
+    Ui::WindowDrawing::DrawText(context, x, y, text.Value());
     return {};
 }
 
 // 0x554180(x, y, text, k · W / 640, 1, ·) with text `index`.
-Core::Expected<void, std::string> DrawShopBoxText(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawShopBoxText(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   std::size_t index, std::uint32_t box, std::string_view where)
 {
     auto text = TextOf(context, index, where);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
-    WindowDrawing::DrawInBox(context, x, y, text.Value(), box);
+    Ui::WindowDrawing::DrawInBox(context, x, y, text.Value(), box);
     return {};
 }
 
 // 0x5f310f..0x5f3233, with the own shop: the strip and, in the normal blend and on a background at 0, 1103 or 560
 // centered in 150 · W / 640. Ends with no blend.
-Core::Expected<void, std::string> DrawTheShopStatus(GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
+Core::Expected<void, std::string> DrawTheShopStatus(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const auto screenWidth = static_cast<std::uint32_t>(sprites.Screen().width);
@@ -1309,7 +1309,7 @@ Core::Expected<void, std::string> DrawTheShopStatus(GameHudContext& context, std
 // 150 · W / 640. The text goes to a 48-byte stack buffer: 1105 and over it, with strcpy, 0x78aba64's if it has
 // something or if another's shop is viewed (empty, then). MuRet keeps up to 36 bytes (07 Q-C962): it does not go past
 // the 48. Ends with no blend.
-Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheShopName(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   const Social::PersonalShopState& shops)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -1323,14 +1323,14 @@ Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::
     std::string_view name = placeholder.Value();
     if (!shops.ownTitle.empty() || shops.mode == Social::OtherShopView)
         name = shops.ownTitle;
-    WindowDrawing::DrawInBox(context, x + ShopNameLeft, y + ShopNameTop, name, StatusBox);
+    Ui::WindowDrawing::DrawInBox(context, x + ShopNameLeft, y + ShopNameTop, name, StatusBox);
     sprites.SetBlend(BlendMode::Opaque);
     return {};
 }
 
 // 0x5f33ac..0x5f34f6, with the own shop: the two buttons, on a background at 0: open (1107) or apply with the shop
 // open (1106), and close (1108), grey with the shop closed. Without a mouse they do not light up.
-Core::Expected<void, std::string> DrawTheShopButtons(GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
+Core::Expected<void, std::string> DrawTheShopButtons(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
 {
     Render::SpriteBatch& sprites = context.sprites;
     context.hud.textColors = TextColors{.text = ButtonTextColor, .background = 0};
@@ -1351,7 +1351,7 @@ Core::Expected<void, std::string> DrawTheShopButtons(GameHudContext& context, st
 
 // 0x5f34fe..0x5f37e2: the pulsing warning, the five lines of the own shop or another's (with another 0x6c931c, none)
 // and the last two pulsing. Ends with no blend.
-Core::Expected<void, std::string> DrawTheShopLines(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheShopLines(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                    std::int32_t mode)
 {
     Kernel::HudState& hud = context.hud;
@@ -1382,7 +1382,7 @@ Core::Expected<void, std::string> DrawTheShopLines(GameHudContext& context, std:
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawThePersonalShopWindow(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::PersonalShopPanel) && !panels.IsOpen(Ui::OtherShopPanel))
         return {};
@@ -1401,7 +1401,7 @@ Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& cont
     auto title = TextOf(context, ShopTitleText, "0x5f30f9");
     if (!title.HasValue())
         return Core::Unexpected(title.Error());
-    WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
+    Ui::WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
     const bool own = shops.mode == Social::OwnShopView;
     const bool open = shops.ownOpen != 0;
     if (own)

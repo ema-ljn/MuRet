@@ -12,7 +12,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Pets/DarkSpirit.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
@@ -41,7 +41,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::BlendMode;

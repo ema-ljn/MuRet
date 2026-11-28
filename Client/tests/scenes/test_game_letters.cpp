@@ -195,7 +195,7 @@ std::map<std::size_t, std::string> LetterTexts()
     };
 }
 
-class FakeRequests final : public Client::Hud::IGameUiRequests
+class FakeRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}

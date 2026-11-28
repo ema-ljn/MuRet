@@ -42,7 +42,6 @@
 #include "Ui/Dialogs.h"
 #include "Ui/GameUiState.h"
 #include "Ui/PanelRegistry.h"
-#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 
@@ -70,7 +69,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
@@ -593,7 +592,7 @@ TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
         ExpectTheTraceQuad(quads[i], trace[i]);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(world.Runtime().movement.skillDepths[0x2c], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[0x2c], 0);
     // Life below 20 %: the sound 0x22 of 0x5a97c3.
     EXPECT_EQ(sound, Client::Audio::SoundId{0x22});
     // The only text is the helper's name, which ends at x = 575 + 50.

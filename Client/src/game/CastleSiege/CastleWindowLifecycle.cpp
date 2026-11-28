@@ -13,7 +13,7 @@
 #include "Protocol/Npc/NpcWindows.h"
 #include "Chat/GameMessages.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Guild/GuildPanels.h"
 #include "Items/InventoryMoves.h"
 #include "Npc/NpcWindows.h"
@@ -193,7 +193,7 @@ void LendTheCastlePanelServices(Hud::GamePanels& panels, const Scenes::WorldEntr
         panels.LendTheWindowClose(resources.sendWindowClose);
 }
 
-void LendTheCastleWindowStepsTo(Ui::PanelContext& panels, const Hud::GameUiContext& context)
+void LendTheCastleWindowStepsTo(Ui::PanelContext& panels, const Ui::GameUiContext& context)
 {
     if (context.requests != nullptr)
         LendTheCastleLifecycleTo(

@@ -13,7 +13,7 @@
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Tooltips/ItemTooltips.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -29,7 +29,6 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
-#include "Movement/GameMovementState.h"
 #include "Social/SocialState.h"
 #include "Ui/PanelRegistry.h"
 
@@ -51,7 +50,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
@@ -347,7 +346,7 @@ TEST_P(PetTooltipTest, TheSecondHoverDrawsTheHorse)
     EXPECT_EQ(Runtime().pets[Client::Kernel::DarkHorsePetStats].nextExperience, 89600u);
     EXPECT_EQ(m_random.State(), expected.State());
     EXPECT_EQ(Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(Runtime().movement.skillDepths[HorseSkill], 0);
+    EXPECT_EQ(Runtime().skillDepths[HorseSkill], 0);
     // 0x423c0f..0x423c3d: 14 lines and 11 halves, (14 − 11) · 13 + 11 · 13 / 2 = 110 above y.
     ASSERT_FALSE(m_text.texts.empty());
     EXPECT_EQ(m_text.texts[0].text, "Corcel");

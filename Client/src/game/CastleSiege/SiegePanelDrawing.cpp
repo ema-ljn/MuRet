@@ -9,7 +9,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
@@ -73,7 +73,7 @@ bool InMap(float x, float y, float left, float top)
 }
 
 // 0x40f850: each actor's accesses happen even if its point ends outside the rectangle.
-Core::Expected<void, std::string> DrawBase(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel,
+Core::Expected<void, std::string> DrawBase(Ui::GameHudContext& context, CastleSiege::SiegePanelState& panel,
                                            std::uint8_t kind)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -137,7 +137,7 @@ Core::Expected<void, std::string> DrawBase(Hud::GameHudContext& context, CastleS
     return {};
 }
 
-Core::Expected<void, std::string> DrawStatus(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel,
+Core::Expected<void, std::string> DrawStatus(Ui::GameHudContext& context, CastleSiege::SiegePanelState& panel,
                                              float* lastWidth = nullptr, float* lastHeight = nullptr)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -192,7 +192,7 @@ bool Inside(float x, float y, float left, float top, float width, float height)
     return left <= x && x <= left + width && top <= y && y <= top + height;
 }
 
-void DrawMemberPoints(Hud::GameHudContext& context, const CastleSiege::SiegePanelState& panel)
+void DrawMemberPoints(Ui::GameHudContext& context, const CastleSiege::SiegePanelState& panel)
 {
     if (panel.membersHidden != 0)
         return;
@@ -213,7 +213,7 @@ void DrawMemberPoints(Hud::GameHudContext& context, const CastleSiege::SiegePane
     }
 }
 
-Core::Expected<void, std::string> DrawCommands(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel)
+Core::Expected<void, std::string> DrawCommands(Ui::GameHudContext& context, CastleSiege::SiegePanelState& panel)
 {
     Render::SpriteBatch& sprites = context.sprites;
     float iconWidth = 19.0f;
@@ -293,7 +293,7 @@ Core::Expected<void, std::string> DrawCommands(Hud::GameHudContext& context, Cas
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheBattlePanel(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheBattlePanel(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Hud::GamePanels panels(context.world, context.random);

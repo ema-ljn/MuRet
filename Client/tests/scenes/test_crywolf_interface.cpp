@@ -10,7 +10,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/Widget.h"
@@ -37,7 +37,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::CrywolfInterface;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;

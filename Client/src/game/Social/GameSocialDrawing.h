@@ -12,10 +12,10 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Social
 {
@@ -27,7 +27,7 @@ namespace Client::Social
 // score (0x78abaf8, in 0xffff9600) and the rival's (0x78abafc, in 0xff1919ff) at center ∓ 80, 0x30. Each text's x
 // calls 0x5bb8d0 again: eight in all, each with its rand(). Leaves the normal font, the background at 0, the text in
 // 0xff1919ff and blending off.
-void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels);
+void DrawTheDuelScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5f37f0: with the duel request (0x78abad9), the box of Message_box1 and 2 (0xfb and 0xfc) at (213, 110), 213 wide,
 // the duel image (DuelWindow.jpg, 0x650) added at (256, 120), the yes buttons (0xf1, 0xf2 with the mouse in
@@ -35,5 +35,5 @@ void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels);
 // (0x140, 0x8d) and in 0xff18cfff at (0x13f, 0x8c)) and texts 910 and 911 in bold (shadow at 0x140 and in 0xffdcdcdc
 // at 0x13f). No rand(). Leaves bold, the background at 0, the text in 0xffdcdcdc and blending off. Without Text.bmd,
 // it fails.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheDuelRequest(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheDuelRequest(Ui::GameHudContext& context);
 } // namespace Client::Social

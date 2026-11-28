@@ -297,7 +297,7 @@ protected:
     {
         if (click)
             Client::Kernel::LatchTheLeftButton(game->world.Runtime().mouse, true, true);
-        return Client::Hud::StepTheGameUi(Client::Hud::GameUiContext{.world = game->world,
+        return Client::Hud::StepTheGameUi(Client::Ui::GameUiContext{.world = game->world,
                                                                      .random = game->cloth.random,
                                                                      .input = input,
                                                                      .mouseX = x,

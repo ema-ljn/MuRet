@@ -4,10 +4,10 @@
 
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The pet trainer's drawing (0x44b510, CL9 milestone 6, phase 4b; 06 § HUD y ventanas, "El entrenador"), which
 // 0x5f7440 always calls after the chaos box (0x5f75b7). It dispatches by 0x724580's mode like the step
@@ -28,5 +28,5 @@ namespace Client::PetTrainer
 //   - The box (0x44d680): the window at (0x104, 0) with 0x723c80's 8 × 4 grid, the mix button and its help (1212),
 //     title 1205 with the tax (1623), 0x724584's mix (1213 without a mix, "%s %s" with 1187 or 1214), the rate (584, 60
 //     with a mix), the taxed price (1622) and warnings 586 and 587.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTrainer(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTrainer(Ui::GameHudContext& context);
 } // namespace Client::PetTrainer

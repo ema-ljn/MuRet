@@ -13,8 +13,8 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/PanelRegistry.h"
@@ -49,14 +49,14 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 using Client::Protocol::Outgoing;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 namespace Siege = Client::Scenes;
 
-class Requests final : public Client::Hud::IGameUiRequests
+class Requests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody&) override {}

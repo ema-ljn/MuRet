@@ -9,10 +9,10 @@ namespace Client::Kernel
 struct FloorItemState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // A floor item's name (CL9 milestone 5; 06 § Los ítems del piso): 0x5ba790, called by the hover with the picked one
 // (0x5bbd62) and by Alt with the others (0x5bbdd2). *Static*, read in the ASM.
@@ -29,5 +29,5 @@ namespace Client::Items
 // (0x7681eb8, CL9 milestone 2), and the models and levels with which the original does not write the text and draws
 // what was left on its stack (07 Q-C1242).
 [[nodiscard]] Core::Expected<void, std::string>
-DrawTheFloorItemName(Hud::GameHudContext& context, const Kernel::FloorItemState& item, bool atTheItem);
+DrawTheFloorItemName(Ui::GameHudContext& context, const Kernel::FloorItemState& item, bool atTheItem);
 } // namespace Client::Items

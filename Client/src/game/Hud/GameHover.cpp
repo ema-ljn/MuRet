@@ -71,7 +71,7 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     context.hud.textColors = MonsterNameColors;
     // 0x5bbcf1..0x5bbcf9: 0x5bb8d0, with its queries, and the half with CDQ and SAR, toward 0.
     const std::int32_t worldWidth = GamePanels(context.world, context.random).Registry().WorldWidth();
-    DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
+    Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
                     Actors::ChatNameOf(actor));
     return {};
 }

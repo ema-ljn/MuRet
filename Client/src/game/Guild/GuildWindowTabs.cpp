@@ -10,7 +10,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildState.h"
@@ -133,7 +133,7 @@ constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha =
 using Math::F32;
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -142,7 +142,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& 
     return *text;
 }
 
-Ui::OldWindowDrawContext OldContextOf(Hud::GameHudContext& context)
+Ui::OldWindowDrawContext OldContextOf(Ui::GameHudContext& context)
 {
     return Ui::OldWindowDrawContext{.sprites = context.sprites,
                                     .text = context.text,
@@ -150,7 +150,7 @@ Ui::OldWindowDrawContext OldContextOf(Hud::GameHudContext& context)
                                     .textColors = context.hud.textColors};
 }
 
-Ui::OldWindowDrawView OldViewOf(const Hud::GameHudContext& context)
+Ui::OldWindowDrawView OldViewOf(const Ui::GameHudContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     return Ui::OldWindowDrawView{.mouseX = context.mouse.x,
@@ -161,7 +161,7 @@ Ui::OldWindowDrawView OldViewOf(const Hud::GameHudContext& context)
 
 // 0x5542f0(x, y, text, box, 1, 0) → 0x467060 in mode 1 (0x467102..0x467119): the box of that width from x; if the
 // text is wider, it shows from column cx − box. Empty and without a box, nothing.
-void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
+void DrawInTheBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
     const Render::Text::TextStyle style{.font = context.hud.dcFont, .colors = context.hud.textColors};
     if (box <= 0)
@@ -174,20 +174,20 @@ void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, 
     context.text.DrawColumns(x, y, text, style, box < measured ? measured - box : 0, box);
 }
 
-std::int32_t BoxOf(const Hud::GameHudContext& context, double width)
+std::int32_t BoxOf(const Ui::GameHudContext& context, double width)
 {
     return Truncate(static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen())) * width);
 }
 
 // 0x45b2e0 on a window button, with the draw's mouse.
-void DrawTheButton(Hud::GameHudContext& context, const Ui::OldButton& button)
+void DrawTheButton(Ui::GameHudContext& context, const Ui::OldButton& button)
 {
     Ui::DrawTheOldButton(OldContextOf(context), button,
                          Ui::OldWindowDrawView{.mouseX = context.mouse.x, .mouseY = context.mouse.y});
 }
 
 // The first time, the text of 0x45b170 (MuRet copies it on the first draw, like window 2).
-Core::Expected<void, std::string> LabelTheButton(Hud::GameHudContext& context, Ui::OldButton& button, std::size_t text)
+Core::Expected<void, std::string> LabelTheButton(Ui::GameHudContext& context, Ui::OldButton& button, std::size_t text)
 {
     if (button.label)
         return {};
@@ -199,7 +199,7 @@ Core::Expected<void, std::string> LabelTheButton(Hud::GameHudContext& context, U
 }
 
 // The button's vtable + 0x30: the new text.
-Core::Expected<void, std::string> RelabelTheButton(Hud::GameHudContext& context, Ui::OldButton& button,
+Core::Expected<void, std::string> RelabelTheButton(Ui::GameHudContext& context, Ui::OldButton& button,
                                                    std::size_t text, std::string_view where)
 {
     auto label = TextOf(context, text, where);
@@ -212,7 +212,7 @@ Core::Expected<void, std::string> RelabelTheButton(Hud::GameHudContext& context,
 // The start of 0x46be20, 0x46cb20 and 0x46daa0 (the vtable + 0x7c): 0x620a00(1), the palette 7 box with alpha 0.4 one
 // point outside (x − 1, y − h − 1, w + 1, h + 2), 0x459ec0 and the bar (0x461890), and the headers at y − h − 0xc
 // with 0x465950 in mode 1, with whatever font and colors are set.
-Core::Expected<void, std::string> DrawTheListHead(Hud::GameHudContext& context, Ui::OldList& list, std::size_t size,
+Core::Expected<void, std::string> DrawTheListHead(Ui::GameHudContext& context, Ui::OldList& list, std::size_t size,
                                                   std::span<const std::size_t> headers,
                                                   std::span<const std::int32_t> lefts)
 {
@@ -238,7 +238,7 @@ Core::Expected<void, std::string> DrawTheListHead(Hud::GameHudContext& context, 
 // The start of 0x46c2c0, 0x46d050 and 0x46dfa0 after the rank's color: the chosen one (+0x68 equal to scroll + row +
 // 1) on the white band of alpha 0.5 with the text in black; the others in 0xffc8dce6. glEnable of the texture and the
 // text background at 0.
-void DrawTheRowBand(Hud::GameHudContext& context, const Ui::OldList& list, std::size_t size, std::int32_t row)
+void DrawTheRowBand(Ui::GameHudContext& context, const Ui::OldList& list, std::size_t size, std::int32_t row)
 {
     Render::SpriteBatch& sprites = context.sprites;
     if (list.selection == list.scroll + row + 1)
@@ -257,7 +257,7 @@ void DrawTheRowBand(Hud::GameHudContext& context, const Ui::OldList& list, std::
 }
 
 // 0x46c2c0, the notice row.
-std::int32_t DrawTheNoticeRow(Hud::GameHudContext& context, const GuildWindowState& window, std::int32_t row,
+std::int32_t DrawTheNoticeRow(Ui::GameHudContext& context, const GuildWindowState& window, std::int32_t row,
                               std::size_t at)
 {
     const Ui::OldList& list = window.noticeList;
@@ -272,7 +272,7 @@ std::int32_t DrawTheNoticeRow(Hud::GameHudContext& context, const GuildWindowSta
 }
 
 // 0x46d050, the members row.
-Core::Expected<std::int32_t, std::string> DrawTheMemberRow(Hud::GameHudContext& context, const GuildWindowState& window,
+Core::Expected<std::int32_t, std::string> DrawTheMemberRow(Ui::GameHudContext& context, const GuildWindowState& window,
                                                            std::int32_t row, std::size_t at)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -328,7 +328,7 @@ Core::Expected<std::int32_t, std::string> DrawTheMemberRow(Hud::GameHudContext& 
 
 // 0x46dfa0, the union row: the element's mark goes through table entry 1999 (0x78a5986), which then takes the hero's
 // guild's, or zeros without a guild (Q-C1294).
-Core::Expected<std::int32_t, std::string> DrawTheUnionRow(Hud::GameHudContext& context, GuildState& guild,
+Core::Expected<std::int32_t, std::string> DrawTheUnionRow(Ui::GameHudContext& context, GuildState& guild,
                                                           std::int32_t row, std::size_t at)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -349,7 +349,7 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(Hud::GameHudContext& c
     auto slot = context.guildMarks->UploadToTheUnionRow(guild, CreatingGuildIndex, true, row);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    Hud::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(left), static_cast<float>(rowY),
+    Ui::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(left), static_cast<float>(rowY),
                              UnionMarkSide, UnionMarkSide, 1.0f, 1.0f);
     const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
     if (index < 0)
@@ -373,7 +373,7 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(Hud::GameHudContext& c
 // 0x47a810 (or 0x480520 and 0x481bf0) with the instance's head and row, without a tail (0x4724e0, 0x472110 and
 // 0x472580: a ret). A row's first error stops.
 template <typename Row>
-Core::Expected<void, std::string> DrawTheList(Hud::GameHudContext& context, Ui::OldList& list, std::size_t size,
+Core::Expected<void, std::string> DrawTheList(Ui::GameHudContext& context, Ui::OldList& list, std::size_t size,
                                               std::span<const std::size_t> headers, std::span<const std::int32_t> lefts,
                                               Row drawRow)
 {
@@ -405,7 +405,7 @@ Core::Expected<void, std::string> DrawTheList(Hud::GameHudContext& context, Ui::
 }
 
 // 0x650047..0x6500dd: the master's member limit, with the own record open.
-std::int32_t MostMembersOf(Hud::GameHudContext& context)
+std::int32_t MostMembersOf(Ui::GameHudContext& context)
 {
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const Kernel::OwnCharacterRecord& record = context.world.OwnCharacter();
@@ -417,7 +417,7 @@ std::int32_t MostMembersOf(Hud::GameHudContext& context)
 }
 
 // 0x64fdf0.
-Core::Expected<void, std::string> DrawTheNoticeTab(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheNoticeTab(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -426,16 +426,16 @@ Core::Expected<void, std::string> DrawTheNoticeTab(Hud::GameHudContext& context)
     const std::int32_t x = window.base.x;
     const std::int32_t y = window.base.y;
     const Kernel::ActorState& hero = context.world.Hero();
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
                                      MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x64fe4a: la marca del gremio (0x5f16a0) sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, static_cast<std::int16_t>(hero.word1f2), true);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    Hud::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
+    Ui::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
                              MarkSide, MarkSide, 1.0f, 1.0f);
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(y + 0xaa), InfoBoxWidth,
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(y + 0xaa), InfoBoxWidth,
                                      InfoBoxHeight, false);
     const std::int32_t left = x + 0x1e;
     std::int32_t top = y + 0xb2;
@@ -498,7 +498,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(Hud::GameHudContext& context)
         !drawn.HasValue())
         return drawn;
     top -= 0xe;
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(top), InfoBoxWidth,
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(top), InfoBoxWidth,
                                      NoticeBoxHeight, false);
     Ui::OldButton& leave = window.tabButtons[GuildLeaveButton];
     if (auto labeled = RelabelTheButton(context, leave, hero.guildStatus == MasterStatus ? MasterLeaveText : LeaveText,
@@ -510,7 +510,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(Hud::GameHudContext& context)
 }
 
 // 0x6507d0.
-Core::Expected<void, std::string> DrawTheMembersTab(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheMembersTab(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -536,7 +536,7 @@ Core::Expected<void, std::string> DrawTheMembersTab(Hud::GameHudContext& context
 }
 
 // 0x651400.
-Core::Expected<void, std::string> DrawTheUnionTab(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheUnionTab(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -563,7 +563,7 @@ Core::Expected<void, std::string> DrawTheUnionTab(Hud::GameHudContext& context)
             auto text = TextOf(context, FirstNoUnionText + line, "0x651443");
             if (!text.HasValue())
                 return Core::Unexpected(std::move(text).Error());
-            Hud::WindowDrawing::DrawText(context, x + 0xa, top, text.Value());
+            Ui::WindowDrawing::DrawText(context, x + 0xa, top, text.Value());
         }
         // 0x651540: the text in white again (the background stays at 0xff0000cc).
         context.hud.textColors.text = NoUnionColor;
@@ -603,7 +603,7 @@ Core::Expected<void, std::string> DrawTheUnionTab(Hud::GameHudContext& context)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheGuildTab(Hud::GameHudContext& context, std::int32_t tab)
+Core::Expected<void, std::string> DrawTheGuildTab(Ui::GameHudContext& context, std::int32_t tab)
 {
     switch (tab)
     {

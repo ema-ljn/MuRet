@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Items/HudItems.h"
 #include "Items/ItemNames.h"
 #include "Tooltips/ItemTooltipParts.h"

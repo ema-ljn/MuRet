@@ -9,7 +9,7 @@
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Player/ItemSetOptionList.h"
@@ -24,7 +24,6 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Kernel/ItemState.h"
-#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <array>
@@ -151,7 +150,7 @@ constexpr std::uint32_t StatDamageSpread = 0x1e;
 // the items' (DI, SI, BX, [EBP−4] and [EBP−0x14]), the damages and what 0x551c70 left.
 struct SkillFrame
 {
-    Hud::GameHudContext& context;
+    Ui::GameHudContext& context;
     TooltipWriter& lines;
     const Kernel::OwnCharacterRecord& own;
     const Kernel::ActorState& hero;
@@ -192,7 +191,7 @@ std::int32_t Wrapped(std::uint32_t value)
 
 // Without opening the entry's access.
 Core::Expected<std::span<const std::byte, Tables::SkillRecordSize>, std::string>
-SkillEntryOf(const Hud::GameHudContext& context, std::uint32_t skill, std::string_view where)
+SkillEntryOf(const Ui::GameHudContext& context, std::uint32_t skill, std::string_view where)
 {
     if (context.skills == nullptr)
         return Core::Unexpected(std::format("{}: sin Skill.bmd", where));
@@ -208,20 +207,20 @@ std::uint8_t EntryByte(std::span<const std::byte, Tables::SkillRecordSize> entry
 }
 
 // 0x552470 and 0x5519f0: a byte of entry `skill`, with its access (60 rand() if its count returns to 0).
-Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(Hud::GameHudContext& context, std::uint8_t skill,
+Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(Ui::GameHudContext& context, std::uint8_t skill,
                                                            std::size_t offset, std::string_view where)
 {
     auto entry = SkillEntryOf(context, skill, where);
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
-    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
+    const Models::LogicalAccess access(context.world.Runtime().skillDepths[skill], context.random,
                                        static_cast<std::uint16_t>(Tables::SkillRecordSize));
     return EntryByte(entry.Value(), offset);
 }
 
 // The box above y, with cy of the first character of line 0 (GetTextExtentPointA on the DC's font) and the height
 // ((lines − halves) · cy + halves · cy / 2) / ry by _ftol.
-Core::Expected<void, std::string> DrawTheBoxAbove(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheBoxAbove(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   std::int32_t count, std::int32_t halves, std::string_view where)
 {
     const TooltipLines& lines = context.hud.tooltip;
@@ -239,7 +238,7 @@ Core::Expected<void, std::string> DrawTheBoxAbove(Hud::GameHudContext& context, 
 // 0x421c10(x, y, slot), cdecl: with a slot from 0x78 to 0x7b and the Dark Lord, the command's name in blue and bold,
 // two "\n" and its help, and the box; returns 1. It only writes line 1's color and line 0's color and bold: the others
 // stay as they were (Q-C720).
-Core::Expected<bool, std::string> DrawTheCommandTooltip(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<bool, std::string> DrawTheCommandTooltip(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                         std::int32_t slot, CharacterClass heroClass)
 {
     if (slot < FirstCommand || slot >= FirstCommand + CommandCount || heroClass != CharacterClass::DarkLord)
@@ -477,12 +476,12 @@ Core::Expected<void, std::string> WriteTheAttribute(SkillFrame& frame)
 // +0x21, with its entry's access inside the skill's.
 Core::Expected<void, std::string> WriteTheGiver(SkillFrame& frame, std::uint8_t giver)
 {
-    Hud::GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     auto entry = SkillEntryOf(context, giver, "0x5b9ccf");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
     const std::span<const std::byte, Tables::SkillRecordSize> record = entry.Value();
-    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[giver], context.random,
+    const Models::LogicalAccess access(context.world.Runtime().skillDepths[giver], context.random,
                                        static_cast<std::uint16_t>(Tables::SkillRecordSize));
     std::string name;
     for (const std::byte value : record)
@@ -508,12 +507,12 @@ Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
 {
     if (auto checked = Checked(frame.lines); !checked.HasValue())
         return checked;
-    Hud::GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     auto entry = SkillEntryOf(context, frame.skill, "0x5b9ab8");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
     const std::span<const std::byte, Tables::SkillRecordSize> record = entry.Value();
-    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[frame.skill], context.random,
+    const Models::LogicalAccess access(context.world.Runtime().skillDepths[frame.skill], context.random,
                                        static_cast<std::uint16_t>(Tables::SkillRecordSize));
     if (EntryByte(record, OriginByte) == GivenOrigin)
     {
@@ -555,7 +554,7 @@ Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
 }
 
 // 0x5b91a1..0x5ba4d2, with the own record open: the damages, the entry and the parts.
-Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheSkill(Ui::GameHudContext& context, TooltipWriter& lines,
                                                 const Kernel::ActorState& hero, CharacterClass heroClass,
                                                 std::int32_t slot, std::int32_t siegeSkill)
 {
@@ -565,7 +564,7 @@ Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, To
     const std::optional<std::uint8_t> skill = slot < 0 ? std::nullopt : own.SkillAt(static_cast<std::size_t>(slot));
     if (!skill)
         return Core::Unexpected(std::format("0x5b91af: el byte +0x6c + {} del registro propio no está en MuRet", slot));
-    std::uint8_t& depth = runtime.movement.skillDepths[*skill];
+    std::uint8_t& depth = runtime.skillDepths[*skill];
     // An intermediate drawing does not leave the marks of the set list: it works on a copy.
     Player::ItemSetOptionList projected = world.ItemSets().list;
     Player::ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
@@ -616,7 +615,7 @@ Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, To
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheSkillTooltip(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheSkillTooltip(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                       std::int32_t slot, std::int32_t siegeSkill)
 {
     Kernel::WorldState& world = context.world;

@@ -1194,7 +1194,7 @@ TEST(GameMovementTest, TheOwnRecordAndSkillDepthsAreIndependent)
     {
         MovingHero tested;
         tested.world.Runtime().ownRecordDepth = static_cast<std::uint8_t>(depths[0]);
-        tested.world.Runtime().movement.skillDepths[0] = static_cast<std::uint8_t>(depths[1]);
+        tested.world.Runtime().skillDepths[0] = static_cast<std::uint8_t>(depths[1]);
         CrtRandom expected = tested.random;
         const int draws = 8 + (depths[0] ? 0 : 3848) + (depths[1] ? 0 : 60);
         for (int i = 0; i < draws; ++i)
@@ -1210,7 +1210,7 @@ TEST(GameMovementTest, TheSkillSelectorReadsLittleEndianBytesInsteadOfWords)
     MovingHero tested;
     tested.world.OwnCharacter().words6c[0] = 0x04030201;
     tested.world.Actors()[0].skillIndex = 1;
-    tested.world.Runtime().movement.skillDepths[2] = 1;
+    tested.world.Runtime().skillDepths[2] = 1;
     CrtRandom expected = tested.random;
     for (int i = 0; i < 8 + 3848; ++i)
         static_cast<void>(expected.Next());

@@ -44,7 +44,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;

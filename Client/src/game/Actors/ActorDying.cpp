@@ -16,6 +16,7 @@
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 #include "Tables/SkillId.h"
+#include "Actors/Drawing/CharacterCloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -16,7 +16,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
@@ -63,8 +63,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
@@ -133,7 +133,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override
@@ -335,7 +335,7 @@ protected:
         Client::Kernel::LatchTheLeftButton(Mouse(), true, true);
     }
 
-    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Hud::IGameUiRequests* requests)
+    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Ui::IGameUiRequests* requests)
     {
         return GameUiContext{.world = *m_world,
                              .random = m_random,

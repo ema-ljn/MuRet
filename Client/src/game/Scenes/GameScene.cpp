@@ -474,7 +474,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     const Chat::GameChatContext chat = ChatContext();
     // CL9 milestone 5: the bar picks the item up from the floor with C1 05 22 (InventoryContext).
     const Items::InventoryServices inventory = InventoryContext();
-    return Hud::StepTheFunctionKeys(Hud::GameUiContext{.world = *m_context.world,
+    return Hud::StepTheFunctionKeys(Ui::GameUiContext{.world = *m_context.world,
                                                        .random = m_context.cloth->random,
                                                        .input = input,
                                                        .mouseX = mouse.x,

@@ -180,7 +180,7 @@ Protocol::Outgoing FriendPacketOf(const Ui::FriendSend& send)
     }
 }
 
-void SendAFriendPacket(Hud::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send)
+void SendAFriendPacket(Ui::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send)
 {
     if (send.kind == Ui::FriendSendKind::LetterSend)
     {

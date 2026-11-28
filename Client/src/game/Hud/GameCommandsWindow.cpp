@@ -22,10 +22,10 @@
 #include "Chat/ChatBubbles.h"
 #include "Chat/ChatReceive.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Chat/GameMessages.h"
 #include "Movement/GameMovementState.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Guild/GuildState.h"
 #include "PersonalShop/PersonalShopTitles.h"
@@ -156,7 +156,7 @@ constexpr std::uint8_t RefusedState = 0;
 constexpr std::uint8_t NotMasterState = 0xff;
 constexpr std::uint8_t NotMemberState = 0xfe;
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -330,7 +330,7 @@ Core::Expected<void, std::string> NotifyAll(const Chat::GameChatContext& chat, c
     return {};
 }
 
-Core::Expected<void, std::string> SendTheGuildRequest(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> SendTheGuildRequest(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                       Protocol::Outgoing packet, std::uint16_t key, std::size_t text,
                                                       std::string_view where)
 {
@@ -360,7 +360,7 @@ Core::Expected<void, std::string> Refuse(const Chat::GameChatContext& chat, Ui::
 
 // 0x40638d..0x406afd, command 1 (text 943): the own record's level (+0xe, with its access) against 0x6c8dc8; the
 // other with a personal shop (0x451810); the 36 with its notice; the window closes.
-Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandATrade(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                 std::size_t index)
 {
     Kernel::WorldState& world = context.world;
@@ -388,7 +388,7 @@ Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, co
 
 // 0x406b02..0x4072be, command 2 (text 1124): the C1 10 3F 05 with the other's key and name, in C3, and the window
 // closes. What the server answers (the incoming 3F 05) has no handler (08 P-C208 b).
-Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandAShopView(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                    std::size_t index)
 {
     const Kernel::ActorState& target = context.world.Actors()[index];
@@ -404,7 +404,7 @@ Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context,
 
 // 0x4072df..0x4079a5, command 3 (text 944): with another leader, notice 257; otherwise, the 40 with its notice. The
 // window stays.
-Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandAParty(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                 std::size_t index)
 {
     Ui::CommandsWindowState& window = context.world.Runtime().panels.delegated.commandsWindow;
@@ -421,7 +421,7 @@ Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, co
 // 0x40a04e..0x40a0e0, command 4 (text 945): with 0x6c7b8c at 1 (.data), the name to the whisper EDIT
 // (0x4694c0(0, 0, 1, name)), the chosen field at 0 (0x77f3b70), the focus to the message's (0x469370(0)) and
 // SendMessage(WM_CHAR, Enter) to the game window, which runs the WndProc's Enter right away. The window stays.
-Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandAWhisper(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                   std::size_t index)
 {
     Chat::ChatInputState& input = context.world.Runtime().chat.input;
@@ -433,7 +433,7 @@ Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, 
 
 // 0x4079a6..0x4085d0, command 11 (text 949): without a duel, the AA with the other's key and name; with the duel (1)
 // and the other as the rival (strcmp with 0x78abae0), the AB; otherwise, notice 915 with 2. The window stays.
-Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandADuel(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -451,7 +451,7 @@ Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, con
 // 0x4085d1..0x408a23, command 5: with the hero already in a guild (+0x368 other than 0xff), notice 255 and the command
 // at −1; without the world loaded (0x7d3a101), nothing; otherwise, 0x78aba40 = the other's key (MOVSX), the C1 05 50
 // in clear and notice 477 with their name. The window stays.
-Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandAGuildJoin(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -466,7 +466,7 @@ Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context
 
 // 0x408a24..0x409065, command 6: with the other a master (+0x368 at 0x80), the C1 07 E5 01 01 with their key and
 // notice 1358 with their name; otherwise, 1385 (0xff, no guild) or 507, and the command at −1.
-Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandAnAlliance(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -481,7 +481,7 @@ Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context
 }
 
 // 0x409066..0x409662, command 7: the C1 07 E5 02 01 with the other's key and notice 1359 with their name.
-Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context, const Chat::GameChatContext& chat,
+Core::Expected<void, std::string> CommandAHostility(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
     const std::uint16_t key = context.world.Actors()[index].key;
@@ -515,7 +515,7 @@ Core::Expected<void, std::string> PlayTheEndOfAHostility(const Chat::GameChatCon
 
 // 0x409663..0x40a04d, command 8: the hero's 0xb7 animation and the C1 05 18 (PlayTheEndOfAHostility), the C1 07 E5 02
 // 02 with the other's key and notice 1360 with their name.
-Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext& context,
+Core::Expected<void, std::string> CommandTheEndOfAHostility(const Ui::GameUiContext& context,
                                                             const Chat::GameChatContext& chat, std::size_t index)
 {
     if (auto played = PlayTheEndOfAHostility(chat, "0x40966f", "0x4096f0"); !played.HasValue())
@@ -530,7 +530,7 @@ Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext&
 // a chosen command and a chosen character (0x6c8e30), the distance to the hero (its four accesses), the target (+8) if
 // it is a player who can be asked something within two cells, the command's states and, with the right click
 // (0x7d36880) and a target, the command if its state is 1.
-Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
+Core::Expected<void, std::string> RunTheCommand(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::CommandsWindowState& window = runtime.panels.delegated.commandsWindow;
@@ -610,13 +610,13 @@ void DrawTheCheckbox(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t 
     sprites.EnableTexture();
     sprites.SetBlend(BlendMode::Alpha);
     if (checked)
-        WindowDrawing::Quad(sprites, CheckSlot, static_cast<float>(x + CheckInset), static_cast<float>(y + CheckInset),
+        Ui::WindowDrawing::Quad(sprites, CheckSlot, static_cast<float>(x + CheckInset), static_cast<float>(y + CheckInset),
                             CheckSize, CheckSize, CheckUv, CheckUv);
 }
 
 // 0x40a840..0x40a875: sprintf(buffer, text 927, "D"). MuRet does not use the text as the format: without '%' and
 // under 100 bytes, sprintf copies it as is; with a '%' or longer, it stops (Q-C650).
-Core::Expected<std::string_view, std::string> CloseHelpOf(const GameHudContext& context)
+Core::Expected<std::string_view, std::string> CloseHelpOf(const Ui::GameHudContext& context)
 {
     auto format = TextOf(context, CloseHelpText, "0x40a85b");
     if (!format.HasValue())
@@ -660,7 +660,7 @@ std::size_t NoticeOf(const Ui::CommandsWindowState& window)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheCommandsWindow(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::DelegatedPanels& delegated = runtime.panels.delegated;
@@ -701,7 +701,7 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheCommandsWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Ui::DelegatedPanels& delegated = runtime.panels.delegated;
@@ -714,15 +714,15 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     hud.commandsY = WindowTop;
     const std::int32_t x = hud.commandsX;
     const std::int32_t y = hud.commandsY;
-    WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     sprites.SetBlend(BlendMode::Alpha);
     sprites.SetColor(White);
     auto title = TextOf(context, TitleText, "0x40a6ed");
     if (!title.HasValue())
         return Core::Unexpected(std::move(title).Error());
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
     hud.textColors = TitleColors;
-    WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
+    Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
 
     // 0x40a6f9..0x40a78c: the eleven buttons, the y added in float also for 0.
     const auto buttonsLeft = static_cast<float>(ButtonsLeftOf(x));
@@ -732,17 +732,17 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
         if (command != 0)
         {
             sprites.SetColor(window.chosen == command ? Gray : White);
-            WindowDrawing::Quad(sprites, ButtonSlot, buttonsLeft, top, ButtonWidth, ButtonHeight, ButtonDu, 1.0f);
+            Ui::WindowDrawing::Quad(sprites, ButtonSlot, buttonsLeft, top, ButtonWidth, ButtonHeight, ButtonDu, 1.0f);
         }
         top = static_cast<float>(static_cast<double>(top) + static_cast<double>(ButtonStepF));
     }
 
-    if (WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (Ui::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto help = CloseHelpOf(context);
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
+        Ui::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     }
 
     // 0x40a89f..0x40aa56: the names, with the font and color of the chosen or hovered one, and the checkbox.
@@ -762,12 +762,12 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
                                  mouseY < static_cast<double>(top) + static_cast<double>(ButtonHoverHeight);
             if (window.chosen != command && !hovered)
             {
-                WindowDrawing::SelectFont(context, FontKind::Normal);
+                Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
                 sprites.SetColor(White);
             }
             else
             {
-                WindowDrawing::SelectFont(context, FontKind::Bold);
+                Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
                 sprites.SetColor(click ? Gray : Highlight);
             }
             auto name = TextOf(context, CommandTexts[static_cast<std::size_t>(command - 1)], "0x40a9f6");
@@ -775,14 +775,14 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
                 return Core::Unexpected(std::move(name).Error());
             const std::int32_t left = Truncate(static_cast<double>(buttonsLeft));
             const std::int32_t row = Truncate(static_cast<double>(top));
-            WindowDrawing::DrawCenteredText(context, left + NameCenter, row + NameTop, name.Value());
+            Ui::WindowDrawing::DrawCenteredText(context, left + NameCenter, row + NameTop, name.Value());
             DrawTheCheckbox(sprites, left - CheckboxBack, row + NameTop, window.chosen == command);
         }
         top = static_cast<float>(static_cast<double>(top) + static_cast<double>(ButtonStepF));
     }
 
     sprites.SetColor(White);
-    WindowDrawing::SelectFont(context, FontKind::BigBold);
+    Ui::WindowDrawing::SelectFont(context, FontKind::BigBold);
     // 0x40aa80..0x40abd8 (CL9 milestone 7, phase 2): with a chosen character (0x6c8e30) that is a player (+0x88 at 1),
     // not the published hero and of type 0x20a or with +0x3e3, the card (Interface\CursorID_Wnd.jpg, 0x65b) of 128 × 32
     // at the mouse + 5, the normal blend and their name (+0x1d9) in the title box at (x + 0x23, y + 0x2d), in
@@ -794,13 +794,13 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
             return Core::Unexpected(std::format("0x40aa8d: el elegido {} lee fuera de los personajes", chosen));
         if (Social::CanBeAsked(context.world, static_cast<std::size_t>(chosen)))
         {
-            WindowDrawing::Quad(sprites, NameCardSlot, F32(static_cast<double>(mouse.x) + NameCardOffset),
+            Ui::WindowDrawing::Quad(sprites, NameCardSlot, F32(static_cast<double>(mouse.x) + NameCardOffset),
                                 F32(static_cast<double>(mouse.y) + NameCardOffset), NameCardWidth, NameCardHeight, 1.0f,
                                 1.0f);
             sprites.SetBlend(BlendMode::Alpha);
             const std::string name = Actors::ChatNameOf(context.world.Actors()[static_cast<std::size_t>(chosen)]);
             hud.textColors = Render::Text::TextColors{.text = ChosenNameColor, .background = NameCardBack};
-            WindowDrawing::DrawTitle(context, x + TitleLeft, y + ChosenNameTop, name);
+            Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + ChosenNameTop, name);
             bool ready = false;
             if (window.target == chosen && window.chosen != -1)
             {
@@ -811,7 +811,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
             }
             sprites.SetColor(ready ? White : NotReady);
             hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = NameCardBack};
-            WindowDrawing::DrawCenteredText(context, mouse.x + NameNextToMouseX, mouse.y + NameNextToMouseY, name);
+            Ui::WindowDrawing::DrawCenteredText(context, mouse.x + NameNextToMouseX, mouse.y + NameNextToMouseY, name);
         }
     }
     std::size_t notice = 0;
@@ -828,9 +828,9 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
         auto text = TextOf(context, notice, "0x40ac6c");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        WindowDrawing::SelectFont(context, FontKind::Bold);
+        Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
         hud.textColors.background = 0;
-        WindowDrawing::DrawCenteredText(context, x + NoticeCenter, y + NoticeTop, text.Value());
+        Ui::WindowDrawing::DrawCenteredText(context, x + NoticeCenter, y + NoticeTop, text.Value());
     }
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);

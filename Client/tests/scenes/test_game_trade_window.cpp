@@ -23,7 +23,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildState.h"
@@ -73,7 +73,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 using Client::Render::Color;

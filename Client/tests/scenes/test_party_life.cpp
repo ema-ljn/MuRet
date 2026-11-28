@@ -16,7 +16,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Scenes/GameProjection.h"
 #include "Hud/GameUi.h"
 #include "FrontEnd/LoginModels.h"
@@ -268,7 +268,7 @@ protected:
     {
         auto& runtime = game->world.Runtime();
         ActorState& hero = game->world.Hero();
-        Client::Hud::GameHudContext context{.world = game->world,
+        Client::Ui::GameHudContext context{.world = game->world,
                                             .random = m_random,
                                             .ownRecordDepth = runtime.ownRecordDepth,
                                             .cellXDepth = hero.cellXAccesses,

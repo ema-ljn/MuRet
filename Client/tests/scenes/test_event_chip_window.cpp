@@ -15,9 +15,9 @@
 #include "Kernel/ActorState.h"
 #include "Events/EventGlobals.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Monsters/NpcNames.h"
 #include "Kernel/OwnInventory.h"
 #include "Social/SocialState.h"
@@ -58,8 +58,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;

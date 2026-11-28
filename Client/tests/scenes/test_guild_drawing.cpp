@@ -10,7 +10,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Events/EventGlobals.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildState.h"
@@ -47,7 +47,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Guild::GuildMarkTextures;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;

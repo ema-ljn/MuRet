@@ -12,8 +12,8 @@
 #include "Kernel/ActorState.h"
 #include "Events/EventGlobals.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -147,7 +147,7 @@ bool SecondClass(std::uint8_t characterClass)
 }
 
 // left ≤ mouse < left + width and top ≤ mouse < top + height in the x87, without an item on the cursor (0x7879fbc).
-bool Hovered(const Hud::GameHudContext& context, float left, float top, float height)
+bool Hovered(const Ui::GameHudContext& context, float left, float top, float height)
 {
     const auto x = static_cast<double>(context.mouse.x);
     const auto y = static_cast<double>(context.mouse.y);
@@ -166,7 +166,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
 }
 
 // sprintf (0x69fd9b) of a Text.bmd text into the 64 stack bytes.
-Core::Expected<std::string, std::string> RowText(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string, std::string> RowText(const Ui::GameHudContext& context, std::size_t index,
                                                  std::span<const Crt::FormatArgument> arguments, std::string_view where)
 {
     auto format = TextOf(context.texts, index, where);
@@ -182,7 +182,7 @@ Core::Expected<std::string, std::string> RowText(const Hud::GameHudContext& cont
 }
 
 // A button's line: 646 (or 848) without the maximum if it is over 10000, or 645 (847) with both.
-Core::Expected<std::string, std::string> ButtonText(const Hud::GameHudContext& context, std::size_t text,
+Core::Expected<std::string, std::string> ButtonText(const Ui::GameHudContext& context, std::size_t text,
                                                     std::size_t openText, std::int32_t number, const LevelRange& levels,
                                                     std::string_view where)
 {
@@ -197,22 +197,22 @@ Core::Expected<std::string, std::string> ButtonText(const Hud::GameHudContext& c
 
 // 0x5f5cf9..0x5f5d52 and 0x5f6444..0x5f649d: glColor3f(1, 1, 1), the title at (x + 0x23, y + 0xc) in 0xffdcdcdc over
 // 0xff141414, the normal font, white text over 0 and the normal blend.
-Result DrawTheTitle(Hud::GameHudContext& context, std::size_t index, std::string_view where)
+Result DrawTheTitle(Ui::GameHudContext& context, std::size_t index, std::string_view where)
 {
     context.sprites.SetColor(White);
     context.hud.textColors = TitleColors;
     auto title = TextOf(context.texts, index, where);
     if (!title.HasValue())
         return Core::Unexpected(std::move(title).Error());
-    Hud::WindowDrawing::DrawInBox(context, WindowLeft + 0x23, WindowTop + 0xc, title.Value(), TitleBox);
-    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::WindowDrawing::DrawInBox(context, WindowLeft + 0x23, WindowTop + 0xc, title.Value(), TitleBox);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = WhiteText;
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     return {};
 }
 
 // 0x5f5916..0x5f5de6.
-Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
+Result DrawTheDevilSquareWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const bool write = !context.projecting;
@@ -222,15 +222,15 @@ Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
         runtime.ui.npcWindowY = WindowTop;
     }
     Render::SpriteBatch& sprites = context.sprites;
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
     context.hud.textColors = DevilSquareColors;
     const float left = F32(static_cast<double>(WindowLeft) + ButtonLeft);
-    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
     float top = F32(static_cast<double>(WindowTop) + SquareTop);
     for (std::size_t square = 0; square < SquareCount; ++square)
     {
         sprites.SetColor(Hovered(context, left, top, SquareHeight) ? White : SquareColor);
-        Hud::WindowDrawing::Quad(sprites, ButtonSlot, left, top, ButtonWidth, SquareHeight, ButtonDu, 1.0f);
+        Ui::WindowDrawing::Quad(sprites, ButtonSlot, left, top, ButtonWidth, SquareHeight, ButtonDu, 1.0f);
         // 0x5f5a3f..0x5f5b2a: the table's levels and, with the own record open, those of class 3 or 4.
         LevelRange levels = SquareLevels[square];
         {
@@ -244,7 +244,7 @@ Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
             ButtonText(context, SquareText, OpenSquareText, static_cast<std::int32_t>(square) + 1, levels, "0x5f5c8a");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        Hud::WindowDrawing::DrawInBox(context, Truncate(left) + 0xc, Truncate(top) + 0xc, text.Value(), SquareBox);
+        Ui::WindowDrawing::DrawInBox(context, Truncate(left) + 0xc, Truncate(top) + 0xc, text.Value(), SquareBox);
         top = F32(static_cast<double>(top) + SquareStep);
     }
     if (auto title = DrawTheTitle(context, DevilSquareTitle, "0x5f5d52"); !title.HasValue())
@@ -255,7 +255,7 @@ Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
         auto story = TextOf(context.texts, FirstSquareStory + line, "0x5f5dc2");
         if (!story.HasValue())
             return Core::Unexpected(std::move(story).Error());
-        Hud::WindowDrawing::DrawInBox(context, WindowLeft + 0x1e,
+        Ui::WindowDrawing::DrawInBox(context, WindowLeft + 0x1e,
                                       WindowTop + 0x41 + static_cast<std::int32_t>(line) * 0x14, story.Value(),
                                       StoryBox);
     }
@@ -264,7 +264,7 @@ Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
 }
 
 // 0x5f5e01..0x5f653f.
-Result DrawTheBloodCastleWindow(Hud::GameHudContext& context)
+Result DrawTheBloodCastleWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!context.projecting)
@@ -273,11 +273,11 @@ Result DrawTheBloodCastleWindow(Hud::GameHudContext& context)
         runtime.ui.npcWindowY = WindowTop;
     }
     Render::SpriteBatch& sprites = context.sprites;
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
     context.hud.textColors = BloodCastleColors;
     const float left = F32(static_cast<double>(WindowLeft) + ButtonLeft);
     float top = F32(static_cast<double>(WindowTop) + BridgeTop);
-    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
         // 0x5f5e68..0x5f5e98: the table by the hero's class (+0x1d4), and the own record's level (+0xe).
@@ -295,12 +295,12 @@ Result DrawTheBloodCastleWindow(Hud::GameHudContext& context)
                                     : Hovered(context, left, top, BridgeHeight) ? White
                                                                                 : BridgeColor;
         sprites.SetColor(color);
-        Hud::WindowDrawing::Quad(sprites, ButtonSlot, left, top, ButtonWidth, BridgeHeight, ButtonDu, 1.0f);
+        Ui::WindowDrawing::Quad(sprites, ButtonSlot, left, top, ButtonWidth, BridgeHeight, ButtonDu, 1.0f);
         auto text =
             ButtonText(context, BridgeText, OpenBridgeText, static_cast<std::int32_t>(bridge) + 1, levels, "0x5f63e5");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        Hud::WindowDrawing::DrawInBox(context, Truncate(left) + 0xa, Truncate(top) + 0xc, text.Value(), TitleBox);
+        Ui::WindowDrawing::DrawInBox(context, Truncate(left) + 0xa, Truncate(top) + 0xc, text.Value(), TitleBox);
         top = F32(static_cast<double>(top) + BridgeStep);
     }
     if (auto title = DrawTheTitle(context, BloodCastleTitle, "0x5f649d"); !title.HasValue())
@@ -310,14 +310,14 @@ Result DrawTheBloodCastleWindow(Hud::GameHudContext& context)
         return Core::Unexpected(std::move(story).Error());
     const std::vector<std::string> lines = Ui::SplitIntoLines(story.Value(), StoryLines, StoryLineBytes);
     for (std::size_t line = 0; line < lines.size(); ++line)
-        Hud::WindowDrawing::DrawInBox(context, WindowLeft + 0x1e,
+        Ui::WindowDrawing::DrawInBox(context, WindowLeft + 0x1e,
                                       WindowTop + 0x40 + static_cast<std::int32_t>(line) * 0x14, lines[line], StoryBox);
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
 
 // 0x632e30 with a Text.bmd text.
-Result MessageBoxOf(const Hud::GameUiContext& context, std::size_t index, std::string_view where)
+Result MessageBoxOf(const Ui::GameUiContext& context, std::size_t index, std::string_view where)
 {
     auto text = TextOf(context.texts, index, where);
     if (!text.HasValue())
@@ -327,7 +327,7 @@ Result MessageBoxOf(const Hud::GameUiContext& context, std::size_t index, std::s
     return {};
 }
 
-Result Send(const Hud::GameUiContext& context, Protocol::Outgoing packet, std::string_view where)
+Result Send(const Ui::GameUiContext& context, Protocol::Outgoing packet, std::string_view where)
 {
     if (context.chat == nullptr)
         return Core::Unexpected(std::format("{}: el send() sin el contexto de la sesión", where));
@@ -336,7 +336,7 @@ Result Send(const Hud::GameUiContext& context, Protocol::Outgoing packet, std::s
     return {};
 }
 
-bool InRow(const Hud::GameUiContext& context, double top, float height)
+bool InRow(const Ui::GameUiContext& context, double top, float height)
 {
     const auto x = static_cast<double>(static_cast<float>(context.mouseX));
     const auto y = static_cast<double>(context.mouseY);
@@ -344,7 +344,7 @@ bool InRow(const Hud::GameUiContext& context, double top, float height)
 }
 
 // 0x5e5978..0x5e5f2c.
-Result StepTheDevilSquareWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Result StepTheDevilSquareWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.mouse.pendingClick)
@@ -387,7 +387,7 @@ Result StepTheDevilSquareWindow(const Hud::GameUiContext& context, Ui::PanelRegi
 }
 
 // 0x5e5f2e..0x5e650d.
-Result StepTheBloodCastleWindow(const Hud::GameUiContext& context)
+Result StepTheBloodCastleWindow(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.mouse.pendingClick)
@@ -464,7 +464,7 @@ std::int32_t FindInventoryItem(const Kernel::OwnInventory& inventory, std::uint1
     return -1;
 }
 
-Result DrawTheEventNpcWindow(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Result DrawTheEventNpcWindow(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (panels.IsOpen(Ui::EventNpcPanel))
         return DrawTheDevilSquareWindow(context);
@@ -473,7 +473,7 @@ Result DrawTheEventNpcWindow(Hud::GameHudContext& context, Ui::PanelRegistry& pa
     return {};
 }
 
-Result StepTheEventNpcWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Result StepTheEventNpcWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (panels.IsOpen(Ui::EventNpcPanel))

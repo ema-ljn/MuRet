@@ -7,10 +7,10 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The item help's per-level table (06 § HUD y ventanas, "La ayuda del ítem"): 0x5afc00 fills it at 0x787a15c (14
 // levels of 0x44 bytes, 17 dwords each) and keeps it for the item at 0x6c9334. It is read by the tail of 0x5b0550 (the
@@ -62,6 +62,6 @@ struct ItemHelpLevels
 // to +0x38, (Item.bmd+0x20 + 3 · level) · requirement · 3 (4 for energy) / 100 + 20, in signed 32 bits; and +0x3a as
 // is. Then, with the own record open (3848 rand() on closing it if it is left with no accesses, one per level),
 // whether it meets the requirements (the stats plus the items', in 16 bits, and the level).
-void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item,
+void FillTheItemHelpLevels(Ui::GameHudContext& context, std::int32_t item,
                            std::span<const std::byte, Tables::ItemRecordSize> record);
 } // namespace Client::Tooltips

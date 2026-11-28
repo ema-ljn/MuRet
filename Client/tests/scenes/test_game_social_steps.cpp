@@ -10,7 +10,7 @@
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -35,7 +35,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 
 constexpr std::uint32_t Seed = 1;
@@ -46,7 +46,7 @@ struct Sent
     std::vector<std::uint8_t> bytes;
 };
 
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}

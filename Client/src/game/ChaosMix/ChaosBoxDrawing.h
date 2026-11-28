@@ -14,10 +14,10 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::ChaosMix
 {
@@ -26,6 +26,6 @@ namespace Client::ChaosMix
 // corner (0x78aba28 and 0x78aba2c) to (0x104, 0) and draws. Leaves the bold font and the last line's colors, or, with
 // the mouse over the mix button, the normal font and the white on transparent of its help (0x554340). A missing
 // Text.bmd text, or one that overflows its stack buffer, cuts.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheChaosBox(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheChaosBox(Ui::GameHudContext& context,
                                                                 Ui::PanelRegistry& panels);
 } // namespace Client::ChaosMix

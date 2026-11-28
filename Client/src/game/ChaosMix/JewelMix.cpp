@@ -5,7 +5,7 @@
 #include "Protocol/ChaosMix/JewelMix.h"
 #include "Protocol/Outgoing.h"
 #include "Chat/GameMessages.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "ChaosMix/JewelBundleList.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/OwnInventory.h"
@@ -122,14 +122,14 @@ constexpr std::int32_t ResultTop = 170;
 constexpr std::int32_t ResultBottom = 195;
 
 // x in [left, right] and y in [top, bottom], edges included: the FCOMs of the floats with the integer mouse.
-bool Within(const Hud::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
+bool Within(const Ui::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
             std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX <= right && context.mouseY >= top && context.mouseY <= bottom;
 }
 
 // The same with the edges in float (0x625d17..0x625d59 and 0x625f4d..0x625f96).
-bool WithinFloat(const Hud::GameUiContext& context, float left, float right, float top, float bottom)
+bool WithinFloat(const Ui::GameUiContext& context, float left, float right, float top, float bottom)
 {
     const auto x = static_cast<float>(context.mouseX);
     const auto y = static_cast<float>(context.mouseY);
@@ -165,7 +165,7 @@ Core::Expected<void, std::string> Send(const JewelMixSender& send, Protocol::Out
     return send(std::move(packet));
 }
 
-Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet,
+Core::Expected<void, std::string> Send(const Ui::GameUiContext& context, Protocol::Outgoing packet,
                                        std::string_view what)
 {
     return Send(context.sendNpcWindow, std::move(packet), what);
@@ -180,12 +180,12 @@ Core::Expected<void, std::string> CloseTheJewelMix(Kernel::WorldState& world, co
     return Send(send, Protocol::Session::WriteWindowClose(), "0x402f91: el C1 03 31");
 }
 
-Core::Expected<void, std::string> CloseTheJewelMix(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> CloseTheJewelMix(const Ui::GameUiContext& context)
 {
     return CloseTheJewelMix(context.world, context.sendNpcWindow);
 }
 
-Core::Expected<void, std::string> ReturnToTheChoice(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> ReturnToTheChoice(const Ui::GameUiContext& context)
 {
     return ReturnToTheJewelChoice(context.world, context.sendNpcWindow);
 }
@@ -256,7 +256,7 @@ Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
 }
 
 // 0x402b70: whether there is enough; if not, the warning (2 and 4) and 0x402e50's return.
-Core::Expected<bool, std::string> AskForTheJewels(const Hud::GameUiContext& context)
+Core::Expected<bool, std::string> AskForTheJewels(const Ui::GameUiContext& context)
 {
     auto enough = CheckTheJewels(context.world);
     if (!enough.HasValue() || enough.Value())
@@ -282,7 +282,7 @@ Core::Expected<bool, std::string> AskForTheJewels(const Hud::GameUiContext& cont
 }
 
 // 0x4029e0: the BC, once and without a pending "no".
-Core::Expected<void, std::string> SendTheJewelMix(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> SendTheJewelMix(const Ui::GameUiContext& context)
 {
     Npc::NpcWindowState& windows = context.world.Runtime().npcWindows;
     Npc::JewelMixState& jewels = windows.jewels;
@@ -304,7 +304,7 @@ Core::Expected<void, std::string> SendTheJewelMix(const Hud::GameUiContext& cont
 }
 
 // 0x625cbc..0x625ce5: closes and opens the 0xa3 with its text.
-Core::Expected<void, std::string> AskTheQuestion(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> AskTheQuestion(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
@@ -341,7 +341,7 @@ void FillTheBundles(Kernel::WorldState& world)
 
 // 0x402a90(cell, level): stores them in 0x6c62d8 and 0x6c62dc and asks with 0x402b70; if enough, closes and opens the
 // 0xa3 with its text, like the 0xa2 (0x402aad..0x402acf).
-Core::Expected<void, std::string> AskForTheBundle(const Hud::GameUiContext& context, std::int32_t cell,
+Core::Expected<void, std::string> AskForTheBundle(const Ui::GameUiContext& context, std::int32_t cell,
                                                   std::int32_t level)
 {
     Npc::JewelMixState& jewels = context.world.Runtime().npcWindows.jewels;
@@ -390,7 +390,7 @@ Core::Expected<void, std::string> ReturnToTheJewelChoice(Kernel::WorldState& wor
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelMenu(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelMenu(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.mouse.pendingClick;
@@ -415,7 +415,7 @@ Core::Expected<void, std::string> StepTheJewelMenu(const Hud::GameUiContext& con
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelChoice(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
@@ -467,7 +467,7 @@ Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelUnmix(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
@@ -533,7 +533,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& co
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelResult(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelResult(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.mouse.pendingClick;
@@ -545,7 +545,7 @@ Core::Expected<void, std::string> StepTheJewelResult(const Hud::GameUiContext& c
     return ReturnToTheChoice(context);
 }
 
-Core::Expected<void, std::string> AnswerTheJewelMix(const Hud::GameUiContext& context, bool yes)
+Core::Expected<void, std::string> AnswerTheJewelMix(const Ui::GameUiContext& context, bool yes)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.social.trade.warningByte = yes ? YesAnswer : NoAnswer;

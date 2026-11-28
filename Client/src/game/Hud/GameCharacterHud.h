@@ -16,7 +16,6 @@
 // the center).
 namespace Client::Hud
 {
-struct GameHudContext;
 
 // 0x555a70(pk): the name's color (0x6c8e5c) by the hero's +0x375.
 [[nodiscard]] std::uint32_t PkNameColor(std::uint8_t pk);
@@ -26,5 +25,10 @@ struct GameHudContext;
 // them, with the record's name without its 0 in its 11 bytes and with +0x46 at 0 and +0x44 above 10 (0x5f08ac's
 // division, an exception in the original). The hero's skill (+0x6c + [+0x425]) is always within the record's 256
 // bytes: the 0x5f04cd stop is not reached (P-C122).
-[[nodiscard]] Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheCharacterWindow(Ui::GameHudContext& context);
 } // namespace Client::Hud
+
+namespace Client::Ui
+{
+struct GameHudContext;
+} // namespace Client::Ui

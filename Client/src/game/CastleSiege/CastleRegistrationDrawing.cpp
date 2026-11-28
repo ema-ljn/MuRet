@@ -4,7 +4,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "CastleSiege/CastleWindowSupport.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Kernel/WorldState.h"
 #include "CastleSiege/CastleSiegeState.h"
@@ -24,7 +24,7 @@ namespace
 constexpr std::int32_t Left = 450;
 constexpr std::int32_t ContentTop = 105;
 
-Core::Expected<void, std::string> Date(Hud::GameHudContext& context, std::int32_t y, std::uint32_t address,
+Core::Expected<void, std::string> Date(Ui::GameHudContext& context, std::int32_t y, std::uint32_t address,
                                        const CastleSiege::SiegeDate& date)
 {
     return Formatted(context, Left, y, address, static_cast<std::uint32_t>(date.year),
@@ -32,10 +32,10 @@ Core::Expected<void, std::string> Date(Hud::GameHudContext& context, std::int32_
                      static_cast<std::uint32_t>(date.rest[2]), static_cast<std::uint32_t>(date.rest[3]));
 }
 
-Core::Expected<void, std::string> StatePage(Hud::GameHudContext& context,
+Core::Expected<void, std::string> StatePage(Ui::GameHudContext& context,
                                             const CastleSiege::SiegeRegistrationWindow& window)
 {
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     if (auto date = Date(context, ContentTop + 20, 0x772d658, window.dates[0]); !date.HasValue())
         return date;
     if (auto date = Date(context, ContentTop + 34, 0x772d784, window.dates[1]); !date.HasValue())
@@ -62,10 +62,10 @@ Core::Expected<void, std::string> StatePage(Hud::GameHudContext& context,
                      (window.remaining % 3600) / 60, window.remaining % 60);
 }
 
-Core::Expected<void, std::string> RegisterPage(Hud::GameHudContext& context,
+Core::Expected<void, std::string> RegisterPage(Ui::GameHudContext& context,
                                                CastleSiege::SiegeRegistrationWindow& window)
 {
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     const auto post = context.world.Hero().guildStatus;
     if (window.state == 1)
     {
@@ -96,7 +96,7 @@ Core::Expected<void, std::string> RegisterPage(Hud::GameHudContext& context,
     }
     if (window.state == 4)
     {
-        Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+        Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
         if (auto text = Text(context, Left, ContentTop + 20, 0x772695c); !text.HasValue())
             return text;
         return Text(context, Left, ContentTop + 34, 0x7726a88);
@@ -122,7 +122,7 @@ Core::Expected<void, std::string> RegisterPage(Hud::GameHudContext& context,
         break;
     case 8:
         text = 0x7726bb4;
-        Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+        Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
         break;
     case 9:
         text = 0x772e33c;
@@ -133,9 +133,9 @@ Core::Expected<void, std::string> RegisterPage(Hud::GameHudContext& context,
     return Text(context, Left, ContentTop + 20, text);
 }
 
-Core::Expected<void, std::string> ListPage(Hud::GameHudContext& context, CastleSiege::SiegeRegistrationWindow& window)
+Core::Expected<void, std::string> ListPage(Ui::GameHudContext& context, CastleSiege::SiegeRegistrationWindow& window)
 {
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (window.state == 1 || window.state == 3)
     {
         if (auto list = GuildList(context, window, false); !list.HasValue())
@@ -156,7 +156,7 @@ Core::Expected<void, std::string> ListPage(Hud::GameHudContext& context, CastleS
     return Button(context, window.button, Left + 70, ContentTop + 262, 0x772e918, enabled ? 0 : CastleUi::Disabled);
 }
 
-Core::Expected<void, std::string> RegistrationTabs(Hud::GameHudContext& context,
+Core::Expected<void, std::string> RegistrationTabs(Ui::GameHudContext& context,
                                                    CastleSiege::SiegeRegistrationWindow& window)
 {
     constexpr std::array<std::uint32_t, 3> Labels{0x77272bc, 0x7726380, 0x77273e8};
@@ -165,7 +165,7 @@ Core::Expected<void, std::string> RegistrationTabs(Hud::GameHudContext& context,
         const bool selected = window.tab == tab;
         const float gray = selected ? 1.0f : 0.6f;
         context.sprites.SetColor({gray, gray, gray, 1});
-        Hud::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(Left + 15 + tab * 54),
+        Ui::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(Left + 15 + tab * 54),
                                  selected ? 88.0f : 90.0f, 54, selected ? 18.0f : 16.0f, 0.75f, 0.9375f);
         const auto label = tab == 1 && window.state != 1 ? 0x7726830u : Labels[static_cast<std::size_t>(tab)];
         if (auto text = Text(context, Left + 15 + tab * 54, selected ? 93 : 94, label, 54); !text.HasValue())
@@ -180,7 +180,7 @@ Core::Expected<void, std::string> RegistrationTabs(Hud::GameHudContext& context,
 }
 } // namespace
 
-Core::Expected<void, std::string> Registration(Hud::GameHudContext& context,
+Core::Expected<void, std::string> Registration(Ui::GameHudContext& context,
                                                CastleSiege::SiegeRegistrationWindow& window)
 {
     window.x = Left;

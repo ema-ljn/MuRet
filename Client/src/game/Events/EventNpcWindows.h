@@ -18,11 +18,11 @@ namespace Client::Kernel
 struct OwnInventory;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Events
 {
@@ -33,14 +33,14 @@ namespace Client::Events
 // (140 × 30 from 170, in steps of 35) with 847 or 848 and table 0x6ba528 (seven more with the hero's class 3 or 4),
 // those not of the own record's level in gray, title 846 and 832 in 26-byte lines. A MuRet drawing that projects does
 // not write the corner or the Devil Square levels.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventNpcWindow(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventNpcWindow(Ui::GameHudContext& context,
                                                                       Ui::PanelRegistry& panels);
 
 // 0x5e5920, one of the inventory's siblings (0x5ee1a3): with the click on a square, the level against those the
 // drawing left (686 or 687 and the inventory closed) or invitation 0x1c13 of level 0 or the square's (677 without it)
 // and C1 05 90; on a bridge of its level, the bridge's cloak 0x1a12 (7 also accepts the level 6 one; 854 without it)
 // and C1 05 9A. Both with XOR32, in the clear.
-[[nodiscard]] Core::Expected<void, std::string> StepTheEventNpcWindow(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheEventNpcWindow(const Ui::GameUiContext& context,
                                                                       Ui::PanelRegistry& panels);
 
 // 0x5583a0(type, level): the inventory slot (0 to 63) of an item of the type with +0x3c above 0 and the level ((+4 >>

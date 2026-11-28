@@ -39,7 +39,6 @@ struct HudState;
 
 namespace Client::Hud
 {
-struct GameHudContext;
 
 struct GameHoverContext
 {
@@ -68,7 +67,7 @@ struct GameHoverContext
     const Tables::TextTable* texts = nullptr;
     // What a floor item's name reads (0x5ba790): Item.bmd, Text.bmd, Skill.bmd and the sets, the mouse and the same
     // `hud`, `sprites` and `text`. Without it, a name stops.
-    GameHudContext* names = nullptr;
+    Ui::GameHudContext* names = nullptr;
 };
 
 // 0x5bbbc0: in Chaos Castle (18 to 23), without "webzen" in the hero's name, with an NPC or a character chosen it does
@@ -81,3 +80,8 @@ struct GameHoverContext
 // of each live and visible floor item that is not the chosen one, at its projection (0x5ba790 with 1).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context);
 } // namespace Client::Hud
+
+namespace Client::Ui
+{
+struct GameHudContext;
+} // namespace Client::Ui

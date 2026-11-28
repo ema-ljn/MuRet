@@ -5,10 +5,10 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The tooltip of a bar skill (06 § Los tooltips, "El cuerpo de la skill", CL8 milestone 5): 0x5b90b0, which 0x5f7bc0
 // calls with the hero's skill slot (0x6c9320), and the help of the raven's commands (0x421c10), which replaces it with
@@ -29,7 +29,7 @@ namespace Client::Tooltips
 //   - a "\n" at the end.
 // It closes the own record (3848 rand() if it is left at 0) and puts the box above y: ((N − 3) · cy + 3 · cy / 2) / ry.
 // Each access to a Skill.bmd entry draws 60 rand() when it closes at 0. What MuRet does not have cuts with its address.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheSkillTooltip(Hud::GameHudContext& context, std::int32_t x,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheSkillTooltip(Ui::GameHudContext& context, std::int32_t x,
                                                                     std::int32_t y, std::int32_t slot,
                                                                     std::int32_t siegeSkill);
 } // namespace Client::Tooltips

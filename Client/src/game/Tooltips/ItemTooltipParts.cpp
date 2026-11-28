@@ -4,12 +4,11 @@
 #include "Tables/ItemSetTables.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/TooltipWriter.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/ItemState.h"
-#include "Movement/GameMovementState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -54,13 +53,13 @@ bool IsExcellent(const Kernel::ItemState& item)
     return (item.flags1b & ExcellentBits) != 0;
 }
 
-std::uint8_t HeroClassOf(const Hud::GameHudContext& context)
+std::uint8_t HeroClassOf(const Ui::GameHudContext& context)
 {
     const Kernel::WorldState& world = context.world;
     return world.Hero().characterClass;
 }
 
-Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(Hud::GameHudContext& context, std::uint32_t skill,
+Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(Ui::GameHudContext& context, std::uint32_t skill,
                                                                 std::string_view where)
 {
     if (context.skills == nullptr)
@@ -69,7 +68,7 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(Hud::GameHudCont
     if (!record)
         return Core::Unexpected(std::format("{}: Skill.bmd no tiene la skill {}", where, skill));
     const std::span<const std::byte, Tables::SkillRecordSize> entry = *record;
-    const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
+    const Models::LogicalAccess access(context.world.Runtime().skillDepths[skill], context.random,
                                        static_cast<std::uint16_t>(Tables::SkillRecordSize));
     SkillEntryFields fields;
     for (const std::byte value : entry)
@@ -93,13 +92,13 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(ItemTooltipFrame
     return ReadTheSkillEntry(frame.context, skill, where);
 }
 
-Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Hud::GameHudContext& context,
+Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Ui::GameHudContext& context,
                                                                       const Kernel::ItemState& item)
 {
     return ItemSetNameOf(context, item.id, static_cast<std::uint8_t>(item.flags1c & SetKindMask));
 }
 
-Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Hud::GameHudContext& context,
+Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Ui::GameHudContext& context,
                                                                       std::uint16_t type, std::uint8_t piece)
 {
     const auto kind = static_cast<std::uint8_t>(piece & SetKindMask);

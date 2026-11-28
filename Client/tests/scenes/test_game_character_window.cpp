@@ -44,7 +44,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;

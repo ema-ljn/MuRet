@@ -14,8 +14,8 @@
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Hud/GameUi.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameUiContext.h"
+#include "Ui/GameHudContext.h"
 #include "Chat/GameChat.h"
 #include "Guild/GuildDrawing.h"
 #include "CastleSiege/CastleSiegeReceive.h"
@@ -54,7 +54,7 @@ namespace
 {
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-class Requests final : public Client::Hud::IGameUiRequests
+class Requests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody&) override {}
@@ -101,7 +101,7 @@ Client::Tables::TextTable Texts()
 class CastleWindowsTest : public ::testing::Test
 {
 protected:
-    Client::Hud::GameUiContext Context(std::int32_t x = 0, std::int32_t y = 0)
+    Client::Ui::GameUiContext Context(std::int32_t x = 0, std::int32_t y = 0)
     {
         return {.world = *m_world,
                 .random = m_random,
@@ -132,7 +132,7 @@ protected:
         auto& runtime = m_world->Runtime();
         auto& hero = m_world->Hero();
         m_sprites.Begin(screen);
-        Client::Hud::GameHudContext context{.world = *m_world,
+        Client::Ui::GameHudContext context{.world = *m_world,
                                             .random = m_random,
                                             .ownRecordDepth = runtime.ownRecordDepth,
                                             .cellXDepth = hero.cellXAccesses,
@@ -334,7 +334,7 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     // Draw uses its own mouse, the same as GameScene's. This test passes the position in the context below.
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
-    Client::Hud::GameHudContext context{.world = *m_world,
+    Client::Ui::GameHudContext context{.world = *m_world,
                                         .random = m_random,
                                         .ownRecordDepth = runtime.ownRecordDepth,
                                         .cellXDepth = hero.cellXAccesses,
@@ -371,7 +371,7 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     ASSERT_EQ(dialog.opened, 1234u);
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
-    Client::Hud::GameHudContext hud{.world = *m_world,
+    Client::Ui::GameHudContext hud{.world = *m_world,
                                     .random = m_random,
                                     .ownRecordDepth = runtime.ownRecordDepth,
                                     .cellXDepth = hero.cellXAccesses,

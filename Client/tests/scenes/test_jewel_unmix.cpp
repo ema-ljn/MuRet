@@ -42,7 +42,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Npc::JewelBundleList;

@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Tables/DialogTable.h"
 #include "Models/LogicalAccess.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Quests/QuestState.h"
 #include "Quests/Quests.h"
 #include "Kernel/MouseState.h"
@@ -76,7 +76,7 @@ void SpendTheClick(Kernel::MouseState& mouse)
     mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
 }
 
-bool MouseIn(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+bool MouseIn(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
              std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
@@ -85,7 +85,7 @@ bool MouseIn(const Hud::GameUiContext& context, std::int32_t left, std::int32_t 
 // The C3 A2 of 0x419bd0 (0x419d13.. and 0x41a35b..) and of 0x41a9e0 (0x41aaa1..): C1 05 A2 with +0x2137e and 1, the
 // XOR32 and the delivery in C3, with the padding rand() (0x419fc1, 0x41a60d, 0x41ad4f) and the serial (0x5767913)
 // through the protection table, which draws another on closing.
-Core::Expected<void, std::string> SendTheQuestState(const Hud::GameUiContext& context, std::string_view where)
+Core::Expected<void, std::string> SendTheQuestState(const Ui::GameUiContext& context, std::string_view where)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::format("{}: el C3 A2 sin el cable", where));
@@ -99,7 +99,7 @@ Core::Expected<void, std::string> SendTheQuestState(const Hud::GameUiContext& co
 }
 
 // 0x419900: the window at 0 and the C1 03 31 in the clear, without sound or rand().
-Core::Expected<void, std::string> CloseTheQuestWindow(const Hud::GameUiContext& context, std::string_view where)
+Core::Expected<void, std::string> CloseTheQuestWindow(const Ui::GameUiContext& context, std::string_view where)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::format("{}: 0x419900 manda el C1 03 31 sin el cable", where));
@@ -122,7 +122,7 @@ DialogRecordOf(const Kernel::WorldRuntime& runtime, std::int32_t index, std::int
 }
 
 // 0x419bd0.
-Core::Expected<void, std::string> StepTheQuestAnswers(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheQuestAnswers(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
@@ -208,7 +208,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const Hud::GameUiContext& 
 }
 
 // 0x41a9e0.
-Core::Expected<void, std::string> StepTheQuestDialog(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheQuestDialog(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
@@ -246,7 +246,7 @@ Core::Expected<void, std::string> StepTheQuestDialog(const Hud::GameUiContext& c
 }
 
 // 0x41b170.
-Core::Expected<void, std::string> StepTheQuestList(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheQuestList(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
@@ -283,7 +283,7 @@ Core::Expected<void, std::string> StepTheQuestList(const Hud::GameUiContext& con
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheQuestWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheQuestWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;

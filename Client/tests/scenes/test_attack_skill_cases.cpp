@@ -33,7 +33,6 @@
 #include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
-#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1068,7 +1067,7 @@ TEST(AttackSkillCasesTest, TheStrikeAroundCutsWhereItReads)
         const auto skills = SkillsWithRange(3);
         SkillWorld tested;
         tested.skills = &skills;
-        tested.world.Runtime().movement.skillDepths[0x4c] = 1;
+        tested.world.Runtime().skillDepths[0x4c] = 1;
         tested.Monster(0, 10.0f);
         tested.Striker().skillTarget4c = -5;
         EXPECT_TRUE(HasError(tested.Head(0x4c), "0x5025b8"));

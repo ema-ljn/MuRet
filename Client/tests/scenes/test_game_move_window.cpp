@@ -14,7 +14,7 @@
 #include "Kernel/ActorState.h"
 #include "Chat/GameChat.h"
 #include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -45,8 +45,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;

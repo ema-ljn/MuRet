@@ -38,7 +38,7 @@ game/Tooltips	game	9		*layer<9;game/Actors;game/Monsters;game/Npc;game/Pets;game
 game/Npc	game	9		*layer<9;game/Actors;game/Chat;game/Events;game/Events/Crywolf;game/Movement;game/Player;game/Quests;game/Social	NPC talk and the generic NPC windows
 game/Quests	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Monsters;game/Movement;game/Player	quests
 game/ChaosMix	game	9		*layer<9;game/Chat;game/Items;game/Movement;game/Player;game/Social	the Chaos Goblin machine and jewel mixes
-game/Warehouse	game	9		*layer<9;game/Movement;game/Npc	the warehouse
+game/Warehouse	game	9		*layer<9;game/Chat;game/Movement;game/Npc	the warehouse
 game/PetTrainer	game	9		*layer<9;game/Actors;game/ChaosMix;game/Chat;game/Items;game/Movement;game/Player	the pet trainer
 game/Party	game	9		*layer<9;game/Player;game/Social	the party
 game/Social	game	9		*layer<9;game/Actors;game/CastleSiege;game/Movement;game/Player	trade and duel
@@ -65,7 +65,7 @@ game/Weather	game	9		*layer<9;game/Actors;game/Movement;game/Particles	leaves, r
 game/Particles	game	9		*layer<9	particles
 game/Joints	game	9		*layer<9;game/Actors;game/Effects;game/Fauna;game/Particles	joints
 game/Effects	game	9		*layer<9;game/Actors;game/Particles;game/Player	model effects
-game/Hud	game	9		*layer<9;game/Actors;game/Combat;game/FrontEnd;game/Movement;game/Player	the HUD and its dialogs
+game/Hud	game	9		*layer<9;game/Actors;game/Combat;game/Events/Crywolf;game/FrontEnd;game/Items;game/Movement;game/Player;game/Warehouse	the HUD and its dialogs
 game/FrontEnd	game	9		*layer<9;game/Actors;game/ChaosMix;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Npc;game/Particles;game/Pets;game/Player;game/WorldObjects	login, server list, character selection and creation
 game/Session	game	10		*layer<10	connection to the servers, keepalive, the opcode table and routing
 game/Scenes	game	11		*layer<11	the frame scripts: Login, Selection, Loading, Game; SceneManager

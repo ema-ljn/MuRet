@@ -52,7 +52,7 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const K
     // 0x43846b..0x438494: SelectObject with the bold font; the GetTextExtentPointA here is not used.
     context.hud.dcFont = Render::Text::FontKind::Bold;
     context.hud.textColors = WorldTextColors;
-    DrawHudCentered(context.text, context.sprites.Screen(), context.hud, projected.Value().x, projected.Value().y,
+    Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, projected.Value().x, projected.Value().y,
                     TextOf(entry));
     return {};
 }

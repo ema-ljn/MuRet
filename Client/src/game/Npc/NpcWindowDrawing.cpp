@@ -7,7 +7,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Npc/NpcWindowState.h"
@@ -35,10 +35,10 @@ namespace Client::Npc
 {
 namespace
 {
-using Hud::WindowDrawing::DrawText;
-using Hud::WindowDrawing::DrawTitle;
-using Hud::WindowDrawing::Quad;
-using Hud::WindowDrawing::SelectFont;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::DrawTitle;
+using Ui::WindowDrawing::Quad;
+using Ui::WindowDrawing::SelectFont;
 using Render::Text::FontKind;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
@@ -143,7 +143,7 @@ float Offset(std::int32_t corner, double offset)
     return F32(static_cast<double>(corner) + offset);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -152,7 +152,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& 
     return *text;
 }
 
-Models::LogicalAccess OwnAccess(Hud::GameHudContext& context)
+Models::LogicalAccess OwnAccess(Ui::GameHudContext& context)
 {
     return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
@@ -176,7 +176,7 @@ std::int32_t WarehouseFee(std::uint16_t level, bool locked)
 
 // fild of the mouse (0x7d3682c and 0x7d36828) against the button in float: left ≤ x < left + 24, with the sum on the
 // x87.
-bool MouseOnTheButton(const Hud::GameHudContext& context, float left, float top)
+bool MouseOnTheButton(const Ui::GameHudContext& context, float left, float top)
 {
     const auto x = static_cast<double>(context.mouse.x);
     const auto y = static_cast<double>(context.mouse.y);
@@ -186,7 +186,7 @@ bool MouseOnTheButton(const Hud::GameHudContext& context, float left, float top)
 
 // With the mouse over it, SelectObject with the normal font and the help (0x554340) at (_ftol(x), _ftol(y) − 12),
 // which leaves the text white on a transparent background. The previous colors change nothing: 0x554340 sets its own.
-Core::Expected<void, std::string> DrawTheButtonHelp(Hud::GameHudContext& context, float left, float top,
+Core::Expected<void, std::string> DrawTheButtonHelp(Ui::GameHudContext& context, float left, float top,
                                                     std::size_t help, std::string_view where)
 {
     SelectFont(context, FontKind::Normal);
@@ -199,7 +199,7 @@ Core::Expected<void, std::string> DrawTheButtonHelp(Hud::GameHudContext& context
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheFootButton(Hud::GameHudContext& context, std::uint16_t slot, float left,
+Core::Expected<void, std::string> DrawTheFootButton(Ui::GameHudContext& context, std::uint16_t slot, float left,
                                                     float top, std::size_t help, std::string_view where)
 {
     Quad(context.sprites, slot, left, top, ButtonSize, ButtonSize, ButtonUv, ButtonUv);
@@ -207,7 +207,7 @@ Core::Expected<void, std::string> DrawTheFootButton(Hud::GameHudContext& context
         return {};
     return DrawTheButtonHelp(context, left, top, help, where);
 }
-Core::Expected<void, std::string> DrawPanel2000Instructions(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawPanel2000Instructions(Ui::GameHudContext& context)
 {
     constexpr std::int32_t Center = 545;
     constexpr std::size_t FirstInstruction = 462;
@@ -217,12 +217,12 @@ Core::Expected<void, std::string> DrawPanel2000Instructions(Hud::GameHudContext&
         auto text = TextOf(context, FirstInstruction + line, "0x5f72d3");
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        Hud::WindowDrawing::DrawCenteredText(context, Center, 50 + 20 * static_cast<std::int32_t>(line), text.Value());
+        Ui::WindowDrawing::DrawCenteredText(context, Center, 50 + 20 * static_cast<std::int32_t>(line), text.Value());
     }
     return {};
 }
 
-Core::Expected<void, std::string> DrawPanel2000Buttons(Hud::GameHudContext& context, bool accepted)
+Core::Expected<void, std::string> DrawPanel2000Buttons(Ui::GameHudContext& context, bool accepted)
 {
     auto& sprites = context.sprites;
     auto& hud = context.hud;
@@ -236,13 +236,13 @@ Core::Expected<void, std::string> DrawPanel2000Buttons(Hud::GameHudContext& cont
         auto text = TextOf(context, acceptButton ? 228 : 229, "0x5f743a");
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        Hud::WindowDrawing::DrawCenteredText(context, 545, top + 5, text.Value());
+        Ui::WindowDrawing::DrawCenteredText(context, 545, top + 5, text.Value());
     }
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheNpcShop(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheNpcShop(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::NpcShopPanel))
         return {};
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> DrawTheNpcShop(Hud::GameHudContext& context, U
     runtime.ui.npcWindowY = ShopTop;
     const std::int32_t x = runtime.ui.npcWindowX;
     const std::int32_t y = runtime.ui.npcWindowY;
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     Hud::DrawTheGridBoxes(sprites, Offset(x, GridLeft), Offset(y, GridTop), runtime.npcWindows.grid, GridColumns,
                           GridRows);
     sprites.SetColor(White);
@@ -329,7 +329,7 @@ Core::Expected<void, std::string> DrawTheNpcShop(Hud::GameHudContext& context, U
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheWarehouse(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheWarehouse(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::WarehousePanel))
         return {};
@@ -342,7 +342,7 @@ Core::Expected<void, std::string> DrawTheWarehouse(Hud::GameHudContext& context,
     runtime.ui.npcWindowY = ShopTop;
     const std::int32_t x = runtime.ui.npcWindowX;
     const std::int32_t y = runtime.ui.npcWindowY;
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     Hud::DrawTheGridBoxes(sprites, Offset(x, GridLeft), Offset(y, GridTop), npc.grid, GridColumns, GridRows);
     sprites.SetColor(White);
 
@@ -431,7 +431,7 @@ Core::Expected<void, std::string> DrawTheWarehouse(Hud::GameHudContext& context,
     sprites.SetColor(White);
     return {};
 }
-Core::Expected<void, std::string> DrawThePanel2000(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawThePanel2000(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::Panel2000))
         return {};
@@ -444,7 +444,7 @@ Core::Expected<void, std::string> DrawThePanel2000(Hud::GameHudContext& context,
     sprites.SetColor(White);
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.EnableTexture();
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, Left, 0);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, Left, 0);
     Quad(sprites, 0x117, Left, 225, 190, 10, 0.7421875f, 0.625f);
     hud.textColors = {.text = 0xffd2e6ffu, .background = 0};
     SelectFont(context, FontKind::Bold);

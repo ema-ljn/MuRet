@@ -10,7 +10,7 @@
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Items/ItemPrice.h"
 #include "Player/ItemSetState.h"
@@ -32,7 +32,6 @@
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
 #include "Ui/PanelRegistry.h"
-#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 
@@ -53,7 +52,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
@@ -410,7 +409,7 @@ TEST_F(ItemTooltipsTest, AnExcellentWeaponListsItsLinesForAKnightOfItsClass)
                 5);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(world.Runtime().movement.skillDepths[0], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[0], 0);
     // The box draws the lines that are not "\n", up to the first empty one.
     EXPECT_EQ(DrawnTexts(),
               (std::vector<std::string>{"Brillante Hoja Gris +9", "Golpe: 20 ~ 28", "Ritmo 20", "Vida util 25/51",
@@ -851,7 +850,7 @@ TEST_F(ItemTooltipsTest, TheBlueBoxReadsTheManaOfItsSkillAndCountsItsLineAsAHalf
                  {"Abrir", 3, StaleBold}},
                 5);
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(world.Runtime().movement.skillDepths[BlueBoxSkill], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[BlueBoxSkill], 0);
 }
 
 TEST_F(ItemTooltipsTest, TheTicketKeepsItsTooltipWithTheNpcShopOpen)

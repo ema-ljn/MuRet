@@ -158,7 +158,7 @@ Sent PlainOf(const Client::Protocol::Outgoing& outgoing)
 }
 
 // What goes out through the UI's wire (IGameUiRequests::SendGamePacket), in the same list as InventoryServices'.
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     explicit RecordingRequests(std::vector<Sent>& sent) : m_sent(sent) {}
@@ -321,9 +321,9 @@ protected:
         return Client::Hud::StepTheGameDialogs(Context(x, y));
     }
 
-    Client::Hud::GameUiContext Context(std::int32_t x, std::int32_t y)
+    Client::Ui::GameUiContext Context(std::int32_t x, std::int32_t y)
     {
-        return Client::Hud::GameUiContext{.world = shop->world,
+        return Client::Ui::GameUiContext{.world = shop->world,
                                           .random = random,
                                           .input = input,
                                           .mouseX = x,
@@ -644,7 +644,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
     Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Mal  ");
     LetterMeasure letters;
-    Client::Hud::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
+    Client::Ui::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
     context.measure = &letters;
     Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     const auto stepped = Client::Hud::StepTheGameDialogs(context);
@@ -1113,7 +1113,7 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     const auto step = [&](std::int32_t x, std::int32_t y)
     {
         Client::Kernel::LatchTheLeftButton(runtime.mouse, true, true);
-        return Client::Hud::StepTheGameDialogs(Client::Hud::GameUiContext{
+        return Client::Hud::StepTheGameDialogs(Client::Ui::GameUiContext{
             .world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y, .requests = &requests});
     };
     const std::int32_t row = Client::Render::Text::FontStepFor(640) + 2;

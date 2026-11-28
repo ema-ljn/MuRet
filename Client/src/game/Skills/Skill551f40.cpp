@@ -4,7 +4,6 @@
 #include "Tables/SkillTable.h"
 #include "Tables/SkillRecord.h"
 #include "Models/LogicalAccess.h"
-#include "Movement/GameMovementState.h"
 #include "Skills/SkillDelays.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -32,7 +31,7 @@ Core::Expected<std::int32_t, std::string> SkillEnergyRequirement(std::uint8_t sk
     const auto record = context.skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::format("0x551f40: Skill.bmd no tiene la skill {}", skill));
-    const Models::LogicalAccess entry(context.world.Runtime().movement.skillDepths[skill], context.random,
+    const Models::LogicalAccess entry(context.world.Runtime().skillDepths[skill], context.random,
                                       static_cast<std::uint16_t>(Tables::SkillRecordSize));
     const auto energy = std::to_integer<std::int32_t>((*record)[EnergyOffset]);
     if (energy == 0)

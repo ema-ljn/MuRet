@@ -139,7 +139,7 @@ bool AnArrowIsDown(const Input::InputState& input)
 
 // What the game dialogs ask for: the F3 30 and the F1 02 through the session (without a server, a warning to the
 // log), Data\Macro.txt and the log.
-class SceneUiRequests final : public Hud::IGameUiRequests
+class SceneUiRequests final : public Ui::IGameUiRequests
 {
 public:
     SceneUiRequests(App::ServerSession* session, Core::Log& log, const std::filesystem::path& dataRoot)
@@ -284,7 +284,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
             chosenSlot = chosen->slot;
     }
     const Items::InventoryServices inventory = InventoryContext();
-    return Hud::StepTheGameDialogs(Hud::GameUiContext{.world = *m_context.world,
+    return Hud::StepTheGameDialogs(Ui::GameUiContext{.world = *m_context.world,
                                                       .random = m_context.cloth->random,
                                                       .input = input,
                                                       .mouseX = mouse.x,
@@ -312,7 +312,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
             ? static_cast<std::uint32_t>(
                   std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
             : 0U;
-    return Hud::StepTheGameUi(Hud::GameUiContext{.world = *m_context.world,
+    return Hud::StepTheGameUi(Ui::GameUiContext{.world = *m_context.world,
                                                  .random = m_context.cloth->random,
                                                  .input = input,
                                                  .mouseX = mouse.x,
@@ -420,7 +420,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     // 0x637646..0x6376e6: the 2D pass, in this order (06 § El dibujo del juego). A MuRet intermediate draw draws with
     // the copies: the rand(), the access counts, the HUD globals, the Crywolf smoke and the sound.
     Kernel::ActorState& hero = m_context.world->Hero();
-    Hud::GameHudContext hud{
+    Ui::GameHudContext hud{
         .world = *m_context.world,
         .random = FrameCloth().random,
         .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
@@ -645,7 +645,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
             drawChosenSlot = chosen->slot;
     }
     Hud::LendTheGameHooks(drawStep,
-                          Hud::GameUiContext{.world = *m_context.world,
+                          Ui::GameUiContext{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .input = input,
                                              .mouseX = hud.mouse.x,

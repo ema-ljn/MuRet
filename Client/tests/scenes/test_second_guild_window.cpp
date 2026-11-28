@@ -14,7 +14,7 @@
 #include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildPanels.h"
@@ -60,7 +60,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Guild::GuildMarkTextures;
 using Client::Guild::GuildState;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;

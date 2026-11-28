@@ -16,7 +16,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Social/SocialState.h"
@@ -53,8 +53,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -131,7 +131,7 @@ void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width
 }
 
 // What the UI asks for: only the party list.
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override
@@ -198,7 +198,7 @@ protected:
         return m_world->Runtime();
     }
 
-    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Hud::IGameUiRequests* requests = nullptr)
+    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Ui::IGameUiRequests* requests = nullptr)
     {
         return GameUiContext{
             .world = *m_world, .random = m_random, .input = m_input, .mouseX = x, .mouseY = y, .requests = requests};
@@ -211,7 +211,7 @@ protected:
     }
 
     Client::Core::Expected<void, std::string> StepTheUi(std::int32_t x, std::int32_t y,
-                                                        Client::Hud::IGameUiRequests* requests)
+                                                        Client::Ui::IGameUiRequests* requests)
     {
         return Client::Hud::StepTheGameUi(UiContext(x, y, requests));
     }

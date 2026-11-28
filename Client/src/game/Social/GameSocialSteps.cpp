@@ -6,7 +6,7 @@
 #include "Protocol/Social/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Social/Trade.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -64,18 +64,18 @@ constexpr std::int32_t DuelButtonBottom = 0x10f;
 // A C3's padding and serial (rand() at 0x5ed19a or 0x5ec1e4, and 0x40b3f0 when closing the serial's entry).
 constexpr std::uint32_t C3Randoms = 2;
 
-bool InRange(const Hud::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
+bool InRange(const Ui::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
              std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
-bool OnTheButton(const Hud::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t left)
+bool OnTheButton(const Ui::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t left)
 {
     return InRange(context, x + left, x + left + ButtonSize, y + ButtonTop, y + ButtonTop + ButtonSize);
 }
 
-Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing outgoing,
+Core::Expected<void, std::string> SendInC3(const Ui::GameUiContext& context, Protocol::Outgoing outgoing,
                                            const char* where)
 {
     if (context.requests == nullptr)
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Pr
 }
 
 // 0x5ece4c..0x5eceae.
-void PressTheMoneyButton(const Hud::GameUiContext& context)
+void PressTheMoneyButton(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     SocialState& social = runtime.social;
@@ -103,7 +103,7 @@ void PressTheMoneyButton(const Hud::GameUiContext& context)
 }
 
 // 0x5ecf2d..0x5ed476.
-Core::Expected<void, std::string> PressTheOkButton(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> PressTheOkButton(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
@@ -124,7 +124,7 @@ Core::Expected<void, std::string> PressTheOkButton(const Hud::GameUiContext& con
 }
 
 // 0x5ed4cc..0x5ed936.
-Core::Expected<void, std::string> PressTheCancelButton(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> PressTheCancelButton(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.mouse.pendingClick = false;
@@ -147,7 +147,7 @@ Protocol::FrontEnd::NameBytes RivalName(const DuelState& duel)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheTradeWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTradeWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::TradePanel))
         return {};
@@ -170,7 +170,7 @@ Core::Expected<void, std::string> StepTheTradeWindow(const Hud::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> StepTheDuelRequest(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheDuelRequest(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abad9 == 0)

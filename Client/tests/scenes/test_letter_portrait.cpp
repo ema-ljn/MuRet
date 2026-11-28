@@ -32,7 +32,7 @@
 #include "Pets/DarkHorse.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Messenger/GameFriends.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Messenger/GameLetters.h"
 #include "Hud/GameUi.h"
 #include "Kernel/SceneId.h"
@@ -705,7 +705,7 @@ public:
     {
         Client::Kernel::WorldRuntime& runtime = m_game.world.Runtime();
         ActorState& hero = m_game.Hero();
-        m_hud.emplace(Client::Hud::GameHudContext{.world = m_game.world,
+        m_hud.emplace(Client::Ui::GameHudContext{.world = m_game.world,
                                                   .random = cloth.random,
                                                   .ownRecordDepth = runtime.ownRecordDepth,
                                                   .cellXDepth = hero.cellXAccesses,
@@ -743,7 +743,7 @@ public:
 
 private:
     Game& m_game;
-    std::optional<Client::Hud::GameHudContext> m_hud;
+    std::optional<Client::Ui::GameHudContext> m_hud;
 };
 
 struct SpriteQuad

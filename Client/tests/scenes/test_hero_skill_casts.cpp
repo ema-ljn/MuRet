@@ -13,7 +13,6 @@
 #include "Audio/SoundId.h"
 
 #include "support/TableFiles.h"
-#include "Movement/GameMovementState.h"
 #include "Ui/GameUiState.h"
 #include "Ui/PanelRegistry.h"
 
@@ -79,7 +78,7 @@ TEST(HeroSkillCastsTest, TheCostReadsTheManaAndTheStaminaOfTheEntry)
     EXPECT_EQ(cost.Value().stamina, 0x0a);
     EXPECT_EQ(tested->random.State(), expected.State());
     // Opened from outside, it is not encrypted again.
-    tested->world.Runtime().movement.skillDepths[0x2b] = 1;
+    tested->world.Runtime().skillDepths[0x2b] = 1;
     const CrtRandom open = tested->random;
     ASSERT_TRUE(SkillCostOf(0x2b, tested->Context(), "0x559b0b").HasValue());
     EXPECT_EQ(tested->random.State(), open.State());

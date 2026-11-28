@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
 #include "Models/LogicalAccess.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/ItemTooltipParts.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Tooltips/TooltipLines.h"
@@ -300,7 +300,7 @@ void WriteTheKalimaLevels(Frame& frame)
     lines.At("0x437d49");
     if (lines.Failed())
         return;
-    Hud::GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     const std::uint8_t heroClass = HeroClassOf(context) & HeroClassBits;
     const std::size_t first =
         heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? KalimaCount : 0;
@@ -352,7 +352,7 @@ void WriteTheChaosCastleLevels(Frame& frame)
     lines.At("0x5b63b7");
     if (lines.Failed())
         return;
-    Hud::GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     const std::uint8_t heroClass = HeroClassOf(context) & HeroClassBits;
     const std::size_t first =
         heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? ChaosCastleCount : 0;

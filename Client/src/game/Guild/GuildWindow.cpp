@@ -16,7 +16,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Chat/GameMessages.h"
 #include "Hud/GameUi.h"
 #include "Hud/GameWindowDrawing.h"
@@ -58,8 +58,8 @@ namespace Client::Guild
 {
 namespace
 {
-using Hud::WindowDrawing::DrawText;
-using Hud::WindowDrawing::SelectFont;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
 
@@ -178,7 +178,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
 }
 
 // 0x5542f0(x, y, text, _ftol(rx · 52), 2, 0): the text centered in the box (0x467060 in mode 2), without measuring.
-void DrawInTheTabBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawInTheTabBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen()));
     const std::int32_t box = Truncate(rx * TabTextBox);
@@ -612,7 +612,7 @@ Core::Expected<void, std::string> StepTheTab(const GuildWindowStepContext& conte
 
 // 0x651f1c..0x652275: 0x621aa0's lines under the tabs that are not chosen, 0x459ec0, bold in white on 0 and each tab:
 // the chosen one white (2 taller and higher) and the others at 0.6, with their text.
-Core::Expected<void, std::string> DrawTheTabs(Hud::GameHudContext& context, std::int32_t tab, std::int32_t x,
+Core::Expected<void, std::string> DrawTheTabs(Ui::GameHudContext& context, std::int32_t tab, std::int32_t x,
                                               std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -853,7 +853,7 @@ void LendTheGuildWindowStepTo(Ui::PanelContext& panels, const GuildWindowStepCon
     panels.guildStep = [context]() { return StepTheGuildWindow(context); };
 }
 
-Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheGuildWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const GuildState& guild = runtime.guild;
@@ -863,14 +863,14 @@ Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& contex
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     sprites.SetBlend(BlendMode::Alpha);
     auto title = TextOf(context.texts, TitleText, "0x651cd5");
     if (!title.HasValue())
         return Core::Unexpected(std::move(title).Error());
     context.hud.textColors = TitleColors;
     SelectFont(context, FontKind::Bold);
-    Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
+    Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
     const Kernel::ActorState& hero = context.world.Hero();
     const bool inAGuild = hero.guildStatus != NoGuildStatus;
     if (inAGuild)
@@ -880,7 +880,7 @@ Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& contex
         if (!name)
             return Core::Unexpected(std::format("0x651da0: el gremio {} del héroe cae fuera de la tabla", index));
         context.hud.textColors.text = ScoreColor;
-        Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + ScoreTop,
+        Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + ScoreTop,
                                       std::format("{} ( Score:{} )", *name, guild.score));
     }
     else
@@ -897,12 +897,12 @@ Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& contex
             top += NoGuildStep;
         }
     }
-    if (Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (Ui::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto help = TextOf(context.texts, CloseHelpText, "0x651ee6");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        Hud::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
+        Ui::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     }
     if (!inAGuild)
         return {};

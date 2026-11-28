@@ -13,11 +13,11 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Party
 {
@@ -25,7 +25,7 @@ namespace Client::Party
 // 0x5e3c80, from 0x5ee140 (0x5ee18d): with the party open, the mouse over the window (from the corner the drawing
 // left, 0xbe × 0x1b1) belongs to the UI (0x775857c), and the click on the close button (0x19, 0x18b, 0x18 × 0x18) is
 // spent, sets 0x77f3b10 to 0 and 0x6c8dcc to 6 and closes the party with Close(4), which plays a sound. No rand().
-[[nodiscard]] Core::Expected<void, std::string> StepThePartyWindow(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepThePartyWindow(const Ui::GameUiContext& context,
                                                                    Ui::PanelRegistry& panels);
 
 // 0x5f0be0(x, y), the first thing in 0x5f7440, which calls it with (0x1c2, 0). With the party closed, the world's
@@ -39,12 +39,12 @@ namespace Client::Party
 // button with its help (189); at the end, the close button with its own (221). Leaves normal blending. No rand() other
 // than the width's.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawThePartyWindow(Hud::GameHudContext& context, Ui::PanelRegistry& panels, std::int32_t x, std::int32_t y);
+DrawThePartyWindow(Ui::GameHudContext& context, Ui::PanelRegistry& panels, std::int32_t x, std::int32_t y);
 
 // 0x5a89b0, the HUD's child 3: with members (0x78aba48 at 1 or more), each one with a character (+0x1c at 0 or more)
 // has its bar over the head (+0x138 + z + 100, projected with 0x6205b0), 19 to the left: with the mouse over it,
 // "HP : %d0%" 6 higher; the shadow (0, 0, 0, 0.5) with normal blending, and added the 42 × 5 border, the 38 × 1
 // background and the 3 × 2 tenths (+0x18, up to 10). It ends opaque and in white. No rand(). Without the world pass's
 // projection, it fails.
-[[nodiscard]] Core::Expected<void, std::string> DrawThePartyLife(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawThePartyLife(Ui::GameHudContext& context);
 } // namespace Client::Party

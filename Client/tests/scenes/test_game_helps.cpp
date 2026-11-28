@@ -34,7 +34,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;

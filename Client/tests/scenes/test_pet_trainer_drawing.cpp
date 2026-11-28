@@ -10,7 +10,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
@@ -43,7 +43,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;

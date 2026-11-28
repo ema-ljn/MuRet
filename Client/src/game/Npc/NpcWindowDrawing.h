@@ -13,10 +13,10 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Npc
 {
@@ -27,7 +27,7 @@ namespace Client::Npc
 // and, with 0x78abb09, repair (0x11e or 0x11f with 0x78abb0c) and repair all (0x11e in light blue, which with the
 // click pending spends it and is drawn pressed), each with its help (231, 232, 233 and 237), and the repair-all price
 // (text 239 and 0x78ababc with commas, in its amount's color). Leaves the bold font and white.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheNpcShop(Hud::GameHudContext& context, Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheNpcShop(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5f4e30, from 0x5f7440 (0x5f75c6): with the warehouse open (0x40, no rand()), the corner at (0x104, 0), the
 // background, the grid cells, the title "text 234 (text 240)" (241 when locked by 0x6c932f, which also tints it
@@ -36,9 +36,9 @@ namespace Client::Npc
 // pressed with the left button down over them, and the lock also with the keypad open), each with its help (235, 236
 // and 242). Opens and closes the own record twice (3848 rand() each with the depth at 0). Leaves the normal or bold
 // font and white.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheWarehouse(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheWarehouse(Ui::GameHudContext& context,
                                                                  Ui::PanelRegistry& panels);
 // 0x5f7180: the eight instructions, the checkbox and the buttons of panel 0x2000.
-[[nodiscard]] Core::Expected<void, std::string> DrawThePanel2000(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawThePanel2000(Ui::GameHudContext& context,
                                                                  Ui::PanelRegistry& panels);
 } // namespace Client::Npc

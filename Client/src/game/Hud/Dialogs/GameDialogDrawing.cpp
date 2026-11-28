@@ -15,7 +15,7 @@
 #include "Chat/ChatBubbles.h"
 #include "Events/EventDrawing.h"
 #include "Hud/Dialogs/GameDialogSteps.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Guild/GuildState.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "ChaosMix/JewelBundleList.h"
@@ -595,7 +595,7 @@ constexpr int NumberRowStep = 6;
 
 struct Frame
 {
-    GameHudContext& context;
+    Ui::GameHudContext& context;
     Kernel::WorldRuntime& runtime;
 };
 
@@ -1784,7 +1784,7 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheGameDialogs(Ui::GameHudContext& context)
 {
     Frame frame{.context = context, .runtime = context.world.Runtime()};
     Render::SpriteBatch& sprites = context.sprites;

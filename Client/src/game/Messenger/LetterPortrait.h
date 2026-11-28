@@ -34,10 +34,10 @@ namespace Client::Actors::Drawing
 struct DrawnObject;
 } // namespace Client::Actors::Drawing
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Scenes
 {
@@ -137,7 +137,7 @@ PrepareThePortraitDraw(LetterPortrait& portrait, Ui::OldPortraitPart& part, Core
 struct LetterPortraitDraw
 {
     // The 2D batch, the texts, Text.bmd and the tooltip box (0x5af090); the portrait does not use its rand().
-    Hud::GameHudContext& hud;
+    Ui::GameHudContext& hud;
     // The model batch and the two batches' ends (SceneCanvas): the portrait's pass closes the earlier 2D and stays
     // under the later one.
     Render::ModelBatch& batch;

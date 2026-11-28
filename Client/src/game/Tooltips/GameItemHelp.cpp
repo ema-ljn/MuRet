@@ -9,7 +9,7 @@
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Items/HudItems.h"
 #include "Tooltips/ItemHelpLevels.h"
@@ -186,7 +186,7 @@ std::int32_t HelpWidth(const ItemHelpRow& first, std::int32_t item, std::int32_t
 
 // 0x5b0c97..0x5b0d9f: 0x40cf00(item), bytes 2 and 3 of ItemSetType.bmd, and one line per piece (1 with 3 and 2 with 2)
 // with its mix from 0 to 3 and a set (0x40cf30).
-Core::Expected<void, std::string> WriteTheSetLines(Hud::GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheSetLines(Ui::GameHudContext& context, TooltipWriter& lines,
                                                    std::int32_t item)
 {
     if (context.setTypes == nullptr)
@@ -218,7 +218,7 @@ Core::Expected<void, std::string> WriteTheSetLines(Hud::GameHudContext& context,
 
 // 0x5b09b0..0x5b0dea: the top box's lines, from 0, and the box. The title is copied with strcpy and the item's name
 // with "%s"; the "\n" and " " do not touch their color or their bold.
-Core::Expected<void, std::string> DrawTheHelpBox(Hud::GameHudContext& context, std::int32_t item,
+Core::Expected<void, std::string> DrawTheHelpBox(Ui::GameHudContext& context, std::int32_t item,
                                                  std::int32_t blankRows, Record record, std::int32_t width)
 {
     TooltipLines& written = context.hud.tooltip;
@@ -315,7 +315,7 @@ std::optional<std::size_t> ColumnTitleText(ItemHelpColumn column)
 class HelpColumns
 {
 public:
-    HelpColumns(Hud::GameHudContext& context, std::int32_t x, const HelpLayout& layout)
+    HelpColumns(Ui::GameHudContext& context, std::int32_t x, const HelpLayout& layout)
         : m_context(context), m_x(x), m_layout(layout)
     {
     }
@@ -401,14 +401,14 @@ private:
             m_error = drawn.Error();
     }
 
-    Hud::GameHudContext& m_context;
+    Ui::GameHudContext& m_context;
     std::int32_t m_x = 0;
     HelpLayout m_layout;
     std::string m_error;
 };
 
 // 0x5b0dfb..0x5b10b6: the columns that level 0's row has, in the original's order.
-Core::Expected<void, std::string> DrawTheColumns(Hud::GameHudContext& context, std::int32_t item, std::int32_t kind,
+Core::Expected<void, std::string> DrawTheColumns(Ui::GameHudContext& context, std::int32_t item, std::int32_t kind,
                                                  std::int32_t x, const HelpLayout& layout)
 {
     const ItemHelpRow& first = context.hud.itemHelp.rows[0];
@@ -467,7 +467,7 @@ Core::Expected<void, std::string> DrawTheColumns(Hud::GameHudContext& context, s
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheItemHelp(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheItemHelp(Ui::GameHudContext& context)
 {
     // 0x5b0802.
     context.sprites.SetBlend(Render::BlendMode::Opaque);

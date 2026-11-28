@@ -64,7 +64,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;

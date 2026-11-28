@@ -4,7 +4,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/TextLayout.h"
 #include "CastleSiege/CastleWindowSupport.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "CastleSiege/CastleSiegeState.h"
@@ -25,7 +25,7 @@ namespace Client::CastleSiege::CastleDraw
 {
 namespace
 {
-Ui::OldWindowDrawContext Drawing(Hud::GameHudContext& context)
+Ui::OldWindowDrawContext Drawing(Ui::GameHudContext& context)
 {
     return {.sprites = context.sprites,
             .text = context.text,
@@ -33,7 +33,7 @@ Ui::OldWindowDrawContext Drawing(Hud::GameHudContext& context)
             .textColors = context.hud.textColors};
 }
 
-Core::Expected<void, std::string> Head(Hud::GameHudContext& context, Ui::OldList& list, std::size_t count,
+Core::Expected<void, std::string> Head(Ui::GameHudContext& context, Ui::OldList& list, std::size_t count,
                                        bool registered)
 {
     auto& sprites = context.sprites;
@@ -64,7 +64,7 @@ Core::Expected<void, std::string> Head(Hud::GameHudContext& context, Ui::OldList
     return {};
 }
 
-Core::Expected<std::int32_t, std::string> Row(Hud::GameHudContext& context,
+Core::Expected<std::int32_t, std::string> Row(Ui::GameHudContext& context,
                                               CastleSiege::SiegeRegistrationWindow& window, bool registered,
                                               std::int32_t visual, std::size_t at)
 {
@@ -126,7 +126,7 @@ Core::Expected<std::int32_t, std::string> Row(Hud::GameHudContext& context,
 }
 } // namespace
 
-Core::Expected<void, std::string> GuildList(Hud::GameHudContext& context, CastleSiege::SiegeRegistrationWindow& window,
+Core::Expected<void, std::string> GuildList(Ui::GameHudContext& context, CastleSiege::SiegeRegistrationWindow& window,
                                             bool registered)
 {
     auto& list = registered ? window.registeredGuildList : window.siegeGuildList;

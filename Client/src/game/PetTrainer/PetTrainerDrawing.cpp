@@ -9,7 +9,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "ChaosMix/ChaosMix.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Chat/GameMessages.h"
 #include "Hud/GameWindowDrawing.h"
@@ -35,11 +35,11 @@ namespace Client::PetTrainer
 {
 namespace
 {
-using Hud::WindowDrawing::DrawCenteredText;
-using Hud::WindowDrawing::DrawInBox;
-using Hud::WindowDrawing::DrawTitle;
-using Hud::WindowDrawing::Quad;
-using Hud::WindowDrawing::SelectFont;
+using Ui::WindowDrawing::DrawCenteredText;
+using Ui::WindowDrawing::DrawInBox;
+using Ui::WindowDrawing::DrawTitle;
+using Ui::WindowDrawing::Quad;
+using Ui::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
 using Render::Text::TextColors;
@@ -188,7 +188,7 @@ constexpr std::uint32_t NoKindColor = 0xff3030ffu;
 
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -207,14 +207,14 @@ Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room
 }
 
 // x in [left, right) and y in [top, bottom) with the integer mouse (the original's CMPs).
-bool MouseIn(const Hud::GameHudContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
+bool MouseIn(const Ui::GameHudContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
              std::int32_t bottom)
 {
     return context.mouse.x >= left && context.mouse.x < right && context.mouse.y >= top && context.mouse.y < bottom;
 }
 
 // Mode 3's FCOMs against the .rdata floats: the same with the mouse moved to the x87.
-bool MouseInFloats(const Hud::GameHudContext& context, float left, float right, float top, float bottom)
+bool MouseInFloats(const Ui::GameHudContext& context, float left, float right, float top, float bottom)
 {
     const auto x = static_cast<double>(context.mouse.x);
     const auto y = static_cast<double>(context.mouse.y);
@@ -225,7 +225,7 @@ bool MouseInFloats(const Hud::GameHudContext& context, float left, float right, 
 // 0x554340 with the normal font. Before calling it the trainer writes white on 0xff000000 (0x44b8ec, 0x44cfde and
 // 0x44db97) or on 0x80282828 (0x44d825), which 0x554340 overwrites at 0x55450f with white on transparent before
 // writing: they are never seen. Leaves the normal font and that white.
-void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
+void DrawTheHelp(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
     SelectFont(context, FontKind::Normal);
     Ui::DrawHelp(context.sprites, context.text, x, y, help);
@@ -234,7 +234,7 @@ void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, s
 
 // 0x44b619..0x44b72f and 0x44c85c..0x44c96e: without blending, white, five strips of 0xfb, the two lines of 0xfc and
 // the buttons' frames.
-void DrawTheSmallBack(Hud::GameHudContext& context, const std::array<float, 2>& buttons)
+void DrawTheSmallBack(Ui::GameHudContext& context, const std::array<float, 2>& buttons)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(BlendMode::Opaque);
@@ -249,7 +249,7 @@ void DrawTheSmallBack(Hud::GameHudContext& context, const std::array<float, 2>& 
 }
 
 // 0x44b731..0x44b78f: the title in bold, black on gray, in the box of 203 · W / 640, and the normal blend.
-Core::Expected<void, std::string> DrawTheSmallTitle(Hud::GameHudContext& context, std::string_view where)
+Core::Expected<void, std::string> DrawTheSmallTitle(Ui::GameHudContext& context, std::string_view where)
 {
     auto title = TextOf(context, TitleText, where);
     if (!title.HasValue())
@@ -263,7 +263,7 @@ Core::Expected<void, std::string> DrawTheSmallTitle(Hud::GameHudContext& context
 }
 
 // 0x44b7a1..0x44b7c3 and 0x44c9df..0x44ca08: sprintf of text 1203 with the hero's name.
-Core::Expected<std::string, std::string> TheNameLine(const Hud::GameHudContext& context, std::string_view where)
+Core::Expected<std::string, std::string> TheNameLine(const Ui::GameHudContext& context, std::string_view where)
 {
     auto format = TextOf(context, NameText, where);
     if (!format.HasValue())
@@ -273,7 +273,7 @@ Core::Expected<std::string, std::string> TheNameLine(const Hud::GameHudContext& 
 }
 
 // 0x44b869..0x44b8fb and 0x44cf54..0x44cfe8: the close button and its help.
-Core::Expected<void, std::string> DrawTheSmallClose(Hud::GameHudContext& context, std::string_view where)
+Core::Expected<void, std::string> DrawTheSmallClose(Ui::GameHudContext& context, std::string_view where)
 {
     Quad(context.sprites, CloseSlot, SmallCloseLeft, SmallCloseTop, CloseSize, CloseSize, CloseUv, CloseUv);
     if (!MouseIn(context, SmallHelpLeft, SmallHelpRight, SmallHelpTop, SmallHelpBottom))
@@ -286,7 +286,7 @@ Core::Expected<void, std::string> DrawTheSmallClose(Hud::GameHudContext& context
 }
 
 // 0x44b610
-Core::Expected<void, std::string> DrawTheMenu(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheMenu(Ui::GameHudContext& context)
 {
     DrawTheSmallBack(context, {MenuButtonTop, MenuButtonTop + MenuButtonStep});
     if (auto title = DrawTheSmallTitle(context, "0x44b783"); !title.HasValue())
@@ -315,7 +315,7 @@ Core::Expected<void, std::string> DrawTheMenu(Hud::GameHudContext& context)
 }
 
 // The price line 0x44b190 leaves in the caller's buffer.
-Core::Expected<std::string, std::string> ThePriceLine(const Hud::GameHudContext& context, const PetRecoveryQuote& quote)
+Core::Expected<std::string, std::string> ThePriceLine(const Ui::GameHudContext& context, const PetRecoveryQuote& quote)
 {
     switch (quote.line)
     {
@@ -342,7 +342,7 @@ Core::Expected<std::string, std::string> ThePriceLine(const Hud::GameHudContext&
 }
 
 // 0x44c850: recovering the horse or the raven.
-Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheRecovery(Ui::GameHudContext& context)
 {
     DrawTheSmallBack(
         context, {static_cast<float>(RecoveryButtonTop), static_cast<float>(RecoveryButtonTop + RecoveryButtonStep)});
@@ -399,7 +399,7 @@ Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
 }
 
 // 0x44d76d..0x44d834: the mix button, pressed with the button down, and its help with the mouse over it.
-Core::Expected<void, std::string> DrawTheMixButton(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheMixButton(Ui::GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Quad(sprites, MixSlot, MixLeft, MixTop, MixWidth, MixHeight, MixDu, MixDv);
@@ -415,7 +415,7 @@ Core::Expected<void, std::string> DrawTheMixButton(Hud::GameHudContext& context)
 }
 
 // 0x44d8e9..0x44d9fd: the mix's name and where the lines continue from.
-Core::Expected<float, std::string> DrawTheMixName(Hud::GameHudContext& context, std::uint8_t kind, std::string_view mix)
+Core::Expected<float, std::string> DrawTheMixName(Ui::GameHudContext& context, std::uint8_t kind, std::string_view mix)
 {
     if (kind == 0)
     {
@@ -442,7 +442,7 @@ Core::Expected<float, std::string> DrawTheMixName(Hud::GameHudContext& context, 
 }
 
 // 0x44d680
-Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheBox(Ui::GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
@@ -454,7 +454,7 @@ Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
             std::format("0x44da59: la mezcla {} lee 0x6b8c68 fuera de la tabla y la cifra sin escribir", kind));
     sprites.SetColor(White);
     // 0x44d6ac: 0x5ee220(0x104, 0, 0) and the grid (0x5e3660).
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, BoxLeft, BoxTop);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, BoxLeft, BoxTop);
     Hud::DrawTheGridBoxes(sprites, GridLeft, GridTop, npc.trainerBox, GridColumns, GridRows);
     sprites.SetColor(White);
     Quad(sprites, BarSlot, BarLeft, FirstBarTop, BarWidth, BarHeight, BarDu, BarDv);
@@ -533,7 +533,7 @@ Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheTrainer(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheTrainer(Ui::GameHudContext& context)
 {
     switch (context.world.Runtime().panels.delegated.trainer)
     {

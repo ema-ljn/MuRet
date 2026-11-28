@@ -33,7 +33,6 @@ struct GameMovementState
     // the cursor belongs to the platform (like milestone 6's 30 request). The last request wins; nobody consumes it
     // yet.
     std::optional<std::array<std::int32_t, 2>> cursorWarpRequest{};
-    std::array<std::uint8_t, 256> skillDepths{};
     float selectedSkillRange = 0.0f;
     std::uint32_t targetX = 0;
     std::uint32_t targetY = 0;

@@ -8,7 +8,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
@@ -35,7 +35,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;

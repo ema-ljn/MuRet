@@ -19,7 +19,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/PoseBuffer.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
@@ -76,7 +76,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Scenes::WorldEntryResources;
 

@@ -826,8 +826,8 @@ game/Tooltips/GameTooltips.cpp	615	game/Tooltips	game/Tooltips	high	item, skill 
 game/Tooltips/GameTooltips.h	52	game/Tooltips	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 game/Hud/GameUi.cpp	2762	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Social
 game/Hud/GameUi.h	231	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Social
-game/Hud/GameWindowDrawing.cpp	251	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to NpcInt
-game/Hud/GameWindowDrawing.h	76	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to NpcInt
+game/Hud/GameWindowDrawing.cpp	243	game/Hud	game/Ui	high	the framed windows' drawing kit every module's window uses (AR4.4 design: hosts and windows share it from below)
+game/Hud/GameWindowDrawing.h	76	game/Hud	game/Ui	high	the framed windows' drawing kit every module's window uses (AR4.4 design: hosts and windows share it from below)
 game/Items/GridItemUse.cpp	309	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/GridItemUse.h	65	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Effects/GroundEffectFrame.cpp	65	game/Effects	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
@@ -881,8 +881,8 @@ game/Effects/HighModelEffects.cpp	1547	game/Effects	game/Effects	high	model effe
 game/Effects/HighModelEffects.h	132	game/Effects	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 game/Items/HudItems.cpp	226	game/Items	game/Items	high	item queries (quick slots, arrow count, max durability) used by the HUD, tooltips and windows (AR0.1 review)
 game/Items/HudItems.h	73	game/Items	game/Items	high	item queries (quick slots, arrow count, max durability) used by the HUD, tooltips and windows (AR0.1 review)
-game/Hud/HudText.cpp	28	game/Hud	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
-game/Hud/HudText.h	21	game/Hud	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
+game/Hud/HudText.cpp	30	game/Hud	game/Ui	high	the HUD's loose texts every module's window draws (AR4.4 design: shared from below)
+game/Hud/HudText.h	30	game/Hud	game/Ui	high	the HUD's loose texts every module's window draws (AR4.4 design: shared from below)
 engine/Render/Frame/IFrameTarget.h	20	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 game/Scenes/IScene.h	63	game/Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 2 own)
 engine/Render/Frame/ITextDrawer.h	35	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
@@ -1292,6 +1292,8 @@ game/Ui/GameDialogs.h	184	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|
 game/Ui/GameText.cpp	103	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/GameText.h	37	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/GameUiState.h	189	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
+game/Ui/GameHudContext.h	125	game/Ui	game/Ui	high	what the HUD hands the windows it draws, shared by every module with a window (AR4.4 design)
+game/Ui/GameUiContext.h	141	game/Ui	game/Ui	high	what the UI step hands the windows it steps, shared by every module with a window (AR4.4 design)
 game/Ui/HudPrimitives.cpp	148	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/HudPrimitives.h	38	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 engine/Platform/IClipboard.h	21	engine/Platform	engine/Platform	medium	rule ^(IClipboard)

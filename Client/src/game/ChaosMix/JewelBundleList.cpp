@@ -10,8 +10,8 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
@@ -248,7 +248,7 @@ void Repeat(Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime, std::int3
 
 // 0x483bc0 with the click over the list: the bar's arrows and, with more rows than visible (or as many), the thumb
 // and the track. The thumb is not grabbed: 0x402af0 left the mouse grabbed by the list (07 Q-C1151).
-void PressTheBar(const Hud::GameUiContext& context, Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime)
+void PressTheBar(const Ui::GameUiContext& context, Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime)
 {
     const auto in = [&](std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
     { return Chat::MouseInRect(context.mouseX, context.mouseY, x, y, width, height, TopLeftRect); };
@@ -277,7 +277,7 @@ void PressTheBar(const Hud::GameUiContext& context, Npc::JewelBundleList& list, 
 // 0x4845d0 (vtable + 0x74) and 0x483bc0's row with 0x46f1a0 (vtable + 0x88), from the first visible one up to
 // `shownRows` rows or the end (0x5762ebc is always 0). The click chooses and flips +0; the left double click chooses
 // and returns the row for 0x402a90 if its level is not 0xff and its cell is in [1, 0x3f].
-std::optional<Npc::JewelBundleList::Row> HoverTheRows(const Hud::GameUiContext& context, Npc::JewelBundleList& list,
+std::optional<Npc::JewelBundleList::Row> HoverTheRows(const Ui::GameUiContext& context, Npc::JewelBundleList& list,
                                                       bool& click, bool& rightReleased)
 {
     std::optional<Npc::JewelBundleList::Row> asked{};
@@ -395,7 +395,7 @@ void DrawTheFrame(Render::SpriteBatch& sprites, Npc::JewelBundleList& list, bool
 
 // 0x46f020, vtable + 0x80: row `row` from the first visible one, with the chosen one's veil, and its text with
 // 0x465950 in the DC's font. Leaves blending off (0x620980).
-Core::Expected<void, std::string> DrawTheRow(Hud::GameHudContext& context, const Npc::JewelBundleList& list,
+Core::Expected<void, std::string> DrawTheRow(Ui::GameHudContext& context, const Npc::JewelBundleList& list,
                                              std::int32_t row, const Npc::JewelBundleList::Row& entry,
                                              std::uint8_t kind)
 {
@@ -465,7 +465,7 @@ std::optional<Npc::JewelBundleList::Row> ChosenBundle(Npc::JewelBundleList& list
     return list.rows[static_cast<std::size_t>(list.selection - 1)];
 }
 
-BundleListStep StepTheBundleList(const Hud::GameUiContext& context)
+BundleListStep StepTheBundleList(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -527,7 +527,7 @@ BundleListStep StepTheBundleList(const Hud::GameUiContext& context)
     return result;
 }
 
-Core::Expected<void, std::string> DrawTheBundleList(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheBundleList(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // A MuRet intermediate draw writes neither the corner nor the bar the step reads: it draws a copy.

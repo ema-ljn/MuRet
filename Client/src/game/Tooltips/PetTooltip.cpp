@@ -5,7 +5,7 @@
 #include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Tooltips/GameTooltips.h"
 #include "Render/Frame/ITextDrawer.h"
@@ -82,7 +82,7 @@ constexpr std::int32_t WithFrame = 1;
 using PetTable = std::array<Kernel::PetStats, Kernel::PetStatsCount>;
 
 // 0x423c65..0x42403d: notes the item and requests its A9 through the game session, like the pet button (0x424610).
-void AskForThePet(Hud::GameHudContext& hud, std::uint32_t key, const Kernel::ItemState& item, std::uint8_t pet)
+void AskForThePet(Ui::GameHudContext& hud, std::uint32_t key, const Kernel::ItemState& item, std::uint8_t pet)
 {
     Kernel::WorldRuntime& runtime = hud.world.Runtime();
     runtime.petTooltipQuery = Kernel::PetTooltipQuery{.key = key, .type = item.id, .scalar = item.scalar1Low};
@@ -94,7 +94,7 @@ void AskForThePet(Hud::GameHudContext& hud, std::uint32_t key, const Kernel::Ite
 }
 
 // 0x42324c..0x42350b: the horse's required level and, with the own record open, what the hero is missing.
-Core::Expected<void, std::string> WriteTheLevelRequirement(Hud::GameHudContext& hud, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheLevelRequirement(Ui::GameHudContext& hud, TooltipWriter& lines,
                                                            std::int32_t required)
 {
     lines.At("0x423252");
@@ -127,7 +127,7 @@ Core::Expected<void, std::string> WriteTheLevelRequirement(Hud::GameHudContext& 
 
 // 0x423671..0x423a8b: the raven's required leadership and, with the own record open, what the hero is missing: +0x36 +
 // +0x20 in 16 bits (0x423839..0x423844).
-Core::Expected<void, std::string> WriteTheLeadershipRequirement(Hud::GameHudContext& hud, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheLeadershipRequirement(Ui::GameHudContext& hud, TooltipWriter& lines,
                                                                 std::int32_t required)
 {
     lines.At("0x42367c");
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> WriteTheLeadershipRequirement(Hud::GameHudCont
 // 0x96), 0x4225d0 (which returns at once with the raven) and 0x5b2320(type, line, tag, value, 0), in blue and without
 // bold, with a half line. With 0x96 in the first option each round adds another (Q-C415) and the loop does not end
 // until the count wraps around, writing beyond the item (Q-C1044): MuRet cuts before the tenth.
-Core::Expected<void, std::string> WriteTheOptions(Hud::GameHudContext& hud, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheOptions(Ui::GameHudContext& hud, TooltipWriter& lines,
                                                   Kernel::ItemState& item, std::int32_t& halves)
 {
     const std::int32_t type = static_cast<std::int16_t>(item.id);
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> WriteTheOptions(Hud::GameHudContext& hud, Tool
 Core::Expected<void, std::string> DrawThePetBox(const ItemTooltipContext& context, std::int32_t count,
                                                 std::int32_t halves)
 {
-    Hud::GameHudContext& hud = context.hud;
+    Ui::GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
     const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
@@ -222,7 +222,7 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
     Kernel::ItemState& item = context.item;
     if (item.id != DarkHorseItem && item.id != DarkRavenItem)
         return false;
-    Hud::GameHudContext& hud = context.hud;
+    Ui::GameHudContext& hud = context.hud;
     Kernel::WorldState& world = hud.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     const bool horse = item.id == DarkHorseItem;

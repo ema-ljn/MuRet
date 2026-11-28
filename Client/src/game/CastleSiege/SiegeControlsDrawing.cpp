@@ -9,7 +9,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Tooltips/SkillTooltip.h"
@@ -19,7 +19,6 @@
 #include "Ui/HudPrimitives.h"
 #include "CastleSiege/SiegeBattleUiState.h"
 #include "CastleSiege/CastleSiegeState.h"
-#include "Movement/GameMovementState.h"
 #include "Ui/PanelRegistry.h"
 
 #include <bit>
@@ -55,41 +54,41 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .scaleSize = true,
                                       .scalePosition = true});
 }
-Core::Expected<std::string_view, std::string> Text(const Hud::GameHudContext& context, std::size_t index)
+Core::Expected<std::string_view, std::string> Text(const Ui::GameHudContext& context, std::size_t index)
 {
     auto text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("Castle Siege: falta el texto {} de Text.bmd", index));
     return *text;
 }
-Core::Expected<void, std::string> Center(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> Center(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                          std::size_t index)
 {
     auto text = Text(context, index);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    Hud::WindowDrawing::DrawCenteredText(context, x, y, text.Value());
+    Ui::WindowDrawing::DrawCenteredText(context, x, y, text.Value());
     return {};
 }
-Core::Expected<void, std::string> Title(Hud::GameHudContext& context, std::size_t index)
+Core::Expected<void, std::string> Title(Ui::GameHudContext& context, std::size_t index)
 {
     auto text = Text(context, index);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = LightGray;
     context.hud.textColors.background = 0;
-    Hud::WindowDrawing::DrawTitle(context, 485, 12, text.Value());
+    Ui::WindowDrawing::DrawTitle(context, 485, 12, text.Value());
     return {};
 }
-bool Inside(const Hud::GameHudContext& context, float left, float top, float width, float height, bool inclusive)
+bool Inside(const Ui::GameHudContext& context, float left, float top, float width, float height, bool inclusive)
 {
     const float x = static_cast<float>(context.mouse.x);
     const float y = static_cast<float>(context.mouse.y);
     return left <= x && (inclusive ? x <= left + width : x < left + width) && top <= y &&
            (inclusive ? y <= top + height : y < top + height);
 }
-Core::Expected<void, std::string> CloseHelp(Hud::GameHudContext& context)
+Core::Expected<void, std::string> CloseHelp(Ui::GameHudContext& context)
 {
     Quad(context.sprites, 0x118, 470.0f, 395.0f, 24.0f, 24.0f, 0.0f, 0.0f, 0.75f, 0.75f);
     if (!Inside(context, 470.0f, 395.0f, 24.0f, 24.0f, false))
@@ -97,24 +96,24 @@ Core::Expected<void, std::string> CloseHelp(Hud::GameHudContext& context)
     auto text = Text(context, 1002);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     context.hud.textColors.text = 0xffffffffu;
     context.hud.textColors.background = 0xff000000u;
     Ui::DrawHelp(context.sprites, context.text, 470, 382, text.Value());
     context.hud.textColors.background = 0;
     return {};
 }
-void DrawBack(Hud::GameHudContext& context)
+void DrawBack(Ui::GameHudContext& context)
 {
     context.sprites.SetColor(White);
-    Hud::WindowDrawing::DrawTheWindowBack(context.sprites, 450, 0);
+    Ui::WindowDrawing::DrawTheWindowBack(context.sprites, 450, 0);
 }
-void DrawSeparators(Hud::GameHudContext& context)
+void DrawSeparators(Ui::GameHudContext& context)
 {
     Quad(context.sprites, 0x117, 450.0f, 110.0f, 190.0f, 10.0f, 0.0f, 0.0f, 0.7421875f, 0.625f);
     Quad(context.sprites, 0x117, 450.0f, 290.0f, 190.0f, 10.0f, 0.0f, 0.0f, 0.7421875f, 0.625f);
 }
-void DrawWeaponChoice(Hud::GameHudContext& context, std::int32_t index, float x, float y, float width, float height)
+void DrawWeaponChoice(Ui::GameHudContext& context, std::int32_t index, float x, float y, float width, float height)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const bool selected = index == context.world.Runtime().castleSiege.siegeBattleUi.weaponChoice - 1;
@@ -125,7 +124,7 @@ void DrawWeaponChoice(Hud::GameHudContext& context, std::int32_t index, float x,
         sprites.SetColor(White);
     Quad(sprites, selected ? 0x116 : 0x115, x, y, width, height);
 }
-Core::Expected<void, std::string> DrawWeapon(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawWeapon(Ui::GameHudContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::uint8_t mode = runtime.panels.delegated.siegeWeapon;
@@ -159,7 +158,7 @@ Core::Expected<void, std::string> DrawWeapon(Hud::GameHudContext& context)
         if (auto label = Center(context, 545, 60 + line * 15, static_cast<std::size_t>(1409 + line)); !label.HasValue())
             return label;
     }
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::BigBold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::BigBold);
     if (runtime.castleSiege.siegeBattleUi.weaponChoice == 0)
         context.sprites.SetColor({0.5f, 0.5f, 0.5f, 1.0f});
     else
@@ -173,7 +172,7 @@ Core::Expected<void, std::string> DrawWeapon(Hud::GameHudContext& context)
     context.sprites.SetColor(White);
     return CloseHelp(context);
 }
-Core::Expected<void, std::string> DrawGate(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawGate(Ui::GameHudContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.panels.delegated.siegeGate == 0)
@@ -206,7 +205,7 @@ Core::Expected<void, std::string> DrawGate(Hud::GameHudContext& context)
         context.sprites.SetBlend(Render::BlendMode::Alpha);
         context.hud.textColors.text = 0xffffffffu;
     }
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::BigBold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::BigBold);
     if (auto label = Center(context, 545, 335, opened ? 1002 : 1479); !label.HasValue())
         return label;
     context.sprites.SetColor(White);
@@ -218,14 +217,14 @@ bool HasRole(const Kernel::ActorState& hero)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheSiegeControls(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheSiegeControls(Ui::GameHudContext& context)
 {
     if (auto weapon = DrawWeapon(context); !weapon.HasValue())
         return weapon;
     return DrawGate(context);
 }
 
-void DrawTheBattleClock(Hud::GameHudContext& context)
+void DrawTheBattleClock(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.castleSiege.siegeActive || runtime.map != 30)
@@ -265,7 +264,7 @@ void DrawTheBattleClock(Hud::GameHudContext& context)
     Ui::DrawNumber(sprites, static_cast<float>(clock.x + 89), static_cast<float>(clock.y + 14), minutes, 14.0f, 14.0f);
 }
 
-Core::Expected<void, std::string> DrawTheBattleSkill(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheBattleSkill(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
@@ -274,7 +273,7 @@ Core::Expected<void, std::string> DrawTheBattleSkill(Hud::GameHudContext& contex
         return {};
     std::uint8_t cost = 0;
     {
-        const Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
+        const Models::LogicalAccess access(runtime.skillDepths[hero.byte371], context.random, 60);
         if (context.skills == nullptr)
             return Core::Unexpected(std::string("0x652f83: sin Skill.bmd para la barra del asedio"));
         const auto record = context.skills->Record(hero.byte371);

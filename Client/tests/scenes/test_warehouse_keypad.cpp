@@ -15,9 +15,9 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Items/InventoryMoves.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
@@ -54,7 +54,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
+using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
@@ -195,7 +195,7 @@ protected:
             return Client::Core::Expected<void, std::string>{};
         };
         panels.LendTheNpcWindows(*m_world, m_random, Client::Items::InventoryServices{}, send);
-        const Client::Hud::GameUiContext context{
+        const Client::Ui::GameUiContext context{
             .world = *m_world, .random = m_random, .input = m_input, .mouseX = x, .mouseY = y, .sendNpcWindow = send};
         return Client::Warehouse::StepTheKeypad(context, panels.Registry());
     }

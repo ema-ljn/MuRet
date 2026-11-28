@@ -14,7 +14,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Player/ItemSetOptionList.h"
 #include "Player/ItemSetState.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -28,7 +28,6 @@
 #include "Crt/SprintfFormat.h"
 #include "Kernel/CharacterClass.h"
 #include "Kernel/ItemState.h"
-#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -108,12 +107,12 @@ using Crt::Sprintf;
 using Math::F32;
 using Math::Truncate;
 
-Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(Ui::GameHudContext& context)
 {
     return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -141,7 +140,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
 }
 
 // The mouse's FILD against the box in float: left ≤ x < left + size, with the sum on the x87.
-bool MouseInSquare(const GameHudContext& context, float left, float top, float size)
+bool MouseInSquare(const Ui::GameHudContext& context, float left, float top, float size)
 {
     const auto x = static_cast<double>(static_cast<float>(context.mouse.x));
     const auto y = static_cast<double>(static_cast<float>(context.mouse.y));
@@ -149,30 +148,30 @@ bool MouseInSquare(const GameHudContext& context, float left, float top, float s
            static_cast<double>(top) <= y && y < static_cast<double>(top) + static_cast<double>(size);
 }
 
-void SelectFont(GameHudContext& context, FontKind font)
+void SelectFont(Ui::GameHudContext& context, FontKind font)
 {
     context.hud.dcFont = font;
 }
 
-void SetColors(GameHudContext& context, std::uint32_t text, std::uint32_t background)
+void SetColors(Ui::GameHudContext& context, std::uint32_t text, std::uint32_t background)
 {
     context.hud.textColors = Render::Text::TextColors{.text = text, .background = background};
 }
 
 // 0x554180's width: (W · k) / 640, unsigned.
-int BoxPixels(const GameHudContext& context, std::uint32_t designWidth)
+int BoxPixels(const Ui::GameHudContext& context, std::uint32_t designWidth)
 {
     const auto screenWidth = static_cast<std::uint32_t>(context.sprites.Screen().width);
     return static_cast<int>(screenWidth * designWidth / 640u);
 }
 
 // GetTextExtentPoint32A's cx in 0x467060: an empty text measures "0" (0x4670ba..0x4670d0).
-int MeasuredWidth(GameHudContext& context, std::string_view text)
+int MeasuredWidth(Ui::GameHudContext& context, std::string_view text)
 {
     return context.text.Measure(context.hud.dcFont, text.empty() ? std::string_view("0") : text).width;
 }
 
-Render::Text::TextStyle CurrentStyle(const GameHudContext& context)
+Render::Text::TextStyle CurrentStyle(const Ui::GameHudContext& context)
 {
     return Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors};
 }
@@ -180,7 +179,7 @@ Render::Text::TextStyle CurrentStyle(const GameHudContext& context)
 // 0x554180(x, y, text, box, 1, p6) → 0x467060 in mode 2 (0x46711b..0x467132, Render::Text::CenterInBox): (box − cx) / 2
 // with C division, the box of cx + 2 · that columns from x and the text shifted by that; wider than the box, the
 // center shows. Empty and without a box, nothing (0x467077..0x467082).
-void DrawCentered(GameHudContext& context, int x, int y, std::string_view text, int box)
+void DrawCentered(Ui::GameHudContext& context, int x, int y, std::string_view text, int box)
 {
     const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, context.hud.dcFont, text, box);
     context.text.DrawColumns(x, y, text, CurrentStyle(context), -placed.textColumn, placed.width);
@@ -188,7 +187,7 @@ void DrawCentered(GameHudContext& context, int x, int y, std::string_view text, 
 
 // 0x554180(x, y, text, width, 0, 0) → 0x467060 in mode 1 (0x467102..0x467119): with the width, the box of that width
 // from x; if the text is wider, it shows from column cx − width.
-void DrawFromLeft(GameHudContext& context, int x, int y, std::string_view text, int width)
+void DrawFromLeft(Ui::GameHudContext& context, int x, int y, std::string_view text, int width)
 {
     if (width <= 0)
     {
@@ -231,7 +230,7 @@ Core::Expected<std::string, std::string> NameOf(const Kernel::OwnCharacterRecord
 
 struct Window
 {
-    GameHudContext& context;
+    Ui::GameHudContext& context;
     const Kernel::OwnCharacterRecord& own;
     const Kernel::ActorState& hero;
     // local_28
@@ -243,7 +242,7 @@ struct Window
 // 0x5ee2e0..0x5ee7f0: the background, the name, the class and the server, and the stats' backgrounds.
 Core::Expected<void, std::string> DrawTheHeader(Window& window)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
@@ -317,7 +316,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
 // 0x5ee7f0..0x5eee60: the level, the experience and the points line.
 Core::Expected<void, std::string> DrawTheLevel(Window& window)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     const Kernel::OwnCharacterRecord& own = window.own;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
@@ -378,7 +377,7 @@ Core::Expected<void, std::string> DrawTheLevel(Window& window)
 // 0x5eee60..0x5efa0e: the strength, the damage and whether the equipment is a full set (the result).
 Core::Expected<bool, std::string> DrawTheStrength(Window& window)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     const Kernel::OwnCharacterRecord& own = window.own;
     const Kernel::ActorState& hero = window.hero;
     const std::int32_t x = window.x;
@@ -486,7 +485,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
 // 0x5efc5f..0x5f0236: the agility, the defense and the speed.
 Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     const Kernel::OwnCharacterRecord& own = window.own;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
@@ -537,7 +536,7 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
 // 0x5f04b1..0x5f0633, with the record open: the magic of classes 0 and 3, with access 13 inside access 12.
 Core::Expected<void, std::string> DrawTheMagic(Window& window)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     const Kernel::OwnCharacterRecord& own = window.own;
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -552,7 +551,7 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
     {
         // Access 13, inside access 12: it draws nothing when it closes.
         const auto access = OwnAccess(context);
-        auto magic = Player::MagicDamageOf(own, *skill, context.skills, runtime.movement.skillDepths[*skill],
+        auto magic = Player::MagicDamageOf(own, *skill, context.skills, runtime.skillDepths[*skill],
                                            context.random, setOptions);
         if (!magic.HasValue())
             return Core::Unexpected(magic.Error());
@@ -608,7 +607,7 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
 // distribute and the letters, all with access 12 open.
 Core::Expected<void, std::string> DrawTheVitality(Window& window)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     const Kernel::OwnCharacterRecord& own = window.own;
     const std::int32_t x = window.x;
     const std::int32_t y = window.y;
@@ -718,7 +717,7 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
 // 0x5f0a6c..0x5f0b29: the Dark Lord's command, +0x20 plus +0x36, with access 14 closed before the sprintf.
 Core::Expected<void, std::string> DrawTheCommand(Window& window)
 {
-    GameHudContext& context = window.context;
+    Ui::GameHudContext& context = window.context;
     const Kernel::OwnCharacterRecord& own = window.own;
     auto format = TextOf(context, CommandText, "0x5f0aef");
     if (!format.HasValue())
@@ -737,7 +736,7 @@ Core::Expected<void, std::string> DrawTheCommand(Window& window)
 }
 
 // 0x5f74a3..0x5f759a: the close button at (x + 25, y + 395) and its help when hovered.
-Core::Expected<void, std::string> DrawTheCloseButton(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheCloseButton(Ui::GameHudContext& context)
 {
     context.sprites.SetColor(White);
     const float left = F32(static_cast<double>(context.hud.characterX) + 25.0);
@@ -778,7 +777,7 @@ std::uint32_t PkNameColor(std::uint8_t pk)
     }
 }
 
-Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheCharacterWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldState& world = context.world;
     const Kernel::ActorState& hero = world.Hero();

@@ -17,11 +17,11 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
-struct GameUiContext;
 struct GameHudContext;
-} // namespace Client::Hud
+struct GameUiContext;
+} // namespace Client::Ui
 
 // Map 30's battle interface: the same state receives B6/BB/B2 1D and feeds the step and the draw.
 namespace Client::CastleSiege
@@ -44,13 +44,13 @@ void OpenTheSiegeGate(Kernel::WorldState& world, std::uint16_t key);
 [[nodiscard]] Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContext& context,
                                                                      std::uint16_t key, std::uint8_t mode);
 
-[[nodiscard]] Core::Expected<void, std::string> StepTheSiegeControls(const Hud::GameUiContext& context);
-[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkill(const Hud::GameUiContext& context);
-[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkillChoice(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheSiegeControls(const Ui::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkill(const Ui::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkillChoice(const Ui::GameUiContext& context);
 void InitializeTheBattleSkill(Kernel::WorldState& world, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepTheBattlePanel(const Hud::GameUiContext& context);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheSiegeControls(Hud::GameHudContext& context);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheBattleSkill(Hud::GameHudContext& context);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheBattlePanel(Hud::GameHudContext& context);
-void DrawTheBattleClock(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheBattlePanel(const Ui::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheSiegeControls(Ui::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheBattleSkill(Ui::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheBattlePanel(Ui::GameHudContext& context);
+void DrawTheBattleClock(Ui::GameHudContext& context);
 } // namespace Client::CastleSiege

@@ -10,7 +10,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Items/HudItems.h"
 #include "Items/InventoryMoves.h"
 #include "Items/ItemPrice.h"
@@ -48,7 +48,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;

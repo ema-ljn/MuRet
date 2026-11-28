@@ -6,7 +6,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
@@ -30,9 +30,9 @@ namespace Client::Social
 {
 namespace
 {
-using Hud::WindowDrawing::DrawCenteredText;
-using Hud::WindowDrawing::Quad;
-using Hud::WindowDrawing::SelectFont;
+using Ui::WindowDrawing::DrawCenteredText;
+using Ui::WindowDrawing::Quad;
+using Ui::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
 
@@ -126,12 +126,12 @@ std::int32_t FromTheMiddle(Ui::PanelRegistry& panels, double offset)
     return static_cast<std::int32_t>(static_cast<double>(panels.WorldWidth()) * 0.5 + offset);
 }
 
-void SetTextColor(Hud::GameHudContext& context, std::uint32_t color)
+void SetTextColor(Ui::GameHudContext& context, std::uint32_t color)
 {
     context.hud.textColors.text = color;
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index)
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
@@ -140,7 +140,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& 
 }
 } // namespace
 
-void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+void DrawTheDuelScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const DuelState& duel = runtime.social.duel;
@@ -185,7 +185,7 @@ void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
     sprites.SetBlend(BlendMode::Opaque);
 }
 
-Core::Expected<void, std::string> DrawTheDuelRequest(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheDuelRequest(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abad9 == 0)

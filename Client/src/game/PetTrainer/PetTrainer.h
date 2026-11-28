@@ -28,10 +28,10 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Items
 {
@@ -108,14 +108,14 @@ struct PetQuoteContext
                                                                                 std::size_t button);
 
 // 0x44b4e0: with 0x724580 at 0, at 4 or outside 1..3, nothing.
-[[nodiscard]] Core::Expected<void, std::string> StepTheTrainer(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheTrainer(const Ui::GameUiContext& context,
                                                                Ui::PanelRegistry& panels);
 
 // 0x44b540, mode 1. The mouse in [0xd5, 0x1aa) × [0x5a, 0x122) belongs to the UI. With the click, the three buttons
 // ([0x103, 0x17b) × [0xb4 + 0x1e · i, +0x16)) clear the click and the button: 0 goes to mode 2 (0x449960), 1 to 3 and
 // opens the inventory (0x449970), and 2, which the drawing does not show, nothing more (Q-C957). Without a button, the
 // close one ([0x189, 0x1a1) × [0x109, 0x121)) clears both and closes (0x4499b0).
-[[nodiscard]] Core::Expected<void, std::string> StepTheTrainerMenu(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheTrainerMenu(const Ui::GameUiContext& context,
                                                                    Ui::PanelRegistry& panels);
 
 // 0x44b910, mode 2. The mouse in [0xd5, 0x1aa) × [0x5a, 0x122) belongs to the UI. With the click, the two buttons
@@ -124,13 +124,13 @@ struct PetQuoteContext
 // price's low byte> with the XOR32 and in C3, close the trainer (0x4499b0) and call 0x421d90. Without a button, the
 // close one clears both and closes. The rand(): the 3848 of each own-record close that leaves it at 0 (one or two in
 // 0x44b190 and the step's) and the C3's two.
-[[nodiscard]] Core::Expected<void, std::string> StepThePetRecovery(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepThePetRecovery(const Ui::GameUiContext& context);
 
 // 0x44d010, mode 3. The mouse in [0x104, 0x1c2) × [0, 0x1b1) belongs to the UI. With the click, the mix button
 // ([0x14f, 0x17b) × [0x12c, 0x14c)) clears the click and the button and, with the mix the previous step's 0x44ae10
 // left (0x724584), sends C1 04 86 0D (mix 1) or 0E (mix 2) with the XOR32 and in the clear, without checking the zen
 // (Q-C956); the close one ([0x118, 0x130) × [0x18b, 0x1a3)) clears both and closes the panel (0x65cae0(0x8000)).
 // Always, at the end, 0x44ae10.
-[[nodiscard]] Core::Expected<void, std::string> StepTheTrainerBox(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheTrainerBox(const Ui::GameUiContext& context,
                                                                   Ui::PanelRegistry& panels);
 } // namespace Client::PetTrainer

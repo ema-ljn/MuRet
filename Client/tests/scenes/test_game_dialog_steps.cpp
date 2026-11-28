@@ -65,7 +65,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
+using Client::Ui::GameUiContext;
 using Client::Input::InputState;
 using Client::Kernel::WorldState;
 
@@ -124,7 +124,7 @@ struct Request
     std::string text;
 };
 
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& body) override

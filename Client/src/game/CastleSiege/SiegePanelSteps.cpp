@@ -34,7 +34,7 @@ void ConsumeLeft(Kernel::WorldRuntime& runtime)
     runtime.mouse.pendingClick = false;
     runtime.mouse.leftHeld = false;
 }
-Core::Expected<void, std::string> SendCommand(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> SendCommand(const Ui::GameUiContext& context)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string("0x4108a7: sin cable para la orden del minimapa"));
@@ -45,7 +45,7 @@ Core::Expected<void, std::string> SendCommand(const Hud::GameUiContext& context)
 }
 
 // 0x40f6d0: the same prefix of the three vtables.
-bool StepBase(const Hud::GameUiContext& context)
+bool StepBase(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
@@ -85,7 +85,7 @@ bool StepBase(const Hud::GameUiContext& context)
 }
 
 // 0x41066f..0x4107df: pick a row and one of its three orders. The right button on a row returns without consuming it.
-bool ChooseCommand(const Hud::GameUiContext& context)
+bool ChooseCommand(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
@@ -123,7 +123,7 @@ bool ChooseCommand(const Hud::GameUiContext& context)
     return true;
 }
 
-Core::Expected<void, std::string> PlaceCommand(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> PlaceCommand(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
@@ -160,7 +160,7 @@ Core::Expected<void, std::string> PlaceCommand(const Hud::GameUiContext& context
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheBattlePanel(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheBattlePanel(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.castleSiege.siegePanelKind || !StepBase(context))

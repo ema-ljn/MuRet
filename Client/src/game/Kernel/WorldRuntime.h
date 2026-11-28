@@ -381,6 +381,8 @@ struct WorldRuntime : RuntimeModules
     std::uint8_t warpDepth = 0;
     // How many accesses hold the own record open ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
+    // How many accesses hold each Skill.bmd entry open, by skill.
+    std::array<std::uint8_t, 256> skillDepths{};
     // 0x723960: what the A9 writes for each pet (0x421db0 and 0x4221d0, Protocol/Pets/PetInfo.h), by type: 0 the
     // raven and 1 the horse. 0x420cd0 zeroes the three. The horse's level ([0x72397c]) is read by 0x4225d0 (the low
     // byte) and 0x422930; the raven's ([0x723968]) by the leadership requirement of 0x1a5 (0x5bf027) and 0x422930.

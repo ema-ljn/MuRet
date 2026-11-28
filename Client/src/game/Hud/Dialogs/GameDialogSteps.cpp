@@ -19,7 +19,7 @@
 #include "Events/EventGlobals.h"
 #include "Chat/GameChat.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Guild/GuildReceive.h"
 #include "Guild/GuildState.h"
 #include "Items/InventoryMoves.h"
@@ -260,7 +260,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {ReopeningDialog, DialogStep::GenericOk, "0x6263df", ""},
 });
 
-bool InBox(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t width, std::int32_t height)
+bool InBox(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t width, std::int32_t height)
 {
     return context.mouseX >= left && context.mouseX < left + width && context.mouseY >= top &&
            context.mouseY < top + height;
@@ -283,7 +283,7 @@ void CloseTheDialog(Kernel::WorldRuntime& runtime, bool sound = true)
     PressTheButton(runtime, sound);
 }
 
-Core::Expected<IGameUiRequests*, std::string> RequestsOf(const GameUiContext& context, std::string_view where)
+Core::Expected<Ui::IGameUiRequests*, std::string> RequestsOf(const Ui::GameUiContext& context, std::string_view where)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::format("{}: sin el cable ni Macro.txt", where));
@@ -291,7 +291,7 @@ Core::Expected<IGameUiRequests*, std::string> RequestsOf(const GameUiContext& co
 }
 
 // 0x61c210 and 0x61c170(Macro.txt): the options to the GS and the macros to disk.
-Core::Expected<void, std::string> SaveTheOptions(const GameUiContext& context, std::string_view where)
+Core::Expected<void, std::string> SaveTheOptions(const Ui::GameUiContext& context, std::string_view where)
 {
     auto requests = RequestsOf(context, where);
     if (!requests.HasValue())
@@ -304,14 +304,14 @@ Core::Expected<void, std::string> SaveTheOptions(const GameUiContext& context, s
 }
 
 // 0x659290(0x100), without rand().
-bool ChaosBoxOpen(const GameUiContext& context)
+bool ChaosBoxOpen(const Ui::GameUiContext& context)
 {
     GamePanels panels(context.world, context.random);
     return panels.Registry().IsOpen(Ui::ChaosBoxPanel);
 }
 
 // 0x555190(0x7d3a14c, Text[592], 2): the name is an empty .bss string.
-Core::Expected<void, std::string> SayTheChaosBoxIsOpen(const GameUiContext& context, std::string_view where)
+Core::Expected<void, std::string> SayTheChaosBoxIsOpen(const Ui::GameUiContext& context, std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, ChaosBoxOpenText);
     if (!text)
@@ -323,7 +323,7 @@ Core::Expected<void, std::string> SayTheChaosBoxIsOpen(const GameUiContext& cont
 
 // 0x62411c..: 0x576793c at 1 and the C3 F1 02 with `kind`: one rand() for the padding (0x62449a) and the serial
 // (0x5767913) through the protection table (0x6244d0 and 0x6244f2), a byte encrypted again with another.
-Core::Expected<void, std::string> RequestTheLogout(const GameUiContext& context, std::uint8_t kind,
+Core::Expected<void, std::string> RequestTheLogout(const Ui::GameUiContext& context, std::uint8_t kind,
                                                    std::string_view where)
 {
     auto requests = RequestsOf(context, where);
@@ -339,7 +339,7 @@ Core::Expected<void, std::string> RequestTheLogout(const GameUiContext& context,
     return {};
 }
 
-Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& context, std::int32_t button)
+Core::Expected<void, std::string> PressTheEscapeMenuButton(const Ui::GameUiContext& context, std::int32_t button)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::DialogState& dialogs = runtime.dialogs;
@@ -397,7 +397,7 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
 }
 
 // 0x623f90..0x62410b: the Esc menu (dialog 0x6e) in scene 5, with five buttons.
-Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheEscapeMenu(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::DialogState& dialogs = runtime.dialogs;
@@ -436,7 +436,7 @@ std::int32_t DirectSoundVolume(std::int32_t volume)
 }
 
 // 0x62568a..0x625804
-void StepTheVolume(const GameUiContext& context)
+void StepTheVolume(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -494,7 +494,7 @@ void StepTheVolume(const GameUiContext& context)
 }
 
 // 0x625563..0x62590f (dialog 0x93).
-Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheOptions(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -546,7 +546,7 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
 // 0x62d91d..0x62da57: 0x8d's answers. With the mouse over one (no more than 0x6a from x = 0x13f) and the click, the
 // click goes off, the buttons leave their part and the waiting dialog becomes open; with the answer's +0x130 in
 // Dialog.bmd at 0 or more, 0x632f70 shows it.
-Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheAnswers(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Ui::DialogBoxState& box = runtime.dialogBox;
@@ -587,7 +587,7 @@ Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
 }
 
 // 0x62d756..0x62da57: the boxes with buttons; Enter or a button closes them, except 0x8d, which goes on to its answers.
-Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheButtons(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::DialogBoxState& box = runtime.dialogBox;
@@ -616,7 +616,7 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
 // 0x625910..0x6259c5: the chaos box mode (0x8e). With the click, which it does not turn off, the button under the
 // mouse leaves its number in 0x7d3a114 (the mode 0x5fd4b0 and the box's drawing read) and closes, without sound or
 // MouseUpdateTime. The drawing puts the buttons 10 pixels lower (Q-C945).
-Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheChaosMixMode(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.mouse.pendingClick)
@@ -640,7 +640,7 @@ Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& conte
 // (0x78abab8), unsigned. Without it, 0x74 instead of 0x73. With it: the own OK, if it was on, goes off and the C1 04 3C
 // goes with 0 in C3 (0x626598..0x626b07, the padding and the serial); with zen in the trade (signed), 0x78abac8 at
 // 0x96; the zen goes to 0x57678ac and in the C1 08 3A with the XOR32, without C3 (0x626b2a..0x626eaf); and 0x73 closes.
-Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& context)
+Core::Expected<void, std::string> OfferTheTypedMoney(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::TradeState& trade = runtime.social.trade;
@@ -673,7 +673,7 @@ Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& contex
 // 0x75 in its place (0x6236f0(0) and 0x6236f0(0x75) inline); otherwise, with the trade open, the zen; without the
 // trade, the warehouse's (0x6270ed, the 81 by 0x78abacc, Npc::MoveTheWarehouseMoney). At the end, the text fields
 // empty (0x553570(0)), length 0x2a, two Tab fields, the zen mode and the chat field at 0, and the button.
-Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheMoneyOk(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::SocialState& social = runtime.social;
@@ -703,7 +703,7 @@ Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
 }
 
 // 0x6263df..0x62645a and 0x62825c..0x6282c8
-Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheGenericOk(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t id = runtime.dialogs.current;
@@ -738,7 +738,7 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
 }
 
 // [x + 0xd5, x + w + 0xd5] × [y + top, y + h + top], signed and edges included.
-bool OverTheWarningButton(const GameUiContext& context, const Ui::DialogButton& button, std::int32_t top)
+bool OverTheWarningButton(const Ui::GameUiContext& context, const Ui::DialogButton& button, std::int32_t top)
 {
     return context.mouseX >= button.x + WarningButtonsX && context.mouseY >= button.y + top &&
            context.mouseX <= button.x + button.width + WarningButtonsX &&
@@ -749,7 +749,7 @@ bool OverTheWarningButton(const GameUiContext& context, const Ui::DialogButton& 
 // click, stays chosen. In 0xa8, the third (0x7d36908, stateless) with the mouse and the click sets the first to 2
 // (0x6283a1..0x628409). Then the click and the button down at 0 and, with Esc, the second at 1 (at 2 in 0xa8,
 // 0x62841e). It returns each one's choice: 0 the yes, 1 the no, 2 0xa8's third and −1 nothing.
-std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, bool escape)
+std::array<std::int32_t, 2> StepTheWarningButtons(const Ui::GameUiContext& context, bool escape)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::DialogBoxState& box = runtime.dialogBox;
@@ -777,7 +777,7 @@ std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, 
 }
 
 // 0x628c11, 0x6293ea and 0x629c85: the dialogs' 26 uses the inventory's same checks, wait and C3.
-Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, const Items::InventoryUse& use)
+Core::Expected<void, std::string> UseTheDialogItem(const Ui::GameUiContext& context, const Items::InventoryUse& use)
 {
     Items::InventoryServices services = context.inventory != nullptr ? *context.inventory : Items::InventoryServices{};
     services.sendUseItem = [&context, where = use.where](const Protocol::Items::UseItem& item)
@@ -796,7 +796,7 @@ Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context,
     return {};
 }
 
-Core::Expected<void, std::string> SendTheAnswer(const GameUiContext& context, Protocol::Outgoing packet,
+Core::Expected<void, std::string> SendTheAnswer(const Ui::GameUiContext& context, Protocol::Outgoing packet,
                                                 std::string_view what)
 {
     if (!context.sendNpcWindow)
@@ -805,7 +805,7 @@ Core::Expected<void, std::string> SendTheAnswer(const GameUiContext& context, Pr
 }
 
 // 0x628521..0x628ac7: 0x9a. The no closes; the yes, with the dialogs' item, sends the AF 01 and closes.
-Core::Expected<void, std::string> AnswerTheChaosCastle(const GameUiContext& context, std::int32_t entry)
+Core::Expected<void, std::string> AnswerTheChaosCastle(const Ui::GameUiContext& context, std::int32_t entry)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (entry == 1)
@@ -828,7 +828,7 @@ Core::Expected<void, std::string> AnswerTheChaosCastle(const GameUiContext& cont
 
 // 0x628b8f..0x629bfd: 0xa8. The 2 (the third or Esc) closes without the sound; 0 and 1 stay in 0x78abb26 and use the
 // item.
-Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, std::int32_t entry)
+Core::Expected<void, std::string> AnswerTheLuck(const Ui::GameUiContext& context, std::int32_t entry)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (entry == ThirdChoice)
@@ -845,7 +845,7 @@ Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, st
 }
 
 // 0x62a42b..0x62a771: 0xaa. The no closes; the yes sends the D0 00 and closes.
-Core::Expected<void, std::string> AnswerTheNotice(const GameUiContext& context, std::int32_t entry)
+Core::Expected<void, std::string> AnswerTheNotice(const Ui::GameUiContext& context, std::int32_t entry)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (entry == 0)
@@ -861,7 +861,7 @@ Core::Expected<void, std::string> AnswerTheNotice(const GameUiContext& context, 
 // 0x6282dc..0x62a7f6: the yes/no dialogs of 0x6282dc, each choice in the buttons' order. 0x94, 0x98 and 0x99 set
 // 0x6c932e to 1 with the first and to 2 with the second, each with the close (the waiting one becomes open) and the
 // sound; with both, both in that order.
-Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, bool escape)
+Core::Expected<void, std::string> StepTheWarning(const Ui::GameUiContext& context, bool escape)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t id = runtime.dialogs.current;
@@ -946,7 +946,7 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
 
 // The yes (1) or no (0) answer to the invitation (0x77, the C1 05 41 with 0x78aba4c's key in C3) or to the trade
 // request (0x78, the C1 04 37 with the XOR32, in clear).
-Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int32_t id, std::uint8_t accepted,
+Core::Expected<void, std::string> Answer(const Ui::GameUiContext& context, std::int32_t id, std::uint8_t accepted,
                                          std::string_view where)
 {
     auto requests = RequestsOf(context, where);
@@ -975,7 +975,7 @@ void ClearTheTypedNumber(Chat::ChatInputState& input)
 // and SetText(0); the C1 17 53 with the ten bytes of slot 0x6d5e2c of 0x787a5e8 (of 0xe) and the ten of 0x7798bf8,
 // with the XOR32 and in clear through the socket (no rand()), and those ten bytes and their length at 0. The EDIT
 // stays shown and focused (Q-C1295).
-Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
+Core::Expected<void, std::string> SendTheLeave(const Ui::GameUiContext& context)
 {
     auto requests = RequestsOf(context, "0x62a878");
     if (!requests.HasValue())
@@ -1005,7 +1005,7 @@ Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
 
 // 0x62b39c (0x7f's yes) and 0x62c5c2 (the no): the answer to the 61's war request, the C1 04 61 [1 or 0] with the
 // XOR32 and in clear through the socket, without rand().
-Core::Expected<void, std::string> AnswerTheWar(const GameUiContext& context, bool accept)
+Core::Expected<void, std::string> AnswerTheWar(const Ui::GameUiContext& context, bool accept)
 {
     auto requests = RequestsOf(context, accept ? "0x62b39c" : "0x62c5c2");
     if (!requests.HasValue())
@@ -1015,7 +1015,7 @@ Core::Expected<void, std::string> AnswerTheWar(const GameUiContext& context, boo
 }
 
 // 0x62aca2..0x62b38d: type 1, atoi of 0x78ab9fc and the ten bytes of the chat buffer, with XOR32 and C3.
-Core::Expected<void, std::string> SendTheWarehouseConfirmation(const GameUiContext& context)
+Core::Expected<void, std::string> SendTheWarehouseConfirmation(const Ui::GameUiContext& context)
 {
     auto requests = RequestsOf(context, "0x62aca2");
     if (!requests.HasValue())
@@ -1036,7 +1036,7 @@ Core::Expected<void, std::string> SendTheWarehouseConfirmation(const GameUiConte
 
 // The yes (0x62a86b, the table 0x62daf4): the party invitation (0x62bb1d), the trade request (0x62c20a), 0x7d's
 // number (0x62a878) and 0x7f's war request (0x62b39c).
-Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::int32_t id)
+Core::Expected<void, std::string> AnswerYes(const Ui::GameUiContext& context, std::int32_t id)
 {
     if (id == LeaveNumberDialog)
         return SendTheLeave(context);
@@ -1049,7 +1049,7 @@ Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::i
 
 // 0x62a7f7..0x62d745: the yes, which spends the click and closes (0x62c4ac), and then the no with the dialog left,
 // which also enters with Esc. With another case of the no table, its range stops; with no case, only the close.
-Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
+Core::Expected<void, std::string> StepTheYesNo(const Ui::GameUiContext& context, bool escape)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.mouse.pendingClick;
@@ -1093,7 +1093,7 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
     return {};
 }
 // 0x62601e..0x6260d0: inclusive edges, without sound, MouseUpdateTime or consuming the click.
-void StepTheWarOutcome(const GameUiContext& context)
+void StepTheWarOutcome(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     constexpr std::int32_t Left = 0x11d;
@@ -1122,7 +1122,7 @@ DialogRoute DialogRouteOf(std::int32_t id)
     return DialogRoute{.id = id, .step = DialogStep::GenericOk, .address = "0x6263df", .wave = ""};
 }
 
-Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape)
+Core::Expected<void, std::string> StepTheOpenDialog(const Ui::GameUiContext& context, bool escape)
 {
     const std::int32_t id = context.world.Runtime().dialogs.current;
     if (id == 0)

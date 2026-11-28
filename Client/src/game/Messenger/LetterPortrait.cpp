@@ -29,7 +29,7 @@
 #include "Actors/CharacterStep.h"
 #include "Pets/DarkSpirit.h"
 #include "Actors/Drawing/GameCharacters.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Pets/HelperTable.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -818,7 +818,7 @@ void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const Ui::OldWindowBase&
 }
 
 // 0x497d56..0x497f44: with +0x4c & 1, the help icon and, with the help on view, its three lines.
-Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart& part, Hud::GameHudContext& hud)
+Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart& part, Ui::GameHudContext& hud)
 {
     const Ui::OldWindowBase& base = part.base;
     if ((base.flags & 1) == 0)

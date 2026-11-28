@@ -5,10 +5,10 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The draws of the guild window's three tabs, [0x7d536f0] (CL9 milestone 8, phase 5; 06 § La ventana del gremio):
 // 0x64fdf0 (tab 0, the guild and its notice), 0x6507d0 (the members) and 0x651400 (the union), with the lists on
@@ -35,5 +35,5 @@ namespace Client::Guild
 // x + 0x19 from y + 0x6a (0x554180), the last six in white on 0xff0000cc; with a union, list +0x2f8, 0xa0 × 0x50, at
 // x + 0xf, hanging from y + 0x6e plus the notice list's height (+0x224, not its own: Q-C1293) and, with the hero as
 // master, +0x64c with 1324 and +0x6d4 visible if it is the union master, or +0x64c with 1325 and +0x6d4 off (6).
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildTab(Hud::GameHudContext& context, std::int32_t tab);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildTab(Ui::GameHudContext& context, std::int32_t tab);
 } // namespace Client::Guild

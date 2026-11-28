@@ -97,7 +97,7 @@ Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 
 Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
 {
-    return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
+    return Models::LogicalAccess(context.world.Runtime().skillDepths[skill], context.random,
                                  static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
@@ -346,7 +346,7 @@ Core::Expected<SkillCost, std::string> SkillCostOf(std::uint8_t skill, const Her
     const auto record = context.skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::format("{}: Skill.bmd no tiene la skill {}", where, skill));
-    const Models::LogicalAccess entry(context.world.Runtime().movement.skillDepths[skill], context.random,
+    const Models::LogicalAccess entry(context.world.Runtime().skillDepths[skill], context.random,
                                       static_cast<std::uint16_t>(Tables::SkillRecordSize));
     return SkillCost{.mana = WordAt(*record, ManaOffset), .stamina = WordAt(*record, StaminaOffset)};
 }

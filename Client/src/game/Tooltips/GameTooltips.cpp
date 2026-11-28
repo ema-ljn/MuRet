@@ -13,7 +13,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Player/ItemSetOptionList.h"
 #include "Player/ItemSetState.h"
@@ -132,7 +132,7 @@ std::string NameOf(std::span<const std::byte, Tables::ItemSetOptionRecordSize> r
     return name;
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -202,7 +202,7 @@ Render::Text::TextColors LineColors(std::int32_t color)
 // (0x46711b..0x467132), at column (box − cx) / 2, with the box of Render::Text::CenterInBox; mode 3
 // (0x467134..0x467144), at column box − cx of a box of exactly `boxPixels`: against its right edge. Returns how far it
 // moves down: cy / ry, half if it starts with '\n'.
-double DrawLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+double DrawLine(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                 std::int32_t boxPixels, std::int32_t mode)
 {
     const Core::PixelSize screen = context.sprites.Screen();
@@ -242,7 +242,7 @@ void WriteSetTitle(TooltipLines& lines, std::size_t& next, std::string_view name
 
 // 0x40e850(x, y), a thiscall on [0x6eed3c]: with +0x9304 and some option in the list, the worn sets with their
 // options, and +0x9304 back at 0.
-Core::Expected<void, std::string> DrawTheSetWindow(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheSetWindow(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Player::ItemSetState& sets = context.world.ItemSets();
     if (sets.byte9304 == 0)
@@ -350,7 +350,7 @@ Kernel::ItemState* HoveredItemOf(Kernel::WorldState& world)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheTooltipBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                     std::int32_t count, std::int32_t widthOverride,
                                                     std::int32_t textMode, std::int32_t frame)
 {
@@ -475,7 +475,7 @@ Core::Expected<void, std::string> WriteTheSetOption(const Tables::TextTable* tex
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheTooltips(Ui::GameHudContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -517,7 +517,7 @@ Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context)
     return DrawTheSetWindow(context, context.hud.inventoryX, context.hud.inventoryY);
 }
 
-Core::Expected<void, std::string> DrawTheSetLabel(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheSetLabel(Ui::GameHudContext& context)
 {
     Player::ItemSetState& sets = context.world.ItemSets();
     if (sets.byte9305 == 0)

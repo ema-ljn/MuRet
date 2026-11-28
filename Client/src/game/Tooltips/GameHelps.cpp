@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Tables/TextTable.h"
 #include "Render/SpriteBatch.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Tooltips/TooltipLines.h"
 #include "Kernel/WorldRuntime.h"
@@ -40,7 +40,7 @@ constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t TitleColor = 1;
 } // namespace
 
-Core::Expected<void, std::string> DrawTheFunctionHelp(Hud::GameHudContext& context, std::int32_t mode)
+Core::Expected<void, std::string> DrawTheFunctionHelp(Ui::GameHudContext& context, std::int32_t mode)
 {
     if (context.texts == nullptr)
         return Core::Unexpected(std::format("0x5b0590: la ayuda {} de F1 sin Text.bmd", mode));

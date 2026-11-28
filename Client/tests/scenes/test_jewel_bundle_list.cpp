@@ -10,8 +10,8 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -113,7 +113,7 @@ public:
     Client::ChaosMix::BundleListStep Run(std::int32_t x, std::int32_t y)
     {
         return Client::ChaosMix::StepTheBundleList(
-            Client::Hud::GameUiContext{.world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y});
+            Client::Ui::GameUiContext{.world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y});
     }
 
     void Press(Key key)
@@ -395,7 +395,7 @@ public:
     Client::Core::Expected<void, std::string> Draw(bool projecting = false, bool withTexts = true)
     {
         Client::Kernel::WorldRuntime& runtime = world->Runtime();
-        Client::Hud::GameHudContext context{.world = *world,
+        Client::Ui::GameHudContext context{.world = *world,
                                             .random = random,
                                             .ownRecordDepth = runtime.ownRecordDepth,
                                             .cellXDepth = cellDepth,

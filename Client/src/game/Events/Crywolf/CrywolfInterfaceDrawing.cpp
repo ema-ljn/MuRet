@@ -10,7 +10,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Events/Crywolf/CrywolfContract.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/HudText.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -250,7 +250,7 @@ Render::OriginalQuad QuadOf(std::uint16_t slot, float x, float y, float width, f
                                 .alpha = alpha};
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -273,7 +273,7 @@ Formatted(std::string_view format, std::span<const Crt::FormatArgument> argument
 }
 
 // wsprintfA(buffer, "%s", text) of text `index`.
-Core::Expected<std::string, std::string> TextInBuffer(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string, std::string> TextInBuffer(const Ui::GameHudContext& context, std::size_t index,
                                                       std::string_view where)
 {
     auto text = TextOf(context, index, where);
@@ -283,9 +283,9 @@ Core::Expected<std::string, std::string> TextInBuffer(const Hud::GameHudContext&
     return Formatted(TextFormat, arguments, where);
 }
 
-void DrawCentered(Hud::GameHudContext& context, int x, int y, std::string_view text)
+void DrawCentered(Ui::GameHudContext& context, int x, int y, std::string_view text)
 {
-    Hud::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, x, y, text);
+    Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, x, y, text);
 }
 
 std::string NameOf(const std::array<char, 11>& name)
@@ -313,7 +313,7 @@ std::optional<std::size_t> ClassTextOf(std::uint8_t classByte)
 }
 
 // 0x4366dc..0x436b93: the results, with 0x723bf9 at 1.
-Result DrawTheResults(Hud::GameHudContext& context, Kernel::CrywolfInterface& ui)
+Result DrawTheResults(Ui::GameHudContext& context, Kernel::CrywolfInterface& ui)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.Quad(QuadOf(RankingBoard, 200.0f, 110.0f, 252.0f, 240.0f, 0.984375f, 0.630859375f));
@@ -495,7 +495,7 @@ bool TipTimerFires(Kernel::CrywolfInterface& ui, std::uint32_t now)
 }
 
 // 0x430180: the tips of stage 3.
-Result DrawTheTips(Hud::GameHudContext& context, Kernel::CrywolfInterface& ui, std::uint8_t stage)
+Result DrawTheTips(Ui::GameHudContext& context, Kernel::CrywolfInterface& ui, std::uint8_t stage)
 {
     if (stage != Protocol::Events::CrywolfReadyStage)
         return {};
@@ -519,7 +519,7 @@ Result DrawTheTips(Hud::GameHudContext& context, Kernel::CrywolfInterface& ui, s
         auto text = TextOf(context, static_cast<std::size_t>(index), "0x430237");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        Hud::DrawHudLine(context.text, context.sprites.Screen(), hud, TipX, TipTop + (TipStep * row), text.Value());
+        Ui::DrawHudLine(context.text, context.sprites.Screen(), hud, TipX, TipTop + (TipStep * row), text.Value());
     }
     return {};
 }
@@ -578,7 +578,7 @@ Core::Expected<std::int32_t, std::string> StepTheClock(Kernel::CrywolfInterface&
 }
 
 // 0x4370a8..0x437564: the defense state.
-Result DrawTheState(Hud::GameHudContext& context, Kernel::CrywolfInterface& ui, std::uint8_t stage)
+Result DrawTheState(Ui::GameHudContext& context, Kernel::CrywolfInterface& ui, std::uint8_t stage)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.Quad(QuadOf(StateFrameSlot, 0.0f, 1.0f, 122.0f, 98.0f, 0.953125f, 0.765625f));
@@ -642,7 +642,7 @@ Result DrawTheState(Hud::GameHudContext& context, Kernel::CrywolfInterface& ui, 
 }
 } // namespace
 
-Result DrawTheCrywolfInterface(Hud::GameHudContext& context)
+Result DrawTheCrywolfInterface(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
@@ -658,7 +658,7 @@ Result DrawTheCrywolfInterface(Hud::GameHudContext& context)
     return DrawTheState(context, ui, runtime.crywolf.stage);
 }
 
-Core::Expected<void, std::string> DrawTheCrywolfContract(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheCrywolfContract(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!InTheCrywolfDefense(runtime))

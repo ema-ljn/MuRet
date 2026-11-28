@@ -28,7 +28,7 @@
 #include "Chat/GameChat.h"
 #include "Hud/GameCommandsWindow.h"
 #include "Movement/GameMovementState.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "PersonalShop/PersonalShopTitles.h"
 #include "FrontEnd/LoginModels.h"
 #include "FrontEnd/SelectionState.h"
@@ -538,7 +538,7 @@ protected:
         runtime.ui.rightClick = true;
         runtime.ui.rightDown = true;
         const Client::Chat::GameChatContext chat = ChatContext();
-        return Client::Hud::StepTheCommandsWindow(Client::Hud::GameUiContext{
+        return Client::Hud::StepTheCommandsWindow(Client::Ui::GameUiContext{
             .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
     }
 
@@ -711,7 +711,7 @@ protected:
         runtime.ui.rightDown = true;
         Client::Chat::GameChatContext chat = ChatContext();
         chat.models = &m_models;
-        return Client::Hud::StepTheCommandsWindow(Client::Hud::GameUiContext{
+        return Client::Hud::StepTheCommandsWindow(Client::Ui::GameUiContext{
             .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
     }
 

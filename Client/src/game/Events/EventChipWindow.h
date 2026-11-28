@@ -21,11 +21,11 @@ namespace Client::Kernel
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Events
 {
@@ -56,7 +56,7 @@ void CloseTheSerialEntry(Kernel::WorldRuntime& runtime);
 // 0, the inventory closed (0x65cae0, with its rand()), 0x553570(0), the chat closed, the zen mode, the typed zen,
 // 0x78abacc and 0x77f3b6b at 0 and the focus to the game window. At the end it clears the release. The packets go out
 // through the step's send() (context.chat).
-[[nodiscard]] Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheEventChipWindow(const Ui::GameUiContext& context,
                                                                        Ui::PanelRegistry& panels);
 
 // 0x5f6550, from 0x5f75d0 after the event NPCs: the inventory's corner at (0x1c2, 0), the background, the title (the
@@ -69,10 +69,10 @@ void CloseTheSerialEntry(Kernel::WorldRuntime& runtime);
 // result in bold, blinking with the clock; 900, 706, 901 and 902), and except with 3, the labels (245 or 819 and 246 or
 // 820) with "x%d" of the item count and of 0x78abb04 in the big font. No rand(). An intermediate drawing does not write
 // the focus, the EDIT or the click.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipWindow(Ui::GameHudContext& context);
 
 // 0x5f70a0, from the UI's 3D (0x5ac1da) with 0x78abb00 other than 0 and 3: the model of 0x1c15 (level 0, or 0xf in +4
 // with 2 and 4; with 5, type 0) at Item.bmd's size, at (540, 298) except with 4 and at (540, 333), with the rand() of
 // 0x5e1480. Then 0x5ac120 does not draw the grids, the cursor item or the quick slots.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipItems(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipItems(Ui::GameHudContext& context);
 } // namespace Client::Events

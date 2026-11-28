@@ -7,11 +7,11 @@
 #include <optional>
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The list of the bundles that can be unmixed, 0x6e5660 (CL9 milestone 6, phase 5; 06 § Los diálogos del juego, "El
 // modo de la caja del caos y la mezcla de joyas"): the class of 0x46e290 (vtable 0x6b85f8), an old-window list with
@@ -46,12 +46,12 @@ struct BundleListStep
 // the list like the one below and vtable + 0x20, 0x483bc0) and 0x5762eb4 at 0. With the mouse grabbed by the list
 // itself during the step, the bar's thumb is never grabbed (07 Q-C1151). The sounds (0x41ed10(0x19)) stay in
 // WorldRuntime::lastSoundId (CL10).
-[[nodiscard]] BundleListStep StepTheBundleList(const Hud::GameUiContext& context);
+[[nodiscard]] BundleListStep StepTheBundleList(const Ui::GameUiContext& context);
 
 // 0x45a9d0(x, y) and 0x402b20 → 0x4832e0, vtable + 0x14: the bottom-left corner at (x, y), the frame with the arrows
 // and the bar (0x46ebe0, which saves it for the step) and, from the first visible one, up to 8 rows (0x46f020) with the
 // jewel's name (1806 or 1807, by 0x6c62e0) and the bundle's jewels, in the normal font. An intermediate draw does not
 // write the list. Fails without the jewel's text.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheBundleList(Hud::GameHudContext& context, std::int32_t x,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheBundleList(Ui::GameHudContext& context, std::int32_t x,
                                                                   std::int32_t y);
 } // namespace Client::ChaosMix

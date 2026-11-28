@@ -6,7 +6,7 @@
 #include "Render/ScreenScale.h"
 #include "Render/Text/FontSet.h"
 #include "CastleSiege/CastleWindowDrawing.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -24,17 +24,17 @@
 
 namespace Client::CastleSiege
 {
-void CastleDraw::Center(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+void CastleDraw::Center(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                         std::int32_t width)
 {
     // FLD rx, FMUL width (float) and _ftol, unlike the integer DIV of the old 0x554180 windows.
     const auto box = Math::OriginalFtolLow(static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen())) *
                                            static_cast<double>(static_cast<float>(width)))
                          .value_or(0);
-    Hud::WindowDrawing::DrawInBox(context, x, y, text, box);
+    Ui::WindowDrawing::DrawInBox(context, x, y, text, box);
 }
 
-Core::Expected<void, std::string> CastleDraw::Text(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> CastleDraw::Text(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                    std::uint32_t address, std::int32_t width)
 {
     auto text = CastleUi::Text(context.texts, address);
@@ -44,7 +44,7 @@ Core::Expected<void, std::string> CastleDraw::Text(Hud::GameHudContext& context,
     return {};
 }
 
-Core::Expected<void, std::string> CastleDraw::Button(Hud::GameHudContext& context, Ui::OldButton& button,
+Core::Expected<void, std::string> CastleDraw::Button(Ui::GameHudContext& context, Ui::OldButton& button,
                                                      std::int32_t x, std::int32_t y, std::uint32_t label,
                                                      std::int32_t state)
 {
@@ -66,32 +66,32 @@ Core::Expected<void, std::string> CastleDraw::Button(Hud::GameHudContext& contex
     return {};
 }
 
-Core::Expected<void, std::string> CastleDraw::Back(Hud::GameHudContext& context, std::int32_t x, std::uint32_t title)
+Core::Expected<void, std::string> CastleDraw::Back(Ui::GameHudContext& context, std::int32_t x, std::uint32_t title)
 {
     context.sprites.SetColor({1, 1, 1, 1});
     context.sprites.SetBlend(Render::BlendMode::Opaque);
-    Hud::WindowDrawing::DrawTheWindowBack(context.sprites, x, 0);
+    Ui::WindowDrawing::DrawTheWindowBack(context.sprites, x, 0);
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     context.hud.textColors = {.text = 0xffffffffu, .background = 0};
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     return CastleSiege::CastleDraw::Text(context, x, 15, title);
 }
 
-Core::Expected<void, std::string> CastleDraw::Close(Hud::GameHudContext& context, std::int32_t x)
+Core::Expected<void, std::string> CastleDraw::Close(Ui::GameHudContext& context, std::int32_t x)
 {
-    if (Hud::WindowDrawing::DrawTheCloseButton(context, x, 0))
+    if (Ui::WindowDrawing::DrawTheCloseButton(context, x, 0))
     {
         auto help = CastleUi::Text(context.texts, 0x7706814);
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        Hud::WindowDrawing::DrawTheCloseHelp(context, x, 0, help.Value());
+        Ui::WindowDrawing::DrawTheCloseHelp(context, x, 0, help.Value());
     }
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     context.sprites.SetColor({1, 1, 1, 1});
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheCastleWindows(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheCastleWindows(Ui::GameHudContext& context)
 {
     auto& runtime = context.world.Runtime();
     const auto& delegated = runtime.panels.delegated;

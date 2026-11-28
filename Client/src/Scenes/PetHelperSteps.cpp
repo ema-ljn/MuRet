@@ -133,7 +133,7 @@ float DinorantHeight(std::int32_t map, float riderZ)
 }
 
 // 0x4449bf..0x444aad: el polvo del galope del Uniria y del Dinorant.
-Core::Expected<void, std::string> RaiseTheRidingDust(const HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> RaiseTheRidingDust(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                      const HelperStepContext& context)
 {
     if (context.random.Next() % RidingDustOneIn != 0)
@@ -149,7 +149,7 @@ Core::Expected<void, std::string> RaiseTheRidingDust(const HelperState& helper, 
 
 // 0x444bbc..0x444c4b: la acción y la velocidad del Fenrir por la del jinete. Devuelve si sigue al polvo (0x444c55):
 // las acciones quietas van directo al avance.
-bool TakeTheFenrirGait(HelperState& helper, const Models::Skeleton& skeleton, std::uint8_t riderAction)
+bool TakeTheFenrirGait(Kernel::HelperState& helper, const Models::Skeleton& skeleton, std::uint8_t riderAction)
 {
     std::optional<std::uint8_t> calm;
     if (InRange(riderAction, 0x56, 0x61))
@@ -189,7 +189,8 @@ bool TakeTheFenrirGait(HelperState& helper, const Models::Skeleton& skeleton, st
 
 // 0x444c78..0x444e16: el polvo del Fenrir en Icarus, sin rand() antes del frame. Las ventanas comparan el frame
 // (+0x114) con los float de 0x6b87d4, 0x6b8bb0, 0x6b8bf0 y 0x6b87f8; fuera de ellas (o sin orden), nada.
-Core::Expected<void, std::string> RaiseTheIcarusFenrirDust(const HelperState& helper, const HelperStepContext& context)
+Core::Expected<void, std::string> RaiseTheIcarusFenrirDust(const Kernel::HelperState& helper,
+                                                           const HelperStepContext& context)
 {
     constexpr float FirstLow = std::bit_cast<float>(0x3f800000u);   // 1
     constexpr float FirstHigh = std::bit_cast<float>(0x3f99999au);  // 1,2
@@ -221,7 +222,7 @@ Core::Expected<void, std::string> RaiseTheIcarusFenrirDust(const HelperState& he
 }
 
 // 0x444c55..0x444f25: el polvo del Fenrir. Fuera del 10, el que no tiene ventanas.
-Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> RaiseTheFenrirDust(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                      const HelperStepContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
@@ -242,7 +243,7 @@ Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, 
 }
 } // namespace
 
-Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> StepRidingHelper(Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                    const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x4447e7");
@@ -278,7 +279,7 @@ Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Ke
     return {};
 }
 
-Core::Expected<void, std::string> StepFenrir(HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> StepFenrir(Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                              const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x444b13");
@@ -303,7 +304,8 @@ Core::Expected<void, std::string> StepFenrir(HelperState& helper, const Kernel::
     return RaiseTheFenrirDust(helper, rider, context);
 }
 
-Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> SparkleTheGuardianAngel(const Kernel::HelperState& helper,
+                                                          const Kernel::ActorState& rider,
                                                           const HelperStepContext& context)
 {
     if ((rider.flags78 & RiderWithoutDust) != 0)
@@ -329,7 +331,7 @@ Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& hel
     return {};
 }
 
-void FlyTheGuardianAngel(HelperState& helper, const Kernel::ActorState& rider, glm::vec2 riderStart,
+void FlyTheGuardianAngel(Kernel::HelperState& helper, const Kernel::ActorState& rider, glm::vec2 riderStart,
                          Crt::CrtRandom& random)
 {
     const float reach = F32(static_cast<double>(GuardianReach) * static_cast<double>(GuardianReach));

@@ -9,7 +9,7 @@
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Scenes/HelperTable.h"
+#include "Kernel/HelperTable.h"
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/FaunaState.h"
@@ -120,12 +120,12 @@ const Player::ItemSetState& WorldState::ItemSets() const
     return m_itemSets;
 }
 
-Scenes::HelperTable& WorldState::Helpers()
+HelperTable& WorldState::Helpers()
 {
     return m_helpers;
 }
 
-const Scenes::HelperTable& WorldState::Helpers() const
+const HelperTable& WorldState::Helpers() const
 {
     return m_helpers;
 }

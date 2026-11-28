@@ -4,7 +4,7 @@
 #include "Actors/ActorConstruction.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Scenes/HelperTable.h"
+#include "Kernel/HelperTable.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 
@@ -84,7 +84,7 @@ void RemoveActor(Kernel::WorldState& world, std::int32_t key)
             continue;
         actor.alive = false;
         ForgetNamedBones(world.Runtime(), slot);
-        Scenes::TurnOffHelpersOf(world.Helpers(), slot);
+        Kernel::TurnOffHelpersOf(world.Helpers(), slot);
         actor.darkSpirit.reset();
         Kernel::ReleaseTheLayer(actor);
         world.ActorCloths()[slot] = {};
@@ -98,7 +98,7 @@ void RemoveActorAtSlot(Kernel::WorldState& world, Kernel::ActorState& actor, std
     if (slot < CreatedActorSearch)
     {
         ForgetNamedBones(world.Runtime(), slot);
-        Scenes::TurnOffHelpersOf(world.Helpers(), slot);
+        Kernel::TurnOffHelpersOf(world.Helpers(), slot);
     }
     actor.darkSpirit.reset();
     if (slot < CreatedActorSearch)

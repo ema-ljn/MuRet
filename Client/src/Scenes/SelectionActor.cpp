@@ -1,4 +1,5 @@
 #include "Scenes/SelectionActor.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
@@ -98,8 +99,10 @@ Core::Expected<void, std::string> EquipSelectionActor(Kernel::WorldState& world,
         actor.wings.flags1b = 0;
         actor.wings.flags1c = 0;
     }
-    TurnOffHelpersOf(world.Helpers(), entry.slot);
-    if (auto pets = Actors::CreateCharacterSetPets(world, entry.slot, entry.equipment, cloth.random); !pets.HasValue())
+    Kernel::TurnOffHelpersOf(world.Helpers(), entry.slot);
+    if (auto pets =
+            Actors::CreateCharacterSetPets(world, entry.slot, entry.equipment, TableHelpers(world, &cloth.random));
+        !pets.HasValue())
     {
         return pets;
     }

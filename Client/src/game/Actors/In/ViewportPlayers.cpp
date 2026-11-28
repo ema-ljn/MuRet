@@ -189,7 +189,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::Play
             return Core::Unexpected(std::format("0x4c91dc: {}", beam.Error()));
     }
     // 0x4c91e4..0x4c91fa.
-    if (auto set = ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources);
+    if (auto set = ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources, hooks);
         !set.HasValue())
         return set;
     // 0x4c920b..0x4c9246.

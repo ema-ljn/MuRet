@@ -1,4 +1,5 @@
 #include "Session/MapLoad.h"
+#include "Kernel/HelperTable.h"
 
 #include "Sound/SoundCatalog.h"
 #include "Audio/SoundDefinition.h"
@@ -236,7 +237,7 @@ void KillOtherActors(Kernel::WorldState& world, std::int32_t key)
             actor.alive = false;
             // 0x510f99: 0x401040, los huesos con nombre del registro.
             Actors::ForgetNamedBones(world.Runtime(), slot);
-            TurnOffHelpersOf(world.Helpers(), slot);
+            Kernel::TurnOffHelpersOf(world.Helpers(), slot);
         }
         // 0x510fc2..0x510fc3: 0x421d60 también con los muertos y los que conservan su clave, y después
         // 0x414340 (0x510fd2), la capa de los GM.

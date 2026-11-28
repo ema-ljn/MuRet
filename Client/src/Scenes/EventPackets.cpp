@@ -13,6 +13,8 @@
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
+#include "Models/ModelId.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"

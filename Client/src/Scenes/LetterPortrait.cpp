@@ -1,4 +1,5 @@
 #include "Scenes/LetterPortrait.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -349,7 +350,7 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
 Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, const WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
-    HelperState& helper = portrait.helper;
+    Kernel::HelperState& helper = portrait.helper;
     helper.alive = false;
     std::optional<std::uint16_t> type;
     switch (actor.pet.model)
@@ -436,7 +437,7 @@ HelperStepContext HelperStepContextOf(const WorldEntryResources& resources)
                              .cameraShake = &resources.cameraInput.shake};
 }
 
-bool RidesTheHelper(const HelperState& helper)
+bool RidesTheHelper(const Kernel::HelperState& helper)
 {
     if (!helper.alive)
         return false;
@@ -468,7 +469,7 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
 {
     Crt::CrtRandom& random = resources.cloth.random;
     // 0x4961d9..0x4961ec: el ayudante en cero (0x75 dwords).
-    portrait.helper = HelperState{};
+    portrait.helper = Kernel::HelperState{};
     Kernel::ActorState& actor = portrait.actor;
     {
         // 0x4961ee..0x4962b7: abre +0x41c y +0x420; 0x4962bc..0x4962c7 borra los 0x438 bytes (las entradas de la tabla
@@ -514,7 +515,8 @@ Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, Ker
                                                    std::int32_t action, const WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
-    if (auto dressed = Actors::ApplyCharacterSetTo(actor, portrait.helper, equipment, resources); !dressed.HasValue())
+    const OwnHelper helper(portrait.helper, actor, resources.world, &resources.cloth.random);
+    if (auto dressed = Actors::ApplyCharacterSetTo(actor, helper, equipment, resources); !dressed.HasValue())
         return dressed;
     // 0x497836..0x497855: la x87 con la escala del héroe publicado, guardada en float.
     portrait.helperScale =

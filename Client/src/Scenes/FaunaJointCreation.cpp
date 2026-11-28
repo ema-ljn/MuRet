@@ -374,7 +374,7 @@ const glm::vec3* SparkleOwnerLight(const JointState& joint)
     if (joint.ownerContext == nullptr)
         return nullptr;
     if (joint.ownerKind == JointOwnerKind::Helper)
-        return &static_cast<const HelperState*>(joint.ownerContext)->light;
+        return &static_cast<const Kernel::HelperState*>(joint.ownerContext)->light;
     if (joint.ownerKind == JointOwnerKind::Raven)
         return &static_cast<const DarkSpirit*>(joint.ownerContext)->light;
     return &static_cast<const Kernel::ActorState*>(joint.ownerContext)->light;
@@ -386,7 +386,7 @@ std::optional<std::uint8_t> SparkleOwnerAction(const JointState& joint)
     if (joint.ownerContext == nullptr)
         return std::nullopt;
     if (joint.ownerKind == JointOwnerKind::Helper)
-        return static_cast<const HelperState*>(joint.ownerContext)->horse.animation.action;
+        return static_cast<const Kernel::HelperState*>(joint.ownerContext)->horse.animation.action;
     if (joint.ownerKind == JointOwnerKind::Raven)
         return static_cast<const DarkSpirit*>(joint.ownerContext)->animation.action;
     return static_cast<const Kernel::ActorState*>(joint.ownerContext)->animation.action;

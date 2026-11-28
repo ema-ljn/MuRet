@@ -1,4 +1,5 @@
 #include "Session/ViewportHooks.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Kernel/ActorState.h"
@@ -113,7 +114,7 @@ Core::Expected<void, std::string> ViewportHooks::RecreateTheRaven(Kernel::ActorS
 
 void ViewportHooks::TurnOffTheHelpersOf(std::size_t rider) const
 {
-    Scenes::TurnOffHelpersOf(m_resources.world.Helpers(), rider);
+    Kernel::TurnOffHelpersOf(m_resources.world.Helpers(), rider);
 }
 
 Core::Expected<void, std::string> ViewportHooks::CreateTheHelper(std::uint16_t type, const glm::vec3& position,

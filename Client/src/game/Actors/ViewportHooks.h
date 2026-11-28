@@ -1,8 +1,7 @@
 #pragma once
 
+#include "Actors/HelperHooks.h"
 #include "Core/Expected.h"
-
-#include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +16,7 @@ struct ActorState;
 // order each handler makes them. Session::ViewportHooks fills the slots.
 namespace Client::Actors
 {
-class IViewportHooks
+class IViewportHooks : public IHelperHooks
 {
 public:
     virtual ~IViewportHooks() = default;
@@ -48,11 +47,7 @@ public:
     virtual void ReleaseThePublishedHerosRaven() const = 0;
     // 0x420d60: filling it arms it again.
     [[nodiscard]] virtual Core::Expected<void, std::string> RecreateTheRaven(Kernel::ActorState& actor) const = 0;
-    // 0x443d40, for an empty pet.
-    virtual void TurnOffTheHelpersOf(std::size_t rider) const = 0;
-    // 0x443fa0, the pet's helper.
-    [[nodiscard]] virtual Core::Expected<void, std::string>
-    CreateTheHelper(std::uint16_t type, const glm::vec3& position, std::size_t rider) const = 0;
+    // Then the pet's helper (IHelperHooks).
 };
 
 // What the 0x14 (0x4ca780) asks for each key, before and after it removes the character.

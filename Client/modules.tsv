@@ -28,8 +28,8 @@ game/Ui	game	8		*layer<8;game/Assets;game/Sound	the widget kit
 game/Actors	game	9		*layer<9;game/Particles	actors and character drawing
 game/Player	game	9		*layer<9	the player state
 game/Hero	game	9		*layer<9;game/Actors;game/Events;game/Events/Crywolf;game/Guild;game/Player;game/Social	the hero's attack and facing
-game/Monsters	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Hud;game/Joints;game/Particles;game/Player;game/WorldObjects	monsters and their drawing
-game/Pets	game	9		*layer<9;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
+game/Monsters	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Hud;game/Joints;game/Particles;game/Pets;game/Player;game/WorldObjects	monsters and their drawing
+game/Pets	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
 game/Movement	game	9		*layer<9;game/Actors;game/Chat;game/Items;game/Player	the player's path, gates, speed
 game/Skills	game	9		*layer<9;game/Chat;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Particles;game/Party;game/Player	the hero's skills and their replies
 game/Combat	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Particles;game/Player	combat

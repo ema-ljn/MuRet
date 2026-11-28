@@ -1,4 +1,5 @@
 #include "Scenes/InventoryMoves.h"
+#include "Kernel/HelperTable.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -654,7 +655,7 @@ void ReviewTheHeroAfterThePlacement(const WorldEntryResources& resources)
     const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     const Kernel::OwnCharacterRecord& record = world.OwnCharacter();
     if (record.equipment[PetSlot].id == Kernel::EmptyOwnItemId)
-        TurnOffHelpersOf(world.Helpers(), runtime.hero);
+        Kernel::TurnOffHelpersOf(world.Helpers(), runtime.hero);
     if (record.equipment[LeftHandSlot].id == Kernel::EmptyOwnItemId)
         hero.darkSpirit.reset();
     if (!IsLevelThreeWizardsRing(record.equipment[SecondRingSlot]) &&
@@ -1119,7 +1120,7 @@ Core::Expected<void, std::string> RemoveInventoryItem(const InventoryMoveContext
     }
     else if (place == PetSlot)
     {
-        TurnOffHelpersOf(world.Helpers(), runtime.hero);
+        Kernel::TurnOffHelpersOf(world.Helpers(), runtime.hero);
         hero.pet.model = Kernel::EmptyOwnItemId;
         hero.pet.flags1b = 0;
     }
@@ -1330,7 +1331,7 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     runtime.ui.field78abb2c = static_cast<std::int32_t>(slot) + FirstGridSlot;
     runtime.RequestSound(ItemMoveSound);
     if (slot == PetSlot)
-        TurnOffHelpersOf(world.Helpers(), runtime.hero);
+        Kernel::TurnOffHelpersOf(world.Helpers(), runtime.hero);
     else if (slot == LeftHandSlot && runtime.cursorItem.id == DarkRaven)
         HeroOf(world).darkSpirit.reset();
     return {};
@@ -2299,7 +2300,7 @@ Core::Expected<void, std::string> ApplyDropResult(const Protocol::Items::DropRes
         if (auto dressed = Dress(services, "0x4d11f9"); !dressed.HasValue())
             return dressed;
         if (place == PetSlot)
-            TurnOffHelpersOf(world.Helpers(), runtime.hero);
+            Kernel::TurnOffHelpersOf(world.Helpers(), runtime.hero);
     }
     else if (auto removed = RemoveInventoryItem(context, result.slot); !removed.HasValue())
         return removed;
@@ -2331,6 +2332,7 @@ Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::Eq
     const std::size_t index = Kernel::ActorWithKey(resources.world, change.key);
     if (resources.world.Actors()[index].type != Tables::PlayerSkeletonModel)
         return {};
-    return Actors::ApplyCharacterSet(index, change.equipment, resources);
+    return Actors::ApplyCharacterSet(index, change.equipment, resources,
+                                     TableHelpers(resources.world, &resources.cloth.random));
 }
 } // namespace Client::Scenes

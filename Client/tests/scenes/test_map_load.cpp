@@ -1,4 +1,5 @@
 #include "Session/MapLoad.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -377,7 +378,7 @@ TEST_F(MapLoadTest, KillsTheActorsOfAnotherKeyOutsideTheSelection)
     for (std::size_t index = 0; index < riders.size(); ++index)
     {
         helpers[index] =
-            Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = riders[index]};
+            Client::Kernel::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = riders[index]};
     }
 
     ASSERT_TRUE(Load(0).HasValue());

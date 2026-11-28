@@ -134,7 +134,7 @@ Core::Expected<void, std::string> EmitHelperParticle(const HelperStepContext& co
     return {};
 }
 
-Core::Expected<void, std::string> ScatterTheDust(const HelperState& helper, const HelperStepContext& context,
+Core::Expected<void, std::string> ScatterTheDust(const Kernel::HelperState& helper, const HelperStepContext& context,
                                                  std::string_view address)
 {
     Crt::CrtRandom& random = context.random;
@@ -175,7 +175,7 @@ Core::Expected<void, std::string> PuffTheIcarusDust(const glm::vec3& base, const
     return {};
 }
 
-void FadeWithTheRider(HelperState& helper, const Kernel::ActorState& rider)
+void FadeWithTheRider(Kernel::HelperState& helper, const Kernel::ActorState& rider)
 {
     if (rider.byte80 != FadingRider && rider.byte80 != OtherFadingRider)
     {

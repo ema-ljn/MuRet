@@ -21,6 +21,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameInventoryHud.h"
+#include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Assets/GameModels.h"
 #include "Scenes/GamePanels.h"

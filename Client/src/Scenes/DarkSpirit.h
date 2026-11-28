@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Assets/ModelIds.h"
 #include "Kernel/ActorSpirit.h"
 #include "Math/HalfLifeMath.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -38,7 +38,7 @@ class Particles;
 // portados desde el ASM en el CL9 hito 4 (06 § El ataque del cuervo).
 namespace Client::Scenes
 {
-inline constexpr std::uint16_t DarkSpiritModel = 0xc0;
+inline constexpr std::uint16_t DarkSpiritModel = Assets::DarkSpiritModel;
 
 using Kernel::DarkSpirit;
 
@@ -115,16 +115,4 @@ struct DarkSpiritBirthAccesses
                                                const DarkSpiritOwner& owner, std::uint8_t map,
                                                World::Particles& particles, float worldClock, Crt::CrtRandom& random,
                                                std::int32_t counter, const DarkSpiritTargets& targets = {});
-
-// 0x4182f0: si el cuervo pasa el trapecio de 0x5fba90 en su (x, y) por 0,01f, con −20. Si no, el dibujo
-// le pone la velocidad en 3 y, salvo en el estado 4 (0x418375), el estado en 0 (MissTheView).
-[[nodiscard]] bool DarkSpiritSeen(const DarkSpirit& spirit, const Terrain::TerrainPolygon& polygon);
-void MissTheView(DarkSpirit& spirit);
-
-// Lo que se dibuja del cuervo (DrawDarkSpirit) entre dos pasos (`stepAlpha` de un paso más, D-C4): el
-// 0xc0 con su escala, sus ángulos y la posición más lo que se movió en el último paso por `stepAlpha`,
-// la animación interpolada, la luz del terreno en su lugar (`terrainLight`) más la suya, la luz por
-// vértice y su alpha. Con `stepAlpha` en 0, el estado del paso: el que posa el original.
-[[nodiscard]] Actors::Drawing::DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton,
-                                                           const glm::vec3& terrainLight, float stepAlpha);
 } // namespace Client::Scenes

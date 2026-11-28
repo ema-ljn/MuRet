@@ -44,12 +44,14 @@ class Particles;
 namespace Client::Models
 {
 class IModelLibrary;
-}
+struct Skeleton;
+} // namespace Client::Models
 
 namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
+struct DarkSpirit;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
@@ -63,6 +65,7 @@ struct FaunaDrawCarry;
 // juego, "Los efectos del jugador".
 namespace Client::Actors::Drawing
 {
+struct DrawnObject;
 
 struct GameCharacterEffectsPass
 {
@@ -180,6 +183,18 @@ struct GameRavenPass
     // one of its 400). Without them, they stop at the first addition.
     Kernel::WorldState* world = nullptr;
 };
+
+// 0x4182f0: whether the raven passes the trapezoid of 0x5fba90 at its (x, y) times 0.01f, with −20. If not, the draw
+// sets its speed to 3 and, except in state 4 (0x418375), its state to 0 (MissTheView).
+[[nodiscard]] bool DarkSpiritSeen(const Kernel::DarkSpirit& spirit, const Terrain::TerrainPolygon& polygon);
+void MissTheView(Kernel::DarkSpirit& spirit);
+
+// What is drawn of the raven (DrawDarkSpirit) between two steps (`stepAlpha` of one more step, D-C4): the 0xc0 with its
+// scale, its angles and its position plus what it moved in the last step times `stepAlpha`, the interpolated animation,
+// the terrain's light at its place (`terrainLight`) plus its own, the vertex light and its alpha. With `stepAlpha` at
+// 0, the step's state: the one the original poses.
+[[nodiscard]] DrawnObject DrawnDarkSpirit(const Kernel::DarkSpirit& spirit, const Models::Skeleton* skeleton,
+                                          const glm::vec3& terrainLight, float stepAlpha);
 
 // 0x420df0: with a raven in +0x430, 0x4182f0. Without passing the trapezoid (its (x, y) times 0.01f, with −20),
 // MissTheView. If it passes, 0x602e90: 0x5ffdf0 (Chaos Castle's alpha and, above 0.01, the pose with the terrain's

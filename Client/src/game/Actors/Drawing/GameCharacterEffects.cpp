@@ -14,7 +14,10 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/ActorSpirit.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/DarkSpirit.h"
+#include "Assets/ModelIds.h"
+#include "Models/Animation.h"
+#include "Models/Skeleton.h"
+#include "Terrain/TerrainCulling.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Actors/FullSetScan.h"
@@ -761,6 +764,14 @@ Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffec
     }
     return {};
 }
+
+// 0x418301: the trapezoid with the raven's place times 0.01f (0x6b88d4) and −20 (0xc1a00000); without passing it,
+// the speed at 3 (0x40400000) except in state 4. The raven's animation goes at 0.4 (DrawDarkSpirit).
+constexpr double RavenCellsPerUnit = static_cast<double>(0.01f);
+constexpr double RavenViewMargin = -20.0;
+constexpr float RavenUnseenSpeed = 3.0f;
+constexpr std::uint8_t RavenLandingState = 4;
+constexpr float RavenFrameStep = 0.4f;
 } // namespace
 
 Core::Expected<void, std::string> DrawGameCharacterEffects(Kernel::ActorState& actor,
@@ -1114,7 +1125,7 @@ Core::Expected<void, std::string> EndTheShout(Kernel::DarkSpirit& spirit, std::s
         if (!drawn)
             return Core::Unexpected(std::string("0x418a8c: sin el cuervo dibujado en este frame, 0x4ee770 lee el "
                                                 "scratch (0x5786f9c) del último modelo posado"));
-        if (const Data::Models::Model* model = pass.models.Find(Models::ModelId{Scenes::DarkSpiritModel});
+        if (const Data::Models::Model* model = pass.models.Find(Models::ModelId{Assets::DarkSpiritModel});
             model != nullptr)
         {
             const VertexEffectCall call{.mesh = ShoutMesh,
@@ -1135,15 +1146,51 @@ Core::Expected<void, std::string> EndTheShout(Kernel::DarkSpirit& spirit, std::s
     return {};
 }
 
+bool DarkSpiritSeen(const Kernel::DarkSpirit& spirit, const Terrain::TerrainPolygon& polygon)
+{
+    const auto cells = [](float coordinate)
+    { return static_cast<double>(F32(static_cast<double>(coordinate) * RavenCellsPerUnit)); };
+    return Terrain::PolygonContains(polygon, cells(spirit.position.x), cells(spirit.position.y), RavenViewMargin);
+}
+
+void MissTheView(Kernel::DarkSpirit& spirit)
+{
+    spirit.speed = RavenUnseenSpeed;
+    if (spirit.state != RavenLandingState)
+    {
+        spirit.state = 0;
+    }
+}
+
+DrawnObject DrawnDarkSpirit(const Kernel::DarkSpirit& spirit, const Models::Skeleton* skeleton,
+                            const glm::vec3& terrainLight, float stepAlpha)
+{
+    DrawnObject drawn;
+    drawn.model = Assets::DarkSpiritModel;
+    drawn.animation = spirit.animation;
+    if (skeleton != nullptr && spirit.animation.action < skeleton->actions.size())
+    {
+        drawn.animation = Models::Interpolated(spirit.animation, skeleton->actions[spirit.animation.action],
+                                               RavenFrameStep, stepAlpha);
+    }
+    drawn.transform.position = spirit.position + ((spirit.position - spirit.previousPosition) * stepAlpha);
+    drawn.transform.angles = spirit.angles;
+    drawn.transform.scale = spirit.scale;
+    drawn.color = terrainLight + spirit.light;
+    drawn.alpha = spirit.alpha;
+    drawn.vertexLight = true;
+    return drawn;
+}
+
 Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const GameRavenPass& pass)
 {
     if (!owner.darkSpirit)
         return {};
     Kernel::DarkSpirit& spirit = *owner.darkSpirit;
-    if (!Scenes::DarkSpiritSeen(spirit, pass.polygon))
+    if (!DarkSpiritSeen(spirit, pass.polygon))
     {
         if (pass.originalFrame)
-            Scenes::MissTheView(spirit);
+            MissTheView(spirit);
         return {};
     }
     // 0x5ffdff..0x5ffe3b: in maps 18 to 23, with the hero's +0x1a1, the alpha drops by 0.15f and stays stored.
@@ -1160,10 +1207,10 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
         const bool shell = (owner.flags78 & RiderFlag) != 0;
         if (!shell && (!pass.terrain.heights || !pass.terrain.attributes))
             return Core::Unexpected<std::string>("0x600a0b: faltan las alturas del terreno para la sombra del cuervo");
-        const Models::Skeleton* skeleton = pass.models.SkeletonOf(Models::ModelId{Scenes::DarkSpiritModel});
+        const Models::Skeleton* skeleton = pass.models.SkeletonOf(Models::ModelId{Assets::DarkSpiritModel});
         const glm::vec3 light = Terrain::LightAt(*pass.lighting, spirit.position.x, spirit.position.y);
         // The game's characters are drawn as the step left them: the raven too (`stepAlpha` at 0).
-        DrawnObject drawn = Scenes::DrawnDarkSpirit(spirit, skeleton, light, 0.0f);
+        DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, 0.0f);
         if (pass.carry != nullptr)
         {
             if (auto posed = Scenes::PublishFaunaPose(*pass.carry, pass.models, drawn, true); !posed.HasValue())
@@ -1206,7 +1253,7 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
                 scratch = pass.carry->meshes;
             return EndTheShout(spirit, scratch, ravenPosed, pass);
         }
-        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(Models::ModelId{Scenes::DarkSpiritModel}),
+        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(Models::ModelId{Assets::DarkSpiritModel}),
                                   *pass.random, pass.particles, pass.worldClock, pass.world);
     }
     return {};

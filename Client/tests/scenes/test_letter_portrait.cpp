@@ -40,6 +40,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/TooltipLines.h"
+#include "Session/CharacterStepHooks.h"
 #include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -217,7 +218,8 @@ struct Game
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log,
-                .states = &states};
+                .states = &states,
+                .characterStepHooks = &stepHooks};
     }
     ActorState& Hero()
     {
@@ -225,6 +227,7 @@ struct Game
     }
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
+    Client::Session::CharacterStepHooks stepHooks;
     Client::Scenes::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;

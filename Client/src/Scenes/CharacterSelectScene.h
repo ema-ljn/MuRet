@@ -4,6 +4,7 @@
 #include "Models/IModelLibrary.h"
 #include "Camera/GameCamera.h"
 
+#include "Session/CharacterStepHooks.h"
 #include "Session/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -251,6 +252,7 @@ private:
     // Los de los avisos y el área vieja (0x554810 y 0x5554e0), lo mismo.
     Models::OriginalFrameCarry m_messageFrames;
     Render::Camera3D m_previewCamera;
+    Session::CharacterStepHooks m_stepHooks;
     const Tables::TextTable* m_texts;
     const Tables::ItemTable* m_items;
     const Models::IModelLibrary& m_models;

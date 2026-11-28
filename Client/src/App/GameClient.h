@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Session/CharacterStepHooks.h"
 #include "Session/Credentials.h"
 #include "App/ILoopClient.h"
 #include "App/PacingMode.h"
@@ -176,6 +177,7 @@ private:
     Scenes::SelectionState m_selection;
     // 0x61ccb0: the loading scene reads them.
     Assets::GameModels m_models;
+    Session::CharacterStepHooks m_characterStepHooks;
     Scenes::WorldEntryResources m_worldEntry;
     Scenes::SessionEventApplier m_eventApplier;
     std::unique_ptr<Online> m_online;

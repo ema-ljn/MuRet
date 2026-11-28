@@ -70,6 +70,7 @@ class WorldState;
 // personajes (0x505de0)".
 namespace Client::Actors
 {
+class ICharacterStepHooks;
 class PlayerActionSpeeds;
 struct ReportedCell;
 
@@ -156,6 +157,8 @@ struct CharacterStepContext
     // The hero's cell 0x4fbe10 stores (Actors::ActorsState::reportedCell). nullptr: on maps 18 to 23 the step stops
     // there.
     ReportedCell* reportedCell = nullptr;
+    // What the step asks of other modules (Session::CharacterStepHooks). nullptr: the step does not start.
+    const ICharacterStepHooks* hooks = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

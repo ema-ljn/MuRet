@@ -1,7 +1,5 @@
 #include "Actors/CharacterStep.h"
 #include "Maps/MapId.h"
-#include "Scenes/SiegeBattleUi.h"
-#include "Protocol/Pets/PetOrders.h"
 
 #include "Actors/ActorPickingBox.h"
 #include "Math/OriginalRotation.h"
@@ -25,47 +23,25 @@
 #include "Actors/ActorMotion.h"
 #include "Actors/ActorRemains.h"
 #include "Actors/ActorsState.h"
+#include "Actors/CharacterStepHooks.h"
 #include "Actors/ActorWalk.h"
 #include "Actors/PlayerActionSpeeds.h"
-#include "Scenes/ActorCombat.h"
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorDying.h"
 #include "Kernel/ActorState.h"
-#include "Kernel/ActorSpirit.h"
-#include "Scenes/AttackSkillCases.h"
-#include "Scenes/AttackStep.h"
 #include "Kernel/CharacterHead.h"
-#include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/CrywolfContract.h"
-#include "Scenes/DarkSpirit.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "Scenes/HealthBars.h"
-#include "Player/ItemSetOptionList.h"
-#include "Scenes/ModelBody.h"
-#include "Scenes/ModelEffects.h"
-#include "Scenes/MonsterHelpers.h"
-#include "Scenes/MonsterRibbonTrails.h"
-#include "Scenes/MonsterStepCases.h"
-#include "Scenes/NpcChatter.h"
-#include "Kernel/OwnCharacterRecord.h"
-#include "Player/OwnStatHelpers.h"
-#include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Actors/Drawing/WeaponTrail.h"
 #include "Math/Ftol.h"
-#include "World/ObjectAlpha.h"
-#include "World/IFishStepServices.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainHeight.h"
 #include "Pathfinding/TerrainWalls.h"
-#include "World/WorldObjectStepServices.h"
-#include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 
@@ -92,6 +68,7 @@ constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: on map 30 (0x1e), 0x412140 builds the siege panel.
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr Terrain::TerrainPolygon BssTrapezoid{};
+constexpr std::string_view NoHooks = "0x508f00: no character step hooks (Session::CharacterStepHooks)";
 
 // 0x4fd603: the type that passes its name and level to 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
@@ -139,11 +116,6 @@ constexpr std::uint8_t LastKeptRange = 0x75;
 constexpr float TrailFrame = 3.0f;
 constexpr std::uint8_t AlwaysTrailedAction = 0x8d;
 
-// 0x4fc57e, 0x4fc5b0 and 0x4fc606: the bit of +0x3c that 0x4fc450 turns off with each WORD at 0.
-constexpr std::uint8_t Word3eBit = 0x01;
-constexpr std::uint8_t Word40Bit = 0x02;
-constexpr std::uint8_t Word42Bit = 0x08;
-
 // 0x5068b9..0x5068d4: with +0x78 & 0x20 (or & 0x1000, FrozenFlag) the head does not move.
 constexpr std::uint32_t StillHeadFlag = 0x20;
 // 0x506acf: with +0x375 at 6 or more (unsigned), the hands give no light.
@@ -188,11 +160,6 @@ std::string MapText(std::int32_t map)
 template <std::size_t N> bool IsOneOf(const std::array<std::uint8_t, N>& actions, std::uint8_t action)
 {
     return std::ranges::find(actions, action) != actions.end();
-}
-
-void ClearBit(std::uint8_t& bits, std::uint8_t bit)
-{
-    bits = static_cast<std::uint8_t>(bits & ~bit);
 }
 
 // The model of 0x5769ad8 + type · 0xe0 that 0x4f9580, 0x4fcbb0 and 0x505de0 read: Player.bmd, the loose NewFace or
@@ -249,76 +216,14 @@ Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, 
         false,
         player ? nullptr : own,
         modelSounds};
-    ActorMotionContext motion{context.world.Runtime(), context.random, {}, Scenes::CrywolfAltarGoal(context.world)};
+    ActorMotionContext motion{
+        context.world.Runtime(), context.random, {}, context.hooks->CrywolfAltarGoal(context.world)};
     if (terrain.heights)
     {
         motion.height = [&](float x, float y)
         { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, context.fixedHeight); };
     }
     return StepOtherActorMotion(actor, walk, motion, terrain.attributes->cells);
-}
-
-// 0x4fc450(c) from 0x4fd6fe, with the published hero ([0x743a170]; with another it leaves at 0x4fc464): the three
-// WORDs of [0x7681eb0], with the own record open (Q-C246).
-Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& context)
-{
-    Kernel::WorldState& world = context.world;
-    Kernel::WorldRuntime& runtime = world.Runtime();
-    Kernel::OwnCharacterRecord& own = world.OwnCharacter();
-    Player::ItemSetOptionList& setOptions = world.ItemSets().list;
-    // The cursor's item, with whatever is in its globals (HeldItemOf).
-    const Player::OwnEquipmentOverride held = Player::HeldItemOf(runtime);
-    // 0x4fc46a..0x4fc556: opens the own record inline; 0x4fc617..0x4fc767 closes it inline, with the
-    // 3,848 rand() of 0x40b4d0 if the count stays at 0.
-    const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    // 0x4fc55b..0x4fc58a: +0x3e drops if positive and, at 0, turns off bit 0x01 of +0x3c and calls 0x54fe10.
-    if (own.word3e > 0)
-    {
-        --own.word3e;
-    }
-    if (own.word3e == 0)
-    {
-        ClearBit(own.speedAdjustBits, Word3eBit);
-        if (auto updated = Player::UpdateOwnAttackAndMagicSpeeds(own, held, runtime.ownRecordDepth, context.random);
-            !updated.HasValue())
-        {
-            return updated;
-        }
-    }
-    // 0x4fc594..0x4fc5e0: +0x40, bit 0x02, the list's 16 marks ([0x6eed3c] + 0x937c) at 0, 0x54efe0
-    // and 0x54f9b0.
-    if (own.word40 > 0)
-    {
-        --own.word40;
-    }
-    if (own.word40 == 0)
-    {
-        ClearBit(own.speedAdjustBits, Word40Bit);
-        setOptions.used = {};
-        if (auto updated = Player::UpdateOwnWords50To56(own, held, context.items, &setOptions); !updated.HasValue())
-        {
-            return updated;
-        }
-        if (auto updated = Player::UpdateOwnWords5aAnd5c(own, held, context.items, &setOptions); !updated.HasValue())
-        {
-            return updated;
-        }
-    }
-    // 0x4fc5ea..0x4fc612: +0x42, bit 0x08 and 0x54fe10 again.
-    if (own.word42 > 0)
-    {
-        --own.word42;
-    }
-    if (own.word42 == 0)
-    {
-        ClearBit(own.speedAdjustBits, Word42Bit);
-        if (auto updated = Player::UpdateOwnAttackAndMagicSpeeds(own, held, runtime.ownRecordDepth, context.random);
-            !updated.HasValue())
-        {
-            return updated;
-        }
-    }
-    return {};
 }
 
 // 0x4f9580(c, c): the action's speed, its factors and 0x4ec200. Returns whether it finished, which 0x4f9580
@@ -379,14 +284,14 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
              frame > ClassFourFirstFrame && frame < ClassFourLastFrame)
     {
         // 0x4f969d..0x4f96ba: 0x59e680 with the character.
-        speed *= Scenes::IsInTheParty(context.world, actor) ? PartyClassFourFactor : HalfFactor;
+        speed *= context.hooks->IsInTheParty(context.world, actor) ? PartyClassFourFactor : HalfFactor;
     }
     if (action == HalvedAction)
     {
         speed *= HalfFactor;
     }
     // 0x4f96d4..0x4f9737: the other types (the NewFace, 0x192 and 0x1a9).
-    speed = Scenes::ModelSpeedOf(actor.type, action, frame, speed);
+    speed = context.hooks->ModelSpeedOf(actor.type, action, frame, speed);
     // 0x4f973a: with +0x78 & 0x1000 it returns 0 without advancing.
     if (frozen)
     {
@@ -487,14 +392,14 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
                                                    const CharacterStepContext& context)
 {
     // 0x4fcd0c..0x4fcd55: with +0x88 at 4, on maps 0 and 2, the 0x20a of subtype 0xd1 to 0xd3 (type 236) turns.
-    const bool turned = Scenes::TurnTheNpc(actor, context.world.Runtime().map);
+    const bool turned = context.hooks->TurnTheNpc(actor, context.world.Runtime().map);
     // 0x4fcd60: 0x4fc790, the NPC's message.
-    if (auto said = Scenes::SayTheNpcLine(actor, slot, context); !said.HasValue())
+    if (auto said = context.hooks->SayTheNpcLine(actor, slot, context); !said.HasValue())
     {
         return said;
     }
     // 0x4fcd65..0x4fce15: the name message of 0x6c88b0, with its clock.
-    if (auto named = Scenes::SayTheNamedLine(actor, slot, context); !named.HasValue())
+    if (auto named = context.hooks->SayTheNamedLine(actor, slot, context); !named.HasValue())
     {
         return named;
     }
@@ -513,17 +418,17 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
         // 0x4fce3f..0x4fce57: the 0x20a that turned goes to 0x4fc8c0 and the other to 0x4fcb10.
         if (actor.type == Tables::PlayerSkeletonModel)
         {
-            return turned ? Scenes::FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
+            return turned ? context.hooks->FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
         // 0x4fce5e: the other models, to 0x4fcbb0. AdvanceTheBody already found the model.
         const Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
-        const auto end = Scenes::FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
+        const auto end = context.hooks->FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
             return Core::Unexpected(end.Error());
         }
         // 0x4fcc35..0x4fcc3c: the monster that finished dying leaves its remains.
-        if (end.Value() == Scenes::ModelActionEnd::LeaveRemains)
+        if (end.Value() == ModelActionEnd::LeaveRemains)
         {
             if (auto left = LeaveTheRemainsOf(actor, context); !left.HasValue())
             {
@@ -531,7 +436,7 @@ Core::Expected<void, std::string> StepTheAnimation(Kernel::ActorState& actor, st
             }
         }
         // 0x4fcbe3: with 0x42d890 at 1, 0x4f9580 again; what it returns is not looked at.
-        if (end.Value() == Scenes::ModelActionEnd::AdvanceAgain)
+        if (end.Value() == ModelActionEnd::AdvanceAgain)
         {
             if (auto again = AdvanceTheBody(actor, slot, context); !again.HasValue())
             {
@@ -584,15 +489,13 @@ Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, 
         !emitted.HasValue())
         return emitted;
     const auto* skeleton = ModelSkeletonOf(actor, context);
-    if (auto emitted = Scenes::EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
+    if (auto emitted = context.hooks->EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
         return emitted;
     // 0x4fd5c1..0x4fd5df: 0x441260 (only 0x1a7), 0x42fa40 (0x1b1 and 0x1b3), 0x432bd0 and 0x426d90 (0x1b8 to
     // 0x1ba). 0x4fd5d7: 0x432bd0, with its unconditional rand() of 0x432bf1 (Scenes::StepTheSwingsOf1abTo1b4).
-    if (auto swung = Scenes::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.faunaModels, context.random,
-                                                     context.particles, context.worldClock);
-        !swung.HasValue())
+    if (auto swung = context.hooks->StepTheSwingsOf1abTo1b4(actor, slot, context); !swung.HasValue())
         return swung;
-    return Scenes::EmitLateMonsterRibbonTrails(actor, skeleton, context);
+    return context.hooks->EmitLateMonsterRibbonTrails(actor, skeleton, context);
 }
 
 // A read of the hero's protected cell: opens the entry (0x40b570) and closes it (0x40b800, or inline
@@ -661,67 +564,19 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
 // with +0x1a1, 0x4f5660 again, also before 15.
 Core::Expected<void, std::string> DieAgain(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
-    const Scenes::ActorCombatContext combat{.world = context.world,
-                                            .random = context.random,
-                                            .playerSkeleton = context.playerSkeleton,
-                                            .models = context.models,
-                                            .items = context.items,
-                                            .terrain = context.terrain,
-                                            .dynamicLighting = context.dynamicLighting,
-                                            .faunaModels = context.faunaModels};
     constexpr std::uint8_t DyingAgain = 15;
     actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
     if (actor.dying >= DyingAgain)
     {
-        if (auto died = Scenes::SetActorDie(actor, combat); !died.HasValue())
+        if (auto died = context.hooks->SetActorDie(actor, context); !died.HasValue())
             return died;
     }
     const std::int32_t map = context.world.Runtime().map;
     using Maps::FirstBloodCastleMap;
     using Maps::LastBloodCastleMap;
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)
-        return Scenes::SetActorDie(actor, combat);
+        return context.hooks->SetActorDie(actor, context);
     return {};
-}
-
-Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::size_t slot,
-                                               const CharacterStepContext& context);
-
-// 0x4fd5f0(c, c) from 0x508edf, through the path of the still 0x20a (06, "El cuerpo de los personajes
-// (0x4fd5f0)"). `hero` is c == [0x743a170].
-// 0x417e62: the raven's shout.
-constexpr Audio::SoundId RavenShoutSound{0x1d1};
-
-// What the raven's step reads from the pool (DarkSpiritTargets): the character of +8 and that of +0x3b0, signed.
-// Between 0 and 399 it looks at their flags (0x416a8b..0x416ab9); 6 reads its position with any value other than
-// 0xffff (0x417858): the slots the A8 writes (0 to 400) are in MuRet's pool, and another value stops.
-Core::Expected<Scenes::DarkSpiritTargets, std::string> RavenTargetsOf(const Kernel::DarkSpirit& spirit,
-                                                                      Kernel::WorldState& world, std::size_t slot)
-{
-    constexpr std::int16_t PoolActors = 400;
-    constexpr std::uint16_t NoAttackTarget = 0xffff;
-    const auto actors = world.Actors();
-    Scenes::DarkSpiritTargets targets;
-    if (spirit.target < actors.size())
-    {
-        targets.target = actors[spirit.target].position;
-    }
-    const auto attack = static_cast<std::int16_t>(spirit.target3b0);
-    if (attack >= 0 && attack < PoolActors)
-    {
-        targets.attackInPool = true;
-        targets.attackFlags = actors[static_cast<std::size_t>(attack)].flags78;
-    }
-    if (spirit.target3b0 != NoAttackTarget)
-    {
-        if (attack < 0 || static_cast<std::size_t>(attack) >= actors.size())
-        {
-            return Core::Unexpected(
-                std::format("0x417869: el +0x3b0 del cuervo del lugar {} ({}) cae fuera del pool", slot, attack));
-        }
-        targets.attackPosition = actors[static_cast<std::size_t>(attack)].position;
-    }
-    return targets;
 }
 
 glm::vec3 OwnBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset);
@@ -772,19 +627,15 @@ Core::Expected<void, std::string> StepTheBoneEmitter(Kernel::ActorState& actor, 
                                        static_cast<double>(context.random.Next() % OffsetSpan - OffsetCentre));
         if (context.joints.empty())
             return Core::Unexpected(std::string("0x4fdabf: falta el pool de joints del emisor 0x614/7"));
-        const World::FishEffectRequest request{.type = BoneJoint,
-                                               .firstPosition = first,
-                                               .secondPosition = second,
-                                               .angles = actor.angles,
-                                               .subtype = BoneSubtype,
-                                               .ownerContext = nullptr,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
-        if (auto joint = Scenes::CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
-            return Core::Unexpected(std::format("0x4fdabf: {}", joint.Error()));
+        const StepJoint joint{.type = BoneJoint,
+                              .first = first,
+                              .second = second,
+                              .angles = actor.angles,
+                              .subtype = BoneSubtype,
+                              .owner = nullptr,
+                              .width = Width};
+        if (auto created = context.hooks->CreateTheJoint(joint, context); !created.HasValue())
+            return Core::Unexpected(std::format("0x4fdabf: {}", created.Error()));
     }
     --actor.byte1a0;
     return {};
@@ -810,6 +661,8 @@ Core::Expected<void, std::string> CreateTheActionFlare(Kernel::ActorState& actor
     return {};
 }
 
+// 0x4fd5f0(c, c) from 0x508edf, through the path of the still 0x20a (06, "El cuerpo de los personajes
+// (0x4fd5f0)"). `hero` is c == [0x743a170].
 Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
@@ -817,7 +670,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     // 0x4fd603..0x4fd698: 0xc5 passes its name and +0x1d6 to 0x4381f0 (MonsterStepCases.h).
     if (actor.type == NamedType)
     {
-        if (auto queued = Scenes::QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
+        if (auto queued = context.hooks->QueueTheGateName(actor, context); !queued.HasValue())
             return queued;
     }
     // 0x4fd69b..0x4fd6ef: publishes the position, the scale and the action to the shared model (+0x6c, +0x68 and
@@ -832,7 +685,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     // 0x4fd6fe: 0x4fc450.
     if (hero)
     {
-        if (auto timers = StepTheOwnTimers(context); !timers.HasValue())
+        if (auto timers = context.hooks->StepTheOwnTimers(context); !timers.HasValue())
         {
             return timers;
         }
@@ -855,7 +708,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
             return Core::Unexpected(
                 std::format("0x4fb942: falta la altura del terreno (0x5f93c0) para el 0xf1 del lugar {}", slot));
         }
-        Scenes::StepTheFallingBall(actor, height);
+        context.hooks->StepTheFallingBall(actor, height);
     }
     // 0x4fd722: 0x4fb9e0, dying (+0x389). What follows runs even if it erased it.
     if (auto died = StepActorDying(actor, slot,
@@ -872,7 +725,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
         return died;
     }
     // 0x4fd72e: 0x4e9980, the alpha toward its goal and the blendMesh light.
-    World::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
+    context.hooks->StepTheAlpha(actor);
     // 0x4fd736..0x4fd75e: +0x3d8 at 0: on characters only this subtraction writes it (*static*).
     // 0x4fd770: 0x4fcd00.
     if (auto animated = StepTheAnimation(actor, slot, context); !animated.HasValue())
@@ -892,18 +745,18 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
         return emitted;
     // 0x4fdae0..0x4fdb92: 0x4d, 0x4f and 0x5a past frame 5.5 release particle 0x5ac from bone 42.
     // 0x4fd5f0's local light: (1, 1, 1) at 0x4fd81e and the particle's at 0x4fdb3f.
-    glm::vec3 bodyLight = Scenes::BodyLight;
+    std::optional<glm::vec3> flareLight;
     const std::uint8_t action = actor.animation.action;
     if (IsOneOf(ParticleActions, action) && actor.animation.frame > ParticleFrame)
     {
-        bodyLight = ActionFlareLight;
+        flareLight = ActionFlareLight;
         if (auto flare = CreateTheActionFlare(actor, context); !flare.HasValue())
             return flare;
     }
     // 0x4fdb9a..0x50539e: with +0x381 other than 0, 0x4f97b0 and 0x4f5b70 and +0x381 += 1; from [0x6c88ac], the skill
     // of +0x38e with the target of +0x3a4. The attack on arrival (0x5653c1, HeroAttack) and the C1 18 with 0x78 and
     // 0x79 (0x4cb830, ActionReply) set it to 1.
-    if (auto attacked = Scenes::StepTheAttack(actor, slot, context, bodyLight); !attacked.HasValue())
+    if (auto attacked = context.hooks->StepTheAttack(actor, slot, context, flareLight); !attacked.HasValue())
     {
         return attacked;
     }
@@ -916,7 +769,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
         RemoveActorAtSlot(context.world, actor, slot);
     }
     // 0x5053fc: 0x42a2b0, the health bar of 0x1a8.
-    Scenes::QueueTheHealthBar(actor, context.world.Runtime().healthBars);
+    context.hooks->QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
     if (auto trailed = StepTheWeaponTrail(actor, slot, context); !trailed.HasValue())
     {
@@ -926,12 +779,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     // and its light.
     if (actor.type == FallingType)
     {
-        const World::ObjectStepGlobals globals{.worldClock = context.worldClock,
-                                               .dynamicLighting = context.dynamicLighting,
-                                               .particles = context.particles};
-        if (auto fire = World::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f),
-                                              context.random, globals);
-            !fire.HasValue())
+        if (auto fire = context.hooks->EmitTheFallingBallFire(actor, context); !fire.HasValue())
         {
             return Core::Unexpected(std::format("{} (el 0xf1 del lugar {})", fire.Error(), slot));
         }
@@ -939,7 +787,7 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     // 0x50544b: 0x420dd0, after the trail and before 0x505de0, also outside the trapezoid.
     if (actor.darkSpirit && (actor.flags78 & FrozenFlag) == 0)
     {
-        if (auto raven = StepTheRaven(actor, slot, context); !raven.HasValue())
+        if (auto raven = context.hooks->StepTheRaven(actor, slot, context); !raven.HasValue())
         {
             return raven;
         }
@@ -949,49 +797,6 @@ Core::Expected<void, std::string> StepTheBody(Kernel::ActorState& actor, std::si
     {
         constexpr std::uint32_t DyingClearedFlags = 0x8000 | 0x10000;
         actor.flags78 &= ~DyingClearedFlags;
-    }
-    return {};
-}
-
-// 0x420dd0: the raven of +0x430, which the caller takes as existing and without +0x78 & 0x1000.
-Core::Expected<void, std::string> StepTheRaven(Kernel::ActorState& actor, std::size_t slot,
-                                               const CharacterStepContext& context)
-{
-    const Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
-    {
-        return Core::Unexpected(
-            std::format("0x416a20: faltan el modelo o las partículas del cuervo del lugar {}", slot));
-    }
-    auto targets = RavenTargetsOf(*actor.darkSpirit, context.world, slot);
-    if (!targets.HasValue())
-    {
-        return Core::Unexpected(targets.Error());
-    }
-    const Kernel::SharedModelPlacement& player = context.world.PlayerModel();
-    const Scenes::DarkSpiritStepped stepped =
-        Scenes::StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                               {.position = actor.position,
-                                .flags = actor.flags78,
-                                .angles = actor.angles,
-                                .pet = actor.pet.model,
-                                .safeZone = actor.safeZone,
-                                .pose = actor.bodyPose,
-                                .modelScale = player.scale,
-                                .modelOrigin = player.origin},
-                               static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
-                               context.random, context.counter, targets.Value());
-    // 0x416fc8 and 0x4175de: the A7 that stops the attack, through send(); without the session, it does not go out.
-    if (stepped.stopsTheAttack && context.send)
-    {
-        context.send(Protocol::Pets::WritePetCommand({.pet = Protocol::Pets::RavenPet,
-                                                      .command = Protocol::Pets::StopTheAttackCommand,
-                                                      .key = Protocol::Pets::NoTargetKey}));
-    }
-    // 0x417e67: 0x41ed10(0x1d1).
-    if (stepped.shouts && context.soundRequest)
-    {
-        context.soundRequest(RavenShoutSound);
     }
     return {};
 }
@@ -1041,19 +846,15 @@ Core::Expected<void, std::string> EmitChargedSkillJoints(Kernel::ActorState& act
                                              static_cast<double>(rotated[axis]) + (axis == 2 ? Lift : 0.0));
         if (context.joints.empty())
             return Core::Unexpected(std::string("0x518aa8: falta el pool de joints619/8 de la skill cargada"));
-        const World::FishEffectRequest request{.type = Type,
-                                               .firstPosition = first,
-                                               .secondPosition = actor.position,
-                                               .angles = angles,
-                                               .subtype = Subtype,
-                                               .ownerContext = &actor,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
-        if (auto joint = Scenes::CreateFaunaJoint(context.joints, request, context.random); !joint.HasValue())
-            return Core::Unexpected(std::format("0x518aa8: {}", joint.Error()));
+        const StepJoint joint{.type = Type,
+                              .first = first,
+                              .second = actor.position,
+                              .angles = angles,
+                              .subtype = Subtype,
+                              .owner = &actor,
+                              .width = Width};
+        if (auto created = context.hooks->CreateTheJoint(joint, context); !created.HasValue())
+            return Core::Unexpected(std::format("0x518aa8: {}", created.Error()));
     }
     return {};
 }
@@ -1227,8 +1028,7 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
         // 0x5068da..0x5068e8: with another model, 0x4ea190 first.
         if (!player)
         {
-            if (auto target = Scenes::SetTheModelHeadTarget(actor, context.world.Actors(), context.random);
-                !target.HasValue())
+            if (auto target = context.hooks->SetTheModelHeadTarget(actor, context); !target.HasValue())
             {
                 return Core::Unexpected(std::format("{} (lugar {})", target.Error(), slot));
             }
@@ -1253,8 +1053,7 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
             {
                 continue;
             }
-            if (auto added = World::AddDynamicLight(context.dynamicLighting, actor.position, light->color,
-                                                    light->radius, "0x506b50");
+            if (auto added = context.hooks->AddTheHandLight(actor.position, light->color, light->radius, context);
                 !added.HasValue())
             {
                 return Core::Unexpected(std::format("{} (la mano del lugar {})", added.Error(), slot));
@@ -1271,19 +1070,7 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
     {
-        Scenes::ModelEffectsPass pass{.actor = actor,
-                                      .slot = slot,
-                                      .world = context.world,
-                                      .random = context.random,
-                                      .skeleton = *skeleton,
-                                      .particles = context.particles,
-                                      .sprites = context.sprites,
-                                      .worldClock = context.worldClock,
-                                      .map = map,
-                                      .groundMarks = context.groundMarks,
-                                      .dynamicLighting = context.dynamicLighting,
-                                      .faunaModels = context.faunaModels};
-        return Scenes::StepTheModelEffects(pass);
+        return context.hooks->StepTheModelEffects(actor, slot, *skeleton, context);
     }
     static_cast<void>(context.random.Next());
     if (context.scene == Scenes::SceneId::Game && map == ClockEffectMap)
@@ -1381,11 +1168,9 @@ Core::Expected<void, std::string> StepACharacter(Kernel::ActorState& actor, std:
     }
     // 0x508eed: 0x42da90, which outside map 30 returns 0 (0x42da9a); on map 30 it moves the siege objects by +0x376
     // (MonsterStepCases.h).
-    const Scenes::CastleObjectStep castle{.runtime = context.world.Runtime(),
-                                          .pool = context.world.Actors(),
-                                          .height = TerrainHeightOf(context),
-                                          .skeleton = ModelSkeletonOf(actor, context)};
-    if (auto stepped = Scenes::StepTheCastleObject(actor, castle); !stepped.HasValue())
+    if (auto stepped = context.hooks->StepTheCastleObject(actor, context, TerrainHeightOf(context),
+                                                          ModelSkeletonOf(actor, context));
+        !stepped.HasValue())
     {
         return Core::Unexpected(std::format("{} (lugar {})", stepped.Error(), slot));
     }
@@ -1418,9 +1203,11 @@ LogicalCell ReadLogicalCell(Kernel::ActorState& actor, Crt::CrtRandom& random)
 
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {
+    if (context.hooks == nullptr)
+        return Core::Unexpected(std::string(NoHooks));
     Kernel::WorldState& world = context.world;
     // 0x508f06..0x508f0c: 0x412140 with the hero, before the loop.
-    if (auto panel = Scenes::RefreshTheSiegePanel(world.Runtime()); !panel.HasValue())
+    if (auto panel = context.hooks->RefreshTheSiegePanel(world.Runtime()); !panel.HasValue())
     {
         return panel;
     }
@@ -1493,11 +1280,15 @@ ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& cont
 
 Core::Expected<void, std::string> StepCharacter(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
+    if (context.hooks == nullptr)
+        return Core::Unexpected(std::string(NoHooks));
     return StepACharacter(actor, Kernel::ActorPoolSize, false, context);
 }
 
 Core::Expected<void, std::string> StepTheBodyAndEffects(Kernel::ActorState& actor, const CharacterStepContext& context)
 {
+    if (context.hooks == nullptr)
+        return Core::Unexpected(std::string(NoHooks));
     if (auto body = StepTheBody(actor, Kernel::ActorPoolSize, false, context); !body.HasValue())
     {
         return body;

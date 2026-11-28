@@ -1,4 +1,5 @@
 #include "Actors/CharacterStep.h"
+#include "Session/CharacterStepHooks.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -26,6 +27,7 @@
 
 namespace
 {
+const Client::Session::CharacterStepHooks StepHooks{};
 class CharacterMotionStepTest : public ::testing::Test
 {
 protected:
@@ -60,7 +62,8 @@ protected:
                                                .playerSkeleton = &m_skeleton,
                                                .terrain = &m_terrain,
                                                .trapezoid = &m_trapezoid,
-                                               .faunaModels = &m_faunaModels});
+                                               .faunaModels = &m_faunaModels,
+                                               .hooks = &StepHooks});
     }
     Client::Kernel::WorldState m_world;
     Client::Terrain::WorldTerrain m_terrain;
@@ -154,7 +157,8 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
                                                              .random = random,
                                                              .playerSkeleton = &skeleton,
                                                              .terrain = &terrain,
-                                                             .trapezoid = &trapezoid});
+                                                             .trapezoid = &trapezoid,
+                                                             .hooks = &StepHooks});
         ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
         EXPECT_EQ(actor.cellX, actor.targetX);
         EXPECT_EQ(actor.cellY, actor.targetY);
@@ -179,7 +183,8 @@ TEST_F(CharacterMotionStepTest, WalkingHeroRequestsItsSoundWithoutStoppingTheWor
          .terrain = &m_terrain,
          .soundRequest = [&](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
          .trapezoid = &m_trapezoid,
-         .faunaModels = &m_faunaModels});
+         .faunaModels = &m_faunaModels,
+         .hooks = &StepHooks});
     ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());
     EXPECT_EQ(sounds, (std::vector<std::int32_t>{9}));
     EXPECT_EQ(actor.firstFootstepSound, 1);

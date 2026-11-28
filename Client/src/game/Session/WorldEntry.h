@@ -58,6 +58,7 @@ struct GameCameraInput;
 namespace Client::Actors
 {
 struct ActorsState;
+class ICharacterStepHooks;
 } // namespace Client::Actors
 
 namespace Client::Assets
@@ -134,6 +135,8 @@ struct WorldEntryResources
     std::function<void(Protocol::Outgoing)> sendGamePacket{};
     // App::GameClient's, beside `world`. Last, like `skills`.
     Session::ModuleStates* states = nullptr;
+    // What the letters' portraits ask of other modules when they step (App::GameClient's). nullptr: that step stops.
+    const Actors::ICharacterStepHooks* characterStepHooks = nullptr;
 };
 
 // The current map's terrain (Terrain::TerrainState::current), which the load replaces. nullptr without `states`.

@@ -534,7 +534,8 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .dynamicLighting =
                 m_context.states != nullptr ? &m_context.states->terrain.dynamicLight.Lighting() : nullptr,
             .faunaModels = m_context.states != nullptr ? &m_context.states->assets.fauna : nullptr,
-            .reportedCell = m_context.states != nullptr ? &m_context.states->actors.reportedCell : nullptr};
+            .reportedCell = m_context.states != nullptr ? &m_context.states->actors.reportedCell : nullptr,
+            .hooks = &m_stepHooks};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.

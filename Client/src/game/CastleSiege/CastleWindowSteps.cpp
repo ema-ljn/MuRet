@@ -24,6 +24,8 @@
 #include "Ui/Widget.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <bit>
@@ -42,23 +44,23 @@ using CastleUi::ConsumeClick;
 using CastleUi::Send;
 constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
 
-bool Hit(const Hud::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
+bool Hit(const Ui::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
 {
-    return Chat::MouseInRect(context.mouseX, context.mouseY, x, y, w, h, 1);
+    return Ui::MouseInRect(context.mouseX, context.mouseY, x, y, w, h, 1);
 }
 
-void Cover(const Hud::GameUiContext& context, std::int32_t x, std::int32_t y)
+void Cover(const Ui::GameUiContext& context, std::int32_t x, std::int32_t y)
 {
     if (Hit(context, x, y, CastleUi::WindowWidth, CastleUi::WindowHeight))
         context.world.Runtime().ui.mouseOnUi = 1;
 }
 
-bool Click(const Hud::GameUiContext& context, Ui::OldButton& button)
+bool Click(const Ui::GameUiContext& context, Ui::OldButton& button)
 {
     return Ui::ClickTheButton(button, Hud::OldWindowGlobalsOf(context.world.Runtime()), context.mouseX, context.mouseY);
 }
 
-Core::Expected<void, std::string> Close(const Hud::GameUiContext& context, Ui::PanelId id, std::int32_t x)
+Core::Expected<void, std::string> Close(const Ui::GameUiContext& context, Ui::PanelId id, std::int32_t x)
 {
     auto& runtime = context.world.Runtime();
     if (!runtime.mouse.pendingClick || !Hit(context, x, CastleUi::CloseY, CastleUi::CloseSize, CastleUi::CloseSize))
@@ -75,7 +77,7 @@ Core::Expected<void, std::string> Close(const Hud::GameUiContext& context, Ui::P
     return {};
 }
 
-Core::Expected<void, std::string> RegistrationAction(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> RegistrationAction(const Ui::GameUiContext& context)
 {
     auto& world = context.world;
     auto& runtime = world.Runtime();
@@ -99,7 +101,7 @@ Core::Expected<void, std::string> RegistrationAction(const Hud::GameUiContext& c
     return {};
 }
 
-void StepList(const Hud::GameUiContext& context, Ui::OldList& list, std::deque<CastleSiege::CastleGuildRow>& rows)
+void StepList(const Ui::GameUiContext& context, Ui::OldList& list, std::deque<CastleSiege::CastleGuildRow>& rows)
 {
     auto& runtime = context.world.Runtime();
     auto& ui = runtime.ui;
@@ -146,7 +148,7 @@ void StepList(const Hud::GameUiContext& context, Ui::OldList& list, std::deque<C
         Ui::ScrollTheList(list, rows.size(), list.rows);
 }
 
-Core::Expected<void, std::string> RegistrationList(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> RegistrationList(const Ui::GameUiContext& context)
 {
     auto& window = context.world.Runtime().castleSiege.registration;
     if (window.state == 1 || window.state == 3)
@@ -161,7 +163,7 @@ Core::Expected<void, std::string> RegistrationList(const Hud::GameUiContext& con
     return {};
 }
 
-Core::Expected<void, std::string> StepRegistration(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepRegistration(const Ui::GameUiContext& context)
 {
     auto& window = context.world.Runtime().castleSiege.registration;
     Cover(context, window.x, window.y);
@@ -198,7 +200,7 @@ Core::Expected<void, std::string> StepRegistration(const Hud::GameUiContext& con
     return Close(context, Ui::CastleSiegePanel, 475);
 }
 
-Core::Expected<void, std::string> EnterHunt(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> EnterHunt(const Ui::GameUiContext& context)
 {
     auto& world = context.world;
     auto& runtime = world.Runtime();
@@ -237,7 +239,7 @@ Core::Expected<void, std::string> EnterHunt(const Hud::GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepHunt(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepHunt(const Ui::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     auto& window = runtime.castleSiege.huntZone;
@@ -282,7 +284,7 @@ Core::Expected<void, std::string> StepHunt(const Hud::GameUiContext& context)
     return Close(context, Ui::SecondCastleSiegePanel, 475);
 }
 
-Core::Expected<void, std::string> SeniorTabs(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> SeniorTabs(const Ui::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     auto& window = runtime.castleSiege.senior;
@@ -335,7 +337,7 @@ Core::Expected<void, std::string> SeniorTabs(const Hud::GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> SeniorNpcDialog(const Hud::GameUiContext& context, bool statue, std::int32_t action)
+Core::Expected<void, std::string> SeniorNpcDialog(const Ui::GameUiContext& context, bool statue, std::int32_t action)
 {
     auto& runtime = context.world.Runtime();
     auto& data = runtime.castleSiege.data;
@@ -388,7 +390,7 @@ Core::Expected<void, std::string> SeniorNpcDialog(const Hud::GameUiContext& cont
     return {};
 }
 
-Core::Expected<void, std::string> SeniorNpcs(const Hud::GameUiContext& context, bool statue)
+Core::Expected<void, std::string> SeniorNpcs(const Ui::GameUiContext& context, bool statue)
 {
     auto& runtime = context.world.Runtime();
     constexpr std::array<Ui::Point, 6> Gates{{{532, 122}, {514, 170}, {550, 170}, {498, 222}, {532, 222}, {566, 222}}};
@@ -417,7 +419,7 @@ Core::Expected<void, std::string> SeniorNpcs(const Hud::GameUiContext& context, 
     return {};
 }
 
-Core::Expected<void, std::string> SeniorTaxes(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> SeniorTaxes(const Ui::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     auto& window = runtime.castleSiege.senior;
@@ -455,13 +457,13 @@ Core::Expected<void, std::string> SeniorTaxes(const Hud::GameUiContext& context)
         // Shared EDIT plumbing: the answer reads it before CloseThePanelDialog clears it.
         dialog.closeField = [&runtime]()
         {
-            auto& input = runtime.chat.input;
+            auto& input = runtime.chatInput;
             input.dialogEdit.text.Clear();
             input.dialogEdit.compositionText.clear();
             input.dialogEdit.compositionStart = 0;
             input.dialogEdit.compositionLength = 0;
             // The shared helper models the focus loss when hiding the HWND; 0x660350 does not call SetFocusGame.
-            Chat::ShowTheDialogField(input, Ui::HiddenWindow);
+            Ui::ShowTheDialogField(input, Ui::HiddenWindow);
             input.messageLength = 0;
             runtime.social.dialogFieldLimit = 10;
         };
@@ -489,7 +491,7 @@ bool HasCraftSpace(const Kernel::WorldState& world)
     return false;
 }
 
-Core::Expected<void, std::string> SeniorCraft(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> SeniorCraft(const Ui::GameUiContext& context)
 {
     if (!HeroCanCraftAtTheCastle(context.world) ||
         !Click(context, context.world.Runtime().castleSiege.senior.buttons[6]))
@@ -504,7 +506,7 @@ Core::Expected<void, std::string> SeniorCraft(const Hud::GameUiContext& context)
     return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text.Value(), 2);
 }
 
-Core::Expected<void, std::string> StepSenior(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepSenior(const Ui::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     const auto& window = runtime.castleSiege.senior;
@@ -540,7 +542,7 @@ Core::Expected<void, std::string> StepSenior(const Hud::GameUiContext& context)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheCastleWindow(const Hud::GameUiContext& context, Ui::PanelId id)
+Core::Expected<void, std::string> StepTheCastleWindow(const Ui::GameUiContext& context, Ui::PanelId id)
 {
     if (id == Ui::CastleSiegePanel)
         return StepRegistration(context);

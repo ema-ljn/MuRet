@@ -11,7 +11,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Kernel/OwnInventory.h"
 #include "Social/SocialState.h"
@@ -40,12 +40,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x5f30;
 constexpr Client::Core::PixelSize Screen640{640, 480};

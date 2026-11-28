@@ -6,6 +6,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/SlideBanner.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

@@ -21,6 +21,7 @@
 #include "Ui/PanelRegistry.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -159,9 +160,9 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
         Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.guild.kickMember = 0;
         runtime.dialogs.current = KickDialogId;
-        Chat::ResetTheTextBuffers(runtime.chat.input, false);
+        Ui::ResetTheTextBuffers(runtime.chatInput, false);
         runtime.ui.chatOpen = false;
-        runtime.chat.input.fieldCount = NumberDialogFields;
+        runtime.chatInput.fieldCount = NumberDialogFields;
         return true;
     }
     case Ui::PanelDialogOwner::UnionKick:
@@ -224,7 +225,7 @@ Core::Expected<void, std::string> CloseTheSecondGuildWindow(Kernel::WorldState& 
     guild.createKind = 0;
     guild.createStep = 0;
     // 0x657117: 0x77f3b68, the creation field, at 0 (the EDIT stays as it was: Q-C1291).
-    runtime.chat.input.dialogFieldOn = false;
+    runtime.chatInput.dialogFieldOn = false;
     // 0x654f50: the open one is +0x2a0 or +0x2a4.
     const std::uint32_t open = Ui::PanelDialogHandle(delegated.panelDialog);
     if (open == guild.secondWindow.dialog2a0 || open == guild.secondWindow.dialog2a4)

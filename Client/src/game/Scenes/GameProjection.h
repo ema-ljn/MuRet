@@ -12,7 +12,7 @@
 
 // The 0x6203c0 cache and the 0x6205b0 consumer. The projection uses the stored scalars; it does not multiply a GLM
 // matrix or round after adding the center. Static contract P-C55(f), local report.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct GameProjection
 {
@@ -45,4 +45,4 @@ struct UnprojectedPoint
 // cache's center; each times its scale and ±2000 (0x6ba148 and 0x6ba768) on the x87, with the fstp to float, and
 // −2000 in z. The cache's far (0x6d5d44) belongs to the last argument at 1, which MuRet does not use.
 [[nodiscard]] UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32_t x, std::int32_t y);
-} // namespace Client::Scenes
+} // namespace Client::Kernel

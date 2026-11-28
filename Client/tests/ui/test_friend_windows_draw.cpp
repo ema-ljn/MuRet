@@ -49,7 +49,6 @@
 // edge at 407, 86 high. The names and texts are made up.
 namespace
 {
-using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -63,6 +62,7 @@ using Client::Render::Text::TextColors;
 using Client::Render::Text::TextExtent;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
+using Client::Ui::ChatFocus;
 using Client::Ui::FriendSend;
 using Client::Ui::OldEdit;
 using Client::Ui::OldList;
@@ -1264,7 +1264,7 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
 // the '*'.
 TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
 {
-    OldEdit edit = Client::Chat::NumberFieldEdit();
+    OldEdit edit = Client::Ui::NumberFieldEdit();
     edit.base.state = 0;
     edit.base.x = 0xf3;
     edit.base.y = 0x62;

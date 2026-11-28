@@ -6,6 +6,7 @@
 #include "Ui/OldWindows.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundRequests.h"
+#include "Weather/LeafWeather.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -161,7 +162,7 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
     std::int32_t hovered = 0;
     std::int32_t capture = 0;
     std::int32_t pressedButton = 0;
-    Chat::ChatFocus keyboardFocus = Chat::ChatFocus::Game;
+    Ui::ChatFocus keyboardFocus = Ui::ChatFocus::Game;
     std::int32_t focusedList = 0;
     std::int32_t wheel = 0;
     bool rightClick = false;

@@ -12,10 +12,10 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Pets
 {
@@ -25,6 +25,6 @@ namespace Client::Pets
 // 0 (0x424e40, the stats by 0x4149b0) or tab 1 (0x416670), and with a raven its label (vtable + 0xc, 0x4182e0 →
 // 0x418460). Each own-record access draws 3848 rand() when it closes at 0, and the horse's damage opens skill 0x3e of
 // Skill.bmd (60). The type-0 branch of 0x4149b0 without the orders (0x415869), which neither calls, cuts.
-[[nodiscard]] Core::Expected<void, std::string> DrawThePetWindow(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawThePetWindow(Ui::GameHudContext& context,
                                                                  Ui::PanelRegistry& panels);
 } // namespace Client::Pets

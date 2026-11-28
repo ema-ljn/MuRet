@@ -11,6 +11,7 @@
 #include "Session/WorldEntry.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <cstdint>

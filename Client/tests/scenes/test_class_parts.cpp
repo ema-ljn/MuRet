@@ -70,7 +70,12 @@ protected:
         return actor;
     }
 
-    Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
+    Client::Kernel::WorldRuntime m_runtime = []
+    {
+        Client::Kernel::WorldRuntime runtime;
+        runtime.map = 0;
+        return runtime;
+    }();
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     CrtRandom m_random{1};
 };

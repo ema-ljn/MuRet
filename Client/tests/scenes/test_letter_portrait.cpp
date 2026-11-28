@@ -32,7 +32,7 @@
 #include "Pets/DarkHorse.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Messenger/GameFriends.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Messenger/GameLetters.h"
 #include "Hud/GameUi.h"
 #include "Kernel/SceneId.h"
@@ -62,6 +62,7 @@
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -704,17 +705,17 @@ public:
     {
         Client::Kernel::WorldRuntime& runtime = m_game.world.Runtime();
         ActorState& hero = m_game.Hero();
-        m_hud.emplace(Client::Hud::GameHudContext{.world = m_game.world,
-                                                  .random = cloth.random,
-                                                  .ownRecordDepth = runtime.ownRecordDepth,
-                                                  .cellXDepth = hero.cellXAccesses,
-                                                  .cellYDepth = hero.cellYAccesses,
-                                                  .hud = runtime.hud,
-                                                  .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                                  .sound = sound,
-                                                  .sprites = sprites,
-                                                  .text = text,
-                                                  .texts = &texts});
+        m_hud.emplace(Client::Ui::GameHudContext{.world = m_game.world,
+                                                 .random = cloth.random,
+                                                 .ownRecordDepth = runtime.ownRecordDepth,
+                                                 .cellXDepth = hero.cellXAccesses,
+                                                 .cellYDepth = hero.cellYAccesses,
+                                                 .hud = runtime.hud,
+                                                 .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                                 .sound = sound,
+                                                 .sprites = sprites,
+                                                 .text = text,
+                                                 .texts = &texts});
         Client::Messenger::LetterPortraitDraw draw{.hud = *m_hud, .batch = models};
         draw.flushSprites = [this]() { flushes.emplace_back("2d", models.Vertices().size()); };
         draw.flushModels = [this]() { flushes.emplace_back("3d", models.Vertices().size()); };
@@ -742,7 +743,7 @@ public:
 
 private:
     Game& m_game;
-    std::optional<Client::Hud::GameHudContext> m_hud;
+    std::optional<Client::Ui::GameHudContext> m_hud;
 };
 
 struct SpriteQuad

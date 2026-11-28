@@ -49,6 +49,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/TemporaryFolder.h"
 #include "support/TerrainFiles.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 
@@ -771,8 +772,9 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
 // 0x634b45..0x634b5e: on entering, 120 empty messages leave the old area empty.
 TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
 {
-    Harness tested;
+    // Before the scene, which reads it on leaving.
     Client::Kernel::WorldState world;
+    Harness tested;
     world.Runtime().chat.area.rows[0].text = "viejo";
     world.Runtime().chat.area.count = 1;
 

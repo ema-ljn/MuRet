@@ -6,7 +6,7 @@
 #include "Tables/ItemTable.h"
 #include "Data/Tables/RecordTable.h"
 #include "Tables/TextTable.h"
-#include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Ui/MessageArea.h"
 #include "Ui/PanelRegistry.h"
@@ -32,8 +32,8 @@ namespace
 {
 using Client::Chat::ChatCommandContext;
 using Client::Chat::ChatCommandNotice;
-using Client::Chat::ChatLogState;
-using Client::Chat::MacroCount;
+using Client::Tables::MacroCount;
+using Client::Ui::ChatLogState;
 
 class Commands : public ::testing::Test
 {

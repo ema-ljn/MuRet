@@ -2,7 +2,7 @@
 
 #include "Tables/ItemTable.h"
 #include "Models/LogicalAccess.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -138,7 +138,7 @@ std::int32_t UsableBy(const Kernel::OwnCharacterRecord& own, const ItemHelpRow& 
 }
 } // namespace
 
-void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item, Record record)
+void FillTheItemHelpLevels(Ui::GameHudContext& context, std::int32_t item, Record record)
 {
     ItemHelpLevels& levels = context.hud.itemHelp;
     // 0x5afc09..0x5afc1d

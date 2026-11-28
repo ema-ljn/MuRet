@@ -162,7 +162,7 @@ namespace Steps
 bool MouseIn(const OldWindowStepView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height,
              std::int32_t mode)
 {
-    return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
+    return Ui::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
 }
 
 bool IsShowing(std::int32_t state)
@@ -503,7 +503,7 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
             // The focus stops belonging to the EDIT of an already destroyed box (the orphan, CL9 milestone 9).
             manager.orphanedEdit.reset();
             manager.focusedEditIsOrphan = false;
-            globals.keyboardFocus = Chat::ChatFocus::OldWindow;
+            globals.keyboardFocus = Ui::ChatFocus::OldWindow;
             manager.focusedEdit = base.id;
             globals.focusedList = base.id;
             edit.text.Deselect();
@@ -687,7 +687,7 @@ Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manage
     if (globals.releasedClick && window.base.state == ShownWindow)
     {
         // SetFocus([0x5763544]), like FocusTheGame.
-        globals.keyboardFocus = Chat::ChatFocus::Game;
+        globals.keyboardFocus = Ui::ChatFocus::Game;
         globals.RequestSound(ButtonSound);
         globals.releasedClick = false;
         // With the chosen one at the end (the top edge, distance 0), the original reads the slot past the last one
@@ -963,7 +963,7 @@ void ShowTheWindow(OldWindowManager& manager, std::int32_t id, bool show)
 // turns off the IME mode, which MuRet does not have; 0x4906a0 does not call it.
 void FocusTheGame(const OldWindowGlobals& globals)
 {
-    globals.keyboardFocus = Chat::ChatFocus::Game;
+    globals.keyboardFocus = Ui::ChatFocus::Game;
 }
 
 // The end of messages 2 and 4 of 0x490b70: the focus to the new last one of the list, or to the game.
@@ -1012,7 +1012,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         if (FindTheOldWindow(manager, id)->base.state == HiddenWindow)
             ShowTheWindow(manager, id, true);
         // 0x490c7d..0x490cd8: raises it to the end, unless it is already there with the focus elsewhere.
-        if (LastOldWindow(manager) != id || globals.keyboardFocus == Chat::ChatFocus::Game)
+        if (LastOldWindow(manager) != id || globals.keyboardFocus == Ui::ChatFocus::Game)
         {
             manager.order.remove(id);
             manager.order.push_back(id);
@@ -1266,7 +1266,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         box.owner = request.aux;
         base.parent = 0;
         auto wrapped =
-            Chat::WrapByWidth(request.data, measure.measure, measure.dcFont, measure.screen, BoxWrapWidth, BoxLines, 0);
+            Ui::WrapByWidth(request.data, measure.measure, measure.dcFont, measure.screen, BoxWrapWidth, BoxLines, 0);
         if (!wrapped.HasValue())
             return Core::Unexpected(std::move(wrapped).Error());
         for (std::size_t line = 0; line < box.lines.size(); ++line)
@@ -1390,7 +1390,7 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
     // old window's EDIT, its subclass (0x467b10) reads it too with every message it gets, except WM_CHAR and the IME
     // ones (0x467d3b), before the step (*inferred*: here, in place of the game window's). The two EDITs of the chat
     // input have another subclass, which does not read it.
-    if ((globals.keyboardFocus == Chat::ChatFocus::Game || globals.keyboardFocus == Chat::ChatFocus::OldWindow) &&
+    if ((globals.keyboardFocus == Ui::ChatFocus::Game || globals.keyboardFocus == Ui::ChatFocus::OldWindow) &&
         view.keyEdge && view.keyEdge(F5Key))
         ShowTheWindowList(manager, 1);
     // 0x490561..0x4905a2: F6 hides the windows, or shows them again if it hid any.

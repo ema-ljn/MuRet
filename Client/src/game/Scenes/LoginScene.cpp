@@ -123,6 +123,7 @@
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
 #include "Kernel/JointRequest.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

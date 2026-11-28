@@ -21,7 +21,7 @@
 // 0x11c bytes, the newest first (push_front). What its functions read from outside (the log's place, 0x6c7a88, and F2,
 // 0x6c8dd1) comes in ChatModes; what the draw and the step write and lasts (the place, the size, the bar, the buttons
 // and the blink), in ChatLogFrame, which the game copies in its intermediate draws.
-namespace Client::Chat
+namespace Client::Ui
 {
 // +0x40: the window's id, from the counter 0x5762eb0 (0x459ef0). *Inferred*: before this one WinMain builds eight
 // old windows (0x4674c0), which take 1 to 8.
@@ -200,4 +200,4 @@ void ClearTheChatFilter(ChatLogState& log);
 
 // 0x45d8c0, F4 and the second button: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6), and then ScrollTheLog(0).
 void CycleTheLogSize(ChatLogState& log, ChatModes& modes);
-} // namespace Client::Chat
+} // namespace Client::Ui

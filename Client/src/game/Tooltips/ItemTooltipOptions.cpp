@@ -2,7 +2,7 @@
 #include "Kernel/CharacterClass.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Player/ItemSetOptionList.h"
 #include "Player/ItemSetState.h"
@@ -184,7 +184,7 @@ std::uint8_t ClassByte(std::span<const std::byte, Tables::ItemRecordSize> record
 
 // 0x5af590(record), of the two that call it (ItemTooltipParts.h). `other` is the color of what the hero does not
 // meet: 2 if their class uses it (Item.bmd+0x45 + class non-zero) and 5 if not.
-void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& lines,
+void WriteTheItemClasses(const Ui::GameHudContext& context, TooltipWriter& lines,
                          std::span<const std::byte, Tables::ItemRecordSize> record)
 {
     lines.At("0x5af590");
@@ -263,7 +263,7 @@ void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& line
     }
 }
 
-Core::Expected<void, std::string> WriteAnOption(Hud::GameHudContext& context, TooltipWriter& lines, std::int32_t type,
+Core::Expected<void, std::string> WriteAnOption(Ui::GameHudContext& context, TooltipWriter& lines, std::int32_t type,
                                                 std::uint8_t tag, std::uint8_t value)
 {
     const auto found = std::ranges::find(OptionTexts, tag, &OptionText::tag);
@@ -469,7 +469,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     lines.At("0x40eee0");
     if (lines.Failed())
         return Core::Unexpected(lines.Error());
-    Hud::GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     const Kernel::ItemState& item = frame.item;
     Player::ItemSetState& sets = context.world.ItemSets();
     if (context.setTypes == nullptr || context.setOptions == nullptr)

@@ -10,13 +10,9 @@
 namespace Client::Ui
 {
 class PanelRegistry;
+struct GameHudContext;
 struct PanelDialogState;
 } // namespace Client::Ui
-
-namespace Client::Hud
-{
-struct GameHudContext;
-} // namespace Client::Hud
 
 namespace Client::Guild
 {
@@ -30,11 +26,10 @@ namespace Client::Guild
 // name (0x5542f0) at (_ftol(x) + 30, 19). An empty text is not drawn, but it is measured (0x77f31b8). The second score
 // (0x576796f, F3 23 of 0x4d9f00) runs after, independent of the war and the hero's guild; it looks up both current
 // names in 0..1998 and uses the same score counters.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(Hud::GameHudContext& context,
-                                                                Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5a7eb0, after the HUD even when hidden (0x637668): the event clock and the F3 24 outcome.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Ui::GameHudContext& context);
 
 // 0x660830, open: with 0x6602b0's own drawing (+0xc), only that (DrawTheGuildPositions). Otherwise, 0x6576a0's box
 // (0x620c10, glColor4f(1, 1, 1, 0.8), Message_box2 (0xfc) of 213 × 5 at (214, y), a row of Message_box1 (0xfb) of
@@ -43,7 +38,7 @@ namespace Client::Guild
 // and 0; each row at (0x140 − width / 2, y + 0x14 + 15 · i) with 0x5542f0, which neither draws an empty one nor
 // measures; and the buttons (0x45a9d0 and 0x45b2e0) at y + 9: Accept at 0x127, or Yes and No, or Confirm and Cancel
 // at 0x104 and 0x14a. The text field (0x10) and the clock (8) stop: no MuRet dialog opens them (P-C285). No rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawThePanelDialog(Ui::GameHudContext& context,
                                                                    Ui::PanelDialogState& dialog);
 
 // 0x64f1c0, the drawing of the positions window (+0xc of the panels' dialog, instead of everything): 0x6576a0's box,
@@ -52,5 +47,5 @@ namespace Client::Guild
 // filled; texts 1311 (y + 0x18), 1312 (y + 0x2e), 1314 with the name from 0x7d535a8 and 1301 or 1302 (y + 0x4b) and
 // 1315 (y + 0x5d), centered in _ftol(rx · 170) from x + 0x14 (0x5542f0 in mode 2), with whatever font and colors are
 // set; and the buttons 0x7d535b8 at (x + 0x37, y + 0x75) and 0x7d53640 at (x + 0x6e, y + 0x75). No rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildPositions(Ui::GameHudContext& context);
 } // namespace Client::Guild

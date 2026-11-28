@@ -13,7 +13,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Chat
+namespace Client::Ui
 {
 namespace
 {
@@ -353,4 +353,4 @@ void PutTheWhisperName(ChatInputState& input, std::string_view name)
     CopyIntoTheBuffer(input.whisperBuffer, name);
     input.whisperLength = LengthOf(input.whisperBuffer);
 }
-} // namespace Client::Chat
+} // namespace Client::Ui

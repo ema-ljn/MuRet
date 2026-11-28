@@ -6,7 +6,7 @@
 #include "Render/Text/FontSet.h"
 #include "CastleSiege/CastleWindowSupport.h"
 #include "CastleSiege/CastleWindows.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Kernel/WorldRuntime.h"
@@ -17,6 +17,7 @@
 #include "Ui/OldWindowDrawParts.h"
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
+#include "Npc/NpcWindowState.h"
 
 #include <array>
 #include <bit>
@@ -80,7 +81,7 @@ float TierWidth(std::int32_t tier)
     return static_cast<float>(std::bit_cast<std::int32_t>((static_cast<std::uint32_t>(tier) * 3u + 3u) * 2u));
 }
 
-void NpcIcon(Hud::GameHudContext& context, const CastleSiege::CastleData& data, std::uint32_t at, std::int32_t x,
+void NpcIcon(Ui::GameHudContext& context, const CastleSiege::CastleData& data, std::uint32_t at, std::int32_t x,
              std::int32_t y)
 {
     const auto type = data.U32(at + CastleSiege::RecordType);
@@ -125,20 +126,20 @@ void NpcIcon(Hud::GameHudContext& context, const CastleSiege::CastleData& data, 
     const auto selected = data.U32(statue ? CastleSiege::SelectedStatueAt : CastleSiege::SelectedGateAt);
     const bool chosen = data.U32(at + CastleSiege::RecordIndex) == selected + 1u;
     const std::uint16_t slot = statue ? (chosen ? 0x664 : 0x663) : (chosen ? 0x662 : 0x661);
-    Hud::WindowDrawing::Quad(sprites, slot, static_cast<float>(x), static_cast<float>(y), 24, 24, 0.75f, 0.75f);
+    Ui::WindowDrawing::Quad(sprites, slot, static_cast<float>(x), static_cast<float>(y), 24, 24, 0.75f, 0.75f);
 }
 
-Core::Expected<void, std::string> UpgradeText(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> UpgradeText(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                               std::uint32_t text, std::int32_t value)
 {
     auto format = CastleUi::Text(context.texts, text);
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    Hud::WindowDrawing::DrawText(context, x, y, Crt::Sprintf(format.Value(), value));
+    Ui::WindowDrawing::DrawText(context, x, y, Crt::Sprintf(format.Value(), value));
     return {};
 }
 
-Core::Expected<void, std::string> NpcDetails(Hud::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
+Core::Expected<void, std::string> NpcDetails(Ui::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
                                              CastleSiege::CastleData& data, std::int32_t x, bool statue)
 {
     const auto selected = data.U32(statue ? CastleSiege::SelectedStatueAt : CastleSiege::SelectedGateAt);
@@ -148,7 +149,7 @@ Core::Expected<void, std::string> NpcDetails(Hud::GameHudContext& context, Castl
         return Core::Unexpected(std::string("el dibujo de Senior lee un registro fuera de 0x7d5c504..0x7d5c658"));
     const bool alive = data.bytes.at(at + CastleSiege::RecordAlive - CastleSiege::CastleDataBase) != 0;
     auto& buttons = window.buttons;
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     if (!alive)
         return Button(context, buttons[0], x + 70, Top + 188, 0x772f3a4, 0);
     const auto life = Signed(data, at + CastleSiege::RecordLife),
@@ -178,12 +179,12 @@ Core::Expected<void, std::string> NpcDetails(Hud::GameHudContext& context, Castl
     if (statue)
         if (auto line = Formatted(context, x, Top + 216, 0x772f854, Recovery(type, recovery)); !line.HasValue())
             return line;
-    Hud::WindowDrawing::Quad(context.sprites, 0x117, static_cast<float>(x),
-                             static_cast<float>(Top + (statue ? 252 : 240)), 190, 10, 0.7421875f, 0.625f);
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::Quad(context.sprites, 0x117, static_cast<float>(x),
+                            static_cast<float>(Top + (statue ? 252 : 240)), 190, 10, 0.7421875f, 0.625f);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto line = Text(context, x, Top + (statue ? 267 : 259), 0x772ea44); !line.HasValue())
         return line;
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     if (auto line = UpgradeText(context, x + 30, Top + (statue ? 284 : 283), 0x772f980, LifeDelta(type, maximum));
         !line.HasValue())
         return line;
@@ -194,14 +195,14 @@ Core::Expected<void, std::string> NpcDetails(Hud::GameHudContext& context, Castl
     return {};
 }
 
-Core::Expected<void, std::string> Npcs(Hud::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
+Core::Expected<void, std::string> Npcs(Ui::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
                                        CastleSiege::CastleData& data, std::int32_t x, bool statue)
 {
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto title = Text(context, x, Top + 6, 0x772f278); !title.HasValue())
         return title;
-    Hud::WindowDrawing::Quad(context.sprites, 0x660, static_cast<float>(x + 15), static_cast<float>(Top + 18), 160, 165,
-                             0.625f, 0.64453125f);
+    Ui::WindowDrawing::Quad(context.sprites, 0x660, static_cast<float>(x + 15), static_cast<float>(Top + 18), 160, 165,
+                            0.625f, 0.64453125f);
     constexpr std::array<Ui::Point, 6> Gates{{{82, 53}, {64, 101}, {100, 101}, {48, 153}, {82, 153}, {116, 153}}};
     constexpr std::array<Ui::Point, 4> Statues{{{82, 38}, {82, 83}, {64, 128}, {100, 128}}};
     const auto count = statue ? Statues.size() : Gates.size();
@@ -216,10 +217,10 @@ Core::Expected<void, std::string> Npcs(Hud::GameHudContext& context, CastleSiege
     return NpcDetails(context, window, data, x, statue);
 }
 
-void TaxArrow(Hud::GameHudContext& context, CastleSiege::CastleData& data, std::uint32_t address, std::int32_t x,
+void TaxArrow(Ui::GameHudContext& context, CastleSiege::CastleData& data, std::uint32_t address, std::int32_t x,
               std::int32_t y, bool increment, bool& released)
 {
-    const bool hit = Chat::MouseInRect(context.mouse.x, context.mouse.y, x, y, 13, 13, 1);
+    const bool hit = Ui::MouseInRect(context.mouse.x, context.mouse.y, x, y, 13, 13, 1);
     const bool pressed = context.world.Runtime().mouse.pendingClick && hit;
     Ui::OldDraw::Quad(context.sprites, 0x649, static_cast<float>(x), static_cast<float>(y), 13, 13,
                       pressed ? 0.8125f : 0, increment ? (pressed ? 0.90625f : 0.09375f) : 0.5f,
@@ -235,12 +236,12 @@ void TaxArrow(Hud::GameHudContext& context, CastleSiege::CastleData& data, std::
     released = false;
 }
 
-Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
+Core::Expected<void, std::string> Taxes(Ui::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
                                         CastleSiege::CastleData& data, std::int32_t x)
 {
     context.hud.textColors = {.text = 0xffffffffu, .background = 0};
     context.sprites.SetBlend(Render::BlendMode::Alpha);
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto title = Text(context, x + 30, Top + 7, 0x773040c); !title.HasValue())
         return title;
     context.sprites.SetColor({0.5f, 0.6f, 0.5f, 0.5f});
@@ -253,7 +254,7 @@ Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSieg
     TaxArrow(context, data, CastleSiege::ChaosTaxAt, x + 157, Top + 34, false, release);
     TaxArrow(context, data, CastleSiege::StoreTaxAt, x + 157, Top + 47, true, release);
     TaxArrow(context, data, CastleSiege::StoreTaxAt, x + 157, Top + 59, false, release);
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     if (auto line = FormattedWidth(context, x, Top + 30, 175, 0x7730538, data.U32(CastleSiege::ServerChaosTaxAt),
                                    data.U32(CastleSiege::ChaosTaxAt));
         !line.HasValue())
@@ -268,32 +269,32 @@ Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSieg
         auto line = CastleUi::Text(context.texts, Labels[i]);
         if (!line.HasValue())
             return Core::Unexpected(std::move(line).Error());
-        Hud::WindowDrawing::DrawText(context, x + (i == 0 ? 20 : 26), Top + 75 + static_cast<std::int32_t>(i) * 13,
-                                     line.Value());
+        Ui::WindowDrawing::DrawText(context, x + (i == 0 ? 20 : 26), Top + 75 + static_cast<std::int32_t>(i) * 13,
+                                    line.Value());
     }
     if (auto button = Button(context, window.buttons[4], x + 70, Top + 116, 0x770e1f4, window.buttons[4].base.state);
         !button.HasValue())
         return button;
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, after each button.
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = 0xff947bbbu;
     for (std::int32_t i = 0; i < 6; ++i)
         if (auto line = Text(context, x + 15, Top + 136 + 12 * i, 0x7730b14 + static_cast<std::uint32_t>(i) * 300, 160);
             !line.HasValue())
             return line;
-    Hud::WindowDrawing::Quad(context.sprites, 0x117, static_cast<float>(x), Top + 216, 190, 10, 0.7421875f, 0.625f);
+    Ui::WindowDrawing::Quad(context.sprites, 0x117, static_cast<float>(x), Top + 216, 190, 10, 0.7421875f, 0.625f);
     context.hud.textColors.text = 0xffffffffu;
     const auto money = data.U64(CastleSiege::CastleMoneyAt);
     if (auto line = Formatted(context, x, Top + 236, 0x773121c, static_cast<std::uint32_t>(money),
                               static_cast<std::uint32_t>(money >> 32u));
         !line.HasValue())
         return line;
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     if (auto button = Button(context, window.buttons[5], x + 70, Top + 256, 0x76ce66c, window.buttons[5].base.state);
         !button.HasValue())
         return button;
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, after each button.
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = 0xff947bbbu;
     for (std::int32_t i = 0; i < 3; ++i)
         if (auto line = Text(context, x + 15, Top + 282 + 12 * i, 0x7731348 + static_cast<std::uint32_t>(i) * 300, 160);
@@ -302,10 +303,10 @@ Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSieg
     return {};
 }
 
-Core::Expected<void, std::string> Craft(Hud::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
+Core::Expected<void, std::string> Craft(Ui::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
                                         std::int32_t x)
 {
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors = {.text = 0xff947bbbu, .background = 0};
     if (!HeroCanCraftAtTheCastle(context.world))
         return Text(context, x, Top + 7, 0x7735614);
@@ -323,7 +324,7 @@ Core::Expected<void, std::string> Craft(Hud::GameHudContext& context, CastleSieg
     return Button(context, window.buttons[6], x + 70, Top + 216, 0x76e8670, window.buttons[6].base.state);
 }
 
-Core::Expected<void, std::string> Tabs(Hud::GameHudContext& context, std::int32_t x, std::int32_t tab)
+Core::Expected<void, std::string> Tabs(Ui::GameHudContext& context, std::int32_t x, std::int32_t tab)
 {
     constexpr std::array<std::uint32_t, 4> Labels{0x77317f8, 0x7731924, 0x7731a50, 0x77353bc};
     auto taxes = CastleUi::HeroCanEditTaxes(context.world);
@@ -337,8 +338,8 @@ Core::Expected<void, std::string> Tabs(Hud::GameHudContext& context, std::int32_
                                                           : Render::Color{gray, gray, gray, 1});
         // 0x6698d0: the fourth tab's height checks tab==2, while its y checks tab==3.
         const bool tall = i == 3 ? tab == 2 : selected;
-        Hud::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(x + 15 + 40 * i), selected ? 48.0f : 50.0f,
-                                 40, tall ? 18.0f : 16.0f, 0.75f, 0.9375f);
+        Ui::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(x + 15 + 40 * i), selected ? 48.0f : 50.0f,
+                                40, tall ? 18.0f : 16.0f, 0.75f, 0.9375f);
         if (auto label = Text(context, x + 15 + 40 * i, selected ? 53 : 54, Labels[static_cast<std::size_t>(i)], 40);
             !label.HasValue())
             return label;
@@ -352,7 +353,7 @@ Core::Expected<void, std::string> Tabs(Hud::GameHudContext& context, std::int32_
 }
 } // namespace
 
-Core::Expected<void, std::string> Senior(Hud::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
+Core::Expected<void, std::string> Senior(Ui::GameHudContext& context, CastleSiege::CastleSeniorWindow& window,
                                          CastleSiege::CastleData& data, std::int32_t tab)
 {
     const std::int32_t x = tab == 3 ? 257 : 450;

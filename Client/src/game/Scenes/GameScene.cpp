@@ -112,6 +112,8 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Kernel/JointRequest.h"
+#include "Chat/ChatRuntime.h"
+#include "Actors/FullSetScan.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -331,20 +333,20 @@ void GameScene::StepEntry()
         if (m_context.world != nullptr)
         {
             Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-            Chat::ChatInputState& input = runtime.chat.input;
-            Chat::ResetTheTextBuffers(input, true);
+            Ui::ChatInputState& input = runtime.chatInput;
+            Ui::ResetTheTextBuffers(input, true);
             runtime.ui.chatOpen = false;
             input.otherInput = false;
-            input.fieldCount = Chat::ChatFieldCount;
+            input.fieldCount = Ui::ChatFieldCount;
             if (auto emptied = Chat::AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
             {
                 m_failure = emptied.Error();
                 return;
             }
-            Chat::ResetTheChatInput(input, &runtime.ui.focusedList);
-            input.focus = Chat::ChatFocus::Game;
-            Chat::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
-            Chat::ClearTheChatFilter(runtime.chat.log);
+            Ui::ResetTheChatInput(input, &runtime.ui.focusedList);
+            input.focus = Ui::ChatFocus::Game;
+            Ui::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
+            Ui::ClearTheChatFilter(runtime.chat.log);
             // 0x6368f9..0x636915: the old windows (0x48ea50), the friends (0x49bac0) and the letters (0x49f260: the
             // list and, with 0x4a0560, the copies of 0x4a03c0).
             Ui::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
@@ -457,7 +459,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         !bubbles.HasValue())
         return bubbles;
     // 0x6370fe..0x637105: 0x451c10, the personal shop signs (0x7245c8) that changed key or type.
-    PersonalShop::CheckTheShopKeys(*m_context.world);
+    Social::CheckTheShopKeys(*m_context.world);
     // 0x63710a: MoveHero leaves with more than 30, but the later logic goes on during the wait.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
@@ -471,18 +473,18 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     const Chat::GameChatContext chat = ChatContext();
     // CL9 milestone 5: the bar picks the item up from the floor with C1 05 22 (InventoryContext).
     const Items::InventoryServices inventory = InventoryContext();
-    return Hud::StepTheFunctionKeys(Hud::GameUiContext{.world = *m_context.world,
-                                                       .random = m_context.cloth->random,
-                                                       .input = input,
-                                                       .mouseX = mouse.x,
-                                                       .mouseY = mouse.y,
-                                                       .measure = m_context.textMeasure,
-                                                       .screen = m_screen,
-                                                       .chat = &chat,
-                                                       .inventory = &inventory,
-                                                       .fixedHeight = CameraState().fixedHeight,
-                                                       .worldEntry = m_context.worldEntry,
-                                                       .terrain = &MapTerrain()});
+    return Hud::StepTheFunctionKeys(Ui::GameUiContext{.world = *m_context.world,
+                                                      .random = m_context.cloth->random,
+                                                      .input = input,
+                                                      .mouseX = mouse.x,
+                                                      .mouseY = mouse.y,
+                                                      .measure = m_context.textMeasure,
+                                                      .screen = m_screen,
+                                                      .chat = &chat,
+                                                      .inventory = &inventory,
+                                                      .fixedHeight = CameraState().fixedHeight,
+                                                      .worldEntry = m_context.worldEntry,
+                                                      .terrain = &MapTerrain()});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -572,8 +574,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         // timeGetTime (0x6b8544) is the scene clock in ms; without a clock, the prelude stops at 0x42b557.
         CastleSiege::CastleSiegePrelude prelude{
-            .siegeActive = world.Runtime().castleSiege.siegeActive,
-            .musicTime = &world.Runtime().castleSiege.siegeMusicTime,
+            .siegeActive = world.Runtime().castleFlags.siegeActive,
+            .musicTime = &world.Runtime().castleFlags.siegeMusicTime,
             .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
             .random = &m_context.cloth->random,
             .logicSteps = m_context.cloth->logicSteps,
@@ -677,8 +679,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                        : 0U;
         },
         .trialsAmbientTime = &world.Runtime().trialsAmbientTime,
-        .siegeActive = &world.Runtime().castleSiege.siegeActive,
-        .siegeCrownFlags = &world.Runtime().castleSiege.castleFlags7239e4};
+        .siegeActive = &world.Runtime().castleFlags.siegeActive,
+        .siegeCrownFlags = &world.Runtime().castleFlags.castleFlags7239e4};
     WorldObjects::AfterObjectStep after;
     if (icarus)
         after = [&](Kernel::WorldObject& object)
@@ -699,7 +701,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         after = [&](Kernel::WorldObject& object)
         {
             return CastleSiege::StepCastleSiegeSeenObject(
-                object, world.Runtime().castleSiege.siegeActive, worldClock,
+                object, world.Runtime().castleFlags.siegeActive, worldClock,
                 CastleSiege::CastleGateCollapseServices{
                     .emit = [&world](const Kernel::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
                     {
@@ -848,7 +850,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
         return drawn;
     // 0x6203c0 of the world pass: the projection the HUD bubbles read (0x5a9050 → 0x6205b0). Without it, it stops only
     // if there is a live bubble.
-    const auto projection = MakeGameProjection(pass, camera.fieldOfView);
+    const auto projection = Kernel::MakeGameProjection(pass, camera.fieldOfView);
     return DrawTheInterface(canvas, projection.HasValue() ? &projection.Value() : nullptr);
 }
 
@@ -1235,7 +1237,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                                                                                              .chaosCastleArea,
                                                                                      .siegeActive =
                                                                                          world.Runtime()
-                                                                                             .castleSiege.siegeActive,
+                                                                                             .castleFlags.siegeActive,
                                                                                      .objectDrawCounter =
                                                                                          &world.Runtime()
                                                                                               .objectDrawCounter,
@@ -1388,9 +1390,9 @@ bool GameScene::WantsTextInput() const
     // [0x5763504] (milestone 11 and CL9 milestone 8) or that of [0x5763508] (CL9 milestone 8). The one with the Windows
     // focus receives the WM_CHAR.
     const Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    const Chat::ChatFocus focus = runtime.chat.input.focus;
-    return runtime.ui.chatOpen || focus == Chat::ChatFocus::OldWindow || focus == Chat::ChatFocus::Dialog ||
-           focus == Chat::ChatFocus::NumberField;
+    const Ui::ChatFocus focus = runtime.chatInput.focus;
+    return runtime.ui.chatOpen || focus == Ui::ChatFocus::OldWindow || focus == Ui::ChatFocus::Dialog ||
+           focus == Ui::ChatFocus::NumberField;
 }
 
 bool GameScene::HoldsTheLastFrame() const

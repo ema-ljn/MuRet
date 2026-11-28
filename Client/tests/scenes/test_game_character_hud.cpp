@@ -26,6 +26,7 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/TableFiles.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 
@@ -48,7 +49,6 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Crt::Sprintf;
-using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Math::RoundedSin;
 using Client::Models::OwnRecordCloseRandoms;
@@ -57,6 +57,7 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Tests::RecordedText;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -441,7 +442,7 @@ TEST_F(GameCharacterHudTest, TheWizardShowsTheMagicOfItsSkill)
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(world.Runtime().movement.skillDepths[Skill], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[Skill], 0);
     ASSERT_EQ(text.texts.size(), 17u);
     // min = 12 + 20 and max = 30 + 20 + 10, plus 10 each; the bonus, (0.5 − 0 · 0.5) · 60.
     const std::string magic = Sprintf(TextAt(215), 42, 70, 30);

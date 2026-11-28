@@ -119,13 +119,13 @@ std::optional<EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::strin
     {
         if (!run.literal.empty())
         {
-            if (FrontEnd::ContainsLikeTheOriginal(said, run.literal))
+            if (Ui::ContainsLikeTheOriginal(said, run.literal))
                 return run.emote;
             continue;
         }
         for (std::size_t index = run.first; index <= run.last; ++index)
         {
-            if (FrontEnd::ContainsLikeTheOriginal(said, TextOr(texts, index)))
+            if (Ui::ContainsLikeTheOriginal(said, TextOr(texts, index)))
                 return run.emote;
         }
     }

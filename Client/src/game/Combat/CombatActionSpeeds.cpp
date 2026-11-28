@@ -5,6 +5,7 @@
 #include "Actors/PlayerActionSpeeds.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldState.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <initializer_list>

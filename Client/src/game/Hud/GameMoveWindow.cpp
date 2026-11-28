@@ -12,8 +12,8 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Hud/HudText.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
@@ -157,7 +157,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheMoveWindow(const Ui::GameUiContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -201,7 +201,7 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheMoveWindow(Ui::GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
@@ -244,12 +244,12 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
     const std::int32_t middle = columns.width / 2;
     hud.dcFont = Render::Text::FontKind::Bold;
     hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};
-    DrawHudCentered(context.text, screen, hud, middle, TitleY, title.Value());
+    Ui::DrawHudCentered(context.text, screen, hud, middle, TitleY, title.Value());
     hud.dcFont = Render::Text::FontKind::Normal;
     hud.textColors.text = ColumnColor;
-    DrawHudCentered(context.text, screen, hud, columns.name, ColumnY, nameColumn.Value());
-    DrawHudCentered(context.text, screen, hud, columns.level, ColumnY, levelColumn.Value());
-    DrawHudCentered(context.text, screen, hud, columns.zen, ColumnY, zenColumn.Value());
+    Ui::DrawHudCentered(context.text, screen, hud, columns.name, ColumnY, nameColumn.Value());
+    Ui::DrawHudCentered(context.text, screen, hud, columns.level, ColumnY, levelColumn.Value());
+    Ui::DrawHudCentered(context.text, screen, hud, columns.zen, ColumnY, zenColumn.Value());
     hud.textColors.background = 0;
     const std::int32_t mouseX = context.mouse.x;
     const std::int32_t mouseY = context.mouse.y;
@@ -269,16 +269,16 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
         // 0x4495f2..0x4496c6: the name, the level and the zen, each in its color.
         const std::uint32_t allowedColor = check.allowed ? AllowedColor : DeniedColor;
         hud.textColors.text = allowedColor;
-        DrawHudCentered(context.text, screen, hud, columns.name, y, move.name);
+        Ui::DrawHudCentered(context.text, screen, hud, columns.name, y, move.name);
         hud.textColors.text = check.levelOk ? allowedColor : MissingColor;
-        DrawHudCentered(context.text, screen, hud, columns.level, y, DecimalOf(check.level));
+        Ui::DrawHudCentered(context.text, screen, hud, columns.level, y, DecimalOf(check.level));
         hud.textColors.text = check.zenOk ? allowedColor : MissingColor;
-        DrawHudCentered(context.text, screen, hud, columns.zen, y, DecimalOf(static_cast<std::int32_t>(move.zen)));
+        Ui::DrawHudCentered(context.text, screen, hud, columns.zen, y, DecimalOf(static_cast<std::int32_t>(move.zen)));
         y += rowHeight;
     }
     // 0x4496e9..0x44970b.
     hud.textColors.text = AllowedColor;
-    DrawHudCentered(context.text, screen, hud, middle, closeTop - 5, close.Value());
+    Ui::DrawHudCentered(context.text, screen, hud, middle, closeTop - 5, close.Value());
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }

@@ -14,8 +14,8 @@
 #include "Protocol/CastleSiege/CastleSiege.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Hud/GameUi.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameUiContext.h"
+#include "Ui/GameHudContext.h"
 #include "Chat/GameChat.h"
 #include "Guild/GuildDrawing.h"
 #include "CastleSiege/CastleSiegeReceive.h"
@@ -35,6 +35,8 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/RecordingTextDrawer.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -52,7 +54,7 @@ namespace
 {
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-class Requests final : public Client::Hud::IGameUiRequests
+class Requests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody&) override {}
@@ -99,7 +101,7 @@ Client::Tables::TextTable Texts()
 class CastleWindowsTest : public ::testing::Test
 {
 protected:
-    Client::Hud::GameUiContext Context(std::int32_t x = 0, std::int32_t y = 0)
+    Client::Ui::GameUiContext Context(std::int32_t x = 0, std::int32_t y = 0)
     {
         return {.world = *m_world,
                 .random = m_random,
@@ -130,17 +132,17 @@ protected:
         auto& runtime = m_world->Runtime();
         auto& hero = m_world->Hero();
         m_sprites.Begin(screen);
-        Client::Hud::GameHudContext context{.world = *m_world,
-                                            .random = m_random,
-                                            .ownRecordDepth = runtime.ownRecordDepth,
-                                            .cellXDepth = hero.cellXAccesses,
-                                            .cellYDepth = hero.cellYAccesses,
-                                            .hud = runtime.hud,
-                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                            .sound = runtime.lastSoundId,
-                                            .sprites = m_sprites,
-                                            .text = m_text,
-                                            .texts = &m_texts};
+        Client::Ui::GameHudContext context{.world = *m_world,
+                                           .random = m_random,
+                                           .ownRecordDepth = runtime.ownRecordDepth,
+                                           .cellXDepth = hero.cellXAccesses,
+                                           .cellYDepth = hero.cellYAccesses,
+                                           .hud = runtime.hud,
+                                           .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                           .sound = runtime.lastSoundId,
+                                           .sprites = m_sprites,
+                                           .text = m_text,
+                                           .texts = &m_texts};
         return Client::CastleSiege::DrawTheCastleWindows(context);
     }
     const Client::Render::DrawCommand* QuadAt(float x, float y) const
@@ -332,18 +334,18 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     // Draw uses its own mouse, the same as GameScene's. This test passes the position in the context below.
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
-    Client::Hud::GameHudContext context{.world = *m_world,
-                                        .random = m_random,
-                                        .ownRecordDepth = runtime.ownRecordDepth,
-                                        .cellXDepth = hero.cellXAccesses,
-                                        .cellYDepth = hero.cellYAccesses,
-                                        .hud = runtime.hud,
-                                        .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                        .sound = runtime.lastSoundId,
-                                        .sprites = m_sprites,
-                                        .text = m_text,
-                                        .texts = &m_texts,
-                                        .mouse = {608, 88}};
+    Client::Ui::GameHudContext context{.world = *m_world,
+                                       .random = m_random,
+                                       .ownRecordDepth = runtime.ownRecordDepth,
+                                       .cellXDepth = hero.cellXAccesses,
+                                       .cellYDepth = hero.cellYAccesses,
+                                       .hud = runtime.hud,
+                                       .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                       .sound = runtime.lastSoundId,
+                                       .sprites = m_sprites,
+                                       .text = m_text,
+                                       .texts = &m_texts,
+                                       .mouse = {608, 88}};
     auto drawn = Client::CastleSiege::DrawTheCastleWindows(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::ChaosTaxAt), 2u);
@@ -369,24 +371,24 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     ASSERT_EQ(dialog.opened, 1234u);
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
-    Client::Hud::GameHudContext hud{.world = *m_world,
-                                    .random = m_random,
-                                    .ownRecordDepth = runtime.ownRecordDepth,
-                                    .cellXDepth = hero.cellXAccesses,
-                                    .cellYDepth = hero.cellYAccesses,
-                                    .hud = runtime.hud,
-                                    .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                    .sound = runtime.lastSoundId,
-                                    .sprites = m_sprites,
-                                    .text = m_text,
-                                    .texts = &m_texts};
+    Client::Ui::GameHudContext hud{.world = *m_world,
+                                   .random = m_random,
+                                   .ownRecordDepth = runtime.ownRecordDepth,
+                                   .cellXDepth = hero.cellXAccesses,
+                                   .cellYDepth = hero.cellYAccesses,
+                                   .hud = runtime.hud,
+                                   .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                   .sound = runtime.lastSoundId,
+                                   .sprites = m_sprites,
+                                   .text = m_text,
+                                   .texts = &m_texts};
     const auto drawn = Client::Guild::DrawThePanelDialog(hud, dialog);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.x, 290);
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.width, 70);
-    EXPECT_EQ(runtime.chat.input.dialogEdit.filter, 1);
-    runtime.chat.input.dialogEdit.text.SetText("16909060");
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Dialog);
+    EXPECT_EQ(runtime.chatInput.dialogEdit.base.x, 290);
+    EXPECT_EQ(runtime.chatInput.dialogEdit.base.width, 70);
+    EXPECT_EQ(runtime.chatInput.dialogEdit.filter, 1);
+    runtime.chatInput.dialogEdit.text.SetText("16909060");
     const Client::Chat::GameChatContext chat{
         .world = *m_world, .random = m_random, .send = [this](Client::Protocol::Outgoing packet) {
             m_requests.sent.push_back(std::move(packet));
@@ -397,9 +399,9 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
                           Bytes({0xc1, 8, 0xb2, 0x10, 4, 3, 2, 1})));
     EXPECT_EQ(dialog.opened, 0u);
-    EXPECT_TRUE(runtime.chat.input.dialogEdit.text.Value().empty());
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.state, Client::Ui::HiddenWindow);
-    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
+    EXPECT_TRUE(runtime.chatInput.dialogEdit.text.Value().empty());
+    EXPECT_EQ(runtime.chatInput.dialogEdit.base.state, Client::Ui::HiddenWindow);
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Game);
     ExpectRandoms(0);
 }
 TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDurabilityAndWithoutMasterStatus)

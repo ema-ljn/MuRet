@@ -12,10 +12,10 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Social
 {
@@ -30,11 +30,11 @@ namespace Client::Social
 // - cancel (x + 0x89): plays the sound and, with no item on the cursor, 0x78abaa5 at 0, the C1 03 3D in C3 and the
 //   buttons (0x77f3b10 at 0 and 0x6c8dcc at 6).
 // Each button spends the click (0x7d366d4).
-[[nodiscard]] Core::Expected<void, std::string> StepTheTradeWindow(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheTradeWindow(const Ui::GameUiContext& context,
                                                                    Ui::PanelRegistry& panels);
 
 // 0x5ebca0: with the duel request (0x78abad9), the mouse over the box (0xd5..0x1aa × 0x6e..0x118) belongs to the UI;
 // the click on yes (0xed..0x133) or no (0x14c..0x192), both at y 0xfa..0x10f, sends the C1 10 AC with the answer,
 // 0x78abadc's key and 0x78abae0's name in C3 and lowers the request. It neither spends the click nor plays a sound.
-[[nodiscard]] Core::Expected<void, std::string> StepTheDuelRequest(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheDuelRequest(const Ui::GameUiContext& context);
 } // namespace Client::Social

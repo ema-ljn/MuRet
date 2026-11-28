@@ -660,7 +660,7 @@ TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
 // chosen one's 0x4000 shield.
 TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
 {
-    Runtime().castleSiege.siegeActive = true;
+    Runtime().castleFlags.siegeActive = true;
     Hero().byte360 = 9;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
@@ -680,7 +680,7 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
 // 0x558c5b..0x558c7e: the defender can also attack the attacker; the target's 0x4000 shield blocks both ways.
 TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
 {
-    Runtime().castleSiege.siegeActive = true;
+    Runtime().castleFlags.siegeActive = true;
     Hero().byte360 = 13;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
@@ -695,7 +695,7 @@ TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
 // continues as outside the siege. The hero's 0x40000 is a separate rule when it has none of those three marks.
 TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
 {
-    Runtime().castleSiege.siegeActive = true;
+    Runtime().castleFlags.siegeActive = true;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;

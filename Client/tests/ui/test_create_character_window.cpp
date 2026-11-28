@@ -336,7 +336,7 @@ TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteChe
     EXPECT_TRUE(window.Name() == std::string("a\x80"
                                              "bc",
                                              4));
-    EXPECT_FALSE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
+    EXPECT_FALSE(Client::Ui::HasForbiddenSymbol(window.Name()));
 
     window.Open();
     InputState evenByte;
@@ -346,7 +346,7 @@ TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteChe
     EXPECT_TRUE(window.Name() == std::string("\x80"
                                              "abc",
                                              4));
-    EXPECT_TRUE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
+    EXPECT_TRUE(Client::Ui::HasForbiddenSymbol(window.Name()));
 
     window.Open();
     InputState unsupported;
@@ -354,7 +354,7 @@ TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteChe
     static_cast<void>(StepOnce(window, unsupported));
 
     EXPECT_TRUE(window.Name() == "a?b");
-    EXPECT_FALSE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
+    EXPECT_FALSE(Client::Ui::HasForbiddenSymbol(window.Name()));
 }
 
 TEST(CreateCharacterWindowTest, EnterIsNotInsertedIntoTheNameBeforeSubmission)
@@ -378,7 +378,7 @@ TEST(CreateCharacterWindowTest, EnterIsNotInsertedIntoTheNameBeforeSubmission)
 
         ASSERT_EQ(StepOnce(window, input), std::optional{CreateWindowEvent::Submitted});
         EXPECT_TRUE(window.Name() == expectedName);
-        EXPECT_FALSE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
+        EXPECT_FALSE(Client::Ui::HasForbiddenSymbol(window.Name()));
 
         const std::string expectedBuffer = expectedName + '\0';
         EXPECT_TRUE(window.Buffer().substr(0, expectedBuffer.size()) == expectedBuffer);

@@ -14,9 +14,9 @@
 #include "Render/Text/FontSet.h"
 #include "Kernel/ActorState.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -30,6 +30,8 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -49,13 +51,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr Client::Core::PixelSize Screen640{640, 480};

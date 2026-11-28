@@ -4,10 +4,10 @@
 
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The Crywolf interface (CL9 milestone 11, phase 3; 06 § La interfaz de Crywolf): 0x4365c0, HUD child 21 (0x5a74d4),
 // *static*. GS 0.97 has no Crywolf: it is filled by BD 00 and BD 02 to 09 (Events/EventPackets), with the client's ASM
@@ -26,7 +26,7 @@ namespace Client::Events::Crywolf
 // Without the state it does not return to 0x620980 and the blend stays at normal. Writes into
 // `context.crywolfInterface` (or WorldRuntime's): the banner, bar, clock and tip counts. Stops only without a Text.bmd
 // text or with one that does not fit the 300-byte stack buffer.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheCrywolfInterface(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheCrywolfInterface(Ui::GameHudContext& context);
 
 // 0x436240, HUD child 26 (0x5a74ed): with the stage at 3 or 4 (0x435a00) in map 34 (0x4303c0) it leaves the text in
 // 0xff1594ff over 0 for the rest of the HUD, and with 0x723a44 at 1 or 2 draws the altar contract window
@@ -34,5 +34,5 @@ namespace Client::Events::Crywolf
 // over them and their number in 0x723bdc (1, 2 or 3) close the window, and the two lines of 0x723a48 with 0x623690.
 // 0x435b00 opens it (Events/Crywolf/CrywolfContract). Writes into `context.crywolfInterface` (or WorldRuntime's). No
 // rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawTheCrywolfContract(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheCrywolfContract(Ui::GameHudContext& context);
 } // namespace Client::Events::Crywolf

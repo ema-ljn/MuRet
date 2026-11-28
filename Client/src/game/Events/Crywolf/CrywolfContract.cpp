@@ -10,6 +10,7 @@
 #include "Ui/GameText.h"
 #include "Crt/OriginalFormat.h"
 #include "Kernel/CharacterClass.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>

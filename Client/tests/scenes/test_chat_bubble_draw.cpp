@@ -18,6 +18,8 @@
 #include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -42,11 +44,11 @@ using Client::Chat::ChatBubble;
 using Client::Chat::ChatBubbleDrawContext;
 using Client::Core::PixelSize;
 using Client::Kernel::ActorState;
+using Client::Kernel::GameProjection;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
-using Client::Scenes::GameProjection;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -471,7 +473,7 @@ TEST_F(ChatBubbleDrawTest, SomeOwnersHaveNoBubble)
     owner.flags78 = 0x4000u;
     owner.byte360 = 10;
     m_world->Actors()[0].byte360 = 9;
-    m_world->Runtime().castleSiege.siegeActive = true;
+    m_world->Runtime().castleFlags.siegeActive = true;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_TRUE(Texts().empty());
 
@@ -532,13 +534,13 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     const Client::Chat::ChatBubbleStepInput input{.mouseX = 210, .mouseY = 100, .screen = Screen640};
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
     EXPECT_TRUE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chatInput.whisperBuffer), "");
 
     ASSERT_TRUE(Draw().HasValue());
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
     EXPECT_FALSE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chatInput.whisperBuffer), "Tero");
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 

@@ -31,11 +31,14 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 class IGameUiRequests;
 struct GameUiContext;
+} // namespace Client::Ui
 
+namespace Client::Hud
+{
 // What 0x550d10 reads from the load when opening the character calls it (0x65ca1e): Item.bmd (*[0x7758550]) and
 // ItemSetType.bmd with ItemSetOption.bmd (0x40c600). Only the UI step lends them, the only one that opens the
 // character; with one at nullptr, 0x550d10 stops with an error at the first thing that reads it.
@@ -70,14 +73,14 @@ public:
     // 0x64ae10: the B2 03 of opening the castle registration, over the same world wire.
     void LendTheCastleRequests(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send,
                                CastleSiege::CastleWindowServices services = {});
-    void LendTheCastleWindowSteps(const GameUiContext& context);
+    void LendTheCastleWindowSteps(const Ui::GameUiContext& context);
     // The siege's weapon and gate controls.
     void LendTheSiegeControls(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send);
 
     // 0x659aa0..0x659c3d: with `requests`, opening the party sets `world`'s count to 0 (HudState::partyCount) and asks
     // for the list (C1 03 42). Lent by the UI step, the one that opens the party; without it, or with nullptr, opening
     // it stops.
-    void LendThePartyList(Kernel::WorldState& world, IGameUiRequests* requests);
+    void LendThePartyList(Kernel::WorldState& world, Ui::IGameUiRequests* requests);
     // 0x659ff6..0x65a8a3 and 0x65c039..0x65c946: with `send`, opening the pet, or the inventory with a Dark Lord, sends
     // the raven and horse requests (C1 06 A9 00 00 01 and A9 01 00 08, Protocol::Pets::WritePetInfoRequest). Lent by
     // the UI step and LendTheSession; without it, opening them stops.
@@ -108,8 +111,8 @@ public:
     // event NPC (0x1000 or 0x4000, CL9 milestone 11). Lent by the UI step, the A1 and A2 handlers (0x657a90) and the
     // closes of the world entry, the teleport, the regen and the events; without it, closing them stops.
     void LendTheWindowClose(std::function<void()> send);
-    // The same with the C1 03 31 of `requests` (IGameUiRequests::SendWindowClose); with nullptr, without it.
-    void LendTheWindowClose(IGameUiRequests* requests);
+    // The same with the C1 03 31 of `requests` (Ui::IGameUiRequests::SendWindowClose); with nullptr, without it.
+    void LendTheWindowClose(Ui::IGameUiRequests* requests);
 
     // 0x65ac87, 0x65b359 and 0x5eb17f: the C1 04 F3 10 when opening a shop with 0x6c931c other than −1 and the 3F 07
     // when closing another's with its owner (PersonalShop::OpenThePersonalShop and CloseThePersonalShop), through
@@ -128,7 +131,7 @@ public:
                         std::function<void()> sendWindowClose);
     // The same with `requests` (SendGamePacket, SendGuildPacket for the guild and SendWindowClose); with nullptr,
     // nothing.
-    void LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests);
+    void LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random, Ui::IGameUiRequests* requests);
 
 private:
     Ui::PanelContext m_context;

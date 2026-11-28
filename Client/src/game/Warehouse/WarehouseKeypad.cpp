@@ -11,8 +11,8 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Npc/NpcWindowState.h"
 #include "Npc/NpcWindowSteps.h"
@@ -26,6 +26,7 @@
 #include "Ui/Widget.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatInput.h"
 
 #include <algorithm>
 #include <array>
@@ -42,11 +43,11 @@ namespace Client::Warehouse
 {
 namespace
 {
-using Hud::WindowDrawing::DrawCenteredText;
-using Hud::WindowDrawing::DrawText;
-using Hud::WindowDrawing::Quad;
-using Hud::WindowDrawing::SelectFont;
 using Render::Text::FontKind;
+using Ui::WindowDrawing::DrawCenteredText;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::Quad;
+using Ui::WindowDrawing::SelectFont;
 
 namespace Npc = Protocol::Npc;
 
@@ -157,7 +158,7 @@ constexpr float ButtonDv = 0.65625f;
 using Math::F32;
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -224,7 +225,7 @@ Protocol::Npc::WarehouseNumber NumberOf(std::span<const std::uint8_t> bytes)
     return number;
 }
 
-Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet,
+Core::Expected<void, std::string> Send(const Ui::GameUiContext& context, Protocol::Outgoing packet,
                                        std::string_view what)
 {
     if (!context.sendNpcWindow)
@@ -234,7 +235,7 @@ Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protoc
 
 // A C1 with the XOR32 in C3: the padding's rand() (0x69fd70) and the serial's (0x40b0a0, or inline 0x40b3f0), before
 // sending.
-Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing packet,
+Core::Expected<void, std::string> SendInC3(const Ui::GameUiContext& context, Protocol::Outgoing packet,
                                            std::string_view what)
 {
     context.random.Discard(C3SendRandoms);
@@ -242,7 +243,7 @@ Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Pr
 }
 
 // 0x5e7d80..0x5e9a88: the OK with all the digits and not four equal, by the mode it had (already at 0).
-Core::Expected<void, std::string> Confirm(const Hud::GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> Confirm(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                           std::int32_t mode)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -289,7 +290,7 @@ Core::Expected<void, std::string> Confirm(const Hud::GameUiContext& context, Ui:
         // 0x5e931c..0x5e9a88 (mode 1 and the modes outside 2..6): the type is the mode minus 1 (0x5e939a), the password
         // the atoi of the typed digits (0x5e9491) and the number, the first ten bytes of the chat message buffer
         // (0x7798bf8, 0x5e95b1..0x5e95d2; Q-C924).
-        const auto chat = std::as_bytes(std::span(runtime.chat.input.messageBuffer));
+        const auto chat = std::as_bytes(std::span(runtime.chatInput.messageBuffer));
         Protocol::Npc::WarehouseNumber number{};
         std::ranges::copy_n(chat.begin(), static_cast<std::ptrdiff_t>(number.size()), number.begin());
         const auto type = static_cast<std::uint8_t>((mode - 1) & 0xff);
@@ -300,7 +301,7 @@ Core::Expected<void, std::string> Confirm(const Hud::GameUiContext& context, Ui:
 }
 
 // 0x5e7c69..0x5e9a88: the key with the click.
-Core::Expected<void, std::string> PressTheKey(const Hud::GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> PressTheKey(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                               std::int32_t key)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -373,7 +374,7 @@ std::int32_t KeypadKeyAt(std::int32_t mouseX, std::int32_t mouseY)
     return NoKeypadKey;
 }
 
-Core::Expected<bool, std::string> StepTheKeypad(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<bool, std::string> StepTheKeypad(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abb20 == 0)
@@ -399,7 +400,7 @@ Core::Expected<bool, std::string> StepTheKeypad(const Hud::GameUiContext& contex
     return true;
 }
 
-Core::Expected<void, std::string> DrawTheKeypad(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheKeypad(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t mode = runtime.ui.field78abb20;

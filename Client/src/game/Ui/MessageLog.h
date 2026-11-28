@@ -19,10 +19,10 @@ namespace Client::Ui
 // (0x77f3b78, which the F3 30 sets and the Esc menu changes).
 struct MessageSink
 {
-    Chat::ChatLogState& log;
+    Ui::ChatLogState& log;
     MessageAreaState& area;
-    Chat::ChatModes modes;
-    Chat::ChatMeasure measure;
+    Ui::ChatModes modes;
+    Ui::ChatMeasure measure;
     bool noticeSound = false;
 };
 

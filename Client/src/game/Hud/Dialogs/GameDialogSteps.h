@@ -22,10 +22,10 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Hud::Dialogs
 {
@@ -81,7 +81,7 @@ struct DialogRoute
 
 // 0x623f78: with a dialog open, its range. With none, nothing. `escape` is 0x623e70's [EBP−0x7d]: Esc read
 // (0x553520(0x1b)) with the friends window closed, which 0x62c50e's no and 0x628409's yes/no dialogs look at.
-[[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape);
+[[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const Ui::GameUiContext& context, bool escape);
 
 // 0x61c210 up to the packet: the 24 bytes of its stack. It opens and closes the own record (0xf08 rand() of the
 // protection table, 0x61c26a..0x61c34f) and, for each slot `at` from 0 to 0x71 with a key (+0x26c + chosen · 0x100 +

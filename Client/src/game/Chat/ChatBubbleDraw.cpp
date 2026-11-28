@@ -18,6 +18,9 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
+#include "Chat/ChatRuntime.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -167,7 +170,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     if ((owner.flags7c & HiddenBubbleFlag) == HiddenBubbleFlag)
         return {};
     // 0x555b2a..0x555bda: 0x4294b0 reads the siege byte (0x7239ec).
-    if (ownerSlot != runtime.hero && runtime.castleSiege.siegeActive &&
+    if (ownerSlot != runtime.hero && runtime.castleFlags.siegeActive &&
         (owner.flags78 & SiegeSideFlag) == SiegeSideFlag && OfAnotherSiegeSide(hero.byte360, owner.byte360))
         return {};
     // 0x55627a..0x556291: 0x620a00(1) and glColor3f(1, 1, 1).
@@ -193,7 +196,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     const bool clampY = context.clampBoxes != 0;
     // 0x5563a4..0x5565ef: with the owner's sign (0x451810, not +0x54), the text 1104 and the short title in bold, two
     // lines higher, and the others, one (Q-C978).
-    if (PersonalShop::HasShopTitle(runtime.social.personalShop, ownerSlot))
+    if (Social::HasShopTitle(runtime.social.personalShop, ownerSlot))
     {
         const auto header = PersonalShop::ShopSignHeader(context.texts, "0x556421");
         if (!header.HasValue())
@@ -351,7 +354,7 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
         const glm::vec3 above{owner.position.x, owner.position.y,
                               static_cast<float>(static_cast<double>(owner.boundsTop) +
                                                  static_cast<double>(owner.position.z) + AboveTheTop)};
-        const auto projected = Scenes::ProjectGamePoint(*context.projection, above);
+        const auto projected = Kernel::ProjectGamePoint(*context.projection, above);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         if (auto measured = MeasureTheChatBubble(bubble, context.text, fontStep, context.texts); !measured.HasValue())

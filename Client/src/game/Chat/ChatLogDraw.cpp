@@ -102,7 +102,7 @@ float F32(std::int32_t value)
 
 bool InRect(const ChatLogDrawView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
 {
-    return MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
+    return Ui::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
 }
 
 // 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): scaled, with whatever color is set.
@@ -170,8 +170,8 @@ void Button(Render::SpriteBatch& sprites, std::uint16_t slot, bool pressed, bool
 }
 
 // 0x45c460, the vtable + 0x7c. The frame and the bar only with the log in its window; the filter's title, always.
-void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
-                  const ChatLogDrawView& view)
+void DrawTheFrame(const Ui::ChatLogState& log, Ui::ChatLogFrame& frame, Ui::ChatModes modes,
+                  const ChatLogDrawContext& context, const ChatLogDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     if (modes.placement == 1)
@@ -221,7 +221,7 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
                F32(static_cast<double>(F32(frame.y)) - static_cast<double>(ArrowBottom)), ArrowSize, ArrowSize,
                ArrowAlpha, true);
 
-        PlaceTheLogBar(log, modes, frame);
+        Ui::PlaceTheLogBar(log, modes, frame);
         const double right0 =
             static_cast<double>(x) + static_cast<double>(width) - static_cast<double>(frame.thumbWidth);
         const float trackHeight = F32(static_cast<double>(frame.barBottom) - static_cast<double>(frame.barTop));
@@ -230,7 +230,7 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
         const float thumbX = F32(right0 - static_cast<double>(ThumbInset));
         const float thumbWidth = F32(static_cast<double>(frame.thumbWidth) - static_cast<double>(ThumbNarrower));
         std::optional<std::array<float, 2>> veil;
-        if (VisibleInTheLog(log, modes) < log.rows)
+        if (Ui::VisibleInTheLog(log, modes) < log.rows)
         {
             Quad(sprites, ChatThumbSlot, thumbX, frame.barTop, thumbWidth, trackHeight, 0.0f, 0.0f, ThumbUv, ThumbUv);
             if (hover == 3)
@@ -268,11 +268,11 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
              GripWidth, GripHeight, 0.0f, 0.0f, ThumbUv, GripDv);
         sprites.SetBlend(Render::BlendMode::Opaque);
     }
-    const std::string joined = JoinedChatFilter(log);
+    const std::string joined = Ui::JoinedChatFilter(log);
     if (!joined.empty())
     {
         // sprintf("%s: %s", Text.bmd 754, the words).
-        const std::string title = std::string(Ui::TextAt(view.texts, FilterTitleText).value_or("")) + ": " + joined;
+        const std::string title = std::string(Ui::TextAt(view.texts, Ui::FilterTitleText).value_or("")) + ": " + joined;
         context.textColors =
             Render::Text::TextColors{.text = 0xffc8dce6u, .background = modes.placement != 1 ? 0x96000000u : 0u};
         context.dcFont = Render::Text::FontKind::Bold;
@@ -327,7 +327,7 @@ void TextColors(std::int32_t type, Render::Text::TextColors& colors)
 }
 
 // With the log in its window, a black background is not drawn.
-void ClearBlackBackground(ChatModes modes, Render::Text::TextColors& colors)
+void ClearBlackBackground(Ui::ChatModes modes, Render::Text::TextColors& colors)
 {
     if (modes.placement == 1 && (colors.background & 0xffffffu) == 0)
         colors.background = 0;
@@ -335,11 +335,11 @@ void ClearBlackBackground(ChatModes modes, Render::Text::TextColors& colors)
 
 // 0x45cbb0, the vtable + 0x80: the line `row` (the mode of 0x5763510 + 8 is 0 in this main.exe: without the color
 // codes of "%c%c%s"). It returns the same as 0x45dec0.
-std::int32_t DrawTheRow(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
+std::int32_t DrawTheRow(const Ui::ChatLogState& log, Ui::ChatLogFrame& frame, Ui::ChatModes modes,
                         const ChatLogDrawContext& context, const ChatLogDrawView& view, std::size_t at,
                         std::int32_t row)
 {
-    const ChatEntry& entry = log.entries[at];
+    const Ui::ChatEntry& entry = log.entries[at];
     if (modes.placement == 1 && frame.x == 0)
     {
         ++row;
@@ -383,7 +383,7 @@ std::int32_t DrawTheRow(const ChatLogState& log, ChatLogFrame& frame, ChatModes 
             context.textColors.background = context.textColors.text;
             context.textColors.text = background;
         }
-        const std::string name = NameOf(entry) + ": ";
+        const std::string name = Ui::NameOf(entry) + ": ";
         const std::int32_t y = rowY();
         context.text.Draw(frame.x + NameX, y, name,
                           Render::Text::TextStyle{.font = style.font, .colors = context.textColors});
@@ -402,8 +402,8 @@ std::int32_t DrawTheRow(const ChatLogState& log, ChatLogFrame& frame, ChatModes 
 // 0x45d420, through 0x45cba0 (the vtable + 0x84): the buttons appear and leave by 0.2 per draw; without the chat field
 // open, the F2 one (turned off, darker and moved by one point), the size one and the transparency one, and the help of
 // the one under the mouse.
-void DrawTheButtons(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
-                    const ChatLogDrawView& view)
+void DrawTheButtons(const Ui::ChatLogState& log, Ui::ChatLogFrame& frame, Ui::ChatModes modes,
+                    const ChatLogDrawContext& context, const ChatLogDrawView& view)
 {
     if (log.buttonsShown == 1 && frame.buttonsAlpha < 1.0f)
         frame.buttonsAlpha = F32(static_cast<double>(frame.buttonsAlpha) + static_cast<double>(ButtonsFade));
@@ -445,7 +445,7 @@ void DrawTheButtons(const ChatLogState& log, ChatLogFrame& frame, ChatModes mode
     {
         const std::array<float, 3> xs{ButtonsX, second, third};
         const auto index = static_cast<std::size_t>(hover - 1);
-        const std::string_view help = Ui::TextAt(view.texts, ChatButtonHelpTexts[index]).value_or("");
+        const std::string_view help = Ui::TextAt(view.texts, Ui::ChatButtonHelpTexts[index]).value_or("");
         // 0x554340 leaves the text white on a transparent background.
         Ui::DrawHelp(sprites, context.text, Truncate(static_cast<double>(xs[index]) - static_cast<double>(HelpLeft)),
                      Truncate(static_cast<double>(ButtonsY) - static_cast<double>(HelpRise)), help);
@@ -456,11 +456,11 @@ void DrawTheButtons(const ChatLogState& log, ChatLogFrame& frame, ChatModes mode
 }
 } // namespace
 
-void DrawTheChatLog(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
-                    const ChatLogDrawView& view)
+void DrawTheChatLog(const Ui::ChatLogState& log, Ui::ChatLogFrame& frame, Ui::ChatModes modes,
+                    const ChatLogDrawContext& context, const ChatLogDrawView& view)
 {
     DrawTheFrame(log, frame, modes, context, view);
-    std::size_t at = FirstShownInTheLog(log, modes);
+    std::size_t at = Ui::FirstShownInTheLog(log, modes);
     context.sprites.SetColor(Render::Color{});
     context.dcFont = Render::Text::FontKind::Normal;
     for (std::int32_t row = 0; row < log.rows; ++row)

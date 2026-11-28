@@ -12,9 +12,9 @@
 #include "Events/EventGlobals.h"
 #include "Events/EventNpcWindows.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Monsters/NpcNames.h"
 #include "Social/SocialState.h"
@@ -29,6 +29,7 @@
 #include "Ui/OldWindowDraw.h"
 #include "Ui/OldWindowDrawParts.h"
 #include "Ui/PanelRegistry.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>
@@ -173,7 +174,7 @@ bool InBox(std::int32_t mouseX, std::int32_t mouseY, std::int32_t left, std::int
 }
 
 // The drawing's x87 comparisons: left ≤ mouse < left + width and top ≤ mouse < top + height.
-bool Hovered(const Hud::GameHudContext& context, float left, float top, float width, float height)
+bool Hovered(const Ui::GameHudContext& context, float left, float top, float width, float height)
 {
     const auto x = static_cast<double>(context.mouse.x);
     const auto y = static_cast<double>(context.mouse.y);
@@ -190,7 +191,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
     return *text;
 }
 
-Result Send(const Hud::GameUiContext& context, Protocol::Outgoing packet, std::string_view where)
+Result Send(const Ui::GameUiContext& context, Protocol::Outgoing packet, std::string_view where)
 {
     if (context.chat == nullptr)
         return Core::Unexpected(std::format("{}: el send() sin el contexto de la sesión", where));
@@ -217,7 +218,7 @@ Core::Expected<Protocol::Events::SerialPieces, std::string> SerialPiecesOf(const
 }
 
 // 0x5e6cb8..0x5e7248: the serial number entry's confirm button, at (ftol(0x1c2 + 35), ftol(corner + 290)), 120 × 22.
-Result StepTheSerialNumber(const Hud::GameUiContext& context)
+Result StepTheSerialNumber(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t left = Truncate(F32(static_cast<double>(WindowLeft) + static_cast<double>(SerialShift)));
@@ -235,7 +236,7 @@ Result StepTheSerialNumber(const Hud::GameUiContext& context)
     }
     else
     {
-        auto pieces = SerialPiecesOf(runtime.chat.input.dialogEdit);
+        auto pieces = SerialPiecesOf(runtime.chatInput.dialogEdit);
         if (!pieces.HasValue())
             return Core::Unexpected(std::move(pieces).Error());
         if (auto sent = Send(context, Protocol::Events::WriteSerialNumber(pieces.Value()), "0x5e7184");
@@ -257,7 +258,7 @@ void ForgetTheMoneyField(Social::SocialState& social)
 }
 
 // 0x5e7255..0x5e74c6: the close button.
-Result StepTheCloseButton(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Result StepTheCloseButton(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::MouseState& mouse = runtime.mouse;
@@ -273,20 +274,20 @@ Result StepTheCloseButton(const Hud::GameUiContext& context, Ui::PanelRegistry& 
     runtime.panels.field78abb00 = 0;
     if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     // 0x5e749c..0x5e74b6.
     runtime.ui.chatOpen = false;
     ForgetTheMoneyField(runtime.social);
     runtime.events.serialEntry = false;
     // 0x5e74bf: SetFocus([0x5763544]), with 0x6c7b8c at 1. 0x553570 (0x5535bd) already emptied the EDIT's text.
-    runtime.chat.input.focus = Chat::ChatFocus::Game;
+    runtime.chatInput.focus = Ui::ChatFocus::Game;
     return {};
 }
 
 // ----- The drawing.
 
 // The EDIT's vtable + 0x14, 0x468320, with the Windows focus on it.
-void DrawTheSerialEdit(Hud::GameHudContext& context, Ui::OldEdit& edit, bool focused)
+void DrawTheSerialEdit(Ui::GameHudContext& context, Ui::OldEdit& edit, bool focused)
 {
     const Ui::OldWindowDrawContext drawing{.sprites = context.sprites,
                                            .text = context.text,
@@ -297,10 +298,10 @@ void DrawTheSerialEdit(Hud::GameHudContext& context, Ui::OldEdit& edit, bool foc
 }
 
 // 0x5f696d..0x5f69e3: with 0x6c7b8c at 1, the EDIT of [0x5763504], reconfigured every frame and drawn.
-void DrawTheSerialField(Hud::GameHudContext& context, std::int32_t left, std::int32_t top)
+void DrawTheSerialField(Ui::GameHudContext& context, std::int32_t left, std::int32_t top)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     Ui::OldEdit copy = input.dialogEdit;
     Ui::OldEdit& edit = context.projecting ? copy : input.dialogEdit;
     edit.base.state = Ui::ShownWindow;
@@ -315,24 +316,24 @@ void DrawTheSerialField(Hud::GameHudContext& context, std::int32_t left, std::in
     // 0x4682a0(0): the Windows focus and the EDIT's id (7) in 0x5762ec0, the list that takes the arrows.
     if (!context.projecting)
     {
-        input.focus = Chat::ChatFocus::Dialog;
+        input.focus = Ui::ChatFocus::Dialog;
         runtime.ui.focusedList = edit.base.id;
     }
     DrawTheSerialEdit(context, edit, true);
 }
 
 // 0x5f66d6..0x5f6700 and 0x5f6806..0x5f6830: the top button, after the mouse color.
-void DrawTheButtonQuad(Hud::GameHudContext& context, float top, float height)
+void DrawTheButtonQuad(Ui::GameHudContext& context, float top, float height)
 {
-    Hud::WindowDrawing::Quad(context.sprites, ButtonSlot, static_cast<float>(ButtonLeft), top,
-                             static_cast<float>(ButtonWidth), height, ButtonDu, 1.0f);
+    Ui::WindowDrawing::Quad(context.sprites, ButtonSlot, static_cast<float>(ButtonLeft), top,
+                            static_cast<float>(ButtonWidth), height, ButtonDu, 1.0f);
 }
 
 // With the button pressed under the mouse, the normal font, the gray and, with the release, the click and the button
 // cleared (0x5f6696..0x5f66d2, 0x5f677a..0x5f67b5 and 0x5f6aa4..0x5f6adf).
-void PressTheButton(Hud::GameHudContext& context)
+void PressTheButton(Ui::GameHudContext& context)
 {
-    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.sprites.SetColor(Pressed);
     Kernel::MouseState& mouse = context.world.Runtime().mouse;
     if (!mouse.releasedClick || context.projecting)
@@ -342,7 +343,7 @@ void PressTheButton(Hud::GameHudContext& context)
 }
 
 // 0x5f6646..0x5f6865: window 4's button, or the others' except 3.
-Result DrawTheTopButton(Hud::GameHudContext& context, std::int32_t window, std::int32_t items)
+Result DrawTheTopButton(Ui::GameHudContext& context, std::int32_t window, std::int32_t items)
 {
     const bool click = context.world.Runtime().mouse.pendingClick;
     if (window == MutoNumberWindow)
@@ -355,7 +356,7 @@ Result DrawTheTopButton(Hud::GameHudContext& context, std::int32_t window, std::
         auto text = TextOf(context.texts, MutoButtonText, "0x5f6705");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        Hud::WindowDrawing::DrawCenteredText(context, ButtonTextLeft, MutoButtonTextTop, text.Value());
+        Ui::WindowDrawing::DrawCenteredText(context, ButtonTextLeft, MutoButtonTextTop, text.Value());
         return {};
     }
     const auto top = static_cast<float>(ChipButtonTop);
@@ -365,7 +366,7 @@ Result DrawTheTopButton(Hud::GameHudContext& context, std::int32_t window, std::
     else
     {
         // 0x5f67b9..0x5f6804: in white and bold with items, in gray and normal without them.
-        Hud::WindowDrawing::SelectFont(context, items > 0 ? FontKind::Bold : FontKind::Normal);
+        Ui::WindowDrawing::SelectFont(context, items > 0 ? FontKind::Bold : FontKind::Normal);
         context.sprites.SetColor(items > 0 ? White : Pressed);
     }
     DrawTheButtonQuad(context, top, height);
@@ -374,12 +375,12 @@ Result DrawTheTopButton(Hud::GameHudContext& context, std::int32_t window, std::
     auto text = TextOf(context.texts, window == RenaChipWindow ? RenaButtonText : StoneButtonText, "0x5f6853");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    Hud::WindowDrawing::DrawCenteredText(context, ButtonTextLeft, ChipButtonTextTop, text.Value());
+    Ui::WindowDrawing::DrawCenteredText(context, ButtonTextLeft, ChipButtonTextTop, text.Value());
     return {};
 }
 
 // 0x5f6872..0x5f6b47: the serial number entry, with x = 450 + 35 and y = the corner + 250.
-Result DrawTheSerialEntry(Hud::GameHudContext& context)
+Result DrawTheSerialEntry(Ui::GameHudContext& context)
 {
     const float left = F32(static_cast<double>(SerialLeft) + static_cast<double>(SerialShift));
     float top = F32(static_cast<double>(context.hud.inventoryY) + static_cast<double>(SerialTop));
@@ -392,18 +393,18 @@ Result DrawTheSerialEntry(Hud::GameHudContext& context)
         if (line == 1)
             context.hud.textColors = SerialNoteColors;
         if (line == 3)
-            Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
+            Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
         auto text = TextOf(context.texts, SerialTexts[line], "0x5f68a7");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        Hud::WindowDrawing::DrawCenteredText(context, middle, row - Above[line], text.Value());
+        Ui::WindowDrawing::DrawCenteredText(context, middle, row - Above[line], text.Value());
     }
-    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
     // 0x5f6918..0x5f695b: the frame, with 0x6c8e5c at 0xfff0ff96.
     context.hud.textColors = TitleColors;
-    Hud::WindowDrawing::Quad(context.sprites, SerialFrameSlot, F32(static_cast<double>(left) + SerialFrameLeft),
-                             F32(static_cast<double>(top) + SerialFrameTop), SerialFrameWidth, SerialFrameHeight,
-                             SerialFrameDu, SerialFrameDv);
+    Ui::WindowDrawing::Quad(context.sprites, SerialFrameSlot, F32(static_cast<double>(left) + SerialFrameLeft),
+                            F32(static_cast<double>(top) + SerialFrameTop), SerialFrameWidth, SerialFrameHeight,
+                            SerialFrameDu, SerialFrameDv);
     DrawTheSerialField(context, Truncate(left), row);
     // 0x5f6a43..0x5f6aef: the confirm button, 40 lower.
     top = F32(static_cast<double>(top) + static_cast<double>(ConfirmBelow));
@@ -414,19 +415,19 @@ Result DrawTheSerialEntry(Hud::GameHudContext& context)
         else
             context.hud.textColors = HoveredConfirmColors;
     }
-    Hud::WindowDrawing::Quad(context.sprites, ButtonSlot, left, top, static_cast<float>(ButtonWidth),
-                             static_cast<float>(ChipButtonHeight), ButtonDu, 1.0f);
+    Ui::WindowDrawing::Quad(context.sprites, ButtonSlot, left, top, static_cast<float>(ButtonWidth),
+                            static_cast<float>(ChipButtonHeight), ButtonDu, 1.0f);
     auto confirm = TextOf(context.texts, ConfirmText, "0x5f6b28");
     if (!confirm.HasValue())
         return Core::Unexpected(std::move(confirm).Error());
-    Hud::WindowDrawing::DrawCenteredText(context, Truncate(F32(static_cast<double>(left) + ConfirmTextLeft)),
-                                         Truncate(F32(static_cast<double>(top) + ConfirmTextTop)), confirm.Value());
+    Ui::WindowDrawing::DrawCenteredText(context, Truncate(F32(static_cast<double>(left) + ConfirmTextLeft)),
+                                        Truncate(F32(static_cast<double>(top) + ConfirmTextTop)), confirm.Value());
     return {};
 }
 
 // 0x5f6d7e..0x5f6e55: the 9D result (0x78ab078) if its first byte is not that of 0x78abb84 (.bss at 0): a black bold
 // shadow and the text in 0xff67d2ff, in gray or white by the sign of sin(clock · 0.01f).
-void DrawTheSerialResult(Hud::GameHudContext& context, std::int32_t middle, std::int32_t top)
+void DrawTheSerialResult(Ui::GameHudContext& context, std::int32_t middle, std::int32_t top)
 {
     const auto& serial = context.world.Runtime().events.serial;
     if (serial[0] == std::byte{0})
@@ -439,19 +440,19 @@ void DrawTheSerialResult(Hud::GameHudContext& context, std::int32_t middle, std:
         text.push_back(static_cast<char>(letter));
     }
     context.sprites.SetColor(Black);
-    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
-    Hud::WindowDrawing::DrawCenteredText(context, middle + 1, top + SerialResultBelow + 1, text);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
+    Ui::WindowDrawing::DrawCenteredText(context, middle + 1, top + SerialResultBelow + 1, text);
     const double wave = Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(BlinkRate));
     context.sprites.SetColor(wave < 0.0 ? White : Dimmed);
     context.hud.textColors = SerialResultColors;
-    Hud::WindowDrawing::DrawCenteredText(context, middle, top + SerialResultBelow, text);
+    Ui::WindowDrawing::DrawCenteredText(context, middle, top + SerialResultBelow, text);
     context.sprites.SetColor(White);
-    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = TitleColors;
 }
 
 // 0x5f6c6c..0x5f6eb0: the type's four texts, in steps of 15.
-Result DrawTheTypeTexts(Hud::GameHudContext& context, std::int32_t window)
+Result DrawTheTypeTexts(Ui::GameHudContext& context, std::int32_t window)
 {
     const std::array<std::size_t, 4>* texts = nullptr;
     float top = TypeTextTop;
@@ -479,8 +480,8 @@ Result DrawTheTypeTexts(Hud::GameHudContext& context, std::int32_t window)
         auto text = TextOf(context.texts, (*texts)[line], "0x5f6cbf");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        Hud::WindowDrawing::DrawCenteredText(context, middle, first + static_cast<std::int32_t>(line) * TypeTextStep,
-                                             text.Value());
+        Ui::WindowDrawing::DrawCenteredText(context, middle, first + static_cast<std::int32_t>(line) * TypeTextStep,
+                                            text.Value());
     }
     if (window == SerialNumberWindow)
         DrawTheSerialResult(context, middle, first);
@@ -488,27 +489,27 @@ Result DrawTheTypeTexts(Hud::GameHudContext& context, std::int32_t window)
 }
 
 // 0x5f6ec8..0x5f7047: the label of 1 or 2 in bold and, except with 3, the count with "x%d" in the big font.
-Result DrawTheCount(Hud::GameHudContext& context, std::int32_t window, std::size_t renaLabel, std::size_t stoneLabel,
+Result DrawTheCount(Ui::GameHudContext& context, std::int32_t window, std::size_t renaLabel, std::size_t stoneLabel,
                     std::int32_t labelTop, std::int32_t count, float countTop, float fifthTop)
 {
-    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
     if (window == RenaChipWindow || window == StoneChipWindow)
     {
         auto label = TextOf(context.texts, window == RenaChipWindow ? renaLabel : stoneLabel, "0x5f6ef9");
         if (!label.HasValue())
             return Core::Unexpected(std::move(label).Error());
-        Hud::WindowDrawing::DrawText(context, LabelLeft, labelTop, label.Value());
+        Ui::WindowDrawing::DrawText(context, LabelLeft, labelTop, label.Value());
     }
     if (window == SerialNumberWindow)
         return {};
-    Hud::WindowDrawing::SelectFont(context, FontKind::BigBold);
+    Ui::WindowDrawing::SelectFont(context, FontKind::BigBold);
     const std::string text = "x" + std::to_string(count);
     context.hud.textColors = CountColors;
     // 0x5f6f4a: the table at 0x5f7078 (and 0x5f708c) only draws with 1, 2, 4 and 5.
     if (window == RenaChipWindow || window == StoneChipWindow || window == MutoNumberWindow)
-        Hud::WindowDrawing::DrawText(context, CountLeft, Truncate(countTop), text);
+        Ui::WindowDrawing::DrawText(context, CountLeft, Truncate(countTop), text);
     else if (window == FifthWindow)
-        Hud::WindowDrawing::DrawText(context, CountLeft, Truncate(fifthTop), text);
+        Ui::WindowDrawing::DrawText(context, CountLeft, Truncate(fifthTop), text);
     return {};
 }
 } // namespace
@@ -516,18 +517,18 @@ Result DrawTheCount(Hud::GameHudContext& context, std::int32_t window, std::size
 void OpenTheSerialEntry(Kernel::WorldRuntime& runtime)
 {
     runtime.events.serial = {};
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     runtime.ui.chatOpen = false;
     ForgetTheMoneyField(runtime.social);
     runtime.social.dialogFieldLimit = SerialFieldLimit;
-    runtime.chat.input.fieldCount = 1;
+    runtime.chatInput.fieldCount = 1;
     runtime.events.serialEntry = true;
 }
 
 void CloseTheSerialEntry(Kernel::WorldRuntime& runtime)
 {
-    Chat::ChatInputState& input = runtime.chat.input;
-    input.field = Chat::MessageField;
+    Ui::ChatInputState& input = runtime.chatInput;
+    input.field = Ui::MessageField;
     input.messageBuffer.fill('\0');
     input.messageLength = 0;
     // 0x56b6f6..0x56b70d: vtable + 0x4c with 0 of the two EDITs, [0x5763504] and [0x5763508].
@@ -538,7 +539,7 @@ void CloseTheSerialEntry(Kernel::WorldRuntime& runtime)
     runtime.events.serialEntry = false;
 }
 
-Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheEventChipWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t window = runtime.panels.field78abb00;
@@ -588,7 +589,7 @@ Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContex
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheEventChipWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t window = runtime.panels.field78abb00;
@@ -599,16 +600,16 @@ Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& co
     sprites.SetBlend(Render::BlendMode::Alpha);
     context.hud.inventoryX = WindowLeft;
     context.hud.inventoryY = WindowTop;
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
     context.hud.textColors = TitleColors;
     // 0x5f65df: 0x554180 with 0x54ebb0(0xec), the name of NPC 236 in the NpcName(%s).txt table (0x7681eb8, loaded by
     // 0x54e7f0, CL9 milestone 2). Without a record of that type, 0x54ebb0 gives NULL and 0x554180 draws nothing: it
     // measures lstrlen(NULL), 0 characters, like the quests' title (0x41be9e).
     const std::optional<std::string> title = Monsters::NpcNameOf(runtime.npcNames, TitleNpc);
     if (title)
-        Hud::WindowDrawing::DrawTitle(context, WindowLeft + 0x23, WindowTop + 0xc, *title);
+        Ui::WindowDrawing::DrawTitle(context, WindowLeft + 0x23, WindowTop + 0xc, *title);
     else
-        Hud::WindowDrawing::DrawText(context, WindowLeft + 0x23, WindowTop + 0xc, {});
+        Ui::WindowDrawing::DrawText(context, WindowLeft + 0x23, WindowTop + 0xc, {});
     // 0x5f6609..0x5f661b: the count of 0x1c15, level 1 with window 2.
     const std::int32_t items =
         CountInventoryItems(context.world.Inventory(), ChipItem, window == StoneChipWindow ? StoneLevel : 0);
@@ -621,14 +622,14 @@ Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& co
     else if (auto button = DrawTheTopButton(context, window, items); !button.HasValue())
         return button;
     // 0x5f6b4c..0x5f6c66: the close button and its help; then the normal font and 0xffd2e6ff over 0.
-    if (Hud::WindowDrawing::DrawTheCloseButton(context, context.hud.inventoryX, context.hud.inventoryY))
+    if (Ui::WindowDrawing::DrawTheCloseButton(context, context.hud.inventoryX, context.hud.inventoryY))
     {
         auto help = TextOf(context.texts, CloseHelpText, "0x5f6c25");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        Hud::WindowDrawing::DrawTheCloseHelp(context, context.hud.inventoryX, context.hud.inventoryY, help.Value());
+        Ui::WindowDrawing::DrawTheCloseHelp(context, context.hud.inventoryX, context.hud.inventoryY, help.Value());
     }
-    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = BodyColors;
     if (auto texts = DrawTheTypeTexts(context, window); !texts.HasValue())
         return texts;
@@ -645,7 +646,7 @@ Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& co
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheEventChipItems(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheEventChipItems(Ui::GameHudContext& context)
 {
     const std::int32_t window = context.world.Runtime().panels.field78abb00;
     std::int32_t type = ChipItem;

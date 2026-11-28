@@ -8,7 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "ChaosMix/ChaosMix.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Items/HudItems.h"
 #include "Items/InventoryMoves.h"
 #include "Items/ItemPrice.h"
@@ -112,7 +112,7 @@ constexpr std::array<std::uint32_t, 3> MixPrices{0, 5'000'000, 1'000'000};
 constexpr std::uint8_t HorseMixKind = 0x0d;
 constexpr std::uint8_t RavenMixKind = 0x0e;
 
-bool Inside(const Hud::GameUiContext& context, const Rect& rect)
+bool Inside(const Ui::GameUiContext& context, const Rect& rect)
 {
     return context.mouseX >= rect.left && context.mouseX < rect.right && context.mouseY >= rect.top &&
            context.mouseY < rect.bottom;
@@ -127,7 +127,7 @@ void ConsumeTheClick(Kernel::MouseState& mouse)
 
 // The button of `count` from `firstTop` every `step` under the mouse with the click, as 0x44b580 and 0x44b972 walk
 // them.
-std::optional<std::size_t> PressedButton(const Hud::GameUiContext& context, std::int32_t firstTop, std::int32_t step)
+std::optional<std::size_t> PressedButton(const Ui::GameUiContext& context, std::int32_t firstTop, std::int32_t step)
 {
     if (!context.world.Runtime().mouse.pendingClick)
         return std::nullopt;
@@ -308,7 +308,7 @@ Core::Expected<PetRecoveryQuote, std::string> QuoteThePetRecovery(const PetQuote
         .price = price, .line = PetQuoteLine::Cost, .number = priced ? priced->text : std::string{}};
 }
 
-Core::Expected<void, std::string> StepTheTrainer(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTrainer(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     switch (context.world.Runtime().panels.delegated.trainer)
     {
@@ -324,7 +324,7 @@ Core::Expected<void, std::string> StepTheTrainer(const Hud::GameUiContext& conte
     }
 }
 
-Core::Expected<void, std::string> StepTheTrainerMenu(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTrainerMenu(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (Inside(context, SmallWindow))
@@ -357,7 +357,7 @@ Core::Expected<void, std::string> StepTheTrainerMenu(const Hud::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> StepThePetRecovery(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepThePetRecovery(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::MouseState& mouse = runtime.mouse;
@@ -404,7 +404,7 @@ Core::Expected<void, std::string> StepThePetRecovery(const Hud::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> StepTheTrainerBox(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTrainerBox(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::MouseState& mouse = runtime.mouse;

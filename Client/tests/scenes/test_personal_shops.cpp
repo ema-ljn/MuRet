@@ -29,6 +29,7 @@
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 #include "support/ViewportHandlers.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 
@@ -248,15 +249,15 @@ TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
     EXPECT_EQ(Shops().titles.at(Seller).title, "Espadas baratas");
     EXPECT_EQ(Shops().titles.at(Buyer).title, "Compro joyas");
     EXPECT_EQ(m_world->Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
-    EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
-    EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Monster));
-    EXPECT_TRUE(Client::PersonalShop::ShopTitleShown(Shops(), Seller));
+    EXPECT_TRUE(Client::Social::HasShopTitle(Shops(), Seller));
+    EXPECT_FALSE(Client::Social::HasShopTitle(Shops(), Monster));
+    EXPECT_TRUE(Client::Social::ShopTitleShown(Shops(), Seller));
 
     // Another 3F 00 with the same key changes the title; 0x451430 removes it.
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Escudos"}}}, *m_world);
     EXPECT_EQ(Shops().titles.at(Seller).title, "Escudos");
-    Client::PersonalShop::RemoveShopTitle(Shops(), Seller);
-    EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
+    Client::Social::RemoveShopTitle(Shops(), Seller);
+    EXPECT_FALSE(Client::Social::HasShopTitle(Shops(), Seller));
 }
 
 // 0x4db700: with 1, 0x78aba50 at 1 and the hero's sign with the own title (0x78aba64); with another result, nothing.
@@ -270,7 +271,7 @@ TEST_P(PersonalShopsTest, TheOwnShopOpensAndAnotherShopShowsItsTitle)
     EXPECT_TRUE(Shops().titles.empty());
     Client::Social::ApplyShopCreated(Shop::ShopCreated{1}, *m_world);
     EXPECT_EQ(Shops().ownOpen, 1);
-    ASSERT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Hero));
+    ASSERT_TRUE(Client::Social::HasShopTitle(Shops(), Hero));
     EXPECT_EQ(Shops().titles.at(Hero).title, "Pociones");
     EXPECT_EQ(Shops().titles.at(Hero).key, HeroKey);
 
@@ -279,19 +280,19 @@ TEST_P(PersonalShopsTest, TheOwnShopOpensAndAnotherShopShowsItsTitle)
     for (std::size_t at = 0; at < wrong.size(); ++at)
         other.name[at] = static_cast<std::byte>(wrong[at]);
     Client::Social::ApplyOtherShopTitle(other, *m_world);
-    EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
+    EXPECT_FALSE(Client::Social::HasShopTitle(Shops(), Seller));
     other.name[4] = static_cast<std::byte>('a');
     other.name[5] = static_cast<std::byte>('l');
     Client::Social::ApplyOtherShopTitle(other, *m_world);
-    ASSERT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
+    ASSERT_TRUE(Client::Social::HasShopTitle(Shops(), Seller));
     EXPECT_EQ(Shops().titles.at(Seller).title, "Arcos");
 
     Client::Social::ApplyShopClosed(Shop::ShopClosed{.result = 0, .key = HeroKey}, *m_world);
     EXPECT_EQ(Shops().ownOpen, 1);
     Client::Social::ApplyShopClosed(Shop::ShopClosed{.result = 1, .key = HeroKey}, *m_world);
     EXPECT_EQ(Shops().ownOpen, 0);
-    EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Hero));
-    EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
+    EXPECT_FALSE(Client::Social::HasShopTitle(Shops(), Hero));
+    EXPECT_TRUE(Client::Social::HasShopTitle(Shops(), Seller));
 }
 
 // 0x4511f0 with another key for the same character: only the log. 0x451fe0: with the key changed or not a player, the
@@ -299,21 +300,21 @@ TEST_P(PersonalShopsTest, TheOwnShopOpensAndAnotherShopShowsItsTitle)
 TEST_P(PersonalShopsTest, StaleTitlesLeave)
 {
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos"}, {BuyerKey, "Joyas"}}}, *m_world);
-    Client::PersonalShop::AddShopTitle(*m_world, 0x0999, Seller, "Otra");
+    Client::Social::AddShopTitle(*m_world, 0x0999, Seller, "Otra");
     EXPECT_EQ(Shops().titles.at(Seller).title, "Arcos");
 
-    Client::PersonalShop::CheckTheShopKeys(*m_world);
+    Client::Social::CheckTheShopKeys(*m_world);
     EXPECT_EQ(Shops().titles.size(), 2u);
     m_world->Actors()[Seller].key = 0x0998;
     m_world->Actors()[Buyer].byte88 = 2;
-    Client::PersonalShop::CheckTheShopKeys(*m_world);
+    Client::Social::CheckTheShopKeys(*m_world);
     EXPECT_TRUE(Shops().titles.empty());
 
     m_world->Actors()[Buyer].byte88 = 1;
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{BuyerKey, "Joyas"}}}, *m_world);
-    ASSERT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Buyer));
+    ASSERT_TRUE(Client::Social::HasShopTitle(Shops(), Buyer));
     Client::Tests::ApplyViewportLeave(Client::Protocol::Actors::Leave{{BuyerKey}}, *m_world);
-    EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Buyer));
+    EXPECT_FALSE(Client::Social::HasShopTitle(Shops(), Buyer));
 }
 
 // 0x4524e0: the creation stores the key with & 0x7fff and the place at (−1, −1); 0x4511f0 with the same key also puts
@@ -321,29 +322,29 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
 // update does not match it and only goes to the log, and 0x451fe0 removes the sign (07 Q-C969).
 TEST_P(PersonalShopsTest, TheStoredKeyLosesItsHighBitAndAnUpdateUnplacesTheSign)
 {
-    Client::PersonalShop::AddShopTitle(*m_world, SellerKey, Seller, "Arcos");
+    Client::Social::AddShopTitle(*m_world, SellerKey, Seller, "Arcos");
     Client::Social::ShopTitle& sign = Shops().titles.at(Seller);
     EXPECT_EQ(sign.x, -1);
     EXPECT_EQ(sign.y, -1);
     sign.x = 120;
     sign.y = 80;
-    Client::PersonalShop::AddShopTitle(*m_world, SellerKey, Seller, "Escudos");
+    Client::Social::AddShopTitle(*m_world, SellerKey, Seller, "Escudos");
     EXPECT_EQ(sign.title, "Escudos");
     EXPECT_EQ(sign.x, -1);
     EXPECT_EQ(sign.y, -1);
 
     m_world->Actors()[Buyer].key = 0x8001;
     const std::int32_t high = static_cast<std::int16_t>(std::uint16_t{0x8001});
-    Client::PersonalShop::AddShopTitle(*m_world, high, Buyer, "Joyas");
-    ASSERT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Buyer));
+    Client::Social::AddShopTitle(*m_world, high, Buyer, "Joyas");
+    ASSERT_TRUE(Client::Social::HasShopTitle(Shops(), Buyer));
     EXPECT_EQ(Shops().titles.at(Buyer).key, 0x0001);
     Shops().titles.at(Buyer).x = 33;
-    Client::PersonalShop::AddShopTitle(*m_world, high, Buyer, "Otra");
+    Client::Social::AddShopTitle(*m_world, high, Buyer, "Otra");
     EXPECT_EQ(Shops().titles.at(Buyer).title, "Joyas");
     EXPECT_EQ(Shops().titles.at(Buyer).x, 33);
-    Client::PersonalShop::CheckTheShopKeys(*m_world);
-    EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Buyer));
-    EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
+    Client::Social::CheckTheShopKeys(*m_world);
+    EXPECT_FALSE(Client::Social::HasShopTitle(Shops(), Buyer));
+    EXPECT_TRUE(Client::Social::HasShopTitle(Shops(), Seller));
 }
 
 // 0x451590, after each 0x510f70 of the player's key (the map load, the F3 04 and the 1C): only the sign with the
@@ -354,9 +355,9 @@ TEST_P(PersonalShopsTest, ALoadKeepsOnlyTheHeroTitle)
     Client::Social::ApplyShopCreated(Shop::ShopCreated{1}, *m_world);
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos"}, {BuyerKey, "Joyas"}}}, *m_world);
     ASSERT_EQ(Shops().titles.size(), 3u);
-    Client::PersonalShop::KeepTheHeroShopTitle(*m_world);
+    Client::Social::KeepTheHeroShopTitle(*m_world);
     ASSERT_EQ(Shops().titles.size(), 1u);
-    EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Hero));
+    EXPECT_TRUE(Client::Social::HasShopTitle(Shops(), Hero));
 }
 
 // 0x5576a0..0x5576c9: with its owner's bubble on view, the sign hides (0x451720) and stops counting for the name under
@@ -369,11 +370,11 @@ TEST_P(PersonalShopsTest, ABubbleHidesTheTitle)
     bubble.time1 = 5;
     const Client::Chat::ChatBubbleStepInput input{.mouseX = 0, .mouseY = 0, .screen = {640, 480}};
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
-    EXPECT_FALSE(Client::PersonalShop::ShopTitleShown(Shops(), Seller));
-    EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
+    EXPECT_FALSE(Client::Social::ShopTitleShown(Shops(), Seller));
+    EXPECT_TRUE(Client::Social::HasShopTitle(Shops(), Seller));
     bubble.time1 = 1;
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
-    EXPECT_TRUE(Client::PersonalShop::ShopTitleShown(Shops(), Seller));
+    EXPECT_TRUE(Client::Social::ShopTitleShown(Shops(), Seller));
 }
 
 // 0x556dd0: the new bubble of an owner with a sign (0x451810) carries its short title (0x4518b0): with more than 14

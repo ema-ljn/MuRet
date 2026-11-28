@@ -37,6 +37,12 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/TableFiles.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/Dialogs.h"
+#include "Ui/GameUiState.h"
+#include "Ui/PanelRegistry.h"
+#include "Ui/GameHudContext.h"
 
 #include <gtest/gtest.h>
 
@@ -64,7 +70,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
@@ -73,6 +78,7 @@ using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -565,7 +571,7 @@ protected:
     Client::Ui::Point mouse{};
     bool leftDown = false;
     bool controlDown = false;
-    const Client::Scenes::GameProjection* projection = nullptr;
+    const Client::Kernel::GameProjection* projection = nullptr;
     Client::Tables::GameData data;
 };
 
@@ -587,7 +593,7 @@ TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
         ExpectTheTraceQuad(quads[i], trace[i]);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(world.Runtime().movement.skillDepths[0x2c], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[0x2c], 0);
     // Life below 20 %: the sound 0x22 of 0x5a97c3.
     EXPECT_EQ(sound, Client::Audio::SoundId{0x22});
     // The only text is the helper's name, which ends at x = 575 + 50.
@@ -762,7 +768,7 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
 // field open, the box without blending (0xf8 and 0xf9) and, with the F3 mode, its indicator (0xef).
 TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
 {
-    world.Runtime().hud.macroTime = Client::Chat::MacroLockSteps;
+    world.Runtime().hud.macroTime = Client::Ui::MacroLockSteps;
     world.Runtime().ui.chatOpen = true;
 
     ASSERT_TRUE(Hud().HasValue());
@@ -1067,7 +1073,7 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     EXPECT_NE(cut.Error().find("0x5a90be"), std::string::npos) << cut.Error();
 
     // The view leaves the eye at (x, y, 1): the owner at the origin goes to the center.
-    Client::Scenes::GameProjection flat;
+    Client::Kernel::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
     flat.verticalScale = 1.0f;
@@ -1095,7 +1101,7 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
     const std::optional<std::string_view> header = data.text->Text(1104);
     ASSERT_TRUE(header.has_value());
     const int headerWidth = static_cast<int>(header->size()) * 6;
-    Client::Scenes::GameProjection flat;
+    Client::Kernel::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
     flat.verticalScale = 1.0f;
@@ -1153,7 +1159,7 @@ TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
     EXPECT_NE(cut.Error().find("0x42a529"), std::string::npos) << cut.Error();
     EXPECT_EQ(bars.size(), 3u);
 
-    Client::Scenes::GameProjection flat;
+    Client::Kernel::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
     flat.verticalScale = 1.0f;

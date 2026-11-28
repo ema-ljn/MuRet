@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Data/Terrain/TerrainObjects.h"
-#include "Effects/ModelEffects.h"
+#include "Kernel/HeldModules.h"
 #include "Kernel/KalimaWater.h"
 #include "Kernel/WorldObject.h"
 
@@ -14,7 +14,7 @@
 // is each scene's. Contract: Client/docs/research/06-render-escenas-y-ui.md, "La carga del mapa".
 namespace Client::Kernel
 {
-struct WorldMap
+struct WorldMap : MapModules
 {
     // Internal invalidation per LoadMap attempt; neither a counter nor a native rand.
     std::uint64_t loadRevision = 0;
@@ -27,7 +27,5 @@ struct WorldMap
     std::vector<Data::Terrain::TerrainObject> objectRecords;
     std::vector<Kernel::WorldObject> objects;
     Kernel::WorldObjectRegistrations registrations;
-    // The effects with a model (0x7491fd8), the arrival effect's (0x61f) included.
-    Effects::ModelEffects effects;
 };
 } // namespace Client::Kernel

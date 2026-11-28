@@ -23,7 +23,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildState.h"
@@ -73,7 +73,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 using Client::Render::Color;
@@ -81,6 +80,7 @@ using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x7ade;
 constexpr std::uint16_t HeroKey = 33;

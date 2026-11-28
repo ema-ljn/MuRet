@@ -18,6 +18,7 @@
 #include "support/GoldenDir.h"
 #include "support/TemporaryFolder.h"
 #include "support/PlayerActors.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float2.hpp>

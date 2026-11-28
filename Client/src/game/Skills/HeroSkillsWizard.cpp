@@ -765,7 +765,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     if (!chosen.HasValue())
         return Core::Unexpected(chosen.Error());
     Kernel::ActorState& target = *chosen.Value();
-    if (m_runtime.castleSiege.siegeActive)
+    if (m_runtime.castleFlags.siegeActive)
     {
         // 0x5925f3..0x5926c8: the siege post (+0x360) of the published hero and of the hero, in the same pair.
         const std::uint8_t published = m_world.Hero().byte360;

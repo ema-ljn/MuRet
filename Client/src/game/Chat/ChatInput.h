@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Chat/MacroFile.h"
 #include "Ui/OldControls.h"
 #include "Ui/OldWindowBase.h"
 #include "Ui/TextField.h"
@@ -23,7 +24,7 @@
 //
 // The EDITs share OldEdit and XP's Western Windows-1252 profile. The conversion, the visible preedit and EDIT's exact
 // horizontal scrolling still need an XP comparison (P-C181). The text does not go to the log.
-namespace Client::Chat
+namespace Client::Ui
 {
 // 0x4691e0: EM_LIMITTEXT of the message (0x32) and of the whisper (10).
 inline constexpr std::size_t ChatMessageLimit = 0x32;
@@ -38,15 +39,13 @@ inline constexpr std::int32_t FirstWhisperNameSlot = 2;
 inline constexpr std::int32_t LastWhisperNameSlot = 4;
 // 0x5a01bc and 0x5a0244: strncpy(…, 0xb), the name and its '\0'.
 inline constexpr std::size_t WhisperNameCopy = 0xb;
-// 0x77f1db0..0x77f27b0: ten macros of 0x100, Alt + 1's first and Alt + 0's last.
-inline constexpr std::size_t MacroCount = 10;
 // 0x5a1ea1: what a macro that hit the brake leaves in 0x77f3b74 (HudState::macroTime).
 inline constexpr std::int32_t MacroLockSteps = 0x64;
 // 0x77f3b70: the chosen field. Tab moves it between 0 and 0x6c8e6c − 1; the odd ones are the whisper's.
 inline constexpr std::int32_t MessageField = 0;
 inline constexpr std::int32_t WhisperField = 1;
 // 0x4bb01b/0x4bb02c → 0x4674c0 → 0x45a210 → 0x459ef0: WinMain's first two controls.
-// The ids follow the same inferred order as DialogFieldId and Chat::ChatLogId.
+// The ids follow the same inferred order as DialogFieldId and Ui::ChatLogId.
 inline constexpr std::int32_t ChatMessageEditId = 1;
 inline constexpr std::int32_t ChatWhisperEditId = 2;
 // 0x6c8e6c: how many fields Tab walks, 2 from the first game step and on opening.
@@ -59,7 +58,7 @@ inline constexpr std::int32_t ChatFieldCount = 2;
 inline constexpr std::size_t DialogFieldLimit = 0x32;
 inline constexpr std::size_t NumberFieldLimit = 9;
 // +0x40 of both (the counter 0x5762eb0, 0x459ef0): WinMain first builds the six EDITs of [0x57634f8], [0x57634fc] and
-// [0x5763500], which take 1 to 6, and then the chat log (Chat::ChatLogId, 9). *Inferred*, like that one.
+// [0x5763500], which take 1 to 6, and then the chat log (Ui::ChatLogId, 9). *Inferred*, like that one.
 inline constexpr std::int32_t DialogFieldId = 7;
 inline constexpr std::int32_t NumberFieldId = 8;
 // 0x469790(10000): back to the newest.
@@ -171,7 +170,7 @@ struct ChatInputState
     std::int32_t brake = 0;
     std::string lastSaid;
     // 0x77f1db0: the macros, as Data\Macro.txt left them (0x61c1c0) and /1../0 changes them (0x56f0b0).
-    std::array<std::string, MacroCount> macros{};
+    std::array<std::string, Tables::MacroCount> macros{};
 };
 
 // The focused EDIT of the chat or of its dialogs; the old manager's one is resolved in FriendWindows.
@@ -270,4 +269,4 @@ bool StepTheWhisperName(ChatInputState& input, std::int32_t direction, std::int3
 
 // 0x59ffe0..0x5a0083: strcpy of the name to the whisper buffer and its length; the EDIT does not change (Q-C530).
 void PutTheWhisperName(ChatInputState& input, std::string_view name);
-} // namespace Client::Chat
+} // namespace Client::Ui

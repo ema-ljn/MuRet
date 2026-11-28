@@ -60,7 +60,7 @@ struct ChatReceiveContext
     // 0x4c6098: at the login scene the 00 asks the ConnectServer for the list again through the open socket.
     std::function<void()> requestServerList{};
     // The connections of the rooms of the chat with a friend (the session); without them, the CA that enters one stops.
-    App::IChatRoomLinks* rooms = nullptr;
+    Chat::IChatRoomLinks* rooms = nullptr;
     // CL9 milestone 10: the game parts the letters' portrait character uses (Messenger/LetterPortrait), which outlive
     // the packet. nullptr: the C7 stops at 0x4dcd0e (P-C212).
     const Scenes::WorldEntryResources* worldEntry = nullptr;

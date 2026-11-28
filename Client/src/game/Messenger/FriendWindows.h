@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Chat/ChatInput.h"
 #include "Ui/OldWindows.h"
 #include "Ui/OldEditInput.h" // IWYU pragma: export
 
@@ -13,15 +12,6 @@
 // The friends window (CL9 milestone 9; 06 § HUD y ventanas, "Los amigos"): what the game and packets C0..C4 ask of
 // the old windows' manager. The window, its tabs and the add-a-friend box are classes of the manager (OldWindowKind)
 // and run through its step (Ui/OldWindows); here is what is called from outside.
-namespace Client::Render::Text
-{
-class ITextMeasure;
-}
-
-namespace Client::Platform
-{
-class IClipboard;
-} // namespace Client::Platform
 namespace Client::Ui
 {
 struct OldWindowDrawView;
@@ -62,21 +52,6 @@ void MarkTheFriendList(Ui::OldWindowManager& manager, std::int32_t received, con
 
 // 0x4a4440: the name of the one who asked to be a friend, in the C2's box.
 void RememberTheFriendRequest(Ui::OldWindowManager& manager, std::int32_t box, std::string_view name);
-
-// The old windows' EDIT with the focus (SetFocus of 0x4682a0): what the player types (WM_CHAR), delete and Enter,
-// which the subclass 0x467b10 sends to its parent as the 7 if the window list is not armed (+0x150).
-[[nodiscard]] bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Chat::ChatFocus focus);
-void TypeInTheOldEdit(Ui::OldWindowManager& manager, std::string_view typed);
-void BackspaceInTheOldEdit(Ui::OldWindowManager& manager);
-// With +0xc4 at 1, the arrows, Home, End, PgUp, PgDn, delete and paste are the multiline EDIT's (Ui/OldEditLines.h,
-// with `measure` for the lines). Tab passes the focus to the EDIT at +0x98 (0x467d07) and leaves the arrows' list on
-// it (`focusedList`, 0x5762ec0).
-void ApplyKeyToTheOldEdit(Ui::OldWindowManager& manager, Ui::OldEditKey key, bool shift, bool ctrl,
-                          Platform::IClipboard* clipboard = nullptr,
-                          const Render::Text::ITextMeasure* measure = nullptr, std::int32_t* focusedList = nullptr);
-void SetTheOldEditComposition(Ui::OldWindowManager& manager, std::string_view text, std::int32_t start,
-                              std::int32_t length);
-void PressEnterInTheOldEdit(Ui::OldWindowManager& manager);
 
 // What the drawing of the friends window (0x4a2620), its tabs (0x49cc20 and 0x49e7f0) and the add box (0x4a3750) does
 // before drawing: dragged or resizing, they place and measure their children again (the 8 and the 9 with 0x45aa50),

@@ -9,7 +9,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
@@ -18,6 +18,8 @@
 #include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -38,13 +40,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Npc::NpcWindowState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Tests::RecordedText;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x0c4a05u;

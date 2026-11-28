@@ -39,6 +39,7 @@
 #include "Kernel/WorldState.h"
 #include "Session/WorldTransitions.h"
 #include "Messenger/LetterWindows.h"
+#include "Ui/GameUiState.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -25,6 +25,7 @@
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Audio/SoundId.h"
+#include "Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

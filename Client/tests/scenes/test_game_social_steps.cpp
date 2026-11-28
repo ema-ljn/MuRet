@@ -10,7 +10,7 @@
 #include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -18,6 +18,7 @@
 #include "Ui/PanelRegistry.h"
 #include "Audio/SoundId.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -33,8 +34,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
+using Client::Ui::GameUiContext;
 
 constexpr std::uint32_t Seed = 1;
 
@@ -44,7 +45,7 @@ struct Sent
     std::vector<std::uint8_t> bytes;
 };
 
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}
@@ -213,7 +214,7 @@ TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
     ASSERT_TRUE(StepTheTrade(0x104 + 0x1a, 0x186).HasValue());
     EXPECT_EQ(Runtime().dialogs.current, 0x73);
     EXPECT_EQ(Runtime().social.dialogFieldLimit, 8);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(Runtime().social.moneyField, 1);
     EXPECT_EQ(Runtime().social.typedMoney, 0);

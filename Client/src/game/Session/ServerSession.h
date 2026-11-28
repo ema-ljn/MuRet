@@ -199,7 +199,7 @@ struct ChatRoomSockets
     std::uint32_t paddingSeed = 0;
 };
 
-class ServerSession final : public IChatRoomLinks
+class ServerSession final : public Chat::IChatRoomLinks
 {
 public:
     // La conexión, el reloj, el log y el sink son de quien la arma y viven más que ella. El reloj

@@ -97,7 +97,7 @@ bool ClickTheButton(OldButton& button, const OldWindowGlobals& globals, std::int
     OldWindowBase& base = button.base;
     if (base.state == DisabledWindow)
         return false;
-    if (Chat::MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
+    if (Ui::MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
     {
         globals.mouseOnUi = 1;
         if (globals.leftClick && globals.pressedButton == 0)
@@ -265,8 +265,8 @@ Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog, c
     if (dialog.opened == 0)
         return {};
     // 0x6605c3..0x660615: C division (CDQ, SUB, SAR) rounds toward 0.
-    if (Chat::MouseInRect(mouseX, mouseY, CenterX - dialog.width / 2, CenterY - dialog.height / 2, dialog.width,
-                          dialog.height, TopLeftRect))
+    if (Ui::MouseInRect(mouseX, mouseY, CenterX - dialog.width / 2, CenterY - dialog.height / 2, dialog.width,
+                        dialog.height, TopLeftRect))
         globals.mouseOnUi = 1;
     // 0x66061c: +8, the own step 0x6602b0 sets (0x6504d4, the guild positions window), instead of the rest. Guild calls
     // it after this one.

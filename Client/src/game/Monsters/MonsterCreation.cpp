@@ -342,7 +342,7 @@ public:
     {
         Kernel::WorldRuntime& runtime = m_resources.world.Runtime();
         const MonsterCreation creation = MonsterCreationOf(m_type, runtime.map);
-        MonsterStepResolver resolver({.world = runtime.map, .x = m_x, .siegeActive = runtime.castleSiege.siegeActive});
+        MonsterStepResolver resolver({.world = runtime.map, .x = m_x, .siegeActive = runtime.castleFlags.siegeActive});
         for (const MonsterStep& listed : creation.kind.steps)
         {
             auto step = resolver.Next(listed, m_type, m_resources.cloth.random);

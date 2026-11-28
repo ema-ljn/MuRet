@@ -203,16 +203,16 @@ Core::Expected<std::vector<CreditEntry>, std::string> LoadCreditsFile(const std:
 }
 
 // 0x61c1c0: without the file, or unable to read it, the macros stay empty.
-Core::Expected<Chat::Macros, std::string> LoadMacros(const std::filesystem::path& dataRoot)
+Core::Expected<Tables::Macros, std::string> LoadMacros(const std::filesystem::path& dataRoot)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, MacroFile, error);
     if (error || !path)
-        return Chat::Macros{};
+        return Tables::Macros{};
     const auto file = Data::ReadDataFilePrefix(*path, MaxMacroFileBytes);
     if (!file.HasValue())
-        return Chat::Macros{};
-    auto macros = Chat::ReadTheMacros(std::as_bytes(std::span(file.Value())));
+        return Tables::Macros{};
+    auto macros = Tables::ReadTheMacros(std::as_bytes(std::span(file.Value())));
     if (!macros.HasValue())
         return Core::Unexpected(std::format("{}: {}", MacroFile, macros.Error()));
     return std::move(macros).Value();

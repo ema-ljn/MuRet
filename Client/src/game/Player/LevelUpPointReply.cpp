@@ -10,6 +10,7 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Models/Cloth.h"
 
 #include <cstdint>
 #include <string>

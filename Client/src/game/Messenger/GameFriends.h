@@ -29,10 +29,10 @@ namespace Client::Chat
 struct ChatReceiveContext;
 } // namespace Client::Chat
 
-namespace Client::Hud
+namespace Client::Ui
 {
 class IGameUiRequests;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The game's friends (CL9 milestone 9; 04 § Los amigos and 06 § HUD y ventanas, "Los amigos"): opening the window
 // from panel 1 (0x491080) and the packets C0..C4 (0x4dc010..0x4dc720) over the old windows' manager and the model at
@@ -50,7 +50,7 @@ namespace Client::Messenger
 // The game's OldWindowStepView::send: the packet through the session. The letter (C2 C5) goes out encrypted as C4
 // (0x4992fe..0x499416, Q-C1002): before, a rand() for the padding (0x4992fe) and the serial through the protection
 // table (0x5767913), like the C3 F1 02 (0x62449a..0x6244f2). The others go out in clear, without rand().
-void SendAFriendPacket(Hud::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send);
+void SendAFriendPacket(Ui::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send);
 
 // What 0x491080 reads from the game.
 struct FriendsOpenContext

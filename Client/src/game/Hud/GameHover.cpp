@@ -63,7 +63,7 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     if (actor.byte88 != MonsterKind)
     {
         // 0x5bbd06..0x5bbd15: with its shop's sign in view (0x451770), nothing; otherwise, the name bubble.
-        if (PersonalShop::ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
+        if (Social::ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
             return {};
         return NameBubble(context, index);
     }
@@ -71,8 +71,8 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     context.hud.textColors = MonsterNameColors;
     // 0x5bbcf1..0x5bbcf9: 0x5bb8d0, with its queries, and the half with CDQ and SAR, toward 0.
     const std::int32_t worldWidth = GamePanels(context.world, context.random).Registry().WorldWidth();
-    DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
-                    Actors::ChatNameOf(actor));
+    Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
+                        Actors::ChatNameOf(actor));
     return {};
 }
 
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> FloorItemName(GameHoverContext& context, std::
     if (context.names == nullptr)
         return Core::Unexpected(
             std::format("{}: el nombre del ítem {} del piso (0x5ba790) sin sus tablas", where, index));
-    return Items::DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
+    return Tooltips::DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
 }
 
 // 0x5bbd6a..0x5bbde7: Alt.

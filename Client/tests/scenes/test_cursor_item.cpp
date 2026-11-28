@@ -21,6 +21,7 @@
 #include "support/ItemFiles.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Social/SocialState.h"
 
 #include <gtest/gtest.h>
 

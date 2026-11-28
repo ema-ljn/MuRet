@@ -9,7 +9,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/DrawTailState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Items/HudItems.h"
 #include "Hud/HudText.h"
 #include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer as ITextMeasure)
@@ -29,7 +29,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Items
+namespace Client::Tooltips
 {
 namespace
 {
@@ -85,7 +85,7 @@ using Name = Core::Expected<std::string, std::string>;
 
 struct NameFrame
 {
-    Hud::GameHudContext& context;
+    Ui::GameHudContext& context;
     const Kernel::FloorItemState& item;
     std::int32_t level = 0;
 };
@@ -108,7 +108,7 @@ Name RecordNameOf(const NameFrame& frame, std::int32_t type)
     const auto record = frame.context.items->Record(static_cast<std::size_t>(type));
     if (!record)
         return Core::Unexpected(std::format("0x5ba790: el tipo {:#x} lee fuera de Item.bmd", type));
-    return ItemRecordName(*record);
+    return Items::ItemRecordName(*record);
 }
 
 Name ModelName(const NameFrame& frame)
@@ -252,7 +252,7 @@ Name ByLevel(const NameFrame& frame, const std::array<std::size_t, Count>& texts
 // With none, it jumps to 0x5bb811 without writing the buffer (0x5bb30f).
 Name TransformationRingName(const NameFrame& frame)
 {
-    const std::optional<std::uint32_t> monster = TransformationMonsterOf(frame.level);
+    const std::optional<std::uint32_t> monster = Items::TransformationMonsterOf(frame.level);
     if (!monster)
         return Core::Unexpected(std::format("0x5bb2ed: el nivel {} del anillo de transformación lee 0x6c9338 fuera de "
                                             "lo que MuRet tiene de la .data",
@@ -431,7 +431,7 @@ Name ComposeTheName(const NameFrame& frame)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& context, const Kernel::FloorItemState& item,
+Core::Expected<void, std::string> DrawTheFloorItemName(Ui::GameHudContext& context, const Kernel::FloorItemState& item,
                                                        bool atTheItem)
 {
     // 0x5ba7a7..0x5ba7c7: SelectObject with the normal font (0x5763554) and the colors.
@@ -451,9 +451,9 @@ Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& cont
     std::uint32_t half = 0;
     if (screen.width > 0)
         half = static_cast<std::uint32_t>(extent.width / 2) * DesignWidth / static_cast<std::uint32_t>(screen.width);
-    Hud::DrawHudLine(context.text, screen, hud, static_cast<std::int32_t>(static_cast<std::uint32_t>(x) - half),
-                     y - NameRise, name.Value());
+    Ui::DrawHudLine(context.text, screen, hud, static_cast<std::int32_t>(static_cast<std::uint32_t>(x) - half),
+                    y - NameRise, name.Value());
     hud.textColors = EndColors;
     return {};
 }
-} // namespace Client::Items
+} // namespace Client::Tooltips

@@ -36,6 +36,8 @@
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -355,16 +357,16 @@ TEST_F(GuildReceiveTest, CreatingAGuildOpensTheSecondWindowAndTheResultClosesIt)
 
         // 0x4e34a0 (the Guild Master's 01, which stops): the hero without a guild is left with 1999.
         m_world->Actors()[0].word1f2 = 1999;
-        Runtime().chat.input.messageBuffer[0] = 'x';
-        Runtime().chat.input.messageLength = 1;
+        Runtime().chatInput.messageBuffer[0] = 'x';
+        Runtime().chatInput.messageLength = 1;
         GuildOf().createKind = 3;
         ASSERT_TRUE(Apply(Guild::CreateResult{1}).HasValue());
         EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
         EXPECT_EQ(m_world->Actors()[0].word1f2, 0xffff);
         EXPECT_EQ(GuildOf().createKind, 0);
         EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
-        EXPECT_EQ(Runtime().chat.input.messageBuffer[0], '\0');
-        EXPECT_EQ(Runtime().chat.input.messageLength, 0);
+        EXPECT_EQ(Runtime().chatInput.messageBuffer[0], '\0');
+        EXPECT_EQ(Runtime().chatInput.messageLength, 0);
         EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x04, 0x54, 0x00}}));
         EXPECT_EQ(DrawsSince(), 4) << "cerrar 0x40000 no consulta el comercio ni la tienda";

@@ -9,6 +9,7 @@
 #include "Kernel/WorldState.h"
 #include "Ui/SlideBanner.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

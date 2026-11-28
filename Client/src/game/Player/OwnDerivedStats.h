@@ -109,7 +109,7 @@ struct ItemStatBonus
                                                                           ItemSetOptionList& list);
 
 // 0x550e17..0x551284: with Cape of Lord (0x1a1e, Item.bmd's 13 30) in the wings' place, opens the record, adds to
-// +0x36 the values of its 0x90 options (0x54e540, Items::AddOwnItemOptionValues) and closes it. The closing is
+// +0x36 the values of its 0x90 options (0x54e540, Player::AddOwnItemOptionValues) and closes it. The closing is
 // Models::LogicalAccess's on `ownRecordAccesses`, with the 3,848 rand() calls if it leaves the count at 0. With another
 // type it opens and touches nothing. With more than nine options the original reads the next place, which MuRet does
 // not project: an error, with the access closed.

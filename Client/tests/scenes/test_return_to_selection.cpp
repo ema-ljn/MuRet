@@ -43,6 +43,11 @@
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
+#include "Ui/PanelRegistry.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 
@@ -438,14 +443,14 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnRestartsTheSiegeClockAndKeepsThe
     auto& clock = runtime.castleSiege.siegeBattleUi.clock;
     clock = {.blink = 0, .x = 1, .y = 2, .hours = 3, .minutes = 4, .blinkTime = 5.0f, .tick = 6};
     runtime.castleSiege.siegeBattleUi.gateKey = 7;
-    runtime.castleSiege.siegeActive = true;
-    runtime.castleSiege.previousSiegeActive = true;
-    runtime.castleSiege.siegeMusicTime = 8.0f;
-    runtime.castleSiege.castleByte7239d8 = 2;
-    runtime.castleSiege.castleGatesClosed = 1;
-    runtime.castleSiege.castleMarkX = 9.0f;
-    runtime.castleSiege.castleMarkY = 10.0f;
-    runtime.castleSiege.castleFlags7239e4 = 0x20000;
+    runtime.castleFlags.siegeActive = true;
+    runtime.castleFlags.previousSiegeActive = true;
+    runtime.castleFlags.siegeMusicTime = 8.0f;
+    runtime.castleFlags.castleByte7239d8 = 2;
+    runtime.castleFlags.castleGatesClosed = 1;
+    runtime.castleFlags.castleMarkX = 9.0f;
+    runtime.castleFlags.castleMarkY = 10.0f;
+    runtime.castleFlags.castleFlags7239e4 = 0x20000;
     runtime.castleSiege.siegePanelKind = std::uint8_t{1};
     runtime.castleSiege.siegePanel.selected = 11;
     runtime.castleSiege.castleSiegeInfo.emplace();
@@ -463,14 +468,14 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnRestartsTheSiegeClockAndKeepsThe
     EXPECT_EQ(clock.minutes, 4u);
     EXPECT_EQ(clock.tick, 6u);
     EXPECT_EQ(runtime.castleSiege.siegeBattleUi.gateKey, 7);
-    EXPECT_TRUE(runtime.castleSiege.siegeActive);
-    EXPECT_TRUE(runtime.castleSiege.previousSiegeActive);
-    EXPECT_EQ(runtime.castleSiege.siegeMusicTime, 8.0f);
-    EXPECT_EQ(runtime.castleSiege.castleByte7239d8, 2);
-    EXPECT_EQ(runtime.castleSiege.castleGatesClosed, 1);
-    EXPECT_EQ(runtime.castleSiege.castleMarkX, 9.0f);
-    EXPECT_EQ(runtime.castleSiege.castleMarkY, 10.0f);
-    EXPECT_EQ(runtime.castleSiege.castleFlags7239e4, 0x20000u);
+    EXPECT_TRUE(runtime.castleFlags.siegeActive);
+    EXPECT_TRUE(runtime.castleFlags.previousSiegeActive);
+    EXPECT_EQ(runtime.castleFlags.siegeMusicTime, 8.0f);
+    EXPECT_EQ(runtime.castleFlags.castleByte7239d8, 2);
+    EXPECT_EQ(runtime.castleFlags.castleGatesClosed, 1);
+    EXPECT_EQ(runtime.castleFlags.castleMarkX, 9.0f);
+    EXPECT_EQ(runtime.castleFlags.castleMarkY, 10.0f);
+    EXPECT_EQ(runtime.castleFlags.castleFlags7239e4, 0x20000u);
     EXPECT_EQ(runtime.castleSiege.siegePanelKind, 1);
     EXPECT_EQ(runtime.castleSiege.siegePanel.selected, 11);
     EXPECT_TRUE(runtime.castleSiege.castleSiegeInfo.has_value());
@@ -605,7 +610,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetChe
     dialog.opened = 77;
     dialog.owner = Client::Ui::PanelDialogOwner::GuildJoin;
     dialog.timerMs = 777;
-    runtime.chat.input.dialogFieldOn = true;
+    runtime.chatInput.dialogFieldOn = true;
     tested->world.OwnCharacter().word3e = 55;
     auto resources = tested->Resources();
     std::size_t closes = 0;
@@ -640,7 +645,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetChe
     EXPECT_EQ(runtime.pets[1].level, 0);
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_EQ(dialog.timerMs, 777u);
-    EXPECT_TRUE(runtime.chat.input.dialogFieldOn); // 0x660090 calls no callback and does no EDIT cleanup.
+    EXPECT_TRUE(runtime.chatInput.dialogFieldOn); // 0x660090 calls no callback and does no EDIT cleanup.
 }
 
 class ResetLetterMeasure final : public Client::Render::Text::ITextMeasure

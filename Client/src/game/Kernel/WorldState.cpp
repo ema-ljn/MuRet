@@ -8,21 +8,15 @@
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterCloth.h"
 #include "Kernel/HelperTable.h"
-#include "Player/ItemSetState.h"
-#include "Actors/PlayerActionSpeeds.h"
-#include "Fauna/FaunaState.h"
 #include "Kernel/DrawTailState.h"
 #include "Kernel/JointCreation.h"
 #include "Kernel/JointRequest.h"
 #include "Core/Expected.h"
-#include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
-#include "Particles/Particles.h"
 #include "Kernel/PoseBuffer.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -65,16 +59,6 @@ const ActorState& WorldState::Hero() const
     return m_context.Hero();
 }
 
-std::span<Actors::Drawing::CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
-{
-    return *m_actorCloths;
-}
-
-std::span<const Actors::Drawing::CharacterCloth, ActorPoolSize> WorldState::ActorCloths() const
-{
-    return *m_actorCloths;
-}
-
 OwnCharacterRecord& WorldState::OwnCharacter()
 {
     return m_context.OwnCharacter();
@@ -115,16 +99,6 @@ const WorldMap& WorldState::Map() const
     return m_context.Map();
 }
 
-Player::ItemSetState& WorldState::ItemSets()
-{
-    return m_itemSets;
-}
-
-const Player::ItemSetState& WorldState::ItemSets() const
-{
-    return m_itemSets;
-}
-
 HelperTable& WorldState::Helpers()
 {
     return m_helpers;
@@ -135,32 +109,6 @@ const HelperTable& WorldState::Helpers() const
     return m_helpers;
 }
 
-Particles::Particles& WorldState::Particles()
-{
-    return *m_particles;
-}
-
-const Particles::Particles& WorldState::Particles() const
-{
-    return *m_particles;
-}
-
-Actors::PlayerActionSpeeds& WorldState::ActionSpeeds()
-{
-    return m_actionSpeeds;
-}
-const Actors::PlayerActionSpeeds& WorldState::ActionSpeeds() const
-{
-    return m_actionSpeeds;
-}
-Fauna::FaunaState& WorldState::Fauna()
-{
-    return m_fauna;
-}
-const Fauna::FaunaState& WorldState::Fauna() const
-{
-    return m_fauna;
-}
 SharedModelPlacement& WorldState::PlayerModel()
 {
     return m_playerModel;
@@ -255,14 +203,6 @@ Core::Expected<std::optional<std::size_t>, std::string>
 WorldState::CreateJoint(const JointRequest& request, Crt::CrtRandom& random, JointOwnerKind ownerKind) const
 {
     return CreateJoint(m_drawTail->joints, request, random, ownerKind);
-}
-Weather::Leaves& WorldState::Leaves()
-{
-    return *m_leaves;
-}
-const Weather::Leaves& WorldState::Leaves() const
-{
-    return *m_leaves;
 }
 
 // The original copies from chars[chosen] what 0x4c20a0 set with the list (0x4c21dd..0x4c220c): 0x517270's class,

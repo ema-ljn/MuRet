@@ -204,8 +204,8 @@ Core::Expected<void, std::string> DropTheChunk(SlideQueue& queue, const Render::
 // comparisons use the sum on the x87; the speed is stored as float.
 void Scroll(SlideQueue& queue, const SlideDrawContext& context)
 {
-    const bool hovered = Chat::MouseInRect(context.mouseX, context.mouseY, 0, queue.y - HoverAbove,
-                                           context.sprites.Screen().width, queue.lineHeight + HoverExtra, HoverMode);
+    const bool hovered = Ui::MouseInRect(context.mouseX, context.mouseY, 0, queue.y - HoverAbove,
+                                         context.sprites.Screen().width, queue.lineHeight + HoverExtra, HoverMode);
     queue.push = hovered ? -1.0f : 1.0f;
     const double sum = static_cast<double>(queue.velocity) + static_cast<double>(queue.push);
     if (sum >= static_cast<double>(queue.maxSpeed))

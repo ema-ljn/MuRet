@@ -61,6 +61,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Chat/ChatLogWindow.h"
 #include "Ui/Dialogs.h"
@@ -76,6 +77,8 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
 
 #include <algorithm>
 #include <array>
@@ -147,7 +150,7 @@ constexpr std::int32_t PetButtonBottom = 0x1a3;
 constexpr std::uint8_t PetWindowOpen = 2;
 
 // The guild packets the UI sends (CL9 milestone 8) go through the scene's requests; without them, nothing.
-Guild::GuildSender GuildSenderOf(IGameUiRequests* requests)
+Guild::GuildSender GuildSenderOf(Ui::IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return {};
@@ -155,7 +158,7 @@ Guild::GuildSender GuildSenderOf(IGameUiRequests* requests)
 }
 
 // The dialogs step and the windows step have different registries; both need the full closes.
-void LendTheUiPanelCloses(GamePanels& panels, const GameUiContext& context)
+void LendTheUiPanelCloses(GamePanels& panels, const Ui::GameUiContext& context)
 {
     CastleSiege::CastleSender send;
     if (context.requests != nullptr)
@@ -214,8 +217,8 @@ struct ChatEditPlace
     std::int32_t x, y, width, height;
 };
 constexpr std::array<ChatEditPlace, 2> ChatEdits{{
-    {Chat::MessageField, Chat::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
-    {Chat::WhisperField, Chat::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
+    {Ui::MessageField, Ui::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
+    {Ui::WhisperField, Ui::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
 }};
 // 0x5a33dc..0x5a343a: the F3 button, next to the whisper EDIT.
 constexpr std::int32_t WhisperModeLeft = 0x1b2;
@@ -237,44 +240,44 @@ bool KeyEdge(Ui::GameUiState& ui, const Input::InputState& input, GameKey key)
 // (P-C285), and its window is the game's.
 bool TextInputBusy(const Kernel::WorldRuntime& runtime)
 {
-    const Chat::ChatFocus focus = runtime.chat.input.focus;
+    const Ui::ChatFocus focus = runtime.chatInput.focus;
     const auto& panelDialog = runtime.panels.delegated.panelDialog;
     const bool panelField =
         Ui::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & Ui::PanelDialogTextField) != 0;
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != Chat::ChatFocus::Game;
+    return runtime.ui.chatOpen || runtime.chatInput.dialogFieldOn || panelField || focus != Ui::ChatFocus::Game;
 }
 
 // 0x636e51..0x636e5a: the chat log, 0x45aa80(0) through the vtable + 0x18 of 0x576350c.
-Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheChat(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
-    Kernel::ChatRuntime& chat = runtime.chat;
+    Chat::ChatRuntime& chat = runtime.chat;
     const Kernel::ActorState& hero = context.world.Hero();
-    const Chat::ChatLogGlobals globals{.leftClick = runtime.mouse.pendingClick,
-                                       .rightDown = ui.rightDown,
-                                       .wheel = ui.wheel,
-                                       .capture = ui.capture,
-                                       .hovered = ui.hovered,
-                                       .focusedList = ui.focusedList,
-                                       .mouseOnUi = ui.mouseOnUi,
-                                       .modes = ui.chatModes};
+    const Ui::ChatLogGlobals globals{.leftClick = runtime.mouse.pendingClick,
+                                     .rightDown = ui.rightDown,
+                                     .wheel = ui.wheel,
+                                     .capture = ui.capture,
+                                     .hovered = ui.hovered,
+                                     .focusedList = ui.focusedList,
+                                     .mouseOnUi = ui.mouseOnUi,
+                                     .modes = ui.chatModes};
     // The focus on one of the chat EDITs: while the field is open it has it (0x636e80).
-    const Chat::ChatLogStepView view{.mouseX = context.mouseX,
-                                     .mouseY = context.mouseY,
-                                     .leftDown = runtime.mouse.leftHeld,
-                                     .chatOpen = ui.chatOpen,
-                                     .heroSafeZone = hero.safeZone != 0,
-                                     .heroName = Actors::HeroNameOf(hero),
-                                     .chatEditFocused = ui.chatOpen,
-                                     .measure = context.measure,
-                                     .dcFont = runtime.hud.dcFont};
-    const Chat::ChatLogStepResult result = Chat::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
+    const Ui::ChatLogStepView view{.mouseX = context.mouseX,
+                                   .mouseY = context.mouseY,
+                                   .leftDown = runtime.mouse.leftHeld,
+                                   .chatOpen = ui.chatOpen,
+                                   .heroSafeZone = hero.safeZone != 0,
+                                   .heroName = Actors::HeroNameOf(hero),
+                                   .chatEditFocused = ui.chatOpen,
+                                   .measure = context.measure,
+                                   .dcFont = runtime.hud.dcFont};
+    const Ui::ChatLogStepResult result = Ui::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
     for (const Audio::SoundId sound : result.sounds)
         runtime.RequestSound(sound);
     // 0x4694c0(0, 0, 1, name): the name to the whisper EDIT (SetText), without touching its buffer.
     if (result.whisperTo)
-        Chat::SetTheChatFields(chat.input, std::nullopt, *result.whisperTo);
+        Ui::SetTheChatFields(runtime.chatInput, std::nullopt, *result.whisperTo);
     return {};
 }
 
@@ -286,15 +289,15 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
 {
     Ui::GameUiState& ui = runtime.ui;
-    if (!runtime.mouse.leftHeld || (ui.hovered != 0 && ui.hovered != Chat::ChatLogId))
+    if (!runtime.mouse.leftHeld || (ui.hovered != 0 && ui.hovered != Ui::ChatLogId))
         return;
     runtime.oldWindows.focus = 0;
-    if (ui.chatOpen || runtime.chat.input.otherInput || runtime.chat.input.dialogFieldOn ||
+    if (ui.chatOpen || runtime.chatInput.otherInput || runtime.chatInput.dialogFieldOn ||
         runtime.social.moneyField != 0)
         return;
     ui.focusedList = 0;
     Ui::HideTheWindowList(runtime.oldWindows.windowList);
-    runtime.chat.input.focus = Chat::ChatFocus::Game;
+    runtime.chatInput.focus = Ui::ChatFocus::Game;
 }
 
 // 0x435bd0: the Crywolf interface's step (06 § La interfaz de Crywolf), only on map 34 (0x4303c0). With the results
@@ -303,7 +306,7 @@ void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
 // (Q-C1342); anywhere it turns off the button and the edge (0x435c4e): with the results in view, the UI takes all the
 // clicks. Then the contract window (0x723a44 at 1 or 2, 0x435c5c: Events/Crywolf/CrywolfContract), with the hero's pet
 // (+0x318) and the step's send() for the Yes.
-Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheCrywolfInterface(const Ui::GameUiContext& context)
 {
     using Maps::CrywolfMap;
     constexpr std::int32_t ButtonLeft = 0x12c;
@@ -339,7 +342,7 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
 // trade's and the NPC shop's take a rand().
 void PlaceTheChatLog(Kernel::WorldRuntime& runtime, Ui::PanelRegistry& panels)
 {
-    Chat::ChatLogFrame& frame = runtime.hud.chatFrame;
+    Ui::ChatLogFrame& frame = runtime.hud.chatFrame;
     if (runtime.ui.chatModes.placement != 1)
     {
         frame.x = -10;
@@ -360,7 +363,8 @@ void PlaceTheChatLog(Kernel::WorldRuntime& runtime, Ui::PanelRegistry& panels)
     frame.y = 0x1a4;
 }
 
-bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
+bool InRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+            std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
@@ -419,7 +423,7 @@ std::function<bool(std::uint8_t)> ArrowKeysDown(const Input::InputState& input)
 class OldWindowSight
 {
 public:
-    explicit OldWindowSight(const GameUiContext& context)
+    explicit OldWindowSight(const Ui::GameUiContext& context)
         : m_context(context), m_texts(Messenger::OldWindowTextsOf(context.texts))
     {
         if (context.measure != nullptr)
@@ -445,7 +449,7 @@ public:
                                    .measure = m_measure ? &*m_measure : nullptr,
                                    .send = {},
                                    .openFriends = [this]() { return OpenTheFriendsWindow(); }};
-        if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
+        if (Ui::IGameUiRequests* requests = m_context.requests; requests != nullptr)
             view.send = [requests, &random = m_context.random](const Ui::FriendSend& send)
             { Messenger::SendAFriendPacket(*requests, random, send); };
         LendTheGameHooks(view, m_context, true);
@@ -466,14 +470,14 @@ public:
     }
 
 private:
-    const GameUiContext& m_context;
+    const Ui::GameUiContext& m_context;
     Ui::OldWindowTexts m_texts;
     std::optional<Ui::OldWindowMeasure> m_measure;
 };
 
 // 0x636e3c..0x636e4c: the window list's step ([0x5763524], the vtable + 0x18 with 0) and the old windows' (0x490490).
 // Esc reaches 0x490490 already read by 0x623e70, except with the friends one open (Q-C446).
-Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context, const OldWindowSight& sight)
+Core::Expected<void, std::string> StepTheOldWindows(const Ui::GameUiContext& context, const OldWindowSight& sight)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Ui::OldWindowStepView view = sight.View();
@@ -543,13 +547,13 @@ bool IsNotRepaired(std::uint16_t id)
 }
 
 // The pick up and drop services; without them, the empty ones, and whatever needs them stops.
-const Items::InventoryServices& ServicesOf(const GameUiContext& context)
+const Items::InventoryServices& ServicesOf(const Ui::GameUiContext& context)
 {
     static const Items::InventoryServices None{};
     return context.inventory != nullptr ? *context.inventory : None;
 }
 
-Items::InventoryMoveContext MovesOf(const GameUiContext& context)
+Items::InventoryMoveContext MovesOf(const Ui::GameUiContext& context)
 {
     return Items::InventoryMoveContext{
         .world = context.world, .random = context.random, .services = ServicesOf(context)};
@@ -557,7 +561,8 @@ Items::InventoryMoveContext MovesOf(const GameUiContext& context)
 
 // The mouse in [left, left + w) × [top, top + h), with the right and bottom edges on the x87:
 // FILD mouse; FILD left; FADD w; FCOMPP.
-bool MouseInEquipmentRect(const GameUiContext& context, std::int32_t left, std::int32_t top, float width, float height)
+bool MouseInEquipmentRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, float width,
+                          float height)
 {
     const auto x = static_cast<double>(context.mouseX);
     const auto y = static_cast<double>(context.mouseY);
@@ -570,7 +575,7 @@ bool MouseInEquipmentRect(const GameUiContext& context, std::int32_t left, std::
 // that follows runs inside. With an item on the cursor and the mouse on the slot, drop it (0x5bee04); without one,
 // with the slot taken and the mouse on it, 0x78abaac at 1 and, with the click, pick it up (0x5c2c65) or, without the
 // click, the mark and the help (0x5c35ad).
-Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& context, float x, float y, float width,
+Core::Expected<void, std::string> StepAnEquipmentSlot(const Ui::GameUiContext& context, float x, float y, float width,
                                                       float height, std::size_t slot)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -612,7 +617,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
 
 // 0x5c3d20: the twelve slots, 8 and 7 first, the helmet with the class read with the record open (its 0x5bec50 stays
 // inside and takes nothing when closing) and the other nine.
-Core::Expected<void, std::string> StepTheEquipment(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheEquipment(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (auto slot = StepAnEquipmentSlot(context, 15.0f, 46.0f, 40.0f, 40.0f, 8); !slot.HasValue())
@@ -688,7 +693,7 @@ static_assert(Npc::NpcGridColumns == static_cast<std::int32_t>(Kernel::Inventory
 // 0x5c4b64..0x5c510f: the item under the mouse in the shop grid. 0x78abb28 at 6 and 0x78abb2c at the cell; with the
 // click, not in repair mode and with no other purchase waiting (0x5767950), the click spent, 0x54d0f0's price in mode
 // 0 of the top-left item, the C1 04 32 with its slot in C3 and the price into 0x5767950, until the 32.
-Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& context, const HoverGrid& grid,
+Core::Expected<GridHover, std::string> BuyTheGridItem(const Ui::GameUiContext& context, const HoverGrid& grid,
                                                       std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -732,7 +737,7 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
 // UseTheLaterGridItem. With the trade's own grid (0x5c4aa5 with 0x78a92a8, CL9 milestone 7, 08 P-C235) the branch is
 // the same: what reaches UseInventoryItem gives warning 474, because the trade is open, and the others go on in
 // UseTheLaterGridItem with that grid.
-Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> UseTheGridItem(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                                  const HoverGrid& grid, std::size_t index)
 {
     const Kernel::ItemState& hovered = grid.cells[index];
@@ -768,7 +773,7 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
 
 // 0x5c5361..0x5c5876, after picking up: IsOpen(0x20), with its rand(); with the trade open, the own OK set and the
 // item from the own grid, the OK at 0 and the C1 04 3C 00 in C3. Then sound 0x1d.
-Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> AfterThePickUp(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                                  const HoverGrid& grid)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -810,7 +815,7 @@ Kernel::CursorGrid CursorGridOf(Ui::HoveredItem::Place place)
 // waits for warning 5 (0x78abb14) with no answer; one from the inventory is picked up (+ 12). With the own (1), its
 // grid's item (+ 0x4c) or the inventory's (+ 12) is picked up. At the end, 0x78abaa8 at 0; neither the sound nor
 // 0x5c5361's trade.
-Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& context, const HoverGrid& grid,
+Core::Expected<void, std::string> ClickWithTheShopOpen(const Ui::GameUiContext& context, const HoverGrid& grid,
                                                        const Kernel::ItemState& hovered)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -853,7 +858,7 @@ Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& cont
 // 0x5c5242..0x5c52b0 (CL9 milestone 7, 08 P-C208 b): the right click with a personal shop open, not repairing. The
 // right click consumed, the grid into 0x78ab9b8, the top-left item into 0x78a59c8 and its cell + 0x4c into 0x78a6758
 // (with any grid). With the own shop and its grid, the price dialog (0x5eba70(2)). 0x78abaa8 stays.
-Core::Expected<void, std::string> RightClickWithTheShopOpen(const GameUiContext& context, const HoverGrid& grid,
+Core::Expected<void, std::string> RightClickWithTheShopOpen(const Ui::GameUiContext& context, const HoverGrid& grid,
                                                             const Kernel::ItemState& hovered)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -876,7 +881,7 @@ Core::Expected<void, std::string> RightClickWithTheShopOpen(const GameUiContext&
 // and its slot) and its help's corner. With the other's grid, only 0x5aed40 (0x5c4b2b); with the NPC shop, buy.
 // Otherwise, depending on the personal shops, the repair and the clicks, pick it up, use it, 0x5aed40 and Ctrl with Q,
 // W or E.
-Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<GridHover, std::string> HoverTheGridItem(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                                         const HoverGrid& grid, std::size_t index, std::int32_t left,
                                                         std::int32_t top)
 {
@@ -1033,7 +1038,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
 // 0x5c4110(x, y, grid, 8, rows, kind) with the NPC windows' grids. Returns with the wait, the C3 24 lock or an item on
 // the cursor; otherwise 0x78abb38 at 0 (0x5c4163) and it walks the cells by rows: with the mouse over one with a type,
 // that item's handling. Picking up or the right click end it.
-Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> StepTheGrid(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                               const HoverGrid& grid, std::int32_t left, std::int32_t top)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -1062,7 +1067,7 @@ Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, Ui::
 
 // 0x5c4110(x + 15, y + 200, 0x78a9bb0, 8, 8, 0): the inventory grid. Returns with the wait, the C3 24 lock or an item
 // on the cursor; otherwise it walks the cells by rows and, with the mouse over one with a type, that item's handling.
-Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventoryGrid(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
@@ -1098,7 +1103,7 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
 // 0x5e545f..0x5e5717: the foot buttons (repair, close and the personal shop) and the S, without the trainer's box
 // (0x449c00). With an event NPC's window (0x1000 or 0x4000), only close at x + 0x19; MuRet already stopped with it
 // open.
-Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> StepTheFootButtons(const Ui::GameUiContext& context, Ui::PanelRegistry& panels,
                                                      std::uint16_t level)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -1165,7 +1170,7 @@ Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& contex
 // Sends a packet over the game socket with send(), without the queue (0x5e494b, 0x424610). With the socket at −1
 // (`send` empty) it sends nothing and goes on, like the original; without the session context (the tests that do not
 // check it), it stops.
-Core::Expected<void, std::string> SendRaw(const GameUiContext& context, Protocol::Outgoing packet,
+Core::Expected<void, std::string> SendRaw(const Ui::GameUiContext& context, Protocol::Outgoing packet,
                                           std::string_view where)
 {
     if (context.chat == nullptr)
@@ -1178,7 +1183,7 @@ Core::Expected<void, std::string> SendRaw(const GameUiContext& context, Protocol
 // 0x5e4510: with the character open, the mouse over the window belongs to the UI; with points to spend (+0x68), the
 // buttons of the four stats (five with the Dark Lord, 0x6c9330) send F3 06, with the own record open around them
 // (3848 rand() when closing it without other accesses); and the close button.
-Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheCharacterWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::CharacterPanel))
         return {};
@@ -1223,7 +1228,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
 // click on the unchosen one, between 67 and 83, chooses it; on the chosen one, between 63 and 83, it only eats the
 // click. The close button (20, 395, 24 × 24) closes panel 0x400. All in float, with the edges included except the
 // UI's and the button's. No rand().
-Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePetWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::MouseState& mouse = runtime.mouse;
@@ -1264,7 +1269,7 @@ Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context,
 // 0x424130 → 0x424230: with the character closed, 0x723911 at 0. Open, the first time the dark horse request
 // (C1 06 A9 01 00 08, Q-C16) and 0x723911 at 1; the pet button opens or closes panel 0x400. With 0x723911 at 2, the
 // pet window's step. 0x416660, from 0x424130 with 2, does nothing.
-Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePetButton(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::uint8_t& pet = runtime.panels.delegated.pet;
@@ -1299,7 +1304,7 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
 // from x + 15, with the last argument at 0). Each returns as with the inventory (the wait, the C3 24 lock or an item
 // on the cursor) and walks its cells by rows: with the mouse over one with a type, that item's handling
 // (HoverTheGridItem). Picking up or the right click end the own grid's; the other's goes on.
-Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTradeGrids(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::TradeState& trade = runtime.social.trade;
@@ -1339,7 +1344,7 @@ Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context
 // 0x5e58ea..0x5e5904 (CL9 milestone 7, 08 P-C208 b): 0x5c4110(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 0) with the corner
 // of the personal shops window (0x78aba58 and 0x78aba5c, written by its step 0x5ea290 with the own shop and its draw
 // 0x5f3030). Returns like the others and walks the cells by rows; picking up or the right click end it.
-Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheShopGrid(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
@@ -1372,7 +1377,7 @@ Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, 
 }
 
 // 0x5e571c..0x5e5910: the other windows' grids, the trainer's box (0x44ad10) and the set label (0x40e6c0).
-Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheOtherGrids(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Ui::PanelState& state = runtime.panels;
@@ -1448,7 +1453,7 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
 }
 
 // 0x5e4ce0, the inventory. The other windows with a grid stop where they are first queried.
-Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventoryWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -1538,7 +1543,7 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
 
 // 0x5ee1b1..0x5ee1ca: the six siblings of 0x5e4ce0, each with its IsOpen: the event NPCs, the chaos box (0x5fe610),
 // the warehouse (0x5ea060), the trade, the personal shops and the NPC shop (0x5ed960, with its rand()).
-Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventorySiblings(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     // 0x5e5920: the event NPCs (CL9 milestone 11).
     if (auto events = Events::StepTheEventNpcWindow(context, panels); !events.HasValue())
@@ -1563,7 +1568,7 @@ Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& 
 // CL9 milestone 7). With none it goes on at 0x5deac5 with esi at 6 (0x5da592): with an item, drop it on the inventory
 // grid (0x5ca250), the trade's, the warehouse's, the chaos box, the personal shop's or the trainer's and, with the
 // click outside them, sell it in the NPC shop or throw it on the floor.
-Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheCursorItem(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Ui::PanelState& state = runtime.panels;
@@ -1688,7 +1693,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                            .panels = &panels});
 }
 
-Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePanels(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -1751,7 +1756,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, Ui
 // The skill `index` of the list's tooltip and click (0x5a08a1..0x5a08f3) and of the raven order buttons
 // (0x420ee4..0x420f4a): the tooltip, the mouse on the UI and, with the click, the hero's skill, the list closed, sound
 // 0x19 and the mouse clock.
-void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int32_t tooltipX, std::int32_t tooltipY)
+void PointAtTheSkill(const Ui::GameUiContext& context, std::uint8_t index, std::int32_t tooltipX, std::int32_t tooltipY)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -1771,7 +1776,7 @@ void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int3
 
 // 0x420e90: with the raven (+0x430), the four buttons of its orders (skills 0x78 to 0x7b), 0x20 apart from x 0x100,
 // with y from 0x14a to 0x16e.
-void StepThePetOrderButtons(const GameUiContext& context)
+void StepThePetOrderButtons(const Ui::GameUiContext& context)
 {
     const Kernel::ActorState& hero = context.world.Hero();
     if (!hero.darkSpirit)
@@ -1790,7 +1795,7 @@ void StepThePetOrderButtons(const GameUiContext& context)
 // The Ctrl + number keys on the list's skill `index` (0x5a08fd..0x5a106e): for each number down, 1 to 9 and 0, with
 // the own record open, it takes that number off the 64 keys of the chosen one's slot (0x6d5edc) and gives it to the
 // skill.
-void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
+void StepTheSkillKeys(const Ui::GameUiContext& context, std::uint8_t index)
 {
     const Input::InputState& input = context.input;
     if (!input.IsDown(Key::Ctrl))
@@ -1820,7 +1825,7 @@ void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
 // Skill.bmd's +0x31 at 1 (with its entry opened and closed: 60 rand() if it closes it at 0), a 32 × 42 icon in rows of
 // up to 20 centered at x 320 from y 0x172, the second 0x34 higher. Under the mouse, its tooltip and its click
 // (PointAtTheSkill) and the keys (StepTheSkillKeys). Then, the raven order buttons (0x420e90).
-Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheSkillList(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
@@ -1843,7 +1848,7 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
             return Core::Unexpected(std::format("0x5a07a3: Skill.bmd no tiene la skill {}", skill));
         std::uint8_t hidden = 0;
         {
-            const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], context.random,
+            const Models::LogicalAccess entry(runtime.skillDepths[skill], context.random,
                                               static_cast<std::uint16_t>(Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = 0x31;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
@@ -1870,7 +1875,7 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
 
 // 0x420e30: the Dark Lord with Shift and 1 to 4 chooses the raven's order (skills 0x78 to 0x7b), the first one down.
 // Says whether it chose.
-bool StepThePetOrderKeys(const GameUiContext& context)
+bool StepThePetOrderKeys(const Ui::GameUiContext& context)
 {
     Kernel::ActorState& hero = context.world.Hero();
     if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::DarkLord ||
@@ -1891,7 +1896,7 @@ bool StepThePetOrderKeys(const GameUiContext& context)
 // is not one of 0x43 to 0x48 becomes the hero's; if none, the first of the raven's orders (0x78 to 0x7b) with the key.
 // On each pass without choosing, with auto attack outside maps 6 and 18 to 23 and the hero's skill at 6 or 0xf, the
 // chosen 0x6c8e30 and 0x6c8e38 go back to −1. Says whether it chose.
-bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
+bool ChooseTheSkillByKey(const Ui::GameUiContext& context, std::uint8_t number)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
@@ -1933,7 +1938,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
 }
 
 // 0x5a05e5..0x5a10e2: the skill bar. Opens the own record even with no skills and closes it at the end.
-Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheSkillBar(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -1966,7 +1971,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 // 0x59ff45..0x5a009b: the right click on a drawn row of the old area (0x77d9868, from 0x6c8eb4) (with text and,
 // without F2, not of the normal chat), someone else's, with the chat open and the hero in the safe zone: their name to
 // the whisper buffer, without the EDIT (Q-C530), and the 0x19. The row's width is the one its draw left, in pixels.
-void StepTheOldAreaRows(const GameUiContext& context)
+void StepTheOldAreaRows(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -1990,24 +1995,24 @@ void StepTheOldAreaRows(const GameUiContext& context)
         if (row.name == Actors::HeroNameOf(hero) || !ui.rightClick)
             continue;
         ui.rightClick = false;
-        Chat::PutTheWhisperName(runtime.chat.input, row.name);
+        Ui::PutTheWhisperName(runtime.chatInput, row.name);
         runtime.RequestSound(ButtonSound);
     }
 }
 
 // 0x5a0124..0x5a03c3: up (−1) and down (+1). With the focus on one of the chat EDITs and the even field, the history
 // (the vtable + 0xc of 0x57634f8); otherwise, the whisper name of the previous or next place (0x6c8ea8).
-void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t direction)
+void StepTheArrowKey(const Ui::GameUiContext& context, GameKey key, std::int32_t direction)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     if (!KeyEdge(runtime.ui, context.input, key))
         return;
     bool sound = false;
-    if ((input.focus == Chat::ChatFocus::Message || input.focus == Chat::ChatFocus::Whisper) && input.field % 2 == 0)
-        sound = Chat::RecallFromTheHistory(input, direction);
+    if ((input.focus == Ui::ChatFocus::Message || input.focus == Ui::ChatFocus::Whisper) && input.field % 2 == 0)
+        sound = Ui::RecallFromTheHistory(input, direction);
     else
-        sound = Chat::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
+        sound = Ui::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
         runtime.RequestSound(ButtonSound);
 }
@@ -2016,7 +2021,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
 // the mouse or it grabbed it) and, inside (x, y − 4, w, h + 8), it belongs to the UI; with the click, the EDIT takes
 // the focus (0x4682a0(1)). The arrows and the bar that 0x468d50 checks with the click (EM_SCROLL, the grabbed bar) are
 // not ported (P-C86). Returns what 0x468d50 does: the mouse in the big rectangle.
-bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
+bool StepTheChatEdit(const Ui::GameUiContext& context, const ChatEditPlace& edit)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -2038,7 +2043,7 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
     ui.mouseOnUi = 1;
     if (runtime.mouse.pendingClick)
     {
-        Chat::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
+        Ui::ClickTheChatField(runtime.chatInput, edit.field, &ui.focusedList);
         runtime.mouse.updateTime = 0;
         runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     }
@@ -2047,19 +2052,19 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
 
 // 0x5a32dd..0x5a343c: with a text field, the chat EDITs (0x469500: the one under the mouse is the chosen field) and
 // the F3 button (0x6c8dd0).
-void StepTheChatButtons(const GameUiContext& context)
+void StepTheChatButtons(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     for (const ChatEditPlace& edit : ChatEdits)
     {
         if (StepTheChatEdit(context, edit))
-            runtime.chat.input.field = edit.field;
+            runtime.chatInput.field = edit.field;
     }
     if (!InRect(context, WhisperModeLeft, WhisperModeTop, WhisperModeRight, WhisperModeBottom) ||
         !runtime.mouse.pendingClick)
         return;
     runtime.mouse.pendingClick = false;
-    runtime.chat.input.whisperMode = !runtime.chat.input.whisperMode;
+    runtime.chatInput.whisperMode = !runtime.chatInput.whisperMode;
     runtime.mouse.updateTime = 0;
     runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     runtime.RequestSound(ButtonSound);
@@ -2067,17 +2072,17 @@ void StepTheChatButtons(const GameUiContext& context)
 
 // 0x5a116f..0x5a2b47: with the macro brake at 0 (0x77f3b74), outside Chaos Castle and with Alt, the macros of the
 // pressed numbers (GetAsyncKeyState, not the edge).
-Core::Expected<void, std::string> StepTheMacros(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheMacros(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hud.macroTime != 0 || (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap) ||
         !context.input.IsDown(Key::Alt))
         return {};
-    std::array<bool, Chat::MacroCount> pressed{};
+    std::array<bool, Tables::MacroCount> pressed{};
     bool any = false;
-    for (std::size_t macro = 0; macro < Chat::MacroCount; ++macro)
+    for (std::size_t macro = 0; macro < Tables::MacroCount; ++macro)
     {
-        pressed[macro] = context.input.IsDown(Digit(static_cast<int>((macro + 1) % Chat::MacroCount)).key);
+        pressed[macro] = context.input.IsDown(Digit(static_cast<int>((macro + 1) % Tables::MacroCount)).key);
         any = any || pressed[macro];
     }
     if (!any)
@@ -2088,7 +2093,7 @@ Core::Expected<void, std::string> StepTheMacros(const GameUiContext& context)
 }
 
 // 0x59ff10
-Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheKeysAndButtons(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -2102,9 +2107,9 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     // 0x5a00a1..0x5a0124: PgUp and PgDn scroll the chat log as many rows as it shows (the vtable + 0x38 gives them and
     // + 0x34 scrolls).
     if (KeyEdge(ui, input, PageUpKey))
-        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, -runtime.chat.log.rows);
+        Ui::ScrollTheLog(runtime.chat.log, ui.chatModes, -runtime.chat.log.rows);
     if (KeyEdge(ui, input, PageDownKey))
-        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, runtime.chat.log.rows);
+        Ui::ScrollTheLog(runtime.chat.log, ui.chatModes, runtime.chat.log.rows);
     StepTheArrowKey(context, UpKey, -1);
     StepTheArrowKey(context, DownKey, 1);
     // 0x5a03c3..0x5a05e5: the HUD buttons, each with its rectangle: closes it if open, otherwise opens it.
@@ -2137,8 +2142,8 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     // 0x5a10e7..0x5a116f: the numbers choose the skill (0x59f810), without the 0x73 dialog (0x5a10f0, with 0x6c7b8c at
     // 1: it does not even check the focus), with the focus on the game, without text fields, without a skill charging
     // (0x5a1115, 0x7d368a4 at 0), without the raven's orders (0x420e30, Shift with 1 to 4) and without Alt.
-    if (runtime.dialogs.current != MoneyDialog && runtime.chat.input.focus == Chat::ChatFocus::Game && !ui.chatOpen &&
-        !runtime.chat.input.otherInput && ui.rightHoldFrames == 0)
+    if (runtime.dialogs.current != MoneyDialog && runtime.chatInput.focus == Ui::ChatFocus::Game && !ui.chatOpen &&
+        !runtime.chatInput.otherInput && ui.rightHoldFrames == 0)
     {
         if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
         {
@@ -2311,7 +2316,7 @@ bool OldWindowKeyEdge(Ui::GameUiState& ui, const Input::InputState& input, std::
 }
 
 // 0x4b3961: a new DOWN re-arms held even if the UI had consumed it and UP+DOWN arrive in the same pump.
-void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context, bool effects)
+void LendTheGameHooks(Ui::OldWindowStepView& view, const Ui::GameUiContext& context, bool effects)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -2319,7 +2324,7 @@ void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context,
     // CL9 milestone 10: the bad words filter of the letters and of the chat with a friend (0x622b40 with 0).
     if (const Chat::GameChatContext* chatContext = context.chat; chatContext != nullptr)
         view.badWord = [filter = chatContext->filter](std::string_view text)
-        { return FrontEnd::ContainsAFilteredWord(text, filter, false); };
+        { return Ui::ContainsAFilteredWord(text, filter, false); };
     view.heroName = std::string(Actors::HeroNameOf(world.Hero()));
     view.field78abaac = runtime.ui.field78abaac;
     if (!effects)
@@ -2332,8 +2337,8 @@ void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context,
         return;
     }
     // 0x4694c0(0, 0, 1, nombre).
-    view.whisperTo = [&chat = runtime.chat.input](std::string_view name)
-    { Chat::SetTheChatFields(chat, std::nullopt, name); };
+    view.whisperTo = [&chat = runtime.chatInput](std::string_view name)
+    { Ui::SetTheChatFields(chat, std::nullopt, name); };
     // 0x4a11b0 with 10 and 2 on a saved letter: 0x4dcb70 with 0x4a03c0's copy.
     view.replayLetter = [&world, &random = context.random, measure = context.measure, screen = context.screen,
                          texts = context.texts, chosenSlot = context.chosenSlot, worldEntry = context.worldEntry](
@@ -2368,7 +2373,7 @@ Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
                                 .hovered = ui.hovered,
                                 .capture = ui.capture,
                                 .pressedButton = ui.pressedButton,
-                                .keyboardFocus = runtime.chat.input.focus,
+                                .keyboardFocus = runtime.chatInput.focus,
                                 .sound = runtime.lastSoundId,
                                 .focusedList = ui.focusedList,
                                 .wheel = ui.wheel,
@@ -2379,7 +2384,7 @@ Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
                                 .soundRequest = [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); }};
 }
 
-Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheGameDialogs(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -2429,7 +2434,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     return Hud::Dialogs::StepTheOpenDialog(context, escape);
 }
 
-Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheGameUi(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -2517,7 +2522,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheFunctionKeys(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
@@ -2546,12 +2551,12 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     {
         ui.chatModes.showChat = !ui.chatModes.showChat;
         runtime.RequestSound(ButtonSound);
-        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
+        Ui::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
     }
     // 0x5aca86..0x5acad0: F3, the whisper mode (0x6c8dd0).
     if (KeyEdge(ui, input, F3Key))
     {
-        runtime.chat.input.whisperMode = !runtime.chat.input.whisperMode;
+        runtime.chatInput.whisperMode = !runtime.chatInput.whisperMode;
         runtime.RequestSound(ButtonSound);
     }
     // 0x5acad0..0x5acbb0: F4, the log's size (0x45d8c0) and its corner (0x45a9d0): in its window, 0xba except with the
@@ -2559,8 +2564,8 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     // in its order, up to the first open one), 0; outside it, (−10, 0x51).
     if (KeyEdge(ui, input, F4Key))
     {
-        Chat::CycleTheLogSize(runtime.chat.log, ui.chatModes);
-        Chat::ChatLogFrame& frame = runtime.hud.chatFrame;
+        Ui::CycleTheLogSize(runtime.chat.log, ui.chatModes);
+        Ui::ChatLogFrame& frame = runtime.hud.chatFrame;
         if (ui.chatModes.placement == 1)
         {
             GamePanels gamePanels(context.world, context.random);

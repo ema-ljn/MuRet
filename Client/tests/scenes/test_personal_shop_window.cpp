@@ -39,6 +39,7 @@
 
 #include "support/ItemFiles.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 
@@ -157,7 +158,7 @@ Sent PlainOf(const Client::Protocol::Outgoing& outgoing)
 }
 
 // What goes out through the UI's wire (IGameUiRequests::SendGamePacket), in the same list as InventoryServices'.
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     explicit RecordingRequests(std::vector<Sent>& sent) : m_sent(sent) {}
@@ -320,21 +321,21 @@ protected:
         return Client::Hud::StepTheGameDialogs(Context(x, y));
     }
 
-    Client::Hud::GameUiContext Context(std::int32_t x, std::int32_t y)
+    Client::Ui::GameUiContext Context(std::int32_t x, std::int32_t y)
     {
-        return Client::Hud::GameUiContext{.world = shop->world,
-                                          .random = random,
-                                          .input = input,
-                                          .mouseX = x,
-                                          .mouseY = y,
-                                          .texts = &shop->texts,
-                                          .requests = &requests,
-                                          .inventory = &services,
-                                          .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
-                                          {
-                                              sent.push_back(PlainOf(packet));
-                                              return Client::Core::Expected<void, std::string>{};
-                                          }};
+        return Client::Ui::GameUiContext{.world = shop->world,
+                                         .random = random,
+                                         .input = input,
+                                         .mouseX = x,
+                                         .mouseY = y,
+                                         .texts = &shop->texts,
+                                         .requests = &requests,
+                                         .inventory = &services,
+                                         .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                         {
+                                             sent.push_back(PlainOf(packet));
+                                             return Client::Core::Expected<void, std::string>{};
+                                         }};
     }
 
     [[nodiscard]] int DrawnByTheStep() const
@@ -529,7 +530,7 @@ TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
 // (0xfd, 0x8a), and empty; with the price, +0x4c at 9 (digits only), the cap of 8 and 0x3c × 10 at (0x125, 0x8a).
 TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
 {
-    Client::Ui::OldEdit& edit = Runtime().chat.input.dialogEdit;
+    Client::Ui::OldEdit& edit = Runtime().chatInput.dialogEdit;
     edit.text.SetText("viejo");
     edit.base.state = Client::Ui::HiddenWindow;
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
@@ -561,9 +562,9 @@ TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
 TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
-    Client::Chat::ChatInputState& chat = Runtime().chat.input;
+    Client::Ui::ChatInputState& chat = Runtime().chatInput;
     Client::Ui::TypeInTheEdit(chat.dialogEdit, "Mi puesto");
-    chat.focus = Client::Chat::ChatFocus::Dialog;
+    chat.focus = Client::Ui::ChatFocus::Dialog;
     const auto stepped = Dialogs(ShopOkRight, ShopButtonBottom, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), DialogStepRandoms);
@@ -572,7 +573,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
     EXPECT_EQ(Runtime().social.trade.warningByte, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
-    EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Game);
+    EXPECT_EQ(chat.focus, Client::Ui::ChatFocus::Game);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 }
@@ -585,7 +586,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
           std::tuple<std::string_view, std::int32_t, std::uint8_t>{"0", 0, std::uint8_t{2}}})
     {
         Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopPriceMode);
-        Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, typed);
+        Client::Ui::TypeInTheEdit(Runtime().chatInput.dialogEdit, typed);
         const auto stepped = Dialogs(ShopOkLeft, ShopButtonTop, true);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(Runtime().social.typedMoney, price) << typed;
@@ -599,7 +600,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
 TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
-    Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Otro");
+    Client::Ui::TypeInTheEdit(Runtime().chatInput.dialogEdit, "Otro");
     Runtime().social.trade.warningByte = 0xff;
     auto stepped = Dialogs(ShopCancelRight + 1, ShopButtonTop, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -614,7 +615,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().social.trade.warningByte, 2);
     EXPECT_EQ(Shops().ownTitle, "");
-    EXPECT_EQ(Runtime().chat.input.dialogEdit.text.Value(), "");
+    EXPECT_EQ(Runtime().chatInput.dialogEdit.text.Value(), "");
 }
 
 // Enter (0x5763588) counts as the OK without reading the EDIT: the WndProc (0x4b55db) kept the title. No title, 2.
@@ -624,7 +625,7 @@ TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
                                         std::pair<std::string_view, std::uint8_t>{"", std::uint8_t{2}}})
     {
         Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
-        Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "no se lee");
+        Client::Ui::TypeInTheEdit(Runtime().chatInput.dialogEdit, "no se lee");
         Shops().ownTitle = std::string(title);
         Runtime().ui.enterPressed = true;
         const auto stepped = Dialogs(NowhereX, NowhereY, false);
@@ -641,9 +642,9 @@ TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
 TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
-    Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Mal  ");
+    Client::Ui::TypeInTheEdit(Runtime().chatInput.dialogEdit, "Mal  ");
     LetterMeasure letters;
-    Client::Hud::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
+    Client::Ui::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
     context.measure = &letters;
     Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     const auto stepped = Client::Hud::StepTheGameDialogs(context);
@@ -652,7 +653,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
     EXPECT_EQ(Runtime().social.trade.warningByte, 2);
     const auto& entries = Runtime().chat.log.entries;
     EXPECT_TRUE(std::ranges::any_of(entries,
-                                    [](const Client::Chat::ChatEntry& entry) {
+                                    [](const Client::Ui::ChatEntry& entry) {
                                         return entry.text == "aviso titulo malo" &&
                                                entry.type == Client::Ui::SystemMessage && entry.name.empty();
                                     }));
@@ -1112,7 +1113,7 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     const auto step = [&](std::int32_t x, std::int32_t y)
     {
         Client::Kernel::LatchTheLeftButton(runtime.mouse, true, true);
-        return Client::Hud::StepTheGameDialogs(Client::Hud::GameUiContext{
+        return Client::Hud::StepTheGameDialogs(Client::Ui::GameUiContext{
             .world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y, .requests = &requests});
     };
     const std::int32_t row = Client::Render::Text::FontStepFor(640) + 2;

@@ -10,6 +10,8 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
+#include "Weather/LeafWeather.h"
 
 #include <chrono>
 #include <cstdint>

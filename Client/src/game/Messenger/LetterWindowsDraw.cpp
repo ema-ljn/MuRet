@@ -305,8 +305,8 @@ Core::Expected<std::string, std::string> TextOfTheChatRow(const Ui::OldWindow* c
     if (token.size() <= chatting.size())
         return closed;
     const std::size_t skip = token.starts_with(closed) ? closed.size() + chatting.size() : chatting.size();
-    auto wrapped = Chat::WrapByWidth(token.substr(std::min(skip, token.size())), context.text, context.dcFont,
-                                     context.sprites.Screen(), window.base.width - ChatTextCut, 1, 0);
+    auto wrapped = Ui::WrapByWidth(token.substr(std::min(skip, token.size())), context.text, context.dcFont,
+                                   context.sprites.Screen(), window.base.width - ChatTextCut, 1, 0);
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
     return wrapped.Value().lines.empty() ? std::string() : wrapped.Value().lines.front();

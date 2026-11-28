@@ -70,7 +70,7 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& r
 // 0x451d10 and 0x451810: the character has a personal shop sign on 0x7245c8's map.
 bool HasAPersonalShop(const Kernel::WorldState& world, std::size_t index)
 {
-    return PersonalShop::HasShopTitle(world.Runtime().social.personalShop, index);
+    return Social::HasShopTitle(world.Runtime().social.personalShop, index);
 }
 
 // 0x5af560: neither the own personal shop (0x800) nor another's (0x20000) open, without rand().

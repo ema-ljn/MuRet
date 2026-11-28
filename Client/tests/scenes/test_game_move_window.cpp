@@ -14,7 +14,7 @@
 #include "Kernel/ActorState.h"
 #include "Chat/GameChat.h"
 #include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -24,6 +24,7 @@
 #include "support/ChatTexts.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -44,13 +45,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed1234u;
@@ -219,7 +220,7 @@ TEST_F(GameMoveWindowTest, AClickOnAnAllowedDestinationSaysIt)
     EXPECT_EQ(Mode(), 0);
     EXPECT_FALSE(m_world->Runtime().mouse.leftHeld);
     EXPECT_FALSE(m_world->Runtime().mouse.pendingClick);
-    EXPECT_EQ(m_world->Runtime().chat.input.lastSaid, "/mover Campo");
+    EXPECT_EQ(m_world->Runtime().chatInput.lastSaid, "/mover Campo");
     EXPECT_EQ(m_random.State(), Advanced(OwnRecordRandoms).State());
 }
 

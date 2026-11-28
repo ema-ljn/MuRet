@@ -38,6 +38,9 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "Kernel/JointRequest.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
+#include "Actors/Drawing/GameItemRenderState.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>
@@ -61,13 +64,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -282,7 +285,7 @@ protected:
             return {};
         }
         const auto point =
-            Client::Scenes::UnprojectGamePoint(pass.Value().projection, anchor.Value().x, anchor.Value().y);
+            Client::Kernel::UnprojectGamePoint(pass.Value().projection, anchor.Value().x, anchor.Value().y);
         const auto placed =
             Client::Items::PlaceUiItem(*call, point, always, always, worldClock, &data.items->table, angles);
         if (!placed.HasValue())

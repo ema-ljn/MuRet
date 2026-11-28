@@ -953,11 +953,11 @@ TEST_F(ModelEffectsTest, TheCastleHelperOnlyActsInTheCastle)
         m_actor.dword58 = 7;
         ASSERT_TRUE(Step(0x1fc, map, random).HasValue());
         EXPECT_EQ(m_actor.dword58, castle ? -2 : 7);
-        m_world->Runtime().castleSiege.siegeActive = true;
-        m_world->Runtime().castleSiege.castleFlags7239e4 = 0x20000;
+        m_world->Runtime().castleFlags.siegeActive = true;
+        m_world->Runtime().castleFlags.castleFlags7239e4 = 0x20000;
         ASSERT_TRUE(Step(0x1fc, map, random).HasValue());
         EXPECT_EQ(m_actor.dword58, castle ? -1 : 7);
-        m_world->Runtime().castleSiege.siegeActive = false;
+        m_world->Runtime().castleFlags.siegeActive = false;
         EXPECT_EQ(random.State(), AfterDraws(Seed, 5).State());
     }
 }

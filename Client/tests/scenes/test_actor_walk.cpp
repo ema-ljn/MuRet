@@ -9,6 +9,7 @@
 #include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "support/PlayerActors.h"
+#include "Actors/MovementSpeed.h"
 
 #include <gtest/gtest.h>
 

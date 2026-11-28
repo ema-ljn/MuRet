@@ -103,13 +103,13 @@ struct InventoryServices;
 namespace Client::Kernel
 {
 struct GameDrawTailState;
+struct GameProjection;
 struct ObjectModelStepState;
 struct WorldObject;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-struct GameProjection;
 struct GameSceneFrameProjection;
 
 // 0x620db0(0, 0, w, 432), the game's world pass (0x637410): 480 with the top view (0x7d36899), which never turns on.
@@ -244,7 +244,7 @@ private:
     // 0x637641..0x6376eb: the frame's picking and the 2D pass: the HUD, the overlays and the cursor. `projection` is
     // the world pass's 0x6203c0, which the bubbles read (0x5a9050); nullptr if it could not be built.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(Render::Frame::SceneCanvas& canvas,
-                                                                     const GameProjection* projection);
+                                                                     const Kernel::GameProjection* projection);
     // The frame's 0x60b3d0 globals, shared by what hangs from the characters (0x509340) and the floor items (0x608a00):
     // `item` points at `special`.
     void FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special, Actors::Drawing::ItemDrawContext& item,

@@ -406,7 +406,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     // 0x539a50..0x539add and 0x53b569..0x53b5b1: the 0x613 of width 80 and the hero's 0x61c/0 read the siege and
     // 0x5f82c0's attribute and send the hero's targets.
     const Joints::JointKernels::VolleyServices volley{
-        .siegeActive = runtime.castleSiege.siegeActive,
+        .siegeActive = runtime.castleFlags.siegeActive,
         .attributes = terrain.attributes.get(),
         .skillHits = [this](const Actors::SkillHitsRequest& request) -> Core::Expected<void, std::string>
         {

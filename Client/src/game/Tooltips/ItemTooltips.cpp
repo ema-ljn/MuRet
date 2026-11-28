@@ -5,7 +5,7 @@
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Tooltips/GameTooltips.h"
 #include "Items/HudItems.h"
@@ -132,7 +132,7 @@ std::string PriceWithTax(std::uint32_t price, std::int32_t tax)
 // (0x5b1200) and without it; otherwise (0x5b2e46), 63 with mode 1's. Both with the name's color, without bold, and a
 // "\n" (0x6c99c8) after. With the own personal shop (0x800) or another's (0x20000), without rand(), the personal shop
 // grid's (WriteThePersonalShopPrice, CL9 milestone 7).
-Core::Expected<void, std::string> WriteTheShopPrice(Hud::GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheShopPrice(Ui::GameHudContext& context, TooltipWriter& lines,
                                                     const Kernel::ItemState& item, std::int32_t level,
                                                     std::int32_t nameColor, std::uint8_t grid)
 {
@@ -210,7 +210,7 @@ std::int32_t RepairNameColorOf(const Kernel::ItemState& item, std::int32_t level
 // 0x5b8373..0x5b839b: a worn item sets the repair mode to 2 and carries the price of 0x54d0f0 in mode 2 with the format
 // of 0x5b13e0, which reads [0x78abb10]. 0x1a04 and 0x1a05, the only ones that read the pets (0x422930, with the A9
 // levels), exit at the start of 0x5b8150.
-Core::Expected<Items::RepairPrice, std::string> RepairTheWornItem(Hud::GameHudContext& hud,
+Core::Expected<Items::RepairPrice, std::string> RepairTheWornItem(Ui::GameHudContext& hud,
                                                                   const Kernel::ItemState& item, std::uint16_t maximum)
 {
     Kernel::WorldRuntime& runtime = hud.world.Runtime();
@@ -228,7 +228,7 @@ Core::Expected<Items::RepairPrice, std::string> RepairTheWornItem(Hud::GameHudCo
 Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& context,
                                                    std::span<const std::byte, Tables::ItemRecordSize> record)
 {
-    Hud::GameHudContext& hud = context.hud;
+    Ui::GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
     const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
@@ -248,7 +248,7 @@ Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& con
 Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& context,
                                                  std::span<const std::byte, Tables::ItemRecordSize> record)
 {
-    Hud::GameHudContext& hud = context.hud;
+    Ui::GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
     const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
@@ -267,7 +267,7 @@ Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& conte
 
 Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& context)
 {
-    Hud::GameHudContext& hud = context.hud;
+    Ui::GameHudContext& hud = context.hud;
     const Kernel::ItemState& item = context.item;
     if (item.id == NoItem)
         return {};
@@ -310,7 +310,7 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
 
 Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext& context)
 {
-    Hud::GameHudContext& hud = context.hud;
+    Ui::GameHudContext& hud = context.hud;
     const Kernel::ItemState& item = context.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     if (!IsRepairable(type))

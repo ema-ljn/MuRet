@@ -8,7 +8,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Guild/GuildMarks.h"
@@ -27,6 +27,8 @@
 #include "Ui/PanelTimerFrame.h"
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>
@@ -42,11 +44,11 @@ namespace Client::Guild
 {
 namespace
 {
-using Hud::WindowDrawing::DrawText;
-using Hud::WindowDrawing::Quad;
-using Hud::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::Quad;
+using Ui::WindowDrawing::SelectFont;
 
 // 0x5a764e..0x5a7653.
 constexpr std::uint32_t ScoreBackground = 0x80000000u;
@@ -134,7 +136,7 @@ template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>
     return {name.data(), static_cast<std::size_t>(end - name.begin())};
 }
 
-Core::Expected<std::string_view, std::string> PositionsTextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> PositionsTextOf(const Ui::GameHudContext& context, std::size_t index,
                                                               std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -144,7 +146,7 @@ Core::Expected<std::string_view, std::string> PositionsTextOf(const Hud::GameHud
 }
 
 // 0x5542f0(x, y, text, box, 2, 0): the text centered in the box (0x467060 in mode 2), without measuring.
-void DrawInTheMiddle(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+void DrawInTheMiddle(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                      std::int32_t box)
 {
     if (text.empty() && box == 0)
@@ -167,7 +169,7 @@ std::int32_t MarkOf(const GuildState& guild, std::string_view rival)
 }
 
 // 0x5f16a0(index, 1) and the quad of the slot where it landed, at (x, top).
-Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, const GuildState& guild, std::int32_t index,
+Core::Expected<void, std::string> DrawTheMark(Ui::GameHudContext& context, const GuildState& guild, std::int32_t index,
                                               float x, float top)
 {
     auto slot = context.guildMarks->Upload(guild, index, true);
@@ -208,7 +210,7 @@ void DrawTheDialogBox(Render::SpriteBatch& sprites, std::int32_t height, std::in
 
 // 0x5542f0(x, y, text, 0, 1, 0): 0x465950 with the DC's font and 0x6c8e5c's colors; an empty one is not drawn. It does
 // not measure (0x77f31b8 is 0x554180's).
-void DrawTheLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawTheLine(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     if (text.empty())
         return;
@@ -219,7 +221,7 @@ void DrawTheLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, s
 
 namespace
 {
-Core::Expected<void, std::string> DrawTheGuildWarScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheGuildWarScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::WorldState& world = context.world;
@@ -252,7 +254,7 @@ Core::Expected<void, std::string> DrawTheGuildWarScore(Hud::GameHudContext& cont
 }
 
 // 0x5a7a01..0x5a7cbd: the received names look up their marks in the current table, even without a war.
-Core::Expected<void, std::string> DrawTheSoccerScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheSoccerScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     const auto& soccer = context.world.Runtime().events.soccer;
     if (!soccer.active)
@@ -279,7 +281,7 @@ Core::Expected<void, std::string> DrawTheSoccerScore(Hud::GameHudContext& contex
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheWarScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheWarScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     context.sprites.SetBlend(BlendMode::Opaque);
     context.hud.textColors.background = ScoreBackground;
@@ -288,7 +290,7 @@ Core::Expected<void, std::string> DrawTheWarScore(Hud::GameHudContext& context, 
     return DrawTheSoccerScore(context, panels);
 }
 
-Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Ui::GameHudContext& context)
 {
     auto& events = context.world.Runtime().events;
     auto& hud = context.hud;
@@ -309,9 +311,9 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext
             hud.textColors.text = 0xff0affffu;
         Hud::GamePanels panels(context.world, context.random);
         const auto center = panels.Registry().WorldWidth() / 2;
-        Hud::WindowDrawing::DrawCenteredText(context, center, 350, text);
+        Ui::WindowDrawing::DrawCenteredText(context, center, 350, text);
         hud.textColors.text = 0xffffffffu;
-        Hud::WindowDrawing::DrawCenteredText(context, center + 1, 351, text);
+        Ui::WindowDrawing::DrawCenteredText(context, center + 1, 351, text);
         SelectFont(context, FontKind::Normal);
     }
     const auto& outcome = events.guildWarOutcome;
@@ -379,7 +381,7 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheGuildPositions(Ui::GameHudContext& context)
 {
     GuildState& guild = context.world.Runtime().guild;
     GuildPositionsState& positions = guild.positions;
@@ -394,14 +396,14 @@ Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& con
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, sprites.Screen()));
     const std::int32_t box = Truncate(rx * PositionsTextBox);
     const std::int32_t left = x + PositionsLeft;
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + AssistantFrameTop),
-                                     PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + AssistantFrameTop),
+                                    PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
     auto assistant = PositionsTextOf(context, AssistantText, "0x64f25c");
     if (!assistant.HasValue())
         return Core::Unexpected(std::move(assistant).Error());
     DrawInTheMiddle(context, left, y + AssistantTextTop, assistant.Value(), box);
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + BattleMasterFrameTop),
-                                     PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + BattleMasterFrameTop),
+                                    PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
     auto battleMaster = PositionsTextOf(context, BattleMasterText, "0x64f2d9");
     if (!battleMaster.HasValue())
         return Core::Unexpected(std::move(battleMaster).Error());
@@ -440,7 +442,7 @@ Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& con
     return {};
 }
 
-Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& context, Ui::PanelDialogState& dialog)
+Core::Expected<void, std::string> DrawThePanelDialog(Ui::GameHudContext& context, Ui::PanelDialogState& dialog)
 {
     if (Ui::PanelDialogHandle(dialog) == 0)
         return {};
@@ -484,8 +486,8 @@ Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& contex
              0.5625f);
         y = F32(static_cast<double>(y) + 7.0);
         auto& runtime = context.world.Runtime();
-        Ui::OldEdit projected = runtime.chat.input.dialogEdit;
-        auto& edit = context.projecting ? projected : runtime.chat.input.dialogEdit;
+        Ui::OldEdit projected = runtime.chatInput.dialogEdit;
+        auto& edit = context.projecting ? projected : runtime.chatInput.dialogEdit;
         edit.base.state = Ui::ShownWindow;
         edit.filter = dialog.inputFilter;
         edit.backgroundColor = 0;
@@ -496,7 +498,7 @@ Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& contex
         edit.base.y = static_cast<std::int32_t>(y);
         if (!context.projecting)
         {
-            Chat::FocusTheDialogField(runtime.chat.input);
+            Ui::FocusTheDialogField(runtime.chatInput);
             runtime.ui.focusedList = edit.base.id;
         }
         Ui::OldDraw::DrawTheOldEdit({.sprites = sprites,

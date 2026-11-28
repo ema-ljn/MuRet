@@ -28,6 +28,8 @@
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
 #include "support/SameBytes.h"
+#include "Items/HudItems.h"
+#include "Ui/GameUiContext.h"
 
 #include <gtest/gtest.h>
 
@@ -45,11 +47,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Kernel::WorldState;
+using Client::Ui::GameUiContext;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // The step with everything closed (test_game_ui.cpp): the skill bar, the Q, W and E chain and the IsOpen(0) tail.

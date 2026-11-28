@@ -8,7 +8,7 @@
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Tooltips/GameTooltips.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Tooltips/TooltipLines.h"
@@ -37,11 +37,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
 using Client::Tooltips::TooltipLines;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};
@@ -377,7 +377,7 @@ TEST_F(SkillTooltipTest, AKnightSeesTheSkillDamagePlusTheAttack)
     ExpectLines(lines);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(world.Runtime().movement.skillDepths[Slash], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[Slash], 0);
     EXPECT_EQ(DrawnTexts(), (std::vector<std::string>{"Tajo", "Golpe 26~39", "Alcance 3", "Mana 12"}));
 }
 
@@ -579,8 +579,8 @@ TEST_F(SkillTooltipTest, TheOriginNamesTheGiverOrTheGuildWar)
     lines.insert(lines.end(), {{"Mana 5", 0, 0}, {"Dada por Tajo", 5, 0}, {"Espera 20", 5, 0}, {"\n"}});
     ExpectLines(lines);
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(world.Runtime().movement.skillDepths[Slash], 0);
-    EXPECT_EQ(world.Runtime().movement.skillDepths[Given], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[Slash], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[Given], 0);
 
     HeroIs(Wizard);
     expected = Advanced(random, OwnRecordCloseRandoms + SkillAccesses);
@@ -688,7 +688,7 @@ TEST_F(SkillTooltipTest, WhatMuRetLacksStopsWithItsAddress)
     ASSERT_FALSE(noText.HasValue());
     EXPECT_NE(noText.Error().find("879"), std::string::npos);
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(world.Runtime().movement.skillDepths[Slash], 0);
+    EXPECT_EQ(world.Runtime().skillDepths[Slash], 0);
 }
 
 // 0x5f7bc0: with 0x6c9320 other than −1, the skill body of that slot with the fourth argument at 0.

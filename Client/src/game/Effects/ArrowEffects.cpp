@@ -781,7 +781,7 @@ Core::Expected<void, std::string> HitWithTheArrow(Effects::ModelEffect& effect, 
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x520179..0x5201d2: with the siege (0x4294b0), the cell's bit 0x100 (0x5f82c0) stops it and leaves it half its
     // life.
-    if (runtime.castleSiege.siegeActive)
+    if (runtime.castleFlags.siegeActive)
     {
         const auto& attributes = Terrain::TerrainOrEmpty(context.terrain).attributes;
         if (!attributes)

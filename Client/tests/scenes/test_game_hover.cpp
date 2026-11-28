@@ -11,6 +11,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "support/RecordingTextDrawer.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

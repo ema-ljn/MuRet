@@ -14,7 +14,7 @@
 // The chat log's step (CL8 milestone 3; 06 § El chat): 0x45aa80, its vtable + 0x18, which runs from the UI step
 // (0x636e4c) with 0, and what it calls: the mouse (0x479960), the bar, the buttons and the top edge (0x45d760 and
 // 0x45d990) and the mouse over the names (0x45dec0). Also the bar the frame's draw computes (0x47a230).
-namespace Client::Chat
+namespace Client::Ui
 {
 struct ChatLogGlobals
 {
@@ -94,4 +94,4 @@ void PlaceTheLogBar(const ChatLogState& log, ChatModes modes, ChatLogFrame& fram
 // under the mouse or the grabbed one, it does not go on. Then 0x479960.
 [[nodiscard]] ChatLogStepResult StepTheChatLog(ChatLogState& log, ChatLogFrame& frame, const ChatLogGlobals& globals,
                                                const ChatLogStepView& view);
-} // namespace Client::Chat
+} // namespace Client::Ui

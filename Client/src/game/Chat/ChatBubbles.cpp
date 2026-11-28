@@ -18,6 +18,8 @@
 #include "Ui/MessageArea.h"
 #include "Ui/MessageLog.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>
@@ -272,8 +274,8 @@ Core::Expected<void, std::string> AddChatBubble(Kernel::WorldState& world, const
         steps = ChatBubbleLogSteps;
         // vtable + 0x94 of the log: 0x45bb20(the entry's name, text, 3, 0).
         Ui::MessageSink sink = MessageSinkOf(runtime, measure.measure, measure.screen);
-        auto sound = Chat::AddToTheLog(sink.log, sink.modes, sink.measure, bubble->name, text, Ui::ChatMessage, 0,
-                                       sink.noticeSound);
+        auto sound = Ui::AddToTheLog(sink.log, sink.modes, sink.measure, bubble->name, text, Ui::ChatMessage, 0,
+                                     sink.noticeSound);
         if (!sound.HasValue())
             return Core::Unexpected(sound.Error());
         if (sound.Value())
@@ -325,9 +327,9 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
         // the owner at NULL finds nothing); with an owner and +time1 at 0, it shows (0x4516d0).
         Social::PersonalShopState& shops = runtime.social.personalShop;
         if (bubble.time1 > 0 && bubble.owner)
-            PersonalShop::HideShopTitle(shops, *bubble.owner);
+            Social::HideShopTitle(shops, *bubble.owner);
         if (bubble.owner && bubble.time1 == 0)
-            PersonalShop::ShowShopTitle(shops, *bubble.owner);
+            Social::ShowShopTitle(shops, *bubble.owner);
         if (input.screen.width <= 0 || input.screen.height <= 0)
             continue;
         // 0x557722..0x557738: the width and the height go to 640 × 480 with an unsigned division.
@@ -347,9 +349,9 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
         // 0x5577a2..0x55780d: the right click is spent, the name goes to the whisper EDIT (0x4694c0(0, 0, 1, name),
         // with 0x6c7b8c at 1) and with strcpy to the buffer and its length, and 0x19 sounds. Then the other bubbles.
         runtime.ui.rightClick = false;
-        Chat::SetTheChatFields(runtime.chat.input, std::nullopt, CString(bubble.name));
-        Chat::PutTheWhisperName(runtime.chat.input, CString(bubble.name));
-        runtime.RequestSound(Chat::ChatButtonSound);
+        Ui::SetTheChatFields(runtime.chatInput, std::nullopt, CString(bubble.name));
+        Ui::PutTheWhisperName(runtime.chatInput, CString(bubble.name));
+        runtime.RequestSound(Ui::ChatButtonSound);
     }
     return {};
 }

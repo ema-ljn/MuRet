@@ -101,7 +101,7 @@ struct GameUiState
     std::uint8_t skillListOpen = 0;
     // 0x6c7a88 (.data 1): the chat log's place, which its constructor (0x45b620) zeroes from WinMain before the first
     // scene; and 0x6c8dd1 (.data 1), F2, the normal chat in view.
-    Chat::ChatModes chatModes{};
+    Ui::ChatModes chatModes{};
     // 0x6c8e68: while the chat field is open, its EDIT has the focus (the unowned click does not take it, 0x636e80).
     bool chatOpen = false;
     // 0x576793c: the exit asked for from the Esc menu (0x62411c). With 1, Open does not open (0x6599a0).

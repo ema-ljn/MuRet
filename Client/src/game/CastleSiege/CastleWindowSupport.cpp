@@ -5,7 +5,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "CastleSiege/CastleSiegeReceive.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Guild/GuildPanels.h"
 #include "Guild/GuildState.h"
 #include "Kernel/WorldRuntime.h"
@@ -34,7 +34,7 @@ Core::Expected<std::string, std::string> Text(const Tables::TextTable* texts, st
     return std::string(text->substr(0, text->find('\0')));
 }
 
-Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet)
+Core::Expected<void, std::string> Send(const Ui::GameUiContext& context, Protocol::Outgoing packet)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string("la ventana del castillo envía sin el cable del GameServer"));
@@ -42,14 +42,14 @@ Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protoc
     return {};
 }
 
-CastleSender SenderOf(const Hud::GameUiContext& context)
+CastleSender SenderOf(const Ui::GameUiContext& context)
 {
     if (context.requests == nullptr)
         return {};
     return [requests = context.requests](Protocol::Outgoing packet) { requests->SendGamePacket(std::move(packet)); };
 }
 
-Core::Expected<std::uint32_t, std::string> Popup(const Hud::GameUiContext& context, std::span<const std::string> lines,
+Core::Expected<std::uint32_t, std::string> Popup(const Ui::GameUiContext& context, std::span<const std::string> lines,
                                                  Ui::PanelDialogOwner owner, std::uint32_t flags, std::int32_t placed)
 {
     if (context.measure == nullptr)
@@ -59,7 +59,7 @@ Core::Expected<std::uint32_t, std::string> Popup(const Hud::GameUiContext& conte
                                       *context.measure, context.screen, context.systemTime);
 }
 
-Core::Expected<std::uint32_t, std::string> PopupAt(const Hud::GameUiContext& context,
+Core::Expected<std::uint32_t, std::string> PopupAt(const Ui::GameUiContext& context,
                                                    std::initializer_list<std::uint32_t> addresses,
                                                    Ui::PanelDialogOwner owner, std::uint32_t flags, std::int32_t placed)
 {

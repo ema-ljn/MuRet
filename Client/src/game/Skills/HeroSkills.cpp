@@ -157,7 +157,7 @@ Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 
 Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t skill)
 {
-    return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
+    return Models::LogicalAccess(context.world.Runtime().skillDepths[skill], context.random,
                                  static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
@@ -182,7 +182,7 @@ bool UsableOnThisMap(std::uint8_t skill, const Kernel::WorldRuntime& runtime)
 {
     const bool siegeSkill =
         skill == 0x2c || skill == 0x2d || skill == 0x2e || skill == 0x39 || skill == 0x49 || skill == 0x4a;
-    return !siegeSkill || (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive);
+    return !siegeSkill || (runtime.map == CastleSiegeMap && runtime.castleFlags.siegeActive);
 }
 
 // 0x420f70(hero, slot): the raven's orders. Without a raven (+0x430), without the click or the right button, or with a

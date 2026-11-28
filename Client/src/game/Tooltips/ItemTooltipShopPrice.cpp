@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
 #include "Models/LogicalAccess.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Tooltips/ItemTooltipParts.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -65,7 +65,7 @@ std::optional<std::int32_t> PriceAt(const Social::PersonalShopState& shops, std:
 }
 } // namespace
 
-Core::Expected<void, std::string> WriteThePersonalShopPrice(Hud::GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteThePersonalShopPrice(Ui::GameHudContext& context, TooltipWriter& lines,
                                                             const Kernel::ItemState& item)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();

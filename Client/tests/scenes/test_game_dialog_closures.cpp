@@ -13,6 +13,9 @@
 #include "Kernel/WorldState.h"
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
+#include "Ui/Dialogs.h"
+#include "Ui/PanelRegistry.h"
+#include "Ui/GameUiContext.h"
 
 #include <gtest/gtest.h>
 
@@ -45,7 +48,7 @@ TEST_P(GameDialogClosuresTest, EscapeClosesTheNpcThroughTheTransportBorrowedByTh
     input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
     const Client::Items::InventoryServices inventory;
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Hud::GameUiContext context{.world = *world, .random = random, .input = input, .inventory = &inventory};
+    Client::Ui::GameUiContext context{.world = *world, .random = random, .input = input, .inventory = &inventory};
     context.sendNpcWindow = [&](Client::Protocol::Outgoing packet)
     {
         sent.push_back(std::move(packet));

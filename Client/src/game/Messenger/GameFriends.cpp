@@ -24,6 +24,7 @@
 #include "Ui/SlideBanner.h"
 #include "Crt/SprintfFormat.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -179,7 +180,7 @@ Protocol::Outgoing FriendPacketOf(const Ui::FriendSend& send)
     }
 }
 
-void SendAFriendPacket(Hud::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send)
+void SendAFriendPacket(Ui::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send)
 {
     if (send.kind == Ui::FriendSendKind::LetterSend)
     {
@@ -208,7 +209,7 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
         auto text = TextOf(context.texts, Messenger::FriendsLevelText);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        if (Chat::SaidRecently(runtime.chat.log, text.Value(), 1))
+        if (Ui::SaidRecently(runtime.chat.log, text.Value(), 1))
             return {};
         return SystemMessage(runtime, context.measure, context.screen, text.Value(), "0x4912fd");
     }

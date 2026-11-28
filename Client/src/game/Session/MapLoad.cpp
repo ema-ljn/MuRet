@@ -33,6 +33,8 @@
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
 #include "Assets/FaunaModels.h"
+#include "Effects/ModelEffects.h"
+#include "Actors/Drawing/CharacterCloth.h"
 
 #include <array>
 #include <cstddef>
@@ -134,7 +136,7 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
     Crt::CrtRandom& random = context.random;
     WorldObjects::MapModelEffectServices services(loaded.effects, random);
     // 0x4294b0 lee el byte 0x7239ec en cada objeto del 30 (0x42b480); ningún paquete corre durante la carga.
-    const std::uint8_t siegeState = context.world.Runtime().castleSiege.siegeActive ? 1 : 0;
+    const std::uint8_t siegeState = context.world.Runtime().castleFlags.siegeActive ? 1 : 0;
     WorldObjects::WorldObjectCreationContext creation{.map = map,
                                                       .scene = ObjectSceneOf(context.scene),
                                                       .registrations = loaded.registrations,
@@ -168,14 +170,14 @@ void FillTheGrassOffsets(std::vector<float>& offsets, Crt::CrtRandom& random)
 // 0x42a760, con el mapa 30, después de los especiales de 0x616ec0 y antes de leer los archivos: 0x7239f0 en 0
 // (0x42a795), el pedido B9 02 (0x42a7d3..0x42aa52), el lancero 0x612d90(0x4d) en el modelo 0x19f y sus cinco
 // objetos con 0x606660 (0x42aa70..0x42ab27), en (x; 11.300; 270), ángulos en 0 y escala 1. El byte 0x7239d8
-// (CastleSiegeState::castleByte7239d8), que también pone en 0 (0x42a78e), lo escribe 0x42d890 y lo lee 0x42da90 con los
+// (CastleSiegeFlags::castleByte7239d8), que también pone en 0 (0x42a78e), lo escribe 0x42d890 y lo lee 0x42da90 con los
 // monstruos 0x11e y 0x11f.
 Core::Expected<void, std::string> PrepareTheCastleSiege(Kernel::WorldMap& loaded, std::int32_t map,
                                                         const MapLoadContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    runtime.castleSiege.siegeMusicTime = 0.0f;
-    runtime.castleSiege.castleByte7239d8 = 0;
+    runtime.castleFlags.siegeMusicTime = 0.0f;
+    runtime.castleFlags.castleByte7239d8 = 0;
     // 0x42a981: el B9 02 sale solo con el socket del GS abierto (0x6c82a0 + 0xc distinto de −1).
     if (context.requestCastleSiegeState)
         context.requestCastleSiegeState();
@@ -301,7 +303,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         KillOtherActors(context.world, static_cast<std::int32_t>(context.playerKey));
     }
     // 0x61a5b5..0x61a5bc, también en la selección: 0x451590 deja solo el cartel de la tienda del héroe.
-    PersonalShop::KeepTheHeroShopTitle(context.world);
+    Social::KeepTheHeroShopTitle(context.world);
     if (map == LoginMap)
     {
         return Core::Unexpected(std::string("0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos"));
@@ -338,7 +340,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         }
     }
     // 61a6ea/61a8af: el estado activo elige312 yTerrainLight2; elMAP yOBJ conservan el mundo31.
-    if (map == CastleSiegeMap && context.world.Runtime().castleSiege.siegeActive)
+    if (map == CastleSiegeMap && context.world.Runtime().castleFlags.siegeActive)
     {
         constexpr std::int32_t WarAttributes = 312;
         names.attributesNumber = WarAttributes;

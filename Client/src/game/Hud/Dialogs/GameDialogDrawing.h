@@ -4,10 +4,10 @@
 
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The game dialogs in the drawing (06 § HUD y ventanas, "Los diálogos del juego", CL8 milestone 6): 0x62db60, which
 // the 2D pass calls in scene 5 (0x637696) between the duel request and the tooltips. It draws the open dialog
@@ -51,5 +51,5 @@ namespace Client::Hud::Dialogs
 //     ChaosMix/JewelBundleList) and its OK and its cancel.
 // The rest stop with the wave that brings them, like their step. In a MuRet intermediate drawing, the bar's corner and
 // the click are not written. Without Text.bmd, or without one of its texts, it stops.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(Ui::GameHudContext& context);
 } // namespace Client::Hud::Dialogs

@@ -14,10 +14,12 @@ app/App/Config.h	125	app/App	app/App	high	engine or protocol layer, no game stat
 app/App/ConfigError.h	16	app/App	app/App	high	engine or protocol layer, no game state
 game/Session/ConnectionKeyFiles.cpp	117	game/Session	game/Session	medium	the session with the servers
 game/Session/ConnectionKeyFiles.h	29	game/Session	game/Session	medium	the session with the servers
+game/Session/HeldModules.cpp	243	game/Session	game/Session	high	the modules' states the Kernel holders bind to, defined above every module (ADR 0029, amended Decision 2)
 game/Session/Credentials.cpp	62	game/Session	game/Session	medium	the session with the servers
 game/Session/Credentials.h	49	game/Session	game/Session	medium	the session with the servers
 game/Kernel/FaithfulPacer.cpp	83	game/Kernel	game/Kernel	high	the original loop's rhythm (addr.) and its tick count, which the game's windows read too (AR4.5 Step 0)
 game/Kernel/FaithfulPacer.h	41	game/Kernel	game/Kernel	high	the original loop's rhythm (addr.) and its tick count, which the game's windows read too (AR4.5 Step 0)
+game/Kernel/HeldModules.h	225	game/Kernel	game/Kernel	high	the holders of the modules' states, which Session defines, so Kernel includes no module (ADR 0029, amended Decision 2)
 app/App/FixedStep.cpp	42	app/App	app/App	high	engine or protocol layer, no game state
 app/App/FixedStep.h	26	app/App	app/App	high	engine or protocol layer, no game state
 app/App/FontFiles.cpp	54	app/App	app/App	high	engine or protocol layer, no game state
@@ -28,11 +30,12 @@ app/App/GameClient.cpp	353	app/App	app/App	high	composition root: builds the gam
 app/App/GameClient.h	196	app/App	app/App	high	composition root: builds the game's pieces in WinMain's order (AR1.4)
 app/App/GameLoop.cpp	166	app/App	app/App	high	engine or protocol layer, no game state
 app/App/GameLoop.h	82	app/App	app/App	high	engine or protocol layer, no game state
-app/App/IChatRoomLinks.h	37	app/App	app/App	high	engine or protocol layer, no game state
+app/App/IChatRoomLinks.h	38	app/App	game/Chat	high	the chat rooms' connections the Messenger rooms use and the session implements (Task 31)
 game/Scenes/ILoopClient.h	40	game/Scenes	game/Scenes	high	what the app's loop calls; the scene manager implements it (AR4.5 Step 0)
 game/Session/ISessionEventSink.h	54	game/Session	game/Session	medium	the session with the servers
 app/App/LabXorRemapTables.h	46	app/App	app/App	high	composition root: the lab server's values for the XOR and remap layer (AR1.1)
 game/Kernel/LoopTiming.h	43	game/Kernel	game/Kernel	high	the original loop's step and limits (addr.), which the game's steps read too (AR4.5 Step 0)
+game/Kernel/ModelSounds.h	18	game/Kernel	game/Kernel	high	the per-model sound table the runtime holds and Sound fills (addr.)
 app/App/MakeObfuscation.h	12	app/App	app/App	high	composition root: the build's choice of obfuscation layer (AR1.1)
 app/App/MakeObfuscationNone.cpp	14	app/App	app/App	high	composition root: the factory of a build without the XOR and remap layer (AR1.1)
 app/App/MakeObfuscationXorRemap.cpp	15	app/App	app/App	high	composition root: the factory of a build with the XOR and remap layer (AR1.1)
@@ -719,8 +722,8 @@ game/Joints/FireTrailJoints.cpp	58	game/Joints	game/Joints	high	joints (ribbons 
 game/Joints/FlareJoints.cpp	122	game/Joints	game/Joints	high	joints (ribbons and beams), a module of their own; Effects reach them through a Kernel port (AR4.3)
 game/Items/FloorItemActions.cpp	197	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/FloorItemActions.h	50	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
-game/Items/FloorItemNames.cpp	463	game/Items	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to Hud (3 vs 1 own)
-game/Items/FloorItemNames.h	25	game/Items	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to Hud (3 vs 1 own)
+game/Items/FloorItemNames.cpp	459	game/Items	game/Tooltips	high	a floor item's name, set and skill lines, drawn like a tooltip with the tooltips' parts
+game/Items/FloorItemNames.h	33	game/Items	game/Tooltips	high	a floor item's name, set and skill lines, drawn like a tooltip with the tooltips' parts
 game/Items/FloorItemPackets.cpp	528	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/FloorItemPackets.h	105	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Actors/FullSetScan.cpp	154	game/Actors	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
@@ -800,8 +803,8 @@ game/Party/GamePartyWindow.cpp	546	game/Party	game/Party	high	the party (2026-11
 game/Party/GamePartyWindow.h	46	game/Party	game/Party	high	the party (2026-11-21 review)
 game/Pets/GamePetWindow.cpp	728	game/Pets	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to OwnCharacter (3 vs 1 own)
 game/Pets/GamePetWindow.h	31	game/Pets	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to OwnCharacter (3 vs 1 own)
-game/Scenes/GameProjection.cpp	108	game/Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
-game/Scenes/GameProjection.h	48	game/Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
+game/Scenes/GameProjection.cpp	109	game/Scenes	game/Kernel	high	the screen projection (addr.) that the names, the bubbles, the bars and the picking use, below their users
+game/Scenes/GameProjection.h	48	game/Scenes	game/Kernel	high	the screen projection (addr.) that the names, the bubbles, the bars and the picking use, below their users
 game/Actors/Drawing/GameRibbonCreation.cpp	91	game/Actors/Drawing	game/Actors/Drawing	medium	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (2 vs 
 game/Actors/Drawing/GameRibbonCreation.h	31	game/Actors/Drawing	game/Actors/Drawing	medium	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (2 vs 
 game/Scenes/GameScene.cpp	1418	game/Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Assets (8 vs 7 own)
@@ -823,8 +826,8 @@ game/Tooltips/GameTooltips.cpp	615	game/Tooltips	game/Tooltips	high	item, skill 
 game/Tooltips/GameTooltips.h	52	game/Tooltips	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 game/Hud/GameUi.cpp	2762	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Social
 game/Hud/GameUi.h	231	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Social
-game/Hud/GameWindowDrawing.cpp	251	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to NpcInt
-game/Hud/GameWindowDrawing.h	76	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to NpcInt
+game/Hud/GameWindowDrawing.cpp	243	game/Hud	game/Ui	high	the framed windows' drawing kit every module's window uses (AR4.4 design: hosts and windows share it from below)
+game/Hud/GameWindowDrawing.h	77	game/Hud	game/Ui	high	the framed windows' drawing kit every module's window uses (AR4.4 design: hosts and windows share it from below)
 game/Items/GridItemUse.cpp	309	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/GridItemUse.h	65	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Effects/GroundEffectFrame.cpp	65	game/Effects	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
@@ -878,8 +881,8 @@ game/Effects/HighModelEffects.cpp	1547	game/Effects	game/Effects	high	model effe
 game/Effects/HighModelEffects.h	132	game/Effects	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 game/Items/HudItems.cpp	226	game/Items	game/Items	high	item queries (quick slots, arrow count, max durability) used by the HUD, tooltips and windows (AR0.1 review)
 game/Items/HudItems.h	73	game/Items	game/Items	high	item queries (quick slots, arrow count, max durability) used by the HUD, tooltips and windows (AR0.1 review)
-game/Hud/HudText.cpp	28	game/Hud	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
-game/Hud/HudText.h	21	game/Hud	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
+game/Hud/HudText.cpp	30	game/Hud	game/Ui	high	the HUD's loose texts every module's window draws (AR4.4 design: shared from below)
+game/Hud/HudText.h	30	game/Hud	game/Ui	high	the HUD's loose texts every module's window draws (AR4.4 design: shared from below)
 engine/Render/Frame/IFrameTarget.h	20	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 game/Scenes/IScene.h	63	game/Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 2 own)
 engine/Render/Frame/ITextDrawer.h	35	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
@@ -1004,7 +1007,7 @@ game/Assets/MonsterModelTable.h	116	game/Assets	game/Assets	medium	models and te
 game/Monsters/Drawing/MonsterRibbonTrails.cpp	202	game/Monsters/Drawing	game/Monsters/Drawing	high	weapon ribbon trails of monsters (AR0.1 review)
 game/Monsters/Drawing/MonsterRibbonTrails.h	24	game/Monsters/Drawing	game/Monsters/Drawing	high	weapon ribbon trails of monsters (AR0.1 review)
 game/Sound/MonsterSounds.cpp	137	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
-game/Sound/MonsterSounds.h	46	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
+game/Sound/MonsterSounds.h	42	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
 game/Monsters/MonsterStepCases.cpp	217	game/Monsters	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
 game/Monsters/MonsterStepCases.h	65	game/Monsters	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
 game/Monsters/MonsterViewport.cpp	521	game/Monsters	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
@@ -1044,8 +1047,8 @@ game/Player/OwnDerivedStats.cpp	301	game/Player	game/Player	high	own record [0x7
 game/Player/OwnDerivedStats.h	124	game/Player	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
 game/Kernel/OwnInventory.cpp	29	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 game/Kernel/OwnInventory.h	32	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
-game/Items/OwnItemOptions.cpp	58	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
-game/Items/OwnItemOptions.h	25	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
+game/Items/OwnItemOptions.cpp	58	game/Items	game/Player	high	the own items' options the character's stats add (addr.), which only Player reads
+game/Items/OwnItemOptions.h	24	game/Items	game/Player	high	the own items' options the character's stats add (addr.), which only Player reads
 game/Items/OwnItemPlacement.cpp	607	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/OwnItemPlacement.h	104	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Player/OwnItemSets.cpp	669	game/Player	game/Player	high	own record [0x7681eb0], derived stats (addr.), set options, damages, F3 06/F3 10
@@ -1060,8 +1063,8 @@ game/Party/PartyActors.cpp	182	game/Party	game/Party	high	the party (2026-11-21 
 game/Party/PartyActors.h	55	game/Party	game/Party	high	the party (2026-11-21 review)
 game/PersonalShop/PersonalShopLists.cpp	362	game/PersonalShop	game/PersonalShop	high	the personal shop (2026-11-21 review)
 game/PersonalShop/PersonalShopLists.h	77	game/PersonalShop	game/PersonalShop	high	the personal shop (2026-11-21 review)
-game/PersonalShop/PersonalShopTitles.cpp	134	game/PersonalShop	game/PersonalShop	high	the personal shop (2026-11-21 review)
-game/PersonalShop/PersonalShopTitles.h	48	game/PersonalShop	game/PersonalShop	high	the personal shop (2026-11-21 review)
+game/PersonalShop/PersonalShopTitles.cpp	134	game/PersonalShop	game/Social	high	the methods of the shop signs' map (addr.), which lives in the social state; the signs' drawing is PersonalShop's
+game/PersonalShop/PersonalShopTitles.h	56	game/PersonalShop	game/Social	high	the methods of the shop signs' map (addr.), which lives in the social state; the signs' drawing is PersonalShop's
 game/PersonalShop/PersonalShopWindow.cpp	646	game/PersonalShop	game/PersonalShop	medium	the personal shop (2026-11-21 review)
 game/PersonalShop/PersonalShopWindow.h	102	game/PersonalShop	game/PersonalShop	medium	the personal shop (2026-11-21 review)
 game/Pets/PetHelperSteps.cpp	382	game/Pets	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
@@ -1225,18 +1228,18 @@ game/Session/WorldEntry.cpp	385	game/Session	game/Session	medium	top-level packe
 game/Session/WorldEntry.h	193	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 game/Scenes/WorldLoadingScene.cpp	130	game/Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 game/Scenes/WorldLoadingScene.h	50	game/Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
-game/Kernel/WorldMap.h	33	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
+game/Kernel/WorldMap.h	31	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
 game/Assets/WorldModels.cpp	484	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldModels.h	115	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/WorldObjects/WorldObjectsDrawing.cpp	769	game/WorldObjects	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 game/WorldObjects/WorldObjectsDrawing.h	145	game/WorldObjects	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
-game/Kernel/WorldRuntime.h	558	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
+game/Kernel/WorldRuntime.h	446	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Kernel/HelperTable.cpp	17	game/Kernel	game/Kernel	high	the helpers' table the world holds, shared by the actors and the pets (AR4.1)
 game/Kernel/HelperTable.h	66	game/Kernel	game/Kernel	high	the helpers' table the world holds, shared by the actors and the pets (AR4.1)
-game/Kernel/WorldState.cpp	292	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
-game/Kernel/WorldState.h	168	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.cpp	232	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.h	192	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 game/Hud/WorldTexts.cpp	92	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 game/Hud/WorldTexts.h	60	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 game/Session/WorldTransitionSupport.cpp	244	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
@@ -1256,14 +1259,15 @@ game/FrontEnd/CharacterBalloons.cpp	271	game/FrontEnd	game/FrontEnd	medium	login
 game/FrontEnd/CharacterBalloons.h	103	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/Chat/ChatCommands.cpp	355	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatCommands.h	162	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatInput.cpp	356	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatInput.h	271	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLog.cpp	468	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLog.h	204	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/ChatInput.cpp	356	game/Chat	game/Ui	high	the old windows' text fields every window types into (the chat's, the dialog's and the number's), below their users
+game/Chat/ChatInput.h	272	game/Chat	game/Ui	high	the old windows' text fields every window types into (the chat's, the dialog's and the number's), below their users
+game/Chat/ChatLog.cpp	468	game/Chat	game/Ui	high	the chat log and its filter, which the old windows and the UI state draw and keep, below their users
+game/Chat/ChatLog.h	203	game/Chat	game/Ui	high	the chat log and its filter, which the old windows and the UI state draw and keep, below their users
+game/Chat/ChatRuntime.h	39	game/Chat	game/Chat	high	the chat's state the runtime holds: the log, the input, the bubbles and the whisper senders
 game/Chat/ChatLogDraw.cpp	479	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatLogDraw.h	69	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLogWindow.cpp	402	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLogWindow.h	99	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/ChatLogWindow.cpp	403	game/Chat	game/Ui	high	the chat log's window step and the list bar the old windows share, below their users
+game/Chat/ChatLogWindow.h	97	game/Chat	game/Ui	high	the chat log's window step and the list bar the old windows share, below their users
 game/FrontEnd/CreateCharacterWindow.cpp	427	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/FrontEnd/CreateCharacterWindow.h	120	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/FrontEnd/CreditsWindow.cpp	500	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
@@ -1288,6 +1292,8 @@ game/Ui/GameDialogs.h	184	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|
 game/Ui/GameText.cpp	103	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/GameText.h	37	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/GameUiState.h	189	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
+game/Ui/GameHudContext.h	121	game/Ui	game/Ui	high	what the HUD hands the windows it draws, shared by every module with a window (AR4.4 design)
+game/Ui/GameUiContext.h	141	game/Ui	game/Ui	high	what the UI step hands the windows it steps, shared by every module with a window (AR4.4 design)
 game/Ui/HudPrimitives.cpp	148	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/HudPrimitives.h	38	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 engine/Platform/IClipboard.h	21	engine/Platform	engine/Platform	medium	rule ^(IClipboard)
@@ -1299,16 +1305,16 @@ game/Messenger/LetterWindowsDraw.cpp	674	game/Messenger	game/Messenger	medium	fr
 game/Messenger/LetterWindowsDraw.h	66	game/Messenger	game/Messenger	medium	friends and letters (2026-11-21 review)
 game/FrontEnd/LoginWindow.cpp	281	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/FrontEnd/LoginWindow.h	123	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
-game/Chat/MacroFile.cpp	62	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/MacroFile.h	31	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/MacroFile.cpp	61	game/Chat	game/Tables	high	Data\Macro.txt, read with the other data files
+game/Chat/MacroFile.h	32	game/Chat	game/Tables	high	Data\Macro.txt, read with the other data files
 game/Ui/MenuBar.cpp	137	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MenuBar.h	73	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageArea.cpp	288	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageArea.h	168	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageLog.cpp	33	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageLog.h	35	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
-game/FrontEnd/NameChecks.cpp	156	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
-game/FrontEnd/NameChecks.h	59	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
+game/FrontEnd/NameChecks.cpp	156	game/FrontEnd	game/Ui	high	the text filters (Filter.bmd, FilterName.bmd) the chat, the windows and the names check, below their users
+game/FrontEnd/NameChecks.h	60	game/FrontEnd	game/Ui	high	the text filters (Filter.bmd, FilterName.bmd) the chat, the windows and the names check, below their users
 game/Ui/NewUi.cpp	461	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/NewUi.h	162	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/NoticeWindow.cpp	328	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
@@ -1317,6 +1323,8 @@ game/Ui/Notices.cpp	224	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Wi
 game/Ui/Notices.h	99	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/OldControls.cpp	506	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/OldControls.h	262	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
+game/Ui/OldEditFocus.cpp	142	game/Ui	game/Ui	high	the old windows' EDIT with the focus, which the chat types into and the friends' and letters' windows own (AR4.4 design: out of Messenger)
+game/Ui/OldEditFocus.h	37	game/Ui	game/Ui	high	the old windows' EDIT with the focus, which the chat types into and the friends' and letters' windows own (AR4.4 design: out of Messenger)
 game/Ui/OldEditInput.cpp	133	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/OldEditInput.h	42	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/OldEditLines.cpp	330	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
@@ -1528,6 +1536,7 @@ game/Kernel/ActorSearch.h	16	game/Kernel	game/Kernel	high	the search of the acto
 game/Kernel/ActorSearch.cpp	22	game/Kernel	game/Kernel	high	the search of the actors' pool by key, which every module that reads a packet with a key asks (AR4.1)
 game/Kernel/ActorSpirit.h	51	game/Kernel	game/Kernel	high	the raven's per-actor fields, which the actor holds; its logic is game/Pets (AR3.1)
 game/Kernel/CharacterClass.h	31	game/Kernel	game/Kernel	high	the character class: its five base classes and the original's & 7 (AR3.1)
+game/Kernel/CastleSiegeFlags.h	30	game/Kernel	game/Kernel	high	the siege flags and map 30 globals (addr.) that characters, monsters, effects and objects read, below them and the castle (AR4.4 design)
 game/Kernel/GameContext.h	57	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
 game/Kernel/GameContext.cpp	83	game/Kernel	game/Kernel	high	the GameContext: the actor pool, the hero, the own record, the inventory, the map and the runtime (AR3.1)
 game/Session/Route.h	296	game/Session	game/Session	high	routes a row's packet to its handler with the parts of the world the handler names (AR2.2)

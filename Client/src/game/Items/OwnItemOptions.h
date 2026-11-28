@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Items
+namespace Client::Player
 {
 // A borrowed view of Kernel::ItemState. optionBytes keeps the tag8/value0 overlap of the canonical producer 0x54bf40.
 // Every reached read must fit in the slice, also if count changes through aliasing; it is not artificially limited
@@ -21,4 +21,4 @@ struct OwnItemOptionsView
 void AddOwnItemOptionValues(std::span<std::byte, 2> destination, std::uint32_t selector, OwnItemOptionsView options);
 void ApplyOwnItemOptionPercent(std::span<std::byte, 2> destination, std::uint32_t selector, OwnItemOptionsView options,
                                std::uint32_t factor);
-} // namespace Client::Items
+} // namespace Client::Player

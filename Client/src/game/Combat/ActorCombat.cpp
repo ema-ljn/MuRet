@@ -25,6 +25,7 @@
 #include "Assets/FaunaModels.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Models/Cloth.h"
 
 #include <algorithm>
 #include <array>

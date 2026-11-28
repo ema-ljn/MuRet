@@ -13,7 +13,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameUi.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Guild/GuildMarks.h"
@@ -53,10 +53,10 @@ namespace Client::Guild
 {
 namespace
 {
-using Hud::WindowDrawing::DrawText;
-using Hud::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::SelectFont;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 
@@ -316,10 +316,10 @@ void Notice(Kernel::WorldRuntime& runtime, std::int32_t dialog)
 
 // 0x655087..0x6550b4 and 0x6550d8..0x655100: with the EDIT (0x6c7b8c at 1), SetText(0), 0x467360 (the IME mode, which
 // MuRet does not have) and hidden.
-void HideTheNameField(Chat::ChatInputState& input)
+void HideTheNameField(Ui::ChatInputState& input)
 {
     input.dialogEdit.text.SetText({});
-    Chat::ShowTheDialogField(input, HiddenField);
+    Ui::ShowTheDialogField(input, HiddenField);
 }
 
 // 0x655d70, page 0: Create (the window builds a guild: 0x7d536e4 and 0x7d536ec at 1, 0x77f3b68 at 1 and C1 04 54
@@ -336,7 +336,7 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
     {
         guild.createKind = NewGuild;
         guild.createStep = NamePage;
-        runtime.chat.input.dialogFieldOn = true;
+        runtime.chatInput.dialogFieldOn = true;
         if (auto sent = Send(context.send, Protocol::Guild::WriteMasterAnswer(CreateAnswer), "0x655dcb");
             !sent.HasValue())
             return sent;
@@ -361,8 +361,8 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
         window.dialog2a0 = opened.Value();
     }
     const Ui::OldWindowBase& base = window.base;
-    if (!runtime.mouse.pendingClick || !Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
-                                                          base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
+    if (!runtime.mouse.pendingClick || !Ui::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
+                                                        base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
         return {};
     runtime.mouse.pendingClick = false;
     runtime.mouse.updateTime = 0;
@@ -384,7 +384,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     const Ui::OldWindowBase& base = guild.secondWindow.base;
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
     if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
@@ -400,21 +400,21 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
                                                 typed.size()));
         std::ranges::copy(typed, name.begin());
         name[typed.size()] = '\0';
-        Chat::ReadTheDialogField(input, input.messageBuffer);
+        Ui::ReadTheDialogField(input, input.messageBuffer);
         auto operation = TextOf(context.texts, OperationText, "0x622c70");
         if (!operation.HasValue())
             return Core::Unexpected(std::move(operation).Error());
         auto server = TextOf(context.texts, ServerText, "0x622c70");
         if (!server.HasValue())
             return Core::Unexpected(std::move(server).Error());
-        const FrontEnd::NameFilters filters{.filterName = context.filterName,
-                                            .filter = context.filter,
-                                            .operation = operation.Value(),
-                                            .server = server.Value()};
-        const std::string_view message = Chat::CStringOf(input.messageBuffer);
-        if (FrontEnd::IsFilteredName(message, filters))
+        const Ui::NameFilters filters{.filterName = context.filterName,
+                                      .filter = context.filter,
+                                      .operation = operation.Value(),
+                                      .server = server.Value()};
+        const std::string_view message = Ui::CStringOf(input.messageBuffer);
+        if (Ui::IsFilteredName(message, filters))
             Notice(runtime, FilteredNameDialog);
-        else if (FrontEnd::HasForbiddenSymbol(std::string_view(input.messageBuffer.data(), input.messageBuffer.size())))
+        else if (Ui::HasForbiddenSymbol(std::string_view(input.messageBuffer.data(), input.messageBuffer.size())))
             Notice(runtime, ForbiddenSymbolDialog);
         else if (message.size() < ShortestName)
             Notice(runtime, ShortNameDialog);
@@ -511,7 +511,7 @@ void QuadAt(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, 
 }
 
 // 0x5f1bb0(x, y, w, h, color): the 0x116 frame and the color's square.
-Core::Expected<void, std::string> DrawTheSwatch(Hud::GameHudContext& context, float x, float y, std::int32_t width,
+Core::Expected<void, std::string> DrawTheSwatch(Ui::GameHudContext& context, float x, float y, std::int32_t width,
                                                 std::int32_t height, std::int32_t color)
 {
     if (context.guildMarks == nullptr)
@@ -527,12 +527,12 @@ Core::Expected<void, std::string> DrawTheSwatch(Hud::GameHudContext& context, fl
     auto slot = context.guildMarks->UploadSwatch(color);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    Hud::WindowDrawing::Quad(sprites, slot.Value().value, x, y, fw, fh, 1.0f, 1.0f);
+    Ui::WindowDrawing::Quad(sprites, slot.Value().value, x, y, fw, fh, 1.0f, 1.0f);
     return {};
 }
 
 // 0x653750(x, y): the grid with the new mark, the palette and the chosen color, and the two rows in the normal font.
-Core::Expected<void, std::string> DrawTheMarkEditor(Hud::GameHudContext& context, const GuildState& guild,
+Core::Expected<void, std::string> DrawTheMarkEditor(Ui::GameHudContext& context, const GuildState& guild,
                                                     std::int32_t x, std::int32_t y)
 {
     const auto fx = static_cast<double>(static_cast<float>(x));
@@ -579,7 +579,7 @@ Core::Expected<void, std::string> DrawTheMarkEditor(Hud::GameHudContext& context
 }
 
 // 0x5542f0(x, y, text, box, 2, 0): the text centered in the box (0x467060 in mode 2), without measuring.
-void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawInTheBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen()));
     const std::int32_t box = Truncate(rx * TextBox);
@@ -592,7 +592,7 @@ void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, 
 }
 
 // The hero's guild (+0x1f2) in the table, for "%s ( Score:%d )" (0x6d67cc).
-Core::Expected<std::string, std::string> HeroGuildLine(Hud::GameHudContext& context, std::string_view where)
+Core::Expected<std::string, std::string> HeroGuildLine(Ui::GameHudContext& context, std::string_view where)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
@@ -603,7 +603,7 @@ Core::Expected<std::string, std::string> HeroGuildLine(Hud::GameHudContext& cont
 }
 
 // 0x5f16a0(1999, 1) without a quad: uploads the new mark and the editor's first square overwrites it (Q-C1290).
-Core::Expected<void, std::string> UploadTheNewMark(Hud::GameHudContext& context, const GuildState& guild)
+Core::Expected<void, std::string> UploadTheNewMark(Ui::GameHudContext& context, const GuildState& guild)
 {
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x5f16a0: la marca nueva sin la tabla de las marcas"));
@@ -613,7 +613,7 @@ Core::Expected<void, std::string> UploadTheNewMark(Hud::GameHudContext& context,
     return {};
 }
 
-void DrawTheButton(Hud::GameHudContext& context, const Ui::OldButton& button)
+void DrawTheButton(Ui::GameHudContext& context, const Ui::OldButton& button)
 {
     const Ui::OldWindowDrawContext buttons{.sprites = context.sprites,
                                            .text = context.text,
@@ -625,7 +625,7 @@ void DrawTheButton(Hud::GameHudContext& context, const Ui::OldButton& button)
 // 0x6563e0, page 0: without a guild (+0x368 at 0xff), the question (181) with Create shown and Change the mark off;
 // with a guild, its name and the score (0x78aba3c) centered, Create off and the mark shown. The two buttons below,
 // and the close button with its help (1002) with the mouse over it.
-Core::Expected<void, std::string> DrawTheQuestion(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheQuestion(Ui::GameHudContext& context, GuildState& guild, std::int32_t x,
                                                   std::int32_t y)
 {
     context.hud.textColors = PageColors;
@@ -658,34 +658,34 @@ Core::Expected<void, std::string> DrawTheQuestion(Hud::GameHudContext& context, 
     mark.base.x = x + ButtonsLeft;
     mark.base.y = top + SecondButtonBelow;
     DrawTheButton(context, mark);
-    if (!Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (!Ui::WindowDrawing::DrawTheCloseButton(context, x, y))
         return {};
     auto help = TextOf(context.texts, CloseHelpText, "0x6565ba");
     if (!help.HasValue())
         return Core::Unexpected(std::move(help).Error());
-    Hud::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
+    Ui::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     return {};
 }
 
 // 0x655130, page 1: the name box, "name" in bold, the EDIT (shown, the background at 0, EM_LIMITTEXT 8, at
 // (x + 0x3f, y + 0x3c), the focus without changing the selection and its draw), the new mark (without a quad), the
 // editor and Back and Next.
-Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheName(Ui::GameHudContext& context, GuildState& guild, std::int32_t x,
                                               std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    Hud::WindowDrawing::Quad(sprites, NameFieldSlot, static_cast<float>(x + PageLeft + 0x21),
-                             static_cast<float>(y + PageTop - 4), NameFieldWidth, NameFieldHeight, NameFieldDu,
-                             NameFieldDv);
+    Ui::WindowDrawing::Quad(sprites, NameFieldSlot, static_cast<float>(x + PageLeft + 0x21),
+                            static_cast<float>(y + PageTop - 4), NameFieldWidth, NameFieldHeight, NameFieldDu,
+                            NameFieldDv);
     SelectFont(context, FontKind::Bold);
     context.hud.textColors = PageColors;
     auto name = TextOf(context.texts, NameText, "0x6551b7");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawText(context, x + PageLeft, y + PageTop, name.Value());
-    Chat::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::ChatInputState& input = context.world.Runtime().chatInput;
     Ui::OldEdit& field = input.dialogEdit;
-    Chat::ShowTheDialogField(input, ShownField);
+    Ui::ShowTheDialogField(input, ShownField);
     field.filter = 0;
     field.backgroundColor = 0;
     Ui::LimitTheEdit(field, GuildNameLimit, context.arrowHeld);
@@ -695,7 +695,7 @@ Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, Guil
     field.base.y = y + PageTop;
     // 0x655232: the vtable + 0x30 (0x4682a0), the focus and the EDIT's id (7) in 0x5762ec0 (the list that takes the
     // arrows).
-    Chat::FocusTheDialogField(input);
+    Ui::FocusTheDialogField(input);
     context.world.Runtime().ui.focusedList = field.base.id;
     // 0x65523d: the EDIT's vtable + 0x14 (0x468320), with the cursor if it has the focus.
     Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = context.sprites,
@@ -703,7 +703,7 @@ Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, Guil
                                                          .dcFont = context.hud.dcFont,
                                                          .textColors = context.hud.textColors,
                                                          .arrowHeld = context.arrowHeld},
-                                field, input.focus == Chat::ChatFocus::Dialog);
+                                field, input.focus == Ui::ChatFocus::Dialog);
     if (auto uploaded = UploadTheNewMark(context, guild); !uploaded.HasValue())
         return uploaded;
     if (auto editor = DrawTheMarkEditor(context, guild, x, y); !editor.HasValue())
@@ -715,7 +715,7 @@ Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, Guil
 
 // 0x655c70, page 2: "name" in bold and, in the same place, the hero's guild with the score centered (Q-C1288); the
 // normal font, the new mark (without a quad), the editor and the two buttons.
-Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheMark(Ui::GameHudContext& context, GuildState& guild, std::int32_t x,
                                               std::int32_t y)
 {
     SelectFont(context, FontKind::Bold);
@@ -740,28 +740,28 @@ Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, Guil
 
 // 0x655ac0, page 3: the normal font, the text background at 0, the name frame with "name : <name>" centered, the mark
 // frame with the new 48 mark and the two buttons.
-Core::Expected<void, std::string> DrawTheConfirmation(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheConfirmation(Ui::GameHudContext& context, GuildState& guild, std::int32_t x,
                                                       std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     SelectFont(context, FontKind::Normal);
     context.hud.textColors.background = 0;
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41),
-                                     NameBoxWidth, NameBoxHeight, false);
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41),
+                                    NameBoxWidth, NameBoxHeight, false);
     auto name = TextOf(context.texts, NameText, "0x655b2a");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawInTheBox(context, x + PageLeft, y + 0x47,
                  std::format("{} : {}", name.Value(), NameOf(guild.table[CreatingIndex].guildName)));
-    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
-                                     MarkBoxSide, false);
+    Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
+                                    MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x655b98: la marca nueva sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, CreatingGuildIndex, true);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    Hud::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
-                             MarkSide, MarkSide, 1.0f, 1.0f);
+    Ui::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
+                            MarkSide, MarkSide, 1.0f, 1.0f);
     DrawTheButton(context, ButtonOf(guild, SecondGuildBackButton));
     DrawTheButton(context, ButtonOf(guild, SecondGuildNextButton));
     return {};
@@ -775,7 +775,7 @@ Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStep
     const Ui::OldWindowBase& base = guild.secondWindow.base;
     if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
         return {};
-    if (Chat::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
+    if (Ui::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
         runtime.ui.mouseOnUi = 1;
     const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
     switch (guild.createStep)
@@ -799,7 +799,7 @@ void LendTheSecondGuildStepTo(Ui::PanelContext& panels, const SecondGuildStepCon
     panels.secondGuildStep = [context]() { return StepTheSecondGuildWindow(context); };
 }
 
-Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawTheSecondGuildWindow(Ui::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -819,7 +819,7 @@ Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& 
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     sprites.SetBlend(BlendMode::Alpha);
     context.hud.textColors = TitleColors;
     SelectFont(context, FontKind::Bold);
@@ -833,7 +833,7 @@ Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& 
     auto text = TextOf(context.texts, title, "0x656f89");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, text.Value());
+    Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, text.Value());
     switch (guild.createStep)
     {
     case QuestionPage:

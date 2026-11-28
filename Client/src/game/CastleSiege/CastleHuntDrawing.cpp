@@ -6,7 +6,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextLayout.h"
 #include "CastleSiege/CastleWindowSupport.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Kernel/WorldState.h"
 #include "Ui/ZenText.h"
@@ -29,17 +29,17 @@ constexpr std::int32_t Left = 450;
 constexpr std::uint32_t SufficientMoney = 0xff64ffffu;
 constexpr std::uint32_t InsufficientMoney = 0xff3264ffu;
 
-Core::Expected<void, std::string> MoneyText(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> MoneyText(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
                                             std::uint32_t text, std::uint32_t value)
 {
     return Formatted(context, x, y, text, std::string_view(Ui::FormatZen(value)));
 }
 
-Core::Expected<void, std::string> Admin(Hud::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
+Core::Expected<void, std::string> Admin(Ui::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
 {
     if (auto line = Text(context, Left, 55, 0x7732158); !line.HasValue())
         return line;
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     constexpr std::array<std::uint32_t, 3> Lines{0x77340fc, 0x7734228, 0x7734354};
     for (std::size_t i = 0; i < Lines.size(); ++i)
         if (auto line = Text(context, Left, 75 + static_cast<std::int32_t>(i) * 10, Lines[i]); !line.HasValue())
@@ -48,30 +48,30 @@ Core::Expected<void, std::string> Admin(Hud::GameHudContext& context, CastleSieg
     auto label = CastleUi::Text(context.texts, 0x7732284);
     if (!label.HasValue())
         return Core::Unexpected(std::move(label).Error());
-    Hud::WindowDrawing::DrawText(context, 505, 115, label.Value());
+    Ui::WindowDrawing::DrawText(context, 505, 115, label.Value());
     auto fee = CastleUi::Text(context.texts, 0x7732734);
     if (!fee.HasValue())
         return Core::Unexpected(std::move(fee).Error());
-    Hud::WindowDrawing::DrawText(context, 485, 133,
-                                 Crt::Sprintf(fee.Value(), std::string_view(Ui::FormatZen(window.fee))));
+    Ui::WindowDrawing::DrawText(context, 485, 133,
+                                Crt::Sprintf(fee.Value(), std::string_view(Ui::FormatZen(window.fee))));
     context.sprites.SetColor({0, 0, 0, 0.3f});
     context.sprites.ColorQuad(470, 185, 90, 30);
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, after the untextured background.
     context.sprites.SetColor({1, 1, 1, 1});
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto line = Text(context, Left, 163, 0x77323b0); !line.HasValue())
         return line;
-    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     // 0x5542f0(..., 0, 4, 0), right-aligned at x=540 and x=550.
     const auto edited = Ui::FormatZen(static_cast<std::uint32_t>(window.editedFee));
-    Hud::WindowDrawing::DrawText(
+    Ui::WindowDrawing::DrawText(
         context,
         Render::Text::EndingAt(540, context.text.Measure(context.hud.dcFont, edited), context.sprites.Screen()), 195,
         edited);
     auto zen = CastleUi::Text(context.texts, 0x76cd85c);
     if (!zen.HasValue())
         return Core::Unexpected(std::move(zen).Error());
-    Hud::WindowDrawing::DrawText(
+    Ui::WindowDrawing::DrawText(
         context,
         Render::Text::EndingAt(550, context.text.Measure(context.hud.dcFont, zen.Value()), context.sprites.Screen()),
         195, zen.Value());
@@ -95,7 +95,7 @@ Core::Expected<void, std::string> Admin(Hud::GameHudContext& context, CastleSieg
     return Button(context, window.enter, 520, 329, 0x7731ca8, window.enter.base.state);
 }
 
-Core::Expected<void, std::string> Visitor(Hud::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
+Core::Expected<void, std::string> Visitor(Ui::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
 {
     if (window.allowed == 0)
     {
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> Visitor(Hud::GameHudContext& context, CastleSi
 }
 } // namespace
 
-Core::Expected<void, std::string> Hunt(Hud::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
+Core::Expected<void, std::string> Hunt(Ui::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
 {
     if (window.mode == 0)
         return {};

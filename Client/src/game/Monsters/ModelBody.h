@@ -42,7 +42,7 @@ enum class ModelActionEnd : std::uint8_t
 
 // 0x4fcbb0(c, c), when a model other than 0x20a ends its action (0x4fce60). `skeleton` is the model's, which 0x4ea030
 // reads. In order: 0xc5 sets +0x111 to 1; 0x42d890 in map 30, by +0x376 (221 and 222 to action 0; 277 by +0x78; 286 and
-// 287 by the action, with the byte 0x7239d8, `runtime.castleSiege.castleByte7239d8`); in map 1, 0x28 to 0; 0x152..0x1c9
+// 287 by the action, with the byte 0x7239d8, `runtime.castleFlags.castleByte7239d8`); in map 1, 0x28 to 0; 0x152..0x1c9
 // (the monsters): action 6 with +0x38a at 0 sets it to 1 and asks for the remains (LeaveRemains:
 // 0x52e810, CL9 milestone 3; with +0x38a at 1, nothing), actions 1, 3, 4, 5, 8, 9 and 0xb to 0; 0x1ce and 0x1cf, rand()
 // % 16 under 12 to 0 and otherwise to 1 + rand() % 2; the NewFace nothing; the others to rand() % 2.

@@ -10,7 +10,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Player/ItemSetState.h"
 #include "Tooltips/TooltipLines.h"
 #include "Kernel/WorldRuntime.h"
@@ -20,6 +20,7 @@
 #include "support/ItemSetFiles.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 
@@ -36,12 +37,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Tooltips::TooltipLines;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint8_t None = 0xff;

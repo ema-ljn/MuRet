@@ -8,9 +8,9 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Scenes/GameProjection.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Maps/MapNames.h"
 #include "Social/SocialState.h"
@@ -174,7 +174,7 @@ constexpr std::int32_t KickHelpAbove = 0xd;
 constexpr std::size_t KickHelpText = 189;
 constexpr Render::Text::TextColors KickHelpColors{.text = 0xffffffffu, .background = 0xff000000u};
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -213,7 +213,7 @@ std::int32_t TenthsOf(const Social::PartySlot& slot)
 }
 
 // 0x5f130a..0x5f168a.
-Core::Expected<void, std::string> DrawThePartyList(Hud::GameHudContext& context, std::int32_t width)
+Core::Expected<void, std::string> DrawThePartyList(Ui::GameHudContext& context, std::int32_t width)
 {
     Kernel::HudState& hud = context.hud;
     auto counted = Members(hud.partyCount, "0x5f130a");
@@ -258,16 +258,16 @@ Core::Expected<void, std::string> DrawThePartyList(Hud::GameHudContext& context,
         }
         sprites.SetColor(White);
         sprites.SetBlend(BlendMode::Alpha);
-        Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
-        Hud::WindowDrawing::DrawText(context, Truncate(static_cast<double>(left)),
-                                     Truncate(static_cast<double>(top)) + ListNameTop, NameView(slot.name));
+        Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
+        Ui::WindowDrawing::DrawText(context, Truncate(static_cast<double>(left)),
+                                    Truncate(static_cast<double>(top)) + ListNameTop, NameView(slot.name));
         top = F32(static_cast<double>(top) + ListRow);
     }
     const float edgeLeft = F32(static_cast<double>(left) - ListEdgeLeft);
-    Hud::WindowDrawing::Quad(sprites, ListEdgeSlot, edgeLeft, ListEdgeTop, ListEdgeWidth, ListEdgeHeight, ListEdgeDu,
-                             ListEdgeDv);
-    Hud::WindowDrawing::Quad(sprites, ListEdgeSlot, edgeLeft, top, ListEdgeWidth, ListEdgeHeight, ListEdgeDu,
-                             ListEdgeDv);
+    Ui::WindowDrawing::Quad(sprites, ListEdgeSlot, edgeLeft, ListEdgeTop, ListEdgeWidth, ListEdgeHeight, ListEdgeDu,
+                            ListEdgeDv);
+    Ui::WindowDrawing::Quad(sprites, ListEdgeSlot, edgeLeft, top, ListEdgeWidth, ListEdgeHeight, ListEdgeDu,
+                            ListEdgeDv);
     sprites.SetColor(ListSideColor);
     const auto sides = static_cast<float>(hud.partyCount * ListSideStep);
     sprites.ColorQuad(F32(static_cast<double>(left) - ListLeftSide), ListSideTop, ListSideWidth, sides);
@@ -278,7 +278,7 @@ Core::Expected<void, std::string> DrawThePartyList(Hud::GameHudContext& context,
 }
 
 // 0x5f0df0..0x5f11ad: the members in the open window at (x, y).
-Core::Expected<void, std::string> DrawTheMembers(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheMembers(Ui::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Kernel::HudState& hud = context.hud;
     auto counted = Members(hud.partyCount, "0x5f0df0");
@@ -294,16 +294,16 @@ Core::Expected<void, std::string> DrawTheMembers(Hud::GameHudContext& context, s
         const Social::PartySlot& slot = party.slots[at];
         const std::int32_t row = static_cast<std::int32_t>(at) * MemberStep;
         hud.textColors = at == 0 ? LeaderColors : MemberColors;
-        Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
-        Hud::WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberNameTop, NameView(slot.name));
+        Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
+        Ui::WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberNameTop, NameView(slot.name));
         hud.textColors = MemberDataColors;
-        Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+        Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
         auto map = TextOf(context, Maps::MapNameText(slot.map), "0x5f0ec8");
         if (!map.HasValue())
             return Core::Unexpected(std::move(map).Error());
-        Hud::WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberMapTop, map.Value());
-        Hud::WindowDrawing::DrawText(context, x + MemberCellLeft, row + y + MemberMapTop,
-                                     std::format("{},{}", slot.x, slot.y));
+        Ui::WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberMapTop, map.Value());
+        Ui::WindowDrawing::DrawText(context, x + MemberCellLeft, row + y + MemberMapTop,
+                                    std::format("{},{}", slot.x, slot.y));
         sprites.SetColor(MemberBarColor);
         sprites.ColorQuad(static_cast<float>(x + MemberBarLeft), static_cast<float>(row + y + MemberBarTop),
                           MemberBarWidth, MemberBarHeight);
@@ -318,32 +318,32 @@ Core::Expected<void, std::string> DrawTheMembers(Hud::GameHudContext& context, s
                           MemberLifeHeight);
         sprites.SetBlend(BlendMode::Alpha);
         sprites.SetColor(White);
-        Hud::WindowDrawing::DrawText(context, x + MemberNumbersLeft, row + y + MemberNumbersTop,
-                                     std::format("( {} / {} )", life, maxLife));
+        Ui::WindowDrawing::DrawText(context, x + MemberNumbersLeft, row + y + MemberNumbersTop,
+                                    std::format("( {} / {} )", life, maxLife));
         // 0x5f1013..0x5f1089: the button with the hero as leader (the first slot) or in this slot.
         if (!leader && NameView(slot.name) != hero)
             continue;
         const float left = F32(static_cast<double>(hud.partyX) + KickDrawnLeft);
         const float top = F32(static_cast<double>(row) + static_cast<double>(hud.partyY) + KickDrawnTop);
-        Hud::WindowDrawing::Quad(sprites, KickSlot, left, top, KickDrawnSize, KickDrawnSize, KickUv, KickUv);
+        Ui::WindowDrawing::Quad(sprites, KickSlot, left, top, KickDrawnSize, KickDrawnSize, KickUv, KickUv);
         const auto mouseX = static_cast<double>(context.mouse.x);
         const auto mouseY = static_cast<double>(context.mouse.y);
         if (mouseX < static_cast<double>(left) || mouseX >= static_cast<double>(left) + KickDrawnSize ||
             mouseY < static_cast<double>(top) || mouseY >= static_cast<double>(top) + KickDrawnSize)
             continue;
         if (context.leftDown)
-            Hud::WindowDrawing::Quad(sprites, KickPressedSlot, left, top, KickDrawnSize, KickDrawnSize, KickUv, KickUv);
+            Ui::WindowDrawing::Quad(sprites, KickPressedSlot, left, top, KickDrawnSize, KickDrawnSize, KickUv, KickUv);
         auto help = TextOf(context, KickHelpText, "0x5f118f");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
         hud.textColors = KickHelpColors;
-        Hud::WindowDrawing::DrawText(context, Truncate(static_cast<double>(left)),
-                                     Truncate(static_cast<double>(top)) - KickHelpAbove, help.Value());
+        Ui::WindowDrawing::DrawText(context, Truncate(static_cast<double>(left)),
+                                    Truncate(static_cast<double>(top)) - KickHelpAbove, help.Value());
     }
     return {};
 }
 
-Core::Expected<void, std::string> StepTheKickButtons(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheKickButtons(const Ui::GameUiContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -376,7 +376,7 @@ Core::Expected<void, std::string> StepTheKickButtons(const Hud::GameUiContext& c
 }
 } // namespace
 
-Core::Expected<void, std::string> StepThePartyWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePartyWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::PartyPanel))
         return {};
@@ -404,7 +404,7 @@ Core::Expected<void, std::string> StepThePartyWindow(const Hud::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> DrawThePartyWindow(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
+Core::Expected<void, std::string> DrawThePartyWindow(Ui::GameHudContext& context, Ui::PanelRegistry& panels,
                                                      std::int32_t x, std::int32_t y)
 {
     Kernel::HudState& hud = context.hud;
@@ -422,15 +422,15 @@ Core::Expected<void, std::string> DrawThePartyWindow(Hud::GameHudContext& contex
     hud.partyY = y;
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
-    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Ui::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     sprites.SetBlend(BlendMode::Alpha);
     auto title = TextOf(context, TitleText, "0x5f0cf6");
     if (!title.HasValue())
         return Core::Unexpected(std::move(title).Error());
     hud.textColors = TitleColors;
-    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
-    Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
-    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::WindowDrawing::SelectFont(context, FontKind::Bold);
+    Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
+    Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
     hud.textColors = LineColors;
     if (hud.partyCount == 0)
     {
@@ -439,23 +439,23 @@ Core::Expected<void, std::string> DrawThePartyWindow(Hud::GameHudContext& contex
             auto text = TextOf(context, FirstEmptyText + line, "0x5f0d45");
             if (!text.HasValue())
                 return Core::Unexpected(std::move(text).Error());
-            Hud::WindowDrawing::DrawText(context, x + EmptyLineLeft, y + EmptyLineTops[line], text.Value());
+            Ui::WindowDrawing::DrawText(context, x + EmptyLineLeft, y + EmptyLineTops[line], text.Value());
         }
     }
     // 0x5f0dde..0x5f0dea: with members, their names, their life and their kick button; with a negative count, nothing.
     if (auto members = DrawTheMembers(context, x, y); !members.HasValue())
         return members;
     // 0x5f11c2: the corner of 0x78a7068 and 0x78a706c, the one it just set.
-    if (!Hud::WindowDrawing::DrawTheCloseButton(context, hud.partyX, hud.partyY))
+    if (!Ui::WindowDrawing::DrawTheCloseButton(context, hud.partyX, hud.partyY))
         return {};
     auto help = TextOf(context, CloseHelpText, "0x5f12aa");
     if (!help.HasValue())
         return Core::Unexpected(std::move(help).Error());
-    Hud::WindowDrawing::DrawTheCloseHelp(context, hud.partyX, hud.partyY, help.Value());
+    Ui::WindowDrawing::DrawTheCloseHelp(context, hud.partyX, hud.partyY, help.Value());
     return {};
 }
 
-Core::Expected<void, std::string> DrawThePartyLife(Hud::GameHudContext& context)
+Core::Expected<void, std::string> DrawThePartyLife(Ui::GameHudContext& context)
 {
     Kernel::HudState& hud = context.hud;
     if (hud.partyCount <= 0)
@@ -483,7 +483,7 @@ Core::Expected<void, std::string> DrawThePartyLife(Hud::GameHudContext& context)
         const glm::vec3 above{
             actor.position.x, actor.position.y,
             F32(static_cast<double>(actor.boundsTop) + static_cast<double>(actor.position.z) + AboveTheHead)};
-        const auto projected = Scenes::ProjectGamePoint(*context.projection, above);
+        const auto projected = Kernel::ProjectGamePoint(*context.projection, above);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         const std::int32_t x = projected.Value().x - LifeLeft;
@@ -494,7 +494,7 @@ Core::Expected<void, std::string> DrawThePartyLife(Hud::GameHudContext& context)
         const Ui::Point mouse = context.mouse;
         if (mouse.x >= x && static_cast<double>(x) + LifeHoverWidth > static_cast<double>(mouse.x) &&
             mouse.y >= y - LifeHoverAbove && mouse.y < y + LifeHoverBelow)
-            Hud::WindowDrawing::DrawText(context, x, y - LifeTextAbove, std::format("HP : {}0%", slot.tenths));
+            Ui::WindowDrawing::DrawText(context, x, y - LifeTextAbove, std::format("HP : {}0%", slot.tenths));
         sprites.SetBlend(BlendMode::Alpha);
         sprites.SetColor(LifeShadow);
         sprites.ColorQuad(static_cast<float>(x + 1), static_cast<float>(y + 1), LifeWidth, LifeHeight);

@@ -16,6 +16,7 @@
 #include "Ui/Widget.h"
 #include "Terrain/TerrainPickingSegment.h"
 #include "Terrain/WorldTerrain.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

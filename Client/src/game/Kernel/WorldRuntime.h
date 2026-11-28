@@ -8,43 +8,17 @@
 #include "Tables/DialogTable.h"
 #include "Tables/MoveRequirements.h"
 #include "Tables/NpcNames.h"
-#include "Actors/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
-#include "Chat/ChatBubbles.h"
-#include "Events/EventGlobals.h"
-#include "Events/EventMapObject.h"
-#include "Actors/FullSetScan.h"
-#include "Movement/GameMovementState.h"
-#include "Actors/Drawing/GameItemRenderState.h"
-#include "Guild/GuildState.h"
-#include "Items/HudItems.h"
-#include "Tooltips/ItemHelpLevels.h"
-#include "Hud/MapBanner.h"
-#include "Sound/MonsterSounds.h"
-#include "Monsters/NpcNames.h"
-#include "Npc/NpcWindowState.h"
-#include "Quests/QuestState.h"
 #include "Kernel/SceneId.h"
-#include "Social/SocialState.h"
-#include "Tooltips/TooltipLines.h"
 #include "Kernel/WorldTextQueue.h"
-#include "CastleSiege/CastleSiegeState.h"
-#include "Chat/ChatInput.h"
-#include "Chat/ChatLog.h"
-#include "Ui/Dialogs.h"
-#include "Ui/GameDialogs.h"
-#include "Ui/GameUiState.h"
-#include "Ui/MessageArea.h"
-#include "Ui/OldWindows.h"
-#include "Ui/PanelRegistry.h"
-#include "Ui/SlideBanner.h"
-#include "Chat/WhisperSenders.h"
 #include "Kernel/ItemState.h"
 #include "Kernel/ChosenNpc.h"
 #include "Kernel/MouseState.h"
-#include "Weather/LeafWeather.h"
 #include "Kernel/WorldObject.h"
+#include "Kernel/HeldModules.h"
+#include "Kernel/ModelSounds.h"
+#include "Kernel/CastleSiegeFlags.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -166,37 +140,8 @@ struct CrywolfGlobals
     std::uint8_t sandOverlay = 0;
 };
 
-// The chat (CL8 milestone 3; 06 § El chat), which lives from the login to the game: the new log (0x576350c's object)
-// and the old area and the notices (0x77d9868 and 0x77f3b88 with their clocks). What its drawings write goes in
-// HudState.
-struct ChatRuntime
-{
-    Chat::ChatLogState log{};
-    Ui::MessageAreaState area{};
-    // 0x77f3b78 (.bss 0): the sound of the filter's notices. The F3 30 (0x4dd570) and the Esc menu (0x62567b) change
-    // it.
-    bool noticeSound = false;
-    // 0x77f3b98 (.bss 0): with 1, the 02 does nothing (0x4e34f1). /whisper off and on and the Esc menu write it.
-    bool whisperBlocked = false;
-    // 0x57678c4: the 11 bytes of the last outgoing whisper's target (0x4b87e9, on sending). The 0C with 0 names the
-    // error with them (0x4e3684); with none, empty like the .bss.
-    std::string lastWhisperTarget{};
-    // 0x77997f8 and 0x77f3b9c: those who whispered while the own level was below 10 (0x554d20).
-    Chat::WhisperSenders whisperSenders{};
-    // 0x77e1be0: the bubbles.
-    Chat::ChatBubbleTable bubbles{};
-    // +0x510 and +0x511 of the selection's bar (the new UI's window +0x7f50, 0x7d53728): the first 0D with 1 that
-    // arrives in the selection (0x63eda0), never written again because the bar is built once (0x63e6e0). Empty, +0x510
-    // at 0.
-    std::optional<std::string> selectionNotice{};
-    // 0x6c7a8c (.data 1): Slide.bmd's banners on. The F3 30's bit 0x10 turns it off (0x4dd7fa).
-    bool slidesOn = true;
-    // The chat input (the EDITs of [0x57634f8], their buffers, the throttle and the macros).
-    Chat::ChatInputState input{};
-};
-
 // The game HUD's globals (0x5a7320 and its children, CL8 milestone 2), in the .bss unless they say otherwise.
-struct HudState
+struct HudState : HudModules
 {
     // 0x78aba48: how many are in the party. Opening the window zeroes it (0x659aa0) and the list writes it (C1 42,
     // 0x4d67e0, CL9.4).
@@ -219,7 +164,6 @@ struct HudState
     // 0x77f3b74: the macros' throttle. One that reaches it sets it to 0x64 (0x5a1ea1) and 0x637d44 lowers it by one
     // per step; above 0 none goes out (0x5a116f) and the HUD draws "Macro Time" (0x5a7369).
     std::int32_t macroTime = 0;
-    Items::QuickSlots quickSlots{};
     // 0x6c8e5c (.data −1) and 0x6c8e64 (.data 0x80000000): the text color and the background color 0x465950 reads.
     // Each HUD text leaves its own, and the next one that sets none comes out with them, also in the next frame.
     Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
@@ -234,10 +178,6 @@ struct HudState
     // 0x77f3b5c: with the left button down, cursor 0xa (CursorDontMove) instead of 3 (0x5ac7a2). Who writes it,
     // unread: it stays at 0.
     std::uint8_t pushCursor = 0;
-    // What the chat's drawings write (milestone 3): the log's frame (the step sets its corner), the widths and the
-    // blinks of the old area and the notices.
-    Chat::ChatLogFrame chatFrame{};
-    Ui::MessageFrameState messageFrame{};
     // The font of the last SelectObject on the texts' DC (0x57634f4), which 0x45bb20, 0x555190 and 0x554610 measure.
     // 0x61bcd0 creates the DC with none (the system's) and the login draws with one before the first message: MuRet
     // starts with the normal one.
@@ -255,15 +195,6 @@ struct HudState
     // they last to the next item and the next frame: the 0x1e1e with a step other than 0, 1 or 2 poses with the
     // previous one's (Q-C478).
     glm::vec3 uiItemAngles{};
-    // [0x5763528]: Slide.bmd's banner (0x46aea0), which the 15 draws (0x46b090) and writes while drawing (the opacity,
-    // the shift, the scrolling text and 0x5762ee4). The 0x3eb timer and the 0D fill it, and the UI step advances it.
-    Ui::SlideBanner slides{};
-    // [0x5763534]: the banner with the map's name (Scenes/MapBanner.h), which the 19 draws (0x65dd70).
-    Hud::MapBanner mapBanner = Hud::MakeTheMapBanner();
-    // 0x78793c8, 0x787a560 and 0x78a9230: the tooltips' lines, their colors and their bold flags (CL8 milestone 5).
-    Tooltips::TooltipLines tooltip{};
-    // 0x787a15c and 0x6c9334: the item help's per-level table and its item (−1 in the .data), which 0x5afc00 fills.
-    Tooltips::ItemHelpLevels itemHelp{};
 };
 
 // 0x78ab9b8, the cursor item's grid: a pointer in the .bss (0 at start). Picking up from a grid (0x5c52e2, with that
@@ -341,7 +272,7 @@ struct FloorItemGlobals
     std::int32_t pendingDrop = -1;
 };
 
-struct WorldRuntime
+struct WorldRuntime : RuntimeModules
 {
     // 0x41ed10: the request goes to Sound through the port, and lastSoundId keeps it (CL10).
     void RequestSound(Audio::SoundId id, std::optional<glm::vec3> origin = std::nullopt, bool loop = false)
@@ -363,29 +294,8 @@ struct WorldRuntime
     // Q-C180/Q-C27: the first data notice that asked for WM_DESTROY. It lasts even if Poll fails; main shows the modal
     // before closing. Unsupported-map and errors without a notice do not write it.
     std::optional<std::string> fatalDataMessage{};
-    Actors::Drawing::GameItemRenderState itemRender{};
-    // The panels' bytes (0x7d53708..0x7d53718 and the globals their functions write), the dialogs (0x7d3a10c,
-    // 0x7d3a110) and the rest of the game UI (CL8 milestone 1): the .bss, which nobody clears on a scene change.
-    Ui::PanelState panels{};
-    Ui::DialogState dialogs{};
-    // What the castle packets keep outside the battle (CL9 milestone 12): the .bss 0x7d5c504..0x7d5c658, the fields of
-    // [0x7d536f8] and [0x7d53700] they write, and 0x78aba30/0x78aba34.
-    CastleSiege::CastleSiegeState castleSiege{};
-    // The guild, the alliance and the war (CL9 milestone 8): the guild table (0x787aa48), the members (0x787a5e8), the
-    // war's globals and what the packets keep in the two guild windows.
-    Guild::GuildState guild{};
-    // 0x7d36a98, 0x7d368e4, 0x7d368b8 and 0x7d3a0f4..0x7d3a0f9: the old boxes' text and buttons (milestone 6).
-    Ui::DialogBoxState dialogBox{};
-    Ui::GameUiState ui{};
-    // The NPC windows' grids and globals (CL9 milestone 6).
-    Npc::NpcWindowState npcWindows{};
-    // *(0x5763514), the old windows' manager, and [0x5763524]'s window list (milestone 7): WinMain builds them and
-    // they last the whole game.
-    Ui::OldWindowManager oldWindows{};
     HudState hud{};
-    ChatRuntime chat{};
     MouseState mouse{};
-    Movement::GameMovementState movement{};
     // The five mouse selectors start at -1 in the .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
     ChosenNpc chosenNpc{};
@@ -395,14 +305,12 @@ struct WorldRuntime
     // 0x723c68 (+8, the list; +0xc, the count): movereq.bmd's destinations, which 0x448440 reads at load (0x61ccb0)
     // and the /move window walks in its step (0x448580) and drawing (0x448fa0). main.cpp copies them from GameData.
     std::vector<Tables::MoveRequirement> moves{};
-    // [0x710148]: the quests' object (CL9 milestone 2). main.cpp copies quest.bmd's records (GameData::quests).
-    Quests::QuestState quest{};
     // 0x7688ac0: Dialog.bmd's 200 dialogs, which main.cpp copies from GameData::dialogs. Empty, showing one aborts.
     Tables::DialogTable dialogTable{};
     // 0x7681eb8 (CL9 milestone 2): NpcName(%s).txt's 512 names, which 0x54ebb0 looks up (the quest window's title,
     // 0x41be2c) and the creation's tail (0x5140c0) copies to the name. main.cpp copies GameData::npcNames into them
     // (0x61ed05); without the file they stay at 0.
-    Monsters::NpcNameTable npcNames = Monsters::NpcNameTable(Tables::NpcNameCount);
+    std::vector<Tables::NpcNameRecord> npcNames = std::vector<Tables::NpcNameRecord>(Tables::NpcNameCount);
     // 0x6eeda8: the A0 sets it to 0 and reaching an NPC (0x569593) to 1 if it is 0xe5. The quests' dialog drawing
     // (0x41ba20) reads it with class 3 or 4.
     std::uint8_t byte6eeda8 = 0;
@@ -433,17 +341,12 @@ struct WorldRuntime
     std::int32_t objectSelectionCount = 0;
     // 0x723c4c, .bss 0: the system time (timeGetTime) of Land of Trials' last 0x1ef ambience (0x44016b).
     std::uint32_t trialsAmbientTime = 0;
-    // DAT_00723c60, the event object 0x447d70 builds. Empty like the .bss; only 0x447d70 frees it (0x447eb0), and only
-    // to build another: leaving the event for a common map, it stays alive (Q-C320).
-    std::optional<Events::EventMapObject> eventObject{};
     // 0x6c634c (.data 0xff): the Chaos Castle area that 0x404e20 and 0x405e00 read (Q-C229); 0x404d60 sets it back to
     // 0xff.
     std::uint8_t chaosCastleArea = 0xff;
     // 0x6c634d (.data 1): the Chaos Castle trap armed. 0x4055b0 spends it on the first 3 seen; only Chaos Castle's 9B
     // (0x404e45, CL9 milestone 11) arms it again.
     std::uint8_t chaosCastleTrapArmed = 1;
-    // The rest the events' packets write (CL9 milestone 11).
-    Events::EventGlobals events{};
     // Crywolf's part that the load, its objects and its leaves read and write.
     CrywolfGlobals crywolf{};
     // 0x5763538 (.bss 0): 0x6046a0's counter, which wraps from 1 to 41 at the start of each objects' drawing, in the
@@ -456,9 +359,7 @@ struct WorldRuntime
     // The −1 before the first write is the one MuRet already used; the original's initial value is unread. With −1,
     // 0x511290 does not add the pet's shift (06, CL7.3 B).
     std::int32_t map = -1;
-    // 0x7d3a0d0 and 0x7d3a0d4, Fenrir's: one for all characters (06, "Caminar", the speed). 0x4f2250 zeroes the first
-    // (0x4f22a4). The DTO's zeros do not claim the original's initial value.
-    Actors::MovementSpeedSharedState movementSpeed;
+    CastleSiegeFlags castleFlags{};
 
     // DAT_07d3a101, the world loaded: at 0, the game step leaves at 0x636db5 and its drawing returns 0 at 0x6371a6,
     // without reading the counter. The selection's load of 54 (0x633f30, inside 0x633f20) and the game step with state
@@ -482,6 +383,8 @@ struct WorldRuntime
     std::uint8_t warpDepth = 0;
     // How many accesses hold the own record open ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
+    // How many accesses hold each Skill.bmd entry open, by skill.
+    std::array<std::uint8_t, 256> skillDepths{};
     // 0x723960: what the A9 writes for each pet (0x421db0 and 0x4221d0, Protocol/Pets/PetInfo.h), by type: 0 the
     // raven and 1 the horse. 0x420cd0 zeroes the three. The horse's level ([0x72397c]) is read by 0x4225d0 (the low
     // byte) and 0x422930; the raven's ([0x723968]) by the leadership requirement of 0x1a5 (0x5bf027) and 0x422930.
@@ -498,14 +401,6 @@ struct WorldRuntime
     // it to heroSlot's only after dressing it with 0x512a30 (0x4c4725). Nothing else writes it: on a second reply,
     // until then it is the previous hero, and after the return to the selection it stays on the game's place (Q-C213).
     std::size_t hero = 0;
-    // [0x743a178] and [0x743a17c], what the last 0x505820 left (06, "El conjunto completo de 0x505820"): in the .bss,
-    // 0 at start. 0x512a30 writes it with the published hero, and so do the characters' drawing (0x50ba30 at
-    // 0x50c91e), the login's and the selection's (ScanTheDrawnCharacter). nullopt after a game frame that reaches the
-    // characters (0x6374dd → 0x510d00), which MuRet does not draw: what it left is unknown, and 0x550990 stops with an
-    // error if it reads it.
-    std::optional<Actors::Scan505820> fullSetScan = Actors::Scan505820{};
-    // The trade, the party and the duel (CL9 milestone 7).
-    Social::SocialState social{};
     // [0x78a6758], in the .bss: 0 at start. 0x5bc740, after putting an item in one of the inventory grids, compares it
     // signed with 12 (0x5bcd0b and 0x5bd08b) and, if lower, opens the own record for the speeds (0x54fe10). Fifteen
     // places of the inventory and game interface write it (0x44add8, 0x561b6d, 0x561bf7, 0x59bf3c, 0x5c2d5c, 0x5c5131,
@@ -517,9 +412,6 @@ struct WorldRuntime
     // counter. The objects' step (the roofs of 0x604ab0, 0x604bc4 and 0x604c06) and the leaves' (0x637082..0x6370e5)
     // read it, among others.
     std::int32_t heroCellLayer = 0;
-    // 0x75fdc38: the 0F's target. 0x75fdc3c is the current count, which that packet does not change. 0x530490's
-    // durable state for the future leaves binder; receiving a 0F does not create rain.
-    Weather::LeafWeather leafWeather{.firstWave = InitialLeafCount};
     // [0x5767964] (.bss, 0): the place of the last one that hit. The 18 with actions 0x78 and 0x79 (0x4cb849), the
     // 0x19 (0x4cce7d) and the 0x69 (0x4cc2e1) write it with the source, but only if they find the target (0x4cce68,
     // 0x4cc2c0), and the 0x1A (0x4cedf7) always; the place they write is 400 if they do not find whom they look for.
@@ -533,7 +425,7 @@ struct WorldRuntime
     // +0xaa..+0xbc of [0x5769ad8]'s models: what 0x612c80 wrote from each monster's creation (0x612d90,
     // MonsterSounds.h), which 0x4f4a10 and 0x4f5660 read (CL9 milestone 3, phase 2c). Never cleared: nothing else
     // writes those WORDs, and a model that is freed keeps its own.
-    Sound::ModelSoundTable modelSounds{};
+    ModelSoundTable modelSounds{};
     // [0x7437670]: the monsters' skills from MonsterSkill.bmd (0x54a440), which main.cpp copies from
     // GameData::monsterSkills and 0x4f92f0 reads (CL9 milestone 3, phase 2c). Without the file, the .bss.
     Tables::MonsterSkillTable monsterSkills{};

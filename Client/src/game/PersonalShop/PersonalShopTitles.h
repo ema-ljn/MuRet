@@ -18,7 +18,7 @@ struct PersonalShopState;
 // The personal shops' signs: the map of 0x7245c8's singleton (0x451d10) per character (CL9 milestone 7, phase 3; 06 §
 // Lo social en pantalla, "Las tiendas personales"). The methods here change the map; the draw (0x451c20) and what it
 // measures for it are in PersonalShop/ShopSigns (phase 6b).
-namespace Client::PersonalShop
+namespace Client::Social
 {
 
 // 0x4511f0 (AddShopTitle): with a character that is not a player (+0x88 other than 1), only the log (0x6c7938).
@@ -53,4 +53,4 @@ void CheckTheShopKeys(Kernel::WorldState& world);
 // 0x4c4e86 and the 1C at 0x4c77eb): removes the signs whose key is not the published hero's (MOVSX of +0x1f4 of
 // 0x743a170, 0x4515ae). Only the own one stays.
 void KeepTheHeroShopTitle(Kernel::WorldState& world);
-} // namespace Client::PersonalShop
+} // namespace Client::Social

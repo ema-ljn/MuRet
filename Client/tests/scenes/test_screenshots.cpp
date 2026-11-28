@@ -20,6 +20,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/TemporaryFolder.h"
 #include "support/UiInput.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 
@@ -62,7 +63,7 @@ constexpr std::uint16_t ServerOfTheFirstGroup = 3;
 constexpr Client::Core::PixelSize SmallScreen{.width = 8, .height = 6};
 constexpr Client::Core::PixelSize ChatScreen{.width = 640, .height = 480};
 
-// Three pixels per letter: the tests' messages fit in one chat log line (Chat::ChatWrapWidth).
+// Three pixels per letter: the tests' messages fit in one chat log line (Ui::ChatWrapWidth).
 class LetterMeasure final : public ITextMeasure
 {
 public:

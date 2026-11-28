@@ -24,10 +24,10 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // Guild window 2, [0x7d536f4] (0x654900, vtable 0x6baa9c; CL9 milestone 8, phase 3; 06 § El gremio): a guild's
 // creation in pages. The 54 (0x4e4279) and the Guild Master's 01 (0x4e3450) open it; the registry steps it with
@@ -74,5 +74,5 @@ void LendTheSecondGuildStepTo(Ui::PanelContext& panels, const SecondGuildStepCon
 // 0x656e70: glColor3f(1, 1, 1), the window's background (0x104 and 0x105) without blending, blending, the title in
 // bold (0x554180 at (x + 0x23, y + 0xc) with a box of 120 · W / 640, colors 0xffdcdcdc on 0xff141414: 180, 1303, 1304
 // or 228 depending on the page) and the page's draw.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheSecondGuildWindow(Ui::GameHudContext& context);
 } // namespace Client::Guild

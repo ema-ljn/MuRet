@@ -14,7 +14,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::PersonalShop
+namespace Client::Social
 {
 namespace
 {
@@ -131,4 +131,4 @@ void KeepTheHeroShopTitle(Kernel::WorldState& world)
             shop = shops.titles.erase(shop);
     }
 }
-} // namespace Client::PersonalShop
+} // namespace Client::Social

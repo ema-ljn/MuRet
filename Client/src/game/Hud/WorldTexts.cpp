@@ -43,7 +43,7 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const K
     // 0x438434..0x43843d: fld of the z, fadd of the float and fstp to float.
     const glm::vec3 point{entry.position.x, entry.position.y,
                           static_cast<float>(static_cast<double>(entry.position.z) + AboveThePosition)};
-    const auto projected = Scenes::ProjectGamePoint(*context.projection, point);
+    const auto projected = Kernel::ProjectGamePoint(*context.projection, point);
     if (!projected.HasValue())
         return Core::Unexpected(projected.Error());
     // 0x438460..0x438469: both signed.
@@ -52,8 +52,8 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const K
     // 0x43846b..0x438494: SelectObject with the bold font; the GetTextExtentPointA here is not used.
     context.hud.dcFont = Render::Text::FontKind::Bold;
     context.hud.textColors = WorldTextColors;
-    DrawHudCentered(context.text, context.sprites.Screen(), context.hud, projected.Value().x, projected.Value().y,
-                    TextOf(entry));
+    Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, projected.Value().x, projected.Value().y,
+                        TextOf(entry));
     return {};
 }
 } // namespace

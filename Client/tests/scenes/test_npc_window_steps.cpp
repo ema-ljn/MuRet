@@ -39,6 +39,8 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -59,7 +61,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
@@ -70,6 +71,7 @@ using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameUiContext;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // Those of the step with the inventory open and nothing under the mouse (test_game_inventory_step.cpp): the
@@ -763,7 +765,7 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     EXPECT_EQ(Trade().field78abacc, 0);
     EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 8);
     EXPECT_EQ(world.Runtime().social.moneyField, 1);
-    EXPECT_EQ(runtime.chat.input.fieldCount, 1);
+    EXPECT_EQ(runtime.chatInput.fieldCount, 1);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FALSE(runtime.mouse.pendingClick);
 
@@ -778,7 +780,7 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_EQ(world.Runtime().social.dialogFieldLimit, 0x2a);
     EXPECT_EQ(world.Runtime().social.moneyField, 0);
-    EXPECT_EQ(runtime.chat.input.fieldCount, 2);
+    EXPECT_EQ(runtime.chatInput.fieldCount, 2);
 
     runtime.dialogs.current = 0x73;
     world.Runtime().social.typedMoney = 6000;

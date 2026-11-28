@@ -47,6 +47,7 @@
 #include "Ui/OldWindows.h"
 #include "Ui/PanelRegistry.h"
 #include "Assets/FaunaModels.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -759,20 +760,20 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world, const
     using Maps::LastChaosCastleMap;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
         return {};
-    Chat::ChatInputState& input = runtime.chat.input;
-    Chat::ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
+    Ui::ChatInputState& input = runtime.chatInput;
+    Ui::ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
     // 0x59b0a7..0x59b0ca: 0x4694c0(0, 0, 1, slot) with 0x6c7b8c at 1, before the copies: the whisper EDIT takes what
     // was in the history's current slot (0x77f31cc + 0x6c8ea8 · 0x100), not the new name (Q-C804).
-    Chat::SetTheChatFields(input, std::nullopt, Chat::CStringOf(slot));
+    Ui::SetTheChatFields(input, std::nullopt, Ui::CStringOf(slot));
     // 0x59b0cf..0x59b16b: strcpy of the name (+0x1d9) to the whisper buffer (0x7798cf8), from the buffer to the slot,
     // the whole buffer zeroed (0x100 bytes) and again from the slot to the buffer; 0x59b17a, its length (0x7758594).
-    Chat::CopyIntoTheBuffer(input.whisperBuffer, Actors::ChatNameOf(target));
-    Chat::CopyIntoTheBuffer(slot, Chat::CStringOf(input.whisperBuffer));
+    Ui::CopyIntoTheBuffer(input.whisperBuffer, Actors::ChatNameOf(target));
+    Ui::CopyIntoTheBuffer(slot, Ui::CStringOf(input.whisperBuffer));
     input.whisperBuffer.fill('\0');
-    Chat::CopyIntoTheBuffer(input.whisperBuffer, Chat::CStringOf(slot));
-    input.whisperLength = static_cast<std::int32_t>(Chat::CStringOf(input.whisperBuffer).size());
+    Ui::CopyIntoTheBuffer(input.whisperBuffer, Ui::CStringOf(slot));
+    input.whisperLength = static_cast<std::int32_t>(Ui::CStringOf(input.whisperBuffer).size());
     // 0x59b180: sound 0x19.
-    runtime.RequestSound(Chat::ChatButtonSound);
+    runtime.RequestSound(Ui::ChatButtonSound);
     return {};
 }
 

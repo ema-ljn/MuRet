@@ -9,7 +9,7 @@
 
 #include <string_view>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                  std::string_view line)
@@ -27,4 +27,4 @@ void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, K
     const Render::Text::TextExtent extent = text.Measure(hud.dcFont, line);
     DrawHudLine(text, screen, hud, Render::Text::CenteredAt(x, extent, screen), y, line);
 }
-} // namespace Client::Hud
+} // namespace Client::Ui

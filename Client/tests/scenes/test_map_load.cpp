@@ -33,6 +33,7 @@
 #include "support/PlayerActors.h"
 #include "support/TemporaryFolder.h"
 #include "support/ClothVectors.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -481,7 +482,7 @@ TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArgument
 TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
 {
     world.Runtime().map = 30;
-    world.Runtime().castleSiege.siegeMusicTime = 1234.0f;
+    world.Runtime().castleFlags.siegeMusicTime = 1234.0f;
     int requests = 0;
     const auto loaded = LoadMap(30, MapLoadContext{.dataRoot = m_dataRoot,
                                                    .world = world,
@@ -493,7 +494,7 @@ TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
 
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     EXPECT_EQ(requests, 1);
-    EXPECT_EQ(world.Runtime().castleSiege.siegeMusicTime, 0.0f);
+    EXPECT_EQ(world.Runtime().castleFlags.siegeMusicTime, 0.0f);
     constexpr std::size_t Spearmen = 5;
     ASSERT_EQ(world.Map().objects.size(), world.Map().objectRecords.size() + Spearmen);
     constexpr std::array<float, Spearmen> X{6500.0f, 7100.0f, 9100.0f, 11800.0f, 12300.0f};
@@ -512,7 +513,7 @@ TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
 // 0x61a6ea/0x61a8af: at war, ATT312 and TerrainLight2, after the spearmen.
 TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
 {
-    world.Runtime().castleSiege.siegeActive = true;
+    world.Runtime().castleFlags.siegeActive = true;
     const auto loaded = Load(30);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     const auto file = Client::Tests::ReadFileBytes(m_dataRoot / "world31" / "EncTerrain312.att");

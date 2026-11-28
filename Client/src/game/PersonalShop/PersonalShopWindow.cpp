@@ -10,7 +10,7 @@
 #include "Chat/GameChat.h"
 #include "Chat/GameMessages.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Items/InventoryMoves.h"
 #include "Items/ItemPrice.h"
 #include "Npc/NpcWindowSteps.h"
@@ -139,20 +139,20 @@ constexpr std::int32_t PriceWarningText = 1132;
 // 0x5dc7ab: 0x54d0f0 with mode 2.
 constexpr std::int32_t PriceValueMode = 2;
 
-const Items::InventoryServices& ServicesOf(const Hud::GameUiContext& context)
+const Items::InventoryServices& ServicesOf(const Ui::GameUiContext& context)
 {
     static const Items::InventoryServices None{};
     return context.inventory != nullptr ? *context.inventory : None;
 }
 
-bool InRect(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+bool InRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
             std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
 // The C3's two rand() and the packet through the wire. Without the wire, the error with `where`.
-Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing outgoing,
+Core::Expected<void, std::string> SendInC3(const Ui::GameUiContext& context, Protocol::Outgoing outgoing,
                                            std::string_view where)
 {
     if (context.requests == nullptr)
@@ -211,7 +211,7 @@ bool TheShopIsReady(Kernel::WorldState& world)
 }
 
 // 0x5ea3a3..0x5eaa4f
-Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> PressTheOpenButton(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::PersonalShopState& shops = runtime.social.personalShop;
@@ -247,7 +247,7 @@ Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& c
 }
 
 // 0x5dc807.. and 0x5da5ac..: the typed price to the item's slot.
-Core::Expected<void, std::string> SetThePrice(const Hud::GameUiContext& context,
+Core::Expected<void, std::string> SetThePrice(const Ui::GameUiContext& context,
                                               const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -286,7 +286,7 @@ Core::Expected<void, std::string> SetThePrice(const Hud::GameUiContext& context,
 }
 
 // 0x5dc79e..0x5deac0
-Core::Expected<bool, std::string> AnswerThePriceDialog(const Hud::GameUiContext& context,
+Core::Expected<bool, std::string> AnswerThePriceDialog(const Ui::GameUiContext& context,
                                                        const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -329,7 +329,7 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const Hud::GameUiContext&
 }
 
 // 0x5d8e00..0x5dc790: the warning `kind` (from 1 to 6) with its answer.
-Core::Expected<bool, std::string> AnswerTheWarning(const Hud::GameUiContext& context,
+Core::Expected<bool, std::string> AnswerTheWarning(const Ui::GameUiContext& context,
                                                    const Items::InventoryMoveContext& moves, std::int32_t kind)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -409,12 +409,12 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
     runtime.social.personalShop.dialogMode = mode;
     runtime.ui.chatOpen = false;
     runtime.social.moneyField = mode == ShopPriceMode ? 1 : 0;
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     runtime.social.dialogFieldLimit = mode == ShopPriceMode ? PriceFieldLimit : TitleFieldLimit;
     // With 0x6c7b8c at 1: the vtable + 4 with 0 (in view), +0x4c, the + 0x44 with (0, 0, 0, 0) (the background), the
     // cap, the size and the position. The focus and the drawing belong to the 0x91's draw (0x6305c9).
     const bool price = mode == ShopPriceMode;
-    Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+    Ui::OldEdit& edit = runtime.chatInput.dialogEdit;
     edit.base.state = Ui::ShownWindow;
     edit.filter = price ? PriceEditFilter : TitleEditFilter;
     edit.backgroundColor = 0;
@@ -425,10 +425,10 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
     edit.base.y = ShopEditY;
 }
 
-Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheShopDialog(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     Social::PersonalShopState& shops = runtime.social.personalShop;
     Social::SocialState& social = runtime.social;
     bool& click = runtime.mouse.pendingClick;
@@ -445,14 +445,14 @@ Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& co
     {
         pressed = 1;
         click = false;
-        Chat::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
-        input.messageLength = static_cast<std::int32_t>(Chat::CStringOf(input.messageBuffer).size());
-        const std::string_view typed = Chat::CStringOf(input.messageBuffer);
+        Ui::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
+        input.messageLength = static_cast<std::int32_t>(Ui::CStringOf(input.messageBuffer).size());
+        const std::string_view typed = Ui::CStringOf(input.messageBuffer);
         if (shops.dialogMode == ShopTitleMode)
         {
             const std::span<const std::string> filter =
                 context.chat != nullptr ? context.chat->filter : std::span<const std::string>{};
-            if (FrontEnd::IsAShopTitle(typed, filter))
+            if (Ui::IsAShopTitle(typed, filter))
                 shops.ownTitle = std::string(typed);
             else
             {
@@ -495,9 +495,9 @@ Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& co
         trade.warningByte = static_cast<std::uint8_t>(Yes);
     // 0x62629a..0x6262d0: the text fields emptied (0x553570(0), with the EDIT), the chat field closed, the focus to the
     // game's window and the pending dialog open.
-    Chat::ResetTheTextBuffers(input, false);
+    Ui::ResetTheTextBuffers(input, false);
     runtime.ui.chatOpen = false;
-    input.focus = Chat::ChatFocus::Game;
+    input.focus = Ui::ChatFocus::Game;
     runtime.dialogs.current = runtime.dialogs.pending;
     runtime.dialogs.pending = 0;
     return {};
@@ -530,7 +530,7 @@ bool OpenTheConfirmBox(Social::ConfirmBoxState& box, Ui::DialogState& dialogs, s
     return true;
 }
 
-Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheConfirmBox(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.mouse.pendingClick;
@@ -570,7 +570,7 @@ Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& co
     return {};
 }
 
-Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& context, std::int32_t id,
+Core::Expected<void, std::string> AnswerTheConfirmBox(const Ui::GameUiContext& context, std::int32_t id,
                                                       std::int32_t answer)
 {
     if (id != OpenShopConfirm || (answer != Yes && answer != No))
@@ -593,8 +593,7 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& 
     return {};
 }
 
-Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiContext& context,
-                                                            Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePersonalShopWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::PersonalShopPanel) && !panels.IsOpen(Ui::OtherShopPanel))
         return {};
@@ -637,7 +636,7 @@ Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiCon
     return {};
 }
 
-Core::Expected<bool, std::string> StepTheWarningAnswers(const Hud::GameUiContext& context,
+Core::Expected<bool, std::string> StepTheWarningAnswers(const Ui::GameUiContext& context,
                                                         const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();

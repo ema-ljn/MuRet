@@ -254,7 +254,7 @@ ShopSignLayout MeasureTheShopSign(const Social::ShopTitle& sign, std::string_vie
     return layout;
 }
 
-Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjection& projection,
+Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Kernel::GameProjection& projection,
                                                         const Kernel::ActorState& owner, std::int32_t width,
                                                         Core::PixelSize screen)
 {
@@ -262,7 +262,7 @@ Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjec
     const glm::vec3 above{
         owner.position.x, owner.position.y,
         static_cast<float>(static_cast<double>(owner.boundsTop) + static_cast<double>(owner.position.z) + AboveTheTop)};
-    const auto projected = Scenes::ProjectGamePoint(projection, above);
+    const auto projected = Kernel::ProjectGamePoint(projection, above);
     if (!projected.HasValue())
         return Core::Unexpected(projected.Error());
     // 0x45214b..0x45217f: x · W / 640 minus half the width (cdq, sub and sar, toward 0).

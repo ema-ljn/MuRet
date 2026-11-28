@@ -83,6 +83,12 @@
 #include "support/TestGameServer.h"
 #include "support/TemporaryFolder.h"
 #include "support/UiInput.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 
@@ -1353,8 +1359,8 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.chat.area.rows[3].text = "viejo";
     runtime.chat.area.count = 4;
-    runtime.chat.input.dialogFieldOn = true;
-    runtime.chat.input.otherInput = true;
+    runtime.chatInput.dialogFieldOn = true;
+    runtime.chatInput.otherInput = true;
     runtime.social.moneyField = 1;
 
     ASSERT_NO_FATAL_FAILURE(tested.Enter());
@@ -1362,8 +1368,8 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
     tested.Step();
 
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
-    EXPECT_FALSE(runtime.chat.input.dialogFieldOn);
-    EXPECT_FALSE(runtime.chat.input.otherInput);
+    EXPECT_FALSE(runtime.chatInput.dialogFieldOn);
+    EXPECT_FALSE(runtime.chatInput.otherInput);
     EXPECT_EQ(runtime.social.moneyField, 0);
     EXPECT_TRUE(runtime.ui.chatOpen);
     const Client::Ui::MessageAreaState& area = runtime.chat.area;

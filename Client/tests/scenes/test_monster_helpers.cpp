@@ -3,6 +3,7 @@
 
 #include "Kernel/DrawTailState.h"
 #include "Audio/SoundId.h"
+#include "Effects/ModelEffects.h"
 #include <algorithm>
 
 #include "Core/Expected.h"

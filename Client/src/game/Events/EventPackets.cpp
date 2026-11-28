@@ -49,6 +49,7 @@
 #include "Protocol/Opcodes.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <bit>
@@ -1000,7 +1001,7 @@ private:
             if (m_runtime.ui.chatOpen)
             {
                 m_runtime.ui.chatOpen = false;
-                Chat::ShowTheChatFields(m_runtime.chat.input, HideTheChatFields);
+                Ui::ShowTheChatFields(m_runtime.chatInput, HideTheChatFields);
             }
             if (auto turned = TurnThePlayersToTheGate("0x404e7f"); !turned.HasValue())
                 return turned;

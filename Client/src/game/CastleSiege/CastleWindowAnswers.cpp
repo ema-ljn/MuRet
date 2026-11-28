@@ -10,6 +10,8 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/PanelDialog.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatInput.h"
 
 #include <cstdint>
 #include <string>
@@ -71,7 +73,7 @@ Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState
     Core::Log log(sink, Core::LogLevel::Warning);
     const CastleAnswerContext context{.data = world.Runtime().castleSiege.data, .log = log, .send = send};
     if (owner == Ui::PanelDialogOwner::CastleMoney)
-        AnswerTheMoneyDialog(static_cast<std::int32_t>(reason), world.Runtime().chat.input.dialogEdit.text.Value(),
+        AnswerTheMoneyDialog(static_cast<std::int32_t>(reason), world.Runtime().chatInput.dialogEdit.text.Value(),
                              context);
     else
         answer(static_cast<std::int32_t>(reason), context);

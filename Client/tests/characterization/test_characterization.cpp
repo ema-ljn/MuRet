@@ -38,6 +38,7 @@
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 
@@ -511,7 +512,7 @@ private:
         }
         if (!runtime.chat.log.entries.empty())
         {
-            const Chat::ChatEntry& newest = runtime.chat.log.entries.front();
+            const Ui::ChatEntry& newest = runtime.chat.log.entries.front();
             trace += std::format("\n  chat {} lines, the newest {}: {} ({})", runtime.chat.log.entries.size(),
                                  newest.name, newest.text, newest.type);
         }

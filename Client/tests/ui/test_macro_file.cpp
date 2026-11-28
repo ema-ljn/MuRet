@@ -1,7 +1,5 @@
 #include "Chat/MacroFile.h"
 
-#include "Chat/ChatInput.h"
-
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -12,11 +10,11 @@
 // Data\Macro.txt (0x61c1c0 and 0x61c170; CL8 milestone 3). The macros are invented.
 namespace
 {
-using Client::Chat::MacroCount;
-using Client::Chat::Macros;
-using Client::Chat::MacroSlotBytes;
-using Client::Chat::ReadTheMacros;
-using Client::Chat::WrittenMacros;
+using Client::Tables::MacroCount;
+using Client::Tables::Macros;
+using Client::Tables::MacroSlotBytes;
+using Client::Tables::ReadTheMacros;
+using Client::Tables::WrittenMacros;
 
 std::span<const std::byte> BytesOf(std::string_view text)
 {

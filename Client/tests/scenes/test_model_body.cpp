@@ -29,6 +29,7 @@
 #include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
+#include "Effects/ModelEffects.h"
 
 #include <gtest/gtest.h>
 
@@ -213,7 +214,7 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     EXPECT_EQ(gate.animation.previousAction, 4);
     EXPECT_EQ(gate.animation.previousKey, 0);
     EXPECT_EQ(gate.animation.frame, 0.0f);
-    EXPECT_EQ(runtime.castleSiege.castleByte7239d8, 2);
+    EXPECT_EQ(runtime.castleFlags.castleByte7239d8, 2);
     EXPECT_EQ(gate.byte110, 1);
     EXPECT_EQ(gate.dword100, 0x12c);
     // Action 3 is not 0x42d890's: it goes on to the monsters, which send it back to 0.

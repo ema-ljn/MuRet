@@ -33,6 +33,8 @@
 #include "Effects/ModelEffects.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Movement/GameMovementState.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -1016,7 +1018,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
         std::uint8_t hidden = 0;
         {
             // 0x4c549a..0x4c54fa: opens the entry and closes it with 0x4e7c40.
-            const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], random,
+            const Models::LogicalAccess entry(runtime.skillDepths[skill], random,
                                               static_cast<std::uint16_t>(Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = Tables::SkillRecordLayout::Origin;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);

@@ -103,7 +103,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     Kernel::GameDrawTailState& tail = FrameTail();
     auto& itemState = FrameItemRender();
     const float clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-    const auto projection = MakeGameProjection(pass, m_drawnCamera.fieldOfView);
+    const auto projection = Kernel::MakeGameProjection(pass, m_drawnCamera.fieldOfView);
     if (!projection.HasValue())
         return Core::Unexpected(projection.Error());
     Actors::Drawing::ItemSpecialDrawContext special;
@@ -117,7 +117,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
         floor.lighting = &FrameLighting();
         floor.frameClock = canvas.frameClock;
         floor.map = runtime.map;
-        floor.project = [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); };
+        floor.project = [&](const glm::vec3& point) { return Kernel::ProjectGamePoint(projection.Value(), point); };
         floor.onPose = [&](const Actors::Drawing::DrawnObject& object)
         { return Actors::Drawing::PublishFloorPose(FramePoseCarry(), *m_models, object); };
         floor.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); };
@@ -189,7 +189,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     effectResources.sprites = &FrameSpritesForDraw();
     effectResources.dynamicLighting = &FrameLighting();
     effectResources.attributes = &attributes;
-    effectResources.siegeActive = runtime.castleSiege.siegeActive;
+    effectResources.siegeActive = runtime.castleFlags.siegeActive;
     effectResources.random = &FrameCloth().random;
     effectResources.itemContext = &itemContext;
     effectResources.kalimaPass = &kalimaPass;

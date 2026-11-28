@@ -30,12 +30,8 @@ class ITextDrawer;
 namespace Client::Kernel
 {
 class WorldState;
-} // namespace Client::Kernel
-
-namespace Client::Scenes
-{
 struct GameProjection;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 namespace Client::Chat
 {
@@ -54,7 +50,7 @@ struct ChatBubbleDrawContext
 {
     Kernel::WorldState& world;
     // 0x6203c0 of this frame's world pass, the one 0x6205b0 reads. Without it, a live bubble stops.
-    const Scenes::GameProjection* projection = nullptr;
+    const Kernel::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // The SelectObject of 0x5a9050 (the normal font) and those of 0x555b00's shop (the bold and the normal).

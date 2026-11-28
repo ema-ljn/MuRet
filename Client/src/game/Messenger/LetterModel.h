@@ -124,7 +124,7 @@ struct ChatRooms
     std::array<std::uint8_t, ChatSlots> used{};
     // +0x108: each slot with its room.
     std::map<std::uint32_t, std::uint32_t> slots;
-    // +0x118: each room with its connection (the session's, App::IChatRoomLinks), since 0x49de50 opens it.
+    // +0x118: each room with its connection (the session's, Chat::IChatRoomLinks), since 0x49de50 opens it.
     std::map<std::uint32_t, ChatRoom> rooms;
     // What the windows send to their room's connection (0x4944c0's message with the 7, 0x493a70's leave with 0x49dfd0's
     // close and 0x4a6550's), in order: the windows do not see the session, and Messenger::FlushTheChatRoomOrders takes

@@ -16,13 +16,12 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Items/ItemNames.h"
-#include "Monsters/NpcNames.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Quests/QuestState.h"
@@ -63,14 +62,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordedText;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4242u;
@@ -133,7 +132,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-class RecordingRequests final : public Client::Hud::IGameUiRequests
+class RecordingRequests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override
@@ -335,7 +334,7 @@ protected:
         Client::Kernel::LatchTheLeftButton(Mouse(), true, true);
     }
 
-    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Hud::IGameUiRequests* requests)
+    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Ui::IGameUiRequests* requests)
     {
         return GameUiContext{.world = *m_world,
                              .random = m_random,

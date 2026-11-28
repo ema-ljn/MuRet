@@ -40,12 +40,8 @@ namespace Client::Kernel
 {
 class WorldState;
 struct ActorState;
-} // namespace Client::Kernel
-
-namespace Client::Scenes
-{
 struct GameProjection;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 namespace Client::Social
 {
@@ -114,7 +110,7 @@ struct ShopSignBox
 
 // 0x452110: the point 60 above the owner's top (+0x138 + z + 60, like the bubble) projected with 0x6205b0 to 640 × 480
 // and turned into pixels with IMUL and the signed division; x, minus half the width, and y, minus 36 · H / 480.
-[[nodiscard]] Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjection& projection,
+[[nodiscard]] Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Kernel::GameProjection& projection,
                                                                       const Kernel::ActorState& owner,
                                                                       std::int32_t width, Core::PixelSize screen);
 
@@ -158,7 +154,7 @@ struct ShopSignDrawContext
     Ui::PanelRegistry& panels;
     // 0x6203c0 of this frame's world pass: 0x451d60 builds with 0x620db0 the same rectangle (0, 0, w, 432) with the
     // same camera, and 0x6205b0 reads the same (*inferred*). Without it, a sign stops.
-    const Scenes::GameProjection* projection = nullptr;
+    const Kernel::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // 0x452d50's SelectObject: the last drawn row's font stays.

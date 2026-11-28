@@ -12,6 +12,7 @@
 #include "Actors/PlayerActionSpeeds.h"
 #include "Kernel/WorldRuntime.h"
 #include "Audio/SoundId.h"
+#include "Actors/MovementSpeed.h"
 
 #include <algorithm>
 #include <array>

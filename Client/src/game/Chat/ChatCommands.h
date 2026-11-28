@@ -4,7 +4,7 @@
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Tables/TextTable.h"
-#include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 
 #include <array>
@@ -103,9 +103,9 @@ struct ChatCommandContext
     // IsOpen(0x40), the warehouse, which skips the trade.
     bool warehouseOpen = false;
     // [0x576350c]: 0x45dc40, the filter.
-    ChatLogState& log;
+    Ui::ChatLogState& log;
     // 0x77f1db0.
-    std::array<std::string, MacroCount>& macros;
+    std::array<std::string, Tables::MacroCount>& macros;
     // 0x77f3b08: /move sets it to 4, an item's help to 3 and a set's name to 0.
     std::int32_t& overlayMode;
     // 0x77f3b0c

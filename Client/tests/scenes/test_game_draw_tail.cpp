@@ -403,7 +403,7 @@ TEST(GameDrawTailTest, PlainFloorSwordsRenderBeforePublishingTheirProjectedShort
 
 TEST(GameDrawTailTest, ProjectionTruncatesBeforeAddingTheCenterAndScalingToVirtualPixels)
 {
-    Client::Scenes::GameProjection projection;
+    Client::Kernel::GameProjection projection;
     projection.view = Client::Render::ViewRows(glm::mat4(1.0f));
     projection.horizontalScale = 0.5f;
     projection.verticalScale = 0.25f;
@@ -411,7 +411,7 @@ TEST(GameDrawTailTest, ProjectionTruncatesBeforeAddingTheCenterAndScalingToVirtu
     projection.centerY = 384;
     projection.screenWidth = 1024;
     projection.screenHeight = 768;
-    const auto p = Client::Scenes::ProjectGamePoint(projection, {1.9f, 2.9f, -2});
+    const auto p = Client::Kernel::ProjectGamePoint(projection, {1.9f, 2.9f, -2});
     ASSERT_TRUE(p.HasValue());
     EXPECT_EQ(p.Value().x, 320); // (512 - trunc(-1.9)) *640/1024
     EXPECT_EQ(p.Value().y, 236); // (384 + trunc(-5.8)) *480/768
@@ -450,7 +450,7 @@ TEST(GameDrawTailTest, ProjectionPreparationMatchesTheThreeReferenceScreensAtThi
         Client::Render::Pass3D pass;
         pass.screen = {sample.width, sample.height};
         pass.viewport = {0, sample.height - sample.viewportHeight, sample.width, sample.viewportHeight};
-        const auto result = Client::Scenes::MakeGameProjection(pass, 35);
+        const auto result = Client::Kernel::MakeGameProjection(pass, 35);
         ASSERT_TRUE(result.HasValue());
         EXPECT_EQ(std::bit_cast<std::uint32_t>(result.Value().horizontalScale), sample.sx);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(result.Value().verticalScale), sample.sy);

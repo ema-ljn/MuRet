@@ -14,11 +14,11 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Quests
 {
@@ -46,7 +46,7 @@ namespace Client::Quests
 // 0x41b170: the mouse over the window; the click on tab 0 ([x + 0x14, + 0x31) × [0xeb, 0xfb), or [0xed, 0xfb) if it
 // is not the chosen one) chooses it (the C1 9F that follows is not reached, Q-C845); on tabs 1 and 2, nothing, and the
 // click goes on. The click on the close button closes with Close(8), which sounds.
-[[nodiscard]] Core::Expected<void, std::string> StepTheQuestWindow(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepTheQuestWindow(const Ui::GameUiContext& context,
                                                                    Ui::PanelRegistry& panels);
 
 // 0x41ca40, from 0x5f7440 (0x5f75db), after the window of 0x78abb00: with the window at 1, the NPC dialog (0x41ba20);
@@ -64,11 +64,11 @@ namespace Client::Quests
 // close button with its help (text 927 with "T") and the chosen tab: tab 0 (0x41c2a0) with "Quest", the name of the
 // highest, the dialog's text without answers and the state (930 to 932); tabs 1 and 2 (0x41c420 and 0x41c4a0) are not
 // reached (only tab 0 is chosen) and go as in the original.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestWindow(Hud::GameHudContext& context,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestWindow(Ui::GameHudContext& context,
                                                                    Ui::PanelRegistry& panels);
 
 // 0x41b9e0, the first thing of the UI's 3D (0x5ac120, 0x5ac1c7): with the window at 1, the requested items of the
 // current quest with state 1 (0x41b810(1, 0)), each with 0x5e1480 at (480, 235 + 25 · i) of 20 × 20 with the level
 // << 3; with the list and +0x21380 (which nobody turns on), those of state 1 or 2 by +0x21381.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestItems(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestItems(Ui::GameHudContext& context);
 } // namespace Client::Quests

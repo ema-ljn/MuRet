@@ -19,6 +19,7 @@
 #include "Kernel/WorldState.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

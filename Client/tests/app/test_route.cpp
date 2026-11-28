@@ -79,7 +79,7 @@ struct ChatParts
     const Client::Crt::CrtRandom* random = nullptr;
     std::optional<std::uint8_t> chosenSlot;
     bool sendsToTheGuild = false;
-    const Client::App::IChatRoomLinks* rooms = nullptr;
+    const Client::Chat::IChatRoomLinks* rooms = nullptr;
     const Client::Scenes::WorldEntryResources* worldEntry = nullptr;
 };
 std::optional<ChatParts> chatParts;
@@ -240,7 +240,7 @@ TEST_F(RouteTest, AChatHandlerGetsTheChatContextOfTheWorldAndTheSession)
     EXPECT_EQ(chatParts->random, &world->cloth.random);
     EXPECT_FALSE(chatParts->chosenSlot.has_value());
     EXPECT_TRUE(chatParts->sendsToTheGuild);
-    EXPECT_EQ(chatParts->rooms, static_cast<const Client::App::IChatRoomLinks*>(&online.session));
+    EXPECT_EQ(chatParts->rooms, static_cast<const Client::Chat::IChatRoomLinks*>(&online.session));
     EXPECT_EQ(chatParts->worldEntry, &world->resources);
 }
 

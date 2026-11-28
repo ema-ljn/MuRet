@@ -17,12 +17,8 @@ class SpriteBatch;
 namespace Client::Kernel
 {
 struct ActorState;
-} // namespace Client::Kernel
-
-namespace Client::Scenes
-{
 struct GameProjection;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 namespace Client::Hud
 {
@@ -36,6 +32,6 @@ void QueueTheHealthBar(const Kernel::ActorState& actor, std::deque<Kernel::Queue
 // with each one, it draws half rounded up; the rest stays for the next frame, ahead of the new ones. Without
 // `projection`, a queue with something stops.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHealthBar>& queue,
-                                                                  const Scenes::GameProjection* projection,
+                                                                  const Kernel::GameProjection* projection,
                                                                   Render::SpriteBatch& sprites);
 } // namespace Client::Hud

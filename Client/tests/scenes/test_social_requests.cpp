@@ -28,7 +28,7 @@
 #include "Chat/GameChat.h"
 #include "Hud/GameCommandsWindow.h"
 #include "Movement/GameMovementState.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "PersonalShop/PersonalShopTitles.h"
 #include "FrontEnd/LoginModels.h"
 #include "FrontEnd/SelectionState.h"
@@ -56,6 +56,9 @@
 #include "support/SceneDataFiles.h"
 #include "support/ViewportHandlers.h"
 #include "support/ViewportPackets.h"
+#include "Guild/GuildState.h"
+#include "Ui/GameUiState.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 
@@ -535,7 +538,7 @@ protected:
         runtime.ui.rightClick = true;
         runtime.ui.rightDown = true;
         const Client::Chat::GameChatContext chat = ChatContext();
-        return Client::Hud::StepTheCommandsWindow(Client::Hud::GameUiContext{
+        return Client::Hud::StepTheCommandsWindow(Client::Ui::GameUiContext{
             .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
     }
 
@@ -591,7 +594,7 @@ TEST_P(CommandsWindowTest, TheTradeCommandRefusesALowLevelOrAShop)
     EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 1);
 
     game->world.OwnCharacter().level = 6;
-    Client::PersonalShop::AddShopTitle(game->world, NearKey, 1, "Arcos");
+    Client::Social::AddShopTitle(game->world, NearKey, 1, "Arcos");
     ASSERT_TRUE(RightClick(1, 1).HasValue());
     EXPECT_EQ(game->world.Runtime().chat.log.entries.front().type, Client::Ui::ErrorMessage);
     EXPECT_EQ(Window().chosen, -1);
@@ -635,7 +638,7 @@ TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
 TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 {
     ASSERT_TRUE(RightClick(4, 1).HasValue());
-    EXPECT_EQ(game->world.Runtime().chat.input.whisper.text.Value(), "Brezal");
+    EXPECT_EQ(game->world.Runtime().chatInput.whisper.text.Value(), "Brezal");
     EXPECT_TRUE(game->world.Runtime().ui.chatOpen);
 
     ASSERT_TRUE(RightClick(11, 1).HasValue());
@@ -708,7 +711,7 @@ protected:
         runtime.ui.rightDown = true;
         Client::Chat::GameChatContext chat = ChatContext();
         chat.models = &m_models;
-        return Client::Hud::StepTheCommandsWindow(Client::Hud::GameUiContext{
+        return Client::Hud::StepTheCommandsWindow(Client::Ui::GameUiContext{
             .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
     }
 

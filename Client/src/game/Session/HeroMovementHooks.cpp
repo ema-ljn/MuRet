@@ -16,6 +16,7 @@
 #include "Skills/HeroSkills.h"
 #include "Ui/OldWindows.h"
 #include "Ui/PanelRegistry.h"
+#include "Events/EventGlobals.h"
 
 #include <cstdint>
 #include <string>

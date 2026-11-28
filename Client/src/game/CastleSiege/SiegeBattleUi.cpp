@@ -14,8 +14,7 @@
 #include "Kernel/ActorState.h"
 #include "CastleSiege/CastleSiegeReceive.h"
 #include "Hud/GamePanels.h"
-#include "Movement/GameMovementState.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Guild/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
@@ -25,6 +24,7 @@
 #include "CastleSiege/SiegeBattleUiState.h"
 #include "CastleSiege/SiegePanelState.h"
 #include "Tables/SkillId.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <bit>
@@ -53,7 +53,7 @@ using Tables::LastSiegeSkill;
 bool HasBattleRole(const Kernel::WorldRuntime& runtime, const Kernel::ActorState& hero, bool guildRequired)
 {
     const bool role = hero.byte360 == 6 || hero.byte360 == 7 || hero.byte360 == 8 || hero.byte360 == 12;
-    return runtime.castleSiege.siegeActive && role && hero.guildStatus != 0 &&
+    return runtime.castleFlags.siegeActive && role && hero.guildStatus != 0 &&
            (!guildRequired || static_cast<std::int16_t>(hero.word1f2) >= 0);
 }
 
@@ -78,11 +78,11 @@ bool SkillForPost(std::uint32_t skill, const Kernel::ActorState& hero, bool init
     return !initialize && hero.guildStatus == BattleMaster && FirstSiegeSkill <= skill && skill <= 0x45;
 }
 
-Core::Expected<std::uint8_t, std::string> SkillCost(const Hud::GameUiContext& context)
+Core::Expected<std::uint8_t, std::string> SkillCost(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ActorState& hero = context.world.Hero();
-    const Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
+    const Models::LogicalAccess access(runtime.skillDepths[hero.byte371], context.random, 60);
     if (context.skills == nullptr)
         return Core::Unexpected(std::string("0x65243e: sin Skill.bmd para la habilidad del asedio"));
     const auto record = context.skills->Record(hero.byte371);
@@ -103,7 +103,7 @@ void ConsumeLeft(Kernel::WorldRuntime& runtime)
     runtime.mouse.leftHeld = false;
 }
 
-Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet)
+Core::Expected<void, std::string> Send(const Ui::GameUiContext& context, Protocol::Outgoing packet)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string("Castle Siege: sin cable para el paquete de la ventana"));
@@ -111,7 +111,7 @@ Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protoc
     return {};
 }
 
-Core::Expected<void, std::string> CloseGate(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> CloseGate(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeGate = 0;
@@ -119,7 +119,7 @@ Core::Expected<void, std::string> CloseGate(const Hud::GameUiContext& context)
     return Send(context, Protocol::Session::WriteWindowClose());
 }
 
-Core::Expected<void, std::string> CloseWeapon(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> CloseWeapon(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeWeapon = 0;
@@ -127,7 +127,7 @@ Core::Expected<void, std::string> CloseWeapon(const Hud::GameUiContext& context)
     return Send(context, Protocol::Session::WriteWindowClose());
 }
 
-Core::Expected<void, std::string> StepWeapon(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepWeapon(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::uint8_t mode = runtime.panels.delegated.siegeWeapon;
@@ -173,7 +173,7 @@ Core::Expected<void, std::string> StepWeapon(const Hud::GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepGate(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepGate(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.panels.delegated.siegeGate == 0)
@@ -298,7 +298,7 @@ Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContex
     return {};
 }
 
-Core::Expected<void, std::string> StepTheSiegeControls(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheSiegeControls(const Ui::GameUiContext& context)
 {
     if (auto weapon = StepWeapon(context); !weapon.HasValue())
         return weapon;
@@ -323,7 +323,7 @@ void InitializeTheBattleSkill(Kernel::WorldState& world, Crt::CrtRandom& random)
     hero.byte371 = static_cast<std::uint8_t>(selected);
 }
 
-Core::Expected<void, std::string> StepTheBattleSkill(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheBattleSkill(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
@@ -348,7 +348,7 @@ Core::Expected<void, std::string> StepTheBattleSkill(const Hud::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> StepTheBattleSkillChoice(const Hud::GameUiContext& context)
+Core::Expected<void, std::string> StepTheBattleSkillChoice(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();

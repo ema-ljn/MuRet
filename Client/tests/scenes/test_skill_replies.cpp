@@ -41,6 +41,8 @@
 #include "support/Packets.h"
 #include "support/RecordingSink.h"
 #include "support/TableFiles.h"
+#include "Ui/GameUiState.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

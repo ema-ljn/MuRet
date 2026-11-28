@@ -41,6 +41,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
+#include "Kernel/ModelEffectArguments.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -319,13 +320,13 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
         if (tail.pass.effectHooks == nullptr)
             return Core::Unexpected(std::format("0x50f9b3: no effect hooks for the 0x621/2 of action {:#x}", action));
         const auto made =
-            tail.pass.effectHooks->CreateTheHighEffect({.type = GlowEffect,
-                                                        .position = actor.position,
-                                                        .angles = actor.angles,
-                                                        .light = actor.light,
-                                                        .subtype = HeldSubtype,
-                                                        .owner = &tail.actor,
-                                                        .key = 0xffff},
+            tail.pass.effectHooks->CreateTheHighEffect(Kernel::ModelEffectArguments{.type = GlowEffect,
+                                                                                    .position = actor.position,
+                                                                                    .angles = actor.angles,
+                                                                                    .light = actor.light,
+                                                                                    .subtype = HeldSubtype,
+                                                                                    .owner = &tail.actor,
+                                                                                    .key = 0xffff},
                                                        *tail.pass.world, tail.pass.random, tail.pass.worldClock);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x50f9b3: {}", made.Error()));
@@ -397,13 +398,13 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
         for (const auto& [angles, call] : skills)
         {
             const auto made =
-                tail.pass.effectHooks->CreateTheHighEffect({.type = DarkLordSkill,
-                                                            .position = point.Value(),
-                                                            .angles = angles,
-                                                            .light = SkillLight,
-                                                            .subtype = WideSubtype,
-                                                            .owner = nullptr,
-                                                            .key = 0xffff},
+                tail.pass.effectHooks->CreateTheHighEffect(Kernel::ModelEffectArguments{.type = DarkLordSkill,
+                                                                                        .position = point.Value(),
+                                                                                        .angles = angles,
+                                                                                        .light = SkillLight,
+                                                                                        .subtype = WideSubtype,
+                                                                                        .owner = nullptr,
+                                                                                        .key = 0xffff},
                                                            *tail.pass.world, tail.pass.random, tail.pass.worldClock);
             if (!made.HasValue())
                 return Core::Unexpected(std::format("{}: {}", call, made.Error()));
@@ -825,14 +826,15 @@ Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit,
                 const glm::vec3 angles{Pitch, F32(static_cast<double>(turn) - QuarterTurn), 0.0f};
                 if (effectHooks == nullptr)
                     return Core::Unexpected(std::string("0x418b71: no effect hooks for the raven's 0x117/3"));
-                const auto made = effectHooks->CreateTheHighEffect({.type = DarkLordSkill,
-                                                                    .position = spirit.position,
-                                                                    .angles = angles,
-                                                                    .light = SkillLight,
-                                                                    .subtype = SkillSubtype,
-                                                                    .owner = nullptr,
-                                                                    .key = 0xffff},
-                                                                   *world, random, worldClock);
+                const auto made =
+                    effectHooks->CreateTheHighEffect(Kernel::ModelEffectArguments{.type = DarkLordSkill,
+                                                                                  .position = spirit.position,
+                                                                                  .angles = angles,
+                                                                                  .light = SkillLight,
+                                                                                  .subtype = SkillSubtype,
+                                                                                  .owner = nullptr,
+                                                                                  .key = 0xffff},
+                                                     *world, random, worldClock);
                 if (!made.HasValue())
                     return Core::Unexpected(std::format("0x418b71: {}", made.Error()));
             }

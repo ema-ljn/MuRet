@@ -13,7 +13,7 @@
 #include "Render/Text/FontSet.h"
 #include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Guild/GuildDrawing.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildPanels.h"
@@ -33,6 +33,9 @@
 #include "support/FakeTextureStore.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -61,10 +64,10 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Guild::GuildMarkTextures;
 using Client::Guild::GuildState;
-using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 23;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -1300,7 +1303,7 @@ TEST_P(GuildWindowTest, TheMasterDisbandsTheGuildThroughTheNumberDialog)
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
     EXPECT_EQ(Guild().kickMember, 0);
     EXPECT_FALSE(Runtime().ui.chatOpen);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Draws(m_random), 0);
 }
@@ -1343,7 +1346,7 @@ TEST_P(GuildWindowTest, AMemberLeavesTheGuildThroughTheNumberDialog)
     ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildLeaveButton).HasValue());
     EXPECT_EQ(Guild().kickMember, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
     EXPECT_TRUE(m_sent.empty());
 }
@@ -1453,7 +1456,7 @@ TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
     EXPECT_EQ(window.noticeList.scroll, 0);
 
     const std::string_view text = "uno dos tres cuatro cinco seis siete";
-    const auto wrapped = Client::Chat::WrapByWidth(text, m_text, Runtime().hud.dcFont, Screen640, 0x6e, 5, 0);
+    const auto wrapped = Client::Ui::WrapByWidth(text, m_text, Runtime().hud.dcFont, Screen640, 0x6e, 5, 0);
     ASSERT_TRUE(wrapped.HasValue());
     std::vector<std::string> lines;
     for (const std::string& line : wrapped.Value().lines)

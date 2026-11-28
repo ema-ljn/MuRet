@@ -15,9 +15,9 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Items/InventoryMoves.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
@@ -29,6 +29,7 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -53,7 +54,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
@@ -63,6 +63,7 @@ using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameHudContext;
 using Client::Warehouse::KeypadKeyAt;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -194,7 +195,7 @@ protected:
             return Client::Core::Expected<void, std::string>{};
         };
         panels.LendTheNpcWindows(*m_world, m_random, Client::Items::InventoryServices{}, send);
-        const Client::Hud::GameUiContext context{
+        const Client::Ui::GameUiContext context{
             .world = *m_world, .random = m_random, .input = m_input, .mouseX = x, .mouseY = y, .sendNpcWindow = send};
         return Client::Warehouse::StepTheKeypad(context, panels.Registry());
     }
@@ -511,7 +512,7 @@ TEST_P(WarehouseKeypadTest, UnlockingSends83WithTheChatBuffer)
 {
     Runtime().ui.field78abb20 = 1;
     constexpr std::string_view Chat = "hola mundo, chau";
-    std::ranges::copy(Chat, Runtime().chat.input.messageBuffer.begin());
+    std::ranges::copy(Chat, Runtime().chatInput.messageBuffer.begin());
     PressDigits("4821");
     const CrtRandom expected = Advanced(m_random, C3);
 

@@ -28,6 +28,8 @@
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/MapSweepCases.h"
+// The optional eventObject is read through, which needs the whole type.
+#include "Events/EventMapObject.h" // IWYU pragma: keep
 
 #include <glm/ext/vector_float2.hpp>
 

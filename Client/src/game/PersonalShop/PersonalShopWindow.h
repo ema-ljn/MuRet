@@ -23,10 +23,10 @@ namespace Client::Kernel
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Items
 {
@@ -61,7 +61,7 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 // cancel was pressed, without reading the EDIT; without Enter or a button, nothing. Then, 0x6c932e at 1 with the OK and
 // a non-empty title or a price above 0 (signed), and at 2 otherwise; the text fields emptied (0x553570(0)), the chat
 // field closed, the focus to the game's window and the pending dialog open. No rand().
-[[nodiscard]] Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheShopDialog(const Ui::GameUiContext& context);
 
 // 0x4716e0(id, text, type) on 0x575d9d0: with the 0x9c open (0x7d3a10c), false. Otherwise, the 0x9c through 0x6236f0
 // (with another open, waiting) and, with the type outside 1..2, false with the dialog already requested. Otherwise,
@@ -75,12 +75,12 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 // the edges (h: the rows times the letter step (0x7758568) + 2, compared in the x87). With two buttons, the one with x
 // from 0xff to 0x133 answers 1 and the one from 0x14a to 0x17e answers 2; with one, the one from 0x127 to 0x15b answers
 // 1. Each spends the click and calls 0x623750 with the box's id.
-[[nodiscard]] Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheConfirmBox(const Ui::GameUiContext& context);
 
 // 0x623750(id, answer): with the 1000 and the 1, the C1 28 3F 02 with the title (0x78aba64) in C3, all panels closed
 // (0x657a90) and the pending dialog open (0x7d3a110 to 0x7d3a10c); with the 1000 and the 2, only the latter. With
 // another id or answer, nothing. It is not the title dialog (that is 0x5eba70's 0x91).
-[[nodiscard]] Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& context, std::int32_t id,
+[[nodiscard]] Core::Expected<void, std::string> AnswerTheConfirmBox(const Ui::GameUiContext& context, std::int32_t id,
                                                                     std::int32_t answer);
 
 // 0x5ea290 (from 0x5ee1c5): with the own shop or the other's open (0x800 and 0x20000, no rand()) and 0x6c931c at 1:
@@ -95,7 +95,7 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 //   C1 04 3F 03 in C3;
 // - the title one (x from x + 0x14 to x + 0xaa and y from y + 0x41 to y + 0x59, with the click, which it does not
 //   spend): 0x5eba70(1).
-[[nodiscard]] Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> StepThePersonalShopWindow(const Ui::GameUiContext& context,
                                                                           Ui::PanelRegistry& panels);
 
 // 0x5d8dee..0x5dc798 and 0x5deaa7..0x5deac0: what 0x5d8d50 does before the cursor item, already without the C3 24
@@ -116,6 +116,6 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 // C1 09 3F 01 with the slot [0x78a6758] and the price in C3, the 24 from grid 0 to 4 (with the lock released) and the
 // price in the mode's map at 0x77f3cc8; without an item, the 3F 01 and the price in the map at [0x78a6758]. At the
 // end 0x77f3b6c at 0.
-[[nodiscard]] Core::Expected<bool, std::string> StepTheWarningAnswers(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<bool, std::string> StepTheWarningAnswers(const Ui::GameUiContext& context,
                                                                       const Items::InventoryMoveContext& moves);
 } // namespace Client::PersonalShop

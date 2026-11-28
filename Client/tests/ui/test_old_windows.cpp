@@ -32,7 +32,6 @@
 // Nothing in CL8 opens one: the tests open the message box by hand, with invented texts.
 namespace
 {
-using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -44,6 +43,7 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
+using Client::Ui::ChatFocus;
 using Client::Ui::OldMessage;
 using Client::Ui::OldWindow;
 using Client::Ui::OldWindowDrawContext;
@@ -280,7 +280,7 @@ TEST_F(OldWindowsTest, AQuestionBoxTakesTheNextIdsAndPlacesItsButtonsInsideIt)
 TEST_F(OldWindowsTest, TheBoxTextIsWrappedInTwoLines)
 {
     constexpr std::string_view Text = "una pregunta inventada que no entra en un solo renglon de la caja";
-    const auto expected = Client::Chat::WrapByWidth(Text, m_text, FontKind::Normal, Screen640, 0x7d, 2, 0);
+    const auto expected = Client::Ui::WrapByWidth(Text, m_text, FontKind::Normal, Screen640, 0x7d, 2, 0);
     ASSERT_TRUE(expected.HasValue()) << expected.Error();
     ASSERT_EQ(expected.Value().lines.size(), 2u);
 

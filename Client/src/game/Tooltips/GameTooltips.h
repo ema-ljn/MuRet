@@ -6,10 +6,10 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The game's tooltips (06 § Los tooltips, CL8 milestone 5): 0x5f7bc0, what the game's drawing calls at 0x63769b (the
 // item under the mouse, the bar's skill and the inventory's set window), a set's label (0x40eca0, at 0x6376c6) and the
@@ -32,7 +32,7 @@ struct TooltipLines;
 //     (Render::Text::CenterInBox) and 3 puts it against the right edge; one with '\n' or " " only moves down half a
 //     line or one, without drawing.
 // Each line moves down (cy / ry) · 1.1. It ends with the color white and no blending. Modes other than 1, 2 or 3 cut.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context, std::int32_t x,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltipBox(Ui::GameHudContext& context, std::int32_t x,
                                                                   std::int32_t y, std::int32_t count,
                                                                   std::int32_t widthOverride, std::int32_t textMode,
                                                                   std::int32_t frame);
@@ -47,10 +47,10 @@ struct TooltipLines;
 // (0x78abaa8), with the own record open around it, 0x5b8150 (repairing, with the mouse over the inventory) or
 // 0x5b2aa0; with the bar's skill (0x6c9320), 0x5b90b0; with the inventory open, the set window (0x40e850). The bodies
 // MuRet does not have cut with their address.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltips(Ui::GameHudContext& context);
 
 // 0x40eca0: with +0x9305, the label of set +0x9305 − 1 of ItemSetOption.bmd at the top left: its name (with 1089 and
 // 159) in gold and each option of its pairs, its two extras and the full set's five in blue. An unused set (+0x3c at
 // 0xff) turns it off.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheSetLabel(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheSetLabel(Ui::GameHudContext& context);
 } // namespace Client::Tooltips

@@ -10,8 +10,8 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -88,9 +88,9 @@ public:
     void PlaceTheBar()
     {
         JewelBundleList& list = List();
-        const Client::Chat::OldListBar bar =
-            Client::Chat::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows,
-                                          static_cast<std::int32_t>(list.rows.size()), list.scroll);
+        const Client::Ui::OldListBar bar =
+            Client::Ui::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows,
+                                        static_cast<std::int32_t>(list.rows.size()), list.scroll);
         list.barTop = bar.barTop;
         list.barBottom = bar.barBottom;
         list.thumbY = bar.thumbY;
@@ -113,7 +113,7 @@ public:
     Client::ChaosMix::BundleListStep Run(std::int32_t x, std::int32_t y)
     {
         return Client::ChaosMix::StepTheBundleList(
-            Client::Hud::GameUiContext{.world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y});
+            Client::Ui::GameUiContext{.world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y});
     }
 
     void Press(Key key)
@@ -395,19 +395,19 @@ public:
     Client::Core::Expected<void, std::string> Draw(bool projecting = false, bool withTexts = true)
     {
         Client::Kernel::WorldRuntime& runtime = world->Runtime();
-        Client::Hud::GameHudContext context{.world = *world,
-                                            .random = random,
-                                            .ownRecordDepth = runtime.ownRecordDepth,
-                                            .cellXDepth = cellDepth,
-                                            .cellYDepth = cellDepth,
-                                            .hud = runtime.hud,
-                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                            .sound = sound,
-                                            .projecting = projecting,
-                                            .sprites = sprites,
-                                            .text = text,
-                                            .texts = withTexts ? &texts : nullptr,
-                                            .mouse = mouse};
+        Client::Ui::GameHudContext context{.world = *world,
+                                           .random = random,
+                                           .ownRecordDepth = runtime.ownRecordDepth,
+                                           .cellXDepth = cellDepth,
+                                           .cellYDepth = cellDepth,
+                                           .hud = runtime.hud,
+                                           .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                           .sound = sound,
+                                           .projecting = projecting,
+                                           .sprites = sprites,
+                                           .text = text,
+                                           .texts = withTexts ? &texts : nullptr,
+                                           .mouse = mouse};
         return Client::ChaosMix::DrawTheBundleList(context, ListX, ListY);
     }
 

@@ -11,7 +11,7 @@
 #include "Chat/ChatBubbles.h"
 #include "Events/EventGlobals.h"
 #include "Events/EventMapObject.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Hud/HudText.h"
 #include "Kernel/WorldRuntime.h"
@@ -165,7 +165,7 @@ Core::Expected<std::string, std::string> Formatted(Crt::FormatFunction function,
     return text;
 }
 
-Core::Expected<std::string, std::string> FormattedText(const Hud::GameHudContext& context, Crt::FormatFunction function,
+Core::Expected<std::string, std::string> FormattedText(const Ui::GameHudContext& context, Crt::FormatFunction function,
                                                        std::size_t index,
                                                        std::span<const Crt::FormatArgument> arguments,
                                                        std::size_t buffer, std::string_view where)
@@ -176,13 +176,13 @@ Core::Expected<std::string, std::string> FormattedText(const Hud::GameHudContext
     return Formatted(function, *format, arguments, buffer, where);
 }
 
-void DrawCentered(Hud::GameHudContext& context, int x, int y, std::string_view text)
+void DrawCentered(Ui::GameHudContext& context, int x, int y, std::string_view text)
 {
-    Hud::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, x, y, text);
+    Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, x, y, text);
 }
 
 // 0x40bbf0(x, y, seconds), in font 0x576355c.
-Result DrawTheTimeLeft(Hud::GameHudContext& context, float x, float y, std::int32_t seconds)
+Result DrawTheTimeLeft(Ui::GameHudContext& context, float x, float y, std::int32_t seconds)
 {
     constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     const std::int32_t minutes = seconds / SecondsPerMinute;
@@ -223,12 +223,12 @@ Result DrawTheTimeLeft(Hud::GameHudContext& context, float x, float y, std::int3
     return {};
 }
 
-void DrawLine(Hud::GameHudContext& context, int x, int y, std::string_view text)
+void DrawLine(Ui::GameHudContext& context, int x, int y, std::string_view text)
 {
-    Hud::DrawHudLine(context.text, context.sprites.Screen(), context.hud, x, y, text);
+    Ui::DrawHudLine(context.text, context.sprites.Screen(), context.hud, x, y, text);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Ui::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
@@ -261,7 +261,7 @@ std::string ResultName(const EventMapObject& event, std::size_t record)
 }
 
 // 0x40bdd0: Devil Square.
-Result DrawTheDevilSquareRanking(Hud::GameHudContext& context, const EventMapObject& event)
+Result DrawTheDevilSquareRanking(Ui::GameHudContext& context, const EventMapObject& event)
 {
     constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     Render::SpriteBatch& sprites = context.sprites;
@@ -345,7 +345,7 @@ Result DrawTheDevilSquareRanking(Hud::GameHudContext& context, const EventMapObj
 }
 
 // 0x40c440 and 0x405220: the two titles (with 0x623690 at x 0x140) and the rows in font 0x5763558.
-Result DrawTheCastleResult(Hud::GameHudContext& context, const EventMapObject& event)
+Result DrawTheCastleResult(Ui::GameHudContext& context, const EventMapObject& event)
 {
     constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     const bool bloodCastle = event.kind == EventMapKind::BloodCastle;
@@ -433,7 +433,7 @@ Result DrawTheCastleResult(Hud::GameHudContext& context, const EventMapObject& e
 }
 } // namespace
 
-Result DrawTheEventTime(Hud::GameHudContext& context)
+Result DrawTheEventTime(Ui::GameHudContext& context)
 {
     const EventGlobals& events = context.world.Runtime().events;
     const std::uint16_t time = events.timeValue;
@@ -477,7 +477,7 @@ Result DrawTheEventTime(Hud::GameHudContext& context)
     return {};
 }
 
-Result DrawTheCastleTimeAndPoints(Hud::GameHudContext& context, EventMapObject& event, bool write)
+Result DrawTheCastleTimeAndPoints(Ui::GameHudContext& context, EventMapObject& event, bool write)
 {
     const bool bloodCastle = event.kind == EventMapKind::BloodCastle;
     if (!bloodCastle && event.kind != EventMapKind::ChaosCastle)
@@ -542,7 +542,7 @@ Result DrawTheCastleTimeAndPoints(Hud::GameHudContext& context, EventMapObject& 
     }
     return {};
 }
-Result DrawTheEventBoxText(Hud::GameHudContext& context, const EventMapObject& event)
+Result DrawTheEventBoxText(Ui::GameHudContext& context, const EventMapObject& event)
 {
     switch (event.kind)
     {

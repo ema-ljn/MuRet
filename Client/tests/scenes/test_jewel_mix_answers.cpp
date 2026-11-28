@@ -18,6 +18,8 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "Protocol/Opcodes.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/Dialogs.h"
 
 #include <gtest/gtest.h>
 

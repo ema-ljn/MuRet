@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
 #include "Models/LogicalAccess.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Items/HudItems.h"
 #include "Tooltips/ItemTooltipParts.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -165,7 +165,7 @@ void WriteARequirement(Frame& frame, std::size_t text, std::uint16_t required, s
 {
     TooltipWriter& lines = frame.lines;
     lines.PrintText(text, static_cast<std::int32_t>(required));
-    Hud::GameHudContext& context = frame.context;
+    Ui::GameHudContext& context = frame.context;
     const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     std::uint16_t have = own.*stat;

@@ -106,6 +106,6 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
 
 bool IsHiddenName(const Protocol::FrontEnd::NameBytes& name)
 {
-    return FrontEnd::ContainsLikeTheOriginal(NameText(name), HiddenName);
+    return Ui::ContainsLikeTheOriginal(NameText(name), HiddenName);
 }
 } // namespace Client::Actors

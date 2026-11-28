@@ -59,31 +59,31 @@ Core::Expected<void, std::string> StepTheGate(Kernel::ActorState& actor, const C
     if (actor.byte110 == 0)
     {
         actor.dword100 = 0;
-        if (PlayerNear(actor, step.pool, Front, Reach) || runtime.castleSiege.castleByte7239d8 == Opened)
+        if (PlayerNear(actor, step.pool, Front, Reach) || runtime.castleFlags.castleByte7239d8 == Opened)
         {
             constexpr std::uint8_t OpenedAction = 4;
             if (auto set = setAction(OpenedAction, "0x42db87"); !set.HasValue())
                 return set;
-            runtime.castleSiege.castleByte7239d8 = Opened;
+            runtime.castleFlags.castleByte7239d8 = Opened;
             actor.byte110 = 1;
             actor.dword100 = OpenTime;
         }
     }
     constexpr std::uint8_t OpeningAction = 5;
     if (actor.animation.action != OpeningAction && actor.byte110 != 0 &&
-        (actor.dword100 < 0 || runtime.castleSiege.castleByte7239d8 == 0))
+        (actor.dword100 < 0 || runtime.castleFlags.castleByte7239d8 == 0))
     {
         if (PlayerNear(actor, step.pool, Front, Reach))
         {
             actor.dword100 = OpenTime;
-            runtime.castleSiege.castleByte7239d8 = Opened;
+            runtime.castleFlags.castleByte7239d8 = Opened;
         }
         else
         {
             if (auto set = setAction(0, "0x42dc00"); !set.HasValue())
                 return set;
             actor.byte110 = 0;
-            runtime.castleSiege.castleByte7239d8 = 0;
+            runtime.castleFlags.castleByte7239d8 = 0;
         }
     }
     actor.dword100 = Decremented(actor.dword100);
@@ -187,26 +187,26 @@ Core::Expected<void, std::string> StepTheCastleObject(Kernel::ActorState& actor,
             return Core::Unexpected<std::string>("0x42dad6: falta la altura del terreno (0x5f93c0) para el 216");
         constexpr double Raise = 200.0; // 0x6b8928
         actor.position.z = F32(step.height(actor.position.x, actor.position.y) + Raise);
-        runtime.castleSiege.castleFlags7239e4 = actor.flags78;
+        runtime.castleFlags.castleFlags7239e4 = actor.flags78;
         actor.byte42c = actor.flags78 != 0 ? 1 : 0;
         return {};
     }
     case 277: // 0x42db0f
-        runtime.castleSiege.castleGatesClosed = 1;
+        runtime.castleFlags.castleGatesClosed = 1;
         return {};
     case 278: // 0x42dc29
     {
         constexpr std::uint8_t Marked = 0x80;
         if (actor.byte42d == Marked)
         {
-            runtime.castleSiege.castleMarkX = actor.position.x;
-            runtime.castleSiege.castleMarkY = actor.position.y;
+            runtime.castleFlags.castleMarkX = actor.position.x;
+            runtime.castleFlags.castleMarkY = actor.position.y;
         }
         return {};
     }
     case 283: // 0x42db1c: 0x4294b0.
-        actor.dword58 = runtime.castleSiege.siegeActive ? -1 : -2;
-        actor.byte42c = runtime.castleSiege.siegeActive ? 1 : 0;
+        actor.dword58 = runtime.castleFlags.siegeActive ? -1 : -2;
+        actor.byte42c = runtime.castleFlags.siegeActive ? 1 : 0;
         return {};
     case 286:
     case 287:

@@ -14,6 +14,9 @@
 #include "Ui/MessageLog.h"
 #include "Ui/Widget.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
+#include "Ui/GameUiState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,12 +31,12 @@ namespace Client::Chat
 Ui::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
                               Core::PixelSize screen)
 {
-    Kernel::ChatRuntime& chat = runtime.chat;
+    Chat::ChatRuntime& chat = runtime.chat;
     return Ui::MessageSink{.log = chat.log,
                            .area = chat.area,
                            .modes = runtime.ui.chatModes,
                            .measure =
-                               Chat::ChatMeasure{.measure = measure, .dcFont = runtime.hud.dcFont, .screen = screen},
+                               Ui::ChatMeasure{.measure = measure, .dcFont = runtime.hud.dcFont, .screen = screen},
                            .noticeSound = chat.noticeSound};
 }
 
@@ -87,8 +90,8 @@ StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMea
         runtime.RequestSound(Audio::SoundId{*sound.Value()});
     // 0x637d2c and 0x637d44: the chat brake and the macros' one, by one per step (PrintScreen's 0x637cfd, between the
     // clocks and the brakes, does not look at them).
-    if (runtime.chat.input.brake > 0)
-        --runtime.chat.input.brake;
+    if (runtime.chatInput.brake > 0)
+        --runtime.chatInput.brake;
     if (runtime.hud.macroTime > 0)
         --runtime.hud.macroTime;
     return {};

@@ -12,7 +12,7 @@
 #include "Protocol/Pets/PetInfo.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Guild/GuildPanels.h"
 #include "Items/InventoryMoves.h"
 #include "Player/ItemSetState.h"
@@ -31,6 +31,8 @@
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
 #include "Audio/SoundId.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -178,7 +180,7 @@ void GamePanels::LendTheCastleRequests(Kernel::WorldState& world, std::function<
     };
 }
 
-void GamePanels::LendTheCastleWindowSteps(const GameUiContext& context)
+void GamePanels::LendTheCastleWindowSteps(const Ui::GameUiContext& context)
 {
     CastleSiege::LendTheCastleWindowStepsTo(m_context, context);
 }
@@ -229,7 +231,7 @@ void GamePanels::LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& rando
         LendTheWindowClose(std::move(sendWindowClose));
 }
 
-void GamePanels::LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests)
+void GamePanels::LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random, Ui::IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return;
@@ -246,7 +248,7 @@ void GamePanels::LendTheWindowClose(std::function<void()> send)
     m_context.eventNpcClosed = std::move(send);
 }
 
-void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
+void GamePanels::LendTheWindowClose(Ui::IGameUiRequests* requests)
 {
     if (requests == nullptr)
     {
@@ -258,7 +260,7 @@ void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
     m_context.eventNpcClosed = m_context.questClosed;
 }
 
-void GamePanels::LendThePartyList(Kernel::WorldState& world, IGameUiRequests* requests)
+void GamePanels::LendThePartyList(Kernel::WorldState& world, Ui::IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return;

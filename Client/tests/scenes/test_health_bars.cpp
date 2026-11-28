@@ -24,10 +24,10 @@
 namespace
 {
 using Client::Kernel::ActorState;
+using Client::Kernel::GameProjection;
 using Client::Kernel::QueuedHealthBar;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameProjection;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint16_t LifeStoneType = 0x1a8;
@@ -62,7 +62,7 @@ std::vector<SpriteVertex> ExpectedGauges(const std::vector<QueuedHealthBar>& bar
     sprites.Begin(Screen640);
     for (const QueuedHealthBar& bar : bars)
     {
-        const auto point = Client::Scenes::ProjectGamePoint(projection, bar.position);
+        const auto point = Client::Kernel::ProjectGamePoint(projection, bar.position);
         EXPECT_TRUE(point.HasValue());
         if (!point.HasValue())
             continue;

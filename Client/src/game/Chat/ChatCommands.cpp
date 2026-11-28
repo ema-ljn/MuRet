@@ -6,6 +6,7 @@
 #include "Tables/TextTable.h"
 #include "Maps/MapId.h"
 #include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Ui/MessageArea.h"
 #include "FrontEnd/NameChecks.h"
@@ -227,7 +228,7 @@ ChatCommandOutcome SetTheMacro(const ChatCommandContext& context, std::string_vi
     if (IsAForbiddenMacro(context.texts, text))
         return {};
     const std::string_view kept = text.size() > MacroCommandPrefix ? text.substr(MacroCommandPrefix) : "";
-    context.macros[macro] = std::string(kept.substr(0, ChatBufferSize - 1));
+    context.macros[macro] = std::string(kept.substr(0, Ui::ChatBufferSize - 1));
     return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
 }
 
@@ -235,14 +236,14 @@ ChatCommandOutcome SetTheMacro(const ChatCommandContext& context, std::string_vi
 std::size_t MacroOf(std::string_view text)
 {
     if (text.size() < 2 || text[0] != '/')
-        return MacroCount;
-    for (std::size_t macro = 0; macro < MacroCount; ++macro)
+        return Tables::MacroCount;
+    for (std::size_t macro = 0; macro < Tables::MacroCount; ++macro)
     {
-        const char digit = static_cast<char>('0' + (macro + 1) % MacroCount);
+        const char digit = static_cast<char>('0' + (macro + 1) % Tables::MacroCount);
         if (text[1] == digit)
             return macro;
     }
-    return MacroCount;
+    return Tables::MacroCount;
 }
 } // namespace
 
@@ -264,8 +265,8 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         context.overlayMode = Ui::MoveOverlayMode;
     if (text == TextOr(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
         return PersonalShopCommand(context);
-    if (FrontEnd::ContainsLikeTheOriginal(text, TextOr(texts, BuyCommandText)) ||
-        FrontEnd::ContainsLikeTheOriginal(text, "/purchase"))
+    if (Ui::ContainsLikeTheOriginal(text, TextOr(texts, BuyCommandText)) ||
+        Ui::ContainsLikeTheOriginal(text, "/purchase"))
         return PurchaseCommand(context, text);
     // 0x56d6ee..0x56d796: "/ver puestos" (strcmp with the text 1136) turns the signs on (0x4516a0 over 0x451d10) with
     // the notice 1138 of type 1, and its pair (the 1137) turns them off (0x4516b0) with the 1139 of type 2. Both
@@ -332,13 +333,13 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
             return Core::Unexpected(std::string("0x56f13f: /party sin el pedido"));
         return context.requestAParty();
     }
-    if (const std::size_t macro = MacroOf(text); macro < MacroCount)
+    if (const std::size_t macro = MacroOf(text); macro < Tables::MacroCount)
         return SetTheMacro(context, text, macro);
     // 0x56f02e..0x56f0ab: "/filter" (the text 753, if not empty, or the literal) and the tail.
     const std::string_view filter = TextOr(texts, FilterCommandText);
     if ((!filter.empty() && text.starts_with(filter)) || text.starts_with("/filter"))
     {
-        if (const auto notice = SetTheChatFilter(context.log, text))
+        if (const auto notice = Ui::SetTheChatFilter(context.log, text))
             outcome.notices.push_back(ChatCommandNotice{*notice, Ui::SystemMessage});
     }
     return TheNamesTail(context, text, std::move(outcome));

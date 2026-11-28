@@ -25,6 +25,7 @@
 #include "Ui/OldWindows.h"
 #include "Crt/SprintfFormat.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>
@@ -668,7 +669,7 @@ Core::Expected<void, std::string> ApplyChatRoomClosed(const App::ChatRoomClosed&
                                    measure ? &*measure : nullptr);
 }
 
-void FlushTheChatRoomOrders(Messenger::ChatRooms& rooms, App::IChatRoomLinks* links)
+void FlushTheChatRoomOrders(Messenger::ChatRooms& rooms, Chat::IChatRoomLinks* links)
 {
     while (!rooms.orders.empty())
     {

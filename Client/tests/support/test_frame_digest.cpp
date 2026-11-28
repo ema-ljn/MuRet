@@ -4,6 +4,8 @@
 #include "Chat/ChatLog.h"
 #include "support/Fnv1a.h"
 #include "support/RecordingFrameTarget.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 
@@ -83,7 +85,7 @@ TEST_F(FrameDigestTest, StateFollowsTheOwnCharacterTheMapThePanelsAndTheChat)
     EXPECT_TRUE(changes(
         [this]
         {
-            Client::Chat::ChatEntry entry;
+            Client::Ui::ChatEntry entry;
             entry.text = "hello";
             m_world->Runtime().chat.log.entries.push_front(entry);
         }));

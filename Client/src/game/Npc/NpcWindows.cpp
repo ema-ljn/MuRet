@@ -33,6 +33,9 @@
 #include "Kernel/ItemState.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Models/Cloth.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -505,9 +508,9 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
         return {};
     // 0x4e4831..0x4e485d.
     Ui::PushDialog(runtime.dialogs, 0);
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     runtime.social.dialogFieldLimit = ClosedFieldLimit;
-    runtime.chat.input.fieldCount = ClosedChatFieldCount;
+    runtime.chatInput.fieldCount = ClosedChatFieldCount;
     runtime.social.moneyField = 0;
     runtime.ui.chatOpen = false;
     return {};

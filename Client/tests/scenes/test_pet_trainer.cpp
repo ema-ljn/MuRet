@@ -10,7 +10,7 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Items/HudItems.h"
 #include "Items/InventoryMoves.h"
 #include "Items/ItemPrice.h"
@@ -48,13 +48,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameUiContext;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;

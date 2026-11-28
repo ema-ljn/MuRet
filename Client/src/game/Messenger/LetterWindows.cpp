@@ -376,16 +376,16 @@ Core::Expected<void, std::string> WrapAChatLine(Ui::OldChatPart& chat, const Ui:
     const Render::Text::TextExtent name = measure->measure.Measure(measure->dcFont, line.name);
     // FILD of cx + 5, FDIV of the float and _ftol.
     const std::int32_t indent = Truncate(static_cast<double>(name.width + NameGap) / RatioX(measure->screen));
-    auto wrapped = Chat::WrapByWidth(line.text, measure->measure, measure->dcFont, measure->screen,
-                                     chat.lines.base.width - WrapInset, ChatWrapLines, indent);
+    auto wrapped = Ui::WrapByWidth(line.text, measure->measure, measure->dcFont, measure->screen,
+                                   chat.lines.base.width - WrapInset, ChatWrapLines, indent);
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
-    const Chat::WrappedText& pieces = wrapped.Value();
+    const Ui::WrappedText& pieces = wrapped.Value();
     const std::int32_t used = std::min(pieces.result, ChatWrapLines);
     Ui::ChatLine piece = line;
     if (!pieces.lines[0].empty())
     {
-        piece.text = Bounded(pieces.lines[0], Chat::ChatTextBytes);
+        piece.text = Bounded(pieces.lines[0], Ui::ChatTextBytes);
         rows.push_front(piece);
     }
     piece.name.clear();
@@ -394,7 +394,7 @@ Core::Expected<void, std::string> WrapAChatLine(Ui::OldChatPart& chat, const Ui:
         const std::string& text = pieces.lines[static_cast<std::size_t>(at)];
         if (text.empty())
             continue;
-        piece.text = Bounded(text, Chat::ChatTextBytes);
+        piece.text = Bounded(text, Ui::ChatTextBytes);
         rows.push_front(piece);
     }
     return {};
@@ -410,22 +410,22 @@ Core::Expected<void, std::string> WrapALetterLine(Ui::OldLetterPart& letter, con
     std::deque<std::string>& rows = letter.wrappedRows;
     if (line.size() < ShortLine)
     {
-        rows.push_front(Bounded(line, Chat::ChatTextBytes));
+        rows.push_front(Bounded(line, Ui::ChatTextBytes));
         return {};
     }
     if (measure == nullptr)
         return Cut("0x465494: partir un renglón de una carta sin la medida");
-    auto wrapped = Chat::WrapByWidth(line, measure->measure, measure->dcFont, measure->screen,
-                                     letter.lines.base.width - WrapInset, LetterWrapLines, 0);
+    auto wrapped = Ui::WrapByWidth(line, measure->measure, measure->dcFont, measure->screen,
+                                   letter.lines.base.width - WrapInset, LetterWrapLines, 0);
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
-    const Chat::WrappedText& pieces = wrapped.Value();
+    const Ui::WrappedText& pieces = wrapped.Value();
     const std::int32_t used = std::min(pieces.result, LetterWrapLines);
     for (std::int32_t at = 0; at < used; ++at)
     {
         const std::string& text = pieces.lines[static_cast<std::size_t>(at)];
         if (!text.empty())
-            rows.push_front(Bounded(text, Chat::ChatTextBytes));
+            rows.push_front(Bounded(text, Ui::ChatTextBytes));
     }
     return {};
 }
@@ -1840,8 +1840,7 @@ Core::Expected<void, std::string> AddAChatLine(Ui::OldWindowManager& manager, Ui
     }
     // 0x45f6f0: the name (strncpy 0xb) and the text (strncpy 0x100) to the first deque if either is not empty, and the
     // vtable + 0x90.
-    Ui::ChatLine line{
-        .name = std::move(name), .text = Bounded(text, Chat::ChatTextBytes), .kind = kind, .extra = extra};
+    Ui::ChatLine line{.name = std::move(name), .text = Bounded(text, Ui::ChatTextBytes), .kind = kind, .extra = extra};
     if (line.name.empty() && line.text.empty())
         return {};
     chat.chat.lineRows.push_back(std::move(line));

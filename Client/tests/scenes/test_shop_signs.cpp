@@ -42,6 +42,7 @@ namespace
 {
 using Client::Core::PixelSize;
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameProjection;
 using Client::Kernel::WorldState;
 using Client::PersonalShop::ShopSignBox;
 using Client::PersonalShop::ShopSignColors;
@@ -50,7 +51,6 @@ using Client::Render::SpriteBatch;
 using Client::Render::Text::BoxShape;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
-using Client::Scenes::GameProjection;
 using Client::Social::ShopTitle;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;

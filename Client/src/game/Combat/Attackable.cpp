@@ -111,7 +111,7 @@ Core::Expected<bool, std::string> AttackableTarget(const Kernel::WorldState& wor
         return guild.warOn == 0 || guild.warType != 0;
     if (target.byte88 != PlayerObject)
         return false;
-    if (runtime.castleSiege.siegeActive)
+    if (runtime.castleFlags.siegeActive)
     {
         if (const auto decided = SiegeDecides(hero, target))
             return *decided;

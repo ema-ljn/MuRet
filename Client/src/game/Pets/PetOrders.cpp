@@ -9,6 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Audio/SoundId.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -25,7 +25,7 @@
 #include "Items/FloorItemPackets.h"
 #include "Kernel/DrawTailState.h"
 #include "Hud/GameHover.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Items/InventoryMoves.h"
 #include "FrontEnd/LoginModels.h"
 #include "Monsters/NpcNames.h"
@@ -53,6 +53,9 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -747,30 +750,30 @@ class FloorItemNameTest : public ::testing::Test
 protected:
     FloorItemNameTest() : m_stage(StageIn(0)) {}
 
-    Client::Hud::GameHudContext Context()
+    Client::Ui::GameHudContext Context()
     {
         Stage& stage = *m_stage;
-        return Client::Hud::GameHudContext{.world = stage.world,
-                                           .random = stage.cloth.random,
-                                           .ownRecordDepth = m_own,
-                                           .cellXDepth = m_cellX,
-                                           .cellYDepth = m_cellY,
-                                           .hud = m_hud,
-                                           .crywolfSandOverlay = m_sand,
-                                           .sound = m_sound,
-                                           .sprites = stage.sprites,
-                                           .text = stage.text,
-                                           .texts = &stage.texts,
-                                           .items = &stage.items,
-                                           .setOptions = &stage.sets.options,
-                                           .setTypes = &stage.sets.types,
-                                           .mouse = {300, 200}};
+        return Client::Ui::GameHudContext{.world = stage.world,
+                                          .random = stage.cloth.random,
+                                          .ownRecordDepth = m_own,
+                                          .cellXDepth = m_cellX,
+                                          .cellYDepth = m_cellY,
+                                          .hud = m_hud,
+                                          .crywolfSandOverlay = m_sand,
+                                          .sound = m_sound,
+                                          .sprites = stage.sprites,
+                                          .text = stage.text,
+                                          .texts = &stage.texts,
+                                          .items = &stage.items,
+                                          .setOptions = &stage.sets.options,
+                                          .setTypes = &stage.sets.types,
+                                          .mouse = {300, 200}};
     }
 
     Expected<void, std::string> Draw(const FloorItemState& item, bool atTheItem = false)
     {
-        Client::Hud::GameHudContext context = Context();
-        return Client::Items::DrawTheFloorItemName(context, item, atTheItem);
+        Client::Ui::GameHudContext context = Context();
+        return Client::Tooltips::DrawTheFloorItemName(context, item, atTheItem);
     }
 
     [[nodiscard]] static FloorItemState Item(std::uint16_t type, std::int32_t value, std::uint8_t excellent = 0)
@@ -929,7 +932,7 @@ TEST_F(FloorItemNameTest, TheHoverNamesThePickedItemAndAltTheOthers)
     std::array<std::int32_t, 5> targets{3, -1, -1, -1, -1};
     std::int32_t latch = 0;
     std::uint8_t names = 0;
-    Client::Hud::GameHudContext context = Context();
+    Client::Ui::GameHudContext context = Context();
     Client::Hud::GameHoverContext hover{.world = m_stage->world,
                                         .tail = *tail,
                                         .random = m_stage->cloth.random,

@@ -45,6 +45,7 @@
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 

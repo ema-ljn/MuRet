@@ -11,7 +11,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Events/EventMapObject.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -20,6 +20,7 @@
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Events/EventGlobals.h"
 
 #include <gtest/gtest.h>
 
@@ -42,7 +43,6 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Events::EventMapKind;
 using Client::Events::EventMapObject;
-using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -50,6 +50,7 @@ using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};

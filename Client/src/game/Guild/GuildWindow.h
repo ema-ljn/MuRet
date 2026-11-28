@@ -35,10 +35,10 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 // The guild window, [0x7d536f0] (0x64f3e0, vtable 0x6baa58; CL9 milestone 8, phases 4 and 5; 06 § El gremio): the
 // registry opens it with panel 0x10, steps it with 0x45aa80(0) (the vtable + 0x18, which calls + 0x20, 0x651840) and
@@ -81,7 +81,7 @@ void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot);
 void ClearTheGuildMembers(GuildWindowState& window);
 
 // 0x651680(text), the guild notice of the 0D type 2 (0x4c665f): 0x459c70 cuts it into up to 5 rows 0x6e wide with the
-// DC's font (Chat::WrapByWidth), adds each non-empty row with the vtable + 0x94 of list +0x1c8 (0x46bca0: like
+// DC's font (Ui::WrapByWidth), adds each non-empty row with the vtable + 0x94 of list +0x1c8 (0x46bca0: like
 // 0x46c930, at the front, without the hero) and scrolls it by the count minus the rows (+0x34 with +0x38): the last
 // one in stays visible.
 [[nodiscard]] Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window,
@@ -148,5 +148,5 @@ void LendTheGuildWindowStepTo(Ui::PanelContext& panels, const GuildWindowStepCon
 // a guild, "%s ( Score:%d )" (0xff64ffc8) or, without one, texts 185 to 187 (the normal font, 0xffe6e6e6); the close
 // button with its help (220); with a guild, the three tabs (0x621aa0's lines under the others, 0x646 and texts 946,
 // 1330 and 1352 centered in 52 · rx) and the tab's draw.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildWindow(Ui::GameHudContext& context);
 } // namespace Client::Guild

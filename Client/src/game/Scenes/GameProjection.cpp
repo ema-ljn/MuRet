@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 namespace
 {
@@ -106,4 +106,4 @@ UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32
         unprojected.point[axis] = static_cast<float>(static_cast<double>(unprojected.camera[axis]) + local[axis]);
     return unprojected;
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

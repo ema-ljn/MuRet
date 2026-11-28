@@ -46,6 +46,10 @@
 #include "support/TableFiles.h"
 
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
+#include "Ui/GameUiState.h"
+#include "Fauna/FaunaState.h"
 
 #include <gtest/gtest.h>
 
@@ -927,17 +931,17 @@ TEST_F(EventPacketsTest, TheChipInfoOpensTheChipWindow)
 
         Runtime().events.serial[0] = std::byte{0x55};
         Runtime().ui.chatOpen = true;
-        Runtime().chat.input.messageBuffer[0] = 'a';
-        Runtime().chat.input.messageLength = 1;
-        Runtime().chat.input.fieldCount = 2;
+        Runtime().chatInput.messageBuffer[0] = 'a';
+        Runtime().chatInput.messageLength = 1;
+        Runtime().chatInput.fieldCount = 2;
         const std::uint32_t closedAgain = AfterClosingAll();
         Applied(Events::EventChipInfo{.type = 2, .count = 1});
         EXPECT_EQ(Runtime().panels.field78abb00, 3);
         EXPECT_EQ(Runtime().events.serial[0], std::byte{0});
         EXPECT_FALSE(Runtime().ui.chatOpen);
-        EXPECT_EQ(Runtime().chat.input.messageBuffer[0], '\0');
-        EXPECT_EQ(Runtime().chat.input.messageLength, 0);
-        EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+        EXPECT_EQ(Runtime().chatInput.messageBuffer[0], '\0');
+        EXPECT_EQ(Runtime().chatInput.messageLength, 0);
+        EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
         EXPECT_TRUE(Runtime().events.serialEntry);
         EXPECT_EQ(random.State(), closedAgain);
     }

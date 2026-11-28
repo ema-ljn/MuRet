@@ -19,7 +19,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/PoseBuffer.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GameInventoryHud.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
@@ -50,6 +50,8 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
+#include "Actors/Drawing/GameItemRenderState.h"
+#include "Tooltips/TooltipLines.h"
 
 #include <gtest/gtest.h>
 
@@ -74,9 +76,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Scenes::WorldEntryResources;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::size_t HeroSlot = 7;

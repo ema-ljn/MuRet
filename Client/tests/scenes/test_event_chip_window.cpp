@@ -15,9 +15,9 @@
 #include "Kernel/ActorState.h"
 #include "Events/EventGlobals.h"
 #include "Chat/GameChat.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Hud/GamePanels.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameUiContext.h"
 #include "Monsters/NpcNames.h"
 #include "Kernel/OwnInventory.h"
 #include "Social/SocialState.h"
@@ -35,6 +35,7 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -56,12 +57,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -352,7 +353,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         SCOPED_TRACE(map);
         Reset(map);
         Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
-        Runtime().chat.input.dialogEdit.text.SetText("AB12CD34EF56");
+        Runtime().chatInput.dialogEdit.text.SetText("AB12CD34EF56");
         Runtime().mouse.releasedClick = true;
         Runtime().mouse.leftHeld = true;
         const std::uint32_t before = random.State();
@@ -366,7 +367,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         EXPECT_FALSE(Runtime().mouse.releasedClick);
         EXPECT_EQ(random.State(), before);
 
-        Runtime().chat.input.dialogEdit.text.SetText("Q7X");
+        Runtime().chatInput.dialogEdit.text.SetText("Q7X");
         Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(485 + 119, 290 + 21).HasValue());
         ASSERT_EQ(sent.size(), 2u);
@@ -392,7 +393,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
         item.occupied = 1;
     }
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
-    Runtime().chat.input.dialogEdit.text.SetText("AB12");
+    Runtime().chatInput.dialogEdit.text.SetText("AB12");
     Runtime().mouse.releasedClick = true;
     Runtime().mouse.leftHeld = true;
     ASSERT_TRUE(Step(500, 300).HasValue());
@@ -403,7 +404,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
 
     Reset(0);
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
-    Runtime().chat.input.dialogEdit.text.SetText("ABCDEFGHIJKLM");
+    Runtime().chatInput.dialogEdit.text.SetText("ABCDEFGHIJKLM");
     Runtime().mouse.releasedClick = true;
     const auto cut = Step(500, 300);
     ASSERT_FALSE(cut.HasValue());
@@ -428,8 +429,8 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             Runtime().hud.inventoryX = 0x1c2;
             Runtime().hud.inventoryY = 0;
             Runtime().events.serialEntry = window == Client::Events::SerialNumberWindow;
-            Client::Chat::ChatInputState& chat = Runtime().chat.input;
-            chat.focus = Client::Chat::ChatFocus::Dialog;
+            Client::Ui::ChatInputState& chat = Runtime().chatInput;
+            chat.focus = Client::Ui::ChatFocus::Dialog;
             chat.dialogEdit.text.SetText("AB12");
             chat.messageBuffer[0] = 'm';
             chat.messageLength = 1;
@@ -458,7 +459,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             EXPECT_EQ(Runtime().social.moneyField, 0);
             EXPECT_EQ(Runtime().social.typedMoney, 0);
             EXPECT_EQ(Runtime().social.trade.field78abacc, 0);
-            EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Game);
+            EXPECT_EQ(chat.focus, Client::Ui::ChatFocus::Game);
             EXPECT_EQ(chat.messageBuffer[0], '\0');
             EXPECT_EQ(chat.messageLength, 0);
             EXPECT_EQ(chat.dialogEdit.text.Value(), "");
@@ -486,7 +487,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 // the focus.
 TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 {
-    Client::Chat::ChatInputState& chat = Runtime().chat.input;
+    Client::Ui::ChatInputState& chat = Runtime().chatInput;
     Runtime().events.serial[0] = std::byte{0x41};
     Runtime().ui.chatOpen = true;
     chat.messageBuffer[0] = 'm';
@@ -511,7 +512,7 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 
     chat.dialogEdit.text.SetText("AB12");
     chat.numberField.text.SetText("1234");
-    chat.focus = Client::Chat::ChatFocus::Dialog;
+    chat.focus = Client::Ui::ChatFocus::Dialog;
     chat.field = 1;
     chat.messageBuffer[0] = 'm';
     chat.whisperBuffer[0] = 'w';
@@ -520,12 +521,12 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     social.typedMoney = 500;
     social.trade.field78abacc = 2;
     Client::Events::CloseTheSerialEntry(Runtime());
-    EXPECT_EQ(chat.field, Client::Chat::MessageField);
+    EXPECT_EQ(chat.field, Client::Ui::MessageField);
     EXPECT_EQ(chat.messageBuffer[0], '\0');
     EXPECT_EQ(chat.whisperBuffer[0], 'w');
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
     EXPECT_EQ(chat.numberField.text.Value(), "");
-    EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Dialog);
+    EXPECT_EQ(chat.focus, Client::Ui::ChatFocus::Dialog);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(social.moneyField, 0);
     EXPECT_EQ(social.typedMoney, 0);
@@ -696,8 +697,8 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     for (std::size_t at = 0; at < result.size(); ++at)
         Runtime().events.serial[at] = static_cast<std::byte>(result[at]);
     ASSERT_TRUE(Draw({0, 0}, true).HasValue());
-    EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::Game);
-    EXPECT_EQ(Runtime().chat.input.dialogEdit.filter, 0);
+    EXPECT_EQ(Runtime().chatInput.focus, Client::Ui::ChatFocus::Game);
+    EXPECT_EQ(Runtime().chatInput.dialogEdit.filter, 0);
 
     sprites.Begin(Screen640);
     text.texts.clear();
@@ -705,9 +706,9 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     const auto drawn = Draw({0, 0});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), before);
-    const Client::Ui::OldEdit& edit = Runtime().chat.input.dialogEdit;
-    EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::Dialog);
-    EXPECT_EQ(Runtime().ui.focusedList, Client::Chat::DialogFieldId);
+    const Client::Ui::OldEdit& edit = Runtime().chatInput.dialogEdit;
+    EXPECT_EQ(Runtime().chatInput.focus, Client::Ui::ChatFocus::Dialog);
+    EXPECT_EQ(Runtime().ui.focusedList, Client::Ui::DialogFieldId);
     EXPECT_EQ(edit.filter, Client::Ui::UppercaseLettersAndDigitsEdit);
     EXPECT_EQ(edit.backgroundColor, 0u);
     EXPECT_EQ(edit.base.x, 495);

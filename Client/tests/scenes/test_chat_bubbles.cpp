@@ -12,6 +12,8 @@
 #include "Chat/ChatInput.h"
 #include "Audio/SoundId.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -325,9 +327,9 @@ TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
     const Client::Chat::ChatBubbleStepInput input{.mouseX = 110, .mouseY = 60, .screen = {640, 480}};
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
-    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "Tordo");
-    EXPECT_EQ(runtime.chat.input.whisperLength, 5);
-    EXPECT_EQ(runtime.chat.input.whisper.text.Value(), "Tordo");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chatInput.whisperBuffer), "Tordo");
+    EXPECT_EQ(runtime.chatInput.whisperLength, 5);
+    EXPECT_EQ(runtime.chatInput.whisper.text.Value(), "Tordo");
     EXPECT_FALSE(runtime.ui.rightClick);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }

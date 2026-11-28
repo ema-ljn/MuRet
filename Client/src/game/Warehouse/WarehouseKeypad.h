@@ -14,11 +14,11 @@ namespace Client::Ui
 class PanelRegistry;
 }
 
-namespace Client::Hud
+namespace Client::Ui
 {
 struct GameHudContext;
 struct GameUiContext;
-} // namespace Client::Hud
+} // namespace Client::Ui
 
 namespace Client::Warehouse
 {
@@ -52,7 +52,7 @@ inline constexpr std::int32_t KeypadCancelKey = 12;
 // sends the C1 03 31 in the clear, closes everything (0x657a90) and sends the 99 with the typed digits (Q-C925). Then,
 // with the click the key stays pressed (0x78abb3a), the released button releases it, and the click and the button down
 // go to 0.
-[[nodiscard]] Core::Expected<bool, std::string> StepTheKeypad(const Hud::GameUiContext& context,
+[[nodiscard]] Core::Expected<bool, std::string> StepTheKeypad(const Ui::GameUiContext& context,
                                                               Ui::PanelRegistry& panels);
 
 // 0x5e9b10, HUD step 30: with the mode at 0, nothing. Otherwise the frame of 0xfc and 0xfb at (213, 100), the title
@@ -60,5 +60,5 @@ inline constexpr std::int32_t KeypadCancelKey = 12;
 // otherwise 695) centered on 0x140, the typed bar (0xfd, 52 wide, 13 more per digit after the fourth) with a "*" per
 // byte of 0x78ab9fc, the eleven keys (with their number from 0x7879fc8, or erase), the hovered one in yellow, pressed
 // with 0x78abb3a, and the OK and cancel. No rand(). Leaves white and the big bold font.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheKeypad(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheKeypad(Ui::GameHudContext& context);
 } // namespace Client::Warehouse

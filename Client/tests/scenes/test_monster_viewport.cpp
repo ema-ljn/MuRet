@@ -56,6 +56,9 @@
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 #include "support/ViewportPackets.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Events/EventGlobals.h"
+#include "Quests/QuestState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -609,7 +612,7 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
         SCOPED_TRACE(type);
         Load(30);
         auto& runtime = game->world.Runtime();
-        runtime.castleSiege.siegeActive = true;
+        runtime.castleFlags.siegeActive = true;
         runtime.quest.characterClass = 0;
         const Cell cell = FreeRow();
         const std::array<MonsterRecordBytes, 1> records{

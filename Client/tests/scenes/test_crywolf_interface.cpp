@@ -10,7 +10,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
+#include "Ui/GameHudContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/Widget.h"
@@ -37,7 +37,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
 using Client::Kernel::CrywolfInterface;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
@@ -47,6 +46,7 @@ using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t CrywolfMap = 34;

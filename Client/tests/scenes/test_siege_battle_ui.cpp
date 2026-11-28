@@ -13,8 +13,8 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Kernel/ActorState.h"
-#include "Hud/GameHud.h"
-#include "Hud/GameUi.h"
+#include "Ui/GameHudContext.h"
+#include "Ui/GameUiContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/PanelRegistry.h"
@@ -26,6 +26,9 @@
 #include "support/SameBytes.h"
 #include "support/TableFiles.h"
 #include "support/UiInput.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Guild/GuildState.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 
@@ -46,14 +49,14 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
-using Client::Hud::GameHudContext;
-using Client::Hud::GameUiContext;
 using Client::Protocol::Outgoing;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 namespace Siege = Client::Scenes;
 
-class Requests final : public Client::Hud::IGameUiRequests
+class Requests final : public Client::Ui::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody&) override {}
@@ -116,7 +119,7 @@ protected:
     {
         auto& runtime = world->Runtime();
         auto& hero = world->Hero();
-        runtime.castleSiege.siegeActive = true;
+        runtime.castleFlags.siegeActive = true;
         hero.byte360 = 6;
         hero.guildStatus = 0x80;
         hero.word1f2 = 0;
@@ -333,7 +336,7 @@ TEST_F(SiegeUiTest, ARightClickOnTheCommanderRowCancelsWithoutConsumingTheRightC
 TEST_F(SiegeUiTest, WarAloneDoesNotReadTheSkillTableOrChangeTheWheel)
 {
     auto& runtime = world->Runtime();
-    runtime.castleSiege.siegeActive = true;
+    runtime.castleFlags.siegeActive = true;
     runtime.ui.wheel = 120;
     const auto before = random.State();
     auto step = StepContext();
@@ -409,7 +412,7 @@ TEST_F(SiegeUiTest, TheSkillDrawConsumesSixtyRandomsAndResetsThePressedArrowOnly
 TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
 {
     auto& runtime = world->Runtime();
-    runtime.castleSiege.siegeActive = true;
+    runtime.castleFlags.siegeActive = true;
     runtime.map = 30;
     Client::CastleSiege::ResetSiegeClock(runtime);
     Client::CastleSiege::SetSiegeClock(runtime, 0, 0, 0xfffffff0u);

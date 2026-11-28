@@ -38,6 +38,7 @@
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <gtest/gtest.h>
 

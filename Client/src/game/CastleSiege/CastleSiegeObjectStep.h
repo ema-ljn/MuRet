@@ -12,18 +12,14 @@
 namespace Client::Kernel
 {
 struct ModelEffectArguments;
+struct ObjectStepGlobals;
+struct WorldObject;
 } // namespace Client::Kernel
 
 namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::WorldObjects
-{
-struct ObjectStepGlobals;
-struct WorldObject;
-} // namespace Client::WorldObjects
-
 // Los objetos de Castle Siege (el mapa 30) en el paso, fuera del dibujo (06 § Los objetos de Castle Siege). Lo
 // que depende del asedio lee el byte7239ec de4294b0, actualizado por los paquetes de4294c0. Los servicios
 // conservan el CRT compartido, los accesos protegidos y las emisiones en orden.
@@ -71,9 +67,8 @@ struct CastleSiegePrelude
 // Con el asedio, el 0 queda con −2 sin luz, el 0x35 suelta la luz del 0, el 0x19f queda en −2 y el 0x42 corta
 // lee 0x7239e4 entero: salvo20000 muestra el marcador y siempre corre su V. Sin el byte del asedio en `globals`,
 // corta antes de tocar el objeto.
-[[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeObject(WorldObjects::WorldObject& object,
-                                                                      Crt::CrtRandom& random,
-                                                                      const WorldObjects::ObjectStepGlobals& globals);
+[[nodiscard]] Core::Expected<void, std::string>
+StepCastleSiegeObject(Kernel::WorldObject& object, Crt::CrtRandom& random, const Kernel::ObjectStepGlobals& globals);
 
 // 0x42c500 (desde 0x6063d0, con 0x4055b0 en 0 fuera de Chaos Castle) con cada objeto visto del 30, después de
 // 0x604ab0. El 0x51 y el 0x53: blendMesh 1, la luz del blendMesh en 1 y la V en T · 0,0002f (el 0x51) o en
@@ -85,6 +80,6 @@ struct CastleGateCollapseServices
     std::function<void(Audio::SoundId)> sound{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
-StepCastleSiegeSeenObject(WorldObjects::WorldObject& object, bool siegeActive, float worldClock,
+StepCastleSiegeSeenObject(Kernel::WorldObject& object, bool siegeActive, float worldClock,
                           const CastleGateCollapseServices& services = {});
 } // namespace Client::CastleSiege

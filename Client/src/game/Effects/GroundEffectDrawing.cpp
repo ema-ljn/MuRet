@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/KalimaWater.h"
 #include "Kernel/ModelEffectArguments.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -14,7 +15,6 @@
 #include "Effects/ColoredDecals.h"
 #include "Math/Ftol.h"
 #include "Effects/ModelEffects.h"
-#include "MapScripts/Kalima/KalimaSurfaceDecal.h"
 #include "Terrain/TerrainDecal.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -358,8 +358,7 @@ Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const 
                                               .angle = -effect.transform.angles.z,
                                               .alpha = 1,
                                               .lift = 0};
-            if (const auto drawn = MapScripts::Kalima::DrawKalimaSurfaceDecal(batch, *resources.kalima, decal);
-                !drawn.HasValue())
+            if (const auto drawn = resources.kalima->DrawSurfaceDecal(batch, decal); !drawn.HasValue())
                 return drawn;
         }
         // 0x52e137 → 0x620890: writes it as 1 even when 0x437940 found no owner.

@@ -11,7 +11,6 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/CharacterStep.h"
-#include "Joints/FaunaJointCreation.h"
 #include "Kernel/DrawTailState.h"
 #include "Actors/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
@@ -60,7 +59,7 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
         .joint = [&world, &random,
                   joints = parts.joints](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
-            const auto created = Joints::CreateFaunaJoint(
+            const auto created = world.CreateJoint(
                 joints.empty() ? std::span<Kernel::JointState>(world.DrawTail().joints) : joints, request, random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());

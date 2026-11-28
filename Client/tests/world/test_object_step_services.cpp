@@ -1,5 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "WorldObjects/WorldObjects.h"
@@ -20,11 +21,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::Particles::Particles;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectStepGlobals;
 using Client::WorldObjects::StepWorldObjectChecked;
-using Client::WorldObjects::WorldObject;
 
 WorldObject Object(std::int16_t type)
 {
@@ -126,7 +127,7 @@ TEST(ObjectStepServicesTest, FullParticlePoolSkipsKernelRandomButKeepsTheFollowi
     CrtRandom random(2);
     const auto stepped = StepWorldObjectChecked(object, 0, nullptr, random, globals);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
     EXPECT_GT(Cell(*lighting, 10, 10)[0], 0.0f);
     EXPECT_EQ(random.State(), 0x4cc2cb10u); // Six calls from the emitter; none from the full pool.
 }
@@ -148,7 +149,7 @@ TEST(ObjectStepServicesTest, SmokeMarkersUseTheirOwnLightAndHideOnlyAfterTheEmis
         EXPECT_EQ(particle.subtype, type == 0x83 ? 0 : 2);
         EXPECT_EQ(particle.position, glm::vec3(1005.0f, 1006.0f, 27.0f));
         EXPECT_EQ(particle.light, object.light);
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         CrtRandom expected(7);
         for (int draw = 0; draw < (type == 0x83 ? 6 : 7); ++draw)
         {
@@ -165,7 +166,7 @@ TEST(ObjectStepServicesTest, MissingParticleBindingKeepsRandomPrefixAndDoesNotHi
     const auto stepped = StepWorldObjectChecked(object, 0, nullptr, random, {});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53fe70"), std::string::npos);
-    EXPECT_NE(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_NE(object.state.hiddenMesh, Client::Kernel::HiddenObject);
     CrtRandom expected(2);
     for (int draw = 0; draw < 6; ++draw)
     {
@@ -185,7 +186,7 @@ TEST(ObjectStepServicesTest, MissingLightKeepsTheParticleAlreadyEmittedButNotThe
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x52f534"), std::string::npos);
     EXPECT_TRUE(particles->All().front().alive);
-    EXPECT_NE(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_NE(object.state.hiddenMesh, Client::Kernel::HiddenObject);
     CrtRandom expected(2);
     for (int draw = 0; draw < 8; ++draw)
     {

@@ -3,15 +3,14 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/FloatConstants.h"
-#include "WorldObjects/ObjectFrameSprites.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -73,13 +72,13 @@ using Math::Tenth;
 constexpr float Fifteenth = std::bit_cast<float>(0x3e19999au);
 constexpr float BlueGlow = std::bit_cast<float>(0x3e99999au);
 
-Core::Expected<void, std::string> Flares(const WorldObjects::GameObjectPass& pass, std::span<const FlarePair> flares,
+Core::Expected<void, std::string> Flares(const Kernel::GameObjectPass& pass, std::span<const FlarePair> flares,
                                          bool blue)
 {
     const glm::vec3 secondLight = blue ? glm::vec3(Fifteenth) : glm::vec3(Fifteenth, 0.0f, 0.0f);
     for (const FlarePair& flare : flares)
     {
-        const auto position = WorldObjects::ObjectBonePoint(pass, flare.bone, flare.offset);
+        const auto position = Kernel::ObjectBonePoint(pass, flare.bone, flare.offset);
         if (!position.HasValue())
         {
             return Core::Unexpected(position.Error());
@@ -98,9 +97,9 @@ Core::Expected<void, std::string> Flares(const WorldObjects::GameObjectPass& pas
     return {};
 }
 
-Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
-                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
-                                       const glm::vec3& light, Particles::ParticleOwner owner, std::string_view address)
+Core::Expected<void, std::string> Emit(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                       std::int32_t type, std::int32_t subtype, const glm::vec3& light,
+                                       Particles::ParticleOwner owner, std::string_view address)
 {
     if (pass.particles == nullptr || pass.random == nullptr)
     {
@@ -118,12 +117,11 @@ Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
     return {};
 }
 
-Core::Expected<void, std::string> Mist(const WorldObjects::GameObjectPass& pass,
-                                       const WorldObjects::WorldObject& object, const glm::vec3& light,
-                                       std::string_view address)
+Core::Expected<void, std::string> Mist(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                       const glm::vec3& light, std::string_view address)
 {
     // 0x425740/0x4257ed/0x42583d: with +0x58 at −2 (the step of 0x4250f0) it does not emit.
-    if (object.state.hiddenMesh == WorldObjects::HiddenObject)
+    if (object.state.hiddenMesh == Kernel::HiddenObject)
     {
         return {};
     }
@@ -140,8 +138,7 @@ Core::Expected<void, std::string> Mist(const WorldObjects::GameObjectPass& pass,
 }
 } // namespace
 
-Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject& object,
-                                                      const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepAidaObjectFrame(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
     {
@@ -203,7 +200,7 @@ Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject&
                 object.transform.scale, pass.scene == SelectionSceneId, *pass.random));
         }
         // 0x4257dd: always, even if the butterfly did not come out.
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     }
     case 0x43:

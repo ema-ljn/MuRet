@@ -17,7 +17,7 @@
 #include "Particles/KalimaParticleKernels.h"
 #include "Particles/MissileFireParticleKernels.h"
 #include "Particles/ParticleOwner.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
 
@@ -298,7 +298,7 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
         return {};
     const double glow = static_cast<double>(particle.life) * ExplosionGlow;
     const glm::vec3 color{F32(glow * ExplosionRed), F32(glow * ExplosionGreen), F32(glow * ExplosionBlue)};
-    if (!WorldObjects::AddDynamicLight(lighting, particle.position, color, ExplosionLightRadius, "0x545cd6").HasValue())
+    if (!Terrain::AddDynamicLight(lighting, particle.position, color, ExplosionLightRadius, "0x545cd6").HasValue())
         return Core::Unexpected(ParticleError::MissingDynamicLight);
     return {};
 }
@@ -806,7 +806,7 @@ Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const f
     const double glow = static_cast<double>(particle.life) * Tenth;
     const float green = F32(glow);
     const glm::vec3 color{F32(glow * Half), green, F32(static_cast<double>(green) * Blue)};
-    if (!WorldObjects::AddDynamicLight(lighting, particle.position, color, LightningLightRadius, "0x54547b").HasValue())
+    if (!Terrain::AddDynamicLight(lighting, particle.position, color, LightningLightRadius, "0x54547b").HasValue())
         return Core::Unexpected(ParticleError::MissingDynamicLight);
     if (particle.subtype != LightningFollowSubtype)
         return {};

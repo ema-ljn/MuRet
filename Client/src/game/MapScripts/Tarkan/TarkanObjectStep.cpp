@@ -7,9 +7,8 @@
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/Ftol.h"
-#include "WorldObjects/ObjectModelStepState.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -79,7 +78,7 @@ Core::Unexpected<std::string> SineOutOfDomain(std::string_view address)
     return Core::Unexpected(std::format("{}: el seno del reloj no cabe en el perfil PC53", address));
 }
 
-Core::Expected<void, std::string> ScrollV(WorldObjects::WorldObject& object, float worldClock, std::int32_t period,
+Core::Expected<void, std::string> ScrollV(Kernel::WorldObject& object, float worldClock, std::int32_t period,
                                           double factor, std::string_view address)
 {
     const std::optional<float> v = Scroll(worldClock, period, factor);
@@ -90,7 +89,7 @@ Core::Expected<void, std::string> ScrollV(WorldObjects::WorldObject& object, flo
 }
 } // namespace
 
-void SeedTarkanModelState(std::uint8_t map, WorldObjects::ObjectModelStepState& state)
+void SeedTarkanModelState(std::uint8_t map, Kernel::ObjectModelStepState& state)
 {
     constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     if (map != TarkanMap)
@@ -108,8 +107,8 @@ float TarkanAnimationSpeed(std::int16_t type, float speed)
     return type == FastObject ? speed * Quadruple : speed;
 }
 
-Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& object,
-                                                   const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepTarkanObject(Kernel::WorldObject& object,
+                                                   const Kernel::ObjectStepGlobals& globals)
 {
     constexpr std::int32_t ShortPeriod = 1000;
     constexpr std::int32_t LongPeriod = 10000;
@@ -138,8 +137,8 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
         if (auto scrolled = ScrollV(object, clock, LongPeriod, TenThousandth, "0x6056df"); !scrolled.HasValue())
             return scrolled;
         const float light = F32(*pulse);
-        return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, glm::vec3(light),
-                                             WideLight, "0x605718");
+        return Terrain::AddDynamicLight(globals.dynamicLighting, object.transform.position, glm::vec3(light), WideLight,
+                                        "0x605718");
     }
     case 7:
     {
@@ -149,8 +148,8 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
         if (!pulse)
             return SineOutOfDomain("0x605755");
         object.state.light = F32(*pulse);
-        return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse),
-                                             WideLight, "0x60577d");
+        return Terrain::AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse),
+                                        WideLight, "0x60577d");
     }
     case 0xb:
         return ScrollV(object, clock, LongPeriod, TwoTenThousandths, "0x605792");
@@ -179,12 +178,12 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
         const std::optional<double> pulse = Pulse(D(clock));
         if (!pulse)
             return SineOutOfDomain("0x605893");
-        return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse),
-                                             NarrowLight, "0x605718");
+        return Terrain::AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse),
+                                        NarrowLight, "0x605718");
     }
     case 0x3f:
     case 0x40:
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     case 0x48:
         object.state.blendMesh = 0;

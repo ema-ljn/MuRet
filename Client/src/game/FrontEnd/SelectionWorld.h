@@ -28,7 +28,7 @@
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -48,11 +48,6 @@
 // efectos con modelo(0) y 0x549510 después de los personajes; y en el pase de ojo los sprites, las
 // partículas y los números. Un dibujo intermedio de MuRet (sin frame del original) corre sobre copias:
 // no saca rand() de la CRT ni cambia el estado del paso. Contrato: 06 § El mundo de la selección.
-namespace Client::WorldObjects
-{
-struct ObjectModelStepState;
-}
-
 namespace Client::Actors::Drawing
 {
 struct GameItemRenderState;
@@ -60,6 +55,7 @@ struct GameItemRenderState;
 
 namespace Client::Kernel
 {
+struct ObjectModelStepState;
 struct PoseBuffer;
 class WorldState;
 } // namespace Client::Kernel
@@ -151,7 +147,7 @@ public:
     // La tabla de los sprites del frame (0x5491e0): la del mundo, o la proyectada en un dibujo intermedio.
     [[nodiscard]] Particles::FrameSprites& FrameSprites();
     [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
-    [[nodiscard]] WorldObjects::ObjectModelStepState& FrameModelState();
+    [[nodiscard]] Kernel::ObjectModelStepState& FrameModelState();
 
     // 0x5fc260(0): el terreno, el pasto y las marcas del suelo.
     [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(Kernel::WorldState& world,
@@ -175,7 +171,7 @@ public:
 
 private:
     struct Projection;
-    [[nodiscard]] std::span<WorldObjects::WorldObject> FrameObjects();
+    [[nodiscard]] std::span<Kernel::WorldObject> FrameObjects();
 
     Render::ITextureStore& m_store;
     Core::Log& m_log;

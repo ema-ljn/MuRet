@@ -35,10 +35,10 @@ struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::MapScripts::Kalima
+namespace Client::Kernel
 {
-class KalimaWorld;
-} // namespace Client::MapScripts::Kalima
+class KalimaWater;
+} // namespace Client::Kernel
 
 namespace Client::Particles
 {
@@ -132,6 +132,6 @@ struct ModelEffectStepServices
 // dust 0x5f3/0 goes into an unwritten local (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles::Particles& particles,
-                    float worldClock, Crt::CrtRandom& random, MapScripts::Kalima::KalimaWorld* kalima = nullptr,
+                    float worldClock, Crt::CrtRandom& random, Kernel::KalimaWater* kalima = nullptr,
                     const ModelEffectStepServices& services = {});
 } // namespace Client::Effects

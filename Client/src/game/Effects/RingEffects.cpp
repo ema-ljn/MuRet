@@ -10,7 +10,7 @@
 #include "Effects/HighModelEffects.h"
 #include "Effects/GameModelEffects.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -165,7 +165,6 @@ Core::Expected<void, std::string> StepTheRing(Effects::ModelEffect& effect, floa
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8, 0.1f
     const glm::vec3 color{luminosity, F32(D(luminosity) * Green), F32(D(luminosity) * Blue)};
     constexpr std::int32_t Radius = 4;
-    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius,
-                                         "0x5266dd");
+    return Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius, "0x5266dd");
 }
 } // namespace Client::Effects

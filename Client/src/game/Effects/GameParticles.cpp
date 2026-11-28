@@ -15,12 +15,12 @@
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ParticleDrawServices.h"
 #include "Math/Ftol.h"
 #include "Particles/ParticleDrawing.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Tables/PlayerModels.h"
 #include "Audio/SoundId.h"
 
@@ -65,7 +65,7 @@ struct WaterspoutDrop
 constexpr std::array<WaterspoutDrop, 2> Drops{
     {{1, -20.0f, "0x6030a5", "0x6030c7"}, {4, -80.0f, "0x603121", "0x60313a"}}};
 
-Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const WorldObjects::WorldObject& object,
+Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Kernel::WorldObject& object,
                                            Particles::Particles& particles, Crt::CrtRandom& random,
                                            const float& worldClock, const WaterspoutBonePoint& bonePoint)
 {
@@ -121,9 +121,9 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
 }
 } // namespace
 
-Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObject& object,
-                                                          Particles::Particles& particles, Crt::CrtRandom& random,
-                                                          const float& worldClock, const WaterspoutBonePoint& bonePoint)
+Core::Expected<void, std::string> StepGameWaterspoutFrame(Kernel::WorldObject& object, Particles::Particles& particles,
+                                                          Crt::CrtRandom& random, const float& worldClock,
+                                                          const WaterspoutBonePoint& bonePoint)
 {
     object.state.light = 1.0f; // 0x603011, even when the next ftol fails.
     const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(worldClock));
@@ -149,9 +149,9 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObj
     return {};
 }
 
-Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObject& object,
-                                                          Particles::Particles& particles, Crt::CrtRandom& random,
-                                                          const float& worldClock, const Models::IModelLibrary& models,
+Core::Expected<void, std::string> StepGameWaterspoutFrame(Kernel::WorldObject& object, Particles::Particles& particles,
+                                                          Crt::CrtRandom& random, const float& worldClock,
+                                                          const Models::IModelLibrary& models,
                                                           const Actors::Drawing::DrawnObject& drawn,
                                                           const Kernel::PoseBuffer* retainedPose)
 {
@@ -163,7 +163,7 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObj
 Core::Expected<void, std::string>
 StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-                  const std::function<WorldObjects::WorldObject*(std::uint64_t)>& owners,
+                  const std::function<Kernel::WorldObject*(std::uint64_t)>& owners,
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight,
                   Terrain::TerrainLighting* lighting,
@@ -185,7 +185,7 @@ StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const
 Core::Expected<void, std::string> StepGameParticles(
     Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-    const std::function<WorldObjects::WorldObject*(std::uint64_t)>& owners,
+    const std::function<Kernel::WorldObject*(std::uint64_t)>& owners,
     const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
     const std::function<std::optional<float>(std::int32_t)>& textureHeight, Terrain::TerrainLighting* lighting,
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
@@ -215,12 +215,11 @@ std::function<std::optional<float>(std::int32_t)> ParticleTextureHeightsOf(const
     };
 }
 
-std::function<WorldObjects::WorldObject*(std::uint64_t)>
-ParticleOwnersAmong(std::span<WorldObjects::WorldObject> objects)
+std::function<Kernel::WorldObject*(std::uint64_t)> ParticleOwnersAmong(std::span<Kernel::WorldObject> objects)
 {
-    return [objects](std::uint64_t identity) -> WorldObjects::WorldObject*
+    return [objects](std::uint64_t identity) -> Kernel::WorldObject*
     {
-        for (WorldObjects::WorldObject& object : objects)
+        for (Kernel::WorldObject& object : objects)
         {
             if (object.identity == identity)
                 return &object;
@@ -350,7 +349,7 @@ Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, P
                                                     const Math::OriginalMatrix& view, float worldClock,
                                                     std::uint8_t mode)
 {
-    const auto drawn = WorldObjects::DrawParticles(batch, particles, textures, view, worldClock, mode);
+    const auto drawn = Effects::DrawParticles(batch, particles, textures, view, worldClock, mode);
     if (!drawn.HasValue())
     {
         const Particles::ParticleDrawingFailure& failure = drawn.Error();

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Kernel/DrawTailState.h"
 #include "Joints/JointKernels.h"
+#include "Kernel/JointCreation.h"
 #include "Kernel/JointRequest.h"
 
 #include <cstdint>
@@ -109,7 +110,7 @@ inline constexpr std::int32_t AuraJoint = 0x10f;
 // character (ActorState) in the /0, /1, /2, /3, /0xc, /0xd, /0x10 and /0x11, the FaunaObject in the /4 (0x447374) and
 // the effect with a model (JointOwnerKind::ModelEffect) in the arrows' /5 and the 0x11b/1's /0xa and /0xb; the /6 and
 // /9 do not read it.
-inline constexpr std::int32_t BeamJoint = 0x618;
+using Kernel::BeamJoint;
 [[nodiscard]] Core::Expected<void, std::string>
 CreateBeamJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepBeamJoint(Kernel::JointState& joint,
@@ -121,7 +122,7 @@ CreateBeamJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, 
 // which it does not read): creation 0x534bcb and step 0x53c0a5. The /0..3 fall like the /5 (the 0x44's /0, 0x4fe235,
 // and the 0x47's /1, 0x4fe4e7, owned by the target character, which they read only on reaching the ground); the /4 (the
 // 0x13a's bolt, 0x51e01a) follows its owner effect: creation 0x534977 and step 0x53be90.
-inline constexpr std::int32_t StormJoint = 0x632;
+using Kernel::StormJoint;
 inline constexpr std::int32_t LastFallingSubtype = 3;
 inline constexpr std::int32_t BlastSubtype = 4;
 inline constexpr std::int32_t FallingStarSubtype = 5;

@@ -1,7 +1,7 @@
 #include "MapScripts/Kalima/KalimaObjectMovement.h"
 
 #include "Tables/PlayerActions.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <cmath>
@@ -9,7 +9,7 @@
 
 namespace Client::MapScripts::Kalima
 {
-void MoveKalimaObject(WorldObjects::WorldObject& object, const glm::vec3& heroPosition, std::uint8_t heroAction)
+void MoveKalimaObject(Kernel::WorldObject& object, const glm::vec3& heroPosition, std::uint8_t heroAction)
 {
     constexpr double Trigger = static_cast<double>(0.1f), Radius = 50;
     constexpr double Repulsion = static_cast<double>(-0.6f), Damping = static_cast<double>(0.6f);

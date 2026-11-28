@@ -59,6 +59,7 @@
 #include "Actors/Drawing/GameCharacters.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Chat/GameMessages.h"
@@ -81,6 +82,9 @@
 #include "Assets/TextureSets.h"
 #include "Assets/WorldModels.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ParticleDrawServices.h"
+#include "Particles/SpriteDrawing.h"
+#include "Weather/LeafDrawing.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Effects/WizardEffects.h"
@@ -106,7 +110,7 @@
 #include "Weather/Leaves.h"
 #include "Effects/GameModelEffects.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/SphereFrustum.h"
 #include "Particles/Sprites.h"
 #include "Particles/ParticleDrawing.h"
@@ -344,10 +348,10 @@ private:
 };
 
 // El logo de 0x606660 como uno más de la lista: sin luz por vértice, como lo deja su caso.
-WorldObjects::WorldObject LogoWorldObject()
+Kernel::WorldObject LogoWorldObject()
 {
     const FrontEnd::ModelObject logo = FrontEnd::LoginLogo();
-    WorldObjects::WorldObject object;
+    Kernel::WorldObject object;
     object.type = static_cast<std::int16_t>(logo.model);
     object.transform = logo.transform;
     object.state = logo.state;
@@ -390,6 +394,8 @@ LoginScene::LoginScene(const SceneContext& context, const Tables::GameData& data
       m_credits([this](Render::TextureSlot slot) { return BufferSize(slot); }, data.credits),
       m_characterDrawHooks(&States().monsters)
 {
+    if (m_localWorld != nullptr)
+        m_localWorld->LendJointCreation(&Joints::CreateJoint);
     if (data.text)
     {
         m_left = data.text->Text(LoginLeftText);
@@ -936,7 +942,7 @@ void LoginScene::StepTheWorld()
     // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
     // del mundo con los casos del mapa 55, y el logo con los suyos.
     WorldObjects::StepWorldObjects(m_objects, m_world ? m_world->map : 0, m_worldModels,
-                                   [this](WorldObjects::WorldObject& object)
+                                   [this](Kernel::WorldObject& object)
                                    {
                                        if (!m_logoIndex || &object != &m_objects[*m_logoIndex])
                                        {
@@ -1654,10 +1660,10 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
         Render::Pass3D eye = pass;
         eye.view = glm::mat4(1.0f);
         canvas.models.Begin(eye);
-        WorldObjects::DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
+        Particles::DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
         const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-        const auto particles = WorldObjects::DrawParticles(canvas.models, CharacterWorld().Particles(), m_models,
-                                                           Render::ViewRows(pass.view), clock);
+        const auto particles = Effects::DrawParticles(canvas.models, CharacterWorld().Particles(), m_models,
+                                                      Render::ViewRows(pass.view), clock);
         if (!particles.HasValue())
         {
             ReportParticleFailure(particles.Error());
@@ -1896,9 +1902,10 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     // sobre una copia y repiten los giros guardados.
     const float jointClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
     Crt::CrtRandom projectedJointRandom = CharacterRandomWorld().random;
-    const JointDrawResources jointResources{nativeFrames > 0 ? CharacterRandomWorld().random : projectedJointRandom,
-                                            m_sprites, nativeFrames > 0, jointClock};
-    if (auto joints = DrawJoints(canvas.models, CharacterWorld().DrawTail().joints, 0, jointResources);
+    const Joints::JointDrawResources jointResources{nativeFrames > 0 ? CharacterRandomWorld().random
+                                                                     : projectedJointRandom,
+                                                    m_sprites, nativeFrames > 0, jointClock};
+    if (auto joints = Joints::DrawJoints(canvas.models, CharacterWorld().DrawTail().joints, 0, jointResources);
         !joints.HasValue())
         m_failure = joints.Error();
     // 0x52d620(0) (0x63521e): los efectos con modelo, después de los joints, con el dibujo del juego: el dragón por el
@@ -1929,7 +1936,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     if (!effects.HasValue())
         m_failure = effects.Error();
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
-    WorldObjects::DrawLeaves(canvas.models, m_leaves);
+    Weather::DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
 }
 
@@ -1949,11 +1956,11 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
     const bool originalFrame = frames > 0;
     // Entre frames, los globales de los ítems sobre copias, como GameScene y SelectionWorld.
     std::optional<Actors::Drawing::GameItemRenderState> projectedItems;
-    std::optional<WorldObjects::ObjectModelStepState> projectedModels;
+    std::optional<Kernel::ObjectModelStepState> projectedModels;
     std::optional<Crt::CrtRandom> projectedRandom;
     Actors::Drawing::GameItemRenderState& items =
         originalFrame ? world.Runtime().itemRender : projectedItems.emplace(world.Runtime().itemRender);
-    WorldObjects::ObjectModelStepState& modelState =
+    Kernel::ObjectModelStepState& modelState =
         originalFrame ? world.Runtime().objectModelState : projectedModels.emplace(world.Runtime().objectModelState);
     Crt::CrtRandom& itemRandom = originalFrame ? cloth.random : projectedRandom.emplace(cloth.random);
     const int runs = std::max(frames, 1);
@@ -2049,7 +2056,7 @@ void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, K
 
 // 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a
 // +0xd8 (no a la velocidad de la acción).
-void LoginScene::StepTheLogo(WorldObjects::WorldObject& logo) const
+void LoginScene::StepTheLogo(Kernel::WorldObject& logo) const
 {
     const float light = FrontEnd::LoginLogoLight(m_routes);
     logo.light = glm::vec3(light);

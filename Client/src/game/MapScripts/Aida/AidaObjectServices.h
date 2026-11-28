@@ -4,14 +4,11 @@
 
 #include <string>
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-}
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct GameObjectPass;
-} // namespace Client::WorldObjects
+struct WorldObject;
+} // namespace Client::Kernel
 
 namespace Client::MapScripts::Aida
 {
@@ -23,6 +20,6 @@ namespace Client::MapScripts::Aida
 // creates effect 0xb3 (Effects::ModelEffects::CreateAidaWisp). The 0x29 and the 0x41/0x42 only draw
 // (DrawAidaMeshPass) and do nothing here. A missing pool or clock cuts where the ASM does, keeping what was already
 // created.
-[[nodiscard]] Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject& object,
-                                                                    const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepAidaObjectFrame(Kernel::WorldObject& object,
+                                                                    const Kernel::GameObjectPass& pass);
 } // namespace Client::MapScripts::Aida

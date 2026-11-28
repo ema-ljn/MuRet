@@ -27,6 +27,7 @@
 #include "Assets/FaunaModels.h"
 #include "Audio/SoundId.h"
 
+#include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -193,7 +194,7 @@ struct AttackWorld
         return StepTheAttack(striker, slot, Context());
     }
 
-    std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
+    std::unique_ptr<WorldState> ownedWorld = Client::Tests::LentWorld();
     WorldState& world = *ownedWorld;
     Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};

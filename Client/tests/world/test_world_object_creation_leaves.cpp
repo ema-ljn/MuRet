@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "WorldObjects/IWorldObjectCreationServices.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 
 #include <gtest/gtest.h>
 
@@ -21,7 +21,7 @@ class CastleEffectBinding final : public Client::WorldObjects::IWorldObjectCreat
 {
 public:
     bool CreateModelEffect(const Client::WorldObjects::WorldObjectModelEffectRequest& request,
-                           Client::WorldObjects::WorldObject& source) noexcept override
+                           Client::Kernel::WorldObject& source) noexcept override
     {
         return request.type == 309 && request.scale == 0.0f && request.owner == source.identity &&
                request.position == source.transform.position && &request.position == &source.transform.position;
@@ -41,7 +41,7 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesUseTheCorrectCastleGroupForEve
         {
             const auto signedType = static_cast<std::int16_t>(type);
             const Client::Data::Terrain::TerrainObject record{.type = signedType, .scale = 2.0f};
-            Client::WorldObjects::WorldObjectRegistrations registrations;
+            Client::Kernel::WorldObjectRegistrations registrations;
             Client::Crt::CrtRandom random(1);
             Client::WorldObjects::WorldObjectCreationContext context{
                 30, Client::WorldObjects::ObjectScene::Other, registrations, &services, &random, &flag};
@@ -71,7 +71,7 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesOnMap31ConsumeRandomOnlyFor27A
     for (int type = -32768; type <= 32767; ++type)
     {
         const Client::Data::Terrain::TerrainObject record{.type = static_cast<std::int16_t>(type)};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::Crt::CrtRandom random(1);
         Client::WorldObjects::WorldObjectCreationContext context{31, Client::WorldObjects::ObjectScene::Other,
                                                                  registrations, nullptr, &random};
@@ -93,7 +93,7 @@ TEST(WorldObjectCreationLeavesTest, Map31PredicateDoesNotNarrowOrConfuseTheMapWi
         for (const std::int16_t type : std::array<std::int16_t, 2>{27, 54})
         {
             const Client::Data::Terrain::TerrainObject record{.type = type};
-            Client::WorldObjects::WorldObjectRegistrations registrations;
+            Client::Kernel::WorldObjectRegistrations registrations;
             Client::Crt::CrtRandom random(1);
             const std::uint8_t flag = 255;
             Client::WorldObjects::WorldObjectCreationContext context{
@@ -111,7 +111,7 @@ TEST(WorldObjectCreationLeavesTest, MissingLiveStateNeverBecomesAnInventedZero)
 {
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 4},
                              Client::Data::Terrain::TerrainObject{.type = 4}};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     Client::WorldObjects::WorldObjectCreationContext context{30, Client::WorldObjects::ObjectScene::Other,
                                                              registrations};
     const auto result = Client::WorldObjects::CreateWorldObjects(records, context);
@@ -126,7 +126,7 @@ TEST(WorldObjectCreationLeavesTest, MissingLiveStateNeverBecomesAnInventedZero)
 TEST(WorldObjectCreationLeavesTest, ReusingTheContextReadsTheCurrentPredicateByteEachTime)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 4};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     std::uint8_t flag = 0;
     Client::WorldObjects::WorldObjectCreationContext context{
         30, Client::WorldObjects::ObjectScene::Other, registrations, nullptr, nullptr, &flag};
@@ -158,7 +158,7 @@ public:
     }
 
     bool CreateModelEffect(const Client::WorldObjects::WorldObjectModelEffectRequest& request,
-                           Client::WorldObjects::WorldObject& source) noexcept override
+                           Client::Kernel::WorldObject& source) noexcept override
     {
         if (request.type != 309)
         {
@@ -179,7 +179,7 @@ private:
 TEST(WorldObjectCreationLeavesTest, CastleFinalLeafReadsTheTypeAndPredicateAfterTheEffect)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     std::uint8_t flag = 255;
     Client::WorldObjects::WorldObjectCreationContext context{
         30, Client::WorldObjects::ObjectScene::Other, registrations, nullptr, nullptr, &flag};
@@ -196,7 +196,7 @@ TEST(WorldObjectCreationLeavesTest, CastleFinalLeafReadsTheTypeAndPredicateAfter
 TEST(WorldObjectCreationLeavesTest, LaterMap31HandlerReadsTheMapAndTypeChangedByTheCastleEffect)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     Client::Crt::CrtRandom random(1);
     std::uint8_t flag = 255;
     Client::WorldObjects::WorldObjectCreationContext context{

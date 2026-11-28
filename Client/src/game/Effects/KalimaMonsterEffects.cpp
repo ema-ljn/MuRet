@@ -9,7 +9,7 @@
 #include "Effects/HighModelEffects.h"
 #include "Effects/GameModelEffects.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -76,8 +76,8 @@ Core::Expected<void, std::string> StepTheSeaman(Effects::ModelEffect& effect, fl
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }
-    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius,
-                                         "0x5267ba");
+    return Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius,
+                                    "0x5267ba");
 }
 
 void BeginTheThunder(Effects::ModelEffect& effect)

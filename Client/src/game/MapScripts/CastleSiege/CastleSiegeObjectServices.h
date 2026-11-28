@@ -4,14 +4,11 @@
 
 #include <string>
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-}
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct GameObjectPass;
-} // namespace Client::WorldObjects
+struct WorldObject;
+} // namespace Client::Kernel
 
 namespace Client::MapScripts::CastleSiege
 {
@@ -25,6 +22,6 @@ namespace Client::MapScripts::CastleSiege
 // With the siege, the 0 does nothing, the 0x2a (with rand() % 3 at 0) releases the smoke 0x5f2/0x15 with light
 // (1, 1, 1), its scale and no owner, the 0x35 does what the 0 does without the siege, and the 0x34 and the 0x36 do
 // nothing. The other types do nothing. Without the pool, the creation cuts after its rand(), with its address.
-[[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeObjectFrame(WorldObjects::WorldObject& object,
-                                                                           const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeObjectFrame(Kernel::WorldObject& object,
+                                                                           const Kernel::GameObjectPass& pass);
 } // namespace Client::MapScripts::CastleSiege

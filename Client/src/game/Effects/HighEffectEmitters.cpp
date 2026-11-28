@@ -2,8 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Joints/FaunaJointCreation.h"
-#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/WorldState.h"
 #include "Effects/GameModelEffects.h"
@@ -29,8 +27,7 @@ Core::Expected<void, std::string> CreateHighJoint(Kernel::WorldState& world, Crt
                                                   std::uint32_t address, std::int32_t key)
 {
     constexpr std::int32_t NoTarget = -1;
-    const auto made = Joints::CreateFaunaJoint(
-        world.DrawTail().joints,
+    const auto made = world.CreateJoint(
         Kernel::JointRequest{type, first, second, angles, subtype, owner, scale, key, 0, 0, NoTarget}, random,
         owner != nullptr ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
     if (!made.HasValue())

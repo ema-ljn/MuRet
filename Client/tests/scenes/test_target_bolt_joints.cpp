@@ -9,7 +9,7 @@
 #include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -235,7 +235,7 @@ TEST(TargetBoltJointsTest, TheBoltBrakesOnlyWithinSeventy)
         const glm::vec3 color{F32(luminosity * D(std::bit_cast<float>(0x3ecccccdu))), F32(luminosity),
                               F32(luminosity * D(std::bit_cast<float>(0x3f4ccccdu)))};
         auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(lit.get(), joint.position, color, 2, "prueba").HasValue());
+        ASSERT_TRUE(Client::Terrain::AddDynamicLight(lit.get(), joint.position, color, 2, "prueba").HasValue());
         EXPECT_TRUE(lit->cells == tested.lighting->cells);
         const auto dark = std::make_unique<Client::Terrain::TerrainLighting>();
         EXPECT_FALSE(lit->cells == dark->cells);

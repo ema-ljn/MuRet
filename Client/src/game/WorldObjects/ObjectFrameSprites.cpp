@@ -1,16 +1,14 @@
 #include "WorldObjects/ObjectFrameSprites.h"
 
 #include "Core/Expected.h"
+#include "Kernel/ObjectPass.h"
 #include "Crt/CrtRandom.h"
-#include "Kernel/PoseBuffer.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Models/Animation.h"
-#include "Math/OriginalRotation.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Math/Ftol.h"
 #include "Particles/Sprites.h"
 #include "WorldObjects/WorldObjects.h"
@@ -87,7 +85,7 @@ Core::Expected<glm::vec3, std::string> StackPoint(bool posed, std::string_view a
     return glm::vec3(StackNaN);
 }
 
-Core::Expected<void, std::string> CreateSprite(const GameObjectPass& pass, std::uint16_t texture,
+Core::Expected<void, std::string> CreateSprite(const Kernel::GameObjectPass& pass, std::uint16_t texture,
                                                const glm::vec3& position, float scale, const glm::vec3& light,
                                                float rotation, std::string_view address)
 {
@@ -105,7 +103,8 @@ float ClockTurn(float worldClock)
 }
 
 // 0x6038ed..0x6039c3: the turn pairs r and −r on bones 15, 19 and 21.
-Core::Expected<void, std::string> BoneSprites(const GameObjectPass& pass, std::uint16_t texture, const glm::vec3& light)
+Core::Expected<void, std::string> BoneSprites(const Kernel::GameObjectPass& pass, std::uint16_t texture,
+                                              const glm::vec3& light)
 {
     struct BonePair
     {
@@ -116,7 +115,7 @@ Core::Expected<void, std::string> BoneSprites(const GameObjectPass& pass, std::u
     const float turn = ClockTurn(pass.worldClock);
     for (const BonePair& pair : Pairs)
     {
-        const auto point = ObjectBonePoint(pass, pair.bone, glm::vec3(0.0f));
+        const auto point = Kernel::ObjectBonePoint(pass, pair.bone, glm::vec3(0.0f));
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
         for (const float rotation : {turn, -turn})
@@ -130,25 +129,8 @@ Core::Expected<void, std::string> BoneSprites(const GameObjectPass& pass, std::u
 }
 } // namespace
 
-Core::Expected<glm::vec3, std::string> ObjectBonePoint(const GameObjectPass& pass, std::size_t bone,
-                                                       const glm::vec3& offset)
-{
-    if (pass.retainedPose == nullptr)
-    {
-        return Core::Unexpected(std::format("0x4ec110: falta la pose global del hueso {} de los objetos del {}", bone,
-                                            static_cast<int>(pass.map)));
-    }
-    // The native .bss starts at zero; a bone not yet published keeps that matrix.
-    if (bone >= pass.retainedPose->bones.size())
-    {
-        return Math::OriginalVectorTransform(offset, Math::OriginalMatrix{});
-    }
-    // Translate=0: the buffer's bone is already scaled and translated to the world.
-    return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));
-}
-
-Core::Expected<void, std::string> StepMerchantAnimalFrame(const WorldObjects::WorldObject& object, int commonRandom,
-                                                          const GameObjectPass& pass, bool posed)
+Core::Expected<void, std::string> StepMerchantAnimalFrame(const Kernel::WorldObject& object, int commonRandom,
+                                                          const Kernel::GameObjectPass& pass, bool posed)
 {
     static_cast<void>(object);
     const float light = FrameLight(commonRandom);
@@ -169,11 +151,11 @@ Core::Expected<void, std::string> StepMerchantAnimalFrame(const WorldObjects::Wo
 namespace
 {
 // 0x603251..0x6032f2: L from the stack, the turn before 0x4ec110 and the two sprites with r and −r.
-Core::Expected<void, std::string> DeviasBeams(int commonRandom, const GameObjectPass& pass)
+Core::Expected<void, std::string> DeviasBeams(int commonRandom, const Kernel::GameObjectPass& pass)
 {
     const float light = FrameLight(commonRandom);
     const float turn = ClockTurn(pass.worldClock);
-    const auto point = ObjectBonePoint(pass, 0, DeviasBeamOffset);
+    const auto point = Kernel::ObjectBonePoint(pass, 0, DeviasBeamOffset);
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     for (const float rotation : {turn, -turn})
@@ -198,7 +180,7 @@ std::int16_t PosedKey(const Models::Skeleton& skeleton, const Models::AnimationS
 }
 
 // 0x6031f7..0x603242.
-Core::Expected<void, std::string> SwitchDeviasAction(WorldObjects::WorldObject& object, const GameObjectPass& pass,
+Core::Expected<void, std::string> SwitchDeviasAction(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass,
                                                      const Models::Skeleton* skeleton, bool posed)
 {
     if (skeleton == nullptr || skeleton->actions.empty())
@@ -228,9 +210,9 @@ Core::Expected<void, std::string> SwitchDeviasAction(WorldObjects::WorldObject& 
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDeviasObjectFrame(WorldObjects::WorldObject& object, int commonRandom,
-                                                        const GameObjectPass& pass, const Models::Skeleton* skeleton,
-                                                        bool posed)
+Core::Expected<void, std::string> StepDeviasObjectFrame(Kernel::WorldObject& object, int commonRandom,
+                                                        const Kernel::GameObjectPass& pass,
+                                                        const Models::Skeleton* skeleton, bool posed)
 {
     if (object.type == DeviasBeamObject)
         return DeviasBeams(commonRandom, pass);
@@ -239,8 +221,8 @@ Core::Expected<void, std::string> StepDeviasObjectFrame(WorldObjects::WorldObjec
     return {};
 }
 
-Core::Expected<void, std::string> StepLostTowerObjectFrame(const WorldObjects::WorldObject& object, int commonRandom,
-                                                           const GameObjectPass& pass, bool posed)
+Core::Expected<void, std::string> StepLostTowerObjectFrame(const Kernel::WorldObject& object, int commonRandom,
+                                                           const Kernel::GameObjectPass& pass, bool posed)
 {
     const float light = FrameLight(commonRandom);
     const auto value = static_cast<double>(light);
@@ -274,8 +256,8 @@ Core::Expected<void, std::string> StepLostTowerObjectFrame(const WorldObjects::W
     return StepArenaObjectFrame(object, commonRandom, pass, posed);
 }
 
-Core::Expected<void, std::string> StepArenaObjectFrame(const WorldObjects::WorldObject& object, int commonRandom,
-                                                       const GameObjectPass& pass, bool posed)
+Core::Expected<void, std::string> StepArenaObjectFrame(const Kernel::WorldObject& object, int commonRandom,
+                                                       const Kernel::GameObjectPass& pass, bool posed)
 {
     constexpr std::int16_t GlowingObject = 9;
     if (object.type != GlowingObject)

@@ -26,7 +26,8 @@
 #include "CastleSiege/SiegeBattleUi.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ObjectAlpha.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
+#include "Particles/ObjectFire.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -239,10 +240,10 @@ Core::Expected<void, std::string>
 CharacterStepHooks::EmitTheFallingBallFire(const Kernel::ActorState& actor,
                                            const Actors::CharacterStepContext& context) const
 {
-    const WorldObjects::ObjectStepGlobals globals{
+    const Kernel::ObjectStepGlobals globals{
         .worldClock = context.worldClock, .dynamicLighting = context.dynamicLighting, .particles = context.particles};
-    return WorldObjects::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f), context.random,
-                                        globals);
+    return Particles::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f), context.random,
+                                     globals);
 }
 
 // The caller takes the raven as existing and without +0x78 & 0x1000.
@@ -298,7 +299,7 @@ Core::Expected<void, std::string> CharacterStepHooks::AddTheHandLight(const glm:
                                                                       std::int32_t radius,
                                                                       const Actors::CharacterStepContext& context) const
 {
-    return WorldObjects::AddDynamicLight(context.dynamicLighting, position, color, radius, "0x506b50");
+    return Terrain::AddDynamicLight(context.dynamicLighting, position, color, radius, "0x506b50");
 }
 
 Core::Expected<void, std::string>

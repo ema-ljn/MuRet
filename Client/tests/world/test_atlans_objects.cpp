@@ -17,11 +17,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Atlans::StepAtlansObject;
 using Client::Math::RoundedSin;
 using Client::Particles::Particles;
-using Client::WorldObjects::ObjectStepGlobals;
-using Client::WorldObjects::WorldObject;
 
 WorldObject Object(std::int16_t type)
 {

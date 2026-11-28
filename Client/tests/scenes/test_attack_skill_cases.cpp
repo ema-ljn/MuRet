@@ -21,6 +21,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Effects/ModelEffects.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "MapScripts/Kalima/KalimaWaves.h"
 #include "Particles/Particles.h"
@@ -28,6 +29,8 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 
+#include "support/KalimaWaves.h"
+#include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
 
@@ -186,7 +189,7 @@ struct SkillWorld
         return StepTheTargetSkill(Striker(), Victim(), StrikerSlot, skill, Context());
     }
 
-    std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
+    std::unique_ptr<WorldState> ownedWorld = Client::Tests::LentWorld();
     WorldState& world = *ownedWorld;
     Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
@@ -2034,7 +2037,7 @@ TEST(AttackSkillCasesTest, AFullEffectPoolStillDisturbsKalimaWhenItsOwnerExists)
         EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x77}));
         if (hasOwner)
         {
-            const auto& waves = tested.world.Map().kalima->Waves();
+            const auto& waves = Client::Tests::WavesOf(*tested.world.Map().kalima);
             EXPECT_NE(waves.planes[0][126 * 256 + 128], 0u);
             EXPECT_EQ(waves.planes[0][0], 0u);
         }

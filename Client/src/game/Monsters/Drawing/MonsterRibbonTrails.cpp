@@ -10,7 +10,7 @@
 #include "Actors/CharacterStep.h"
 #include "Kernel/DrawTailState.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "WorldObjects/WorldModelPose.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -72,8 +72,8 @@ Core::Expected<void, std::string> EmitSamples(Kernel::ActorState& actor, const M
     const float frameStep = F32(static_cast<double>(speed) * SampleStep);
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
-        if (auto posed =
-                WorldObjects::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
+        if (auto posed = Actors::Drawing::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame,
+                                                         actor.angles);
             !posed.HasValue())
             return posed;
         for (std::size_t legIndex = 0; legIndex < legs.size(); ++legIndex)

@@ -4,9 +4,8 @@
 #include "Crt/CrtRandom.h"
 #include "Math/FloatConstants.h"
 #include "Math/Ftol.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -16,8 +15,8 @@
 
 namespace Client::MapScripts::Noria
 {
-Core::Expected<void, std::string> StepNoriaObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
-                                                  const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepNoriaObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                  const Kernel::ObjectStepGlobals& globals)
 {
     constexpr float HalfThousandth = std::bit_cast<float>(0x3a03126fu);
     using Math::Thousandth;

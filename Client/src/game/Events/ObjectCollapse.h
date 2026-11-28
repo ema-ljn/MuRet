@@ -14,11 +14,6 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-} // namespace Client::WorldObjects
-
 namespace Client::Particles
 {
 class Particles;
@@ -26,6 +21,7 @@ class Particles;
 
 namespace Client::Kernel
 {
+struct WorldObject;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
@@ -71,6 +67,6 @@ void CountDownTheObjectCollapse(Kernel::WorldRuntime& runtime);
 // de Blood Castle: el giro de +0x1c con la demora, el sonido 0x89 con la cuenta en 20, el polvo con +0x1c en 80 justo y
 // el final con la cuenta en 0, que saca el atributo 8 de (13..15, 70..75) y borra el pedido). Corta donde MuRet no
 // tiene lo que la rama pide, con lo anterior hecho.
-[[nodiscard]] Core::Expected<void, std::string> CollapseTheObject(WorldObjects::WorldObject& object,
+[[nodiscard]] Core::Expected<void, std::string> CollapseTheObject(Kernel::WorldObject& object,
                                                                   const ObjectCollapseContext& context);
 } // namespace Client::Events

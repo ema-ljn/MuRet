@@ -37,10 +37,10 @@ namespace Client::Effects
 class ModelEffects;
 } // namespace Client::Effects
 
-namespace Client::MapScripts::Kalima
+namespace Client::Kernel
 {
-class KalimaWorld;
-} // namespace Client::MapScripts::Kalima
+class KalimaWater;
+} // namespace Client::Kernel
 
 namespace Client::Particles
 {
@@ -72,7 +72,7 @@ struct KalimaSiegeHelperPass
     std::span<Kernel::JointState> joints{};
     Effects::ModelEffects* effects = nullptr;
     // 0x723c48: without it, 0x437860 disturbs nothing.
-    MapScripts::Kalima::KalimaWorld* kalima = nullptr;
+    Kernel::KalimaWater* kalima = nullptr;
     // 0x7d325c8
     float* cameraShake = nullptr;
     // The .OZB heights of 0x5fb2f0, for the decals of 0x42a1b0.

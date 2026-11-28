@@ -5,10 +5,10 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/PoseBuffer.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -23,11 +23,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameObjectPass;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::LandOfTrials::LandOfTrialsBody;
 using Client::MapScripts::LandOfTrials::StepLandOfTrialsObjectFrame;
 using Client::Particles::Particle;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TrialsMap = 31;
 

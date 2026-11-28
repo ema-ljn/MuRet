@@ -4,14 +4,14 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/PoseBuffer.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -30,10 +30,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameObjectPass;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Aida::StepAidaObjectFrame;
 using Client::Particles::Particle;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t SelectionMap = 54;
 
@@ -271,7 +271,7 @@ TEST(AidaObjectServicesTest, TheMistsEmitTwentyOwnedCloudsUntilTheirOwnerIsHidde
         }
 
         Fixture hidden;
-        object.state.hiddenMesh = Client::WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Client::Kernel::HiddenObject;
         ASSERT_TRUE(StepAidaObjectFrame(object, hidden.Pass()).HasValue());
         EXPECT_TRUE(hidden.Alive().empty());
         EXPECT_EQ(hidden.random.State(), 7u);
@@ -288,7 +288,7 @@ TEST(AidaObjectServicesTest, TheButterflyFliesOnlyInTheFirstTenMillisecondsOfEac
         fixture.time = time;
         WorldObject object = ObjectOf(0x3c);
         ASSERT_TRUE(StepAidaObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         const auto& effect = fixture.effects->Effects()[0];
         if (time == 0x400u + 10u)
         {
@@ -300,7 +300,7 @@ TEST(AidaObjectServicesTest, TheButterflyFliesOnlyInTheFirstTenMillisecondsOfEac
         ASSERT_TRUE(effect.alive);
         EXPECT_EQ(effect.type, Client::Effects::ButterflyEffect);
         EXPECT_EQ(effect.subtype, 3);
-        EXPECT_EQ(effect.objectState.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(effect.objectState.hiddenMesh, Client::Kernel::HiddenObject);
         EXPECT_EQ(effect.life, 250);
         EXPECT_EQ(effect.state, static_cast<std::uint8_t>(draws.Next() & 1));
         EXPECT_EQ(effect.velocity, glm::vec3(0.0f, static_cast<float>(1.25 * -5.0), 0.0f));

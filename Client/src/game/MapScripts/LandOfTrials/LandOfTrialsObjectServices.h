@@ -7,14 +7,11 @@
 #include <optional>
 #include <string>
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-}
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct GameObjectPass;
-} // namespace Client::WorldObjects
+struct WorldObject;
+} // namespace Client::Kernel
 
 namespace Client::MapScripts::LandOfTrials
 {
@@ -25,8 +22,8 @@ namespace Client::MapScripts::LandOfTrials
 // sprites (the first of scale ((sin(clock · 0.002f) · 0.35f + 0.65f) · 1.2f + 0.3f), the second of 0.5) and a 0x5fd
 // of 1.2 in grey 0.3, turned rand() % 360. A missing pool, rand() or pose cuts where the ASM does, keeping what is
 // already created.
-[[nodiscard]] Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects::WorldObject& object,
-                                                                            const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const Kernel::WorldObject& object,
+                                                                            const Kernel::GameObjectPass& pass);
 
 // What 0x4403b0 (the chain of 0x6002e0 on the 31) does with an object's body.
 struct TrialsBodyDraw
@@ -43,5 +40,5 @@ struct TrialsBodyDraw
 // the 0xa sets it to (0.56; 0.8; 0.81). The other types still have no case (nullopt). A pulse outside the ported
 // domain cuts.
 [[nodiscard]] Core::Expected<std::optional<TrialsBodyDraw>, std::string>
-LandOfTrialsBody(const WorldObjects::WorldObject& object, const glm::vec3& color, float worldClock);
+LandOfTrialsBody(const Kernel::WorldObject& object, const glm::vec3& color, float worldClock);
 } // namespace Client::MapScripts::LandOfTrials

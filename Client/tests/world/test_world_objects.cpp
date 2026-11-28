@@ -5,7 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Models/ObjectState.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -27,7 +27,7 @@
 // Los objetos del juego).
 namespace
 {
-using Client::WorldObjects::WorldObject;
+using Client::Kernel::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 constexpr std::uint8_t Lorencia = 0;
@@ -175,7 +175,7 @@ TEST(WorldObjectsTest, LorenciaCreationCoversEveryDirectType)
                                                     .position = {100.0f, 100.0f, 25.0f},
                                                     .angle = {10.0f, 20.0f, 30.0f},
                                                     .scale = 2.0f};
-        Client::WorldObjects::WorldObjectRegistrations registry;
+        Client::Kernel::WorldObjectRegistrations registry;
         const auto objects = Client::Tests::CheckedWorldObjectProjection(
             std::span(&record, 1), Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
         ASSERT_EQ(objects.size(), 1u);
@@ -237,7 +237,7 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
                 SCOPED_TRACE(test.type);
                 Client::Data::Terrain::TerrainObject record{
                     .type = test.type, .position = {1600.0f, 14400.0f, 25.0f}, .scale = 2.0f};
-                Client::WorldObjects::WorldObjectRegistrations registry;
+                Client::Kernel::WorldObjectRegistrations registry;
                 const auto objects =
                     Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), map, scene, &registry);
                 ASSERT_EQ(objects.size(), 1u);
@@ -259,7 +259,7 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
 // Catches a table discarded when creating another batch, IDs tied to addresses and registering the wrong type.
 TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTable)
 {
-    Client::WorldObjects::WorldObjectRegistrations registry;
+    Client::Kernel::WorldObjectRegistrations registry;
     registry.nextIdentity = 1000;
     registry.entries[0] = {.active = 2, .metadata = {7, 6, 5, 4, 3, 2, 1}, .object = 987};
     const std::array<Client::Data::Terrain::TerrainObject, 7> records{
@@ -276,7 +276,7 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
     EXPECT_EQ(registry.entries[0].active, 2);
     EXPECT_EQ(registry.entries[0].object, 987u);
     EXPECT_EQ(registry.entries[0].metadata, (std::array<std::uint8_t, 7>{7, 6, 5, 4, 3, 2, 1}));
-    constexpr std::array<Client::WorldObjects::WorldObjectIdentity, 5> registered{1000, 1001, 1002, 1003, 1005};
+    constexpr std::array<Client::Kernel::WorldObjectIdentity, 5> registered{1000, 1001, 1002, 1003, 1005};
     for (std::size_t index = 0; index < registered.size(); ++index)
     {
         EXPECT_EQ(registry.entries[index + 1].active, 1);
@@ -305,7 +305,7 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
 // Catches the auxiliary limit being mistaken for an object pool or reinitializing metadata/objects.
 TEST(WorldObjectsTest, FullAuxiliaryTableStillCreatesEveryNewObject)
 {
-    Client::WorldObjects::WorldObjectRegistrations registry;
+    Client::Kernel::WorldObjectRegistrations registry;
     for (auto& entry : registry.entries)
     {
         entry = {.active = 2, .metadata = {1, 2, 3, 4, 5, 6, 7}, .object = 99};
@@ -349,7 +349,7 @@ TEST(WorldObjectsTest, RegistrationIsAMapCaseInEverySceneAndNotAnotherMap)
         {
             SCOPED_TRACE(map);
             SCOPED_TRACE(static_cast<int>(scene));
-            Client::WorldObjects::WorldObjectRegistrations registry;
+            Client::Kernel::WorldObjectRegistrations registry;
             const auto objects = Client::Tests::CheckedWorldObjectProjection(records, map, scene, &registry);
             ASSERT_EQ(objects.size(), 4u);
             EXPECT_EQ(registry.entries[0].active, map == 0 ? 1 : 0);
@@ -392,7 +392,7 @@ TEST(WorldObjectsTest, TreeSpeedRetainsTheWideReciprocalUntilItsOnlyStore)
 // Catches defaults borrowed from actors and data inherited from the previous batch.
 TEST(WorldObjectsTest, NewObjectsHaveFreshConstructorStateAndTheSecondPositionCopy)
 {
-    Client::WorldObjects::WorldObjectRegistrations registry;
+    Client::Kernel::WorldObjectRegistrations registry;
     Client::Data::Terrain::TerrainObject record{
         .type = 6, .position = {1600.0f, 14400.0f, 25.0f}, .angle = {10.0f, 20.0f, 30.0f}, .scale = 2.0f};
     auto previous = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
@@ -434,7 +434,7 @@ TEST(WorldObjectsTest, SignedFileTypesOutsideTheMapZeroSelectorKeepDefaults)
     for (const std::int16_t type : std::array<std::int16_t, 6>{-32768, -515, -1, 151, 153, 32767})
     {
         Client::Data::Terrain::TerrainObject record{.type = type, .scale = 7.0f};
-        Client::WorldObjects::WorldObjectRegistrations registry;
+        Client::Kernel::WorldObjectRegistrations registry;
         const auto objects = Client::Tests::CheckedWorldObjectProjection(
             std::span(&record, 1), Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
         ASSERT_EQ(objects.size(), 1u);
@@ -456,7 +456,7 @@ TEST(WorldObjectsTest, RegistrationDoesNotChangeSectorAndInsertionDrawOrder)
         Client::Data::Terrain::TerrainObject{.type = 145, .position = {100.0f, 100.0f, 0.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 146, .position = {100.0f, 2000.0f, 0.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 52, .position = {2000.0f, 100.0f, 0.0f}, .scale = 1.0f}};
-    Client::WorldObjects::WorldObjectRegistrations registry;
+    Client::Kernel::WorldObjectRegistrations registry;
     const auto objects = Client::Tests::CheckedWorldObjectProjection(
         records, Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 5u);
@@ -513,7 +513,7 @@ TEST(WorldObjectsTest, TheRoofsFollowTheLayerOfTheHero)
         roof.targetAlpha = 0.5f;
         Client::Crt::CrtRandom random(7);
         const auto stepped = Client::WorldObjects::StepWorldObjectChecked(
-            roof, probe.map, nullptr, random, Client::WorldObjects::ObjectStepGlobals{.heroCellLayer = probe.layer});
+            roof, probe.map, nullptr, random, Client::Kernel::ObjectStepGlobals{.heroCellLayer = probe.layer});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(roof.targetAlpha, probe.target);
         EXPECT_EQ(random.State(), 7u);
@@ -538,7 +538,7 @@ TEST(WorldObjectsTest, TheWindowsFlickerWithARand)
         const float before = window.state.light;
         Client::Crt::CrtRandom random(7);
         const auto stepped = Client::WorldObjects::StepWorldObjectChecked(window, probe.map, nullptr, random,
-                                                                          Client::WorldObjects::ObjectStepGlobals{});
+                                                                          Client::Kernel::ObjectStepGlobals{});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
         Client::Crt::CrtRandom expected(7);
@@ -566,7 +566,7 @@ TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
         WorldObject house = Created(probe.type, 100.0f, 100.0f, Lorencia).front();
         Client::Crt::CrtRandom random(7);
         const auto stepped = Client::WorldObjects::StepWorldObjectChecked(
-            house, Lorencia, nullptr, random, Client::WorldObjects::ObjectStepGlobals{.worldClock = probe.clock});
+            house, Lorencia, nullptr, random, Client::Kernel::ObjectStepGlobals{.worldClock = probe.clock});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(house.state.uv.y,
                   static_cast<float>(static_cast<double>(probe.scroll) * static_cast<double>(0.001f)));
@@ -599,7 +599,7 @@ TEST(WorldObjectsTest, MissingStepDestinationsKeepTheirAddressAndRandomPrefix)
         object.alpha = 0.5f;
         Client::Crt::CrtRandom random(7);
         const auto stepped = Client::WorldObjects::StepWorldObjectChecked(object, probe.map, nullptr, random,
-                                                                          Client::WorldObjects::ObjectStepGlobals{});
+                                                                          Client::Kernel::ObjectStepGlobals{});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find(probe.address), std::string::npos) << stepped.Error();
         EXPECT_GT(object.alpha, 0.5f) << "el alpha ya fue hacia su meta";
@@ -616,7 +616,7 @@ TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
     window.targetAlpha = 0.0f;
     Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(window, Lorencia, nullptr, random,
-                                                             Client::WorldObjects::ObjectStepGlobals{})
+                                                             Client::Kernel::ObjectStepGlobals{})
                     .HasValue());
     EXPECT_EQ(random.State(), 7u);
 
@@ -624,7 +624,7 @@ TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
     roof.alpha = 0.005f;
     roof.targetAlpha = 0.0f;
     ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(roof, Lorencia, nullptr, random,
-                                                             Client::WorldObjects::ObjectStepGlobals{})
+                                                             Client::Kernel::ObjectStepGlobals{})
                     .HasValue());
     EXPECT_EQ(roof.targetAlpha, 1.0f);
 }
@@ -636,8 +636,8 @@ TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
     WorldObject other = Created(1, 100.0f, 100.0f, 3).front();
     other.alpha = 0.5f;
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::WorldObjects::StepWorldObjectChecked(other, 35, nullptr, random,
-                                                                      Client::WorldObjects::ObjectStepGlobals{});
+    const auto stepped =
+        Client::WorldObjects::StepWorldObjectChecked(other, 35, nullptr, random, Client::Kernel::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x604ab0"), std::string::npos) << stepped.Error();
     EXPECT_EQ(other.alpha, 0.5f);
@@ -645,7 +645,7 @@ TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
     WorldObject whirlpool = Created(0x56, 100.0f, 100.0f).front();
     WorldObject login = whirlpool;
     ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(whirlpool, Login, nullptr, random,
-                                                             Client::WorldObjects::ObjectStepGlobals{})
+                                                             Client::Kernel::ObjectStepGlobals{})
                     .HasValue());
     Client::WorldObjects::StepWorldObject(login, Login, nullptr);
     EXPECT_EQ(whirlpool.transform.angles.z, login.transform.angles.z);
@@ -677,23 +677,21 @@ TEST(WorldObjectsTest, TheLorenciaWaterspoutDrawsItsOwnMeshes)
     fountain.light = glm::vec3(0.25f);
     const glm::vec3 terrain(0.5f);
     const auto draw = Client::WorldObjects::DrawOf(fountain, terrain, Lorencia);
-    EXPECT_EQ(draw.kind, Client::WorldObjects::ObjectDrawKind::Waterspout);
+    EXPECT_EQ(draw.kind, Client::Kernel::ObjectDrawKind::Waterspout);
     EXPECT_TRUE(draw.posed);
     EXPECT_EQ(draw.state.blendMesh, 3);
     EXPECT_EQ(draw.color, glm::vec3(0.75f));
     EXPECT_TRUE(draw.vertexLight);
 
     WorldObject hidden = fountain;
-    hidden.state.hiddenMesh = Client::WorldObjects::HiddenObject;
-    EXPECT_EQ(Client::WorldObjects::DrawOf(hidden, terrain, Lorencia).kind,
-              Client::WorldObjects::ObjectDrawKind::Hidden);
+    hidden.state.hiddenMesh = Client::Kernel::HiddenObject;
+    EXPECT_EQ(Client::WorldObjects::DrawOf(hidden, terrain, Lorencia).kind, Client::Kernel::ObjectDrawKind::Hidden);
     WorldObject faded = fountain;
     faded.alpha = 0.005f;
-    EXPECT_EQ(Client::WorldObjects::DrawOf(faded, terrain, Lorencia).kind,
-              Client::WorldObjects::ObjectDrawKind::Hidden);
+    EXPECT_EQ(Client::WorldObjects::DrawOf(faded, terrain, Lorencia).kind, Client::Kernel::ObjectDrawKind::Hidden);
 
     const WorldObject devias = Created(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Devias).front();
-    EXPECT_EQ(Client::WorldObjects::DrawOf(devias, terrain, Devias).kind, Client::WorldObjects::ObjectDrawKind::Body);
+    EXPECT_EQ(Client::WorldObjects::DrawOf(devias, terrain, Devias).kind, Client::Kernel::ObjectDrawKind::Body);
 }
 
 // The first seed from 1 whose first rand() is odd (`odd`) or even.

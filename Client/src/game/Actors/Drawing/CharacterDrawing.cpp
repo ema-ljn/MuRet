@@ -2,7 +2,6 @@
 #include "Models/SkinningBuffers.h"
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
-#include "MapScripts/Crywolf/CrywolfAltarDrawing.h"
 
 #include "Core/IClock.h"
 #include "Core/Expected.h"
@@ -34,7 +33,7 @@
 #include "Actors/Drawing/GameItemGlowEffects.h"
 #include "Actors/Drawing/GameItemGlowSpecialDrawing.h"
 #include "Math/Ftol.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Actors/Drawing/ScepterGlow.h"
 #include "Particles/Sprites.h"
 
@@ -1306,6 +1305,12 @@ constexpr std::array<std::size_t, 2> DarkSpiritMeshes{3, 2};
 constexpr Render::Color DarkSpiritShadowColor{0.0f, 0.0f, 0.0f, 1.0f};
 } // namespace
 
+void SkinTheDrawnObject(const Models::IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
+                        std::vector<Models::SkinnedMesh>& skinned)
+{
+    static_cast<void>(ObjectMeshDraws(models, object, clock, skinned));
+}
+
 void DrawObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock)
 {
@@ -1968,42 +1973,6 @@ void DrawWaterspout(Render::ModelBatch& batch, const Models::IModelLibrary& mode
 }
 
 } // namespace Client::Actors::Drawing
-
-namespace Client::MapScripts::Crywolf
-{
-Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                         Actors::Drawing::DrawnObject& object,
-                                                         Core::Duration frameClock,
-                                                         WorldObjects::ObjectModelStepState* modelState)
-{
-    std::vector<Models::SkinnedMesh> skinned;
-    std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
-    if (meshes.empty())
-    {
-        static_cast<void>(Actors::Drawing::ObjectMeshDraws(models, object, frameClock, skinned));
-        meshes = skinned;
-    }
-    // 0x430ab5..0x430b14: the second pass reads the RGB the first one may have stored inside 0x4ecc30.
-    for (const auto& [selection, flags] :
-         {std::pair{std::int8_t{0}, std::uint32_t{0x44}}, std::pair{std::int8_t{1}, std::uint32_t{0x240}}})
-    {
-        object.unlitMesh = selection;
-        if (modelState != nullptr)
-            modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = selection;
-        if (!meshes.empty())
-        {
-            if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, object, frameClock, meshes, 0, flags,
-                                                               std::nullopt, &object.color);
-                !drawn.HasValue())
-                return drawn;
-        }
-    }
-    object.unlitMesh = std::int16_t{-1};
-    if (modelState != nullptr)
-        modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = std::int8_t{-1};
-    return {};
-}
-} // namespace Client::MapScripts::Crywolf
 
 namespace Client::Actors::Drawing
 {

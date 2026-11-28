@@ -2,10 +2,10 @@
 #include "Models/ObjectState.h"
 #include "MapScripts/Dungeon/DungeonObjectStep.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Particles/ObjectFire.h"
 #include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
@@ -28,15 +28,15 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Effects::ModelEffects;
+using Client::Kernel::ObjectModelStepState;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Dungeon::KickObject;
 using Client::MapScripts::Dungeon::StepArenaObject;
 using Client::MapScripts::Dungeon::StepDungeonObject;
 using Client::MapScripts::Dungeon::StepLostTowerObject;
 using Client::Particles::Particles;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectModelStepState;
-using Client::WorldObjects::ObjectStepGlobals;
-using Client::WorldObjects::WorldObject;
 
 WorldObject Object(std::int16_t type)
 {
@@ -111,7 +111,7 @@ TEST(DungeonObjectsTest, TheMapOneHiddenTypesOnlyStoreTheirHiddenMesh)
         auto object = Object(type);
         CrtRandom random(7);
         ASSERT_TRUE(StepDungeonObject(object, random, ObjectStepGlobals{}).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         EXPECT_EQ(random.State(), 7u);
     }
     auto other = Object(0x30);
@@ -149,8 +149,7 @@ TEST(DungeonObjectsTest, TheMapOneFiresAreClassZeroAtTheirNativeOffsets)
         direct.dynamicLighting = expectedLighting.get();
         direct.particles = expectedParticles.get();
         CrtRandom expected(5);
-        ASSERT_TRUE(
-            Client::WorldObjects::EmitObjectFire(0, Object(fire.type), fire.offset, expected, direct).HasValue());
+        ASSERT_TRUE(Client::Particles::EmitObjectFire(0, Object(fire.type), fire.offset, expected, direct).HasValue());
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
         ASSERT_TRUE(particles->All().front().alive);
@@ -177,7 +176,7 @@ TEST(DungeonObjectsTest, TheMapOneDripDropsAStoneOneTimeInThreeAndAlwaysHides)
         auto object = Object(0x34);
         CrtRandom random(drops);
         ASSERT_TRUE(StepDungeonObject(object, random, globals).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         ASSERT_TRUE(effects.Effects()[0].alive);
         EXPECT_EQ(effects.Effects()[0].type, Client::Effects::FallingStoneEffect);
         EXPECT_EQ(effects.Effects()[0].light, object.light);
@@ -191,7 +190,7 @@ TEST(DungeonObjectsTest, TheMapOneDripDropsAStoneOneTimeInThreeAndAlwaysHides)
         auto object = Object(0x34);
         CrtRandom random(stays);
         ASSERT_TRUE(StepDungeonObject(object, random, globals).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         EXPECT_FALSE(effects.Effects()[0].alive);
         EXPECT_EQ(random.State(), After(stays, 1).State());
         CrtRandom bare(stays);
@@ -308,7 +307,7 @@ TEST(DungeonObjectsTest, TheLostTowerJetHidesAndSometimesSpitsTheFlame)
         auto object = Object(0x18);
         CrtRandom random(spits);
         ASSERT_TRUE(StepLostTowerObject(object, random, globals).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         ASSERT_TRUE(effects.Effects()[0].alive);
         EXPECT_EQ(effects.Effects()[0].type, Client::Effects::FlameJetEffect);
         EXPECT_EQ(depth, 1);
@@ -318,7 +317,7 @@ TEST(DungeonObjectsTest, TheLostTowerJetHidesAndSometimesSpitsTheFlame)
         auto object = Object(0x18);
         CrtRandom random(quiet);
         ASSERT_TRUE(StepLostTowerObject(object, random, ObjectStepGlobals{}).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         EXPECT_EQ(random.State(), After(quiet, 1).State());
     }
     auto object = Object(0x18);
@@ -326,12 +325,12 @@ TEST(DungeonObjectsTest, TheLostTowerJetHidesAndSometimesSpitsTheFlame)
     const auto cut = StepLostTowerObject(object, random, ObjectStepGlobals{});
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x6054a9"), std::string::npos) << cut.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject) << "se oculta antes del rand()";
+    EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject) << "se oculta antes del rand()";
 
     auto pillar = Object(0x19);
     CrtRandom none(7);
     ASSERT_TRUE(StepLostTowerObject(pillar, none, ObjectStepGlobals{}).HasValue());
-    EXPECT_EQ(pillar.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(pillar.state.hiddenMesh, Client::Kernel::HiddenObject);
     EXPECT_EQ(none.State(), 7u);
 }
 

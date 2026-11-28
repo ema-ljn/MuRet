@@ -1,6 +1,7 @@
 #pragma once
 #include "Particles/IParticleDrawingServices.h"
 #include "Core/Expected.h"
+#include "Particles/ParticleDrawing.h"
 #include "Particles/Particles.h"
 #include <glm/ext/vector_float2.hpp>
 #include <cstdint>
@@ -10,6 +11,7 @@
 namespace Client::Render
 {
 class IParticleDrawBackend;
+class ModelBatch;
 struct ParticleBillboardRequest;
 } // namespace Client::Render
 namespace Client::Models
@@ -43,4 +45,14 @@ private:
     const std::reference_wrapper<const Math::OriginalMatrix> m_view;
     bool m_textureEnvOverride = false;
 };
+
+// 0x548550(mode), in the same eye pass, after the sprites: the single contract of Particles::DrawParticlesChecked,
+// with the scene's services (ParticleDrawServices) over the batch adapter (Render::ModelBatchParticleBackend). The
+// dimensions, the material and the color come from the metadata of `textures` (the resource's +20/+24/+28) and the
+// binder from its TextureSlotOf; the square of 0x621400, from the view `view`. The mist's rotation changes with
+// `worldClock` in ms and the real pool index. A place that fails cuts the pass after its prefix, without rollback: the
+// earlier ones stay in the batch and the error says which one.
+[[nodiscard]] Core::Expected<void, Particles::ParticleDrawingFailure>
+DrawParticles(Render::ModelBatch& batch, Particles::Particles& particles, const Models::IModelLibrary& textures,
+              const Math::OriginalMatrix& view, float worldClock = 0.0f, std::uint8_t mode = 0);
 } // namespace Client::Effects

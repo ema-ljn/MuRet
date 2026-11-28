@@ -92,3 +92,12 @@ c964abe2f644f8b3150cb533a69dc6511cab8e80
 
 # refactor(AR4): name the moved files' namespaces after their folders (#584)
 42a86694248f43a06a14cff0167320a2401ee0be
+
+# refactor(AR4.2): move AttackStep, SkillHits and SceneId to their modules (#585)
+5179a91545129d54b58d7cfe1144cfc6fd2d3ed6
+
+# docs(AR4.2): trim and translate the comments of AR4.2 and AR4.3 (#587)
+0a2ce7422a579155d3ed62566e83a2ec5d54ba9a
+
+# docs(AR4.4): trim and translate the comments of AR4.4 (#589)
+91026735ceb1d2580bc6f2b1508594671ec3b4c9

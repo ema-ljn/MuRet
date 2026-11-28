@@ -11,7 +11,7 @@
 #include "Kernel/WorldState.h"
 #include "Effects/GameModelEffects.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 
@@ -133,8 +133,8 @@ Core::Expected<void, std::string> StepTheFireBreath(Effects::ModelEffect& effect
     const double lum = D(luminosity);
     const float half = F32(lum * Half);
     const glm::vec3 color{half, half, F32(lum * Blue)};
-    if (auto lit = WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color,
-                                                 LightRadius, "0x52c820");
+    if (auto lit = Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius,
+                                            "0x52c820");
         !lit.HasValue())
         return lit;
     const glm::vec3& angles = effect.transform.angles;

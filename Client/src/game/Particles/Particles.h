@@ -15,6 +15,11 @@
 #include <string_view>
 #include <vector>
 
+namespace Client::Kernel
+{
+struct WorldObject;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -24,11 +29,6 @@ namespace Client::Terrain
 {
 struct TerrainLighting;
 } // namespace Client::Terrain
-
-namespace Client::WorldObjects
-{
-struct WorldObject;
-} // namespace Client::WorldObjects
 
 // The table of 0x53fe70 (0x743a198, 3000 slots of 0x78 bytes), its step 0x5446e0 and the wind at 0x7609bb8 (06 §
 // Los efectos del login). The drawing, 0x548550, has a single contract: Particles/ParticleDrawing.h, which follows the
@@ -242,7 +242,7 @@ using ParticleTerrainHeight = std::function<double(float, float)>;
 using ParticleTextureHeight = std::function<std::optional<float>(std::int32_t)>;
 // The world object of a ParticleOwner::identity, which the original reads through the +0x40 pointer; nullptr if
 // missing.
-using ParticleObjectOwners = std::function<WorldObjects::WorldObject*(std::uint64_t)>;
+using ParticleObjectOwners = std::function<Kernel::WorldObject*(std::uint64_t)>;
 // The action (+0x111) of an identity's character (ParticleOwnerKind::Actor, the pool slot), which orbit 60f/0's step
 // reads through the +0x40 pointer (0x54735f); nullopt if missing. With a model effect as owner, the step reads it from
 // ParticleOwnerStates.

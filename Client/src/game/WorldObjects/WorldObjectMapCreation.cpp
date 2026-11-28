@@ -1,6 +1,7 @@
 #include "WorldObjects/WorldObjectMapCreation.h"
 
 #include "Crt/CrtRandom.h"
+#include "Kernel/WorldObject.h"
 #include "Maps/MapId.h"
 #include "WorldObjects/IWorldObjectCreationServices.h"
 #include "WorldObjects/WorldObjectRegistrations.h"
@@ -15,7 +16,7 @@ namespace Client::WorldObjects
 {
 namespace
 {
-std::uint8_t CreateChaosCastleObject(WorldObject& object, std::int32_t map)
+std::uint8_t CreateChaosCastleObject(Kernel::WorldObject& object, std::int32_t map)
 {
     // 0x405950: the accepted map returns AL = 1 even if the type writes nothing.
     constexpr std::int32_t FirstChaosCastle = 18;
@@ -29,14 +30,14 @@ std::uint8_t CreateChaosCastleObject(WorldObject& object, std::int32_t map)
         object.basePosition.x = object.transform.position.x;
         const float y = object.transform.position.y;
         const float z = object.transform.position.z;
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         object.basePosition.y = y;
         object.basePosition.z = z;
     }
     return 1;
 }
 
-std::uint8_t CreateMapObject438A80(WorldObject&)
+std::uint8_t CreateMapObject438A80(Kernel::WorldObject&)
 {
     // The three verified bytes 32 c0 c3 of 0x438a80 return AL = 0 without reading the object or the map.
     return 0;
@@ -67,15 +68,15 @@ CastleStateGroup CastleStateGroupOf(std::int16_t type)
     return CastleStateGroup::None;
 }
 
-void ApplyCastlePredicate(WorldObject& object, std::uint8_t state, bool hideWhenNonzero)
+void ApplyCastlePredicate(Kernel::WorldObject& object, std::uint8_t state, bool hideWhenNonzero)
 {
     const bool hidden = hideWhenNonzero ? state != 0 : state == 0;
     constexpr std::int16_t NoHiddenMesh = -1;
-    object.state.hiddenMesh = hidden ? HiddenObject : NoHiddenMesh;
+    object.state.hiddenMesh = hidden ? Kernel::HiddenObject : NoHiddenMesh;
 }
 
 std::optional<WorldObjectCreationError>
-ApplyCastlePredicateState(WorldObject& object, const WorldObjectCreationContext& context, bool hideWhenNonzero)
+ApplyCastlePredicateState(Kernel::WorldObject& object, const WorldObjectCreationContext& context, bool hideWhenNonzero)
 {
     if (context.state7239Ec == nullptr)
     {
@@ -86,7 +87,7 @@ ApplyCastlePredicateState(WorldObject& object, const WorldObjectCreationContext&
     return std::nullopt;
 }
 
-std::optional<WorldObjectCreationError> ApplyCastleObjectState(WorldObject& object,
+std::optional<WorldObjectCreationError> ApplyCastleObjectState(Kernel::WorldObject& object,
                                                                const WorldObjectCreationContext& context)
 {
     if (CastleStateGroupOf(object.type) == CastleStateGroup::None)
@@ -101,7 +102,7 @@ std::optional<WorldObjectCreationError> ApplyCastleObjectState(WorldObject& obje
     return std::nullopt;
 }
 
-bool ApplyCreationRandomPhase(WorldObject& object, Crt::CrtRandom* random, const float& factor)
+bool ApplyCreationRandomPhase(Kernel::WorldObject& object, Crt::CrtRandom* random, const float& factor)
 {
     if (random == nullptr)
     {
@@ -116,7 +117,8 @@ bool ApplyCreationRandomPhase(WorldObject& object, Crt::CrtRandom* random, const
     return true;
 }
 
-std::optional<WorldObjectCreationError> ApplyCastleSpecialCase(WorldObject& object, WorldObjectCreationContext& context)
+std::optional<WorldObjectCreationError> ApplyCastleSpecialCase(Kernel::WorldObject& object,
+                                                               WorldObjectCreationContext& context)
 {
     // 0x42c6c4 stores a single read of the type; no callback changes the already chosen route.
     const std::int16_t type = object.type;
@@ -139,7 +141,7 @@ std::optional<WorldObjectCreationError> ApplyCastleSpecialCase(WorldObject& obje
     }
     else if (type == 39)
     {
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
     }
     else if (type == 41 && !ApplyCreationRandomPhase(object, context.random, context.randomPhaseFactor.get()))
     {
@@ -158,7 +160,7 @@ std::optional<WorldObjectCreationError> ApplyCastleSpecialCase(WorldObject& obje
     return std::nullopt;
 }
 
-std::optional<WorldObjectCreationError> CreateCastleSiegeObject(WorldObject& object,
+std::optional<WorldObjectCreationError> CreateCastleSiegeObject(Kernel::WorldObject& object,
                                                                 WorldObjectCreationContext& context)
 {
     using Maps::CastleSiegeMap;
@@ -174,7 +176,8 @@ std::optional<WorldObjectCreationError> CreateCastleSiegeObject(WorldObject& obj
     // H reads the live type after effect 309; its AL return does not cut 0x606660's tail.
     return ApplyCastleObjectState(object, context);
 }
-std::optional<WorldObjectCreationError> CreateMapObject43FF70(WorldObject& object, WorldObjectCreationContext& context)
+std::optional<WorldObjectCreationError> CreateMapObject43FF70(Kernel::WorldObject& object,
+                                                              WorldObjectCreationContext& context)
 {
     // 0x43ff10 reads the live DWORD here, after C/H; do not reuse the initial dispatch's map.
     constexpr std::int32_t LandOfTrialMap = Maps::LandOfTrialsMap;
@@ -215,7 +218,7 @@ std::uint8_t CreateMapObject4303D0(const WorldObjectCreationContext& context)
 }
 } // namespace
 
-void ApplyCastleSiegeObjectState(WorldObject& object, std::uint8_t siegeState)
+void ApplyCastleSiegeObjectState(Kernel::WorldObject& object, std::uint8_t siegeState)
 {
     const CastleStateGroup group = CastleStateGroupOf(object.type);
     if (group == CastleStateGroup::None)
@@ -226,7 +229,7 @@ void ApplyCastleSiegeObjectState(WorldObject& object, std::uint8_t siegeState)
     ApplyCastlePredicate(object, siegeState, group == CastleStateGroup::HiddenWhenNonzero);
 }
 
-std::optional<WorldObjectCreationError> ApplyDefaultWorldObjectCreation(WorldObject& object,
+std::optional<WorldObjectCreationError> ApplyDefaultWorldObjectCreation(Kernel::WorldObject& object,
                                                                         WorldObjectCreationContext& context)
 {
     if (CreateChaosCastleObject(object, context.map) == 1)

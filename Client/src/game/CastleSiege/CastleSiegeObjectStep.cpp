@@ -6,8 +6,8 @@
 #include "CastleSiege/CastleSiegeEmission.h"
 #include "Effects/ModelEffects.h"
 #include "WorldObjects/WorldObjectMapCreation.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Terrain/DynamicWorldLight.h"
+#include "Kernel/WorldObject.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -23,8 +23,8 @@ namespace
 {
 // 0x42c8d4..0x42c904: ((rand() & 3) + 3) · 0,1f (0x6b87b8) queda en la x87; el rojo se guarda con fst, el verde
 // es ese valor por 0,6f (0x6b8a20) y el azul por 0,2f (0x6b8854), cada uno con su fstp. Radio 3.
-Core::Expected<void, std::string> AddTheTorchLight(const WorldObjects::WorldObject& object, int draw,
-                                                   const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> AddTheTorchLight(const Kernel::WorldObject& object, int draw,
+                                                   const Kernel::ObjectStepGlobals& globals)
 {
     constexpr int Mask = 3, Base = 3;
     constexpr std::int32_t Radius = 3;
@@ -34,7 +34,7 @@ Core::Expected<void, std::string> AddTheTorchLight(const WorldObjects::WorldObje
     const double level = static_cast<double>((draw & Mask) + Base) * Step;
     const glm::vec3 light(static_cast<float>(level), static_cast<float>(level * Green),
                           static_cast<float>(level * Blue));
-    return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, light, Radius, "0x42c904");
+    return Terrain::AddDynamicLight(globals.dynamicLighting, object.transform.position, light, Radius, "0x42c904");
 }
 } // namespace
 
@@ -77,8 +77,8 @@ Core::Expected<void, std::string> StepCastleSiegePrelude(const CastleSiegePrelud
     return {};
 }
 
-Core::Expected<void, std::string> StepCastleSiegeObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
-                                                        const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepCastleSiegeObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                        const Kernel::ObjectStepGlobals& globals)
 {
     if (globals.siegeActive == nullptr)
         return Core::Unexpected(std::string("0x42c850: falta el byte del asedio (0x7239ec) para los objetos del 30"));
@@ -96,7 +96,7 @@ Core::Expected<void, std::string> StepCastleSiegeObject(WorldObjects::WorldObjec
             if (auto lit = AddTheTorchLight(object, random.Next(), globals); !lit.HasValue())
                 return lit;
         }
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     case 4:
         // 0x42c894..0x42c8a9.
@@ -110,16 +110,16 @@ Core::Expected<void, std::string> StepCastleSiegeObject(WorldObjects::WorldObjec
             if (auto lit = AddTheTorchLight(object, random.Next(), globals); !lit.HasValue())
                 return lit;
         }
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     case 0x2a:
     case 0x34:
     case 0x36:
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     case 0x42:
         // 0x42c967: el −2 antes de mirar el asedio.
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         if (siege)
         {
             if (globals.siegeCrownFlags == nullptr)
@@ -133,14 +133,14 @@ Core::Expected<void, std::string> StepCastleSiegeObject(WorldObjects::WorldObjec
         return {};
     case Spearman:
         // 0x42c950.
-        object.state.hiddenMesh = siege ? WorldObjects::HiddenObject : NoHiddenMesh;
+        object.state.hiddenMesh = siege ? Kernel::HiddenObject : NoHiddenMesh;
         return {};
     default:
         return {};
     }
 }
 
-Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObjects::WorldObject& object, bool siegeActive,
+Core::Expected<void, std::string> StepCastleSiegeSeenObject(Kernel::WorldObject& object, bool siegeActive,
                                                             float worldClock,
                                                             const CastleGateCollapseServices& services)
 {

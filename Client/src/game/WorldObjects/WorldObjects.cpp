@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
@@ -16,13 +17,14 @@
 #include "Events/EventMapObjectStep.h"
 #include "Math/Ftol.h"
 #include "WorldObjects/IWorldObjectCreationServices.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Effects/ObjectAlpha.h"
 #include "MapScripts/Noria/NoriaObjectStep.h"
 #include "MapScripts/Tarkan/TarkanObjectStep.h"
 #include "WorldObjects/WorldObjectMapCreation.h"
 #include "WorldObjects/WorldObjectRegistrations.h"
 #include "WorldObjects/WorldObjectStepServices.h"
+#include "Particles/ObjectFire.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -86,7 +88,7 @@ bool IsLoginMarker(std::int16_t type)
 }
 // 06 § Lo propio de Lorencia: the operations stay in binary64 (the port's PC53/RN) up to the single binary32 store,
 // without rounding 1 / scale first.
-void ApplyLorenciaCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+void ApplyLorenciaCases(Kernel::WorldObject& object, std::int16_t type, Kernel::WorldObjectRegistrations* registrations)
 {
     constexpr float TreeSpeedFactor = std::bit_cast<float>(0x3ECCCCCDu);
     constexpr float FastObjectSpeed = std::bit_cast<float>(0x3E99999Au);
@@ -147,7 +149,7 @@ void ApplyLorenciaCases(WorldObject& object, std::int16_t type, WorldObjectRegis
             RegisterWorldObject(*registrations, object.identity);
         }
         object.boundsMaximum = glm::vec3(40.0f, 40.0f, 160.0f);
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return;
     default:
         // The native table ends here: it does NOT fall into map 1's switch.
@@ -155,7 +157,7 @@ void ApplyLorenciaCases(WorldObject& object, std::int16_t type, WorldObjectRegis
     }
 }
 
-void RegisterAuxiliaryObject(WorldObject& object, WorldObjectRegistrations* registrations)
+void RegisterAuxiliaryObject(Kernel::WorldObject& object, Kernel::WorldObjectRegistrations* registrations)
 {
     if (registrations != nullptr)
     {
@@ -163,13 +165,13 @@ void RegisterAuxiliaryObject(WorldObject& object, WorldObjectRegistrations* regi
     }
 }
 
-void HideTallMarker(WorldObject& object)
+void HideTallMarker(Kernel::WorldObject& object)
 {
     object.boundsMaximum = glm::vec3(40.0f, 40.0f, 160.0f);
-    object.state.hiddenMesh = HiddenObject;
+    object.state.hiddenMesh = Kernel::HiddenObject;
 }
 
-void ApplyMapOneCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+void ApplyMapOneCases(Kernel::WorldObject& object, std::int16_t type, Kernel::WorldObjectRegistrations* registrations)
 {
     if (type != 59 && type != 60)
     {
@@ -182,7 +184,7 @@ void ApplyMapOneCases(WorldObject& object, std::int16_t type, WorldObjectRegistr
     }
 }
 
-bool CopyMapTwoTransform(WorldObject& object)
+bool CopyMapTwoTransform(Kernel::WorldObject& object)
 {
     const auto signedLow = Math::OriginalFtolLow(static_cast<double>(object.transform.angles.z));
     if (!signedLow.has_value())
@@ -201,7 +203,7 @@ bool CopyMapTwoTransform(WorldObject& object)
     return true;
 }
 
-bool ApplyMapTwoCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+bool ApplyMapTwoCases(Kernel::WorldObject& object, std::int16_t type, Kernel::WorldObjectRegistrations* registrations)
 {
     switch (type)
     {
@@ -230,7 +232,7 @@ bool ApplyMapTwoCases(WorldObject& object, std::int16_t type, WorldObjectRegistr
         HideTallMarker(object);
         return true;
     case 100:
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return true;
     case 20:
     case 65:
@@ -242,7 +244,7 @@ bool ApplyMapTwoCases(WorldObject& object, std::int16_t type, WorldObjectRegistr
     }
 }
 
-void ApplyMapThreeCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+void ApplyMapThreeCases(Kernel::WorldObject& object, std::int16_t type, Kernel::WorldObjectRegistrations* registrations)
 {
     switch (type)
     {
@@ -265,15 +267,15 @@ void ApplyMapThreeCases(WorldObject& object, std::int16_t type, WorldObjectRegis
         return;
     case 38:
         RegisterAuxiliaryObject(object, registrations);
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return;
     default:
         return;
     }
 }
 
-bool EmitModelEffect(WorldObject& object, IWorldObjectCreationServices* services, std::int16_t type,
-                     const glm::vec3& position, float scale, WorldObjectIdentity owner)
+bool EmitModelEffect(Kernel::WorldObject& object, IWorldObjectCreationServices* services, std::int16_t type,
+                     const glm::vec3& position, float scale, Kernel::WorldObjectIdentity owner)
 {
     if (services == nullptr)
     {
@@ -282,7 +284,7 @@ bool EmitModelEffect(WorldObject& object, IWorldObjectCreationServices* services
     return services->CreateModelEffect({type, position, scale, owner}, object);
 }
 
-bool EmitNoriaTowerEffects(WorldObject& object, IWorldObjectCreationServices* services)
+bool EmitNoriaTowerEffects(Kernel::WorldObject& object, IWorldObjectCreationServices* services)
 {
     // 0x606b9d..0x606cb5: each callee can change source; do not cache the position between calls.
     constexpr std::array<std::int16_t, 5> EffectTypes{322, 323, 322, 323, 324};
@@ -303,8 +305,9 @@ bool EmitNoriaTowerEffects(WorldObject& object, IWorldObjectCreationServices* se
     return true;
 }
 
-std::optional<WorldObjectCreationError> ApplyDirectMapCases(WorldObject& object, std::int16_t type, std::int32_t& map,
-                                                            WorldObjectRegistrations* registrations,
+std::optional<WorldObjectCreationError> ApplyDirectMapCases(Kernel::WorldObject& object, std::int16_t type,
+                                                            std::int32_t& map,
+                                                            Kernel::WorldObjectRegistrations* registrations,
                                                             WorldObjectCreationContext* context)
 {
     const bool projection = context == nullptr;
@@ -333,7 +336,7 @@ std::optional<WorldObjectCreationError> ApplyDirectMapCases(WorldObject& object,
         if (type == 39)
         {
             RegisterAuxiliaryObject(object, registrations);
-            object.state.hiddenMesh = HiddenObject;
+            object.state.hiddenMesh = Kernel::HiddenObject;
         }
         return std::nullopt;
     case 8:
@@ -355,7 +358,7 @@ std::optional<WorldObjectCreationError> ApplyDirectMapCases(WorldObject& object,
     }
 }
 
-void ApplySceneCases(WorldObject& object, std::int16_t type)
+void ApplySceneCases(Kernel::WorldObject& object, std::int16_t type)
 {
     switch (type)
     {
@@ -390,7 +393,7 @@ void ApplySceneCases(WorldObject& object, std::int16_t type)
         return;
     case DragonOwner:
         // The synchronous emission runs after these stores, before reading the map.
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         object.light = glm::vec3(1.0f);
         return;
     default:
@@ -398,7 +401,7 @@ void ApplySceneCases(WorldObject& object, std::int16_t type)
     }
 }
 
-std::optional<WorldObjectCreationError> ApplySceneCreationCases(WorldObject& object, std::int16_t type,
+std::optional<WorldObjectCreationError> ApplySceneCreationCases(Kernel::WorldObject& object, std::int16_t type,
                                                                 ObjectScene scene, WorldObjectCreationContext* context)
 {
     if (!HasSceneCases(scene))
@@ -415,9 +418,9 @@ std::optional<WorldObjectCreationError> ApplySceneCreationCases(WorldObject& obj
     return std::nullopt;
 }
 
-WorldObject ObjectOf(const Data::Terrain::TerrainObject& record, int sectorX, int sectorY)
+Kernel::WorldObject ObjectOf(const Data::Terrain::TerrainObject& record, int sectorX, int sectorY)
 {
-    WorldObject object;
+    Kernel::WorldObject object;
     object.type = record.type;
     object.sectorX = sectorX;
     object.sectorY = sectorY;
@@ -430,7 +433,7 @@ WorldObject ObjectOf(const Data::Terrain::TerrainObject& record, int sectorX, in
 }
 
 WorldObjectCreationResult CreateObjects(std::span<const Data::Terrain::TerrainObject> records, std::int32_t& map,
-                                        ObjectScene scene, WorldObjectRegistrations* registrations,
+                                        ObjectScene scene, Kernel::WorldObjectRegistrations* registrations,
                                         WorldObjectCreationContext* context)
 {
     WorldObjectCreationResult result;
@@ -445,7 +448,7 @@ WorldObjectCreationResult CreateObjects(std::span<const Data::Terrain::TerrainOb
         {
             continue;
         }
-        WorldObject& object = result.objects.emplace_back(ObjectOf(record, sectorX, sectorY));
+        Kernel::WorldObject& object = result.objects.emplace_back(ObjectOf(record, sectorX, sectorY));
         if (registrations != nullptr)
         {
             object.identity = registrations->nextIdentity++;
@@ -472,7 +475,7 @@ WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::Terr
 }
 
 WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
-                                             ObjectScene scene, WorldObjectRegistrations& registrations)
+                                             ObjectScene scene, Kernel::WorldObjectRegistrations& registrations)
 {
     std::int32_t mapNumber = map;
     return CreateObjects(records, mapNumber, scene, &registrations, nullptr);
@@ -489,7 +492,7 @@ namespace
 // 0x4e9980 and 0x4ec200, the common part of 0x604ab0: the alpha toward its target and, if it did not fall below 0.01
 // (0x604c3d, which exits), the animation at `speed` (the object's, except Tarkan's 8) with `skeleton`'s action, if it
 // has one. Returns whether it goes on.
-bool AdvanceTheObject(WorldObject& object, const Models::Skeleton* skeleton, float speed)
+bool AdvanceTheObject(Kernel::WorldObject& object, const Models::Skeleton* skeleton, float speed)
 {
     Effects::StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
     if (object.alpha < MinimumAlpha)
@@ -505,11 +508,11 @@ bool AdvanceTheObject(WorldObject& object, const Models::Skeleton* skeleton, flo
 }
 
 // The map 0x37 cases of 0x604ab0: the markers hide and the whirlpools turn.
-void ApplyLoginStepCases(WorldObject& object)
+void ApplyLoginStepCases(Kernel::WorldObject& object)
 {
     if (IsLoginMarker(object.type))
     {
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
     }
     else if (object.type == RedWhirlpool)
     {
@@ -603,8 +606,8 @@ std::string_view LorenciaFireCase(std::int16_t type)
 }
 
 // 0x604d6f: map 0's cases, by type − 0x32 (the table at 0x605b58).
-Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::CrtRandom& random,
-                                                    const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepLorenciaCases(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                    const Kernel::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -631,7 +634,7 @@ Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::Cr
     {
         const auto fire = [&](std::int32_t kind, const glm::vec3& offset) -> Core::Expected<void, std::string>
         {
-            const auto emitted = EmitObjectFire(kind, object, offset, random, globals);
+            const auto emitted = Particles::EmitObjectFire(kind, object, offset, random, globals);
             if (!emitted.HasValue())
             {
                 return Core::Unexpected(std::format("{}: {}", LorenciaFireCase(object.type), emitted.Error()));
@@ -645,7 +648,7 @@ Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::Cr
             {
                 return emitted;
             }
-            object.state.hiddenMesh = HiddenObject;
+            object.state.hiddenMesh = Kernel::HiddenObject;
             return {};
         }
         if (object.type == 0x50 || object.type == 0x37)
@@ -681,8 +684,8 @@ Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::Cr
 }
 
 // 0x60506d: map 2's cases, by type − 0x14 (the table at 0x605c08).
-Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Crt::CrtRandom& random,
-                                                  const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepDeviasCases(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                  const Kernel::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -692,7 +695,7 @@ Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Crt::CrtR
     case 0x1e:
     case 0x42:
     {
-        const auto emitted = EmitObjectFire(0, object, glm::vec3(0.0f, 0.0f, 50.0f), random, globals);
+        const auto emitted = Particles::EmitObjectFire(0, object, glm::vec3(0.0f, 0.0f, 50.0f), random, globals);
         if (!emitted.HasValue())
         {
             return Core::Unexpected(std::format("0x6050b9: {}", emitted.Error()));
@@ -714,7 +717,8 @@ constexpr int DropSpread = 32;
 constexpr int DropCenter = 16;
 } // namespace
 
-Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Crt::CrtRandom& random, float worldClock)
+Core::Expected<void, std::string> StepTheWaterspoutFrame(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                         float worldClock)
 {
     // 0x603011: the blendMesh light at 1.0 (0x3f800000), before the ftol.
     object.state.light = 1.0f;
@@ -738,7 +742,7 @@ Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Cr
                                         x, z));
 }
 
-void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton)
+void StepWorldObject(Kernel::WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton)
 {
     if (AdvanceTheObject(object, skeleton, object.speed) && map == LoginMap)
     {
@@ -746,9 +750,9 @@ void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skelet
     }
 }
 
-Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
+Core::Expected<void, std::string> StepWorldObjectChecked(Kernel::WorldObject& object, std::uint8_t map,
                                                          const Models::Skeleton* skeleton, Crt::CrtRandom& random,
-                                                         const ObjectStepGlobals& globals)
+                                                         const Kernel::ObjectStepGlobals& globals)
 {
     // 0x425070: the 33 (Aida) and the 54 (the selection) reach 0x4250f0 through the chain of 0x605a62.
     constexpr std::uint8_t AidaMap = Maps::AidaMap;
@@ -802,7 +806,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         constexpr std::int16_t FirstHiddenKalimaObject = 37;
         constexpr std::int16_t LastHiddenKalimaObject = 40;
         if (object.type >= FirstHiddenKalimaObject && object.type <= LastHiddenKalimaObject)
-            object.state.hiddenMesh = HiddenObject;
+            object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     }
     if (aida)
@@ -859,9 +863,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     }
 }
 
-ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map)
+Kernel::ObjectDraw DrawOf(const Kernel::WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map)
 {
-    ObjectDraw draw;
+    Kernel::ObjectDraw draw;
     draw.alpha = object.alpha;
     draw.state = object.state;
     draw.vertexLight = object.vertexLight;
@@ -880,23 +884,23 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     }
     // 0x5ffdf0 does not draw with the alpha below 0.01, and 0x6002e0 exits with +0x58 = −2.
     draw.posed = !(object.alpha < MinimumAlpha);
-    if (!draw.posed || object.state.hiddenMesh == HiddenObject)
+    if (!draw.posed || object.state.hiddenMesh == Kernel::HiddenObject)
     {
-        draw.kind = ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         return draw;
     }
     if (map == LorenciaMap && object.type == Waterspout)
     {
         // 0x600a4a: without RenderBody's glColor; the 0x69 goes with per-vertex light (+0xe8), which overrides each
         // corner's color.
-        draw.kind = ObjectDrawKind::Waterspout;
+        draw.kind = Kernel::ObjectDrawKind::Waterspout;
         return draw;
     }
     constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     constexpr std::int16_t TarkanChromeObject = 0x51;
     if (map == TarkanMap && object.type == TarkanChromeObject)
     {
-        draw.kind = ObjectDrawKind::TarkanChrome;
+        draw.kind = Kernel::ObjectDrawKind::TarkanChrome;
         return draw;
     }
     if (map == LoginMap && object.type == DarkWhirlpool)
@@ -904,15 +908,15 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
         // The map 55 case: mesh 0 alone, white and unlit, through the blendMesh branch (GL_ZERO,
         // GL_ONE_MINUS_SRC_COLOR). Before its first step, without the blendMesh, 0x4ecc30 binds no texture and does not
         // change the blend (Q-C135): MuRet does not draw it.
-        draw.kind = object.state.blendMesh == Models::EveryMeshBlends ? ObjectDrawKind::SubtractiveMesh
-                                                                      : ObjectDrawKind::Hidden;
+        draw.kind = object.state.blendMesh == Models::EveryMeshBlends ? Kernel::ObjectDrawKind::SubtractiveMesh
+                                                                      : Kernel::ObjectDrawKind::Hidden;
         draw.color = glm::vec3(1.0f);
         draw.alpha = 1.0f;
         draw.state.light = 1.0f;
         draw.vertexLight = false;
         return draw;
     }
-    draw.kind = ObjectDrawKind::Body;
+    draw.kind = Kernel::ObjectDrawKind::Body;
     return draw;
 }
 
@@ -943,17 +947,17 @@ glm::vec3 StreetLightGlowLight(int random)
             static_cast<float>(static_cast<double>(light) * Blue)};
 }
 
-int SectorX(const WorldObject& object)
+int SectorX(const Kernel::WorldObject& object)
 {
     return object.sectorX;
 }
 
-int SectorY(const WorldObject& object)
+int SectorY(const Kernel::WorldObject& object)
 {
     return object.sectorY;
 }
 
-std::vector<std::size_t> DrawOrder(std::span<const WorldObject> objects)
+std::vector<std::size_t> DrawOrder(std::span<const Kernel::WorldObject> objects)
 {
     std::vector<std::size_t> order(objects.size());
     std::iota(order.begin(), order.end(), std::size_t{0});

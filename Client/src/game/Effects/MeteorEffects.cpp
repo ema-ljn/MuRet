@@ -24,7 +24,7 @@
 #include "Effects/GameModelEffects.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/ParticleOwner.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -82,8 +82,7 @@ Core::Expected<void, std::string> LightTheMeteor(const Effects::ModelEffect& eff
     if (!wave)
         return Core::Unexpected(std::string("0x5260d4: el seno de la vida del 0x13d fuera del perfil PC53"));
     const glm::vec3 color{F32(*wave), F32(*wave), F32(*wave + Blue)};
-    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius,
-                                         "0x5260fe");
+    return Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius, "0x5260fe");
 }
 
 // 0x52614a..0x526207: the pebble 0xc8 or 0xc9, rand() % 150 + 300 ahead with the turn rand() % 360 in z, and the type.

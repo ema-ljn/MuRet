@@ -44,7 +44,7 @@
 #include "Kernel/ChosenNpc.h"
 #include "Kernel/MouseState.h"
 #include "Weather/LeafWeather.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -427,7 +427,7 @@ struct WorldRuntime
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<Audio::SoundId> lastSoundId{};
-    WorldObjects::ObjectModelStepState objectModelState{};
+    Kernel::ObjectModelStepState objectModelState{};
     // 0x7d365a0, .bss 0. 0x6061c0 reads the retained count before 0x60657a; 0x6063d0 produces it only for Icarus,
     // Chaos Castle and the siege. Kalima keeps 0 after the successful pass's reset.
     std::int32_t objectSelectionCount = 0;

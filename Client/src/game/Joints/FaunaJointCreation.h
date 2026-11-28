@@ -60,6 +60,11 @@ inline constexpr std::int32_t KillBeamJoint = 0x618;
 CreateFaunaJoint(std::span<Kernel::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
                  Kernel::JointOwnerKind ownerKind = Kernel::JointOwnerKind::ByType,
                  const JointKernels::CreationServices* services = nullptr);
+// Kernel::CreateJointFunction, what the composition root lends the model effects (WorldState::LendJointCreation).
+[[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string> CreateJoint(std::span<Kernel::JointState> joints,
+                                                                                  const Kernel::JointRequest& request,
+                                                                                  Crt::CrtRandom& random,
+                                                                                  Kernel::JointOwnerKind ownerKind);
 // 0x535840: the 0x697 and 618/4 follow the owner's +0x40; the 610/8 follows position with z 300; the 10f/3 uses
 // life/RNG, the sine and the owner's color. The 614/10 and 614/14 turn and iterate their tail without reading the
 // owner; the 618/0x11 follows the character's +0x40 and the 610/4 goes from its +0x17c to its position; the 60f/0, the

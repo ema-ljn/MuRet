@@ -7,13 +7,13 @@
 #include "Math/X87.h"
 #include "Protocol/Events/Events.h"
 #include "Math/OriginalRetainedMath.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "Kernel/WorldRuntime.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -43,10 +43,9 @@ constexpr glm::vec3 White(1.0f);
 
 using Math::F32;
 
-Core::Expected<void, std::string> EmitAt(const WorldObjects::GameObjectPass& pass,
-                                         const WorldObjects::WorldObject& object, const glm::vec3& position,
-                                         std::int32_t type, std::int32_t subtype, const glm::vec3& light,
-                                         std::string_view address)
+Core::Expected<void, std::string> EmitAt(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                         const glm::vec3& position, std::int32_t type, std::int32_t subtype,
+                                         const glm::vec3& light, std::string_view address)
 {
     if (pass.particles == nullptr)
     {
@@ -65,9 +64,9 @@ Core::Expected<void, std::string> EmitAt(const WorldObjects::GameObjectPass& pas
     return {};
 }
 
-Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
-                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
-                                       const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> Emit(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                       std::int32_t type, std::int32_t subtype, const glm::vec3& light,
+                                       std::string_view address)
 {
     return EmitAt(pass, object, object.transform.position, type, subtype, light, address);
 }
@@ -75,8 +74,7 @@ Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
 // 0x4308ca..0x430932: the smoke 0x5f2/33 50 (0x6b86b0) higher, with the light of another rand(): L = ((rand() & 3) +
 // 3) · 0.1f in the x87, fst of the red, and the green and the blue times 0.6f (0x6b8a20) and 0.2f (0x6b8854) from the
 // unrounded L.
-Core::Expected<void, std::string> RisingSmoke(const WorldObjects::WorldObject& object,
-                                              const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> RisingSmoke(const Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     constexpr double Lift = 50.0;
     constexpr int LevelMask = 3, LevelBase = 3;
@@ -92,8 +90,8 @@ Core::Expected<void, std::string> RisingSmoke(const WorldObjects::WorldObject& o
 }
 
 // 0x4305db..0x43068c.
-Core::Expected<void, std::string> Glow(const WorldObjects::WorldObject& object,
-                                       const WorldObjects::GameObjectPass& pass, Kernel::CrywolfGlobals& crywolf)
+Core::Expected<void, std::string> Glow(const Kernel::WorldObject& object, const Kernel::GameObjectPass& pass,
+                                       Kernel::CrywolfGlobals& crywolf)
 {
     // fst stores the turn in float and fcomp compares the sum left in the x87 with 360; NaN does not go back to 0.
     const double turned = static_cast<double>(crywolf.glowRotation) + GlowStep;
@@ -134,8 +132,8 @@ Core::Expected<glm::vec3, std::string> AltarLight(float worldClock, std::int32_t
 }
 } // namespace
 
-Core::Expected<void, std::string> StepCrywolfObjectFrame(const WorldObjects::WorldObject& object,
-                                                         const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepCrywolfObjectFrame(const Kernel::WorldObject& object,
+                                                         const Kernel::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
         return Core::Unexpected(std::string("0x430510: falta el rand() de la CRT"));
@@ -160,9 +158,8 @@ Core::Expected<void, std::string> StepCrywolfObjectFrame(const WorldObjects::Wor
     return {};
 }
 
-Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObject& object,
-                                                    WorldObjects::ObjectDraw& draw,
-                                                    const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> CrywolfObjectBody(const Kernel::WorldObject& object, Kernel::ObjectDraw& draw,
+                                                    const Kernel::GameObjectPass& pass)
 {
     if (pass.crywolf == nullptr)
         return Core::Unexpected(std::string("0x4306a0: faltan los globales de Crywolf (0x723c04 y 0x5763358)"));
@@ -201,7 +198,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObj
     case 0x39:
     case 0x47:
     {
-        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         if (!frame || pass.random->Next() % EmitChance != 0)
             return {};
         const bool smoke = object.type == 0x39;
@@ -215,27 +212,27 @@ Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObj
     }
     case 0x48:
     {
-        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         constexpr int SmokeChance = 10;
         if (!frame || pass.random->Next() % SmokeChance != 0)
             return {};
         return RisingSmoke(object, pass);
     }
     case 0x49:
-        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         // 0x430942: with the weather at 0, the HUD sand at 1, in each of the original's 0x6002e0.
         if (frame && crywolf.weather == 0)
             pass.crywolf->sandOverlay = 1;
         return {};
     case 0x4a:
-        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         if (!frame || pass.random->Next() % EmitChance != 0 || crywolf.state != Protocol::Events::CrywolfOccupiedState)
             return {};
         return Emit(pass, object, Particles::BreathParticle, Particles::CrywolfSmokeSubtype, White, "0x430993");
     case 0x4d:
     case 0x4e:
     {
-        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         constexpr int CloudChance = 6;
         if (!frame || pass.random->Next() % CloudChance != 0)
             return {};
@@ -248,7 +245,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObj
         return Emit(pass, object, Particles::CloudParticle, Particles::CrywolfCloudSubtype, light, "0x430a23");
     }
     case 0x51:
-        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+        draw.kind = Kernel::ObjectDrawKind::Hidden;
         // 0x430a33: the caller runs the two direct RenderMesh, without the generic RenderBody.
         if (crywolf.state == Protocol::Events::CrywolfWarState)
         {

@@ -2,9 +2,9 @@
 #include "Crt/CrtRandom.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
-#include "Joints/FaunaJointCreation.h"
 #include "Fauna/FaunaStep.h"
 #include "Assets/FaunaModels.h"
+#include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
@@ -103,14 +103,14 @@ Core::Expected<void, std::string> StepFaunaLightning(Effects::ModelEffect& effec
     return {};
 }
 FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
-                                      std::span<Kernel::JointState> joints, Effects::ModelEffects& effects,
+                                      const Kernel::WorldState& world, Effects::ModelEffects& effects,
                                       Crt::CrtRandom& random)
 {
     FaunaStepEffects result;
-    result.effect = [joints, &random, &log = load.log](
+    result.effect = [&world, &random, &log = load.log](
                         const Kernel::JointRequest& request) -> Core::Expected<std::uint32_t, std::error_code>
     {
-        const auto created = Joints::CreateFaunaJoint(joints, request, random);
+        const auto created = world.CreateJoint(request, random);
         if (!created.HasValue())
         {
             log.Warning("{}", created.Error());

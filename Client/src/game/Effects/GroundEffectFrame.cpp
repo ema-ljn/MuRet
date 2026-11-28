@@ -3,10 +3,10 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ModelEffectDrawing.h"
 #include "Effects/GroundEffectDrawing.h"
 #include "Effects/ModelEffects.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 
 #include <algorithm>
 #include <span>
@@ -23,7 +23,7 @@ Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& ba
     if (originalFrame || !m_map)
         Capture(effects, resources);
     if (originalFrame)
-        return WorldObjects::DrawGroundEffects(batch, effects, resources);
+        return Effects::DrawGroundEffects(batch, effects, resources);
     if (*m_map != resources.map)
     {
         return Core::Unexpected(
@@ -40,7 +40,7 @@ Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& ba
                                                 .map = *m_map,
                                                 .kalima = m_kalimaSnapshot.get(),
                                                 .ownerPosition = resources.ownerPosition};
-    return WorldObjects::DrawGroundEffects(batch, m_replayEffects, replay);
+    return Effects::DrawGroundEffects(batch, m_replayEffects, replay);
 }
 
 void GroundEffectFrame::Capture(std::span<Effects::ModelEffect> effects,

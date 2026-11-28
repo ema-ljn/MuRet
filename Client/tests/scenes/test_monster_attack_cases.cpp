@@ -34,6 +34,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 
@@ -145,6 +146,7 @@ struct Game
     Game()
     {
         states.assets.fauna.TextureTable().Bind(store);
+        Client::Tests::LendTheWorldPorts(world);
     }
     Client::Scenes::WorldEntryResources Resources()
     {

@@ -14,7 +14,7 @@
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Render/Frame/SceneCanvas.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/SpriteDrawing.h"
 #include "Particles/Sprites.h"
 #include "support/RecordingFrameTarget.h"
 
@@ -286,7 +286,7 @@ TEST(GameSceneKalimaTailTest, RealSpritesOverlapBothBandsWhileDamageOnlyUsesTheS
             if (stage == GameTailStage::Sprites)
             {
                 batch.Begin(pass);
-                Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, view, mode);
+                Client::Particles::DrawFrameSprites(batch, sprites, textures, view, mode);
                 spriteModes.at(spritePass) = mode;
                 spriteVertices.at(spritePass++) = batch.Vertices().size();
             }

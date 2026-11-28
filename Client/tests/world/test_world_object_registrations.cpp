@@ -1,4 +1,5 @@
 #include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 
 #include <gtest/gtest.h>
 
@@ -7,7 +8,7 @@
 
 namespace
 {
-using Client::WorldObjects::WorldObjectRegistrations;
+using Client::Kernel::WorldObjectRegistrations;
 
 // Catches lookup by pointer/null or by active == 1, and metadata erased when reserving a slot.
 TEST(WorldObjectRegistrationsTest, UsesTheFirstZeroFlagAndPreservesAllOtherState)

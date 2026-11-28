@@ -9,6 +9,7 @@
 
 namespace Client::Kernel
 {
+struct ObjectModelStepState;
 struct PoseBuffer;
 } // namespace Client::Kernel
 
@@ -21,11 +22,6 @@ namespace Client::Effects
 {
 class ModelEffects;
 } // namespace Client::Effects
-
-namespace Client::WorldObjects
-{
-struct ObjectModelStepState;
-} // namespace Client::WorldObjects
 
 namespace Client::Particles
 {
@@ -51,7 +47,7 @@ struct ItemDrawResources
     GameItemRenderState& itemRender;
     Particles::FrameSprites& sprites;
     Kernel::PoseBuffer& poseCarry;
-    WorldObjects::ObjectModelStepState& modelState;
+    Kernel::ObjectModelStepState& modelState;
     std::span<Kernel::JointState> joints;
     Effects::ModelEffects& effects;
     std::int32_t map = 0;

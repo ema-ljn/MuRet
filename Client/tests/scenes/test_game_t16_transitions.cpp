@@ -7,7 +7,9 @@
 #include "Network/Packet.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldMap.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
+
+#include "support/KalimaWaves.h"
 
 #include <gtest/gtest.h>
 
@@ -35,11 +37,11 @@ protected:
         if (!expected)
             return;
         EXPECT_EQ(m_world->Map().kalima->Map(), map);
-        EXPECT_EQ(m_world->Map().kalima->Waves().planes.size(), 2u);
-        EXPECT_EQ(m_world->Map().kalima->Waves().planes[0].size(), 65536u);
+        EXPECT_EQ(Client::Tests::WavesOf(*m_world->Map().kalima).planes.size(), 2u);
+        EXPECT_EQ(Client::Tests::WavesOf(*m_world->Map().kalima).planes[0].size(), 65536u);
         EXPECT_TRUE(m_world->Map().kalima->Height(1000, 1000).has_value());
-        EXPECT_TRUE(
-            std::ranges::all_of(m_world->Map().kalima->Waves().planes[0], [](auto value) { return value == 0; }));
+        EXPECT_TRUE(std::ranges::all_of(Client::Tests::WavesOf(*m_world->Map().kalima).planes[0],
+                                        [](auto value) { return value == 0; }));
     }
 
     void ExpectAliasWorldTen()

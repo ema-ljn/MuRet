@@ -12,6 +12,7 @@
 #include "Kernel/WorldState.h"
 #include "Render/ModelBatch.h"
 #include "support/GoldenDir.h"
+#include "support/KalimaWaves.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/SessionHarness.h"
 
@@ -24,7 +25,7 @@
 #include "Particles/ParticleOwner.h"
 #include "Models/Skinning.h"
 #include <glm/ext/vector_float2.hpp>
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Fauna/FaunaState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Assets/WorldModels.h"
@@ -33,7 +34,7 @@
 #include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/PoseBuffer.h"
 #include "Scenes/GameDrawTail.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Kernel/ObjectPass.h"
 #include "Render/TextureSlot.h"
 #include "support/FakeTextureStore.h"
 #include "Terrain/SphereFrustum.h"
@@ -200,7 +201,7 @@ TEST_P(KalimaLiveObjectsTest, SeveralTicksAndIntermediateFramesPreserveDurablePo
     EXPECT_NE(preparedRandom, random);
     EXPECT_EQ(m_cloth->random.State(), preparedRandom);
     EXPECT_EQ(m_world->Fauna().Sounds().size(), sounds);
-    EXPECT_EQ(m_world->Map().kalima->Waves().planes, waves->Waves().planes);
+    EXPECT_EQ(Client::Tests::WavesOf(*m_world->Map().kalima).planes, Client::Tests::WavesOf(*waves).planes);
     for (std::size_t i = 0; i < particles.All().size(); ++i)
     {
         EXPECT_EQ(m_world->Particles().All()[i].alive, particles.All()[i].alive);
@@ -333,7 +334,7 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     Client::Crt::CrtRandom random(7);
     ASSERT_EQ(effects->CreateKalimaEffect({6400, 6400, 1000}, {}, {0.3f, 0.8f, 1}, random), 0u);
     Client::Kernel::PoseBuffer pose;
-    const Client::WorldObjects::GameObjectPass pass{
+    const Client::Kernel::GameObjectPass pass{
         .map = map, .originalFrame = false, .retainedPose = &pose, .waterTextureFrame = 0u};
     Client::Scenes::ModelEffectDrawResources resources{*m_states->terrain.current.heights};
     resources.kalimaPass = &pass;

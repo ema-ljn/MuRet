@@ -33,7 +33,7 @@
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
 
@@ -102,7 +102,7 @@ Result Emit(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, st
 // 0x5f9780(x, y, color, radius, 0x7b4ccc4).
 Result Light(ModelEffectsPass& pass, std::string_view address, const glm::vec3& color, std::int32_t radius)
 {
-    return WorldObjects::AddDynamicLight(pass.dynamicLighting, pass.actor.position, color, radius, address);
+    return Terrain::AddDynamicLight(pass.dynamicLighting, pass.actor.position, color, radius, address);
 }
 
 // 0x530860(type, first, second, angles, subtype, 0, width, −1, 0, 0, −1). With the pool full it creates nothing.

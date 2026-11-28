@@ -5,13 +5,14 @@
 
 #include <string>
 
+namespace Client::Kernel
+{
+struct ObjectModelStepState;
+} // namespace Client::Kernel
+
 namespace Client::Render
 {
 class ModelBatch;
-}
-namespace Client::WorldObjects
-{
-struct ObjectModelStepState;
 }
 namespace Client::Models
 {
@@ -32,5 +33,5 @@ namespace Client::MapScripts::Crywolf
                                                                        const Models::IModelLibrary& models,
                                                                        Actors::Drawing::DrawnObject& object,
                                                                        Core::Duration frameClock,
-                                                                       WorldObjects::ObjectModelStepState* modelState);
+                                                                       Kernel::ObjectModelStepState* modelState);
 } // namespace Client::MapScripts::Crywolf

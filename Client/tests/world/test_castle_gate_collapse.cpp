@@ -1,7 +1,7 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "CastleSiege/CastleSiegeObjectStep.h"
 #include "Core/Expected.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <string>
@@ -10,7 +10,7 @@ namespace
 {
 TEST(CastleGateCollapseTest, TheFragmentAndSoundPrecedeHidingOnlyMeshZero)
 {
-    Client::WorldObjects::WorldObject gate;
+    Client::Kernel::WorldObject gate;
     gate.type = 0x3d;
     gate.field08 = 99;
     gate.seen = true;
@@ -41,7 +41,7 @@ TEST(CastleGateCollapseTest, TheFragmentAndSoundPrecedeHidingOnlyMeshZero)
 }
 TEST(CastleGateCollapseTest, UnseenOrNotYetDestroyedGatesDoNotEmitAndIntactGatesRestoreTheMesh)
 {
-    Client::WorldObjects::WorldObject gate;
+    Client::Kernel::WorldObject gate;
     gate.type = 0x40;
     gate.state.hiddenMesh = 9;
     ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeSeenObject(gate, true, 0).HasValue());

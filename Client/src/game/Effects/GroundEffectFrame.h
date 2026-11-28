@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Effects/ModelEffects.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 
 #include <cstdint>
 #include <memory>
@@ -37,7 +37,7 @@ public:
 
 private:
     void Capture(std::span<Effects::ModelEffect> effects, const Effects::GroundEffectResources& resources);
-    std::unique_ptr<MapScripts::Kalima::KalimaWorld> m_kalimaSnapshot;
+    std::unique_ptr<Kernel::KalimaWater> m_kalimaSnapshot;
     std::vector<Effects::ModelEffect> m_originalEffects;
     std::vector<Effects::ModelEffect> m_replayEffects;
     std::uint32_t m_randomState = 1;

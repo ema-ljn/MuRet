@@ -3,19 +3,29 @@
 #include "Core/Expected.h"
 #include "Math/HalfLifeMath.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <span>
 #include <string>
 
+namespace Client::Assets
+{
+class FaunaModels;
+} // namespace Client::Assets
+
 namespace Client::Kernel
 {
+struct ActorState;
 struct PoseBuffer;
+class WorldState;
 } // namespace Client::Kernel
 
 namespace Client::Models
 {
 class IModelLibrary;
 struct ObjectTransform;
+struct Skeleton;
 } // namespace Client::Models
 
 // What a draw leaves in the global pose buffer (Kernel/PoseBuffer.h) for the glows and shadows that read it after: the
@@ -45,4 +55,10 @@ PublishFloorPose(Kernel::PoseBuffer& buffer, const Models::IModelLibrary& models
 // 0x4ebc80: updates the meshes' scratch with the kept bones, without running 0x4eb860.
 [[nodiscard]] Core::Expected<void, std::string>
 TransformPose(Kernel::PoseBuffer& buffer, const Models::IModelLibrary& models, const DrawnObject& object);
+
+// 0x4eb860 with flags (0, 1): keeps the dummy bones and publishes the global pose and the model's key in
+// `faunaModels`; without them it stops there.
+[[nodiscard]] Core::Expected<void, std::string>
+PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
+               const Models::Skeleton& skeleton, float frame, const glm::vec3& angles);
 } // namespace Client::Actors::Drawing

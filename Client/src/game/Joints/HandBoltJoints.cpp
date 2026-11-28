@@ -9,7 +9,7 @@
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -72,7 +72,7 @@ Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRando
         color = {F32(value), F32(value * Tenth), F32(value * Tenth)};
     else
         color = {F32(value), F32(value * Green), F32(value * Blue)};
-    return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x539e6f");
+    return Terrain::AddDynamicLight(lighting, joint.position, color, 2, "0x539e6f");
 }
 
 // 0x539ed4..0x539f11: on arrival, once every two, three rand() for a point nobody reads and the 0x5d9/0 fire.

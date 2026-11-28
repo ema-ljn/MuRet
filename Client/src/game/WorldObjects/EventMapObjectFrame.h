@@ -4,22 +4,22 @@
 
 #include <string>
 
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
+struct GameObjectPass;
 struct WorldObject;
-}
+} // namespace Client::Kernel
+
 // 0x602ed0 with Devil Square (map 9, 0x603dd7) and with Blood Castle (11 to 17, 0x604152), and 0x6044ed's chain with
 // Chaos Castle (18 to 23, 0x4059d0), after 0x602ef4's common rand(). Contract: 06 § Los objetos de Devil Square y de
 // Blood Castle, and § Los objetos de Chaos Castle.
 namespace Client::WorldObjects
 {
-struct GameObjectPass;
-
 // Type 2: with rand() & 3 at 0, a 0x68/0 at bone 23 of the global pose (0x4ec110 with (−15; 0; 0)); with another
 // rand() & 3 at 0, another at bone 31; and always one more at 23. All three with the object's angles, light 1, scale 1
 // and no owner. The other types, nothing.
-[[nodiscard]] Core::Expected<void, std::string> StepDevilSquareObjectFrame(const WorldObjects::WorldObject& object,
-                                                                           const GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepDevilSquareObjectFrame(const Kernel::WorldObject& object,
+                                                                           const Kernel::GameObjectPass& pass);
 
 // With the world clock T and the sine in the x87:
 // - the 0xb: seven 0x5ac sprites of 0.5 at (0; 0; 2) on bones 1, 2, 4, 6, 9, 10 and 11, unrotated, with light
@@ -32,8 +32,8 @@ struct GameObjectPass;
 //   object's angles and no owner.
 // The other types, nothing. A sine or ftol outside the accredited profile, a missing pose, sprites or pool, and a
 // creation MuRet lacks stop with their address, after what was already done.
-[[nodiscard]] Core::Expected<void, std::string> StepBloodCastleObjectFrame(WorldObjects::WorldObject& object,
-                                                                           const GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepBloodCastleObjectFrame(Kernel::WorldObject& object,
+                                                                           const Kernel::GameObjectPass& pass);
 
 // 0x4059d0, with 0x6c634c's area (`pass.chaosCastleArea`, an unsigned byte):
 // - 0 to 3: with +0x8a nonzero (set by 0x4055b0) and +0x58 other than −2, the point of bone 1 of the global pose;
@@ -49,6 +49,6 @@ struct GameObjectPass;
 // - the 0x16, the 0x17 and the others, nothing.
 // Without a pool, a pose, a joint creator or sound, or with a creation MuRet lacks, it stops with its address, after
 // what it already did.
-[[nodiscard]] Core::Expected<void, std::string> StepChaosCastleObjectFrame(WorldObjects::WorldObject& object,
-                                                                           const GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepChaosCastleObjectFrame(Kernel::WorldObject& object,
+                                                                           const Kernel::GameObjectPass& pass);
 } // namespace Client::WorldObjects

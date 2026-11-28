@@ -8,7 +8,7 @@
 #include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/WorldRuntime.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -31,7 +31,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Events::ObjectCollapse;
 using Client::Events::ObjectCollapseContext;
-using Client::WorldObjects::WorldObject;
+using Client::Kernel::WorldObject;
 
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
@@ -263,7 +263,7 @@ TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
     WorldObject gate = Object(Gate);
     ASSERT_TRUE(Collapse(gate).HasValue());
     EXPECT_EQ(gate.transform.angles.x, 90.0f);
-    EXPECT_EQ(gate.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(gate.state.hiddenMesh, Client::Kernel::HiddenObject);
     EXPECT_EQ(Request().map, -1);
     EXPECT_EQ(Request().type, -1);
     EXPECT_EQ(Request().counter, -1);
@@ -290,7 +290,7 @@ TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
     const auto cut = Client::Events::CollapseTheObject(last, context);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5ffb54"), std::string::npos) << cut.Error();
-    EXPECT_EQ(last.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(last.state.hiddenMesh, Client::Kernel::HiddenObject);
     EXPECT_EQ(Request().map, -1);
 }
 
@@ -392,7 +392,7 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepEndsInTheNextArea)
         Request() = {.map = 20, .type = 0x10, .counter = 0, .delay = 2.0f};
         WorldObject object = Object(step.type);
         ASSERT_TRUE(Collapse(object).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         EXPECT_EQ(object.transform.position.z, 300.0f);
         EXPECT_EQ(Runtime().chaosCastleArea, step.next);
         EXPECT_EQ(Request().map, -1);
@@ -530,7 +530,7 @@ TEST_F(ObjectCollapseTest, TheWalkResetsTheRequestHalfway)
     { return Client::Events::CollapseTheObject(object, context); };
     ASSERT_TRUE(Client::WorldObjects::WalkTheObjectSectors(objects, {}, collapse).HasValue());
     EXPECT_EQ(objects[2].field8a, 4);
-    EXPECT_EQ(objects[0].state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(objects[0].state.hiddenMesh, Client::Kernel::HiddenObject);
     EXPECT_EQ(objects[0].transform.angles.x, 90.0f);
     EXPECT_EQ(objects[1].field8a, 0);
     EXPECT_EQ(objects[1].state.hiddenMesh, Client::Models::NoHiddenMesh);

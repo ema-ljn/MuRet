@@ -28,10 +28,10 @@ struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::MapScripts::Kalima
+namespace Client::Kernel
 {
-class KalimaWorld;
-} // namespace Client::MapScripts::Kalima
+class KalimaWater;
+} // namespace Client::Kernel
 
 namespace Client::Particles
 {
@@ -81,6 +81,6 @@ CreateBlastModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments
 // life; the 0xe7..0xe9 and the 0x113 without an owner return without the tail). Leaves `before` in previousPosition.
 [[nodiscard]] Core::Expected<void, std::string>
 StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles::Particles& particles,
-                     float worldClock, Crt::CrtRandom& random, int lightDraw, MapScripts::Kalima::KalimaWorld* kalima,
+                     float worldClock, Crt::CrtRandom& random, int lightDraw, Kernel::KalimaWater* kalima,
                      const ModelEffectStepServices& services);
 } // namespace Client::Effects

@@ -4,6 +4,8 @@
 #include "MapScripts/Kalima/KalimaWaves.h"
 #include "Effects/GameModelEffects.h"
 #include "Particles/Particles.h"
+
+#include "support/KalimaWaves.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <memory>
@@ -45,7 +47,7 @@ TEST(KalimaModelEffectTest, ImpactWritesTheNativePlaneOnceBeforeTheSecondMovemen
     EXPECT_EQ(random.State(), 0xc40e66b9u); // radio positivo no sortea centros.
     const auto snapshot = water->CloneForFrame();
     ASSERT_TRUE(Client::Effects::StepGameModelEffect(effect, nullptr, particles, 0, random, water.get()).HasValue());
-    EXPECT_EQ(water->Waves().planes, snapshot->Waves().planes);
+    EXPECT_EQ(water->Waves().planes, Client::Tests::WavesOf(*snapshot).planes);
     EXPECT_EQ(random.State(), 0xbb6f8e98u);
     for (int tick = 2; tick < 30; ++tick)
         ASSERT_TRUE(

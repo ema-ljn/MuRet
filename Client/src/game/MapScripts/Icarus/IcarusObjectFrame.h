@@ -4,14 +4,11 @@
 
 #include <string>
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-}
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct GameObjectPass;
-} // namespace Client::WorldObjects
+struct WorldObject;
+} // namespace Client::Kernel
 
 // 0x602ed0 with map 10 (0x603eef, the table 0x60466c), after the common rand() of 0x602ef4. Contract: 06 § Los
 // objetos de Icarus.
@@ -26,6 +23,6 @@ namespace Client::MapScripts::Icarus
 // - 6 to 9, nothing.
 // The particles go to the shared pool (0x53fe70); a full one is not an error. Without a pool or with a creation that
 // MuRet does not have it cuts with its address, after what it already did.
-[[nodiscard]] Core::Expected<void, std::string> StepIcarusObjectFrame(WorldObjects::WorldObject& object,
-                                                                      const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepIcarusObjectFrame(Kernel::WorldObject& object,
+                                                                      const Kernel::GameObjectPass& pass);
 } // namespace Client::MapScripts::Icarus

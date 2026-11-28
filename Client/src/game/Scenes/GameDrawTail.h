@@ -17,6 +17,11 @@
 #include <span>
 #include <string>
 
+namespace Client::Kernel
+{
+struct GameObjectPass;
+} // namespace Client::Kernel
+
 namespace Client::Render
 {
 class ModelBatch;
@@ -57,11 +62,6 @@ struct ItemDrawContext;
 struct DrawnObject;
 } // namespace Client::Actors::Drawing
 
-namespace Client::WorldObjects
-{
-struct GameObjectPass;
-} // namespace Client::WorldObjects
-
 // Contratos estáticos de6374fe..637572. Las familias incompletas conservan su prefijo y devuelven
 // la primera dirección no portada; una tabla vacía no acredita su camino vivo.
 namespace Client::Scenes
@@ -85,14 +85,6 @@ struct FloorItemDrawContext
     const Actors::Drawing::ItemDrawContext* itemContext = nullptr;
 };
 
-struct JointDrawResources
-{
-    Crt::CrtRandom& random;
-    Particles::FrameSprites& sprites;
-    bool originalFrame = true;
-    float worldClock = 0; // 53c8ee: ftol firmado, resto1000 y scroll de UV.
-};
-
 // 0x548f40: descenso de vida/velocidad; no consume RNG ni borra el resto del registro al morir.
 void StepDamage(std::span<Kernel::DamageNumberState> damage);
 
@@ -101,11 +93,6 @@ void StepDamage(std::span<Kernel::DamageNumberState> damage);
 
 [[nodiscard]] Core::Expected<void, std::string> DrawFloorItems(std::span<Kernel::FloorItemState> items,
                                                                const Terrain::SphereFrustum& frustum);
-[[nodiscard]] Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch,
-                                                           std::span<Kernel::JointState> joints, std::uint8_t mode);
-[[nodiscard]] Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch,
-                                                           std::span<Kernel::JointState> joints, std::uint8_t mode,
-                                                           const JointDrawResources& resources);
 [[nodiscard]] Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch,
                                                             std::span<const Kernel::RibbonState> ribbons);
 [[nodiscard]] Core::Expected<void, std::string>
@@ -137,7 +124,7 @@ struct ModelEffectDrawResources
     bool siegeActive = false;         // 4294b0 lee7239ec; no es un test de mapa.
     Crt::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const Actors::Drawing::ItemDrawContext* itemContext = nullptr;
-    const WorldObjects::GameObjectPass* kalimaPass = nullptr;
+    const Kernel::GameObjectPass* kalimaPass = nullptr;
     // 0x5ffdff..0x5ffe24: +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23 (el de `kalimaPass`), y
     // si el dibujo es de un frame del original: sólo entonces la resta de 0,15f queda guardada en el alpha del efecto.
     std::uint8_t heroByte1a1 = 0;

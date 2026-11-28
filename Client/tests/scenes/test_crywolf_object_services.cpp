@@ -17,7 +17,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
@@ -42,13 +42,13 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::CrywolfGlobals;
+using Client::Kernel::GameObjectPass;
+using Client::Kernel::ObjectDraw;
+using Client::Kernel::ObjectDrawKind;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Crywolf::CrywolfObjectBody;
 using Client::MapScripts::Crywolf::StepCrywolfObjectFrame;
 using Client::Particles::Particle;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::ObjectDraw;
-using Client::WorldObjects::ObjectDrawKind;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CrywolfMap = 34;
 
@@ -159,7 +159,7 @@ struct NoModels final : Client::Models::IModelLibrary
 // Two meshes: case 0x51 must repeat only mesh 0. Each query during a pass observes model+0x88.
 struct AltarModels final : Client::Models::IModelLibrary
 {
-    explicit AltarModels(Client::WorldObjects::ObjectModelStepState& state) : shared(state)
+    explicit AltarModels(Client::Kernel::ObjectModelStepState& state) : shared(state)
     {
         Client::Data::Models::Mesh mesh;
         mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
@@ -188,7 +188,7 @@ struct AltarModels final : Client::Models::IModelLibrary
     {
         return textures;
     }
-    Client::WorldObjects::ObjectModelStepState& shared;
+    Client::Kernel::ObjectModelStepState& shared;
     mutable std::vector<std::int8_t> selections;
     Client::Data::Models::Model model;
     Client::Models::Skeleton skeleton;
@@ -617,7 +617,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             Fixture fixture;
             fixture.crywolf.state = 2;
             fixture.crywolf.ui.light = given.light;
-            Client::WorldObjects::ObjectModelStepState shared;
+            Client::Kernel::ObjectModelStepState shared;
             shared.unlitMeshes[0x51] = 7;
             AltarModels models(shared);
             std::array objects{ObjectOf(0x51)};
@@ -692,7 +692,7 @@ TEST(CrywolfObjectServicesTest, OtherAltarStatesStayHiddenWithoutScaleOrModelSto
     {
         Fixture fixture;
         fixture.crywolf.state = state;
-        Client::WorldObjects::ObjectModelStepState shared;
+        Client::Kernel::ObjectModelStepState shared;
         shared.unlitMeshes[0x51] = 7;
         AltarModels models(shared);
         std::array objects{ObjectOf(0x51)};

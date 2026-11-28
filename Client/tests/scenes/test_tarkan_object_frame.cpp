@@ -6,12 +6,12 @@
 #include "Math/OriginalRotation.h"
 #include "Math/RoundedMath.h"
 #include "Kernel/PoseBuffer.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -30,11 +30,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameObjectPass;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Tarkan::StepTarkanObjectFrame;
 using Client::Math::RoundedSin;
 using Client::Particles::Particle;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TarkanMap = 8;
 
@@ -225,7 +225,7 @@ TEST(TarkanObjectFrameTest, TheSixtyPuffsTwentyTimesOnce)
     ExpectSameParticles(fixture, reference);
     EXPECT_EQ(fixture.Alive().size(), 20u);
     EXPECT_EQ(fixture.Alive().front()->subtype, 6);
-    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
 
     ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
     EXPECT_EQ(fixture.Alive().size(), 20u);
@@ -242,7 +242,7 @@ TEST(TarkanObjectFrameTest, TheSeventyPuffsOneTimeInFive)
         Reference reference(seed, fixture.clock);
         WorldObject object = ObjectOf(0x46);
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         if (reference.random.Next() % 5 == 0)
             reference.Smoke(object, object.transform.position, 7, object.transform.scale);
         ExpectSameParticles(fixture, reference);
@@ -259,7 +259,7 @@ TEST(TarkanObjectFrameTest, TheSeventySixPuffsInTheLastTenthOfItsPeriod)
         fixture.clock = clock;
         WorldObject object = ObjectOf(0x4c);
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         const bool puffs = clock == 14501.0f || clock == 19999.0f;
         ASSERT_EQ(fixture.Alive().size(), puffs ? 1u : 0u);
         if (puffs)
@@ -275,7 +275,7 @@ TEST(TarkanObjectFrameTest, TheSeventySixPuffsInTheLastTenthOfItsPeriod)
     const auto cut = StepTarkanObjectFrame(object, fixture.Pass());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x603c59"), std::string::npos) << cut.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
 }
 
 // 0x603c9d..0x603dc8: the 0x53 hides and, with ftol(T) % 10000 between ftol(z angle) · 10 + 3500 and + 4000
@@ -291,7 +291,7 @@ TEST(TarkanObjectFrameTest, TheEightyThreeSmokesInItsWindowAndSometimesThrowsASt
         fixture.clock = clock;
         WorldObject object = ObjectOf(0x53);
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         const bool inside = clock != 3800.0f && clock != 4300.0f;
         EXPECT_EQ(fixture.Alive().empty(), !inside);
         if (!inside)
@@ -373,7 +373,7 @@ TEST(TarkanObjectFrameTest, TheEightyThreeCutsWithItsAddresses)
     const auto cut = StepTarkanObjectFrame(object, fixture.Pass());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x603ca7"), std::string::npos) << cut.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
 
     Fixture empty;
     GameObjectPass pass = empty.Pass();

@@ -14,12 +14,14 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "MapScripts/Kalima/KalimaResources.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "MapScripts/Kalima/KalimaWaves.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/KalimaWaves.h"
 #include "support/SceneDataFiles.h"
 #include "support/TemporaryFolder.h"
 
@@ -107,7 +109,7 @@ TEST_F(KalimaSceneLoadingTest, AllSevenMapsLoadRealCpuDataAndWaterResourcesBefor
         ASSERT_TRUE(m_world->Map().kalima->Draw(frame, 64, 64).HasValue());
         EXPECT_EQ(frame.Vertices().size(), 20172u);
         EXPECT_EQ(m_random.State(), state);
-        EXPECT_FALSE(m_world->Map().kalima->Waves().selected);
+        EXPECT_FALSE(Client::Tests::WavesOf(*m_world->Map().kalima).selected);
     }
     tiles.Release();
     EXPECT_EQ(table.References(TextureSlot{0x23}), 0);
@@ -123,7 +125,7 @@ TEST_F(KalimaSceneLoadingTest, ReentryAndAnOrdinaryMapReplaceTheOwnerOnlyAfterTh
     const auto failed = Load(0, missing.Path());
     ASSERT_FALSE(failed.HasValue());
     EXPECT_EQ(m_world->Map().kalima.get(), previous);
-    EXPECT_EQ(m_world->Map().kalima->Waves().planes[0][128 * 256 + 128], 3u);
+    EXPECT_EQ(Client::Tests::WavesOf(*m_world->Map().kalima).planes[0][128 * 256 + 128], 3u);
     ASSERT_TRUE(Load(0, m_root).HasValue());
     EXPECT_EQ(m_world->Map().kalima, nullptr);
     ASSERT_TRUE(Load(24, m_root).HasValue());
@@ -131,8 +133,8 @@ TEST_F(KalimaSceneLoadingTest, ReentryAndAnOrdinaryMapReplaceTheOwnerOnlyAfterTh
     ASSERT_TRUE(m_world->Map().kalima->Disturb(64, 64, 3, 1000000, m_random).HasValue());
     ASSERT_TRUE(Load(24, m_root).HasValue());
     ASSERT_NE(m_world->Map().kalima, nullptr);
-    EXPECT_EQ(m_world->Map().kalima->Waves().planes[0][128 * 256 + 128], 0u);
-    EXPECT_FALSE(m_world->Map().kalima->Waves().selected);
+    EXPECT_EQ(Client::Tests::WavesOf(*m_world->Map().kalima).planes[0][128 * 256 + 128], 0u);
+    EXPECT_FALSE(Client::Tests::WavesOf(*m_world->Map().kalima).selected);
 }
 TEST_F(KalimaSceneLoadingTest, LoadRevisionInvalidatesEveryAttemptIncludingFailuresAndSameMapReentry)
 {
@@ -153,7 +155,7 @@ TEST_F(KalimaSceneLoadingTest, LoadRevisionInvalidatesEveryAttemptIncludingFailu
     ASSERT_TRUE(m_world->Map().kalima->Disturb(64, 64, 3, 1000000, m_random).HasValue());
     ASSERT_TRUE(Load(24, m_root).HasValue());
     EXPECT_EQ(m_world->Map().loadRevision, 4u);
-    EXPECT_EQ(m_world->Map().kalima->Waves().planes[0][128 * 256 + 128], 0u);
+    EXPECT_EQ(Client::Tests::WavesOf(*m_world->Map().kalima).planes[0][128 * 256 + 128], 0u);
     ASSERT_TRUE(Load(0, m_root).HasValue());
     EXPECT_EQ(m_world->Map().loadRevision, 5u);
     EXPECT_EQ(m_world->Map().kalima, nullptr);

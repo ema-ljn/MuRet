@@ -23,6 +23,7 @@
 #include "Joints/FaunaJointCreation.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Effects/GameParticles.h"
 #include "Assets/SceneTextures.h"
@@ -31,20 +32,21 @@
 #include "Models/ModelId.h"
 #include "Kernel/WorldMap.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/SpriteDrawing.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Effects/GameModelEffects.h"
 #include "Kernel/JointRequest.h"
 #include "Terrain/GroundMarks.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Particles.h"
 #include "Terrain/SphereFrustum.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/ObjectPass.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 
@@ -131,10 +133,10 @@ struct SelectionWorld::Projection
     Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     Particles::Particles particles{};
     Effects::ModelEffects effects{};
-    std::vector<WorldObjects::WorldObject> objects{};
+    std::vector<Kernel::WorldObject> objects{};
     Kernel::GameDrawTailState tail{};
     Actors::Drawing::GameItemRenderState items{};
-    WorldObjects::ObjectModelStepState modelState{};
+    Kernel::ObjectModelStepState modelState{};
 };
 
 SelectionWorld::SelectionWorld(Render::ITextureStore& store, Core::Log& log)
@@ -207,7 +209,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
                                                               Terrain::TerrainLighting& dynamicLighting,
                                                               Crt::CrtRandom& random, float worldClock)
 {
-    std::span<WorldObjects::WorldObject> objects = world.Map().objects;
+    std::span<Kernel::WorldObject> objects = world.Map().objects;
     // 0x5ff960 con cada vivo del recorrido, también en la espera (Scenes/ObjectCollapse.h). La escena no tiene el
     // temblor de la cámara del juego: la piedra de Chaos Castle corta antes, en el pool (0x4056e5, 0x4057bf y
     // 0x405899).
@@ -218,12 +220,11 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
                                                         .heroZ = world.Hero().position.z,
                                                         .cameraShake = nullptr,
                                                         .attributes = terrain.attributes.get()};
-    const WorldObjects::AfterObjectStep collapse = [&collapseContext](WorldObjects::WorldObject& object)
+    const WorldObjects::AfterObjectStep collapse = [&collapseContext](Kernel::WorldObject& object)
     { return Events::CollapseTheObject(object, collapseContext); };
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
     // el derrumbe con los vivos y la cuenta (0x606610).
-    if (std::ranges::none_of(objects,
-                             [](const WorldObjects::WorldObject& object) { return object.alive && object.seen; }))
+    if (std::ranges::none_of(objects, [](const Kernel::WorldObject& object) { return object.alive && object.seen; }))
     {
         if (auto walked = WorldObjects::WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
             return Core::Unexpected(walked.Error() + ", en la selección");
@@ -231,13 +232,12 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
         return {};
     }
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
-    const WorldObjects::ObjectStepGlobals globals{.heroCellLayer = world.Runtime().heroCellLayer,
-                                                  .worldClock = worldClock,
-                                                  .dynamicLighting = &dynamicLighting,
-                                                  .particles = &world.Particles(),
-                                                  .sound = [&world](Audio::SoundId id)
-                                                  { world.Runtime().RequestSound(id); },
-                                                  .modelState = &world.Runtime().objectModelState};
+    const Kernel::ObjectStepGlobals globals{.heroCellLayer = world.Runtime().heroCellLayer,
+                                            .worldClock = worldClock,
+                                            .dynamicLighting = &dynamicLighting,
+                                            .particles = &world.Particles(),
+                                            .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
+                                            .modelState = &world.Runtime().objectModelState};
     if (auto stepped = WorldObjects::StepGameWorldObjects(objects, map, m_models, random, globals, {}, collapse);
         !stepped.HasValue())
     {
@@ -354,7 +354,7 @@ Actors::Drawing::GameItemRenderState& SelectionWorld::FrameItemRender()
     return m_projecting ? m_projection->items : m_world->Runtime().itemRender;
 }
 
-WorldObjects::ObjectModelStepState& SelectionWorld::FrameModelState()
+Kernel::ObjectModelStepState& SelectionWorld::FrameModelState()
 {
     return m_projecting ? m_projection->modelState : m_world->Runtime().objectModelState;
 }
@@ -369,7 +369,7 @@ Effects::ModelEffects& SelectionWorld::FrameEffects()
     return m_projecting ? m_projection->effects : m_world->Map().effects;
 }
 
-std::span<WorldObjects::WorldObject> SelectionWorld::FrameObjects()
+std::span<Kernel::WorldObject> SelectionWorld::FrameObjects()
 {
     return m_projecting ? std::span(m_projection->objects) : std::span(m_world->Map().objects);
 }
@@ -435,7 +435,7 @@ SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame
     const float clock = Milliseconds(frame.frameClock);
     const auto systemTime =
         static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(frame.frameClock).count());
-    const WorldObjects::GameObjectPass pass{
+    const Kernel::GameObjectPass pass{
         .map = map,
         .originalFrame = frame.frames > 0,
         .random = &FrameRandom(),
@@ -474,8 +474,8 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
     if (auto ribbons = Scenes::DrawRibbons(frame.batch, tail.ribbons); !ribbons.HasValue())
         return ribbons;
     // 0x53c6a0(0): las juntas.
-    const Scenes::JointDrawResources joints{FrameRandom(), FrameSprites(), frame.frames > 0, clock};
-    if (auto drawn = Scenes::DrawJoints(frame.batch, tail.joints, 0, joints); !drawn.HasValue())
+    const Joints::JointDrawResources joints{FrameRandom(), FrameSprites(), frame.frames > 0, clock};
+    if (auto drawn = Joints::DrawJoints(frame.batch, tail.joints, 0, joints); !drawn.HasValue())
         return drawn;
     // 0x52d620(0): los efectos con modelo; la mariposa de la escena 4 sale con +0x58 = −2 (0x600328).
     if (!terrain.heights)
@@ -525,7 +525,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawEye(const Render::Pass3D& 
     const auto view = Render::ViewRows(pass.view);
     const SelectionTextureLibrary textures(m_models, sceneTextures);
     // 0x549440(0): dibuja y apaga los sprites.
-    WorldObjects::DrawFrameSprites(frame.batch, FrameSprites(), textures, view, 0);
+    Particles::DrawFrameSprites(frame.batch, FrameSprites(), textures, view, 0);
     // 0x548550(0): las partículas.
     if (auto particles = Effects::DrawGameParticles(frame.batch, FrameParticles(), textures, view,
                                                     Milliseconds(frame.frameClock), 0);

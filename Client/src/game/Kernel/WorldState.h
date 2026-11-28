@@ -10,6 +10,9 @@
 #include "Fauna/FaunaState.h"
 #include "Kernel/PoseBuffer.h"
 #include "Kernel/DrawTailState.h"
+#include "Kernel/JointCreation.h"
+#include "Kernel/JointRequest.h"
+#include "Core/Expected.h"
 #include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -23,6 +26,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
+#include <string>
 #include <span>
 #include <memory>
 
@@ -103,6 +108,16 @@ public:
     [[nodiscard]] const PoseBuffer& PoseCarry() const;
     [[nodiscard]] Kernel::GameDrawTailState& DrawTail();
     [[nodiscard]] const Kernel::GameDrawTailState& DrawTail() const;
+    // The composition root lends Joints::CreateJoint (Kernel/JointCreation.h).
+    void LendJointCreation(CreateJointFunction create);
+    // 0x530860 into `joints`, or into DrawTail's. Without the lent creation, an error before reading the request or the
+    // RNG.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
+    CreateJoint(std::span<JointState> joints, const JointRequest& request, Crt::CrtRandom& random,
+                JointOwnerKind ownerKind = JointOwnerKind::ByType) const;
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
+    CreateJoint(const JointRequest& request, Crt::CrtRandom& random,
+                JointOwnerKind ownerKind = JointOwnerKind::ByType) const;
     [[nodiscard]] Weather::Leaves& Leaves();
     [[nodiscard]] const Weather::Leaves& Leaves() const;
     // Player.bmd (0x20a), shared by all players: each one's step (0x505ec6) and its body's pose (0x6001b0, with alpha
@@ -145,6 +160,7 @@ private:
     Fauna::FaunaState m_fauna;
     PoseBuffer m_poseCarry;
     std::unique_ptr<Kernel::GameDrawTailState> m_drawTail = std::make_unique<Kernel::GameDrawTailState>();
+    CreateJointFunction m_createJoint = nullptr;
     std::unique_ptr<Weather::Leaves> m_leaves = std::make_unique<Weather::Leaves>();
     SharedModelPlacement m_playerModel;
     std::map<std::uint16_t, SharedModelPlacement> m_modelPlacements;

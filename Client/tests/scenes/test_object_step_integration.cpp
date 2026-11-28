@@ -13,7 +13,7 @@
 #include "MapScripts/Noria/NoriaObjectServices.h"
 #include "Assets/WorldModels.h"
 #include "Terrain/TerrainCulling.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainHeight.h"
 #include "support/FakeTextureStore.h"
@@ -83,7 +83,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
         auto particles = std::make_unique<Client::Particles::Particles>();
         const glm::vec3 hero{13500.0f, 12500.0f, 0.0f};
         std::vector<std::int32_t> sounds;
-        Client::WorldObjects::ObjectStepGlobals globals;
+        Client::Kernel::ObjectStepGlobals globals;
         globals.dynamicLighting = lighting.get();
         globals.particles = particles.get();
         globals.heroPosition = &hero;
@@ -116,9 +116,9 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     auto created =
         Client::WorldObjects::CreateWorldObjects(records.Value(), 3, Client::WorldObjects::ObjectScene::Other);
     ASSERT_FALSE(created.failure.has_value());
-    Client::WorldObjects::ObjectModelStepState state;
+    Client::Kernel::ObjectModelStepState state;
     auto particles = std::make_unique<Client::Particles::Particles>();
-    Client::WorldObjects::ObjectStepGlobals globals;
+    Client::Kernel::ObjectStepGlobals globals;
     globals.modelState = &state;
     globals.particles = particles.get();
     for (auto& object : created.objects)
@@ -129,7 +129,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     EXPECT_EQ(state.unlitMeshes.at(0x2a), 0);
     EXPECT_EQ(state.unlitMeshes.at(0x2b), 0);
     std::set<std::int16_t> types;
-    std::vector<Client::WorldObjects::WorldObject> representatives;
+    std::vector<Client::Kernel::WorldObject> representatives;
     for (const auto& object : created.objects)
         if (types.insert(object.type).second)
             representatives.push_back(object);
@@ -137,7 +137,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     Client::Kernel::PoseBuffer pose;
     Client::Particles::FrameSprites sprites;
     std::vector<Client::Kernel::JointState> joints(100);
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.map = 3;
     pass.random = &random;
     pass.particles = particles.get();

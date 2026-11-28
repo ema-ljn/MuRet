@@ -14,7 +14,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Effects/GameModelEffects.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Effects/ModelEffects.h"
 #include "Effects/WizardModelEffects.h"
 

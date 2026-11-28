@@ -7,8 +7,8 @@
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Terrain/DynamicWorldLight.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -108,8 +108,8 @@ Core::Expected<std::int32_t, std::string> Selector(std::int32_t count, const Ica
     const double level = static_cast<double>(Quarter(random.Next()) + LightBase) * LightStep;
     const float redGreen = F32(level * LightRedGreen);
     const glm::vec3 light{redGreen, redGreen, F32(level * LightBlue)};
-    if (auto lit = WorldObjects::AddDynamicLight(services.lighting, glm::vec3(lightX, hero.y, 0.0f), light, LightRadius,
-                                                 "0x605e0a");
+    if (auto lit = Terrain::AddDynamicLight(services.lighting, glm::vec3(lightX, hero.y, 0.0f), light, LightRadius,
+                                            "0x605e0a");
         !lit.HasValue())
         return Core::Unexpected(lit.Error());
     // 0x605e49: 0x518cf0(0xbb, hero, 0, color, 0, 0, −1, 0, 0, 0, 0), the cloud.
@@ -171,7 +171,7 @@ Core::Expected<std::int32_t, std::string> StepIcarusObjectPrelude(std::int32_t c
     return selector;
 }
 
-Core::Expected<void, std::string> StepIcarusSeenObject(WorldObjects::WorldObject& object, std::int32_t selector,
+Core::Expected<void, std::string> StepIcarusSeenObject(Kernel::WorldObject& object, std::int32_t selector,
                                                        std::int32_t& count, const IcarusObjectServices& services)
 {
     ++count;

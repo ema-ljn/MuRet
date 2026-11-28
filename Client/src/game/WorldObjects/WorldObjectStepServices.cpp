@@ -2,14 +2,14 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Terrain/TerrainLight.h"
+#include "Kernel/WorldObject.h"
 #include "Math/FloatConstants.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Math/OriginalRotation.h"
 #include "Effects/ModelEffects.h"
+#include "Particles/ObjectFire.h"
 #include "Particles/Particles.h"
-#include "Terrain/TerrainLighting.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
@@ -19,7 +19,6 @@
 #include <cmath>
 #include <cstdint>
 #include <format>
-#include <limits>
 #include <string>
 #include <string_view>
 
@@ -30,84 +29,29 @@ namespace
 using Math::Tenth;
 constexpr float LampGreen = std::bit_cast<float>(0x3f4ccccdu);
 constexpr float WarmGreen = std::bit_cast<float>(0x3f19999au);
-constexpr float FireBlue = std::bit_cast<float>(0x3ecccccdu);
 constexpr float CandleBlue = std::bit_cast<float>(0x3e4ccccdu);
 constexpr std::int32_t LampRadius = 3;
-constexpr std::int32_t FireRadius = 4;
-constexpr std::int32_t JitterMask = 15;
-constexpr std::int32_t JitterCenter = 8;
 constexpr double DoorDistance = 200.0;
 constexpr float DoorTurn = 10.0f;
 constexpr float DoorApproach = std::bit_cast<float>(0x3e4ccccdu);
 constexpr std::int32_t SlidingDoorSound = 0x12;
 constexpr std::int32_t HingedDoorSound = 0x11;
 
-// fst keeps the retained red: its products do not start from the channel already rounded to float.
-glm::vec3 WarmLight(std::int32_t intensity, float green, float blue)
-{
-    const double red = static_cast<double>(intensity) * static_cast<double>(Tenth);
-    return {static_cast<float>(red), static_cast<float>(red * static_cast<double>(green)),
-            static_cast<float>(red * static_cast<double>(blue))};
-}
-
-Core::Expected<void, std::string> AddObjectLight(const ObjectStepGlobals& globals, const glm::vec3& position,
+Core::Expected<void, std::string> AddObjectLight(const Kernel::ObjectStepGlobals& globals, const glm::vec3& position,
                                                  const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
-    return AddDynamicLight(globals.dynamicLighting, position, color, radius, address);
+    return Terrain::AddDynamicLight(globals.dynamicLighting, position, color, radius, address);
 }
 } // namespace
 
-Core::Expected<void, std::string> AddDynamicLight(Terrain::TerrainLighting* destination, const glm::vec3& position,
-                                                  const glm::vec3& color, std::int32_t radius, std::string_view address)
-{
-    if (destination == nullptr)
-    {
-        return Core::Unexpected(std::format("{}: falta el buffer dinámico 0x7b4ccc4 para 0x5f9780", address));
-    }
-    // The kernel needs a center and representable int32 limits; do not invent a cell for NaN.
-    constexpr float CellScale = std::bit_cast<float>(0x3c23d70au);
-    for (int axis = 0; axis < 2; ++axis)
-    {
-        const float scaled = static_cast<float>(static_cast<double>(position[axis]) * static_cast<double>(CellScale));
-        const double center = std::trunc(static_cast<double>(scaled));
-        if (!std::isfinite(center) || center < static_cast<double>(std::numeric_limits<std::int32_t>::min()) + radius ||
-            center > static_cast<double>(std::numeric_limits<std::int32_t>::max()) - radius - 1)
-        {
-            return Core::Unexpected(std::format("{}: centro de luz fuera del dominio int32 de 0x5f9780", address));
-        }
-    }
-    const Data::Terrain::TerrainLightColor channels{color.x, color.y, color.z};
-    Terrain::AddTerrainLight(*destination, position.x, position.y, channels, radius);
-    return {};
-}
-
 namespace
 {
-Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const glm::vec3& position,
-                                               const glm::vec3& angles, const glm::vec3& light, std::int32_t type,
-                                               std::int32_t subtype, Crt::CrtRandom& random)
-{
-    if (globals.particles == nullptr)
-    {
-        return Core::Unexpected(std::string("0x53fe70: falta el pool de partículas 0x743a198"));
-    }
-    const auto emitted =
-        globals.particles->CreateChecked(type, position, angles, light, subtype, 1.0f, globals.worldClock, random, 0);
-    if (!emitted.HasValue())
-    {
-        return Core::Unexpected(std::format("0x53fe70: creación de partícula {:#x}/{} rechazada ({})", type, subtype,
-                                            static_cast<int>(emitted.Error())));
-    }
-    // No index means the pool is full: it does not interrupt the caller or its later light.
-    return {};
-}
-
 bool HasAngleBits(float angle, float degrees)
 {
     return std::bit_cast<std::uint32_t>(angle) == std::bit_cast<std::uint32_t>(degrees);
 }
 
-void OpenSlidingDoor(WorldObject& object, double opening)
+void OpenSlidingDoor(Kernel::WorldObject& object, double opening)
 {
     const float yaw = object.transform.angles.z;
     if (HasAngleBits(yaw, 90.0f))
@@ -129,7 +73,7 @@ void OpenSlidingDoor(WorldObject& object, double opening)
     }
 }
 
-void OpenHingedDoor(WorldObject& object, double opening)
+void OpenHingedDoor(Kernel::WorldObject& object, double opening)
 {
     const float yaw = object.copiedAngles.z;
     if (HasAngleBits(yaw, 90.0f))
@@ -151,64 +95,18 @@ void OpenHingedDoor(WorldObject& object, double opening)
 }
 } // namespace
 
-Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const WorldObject& object,
-                                                 const glm::vec3& offset, Crt::CrtRandom& random,
-                                                 const ObjectStepGlobals& globals)
-{
-    return EmitObjectFire(fireClass, object.transform.angles, object.transform.position, object.light, offset, random,
-                          globals);
-}
-
-Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const glm::vec3& angles,
-                                                 const glm::vec3& origin, const glm::vec3& objectLight,
-                                                 const glm::vec3& offset, Crt::CrtRandom& random,
-                                                 const ObjectStepGlobals& globals)
-{
-    const auto matrix = Math::OriginalAngleMatrix(angles);
-    glm::vec3 position = Math::OriginalVectorRotate(offset, matrix);
-    for (int axis = 0; axis < 3; ++axis)
-    {
-        position[axis] = static_cast<float>(static_cast<double>(position[axis]) + origin[axis]);
-    }
-    // Three separate stores after the three previous sums, in X/Y/Z.
-    for (int axis = 0; axis < 3; ++axis)
-    {
-        const int jitter = (random.Next() & JitterMask) - JitterCenter;
-        position[axis] = static_cast<float>(static_cast<double>(jitter) + position[axis]);
-    }
-    if (fireClass == 0)
-    {
-        const glm::vec3 light = WarmLight(random.Next() % 6 + 6, WarmGreen, FireBlue);
-        if ((random.Next() & 1) == 0)
-        {
-            const int subtype = random.Next() & 3;
-            const auto emitted =
-                EmitParticle(globals, position, angles, light, Particles::FireParticle, subtype, random);
-            if (!emitted.HasValue())
-            {
-                return emitted;
-            }
-        }
-        return AddObjectLight(globals, position, light, FireRadius, "0x52f534");
-    }
-    if ((fireClass == 1 || fireClass == 2) && (random.Next() & 1) == 0)
-    {
-        return EmitParticle(globals, position, angles, objectLight, Particles::BreathParticle,
-                            fireClass == 1 ? 0 : Particles::WorldSmokeSubtype, random);
-    }
-    return {};
-}
-
-Core::Expected<void, std::string> StepObjectLamp(const WorldObject& object, Crt::CrtRandom& random,
-                                                 const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepObjectLamp(const Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                 const Kernel::ObjectStepGlobals& globals)
 {
     const bool candle = object.type == 0x96;
     const int intensity = (random.Next() & (candle ? 3 : 1)) + (candle ? 3 : 6);
-    const glm::vec3 light = WarmLight(intensity, candle ? WarmGreen : LampGreen, candle ? CandleBlue : WarmGreen);
+    const glm::vec3 light =
+        Particles::WarmLight(intensity, candle ? WarmGreen : LampGreen, candle ? CandleBlue : WarmGreen);
     return AddObjectLight(globals, object.transform.position, light, LampRadius, "0x605718");
 }
 
-Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepDeviasObjectDoor(Kernel::WorldObject& object,
+                                                       const Kernel::ObjectStepGlobals& globals)
 {
     if (globals.editorMode)
     {
@@ -252,8 +150,8 @@ Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, cons
     return {};
 }
 
-Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRandom& random,
-                                                 const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepAidaObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                 const Kernel::ObjectStepGlobals& globals)
 {
     // 0x6b8a24 (0.015f), 0x6b88d4 (0.01f), 0x6b87b4/0x6b8a20 (0.4f and 0.6f), 0x6b8a1c/0x6b8854 (0.9f and 0.2f).
     constexpr double Scroll = static_cast<double>(std::bit_cast<float>(0x3c75c28fu));
@@ -301,7 +199,7 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRa
     case 0x3f:
     case 0x43:
     case 0x46:
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         break;
     case 0x40:
         object.speed = SlowSpeed;
@@ -318,8 +216,8 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRa
     return {};
 }
 
-Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Crt::CrtRandom& random,
-                                                         const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepLandOfTrialsObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                         const Kernel::ObjectStepGlobals& globals)
 {
     constexpr std::uint32_t TimeMask = 0x3ff;
     constexpr std::uint32_t ButterflyWindow = 10;
@@ -358,7 +256,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
                                                                      glm::vec3(1.0f), subtype, object.transform.scale,
                                                                      false, random));
         }
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     };
     switch (object.type)
@@ -378,7 +276,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
     case 3:
     case 0x35:
         // 0x44014a: those that emit in the frame (0x4401e0) are not drawn.
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         break;
     case 0x1b:
     {
@@ -401,7 +299,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
         if (auto added = AddObjectLight(globals, object.transform.position, light, TorchRadius, "0x440142");
             !added.HasValue())
             return added;
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         break;
     }
     default:
@@ -428,8 +326,8 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
     return {};
 }
 
-Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::CrtRandom& random,
-                                                    const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepCrywolfObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                    const Kernel::ObjectStepGlobals& globals)
 {
     // 0x430429..0x430437: (0.2f; 0.7f; 0.5f), in the ASM's bits.
     constexpr glm::vec3 GlowLight(std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3f333333u),
@@ -450,8 +348,8 @@ Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::Cr
     {
         // 0x43044d..0x430494: fst of the red; the green and the blue come from the unrounded product.
         const std::int32_t intensity = (random.Next() & TorchMask) + TorchBase;
-        return AddObjectLight(globals, object.transform.position, WarmLight(intensity, TorchGreen, TorchBlue),
-                              TorchRadius, "0x430497");
+        return AddObjectLight(globals, object.transform.position,
+                              Particles::WarmLight(intensity, TorchGreen, TorchBlue), TorchRadius, "0x430497");
     }
     case 0x51:
         object.alpha = FaintAlpha; // 0x4304a6
@@ -459,7 +357,7 @@ Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::Cr
     case 0x52:
     case 0x53:
     case 0x54:
-        object.state.hiddenMesh = HiddenObject; // 0x4304b7
+        object.state.hiddenMesh = Kernel::HiddenObject; // 0x4304b7
         return {};
     default:
         return {};

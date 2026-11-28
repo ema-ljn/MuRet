@@ -22,7 +22,7 @@
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainAttributeQuery.h"
 #include "Effects/WizardModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -800,7 +800,7 @@ Core::Expected<void, std::string> StepTheVolley(Kernel::JointState& joint, const
     const auto shadeSteps = (random.Value()->Next() & 3) + 4;
     const glm::vec3 shade(F32(static_cast<double>(shadeSteps) * Shade));
     constexpr std::int32_t ShadeRadius = 4;
-    return WorldObjects::AddDynamicLight(services.lighting, joint.position, shade, ShadeRadius, "0x539cbf");
+    return Terrain::AddDynamicLight(services.lighting, joint.position, shade, ShadeRadius, "0x539cbf");
 }
 
 // 0x539a0e..0x539ae5: the 0x613/0, /5 and /0x13 of width 80. Releases the 0xd0 (0x518cf0(0xd0, position, angles,

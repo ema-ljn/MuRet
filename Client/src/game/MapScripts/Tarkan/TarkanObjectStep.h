@@ -5,12 +5,12 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct ObjectModelStepState;
 struct ObjectStepGlobals;
 struct WorldObject;
-} // namespace Client::WorldObjects
+} // namespace Client::Kernel
 
 // The Tarkan cases of 0x604ab0 (map 8, table 0x605cc0 by type − 2), after the common alpha and animation.
 // Contract: 06 § Los objetos de Tarkan.
@@ -19,7 +19,7 @@ namespace Client::MapScripts::Tarkan
 
 // 0x61a145..0x61a18f, at the end of the world models' load (0x616ec0): on map 8, the model+0x88 of 11, 12, 13, 73,
 // 75 and 79 at 0, so their mesh 0 goes unlit and with the U and the V of its step. The other maps do not touch it.
-void SeedTarkanModelState(std::uint8_t map, WorldObjects::ObjectModelStepState& state);
+void SeedTarkanModelState(std::uint8_t map, Kernel::ObjectModelStepState& state);
 
 // 0x604c70..0x604c8e: on map 8, type 8 animates with the speed (+0xd8) times 4 (0x6b8a44) in a copy; +0xd8 does
 // not change. The others, with their own.
@@ -40,6 +40,6 @@ void SeedTarkanModelState(std::uint8_t map, WorldObjects::ObjectModelStepState& 
 // - the 0x52: blendMesh 0 and the object's light (+0xf4) at (1; 1; 1).
 // A clock without a credited ftol or a missing light destination cuts with its address after what it already
 // wrote.
-[[nodiscard]] Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& object,
-                                                                 const WorldObjects::ObjectStepGlobals& globals);
+[[nodiscard]] Core::Expected<void, std::string> StepTarkanObject(Kernel::WorldObject& object,
+                                                                 const Kernel::ObjectStepGlobals& globals);
 } // namespace Client::MapScripts::Tarkan

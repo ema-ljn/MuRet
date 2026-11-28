@@ -1,12 +1,11 @@
 #include "MapScripts/Icarus/IcarusObjectFrame.h"
 
 #include "Core/Expected.h"
-#include "WorldObjects/ObjectFrameSprites.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -31,10 +30,9 @@ constexpr std::int16_t Flare = 10;
 // 0x6040f3: 0x68b18ac, bone 3 from 0x68b181c, in steps of 0x30.
 constexpr std::size_t FlareBone = 3;
 
-Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass, std::int32_t type,
-                                       const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                                       std::int32_t subtype, float scale, Particles::ParticleOwner owner,
-                                       std::string_view address)
+Core::Expected<void, std::string> Emit(const Kernel::GameObjectPass& pass, std::int32_t type, const glm::vec3& position,
+                                       const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
+                                       float scale, Particles::ParticleOwner owner, std::string_view address)
 {
     if (pass.particles == nullptr || pass.random == nullptr)
         return Core::Unexpected(
@@ -48,13 +46,12 @@ Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
 }
 } // namespace
 
-Core::Expected<void, std::string> StepIcarusObjectFrame(WorldObjects::WorldObject& object,
-                                                        const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepIcarusObjectFrame(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     if (object.type >= 0 && object.type <= LastCloud)
     {
         // 0x603f03..0x6040db: with +0x58 at −2 it does not emit; afterwards it leaves it at −2 anyway.
-        if (object.state.hiddenMesh != WorldObjects::HiddenObject)
+        if (object.state.hiddenMesh != Kernel::HiddenObject)
         {
             const int count = object.type <= LastManyClouds ? ManyClouds : FewClouds;
             const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::WorldObject, object.identity};
@@ -67,13 +64,13 @@ Core::Expected<void, std::string> StepIcarusObjectFrame(WorldObjects::WorldObjec
                     return emitted;
             }
         }
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     }
     if (object.type != Flare)
         return {};
     // 0x6040e9..0x604143: 0x4ec110(bone 3, zero, out, 0) and 0x53fe70(0x5ac, point, angles, 1, 0, 1, 0).
-    const auto point = WorldObjects::ObjectBonePoint(pass, FlareBone, glm::vec3(0.0f));
+    const auto point = Kernel::ObjectBonePoint(pass, FlareBone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     return Emit(pass, Particles::KalimaFlare, point.Value(), object.transform.angles, glm::vec3(1.0f), 0, 1.0f, {},

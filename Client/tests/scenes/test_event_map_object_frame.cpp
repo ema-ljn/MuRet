@@ -4,12 +4,12 @@
 #include "Math/HalfLifeMath.h"
 #include "WorldObjects/EventMapObjectFrame.h"
 #include "Kernel/PoseBuffer.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/BloodCastleParticleKernels.h"
 #include "Particles/Particles.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -28,11 +28,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameObjectPass;
+using Client::Kernel::WorldObject;
 using Client::Math::BoneTransform;
 using Client::Particles::Particle;
 using Client::Particles::Particles;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 using Client::Math::F32;
 

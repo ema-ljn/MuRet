@@ -12,7 +12,7 @@
 #include "Joints/JointKernels.h"
 #include "Math/Ftol.h"
 #include "Kernel/JointRequest.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -109,7 +109,7 @@ Core::Expected<void, std::string> StepHelperSpark(Kernel::JointState& joint, con
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0.8f
     const glm::vec3 color{F32(glow * Red), F32(glow), F32(glow * Blue)};
     constexpr std::int32_t Radius = 2;
-    return WorldObjects::AddDynamicLight(services.lighting, joint.position, color, Radius, "0x537b29");
+    return Terrain::AddDynamicLight(services.lighting, joint.position, color, Radius, "0x537b29");
 }
 
 // 0x533677..0x53368e: the common 0x60f part (life 100, 20 points and width 10), which the subtype overwrites.
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> StepFallingSparkle(Kernel::JointState& joint,
             joint.light[axis] = F32(D(joint.light[axis]) * Fading);
     }
     constexpr std::int32_t Radius = 1;
-    return WorldObjects::AddDynamicLight(services.lighting, joint.position, joint.light, Radius, "0x53a023");
+    return Terrain::AddDynamicLight(services.lighting, joint.position, joint.light, Radius, "0x53a023");
 }
 
 // 0x53a039..0x53a122: the /0x2a turns its z by 15. With the owner dead (its alive byte), it turns off all of that
@@ -223,7 +223,7 @@ Core::Expected<void, std::string> StepSpinningSparkle(Kernel::JointState& joint,
             return Core::Unexpected(std::format("0x53a0eb: {}", created.Error()));
     }
     constexpr std::int32_t Radius = 2;
-    return WorldObjects::AddDynamicLight(services.lighting, joint.targetPosition, joint.light, Radius, "0x53a105");
+    return Terrain::AddDynamicLight(services.lighting, joint.targetPosition, joint.light, Radius, "0x53a105");
 }
 } // namespace
 

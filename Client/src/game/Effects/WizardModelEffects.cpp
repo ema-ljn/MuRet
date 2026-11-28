@@ -22,7 +22,7 @@
 #include "Particles/SmokeParticleKernels.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainAttributeQuery.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Tables/PlayerModels.h"
 #include "Audio/SoundId.h"
 
@@ -211,7 +211,7 @@ Core::Expected<void, std::string> Sprite(const WizardEffectServices& services, s
 Core::Expected<void, std::string> Light(const WizardEffectServices& services, const glm::vec3& position,
                                         const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
-    return WorldObjects::AddDynamicLight(services.lighting, position, color, radius, address);
+    return Terrain::AddDynamicLight(services.lighting, position, color, radius, address);
 }
 
 Core::Expected<double, std::string> Height(const WizardEffectServices& services, float x, float y,

@@ -18,7 +18,7 @@
 #include "MapScripts/Kalima/KalimaObjectServices.h"
 #include "MapScripts/CastleSiege/CastleSiegeObjectServices.h"
 #include "MapScripts/LandOfTrials/LandOfTrialsObjectServices.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Effects/GameParticles.h"
 
 #include "Core/Expected.h"
@@ -26,39 +26,30 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/CharacterClass.h"
 #include "Kernel/ModelEffectArguments.h"
-#include "Math/FloatConstants.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleBackend.h"
-#include "Render/ModelBatchParticleState.h"
-#include "Render/ModelVertex.h"
-#include "Render/SpriteVertex.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
 #include "Models/ObjectState.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Render/TextureEnvMode.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/ModelPoseCallbacks.h"
 #include "Effects/ParticleDrawServices.h"
 #include "Weather/Leaves.h"
 #include "Events/ChaosCastle/ChaosCastle.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Math/Ftol.h"
 #include "Effects/ModelEffects.h"
 #include "Effects/GroundEffectDrawing.h"
-#include "Terrain/SphereFrustum.h"
-#include "Particles/ParticleDrawing.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "Render/Billboard.h"
 #include "Math/OriginalRotation.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "Effects/WizardModelEffects.h"
 #include "WorldObjects/WorldObjects.h"
 
-#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
@@ -104,7 +95,7 @@ bool SectorPasses(const Terrain::TerrainPolygon& polygon, int sectorX, int secto
 
 // 0x6046a0 takes the position times 0.01f (0x6b88d4) stored in float and the individual margin (+0xdc), with
 // `extra` added in the x87 and stored in float (0x604744..0x60474e).
-bool ObjectPasses(const Terrain::TerrainPolygon& polygon, const WorldObjects::WorldObject& object, float extra)
+bool ObjectPasses(const Terrain::TerrainPolygon& polygon, const Kernel::WorldObject& object, float extra)
 {
     const auto cells = [](float coordinate)
     { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
@@ -112,7 +103,7 @@ bool ObjectPasses(const Terrain::TerrainPolygon& polygon, const WorldObjects::Wo
                                     static_cast<double>(extra + object.cullingMargin));
 }
 
-Actors::Drawing::DrawnObject Drawn(const WorldObjects::WorldObject& object, const WorldObjects::ObjectDraw& draw,
+Actors::Drawing::DrawnObject Drawn(const Kernel::WorldObject& object, const Kernel::ObjectDraw& draw,
                                    const Models::Skeleton* skeleton, float alpha)
 {
     Actors::Drawing::DrawnObject drawn;
@@ -150,20 +141,19 @@ void CountTheObjectDraw(std::int32_t& counter)
 }
 
 // 0x60470b: the sector's +8 keeps what the trapezoid gave, also for the objects that are not alive.
-void PassTheSector(const Terrain::TerrainPolygon& polygon, WorldObjects::WorldObject& object)
+void PassTheSector(const Terrain::TerrainPolygon& polygon, Kernel::WorldObject& object)
 {
     object.sectorPassed = SectorPasses(polygon, WorldObjects::SectorX(object), WorldObjects::SectorY(object));
 }
 
-bool SeenInTheDraw(const Terrain::TerrainPolygon& polygon, const WorldObjects::WorldObject& object,
-                   float extraMargin = 0.0f)
+bool SeenInTheDraw(const Terrain::TerrainPolygon& polygon, const Kernel::WorldObject& object, float extraMargin = 0.0f)
 {
     return object.sectorPassed && ObjectPasses(polygon, object, extraMargin);
 }
 
 // 0x5ffce0 with the terrain light at its place (0x5f99e0), or 0 without it, and what WorldObjects::DrawOf decides.
-WorldObjects::ObjectDraw ObjectDrawAt(const WorldObjects::WorldObject& object, const Terrain::TerrainLighting* lighting,
-                                      std::uint8_t map)
+Kernel::ObjectDraw ObjectDrawAt(const Kernel::WorldObject& object, const Terrain::TerrainLighting* lighting,
+                                std::uint8_t map)
 {
     const glm::vec3 light = lighting != nullptr
                                 ? Terrain::LightAt(*lighting, object.transform.position.x, object.transform.position.y)
@@ -174,9 +164,9 @@ WorldObjects::ObjectDraw ObjectDrawAt(const WorldObjects::WorldObject& object, c
 // 0x602e90 with `draw`: the model posed as 0x5ffdf0 does and drawn as 0x6002e0 does without per-type cases, with its
 // animation `alpha` one step further. Returns what was posed.
 Actors::Drawing::DrawnObject DrawTheObject(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                           const WorldObjects::WorldObject& object,
-                                           const WorldObjects::ObjectDraw& draw, Core::Duration frameClock, float alpha,
-                                           const WorldObjects::ObjectModelStepState* modelState = nullptr,
+                                           const Kernel::WorldObject& object, const Kernel::ObjectDraw& draw,
+                                           Core::Duration frameClock, float alpha,
+                                           const Kernel::ObjectModelStepState* modelState = nullptr,
                                            const Kernel::PoseBuffer* retainedPose = nullptr)
 {
     const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)});
@@ -191,18 +181,18 @@ Actors::Drawing::DrawnObject DrawTheObject(Render::ModelBatch& batch, const Mode
         drawn.retainedMeshes = retainedPose->meshes;
     switch (draw.kind)
     {
-    case WorldObjects::ObjectDrawKind::Hidden:
+    case Kernel::ObjectDrawKind::Hidden:
         break;
-    case WorldObjects::ObjectDrawKind::Body:
+    case Kernel::ObjectDrawKind::Body:
         Actors::Drawing::DrawObject(batch, models, drawn, frameClock);
         break;
-    case WorldObjects::ObjectDrawKind::SubtractiveMesh:
+    case Kernel::ObjectDrawKind::SubtractiveMesh:
         Actors::Drawing::DrawSubtractiveMesh(batch, models, drawn, frameClock);
         break;
-    case WorldObjects::ObjectDrawKind::Waterspout:
+    case Kernel::ObjectDrawKind::Waterspout:
         Actors::Drawing::DrawWaterspout(batch, models, drawn, frameClock);
         break;
-    case WorldObjects::ObjectDrawKind::TarkanChrome:
+    case Kernel::ObjectDrawKind::TarkanChrome:
         Actors::Drawing::DrawTarkanChrome(batch, models, drawn, frameClock);
         break;
     }
@@ -212,14 +202,14 @@ Actors::Drawing::DrawnObject DrawTheObject(Render::ModelBatch& batch, const Mode
 // The pose is taken once per draw; the emission follows the order frame → objects.
 struct SeenObjectEffects
 {
-    WorldObjects::WorldObject* object = nullptr;
+    Kernel::WorldObject* object = nullptr;
     std::size_t index = 0;
     std::optional<std::array<glm::vec3, WorldObjects::StreetLightGlowBones.size()>> glowPositions;
     std::optional<int> lastRandom;
 };
 
-Core::Expected<void, std::string> CreateObjectCloud(const WorldObjects::WorldObject& object, std::uint8_t map,
-                                                    float clock, const ObjectFrameEffects& effects)
+Core::Expected<void, std::string> CreateObjectCloud(const Kernel::WorldObject& object, std::uint8_t map, float clock,
+                                                    const ObjectFrameEffects& effects)
 {
     // 0x6043ff..0x604421: the 0x59 of map 55, with ftol(world clock) % 8000 from 7950, drops a meteor: three rand()
     // (0x604427, 0x60444c, 0x604471) and 0x518cf0(0xc2, point, +0x1c, +0xf4, 9, 0, −1, 0, 0, 0, 0) (0x6044b2).
@@ -310,12 +300,12 @@ void DrawObjectGlows(std::span<const SeenObjectEffects> seen, const ObjectFrameE
 }
 } // namespace
 
-Core::Expected<void, std::string> WalkTheObjectSectors(std::span<WorldObjects::WorldObject> objects,
+Core::Expected<void, std::string> WalkTheObjectSectors(std::span<Kernel::WorldObject> objects,
                                                        const AfterObjectStep& seenStep, const AfterObjectStep& collapse)
 {
     for (const std::size_t index : WorldObjects::DrawOrder(objects))
     {
-        WorldObjects::WorldObject& object = objects[index];
+        Kernel::WorldObject& object = objects[index];
         // +0x16c only stays on in a sector that passed the last draw (MuRet clears it in the draw).
         if (!object.sectorPassed && !object.seen)
         {
@@ -347,12 +337,12 @@ Core::Expected<void, std::string> WalkTheObjectSectors(std::span<WorldObjects::W
     return {};
 }
 
-Core::Expected<void, std::string> StepGameWorldObjects(std::span<WorldObjects::WorldObject> objects, std::uint8_t map,
+Core::Expected<void, std::string> StepGameWorldObjects(std::span<Kernel::WorldObject> objects, std::uint8_t map,
                                                        const Models::IModelLibrary& models, Crt::CrtRandom& random,
-                                                       const WorldObjects::ObjectStepGlobals& globals,
+                                                       const Kernel::ObjectStepGlobals& globals,
                                                        const AfterObjectStep& after, const AfterObjectStep& collapse)
 {
-    const AfterObjectStep seenStep = [&](WorldObjects::WorldObject& object) -> Core::Expected<void, std::string>
+    const AfterObjectStep seenStep = [&](Kernel::WorldObject& object) -> Core::Expected<void, std::string>
     {
         if (auto stepped = WorldObjects::StepWorldObjectChecked(
                 object, map, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}), random,
@@ -369,12 +359,12 @@ Core::Expected<void, std::string> StepGameWorldObjects(std::span<WorldObjects::W
     return WalkTheObjectSectors(objects, seenStep, collapse);
 }
 
-void StepWorldObjects(std::span<WorldObjects::WorldObject> objects, std::uint8_t map,
-                      const Models::IModelLibrary& models, const SpecialObjectStep& special)
+void StepWorldObjects(std::span<Kernel::WorldObject> objects, std::uint8_t map, const Models::IModelLibrary& models,
+                      const SpecialObjectStep& special)
 {
     for (const std::size_t index : WorldObjects::DrawOrder(objects))
     {
-        WorldObjects::WorldObject& object = objects[index];
+        Kernel::WorldObject& object = objects[index];
         if (!object.seen || (special && special(object)))
         {
             continue;
@@ -385,7 +375,7 @@ void StepWorldObjects(std::span<WorldObjects::WorldObject> objects, std::uint8_t
 }
 
 void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                      std::span<WorldObjects::WorldObject> objects, const Terrain::TerrainPolygon& polygon,
+                      std::span<Kernel::WorldObject> objects, const Terrain::TerrainPolygon& polygon,
                       const Terrain::TerrainLighting* lighting, std::uint8_t map, Core::Duration frameClock,
                       float alpha, const ObjectFrameEffects& effects)
 {
@@ -406,14 +396,14 @@ void DrawWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& mo
     }
     for (const std::size_t index : WorldObjects::DrawOrder(objects))
     {
-        WorldObjects::WorldObject& object = objects[index];
+        Kernel::WorldObject& object = objects[index];
         PassTheSector(polygon, object);
         object.seen = SeenInTheDraw(polygon, object, ExtraObjectMargin(map));
         if (!object.seen)
         {
             continue;
         }
-        const WorldObjects::ObjectDraw draw = ObjectDrawAt(object, lighting, map);
+        const Kernel::ObjectDraw draw = ObjectDrawAt(object, lighting, map);
         // 0x5ffdf0 poses before the hiddenMesh=-2 gate of 0x600328; do not confuse pose with geometry.
         if (effects.onPose && (effects.frames > 0 || effects.publishProjectedPose) && draw.posed)
         {
@@ -496,7 +486,7 @@ constexpr int LevelThreshold = 0x50;
 // 0x6047a7..0x604a36: the hero's class, before the access; the level, with the own record opened (0x6047cb) and
 // closed (0x604a1a: with the count at 0, 0x40b4d0 encrypts it again with its 3848 rand()). An intermediate MuRet draw
 // has no original frame and does not open it.
-bool OwnLevelAllows(const GameObjectPass& pass)
+bool OwnLevelAllows(const Kernel::GameObjectPass& pass)
 {
     const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(pass.heroClass);
     const int threshold =
@@ -515,8 +505,8 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 // model+0x88 at 2 (0x13 and 0x14) or at 1 (3 and 4): that mesh unlit and with the object's U and V. Then +0x88 goes
 // back to 0xff, which on the 4 is what those types already had.
 void DrawLostTowerChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                         const WorldObjects::WorldObject& object, const WorldObjects::ObjectDraw& draw,
-                         Core::Duration frameClock, const GameObjectPass& pass, const Kernel::PoseBuffer* retained)
+                         const Kernel::WorldObject& object, const Kernel::ObjectDraw& draw, Core::Duration frameClock,
+                         const Kernel::GameObjectPass& pass, const Kernel::PoseBuffer* retained)
 {
     const std::int16_t type = object.type;
     const bool chrome = type == 0x13 || type == 0x14 || type == 3 || type == 4;
@@ -541,7 +531,7 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const Models::IModelLibrary&
 // Chaos Castles (18 to 23) to their first link, 0x4059d0, and the 34 to its own, 0x430510. The 0x69 creates the drops
 // with the shared pool. `posed`: whether 0x602e90 called 0x6002e0, whose frame stays on the stack that the sprites of
 // the 0's 0x38 and the 4's 9 read, and whether 0x5ffdf0 left the model's +0xa8 of the 2's 0x67.
-Core::Expected<void, std::string> FrameCaseOf(WorldObjects::WorldObject& object, const GameObjectPass& pass,
+Core::Expected<void, std::string> FrameCaseOf(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass,
                                               const Models::IModelLibrary& models,
                                               const Actors::Drawing::DrawnObject& drawn, int commonRandom, bool posed)
 {
@@ -594,10 +584,10 @@ Core::Expected<void, std::string> FrameCaseOf(WorldObjects::WorldObject& object,
 } // namespace
 
 Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       std::span<WorldObjects::WorldObject> objects,
+                                                       std::span<Kernel::WorldObject> objects,
                                                        const Terrain::TerrainPolygon& polygon,
                                                        const Terrain::TerrainLighting* lighting,
-                                                       Core::Duration frameClock, const GameObjectPass& pass)
+                                                       Core::Duration frameClock, const Kernel::GameObjectPass& pass)
 {
     const bool bloodCastle = pass.map >= FirstBloodCastleMap && pass.map <= LastBloodCastleMap;
     if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != AtlansMap && pass.map != TarkanMap &&
@@ -617,7 +607,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         CountTheObjectDraw(*pass.objectDrawCounter);
     for (const std::size_t index : WorldObjects::DrawOrder(objects))
     {
-        WorldObjects::WorldObject& object = objects[index];
+        Kernel::WorldObject& object = objects[index];
         PassTheSector(polygon, object);
         // 0x60473b: an object that is not alive is not looked at.
         if (!object.alive)
@@ -638,7 +628,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         if (pass.originalFrame && pass.hero != nullptr)
             object.alpha = Events::ChaosCastle::ChaosCastlePoseAlpha(pass.map, pass.hero->byte1a1, object.alpha);
         // 0x602e90: 0x5ffdf0 and, if it posed it, 0x6002e0 (on the 0, the 0x69 with its four 0x4ecc30).
-        WorldObjects::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
+        Kernel::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
         const auto poseObject =
             Drawn(object, draw, models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)}), 0);
         // The hidden markers also overwrite the global pose before the geometry is skipped.
@@ -650,7 +640,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                 return published;
         }
         const auto* retained = (pass.originalFrame || pass.publishProjectedPose) ? pass.retainedPose : nullptr;
-        if (Maps::IsKalimaMap(pass.map) && draw.kind != WorldObjects::ObjectDrawKind::Hidden)
+        if (Maps::IsKalimaMap(pass.map) && draw.kind != Kernel::ObjectDrawKind::Hidden)
         {
             // 0x438fe0 has global cases outside the public domain 0x43948d: do not use the body as a fallback for a
             // type that still needs its own handler.
@@ -662,10 +652,10 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                 models.SkeletonOf(Models::ModelId{poseObject.model}) == nullptr)
                 return Core::Unexpected(std::string("0x5ffdf0: falta el modelo o el esqueleto de Kalima"));
         }
-        if (pass.map == LostTowerMap && draw.kind != WorldObjects::ObjectDrawKind::Hidden)
+        if (pass.map == LostTowerMap && draw.kind != Kernel::ObjectDrawKind::Hidden)
             DrawLostTowerChrome(batch, models, object, draw, frameClock, pass, retained);
         // 0x4403b0, the chain of 0x6002e0 on the 31: no rand() or state, in every MuRet draw.
-        if (pass.map == LandOfTrialsMap && draw.kind == WorldObjects::ObjectDrawKind::Body)
+        if (pass.map == LandOfTrialsMap && draw.kind == Kernel::ObjectDrawKind::Body)
         {
             const auto body = MapScripts::LandOfTrials::LandOfTrialsBody(object, draw.color, pass.worldClock);
             if (!body.HasValue())
@@ -681,10 +671,10 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
         // 0x42cc10, the chain of 0x6002e0 on the 30, with no rand() or state: in every MuRet draw. With a case,
         // 0x6002e0 does not do its RenderBody.
-        if (pass.map == CastleSiegeMap && draw.kind == WorldObjects::ObjectDrawKind::Body)
+        if (pass.map == CastleSiegeMap && draw.kind == Kernel::ObjectDrawKind::Body)
         {
-            WorldObjects::ObjectDraw posed = draw;
-            posed.kind = WorldObjects::ObjectDrawKind::Hidden;
+            Kernel::ObjectDraw posed = draw;
+            posed.kind = Kernel::ObjectDrawKind::Hidden;
             const Actors::Drawing::DrawnObject body =
                 DrawTheObject(batch, models, object, posed, frameClock, 0.0f, pass.modelState, retained);
             const auto drew = Actors::Drawing::DrawCastleSiegeBody(
@@ -707,11 +697,11 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             if (!drew.HasValue())
                 return Core::Unexpected(drew.Error());
             if (drew.Value())
-                draw.kind = WorldObjects::ObjectDrawKind::Hidden;
+                draw.kind = Kernel::ObjectDrawKind::Hidden;
         }
         // 0x4306a0, the last link of the chain of 0x6002e0 on the 34: the body and, with an original frame, its random
         // draws, before the common rand().
-        if (pass.map == CrywolfMap && draw.kind == WorldObjects::ObjectDrawKind::Body)
+        if (pass.map == CrywolfMap && draw.kind == Kernel::ObjectDrawKind::Body)
         {
             const bool activeAltar = object.type == 0x51 && pass.crywolf != nullptr &&
                                      pass.crywolf->state == Protocol::Events::CrywolfWarState;
@@ -738,7 +728,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         // 0x600cf2..0x600db0: the 0x1c and the 0x1d of 11 to 17, after their RenderBody, the shadow with the terrain
         // height; +0x58 stays at −1.
         if (bloodCastle && (object.type == BloodCastleShadowedFirst || object.type == BloodCastleShadowedSecond) &&
-            draw.kind == WorldObjects::ObjectDrawKind::Body)
+            draw.kind == Kernel::ObjectDrawKind::Body)
         {
             if (!pass.terrainHeight)
                 return Core::Unexpected(std::string("0x600d80: falta la altura del terreno (0x5f93c0) para la sombra "
@@ -748,7 +738,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                 frameClock);
             object.state.hiddenMesh = Models::NoHiddenMesh;
         }
-        if (Maps::IsKalimaMap(pass.map) && draw.kind != WorldObjects::ObjectDrawKind::Hidden)
+        if (Maps::IsKalimaMap(pass.map) && draw.kind != Kernel::ObjectDrawKind::Hidden)
         {
             if (auto tail = MapScripts::Kalima::DrawKalimaObjectTail(batch, models, object, drawn, frameClock, pass);
                 !tail.HasValue())
@@ -775,260 +765,5 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
     }
     return {};
-}
-
-Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, std::span<Effects::ModelEffect> effects,
-                                                    const Effects::GroundEffectResources& resources)
-{
-    // What the draw creates (0x52e04c, 0x52e0a2) goes to the same table being walked.
-    Effects::GroundEffectResources onTable = resources;
-    onTable.table = effects;
-    for (std::size_t slot = 0; slot < effects.size(); ++slot)
-    {
-        Effects::ModelEffect& effect = effects[slot];
-        // 0x52dc2d..0x52dc40: does not recompute the sphere, reads this place's history.
-        if (!effect.alive || !effect.seen)
-        {
-            continue;
-        }
-        static_cast<void>(resources.random.Next()); // 0x52dc46, even without a ground case.
-        Effects::ApplyGroundEffectAdditive(batch);  // 0x620a90, before dispatching by type.
-        if (auto drawn = Effects::DrawGroundEffectCase(batch, effect, onTable); !drawn.HasValue())
-        {
-            return Core::Unexpected(drawn.Error() + std::format(", en el efecto {} (el {:#x})", slot, effect.type));
-        }
-    }
-    return {};
-}
-
-void StepModelEffects(std::span<Effects::ModelEffect> effects, const Models::IModelLibrary& models)
-{
-    for (Effects::ModelEffect& effect : effects)
-    {
-        if (effect.alive)
-        {
-            Effects::StepModelEffect(effect,
-                                     models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)}));
-        }
-    }
-}
-
-void DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                      std::span<Effects::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
-                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha)
-{
-    // Without a callback there is no error exit: keeps the 7-argument legacy API.
-    static_cast<void>(DrawModelEffects(batch, models, effects, frustum, lighting, frameClock, alpha, {}, {}));
-}
-
-Core::Expected<void, std::string> DrawModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                   std::span<Effects::ModelEffect> effects,
-                                                   const Terrain::SphereFrustum& frustum,
-                                                   const Terrain::TerrainLighting* lighting, Core::Duration frameClock,
-                                                   float alpha, const Actors::Drawing::TailPoseObserver& onPose,
-                                                   const Actors::Drawing::TailMeshProvider& posedMeshes)
-{
-    for (Effects::ModelEffect& effect : effects)
-    {
-        if (!effect.alive)
-        {
-            continue;
-        }
-        // 0x52d63c..0x52d655: publishes +0x16c before the type, the model or the alpha. The next frame's ground pass
-        // reads it as is. The sphere uses +0x10 without MuRet's extrapolation.
-        constexpr float Radius = 400.0f;
-        effect.seen = Terrain::SphereVisible(frustum, effect.transform.position, Radius);
-        if (!effect.seen)
-        {
-            continue;
-        }
-        // 0x52da84: these types only have the ground pass; even without a model they publish seen. Icarus' 0x5ac
-        // (0x52daa1) is not drawn: it shows through its 0x5ac/1 particles.
-        if (effect.type == 0x61d || effect.type == 0x61e || effect.type == 0x61f ||
-            effect.type == Effects::IcarusFlareEffect)
-        {
-            continue;
-        }
-        const glm::vec3 terrain =
-            lighting != nullptr ? Terrain::LightAt(*lighting, effect.transform.position.x, effect.transform.position.y)
-                                : glm::vec3(0.0f);
-        Actors::Drawing::DrawnObject drawn;
-        drawn.model = static_cast<std::uint16_t>(effect.type);
-        drawn.animation = effect.animation;
-        drawn.transform = effect.transform;
-        drawn.transform.position += (effect.transform.position - effect.previousPosition) * alpha;
-        drawn.state = effect.objectState;
-        // 0x5ffce0: with per-vertex light, the terrain plus the light; without it (the 0xbb cloud), the terrain times
-        // 0.1f plus the light, with x unrounded before the sum and y and z rounded (0x5ffda5..0x5ffde7).
-        if (effect.vertexLight)
-            drawn.color = terrain + effect.light;
-        else
-        {
-            constexpr double Tenth = Math::TenthAsDouble;
-            drawn.color.x = static_cast<float>(static_cast<double>(terrain.x) * Tenth + effect.light.x);
-            for (int axis = 1; axis < 3; ++axis)
-                drawn.color[axis] = static_cast<float>(
-                    static_cast<double>(static_cast<float>(static_cast<double>(terrain[axis]) * Tenth)) +
-                    effect.light[axis]);
-        }
-        drawn.alpha = effect.alpha;
-        drawn.vertexLight = effect.vertexLight;
-        if (onPose && !(drawn.alpha < 0.01f) && models.Find(Models::ModelId{drawn.model}) != nullptr &&
-            models.SkeletonOf(Models::ModelId{drawn.model}) != nullptr)
-        {
-            if (auto published = onPose(drawn); !published.HasValue())
-                return published;
-            if (auto rendered = Actors::Drawing::DrawPublishedObject(batch, models, drawn, frameClock, posedMeshes);
-                !rendered.HasValue())
-                return rendered;
-        }
-        else
-            Actors::Drawing::DrawObject(batch, models, drawn, frameClock);
-    }
-    return {};
-}
-
-namespace
-{
-// 0x549290 with the atlas texture: the cell by its +4 (0x54941c), 64 × 64, with a third of the texture (0x3ea8f5c3
-// and 0x3f28f5c3).
-constexpr float AtlasSide = 64.0f;
-constexpr float AtlasThird = 0.33f;
-constexpr float AtlasTwoThirds = 0.66f;
-
-glm::vec2 AtlasCell(std::int32_t cell)
-{
-    switch (cell)
-    {
-    case 1:
-        return {AtlasThird, 0.0f};
-    case 2:
-        return {AtlasTwoThirds, 0.0f};
-    case 3:
-        return {0.0f, AtlasThird};
-    case 4:
-        return {AtlasThird, AtlasThird};
-    case 5:
-        return {AtlasTwoThirds, AtlasThird};
-    case 6:
-        return {0.0f, AtlasTwoThirds};
-    case 7:
-        return {AtlasThird, AtlasTwoThirds};
-    default:
-        return {0.0f, 0.0f};
-    }
-}
-
-Render::ModelBlend SpriteBlend(const Particles::Sprite& sprite)
-{
-    if (sprite.texture == Particles::AtlasSprite)
-    {
-        return Render::ModelBlend::Alpha;
-    }
-    switch (sprite.blend)
-    {
-    case 1:
-        return Render::ModelBlend::Subtractive;
-    case 2:
-        return Render::ModelBlend::Alpha;
-    case 3:
-        return Render::ModelBlend::InverseColorAdditive;
-    default:
-        return Render::ModelBlend::Additive;
-    }
-}
-} // namespace
-
-void DrawFrameSprites(Render::ModelBatch& batch, Particles::FrameSprites& sprites,
-                      const Models::IModelLibrary& textures, const Math::OriginalMatrix& view, std::uint8_t mode)
-{
-    for (Particles::Sprite& sprite : sprites.Sprites())
-    {
-        // 0x54944e..0x54949e: mode 1 retains; mode 2 also turns off the lower band, NaN included.
-        if (mode == 1 && sprite.position.z > 350.0f)
-            continue;
-        if (mode == 2 && !(sprite.position.z > 300.0f))
-        {
-            sprite.alive = false;
-            continue;
-        }
-        if (!sprite.alive)
-        {
-            continue;
-        }
-        Particles::StepSpriteAlpha(sprite);
-        const Render::TextureSlot slot{sprite.texture};
-        Render::Billboard billboard;
-        // 0x5493de/0x549410 call 0x621400: the components byte picks Color3 or Color4 here too.
-        const auto metadata = textures.TextureMetadataOf(sprite.texture);
-        constexpr int RgbComponents = 3;
-        const int components = metadata ? metadata->components : RgbComponents;
-        // The size: the scale times the alpha in the x87, times the texture's width and height.
-        const double size = static_cast<double>(sprite.scale) * static_cast<double>(sprite.alpha);
-        if (sprite.texture == Particles::AtlasSprite)
-        {
-            billboard =
-                Render::MakeBillboard(view, sprite.position, AtlasSide, AtlasSide, sprite.light, sprite.rotation,
-                                      AtlasCell(sprite.blend), glm::vec2(AtlasThird), sprite.texture, components);
-        }
-        else
-        {
-            const glm::vec2 texture = textures.TextureSize(slot).value_or(glm::vec2(0.0f));
-            const auto width = static_cast<float>(size * static_cast<double>(texture.x));
-            const auto height = static_cast<float>(size * static_cast<double>(texture.y));
-            billboard = Render::MakeBillboard(view, sprite.position, width, height, sprite.light, sprite.rotation,
-                                              glm::vec2(0.0f), glm::vec2(1.0f), sprite.texture, components);
-        }
-        batch.SetState(Render::ModelDrawState{.texture = slot, .blend = SpriteBlend(sprite)});
-        const auto vertex = [&billboard](std::size_t k)
-        { return Render::ModelVertex{billboard.corners[k].position, billboard.corners[k].uv, billboard.color}; };
-        batch.Triangle({vertex(0), vertex(1), vertex(2)});
-        batch.Triangle({vertex(0), vertex(2), vertex(3)});
-        // 0x549440(0) turns it off after drawing it.
-        if (mode == 0 || mode == 2)
-            sprite.alive = false;
-    }
-}
-
-Core::Expected<void, Particles::ParticleDrawingFailure>
-DrawParticles(Render::ModelBatch& batch, Particles::Particles& particles, const Models::IModelLibrary& textures,
-              const Math::OriginalMatrix& view, float worldClock, std::uint8_t mode)
-{
-    bool restoreTextureEnv = false;
-    const auto drawn = [&]
-    {
-        // One adapter per pass imports the material the batch left.
-        Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
-                                                  Render::ModelBatchParticleState::ForModelPass());
-        Effects::ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
-        const auto result = Particles::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
-        restoreTextureEnv = !result.HasValue() && services.HasOpenTextureEnvOverride();
-        return result;
-    }();
-    // 0x548a4a restores GL_MODULATE after the billboard. If MuRet interrupts the pass, it closes the incomplete quad
-    // first and completes only this restore.
-    if (restoreTextureEnv)
-        batch.SetTextureEnv(Render::TextureEnvMode::Modulate);
-    return drawn;
-}
-
-void DrawLeaves(Render::ModelBatch& batch, const Weather::Leaves& leaves)
-{
-    const Render::Color white{1.0f, 1.0f, 1.0f, 1.0f};
-    for (const Weather::Leaf& leaf : leaves.All())
-    {
-        if (!leaf.alive)
-        {
-            continue;
-        }
-        const Weather::LeafQuad quad = Weather::LeafQuadOf(leaf);
-        batch.SetState(Render::ModelDrawState{.texture = Render::TextureSlot{static_cast<std::uint16_t>(leaf.type)},
-                                              .blend = Render::ModelBlend::Additive});
-        // glTranslatef and the vertex: GL does the sum, in float.
-        const auto vertex = [&quad, &white](std::size_t k)
-        { return Render::ModelVertex{quad.translation + quad.corners[k], quad.uv[k], white}; };
-        batch.Triangle({vertex(0), vertex(1), vertex(2)});
-        batch.Triangle({vertex(0), vertex(2), vertex(3)});
-    }
 }
 } // namespace Client::WorldObjects

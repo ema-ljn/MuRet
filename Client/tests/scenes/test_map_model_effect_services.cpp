@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include "support/PlayerActors.h"
 
@@ -17,7 +17,7 @@ TEST(MapModelEffectServicesTest, NoriaCopiesTheLightBeforeMutatingItsSourceAndCo
     Client::Effects::ModelEffects effects;
     Client::Crt::CrtRandom random(1);
     Client::WorldObjects::MapModelEffectServices services(effects, random);
-    Client::WorldObjects::WorldObject source;
+    Client::Kernel::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
     const glm::vec3 position(100.0f, 200.0f, 300.0f);
     ASSERT_TRUE(services.CreateModelEffect({322, position, 0.0f, 0}, source));
@@ -34,7 +34,7 @@ TEST(MapModelEffectServicesTest, TheLastTowerTypePreservesTheSourceAndUsesNoRand
     Client::Effects::ModelEffects effects;
     Client::Crt::CrtRandom random(1);
     Client::WorldObjects::MapModelEffectServices services(effects, random);
-    Client::WorldObjects::WorldObject source;
+    Client::Kernel::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
     ASSERT_TRUE(services.CreateModelEffect({324, source.transform.position, 0.0f, 0}, source));
     EXPECT_EQ(source.light, glm::vec3(0.2f, 0.4f, 0.6f));
@@ -48,7 +48,7 @@ TEST(MapModelEffectServicesTest, AFullPhysicalPoolSkipsMutationAndRandomWithoutF
         effect.alive = true;
     Client::Crt::CrtRandom random(1);
     Client::WorldObjects::MapModelEffectServices services(effects, random);
-    Client::WorldObjects::WorldObject source;
+    Client::Kernel::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
     ASSERT_TRUE(services.CreateModelEffect({322, source.transform.position, 0.0f, 0}, source));
     EXPECT_EQ(source.light, glm::vec3(0.2f, 0.4f, 0.6f));
@@ -65,7 +65,7 @@ TEST(MapModelEffectServicesTest, ReusingASlotRetainsFieldsThatTheNativeCreatorDo
     slot.seen = true;
     Client::Crt::CrtRandom random(1);
     Client::WorldObjects::MapModelEffectServices services(effects, random);
-    Client::WorldObjects::WorldObject source;
+    Client::Kernel::WorldObject source;
     ASSERT_TRUE(services.CreateModelEffect({324, source.transform.position, 0.0f, 0}, source));
     EXPECT_EQ(slot.turnPending, 17.0f);
     EXPECT_EQ(slot.turnDirection, 19.0f);

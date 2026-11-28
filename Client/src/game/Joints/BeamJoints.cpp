@@ -14,7 +14,7 @@
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -302,7 +302,7 @@ Core::Expected<void, std::string> Glow(Kernel::JointState& joint, const JointKer
     constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38
     const double glow = static_cast<double>((services.random->Next() & GlowMask) + GlowBase) * GlowStep;
     const glm::vec3 color{F32(glow * GlowRed), F32(glow), F32(glow * GlowBlue)};
-    if (auto lit = WorldObjects::AddDynamicLight(services.lighting, joint.position, color, GlowRadius, "0x53861c");
+    if (auto lit = Terrain::AddDynamicLight(services.lighting, joint.position, color, GlowRadius, "0x53861c");
         !lit.HasValue())
         return lit;
     const std::int32_t subtype = joint.subtype;

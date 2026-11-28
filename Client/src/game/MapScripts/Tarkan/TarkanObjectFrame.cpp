@@ -4,14 +4,13 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/RoundedMath.h"
-#include "WorldObjects/ObjectFrameSprites.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Math/Ftol.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -53,12 +52,11 @@ double Pulse(double phase)
     return (Math::RoundedSin(phase * PulseRate) * PulseAmplitude) + PulseBase;
 }
 
-Core::Expected<void, std::string> Sprite(const WorldObjects::GameObjectPass& pass, std::uint16_t texture,
-                                         std::size_t bone, float scale, const glm::vec3& light,
-                                         std::string_view address)
+Core::Expected<void, std::string> Sprite(const Kernel::GameObjectPass& pass, std::uint16_t texture, std::size_t bone,
+                                         float scale, const glm::vec3& light, std::string_view address)
 {
     // 0x4ec110(bone, local_38, out, 0) with local_38 at zero since 0x602fce.
-    const auto point = WorldObjects::ObjectBonePoint(pass, bone, glm::vec3(0.0f));
+    const auto point = Kernel::ObjectBonePoint(pass, bone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     if (pass.sprites == nullptr)
@@ -69,9 +67,9 @@ Core::Expected<void, std::string> Sprite(const WorldObjects::GameObjectPass& pas
 }
 
 // 0x53fe70(0x5f2, point, angles, object light, subtype, scale, 0) with the borrowed world clock.
-Core::Expected<void, std::string> Smoke(const WorldObjects::GameObjectPass& pass,
-                                        const WorldObjects::WorldObject& object, const glm::vec3& position,
-                                        std::int32_t subtype, float scale, std::string_view address)
+Core::Expected<void, std::string> Smoke(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                        const glm::vec3& position, std::int32_t subtype, float scale,
+                                        std::string_view address)
 {
     if (pass.particles == nullptr)
         return Core::Unexpected(std::format("{}: falta el pool de partículas (0x53fe70)", address));
@@ -85,11 +83,10 @@ Core::Expected<void, std::string> Smoke(const WorldObjects::GameObjectPass& pass
     return {};
 }
 
-Core::Expected<void, std::string> SmokeAndStone(WorldObjects::WorldObject& object,
-                                                const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> SmokeAndStone(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     // 0x603c9d..0x603cda: +0x58 before the two ftol; the angle's first, times 10 in 32 bits.
-    object.state.hiddenMesh = WorldObjects::HiddenObject;
+    object.state.hiddenMesh = Kernel::HiddenObject;
     const std::optional<std::int32_t> angle = Math::OriginalFtolLow(D(object.transform.angles.z));
     if (!angle)
         return Core::Unexpected(std::string("0x603ca7: ftol del ángulo z fuera de lo acreditado"));
@@ -132,8 +129,7 @@ Core::Expected<void, std::string> SmokeAndStone(WorldObjects::WorldObject& objec
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObject& object,
-                                                        const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepTarkanObjectFrame(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     const double clock = D(pass.worldClock);
     switch (object.type)
@@ -149,7 +145,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObjec
     case 0x3c:
     {
         // 0x603acc: twenty smokes the first time, with the object's position, angles, light and scale.
-        if (object.state.hiddenMesh != WorldObjects::HiddenObject)
+        if (object.state.hiddenMesh != Kernel::HiddenObject)
         {
             constexpr int Smokes = 20;
             for (int smoke = 0; smoke < Smokes; ++smoke)
@@ -159,7 +155,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObjec
                     return smoked;
             }
         }
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     }
     case 0x3f:
@@ -178,7 +174,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObjec
     case 0x46:
     {
         // 0x603c06: +0x58 before the rand().
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         constexpr int SmokeChance = 5;
         if (pass.random->Next() % SmokeChance != 0)
             return {};
@@ -187,7 +183,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObjec
     case 0x4c:
     {
         // 0x603c4c: +0x58 before the ftol; the signed remainder against 4500.
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         const std::optional<std::int32_t> low = Math::OriginalFtolLow(clock);
         if (!low)
             return Core::Unexpected(std::string("0x603c59: ftol del reloj del mundo fuera de lo acreditado"));

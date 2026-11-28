@@ -18,12 +18,12 @@
 #include "Effects/GameModelEffects.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/KalimaParticleKernels.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 
@@ -660,7 +660,7 @@ void FinishTheStep(ModelEffect& effect, const Models::Skeleton* skeleton, const 
 Core::Expected<void, std::string> Light(const ModelEffectStepServices& services, const glm::vec3& position,
                                         const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
-    return WorldObjects::AddDynamicLight(services.lighting, position, color, radius, address);
+    return Terrain::AddDynamicLight(services.lighting, position, color, radius, address);
 }
 
 glm::vec3 Shade(float luminosity)
@@ -1051,7 +1051,7 @@ Core::Expected<void, std::string> StepTheDeathStab(ModelEffect& effect, float lu
 // 0x523b8b..0x523d35 with subtype 1: the 0x106's trail follows its owner with the joint 0x614/3, the sprite 0x5fd and,
 // in Kalima with the hero behind the owner, the wave.
 Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtRandom& random,
-                                                       MapScripts::Kalima::KalimaWorld* kalima,
+                                                       Kernel::KalimaWater* kalima,
                                                        const ModelEffectStepServices& services)
 {
     const ModelEffect* owner = effect.owner.effect;
@@ -1346,8 +1346,7 @@ CreateBlastModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments
 
 Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                        Particles::Particles& particles, float worldClock,
-                                                       CrtRandom& random, int lightDraw,
-                                                       MapScripts::Kalima::KalimaWorld* kalima,
+                                                       CrtRandom& random, int lightDraw, Kernel::KalimaWater* kalima,
                                                        const ModelEffectStepServices& services)
 {
     const glm::vec3 before = effect.transform.position;

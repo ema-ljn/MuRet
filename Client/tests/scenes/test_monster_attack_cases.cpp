@@ -272,7 +272,8 @@ protected:
                                                                sounds.push_back(sound.Value());
                                                                soundDraws.push_back(Draws());
                                                            }};
-        return Client::Monsters::StepTheAttackCases(monster, slot, context);
+        return Client::Monsters::StepTheAttackCases(monster, slot, context,
+                                                    withMonsters ? &game->states.monsters : nullptr);
     }
 
     [[nodiscard]] int Draws() const
@@ -401,6 +402,7 @@ protected:
     std::vector<std::int32_t> sounds;
     std::vector<int> soundDraws;
     bool withParticles = true;
+    bool withMonsters = true;
 };
 
 // 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; la partícula 0x600/1 nace en 14 (0x43a861 y
@@ -3105,6 +3107,20 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         EXPECT_EQ(joint.ownerContext, &game->world.Actors()[0]);
         EXPECT_EQ(joint.angles, glm::vec3(-60.0f, 0.0f, fallback.angles.z));
     }
+}
+
+// 0x4f8b92: the 0x4d from step 8 reads the phoenix's matrix at 0x743748c; without the monsters' state it stops there,
+// after the skill and tail draws and before the joints' turns.
+TEST_F(MonsterAttackCasesTest, ThePhoenixSkill3StopsWithoutTheMonstersState)
+{
+    Load(0);
+    withMonsters = false;
+    Expect(Probe{.name = "0x4d en 8 sin estado",
+                 .type = 0x4d,
+                 .step = 8,
+                 .skill = 3,
+                 .cut = "0x4f8b92",
+                 .draws = SkillRead + Tail});
 }
 
 TEST_F(MonsterAttackCasesTest, TheSkill3FallbackUsesLoadedSkeletonMetadataBeforeTheRetainedPose)

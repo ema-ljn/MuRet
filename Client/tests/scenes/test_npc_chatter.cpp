@@ -13,6 +13,7 @@
 #include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Monsters/MonstersState.h"
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
@@ -144,6 +145,7 @@ protected:
     }
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
+    Client::Monsters::MonstersState m_monsters;
     CrtRandom m_random{1};
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{1974, "pociones"},
@@ -281,24 +283,24 @@ TEST_F(NpcChatterTest, TheNamedLineTakesTurnsEveryFourSeconds)
 {
     TheMessageName();
     m_now = 1000;
-    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters).HasValue());
     EXPECT_EQ(m_clockReads, 2);
     EXPECT_EQ(Said(), "evento dos");
-    EXPECT_EQ(m_world->Runtime().namedLineTime, 1000u);
-    EXPECT_TRUE(m_world->Runtime().namedLineFirst);
+    EXPECT_EQ(m_monsters.namedLineTime, 1000u);
+    EXPECT_TRUE(m_monsters.namedLineFirst);
 
     m_world->Runtime().chat.bubbles = {};
     m_now = 5000;
-    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters).HasValue());
     EXPECT_EQ(m_clockReads, 3);
     EXPECT_EQ(Said(), std::nullopt);
-    EXPECT_EQ(m_world->Runtime().namedLineTime, 1000u);
+    EXPECT_EQ(m_monsters.namedLineTime, 1000u);
 
     m_now = 5001;
-    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters).HasValue());
     EXPECT_EQ(Said(), "evento uno");
-    EXPECT_EQ(m_world->Runtime().namedLineTime, 5001u);
-    EXPECT_FALSE(m_world->Runtime().namedLineFirst);
+    EXPECT_EQ(m_monsters.namedLineTime, 5001u);
+    EXPECT_FALSE(m_monsters.namedLineFirst);
 }
 
 // 0x4fcda2: the strcmp goes on after the eleven equal bytes and compares +0x1e4 with the 0 of 0x6c88b0. With something
@@ -317,7 +319,7 @@ TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
     TheMessageName();
     Npc().nameSpill[0] = std::byte{'s'};
     m_now = 1000;
-    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters).HasValue());
     EXPECT_EQ(Said(), std::nullopt);
 }
 
@@ -326,19 +328,30 @@ TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
 TEST_F(NpcChatterTest, TheClockStartsWithAnyoneAndWithoutItOnlyTheNameStops)
 {
     m_now = 300;
-    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
-    EXPECT_EQ(m_world->Runtime().namedLineTime, 300u - 5000u);
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters).HasValue());
+    EXPECT_EQ(m_monsters.namedLineTime, 300u - 5000u);
     EXPECT_EQ(Said(), std::nullopt);
-    EXPECT_FALSE(m_world->Runtime().namedLineFirst);
+    EXPECT_FALSE(m_monsters.namedLineFirst);
 
     m_withClock = false;
-    m_world->Runtime().namedLineTime.reset();
-    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
-    EXPECT_FALSE(m_world->Runtime().namedLineTime.has_value());
+    m_monsters.namedLineTime.reset();
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters).HasValue());
+    EXPECT_FALSE(m_monsters.namedLineTime.has_value());
     TheMessageName();
-    const auto named = Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context());
+    const auto named = Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), &m_monsters);
     ASSERT_FALSE(named.HasValue());
     EXPECT_NE(named.Error().find("0x4fcd82"), std::string::npos) << named.Error();
+    EXPECT_EQ(Said(), std::nullopt);
+}
+
+// Without the monsters' state the clock of 0x7437488 has no home: the step stops and nothing is said.
+TEST_F(NpcChatterTest, TheNamedLineStopsWithoutTheMonstersState)
+{
+    TheMessageName();
+    m_now = 1000;
+    const auto named = Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context(), nullptr);
+    ASSERT_FALSE(named.HasValue());
+    EXPECT_NE(named.Error().find("0x4fcd65"), std::string::npos) << named.Error();
     EXPECT_EQ(Said(), std::nullopt);
 }
 

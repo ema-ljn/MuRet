@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/SkillId.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Kernel/CharacterClass.h"
 #include "Actors/WalkPath.h"
@@ -49,7 +50,7 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::uint8_t ChargedSkill = 0x28;
+constexpr std::uint8_t ChargedSkill = Tables::NovaSkill;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
 constexpr std::uint8_t PlayerObject = 1;
 constexpr std::uint32_t FrozenHeroFlag = 0x1000;

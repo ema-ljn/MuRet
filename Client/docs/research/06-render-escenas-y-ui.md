@@ -13703,7 +13703,7 @@ MuRet: `Scenes::MonsterKinds` (las tablas en `MonsterKindTable.cpp`, `MonsterCre
 `ResolveMonsterSteps` y `MonsterTailOf`) y `Scenes::CreateMonster` (`MonsterCreation.h`), que corre los pasos en orden
 con cada `rand()` en su lugar entre los del alta. `LoadMonster` y `LoadNpc` cargan el modelo ([Los modelos de los
 monstruos y los NPC](#los-modelos-de-los-monstruos-y-los-npc); sin el `Monster*.bmd` corta, como el cierre del
-original, P-C173) y `Action` usa sus acciones (`Scenes::SetMonsterAction`). `MeshFlag` y `ModelByte` quedan en `WorldRuntime::modelPatches` y `BoneName` en `WorldRuntime::namedBones`;
+original, P-C173) y `Action` usa sus acciones (`Scenes::SetMonsterAction`). `MeshFlag` y `ModelByte` quedan en `Monsters::MonstersState::modelPatches` y `BoneName` en `WorldRuntime::namedBones`;
 el sonido, en `WorldRuntime::lastSoundId` (CL10). Cortan los joints y la llegada (CL11) y el asedio prendido (CL9.5),
 08, P-C175. El nombre se guarda en `+0x1d9..+0x1f1` (el nombre, `+0x1e3` y `ActorState::nameSpill`); uno más largo
 sigue por el `WORD` de `+0x1f2`, la clave y la cabeza como en el original, y lo que llegaría a `+0x218` corta (Q-C847,
@@ -13923,7 +13923,7 @@ Tests: `MagicAttackCountTest`, `HandShineTest` y `ViewportTest.MagicAttackCountR
 
 **MuRet** (`Scenes/NpcChatter.h`): `TurnTheNpc`, `SayTheNpcLine`, `SayTheNamedLine` y `FinishTheTurnedNpc` desde
 `StepTheAnimation` (`CharacterStep.cpp`), con el globo de `AddChatBubble` (modo 0, sin color). El reloj del nombre es
-`WorldRuntime::namedLineTime`, con la guarda en el `optional`, y el que se turna, `namedLineFirst`; `timeGetTime()` es
+`Monsters::MonstersState::namedLineTime`, con la guarda en el `optional`, y el que se turna, `namedLineFirst`; `timeGetTime()` es
 `CharacterStepContext::systemTime`, que el juego toma del reloj de la escena. Sin él (el login y la selección), MuRet
 no lee ni escribe el reloj y corta solo con el nombre (`0x4fcd82`). Sin Text.bmd o sin medidor, el que tiene que
 hablar corta con la dirección de su `0x557170`. Las acciones de `0x4fc8c0` van con las de Player.bmd. Hoy llegan al
@@ -14289,7 +14289,7 @@ del mundo (sin ellas, corta en `0x5fb2f0`; sus tipos de verdad, el `0x1f3` y el 
 copia del personaje y del `rand()`. Del `0x45`, sus nueve sprites y los cuatro `rand()` de su primera partícula, que
 corta en `0x50c0db` (la `0x5c6/3` no está en `World::Particles`, CL11; entre frames del original no crea las
 partículas); del `0x46`, su sprite; del `0x4d`, todo (`DrawGameMonster` con el modo de `0x5ffdf0`, que da la escala de
-`SkinObjectMeshes`; los huesos en `WorldRuntime::phoenixBones`, en el frame del original; la tela con
+`SkinObjectMeshes`; los huesos en `Monsters::MonstersState::phoenixBones`, en el frame del original; la tela con
 `CharacterCloth::FrameTheMonsterCloth` del lugar, y entre frames del original `DrawTheMonsterCloth`, que la dibuja como
 quedó; sin `GameCharacterPass::cloths`, corta en `0x50c283`); del `0x47`, el `0x4a` y el `0x12d`, su tela, igual (sin
 `GameCharacterPass::cloths`, corta en `0x50c59f`); del `0x2a` y de las estatuas, lo que cuelgan, con

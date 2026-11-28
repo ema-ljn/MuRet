@@ -1,5 +1,6 @@
 #include "Monsters/Drawing/MonsterDrawing.h"
 
+#include "Monsters/MonstersState.h"
 #include "Actors/Drawing/CharacterDrawHooks.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -271,6 +272,7 @@ struct MonsterFrame
     // repeated. Before the first copy (with the alpha below 0.01 it does not copy), the character's position: the
     // original reads the one another draw or the step left in the shared record.
     glm::vec3 modelOrigin{};
+    MonstersState* monsters = nullptr;
 };
 
 void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
@@ -781,8 +783,10 @@ Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
         return Cut("0x50c256", "el hueso 23 de una pose más corta (el buffer de +0x120 fuera del modelo)", actor.type);
     if (frame.originalFrame)
     {
-        frame.world.Runtime().phoenixBones[0] = actor.bodyPose[FirstBone];
-        frame.world.Runtime().phoenixBones[1] = actor.bodyPose[SecondBone];
+        if (frame.monsters == nullptr)
+            return Core::Unexpected(std::string("0x50c177: no Monsters::MonstersState for the matrices at 0x743748c"));
+        frame.monsters->phoenixBones[0] = actor.bodyPose[FirstBone];
+        frame.monsters->phoenixBones[1] = actor.bodyPose[SecondBone];
     }
     return RunTheGridCloth(frame, "0x50c283");
 }
@@ -834,7 +838,11 @@ Result DrawThePhoenix(MonsterFrame& frame)
     if (actor.bodyPose.size() <= TailBone)
         return Cut("0x50c227", "el hueso 24 de una pose más corta (el buffer de +0x120 fuera del modelo)", actor.type);
     if (frame.originalFrame)
-        frame.world.Runtime().phoenixBones[2] = actor.bodyPose[TailBone];
+    {
+        if (frame.monsters == nullptr)
+            return Core::Unexpected(std::string("0x50c177: no Monsters::MonstersState for the matrix at 0x74374ec"));
+        frame.monsters->phoenixBones[2] = actor.bodyPose[TailBone];
+    }
     actor.dword64 = -1;
     // 0x50c244..0x50c34b: INC and DEC of +0x2 around the second model and the cloth.
     const std::uint16_t type = actor.type;
@@ -1404,7 +1412,8 @@ bool MonsterShines(std::uint16_t monster)
 
 Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                   Kernel::WorldState& world, std::size_t slot,
-                                                  const Actors::Drawing::GameCharacterPass& pass, bool originalFrame)
+                                                  const Actors::Drawing::GameCharacterPass& pass, bool originalFrame,
+                                                  MonstersState* monsters)
 {
     Kernel::ActorState& stored = world.Actors()[slot];
     if (pass.clothWorld == nullptr)
@@ -1434,7 +1443,8 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
                        .worldClock =
                            static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
                        .originalFrame = originalFrame,
-                       .modelOrigin = actor.position};
+                       .modelOrigin = actor.position,
+                       .monsters = monsters};
     const auto slotIndex = static_cast<std::int32_t>(slot);
     frame.outline = slotIndex == pass.hovered || slotIndex == pass.targeted ? PoseMode::Outlined : PoseMode::Plain;
     const std::uint16_t special = Actors::Drawing::WearsClothOnTheMesh(actor.word376) ? 0 : SpecialOf(actor.word376);

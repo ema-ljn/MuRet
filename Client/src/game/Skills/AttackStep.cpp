@@ -6,6 +6,7 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/SkillId.h"
 #include "Maps/MapId.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
@@ -140,12 +141,13 @@ Core::Expected<void, std::string> StepTheAttackFrames(Kernel::ActorState& actor,
 
 // 0x4f5b70: the attack's work that runs while +0x381 rises.
 Core::Expected<void, std::string> StepTheAttackHelpers(Kernel::ActorState& actor, std::size_t slot,
-                                                       const Actors::CharacterStepContext& context)
+                                                       const Actors::CharacterStepContext& context,
+                                                       const Monsters::MonstersState* monsters)
 {
     // 0x4f5b97: an unconditional rand() that nobody reads.
     static_cast<void>(context.random.Next());
     // The map helpers, the switch on +0x376 and the tail (MonsterAttackStep.h).
-    return Monsters::StepTheAttackCases(actor, slot, context);
+    return Monsters::StepTheAttackCases(actor, slot, context, monsters);
 }
 
 // 0x502b12..0x5037d5: +0x3a4 at −1.
@@ -153,7 +155,7 @@ Core::Expected<void, std::string> StrikeNothing(Kernel::ActorState& actor, std::
                                                 const Actors::CharacterStepContext& context)
 {
     // 0x502b12..0x502ef9: +0x38e; with 0x18, the flag (0x53e2b0's fifth argument) at 1.
-    constexpr std::uint8_t FlaggedSkill = 0x18;
+    constexpr std::uint8_t FlaggedSkill = Tables::TripleShotSkill;
     const std::uint8_t flag = Skills::ReadTheSkill(actor, context.random) == FlaggedSkill ? 1 : 0;
     const bool shoots = actor.type == PlayerType ? IsOneOf(RangedActions, actor.animation.action) : actor.byte88 == 1;
     if (shoots)
@@ -373,7 +375,8 @@ Core::Expected<void, std::string> StrikeTheTarget(Kernel::ActorState& actor, std
 } // namespace
 
 Core::Expected<void, std::string> StepTheAttack(Kernel::ActorState& actor, std::size_t slot,
-                                                const Actors::CharacterStepContext& context, const glm::vec3& light)
+                                                const Actors::CharacterStepContext& context, const glm::vec3& light,
+                                                const Monsters::MonstersState* monsters)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x4fdb9a..0x4fdbd4.
@@ -381,7 +384,7 @@ Core::Expected<void, std::string> StepTheAttack(Kernel::ActorState& actor, std::
     {
         if (auto frames = StepTheAttackFrames(actor, slot, context); !frames.HasValue())
             return frames;
-        if (auto helpers = StepTheAttackHelpers(actor, slot, context); !helpers.HasValue())
+        if (auto helpers = StepTheAttackHelpers(actor, slot, context, monsters); !helpers.HasValue())
             return helpers;
         ++actor.byte381;
     }

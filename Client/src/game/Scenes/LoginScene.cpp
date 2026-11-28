@@ -387,7 +387,8 @@ LoginScene::LoginScene(const SceneContext& context, const Tables::GameData& data
       m_notice([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_escape([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_options([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
-      m_credits([this](Render::TextureSlot slot) { return BufferSize(slot); }, data.credits)
+      m_credits([this](Render::TextureSlot slot) { return BufferSize(slot); }, data.credits),
+      m_characterDrawHooks(&States().monsters)
 {
     if (data.text)
     {
@@ -883,7 +884,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
-    const Session::CharacterStepHooks hooks{};
+    const Session::CharacterStepHooks hooks{&States().monsters};
     return Actors::StepCharacters(
         {.world = CharacterWorld(),
          .random = cloth.random,

@@ -17,6 +17,7 @@
 #include "Ui/MessageArea.h"
 #include "Ui/PanelRegistry.h"
 #include "Ui/OldControls.h"
+#include "Tables/SkillId.h"
 
 #include <algorithm>
 #include <array>
@@ -47,7 +48,7 @@ constexpr std::size_t Text1616 = 1616; // 0x773379c
 // 0x4df806: la vida del registro que arma el B2 05, 500000 para una puerta y 400000 para lo demás.
 constexpr std::uint32_t BoughtGateLife = 500000;
 constexpr std::uint32_t BoughtStatueLife = 400000;
-constexpr std::uint8_t NoSavedSkill = 0xff;
+constexpr std::uint8_t NoSavedSkill = Tables::NoSkill;
 
 std::string_view CString(std::string_view text)
 {

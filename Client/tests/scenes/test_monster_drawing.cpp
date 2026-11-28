@@ -47,6 +47,7 @@
 #include "support/RecordingSink.h"
 #include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
+#include "Monsters/MonstersState.h"
 
 #include <gtest/gtest.h>
 
@@ -256,7 +257,8 @@ protected:
     Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
-    Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Monsters::MonstersState m_monsters;
+    Client::Session::CharacterDrawHooks m_drawHooks{&m_monsters};
     Client::Effects::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
@@ -1154,7 +1156,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         EXPECT_EQ(phoenix.blendMeshLight, static_cast<float>((1.0 - 0.5 + 1.0) * static_cast<double>(0.3f)));
         // 0x743748c, 0x74374bc and 0x74374ec: bones 23 and 14 of the 0x18a and bone 24 of the 0x189 (bone k at (0, 0,
         // k)).
-        const auto& bones = m_world->Runtime().phoenixBones;
+        const auto& bones = m_monsters.phoenixBones;
         EXPECT_EQ(bones[0][3], glm::vec3(0.0f, 0.0f, 23.0f));
         EXPECT_EQ(bones[1][3], glm::vec3(0.0f, 0.0f, 14.0f));
         EXPECT_EQ(bones[2][3], glm::vec3(0.0f, 0.0f, 24.0f));
@@ -1280,6 +1282,23 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
     EXPECT_NE(unsupplied.Error().find("0x50c59f"), std::string::npos) << unsupplied.Error();
 }
 
+// 0x50c177: on the original's frame the 0x4d copies its bones to 0x743748c..0x74374ec; without the monsters' state
+// they have no home and the pass stops.
+TEST_F(MonsterDrawingTest, ThePhoenixStopsWithoutTheMonstersState)
+{
+    Monster(3, 0x189, 0x4d);
+    std::vector<Client::Actors::Drawing::CharacterCloth> cloths(4);
+    const Client::Session::CharacterDrawHooks stateless;
+    GameCharacterPass pass = Pass();
+    pass.cloths = cloths;
+    pass.hooks = &stateless;
+
+    const auto result = Draw(pass);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x50c177"), std::string::npos) << result.Error();
+}
+
 // Between the original's frames the 0x4d draws the same on the copy: it does not store +0x64, +0x68, the type or the
 // bones, does not build the cloth or draw rand(); without the slot's persistent cloth, it cuts at 0x50c283.
 TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
@@ -1296,7 +1315,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
     EXPECT_EQ(phoenix.dword64, -1);
     EXPECT_EQ(phoenix.blendMeshLight, 1.0f);
     EXPECT_TRUE(phoenix.bodyPose.empty());
-    EXPECT_EQ(m_world->Runtime().phoenixBones[2], Client::Math::BoneTransform{});
+    EXPECT_EQ(m_monsters.phoenixBones[2], Client::Math::BoneTransform{});
     EXPECT_TRUE(cloths[3].Cloths().empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
     const auto unsupplied = Draw(Pass());

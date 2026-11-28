@@ -1,5 +1,6 @@
 #include "Monsters/MonsterAttackStep.h"
 
+#include "Monsters/MonstersState.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
@@ -1507,7 +1508,7 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
 Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Kernel::ActorState& target,
                                                    const KindCase& found, std::size_t slot,
                                                    const Actors::CharacterStepContext& context,
-                                                   const glm::vec3& localLight)
+                                                   const glm::vec3& localLight, const MonstersState* monsters)
 {
     const std::uint8_t step = actor.byte381;
     const std::uint8_t action = actor.animation.action;
@@ -1602,10 +1603,12 @@ Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Ke
     case 0x4f83f4:
         if (step == FourteenthStep)
         {
-            // 0x4f8401..0x4f845e: the matrix at 0x74374ec (WorldRuntime::phoenixBones[2]).
+            // 0x4f8401..0x4f845e: the matrix at 0x74374ec (MonstersState::phoenixBones[2]).
             constexpr std::size_t TailMatrix = 2;
-            const glm::vec3 point =
-                MatrixPoint(actor, context.world.Runtime().phoenixBones[TailMatrix], glm::vec3(0.0f), context);
+            if (monsters == nullptr)
+                return Core::Unexpected(
+                    std::string("0x4f8401: no Monsters::MonstersState for the matrix at 0x74374ec"));
+            const glm::vec3 point = MatrixPoint(actor, monsters->phoenixBones[TailMatrix], glm::vec3(0.0f), context);
             if (auto made = CreateTheBlastEffect(0x106, 1, point, actor.angles, localLight, nullptr, context);
                 !made.HasValue())
                 return made;
@@ -1685,7 +1688,7 @@ Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Ke
 Core::Expected<void, std::string> StepTheBoneSkill(Kernel::ActorState& actor, Kernel::ActorState& target,
                                                    const KindCase& found, std::size_t slot,
                                                    const Actors::CharacterStepContext& context,
-                                                   const glm::vec3& localLight)
+                                                   const glm::vec3& localLight, const MonstersState* monsters)
 {
     const std::uint8_t step = actor.byte381;
     switch (found.address)
@@ -1701,7 +1704,9 @@ Core::Expected<void, std::string> StepTheBoneSkill(Kernel::ActorState& actor, Ke
             return {};
         constexpr int Attempts = 4;
         constexpr float Width = 80.0f; // 0x42a00000
-        const glm::vec3 point = MatrixPoint(actor, context.world.Runtime().phoenixBones[0], glm::vec3(0.0f), context);
+        if (monsters == nullptr)
+            return Core::Unexpected(std::string("0x4f8b92: no Monsters::MonstersState for the matrix at 0x743748c"));
+        const glm::vec3 point = MatrixPoint(actor, monsters->phoenixBones[0], glm::vec3(0.0f), context);
         for (int attempt = 0; attempt < Attempts; ++attempt)
         {
             const glm::vec3 angles = RandomTurn(context.random);
@@ -1736,7 +1741,8 @@ Core::Expected<void, std::string> StepTheBoneSkill(Kernel::ActorState& actor, Ke
 
 // 0x4f80e0..0x4f903c: the tail, with the +0x3a4 target (MOVSX) in [0, 400).
 Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::size_t slot,
-                                              const Actors::CharacterStepContext& context, const glm::vec3& localLight)
+                                              const Actors::CharacterStepContext& context, const glm::vec3& localLight,
+                                              const MonstersState* monsters)
 {
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     if (target < 0 || target >= PoolSlots)
@@ -1747,7 +1753,7 @@ Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::si
     if (ReadTheSkill(actor, context.random) == KindSkill)
     {
         if (const KindCase* found = CaseOf(KindSkillCases, actor.word376))
-            return StepTheKindSkill(actor, victim, *found, slot, context, localLight);
+            return StepTheKindSkill(actor, victim, *found, slot, context, localLight, monsters);
         return {};
     }
     // 0x4f8a2c: with 3, the switch on +0x376 − 0x22 (0x4f8a56); without a case, and the 0xffff, 0x4f8f5b (the +0x2bd
@@ -1755,7 +1761,7 @@ Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::si
     if (ReadTheSkill(actor, context.random) == BoneSkill)
     {
         if (const KindCase* found = CaseOf(BoneSkillCases, actor.word376))
-            return StepTheBoneSkill(actor, victim, *found, slot, context, localLight);
+            return StepTheBoneSkill(actor, victim, *found, slot, context, localLight, monsters);
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
         const Models::Skeleton* skeleton =
@@ -1775,7 +1781,8 @@ Core::Expected<void, std::string> StepTheTail(Kernel::ActorState& actor, std::si
 } // namespace
 
 Core::Expected<void, std::string> StepTheAttackCases(Kernel::ActorState& actor, std::size_t slot,
-                                                     const Actors::CharacterStepContext& context)
+                                                     const Actors::CharacterStepContext& context,
+                                                     const MonstersState* monsters)
 {
     auto helped = StepTheMapHelpers(actor, slot, context);
     if (!helped.HasValue())
@@ -1789,6 +1796,6 @@ Core::Expected<void, std::string> StepTheAttackCases(Kernel::ActorState& actor, 
         if (auto cased = StepTheKindCase(actor, *found, slot, context, localLight); !cased.HasValue())
             return cased;
     }
-    return StepTheTail(actor, slot, context, localLight);
+    return StepTheTail(actor, slot, context, localLight, monsters);
 }
 } // namespace Client::Monsters

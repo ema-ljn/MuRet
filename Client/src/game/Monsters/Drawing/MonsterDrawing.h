@@ -26,6 +26,11 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Monsters
+{
+struct MonstersState;
+} // namespace Client::Monsters
+
 // Monsters and NPCs in the game's draw (0x50ba30 with a type other than 0x20a, CL9 milestone 2). Contract: 06 § El
 // dibujo del juego, "El dibujo de los monstruos y los NPC".
 namespace Client::Monsters::Drawing
@@ -77,8 +82,11 @@ namespace Client::Monsters::Drawing
 // - 0x510ef0 in scene 5 with +0x88 at 1 and +0x369 (cuts at 0x510f4d, CL11); then the raven of +0x430 (DrawGameRaven,
 //   with pass.polygon).
 // `models` holds the items and Player.bmd (the hands); the type's model comes from Assets::AssetsState::fauna. Between
-// original frames, everything on a copy of the character and the rand().
-[[nodiscard]] Core::Expected<void, std::string>
-DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
-                std::size_t slot, const Actors::Drawing::GameCharacterPass& pass, bool originalFrame);
+// original frames, everything on a copy of the character and the rand(). `monsters` keeps the phoenix's matrices the
+// +0x376 0x4d copies on an original frame; without it, that copy stops.
+[[nodiscard]] Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch,
+                                                                const Models::IModelLibrary& models,
+                                                                Kernel::WorldState& world, std::size_t slot,
+                                                                const Actors::Drawing::GameCharacterPass& pass,
+                                                                bool originalFrame, MonstersState* monsters);
 } // namespace Client::Monsters::Drawing

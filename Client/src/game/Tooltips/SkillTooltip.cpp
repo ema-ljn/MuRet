@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
+#include "Tables/SkillId.h"
+#include "Tables/SkillRecord.h"
 #include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -71,7 +73,7 @@ constexpr std::uint8_t NotMountedSkill = 0x2f;
 // 0x5b9239: la que cambia de nombre con la opción 0x42 en la derecha.
 constexpr std::uint8_t ForceSkill = 0x3c;
 // 0x5ba73c, el caso 1: la de las clases 1 a 4 con el texto 1237 en vez del daño.
-constexpr std::uint8_t PetSkill = 0x3e;
+constexpr std::uint8_t PetSkill = Tables::EarthshakeSkill;
 // 0x5ba3e0: la del Dark Lord con el texto 1185 sin party.
 constexpr std::uint8_t PartySkill = 0x3f;
 // 0x5b958d y 0x5ba42a: la del daño de los stats (0x552470) y las dos notas.
@@ -124,14 +126,14 @@ constexpr std::size_t SecondStatNoteText = 1927; // 0x774a410
 
 // Skill.bmd: el byte +0x21 (el daño), el +0x30 (el atributo, 0xff sin él), el +0x31 (de dónde viene: 2, de otra
 // skill, la del +0x32; 1, de la guerra de guilds, con el +0x33).
-constexpr std::size_t DamageByte = 0x21;
-constexpr std::size_t AttributeByte = 0x30;
+constexpr std::size_t DamageByte = Tables::SkillRecordLayout::Damage;
+constexpr std::size_t AttributeByte = Tables::SkillRecordLayout::Attribute;
 constexpr std::uint8_t NoAttribute = 0xff;
-constexpr std::size_t OriginByte = 0x31;
+constexpr std::size_t OriginByte = Tables::SkillRecordLayout::Origin;
 constexpr std::uint8_t GivenOrigin = 2;
 constexpr std::uint8_t GuildWarOrigin = 1;
-constexpr std::size_t GiverByte = 0x32;
-constexpr std::size_t KillCountByte = 0x33;
+constexpr std::size_t GiverByte = Tables::SkillRecordLayout::Giver;
+constexpr std::size_t KillCountByte = Tables::SkillRecordLayout::KillCount;
 
 // 0x5b9403..0x5b949c: los floats de la absorción.
 constexpr float AbsorbManaFactor = 0.02f;    // 0x6b8b90

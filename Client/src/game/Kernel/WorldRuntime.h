@@ -325,17 +325,6 @@ struct NamedBone
     std::uint32_t bone = 0;
 };
 
-// What a monster's creation writes in the model table (0x5769ad8, 0xe0 bytes per model): the model's byte `offset` or,
-// with `mesh`, byte +0 of that mesh (06, "El alta de un monstruo"). The monsters' drawing reads it, unported (08,
-// P-C176).
-struct ModelBytePatch
-{
-    std::uint16_t model = 0;
-    std::optional<std::uint16_t> mesh{};
-    std::uint16_t offset = 0;
-    std::uint8_t value = 0;
-};
-
 // The floor items' globals (CL9 milestone 5; 06 § Los ítems del piso).
 struct FloorItemGlobals
 {
@@ -439,10 +428,6 @@ struct WorldRuntime
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<Audio::SoundId> lastSoundId{};
-    // 0x743748c, 0x74374bc and 0x74374ec: the matrices the +0x376 0x4d drawing copies (0x50c177): bones 23 and 14 of
-    // its second model (the 0x18a) and 24 of the first (the 0x189), from +0x120. 0x4f5b70's attack reads them
-    // (0x4f840e and 0x4f8b92, milestone 3).
-    std::array<Math::BoneTransform, 3> phoenixBones{};
     WorldObjects::ObjectModelStepState objectModelState{};
     // 0x7d365a0, .bss 0. 0x6061c0 reads the retained count before 0x60657a; 0x6063d0 produces it only for Icarus,
     // Chaos Castle and the siege. Kalima keeps 0 after the successful pass's reset.
@@ -557,17 +542,10 @@ struct WorldRuntime
     // step (the 0x1a8 with +0x93 below 5) and 0x42a4d0 empties half at a time in the HUD (Scenes/HealthBars.h). Only
     // those two and its static constructor (0x4293d0) touch it: a map change does not clear it.
     std::deque<QueuedHealthBar> healthBars{};
-    // 0x7437488, guarded by bit 0 of 0x743a174 (.bss): the timeGetTime() of 0x6c88b0's last name message
-    // (0x4fcd65..0x4fce15). A character's first step sets it to now − 5,000; empty before. Nothing resets it.
-    std::optional<std::uint32_t> namedLineTime{};
-    // 0x743a190 (.bss, 0): with 1 the next name message is Text 1167 and with 0 it is 1168; it flips with each one.
-    bool namedLineFirst = false;
     // [0x6e5640]: the characters' named bones (0x401000). 0x4011c0 removes the one of the same character and name
     // before adding the new one; 0x401410 (from 0x401040, at 0x512870, 0x510ff0 and 0x510f70) removes all of a
     // character's. In what order their reader walks them, unread (CL11).
     std::vector<NamedBone> namedBones{};
-    // What the creations wrote in the model table (ModelBytePatch), in order.
-    std::vector<ModelBytePatch> modelPatches{};
     // The music and the WAVs a map or a model registers; the requests go through `sounds`.
     Audio::IPlayback* audio = nullptr;
     Kernel::ISoundRequests* sounds = nullptr;

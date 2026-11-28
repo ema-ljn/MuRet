@@ -180,8 +180,8 @@ private:
     FrontEnd::SelectionState m_selection;
     // 0x61ccb0: the loading scene reads them.
     Assets::GameModels m_models;
-    Session::CharacterStepHooks m_characterStepHooks;
-    Session::CharacterDrawHooks m_characterDrawHooks;
+    Session::CharacterStepHooks m_characterStepHooks{&m_states.monsters};
+    Session::CharacterDrawHooks m_characterDrawHooks{&m_states.monsters};
     Effects::ActorEffectHooks m_effectHooks;
     Chat::ChatMessages m_onScreenMessages;
     Scenes::WorldEntryResources m_worldEntry;

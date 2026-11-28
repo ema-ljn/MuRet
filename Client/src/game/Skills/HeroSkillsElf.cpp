@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/SkillId.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
@@ -46,7 +47,7 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::uint8_t ShotSkill = 0x34;
+constexpr std::uint8_t ShotSkill = Tables::PenetrationSkill;
 constexpr std::uint8_t Skill4c = 0x4c;
 constexpr std::uint8_t PlayerObject = 1;
 constexpr std::int32_t SummonForbiddenMap = 10;

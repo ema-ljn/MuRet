@@ -15,6 +15,7 @@
 #include "Particles/Particles.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Tables/SkillId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -51,7 +52,7 @@ using Maps::LastChaosCastleMap;
 constexpr int ChaosOffsetSpan = 160;
 constexpr int ChaosOffsetCenter = 80;
 // 0x4fbc1e..0x4fbc9b: the skills that push and up to which step.
-constexpr std::uint8_t PushSkill = 0x28;
+constexpr std::uint8_t PushSkill = Tables::NovaSkill;
 constexpr std::uint8_t SecondPushSkill = 0x3b;
 constexpr std::uint8_t LastFlightStep = 14;
 constexpr std::uint8_t LastSparkStep = 30;

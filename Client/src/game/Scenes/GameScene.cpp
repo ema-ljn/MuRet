@@ -221,7 +221,7 @@ GameScene::GameScene(const SceneContext& context, App::ServerSession* session, c
       m_skills(skills), m_texts(texts), m_chatTables(chat),
       m_windowTextures(context.textures, Assets::WindowTextureSet),
       m_sandTextures(context.textures, Assets::SandTextureSet), m_guildMarks(context.textures),
-      m_tiles(context.textures)
+      m_characterDrawHooks(context.states != nullptr ? &context.states->monsters : nullptr), m_tiles(context.textures)
 {
 }
 

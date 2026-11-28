@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/SkillTable.h"
+#include "Tables/SkillRecord.h"
 #include "Models/LogicalAccess.h"
 #include "Movement/GameMovementState.h"
 #include "Skills/SkillDelays.h"
@@ -17,8 +18,8 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::size_t LevelOffset = 0x20;  // byte
-constexpr std::size_t EnergyOffset = 0x2c; // byte: with 0, the skill asks for no energy
+constexpr std::size_t LevelOffset = Tables::SkillRecordLayout::Level;
+constexpr std::size_t EnergyOffset = Tables::SkillRecordLayout::Energy; // with 0, the skill asks for no energy
 constexpr std::int32_t EnergyFactor = 4;
 constexpr std::int32_t EnergyDivisor = 100; // 0x5520f4: IMUL by 0x51eb851f and SAR 5
 constexpr std::int32_t EnergyBase = 20;

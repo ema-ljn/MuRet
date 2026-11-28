@@ -9,29 +9,27 @@
 #include <string_view>
 #include <vector>
 
-// Los textos de Text.bmd que arma la UI del login (CL5.5). El original los usa como formato de
-// sprintf, como el 456 de la escena (Q-C61); MuRet no: cambia cada "%s" y cada "%d", en orden,
-// por el argumento que sigue, y lo demás queda como está.
+// The Text.bmd texts the login UI builds (CL5.5). The original uses them as sprintf formats, like the scene's 456
+// (Q-C61); MuRet does not: it replaces each "%s" and each "%d", in order, with the next argument, and leaves the rest
+// as it is.
 namespace Client::Ui
 {
-// `format` con su primer "%s", "%d" o "%u" cambiado por arguments[0], el siguiente por arguments[1], y
-// así (el %u es del 201 del HUD, la experiencia). Una marca sin argumento queda; un argumento de más no
-// va; un "%" que no es "%s", "%d" ni "%u", tampoco "%%", queda como está. Lo que entra de un argumento no
-// se vuelve a leer. "% d", el de la cuenta del 380 (0x647ef0), es el "%d" con la bandera del espacio de
-// sprintf: un número sin signo va con un espacio adelante.
+// `format` with its first "%s", "%d" or "%u" replaced by arguments[0], the next by arguments[1], and so on (the %u is
+// the HUD's 201, the experience). A mark without an argument stays; an extra argument is dropped; a "%" that is not
+// "%s", "%d" or "%u", "%%" included, stays as it is. What comes in from an argument is not read again. "% d", the one
+// of the 380's count (0x647ef0), is the "%d" with sprintf's space flag: a number without a sign gets a space in front.
 [[nodiscard]] std::string PlaceArguments(std::string_view format, std::span<const std::string_view> arguments);
 
-// El texto `index` de `texts`, o nada sin tabla o sin ese índice.
+// None without a table or without that index.
 [[nodiscard]] std::optional<std::string_view> TextAt(const Tables::TextTable* texts, std::size_t index);
 
-// 0x632c90(texto, renglones, maxLines, lineBytes): `text`, hasta su primer '\0', en renglones de
-// menos de `lineBytes` bytes, y a lo sumo `maxLines` (1 o más). Copia carácter por carácter y, si
-// el que sigue haría llegar el renglón a `lineBytes`, lo corta: si hubo un espacio en ese renglón a
-// menos del menor de lineBytes / 2 y 10 bytes del que no entró, después del espacio, que queda al
-// final, y sigue desde ahí; si no, justo antes del que no entró. Lo que no entra en el último no
-// va. Siempre da un renglón por lo menos. Va con un byte por carácter, como el _mbclen del original
-// en una página de códigos de un byte (06 § La lista de servidores, *inferido* para el
-// laboratorio); con una de dos bytes, el original no parte un carácter de dos.
+// 0x632c90(text, rows, maxLines, lineBytes): `text`, up to its first '\0', in rows shorter than `lineBytes` bytes, and
+// at most `maxLines` (1 or more). Copies character by character and, if the next one would make the row reach
+// `lineBytes`, cuts it: if there was a space in that row less than the smaller of lineBytes / 2 and 10 bytes before
+// the one that did not fit, after the space, which stays at the end, and goes on from there; otherwise, right before
+// the one that did not fit. What does not fit in the last one is dropped. Always gives at least one row. One byte per
+// character, like the original's _mbclen on a single-byte code page (06 § La lista de servidores, *inferred* for the
+// lab); with a double-byte one, the original does not split a two-byte character.
 [[nodiscard]] std::vector<std::string> SplitIntoLines(std::string_view text, std::size_t maxLines,
                                                       std::size_t lineBytes);
 } // namespace Client::Ui

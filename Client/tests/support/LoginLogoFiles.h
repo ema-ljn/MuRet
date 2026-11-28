@@ -13,12 +13,11 @@
 #include <string>
 #include <utility>
 
-// Un Logo03.bmd sintético en un Data\ de prueba, como el del laboratorio: dos mallas de un triángulo,
-// logo.jpg y logo2.jpg (la de la textura 1, la del blendMesh del 0xa2), un hueso y una acción de una
-// key, con sus dos texturas. Para los tests de la LoginScene (CL6.4).
+// A synthetic Logo03.bmd in a test Data\, like the lab's: two one-triangle meshes, logo.jpg and logo2.jpg (texture
+// 1's, the one of the 0xa2's blendMesh), one bone and an action of one key, with its two textures.
 namespace Client::Tests
 {
-// Un triángulo del hueso 0 con la textura `texture` (su índice) y `name`.
+// On bone 0; `texture` is its index.
 inline Data::Models::Mesh TriangleMesh(std::int16_t texture, std::string name)
 {
     Data::Models::Mesh mesh;
@@ -31,7 +30,7 @@ inline Data::Models::Mesh TriangleMesh(std::int16_t texture, std::string name)
     return mesh;
 }
 
-// Logo\Logo03.bmd en `root`, y sus dos texturas, salvo la segunda con `withoutSecondTexture`.
+// Logo\Logo03.bmd in `root`, and its two textures, except the second with `withoutSecondTexture`.
 inline void WriteLoginLogo(const std::filesystem::path& root, bool withoutSecondTexture = false)
 {
     Data::Models::Model logo;

@@ -37,10 +37,10 @@
 #include <utility>
 #include <vector>
 
-// La ventana de los comandos, la D (CL8 hito 6, 08 P-C92; 06 § HUD y ventanas, "La party y los comandos"): el paso
-// 0x40a450 y el dibujo 0x40a650, en (0x1c2, 0) de 640 × 480. Los botones van en x 495 (0x1c2 + 95 − 50) y en y 53 +
-// 28 · comando; el 0 no se dibuja ni se elige. Los textos son inventados y miden 6 columnas por letra. Cada test corre
-// en Lorencia y en Devias.
+// The commands window, the D (CL8 milestone 6, 08 P-C92; 06 § HUD y ventanas, "La party y los comandos"): the step
+// 0x40a450 and the drawing 0x40a650, at (0x1c2, 0) of 640 × 480. The buttons go at x 495 (0x1c2 + 95 − 50) and y 53 +
+// 28 · command; 0 is neither drawn nor chosen. The texts are made up and measure 6 columns per letter. Each test runs
+// in Lorencia and in Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -68,12 +68,11 @@ constexpr Color Gray{0.5f, 0.5f, 0.5f, 1.0f};
 constexpr Color Highlight{1.0f, 0.8f, 0.2f, 1.0f};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
-// Por comando: el nombre y los cuatro lados de la casilla.
+// Per command: the name and the four sides of its check box.
 constexpr std::size_t QuadsPerName = 5;
-// El fondo (2), el título, los once botones y el de cerrar.
+// The background (2), the title, the eleven buttons and the close one.
 constexpr std::size_t FirstNameQuad = 15;
 
-// La y de arriba del botón del comando.
 constexpr std::int32_t RowTop(std::int32_t command)
 {
     return 53 + 28 * command;
@@ -123,7 +122,7 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// Las esquinas en píxeles de GL, con lo que pierden las cuentas en float de 0x621b60 (H − (y + h) · ry).
+// The corners in GL pixels, with what the float math of 0x621b60 loses (H − (y + h) · ry).
 void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width, float height)
 {
     constexpr float Tolerance = 1e-3f;
@@ -182,7 +181,7 @@ protected:
         return Client::Hud::DrawTheCommandsWindow(context);
     }
 
-    // Lo que dejó un frame anterior: el fondo de 0x5f7440 sin mezcla.
+    // What a previous frame left: the background of 0x5f7440 without blending.
     Client::Core::Expected<void, std::string> Redraw(std::int32_t x, std::int32_t y)
     {
         m_text.texts.clear();
@@ -201,7 +200,7 @@ protected:
         m_input.Apply(Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = key});
     }
 
-    // La ventana como la deja el primer dibujo.
+    // The window as the first drawing leaves it.
     void OpenAndPlace()
     {
         Runtime().panels.delegated.commands = 1;
@@ -218,8 +217,8 @@ protected:
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(CommandTexts());
 };
 
-// La D abre los comandos (+4 de [0x6e592c]); el paso siguiente mira el mouse desde la esquina que todavía no puso
-// ningún dibujo, (0, 0). En Chaos Castle CanOpen no los deja.
+// D opens the commands (+4 of [0x6e592c]); the next step looks at the mouse from the corner no drawing has set yet,
+// (0, 0). In Chaos Castle CanOpen does not allow them.
 TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
 {
     Press(Client::Input::Key::D);
@@ -228,13 +227,13 @@ TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
     EXPECT_EQ(Runtime().panels.delegated.commands, 1);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
-    // Debajo del registro del chat, que con el mouse encima no deja correr los paneles (0x5ee174).
+    // Below the chat log, which with the mouse over it does not let the panels run (0x5ee174).
     const auto again = Client::Hud::StepTheGameUi(UiContext(100, 200));
     ASSERT_TRUE(again.HasValue()) << again.Error();
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     EXPECT_EQ(Runtime().panels.delegated.commands, 1);
 
-    // El botón de los comandos del HUD la cierra.
+    // The HUD's commands button closes it.
     Click();
     ASSERT_TRUE(Client::Hud::StepTheGameUi(UiContext(8, 0x1b4)).HasValue());
     EXPECT_EQ(Runtime().panels.delegated.commands, 0);
@@ -252,8 +251,8 @@ TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
     EXPECT_EQ(chaosCastle->Runtime().panels.delegated.commands, 0);
 }
 
-// 0x40a463..0x40a495: con +4 en 1, el mouse en [x, x + 0xbe) × [y, y + 0x1b1) es de la UI; 0x406050 pone los doce
-// estados en 1 en cada paso. Sin +4, nada. No saca rand().
+// 0x40a463..0x40a495: with +4 at 1, the mouse in [x, x + 0xbe) × [y, y + 0x1b1) belongs to the UI; 0x406050 sets the
+// twelve states to 1 on every step. Without +4, nothing. It draws no rand().
 TEST_P(GameCommandsWindowTest, TheStepTakesTheMouseAndResetsTheStates)
 {
     Client::Ui::GameUiState& ui = Runtime().ui;
@@ -279,9 +278,10 @@ TEST_P(GameCommandsWindowTest, TheStepTakesTheMouseAndResetsTheStates)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x406097..0x4061aa: con un comando y un personaje elegidos (0x6c8e30), 0x406050 lee las cuatro celdas (sus 16
-// rand()) y, con alguien que no es jugador, deja el destino (+8) en −1; sin el clic derecho no hace más. Sin comando,
-// ni las lee. El comando sobre un jugador está en SocialRequestsTest (CommandsWindowTest).
+// 0x406097..0x4061aa: with a command and a character chosen (0x6c8e30), 0x406050 reads the four cells (their 16
+// rand()) and, with someone who is not a player, leaves the target (+8) at −1; without the right click it does no
+// more. Without a command, it does not even read them. The command on a player is in SocialRequestsTest
+// (CommandsWindowTest).
 TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterReadsTheCells)
 {
     OpenAndPlace();
@@ -295,8 +295,8 @@ TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterReadsTheCells)
     EXPECT_NE(m_random.State(), Seed);
 }
 
-// 0x40a49e..0x40a51d: el clic estrictamente adentro de un botón (108 × 20 desde (495, 53 + 28 · c)) lo gasta, suelta
-// el botón y elige el comando; el 0 no se elige.
+// 0x40a49e..0x40a51d: the click strictly inside a button (108 × 20 from (495, 53 + 28 · c)) spends it, releases the
+// button and chooses the command; 0 is not chosen.
 TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
 {
     OpenAndPlace();
@@ -316,7 +316,7 @@ TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
     EXPECT_FALSE(mouse.pendingClick);
     EXPECT_FALSE(mouse.leftHeld);
 
-    // Sin el clic, el mouse sobre otro no cambia nada; con el clic, el último.
+    // Without the click, the mouse over another one changes nothing; with the click, the last one.
     ASSERT_TRUE(Step(ButtonsLeft + 1, RowTop(11) + 1).HasValue());
     EXPECT_EQ(Window().chosen, 3);
     Click();
@@ -325,8 +325,8 @@ TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x40a51f..0x40a5a1: el botón de cerrar la cierra sin Close: los dos sonidos, 0x77f3b10 en 0, 0x6c8dcc en 6 y el
-// objeto como lo deja la entrada. El botón abajo queda.
+// 0x40a51f..0x40a5a1: the close button closes it without Close: the two sounds, 0x77f3b10 at 0, 0x6c8dcc at 6 and the
+// object as the entry leaves it. The button down stays.
 TEST_P(GameCommandsWindowTest, TheCloseButtonResetsTheCommands)
 {
     OpenAndPlace();
@@ -354,7 +354,7 @@ TEST_P(GameCommandsWindowTest, TheCloseButtonResetsTheCommands)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// Antes del primer dibujo la esquina es (0, 0): los botones van en x 45 y el de cerrar en (25, 395).
+// Before the first drawing the corner is (0, 0): the buttons go at x 45 and the close one at (25, 395).
 TEST_P(GameCommandsWindowTest, BeforeTheFirstDrawTheCornerIsZero)
 {
     Runtime().panels.delegated.commands = 1;
@@ -367,9 +367,9 @@ TEST_P(GameCommandsWindowTest, BeforeTheFirstDrawTheCornerIsZero)
     EXPECT_EQ(Runtime().panels.delegated.commands, 0);
 }
 
-// 0x40a650: la esquina (0x1c2, 0), el fondo con la mezcla que haya, el título en negrita centrado en la caja, los once
-// botones de Message_box (0xf0), el de cerrar y los nombres centrados en x + 50 con su casilla (cuatro lados de
-// 0x92 0x86 0x79 sin textura). Al final la fuente grande y la mezcla apagada. No saca rand().
+// 0x40a650: the corner (0x1c2, 0), the background with whatever blending is on, the bold title centered in the box,
+// the eleven Message_box buttons (0xf0), the close one and the names centered at x + 50 with their check box (four
+// sides of 0x92 0x86 0x79 without texture). At the end the big font and blending off. It draws no rand().
 TEST_P(GameCommandsWindowTest, TheWindowDrawsItsButtonsAndNames)
 {
     Runtime().panels.delegated.commands = 1;
@@ -410,7 +410,7 @@ TEST_P(GameCommandsWindowTest, TheWindowDrawsItsButtonsAndNames)
 
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 12U);
-    // La caja de 120 desde 485, con el texto corrido (120 − 48) / 2.
+    // The 120 box from 485, with the text shifted (120 − 48) / 2.
     EXPECT_EQ(texts[0].text, "Comandos");
     EXPECT_EQ(texts[0].x, 485);
     EXPECT_TRUE(texts[0].windowed);
@@ -434,8 +434,8 @@ TEST_P(GameCommandsWindowTest, TheWindowDrawsItsButtonsAndNames)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// El elegido: su botón gris, su nombre en negrita y naranja y su casilla marcada (0x64a, 5 × 5 en (477, y + 2)). Con
-// el mouse encima (estrictamente adentro de 108 × 20) otro nombre va en negrita y naranja, y con el clic, gris.
+// The chosen one: its button gray, its name bold and orange and its check box marked (0x64a, 5 × 5 at (477, y + 2)).
+// With the mouse over it (strictly inside 108 × 20) another name goes bold and orange, and with the click, gray.
 TEST_P(GameCommandsWindowTest, TheChosenAndTheHoveredStandOut)
 {
     Runtime().panels.delegated.commands = 1;
@@ -457,7 +457,7 @@ TEST_P(GameCommandsWindowTest, TheChosenAndTheHoveredStandOut)
     EXPECT_EQ(m_text.texts[7].style.font, FontKind::Bold);
     EXPECT_EQ(m_text.texts[6].style.font, FontKind::Normal);
 
-    // En el borde no hay resaltado; con el botón abajo, el resaltado es gris.
+    // On the edge there is no highlight; with the button down, the highlight is gray.
     ASSERT_TRUE(Redraw(ButtonsLeft, RowTop(7) + 1).HasValue());
     EXPECT_EQ(m_text.texts[7].style.font, FontKind::Normal);
     ASSERT_TRUE(Redraw(ButtonsLeft + 1, RowTop(7) + 20).HasValue());
@@ -469,8 +469,8 @@ TEST_P(GameCommandsWindowTest, TheChosenAndTheHoveredStandOut)
     EXPECT_EQ(clicked[nameOf(4)].color, Gray);
 }
 
-// 0x40abdb..0x40ac81: el aviso del elegido según su estado, centrado en (x + 0x5f, y + 0x44) en negrita, negro y sin
-// fondo. Con el estado en 1 no hay aviso.
+// 0x40abdb..0x40ac81: the chosen one's notice by its state, centered at (x + 0x5f, y + 0x44) in bold, black and
+// without background. With the state at 1 there is no notice.
 TEST_P(GameCommandsWindowTest, TheChosenStateGivesItsNotice)
 {
     Runtime().panels.delegated.commands = 1;
@@ -503,8 +503,8 @@ TEST_P(GameCommandsWindowTest, TheChosenStateGivesItsNotice)
     }
 }
 
-// 0x40a7d4..0x40a875: con el mouse sobre el botón de cerrar, la ayuda (el texto 927 con "D" por sprintf) 13 más
-// arriba. MuRet no usa el texto como formato: con un '%' o con 100 bytes o más, corta.
+// 0x40a7d4..0x40a875: with the mouse over the close button, the help (text 927 with "D" through sprintf) 13 higher.
+// MuRet does not use the text as a format: with a '%' or with 100 bytes or more, it stops.
 TEST_P(GameCommandsWindowTest, TheCloseHelpIsTheTextWithoutAFormat)
 {
     Runtime().panels.delegated.commands = 1;
@@ -531,11 +531,10 @@ TEST_P(GameCommandsWindowTest, TheCloseHelpIsTheTextWithoutAFormat)
     }
 }
 
-// 0x40aa80..0x40abd8: un jugador elegido (0x6c8e30, +0x88 en 1, no el héroe, del tipo 0x20a o con +0x3e3) lleva el
-// cartel 0x65b de 128 × 32 en el mouse + 5 y su nombre dos veces: en la caja del título (x + 0x23, y + 0x2d) en
-// 0xff67bfdf y centrado en (mouse x + 0x45, mouse y + 0xc) en blanco, los dos sobre 0x141414 y con la fuente grande.
-// El glColor del segundo es blanco si el comando elegido es para él (+8) y está listo, y (1; 0,2; 0,2) si no. No saca
-// rand().
+// 0x40aa80..0x40abd8: a chosen player (0x6c8e30, +0x88 at 1, not the hero, of type 0x20a or with +0x3e3) carries the
+// 0x65b banner of 128 × 32 at the mouse + 5 and its name twice: in the title box (x + 0x23, y + 0x2d) in 0xff67bfdf
+// and centered at (mouse x + 0x45, mouse y + 0xc) in white, both over 0x141414 and with the big font. The second's
+// glColor is white if the chosen command is for them (+8) and ready, and (1, 0.2, 0.2) if not. It draws no rand().
 TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
 {
     constexpr std::size_t Chosen = 5;
@@ -579,7 +578,7 @@ TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
     EXPECT_EQ(nextToTheMouse.style.colors.text, 0xffffffffu);
     EXPECT_EQ(nextToTheMouse.style.colors.background, 0x00141414u);
 
-    // El comando 3 para él y listo: blanco. Con el estado en 0 (y su aviso) o para otro, rojo.
+    // Command 3 for them and ready: white. With the state at 0 (and its notice) or for another one, red.
     Window().chosen = 3;
     Window().target = static_cast<std::int32_t>(Chosen);
     ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
@@ -594,7 +593,7 @@ TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
     ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
     EXPECT_EQ(QuadsOf(m_sprites).back().color, NotReady);
 
-    // Otro tipo con +0x3e3 también; sin +0x3e3, un monstruo o el héroe, nada.
+    // Another type with +0x3e3 too; without +0x3e3, a monster or the hero, nothing.
     Window().chosen = -1;
     player.type = 0x10;
     player.byte3e3 = 1;
@@ -619,7 +618,8 @@ TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x40aa8d, 0x40ab87 y 0x40abe5: un elegido fuera de los 400 o un comando fuera de los doce leen fuera de su tabla.
+// 0x40aa8d, 0x40ab87 and 0x40abe5: a chosen one outside the 400 or a command outside the twelve reads outside its
+// table.
 TEST_P(GameCommandsWindowTest, AStrayChosenOrCommandCuts)
 {
     Runtime().panels.delegated.commands = 1;
@@ -644,7 +644,7 @@ TEST_P(GameCommandsWindowTest, AStrayChosenOrCommandCuts)
     EXPECT_NE(stray.Error().find("0x40abe5"), std::string::npos) << stray.Error();
 }
 
-// Con +4 en 0, ni el dibujo ni la esquina.
+// With +4 at 0, neither the drawing nor the corner.
 TEST_P(GameCommandsWindowTest, ClosedItDrawsNothing)
 {
     ASSERT_TRUE(Redraw(0, 0).HasValue());

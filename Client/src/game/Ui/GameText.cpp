@@ -15,7 +15,7 @@ namespace Client::Ui
 namespace
 {
 constexpr char Mark = '%';
-// 0x632c90 vuelve hasta un espacio solo si está a menos del menor de la mitad del renglón y este.
+// 0x632c90 goes back to a space only if it is closer than the smaller of half the row and this.
 constexpr std::size_t MaxBackToSpace = 10;
 
 bool IsArgumentMark(char kind)
@@ -31,7 +31,7 @@ std::string PlaceArguments(std::string_view format, std::span<const std::string_
     std::size_t next = 0;
     for (std::size_t i = 0; i < format.size(); ++i)
     {
-        // "% d": el espacio, si el número no trae el signo.
+        // "% d": the space, if the number has no sign.
         const bool spaced = format[i] == Mark && i + 2 < format.size() && format[i + 1] == ' ' && format[i + 2] == 'd';
         if (spaced && next < arguments.size())
         {
@@ -75,7 +75,7 @@ std::vector<std::string> SplitIntoLines(std::string_view text, std::size_t maxLi
     std::size_t next = 0;
     while (next < text.size() && text[next] != '\0')
     {
-        // 0x632cd0..0x632cd7: lo copiado del renglón más este carácter llega a lineBytes.
+        // 0x632cd0..0x632cd7: what was copied of the row plus this character reaches lineBytes.
         if (next - lineStart + 1 >= lineBytes)
         {
             if (lastSpace && next - *lastSpace < backLimit)

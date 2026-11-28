@@ -20,7 +20,7 @@ namespace Client::Scenes
 {
 namespace
 {
-// "Login (2)": el nombre y el número de DAT_006d5dc8.
+// "Login (2)": the name and the number of DAT_006d5dc8.
 std::string Describe(Kernel::SceneId scene)
 {
     return std::format("{} ({})", Kernel::SceneName(scene), static_cast<int>(scene));
@@ -42,7 +42,7 @@ SceneManager::SceneManager(SceneFactory factory, Render::Frame::IFrameTarget& fr
 {
 }
 
-// La escena que queda suelta lo suyo, como al cambiar: sus texturas no pasan al que cierra.
+// The scene that remains releases its own, as when changing: its textures do not pass on to whoever closes.
 SceneManager::~SceneManager()
 {
     if (m_scene)
@@ -71,7 +71,7 @@ Core::Expected<void, std::string> SceneManager::Start(Kernel::SceneId first)
 
 void SceneManager::Poll()
 {
-    // El GameLoop empieza cada frame con Poll: lo que trae la red puede cambiar lo que lee el dibujo.
+    // The GameLoop starts each frame with Poll: what the network brings can change what the draw reads.
     m_framePrepared = false;
     if (m_pollFailed || !m_pollNetwork)
     {
@@ -91,7 +91,7 @@ void SceneManager::Poll()
     }
     if (const std::optional<Kernel::SceneId> order = m_takeSceneOrder())
     {
-        // Dos órdenes antes de un paso: el original solo ve la última escritura.
+        // Two orders before a step: the original only sees the last write.
         m_networkOrder = order;
     }
 }
@@ -103,7 +103,7 @@ void SceneManager::Step(const Input::InputState& input)
         return;
     }
     m_framePrepared = false;
-    // El original escribió la escena mientras leía la red: este paso ya es el de la nueva.
+    // The original wrote the scene while reading the network: this step is already the new one's.
     if (const std::optional<Kernel::SceneId> order = std::exchange(m_networkOrder, std::nullopt))
     {
         Request(*order);
@@ -129,7 +129,7 @@ void SceneManager::Step(const Input::InputState& input)
     const std::optional<Kernel::SceneId> next = m_scene->Next();
     if (!next)
     {
-        // La escena dejó de pedir: si el pedido rechazado vuelve, se avisa otra vez.
+        // The scene stopped asking: if the rejected request comes back, it is reported again.
         m_rejected.reset();
         return;
     }
@@ -142,7 +142,7 @@ void SceneManager::Render(float alpha)
     {
         return;
     }
-    // Lo que el dibujo lee al empezar (IScene::PrepareFrame), si nadie preguntó antes en este frame.
+    // What the draw reads at its start (IScene::PrepareFrame), if nobody asked before in this frame.
     PrepareFrame();
     if (m_beforeSceneDraw && TakeTheDrawFailure(m_beforeSceneDraw()))
     {
@@ -159,7 +159,7 @@ void SceneManager::Render(float alpha)
         return;
     }
     m_frame.Present();
-    // El frame terminó: el próximo vuelve a decidir.
+    // The frame ended: the next one decides again.
     m_framePrepared = false;
 }
 
@@ -185,7 +185,7 @@ void SceneManager::Request(Kernel::SceneId next)
     m_scene->Leave();
     m_scene.reset();
     m_current.reset();
-    // El error ya quedó en Failure y en el log. Lo que tardó, salga o no, no es tiempo del juego.
+    // The error is already in Failure and in the log. Its time, whether it succeeds or not, is not game time.
     static_cast<void>(Enter(next));
     m_sceneChanged = true;
 }
@@ -230,7 +230,7 @@ bool SceneManager::HoldsTheLastFrame() const
     {
         return false;
     }
-    // Consultar y obtener true también notifica la retención; repetirlo es un aviso idempotente.
+    // Querying and getting true also notifies the hold; repeating it is an idempotent notice.
     m_scene->OnFrameHeld();
     return true;
 }
@@ -282,7 +282,7 @@ Core::Expected<void, std::string> SceneManager::Enter(Kernel::SceneId id)
     const auto entered = scene->Enter();
     if (!entered.HasValue())
     {
-        // Lo que alcanzó a subir antes del error se suelta igual: soltar un slot vacío no hace nada
+        // What managed to load before the error is released anyway: releasing an empty slot does nothing
         // (Render::ITextureStore).
         scene->Leave();
         m_failure = entered.Error();

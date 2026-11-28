@@ -16,7 +16,7 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x5bbf84/0x5bbf88 y 0x5bc0a1/0x5bc0a5: sólo tipo y ocupación, sin limpiar flags ni nivel.
+// 0x5bbf84/0x5bbf88 and 0x5bc0a1/0x5bc0a5: only type and occupancy, without clearing flags or level.
 void Clear(std::span<Kernel::ItemState> items)
 {
     for (Kernel::ItemState& item : items)
@@ -30,7 +30,7 @@ void Clear(std::span<Kernel::ItemState> items)
 void ClearSelectionInventory(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     {
-        // El cierre de 0x5bc092 precede al acceso independiente de 0x633f96.
+        // The close of 0x5bc092 comes before the independent access of 0x633f96.
         const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         Clear(world.OwnCharacter().equipment);
     }
@@ -39,6 +39,6 @@ void ClearSelectionInventory(Kernel::WorldState& world, Crt::CrtRandom& random)
     Clear(world.Runtime().npcWindows.chaosBox);
     Clear(world.Runtime().npcWindows.trainerBox);
     ChaosMix::ResetTheJewelMix(world.Runtime().npcWindows);
-    // 0x78ab0b8 sí existe, pero no es una de las que vacía esta función del original.
+    // 0x78ab0b8 does exist, but it is not one of the grids this function of the original empties.
 }
 } // namespace Client::FrontEnd

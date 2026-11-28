@@ -1,6 +1,6 @@
 #pragma once
-// Lo que trae se usa sin nombrarlo: GoogleTest busca PrintTo por ADL, e include-cleaner no lo
-// ve. Por eso cada include de este header se queda.
+// What it brings is used without naming it: GoogleTest finds PrintTo by ADL, and include-cleaner does not see it.
+// That is why every include of this header stays.
 // IWYU pragma: always_keep
 
 #include "FrontEnd/LoginWindow.h"
@@ -8,10 +8,10 @@
 
 #include <ostream>
 
-// Cómo imprime GoogleTest los tipos de Client::Ui y Client::FrontEnd (CL5.5), como AppPrinters.h. Un campo sale con
-// su largo y si es la clave, nunca con lo que tiene, y un pedido de la cuenta, con su tipo y el
-// largo de cada campo: sin estos PrintTo, GoogleTest vuelca los bytes del objeto, y con SSO lo
-// tecleado va ahí.
+// How GoogleTest prints the Client::Ui and Client::FrontEnd types (CL5.5), like AppPrinters.h. A field comes out with
+// its length and whether it is the password, never with what it holds, and an account request, with its type and the
+// length of each field: without these PrintTo, GoogleTest dumps the object's bytes, and with SSO the typed text is
+// there.
 namespace Client::Ui
 {
 inline void PrintTo(const TextField& field, std::ostream* out)

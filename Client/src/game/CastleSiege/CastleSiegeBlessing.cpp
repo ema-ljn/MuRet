@@ -13,14 +13,14 @@ namespace Client::CastleSiege
 {
 namespace
 {
-// DAT006c72c8..6c72e7, cuatro pares float32 del ejecutable c32bbd5f.
+// 0x6c72c8..0x6c72e7, four float32 pairs of the executable c32bbd5f.
 constexpr std::array<std::array<float, 2>, 4> DefenderMarks{
     {{8200, 13000}, {10700, 13000}, {9400, 18200}, {9400, 22700}}};
 bool InRange(const Kernel::ActorState& actor, float x, float y)
 {
     const double dx = static_cast<double>(x) - actor.position.x;
     const double dy = static_cast<double>(y) - actor.position.y;
-    // 4295b0 mantiene los cuadrados en la x87; unordered entra como C0/C2.
+    // 0x4295b0 keeps the squares on the x87; unordered enters as C0/C2.
     return !(std::sqrt(dx * dx + dy * dy) > 380.0);
 }
 } // namespace

@@ -24,8 +24,8 @@
 #include <utility>
 #include <vector>
 
-// Client::FrontEnd::CreateCharacterWindow: la ventana de crear de la selección (+0x8498: 0x63d1a0,
-// 0x63d4e0, 0x63d7c0, 0x63d880 y 0x63e0a0), sin la vista previa. Los nombres son sintéticos.
+// Client::FrontEnd::CreateCharacterWindow: the selection's create window (+0x8498: 0x63d1a0, 0x63d4e0, 0x63d7c0,
+// 0x63d880 and 0x63e0a0), without the preview. The names are synthetic.
 namespace
 {
 using Client::Core::PixelSize;
@@ -63,7 +63,7 @@ void ClickIn(CreateCharacterWindow& window, InputState& input, const Rect& area)
     static_cast<void>(StepOnce(window, input));
 }
 
-// 0x63d4e0 con ((W − 454) / 2, (H − 406) / 2): en 640 × 480, (93, 37), la tabla emulada del contrato.
+// 0x63d4e0 with ((W − 454) / 2, (H − 406) / 2): at 640 × 480, (93, 37), the contract's emulated table.
 TEST(CreateCharacterWindowTest, TheLayoutFollowsTheScreen)
 {
     const CreateWindowLayout layout = LayoutCreateWindow(Screen640, 1);
@@ -79,17 +79,17 @@ TEST(CreateCharacterWindowTest, TheLayoutFollowsTheScreen)
     EXPECT_EQ(layout.ok, (Rect{.x = 439, .y = 362, .width = 54, .height = 30}));
     EXPECT_EQ(layout.cancel, (Rect{.x = 493, .y = 362, .width = 54, .height = 30}));
     EXPECT_EQ(layout.nameField, (Point{171, 375}));
-    // La caja de los atributos crece con el Dark Lord (0x647370(0, 96, 2)).
+    // The attributes box grows with the Dark Lord (0x647370(0, 96, 2)).
     EXPECT_EQ(LayoutCreateWindow(Screen640, 4).attributes.height, 96);
     const CreateWindowLayout at1024 = LayoutCreateWindow(PixelSize{1024, 768}, 0);
     EXPECT_EQ(at1024.box.x, 285);
     EXPECT_EQ(at1024.box.y, 181);
-    // El campo en 640 × 480: ftol((285 + 78) / 1,6) = 226 y ftol((181 + 338) / 1,6) = 324.
+    // The field at 640 × 480: ftol((285 + 78) / 1.6) = 226 and ftol((181 + 338) / 1.6) = 324.
     EXPECT_EQ(at1024.nameField, (Point{226, 324}));
 }
 
-// 0x63d7c0: pkt[4] es la clase más alta que se puede crear: habilita de la 0 a ella. MuRet la acota
-// a 4 (el original escribe fuera de los cinco).
+// 0x63d7c0: pkt[4] is the highest class that can be created: it enables from 0 to it. MuRet bounds it to 4 (the
+// original writes outside the five).
 TEST(CreateCharacterWindowTest, TheClassesUpToPkt4AreEnabled)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
@@ -105,8 +105,8 @@ TEST(CreateCharacterWindowTest, TheClassesUpToPkt4AreEnabled)
     }
 }
 
-// El armado marca al Dark Knight (+0x890 en 1). Con pkt[4] en 0 queda marcado y deshabilitado, y el
-// OK lo crea igual: 0x63d990 lee la clase, no el botón.
+// The build checks the Dark Knight (+0x890 at 1). With pkt[4] at 0 it stays checked and disabled, and OK creates it
+// anyway: 0x63d990 reads the class, not the button.
 TEST(CreateCharacterWindowTest, TheKnightStartsChecked)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
@@ -123,8 +123,8 @@ TEST(CreateCharacterWindowTest, TheKnightStartsChecked)
     EXPECT_EQ(window.ChosenClass(), 1);
 }
 
-// 0x63d880: el clic en una clase habilitada la marca sola y la elige; en una deshabilitada, nada.
-// La clase no vuelve a la 1 al cerrar y abrir.
+// 0x63d880: the click on an enabled class checks only it and chooses it; on a disabled one, nothing. The class does
+// not return to 1 on closing and opening.
 TEST(CreateCharacterWindowTest, AClassClickChoosesIt)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
@@ -147,7 +147,7 @@ TEST(CreateCharacterWindowTest, AClassClickChoosesIt)
     EXPECT_EQ(window.ChosenClass(), 2);
 }
 
-// 0x63d670: el campo se vacía al abrir y al cerrar, y toma hasta 10 bytes (EM_LIMITTEXT(10)).
+// 0x63d670: the field empties on open and on close, and takes up to 10 bytes (EM_LIMITTEXT(10)).
 TEST(CreateCharacterWindowTest, TheNameIsClearedOnOpenAndClose)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
@@ -169,8 +169,8 @@ TEST(CreateCharacterWindowTest, TheNameIsClearedOnOpenAndClose)
     EXPECT_FALSE(window.IsOpen());
 }
 
-// El OK o Enter piden crear (la ventana queda abierta: la cierra quien manda); cancelar o Esc la
-// cierran. Cerrada, no atiende nada.
+// OK or Enter asks to create (the window stays open: whoever sends closes it); cancel or Esc close it. Closed, it
+// handles nothing.
 TEST(CreateCharacterWindowTest, EnterSubmitsAndEscCloses)
 {
     const CreateWindowLayout layout = LayoutCreateWindow(Screen640, 1);
@@ -195,8 +195,8 @@ TEST(CreateCharacterWindowTest, EnterSubmitsAndEscCloses)
     EXPECT_FALSE(window.IsOpen());
 }
 
-// Con un aviso arriba (el del nombre, o el de la respuesta), la ventana no tiene el mouse: sus
-// botones quedan sin encima y sin clic (0x65fc30 y 0x63c490).
+// With a notice on top (the name's, or the reply's), the window does not have the mouse: its buttons stay without
+// hover and without click (0x65fc30 and 0x63c490).
 TEST(CreateCharacterWindowTest, UnderANoticeTheButtonsLetGoOfTheMouse)
 {
     const CreateWindowLayout layout = LayoutCreateWindow(Screen640, 1);
@@ -212,7 +212,7 @@ TEST(CreateCharacterWindowTest, UnderANoticeTheButtonsLetGoOfTheMouse)
     EXPECT_EQ(window.OkButton().Frame(), 0);
 }
 
-// La textura de cada quad del lote, en orden: 0xffff sin textura.
+// 0xffff without a texture.
 std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
 {
     std::vector<std::uint16_t> slots;
@@ -224,9 +224,9 @@ std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
     return slots;
 }
 
-// 0x66a050 y 0x63e0a0 sin la vista previa: la base negra de toda la pantalla, el fondo del nombre,
-// la caja de los atributos y la franja, los siete botones con los rótulos 20 a 24 (las clases), los
-// atributos en 0xff00b4ff con sus rótulos, la descripción y el nombre con el cursor.
+// 0x66a050 and 0x63e0a0 without the preview: the black base of the whole screen, the name background, the attributes
+// box and the strip, the seven buttons with labels 20 to 24 (the classes), the attributes in 0xff00b4ff with their
+// labels, the description and the name with the cursor.
 TEST(CreateCharacterWindowTest, TheDrawGoesBaseBacksButtonsAndTexts)
 {
     const auto texts = Client::Tests::MakeTextTable({{20, "Wiz"},
@@ -256,7 +256,7 @@ TEST(CreateCharacterWindowTest, TheDrawGoesBaseBacksButtonsAndTexts)
     ASSERT_GE(slots.size(), 4u + 7u);
     EXPECT_EQ((std::vector<std::uint16_t>(slots.begin(), slots.begin() + 4)),
               (std::vector<std::uint16_t>{0xffff, 0xc, 0xffff, 0xffff}));
-    // Cada botón, con su rótulo detrás si lo tiene.
+    // Each button, with its label behind if it has one.
     EXPECT_EQ(
         (std::vector<std::uint16_t>(slots.begin() + 4, slots.begin() + 16)),
         (std::vector<std::uint16_t>{0xd, marker, 0xd, marker, 0xd, marker, 0xd, marker, 0xd, marker, 0x724, 0x725}));
@@ -267,24 +267,24 @@ TEST(CreateCharacterWindowTest, TheDrawGoesBaseBacksButtonsAndTexts)
     }
     EXPECT_EQ(drawn, (std::vector<std::string>{"Wiz", "Kni", "Elf", "Mag", "Lor", "28", "Str", "20", "Agi", "25", "Vit",
                                                "10", "Ene", "Knight line", "char0001", "_"}));
-    // Los valores en (ax + 76, ay + 10 + 17 i) de 640 × 480, en 0xff00b4ff; los rótulos en ax + 22.
+    // The values at (ax + 76, ay + 10 + 17 i) of 640 × 480, in 0xff00b4ff; the labels at ax + 22.
     EXPECT_EQ(text.texts[5].x, 439 + 76);
     EXPECT_EQ(text.texts[5].y, 87 + 10);
     EXPECT_EQ(text.texts[5].style.colors.text, 0xff00b4ffu);
     EXPECT_EQ(text.texts[6].x, 439 + 22);
     EXPECT_EQ(text.texts[6].style.colors.text, 0xffffffffu);
     EXPECT_EQ(text.texts[11].y, 87 + 10 + 17 * 3);
-    // La descripción en (x + 10, y + 355 + 12), y el nombre en el campo.
+    // The description at (x + 10, y + 355 + 12), and the name in the field.
     EXPECT_EQ(text.texts[13].x, 93 + 10);
     EXPECT_EQ(text.texts[13].y, 37 + 355 + 12);
     EXPECT_EQ(text.texts[14].x, 171);
     EXPECT_EQ(text.texts[14].y, 375);
-    // La clase elegida (la 1) sale marcada: el cuadro 3, la fila 78 de cha_bt.
+    // The chosen class (1) comes out checked: frame 3, row 78 of cha_bt.
     EXPECT_EQ(window.ClassButton(1).Frame(), 3);
 }
 
-// Con el Dark Lord, el quinto atributo: "25" y el texto 1738, en ay + 78; y la descripción partida
-// en dos renglones de menos de 75 bytes (SplitIntoLines), el segundo 19 más abajo.
+// With the Dark Lord, the fifth attribute: "25" and text 1738, at ay + 78; and the description split into two lines
+// of under 75 bytes (SplitIntoLines), the second 19 lower.
 TEST(CreateCharacterWindowTest, TheDarkLordHasCommandAndTwoLines)
 {
     const std::string longLine(60, 'a');
@@ -305,14 +305,14 @@ TEST(CreateCharacterWindowTest, TheDarkLordHasCommandAndTwoLines)
     {
         drawn.push_back(recorded.text);
     }
-    // 0x632c90 corta por bytes, en menos de 75: 74 en el primero y el resto en el segundo.
+    // 0x632c90 cuts by bytes, under 75: 74 in the first and the rest in the second.
     EXPECT_EQ(drawn, (std::vector<std::string>{"26", "20", "20", "15", "25", "Com",
                                                longLine + " " + std::string(13, 'b'), std::string(17, 'b'), "_"}));
     EXPECT_EQ(text.texts[4].y, 87 + 78);
     EXPECT_EQ(text.texts[7].y, 37 + 355 + 12 + 19);
 }
 
-// U+00f1 conserva el mismo byte con el perfil XP del EDIT.
+// U+00f1 keeps the same byte with the EDIT's XP profile.
 TEST(CreateCharacterWindowTest, TheNameKeepsTheNWithTildeByte)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
@@ -385,8 +385,8 @@ TEST(CreateCharacterWindowTest, EnterIsNotInsertedIntoTheNameBeforeSubmission)
     }
 }
 
-// El buffer de 0x7798bf8: el OK copia el campo con su cero (GetWindowTextA) y lo de detrás queda; se
-// vacía solo al abrir (0x553570).
+// The buffer at 0x7798bf8: OK copies the field with its zero (GetWindowTextA) and what is behind stays; it is emptied
+// only on open (0x553570).
 TEST(CreateCharacterWindowTest, TheBufferKeepsWhatWasBehindTheName)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);
@@ -406,8 +406,8 @@ TEST(CreateCharacterWindowTest, TheBufferKeepsWhatWasBehindTheName)
     EXPECT_EQ(window.Buffer().substr(0, 9), std::string_view("\0\0\0\0\0\0\0\0\0", 9));
 }
 
-// Con un aviso arriba, el EDIT sigue con el foco de Win32: lo que se escribe entra al nombre, sin
-// clic en los botones.
+// With a notice on top, the EDIT keeps the Win32 focus: what is typed goes into the name, without a click on the
+// buttons.
 TEST(CreateCharacterWindowTest, UnderANoticeTheNameStillTakesTheTyping)
 {
     CreateCharacterWindow window(LabSizes(), nullptr);

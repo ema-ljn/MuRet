@@ -15,15 +15,14 @@ namespace Client::Ui
 {
 namespace
 {
-// +9: lo que se está moviendo.
+// +9: what is moving.
 constexpr std::uint8_t HoldingLeft = 0x01;
 constexpr std::uint8_t HoldingRight = 0x02;
 constexpr std::uint8_t Dragging = 0x10;
-// 0x6baa00 y 0x6b89d0: apretado al lado de la perilla, la primera repetición a los 500 ms y las otras
-// cada 50.
+// 0x6baa00 and 0x6b89d0: pressed beside the thumb, the first repeat at 500 ms and the others every 50.
 constexpr double FirstRepeatMs = 500.0;
 constexpr double RepeatMs = 50.0;
-// 0x6b882c: la mitad de un paso, para redondear la perilla al valor más cerca.
+// 0x6b882c: half a step, to round the thumb to the nearest value.
 using Math::Half;
 
 Rect FromCorners(int left, int top, int right, int bottom)
@@ -35,7 +34,7 @@ Rect FromCorners(int left, int top, int right, int bottom)
 Slider::Slider(const SliderParts& parts)
     : m_parts(parts), m_thumb(parts.thumb.slot, parts.thumb.width, parts.thumb.height)
 {
-    // 0x63c330(w, h, slot, 1, −1, ...): un cuadro, el 0 en todos los estados.
+    // 0x63c330(w, h, slot, 1, −1, ...): one frame, 0 in every state.
     m_thumb.SetStateFrames(0, 0);
     const int travel = parts.track.width - parts.thumb.width;
     m_travel = travel < 0 ? 0 : travel;
@@ -102,17 +101,16 @@ void Slider::Step(const Input::InputState& input, Point mouse, double elapsedMs,
     {
         return;
     }
-    // La perilla no está en la lista de la ventana (0x66a070): su +0xa9 queda en el 1 de 0x63c330 y
-    // ve siempre el mouse.
+    // The thumb is not in the window's list (0x66a070): its +0xa9 stays at 0x63c330's 1 and it always sees the mouse.
     static_cast<void>(m_thumb.Step(input, mouse, onButtonClick));
     if (!m_thumb.Enabled())
     {
         return;
     }
-    // +0x1e: al soltar, la perilla vuelve al lugar de su valor y se deja de mover. 0x640850 no da el
-    // apretón y la soltada en el mismo frame; un paso de MuRet sí, y con el botón arriba al final la
-    // soltada fue después: queda para el paso siguiente, como el frame siguiente del original, y la
-    // ventana ve el deslizador moviéndose en este (Q-C498).
+    // +0x1e: on release, the thumb goes back to its value's place and stops moving. 0x640850 does not give the press
+    // and the release in the same frame; a MuRet step does, and with the button up at the end the release came after:
+    // it is left for the next step, like the original's next frame, and the window sees the slider moving in this one
+    // (Q-C498).
     const bool pressed = input.WasPressed(Input::MouseButton::Left);
     const bool released = input.WasReleased(Input::MouseButton::Left);
     const bool releasedLast = pressed && released && !input.IsDown(Input::MouseButton::Left);
@@ -132,8 +130,8 @@ void Slider::Release()
 
 void Slider::StepThePress(Point mouse, double elapsedMs, bool pressed)
 {
-    // Los dos lados de la perilla, del alto de la perilla (+0x18): de x a la perilla y de la perilla
-    // al final de la barra (+0x14).
+    // The two sides of the thumb, as tall as the thumb (+0x18): from x to the thumb and from the thumb to the end of
+    // the bar (+0x14).
     const int top = m_position.y;
     const int bottom = top + m_parts.thumb.height;
     const int thumbX = ThumbX();
@@ -141,7 +139,7 @@ void Slider::StepThePress(Point mouse, double elapsedMs, bool pressed)
     const Rect right = FromCorners(thumbX + m_parts.thumb.width, top, m_position.x + m_parts.track.width, bottom);
     const auto hold = [&](std::uint8_t side, void (Slider::*move)())
     {
-        // +0x110 suma mientras el mouse está de ese lado, apretado o no, y vuelve a 0 al apretar.
+        // +0x110 adds up while the mouse is on that side, pressed or not, and goes back to 0 on a press.
         m_held += elapsedMs;
         if (pressed)
         {
@@ -169,7 +167,7 @@ void Slider::StepThePress(Point mouse, double elapsedMs, bool pressed)
     {
         hold(HoldingRight, &Slider::StepRight);
     }
-    // 0x63c470: con la perilla ya movida por el lado, si quedó debajo del mouse al apretar la agarra.
+    // 0x63c470: with the thumb already moved by the side, if it ended up under the mouse on the press it grabs it.
     if (m_thumb.Area().Contains(mouse) && pressed)
     {
         m_lastMouseX = mouse.x;
@@ -199,8 +197,7 @@ void Slider::StepThePress(Point mouse, double elapsedMs, bool pressed)
         m_lastMouseX = m_grabX;
     }
     m_thumb.MoveTo(Point{x, m_thumb.Area().y});
-    // 0x646e3a: el valor más cerca de la perilla, ((x − x0) + paso · 0,5) / paso con el paso en la x87
-    // y _ftol.
+    // 0x646e3a: the value nearest the thumb, ((x − x0) + step · 0.5) / step with the step on the x87 and _ftol.
     const double step = static_cast<double>(m_travel) / m_max;
     m_value = static_cast<int>((static_cast<double>(ThumbX() - m_position.x) + step * Half) / step);
 }
@@ -211,8 +208,8 @@ std::array<Render::UiImage, 3> Slider::Images(const TextureSizes& sizes) const
         m_parts.track.slot,
         Rect{.x = m_position.x, .y = m_position.y, .width = m_parts.track.width, .height = m_parts.track.height},
         sizes(m_parts.track.slot));
-    // 0x6404b0: el relleno en la esquina de su rectángulo; 0x6402d0 le pone el alto (0x647370 con 2) y
-    // 0x640580 el ancho (0x647370 con 1), las dos UV sin medio téxel.
+    // 0x6404b0: the fill at its rectangle's corner; 0x6402d0 sets its height (0x647370 with 2) and 0x640580 its width
+    // (0x647370 with 1), both UVs without the half texel.
     Render::UiImage fill = PixelImage(m_parts.fill.slot,
                                       Rect{.x = m_position.x + m_parts.fillArea.x,
                                            .y = m_position.y + m_parts.fillArea.y,
@@ -247,7 +244,7 @@ void Slider::StepLeft()
 
 void Slider::StepRight()
 {
-    // 0x646990: en el máximo, la perilla va al final del recorrido sin la cuenta en la x87.
+    // 0x646990: at the maximum, the thumb goes to the end of the travel without the x87 computation.
     ++m_value;
     if (m_value != m_max)
     {

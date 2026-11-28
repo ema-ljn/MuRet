@@ -27,9 +27,9 @@
 #include <string_view>
 #include <vector>
 
-// El EDIT de varios renglones (CL9 hito 10; 06 § HUD y ventanas, "Las cartas y el chat con un amigo"): +0xc4 y +0xd0
-// de 0x467fe0, los renglones del EDIT de Windows (*inferido*, P-C217), su dibujo (0x468320 con +0xc4 y la barra
-// 0x468970), su paso (0x468d50) y Enter (0x467b10). Los textos son inventados.
+// The multi-line EDIT (CL9 milestone 10; 06 § HUD y ventanas, "Las cartas y el chat con un amigo"): 0x467fe0's +0xc4
+// and +0xd0, the Windows EDIT's lines (*inferred*, P-C217), its drawing (0x468320 with +0xc4 and the 0x468970 bar),
+// its step (0x468d50) and Enter (0x467b10). The texts are made up.
 namespace
 {
 using Client::Chat::ChatFocus;
@@ -56,7 +56,7 @@ constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen800{800, 600};
 constexpr TextureSlot ScrollbarSlot{0x649};
 
-// 6 columnas por letra y 13 filas, como RecordingTextDrawer.
+// 6 columns per letter and 13 rows, like RecordingTextDrawer.
 class LetterMeasure final : public ITextMeasure
 {
 public:
@@ -66,7 +66,7 @@ public:
     }
 };
 
-// El cuerpo de la carta de 0x497f50: 0xee × 0x87.
+// 0x497f50's letter body: 0xee × 0x87.
 OldEdit TheBody(PixelSize screen, std::size_t limit = 1000)
 {
     OldEdit edit;
@@ -90,23 +90,23 @@ std::vector<std::string> LinesOf(const OldEdit& edit)
     return lines;
 }
 
-// 0x467fe0: +0xd0 es ftol(0x87 · ry / 13); la ventana, ftol((0xee + ftol(−5 · rx)) · rx), y el área del texto 16
-// menos y los márgenes de 3 a cada lado.
+// 0x467fe0: +0xd0 is ftol(0x87 · ry / 13); the window, ftol((0xee + ftol(−5 · rx)) · rx), and the text area 16 less
+// and the margins of 3 on each side.
 TEST(OldEditLinesTest, TheBodyKnowsTheLinesThatFitAndItsTextWidth)
 {
     const OldEdit at640 = TheBody(Screen640);
     EXPECT_EQ(at640.multiline, 1);
     EXPECT_EQ(at640.visibleLines, 10);
     EXPECT_EQ(at640.textWidth, 0xee - 5 - 16 - 6);
-    // 800 × 600: rx = ry = 1,25; ftol(−6,25) = −6, ftol(232 · 1,25) = 290 y ftol(168,75 / 13) = 12.
+    // 800 × 600: rx = ry = 1.25; ftol(−6.25) = −6, ftol(232 · 1.25) = 290 and ftol(168.75 / 13) = 12.
     const OldEdit at800 = TheBody(Screen800);
     EXPECT_EQ(at800.visibleLines, 12);
     EXPECT_EQ(at800.textWidth, 290 - 16 - 6);
 }
 
-// Los renglones: "\r\n" corta; lo que no entra en 211 píxeles (35 letras) se corta en el último espacio que entra, los
-// espacios de más quedan en el renglón, y una palabra más larga que el renglón se corta en la última letra que entra.
-// Un EDIT de una línea es un renglón; uno vacío o que termina en "\r\n", con el renglón vacío del final.
+// The lines: "\r\n" breaks; what does not fit in 211 pixels (35 letters) is cut at the last space that fits, the
+// extra spaces stay in the line, and a word longer than the line is cut at the last letter that fits. A one-line EDIT
+// is one line; an empty one or one that ends in "\r\n", with the empty last line.
 TEST(OldEditLinesTest, LinesBreakAtCrLfAndWrapAtTheLastSpace)
 {
     OldEdit edit = TheBody(Screen640);
@@ -126,8 +126,8 @@ TEST(OldEditLinesTest, LinesBreakAtCrLfAndWrapAtTheLastSpace)
     EXPECT_EQ(LinesOf(single), std::vector<std::string>{"uno dos"});
 }
 
-// EM_SCROLL y EM_LINESCROLL: entre 0 y renglones − +0xd0; la página son los que entran. ES_AUTOVSCROLL pone el último
-// renglón a la vista después de un cambio del texto. En un EDIT de una línea, nada.
+// EM_SCROLL and EM_LINESCROLL: between 0 and lines − +0xd0; the page is the ones that fit. ES_AUTOVSCROLL brings the
+// last line into view after a text change. In a one-line EDIT, nothing.
 TEST(OldEditLinesTest, TheScrollStaysBetweenTheFirstAndTheLastPage)
 {
     OldEdit edit = TheBody(Screen640);
@@ -161,8 +161,8 @@ TEST(OldEditLinesTest, TheScrollStaysBetweenTheFirstAndTheLastPage)
     EXPECT_EQ(single.firstLine, 0);
 }
 
-// 0x467b10: cada WM_CHAR pone +0x80 en 0; Enter es "\r\n" en el de varios renglones si entra entero, y el retroceso lo
-// borra entero; en el de una línea, Enter no escribe.
+// 0x467b10: each WM_CHAR sets +0x80 to 0; Enter is "\r\n" in the multi-line one if it fits whole, and backspace
+// erases it whole; in the one-line one, Enter writes nothing.
 TEST(OldEditLinesTest, EnterBreaksTheLineOnlyInTheMultilineEdit)
 {
     OldEdit edit = TheBody(Screen640, 5);
@@ -186,9 +186,9 @@ TEST(OldEditLinesTest, EnterBreaksTheLineOnlyInTheMultilineEdit)
     EXPECT_EQ(single.text.Value(), "ab");
 }
 
-// El EDIT de Windows con +0xc4 (*inferido*, P-C217): Supr y las flechas de los costados no parten el "\r\n"; las de
-// arriba y abajo van a la letra más cerca de la misma x; Inicio y Fin, a los bordes del renglón; RePág y AvPág corren
-// los que entran. Todo pide mostrar el cursor.
+// The Windows EDIT with +0xc4 (*inferred*, P-C217): Delete and the side arrows do not split the "\r\n"; up and down
+// go to the letter nearest the same x; Home and End, to the line's edges; PgUp and PgDn scroll the ones that fit. All
+// of them ask to show the caret.
 TEST(OldEditLinesTest, TheCaretMovesByLinesAndSkipsTheWholeBreak)
 {
     const LetterMeasure measure;
@@ -235,8 +235,8 @@ TEST(OldEditLinesTest, TheCaretMovesByLinesAndSkipsTheWholeBreak)
     EXPECT_EQ(edit.firstLine, 0);
 }
 
-// WM_PASTE con +0xc4: cada fin de renglón entra como "\r\n", hasta el tope, sin dejar un '\r' solo; el de una línea
-// corta en el primer CR.
+// WM_PASTE with +0xc4: each line end goes in as "\r\n", up to the cap, without leaving a lone '\r'; the one-line one
+// cuts at the first CR.
 TEST(OldEditLinesTest, PastingKeepsTheLinesUpToTheLimit)
 {
     OldEdit edit = TheBody(Screen640);
@@ -307,7 +307,7 @@ protected:
         return m_sprites.Vertices()[m_sprites.Commands()[command].firstVertex + quad * 6 + corner];
     }
 
-    // El quad en 640 × 480 (las x y las y de los vértices, con la y hacia abajo, pasadas por la pantalla).
+    // The quad in 640 × 480 (the vertices' x and y, with y down, scaled by the screen).
     void ExpectQuadAt(std::size_t command, std::size_t quad, float left, float top, float right, float bottom) const
     {
         const PixelSize screen = m_sprites.Screen();
@@ -345,9 +345,10 @@ protected:
     Client::Render::Text::TextColors m_colors{};
 };
 
-// 0x468320 con +0xc4 en 1 y 3 renglones (menos que +0xd0): el bitmap de todo el ancho y 3 · 13 de alto, los renglones
-// de 13 en 13 y el cursor al final del último; después la barra (0x468970): las flechas en (x + w − 15, y − 4) y
-// (x + w − 15, y + h − 9), los filos con la mezcla normal y el cursor, sin mezcla, de toda la pista (+0xd0 / 3 > 1).
+// 0x468320 with +0xc4 at 1 and 3 lines (fewer than +0xd0): the bitmap of the whole width and 3 · 13 tall, the lines
+// 13 apart and the caret at the end of the last one; then the bar (0x468970): the arrows at (x + w − 15, y − 4) and
+// (x + w − 15, y + h − 9), the edges with the normal blend and the thumb, without blending, the whole track
+// (+0xd0 / 3 > 1).
 TEST_F(OldEditTest, AMultilineEditDrawsItsLinesItsCaretAndItsBar)
 {
     OldEdit edit = TheBody(Screen640);
@@ -357,10 +358,10 @@ TEST_F(OldEditTest, AMultilineEditDrawsItsLinesItsCaretAndItsBar)
     Draw(edit, Screen640, true);
     const std::span<const DrawCommand> commands = m_sprites.Commands();
     ASSERT_EQ(commands.size(), 5u);
-    // El fondo (+0xa0, negro) de 238 × 39 en (60, 100).
+    // The background (+0xa0, black), 238 × 39 at (60, 100).
     EXPECT_FALSE(commands[0].texture.has_value());
     ExpectQuadAt(0, 0, 60.0f, 100.0f, 298.0f, 139.0f);
-    // Los renglones, a 3 del borde (el margen del EDIT de XP), y el cursor en el mismo lote del texto.
+    // The lines, 3 from the edge (the XP EDIT's margin), and the caret in the same batch as the text.
     EXPECT_EQ(commands[1].texture, TextMarkerSlot);
     ASSERT_EQ(m_text.texts.size(), 4u);
     EXPECT_EQ(m_text.texts[0].text, "uno");
@@ -368,26 +369,26 @@ TEST_F(OldEditTest, AMultilineEditDrawsItsLinesItsCaretAndItsBar)
     EXPECT_EQ(m_text.texts[1].y, 113);
     EXPECT_EQ(m_text.texts[2].text, "tres");
     EXPECT_EQ(m_text.texts[2].y, 126);
-    // El cursor, la columna 4 · 6 + 1 del tercer renglón invertida (el fondo sobre 0xffc8c8c8), como el de un renglón.
+    // The caret, column 4 · 6 + 1 of the third line inverted (the background over 0xffc8c8c8), like the one-line one's.
     EXPECT_EQ(m_text.texts[3].text, "tres");
     EXPECT_EQ(m_text.texts[3].x, 63 + 25);
     EXPECT_EQ(m_text.texts[3].y, 126);
     EXPECT_EQ(m_text.texts[3].firstColumn, 25);
     EXPECT_EQ(m_text.texts[3].columns, 1);
     EXPECT_EQ(m_text.texts[3].style.colors.background, 0xffc8c8c8u);
-    // Las flechas.
+    // The arrows.
     EXPECT_EQ(commands[2].texture, ScrollbarSlot);
     EXPECT_EQ(commands[2].vertexCount, 12u);
     ExpectQuadAt(2, 0, 283.0f, 96.0f, 296.0f, 109.0f);
     EXPECT_FLOAT_EQ(VertexOf(2, 0).v, 0.09375f);
     ExpectQuadAt(2, 1, 283.0f, 226.0f, 296.0f, 239.0f);
     EXPECT_FLOAT_EQ(VertexOf(2, 1).v, 0.5f);
-    // Los filos de la pista de y + 9 a y + h − 9, en x + w − 15 y x + w − 3.
+    // The track's edges from y + 9 to y + h − 9, at x + w − 15 and x + w − 3.
     EXPECT_EQ(commands[3].blend, BlendMode::Alpha);
     ExpectQuadAt(3, 0, 283.0f, 109.0f, 284.0f, 226.0f);
     ExpectQuadAt(3, 1, 295.0f, 109.0f, 296.0f, 226.0f);
     EXPECT_EQ(VertexOf(3).color, *Client::Ui::OldWindowPalette(2, 1.0f));
-    // El cursor de la barra, de 11 de ancho en x + w − 14, con sus puntas.
+    // The bar's thumb, 11 wide at x + w − 14, with its tips.
     EXPECT_EQ(commands[4].blend, BlendMode::Opaque);
     EXPECT_EQ(commands[4].vertexCount, 18u);
     ExpectQuadAt(4, 0, 284.0f, 109.0f, 295.0f, 226.0f);
@@ -398,12 +399,12 @@ TEST_F(OldEditTest, AMultilineEditDrawsItsLinesItsCaretAndItsBar)
     EXPECT_EQ(edit.draws, 1);
 }
 
-// Con 20 renglones y el tercero arriba: el bitmap de ftol(h · ry), los 10 renglones que entran desde el tercero, sin el
-// cursor (el último no está a la vista), y el cursor de la barra de 117 · 10 / 20 en 109 + 117 · 3 / 20. La flecha de
-// abajo, con el clic sobre ella, dada vuelta. En 800 × 600, lo mismo en la escala.
+// With 20 lines and the third at the top: the bitmap of ftol(h · ry), the 10 lines that fit from the third, without
+// the caret (the last one is not in view), and the bar's thumb of 117 · 10 / 20 at 109 + 117 · 3 / 20. The down
+// arrow, with the click on it, flipped. In 800 × 600, the same at scale.
 TEST_F(OldEditTest, AScrolledEditDrawsTheLinesInViewAndItsThumb)
 {
-    // El bitmap de ftol(238 · rx) × ftol(135 · ry) píxeles: en 800 × 600, 297 × 168.
+    // The bitmap of ftol(238 · rx) × ftol(135 · ry) pixels: in 800 × 600, 297 × 168.
     struct Case
     {
         PixelSize screen;
@@ -439,9 +440,10 @@ TEST_F(OldEditTest, AScrolledEditDrawsTheLinesInViewAndItsThumb)
     }
 }
 
-// 0x468d50 sobre la flecha de abajo: la primera vez corre un renglón con el 0x19 y empieza la cuenta, que sube hasta 15
-// (sin padre) y desde 16 corre en cada paso; sin el clic, las cuentas vuelven a 0. El clic da el foco (EM_SETSEL(−2,
-// −1): nada elegido), el mouse a la UI y 0x77f3b10 en 0 y 0x6c8dcc en 6.
+// 0x468d50 on the down arrow: the first time it scrolls one line with sound 0x19 and starts the counter, which rises
+// up to 15 (without a parent) and from 16 scrolls on every step; without the click, the counters go back to 0. The
+// click gives the focus (EM_SETSEL(−2, −1): nothing selected), the mouse to the UI and 0x77f3b10 to 0 and 0x6c8dcc
+// to 6.
 TEST_F(OldEditTest, TheDownArrowScrollsWithTheSoundAndRepeats)
 {
     OldEdit edit = TheBody(Screen640);
@@ -477,9 +479,9 @@ TEST_F(OldEditTest, TheDownArrowScrollsWithTheSoundAndRepeats)
     EXPECT_EQ(edit.arrowRepeat, 0);
 }
 
-// Con la barra dibujada (+0xd4..+0xe4): el clic en la pista, debajo del cursor, pasa una página, sin sonido; el clic
-// sobre el cursor lo agarra (el estado en 2, el mouse del EDIT y +0xe8) y el mouse lo lleva: EM_LINESCROLL a 0 y a
-// ftol(31 · ((y − 109 + 0,5) / 117)); sin el clic, lo suelta.
+// With the bar drawn (+0xd4..+0xe4): the click on the track, below the thumb, turns a page, without sound; the click
+// on the thumb grabs it (state 2, the EDIT's mouse and +0xe8) and the mouse drags it: EM_LINESCROLL to 0 and to
+// ftol(31 · ((y − 109 + 0.5) / 117)); without the click, it lets go.
 TEST_F(OldEditTest, TheThumbIsDraggedAndTheTrackPages)
 {
     OldEdit edit = TheBody(Screen640);
@@ -515,8 +517,8 @@ TEST_F(OldEditTest, TheThumbIsDraggedAndTheTrackPages)
     EXPECT_EQ(m_capture, 0);
 }
 
-// En un EDIT de una línea (el del chat), el clic en el borde derecho también pasa por las flechas: EM_SCROLL no hace
-// nada pero el 0x19 suena (Q-C1009); el cursor y la pista, sin 0x468970, son de 0 × 0.
+// In a one-line EDIT (the chat's), the click on the right edge also goes through the arrows: EM_SCROLL does nothing
+// but the 0x19 plays (Q-C1009); the thumb and the track, without 0x468970, are 0 × 0.
 TEST_F(OldEditTest, TheRightEdgeOfASingleLineEditSounds)
 {
     OldEdit edit;

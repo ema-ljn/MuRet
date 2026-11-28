@@ -37,7 +37,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, b
                                                     const Scenes::WorldEntryResources& resources)
 {
     std::int32_t x = 0, y = 0;
-    // El orden de los cierres de 4 bytes es Y, X; no se comparte con accesos exteriores.
+    // The order of the 4-byte closes is Y, X; it is not shared with outer accesses.
     {
         const Models::LogicalAccess access(actor.cellYAccesses, resources.cloth.random,
                                            Models::SmallLogicalCloseRandoms, actor.cellYLeft);

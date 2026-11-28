@@ -133,54 +133,54 @@ namespace Client::Scenes
 {
 namespace
 {
-// 0x636838: el yaw de la cámara del juego en el primer paso, 0xc2340000.
+// 0x636838: the game camera's yaw on the first step, 0xc2340000.
 constexpr float EntryYaw = -45.0f;
-// 0x636dce: lo que queda del temblor de la cámara (0x7d325c8) en cada paso, el 0,2 de 0x6b8854.
+// 0x636dce: what remains of the camera shake (0x7d325c8) on each step, the 0.2 of 0x6b8854.
 constexpr float ShakeDecay = std::bit_cast<float>(std::uint32_t{0x3e4ccccd});
-// 0x635b3d y 0x63726f: en el mapa 6 la cámara y el punto del trapecio comparan el nombre del héroe.
+// 0x635b3d and 0x63726f: on map 6 the camera and the trapezoid point compare the hero's name.
 constexpr std::int32_t NamedCameraMap = 6;
-// 0x6372e0..0x6372f1: el punto de la rama de "webzen" (0x45c80000 y 0x4670a000) con la z del héroe.
+// 0x6372e0..0x6372f1: the point of the "webzen" branch (0x45c80000 and 0x4670a000) with the hero's z.
 constexpr float SpectatorTargetX = 6400.0f;
 constexpr float SpectatorTargetY = 15400.0f;
-// 0x5fc33e: el mapa 7 no tiene el pase del pasto (su agua va con 0x5fa4b0, Terrain::DrawTerrainCell).
+// 0x5fc33e: map 7 has no grass pass (its water goes with 0x5fa4b0, Terrain::DrawTerrainCell).
 constexpr std::int32_t AnimatedWaterMap = 7;
-// 0x6374bb: el mapa 10 no dibuja el terreno.
+// 0x6374bb
 constexpr std::int32_t WithoutTerrainMap = 10;
-// 0x5f8928..0x5f8947: 0x6c9d58, el pase del pasto, queda en 0 en los mapas 18 a 23 y en el 30.
+// 0x5f8928..0x5f8947: 0x6c9d58, the grass pass, stays at 0 on maps 18 to 23 and on 30.
 constexpr std::int32_t FirstWithoutGrassMap = 18;
 constexpr std::int32_t LastWithoutGrassMap = 23;
-// 0x63741d: en el mapa 30 el dibujo pone o saca la niebla (0x42b0a0).
+// 0x63741d: on map 30 the draw sets or removes the fog (0x42b0a0).
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
-// 0x42b0a0 con el color que arma 0x63746b..0x63747a en la pila, (0, 0, 0): glFogf(GL_FOG_MODE, GL_LINEAR), de
-// 2.000 (0x44fa0000) a 2.700 (0x4528c000).
+// 0x42b0a0 with the color 0x63746b..0x63747a builds on the stack, (0, 0, 0): glFogf(GL_FOG_MODE, GL_LINEAR), from
+// 2000 (0x44fa0000) to 2700 (0x4528c000).
 constexpr Render::ModelFog CastleSiegeFog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
-// 0x633f20: mapa conservado durante la espera de entrada.
+// 0x633f20: the map kept during the entry wait.
 constexpr std::int32_t SelectionMap = Maps::CharacterSelectMap;
-// 0x425070: el 33 comparte con el 54 los casos de los objetos de 0x4250f0.
+// 0x425070: 33 shares with 54 the object cases of 0x4250f0.
 using Maps::AidaMap;
-// 0x43ff10: Land of Trials, con sus casos en 0x43ffc0, 0x4401e0 y 0x4403b0.
+// 0x43ff10: Land of Trials, with its cases at 0x43ffc0, 0x4401e0 and 0x4403b0.
 using Maps::LandOfTrialsMap;
-// 0x4303c0: Crywolf, con sus casos en 0x4303e0, 0x430510 y 0x4306a0 y las burbujas de su agua (0x5fa695).
+// 0x4303c0: Crywolf, with its cases at 0x4303e0, 0x430510 and 0x4306a0 and its water's bubbles (0x5fa695).
 using Maps::CrywolfMap;
-// Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
+// The reference maps, the only ones with the object cases in the game (0x6046a0 and 0x604ab0).
 using Maps::DeviasMap;
 using Maps::DungeonMap;
 using Maps::LorenciaMap;
 using Maps::LostTowerMap;
 using Maps::NoriaMap;
-// La Arena (World7): sus casos en 0x604ab0 (0x6054fd) y 0x602ed0 (0x6039cb).
+// The Arena (World7): its cases in 0x604ab0 (0x6054fd) and 0x602ed0 (0x6039cb).
 using Maps::ArenaMap;
-// Atlans (World8): sus casos en 0x604ab0 (la tabla 0x605c94); 0x602ed0 y 0x6002e0 no tienen.
+// Atlans (World8): its cases in 0x604ab0 (the table 0x605c94); 0x602ed0 and 0x6002e0 have none.
 using Maps::AtlansMap;
 using Maps::DevilSquareMap;
 using Maps::FirstBloodCastleMap;
 using Maps::IcarusMap;
 using Maps::LastBloodCastleMap;
 using Maps::TarkanMap;
-// 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
+// 0x620486..0x6204b0: the 640 × 480 mouse goes back to the screen with · W / 640 and · H / 480, in integers.
 constexpr std::int64_t Width640 = 640;
 constexpr std::int64_t Height480 = 480;
-// 0x6ba070: lo que 0x637355 multiplica por el ancho del mundo para el primer argumento de 0x5fbb00.
+// 0x6ba070: what 0x637355 multiplies the world width by for 0x5fbb00's first argument.
 constexpr float WorldWidthFactor = 0.0015625f;
 
 using Math::F32;
@@ -190,26 +190,26 @@ std::string MapText(std::int32_t map)
     return "mapa " + std::to_string(map);
 }
 
-// 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
-// CastleSiege::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
+// 0x63741d..0x637466 and 0x6375ea..0x63763a: map 30 (0x6c9dd0) and the published hero (0x743a170) in
+// CastleSiege::InTheCastleSiegeFog's rectangle. Each read rereads both.
 bool HeroInTheCastleSiegeFog(const Kernel::WorldState& world)
 {
     return world.Runtime().map == CastleMap && CastleSiege::InTheCastleSiegeFog(world.Hero().position);
 }
 
-// 0x5f8928..0x5f8947: 0x6c9d58, que 0x5f87b0 prende fuera de los mapas 18 a 23 y 30.
+// 0x5f8928..0x5f8947: 0x6c9d58, which 0x5f87b0 turns on outside maps 18 to 23 and 30.
 bool HasTheGrassPass(std::int32_t map)
 {
     return !(map >= FirstWithoutGrassMap && map <= LastWithoutGrassMap) && map != CastleMap;
 }
 
-// 0x635c54..0x635d7f: la celda del servidor del héroe por la tabla de protección, la Y (+0x420) y
-// después la X (+0x41c), cada una en un acceso que se cierra (0x412890), y el atributo de 0x5f8290(X, Y).
+// 0x635c54..0x635d7f: the hero's server cell through the protection table, Y (+0x420) and then X (+0x41c), each in
+// an access that closes (0x412890), and the attribute of 0x5f8290(X, Y).
 std::uint8_t HeroCellAttribute(Kernel::ActorState& hero, const Data::Terrain::TerrainAttributes& attributes,
                                Crt::CrtRandom& random)
 {
     const Actors::LogicalCell cell = Actors::ReadLogicalCell(hero, random);
-    // 0x635f14..0x635fe3: el word de 0x7d0d348, del que la cámara mira el byte bajo.
+    // 0x635f14..0x635fe3: the word of 0x7d0d348, whose low byte the camera looks at.
     return static_cast<std::uint8_t>(attributes.cells[Data::Terrain::CellIndex(cell.x, cell.y)]);
 }
 } // namespace
@@ -241,8 +241,8 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
-    // Fuera de la escena 5, 0x4eb620 no baja las esperas. Su primer frame en la 5 se lleva los ms desde el último de la
-    // escena anterior (0x4eb746 escribe 0x5767b7c en todas); MuRet empieza con 0 (07, Q-C1238).
+    // Outside scene 5, 0x4eb620 does not lower the waits. Its first frame in 5 takes the ms since the previous scene's
+    // last (0x4eb746 writes 0x5767b7c in all); MuRet starts with 0 (07, Q-C1238).
     m_frameStarts = true;
     m_lastFrameStart.reset();
     m_groundEffects.Reset();
@@ -253,15 +253,16 @@ Core::Expected<void, std::string> GameScene::Enter()
         textureTable.Seed(*m_gameSlots, m_models);
     }
     m_tiles.BindTextureTable(textureTable);
-    // El original las sube en la carga (0x61ccb0) y en el login (0x61c7c0) y no las suelta; MuRet, con cada escena.
+    // The original uploads them in the load (0x61ccb0) and in the login (0x61c7c0) and does not release them; MuRet,
+    // with each scene.
     if (auto loaded = m_windowTextures.Load(m_context.dataRoot); !loaded.HasValue())
         return loaded;
     return m_sandTextures.Load(m_context.dataRoot);
 }
 
-// 0x636290 y, después, lo de 0x637700 para la tela: el viento (0x637cec) y el contador de pasos
-// (0x637f8c) van detrás de la lógica de la escena (02, "Qué corre en cada paso"). Un corte del paso
-// deja la escena en Failure sin la tela; después de un corte, del paso o del dibujo, nada.
+// 0x636290 and, then, 0x637700's part for the cloth: the wind (0x637cec) and the step counter (0x637f8c) go after the
+// scene's logic (02, "Qué corre en cada paso"). A step cut leaves the scene in Failure without the cloth; after a
+// cut, of the step or the draw, nothing.
 void GameScene::Step(const Input::InputState& input)
 {
     m_projectingFrame = false;
@@ -269,9 +270,9 @@ void GameScene::Step(const Input::InputState& input)
     {
         return;
     }
-    // 0x4eb620, al empezar un frame del original y antes de sus pasos: en la escena 5, 0x552f10 con los ms de
-    // timeGetTime() desde el frame anterior (sin tope: 02, "Lo que va por reloj"). El primero de la escena, con 0
-    // (Q-C1238); los frames que la espera retiene no empiezan uno, y el siguiente se lleva todo su tiempo (P-C267).
+    // 0x4eb620, at the start of an original frame and before its steps: in scene 5, 0x552f10 with the ms of
+    // timeGetTime() since the previous frame (no cap: 02, "Lo que va por reloj"). The scene's first one, with 0
+    // (Q-C1238); the frames the wait holds do not start one, and the next takes all its time (P-C267).
     if (m_frameStarts && m_context.world != nullptr && m_context.cloth != nullptr)
     {
         m_frameStarts = false;
@@ -308,25 +309,25 @@ void GameScene::Step(const Input::InputState& input)
     {
         Models::StepTheClothWorld(*m_context.cloth);
     }
-    // Lo que las ventanas del paso dejaron para las salas del chat con un amigo (Enter en un chat, los chats que se
-    // soltaron, también los de 0x48ea50): el original lo manda en el momento, por la conexión de cada sala.
+    // What the step's windows left for the chat rooms with a friend (Enter in a chat, the chats that were released,
+    // also 0x48ea50's): the original sends it at once, through each room's connection.
     if (m_context.world != nullptr)
         Messenger::FlushTheChatRoomOrders(m_context.world->Runtime().oldWindows.chatRooms, m_session);
 }
 
 void GameScene::StepEntry()
 {
-    // 0x636838: solo el primer paso de la escena 5 escribe el yaw, sin reiniciar los otros globales.
+    // 0x636838: only the first step of scene 5 writes the yaw, without resetting the other globals.
     if (m_firstStep)
     {
         if (m_context.camera != nullptr)
             m_context.camera->yaw = EntryYaw;
         m_firstStep = false;
-        // 0x636843..0x6368f4: los campos de texto (0x553570(1)), el campo del chat cerrado (0x6c8e68), 0x77f3b69 en
-        // 0, los dos campos de Tab (0x6c8e6c; 0x6c8e70, 0x6c8e78 y 0x6c8e7c son de la entrada sin EDIT), 120 entradas
-        // vacías, el EDIT del login vacío y oculto (0x469420 y 0x469450(3), que MuRet no tiene en el juego), la
-        // entrada del chat (0x469320), el foco a la ventana del juego, el registro vacío (la vtable + 0x2c, 0x478d10) y
-        // el filtro también (0x45db50).
+        // 0x636843..0x6368f4: the text fields (0x553570(1)), the chat field closed (0x6c8e68), 0x77f3b69 at 0, the two
+        // Tab fields (0x6c8e6c; 0x6c8e70, 0x6c8e78 and 0x6c8e7c belong to the input without EDIT), 120 empty entries,
+        // the login's EDIT empty and hidden (0x469420 and 0x469450(3), which MuRet does not have in the game), the chat
+        // input (0x469320), the focus to the game window, the record empty (the vtable + 0x2c, 0x478d10) and the filter
+        // too (0x45db50).
         if (m_context.world != nullptr)
         {
             Kernel::WorldRuntime& runtime = m_context.world->Runtime();
@@ -344,13 +345,13 @@ void GameScene::StepEntry()
             input.focus = Chat::ChatFocus::Game;
             Chat::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             Chat::ClearTheChatFilter(runtime.chat.log);
-            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260: la
-            // lista y, con 0x4a0560, las copias de 0x4a03c0).
+            // 0x6368f9..0x636915: the old windows (0x48ea50), the friends (0x49bac0) and the letters (0x49f260: the
+            // list and, with 0x4a0560, the copies of 0x4a03c0).
             Ui::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
             Messenger::ClearTheFriends(runtime.oldWindows.friendModel);
             Messenger::ClearTheLetters(runtime.oldWindows.letterModel);
-            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
-            // un texto de Slide.bmd, con sus rand()).
+            // 0x636920: 0x46b010, the queues of the Slide.bmd banner, its timer 0x3eb and 0x46b0e0 (the own record and
+            // a Slide.bmd text, with their rand() calls).
             const auto now =
                 m_context.clock != nullptr
                     ? static_cast<std::uint32_t>(
@@ -358,10 +359,10 @@ void GameScene::StepEntry()
                     : 0U;
             if (m_context.cloth != nullptr)
                 Hud::StartTheSlides(*m_context.world, m_context.cloth->random, now);
-            // 0x636925..0x63692b: 0x65dc00, el cartel del nombre del mapa apagado y sin mapa.
+            // 0x636925..0x63692b: 0x65dc00, the map name banner off and without a map.
             Hud::ResetTheMapBanner(runtime.hud.mapBanner, now);
-            // 0x636935: la tabla de los gremios (0x447ae0). El F1 00 (0x4c1e54) y la lista de personajes (0x4c1f14)
-            // también la vacían, pero antes de que haya mundo: la entrada al juego deja lo mismo.
+            // 0x636935: the guild table (0x447ae0). F1 00 (0x4c1e54) and the character list (0x4c1f14) also empty it,
+            // but before there is a world: entering the game leaves the same.
             Guild::ResetTheGuildTable(runtime.guild);
         }
     }
@@ -375,15 +376,15 @@ void GameScene::StepEntry()
 
 Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& input)
 {
-    // Enter no deja entrar sin los tres.
+    // Enter does not allow entering without the three.
     if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.states == nullptr)
     {
         return {};
     }
     ObserveMapLoad();
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    // 0x636da3: el estado 0x3d marca el mundo cargado; sin él y con el mundo sin cargar, el paso
-    // termina acá (0x636dbc).
+    // 0x636da3: state 0x3d marks the world loaded; without it and with the world not loaded, the step ends here
+    // (0x636dbc).
     if (m_session != nullptr && m_session->State() == Session::SessionState::InWorld)
     {
         runtime.drawingEnabled = true;
@@ -392,17 +393,17 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return {};
     }
-    // 0x636dc2..0x636ddb: el temblor de la cámara se reduce en cada paso; la x87 multiplica y guarda en
-    // float, como el producto exacto en double redondeado una vez.
+    // 0x636dc2..0x636ddb: the camera shake shrinks on each step; the x87 multiplies and stores to float, like the exact
+    // product in double rounded once.
     Camera::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.shake = F32(static_cast<double>(cameraInput.shake) * static_cast<double>(ShakeDecay));
-    // 0x636dd4..0x636de3: sólo con el marcador inicial 0x43 busca la primera habilidad del asedio.
+    // 0x636dd4..0x636de3: only with the initial marker 0x43 does it look for the first siege skill.
     if (m_context.world->Hero().byte371 == 0x43)
         CastleSiege::InitializeTheBattleSkill(*m_context.world, m_context.cloth->random);
-    // 0x636de8: 0x5fbf60, la ola de las celdas de la ventana del rango del último dibujo, con el reloj
-    // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
-    // buffer dinámico precede las luces de objetos y fauna (06 § Terreno). El rango y las olas
-    // son de la escena: el original los comparte con la selección (08 P-C41).
+    // 0x636de8: 0x5fbf60, the wave of the cells of the last draw's range window, with the step's clock (0x723c50's
+    // branch, P-C24 c, does not turn on in MuRet). Copying the shaded light to the dynamic buffer comes before the
+    // object and fauna lights (06 § Terreno). The range and the waves belong to the scene: the original shares them
+    // with the selection (08 P-C41).
     const Terrain::WorldTerrain* stepTerrain = &MapTerrain();
     if (runtime.map == SelectionMap && m_context.selection != nullptr && m_context.selection->Terrain() != nullptr)
     {
@@ -417,11 +418,11 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         Terrain::UpdateWaves(m_water, m_context.clock->Now(), DynamicLight().Range(),
                              static_cast<std::uint8_t>(runtime.map));
     }
-    // 0x636ded..0x63705b: la UI del paso, que corre en cada paso desde el primero, también en la espera.
+    // 0x636ded..0x63705b: the step's UI, which runs on every step from the first, also during the wait.
     if (auto ui = StepTheUi(input); !ui.HasValue())
         return ui;
     m_context.world->Fauna().ClearSounds();
-    // 0x63706a: 0x606560, los objetos que vio el último dibujo (0x6046a0), también en la espera.
+    // 0x63706a: 0x606560, the objects the last draw saw (0x6046a0), also during the wait.
     if (auto objects = StepTheObjects(); !objects.HasValue())
     {
         return objects;
@@ -435,7 +436,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         return leaves;
     if (auto fauna = StepTheFauna(); !fauna.HasValue())
         return fauna;
-    // 0x6370f4: 0x445230, los ayudantes, también en la espera.
+    // 0x6370f4: 0x445230, the helpers, also during the wait.
     if (auto helpers = Pets::StepHelpers(Pets::HelperStepContext{.world = *m_context.world,
                                                                  .models = m_models,
                                                                  .random = m_context.cloth->random,
@@ -448,27 +449,27 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return helpers;
     }
-    // 0x6370f9: 0x557650, los globos.
+    // 0x6370f9: 0x557650, the bubbles.
     const Ui::Point bubbleMouse = Ui::MouseIn640x480(input, m_screen);
     if (auto bubbles = Chat::StepTheChatBubbles(
             *m_context.world,
             Chat::ChatBubbleStepInput{.mouseX = bubbleMouse.x, .mouseY = bubbleMouse.y, .screen = m_screen});
         !bubbles.HasValue())
         return bubbles;
-    // 0x6370fe..0x637105: 0x451c10, los carteles de las tiendas personales (0x7245c8) que cambiaron de clave o de tipo.
+    // 0x6370fe..0x637105: 0x451c10, the personal shop signs (0x7245c8) that changed key or type.
     PersonalShop::CheckTheShopKeys(*m_context.world);
-    // 63710a: MoveHero sale con más de30, pero la lógica posterior sigue durante la espera.
+    // 0x63710a: MoveHero leaves with more than 30, but the later logic goes on during the wait.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
-    // 63710f: personajes sobre el trapecio retenido del último dibujo.
+    // 0x63710f: characters on the last draw's retained trapezoid.
     if (auto stepped = StepTheCharacters(worldClock, input.IsDown(Input::Key::Ctrl)); !stepped.HasValue())
         return stepped;
     if (auto effects = StepTheEffects(worldClock); !effects.HasValue())
         return effects;
-    // 0x63717f: 0x5ac8d0, las teclas de función.
+    // 0x63717f: 0x5ac8d0, the function keys.
     const Ui::Point mouse = Ui::MouseIn640x480(input, m_screen);
     const Chat::GameChatContext chat = ChatContext();
-    // CL9 hito 5: la barra levanta el ítem del piso con el C1 05 22 (InventoryContext).
+    // CL9 milestone 5: the bar picks the item up from the floor with C1 05 22 (InventoryContext).
     const Items::InventoryServices inventory = InventoryContext();
     return Hud::StepTheFunctionKeys(Hud::GameUiContext{.world = *m_context.world,
                                                        .random = m_context.cloth->random,
@@ -491,15 +492,15 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     std::span<Kernel::WorldObject> objects = world.Map().objects;
     if (Maps::IsKalimaMap(map))
     {
-        // 606572 antes del early-return y del reset60657a, incluso sin un objeto visto.
+        // 0x606572 before the early return and the 0x60657a reset, even without a seen object.
         const auto selector = MapScripts::Kalima::StepKalimaObjectPrelude(world, *m_context.cloth);
         if (!selector.HasValue())
             return Core::Unexpected(selector.Error());
         world.Runtime().objectSelectionCount = 0;
-        // 6063d0: no esIcarus;4055b0 y42c500 retornanAL0 paraKalima, sin usar selector.
+        // 0x6063d0: not Icarus; 0x4055b0 and 0x42c500 return AL 0 for Kalima, without using the selector.
     }
-    // 0x405490, primero en 0x6061c0: los Chaos Castle, también antes del early-return y del 0x60657a, con la cuenta
-    // del pase anterior. El selector queda para 0x4055b0.
+    // 0x405490, first in 0x6061c0: the Chaos Castles, also before the early return and 0x60657a, with the previous
+    // pass's count. The selector stays for 0x4055b0.
     const bool chaosCastle = Maps::IsChaosCastle(map);
     std::int32_t chaosCastleSelector = 0;
     if (chaosCastle)
@@ -525,7 +526,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         chaosCastleSelector = selector.Value();
         world.Runtime().objectSelectionCount = 0;
     }
-    // 0x6061c0 en Icarus, antes del early-return y del 0x60657a, con la cuenta del pase anterior.
+    // 0x6061c0 in Icarus, before the early return and 0x60657a, with the previous pass's count.
     std::optional<MapScripts::Icarus::IcarusObjectServices> icarus;
     std::int32_t icarusSelector = 0;
     if (map == IcarusMap)
@@ -552,7 +553,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         icarusSelector = selector.Value();
         world.Runtime().objectSelectionCount = 0;
     }
-    // 0x6062e6: los Blood Castle, también antes del early-return, con el reloj del paso.
+    // 0x6062e6: the Blood Castles, also before the early return, with the step's clock.
     const float worldClock =
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
@@ -566,10 +567,10 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             !orb.HasValue())
             return orb;
     }
-    // 0x42b540, el tercer eslabón de 0x6061c0: el 30, también antes del early-return y del 0x60657a.
+    // 0x42b540, the third link of 0x6061c0: the 30, also before the early return and 0x60657a.
     if (map == CastleMap)
     {
-        // timeGetTime (0x6b8544) es el reloj de la escena en ms; sin reloj, el preludio corta en 0x42b557.
+        // timeGetTime (0x6b8544) is the scene clock in ms; without a clock, the prelude stops at 0x42b557.
         CastleSiege::CastleSiegePrelude prelude{
             .siegeActive = world.Runtime().castleSiege.siegeActive,
             .musicTime = &world.Runtime().castleSiege.siegeMusicTime,
@@ -615,9 +616,9 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             return stepped;
         world.Runtime().objectSelectionCount = 0;
     }
-    // 0x6065bd y 0x6065da: el derrumbe (0x5ff960, Scenes/ObjectCollapse.h) con cada vivo del recorrido, los vistos de
-    // un sector que pasó después de su paso y todos los de uno que no pasó; la piedra de Chaos Castle sale con la z
-    // del héroe y el temblor es el de la cámara (0x7d325c8).
+    // 0x6065bd and 0x6065da: the collapse (0x5ff960, Events/ObjectCollapse.h) with each living one of the walk, the
+    // seen ones of a sector that passed after its step and all of one that did not pass; the Chaos Castle stone comes
+    // out with the hero's z and the shake is the camera's (0x7d325c8).
     const Events::ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
                                                         .random = m_context.cloth->random,
                                                         .particles = &world.Particles(),
@@ -627,8 +628,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                                         .attributes = MapTerrain().attributes.get()};
     const WorldObjects::AfterObjectStep collapse = [&collapseContext](Kernel::WorldObject& object)
     { return Events::CollapseTheObject(object, collapseContext); };
-    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
-    // el derrumbe con los vivos y la cuenta (0x606610).
+    // Without a seen object (before the first draw that reaches 0x6046a0), 0x606560 steps none of them: the collapse
+    // with the living ones and the count remain (0x606610).
     if (std::ranges::none_of(objects, [](const Kernel::WorldObject& object) { return object.alive && object.seen; }))
     {
         if (auto walked = WorldObjects::WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
@@ -636,8 +637,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         Events::CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
-    // 0x4250f0 lleva los del 33 y los del 54 (los de la selección, vistos en su dibujo, que siguen durante la
-    // espera de la entrada al juego).
+    // 0x4250f0 carries those of 33 and 54 (the selection's, seen in its draw, which go on during the wait for the game
+    // entry).
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
@@ -650,8 +651,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         return loaded;
     }
-    // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso; el 1 y el 4
-    // crean efectos con modelo y la patada del 4 mira la acción del héroe.
+    // 0x604ab0 reads the hero's cell layer and the world clock (0x5767b88), the step's; 1 and 4 create effects with a
+    // model and 4's kick looks at the hero's action.
     const Kernel::ActorState& hero = world.Hero();
     const Kernel::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
@@ -660,13 +661,13 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         .particles = &world.Particles(),
         .heroPosition = &hero.position,
         .sound = [&](Audio::SoundId id) { world.Runtime().RequestSound(id); },
-        // El ambiente del 9 suena en bucle (0x41ed10(1, 0, 1)).
+        // The 9's ambience sounds in a loop (0x41ed10(1, 0, 1)).
         .loopedSound = [&](Audio::SoundId id) { world.Runtime().RequestSound(id, std::nullopt, true); },
         .modelState = &world.Runtime().objectModelState,
         .effects = &world.Map().effects,
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
         .heroAction = &hero.animation.action,
-        // Q-C304: el 31 lee timeGetTime (0x6b8544) en el paso; MuRet le presta el mismo reloj en ms.
+        // Q-C304: the 31 reads timeGetTime (0x6b8544) in the step; MuRet lends it the same clock in ms.
         .systemTime =
             [this]()
         {
@@ -693,7 +694,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                                            world.Runtime().chaosCastleTrapArmed);
             return {};
         };
-    // 0x6063d0 → 0x42c500 en el 30, con el reloj del paso.
+    // 0x6063d0 → 0x42c500 on 30, with the step's clock.
     if (map == CastleMap)
         after = [&](Kernel::WorldObject& object)
         {
@@ -715,7 +716,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         return Core::Unexpected(stepped.Error() + ", en el " + MapText(map));
     }
-    // 0x606610..0x606618: la cuenta del derrumbe, al final de cada paso.
+    // 0x606610..0x606618: the collapse count, at the end of each step.
     Events::CountDownTheObjectCollapse(world.Runtime());
     return {};
 }
@@ -729,30 +730,29 @@ void GameScene::PrepareFrame()
     }
     ObserveMapLoad();
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    // 0x6371a6: sin el mundo cargado devuelve 0 sin leer el contador.
+    // 0x6371a6: without the world loaded it returns 0 without reading the counter.
     if (!runtime.drawingEnabled)
     {
         return;
     }
     std::int32_t counter = 0;
     {
-        // 0x6371b7..0x637229: lo lee con un acceso que se cierra (0x40b800) aunque después no dibuje.
+        // 0x6371b7..0x637229: it reads it with an access that closes (0x40b800) even if it then does not draw.
         const Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
                                            Models::SmallLogicalCloseRandoms);
         counter = runtime.warpCounter;
     }
-    // 0x63722e: cmp esi, 0x1e y jle, con signo.
+    // 0x63722e: cmp esi, 0x1e and jle, signed.
     m_holdFrame = counter > Kernel::WaitDrawThreshold;
     if (m_holdFrame)
     {
         return;
     }
-    // P-C40: se conserva la invalidación preventiva mientras el frame original tiene etapas y ramas
-    // sin portar. El jugador que alcanza 0x50c91e publica después su scan real; si el dibujo corta
-    // antes, el valor queda desconocido. No representa una escritura del original en PrepareFrame.
-    // Solo antes de un frame del original: un dibujo intermedio no llega a 0x510d00 ni publica
-    // (ScanTheActor), y [0x743a178] y [0x743a17c] siguen con lo del último frame. Si los borrara, la C
-    // (0x65ca1e → 0x550d10) cortaría en 0x550990 después de casi cualquier dibujo a más de 21,33 FPS.
+    // P-C40: the preventive invalidation is kept while the original frame has unported stages and branches. The player
+    // that reaches 0x50c91e then publishes its real scan; if the draw stops before, the value stays unknown. It does
+    // not represent a write of the original in PrepareFrame. Only before an original frame: an intermediate draw does
+    // not reach 0x510d00 or publish (ScanTheActor), and [0x743a178] and [0x743a17c] keep the last frame's. If it
+    // cleared them, the C (0x65ca1e → 0x550d10) would stop at 0x550990 after almost any draw above 21.33 FPS.
     if (m_cameraFrames.NextDrawIsAnOriginalFrame(OriginalFramePaceOf(m_context.pacing)))
     {
         runtime.fullSetScan = std::nullopt;
@@ -792,8 +792,8 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     }
     if (frames == 0)
     {
-        // El original publica 639482 en el orquestador, antes del despacho de escena.
-        // Un frame intermedio sólo consulta el valor de su reloj sobre la copia proyectada.
+        // The original publishes at 0x639482, in the orchestrator, before the scene dispatch. An intermediate frame
+        // only queries its clock's value on the projected copy.
         const float worldClock =
             static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
         Actors::Drawing::UpdateGameItemGlowPulse(FrameItemRender(), worldClock);
@@ -806,25 +806,25 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     {
         return uploaded;
     }
-    // 0x63723a: 0x7d368a0, la niebla de 0x620db0, en 0: Begin la apaga en cada pase (ModelBatch::Begin).
-    // 0x637241: 0x635ae0.
+    // 0x63723a: 0x7d368a0, 0x620db0's fog, at 0: Begin turns it off on each pass (ModelBatch::Begin). 0x637241:
+    // 0x635ae0.
     const Render::Camera3D camera = CameraOfTheFrame(canvas, frames);
     m_drawnCamera = camera;
     m_screen = canvas.screen;
-    // 0x63726f..0x637337: en el mapa 6 con "webzen" en el nombre (0x576960; la búsqueda de "webzen2" no cambia
-    // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60 y, con el recorrido de
-    // la cámara andando (0x637324, 0x4033d0), su posición (0x4034b0), como la cámara de este frame.
+    // 0x63726f..0x637337: on map 6 with "webzen" in the name (0x576960; the "webzen2" search changes nothing, Q-C152),
+    // the fixed point (6400, 15400) with the hero's z; otherwise, 0x44dc60's and, with the camera tour running
+    // (0x637324, 0x4033d0), its position (0x4034b0), like this frame's camera.
     const Camera::GameCameraInput& cameraInput = CameraInputState();
     const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
                                  ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
                                  : Camera::FollowedPointOf(cameraInput);
-    // 0x63733e: 0x5bb8d0, el ancho del mundo, con los rand() del frame (las consultas del comercio y de la tienda
-    // con el inventario abierto): 640 sin ventanas, 450 con una y 260 con dos.
+    // 0x63733e: 0x5bb8d0, the world width, with the frame's rand() calls (the trade and shop queries with the inventory
+    // open): 640 without windows, 450 with one and 260 with two.
     const std::int32_t worldWidth = Hud::GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
-    // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
+    // 0x63734d: the 0x620db0(0, 0, w, 48) pass does not draw; its modelview is the world pass's.
     const glm::mat4 view = Render::MakePass3D(canvas.screen, GameWorldViewport, camera).view;
-    // 0x637352..0x637366: 0x5fbb00(w · 0,0015625f, &p), los cinco planos, el rango de bloques y el trapecio; con w en
-    // 640, 1. El trapecio y su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
+    // 0x637352..0x637366: 0x5fbb00(w · 0.0015625f, &p), the five planes, the block range and the trapezoid; with w at
+    // 640, 1. The trapezoid and its level stay in WorldRuntime's globals, which 0x5fba90 reads on the next step.
     const float widthFactor = F32(static_cast<double>(worldWidth) * static_cast<double>(WorldWidthFactor));
     m_frustum = Terrain::SphereFrustumOf(view, camera, widthFactor);
     m_terrainRange = Terrain::TerrainRangeOf(view, camera, widthFactor);
@@ -835,10 +835,10 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     {
         return Core::Unexpected(polygon.Error());
     }
-    // 0x63738a: 0x5bb8d0 otra vez, con sus rand(), para el ancho del pase del mundo.
+    // 0x63738a: 0x5bb8d0 again, with its rand() calls, for the world pass width.
     const std::int32_t passWidth = Hud::GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
-    // 0x637391..0x637404: el glClearColor del mapa, que nadie usa (Q-C143).
-    // 0x637410: el pase del mundo, 0x620db0(0, 0, w, 432), con el aspecto de su viewport.
+    // 0x637391..0x637404: the map's glClearColor, which nobody uses (Q-C143). 0x637410: the world pass,
+    // 0x620db0(0, 0, w, 432), with its viewport's aspect.
     const Render::Pass3D pass =
         Render::MakePass3D(canvas.screen, Render::ViewportRect{0, 0, passWidth, GameWorldViewport.height}, camera);
     canvas.models.Begin(pass);
@@ -846,8 +846,8 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
     canvas.flushModels();
     if (!drawn.HasValue())
         return drawn;
-    // 0x6203c0 del pase del mundo: la proyección que leen los globos del HUD (0x5a9050 → 0x6205b0). Sin ella, corta
-    // solo si hay un globo vivo.
+    // 0x6203c0 of the world pass: the projection the HUD bubbles read (0x5a9050 → 0x6205b0). Without it, it stops only
+    // if there is a live bubble.
     const auto projection = MakeGameProjection(pass, camera.fieldOfView);
     return DrawTheInterface(canvas, projection.HasValue() ? &projection.Value() : nullptr);
 }
@@ -857,8 +857,8 @@ void GameScene::ObserveMapLoad()
     const auto revision = m_context.world->Map().loadRevision;
     if (m_loadedRevision == revision)
         return;
-    // Un mismo número de mapa también puede tener otra carga, incluso después de un fallo.
-    // Estos owners son cachés de MuRet: no son escrituras ni contadores del original.
+    // The same map number can also have another load, even after a failure. These owners are MuRet caches: not writes
+    // or counters of the original.
     m_groundEffects.Reset();
     m_tiles.Release();
     m_worldModels.Release();
@@ -899,7 +899,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     }
     m_worldModels.Release();
     m_worldModelsMap.reset();
-    // La carga recrea BMD durables, aun si la pidió un dibujo proyectado.
+    // The load recreates durable BMDs, even if a projected draw asked for it.
     m_context.world->Runtime().objectModelState.unlitMeshes.clear();
     if (m_projectingFrame)
         FrameModelState().unlitMeshes.clear();
@@ -909,8 +909,8 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
-    // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) reserva sus .wav antes de publicar la tabla
-    // (0x6151fc, 0x61520f y 0x615232), si cargó con mallas.
+    // 0x42aa6b: the 30's spearman (0x612d90(0x4d)) reserves its .wav before publishing the table (0x6151fc, 0x61520f
+    // and 0x615232), if it loaded with meshes.
     constexpr std::int32_t SpearmanMonster = 0x4d;
     if (const auto* spearman = m_worldModels.Find(Models::ModelId{Assets::SpearmanModel});
         spearman != nullptr && !spearman->meshes.empty())
@@ -936,34 +936,35 @@ Render::Camera3D GameScene::CameraOfTheFrame(Render::Frame::SceneCanvas& canvas,
     const Kernel::WorldRuntime& runtime = world.Runtime();
     Kernel::ActorState& hero = world.Hero();
     Camera::GameCameraInput& input = CameraInputState();
-    // Lo que 0x635ae0 lee de los globales: el héroe publicado (0x743a170), el mundo (0x6c9dd0) y el reloj
-    // del mundo (0x5767b88, en ms, para el mapa 5).
+    // What 0x635ae0 reads from the globals: the published hero (0x743a170), the world (0x6c9dd0) and the world clock
+    // (0x5767b88, in ms, for map 5).
     input.hero = hero.position;
     input.map = static_cast<std::uint8_t>(runtime.map);
     input.scene = Terrain::CullingScene::Game;
-    // 0x635b3d: el nombre del héroe, con 0x576960 (Q-C152).
+    // 0x635b3d: the hero's name, with 0x576960 (Q-C152).
     input.webzen = Actors::ActorNameContains(hero, "webzen");
     input.worldTime =
         static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
-    // 0x635ead y 0x637324: 0x4033d0 sobre [0x6e5904] y, verdadero, 0x4034b0. Nada entre la cámara y el centro del
-    // mundo toca el recorrido: los dos lo leen igual.
+    // 0x635ead and 0x637324: 0x4033d0 on [0x6e5904] and, if true, 0x4034b0. Nothing between the camera and the world
+    // center touches the tour: both read it the same.
     const Events::CameraTour& tour = runtime.events.cameraTour;
     input.tour = Events::Crywolf::CameraTourRunning(tour)
                      ? std::optional(Camera::GameCameraTour{tour.position, tour.level})
                      : std::nullopt;
     if (frames == 0)
     {
-        // Un dibujo intermedio de MuRet: consulta la cámara del último frame original, sin gastar rand().
+        // An intermediate MuRet draw: it queries the last original frame's camera, without spending rand().
         return Camera::GameCameraOf(CameraState(), input);
     }
-    // Cada frame original termina en el corte de abajo: de los que cuenta el reloj corre el primero y el
-    // corte no deja correr los demás.
-    // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()) ni el recorrido.
+    // Each original frame ends at the cut below: of those the clock counts, the first runs and the cut does not let the
+    // others run.
+    // 0x635b3d..0x635b9e: the map 6 branch with "webzen" reads neither the hero's cell (nor its rand() calls) nor the
+    // tour.
     if (!(input.map == NamedCameraMap && input.webzen))
     {
         input.cellAttribute = HeroCellAttribute(hero, *MapTerrain().attributes, m_context.cloth->random);
-        // 0x635ec0: con el recorrido andando, la z del héroe en 300; queda así para el resto del frame (el dibujo del
-        // héroe) hasta que un paso la vuelva a escribir.
+        // 0x635ec0: with the tour running, the hero's z at 300; it stays so for the rest of the frame (the hero's draw)
+        // until a step writes it again.
         if (input.tour)
             input.hero.z = hero.position.z = Camera::CameraTourHeroHeight;
     }
@@ -979,17 +980,17 @@ Core::Expected<Terrain::TerrainPolygon, std::string> GameScene::PolygonOfTheFram
     input.scene = static_cast<std::int32_t>(Terrain::CullingScene::Game);
     input.map = runtime.map;
     input.translation = target;
-    // El selector del mapa 30, como TerrainPolygonOf.
+    // The map 30 selector, like TerrainPolygonOf.
     input.objectPosition = glm::vec2(target.x, target.y);
     input.cameraYaw = camera.angles.z;
     input.worldWidth = worldWidth;
-    // 0x5fb570: las dos búsquedas del nombre del mapa 6, la de las medidas y la del giro.
+    // 0x5fb570: the two searches for the map 6 name, the measures' and the turn's.
     input.webzenProfile = input.webzenYaw = CameraInputState().webzen;
     if (frames == 0)
     {
         return Camera::TerrainPolygonBetweenFrames(m_context.states->camera, input);
     }
-    // El nivel pedido (0x7d3a0ec), la D (0x7d36ba4) y la meta (0x6d5ee0) que dejó la cámara del frame.
+    // The requested level (0x7d3a0ec), the D (0x7d36ba4) and the goal (0x6d5ee0) the frame's camera left.
     return Camera::StepTheTerrainPolygon(m_context.states->camera, input, CameraState());
 }
 
@@ -998,20 +999,20 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                                                               const Terrain::TerrainPolygon& polygon, int frames)
 {
     const std::int32_t map = m_context.world->Runtime().map;
-    // 0x63741d..0x637490: en el 30, con el héroe en el rectángulo de CastleSiege::InTheCastleSiegeFog (Q-C334),
-    // 0x42b0a0 prende la niebla negra (GL_LINEAR de 2.000 a 2.700) para todo lo que sigue del pase, también el pase en
-    // el ojo de los sprites y las partículas; afuera, glDisable(GL_FOG), que deja la de 0x620db0 (Begin).
+    // 0x63741d..0x637490: on 30, with the hero in CastleSiege::InTheCastleSiegeFog's rectangle (Q-C334), 0x42b0a0 turns
+    // on the black fog (GL_LINEAR from 2000 to 2700) for the rest of the pass, also the eye pass of the sprites and the
+    // particles; outside, glDisable(GL_FOG), which leaves 0x620db0's (Begin).
     canvas.models.SetFog(HeroInTheCastleSiegeFog(*m_context.world) ? std::optional(CastleSiegeFog) : std::nullopt);
-    // 0x6374aa: 0x620480(x, y, &0x7d366c0, 1) con el mouse en 640 × 480 (0x7d3682c y 0x7d36828), que
-    // vuelve a los píxeles de la pantalla en enteros (0x620486..0x6204b0).
+    // 0x6374aa: 0x620480(x, y, &0x7d366c0, 1) with the mouse at 640 × 480 (0x7d3682c and 0x7d36828), which goes back to
+    // the screen pixels in integers (0x620486..0x6204b0).
     const Input::InputState noInput;
     const Ui::Point mouse = Ui::MouseIn640x480(m_context.input != nullptr ? *m_context.input : noInput, canvas.screen);
     const auto pixelX = (static_cast<std::int64_t>(mouse.x) * canvas.screen.width) / Width640;
     const auto pixelY = (static_cast<std::int64_t>(mouse.y) * canvas.screen.height) / Height480;
     const auto [origin, end] = pass.RayThrough(static_cast<float>(pixelX), static_cast<float>(pixelY));
     m_mouseRay = Terrain::TerrainPickingSegment{.origin = origin, .end = end};
-    // 0x6374b2..0x6374c2: 0x437850() mira el mundo de Kalima (0x723c48), que MuRet no crea (MapLoad corta
-    // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
+    // 0x6374b2..0x6374c2: 0x437850() looks at the Kalima world (0x723c48), which MuRet does not create (MapLoad stops
+    // on those maps): it is false. Map 10 does not draw the terrain.
     if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
         const Terrain::WorldTerrain& terrain = MapTerrain();
@@ -1023,14 +1024,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         view.tiles = m_tiles.Sizes();
         view.map = static_cast<std::uint8_t>(map);
         view.fixedHeight = CameraState().fixedHeight;
-        // 0x5fa973: en el mapa 7 el agua va con 0x5fa4b0 y la cáustica del cuadro de DAT_07d2d360.
+        // 0x5fa973: on map 7 the water goes with 0x5fa4b0 and the caustic of DAT_07d2d360's frame.
         view.waterFrame = FrameCloth().waterTextureFrame;
-        // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: 0x5fc190(0) con
-        // 0x7d0d31c en 0, las celdas del rango que pasan el trapecio.
+        // 0x5fc26b..0x5fc2c0: the water shift with the frame's clock; 0x5fc2de: 0x5fc190(0) with 0x7d0d31c at 0, the
+        // range's cells that pass the trapezoid.
         m_water.offset = Terrain::WaterOffsetAt(canvas.frameClock, view.map);
-        // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, y en los mapas 18 a 23 saca rand()
-        // (y, con rand() % 8 en 0, el área en 0, 3 o 6 y la celda en uno de sus rectángulos, la piedra y el
-        // temblor, Q-C229). Las demás no lo llaman en MuRet: no saca nada.
+        // 0x5fa83f: 0x5fa830 calls 0x405e00(x, y) with each cell it draws, and on maps 18 to 23 takes rand() (and, with
+        // rand() % 8 at 0, the area at 0, 3 or 6 and the cell in one of its rectangles, the stone and the shake,
+        // Q-C229). The others do not call it in MuRet: it takes nothing.
         if (Maps::IsChaosCastle(map))
         {
             const float frameClock =
@@ -1053,7 +1054,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         }
         else if (map == CrywolfMap)
         {
-            // 0x5fa695: en el 34, las UV del agua sacan rand() y sueltan las burbujas 698/0 (World::CrywolfWater).
+            // 0x5fa695: on 34, the water UVs take rand() and release the 0x698/0 bubbles
+            // (MapScripts/Crywolf/CrywolfWater.h).
             const float frameClock =
                 static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
             const Kernel::ActorState& hero = m_context.world->Hero();
@@ -1076,9 +1078,9 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         {
             Terrain::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
         }
-        // 0x5fc32b..0x5fc353: con la mezcla de 0x620a00(1), 0x6c9d58 y fuera del mapa 7, el pase del pasto (0x5fc190
-        // con 0x7d0d31c en 2) en las mismas celdas. No saca rand(): 0x405e00 solo lo hace en los mapas 18 a 23, que no
-        // tienen este pase.
+        // 0x5fc32b..0x5fc353: with 0x620a00(1)'s blending, 0x6c9d58 and outside map 7, the grass pass (0x5fc190 with
+        // 0x7d0d31c at 2) on the same cells. It takes no rand(): 0x405e00 only does on maps 18 to 23, which do not have
+        // this pass.
         if (HasTheGrassPass(map) && map != AnimatedWaterMap)
         {
             const Terrain::TerrainGrass grass{.heights = m_tiles.GrassHeights(),
@@ -1089,15 +1091,16 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                 return Core::Unexpected(grown.Error() + ", en el pase del pasto del " + MapText(map));
             }
         }
-        // 0x5fc35b..0x5fc360: sin depth test (0x620870) y con culling (0x6208d0), que la mezcla de 0x549130 apaga.
+        // 0x5fc35b..0x5fc360: without depth test (0x620870) and with culling (0x6208d0), which 0x549130's blending
+        // turns off.
         Render::ModelDrawState marksState = canvas.models.State();
         marksState.depthTest = false;
         marksState.cullEnabled = true;
         canvas.models.SetState(marksState);
-        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). El byte
-        // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
-        // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
-        // o el archivo que falta) corta (08 P-C49).
+        // 0x5fc365: 0x549130, WorldRuntime's ground marks, which the map load does not empty (Q-C228). The slot's byte
+        // +0x28, from the shared texture table (0x7d3a198, seeded in Enter with what GameModels uploaded):
+        // Effect\blood01.tga at 0x5e3 (0x61d7aa, EffectTextureSet). A slot that was not uploaded (another type, or the
+        // missing file) stops (08 P-C49).
         const Assets::ModelTextureTable& textureTable = LoadedFaunaModels().TextureTable();
         const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
         {
@@ -1110,13 +1113,13 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
         {
             return Core::Unexpected(marked.Error() + ", en el " + MapText(map));
         }
-        // 0x5fc36a: el depth test de vuelta (0x620850).
+        // 0x5fc36a: the depth test back (0x620850).
         Render::ModelDrawState afterMarks = canvas.models.State();
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 23, 30,
-    // 31, 33, 34 y Kalima.
+    // 0x6374ce: 0x6046a0, the .obj objects per sector. MuRet has the cases of maps 0 to 4, 6 to 23, 30, 31, 33, 34 and
+    // Kalima.
     const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) ||
                               (map >= ArenaMap && map <= Maps::LastChaosCastleMap) || map == CastleMap ||
                               map == LandOfTrialsMap || map == AidaMap || map == CrywolfMap || Maps::IsKalimaMap(map);
@@ -1133,9 +1136,9 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     }
     Kernel::WorldState& world = *m_context.world;
     const Kernel::ActorState& hero = world.Hero();
-    // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: el paso suma las luces
-    // de los fuegos, las lámparas y la fauna al buffer dinámico. El reloj
-    // del mundo (0x5767b88), el del frame, como el de la cámara.
+    // The terrain light at a point (0x5f99e0) reads the dynamic buffer 0x7b4ccc4: the step adds the lights of the
+    // fires, the lamps and the fauna to the dynamic buffer. The world clock (0x5767b88), the frame's, like the
+    // camera's.
     if (knownObjects)
     {
         if (auto objects = WorldObjects::DrawGameWorldObjects(canvas.models, m_worldModels, FrameObjects(), polygon,
@@ -1202,10 +1205,9 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                                                                                          }
                                                                                      },
                                                                                      .effects = &FrameEffects(),
-                                                                                     // Q-C304: el 0x46 de Aida lee
-                                                                                     // timeGetTime (0x6b8544);
-                                                                                     // MuRet le presta el reloj
-                                                                                     // del dibujo.
+                                                                                     // Q-C304: Aida's 0x46 reads
+                                                                                     // timeGetTime (0x6b8544); MuRet
+                                                                                     // lends it the draw clock.
                                                                                      .systemTime =
                                                                                          [systemTime = static_cast<
                                                                                               std::uint32_t>(std::chrono::duration_cast<
@@ -1244,7 +1246,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
         }
     }
-    // 0x6374d3: 0x52dc20, los efectos del suelo, sobre la tabla de 0x518cf0 (la de WorldMap).
+    // 0x6374d3: 0x52dc20, the ground effects, on 0x518cf0's table (WorldMap's).
     if (auto ground = m_groundEffects.Draw(
             canvas.models, FrameEffects().Effects(),
             Effects::GroundEffectResources{
@@ -1260,23 +1262,23 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     {
         return Core::Unexpected(ground.Error() + ", en el " + MapText(map));
     }
-    // 0x6374d8: 0x446b60, los pájaros (0x7d2dca8, 40 lugares). Los crea y los mueve 0x446120 desde el paso
-    // (0x6370ea), que MuRet no corre (la frontera de StepWorld), y los apagan 0x6070a0 al cargar el mapa y
-    // 0x4455c0. MuRet no tiene la tabla: sin pájaros vivos, 0x446b60 no dibuja ni saca rand(), y solo suma y
-    // resta 90 al +0x24 de cada lugar que no es un 0x10f (Q-C277), que nadie ve (08 P-C55).
+    // 0x6374d8: 0x446b60, the birds (0x7d2dca8, 40 slots). 0x446120 creates and moves them from the step (0x6370ea),
+    // which MuRet does not run (the StepWorld boundary), and 0x6070a0 on the map load and 0x4455c0 turn them off. MuRet
+    // does not have the table: without live birds, 0x446b60 neither draws nor takes rand(), and only adds and subtracts
+    // 90 to the +0x24 of each slot that is not a 0x10f (Q-C277), which nobody sees (08 P-C55).
     if (auto birds = DrawTheBirds(canvas, polygon, frames); !birds.HasValue())
         return birds;
-    // 0x6374dd: 0x510d00, los personajes, y al final 0x42da60 con el TerrainWall.
+    // 0x6374dd: 0x510d00, the characters, and at the end 0x42da60 with the TerrainWall.
     if (auto characters = DrawTheCharacters(canvas, polygon, frames); !characters.HasValue())
     {
         return Core::Unexpected(characters.Error() + ", en el " + MapText(map));
     }
-    // 0x6374e2..0x6374ed: 0x5fc260(1) solo con 0x77f3b18, el modo editor, que nadie prende. 0x6374f5: con
-    // 0x7d36899 en 0 (nadie lo escribe), 0x608a00, los ítems del piso.
+    // 0x6374e2..0x6374ed: 0x5fc260(1) only with 0x77f3b18, the editor mode, which nobody turns on. 0x6374f5: with
+    // 0x7d36899 at 0 (nobody writes it), 0x608a00, the floor items.
     if (auto tail = DrawTheTail(canvas, pass, polygon, frames); !tail.HasValue())
         return tail;
-    // 0x6375ea..0x63763c: después de los efectos y antes del 2D (0x6219b0), con el héroe todavía en el rectángulo,
-    // 0x42b0f0 apaga la niebla. Si salió durante el dibujo, queda prendida hasta el 0x620db0 que sigue (Q-C390).
+    // 0x6375ea..0x63763c: after the effects and before the 2D (0x6219b0), with the hero still in the rectangle,
+    // 0x42b0f0 turns the fog off. If it left during the draw, it stays on until the following 0x620db0 (Q-C390).
     if (HeroInTheCastleSiegeFog(*m_context.world))
         canvas.models.SetFog(std::nullopt);
     return {};
@@ -1303,8 +1305,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
             .clothWorld = &FrameCloth(),
             .frameClock = canvas.frameClock,
             .originalFrames = frames,
-            // 0x510d00 contornea los elegidos que dejó el picking del dibujo anterior (0x59ec80 corre
-            // después de los personajes): 0x6c8e30 y 0x6c8e2c.
+            // 0x510d00 outlines the chosen ones the previous draw's picking left (0x59ec80 runs after the characters):
+            // 0x6c8e30 and 0x6c8e2c.
             .hovered = world.Runtime().selectedTargets[2],
             .targeted = world.Runtime().selectedTargets[1],
             .cloths = world.ActorCloths(),
@@ -1365,26 +1367,26 @@ void GameScene::Leave()
     m_sandTextures.Release();
 }
 
-// Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.
+// Q-C70: without a connection, the game goes on; text 3 of the message area belongs to CL9.
 std::optional<Kernel::SceneId> GameScene::Next() const
 {
     return std::nullopt;
 }
 
-// 0x62828e: el OK de los diálogos 0x70, 0x6f, 0x1a y 0x1c manda WM_DESTROY a la ventana.
+// 0x62828e: the OK of dialogs 0x70, 0x6f, 0x1a and 0x1c sends WM_DESTROY to the window.
 bool GameScene::WantsToQuit() const
 {
     return m_context.world != nullptr && m_context.world->Runtime().ui.destroyRequested;
 }
 
-// Mientras el campo del chat está abierto, uno de sus EDIT tiene el foco y recibe los WM_CHAR.
+// While the chat field is open, one of its EDITs has the focus and receives the WM_CHAR.
 bool GameScene::WantsTextInput() const
 {
     if (m_context.world == nullptr)
         return false;
-    // El chat abierto, el EDIT de una ventana vieja con el foco (CL9 hito 9) o uno de los dos de los diálogos: el de
-    // [0x5763504] (hito 11 y CL9 hito 8) o el de [0x5763508] (CL9 hito 8). El que tiene el foco de Windows recibe los
-    // WM_CHAR.
+    // The open chat, the EDIT of an old window with the focus (CL9 milestone 9) or one of the dialogs' two: that of
+    // [0x5763504] (milestone 11 and CL9 milestone 8) or that of [0x5763508] (CL9 milestone 8). The one with the Windows
+    // focus receives the WM_CHAR.
     const Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     const Chat::ChatFocus focus = runtime.chat.input.focus;
     return runtime.ui.chatOpen || focus == Chat::ChatFocus::OldWindow || focus == Chat::ChatFocus::Dialog ||

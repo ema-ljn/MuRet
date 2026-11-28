@@ -9,9 +9,8 @@
 #include <algorithm>
 #include <optional>
 
-// El mundo de cada escena como dato (CL5.4): el login usa el mapa 55 (0x6349b2, en 0x6349a0) y la
-// selección el 54 (0x633f44, en 0x633f20). La escena se lo pasa al pase 3D (IWorldView), que lo
-// dibuja desde la CL7 con cualquier mapa.
+// Each scene's world as data (CL5.4): the login uses map 55 (0x6349b2, in 0x6349a0) and the selection 54 (0x633f44,
+// in 0x633f20). The scene passes it to the 3D pass (IWorldView), which draws it with any map since CL7.
 namespace
 {
 using Client::Kernel::SceneId;
@@ -34,7 +33,7 @@ TEST(SceneWorldsTest, TheSelectionIsTheMap54)
     EXPECT_EQ(WorldFolder(WorldOf(SceneId::CharacterSelect)->map), "World55");
 }
 
-// La carga no tiene mundo; los de la carga del mundo y del juego los da el servidor.
+// The loading has no world; the world loading's and the game's come from the server.
 TEST(SceneWorldsTest, TheOtherScenesHaveNoFixedWorld)
 {
     EXPECT_EQ(WorldOf(SceneId::Loading), std::nullopt);

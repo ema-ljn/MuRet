@@ -6,16 +6,15 @@
 #include <cstdint>
 #include <functional>
 
-// La escena de prueba de la CL3.2, hasta que llegue la LoginScene (CL5.4): cada paso avanza el
-// ciclo de 32 pasos de DAT_07d2d360, (n + 1) mod 32 (02, "Qué corre por paso"), y el fondo va de un
-// azul oscuro a uno claro y vuelve en cada ciclo, 1,28 s. No ve SDL ni GL: el que la arma le pasa
-// cómo pintar el fondo y presentar (main, con el GL de la ventana), y los tests, un registro.
+// The test scene: each step advances DAT_07d2d360's 32-step cycle, (n + 1) mod 32 (02, "Qué corre por paso"), and the
+// background goes from a dark blue to a light one and back each cycle, 1.28 s. It sees neither SDL nor GL: whoever
+// builds it passes how to paint the background and present (main, with the window's GL), and the tests, a recorder.
 namespace Client::Scenes
 {
 class TestScene final : public Scenes::ILoopClient
 {
 public:
-    // El color del fondo, de 0 a 1 por canal.
+    // 0 to 1 per channel.
     struct Color
     {
         float red = 0.0f;
@@ -23,22 +22,21 @@ public:
         float blue = 0.0f;
     };
 
-    // `present` pinta todo el fondo de ese color y presenta (el swap va adentro de Render,
-    // ILoopClient); no puede venir vacía. Es una función y no una interfaz, como los callbacks de
-    // MuMain (Render/RmlUi), porque la escena pide una sola cosa.
+    // `present` paints the whole background that color and presents (the swap goes inside Render, ILoopClient); it
+    // cannot be empty. It is a function and not an interface, like MuMain's callbacks (Render/RmlUi), because the scene
+    // asks for a single thing.
     explicit TestScene(std::function<void(const Color&)> present);
 
-    // Vacío: la escena de prueba no tiene red. La ServerSession llega al Poll del cliente del
-    // bucle de Main en la CL4.5.
+    // Empty: the test scene has no network.
     void Poll() override;
-    // La escena de prueba no lee el input.
+    // The test scene does not read the input.
     void Step(const Input::InputState& input) override;
     void Render(float alpha) override;
-    // Nunca: no conecta.
+    // Never: it does not connect.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
-    // Nunca: es una sola escena.
+    // Never: it is a single scene.
     [[nodiscard]] bool TakeTheSceneChange() override;
-    // El fondo entre el paso actual y el próximo: `alpha` en [0, 1), como el de Render.
+    // The background between the current step and the next: `alpha` in [0, 1), like Render's.
     [[nodiscard]] Color Background(float alpha) const;
 
 private:

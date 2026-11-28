@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-// 0x604ab0 con Devil Square (mapa 9) y los Blood Castle (11 a 17), y la parte de los Blood Castle de 0x6061c0
-// (06 § Los objetos de Devil Square y de Blood Castle).
+// 0x604ab0 with Devil Square (map 9) and the Blood Castles (11 to 17), and the Blood Castle part of 0x6061c0 (06 § Los
+// objetos de Devil Square y de Blood Castle).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -62,7 +62,7 @@ struct Step
     }
 };
 
-// La primera semilla cuyo primer rand() % 100 da 0.
+// The first seed whose first rand() % 100 gives 0.
 std::uint32_t FlashingSeed()
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -74,8 +74,8 @@ std::uint32_t FlashingSeed()
 }
 } // namespace
 
-// 0x604ac9..0x604ae2: fuera de la ventana (ftol(reloj) % 4.000 desde 1.000) no saca rand() ni prende luz; el
-// ambiente 1 suena en bucle con cada objeto.
+// 0x604ac9..0x604ae2: outside the window (ftol(clock) % 4000 from 1000) it draws no rand() and lights nothing; ambient
+// 1 plays looped with each object.
 TEST(EventMapObjectsTest, TheDevilSquareAmbientLoopsOutsideTheFlashWindow)
 {
     Step step(5500.0f);
@@ -88,8 +88,8 @@ TEST(EventMapObjectsTest, TheDevilSquareAmbientLoopsOutsideTheFlashWindow)
     EXPECT_TRUE(step.lighting->cells == TerrainLighting{}.cells);
 }
 
-// 0x604ae8..0x604b8e: dentro de la ventana, con rand() % 100 en 0, la luz de radio 12 con L = (r % 12 + 4) · 0,1f
-// y (L · 0,2f; L · 0,3f; L · 0,5) en el héroe corrido rand() % 1.200 − 600, la y antes que la x.
+// 0x604ae8..0x604b8e: inside the window, with rand() % 100 at 0, the light of radius 12 with L = (r % 12 + 4) · 0.1f
+// and (L · 0.2f, L · 0.3f, L · 0.5) on the hero shifted by rand() % 1200 − 600, y before x.
 TEST(EventMapObjectsTest, TheDevilSquareFlashLightsAroundTheHeroInsideTheWindow)
 {
     const std::uint32_t seed = FlashingSeed();
@@ -113,7 +113,7 @@ TEST(EventMapObjectsTest, TheDevilSquareFlashLightsAroundTheHeroInsideTheWindow)
     }
 }
 
-// 0x604b53 y 0x604b9b: sin el héroe corta después de tres rand(); sin el sonido en bucle, después de la luz.
+// 0x604b53 and 0x604b9b: without the hero it stops after three rand(); without the looped sound, after the light.
 TEST(EventMapObjectsTest, TheDevilSquarePreludeCutsWhereItsBindingsAreRead)
 {
     const std::uint32_t seed = FlashingSeed();
@@ -137,7 +137,7 @@ TEST(EventMapObjectsTest, TheDevilSquarePreludeCutsWhereItsBindingsAreRead)
     EXPECT_NE(unheard.Error().find("0x604b9b"), std::string::npos) << unheard.Error();
 }
 
-// 0x605991: en los Blood Castle, el 9 y el 10 quedan ocultos salvo con +0x8a en 4; los demás tipos, nada.
+// 0x605991: in the Blood Castles, 9 and 10 stay hidden except with +0x8a at 4; other types, nothing.
 TEST(EventMapObjectsTest, TheBloodCastleGatesHideUntilTheyOpen)
 {
     for (std::uint8_t map = 11; map <= 17; ++map)
@@ -159,8 +159,8 @@ TEST(EventMapObjectsTest, TheBloodCastleGatesHideUntilTheyOpen)
     }
 }
 
-// 0x6062e6..0x6063c3: un punto alrededor del héroe con tres rand() y, con rand() & 3 en 0, la órbita 0x60f/3 ahí,
-// con luz (1; 1; 1) y escala 0,19f; si no, ninguna. Sin el pool, corta sólo si tenía que crearla.
+// 0x6062e6..0x6063c3: a point around the hero with three rand() and, with rand() & 3 at 0, the orbit 0x60f/3 there,
+// with light (1, 1, 1) and scale 0.19f; otherwise none. Without the pool, stops only if it had to create it.
 TEST(EventMapObjectsTest, TheBloodCastlePreludeReleasesAnOrbitAroundTheHero)
 {
     const glm::vec3 hero{3000.5f, 4000.25f, 100.0f};

@@ -4,8 +4,8 @@
 
 #include <array>
 
-// Los cinco lugares de la selección, como los pone 0x4c20a0 (06 § Los personajes de la lista): la
-// posición en el mundo y el ángulo en z. La z es la de 0x634680, que la pone en cada frame.
+// The five selection slots, as 0x4c20a0 sets them (06 § Los personajes de la lista): the position in the world and
+// the angle in z. The z is 0x634680's, which sets it each frame.
 namespace Client::FrontEnd
 {
 struct CharacterSlot

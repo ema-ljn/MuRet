@@ -14,16 +14,15 @@
 #include <string_view>
 #include <vector>
 
-// Un ISocket que sigue un guion, sin red: cuántos PollConnect quedan en curso y cómo terminan, qué
-// trae cada Receive (una lectura por entrada, como llegan del cable) y cuánto toma cada Send, o
-// con qué falla.
-// Se porta como SystemSocket donde el contrato de ISocket lo dice: el resultado final del connect
-// queda guardado y se repite aunque el guion cambie, un ResolveFailed sale del StartConnect y no
-// deja el socket abierto, un buffer vacío da 0, y sin Connected, Receive y Send dan Closed.
+// An ISocket that follows a script, without network: how many PollConnect stay in progress and how they end, what
+// each Receive brings (one read per entry, as they arrive from the wire) and how much each Send takes, or what it
+// fails with. It behaves like SystemSocket where the ISocket contract says so: the final connect result is kept and
+// repeated even if the script changes, a ResolveFailed comes out of StartConnect and does not leave the socket open,
+// an empty buffer gives 0, and without Connected, Receive and Send give Closed.
 namespace Client::Tests
 {
-// Una entrada del guion de Send: cuánto toma (nullopt: 0), o el error que da. Se escribe suelta en
-// la lista, como {std::size_t{2}, std::nullopt, Network::SocketError::Closed}.
+// A Send script entry: how much it takes (nullopt: 0), or the error it gives. It is written bare in the list, as
+// {std::size_t{2}, std::nullopt, Network::SocketError::Closed}.
 struct SendStep
 {
     SendStep(std::size_t limit) : taken(limit) {}
@@ -37,29 +36,29 @@ struct SendStep
 class FakeSocket final : public Network::ISocket
 {
 public:
-    // El guion, que el test llena antes o entre llamadas.
-    int pollsUntilConnected = 0;                       // cuántos PollConnect dan InProgress
-    std::optional<Network::SocketError> connectResult; // vacío: Connected; ResolveFailed, enseguida
-    std::deque<std::vector<std::byte>> reads;          // vacío: Receive da 0
-    std::deque<SendStep> sendLimits;                   // un Send por entrada; vacío: toma todo
-    std::optional<Network::SocketError> sendError;     // el próximo Send falla con esto, antes que sendLimits
-    bool peerClosed = false;                           // Receive da Closed cuando no hay más reads
-    int systemError = 0;                               // lo que da LastSystemError
-    // Corre al principio de cada StartConnect, como el resolver, que va antes que todo: un test
-    // mueve ahí el FakeClock para que el resolver "tarde".
+    // The script, which the test fills before or between calls.
+    int pollsUntilConnected = 0;                       // how many PollConnect give InProgress
+    std::optional<Network::SocketError> connectResult; // empty: Connected; ResolveFailed, at once
+    std::deque<std::vector<std::byte>> reads;          // empty: Receive gives 0
+    std::deque<SendStep> sendLimits;                   // one Send per entry; empty: takes everything
+    std::optional<Network::SocketError> sendError;     // the next Send fails with this, before sendLimits
+    bool peerClosed = false;                           // Receive gives Closed when there are no more reads
+    int systemError = 0;                               // what LastSystemError gives
+    // Runs at the start of each StartConnect, like the resolver, which goes before everything: a test moves the
+    // FakeClock there so that the resolver "takes time".
     std::function<void()> onStartConnect;
 
-    // Lo que pasó.
-    std::vector<std::byte> sent;                  // todo lo que tomó Send, en orden
-    std::vector<Session::ServerAddress> connects; // el host y el puerto de cada StartConnect
-    // Intentos de Send, incluidos los que fallan o no toman bytes.
+    // What happened.
+    std::vector<std::byte> sent;                  // everything Send took, in order
+    std::vector<Session::ServerAddress> connects; // the host and the port of each StartConnect
+    // Send attempts, including those that fail or take no bytes.
     std::size_t sendAttempts = 0;
-    int closes = 0; // cada Close(), y cada StartConnect con uno abierto
+    int closes = 0; // each Close(), and each StartConnect with one open
 
     [[nodiscard]] Core::Expected<Network::ConnectProgress, Network::SocketError>
     StartConnect(std::string_view host, std::uint16_t port) override;
     [[nodiscard]] Core::Expected<Network::ConnectProgress, Network::SocketError> PollConnect() override;
-    // Una entrada de `reads` más larga que el buffer sale en varios Receive.
+    // An entry of `reads` longer than the buffer comes out over several Receive.
     [[nodiscard]] Core::Expected<std::size_t, Network::SocketError> Receive(std::span<std::byte> buffer) override;
     [[nodiscard]] Core::Expected<std::size_t, Network::SocketError> Send(std::span<const std::byte> bytes) override;
     void Close() override;
@@ -79,7 +78,7 @@ private:
 
     State m_state = State::Idle;
     int m_pollsLeft = 0;
-    bool m_open = false;                           // lo que da IsOpen
-    std::optional<Network::SocketError> m_failure; // el resultado final, con m_state en Failed
+    bool m_open = false;                           // what IsOpen gives
+    std::optional<Network::SocketError> m_failure; // the final result, with m_state at Failed
 };
 } // namespace Client::Tests

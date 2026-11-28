@@ -42,9 +42,9 @@ namespace Client::Hud
 {
 namespace
 {
-// 0x65c966..0x65ca6d: [0x6eed3c] de +0x9304 a +0x9347 en 0 (los cuatro bytes y los dos nombres), y con el registro
-// propio abierto alrededor (3.848 rand() al cerrarlo sin otros accesos), 0x550d10 si 0x550cf0 encuentra un lugar del
-// equipo con la durabilidad (+0x1a) en 0, lo que pasa con cualquier lugar vacío.
+// 0x65c966..0x65ca6d: [0x6eed3c] from +0x9304 to +0x9347 at 0 (the four bytes and the two names), and with the own
+// record open around it (3848 rand() when closing it without other accesses), 0x550d10 if 0x550cf0 finds an equipment
+// slot with durability (+0x1a) at 0, which happens with any empty slot.
 Core::Expected<void, std::string> OpenTheCharacter(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                    GamePanelTables tables)
 {
@@ -78,14 +78,14 @@ Ui::PanelContext ContextOf(Kernel::WorldState& world, Crt::CrtRandom& random, Ga
     context.cursorItemCount = runtime.cursorItemCount;
     context.heroClass = Kernel::BaseClassOf(hero.characterClass);
     context.logoutRequested = runtime.ui.logoutRequested;
-    // 0x6689d0: el ancho del mundo con Senior y su auxiliar abiertos.
+    // 0x6689d0: the world's width with Senior and its helper open.
     context.heroSiegeMark = CastleSiege::HeroCanCraftAtTheCastle(world);
     context.inventoryBusy = [&world]() { return CastleSiege::CastleSeniorBusy(world); };
     context.sound = [&runtime](Audio::SoundId id) { runtime.RequestSound(id); };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
-    // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
+    // Without the wire, the close with aux at 0 (the one the 3D sends) stops; the GS's 3D closes with 1 (0x4d5906).
     context.tradeClosed = [&world, &random](bool aux) { return Social::CloseTheTradeGrids(world, random, aux, {}); };
-    // Sin el cable, los envíos de abrir y cerrar las tiendas personales cortan (LendThePersonalShops).
+    // Without the wire, the personal shops' open and close sends stop (LendThePersonalShops).
     context.personalShopOpened = [&world, &random](Ui::PanelId id)
     { return PersonalShop::OpenThePersonalShop(world, random, id, {}); };
     context.personalShopClosed = [&world, &random]() { return PersonalShop::CloseThePersonalShop(world, random, {}); };
@@ -94,7 +94,7 @@ Ui::PanelContext ContextOf(Kernel::WorldState& world, Crt::CrtRandom& random, Ga
         return Quests::OpenTheQuestList(Quests::QuestContext{.world = world, .random = random, .texts = tables.texts},
                                         -1);
     };
-    // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
+    // Panel 1, the friends one (CL9 milestone 9): 0x490a00(+0x48) and 0x4914e0 on the old manager.
     Ui::OldWindowManager& oldWindows = runtime.oldWindows;
     context.friendsShown = [&oldWindows]() { return Ui::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
     context.friendsClosed = [&runtime]()
@@ -130,14 +130,14 @@ void GamePanels::LendTheSiegeControls(Kernel::WorldState& world, std::function<v
         Kernel::WorldRuntime& runtime = world.Runtime();
         if (id == Ui::SiegeGatePanel)
         {
-            // 0x44f120: primero baja los campos, después sale el 31.
+            // 0x44f120: first it clears the fields, then the 31 goes out.
             runtime.panels.delegated.siegeGate = 0;
             runtime.castleSiege.siegeBattleUi.gateKey = 0;
             send(Protocol::Session::WriteWindowClose());
         }
         else
         {
-            // 0x657ba7..0x657daf y 0x657dc1..0x657f8e: el registro manda el 31 antes de 0x44dcf0.
+            // 0x657ba7..0x657daf and 0x657dc1..0x657f8e: the registry sends the 31 before 0x44dcf0.
             send(Protocol::Session::WriteWindowClose());
             runtime.panels.delegated.siegeWeapon = 0;
             runtime.castleSiege.siegeBattleUi.weaponChoice = 0;
@@ -149,7 +149,7 @@ void GamePanels::LendTheSiegeControls(Kernel::WorldState& world, std::function<v
 void GamePanels::LendTheCastleRequests(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send,
                                        CastleSiege::CastleWindowServices services)
 {
-    // El aviso local de Senior ocupado necesita los servicios también sin un envío disponible.
+    // The local Senior-busy notice needs the services even with no send available.
     CastleSiege::LendTheCastleLifecycleTo(m_context, world, m_context.random, send, services);
     if (!send)
         return;
@@ -158,7 +158,7 @@ void GamePanels::LendTheCastleRequests(Kernel::WorldState& world, std::function<
         auto& opened = world.Runtime().panels.delegated.castleSiege;
         if (opened == 0)
         {
-            // 0x64ae10..0x64b0d9: primero el C1 04 B2 03; el byte +4 queda en 1 después del envío.
+            // 0x64ae10..0x64b0d9: first the C1 04 B2 03; byte +4 stays at 1 after the send.
             send(Protocol::CastleSiege::WriteRegistrationRequest());
             opened = 1;
         }
@@ -169,7 +169,7 @@ void GamePanels::LendTheCastleRequests(Kernel::WorldState& world, std::function<
         auto& opened = world.Runtime().panels.delegated.castleSiege;
         if (opened != 0)
         {
-            // 0x64b200..0x64b3db: el estado se modifica después de intentar el envío.
+            // 0x64b200..0x64b3db: the state changes after the send is attempted.
             send(Protocol::Session::WriteWindowClose());
             opened = 0;
             world.Runtime().castleSiege.registration.tab = 0;
@@ -220,8 +220,8 @@ void GamePanels::LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& rando
         LendThePetRequests(send);
         LendTheCastleRequests(world, send);
         LendTheSiegeControls(world, send);
-        // 0x657b50 y 0x657b73: los cierres de las dos ventanas del gremio (la vtable + 0x2c, sin mirar nada) y el
-        // diálogo de los paneles, por el mismo socket.
+        // 0x657b50 and 0x657b73: the closes of the two guild windows (the vtable + 0x2c, without checking anything) and
+        // the panels' dialog, over the same socket.
         Guild::LendTheGuildTo(m_context, world, send);
         LendThePersonalShops(world, random, std::move(send));
     }

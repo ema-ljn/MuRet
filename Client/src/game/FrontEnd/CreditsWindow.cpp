@@ -30,10 +30,10 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x63f020 y 0x63fc50: las dos mitades de la ilustración (0x6f8 y 0x6f9, de 400 × 400 en (0, 126) y
-// (400, 126)), el adorno (deco.tga, 189 × 103, sin escalar), el logo (cr_mu_lo.tga, 290 × 41, en
-// (241, 549)), las barras sin textura (800 × 42 en (0, 42 · i)) y el botón de message_close_b_all, de
-// 54 × 30 con tres cuadros.
+// 0x63f020 and 0x63fc50: the two halves of the illustration (0x6f8 and 0x6f9, 400 × 400 at (0, 126) and
+// (400, 126)), the ornament (deco.tga, 189 × 103, unscaled), the logo (cr_mu_lo.tga, 290 × 41, at
+// (241, 549)), the untextured bars (800 × 42 at (0, 42 · i)) and the button of message_close_b_all,
+// 54 × 30 with three frames.
 constexpr Render::TextureSlot FirstIllustrationSlot{0x6f8};
 constexpr Render::TextureSlot DecoSlot{0x12};
 constexpr Render::TextureSlot LogoSlot{0x1a};
@@ -52,28 +52,28 @@ constexpr int CloseWidth = 0x36;
 constexpr int CloseHeight = 0x1e;
 constexpr int CloseLeft = 0x7a;
 constexpr int CloseTop = 0x3f;
-// 0x6ba884, 0x6ba880 y 0x6ba888.
+// 0x6ba884, 0x6ba880 and 0x6ba888.
 constexpr float PerWidth = 1.0f / 800.0f;
 constexpr float PerHeight = 1.0f / 600.0f;
 constexpr float DecoHeightFactor = 0.878333330154419f;
-// 0x63fe20: la ilustración se funde a 0,1275 de alfa por ms (0x6ba890 y 0x6ba8a0) y se queda 22 s
-// (0x6ba898); 8 pares, de im1 a im8.
+// 0x63fe20: the illustration fades at 0.1275 alpha per ms (0x6ba890 and 0x6ba8a0) and stays 22 s
+// (0x6ba898); 8 pairs, im1 to im8.
 constexpr double IllustrationFade = 0.1275;
 constexpr double IllustrationHoldMs = 22000.0;
 constexpr std::uint8_t IllustrationCount = 8;
-// 0x6400b0: las barras, a 0,85 por ms (0x6ba8a8 y 0x6ba8b8), y el renglón de los nombres se queda 2,3 s
+// 0x6400b0: the bars, at 0.85 per ms (0x6ba8a8 and 0x6ba8b8), and the names row stays 2.3 s
 // (0x6ba8b0).
 constexpr double BarFade = 0.85;
 constexpr double RowHoldMs = 2300.0;
 constexpr std::size_t NameRow = 2;
-// Los estados de las dos máquinas: 1 aparece (la barra se va), 2 se queda, 3 se va (la barra vuelve).
+// The states of the two machines: 1 appears (the bar leaves), 2 stays, 3 leaves (the bar comes back).
 constexpr int Appearing = 1;
 constexpr int Staying = 2;
 constexpr int Leaving = 3;
 constexpr int Opaque = 0xff;
 
-// 0x63f6b0: el título y el rol en 0xffe2e2e2, a 20 y 46, centrados en el ancho; los nombres en
-// 0xffc1eeff, a 72, en columnas (0x5542f0 con el modo 2).
+// 0x63f6b0: the title and the role in 0xffe2e2e2, at 20 and 46, centered in the width; the names in
+// 0xffc1eeff, at 72, in columns (0x5542f0 with mode 2).
 constexpr int TitleTop = 0x14;
 constexpr int RoleTop = 0x2e;
 constexpr int NamesTop = 0x48;
@@ -82,7 +82,7 @@ constexpr Render::Text::TextStyle NameStyle{Render::Text::FontKind::Credits, Ren
 
 float ScaleOf(int side, float per)
 {
-    // fild, fmul por el float y fstp a float: el producto en double y redondeado una vez.
+    // fild, fmul by the float and fstp to float: the product in double and rounded once.
     return static_cast<float>(static_cast<double>(side) * static_cast<double>(per));
 }
 
@@ -91,8 +91,8 @@ float AlphaOf(std::uint8_t alpha)
     return static_cast<float>(alpha) / 255.0f;
 }
 
-// 0x5542f0 con el modo 2: `line` centrado en `width` píxeles desde la x de 640 × 480 `designX`, como el
-// rótulo de un botón (Button::DrawLabel). No dibuja un texto vacío.
+// 0x5542f0 with mode 2: `line` centered in `width` pixels from the 640 × 480 x `designX`, like a
+// button's label (Button::DrawLabel). It does not draw an empty text.
 void DrawCentered(Render::Frame::ITextDrawer& text, int designX, int designY, int width, std::string_view line,
                   const Render::Text::TextStyle& style, Core::PixelSize screen)
 {
@@ -181,8 +181,8 @@ CreditsStep CreditsWindow::Step(const Input::InputState& input, Core::PixelSize 
     {
         return step;
     }
-    // 0x63f630: el botón cierra sin sonido; Esc (con el +0x31 del mouse, siempre 0) con el 0x19. Y sigue:
-    // los renglones se mueven igual en el paso que los cerró.
+    // 0x63f630: the button closes without sound; Esc (with the mouse's +0x31, always 0) with 0x19. And it
+    // goes on: the rows move the same in the step that closed them.
     const bool escape = !clicked && input.TakePress(Input::Key::Escape);
     if (escape && turn.buttonClicked)
     {
@@ -209,7 +209,7 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
     m_layout = LayoutCredits(screen);
     m_close.MoveTo(Ui::Point{m_layout.close.x, m_layout.close.y});
     sprites.SetBlend(Render::BlendMode::Alpha);
-    // 0x66a050: la base de 0x669c70 con el alfa en 0xff (0x63f13b).
+    // 0x66a050: the base of 0x669c70 with alpha at 0xff (0x63f13b).
     sprites.Image(Render::UiImage{.slot = std::nullopt,
                                   .x = 0,
                                   .y = 0,
@@ -217,7 +217,7 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
                                   .height = screen.height,
                                   .color = Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}});
     sprites.SetColor(Render::Color{});
-    // 0x63f6c8: +0x40, +0xe8, +0x190 y +0x238 (0x647650).
+    // 0x63f6c8: +0x40, +0xe8, +0x190 and +0x238 (0x647650).
     for (std::uint16_t half = 0; half < 2; ++half)
     {
         const Render::TextureSlot slot{static_cast<std::uint16_t>(FirstIllustrationSlot.value + half)};
@@ -239,7 +239,7 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
     logo.scaleY = m_layout.scaleY;
     sprites.Image(logo);
     DrawTexts(text, screen);
-    // 0x63f953: las tres barras, negras (+0x61..+0x63 en 0), con su alfa.
+    // 0x63f953: the three bars, black (+0x61..+0x63 at 0), with their alpha.
     for (std::size_t row = 0; row < m_barAlphas.size(); ++row)
     {
         sprites.Image(Render::UiImage{
@@ -253,7 +253,7 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
             .color = Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = AlphaOf(m_barAlphas[row])}});
     }
     sprites.SetColor(Render::Color{});
-    // 0x66a090: el botón.
+    // 0x66a090
     sprites.Image(m_close.Image(m_sizes));
 }
 
@@ -309,14 +309,14 @@ std::size_t CreditsWindow::NextIndex() const
 
 void CreditsWindow::Shut(CreditsStep& step)
 {
-    // 0x63f9a0: 0x65f6c0 la cierra (0x63f5a0 con 0) antes de mandar nada.
+    // 0x63f9a0: 0x65f6c0 closes it (0x63f5a0 with 0) before sending anything.
     Close();
     ++step.closes;
 }
 
 void CreditsWindow::LoadTheIllustration(CreditsStep& step)
 {
-    // 0x63fc50: las dos mitades del par +0x5c8, transparentes (+0x60 en 0) y visibles.
+    // 0x63fc50: the two halves of the pair +0x5c8, transparent (+0x60 at 0) and visible.
     step.illustration = m_illustration;
     m_illustrationAlpha = 0;
 }
@@ -324,7 +324,7 @@ void CreditsWindow::LoadTheIllustration(CreditsStep& step)
 void CreditsWindow::NextGroup(CreditsStep& step)
 {
     using Tables::CreditKind;
-    // 0x63ffe0: con el final, el sonido 0x19 y 0x63f9a0, y sigue leyendo.
+    // 0x63ffe0: with the end, sound 0x19 and 0x63f9a0, and it keeps reading.
     if (KindAt(m_next) == static_cast<std::uint8_t>(CreditKind::End))
     {
         step.buttonClickSound = true;
@@ -354,7 +354,7 @@ void CreditsWindow::StepRow(std::size_t row, double elapsedMs, CreditsStep& step
     {
     case Appearing:
     {
-        // _ftol del producto y la resta en 16 bits con signo (0x6401bf..0x6401c9).
+        // _ftol of the product and the subtraction in signed 16 bits (0x6401bf..0x6401c9).
         auto left = static_cast<std::int16_t>(alpha - static_cast<int>(elapsedMs * BarFade));
         if (left <= 0)
         {
@@ -366,8 +366,8 @@ void CreditsWindow::StepRow(std::size_t row, double elapsedMs, CreditsStep& step
     }
     case Staying:
     {
-        // Solo el de los nombres cuenta: a los 2,3 s se van los nombres, el rol si lo que sigue no es un
-        // nombre y el título si tampoco es un rol.
+        // Only the names one counts: at 2.3 s the names leave, the role if what follows is not a
+        // name and the title if it is not a role either.
         if (row != NameRow)
         {
             return;
@@ -441,7 +441,7 @@ void CreditsWindow::StepIllustration(double elapsedMs, CreditsStep& step)
         auto left = static_cast<std::int16_t>(m_illustrationAlpha - static_cast<int>(elapsedMs * IllustrationFade));
         if (left <= 0)
         {
-            // +0x5c8 da la vuelta en 8.
+            // +0x5c8 wraps at 8.
             const auto next = static_cast<std::uint8_t>(m_illustration + 1);
             m_illustration = next == IllustrationCount ? std::uint8_t{0} : next;
             m_illustrationState = Appearing;
@@ -468,8 +468,8 @@ void CreditsWindow::DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize 
     const int width = screen.width;
     DrawCentered(text, 0, TitleTop, width, textAt(m_title), TitleStyle, screen);
     DrawCentered(text, 0, RoleTop, width, textAt(m_role), TitleStyle, screen);
-    // Las columnas de 640 × 480 de cada cuenta, con el ancho en píxeles: 1 en todo el ancho; 2 en el
-    // segundo y el tercer cuarto; 3 en tercios (0, 213 y 426); 4 en cuartos.
+    // The 640 × 480 columns of each count, with the width in pixels: 1 across the whole width; 2 in the
+    // second and third quarter; 3 in thirds (0, 213 and 426); 4 in quarters.
     struct Columns
     {
         std::array<int, 4> lefts{};

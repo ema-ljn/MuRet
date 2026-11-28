@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// Globales de los controles de asedio y el objeto reloj 0x6eeda0. No se reinician al cambiar de escena.
+// Globals of the siege controls and the clock object 0x6eeda0. They are not reset on a scene change.
 namespace Client::CastleSiege
 {
 struct SiegeBattleUiState
@@ -14,7 +14,7 @@ struct SiegeBattleUiState
         std::int32_t y = 0;        // +0xc
         std::uint32_t hours = 0;   // +0x10
         std::uint32_t minutes = 0; // +0x14
-        float blinkTime = 0.0f;    // +0x18, reloj float del mundo
+        float blinkTime = 0.0f;    // +0x18, the world's float clock
         std::uint32_t tick = 0;    // +0x1c, GetTickCount
     } clock{};
     std::uint16_t weaponKey = 0;   // 0x724594

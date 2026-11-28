@@ -31,19 +31,19 @@ namespace Client::Scenes
 {
 namespace
 {
-// 0x637cfd: la tecla virtual de Impr Pant (VK_SNAPSHOT), que indexa su latch de 0x77f36d4.
+// 0x637cfd: the Print Screen virtual key (VK_SNAPSHOT), which indexes its latch at 0x77f36d4.
 constexpr std::uint8_t PrintScreenVirtualKey = 0x2c;
-// 0x63821e: el texto de Text.bmd que da el formato del mensaje (0x76debc0 = 0x76bd1dc + 459 · 300).
+// 0x63821e: the Text.bmd text that gives the message's format (0x76debc0 = 0x76bd1dc + 459 · 300).
 constexpr std::size_t ScreenshotText = 459;
-// 0x638347 y 0x6385c4: el tipo de 0x555190.
+// 0x638347 and 0x6385c4: 0x555190's type.
 constexpr std::int32_t ScreenshotMessageType = 1;
-// 0x620330: la calidad que 0x6202e0 le pasa a 0x63b150.
+// 0x620330: the quality 0x6202e0 passes to 0x63b150.
 constexpr int ScreenshotQuality = 100;
-// 0x62034b: el contador va de 0 a 9.999.
+// 0x62034b: the counter goes from 0 to 9999.
 constexpr std::int32_t CounterModulus = 10000;
 
-// 0x553520(0x2c): con la tecla abajo y el latch en 0, lo pone en 1 y da verdadero; con la tecla arriba, lo vuelve a 0
-// (como KeyEdge de GameUi.cpp). La tecla abajo es también el apretón del frame que llegó con su soltada (Q-C630).
+// 0x553520(0x2c): with the key down and the latch at 0, sets it to 1 and returns true; with the key up, resets it to 0
+// (like GameUi.cpp's KeyEdge). The key down is also the press of the frame that arrived with its release (Q-C630).
 bool PrintScreenEdge(Ui::GameUiState& ui, const Input::InputState& input)
 {
     std::int32_t& latch = ui.keyLatches[PrintScreenVirtualKey];
@@ -58,8 +58,8 @@ bool PrintScreenEdge(Ui::GameUiState& ui, const Input::InputState& input)
     return true;
 }
 
-// 0x638232..0x6382ae: 0x7d36bb0 + 0x21e · 0x6d5ec4 (el lugar del grupo elegido, recortado entre 0 y 30), donde
-// 0x4c1860 copió el nombre del grupo: el texto del grupo del servidor elegido. Sin servidor elegido, vacío (Q-C632).
+// 0x638232..0x6382ae: 0x7d36bb0 + 0x21e · 0x6d5ec4 (the chosen group's place, clamped between 0 and 30), where
+// 0x4c1860 copied the group name: the text of the chosen server's group. Without a chosen server, empty (Q-C632).
 std::string_view GroupNameOf(const Tables::TextTable* texts, std::optional<std::uint16_t> chosenServer)
 {
     if (!chosenServer)
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> Screenshots::StepTheKey(Ui::GameUiState& ui, c
 {
     if (m_heldFrame)
         return Core::Unexpected(*m_heldFrame);
-    // 0x637d10..0x637d25: un segundo flanco antes del frame deshace el pedido (Q-C634).
+    // 0x637d10..0x637d25: a second edge before the frame undoes the request (Q-C634).
     if (PrintScreenEdge(ui, input))
         m_state.requested = !m_state.requested;
     return {};
@@ -103,7 +103,7 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
     m_pending.reset();
     if (!m_state.requested)
         return {};
-    // 0x6381bb: 0x41ef00, el sonido 3D, es de la CL10.
+    // 0x6381bb: 0x41ef00, the 3D sound, belongs to CL10.
     if (!context.localTime)
         return Core::Unexpected(std::string("0x6381c7: la captura necesita la hora local (GetLocalTime)"));
     const auto time = context.localTime();
@@ -115,7 +115,7 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
     std::string fileName = ScreenshotFileName(time.Value(), m_state.counter);
     std::string message = ScreenshotMessage(format, fileName, GroupNameOf(context.texts, context.chosenServer),
                                             Actors::HeroNameOf(world.Hero()));
-    // 0x6382f9..0x63835a: sin Shift, el mensaje va antes del dibujo y sale en la captura.
+    // 0x6382f9..0x63835a: without Shift, the message goes before the draw and shows in the screenshot.
     if (!context.shiftDown)
     {
         if (auto added =
@@ -134,20 +134,21 @@ Core::Expected<void, std::string> Screenshots::AfterTheDraw(const ScreenshotFram
     if (!m_state.requested || !m_pending)
         return {};
     const Pending pending = *std::exchange(m_pending, std::nullopt);
-    // 0x638592..0x6385a7: con 0x7d366bc, el modo del editor que nadie prende, 0x517570 escribiría
+    // 0x638592..0x6385a7: with 0x7d366bc, the editor mode nobody turns on, 0x517570 would write
     // Data2\MonsterSetBase2.txt.
-    // 0x6385aa → 0x6202e0: lo dibujado, con lo que todavía junta el lienzo, como en el Present (el 3D antes del 2D).
+    // 0x6385aa → 0x6202e0: what was drawn, with what the canvas still gathers, as in Present (the 3D before the 2D).
     canvas.flushModels();
     canvas.flushSprites();
     m_state.taken = true;
     const std::vector<std::uint8_t> pixels = reader.ReadTheScreen(canvas.screen);
     const auto written = Data::Textures::WriteJpegFile(context.folder / pending.fileName, canvas.screen.width,
                                                        canvas.screen.height, pixels, ScreenshotQuality);
-    // Un archivo que no abre (Data::Textures::JpegWrite::NotOpened) sigue igual, con el contador y el mensaje (Q-C633).
+    // A file that does not open (Data::Textures::JpegWrite::NotOpened) goes on the same, with the counter and the
+    // message (Q-C633).
     if (!written.HasValue())
         return Core::Unexpected(written.Error());
     m_state.counter = (m_state.counter + 1) % CounterModulus;
-    // 0x6385af..0x6385d7: con Shift, el mensaje va después de la lectura.
+    // 0x6385af..0x6385d7: with Shift, the message goes after the read.
     if (pending.shiftDown)
     {
         if (auto added = Chat::AddGameMessage(context.world.Runtime(), context.measure, context.screen, {},

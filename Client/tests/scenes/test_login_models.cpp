@@ -24,8 +24,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::LoginModels: el logo (0x606660 y 0x604ab0) y el personaje del login (0x517270,
-// 0x4f2250 y 0x634c60), como datos y como lo cambia cada paso (06 § El logo en el binario).
+// Client::FrontEnd::LoginModels: the logo (0x606660 and 0x604ab0) and the login character (0x517270, 0x4f2250 and
+// 0x634c60), as data and as each step changes them (06 § El logo en el binario).
 namespace
 {
 using Client::FrontEnd::AdvanceRoutes;
@@ -48,7 +48,7 @@ using Client::Kernel::CharacterAppearance;
 using Client::Models::NoHiddenMesh;
 using Client::Tests::FixedSeed;
 
-// El 0xa2 de 0x6349a0 en su lugar, con Logo03.bmd de Data\Logo\ y sus texturas desde el 0x455.
+// 0x6349a0's 0xa2 in its place, with Logo03.bmd from Data\Logo\ and its textures from 0x455.
 TEST(LoginModelsTest, TheLogoIsModel0xA2AtItsPlace)
 {
     const ModelObject logo = LoginLogo();
@@ -62,8 +62,8 @@ TEST(LoginModelsTest, TheLogoIsModel0xA2AtItsPlace)
     EXPECT_EQ(LoginLogoFile.number, 3);
 }
 
-// 0x6068d5 pisa la escala 1 con 2,2 y pone el blendMesh en 1; el resto, de 0x606660: sin malla oculta,
-// la luz del blendMesh en 1 y la del objeto en 0 hasta que 0x604ab0 las escribe, y 0,16 por paso.
+// 0x6068d5 overwrites scale 1 with 2.2 and sets blendMesh to 1; the rest, from 0x606660: no hidden mesh, the
+// blendMesh light at 1 and the object's at 0 until 0x604ab0 writes them, and 0.16 per step.
 TEST(LoginModelsTest, TheLogoIsScaled2_2WithBlendMesh1)
 {
     const ModelObject logo = LoginLogo();
@@ -76,7 +76,7 @@ TEST(LoginModelsTest, TheLogoIsScaled2_2WithBlendMesh1)
     EXPECT_FLOAT_EQ(logo.speed, 0.16f);
 }
 
-// Q-C92: las texturas del logo van desde el próximo que dejó el mundo 55, con GL_LINEAR y repitiendo.
+// Q-C92: the logo textures go from the next one world 55 left, with GL_LINEAR and repeating.
 TEST(LoginModelsTest, TheLogoTexturesStartWhereTheWorldLeft)
 {
     EXPECT_EQ(LoginLogoFirstSlot.value, 0x455);
@@ -84,8 +84,8 @@ TEST(LoginModelsTest, TheLogoTexturesStartWhereTheWorldLeft)
     EXPECT_EQ(LoginLogoSampling.wrap, Client::Data::Textures::Wrap::Repeat);
 }
 
-// La cuenta arranca en −1 y la primera vuelta de 0x633920 la pone en 0; a los 40, vuelve a 0 y la fase
-// pasa a 1; desde ahí, vuelve a 0 cada 128.
+// The count starts at −1 and 0x633920's first pass sets it to 0; at 40, it returns to 0 and the phase moves to 1;
+// from there, it returns to 0 every 128.
 TEST(LoginModelsTest, TheRoutesCountLikeTheCamera)
 {
     LoginRoutes routes;
@@ -112,9 +112,9 @@ TEST(LoginModelsTest, TheRoutesCountLikeTheCamera)
     EXPECT_EQ(routes.phase, 1);
 }
 
-// Q-C105: la luz va por la cuenta · 0,02 con la fase en 0, de −0,02 con la cuenta en −1 (en el primer
-// paso, que no la escribe: LoginSceneModelsTest) a 0,78 en el 41, y salta a 1,5 en el 42, cuando la
-// fase pasa a 1; después queda ahí.
+// Q-C105: the light goes by count · 0.02 with the phase at 0, from −0.02 with the count at −1 (on the first step,
+// which does not write it: LoginSceneModelsTest) to 0.78 at 41, and jumps to 1.5 at 42, when the phase moves to 1;
+// then it stays there.
 TEST(LoginModelsTest, TheLogoLightJumpsWhenThePhaseChanges)
 {
     LoginRoutes routes;
@@ -133,7 +133,7 @@ TEST(LoginModelsTest, TheLogoLightJumpsWhenThePhaseChanges)
     EXPECT_FLOAT_EQ(LoginLogoLight(LoginRoutes{.count = 5, .phase = 2}), 1.5f);
 }
 
-// 0x5ffce0 sin luz por vértice: 0,1 de la del terreno, canal por canal, más la del objeto.
+// 0x5ffce0 without per-vertex light: 0.1 of the terrain's, channel by channel, plus the object's.
 TEST(LoginModelsTest, AnUnlitObjectTakesATenthOfTheTerrainLight)
 {
     const glm::vec3 color = UnlitObjectColor({0.5f, 0.8f, 1.0f}, glm::vec3(0.3f));
@@ -142,8 +142,7 @@ TEST(LoginModelsTest, AnUnlitObjectTakesATenthOfTheTerrainLight)
     EXPECT_FLOAT_EQ(color.z, (1.0f * 0.1f) + 0.3f);
 }
 
-// 0x517270 en la escena 2: la clase 4 con el juego 29 en +7, la maza en +13, el cuervo, la capa y el
-// caballo, sin cabeza.
+// 0x517270 in scene 2: class 4 with set 29 at +7, the mace at +13, the raven, the cape and the horse, without a head.
 TEST(LoginModelsTest, TheCharacterIsClassFourWithItsSet)
 {
     const CharacterAppearance character = LoginCharacter();
@@ -172,8 +171,8 @@ TEST(LoginModelsTest, TheCharacterIsClassFourWithItsSet)
     EXPECT_EQ(character.head, std::nullopt);
 }
 
-// 0x6349a0 después de 0x517270: el lugar, el giro y la escala; la luz de 0x517270 y la acción de
-// parado que 0x4f2250 le da con el caballo.
+// 0x6349a0 after 0x517270: the place, the turn and the scale; 0x517270's light and the standing action 0x4f2250 gives
+// it with the horse.
 TEST(LoginModelsTest, TheCharacterStandsAtItsPlace)
 {
     const Client::Models::ObjectTransform transform = LoginCharacterTransform();
@@ -185,9 +184,9 @@ TEST(LoginModelsTest, TheCharacterStandsAtItsPlace)
     EXPECT_EQ(LoginCharacterStandingAction, 0x4a);
 }
 
-// Fuera de la ventana de cada 2.300 ms, nunca, y sin tirar; adentro, con la semilla fija, las dos salen
-// en 100 pasos, y en otros no cambia. La ventana va de 0 a 100 ms: 100 · 0,01 en la x87 da 0,99999998,
-// y ftol lo trunca a 0 (Q-C110).
+// Outside the window of every 2300 ms, never, and without a rand(); inside, with the fixed seed, both come out within
+// 100 steps, and on others it does not change. The window goes from 0 to 100 ms: 100 · 0.01 on the x87 gives
+// 0.99999998, and ftol truncates it to 0 (Q-C110).
 TEST(LoginModelsTest, TheActionOnlyChangesInItsWindow)
 {
     using std::chrono::milliseconds;
@@ -218,8 +217,8 @@ TEST(LoginModelsTest, TheActionOnlyChangesInItsWindow)
     EXPECT_FALSE(random == untouched);
 }
 
-// Con el rand() de la CRT (el de la tela, ClothWorld, que es el del original), lo mismo: fuera de la ventana
-// no lo toca, y adentro saca uno solo, con su % 6.
+// With the CRT rand() (the cloth's, ClothWorld, which is the original's), the same: outside the window it does not
+// touch it, and inside it takes a single one, with its % 6.
 TEST(LoginModelsTest, TheActionTakesOneRandOfTheCrtInsideTheWindow)
 {
     using std::chrono::milliseconds;
@@ -243,8 +242,8 @@ TEST(LoginModelsTest, TheActionTakesOneRandOfTheCrtInsideTheWindow)
     EXPECT_EQ(remainders.size(), 6u);
 }
 
-// rand() % 6 en 1 es la 0x54 y en 2 la 0x55, con rand() de 0 a 32.767: con 40 semillas salen los seis
-// restos, y cada uno da lo suyo.
+// rand() % 6 at 1 is 0x54 and at 2 is 0x55, with rand() from 0 to 32767: with 40 seeds all six remainders come out,
+// and each gives its own.
 TEST(LoginModelsTest, TheActionComesFromRandModSix)
 {
     std::set<int> remainders;
@@ -263,8 +262,8 @@ TEST(LoginModelsTest, TheActionComesFromRandModSix)
     EXPECT_EQ(remainders.size(), 6U);
 }
 
-// El dueño del cuervo en el login: el personaje en su lugar, sin banderas (+0x78 en 0: ni la 0x1000 que
-// lo para ni la 0x4000 que le saca las chispas).
+// The raven's owner at login: the character at its place, without flags (+0x78 at 0: neither 0x1000, which stops it,
+// nor 0x4000, which removes its sparks).
 TEST(LoginModelsTest, TheRavensOwnerIsTheRiderWithoutFlags)
 {
     const Client::Pets::DarkSpiritOwner owner = Client::FrontEnd::LoginRavenOwner();

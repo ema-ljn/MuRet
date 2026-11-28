@@ -5,36 +5,34 @@
 
 #include <cstdint>
 
-// El ritmo del original (CL3.2, modo Faithful): el bucle de 0x637700 con GetTickCount sobre la
-// grilla de FaithfulTick. Solo el dibujo, el swap y la espera van al acumulador; los pasos y lo
-// que corre antes de medir se pierden de a ticks enteros. Sin las reglas de FixedStep.
+// The original's pacing (CL3.2, Faithful mode): the loop of 0x637700 with GetTickCount on the FaithfulTick grid. Only
+// the drawing, the swap and the wait go to the accumulator; the steps and what runs before measuring are lost in
+// whole ticks. Without FixedStep's rules.
 namespace Client::Kernel
 {
-// Los ms que leería GetTickCount en `now`, de a FaithfulTick: DWORD, como el original.
+// The ms GetTickCount would read at `now`, in FaithfulTick steps: a DWORD, like the original.
 [[nodiscard]] std::uint32_t TickCountMs(Core::Duration now);
 
-// El ritmo del original, sin las reglas de FixedStep: sin tope y en ms enteros. El acumulador
-// arranca en FaithfulInitialAccumulatorMs, como el original.
+// No cap and in whole ms. The accumulator starts at FaithfulInitialAccumulatorMs, like the original.
 class FaithfulPacer
 {
 public:
-    // Los pasos que tocan (mientras el acumulador valga 40 o más), como 0x637791.
+    // The steps due (while the accumulator is 40 or more), like 0x637791.
     int BeginFrame();
-    // Toma el inicio (0x63852b). Se llama después de los pasos y antes de dibujar.
+    // Takes the start (0x63852b). Called after the steps and before drawing.
     void StartMeasure(Core::IClock& clock);
-    // Duerme de tick en tick mientras static_cast<std::int32_t>(TickCountMs(now) - inicio) sea
-    // menor que 40, y suma esa diferencia al acumulador (0x638632). La comparación es con signo,
-    // como el JGE de 0x638616: un dibujo de más de 24,8 días da una resta negativa y la espera
-    // sigue hasta que la resta da la vuelta, unos 19,7 días más con uno de 30. Así cuelga el
-    // original, y así MuRet.
+    // Sleeps tick by tick while static_cast<std::int32_t>(TickCountMs(now) - start) is below 40, and adds that
+    // difference to the accumulator (0x638632). The comparison is signed, like the JGE of 0x638616: a drawing of more
+    // than 24.8 days gives a negative subtraction and the wait goes on until the subtraction wraps, about 19.7 more
+    // days with one of 30. That is how the original hangs, and so does MuRet.
     void EndFrame(Core::IClock& clock);
     [[nodiscard]] std::int32_t AccumulatedMs() const;
     [[nodiscard]] std::int32_t LastMeasuredMs() const;
 
 private:
-    // DAT_006d5ee4: un int con signo, sin tope.
+    // DAT_006d5ee4: a signed int, with no cap.
     std::int32_t m_accumulatedMs = FaithfulInitialAccumulatorMs;
-    // Lo que leyó GetTickCount en 0x63852b.
+    // What GetTickCount read at 0x63852b.
     std::uint32_t m_startMs = 0;
     std::int32_t m_lastMeasuredMs = 0;
 };

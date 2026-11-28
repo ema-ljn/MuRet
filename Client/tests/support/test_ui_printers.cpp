@@ -7,15 +7,15 @@
 
 #include <string>
 
-// support/UiPrinters.h: lo que imprime GoogleTest de un campo y de un pedido de la cuenta, que no
-// puede ser lo tecleado (CL5.5).
+// support/UiPrinters.h: what GoogleTest prints of a field and of an account request, which cannot be what was typed
+// (CL5.5).
 namespace
 {
 using Client::FrontEnd::LoginRequest;
 using Client::Ui::TextField;
 
-// El campo de la clave dice su largo y que es la clave, no lo que tiene; el de la cuenta, lo mismo
-// sin la marca.
+// The password field says its length and that it is the password, not what it holds; the account one, the same
+// without the mark.
 TEST(UiPrintersTest, AFieldShowsItsLengthAndNotItsText)
 {
     TextField password(10, true);

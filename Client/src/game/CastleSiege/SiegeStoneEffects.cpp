@@ -96,7 +96,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const K
         BeginTheFlight(effect, arguments, heroPosition, random);
     else if (effect.type == SiegeStoneEffect && effect.subtype == 2)
         BeginTheFragment(effect, random);
-    // 51d165/51d1f0: otros subtipos conservan la vida del uso anterior del lugar, tras el prefijo común.
+    // 0x51d165/0x51d1f0: other subtypes keep the life of the slot's previous use, after the common prefix.
     return slot;
 }
 } // namespace Client::CastleSiege

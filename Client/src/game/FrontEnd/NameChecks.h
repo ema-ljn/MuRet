@@ -7,53 +7,54 @@
 #include <string>
 #include <string_view>
 
-// Los chequeos del nombre de un personaje nuevo antes del F3 01 (0x63d990; Client/docs/research/06-
-// render-escenas-y-ui.md, "La ventana de crear"). *Estático*, y *emulado* con los nombres del
-// contrato.
+// The checks of a new character's name before F3 01 (0x63d990; Client/docs/research/06-render-escenas-y-ui.md,
+// "La ventana de crear"). *Static*, and *emulated* with the contract's names.
 namespace Client::FrontEnd
 {
-// Lo que mira 0x622c70: las palabras de FilterName.bmd y de Filter.bmd (Tables::LoadFilterWords)
-// y los textos 457 y 458 de Text.bmd. Tienen que vivir lo que la consulta.
+// What 0x622c70 checks: the words of FilterName.bmd and Filter.bmd (Tables::LoadFilterWords)
+// and texts 457 and 458 of Text.bmd. They have to outlive the query.
 struct NameFilters
 {
     std::span<const std::string> filterName;
     std::span<const std::string> filter;
-    std::string_view operation; // el texto 457
-    std::string_view server;    // el texto 458
+    std::string_view operation; // text 457
+    std::string_view server;    // text 458
 };
 
-// 0x576960(texto, palabra, 0): si `word` está en `text`, distinguiendo mayúsculas. Una palabra vacía
-// está en cualquier texto. El original avanza de a un carácter de su página de códigos (_mbclen);
-// MuRet, de a un byte, que es lo mismo con los nombres de su campo, en Latin-1: un byte por carácter,
-// como la página de códigos de Occidente (CP1252).
+// 0x576960(text, word, 0): whether `word` is in `text`, case-sensitive. An empty word is in any
+// text. The original advances one character of its code page at a time (_mbclen); MuRet, one byte at a
+// time, which is the same with its field's names, in Latin-1: one byte per character, like the Western
+// code page (CP1252).
 [[nodiscard]] bool ContainsLikeTheOriginal(std::string_view text, std::string_view word);
 
-// 0x622b40(texto, comandos): con `skipCommands` y el texto empezando con '/', nada; si no, alguna palabra de
-// Filter.bmd (`filter`) en el texto sin espacios. El original arma la copia sin espacios en 0x800 bytes de la pila.
+// 0x622b40(text, commands): with `skipCommands` and the text starting with '/', nothing; otherwise, some
+// word of Filter.bmd (`filter`) in the text without spaces. The original builds the copy without spaces in
+// 0x800 bytes of the stack.
 [[nodiscard]] bool ContainsAFilteredWord(std::string_view text, std::span<const std::string> filter, bool skipCommands);
 
-// 0x5ebbd0(título), el de la tienda personal (CL9 hito 7): ninguna palabra de Filter.bmd en el título sin espacios
-// (0x576960, sin saltear los comandos), y ni las dos primeras letras ni las dos últimas o más en espacios. Los espacios
-// seguidos del medio pasan: la cuenta solo se mira en la letra 1 y al final. Vacío, pasa.
+// 0x5ebbd0(title), the personal shop's (CL9 milestone 7): no word of Filter.bmd in the title without spaces
+// (0x576960, without skipping the commands), and neither the first two letters nor the last two or more in
+// spaces. Consecutive spaces in the middle pass: the count is only checked at letter 1 and at the end. Empty,
+// it passes.
 [[nodiscard]] bool IsAShopTitle(std::string_view title, std::span<const std::string> filter);
 
-// 0x622c70: alguna palabra de FilterName.bmd en el nombre sin espacios; alguna de Filter.bmd en el
-// nombre sin espacios, salvo que empiece con '/' (0x622b40 con 1); o, en el nombre tal cual, el
-// espacio, el punto, los de doble byte "\xa1\xa1", "\xa1\xa4" y "\xa1\xad", "Webzen", "WebZen",
-// "webzen", "WEBZEN" o los textos 457 y 458. Como el espacio ya filtra, sacar los espacios antes
-// no cambia el resultado.
+// 0x622c70: some word of FilterName.bmd in the name without spaces; some of Filter.bmd in the name
+// without spaces, unless it starts with '/' (0x622b40 with 1); or, in the name as is, the space, the
+// period, the double-byte "\xa1\xa1", "\xa1\xa4" and "\xa1\xad", "Webzen", "WebZen", "webzen", "WEBZEN"
+// or texts 457 and 458. Since the space already filters, removing the spaces first does not change the
+// result.
 [[nodiscard]] bool IsFilteredName(std::string_view name, const NameFilters& filters);
 
-// 0x447ca0, con el parche de NOPs de este binario: mira los bytes 0, 2, 4… de `buffer` mientras el
-// de dos más adelante no sea 0 (detrás del final, ceros), y uno es malo si es menor que 0x21, está de
-// 0x7f a 0xaf o es mayor que 0xf7.
+// 0x447ca0, with this binary's NOP patch: checks bytes 0, 2, 4… of `buffer` while the one two further
+// ahead is not 0 (past the end, zeros), and one is bad if it is below 0x21, between 0x7f and 0xaf or above
+// 0xf7.
 [[nodiscard]] bool HasForbiddenSymbol(std::string_view name);
 
-// En el orden de 0x63d990: menos de 4 bytes, el aviso 0x79; filtrado, el 0x72; con un byte malo en
-// `buffer` (0x7798bf8, donde está el nombre y lo que quedó detrás: Q-C118), el 0x7a; si no, nada: se
-// manda.
+// In 0x63d990's order: fewer than 4 bytes, notice 0x79; filtered, 0x72; with a bad byte in `buffer`
+// (0x7798bf8, where the name is and what stayed behind it: Q-C118), 0x7a; otherwise, nothing: it is
+// sent.
 [[nodiscard]] std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer,
                                                           const NameFilters& filters);
-// Lo mismo con el nombre solo, sin nada detrás.
+// The same with the name alone, with nothing behind it.
 [[nodiscard]] std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters);
 } // namespace Client::FrontEnd

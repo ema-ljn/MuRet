@@ -87,14 +87,10 @@
 #include <variant>
 #include <vector>
 
-// Client::App::ServerSession con el ConnectServer, hasta la dirección del GameServer (el plan de
-// la CL4, CL4.3, paso 4), y con el GameServer, hasta el login (CL4.4, paso 4), sobre una
-// Connection de verdad y un FakeSocket que hace de los dos servidores. Los bytes son los del 04
-// (El flujo de conexión), escritos a mano; las direcciones, unas cualquiera, porque el FakeSocket
-// no conecta. Lo cifrado lo descifra el GameServer de support/TestGameServer.h, con las claves
-// sintéticas, y el login se compara con SameBytesWithoutValues: ningún mensaje trae sus bytes.
-// El keepalive y los topes de tiempo (CL4.5, paso 2) corren con el FakeClock: un "frame" es un
-// Advance y un Poll.
+// Client::App::ServerSession over a real Connection and a FakeSocket that plays the ConnectServer and the GameServer
+// (CL4.3, CL4.4). The bytes are 04's (El flujo de conexión), written by hand, and the addresses arbitrary: the
+// FakeSocket does not connect. support/TestGameServer.h decrypts with the synthetic keys; the login is compared with
+// SameBytesWithoutValues because no message carries its bytes. A "frame" is a FakeClock Advance and a Poll (CL4.5).
 namespace
 {
 using Client::App::CharacterCreated;
@@ -201,20 +197,19 @@ using Client::Tests::ServerSessionSupport::WorldEntryReply;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
 
-// Lo que dice el log de cada keepalive que sale.
 constexpr std::string_view KeepaliveSent = "se encoló el keepalive";
 
-// Dónde están las velocidades en el keepalive sin el XOR32: después de la cabecera, el opcode, el
-// 00 y el tick (04 § El flujo de conexión).
+// Where the speeds sit in the keepalive without the XOR32 (04 § El flujo de conexión): after the header, the
+// opcode, the 00 and the tick.
 constexpr std::size_t KeepalivePaddingIndex = 3;
 constexpr std::size_t KeepaliveSpeedsIndex = 8;
 constexpr std::size_t KeepaliveSpeedsSize = 4;
 
-// Otra versión que la del cliente: la que manda el cliente del muproxy.log (BuildConstants.h).
+// A version other than the client's: the one the muproxy.log client sends (BuildConstants.h).
 constexpr std::string_view OtherVersion = "09908";
 
-// Un C3 de un bloque con un solo byte útil, el serial 0: pasa el checksum y no trae el opcode, así
-// que no descifra con TooShort.
+// A one-block C3 with a single useful byte, serial 0: it passes the checksum and has no opcode, so it fails to
+// decrypt with TooShort.
 ByteVector OnlyTheSerial()
 {
     const std::array<std::byte, PlainBlockSize> plain{};
@@ -224,8 +219,8 @@ ByteVector OnlyTheSerial()
     return bytes;
 }
 
-// El esquema de la alternativa real debe poseer entradas y siete bytes opacos, no vistas al Packet.
-// El runtime de abajo comprueba lifecycle y valores; por sí solo no demuestra ausencia de vistas.
+// The real alternative must own its entries and seven opaque bytes, not views into the Packet. The runtime tests
+// below check lifecycle and values; alone they do not prove there are no views.
 static_assert(std::is_same_v<std::variant_alternative_t<1, WorldEvent>, InventoryList>);
 static_assert(std::is_same_v<decltype(InventoryList::items), std::vector<Client::Protocol::Items::InventoryEntry>>);
 static_assert(std::is_same_v<decltype(Client::Protocol::Items::InventoryEntry::item), std::array<std::byte, 7>>);
@@ -235,7 +230,7 @@ ByteVector EmptyInventoryReply()
     return Bytes({0xC2, 0x00, 0x06, 0xF3, 0x10, 0x00});
 }
 
-// El contexto se observa dentro del handler, antes de cualquier transición posterior.
+// The context is observed inside the handler, before any later transition.
 TEST(ServerSessionTest, SynchronousDeliveryObservesContemporaryStatesAcrossPolls)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -290,7 +285,6 @@ TEST(ServerSessionTest, SynchronousDeliveryPreservesMixedOrderAndRawDuplicateSlo
     EXPECT_EQ(tested.session.Characters()->characters[0].name, Client::Tests::NameBytes("char0002"));
 }
 
-// La vista UI mantiene su contrato aunque falle el sink y el transporte ya haya cerrado.
 TEST(ServerSessionTest, CharacterListApplicationFailureKeepsTheNormalizedViewAndPrecedesRemoteClose)
 {
     for (const bool peerClosed : {false, true})
@@ -378,7 +372,7 @@ TEST(ServerSessionTest, SynchronousDeliverySecondErrorStopsBatchAndSuccessStateA
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
     EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"inventory", "list"}));
     EXPECT_EQ(tested.eventSink.characterStates, (std::vector<SessionState>{SessionState::WaitingCharacterList}));
-    // Corrobora que no sale otro envío; el cierre por Fail también basta para impedirlo.
+    // No other send leaves; the close by Fail is also enough to prevent it.
     EXPECT_EQ(tested.Keepalives().size(), keepalives);
     const auto again = tested.session.Poll();
     ASSERT_FALSE(again.HasValue());
@@ -431,7 +425,7 @@ TEST(ServerSessionTest, SynchronousDeliveryCompletesTheFakeLoadBeforeTheNextMixe
     {
         EXPECT_EQ(session.State(), SessionState::WaitingCharacterList);
         tested.eventSink.trace.push_back("load-begin");
-        // Doble síncrono: prueba la frontera y el retorno, no equivale al loader nativo.
+        // A synchronous double: it tests the boundary and the return, it is not the native loader.
         ++loads;
         tested.eventSink.trace.push_back("load-end");
         return {};
@@ -450,7 +444,7 @@ TEST(ServerSessionTest, SynchronousDeliveryCompletesTheFakeLoadBeforeTheNextMixe
               (std::vector<std::string>{"entry", "load-begin", "load-end", "entry", "load-begin", "load-end", "list"}));
 }
 
-// Con collector explícito, la recepción conserva el wire sin aplicar el mundo ni alterar la UI.
+// With an explicit collector, the reception keeps the wire without applying the world or changing the UI.
 TEST(ServerSessionTest, WorldEntryPreservesAllWireFieldsWithoutApplyingSelection)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -476,7 +470,7 @@ TEST(ServerSessionTest, WorldEntryPreservesAllWireFieldsWithoutApplyingSelection
     EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
 }
 
-// Antes del saludo también conserva slots repetidos y cantidad cero sin filtrar entradas.
+// Before the hello it also keeps repeated slots and a zero count, without filtering entries.
 TEST(ServerSessionTest, WorldInventoryPreservesEveryEntryAndPublishesAnEmptyList)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -496,7 +490,7 @@ TEST(ServerSessionTest, WorldInventoryPreservesEveryEntryAndPublishesAnEmptyList
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// Una cola por tipo perdería el orden intercalado aunque cada payload estuviera intacto.
+// A queue per type would lose the interleaved order even with each payload intact.
 TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderInOneBatch)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -510,7 +504,7 @@ TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderInOneBatch)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// Dos recepciones iguales siguen siendo dos eventos; no corresponde deduplicar aquí.
+// Two equal receptions are still two events; deduplicating does not belong here.
 TEST(ServerSessionTest, WorldEventsKeepIdenticalRepeatedReceptions)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -530,7 +524,7 @@ TEST(ServerSessionTest, WorldEventsKeepIdenticalRepeatedReceptions)
     ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[3]));
 }
 
-// Cada corte TCP debe producir la misma secuencia, aun con un paquete partido entre Poll.
+// Each TCP split must give the same sequence, even with a packet split between Polls.
 TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderAcrossEveryReadSplit)
 {
     Harness baseline(IdentityObfuscation::Shared());
@@ -552,7 +546,6 @@ TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderAcrossEveryReadSplit)
     }
 }
 
-// Dos Poll entregan en orden, antes de que el Closed final cambie el estado de la sesión.
 TEST(ServerSessionTest, WorldReceptionsAreDeliveredAcrossPollsBeforeTheRemoteClose)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -576,9 +569,9 @@ TEST(ServerSessionTest, WorldReceptionsAreDeliveredAcrossPollsBeforeTheRemoteClo
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
-// Un cuerpo válido en claro no acredita la procedencia cifrada que exige esta frontera: del F3 03 no
-// llega nada al sink, y de cada F3 10 solo la inicialización común de 0x4c55a0, sin el cuerpo. Cada uno le
-// avisa al GS con el F1 03 00 F3, el F3 10 después de vaciar.
+// A valid clear body does not prove the encrypted origin this boundary requires: nothing of the F3 03 reaches the
+// sink, and of each F3 10 only 0x4c55a0's common initialization, without the body. Each one reports to the GS with
+// the F1 03 00 F3, the F3 10 after emptying.
 TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -606,7 +599,7 @@ TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// 0x4c55a0 sin cifrar: si el sink no puede vaciar, la sesión falla y no manda el aviso.
+// 0x4c55a0 unencrypted: if the sink cannot empty, the session fails and does not send the report.
 TEST(ServerSessionTest, AClearInventoryThatFailsToApplyIsNotReported)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -622,7 +615,7 @@ TEST(ServerSessionTest, AClearInventoryThatFailsToApplyIsNotReported)
     EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
 }
 
-// 0x4c396a: la respuesta del F3 03 sin cifrar no entra al mundo y le avisa al GS con el F1 03 00 F3.
+// 0x4c396a: the unencrypted F3 03 reply does not enter the world and reports to the GS with the F1 03 00 F3.
 TEST(ServerSessionTest, AClearWorldEntryReplyIsReportedWithF103)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -663,12 +656,12 @@ TEST(ServerSessionTest, TheEncryptedSkillsAreReadByTheirRows)
     EXPECT_EQ(tested.eventSink.routedAfter.size(), 8u);
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
     EXPECT_EQ(world->world.Runtime().hud.summonLife, 0x42);
-    // El 73 cifrado no hace nada (0x4d5b10).
+    // The encrypted 73 does nothing (0x4d5b10).
     EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// 0x4cc562, 0x4ce032 y 0x4d5d8c: el 19, el 1E y el 73 sin cifrar no entran y avisan con el F1 03 00 [cabeza].
+// 0x4cc562, 0x4ce032 and 0x4d5d8c: the unencrypted 19, 1E and 73 do not enter and report with the F1 03 00 [head].
 TEST(ServerSessionTest, TheClearSkillsAreReportedWithF103)
 {
     for (const auto& [packet, head] : {std::pair{Bytes({0xC1, 0x08, 0x19, 0x0D, 0x12, 0x34, 0x80, 0x56}), 0x19},
@@ -692,7 +685,7 @@ TEST(ServerSessionTest, TheClearSkillsAreReportedWithF103)
     }
 }
 
-// Los demás no miran el cifrado (0x4cbe90, 0x4cbe00, 0x4dbf50, 0x4cc290 y 0x4c5070).
+// The others do not look at the encryption (0x4cbe90, 0x4cbe00, 0x4dbf50, 0x4cc290 and 0x4c5070).
 TEST(ServerSessionTest, TheOtherClearSkillsAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -724,8 +717,8 @@ TEST(ServerSessionTest, LevelUpReceptionsPreserveRepeatedEventsAndRejectTruncati
     EXPECT_EQ(world->world.OwnCharacter().level, 9);
 }
 
-// 0x4e4c0a y 0x4e4c42: las órdenes del cuervo llegan sin mirar el cifrado. Sin el cuervo del héroe, el A7 no hace
-// nada.
+// 0x4e4c0a and 0x4e4c42: the raven's orders arrive without looking at the encryption. Without the hero's raven, the
+// A7 does nothing.
 TEST(ServerSessionTest, TheRavenOrdersAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -741,7 +734,7 @@ TEST(ServerSessionTest, TheRavenOrdersAreReadByTheirRows)
     EXPECT_FALSE(world->world.Hero().darkSpirit);
 }
 
-// 0x4e4ca1: el A9 de las mascotas llega sin mirar el cifrado (CL9 hito 4).
+// 0x4e4ca1: the pets' A9 arrives without looking at the encryption (CL9 milestone 4).
 TEST(ServerSessionTest, ThePetInfoIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -757,7 +750,7 @@ TEST(ServerSessionTest, ThePetInfoIsReadByItsRow)
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
 }
 
-// 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.
+// 0x4c1ec0: the accepted F1 00 leaves the player's key (pkt[5..6], big endian) for the F3 03.
 TEST(ServerSessionTest, TheAcceptedGameHelloKeepsThePlayerIndex)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -768,7 +761,7 @@ TEST(ServerSessionTest, TheAcceptedGameHelloKeepsThePlayerIndex)
     EXPECT_EQ(tested.session.PlayerIndex(), 5);
 }
 
-// Un checksum válido no vuelve legible un cuerpo corto o una cantidad imposible.
+// A valid checksum does not make a short body or an impossible count readable.
 TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -778,7 +771,7 @@ TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
     ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
 
     const std::size_t packetsSentBeforeCuts = tested.GameServerReads().packets.size();
-    // Cada corte conserva hasta el subcódigo: llega al handler, falla el cuerpo, no el checksum.
+    // Each cut keeps up to the subcode: it reaches the handler and fails in the body, not in the checksum.
     std::size_t rejectedEntries = 0;
     std::size_t rejectedInventories = 0;
     for (const ByteVector& valid : {WorldEntryReply(), InventoryReply()})
@@ -804,12 +797,12 @@ TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
     ++rejectedInventories;
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "(F3 03): no se puede leer"), rejectedEntries);
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "(F3 10): no se puede leer"), rejectedInventories);
-    // Con checksum correcto no corresponde enviar nada, incluido el F1/03 por descifrado fallido.
+    // With a correct checksum nothing should be sent, including the F1/03 for a failed decryption.
     EXPECT_EQ(tested.GameServerReads().packets.size(), packetsSentBeforeCuts);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// Cifrar un tipo u opcode incorrecto no debe convertirlo en una respuesta de mundo.
+// Encrypting a wrong type or opcode must not turn it into a world reply.
 TEST(ServerSessionTest, WorldEventsDistinguishPacketKindsAndSubcodes)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -846,7 +839,7 @@ TEST(ServerSessionTest, WorldEventsDistinguishPacketKindsAndSubcodes)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// El cierre posterior del peer no debe borrar lo recibido antes en el mismo lote.
+// The peer's later close must not erase what arrived before in the same batch.
 TEST(ServerSessionTest, WorldEventsSurviveFailureInTheSamePoll)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -868,7 +861,7 @@ TEST(ServerSessionTest, WorldEventsSurviveFailureInTheSamePoll)
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
-// Start descarta el paquete incompleto, pero no las copias ya entregadas al collector.
+// Start drops the incomplete packet, but not the copies already delivered to the collector.
 TEST(ServerSessionTest, WorldEventsStartPreservesDeliveredCopiesAndDropsPartiallyReceivedPackets)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -900,7 +893,7 @@ TEST(ServerSessionTest, WorldEventsStartPreservesDeliveredCopiesAndDropsPartiall
     EXPECT_TRUE(empty->items.empty());
 }
 
-// QuitOrdered conserva lo previo y corta el resto del lote de esa conexión.
+// QuitOrdered keeps what came before and cuts the rest of that connection's batch.
 TEST(ServerSessionTest, WorldEventsStopAtTheExistingConnectionBatchBoundary)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -920,7 +913,7 @@ TEST(ServerSessionTest, WorldEventsStopAtTheExistingConnectionBatchBoundary)
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
-// Los avisos del handler detectarían un registro accidental en CS, aun rechazando los claros.
+// The handler's warnings would catch an accidental registration in the CS, even while rejecting the clear ones.
 TEST(ServerSessionTest, WorldEventsDoNotDispatchConnectServerPacketsAsGameServerPackets)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -943,7 +936,7 @@ TEST(ServerSessionTest, WorldEventsDoNotDispatchConnectServerPacketsAsGameServer
     ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
 }
 
-// SetState(m_state) en el handler F3/03 reiniciaría la espera: debe vencer en el tope original.
+// SetState(m_state) in the F3/03 handler would restart the wait: it must expire at the original timeout.
 TEST(ServerSessionTest, WorldEntryDoesNotExtendTheOriginalReplyTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -966,7 +959,7 @@ TEST(ServerSessionTest, WorldEntryDoesNotExtendTheOriginalReplyTimeout)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
 }
 
-// El F3/10 se ejercita solo: extender el deadline en cualquiera de los dos handlers debe fallar.
+// The F3/10 is exercised alone: extending the deadline in either of the two handlers must fail.
 TEST(ServerSessionTest, WorldInventoryDoesNotExtendTheOriginalReplyTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -989,7 +982,7 @@ TEST(ServerSessionTest, WorldInventoryDoesNotExtendTheOriginalReplyTimeout)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
 }
 
-// Recibir o drenar no debe reiniciar la fase global ni cambiar velocidades/bytes del keepalive.
+// Receiving or draining must not restart the global phase or change the keepalive's speeds or bytes.
 TEST(ServerSessionTest, WorldEventsPreserveTheNextKeepaliveBytesAndTimerPhase)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1027,7 +1020,7 @@ TEST(ServerSessionTest, StartsIdle)
     EXPECT_TRUE(tested.socket.connects.empty());
 }
 
-// Lo primero que sale al ConnectServer es el A9, y recién cuando el connect termina.
+// The first thing sent to the ConnectServer is the A9, and only once the connect finishes.
 TEST(ServerSessionTest, SendsThePetInfoRequestWhenTheConnectServerOpens)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1047,7 +1040,7 @@ TEST(ServerSessionTest, SendsThePetInfoRequestWhenTheConnectServerOpens)
     EXPECT_TRUE(SameBytes(tested.socket.sent, PetInfoRequest()));
 }
 
-// El test del 04: después de C1 04 00 01 sale C1 04 F4 02, exacto.
+// 04's test: after C1 04 00 01, exactly C1 04 F4 02 leaves.
 TEST(ServerSessionTest, AsksForTheListAfterTheHello)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1062,8 +1055,8 @@ TEST(ServerSessionTest, AsksForTheListAfterTheHello)
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
 }
 
-// El Opened va antes que lo que llegó con él: el A9 sale antes que el F4 02 aunque el saludo llegue
-// en el mismo Poll que el connect.
+// The Opened goes before what arrived with it: the A9 leaves before the F4 02 even if the hello arrives in the same
+// Poll as the connect.
 TEST(ServerSessionTest, ThePetInfoRequestLeavesBeforeAHelloThatArrivesWithTheConnect)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1076,9 +1069,8 @@ TEST(ServerSessionTest, ThePetInfoRequestLeavesBeforeAHelloThatArrivesWithTheCon
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
 }
 
-// Con la lista, la sesión espera la elección (CL5.5): ChoosingServer, con la lista en el orden en
-// que llegó, y no sale ningún F4 03. La elección no tiene tope: el jugador puede tardar, y 60 s
-// después sigue esperando sin mandar nada.
+// With the list the session waits for the choice (CL5.5), with the list in arrival order and no F4 03 sent. The
+// choice has no timeout: the player may take a while, and 60 s later it still waits without sending anything.
 TEST(ServerSessionTest, WaitsForTheChoiceAfterTheList)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1103,7 +1095,7 @@ TEST(ServerSessionTest, WaitsForTheChoiceAfterTheList)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "la lista trae 3 servidores: se espera la elección"));
 }
 
-// Cualquiera de la lista, no el primero: sin FoxAnti, el 402 sale como 92 01.
+// Any one of the list, not the first: without FoxAnti, the 402 goes out as 92 01.
 TEST(ServerSessionTest, ChoosingSendsTheCodeItWasGiven)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1118,8 +1110,7 @@ TEST(ServerSessionTest, ChoosingSendsTheCodeItWasGiven)
                           Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x92, 0x01})})));
 }
 
-// ChooseServer fuera de ChoosingServer: un aviso y nada sale, antes de la lista y con la elección
-// ya mandada.
+// ChooseServer outside ChoosingServer: a warning and nothing sent, before the list and with the choice already sent.
 TEST(ServerSessionTest, ChoosingOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1142,8 +1133,8 @@ TEST(ServerSessionTest, ChoosingOutOfTurnIsIgnored)
                                         "[warning] se ignora la elección de un servidor: la sesión no la espera"}));
 }
 
-// Los créditos (0x641203 y 0x63f9a0): C1 04 F4 06 en claro por el socket abierto, sin cambiar de estado; cada
-// cierre manda otro.
+// The credits (0x641203 and 0x63f9a0): C1 04 F4 06 in clear through the open socket, without changing state; each
+// close sends another.
 TEST(ServerSessionTest, TheCreditsSendF406)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1159,7 +1150,7 @@ TEST(ServerSessionTest, TheCreditsSendF406)
                                                     Bytes({0xC1, 0x04, 0xF4, 0x06})})));
 }
 
-// Sin un socket abierto, nada: el original no manda con el socket en −1.
+// Without an open socket, nothing: the original does not send with the socket at −1.
 TEST(ServerSessionTest, TheCreditsNeedAnOpenSocket)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1170,7 +1161,7 @@ TEST(ServerSessionTest, TheCreditsNeedAnOpenSocket)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no se manda el F4 06 de los créditos"));
 }
 
-// La dirección del F4 03: la sesión la guarda, cierra el CS y conecta al GS, sin avisos.
+// The F4 03's address: the session keeps it, closes the CS and connects to the GS, without warnings.
 TEST(ServerSessionTest, ReadsTheGameServerAddress)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1192,8 +1183,8 @@ TEST(ServerSessionTest, ReadsTheGameServerAddress)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Del ConnectServer al GameServer, el log no dice ningún host ni ningún puerto: ni el del CS, que
-// es de la config, ni el del GS, que llegó del cable.
+// From the ConnectServer to the GameServer the log names no host or port: neither the CS's, from the config, nor the
+// GS's, from the wire.
 TEST(ServerSessionTest, TheLogDoesNotSayTheAddresses)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1203,9 +1194,9 @@ TEST(ServerSessionTest, TheLogDoesNotSayTheAddresses)
     EXPECT_EQ(tested.LinesWithAnAddress(), Lines{});
 }
 
-// El F4 03 y un saludo en la misma lectura: el saludo es del CS y la sesión deja de recorrer el
-// lote. Si lo despachara, iría al dispatcher del GS, donde el 00 es el chat y no tiene handler, y
-// habría un aviso. Cuando el GS abre, no sale nada: el saludo lo manda él.
+// The F4 03 and a hello in the same read: the hello is the CS's and the session stops walking the batch. Dispatched,
+// it would go to the GS dispatcher, where the 00 is the chat and has no handler, and there would be a warning. When
+// the GS opens nothing leaves: the GS sends the hello.
 TEST(ServerSessionTest, WhatFollowsTheAddressIsDropped)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1223,9 +1214,9 @@ TEST(ServerSessionTest, WhatFollowsTheAddressIsDropped)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Con el GameServer, el 00 va a su dispatcher, que lo tiene como el chat (0x4e2b10, CL8 hito 3): no es el saludo del
-// CS y la sesión no pide otra lista. Lo que aplica decide con la escena: en la 2, 0x4c6070 pide la lista por el GS
-// sin leer el paquete (0x4c6098).
+// With the GameServer the 00 goes to its dispatcher, which has it as the chat (0x4e2b10, CL8 milestone 3): it is not
+// the CS's hello and the session asks for no other list. What applies it decides with the scene: in scene 2,
+// 0x4c6070 asks for the list through the GS without reading the packet (0x4c6098).
 TEST(ServerSessionTest, WithTheGameServerThe00IsTheChat)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1247,7 +1238,7 @@ TEST(ServerSessionTest, WithTheGameServerThe00IsTheChat)
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({sentToTheConnectServer, ListRequest()})));
 }
 
-// Pregunta 9: una lista vacía es un error que lo dice, y la sesión cierra el CS.
+// Question 9: an empty list is an error that says so, and the session closes the CS.
 TEST(ServerSessionTest, AnEmptyListFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1262,13 +1253,13 @@ TEST(ServerSessionTest, AnEmptyListFails)
     EXPECT_EQ(tested.socket.closes, 1);
     EXPECT_TRUE(tested.Logged(LogLevel::Error, "la lista de servidores está vacía"));
 
-    // El cierre lo pidió la sesión: no vuelve como un ConnectServerLost.
+    // The session asked for the close: it does not come back as a ConnectServerLost.
     static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
 }
 
-// La lista vacía y el cierre del CS en el mismo Poll: la sesión falla por la lista, que llegó
-// primero, y deja de recorrer el lote.
+// The empty list and the CS's close in the same Poll: the session fails on the list, which came first, and stops
+// walking the batch.
 TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1281,9 +1272,9 @@ TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
 }
 
-// El F4 05 es la respuesta del CS a un servidor ocupado, con el byte del servidor (el handler del
-// original, 0x4c1bf0, no lo lee). Como el original, la sesión vuelve a pedir la lista con el
-// mismo CS (Q-C71), y con la lista nueva espera otra elección.
+// The F4 05 is the CS's reply to a busy server, with the server's byte (the original's handler, 0x4c1bf0, does not
+// read it). Like the original, the session asks the same CS for the list again (Q-C71), and with the new list waits
+// for another choice.
 TEST(ServerSessionTest, ABusyServerAsksForTheListAgain)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1309,7 +1300,7 @@ TEST(ServerSessionTest, ABusyServerAsksForTheListAgain)
     EXPECT_EQ(tested.session.ServerList()[0].code, 401);
 }
 
-// Antes de elegir, un F4 05 no es la respuesta a nada: se ignora con un aviso (Q-C72).
+// Before the choice an F4 05 answers nothing: it is ignored with a warning (Q-C72).
 TEST(ServerSessionTest, ABusyAnswerOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1324,7 +1315,7 @@ TEST(ServerSessionTest, ABusyAnswerOutOfTurnIsIgnored)
               Lines{"[warning] se ignora el aviso de servidor ocupado (F4 05): llegó fuera de turno"});
 }
 
-// Un F4 03 antes de la lista no es la dirección: se ignora con un aviso, sin conectar a nada.
+// An F4 03 before the list is not the address: it is ignored with a warning, without connecting to anything.
 TEST(ServerSessionTest, AnUnexpectedPacketIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1340,8 +1331,8 @@ TEST(ServerSessionTest, AnUnexpectedPacketIsIgnored)
               Lines{"[warning] se ignora la dirección del GameServer (F4 03): llegó fuera de turno"});
 }
 
-// En 8 de 64 conexiones el original pide la lista dos veces (04 § El flujo de conexión): acá, un
-// segundo saludo se ignora con un aviso y el F4 02 sale una sola vez.
+// In 8 of 64 connections the original asks for the list twice (04 § El flujo de conexión): here a second hello is
+// ignored with a warning and the F4 02 leaves only once.
 TEST(ServerSessionTest, ASecondHelloIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1355,7 +1346,7 @@ TEST(ServerSessionTest, ASecondHelloIsIgnored)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora el saludo del ConnectServer (00): llegó fuera de turno"});
 }
 
-// Una segunda lista, ya elegido el servidor, no elige otro.
+// A second list, with the server already chosen, does not choose another.
 TEST(ServerSessionTest, AListOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1370,8 +1361,8 @@ TEST(ServerSessionTest, AListOutOfTurnIsIgnored)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora la lista de servidores (F4 06): llegó fuera de turno"});
 }
 
-// La conexión con el ConnectServer no tiene claves: un C3 que llega es Undecryptable. La sesión no
-// hace nada con él (el aviso es el de la conexión, uno solo) y lo que sigue en el lote se despacha.
+// The ConnectServer connection has no keys: an arriving C3 is Undecryptable. The session does nothing with it (the
+// warning is the connection's, a single one) and the rest of the batch is dispatched.
 TEST(ServerSessionTest, AnUndecryptablePacketIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1386,8 +1377,8 @@ TEST(ServerSessionTest, AnUndecryptablePacketIsIgnored)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se descarta un C3 que llegó: esta conexión no tiene claves"});
 }
 
-// Una lista que dice dos servidores y trae uno no se lee: se ignora con un aviso, y la sesión
-// sigue esperando una que sirva.
+// A list that says two servers and carries one does not read: it is ignored with a warning, and the session keeps
+// waiting for one that works.
 TEST(ServerSessionTest, AListThatDoesNotReadIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1401,7 +1392,7 @@ TEST(ServerSessionTest, AListThatDoesNotReadIsIgnored)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora la lista de servidores (F4 06): no se puede leer"});
 }
 
-// Lo mismo con una dirección que termina antes del puerto.
+// The same with an address that ends before the port.
 TEST(ServerSessionTest, AnAddressThatDoesNotReadIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1416,8 +1407,8 @@ TEST(ServerSessionTest, AnAddressThatDoesNotReadIsIgnored)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora la dirección del GameServer (F4 03): no se puede leer"});
 }
 
-// Un F4 que termina en el opcode no tiene subcódigo: el Dispatcher da Malformed sin avisar, y el
-// aviso lo pone la sesión, sin los bytes.
+// An F4 that ends at the opcode has no subcode: the Dispatcher gives Malformed without warning, and the session
+// logs the warning, without the bytes.
 TEST(ServerSessionTest, AMalformedPacketIsLogged)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1444,7 +1435,7 @@ TEST(ServerSessionTest, LosingTheConnectServerFails)
                                                            CloseReasonText(CloseReason::PeerClosed))));
 }
 
-// Sin timeout, la espera de la elección no cuelga: un CS que cierra con la lista en pantalla es un
+// Without a timeout the wait for the choice does not hang: a CS that closes with the list on screen is a
 // ConnectServerLost.
 TEST(ServerSessionTest, LosingTheConnectServerWhileChoosingFails)
 {
@@ -1458,7 +1449,7 @@ TEST(ServerSessionTest, LosingTheConnectServerWhileChoosingFails)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
 }
 
-// Y la de la cuenta: un GS que cierra con la cuenta en pantalla es un GameServerLost.
+// And the account's: a GS that closes with the account on screen is a GameServerLost.
 TEST(ServerSessionTest, LosingTheGameServerWhileWaitingForTheCredentialsFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1471,7 +1462,7 @@ TEST(ServerSessionTest, LosingTheGameServerWhileWaitingForTheCredentialsFails)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
-// También mientras conecta: un CS que rechaza la conexión.
+// Also while connecting: a CS that refuses the connection.
 TEST(ServerSessionTest, AConnectServerThatRefusesFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1484,7 +1475,7 @@ TEST(ServerSessionTest, AConnectServerThatRefusesFails)
     EXPECT_TRUE(tested.socket.sent.empty());
 }
 
-// El GameServer que dio el CS rechaza la conexión.
+// The GameServer the CS gave refuses the connection.
 TEST(ServerSessionTest, LosingTheGameServerFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1502,8 +1493,8 @@ TEST(ServerSessionTest, LosingTheGameServerFails)
                                                            CloseReasonText(CloseReason::Refused))));
 }
 
-// Un Send desde un handler puede cerrar la conexión (acá, el F4 02 a un CS que ya cerró): lo que
-// queda del lote no se despacha, y el cierre sale en el Poll siguiente.
+// A Send from a handler can close the connection (here, the F4 02 to a CS that already closed): the rest of the
+// batch is not dispatched, and the close comes out in the next Poll.
 TEST(ServerSessionTest, WhatFollowsACloseInAHandlerIsDropped)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1521,8 +1512,8 @@ TEST(ServerSessionTest, WhatFollowsACloseInAHandlerIsDropped)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
 }
 
-// Si el CS cierra en el mismo Poll en que llega un paquete, el paquete se despacha y después el
-// cierre: la sesión no se queda esperando una lista que no va a llegar.
+// If the CS closes in the same Poll a packet arrives, the packet is dispatched and then the close: the session does
+// not stay waiting for a list that will not come.
 TEST(ServerSessionTest, WhatArrivesBeforeTheServerClosesIsHandled)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1538,7 +1529,7 @@ TEST(ServerSessionTest, WhatArrivesBeforeTheServerClosesIsHandled)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
 }
 
-// Start vuelve a empezar desde cualquier estado, y olvida la falla y el GameServer de antes.
+// Start starts over from any state, and forgets the failure and the previous GameServer.
 TEST(ServerSessionTest, StartingAgainStartsClean)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1555,7 +1546,7 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
     tested.session.ChooseServer(LabServerCode);
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    // El primer Poll lee la dirección y abre el GS; el segundo da su Opened.
+    // The first Poll reads the address and opens the GS; the second gives its Opened.
     static_cast<void>(tested.session.Poll());
     static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
@@ -1575,8 +1566,8 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     EXPECT_EQ(tested.LinesWithAnAddress(), Lines{});
 }
 
-// El GameServer del F4 03: la sesión conecta a ese, y cuando abre espera el saludo sin mandar nada,
-// porque el GS saluda primero.
+// The F4 03's GameServer: the session connects to that one, and when it opens waits for the hello without sending
+// anything, because the GS greets first.
 TEST(ServerSessionTest, ConnectsToTheGameServerItWasGiven)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1592,9 +1583,9 @@ TEST(ServerSessionTest, ConnectsToTheGameServerItWasGiven)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "conectó con el GameServer"));
 }
 
-// Con el saludo del GS aceptado y la versión, la sesión espera la cuenta y la clave (CL5.5):
-// sale el keepalive del timer global, pero no el login, y la espera humana no tiene tope.
-// Después de 60 s sigue esperando credenciales y mandó los tres keepalives del original.
+// With the GS's hello accepted and the version, the session waits for the account and the password (CL5.5): the
+// global timer's keepalive leaves, but not the login, and the human wait has no timeout. After 60 s it still waits
+// for credentials and has sent the original's three keepalives.
 TEST(ServerSessionTest, WaitsForTheCredentialsAfterTheGameHello)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1611,9 +1602,9 @@ TEST(ServerSessionTest, WaitsForTheCredentialsAfterTheGameHello)
     EXPECT_EQ(tested.Keepalives().size(), 3u);
 }
 
-// El test del 04: con C1 0C F1 00 01 00 05 "10209" y la cuenta y la clave, el login sale cifrado
-// como C3, con el serial 0, y el GS lo descifra a los 49 bytes de WriteLoginRequest con la cuenta,
-// la clave y el tick del reloj en el momento de SubmitCredentials.
+// 04's test: with C1 0C F1 00 01 00 05 "10209" and the account and password, the login leaves encrypted as C3 with
+// serial 0, and the GS decrypts it to WriteLoginRequest's 49 bytes with the account, the password and the clock's
+// tick at SubmitCredentials.
 TEST(ServerSessionTest, SubmittingSendsTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1634,8 +1625,8 @@ TEST(ServerSessionTest, SubmittingSendsTheLogin)
     EXPECT_FALSE(tested.LoggedTheCredentials());
 }
 
-// SubmitCredentials fuera de WaitingCredentials: un aviso, sin la cuenta ni la clave, y nada sale.
-// Antes del saludo, y con el login ya mandado.
+// SubmitCredentials outside WaitingCredentials: a warning, without the account or the password, and nothing sent.
+// Before the hello, and with the login already sent.
 TEST(ServerSessionTest, SubmittingOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1656,7 +1647,7 @@ TEST(ServerSessionTest, SubmittingOutOfTurnIsIgnored)
     EXPECT_FALSE(tested.LoggedTheCredentials());
 }
 
-// El GS del laboratorio manda el saludo cifrado: la conexión del GS tiene las claves y lo descifra.
+// The lab GS sends the hello encrypted: the GS connection has the keys and decrypts it.
 TEST(ServerSessionTest, AHelloThatArrivesEncryptedAlsoWaitsForTheCredentials)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1669,8 +1660,8 @@ TEST(ServerSessionTest, AHelloThatArrivesEncryptedAlsoWaitsForTheCredentials)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Un saludo con otro resultado que 1: HelloRejected, sin login, y la sesión cierra el GS. Se mira
-// antes que la versión: con las dos cosas mal, también es HelloRejected.
+// A hello with a result other than 1: HelloRejected, no login, and the session closes the GS. It is checked before
+// the version: with both wrong, it is also HelloRejected.
 TEST(ServerSessionTest, ARejectedHelloFails)
 {
     for (const std::string_view version : {ClientVersion, OtherVersion})
@@ -1689,8 +1680,7 @@ TEST(ServerSessionTest, ARejectedHelloFails)
     }
 }
 
-// Otra versión, con el saludo aceptado: VersionMismatch, sin login, con las dos versiones en el
-// log.
+// Another version, with the hello accepted: VersionMismatch, no login, with both versions in the log.
 TEST(ServerSessionTest, AnotherVersionFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1707,8 +1697,8 @@ TEST(ServerSessionTest, AnotherVersionFails)
                                                            OtherVersion, ClientVersion)));
 }
 
-// La versión viene del servidor: un byte que no se ve (un \0, un salto de línea, un DEL) sale como
-// '?' en el log, que así sigue siendo de una línea.
+// The version comes from the server: a byte that does not print (a \0, a line break, a DEL) is logged as '?', so the
+// log stays one line.
 TEST(ServerSessionTest, AVersionThatDoesNotPrintIsLoggedWithQuestionMarks)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1742,9 +1732,9 @@ TEST(ServerSessionTest, AnAcceptedLoginIsLoggedIn)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Otro resultado: como el original, que vuelve al estado 2 con el GS abierto (0x643560), la sesión
-// espera otra vez la cuenta y la clave, con el resultado guardado para el aviso de la escena. El
-// login siguiente sale con el serial que sigue, y olvida el resultado de antes.
+// Another result: like the original, which goes back to state 2 with the GS open (0x643560), the session waits again
+// for the account and the password, with the result kept for the scene's notice. The next login leaves with the next
+// serial and forgets the previous result.
 TEST(ServerSessionTest, ARejectedLoginKeepsItsResult)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1775,9 +1765,8 @@ TEST(ServerSessionTest, ARejectedLoginKeepsItsResult)
     EXPECT_TRUE(SameBytesWithoutValues(received.packets.back().Bytes(), expected.Value().packet.Bytes()));
 }
 
-// Un C3 con el checksum malo: la sesión manda el F1 03, que el GS descifra a C1 06 F1 7B C1 73 con
-// el serial 1 (el login gastó el 0), y sigue esperando el resultado. El que llega después, con el
-// serial que sigue, se lee.
+// A C3 with a bad checksum: the session sends the F1 03, which the GS decrypts to C1 06 F1 7B C1 73 with serial 1
+// (the login spent 0), and keeps waiting for the result. The one that arrives later, with the next serial, is read.
 TEST(ServerSessionTest, ABadChecksumSendsTheReport)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1802,7 +1791,7 @@ TEST(ServerSessionTest, ABadChecksumSendsTheReport)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// Lo que no mide bloques enteros también lleva el aviso, como dice el contrato.
+// What does not measure whole blocks also gets the report, as the contract says.
 TEST(ServerSessionTest, APacketThatIsNotWholeBlocksSendsTheReport)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1816,8 +1805,8 @@ TEST(ServerSessionTest, APacketThatIsNotWholeBlocksSendsTheReport)
     EXPECT_TRUE(SameBytesWithoutValues(received.packets[1].Bytes(), NoticeBytes()));
 }
 
-// Con los otros errores, solo el aviso de la conexión: un C3 que pasa el checksum y no trae el
-// opcode (TooShort) no manda el F1 03.
+// With the other errors, only the connection's warning: a C3 that passes the checksum and has no opcode (TooShort)
+// does not send the F1 03.
 TEST(ServerSessionTest, AnotherUndecryptablePacketSendsNoReport)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1832,7 +1821,6 @@ TEST(ServerSessionTest, AnotherUndecryptablePacketSendsNoReport)
     EXPECT_EQ(tested.Warnings().size(), 1u);
 }
 
-// Un saludo de más, ya mandado el login, no manda otro.
 TEST(ServerSessionTest, AHelloAfterTheLoginDoesNotSendAnotherLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1850,7 +1838,7 @@ TEST(ServerSessionTest, AHelloAfterTheLoginDoesNotSendAnotherLogin)
     EXPECT_TRUE(std::holds_alternative<Client::App::GuildTableReset>(events[0]));
 }
 
-// Un resultado antes del saludo no es el del login.
+// A result before the hello is not the login's.
 TEST(ServerSessionTest, ALoginResultOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1864,8 +1852,8 @@ TEST(ServerSessionTest, ALoginResultOutOfTurnIsIgnored)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora el resultado del login (F1 01): llegó fuera de turno"});
 }
 
-// Un saludo que termina antes de la versión, y un resultado sin el resultado: no se leen, y la
-// sesión sigue esperando.
+// A hello that ends before the version, and a result without the result: they do not read, and the session keeps
+// waiting.
 TEST(ServerSessionTest, WhatDoesNotReadFromTheGameServerIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1886,8 +1874,8 @@ TEST(ServerSessionTest, WhatDoesNotReadFromTheGameServerIsIgnored)
                                         "[warning] se ignora el resultado del login (F1 01): no se puede leer"}));
 }
 
-// Una cuenta de 11 bytes no entra en el login (ni ReadCredentials ni el TextField la dejan pasar):
-// la sesión no manda nada, falla con CredentialsTooLong y el error no trae la cuenta.
+// An 11-byte account does not fit in the login (neither ReadCredentials nor the TextField let it through): the
+// session sends nothing, fails with CredentialsTooLong and the error does not carry the account.
 TEST(ServerSessionTest, CredentialsThatDoNotFitFail)
 {
     const std::string tooLong = std::string(Account) + "xyz";
@@ -1904,7 +1892,7 @@ TEST(ServerSessionTest, CredentialsThatDoNotFitFail)
     EXPECT_FALSE(tested.LoggedTheCredentials());
 }
 
-// El GS que cierra con el login aceptado: GameServerLost, con el motivo en el log.
+// The GS that closes with the login accepted: GameServerLost, with the reason in the log.
 TEST(ServerSessionTest, LosingTheGameServerAfterTheLoginFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1919,9 +1907,9 @@ TEST(ServerSessionTest, LosingTheGameServerAfterTheLoginFails)
                                                            CloseReasonText(CloseReason::PeerClosed))));
 }
 
-// La orden de cerrar el juego (Q-C106): el F1 02 con 0, cifrado como lo manda el GS al final de su
-// cuenta de 5 s. La sesión cierra la conexión y queda en QuitOrdered, sin falla y sin errores en
-// el log: no es un GameServerLost, y main.cpp cierra el juego sin aviso.
+// The order to close the game (Q-C106): the F1 02 with 0, encrypted as the GS sends it at the end of its 5 s
+// countdown. The session closes the connection and stays in QuitOrdered, with no failure and no errors in the log:
+// it is not a GameServerLost, and main.cpp closes the game without a notice.
 TEST(ServerSessionTest, TheGameServersQuitOrderClosesWithoutAFailure)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1938,7 +1926,7 @@ TEST(ServerSessionTest, TheGameServersQuitOrderClosesWithoutAFailure)
     EXPECT_EQ(tested.CountLogged(LogLevel::Error, ""), 0u);
 }
 
-// 0x4c2710 no mira la escena: la orden cierra también en la selección, y con ella se va la lista.
+// 0x4c2710 does not look at the scene: the order also closes in the selection, and the list goes with it.
 TEST(ServerSessionTest, TheQuitOrderAlsoClosesInTheSelection)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1952,8 +1940,8 @@ TEST(ServerSessionTest, TheQuitOrderAlsoClosesInTheSelection)
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
 }
 
-// El GS cierra la conexión justo después de la orden (CloseClient), y los dos pueden llegar en la
-// misma lectura: el cierre es lo último del lote y no se recorre. Sigue sin falla.
+// The GS closes the connection right after the order (CloseClient), and both can arrive in the same read: the close
+// is the last of the batch and is not walked. Still no failure.
 TEST(ServerSessionTest, TheCloseThatFollowsTheQuitOrderIsNotALoss)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1968,8 +1956,8 @@ TEST(ServerSessionTest, TheCloseThatFollowsTheQuitOrderIsNotALoss)
     EXPECT_FALSE(tested.Logged(LogLevel::Error, "se perdió la conexión"));
 }
 
-// 0x4c2710 no mira la escena ni si llegó cifrado: la orden en claro, con la cuenta en pantalla,
-// también cierra.
+// 0x4c2710 looks neither at the scene nor at whether it arrived encrypted: the order in clear, with the account on
+// screen, also closes.
 TEST(ServerSessionTest, AQuitOrderInClearWhileWaitingForTheCredentialsAlsoCloses)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1982,8 +1970,8 @@ TEST(ServerSessionTest, AQuitOrderInClearWhileWaitingForTheCredentialsAlsoCloses
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
 }
 
-// Con la orden, el keepalive se detiene, la sesión no se reconecta y no espera nada: en los 40 s
-// siguientes no sale nada, no conecta y no hay un NoReply.
+// With the order the keepalive stops, the session does not reconnect and waits for nothing: in the next 40 s nothing
+// leaves, nothing connects and there is no NoReply.
 TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2003,7 +1991,7 @@ TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
 }
 
-// Fuera de 0/1/2 el original no hace nada; sin el resultado, no se puede leer.
+// Outside 0/1/2 the original does nothing; without the result, it cannot be read.
 TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2024,7 +2012,7 @@ TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
-// Lo que le llegó al GS desde `from`, sin el XOR32.
+// What reached the GS from `from` on, without the XOR32.
 std::vector<Packet> GameServerPacketsFrom(const Harness& tested, std::size_t from)
 {
     const GameServerReceived received = tested.GameServerReads();
@@ -2036,8 +2024,8 @@ std::vector<Packet> GameServerPacketsFrom(const Harness& tested, std::size_t fro
     return packets;
 }
 
-// El recorder no implementa el mundo. Estos casos de wire simulan explícitamente una caja vacía;
-// la condición y la intercalación reales se prueban con SessionEventApplier/ReturnToSelection.
+// The recorder does not implement the world. These wire cases explicitly simulate an empty box; the real condition
+// and interleaving are tested with SessionEventApplier/ReturnToSelection.
 Client::Core::Expected<void, std::string> ApplyAnEmptyWorldReset(const WorldEvent& event, ServerSession& session)
 {
     if (std::holds_alternative<Client::App::SelectionWorldReset>(event) ||
@@ -2049,7 +2037,7 @@ Client::Core::Expected<void, std::string> ApplyAnEmptyWorldReset(const WorldEven
     return {};
 }
 
-// En el mundo, con el F3 03 publicado por el sink.
+// In the world, with the F3 03 published by the sink.
 void ReachInWorld(Harness& tested)
 {
     ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
@@ -2068,10 +2056,9 @@ void ReachInWorld(Harness& tested)
     static_cast<void>(tested.eventSink.TakeWorldEvents());
 }
 
-// 0x4c3626..0x4c390f: el F1 02 con 1 cifrado le da al sink la vuelta a la selección, con la sesión todavía
-// en el mundo, y después salen el F3 00 (0x4c3653) y los dos C1 03 31 (0x419900 y 0x4499b0), en ese orden;
-// la lista vieja y la elección se olvidan y la sesión espera la nueva. Con ella, se elige y se entra otra
-// vez como la primera.
+// 0x4c3626..0x4c390f: the encrypted F1 02 with 1 gives the sink the return to the selection, with the session still
+// in the world, and then the F3 00 (0x4c3653) and the two C1 03 31 (0x419900 and 0x4499b0) leave, in that order; the
+// old list and choice are forgotten and the session waits for the new one. With it, one is chosen and entered again.
 TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2099,7 +2086,7 @@ TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
     EXPECT_TRUE(SameBytes(sent[2].Bytes(), Bytes({0xC1, 0x03, 0x31})));
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "el GameServer ordenó volver a la selección (F1 02 con 1)"));
 
-    // La selección nueva no vuelve a pedir la lista: la sesión no lo espera.
+    // The new selection does not ask for the list again: the session does not expect it.
     tested.session.RequestCharacterList();
     EXPECT_EQ(GameServerPacketsFrom(tested, sentBefore).size(), 3u);
     tested.socket.reads = {CharacterListBytes(TwoCharacters())};
@@ -2112,7 +2099,7 @@ TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
     EXPECT_EQ(tested.CharacterPacketsSent(SelectSubcode).size(), 2u);
 }
 
-// 0x4c2ef3..0x4c2f51: cierra GS y deja el estado 0, sin error; la escena 2 inicia el CS.
+// 0x4c2ef3..0x4c2f51: closes the GS and leaves state 0, without error; scene 2 starts the CS.
 TEST(ServerSessionTest, AnEncryptedTwoClosesTheOldConnectionWithoutConsumingItsRemainingPackets)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2140,7 +2127,7 @@ TEST(ServerSessionTest, AnEncryptedTwoClosesTheOldConnectionWithoutConsumingItsR
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
 }
 
-// A diferencia del 1, el 2 limpia el juego ANTES de comprobar el cifrado (0x4c275c..0x4c2781).
+// Unlike the 1, the 2 clears the game BEFORE checking the encryption (0x4c275c..0x4c2781).
 TEST(ServerSessionTest, AClearTwoStillDeliversTheCleanupAndReportsWithoutClosing)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2175,8 +2162,8 @@ TEST(ServerSessionTest, EveryReadableLogoutResultReleasesThePendingUiRequest)
     }
 }
 
-// 0x4c2f5b: sin cifrar, el 1 no limpia ni cambia de escena: solo le avisa al GS con el F1 03 00 F1, para
-// cifrar (Q-C211). La sesión sigue en el mundo y el sink no recibe nada.
+// 0x4c2f5b: unencrypted, the 1 neither clears nor changes scene: it only reports to the GS with the F1 03 00 F1, to
+// encrypt (Q-C211). The session stays in the world and the sink receives nothing.
 TEST(ServerSessionTest, AClearOneChangesNothing)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2199,18 +2186,17 @@ TEST(ServerSessionTest, AClearOneChangesNothing)
                      "GameServer (F1 03) y se sigue igual"}));
 }
 
-// La clave del 03, como la manda el GS (GCCheckMainExeKeySend): C1 06 03, un relleno y la clave.
+// The 03's key as the GS sends it (GCCheckMainExeKeySend): C1 06 03, a padding byte and the key.
 std::vector<std::byte> MainCheckKey(std::uint16_t key)
 {
     return Bytes({0xC1, 0x06, 0x03, 0x00, static_cast<int>(key & 0xFFU), static_cast<int>(key >> 8U)});
 }
 
-// La clave de la tabla 0 con el rand() en 0 (EncryptCheckSumKey del GS).
+// Table 0's key with rand() at 0 (the GS's EncryptCheckSumKey).
 constexpr std::uint16_t TableZeroKey = 0xB479;
 
-// 0x4e16c0: al 03 del GS contesta en el mismo Poll con la suma del archivo que nombra la línea de
-// comandos, como C3 (si no, el GS cierra a los 3 s). Con 23 bytes de 0x10 en adelante y la tabla 0, la
-// suma de MainCheckTest.
+// 0x4e16c0: answers the GS's 03 in the same Poll with the sum of the file the command line names, as C3 (otherwise
+// the GS closes after 3 s). With 23 bytes from 0x10 on and table 0, MainCheckTest's sum.
 TEST(ServerSessionTest, TheMainCheckIsAnsweredWithTheSumOfTheExecutable)
 {
     Client::Tests::TemporaryFolder folder("main-check");
@@ -2240,8 +2226,8 @@ TEST(ServerSessionTest, TheMainCheckIsAnsweredWithTheSumOfTheExecutable)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se contestó la suma del ejecutable (03)"));
 }
 
-// Sin el archivo (0x4aec28, el CreateFileA que falla) la suma va en 0, y también en claro desde el GS:
-// el dispatcher no mira el cifrado. Una carpeta tampoco se abre.
+// Without the file (0x4aec28, the failing CreateFileA) the sum is 0, also in clear from the GS: the dispatcher does
+// not look at the encryption. A folder does not open either.
 TEST(ServerSessionTest, WithoutTheExecutableTheMainCheckSumIsZero)
 {
     Client::Tests::TemporaryFolder folder("main-check-missing");
@@ -2266,7 +2252,7 @@ TEST(ServerSessionTest, WithoutTheExecutableTheMainCheckSumIsZero)
     }
 }
 
-// Un 03 sin la clave se ignora con un aviso y no contesta.
+// A 03 without the key is ignored with a warning and gets no answer.
 TEST(ServerSessionTest, AMainCheckWithoutItsKeyIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2281,8 +2267,8 @@ TEST(ServerSessionTest, AMainCheckWithoutItsKeyIsIgnored)
               (Lines{"[warning] se ignora la clave de la suma del ejecutable (03): no se puede leer"}));
 }
 
-// El 1 no mira el estado: también con el login recién aceptado, como el original, que no mira la escena.
-// Si el sink no puede limpiar, la sesión falla y no manda nada.
+// The 1 does not look at the state: also with the login just accepted, like the original, which does not look at the
+// scene. If the sink cannot clear, the session fails and sends nothing.
 TEST(ServerSessionTest, ALogoutWithOneThatFailsToApplyIsNotFollowed)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2305,8 +2291,8 @@ TEST(ServerSessionTest, ALogoutWithOneThatFailsToApplyIsNotFollowed)
     EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
 }
 
-// El ConnectServer no tiene F1: su dispatcher no tiene la orden (CL4.3), y un F1 02 con 0 de él no
-// cierra nada. El original tiene un dispatcher solo y cerraría; un CS no lo manda.
+// The ConnectServer has no F1: its dispatcher lacks the order (CL4.3), and an F1 02 with 0 from it closes nothing.
+// The original has a single dispatcher and would close; a CS does not send it.
 TEST(ServerSessionTest, TheConnectServerCannotOrderTheQuit)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2319,8 +2305,8 @@ TEST(ServerSessionTest, TheConnectServerCannotOrderTheQuit)
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
 }
 
-// QuitOrdered es el final: el juego se cierra en ese frame, y un Start de la escena (el Esc de la
-// cuenta) no vuelve a conectar. Un aviso, y la sesión sigue igual.
+// QuitOrdered is final: the game closes in that frame, and a Start from the scene (the account's Esc) does not
+// reconnect. A warning, and the session stays the same.
 TEST(ServerSessionTest, TheQuitOrderIsFinal)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2339,8 +2325,8 @@ TEST(ServerSessionTest, TheQuitOrderIsFinal)
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] no se vuelve a conectar: el GameServer ordenó cerrar el juego"});
 }
 
-// Lo que llega detrás de la orden en la misma lectura no se despacha, como en el original, que al
-// cerrar vacía su cola (0x4e8380): un saludo de más no deja el aviso de fuera de turno.
+// What arrives after the order in the same read is not dispatched, like the original, which empties its queue on
+// close (0x4e8380): an extra hello leaves no out-of-turn warning.
 TEST(ServerSessionTest, WhatFollowsTheQuitOrderIsDropped)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2355,7 +2341,7 @@ TEST(ServerSessionTest, WhatFollowsTheQuitOrderIsDropped)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Pregunta 7: de Start a LoggedIn, ninguna línea del log trae la cuenta ni la clave.
+// Question 7: from Start to LoggedIn, no log line carries the account or the password.
 TEST(ServerSessionTest, TheLogDoesNotHaveTheCredentials)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2366,8 +2352,7 @@ TEST(ServerSessionTest, TheLogDoesNotHaveTheCredentials)
     EXPECT_EQ(tested.LinesWithAnAddress(), Lines{});
 }
 
-// Start olvida el resultado del login, y el CS vuelve a abrir sin claves: un C3 ahí no manda el
-// F1 03.
+// Start forgets the login result, and the CS opens again without keys: a C3 there does not send the F1 03.
 TEST(ServerSessionTest, StartingAgainForgetsTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2382,9 +2367,9 @@ TEST(ServerSessionTest, StartingAgainForgetsTheLogin)
     static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.socket.sent.size(), sentBefore);
 }
-// El primero sale en el mismo Poll que lee el login aceptado, como el de 0x4ad100: un C3 con el
-// serial 1 (el login gastó el 0) que el GS descifra a lo mismo que WriteKeepalive con el tick del
-// reloj en ese momento y las velocidades en 0 y 0, sin ajuste.
+// The first one leaves in the same Poll that reads the accepted login, like 0x4ad100's: a C3 with serial 1 (the
+// login spent 0) that the GS decrypts to the same as WriteKeepalive with the clock's tick at that moment and the
+// speeds at 0 and 0, without adjustment.
 TEST(ServerSessionTest, SendsTheFirstKeepaliveWithTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2398,8 +2383,8 @@ TEST(ServerSessionTest, SendsTheFirstKeepaliveWithTheLogin)
     EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
 }
 
-// Sin SetKeepaliveSpeeds, el keepalive sin el XOR32 trae 0 y 0 en las dos velocidades y el 00
-// después del opcode, como el primero de las 8 conexiones al GS (CL4.R, paso 6).
+// Without SetKeepaliveSpeeds the keepalive without the XOR32 carries 0 and 0 in both speeds and the 00 after the
+// opcode, like the first of the 8 connections to the GS (CL4.R, step 6).
 TEST(ServerSessionTest, WithoutACharacterTheSpeedsAreZero)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2413,9 +2398,9 @@ TEST(ServerSessionTest, WithoutACharacterTheSpeedsAreZero)
     EXPECT_TRUE(SameBytes(bytes.subspan(KeepaliveSpeedsIndex), Bytes({0x00, 0x00, 0x00, 0x00})));
 }
 
-// El login en t = 3 s no reinicia el timer global: ninguno nuevo a los 19,999 s; a los 20 s,
-// uno; hasta t = 100 s, 6 en total (3, 20, 40, 60, 80 y 100), con los seriales 1 a 6. LoggedIn no tiene tope:
-// sin nada del GS en 100 s, la sesión sigue.
+// The login at t = 3 s does not restart the global timer: none new at 19.999 s; at 20 s, one; up to t = 100 s, 6 in
+// total (3, 20, 40, 60, 80 and 100), with serials 1 to 6. LoggedIn has no timeout: with nothing from the GS in 100 s,
+// the session goes on.
 TEST(ServerSessionTest, KeepaliveEveryTwentySecondsAndNotBefore)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2434,9 +2419,9 @@ TEST(ServerSessionTest, KeepaliveEveryTwentySecondsAndNotBefore)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// El timer 1000 del original mira la conexión al GS, no el login (04 § El flujo de conexión).
-// En 98 s salen cuatro keepalives: mientras se espera el saludo, las credenciales y el resultado,
-// sin prolongar los límites de las respuestas del servidor.
+// The original's timer 1000 looks at the GS connection, not the login (04 § El flujo de conexión). In 98 s four
+// keepalives leave, while waiting for the hello, the credentials and the result, without extending the limits on the
+// server's replies.
 TEST(ServerSessionTest, KeepaliveBeforeTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2456,8 +2441,8 @@ TEST(ServerSessionTest, KeepaliveBeforeTheLogin)
     EXPECT_EQ(tested.Keepalives().size(), 4u);
 }
 
-// Un keepalive prelogin consume serial 0; el login consume 1 y su respuesta manda el 2.
-// El timer siguiente sigue venciendo a los 40 s, no a los 45 del login aceptado.
+// A prelogin keepalive spends serial 0; the login spends 1 and its reply sends the 2. The next timer still expires at
+// 40 s, not at 45 after the accepted login.
 TEST(ServerSessionTest, AcceptingTheLoginDoesNotRestartTheGlobalTimer)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2479,8 +2464,8 @@ TEST(ServerSessionTest, AcceptingTheLoginDoesNotRestartTheGlobalTimer)
     EXPECT_EQ(tested.GameServerReads().packets.size(), 4u);
 }
 
-// El timer corre sin conexión y con el CS: esos vencimientos no mandan ni quedan pendientes.
-// El GS abierto a los 65 s espera al siguiente vencimiento global, a los 80 s.
+// The timer runs without a connection and with the CS: those expirations neither send nor stay pending. The GS
+// opened at 65 s waits for the next global expiration, at 80 s.
 TEST(ServerSessionTest, TheGlobalTimerConsumesTicksWithoutAGameServer)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2509,7 +2494,7 @@ TEST(ServerSessionTest, TheGlobalTimerConsumesTicksWithoutAGameServer)
     EXPECT_EQ(tested.Keepalives().size(), 1u);
 }
 
-// Cancelar/reconectar mantiene el timer, pero cada conexión vuelve su serial a 0.
+// Cancelling or reconnecting keeps the timer, but each connection resets its serial to 0.
 TEST(ServerSessionTest, ReconnectingDoesNotRestartTheGlobalTimer)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2526,7 +2511,7 @@ TEST(ServerSessionTest, ReconnectingDoesNotRestartTheGlobalTimer)
     EXPECT_EQ(tested.GameServerReads().serials, (std::vector<SerialCheck>{SerialCheck::InOrder}));
 }
 
-// El envío inmediato de F1 01 aceptado y el timer vencido son productores independientes.
+// The immediate send of the accepted F1 01 and the expired timer are independent producers.
 TEST(ServerSessionTest, TheLoginAndTheDueTimerCanEachSendAKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2545,7 +2530,7 @@ TEST(ServerSessionTest, TheLoginAndTheDueTimerCanEachSendAKeepalive)
     EXPECT_EQ(tested.Keepalives().size(), 3u);
 }
 
-// Un connect no bloqueante aún en curso no consume seriales ni encola el tick de los 20 s.
+// A non-blocking connect still in progress neither spends serials nor queues the 20 s tick.
 TEST(ServerSessionTest, AConnectingGameServerDoesNotQueueTheDueKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2570,7 +2555,7 @@ TEST(ServerSessionTest, AConnectingGameServerDoesNotQueueTheDueKeepalive)
     EXPECT_EQ(tested.Keepalives().size(), 1u);
 }
 
-// Si el envío inmediato falla, no se intenta el periódico ni se procesa el resto del lote.
+// If the immediate send fails, the periodic one is not attempted and the rest of the batch is not processed.
 TEST(ServerSessionTest, AFailedImmediateKeepaliveDoesNotAttemptTheDueTimer)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2590,7 +2575,7 @@ TEST(ServerSessionTest, AFailedImmediateKeepaliveDoesNotAttemptTheDueTimer)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
-// El peer puede cerrar después de entregar F1 01: no se registra como enviado lo descartado.
+// The peer may close after delivering F1 01: what was dropped is not logged as sent.
 TEST(ServerSessionTest, AClosingLoginBatchDoesNotLogASentKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2607,7 +2592,7 @@ TEST(ServerSessionTest, AClosingLoginBatchDoesNotLogASentKeepalive)
     EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
 }
 
-// Entre el 0E que cierra el GS y su Closed diferido, la UI no debe borrar el rechazo ni fingir login.
+// Between the 0E that closes the GS and its deferred Closed, the UI must not erase the rejection or fake a login.
 TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUntilClosed)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2633,8 +2618,8 @@ TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUnti
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
-// Un frame de 60 s (un breakpoint) con el login en t = 3 s: en t = 63 s sale uno solo, con el
-// serial 2, y el siguiente a los 83 s, sin recuperar los vencimientos de 20, 40 y 60 s.
+// A 60 s frame (a breakpoint) with the login at t = 3 s: at t = 63 s only one leaves, with serial 2, and the next at
+// 83 s, without recovering the 20, 40 and 60 s expirations.
 TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2650,9 +2635,9 @@ TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
     EXPECT_EQ(tested.Keepalives().size(), 3u);
 }
 
-// Con el GameLoop y la ventana minimizada, el Poll sigue (CL4.1) y con él el keepalive: 100 s
-// después del login, el del login y cinco más. Main pone la sesión en el Poll del SceneManager,
-// como acá, con una escena que no hace nada en el lugar de la selección; no se dibuja nada.
+// With the GameLoop and the window minimized the Poll goes on (CL4.1) and the keepalive with it: 100 s after the
+// login, the login's and five more. Main puts the session in the SceneManager's Poll, as here, with a scene that does
+// nothing in place of the selection; nothing is drawn.
 TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2677,9 +2662,8 @@ TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
     EXPECT_TRUE(frame.frames.empty());
 }
 
-// Las velocidades que dio SetKeepaliveSpeeds, con el ajuste de KeepaliveSpeed: 0x0328 + 20 y
-// 0x0268 + 20 con KeepaliveAdjust20 salen como 28 03 68 02. El XOR32 sigue puesto después de
-// descifrar: se mira sin él.
+// The speeds SetKeepaliveSpeeds gave, with KeepaliveSpeed's adjustment: 0x0328 + 20 and 0x0268 + 20 with
+// KeepaliveAdjust20 come out as 28 03 68 02. The XOR32 is still on after decrypting: it is checked without it.
 TEST(ServerSessionTest, UsesTheSpeedsItWasGiven)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2695,8 +2679,8 @@ TEST(ServerSessionTest, UsesTheSpeedsItWasGiven)
     EXPECT_TRUE(SameBytes(bytes.subspan(KeepaliveSpeedsIndex), Bytes({0x28, 0x03, 0x68, 0x02})));
 }
 
-// Las velocidades que llegan con el login ya aceptado (la CL6 las da al elegir el personaje) van en
-// el keepalive siguiente: el del login sale con 0 y 0, y el de los 20 s con las nuevas.
+// Speeds that arrive with the login already accepted (CL6 gives them on choosing the character) go in the next
+// keepalive: the login's leaves with 0 and 0, and the 20 s one with the new ones.
 TEST(ServerSessionTest, SpeedsGivenAfterTheLoginGoInTheNextKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2716,8 +2700,8 @@ TEST(ServerSessionTest, SpeedsGivenAfterTheLoginGoInTheNextKeepalive)
     EXPECT_TRUE(SameBytes(keepalives[1].Bytes().subspan(KeepaliveSpeedsIndex), Bytes({0x28, 0x03, 0x68, 0x02})));
 }
 
-// El GS que corta con el login aceptado: GameServerLost con PeerClosed en el log, el keepalive se
-// detiene y la sesión no se reconecta sola. En los 40 s siguientes no sale nada.
+// The GS that cuts with the login accepted: GameServerLost with PeerClosed in the log, the keepalive stops and the
+// session does not reconnect on its own. Nothing leaves in the next 40 s.
 TEST(ServerSessionTest, LosingTheGameServerStopsTheKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2738,7 +2722,7 @@ TEST(ServerSessionTest, LosingTheGameServerStopsTheKeepalive)
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
 }
 
-// Start desde LoggedIn vuelve al CS: el timer sigue, pero no manda keepalive al CS, solo el A9.
+// Start from LoggedIn goes back to the CS: the timer goes on, but sends no keepalive to the CS, only the A9.
 TEST(ServerSessionTest, StartingAgainStopsTheKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2753,8 +2737,8 @@ TEST(ServerSessionTest, StartingAgainStopsTheKeepalive)
     EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
 }
 
-// Un CS que acepta y no saluda: a los ReplyTimeout del A9 la sesión cierra y falla con NoReply, y
-// el log dice qué servidor y qué se esperaba. Un ms antes, sigue esperando.
+// A CS that accepts and does not greet: after the A9's ReplyTimeout the session closes and fails with NoReply, and the
+// log says which server and what was expected. One ms before, it still waits.
 TEST(ServerSessionTest, AConnectServerThatDoesNotGreetFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2774,7 +2758,7 @@ TEST(ServerSessionTest, AConnectServerThatDoesNotGreetFails)
     EXPECT_TRUE(tested.Logged(LogLevel::Error, "el ConnectServer no contestó en 30 s: se esperaba su saludo"));
 }
 
-// Cada espera cuenta desde que empezó: con el saludo a los 20 s, la lista se espera hasta los 50 s.
+// Each wait counts from its start: with the hello at 20 s, the list is waited for until 50 s.
 TEST(ServerSessionTest, EachWaitCountsFromItsStart)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2796,7 +2780,7 @@ TEST(ServerSessionTest, EachWaitCountsFromItsStart)
         tested.Logged(LogLevel::Error, "el ConnectServer no contestó en 30 s: se esperaba la lista de servidores"));
 }
 
-// El GS que no contesta el login también es NoReply, con el GS en el log.
+// The GS that does not answer the login is also NoReply, with the GS in the log.
 TEST(ServerSessionTest, AGameServerThatDoesNotAnswerTheLoginFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2811,8 +2795,8 @@ TEST(ServerSessionTest, AGameServerThatDoesNotAnswerTheLoginFails)
         tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba el resultado del login"));
 }
 
-// Un CS que da la lista y no la dirección: la espera de la dirección cuenta desde la elección (a
-// los 10 s), así que falla a los 40 s y no a los 30.
+// A CS that gives the list but not the address: the address wait counts from the choice (at 10 s), so it fails at
+// 40 s and not at 30.
 TEST(ServerSessionTest, AConnectServerThatDoesNotGiveTheAddressFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2833,8 +2817,8 @@ TEST(ServerSessionTest, AConnectServerThatDoesNotGiveTheAddressFails)
                               "el ConnectServer no contestó en 30 s: se esperaba la dirección del GameServer"));
 }
 
-// Un GS que acepta y no saluda: la espera cuenta desde que se abrió (a los 5 s) y falla a los 35 s,
-// con el GS en el log.
+// A GS that accepts and does not greet: the wait counts from the open (at 5 s) and fails at 35 s, with the GS in the
+// log.
 TEST(ServerSessionTest, AGameServerThatDoesNotGreetFails)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2854,8 +2838,8 @@ TEST(ServerSessionTest, AGameServerThatDoesNotGreetFails)
     EXPECT_TRUE(tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba su saludo"));
 }
 
-// Lo que llegó durante un frame largo se lee antes de mirar el tope: un resultado que estaba en el
-// socket después de 60 s sin frames entra, y la sesión no falla.
+// What arrived during a long frame is read before checking the timeout: a result that was in the socket after 60 s
+// without frames gets in, and the session does not fail.
 TEST(ServerSessionTest, AReplyThatArrivedDuringALongFrameIsRead)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2869,9 +2853,9 @@ TEST(ServerSessionTest, AReplyThatArrivedDuringALongFrameIsRead)
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
 }
 
-// Main loguea cada cambio de estado (el plan de la CL4, CL4.5): de Start a LoggedIn, una línea de
-// info por estado, en orden, y después la del primer keepalive. La del cierre del CS es de la
-// Connection. La elección no dice el código, y el login no dice la cuenta.
+// Main logs each state change (CL4.5): from Start to LoggedIn, one info line per state, in order, then the first
+// keepalive's. The CS close line is the Connection's. The choice does not say the code, and the login does not say
+// the account.
 TEST(ServerSessionTest, EachStateChangeIsLogged)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2897,12 +2881,10 @@ TEST(ServerSessionTest, EachStateChangeIsLogged)
                      "[info] el GameServer aceptó el login", "[info] se encoló el keepalive para el GameServer"}));
 }
 
-// La lista de personajes y la entrada al mundo (el plan de la CL6, CL6.3, paso 2). Los nombres son
-// sintéticos (support/CharacterPackets.h).
+// The character list and the world entry (CL6.3). The names are synthetic (support/CharacterPackets.h).
 
-// En LoggedIn, el F3 00 sale en claro con su XOR32, como lo manda 0x634e0e, y la sesión espera la
-// lista (el estado 0x32). Al GS le llegaron dos cifrados, el login y el primer keepalive: el F3 00
-// no fue uno.
+// In LoggedIn the F3 00 leaves in clear with its XOR32, as 0x634e0e sends it, and the session waits for the list
+// (state 0x32). The GS got two encrypted ones, the login and the first keepalive: the F3 00 was not one of them.
 TEST(ServerSessionTest, RequestCharacterListSendsF300)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2932,8 +2914,8 @@ TEST(ServerSessionTest, RequestingTheCharacterListOutOfTurnIsIgnored)
         tested.Logged(LogLevel::Warning, "se ignora el pedido de la lista de personajes: la sesión no lo espera"));
 }
 
-// La lista llega en claro (04): la sesión la guarda en el orden del paquete y espera la elección
-// (el 0x33), sin ninguno elegido.
+// The list arrives in clear (04): the session keeps it in the packet's order and waits for the choice (the 0x33),
+// with none chosen.
 TEST(ServerSessionTest, ADuplicatedListSlotChoosesTheLastConstructedEntryAndKeepsBothEvents)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2971,7 +2953,7 @@ TEST(ServerSessionTest, CharacterEventsStartEmpty)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// El lote posee cada campo, incluido el orden y los slots repetidos que admite el lector.
+// The batch owns every field, including the order and the repeated slots the reader accepts.
 TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3005,7 +2987,7 @@ TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
     EXPECT_EQ(received->list.characters[2].name, NameBytes("char0003"));
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
     ASSERT_TRUE(tested.session.Characters().has_value());
-    // El evento retiene tres construcciones; la vista UI conserva sólo el último de cada slot.
+    // The event keeps three builds; the UI view keeps only the last one of each slot.
     const auto& visible = tested.session.Characters()->characters;
     ASSERT_EQ(visible.size(), 2u);
     EXPECT_EQ(visible[0].slot, 0);
@@ -3014,7 +2996,7 @@ TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
     EXPECT_EQ(visible[1].name, NameBytes("char0003"));
 }
 
-// Con la cantidad en 0 el original pasa igual al 0x33: la selección, sin nadie para elegir.
+// With the count at 0 the original still moves to 0x33: the selection, with nobody to choose.
 TEST(ServerSessionTest, AnEmptyListAlsoChooses)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3058,7 +3040,7 @@ TEST(ServerSessionTest, ACharacterListThatDoesNotReadIsIgnored)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// Elegir es del clic (0x6342c0): guarda el elegido y no manda nada.
+// Choosing belongs to the click (0x6342c0): it keeps the chosen one and sends nothing.
 TEST(ServerSessionTest, ChooseCharacterSendsNothing)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3075,8 +3057,7 @@ TEST(ServerSessionTest, ChooseCharacterSendsNothing)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
 }
 
-// Un clic sobre nadie (std::nullopt, el -1 de 0x6342c0) o un lugar que no está en la lista dejan
-// sin elegido.
+// A click on nobody (std::nullopt, 0x6342c0's -1) or a slot not in the list leaves none chosen.
 TEST(ServerSessionTest, ChoosingNothingForgetsTheChoice)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3103,8 +3084,8 @@ TEST(ServerSessionTest, ChoosingACharacterOutOfTurnIsIgnored)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la elección de un personaje: la sesión no la espera"));
 }
 
-// Con uno elegido, el F3 03 sale en claro con su nombre como vino en la lista, y la sesión pasa al
-// 0x3c. El log dice el lugar y no el nombre.
+// With one chosen, the F3 03 leaves in clear with its name as it came in the list, and the session moves to 0x3c.
+// The log says the slot and not the name.
 TEST(ServerSessionTest, EnterWorldSendsF303WithTheChosenName)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3145,9 +3126,8 @@ TEST(ServerSessionTest, EnteringTheWorldOutOfTurnIsIgnored)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la entrada al mundo: la sesión no la espera"));
 }
 
-// El keepalive sigue en los tres estados nuevos con el timer global (a los 20, 40 y 60 s):
-// cambiar de estado no lo vuelve a empezar. Si empezara con el pedido, a los 10 s, a los 22 s
-// habría uno solo.
+// The keepalive goes on in the three new states with the global timer (at 20, 40 and 60 s): changing state does not
+// restart it. If it started with the request, at 10 s, at 22 s there would be only one.
 TEST(ServerSessionTest, TheKeepaliveRunsInTheThreeNewStates)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3171,7 +3151,6 @@ TEST(ServerSessionTest, TheKeepaliveRunsInTheThreeNewStates)
     EXPECT_EQ(tested.Keepalives().size(), 4u);
 }
 
-// Un código de borrar sintético, de 10 bytes.
 std::array<std::byte, DeleteCodeSize> SyntheticDeleteCode()
 {
     std::array<std::byte, DeleteCodeSize> code{};
@@ -3182,7 +3161,7 @@ std::array<std::byte, DeleteCodeSize> SyntheticDeleteCode()
     return code;
 }
 
-// La respuesta de crear con 1 (0x4c2290): el nombre, el lugar, el nivel y la clase.
+// The create reply with 1 (0x4c2290): the name, the slot, the level and the class.
 std::vector<std::byte> CreatedReply(std::uint8_t slot, std::uint8_t classByte = 0x20)
 {
     std::vector<std::byte> bytes = Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01});
@@ -3231,7 +3210,7 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
         EXPECT_EQ(tested.session.State(), SessionState::Failed);
         EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
         EXPECT_EQ(tested.eventSink.characters.size(), 1u);
-        // El error detiene el sufijo; no revierte los stores anteriores al callback.
+        // The error stops the suffix; it does not revert the stores made before the callback.
         EXPECT_EQ(tested.session.CreateResult(),
                   deleting ? std::nullopt : std::optional<std::uint8_t>{std::uint8_t{1}});
         EXPECT_EQ(tested.session.DeleteResult(),
@@ -3243,7 +3222,7 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
         EXPECT_EQ(characters[0].name, NameBytes(deleting ? "char0002" : "char0001"));
         if (deleting)
         {
-            EXPECT_EQ(tested.session.ChosenCharacter(), nullptr); // Su entrada ya no existe.
+            EXPECT_EQ(tested.session.ChosenCharacter(), nullptr); // Its entry no longer exists.
         }
         else
         {
@@ -3258,7 +3237,7 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
             EXPECT_EQ(created.guildStatus, 0xff);
             EXPECT_TRUE(created.withoutEquipment);
             EXPECT_EQ(created.equipment, (std::array<std::byte, Client::Protocol::FrontEnd::EquipmentSize>{}));
-            // Se vuelve a consultar: el alta puede haber realocado el vector.
+            // Asked again: the creation may have reallocated the vector.
             ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
             EXPECT_EQ(tested.session.ChosenCharacter()->slot, 0);
             EXPECT_EQ(tested.session.ChosenCharacter()->name, NameBytes("char0001"));
@@ -3266,7 +3245,8 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
     }
 }
 
-// La fotografía final ya no contiene al borrado; el collector conserva lista, alta normalizada y baja.
+// The final snapshot no longer has the deleted one; the collector keeps the list, the normalized creation and the
+// deletion.
 TEST(ServerSessionTest, CharacterEventsDeliverListCreationAndDeletionPayloadsInOrder)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3276,7 +3256,7 @@ TEST(ServerSessionTest, CharacterEventsDeliverListCreationAndDeletionPayloadsInO
     static_cast<void>(tested.session.Poll());
     tested.session.ChooseCharacter(std::uint8_t{3});
     tested.session.DeleteCharacter(SyntheticDeleteCode());
-    tested.session.ChooseCharacter(std::uint8_t{0}); // fuera de turno: no cambia el lugar enviado
+    tested.session.ChooseCharacter(std::uint8_t{0}); // out of turn: does not change the sent slot
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
     static_cast<void>(tested.session.Poll());
     tested.session.ChooseCharacter(std::uint8_t{0});
@@ -3356,7 +3336,7 @@ TEST(ServerSessionTest, AnAcceptedListSurvivesACloseInTheSamePoll)
     EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
 }
 
-// F1/02 con 0 invalida el resto del lote; el alta aceptada antes permanece disponible.
+// F1/02 with 0 invalidates the rest of the batch; the creation accepted before stays available.
 TEST(ServerSessionTest, AcceptedEventsSurviveQuitAndLaterPacketsStayIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3376,8 +3356,8 @@ TEST(ServerSessionTest, AcceptedEventsSurviveQuitAndLaterPacketsStayIgnored)
     EXPECT_EQ(created->entry.slot, 1);
 }
 
-// En ChoosingCharacter, CreateCharacter manda el F3 01 con el nombre y la clase y espera su respuesta
-// (0x34). El log dice la clase y no el nombre.
+// In ChoosingCharacter, CreateCharacter sends the F3 01 with the name and the class and waits for its reply (0x34).
+// The log says the class and not the name.
 TEST(ServerSessionTest, CreateCharacterSendsF301WithTheNameAndTheClass)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3394,7 +3374,7 @@ TEST(ServerSessionTest, CreateCharacterSendsF301WithTheNameAndTheClass)
     EXPECT_FALSE(tested.Logged(LogLevel::Info, "char0003"));
 }
 
-// Un nombre que no entra en el paquete no sale, y crear fuera de ChoosingCharacter tampoco.
+// A name that does not fit in the packet is not sent, nor is a creation outside ChoosingCharacter.
 TEST(ServerSessionTest, CreatingOutOfTurnOrWithALongNameIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3411,7 +3391,7 @@ TEST(ServerSessionTest, CreatingOutOfTurnOrWithALongNameIsIgnored)
     EXPECT_TRUE(choosing.Logged(LogLevel::Warning, "no se crea el personaje: el nombre no entra en 10 bytes"));
 }
 
-// Con 1, el nuevo va a su lugar, sin equipo (0x517270, Q-C103), y la sesión vuelve a la elección.
+// With 1 the new one goes to its slot, without equipment (0x517270, Q-C103), and the session goes back to the choice.
 TEST(ServerSessionTest, TheNewOneGoesToItsSlotWithoutEquipment)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3431,13 +3411,13 @@ TEST(ServerSessionTest, TheNewOneGoesToItsSlotWithoutEquipment)
     EXPECT_EQ(characters[2].classByte, 0x20);
     EXPECT_TRUE(characters[2].withoutEquipment);
     EXPECT_FALSE(characters[0].withoutEquipment);
-    // Sin gremio: 0x511290 pone +0x368 en 0xff (0x511ca6) y la respuesta no lo toca.
+    // Without a guild: 0x511290 sets +0x368 to 0xff (0x511ca6) and the reply does not touch it.
     EXPECT_EQ(characters[2].guildStatus, 0xff);
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se creó el personaje del lugar 1"));
 }
 
-// Uno que llega a un lugar ocupado lo pisa (0x4c2290 escribe chars[lugar]); uno de un lugar de más de 4
-// no se suma: el original no le da posición.
+// One that arrives at an occupied slot overwrites it (0x4c2290 writes chars[slot]); one at a slot beyond 4 is not
+// added: the original gives it no position.
 TEST(ServerSessionTest, TheNewOneReplacesItsSlotAndOneBeyondFourIsDropped)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3458,8 +3438,8 @@ TEST(ServerSessionTest, TheNewOneReplacesItsSlotAndOneBeyondFourIsDropped)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// Con 0 o 2, solo el resultado, para el aviso de la ventana; con otro, el original no hace nada y se
-// queda esperando (Q-C114).
+// With 0 or 2, only the result, for the window's notice; with another, the original does nothing and keeps waiting
+// (Q-C114).
 TEST(ServerSessionTest, ARefusedCreationKeepsItsResult)
 {
     for (const int result : {0, 2})
@@ -3487,7 +3467,6 @@ TEST(ServerSessionTest, ARefusedCreationKeepsItsResult)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// La respuesta de crear fuera de turno se ignora.
 TEST(ServerSessionTest, ACreateReplyOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3533,8 +3512,8 @@ TEST(ServerSessionTest, ASecondCreateReplyWithoutANewRequestPublishesNoEvent)
     EXPECT_TRUE(std::holds_alternative<CharacterCreated>(events[0]));
 }
 
-// DeleteCharacter manda el F3 02 con el nombre del elegido y el código, y espera (0x38). El log dice
-// el lugar, y ni el nombre ni el código.
+// DeleteCharacter sends the F3 02 with the chosen one's name and the code, and waits (0x38). The log says the slot,
+// and neither the name nor the code.
 TEST(ServerSessionTest, DeleteCharacterSendsF302WithTheChosenNameAndTheCode)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3553,7 +3532,6 @@ TEST(ServerSessionTest, DeleteCharacterSendsF302WithTheChosenNameAndTheCode)
     EXPECT_FALSE(tested.Logged(LogLevel::Info, "1234"));
 }
 
-// Sin elegido, o fuera de ChoosingCharacter, no sale nada.
 TEST(ServerSessionTest, DeletingWithoutAChoiceOrOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3569,9 +3547,9 @@ TEST(ServerSessionTest, DeletingWithoutAChoiceOrOutOfTurnIsIgnored)
     EXPECT_TRUE(logged.Logged(LogLevel::Warning, "se ignora el pedido de borrar un personaje: la sesión no lo espera"));
 }
 
-// Con 1 se saca al que se mandó, y queda sin elegido: uno nuevo en el mismo lugar no sale elegido. El
-// original borra al elegido al llegar la respuesta (Q-C104); en MuRet no puede cambiar mientras se
-// espera, porque ChooseCharacter es de ChoosingCharacter.
+// With 1 the one sent is removed and none stays chosen: a new one in the same slot is not chosen. The original
+// deletes the chosen one when the reply arrives (Q-C104); in MuRet it cannot change while waiting, because
+// ChooseCharacter belongs to ChoosingCharacter.
 TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3596,7 +3574,7 @@ TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
     EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
 }
 
-// Start olvida los dos resultados, como la lista.
+// Start forgets both results, like the list.
 TEST(ServerSessionTest, StartForgetsTheResults)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3617,7 +3595,7 @@ TEST(ServerSessionTest, StartForgetsTheResults)
     EXPECT_EQ(tested.session.DeleteResult(), std::nullopt);
 }
 
-// Con otro resultado no se saca a nadie, y el elegido sigue: el aviso es de la ventana.
+// With another result nobody is removed and the chosen one stays: the notice belongs to the window.
 TEST(ServerSessionTest, ARefusedDeletionKeepsTheCharacter)
 {
     for (const int result : {0, 3, 9})
@@ -3667,7 +3645,7 @@ TEST(ServerSessionTest, ADeleteReplyOutOfTurnPublishesNoCharacterEvent)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
-// Las dos respuestas se esperan con el tope de los Waiting*, y el keepalive sigue en los dos estados.
+// Both replies are waited for with the Waiting* timeout, and the keepalive goes on in both states.
 TEST(ServerSessionTest, CreatingAndDeletingHaveTheReplyTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3717,7 +3695,7 @@ TEST(ServerSessionTest, TheKeepaliveRunsWhileCreatingAndDeleting)
     EXPECT_EQ(tested.Keepalives().size(), before + 2);
 }
 
-// La lista se espera con el tope de los Waiting*, desde el pedido.
+// The list is waited for with the Waiting* timeout, from the request.
 TEST(ServerSessionTest, WaitingCharacterListHasTheReplyTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3736,7 +3714,7 @@ TEST(ServerSessionTest, WaitingCharacterListHasTheReplyTimeout)
         tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba la lista de personajes"));
 }
 
-// La elección espera al jugador: no tiene tope.
+// The choice waits for the player: it has no timeout.
 TEST(ServerSessionTest, ChoosingCharacterHasNoTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3747,8 +3725,8 @@ TEST(ServerSessionTest, ChoosingCharacterHasNoTimeout)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
 }
 
-// Mientras no llega la respuesta del F3 03, el original deja el mosaico sin tope (06 § La entrada
-// al mundo, paso 4): la entrada tampoco tiene uno.
+// The original leaves the mosaic without a timeout while the F3 03's reply has not arrived (06 § La entrada al mundo,
+// step 4): the entry has none either.
 TEST(ServerSessionTest, EnteringWorldHasNoTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3761,9 +3739,9 @@ TEST(ServerSessionTest, EnteringWorldHasNoTimeout)
     EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
 }
 
-// La entrada al mundo (el plan de la CL7, CL7.L1, "La sesión"): el sink que aplica la respuesta
-// del F3 03 publica el 0x3d en su fila 9 (0x4c4854, 06, tabla de 0x4c3940). Lo que sigue de esa
-// aplicación ya corre en InWorld, y el F3 10 que llega detrás en el mismo lote también lo ve.
+// The world entry (CL7.L1, "La sesión"): the sink that applies the F3 03's reply publishes the 0x3d in its row 9
+// (0x4c4854, 06, 0x4c3940's table). The rest of that application already runs in InWorld, and the F3 10 that arrives
+// behind it in the same batch sees it too.
 TEST(ServerSessionTest, PublishingTheEntryFromTheSinkMovesToInWorld)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3796,14 +3774,14 @@ TEST(ServerSessionTest, PublishingTheEntryFromTheSinkMovesToInWorld)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se aplicó la entrada al mundo: la sesión está en el mundo"));
 }
 
-// En el mundo no se espera una respuesta: no hay tope (ADR 0007), y el keepalive sigue con el timer
-// global, que publicar no reinicia. A los 20 s, con la entrada publicada a los 5, ya salió uno: si
-// la fase empezara al publicar, saldría a los 25.
+// In the world no reply is awaited: there is no timeout (ADR 0007), and the keepalive goes on with the global timer,
+// which publishing does not restart. At 20 s, with the entry published at 5, one already left: if the phase started
+// on publishing, it would leave at 25.
 TEST(ServerSessionTest, InWorldHasNoReplyTimeoutAndKeepsTheKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
-    ASSERT_EQ(tested.Keepalives().size(), 1u); // el inmediato del login
+    ASSERT_EQ(tested.Keepalives().size(), 1u); // the login's immediate one
     tested.eventSink.onWorld = [](const WorldEvent&,
                                   ServerSession& session) -> Client::Core::Expected<void, std::string>
     {
@@ -3821,13 +3799,12 @@ TEST(ServerSessionTest, InWorldHasNoReplyTimeoutAndKeepsTheKeepalive)
 
     EXPECT_EQ(tested.session.State(), SessionState::InWorld);
     EXPECT_FALSE(tested.session.Failure().has_value());
-    EXPECT_EQ(tested.Keepalives().size(), 5u); // y a los 40, 60 y 80 s
+    EXPECT_EQ(tested.Keepalives().size(), 5u); // and at 40, 60 and 80 s
     EXPECT_FALSE(tested.Logged(LogLevel::Error, "no contestó"));
 }
 
-// Lo que sigue al 0x3d en 0x4c3940 (de la fila 10 en adelante) también puede fallar en el
-// aplicador: con InWorld ya publicado, la sesión termina en ApplicationFailed, cierra y corta el
-// lote, y Poll devuelve el error hasta el próximo Start.
+// What follows the 0x3d in 0x4c3940 (from row 10 on) can also fail in the applier: with InWorld already published,
+// the session ends in ApplicationFailed, closes and cuts the batch, and Poll returns the error until the next Start.
 TEST(ServerSessionTest, AFailureAfterPublishingEndsInApplicationFailed)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3857,8 +3834,8 @@ TEST(ServerSessionTest, AFailureAfterPublishingEndsInApplicationFailed)
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
 }
 
-// Solo 0x4c3940 escribe el 0x3d: ni el F3 10 (0x4c55a0) ni nadie fuera de esa respuesta. Publicar
-// desde otro lado es un aviso y nada, así tampoco saca a la sesión de QuitOrdered, que es el final.
+// Only 0x4c3940 writes the 0x3d: neither the F3 10 (0x4c55a0) nor anyone outside that reply. Publishing from
+// elsewhere is a warning and nothing, so it does not take the session out of QuitOrdered either, which is final.
 TEST(ServerSessionTest, PublishingOutsideTheEntryApplicationIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3912,7 +3889,7 @@ TEST(ServerSessionTest, LosingTheGameServerWhileChoosingACharacterFails)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
-// Los nombres son del jugador: el log dice lugares (como el de 0x636290 sin el nombre).
+// The names are the player's: the log says slots (like 0x636290's, without the name).
 TEST(ServerSessionTest, TheLogDoesNotHaveTheCharacterNames)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4001,8 +3978,8 @@ TEST(ServerSessionTest, TheMonsterPacketsAreReadAndAShortOneIsIgnored)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// 0x4e372e y 0x4e3ace: el dispatcher copia el 12 y el 2A antes de llamar al handler, también cuando el lector no los
-// puede leer.
+// 0x4e372e and 0x4e3ace: the dispatcher copies the 12 and the 2A before calling the handler, also when the reader
+// cannot read them.
 TEST(ServerSessionTest, AShortViewportPacketOrDurabilityStillTakesItsCopy)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4039,7 +4016,7 @@ TEST(ServerSessionTest, AnEventStateTakesItsCopyEvenShort)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// P-C33: incluso un 1C sin campos pasa por el rechazo antes del lector semántico.
+// P-C33: even a 1C without fields goes through the rejection before the semantic reader.
 TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFields)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4055,9 +4032,9 @@ TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFie
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0], Bytes({0xc1, 3, 0x1c})));
 }
 
-// 04 § Mover y equipar ítems: el 24 cifrado, el 28, el 2A y los F3 14 y F3 13 los leen sus filas; el 24 sin
-// cifrar se contesta con el C1 06 F1 03 00 16 (0x4d166b) sin leerlo, y el 24 del cliente sale con XOR32 y en C3.
-// El ítem es inventado.
+// 04 § Mover y equipar ítems: the encrypted 24, the 28, the 2A and the F3 14 and F3 13 are read by their rows; the
+// unencrypted 24 is answered with the C1 06 F1 03 00 16 (0x4d166b) without reading it, and the client's 24 leaves
+// with XOR32 and as C3. The item is made up.
 TEST(ServerSessionTest, TheItemMovesAreReadAndTheClearOneIsReported)
 {
     namespace Inventory = Client::Protocol::Items;
@@ -4072,7 +4049,7 @@ TEST(ServerSessionTest, TheItemMovesAreReadAndTheClearOneIsReported)
     ASSERT_TRUE(tested.session.Poll().HasValue());
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "no se puede leer"), 0u);
     EXPECT_TRUE(tested.eventSink.world.empty());
-    // 0x4e38ca y 0x4e3ace: el 24 y el 2A dejan su copia en la cola; el 28, el F3 14 y el F3 13, no.
+    // 0x4e38ca and 0x4e3ace: the 24 and the 2A leave their copy in the queue; the 28, the F3 14 and the F3 13 do not.
     ASSERT_EQ(tested.eventSink.packetCopies.size(), 2u);
     EXPECT_TRUE(SameBytes(tested.eventSink.packetCopies[0],
                           Bytes({0xc1, 0x0c, 0x24, 0, 0x15, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0})));
@@ -4086,7 +4063,7 @@ TEST(ServerSessionTest, TheItemMovesAreReadAndTheClearOneIsReported)
     EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, 0x16})));
     EXPECT_TRUE(reported.packets.back().WasDecrypted());
     EXPECT_TRUE(tested.eventSink.world.empty());
-    // El 24 sin cifrar también se copia, antes del flag.
+    // The unencrypted 24 is copied too, before the flag.
     EXPECT_EQ(tested.eventSink.packetCopies.size(), 3u);
 
     ASSERT_TRUE(
@@ -4133,8 +4110,8 @@ TEST(ServerSessionTest, TheTradeRequestInClearIsAnsweredWithTwoRandomsOfTheWorld
     EXPECT_EQ(world->world.Runtime().social.trade.otherName[0], std::byte{0});
 }
 
-// 04 § La vida y el maná: el 26 y el 27 llegan al mundo también antes del F3 03 (0x4d3510 y 0x4d3820 no miran la
-// escena); el 26 corto con 0xff se ignora. Los valores son inventados.
+// 04 § La vida y el maná: the 26 and the 27 reach the world also before the F3 03 (0x4d3510 and 0x4d3820 do not look
+// at the scene); the short 26 with 0xff is ignored. The values are made up.
 TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4152,9 +4129,10 @@ TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
     EXPECT_EQ(world->world.OwnCharacter().bp, 0x1e);
 }
 
-// 04 § Pegar, el daño y la muerte (CL9 hito 3): el 16 y el 9C cifrados (como los arma la GS: GCKillPlayerExpSend y
-// la recompensa de Blood Castle) y el 17 de 5 bytes los leen sus filas; el 15 de la GS (GCDamageSend) no tiene
-// caso; el 16 y el 9C sin cifrar se contestan con el F1 03 y su opcode, sin leerlos. Las claves son inventadas.
+// 04 § Pegar, el daño y la muerte (CL9 milestone 3): the encrypted 16 and 9C (as the GS builds them:
+// GCKillPlayerExpSend and the Blood Castle reward) and the 5-byte 17 are read by their rows; the GS's 15
+// (GCDamageSend) has no case; the unencrypted 16 and 9C are answered with the F1 03 and their opcode, without
+// reading them. The keys are made up.
 TEST(ServerSessionTest, TheKillsAndTheDeathAreReadAndTheClearOnesAreReported)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4183,9 +4161,9 @@ TEST(ServerSessionTest, TheKillsAndTheDeathAreReadAndTheClearOnesAreReported)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// 07 Q-C1240: con el GameServer 0.97, el 22 (C3 de 8 bytes), el 23 sin pkt[4] y el 2C de un byte no traen lo que lee
-// el cliente, pero 0x4d0cc0, 0x4d10d0 y 0x4de500 sueltan su espera en todos sus caminos: sus filas avisan que no se
-// pueden leer y sueltan solo eso. El 20 de entradas de 9 bytes no escribe nada fijo. Los valores son inventados.
+// 07 Q-C1240: with GameServer 0.97 the 22 (an 8-byte C3), the 23 without pkt[4] and the one-byte 2C do not carry what
+// the client reads, but 0x4d0cc0, 0x4d10d0 and 0x4de500 release their wait on every path: their rows warn that they
+// cannot be read and release only that. The 20 with 9-byte entries writes nothing fixed. The values are made up.
 TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4217,8 +4195,9 @@ TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// El GCMoneySend del GameServer 0.97 (C3 08 22 FE, el zen al comprar en la tienda) llega al mundo con su zen, sin el
-// aviso de que no se puede leer, y no como el 22 corto que solo suelta el pedido (07 Q-C1240). El 918 es inventado.
+// GameServer 0.97's GCMoneySend (C3 08 22 FE, the zen when buying in the shop) reaches the world with its zen,
+// without the cannot-read warning, and not like the short 22 that only releases the request (07 Q-C1240). The 918
+// is made up.
 TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4239,7 +4218,7 @@ TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
     EXPECT_EQ(world->world.Runtime().floor.pendingPickUp, -1);
 }
 
-// La respuesta del F3 06 (0x4d3200, 0x4e30cd en el sub-dispatcher del F3) la lee su fila; una corta, un aviso.
+// The F3 06's reply (0x4d3200, 0x4e30cd in the F3 sub-dispatcher) is read by its row; a short one, a warning.
 TEST(ServerSessionTest, TheLevelUpPointReplyIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4254,8 +4233,8 @@ TEST(ServerSessionTest, TheLevelUpPointReplyIsReadByItsRow)
     EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
-// El F3 08 (0x4d3b50, 0x4e30cd en el sub-dispatcher del F3), el estado de PK que el servidor manda al entrar al mundo,
-// lo lee su fila; uno corto, un aviso.
+// The F3 08 (0x4d3b50, 0x4e30cd in the F3 sub-dispatcher), the PK state the server sends on entering the world, is
+// read by its row; a short one, a warning.
 TEST(ServerSessionTest, ThePkLevelIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4269,7 +4248,7 @@ TEST(ServerSessionTest, ThePkLevelIsReadByItsRow)
     EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
-// La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.
+// The connection encrypts only the gate: the other three world C1 leave with XOR32 and without C3.
 TEST(ServerSessionTest, GateRequestAndTeleportDoneUseTheirDelivery)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4318,8 +4297,8 @@ TEST(ServerSessionTest, WorldRequestsNeverGoToTheConnectServer)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
 }
 
-// 0x4e3e98..0x4e3f1d: el dispatcher copia cada 1C a la cola de 0x77f27b4 antes del flag y del lector, también el
-// rechazado; la copia es del sink, no un préstamo del lector.
+// 0x4e3e98..0x4e3f1d: the dispatcher copies each 1C to 0x77f27b4's queue before the flag and the reader, the
+// rejected one too; the copy is the sink's, not a loan from the reader.
 TEST(ServerSessionTest, TheTeleportCopyPrecedesAdmissionAndRemainsAnOwnedReception)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4344,8 +4323,8 @@ TEST(ServerSessionTest, TheTeleportCopyPrecedesAdmissionAndRemainsAnOwnedRecepti
     EXPECT_EQ(tested.eventSink.routedAfter.size(), 1u);
 }
 
-// CheckApplication también corta el lote para las filas ruteadas: el warp con un ítem en el cursor falla en 0x5be150,
-// y la vuelta que sigue no llega.
+// CheckApplication also cuts the batch for the routed rows: the warp with an item on the cursor fails in 0x5be150,
+// and the return that follows does not arrive.
 TEST(ServerSessionTest, AWorldApplicationFailureStopsTheMovementBatchAtTheSecondEvent)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4460,8 +4439,8 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// 0x4e4b3a..0x4e4bf2: el 9F y los A0..A3 llegan en orden, sin guarda de escena; el A1 corto deja su aviso. Los
-// valores son inventados.
+// 0x4e4b3a..0x4e4bf2: the 9F and the A0..A3 arrive in order, without a scene guard; the short A1 leaves its warning.
+// The values are made up.
 TEST(ServerSessionTest, TheQuestPacketsAreReadByTheirRows)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4503,8 +4482,8 @@ TEST(ServerSessionTest, TheJewelMixAnswerIsReadByItsRows)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// 0x4da373: el 86 con 100 (la mezcla del entrenador) lo lee su fila con los siete bytes del ítem desde pkt[4], como el
-// 1 (CL9 hito 6); el 86 corto con 100, un aviso. Valores inventados.
+// 0x4da373: the 86 with 100 (the trainer's mix) is read by its row with the item's seven bytes from pkt[4], like the
+// 1 (CL9 milestone 6); the short 86 with 100, a warning. Made-up values.
 TEST(ServerSessionTest, TheTrainerMixIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4518,7 +4497,7 @@ TEST(ServerSessionTest, TheTrainerMixIsReadByItsRow)
     EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
-// El A0, el A2 y el 30 salen con el XOR32 y cifrados como C3; el C1 03 31 de 0x419900, en claro.
+// The A0, the A2 and the 30 leave with the XOR32 and encrypted as C3; 0x419900's C1 03 31, in clear.
 TEST(ServerSessionTest, TheQuestRequestsGoToTheGameServer)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4541,7 +4520,8 @@ TEST(ServerSessionTest, TheQuestRequestsGoToTheGameServer)
     EXPECT_FALSE(packets[before + 3].WasDecrypted());
 }
 
-// 0x4f2416 y 0x576a60: el C1 05 18 de sentarse y del emote, con el XOR32 por el GS; sin el GS abierto, nada.
+// 0x4f2416 and 0x576a60: the C1 05 18 of sitting and of the emote, with the XOR32 through the GS; without the GS open,
+// nothing.
 TEST(ServerSessionTest, TheActionUsesTheWorldConnectionAndXorDelivery)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4560,7 +4540,7 @@ TEST(ServerSessionTest, TheActionUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// 0x4e39ab: el 18 va a 0x4cb750 sin guarda; su fila lo lee. Corto, un aviso y nada.
+// 0x4e39ab: the 18 goes to 0x4cb750 without a guard; its row reads it. A short one, a warning and nothing.
 TEST(ServerSessionTest, TheActionOfAnotherIsReadByItsRow)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4572,7 +4552,7 @@ TEST(ServerSessionTest, TheActionOfAnotherIsReadByItsRow)
     EXPECT_TRUE(tested.eventSink.world.empty());
 }
 
-// 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.
+// 0x61c210 sends the F3 30 in clear with the XOR32, through the GS: it does not go through the C3 encryption.
 TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4595,7 +4575,7 @@ TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
-// 0x6599a0(4) manda el C1 03 42 en claro, sin XOR32 ni cifrado, y solo con el socket abierto.
+// 0x6599a0(4) sends the C1 03 42 in clear, without XOR32 or encryption, and only with the socket open.
 TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4663,7 +4643,7 @@ TEST(ServerSessionTest, TheCastleBattlePacketsAreReadByTheirRows)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// CL9 hito 13: el B1 00 (0x4e5056 → 0x412b30) con un host, un puerto y los códigos inventados.
+// CL9 milestone 13: the B1 00 (0x4e5056 → 0x412b30) with a made-up host, port and codes.
 constexpr std::string_view MapServerHost = "10.0.0.3";
 constexpr std::uint16_t MapServerPort = 55919;
 
@@ -4698,9 +4678,9 @@ ByteVector MapServerMovePacket(std::string_view host)
     return bytes;
 }
 
-// Con el login mandado: el mundo de 0x412b30 (MapServerLeft), el GameServer cerrado y el nuevo abierto con el host y
-// el puerto del paquete. Su saludo, sin mirar el resultado ni la versión, guarda la clave y, con el movimiento
-// pendiente, aplica el mundo de 0x412bb0 (MapServerJoined) y manda los dos C1 03 31 de 0x4c2480 y el B1 01 cifrado.
+// With the login sent: 0x412b30's world (MapServerLeft), the GameServer closed and the new one opened with the
+// packet's host and port. Its hello, without looking at the result or the version, keeps the key and, with the move
+// pending, applies 0x412bb0's world (MapServerJoined) and sends 0x4c2480's two C1 03 31 and the encrypted B1 01.
 TEST(ServerSessionTest, TheMapServerMoveReconnectsAndPresentsTheCharacter)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4744,14 +4724,14 @@ TEST(ServerSessionTest, TheMapServerMoveReconnectsAndPresentsTheCharacter)
     const Packet auth = Xor32Decode(received.packets[2]);
     ASSERT_EQ(auth.Bytes().size(), 0x45u);
     EXPECT_TRUE(SameBytes(auth.Bytes().first(4), Bytes({0xc1, 0x45, 0xb1, 0x01})));
-    // El nombre del elegido (el lugar 0) y los códigos del B1 00.
+    // The chosen one's name (slot 0) and the B1 00's codes.
     EXPECT_TRUE(SameBytes(auth.Bytes().subspan(16, 12), Bytes({'c', 'h', 'a', 'r', '0', '0', '0', '1', 0, 0, 0, 0})));
     EXPECT_TRUE(SameBytes(auth.Bytes().subspan(28, 16), std::span<const std::byte>(moveBytes).subspan(24, 16)));
     EXPECT_FALSE(tested.LoggedTheCredentials());
 }
 
-// Antes del login, 0x412b30 solo guarda el movimiento ([0x5767928] en 0): no cierra ni conecta, y el saludo sigue el
-// camino del login.
+// Before the login, 0x412b30 only keeps the move ([0x5767928] at 0): it neither closes nor connects, and the hello
+// follows the login's path.
 TEST(ServerSessionTest, AMapServerMoveBeforeTheLoginIsOnlyKept)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4765,7 +4745,8 @@ TEST(ServerSessionTest, AMapServerMoveBeforeTheLoginIsOnlyKept)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
 }
 
-// Un host sin 0 en los 0x24 bytes (Q-C1402): el GameServer ya se cerró, como en el original, y no se conecta a otro.
+// A host without a 0 in its 0x24 bytes (Q-C1402): the GameServer is already closed, as in the original, and no other
+// is connected.
 TEST(ServerSessionTest, AMapServerMoveWithAnOpenHostDoesNotConnect)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4782,7 +4763,7 @@ TEST(ServerSessionTest, AMapServerMoveWithAnOpenHostDoesNotConnect)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "Q-C1402"));
 }
 
-// Lo que mandan las ventanas del castillo va por el GameServer con XOR32 y sin C3, y nada sin él abierto.
+// What the castle windows send goes through the GameServer with XOR32 and without C3, and nothing without it open.
 TEST(ServerSessionTest, CastlePacketsGoToTheGameServerOnly)
 {
     namespace Castle = Client::Protocol::CastleSiege;
@@ -4827,7 +4808,7 @@ TEST(ServerSessionTest, GuildPacketsAreReadByTheirRows)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
-// Lo que mandan las respuestas del gremio va por el GameServer tal cual lo arma Protocol::Guild.
+// What the guild replies send goes through the GameServer just as Protocol::Guild builds it.
 TEST(ServerSessionTest, GuildPacketsGoToTheGameServer)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4851,8 +4832,8 @@ TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)
     EXPECT_EQ(tested.socket.sent.size(), before);
 }
 
-// Las salas del chat con un amigo (CL9 hito 10, P-C211): cada una con su socket, que arma la fábrica de
-// EnableChatRooms y queda anotado acá para el guion.
+// The chat rooms with a friend (CL9 milestone 10, P-C211): each with its socket, which EnableChatRooms' factory
+// builds and which is noted here for the script.
 struct ChatRoomHarness
 {
     ChatRoomHarness()
@@ -4876,9 +4857,9 @@ struct ChatRoomHarness
     std::optional<SocketError> connectResult;
 };
 
-// 0x49de50 conecta al 55980 de la IP del CA; el C1 10 00 espera al connect (0x493530) y sale tal cual; lo que llega
-// va al sink con la sala y la ventana (0x49e510 → 0x4e1d50 con 1); cada 15 s, con la sala anotada, el ChatRoomPingDue
-// (el timer 1002); el FD_CLOSE de una sala abierta la deja anotada hasta CloseChatRoom (0x49e480 → 0x4e8380).
+// 0x49de50 connects to 55980 at the CA's IP; the C1 10 00 waits for the connect (0x493530) and leaves as is; what
+// arrives goes to the sink with the room and the window (0x49e510 → 0x4e1d50 with 1); every 15 s, with the room noted,
+// the ChatRoomPingDue (timer 1002); an open room's FD_CLOSE leaves it noted until CloseChatRoom (0x49e480 → 0x4e8380).
 TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
 {
     ChatRoomHarness rooms;
@@ -4934,10 +4915,9 @@ TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
     EXPECT_TRUE(rooms.tested.Logged(LogLevel::Warning, "no tiene conexión"));
 }
 
-// Los handlers de 0x4e2a60 leen cada paquete de la sala por su lugar sin mirar su largo (Q-C1011): uno más corto que lo
-// que lee su handler se ignora con un aviso sin el texto, uno por opcode (00, 01, 02, 04 y 0D), y la sesión sigue. Un
-// 0D con su
-// '\0' adentro, más corto que pkt[0x68], llega al sink.
+// 0x4e2a60's handlers read each room packet by position without looking at its length (Q-C1011): one shorter than
+// what its handler reads is ignored with a warning without the text, one per opcode (00, 01, 02, 04 and 0D), and the
+// session goes on. A 0D with its '\0' inside, shorter than pkt[0x68], reaches the sink.
 TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
 {
     ChatRoomHarness rooms;
@@ -4965,7 +4945,8 @@ TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
     EXPECT_EQ(session.ChatRoomCount(), 1u);
 }
 
-// El connect que falla: la sala se olvida (0x49de50 no la anota). Una sala que ya tiene la suya no abre otra.
+// The failing connect: the room is forgotten (0x49de50 does not note it). A room that already has its own does not
+// open another.
 TEST(ServerSessionTest, AChatRoomThatDoesNotConnectIsForgotten)
 {
     ChatRoomHarness rooms;
@@ -4985,7 +4966,7 @@ TEST(ServerSessionTest, AChatRoomThatDoesNotConnectIsForgotten)
     EXPECT_EQ(session.ChatRoomCount(), 0u);
 }
 
-// Sin EnableChatRooms (sin red), la sala no se abre y avisa.
+// Without EnableChatRooms (no network), the room does not open and warns.
 TEST(ServerSessionTest, WithoutChatRoomSocketsNoRoomOpens)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -4993,7 +4974,7 @@ TEST(ServerSessionTest, WithoutChatRoomSocketsNoRoomOpens)
     EXPECT_EQ(tested.session.ChatRoomCount(), 0u);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no hay red para las salas"));
 }
-// 0x4c1e2c: tras mandar el login sólo se lee la clave; no se requiere resultado ni versión.
+// 0x4c1e2c: after sending the login only the key is read; no result or version is required.
 TEST(ServerSessionTest, AHelloAfterLoginUsesTheKeyWithoutRequiringTheVersion)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -5008,7 +4989,7 @@ TEST(ServerSessionTest, AHelloAfterLoginUsesTheKeyWithoutRequiringTheVersion)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// 0x4133cb lee el tick después de 0x4c2480; una aplicación del mundo puede avanzar el reloj.
+// 0x4133cb reads the tick after 0x4c2480; a world application may advance the clock.
 TEST(ServerSessionTest, TheMapServerAuthenticationReadsItsTickAfterTheWorldReset)
 {
     Harness tested(IdentityObfuscation::Shared());

@@ -274,7 +274,7 @@ Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSieg
     if (auto button = Button(context, window.buttons[4], x + 70, Top + 116, 0x770e1f4, window.buttons[4].base.state);
         !button.HasValue())
         return button;
-    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, después de cada botón.
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, after each button.
     Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = 0xff947bbbu;
     for (std::int32_t i = 0; i < 6; ++i)
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> Taxes(Hud::GameHudContext& context, CastleSieg
     if (auto button = Button(context, window.buttons[5], x + 70, Top + 256, 0x76ce66c, window.buttons[5].base.state);
         !button.HasValue())
         return button;
-    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, después de cada botón.
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x66875f/0x66893b, after each button.
     Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     context.hud.textColors.text = 0xff947bbbu;
     for (std::int32_t i = 0; i < 3; ++i)
@@ -335,7 +335,7 @@ Core::Expected<void, std::string> Tabs(Hud::GameHudContext& context, std::int32_
         const float gray = selected ? 1.0f : 0.6f;
         context.sprites.SetColor(i == 2 && !taxes.Value() ? Render::Color{1, 0, 0, 1}
                                                           : Render::Color{gray, gray, gray, 1});
-        // 0x6698d0: el alto del cuarto tab consulta tab==2, mientras su y consulta tab==3.
+        // 0x6698d0: the fourth tab's height checks tab==2, while its y checks tab==3.
         const bool tall = i == 3 ? tab == 2 : selected;
         Hud::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(x + 15 + 40 * i), selected ? 48.0f : 50.0f,
                                  40, tall ? 18.0f : 16.0f, 0.75f, 0.9375f);

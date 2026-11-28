@@ -56,13 +56,13 @@ Core::Expected<void, std::string> Admin(Hud::GameHudContext& context, CastleSieg
                                  Crt::Sprintf(fee.Value(), std::string_view(Ui::FormatZen(window.fee))));
     context.sprites.SetColor({0, 0, 0, 0.3f});
     context.sprites.ColorQuad(470, 185, 90, 30);
-    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, después del fondo sin textura.
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, after the untextured background.
     context.sprites.SetColor({1, 1, 1, 1});
     Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto line = Text(context, Left, 163, 0x77323b0); !line.HasValue())
         return line;
     Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
-    // 0x5542f0(..., 0, 4, 0), alineado a la derecha en x=540 y x=550.
+    // 0x5542f0(..., 0, 4, 0), right-aligned at x=540 and x=550.
     const auto edited = Ui::FormatZen(static_cast<std::uint32_t>(window.editedFee));
     Hud::WindowDrawing::DrawText(
         context,
@@ -79,12 +79,12 @@ Core::Expected<void, std::string> Admin(Hud::GameHudContext& context, CastleSieg
         return plus;
     if (auto minus = Button(context, window.minus, 570, 203, 0, window.minus.base.state); !minus.HasValue())
         return minus;
-    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a3b4, después del botón menos.
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a3b4, after the minus button.
     Ui::OldDraw::Quad(context.sprites, 9, 570, 185, 16, 10, 0, 0.99f, 1, -0.96875f);
     Ui::OldDraw::Quad(context.sprites, 9, 570, 206, 16, 10, 0, 0, 1, 1);
     if (auto commit = Button(context, window.commit, 520, 228, 0x7733b20, window.commit.base.state); !commit.HasValue())
         return commit;
-    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a43a, después de aplicar el precio.
+    context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a43a, after applying the price.
     context.hud.textColors = {.text = 0xffffffffu, .background = 0};
     if (auto line = MoneyText(context, Left, 253, 0x77324dc, static_cast<std::uint32_t>(window.max)); !line.HasValue())
         return line;
@@ -104,7 +104,7 @@ Core::Expected<void, std::string> Visitor(Hud::GameHudContext& context, CastleSi
             if (auto line = Text(context, Left, 55 + static_cast<std::int32_t>(i) * 10, Lines[i]); !line.HasValue())
                 return line;
         auto button = Button(context, window.enter, 520, 95, 0x7731ca8, CastleUi::Disabled);
-        window.enter.base.state = 0; // El dibujo sólo apaga el botón mientras lo pinta.
+        window.enter.base.state = 0; // The draw clears the button only while it paints it.
         return button;
     }
     const auto amount = Ui::FormatZen(window.fee);

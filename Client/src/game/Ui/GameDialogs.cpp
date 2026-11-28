@@ -25,51 +25,51 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x632e30: el botón del aviso.
+// 0x632e30
 constexpr DialogButton MessageBoxButton{.state = 1, .x = 0x47, .y = 0x8c, .width = 0x46, .height = 0x15};
-// 0x63374f..0x633779: los dos de 0x633300; el segundo arranca en 3.
+// 0x63374f..0x633779: 0x633300's two; the second starts at 3.
 constexpr DialogButton FirstTextButton{.state = 1, .x = 0x15, .y = 0x5a, .width = 0x46, .height = 0x15};
 constexpr DialogButton SecondTextButton{.state = 3, .x = 0x78, .y = 0x5a, .width = 0x46, .height = 0x15};
-// 0x6337ea: la y de los dos en el 0x9a.
+// 0x6337ea
 constexpr std::int32_t ChaosCastleButtonsY = 0x78;
-// 0x633794..0x6337e3: los tres del 0xa8.
+// 0x633794..0x6337e3: the 0xa8's three.
 constexpr DialogButton LuckFirstButton{.state = 1, .x = 0x16, .y = 0x5c, .width = 0x31, .height = 0x10};
 constexpr DialogButton LuckSecondButton{.state = 3, .x = 0x52, .y = 0x5c, .width = 0x31, .height = 0x10};
 constexpr DialogButton LuckThirdButton{.state = 5, .x = 0x8e, .y = 0x5c, .width = 0x31, .height = 0x10};
-// 0x63364e..0x6336b8: la fruta (0x1a0f) y, por su nivel de 0 a 4 (la tabla de 0x633888), los textos de su nombre.
+// 0x63364e..0x6336b8: the fruit and, by its level 0 to 4 (the table at 0x633888), its name texts.
 constexpr std::uint16_t Fruit = 0x1a0f;
 constexpr std::array<std::int64_t, 5> FruitNameTexts{168, 169, 167, 166, 1900};
-// 0x6336d4: el texto que el 0xa8 pone detrás del nombre.
+// 0x6336d4: the text the 0xa8 puts after the name.
 constexpr std::int64_t LuckText = 1901;
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
-// 0x63344c..0x633564: los textos de la mezcla de joyas del 0xa3: la joya (bendición o alma), la pregunta al juntar y
-// al deshacer, y el precio de cada una.
+// 0x63344c..0x633564: the 0xa3's jewel mix texts: the jewel (bless or soul), the question when combining and when
+// splitting, and the price of each.
 constexpr std::int64_t BlessJewelText = 1806;
 constexpr std::int64_t SoulJewelText = 1807;
 constexpr std::int64_t MixQuestionText = 1809;
 constexpr std::int64_t MixPriceText = 1810;
 constexpr std::int64_t UnmixQuestionText = 1813;
 constexpr std::int64_t UnmixPriceText = 1814;
-// 0x633419..0x63342e y 0x6334a7: la pregunta se parte en la pila en 2 renglones de 0x1e bytes ([ebp − 0x64]); el
-// sprintf va antes a los 300 bytes de [ebp − 0x190].
+// 0x633419..0x63342e and 0x6334a7: the question is split on the stack into 2 rows of 0x1e bytes ([ebp − 0x64]); the
+// sprintf goes first to the 300 bytes at [ebp − 0x190].
 constexpr std::size_t JewelRows = 2;
 constexpr std::size_t JewelRowBytes = 0x1e;
 constexpr std::size_t JewelQuestionBytes = 300;
-// 0x62d779..0x62d7a4: el corrimiento del rectángulo de los botones.
+// 0x62d779..0x62d7a4
 constexpr std::int32_t ButtonOffsetX = 0xd5;
 constexpr std::int32_t ButtonOffsetY = 0x3c;
-// 0x62d80c..0x62d888: las flechas del 0x8c, con los bordes.
+// 0x62d80c..0x62d888: the 0x8c's arrows, edges included.
 constexpr std::int32_t PreviousLeft = 0xf9;
 constexpr std::int32_t PreviousRight = 0x108;
 constexpr std::int32_t NextLeft = 0x179;
 constexpr std::int32_t NextRight = 0x188;
 constexpr std::int32_t ArrowsTop = 0xca;
 constexpr std::int32_t ArrowsBottom = 0xde;
-// 0x419713 y 0x632f73: el lugar del wsprintf de cada respuesta. "10) " y 63 bytes con su '\0' entran.
+// 0x419713 and 0x632f73: each answer's wsprintf buffer. "10) " and 63 bytes with their '\0' fit.
 constexpr std::size_t AnswerBufferBytes = 0x48;
 
-// 0x632c90 sobre el renglón `firstRow`: cada renglón con su '\0'. Devuelve cuántos escribió.
+// 0x632c90 from row `firstRow`: each row with its '\0'. Returns how many it wrote.
 Core::Expected<std::int32_t, std::string> SplitIntoRows(DialogBoxState& box, std::size_t firstRow,
                                                         std::string_view text, std::string_view where)
 {
@@ -100,8 +100,8 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
     return *text;
 }
 
-// 0x69fd9b(renglón, formato, ...) desde el renglón `row`: lo que pase de los 0x26 bytes sigue en el siguiente, y lo
-// que pase de los 7 corta.
+// 0x69fd9b(row, format, ...) from row `row`: what passes the 0x26 bytes goes on in the next, and what passes the 7
+// fails.
 Core::Expected<void, std::string> PrintIntoRow(DialogBoxState& box, std::size_t row, std::string_view text,
                                                std::string_view where)
 {
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> PrintIntoRow(DialogBoxState& box, std::size_t 
     return {};
 }
 
-// 0x633419..0x633525: la pregunta de la mezcla de joyas y su precio.
+// 0x633419..0x633525: the question and its price.
 Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, const Tables::TextTable* texts,
                                                        const DialogTextArguments& arguments)
 {
@@ -128,14 +128,14 @@ Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, cons
     auto price = TextOf(texts, mixing ? MixPriceText : UnmixPriceText, "0x633517");
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
-    // 0x63345d: las contadas (un byte); 0x63352f: el nivel + 1.
+    // 0x63345d: the count (one byte); 0x63352f: the level + 1.
     const std::string asked =
         mixing ? Crt::Sprintf(question.Value(), name.Value(), static_cast<std::int32_t>(arguments.jewelCount))
                : Crt::Sprintf(question.Value(), name.Value(), arguments.jewelLevel + 1);
     if (asked.size() + 1 > JewelQuestionBytes)
         return Core::Unexpected(
             std::format("0x63348a: el sprintf de {} bytes pasa los 300 de la pila de 0x633300", asked.size() + 1));
-    // 0x6334ad: a lo sumo 2 renglones en la pila; los que no escribe quedan vacíos (sus primeros 20 bytes en 0).
+    // 0x6334ad: at most 2 rows on the stack; the ones it does not write stay empty (their first 20 bytes at 0).
     const std::vector<std::string> lines = SplitIntoLines(asked, JewelRows, JewelRowBytes);
     for (std::size_t row = 0; row < JewelRows; ++row)
     {
@@ -152,9 +152,9 @@ Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, cons
     return {};
 }
 
-// 0x633644..0x633739: el nombre del ítem de los diálogos en el primer renglón, sprintf de "( %s )" (o de "( %s%s )"
-// con el 1901 en el 0xa8) desde el principio de 0x7d36a98, y `lineCount` veces el texto `firstText` debajo (EBX no
-// avanza en el lazo de 0x633729, Q-C922; los dos que llaman pasan 1). lineCount + 1 renglones.
+// 0x633644..0x633739: the dialogs' item name in the first row, sprintf of "( %s )" (or "( %s%s )" with the 1901 in
+// the 0xa8) from the start of 0x7d36a98, and `lineCount` times the text `firstText` below (EBX does not advance in
+// the loop at 0x633729, Q-C922; both callers pass 1). lineCount + 1 rows.
 Core::Expected<void, std::string> WriteTheItemName(DialogBoxState& box, const Tables::TextTable* texts,
                                                    std::int32_t lineCount, std::int32_t firstText, std::int32_t id,
                                                    const Kernel::ItemState& item)
@@ -230,7 +230,7 @@ std::string_view DialogAnswer(const DialogBoxState& box, std::size_t row)
 
 namespace
 {
-// 0x419710 y 0x632f70 hasta antes de su final: el texto, las respuestas y su cuenta.
+// 0x419710 and 0x632f70 up to before their end: the text, the answers and their count.
 Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Tables::DialogTable* table,
                                                  const Tables::TextTable* texts, std::int32_t index,
                                                  std::string_view where)
@@ -245,7 +245,7 @@ Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Tabl
     box.answers.fill('\0');
     box.answerCount = 0;
     std::int32_t answer = 0;
-    // 0x41975f..0x4197d5: la cuenta se vuelve a leer en cada vuelta (LoadDialogTable no deja más de 10).
+    // 0x41975f..0x4197d5: the count is read again each pass (LoadDialogTable allows no more than 10).
     for (; answer < dialog.answerCount; ++answer)
     {
         const std::string line =
@@ -256,14 +256,14 @@ Core::Expected<void, std::string> WriteTheDialog(DialogBoxState& box, const Tabl
         *out = '\0';
         ++box.answerCount;
     }
-    // 0x4197db..0x419829: con la cuenta en 0 (no con una negativa), "%d) %s" con el 609 y strcpy al primer renglón.
+    // 0x4197db..0x419829: with the count at 0 (not a negative one), "%d) %s" with the 609 and strcpy to the first row.
     if (dialog.answerCount == 0)
     {
         auto read = TextOf(texts, static_cast<std::int64_t>(NoAnswersText), where);
         if (!read.HasValue())
             return Core::Unexpected(std::move(read).Error());
         const std::string line = std::format("{}) {}", answer + 1, read.Value());
-        // El wsprintf va a los 0x48 bytes de la pila (EBP − 0x48); el strcpy, desde el primer renglón, entra siempre.
+        // The wsprintf goes to the 0x48 bytes on the stack (EBP − 0x48); the strcpy, from the first row, always fits.
         if (line.size() + 1 > AnswerBufferBytes)
             return Core::Unexpected(
                 std::format("{}: el wsprintf de {} bytes pasa los 0x48 de la pila", where, line.size() + 1));
@@ -290,7 +290,7 @@ Core::Expected<void, std::string> OpenTheAnswersDialog(DialogBoxState& box, Dial
                                                        const Tables::DialogTable* table, const Tables::TextTable* texts,
                                                        std::int32_t index)
 {
-    // 0x632f90..0x632fa3: los botones en 0 entre el texto y las respuestas (nada de lo que sigue los lee).
+    // 0x632f90..0x632fa3: buttons zeroed between the text and the answers (nothing after reads them).
     ResetTheButtons(box);
     if (auto written = WriteTheDialog(box, table, texts, index, "0x632f70"); !written.HasValue())
         return written;
@@ -300,7 +300,7 @@ Core::Expected<void, std::string> OpenTheAnswersDialog(DialogBoxState& box, Dial
 
 void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view text)
 {
-    // 0x632c90 sobre el primer renglón nunca pasa los 7.
+    // 0x632c90 from the first row never passes the 7.
     box.lineCount = SplitIntoRows(box, 0, text, "0x632e3e").Value();
     ResetTheButtons(box);
     box.buttons[0] = MessageBoxButton;
@@ -309,8 +309,8 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 
 namespace
 {
-// Los textos `firstText + row` de `fromRow` a `lineCount` − 1, con un strcpy cada uno en su renglón de 0x26 bytes;
-// uno largo sigue en el renglón siguiente. Lo que pasaría los 7 corta, como un texto que no está.
+// The texts `firstText + row` from `fromRow` to `lineCount` − 1, one strcpy each into its 0x26-byte row; a long one
+// goes on in the next row. What would pass the 7 fails, like a missing text.
 Core::Expected<void, std::string> CopyTheTexts(DialogBoxState& box, const Tables::TextTable* texts,
                                                std::int32_t firstText, std::int32_t fromRow, std::int32_t lineCount,
                                                std::string_view where)
@@ -331,8 +331,8 @@ Core::Expected<void, std::string> CopyTheTexts(DialogBoxState& box, const Tables
     return {};
 }
 
-// 0x633742..0x633816: los botones en 0, el primero y el segundo (con y = 0x78 en el 0x9a), y desde 0x633818 el id por
-// 0x6236f0, en línea.
+// 0x633742..0x633816: buttons zeroed, the first and the second (with y = 0x78 in the 0x9a), and from 0x633818 the id
+// through 0x6236f0, inline.
 void ShowTheTextDialog(DialogBoxState& box, DialogState& dialogs, std::int32_t id)
 {
     ResetTheButtons(box);
@@ -393,7 +393,7 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
     }
     else if (id != ItemNameDialog && id != ItemNameWithLuckDialog && id != MoneyTextDialog)
     {
-        // 0x633600..0x633638: un strcpy por texto, de a 0x26 bytes; uno largo sigue en el renglón siguiente.
+        // 0x633600..0x633638: one strcpy per text, 0x26 bytes apart; a long one goes on in the next row.
         if (auto copied = CopyTheTexts(box, texts, firstText, 0, lineCount, "0x633612"); !copied.HasValue())
             return copied;
         box.lineCount = lineCount;
@@ -406,8 +406,8 @@ Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, Di
                                                          const Tables::TextTable* texts, std::int32_t lineCount,
                                                          std::int32_t firstText, std::string_view zen)
 {
-    // 0x633342..0x633367: sprintf(0x7d36a98, el texto, el zen escrito), sin tope: lo largo sigue en los renglones de
-    // abajo, que el strcpy de los que siguen pisa.
+    // 0x633342..0x633367: sprintf(0x7d36a98, the text, the written zen), unbounded: a long one goes on in the rows
+    // below, which the strcpy of the following ones overwrites.
     auto format = TextOf(texts, static_cast<std::int64_t>(firstText), "0x633367");
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
@@ -417,8 +417,8 @@ Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, Di
             std::format("0x633367: el sprintf del texto {} pasa los 7 renglones de 0x7d36a98", firstText));
     auto out = std::copy(first.begin(), first.end(), box.rows.begin());
     *out = '\0';
-    // 0x63336c..0x63339e: con más de un renglón, los textos que siguen desde el segundo, cada uno por el mismo sprintf
-    // sin argumentos (0x633387), y la cuenta.
+    // 0x63336c..0x63339e: with more than one row, the following texts from the second, each through the same sprintf
+    // without arguments (0x633387), and the count.
     for (std::int32_t row = 1; row < lineCount; ++row)
     {
         auto read = TextOf(texts, static_cast<std::int64_t>(firstText) + row, "0x633387");
@@ -491,13 +491,13 @@ Core::Expected<void, std::string> StepTheDialogPages(DialogBoxState& box, const 
     const bool onTheArrows = mouse.y >= ArrowsTop && mouse.y <= ArrowsBottom;
     if (click && onTheArrows && mouse.x >= PreviousLeft && mouse.x <= PreviousRight)
     {
-        // 0x62d834..0x62d846: DEC de un char con signo; 0 o menos queda en 0.
+        // 0x62d834..0x62d846: DEC of a signed char; 0 or less stays 0.
         const auto previous = static_cast<std::int8_t>(box.page - 1);
         box.page = previous > 0 ? previous : std::int8_t{0};
     }
     else if (click && onTheArrows && mouse.x >= NextLeft && mouse.x <= NextRight)
     {
-        // 0x62d89d..0x62d8b5: INC de un char con signo; desde la última, la última.
+        // 0x62d89d..0x62d8b5: INC of a signed char; from the last, the last.
         const auto next = static_cast<std::int8_t>(box.page + 1);
         box.page = next < box.lastPage ? next : box.lastPage;
     }

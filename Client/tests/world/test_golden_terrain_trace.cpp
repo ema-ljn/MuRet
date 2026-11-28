@@ -302,7 +302,7 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
             }
         }
     }
-    // 06 § Terreno: 329 opaque passes and 141 alpha passes, 3 with slot 0x122; the light matches on 1,746 of the 1,875
+    // 06 § Terreno: 329 opaque passes and 141 alpha passes, 3 with slot 0x122; the light matches on 1746 of the 1875
     // vertices with red above 8 / 255, and the other 129 have dynamic lights on top.
     EXPECT_EQ(opaque, 329u);
     EXPECT_EQ(alpha, 141u);
@@ -478,8 +478,8 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     EXPECT_EQ(grassVertices, 25u * 6u);
 }
 
-// And the selection (map 54, World55), where the trapezoid does cull: with SelectionCamera and the hero at (12975,
-// 15423, 333), the 5,109 cells of its trace.
+// And the selection (map 54, World55), where the trapezoid does cull: with SelectionCamera and the hero at
+// (12975, 15423, 333), the 5109 cells of its trace.
 TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
 {
     const auto path = TraceFile("character-selection-Frame_003207.txt");
@@ -515,7 +515,7 @@ TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
 using GoldenTerrainLogin = Client::Tests::GoldenDataTest;
 
 // And the login (map 55, World56), which has no trace: with LoginCamera and the hero at (11679, 14191, 333), the
-// blocks of x 0..128 and y 120..248 all pass and draw 3,244 cells without bit 0x08, from (90, 153) to (104, 251), in
+// blocks of x 0..128 and y 120..248 all pass and draw 3244 cells without bit 0x08, from (90, 153) to (104, 251), in
 // the order of the emulated real code (the checksum is that of scripts/login: s = s · 31 + x · 256 + y, modulo 2³²).
 TEST_F(GoldenTerrainLogin, TheLoginDrawsTheCellsOfTheEmulatedCode)
 {

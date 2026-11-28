@@ -34,9 +34,9 @@
 #include <string_view>
 #include <vector>
 
-// Levantar, soltar y equipar el ítem del cursor (CL8 hito 4; 06 § El inventario, "El ítem del cursor"): la grilla de
-// 8 × 8 con ítems de varios tamaños, el equipo, el piso y MoveHero, sobre un Item.bmd sintético. Los ítems, sus bytes y
-// sus lugares son inventados.
+// Picking up, dropping and equipping the cursor item (CL8 milestone 4; 06 § El inventario, "El ítem del cursor"): the
+// 8 × 8 grid with items of several sizes, the equipment, the floor and MoveHero, on a synthetic Item.bmd. The items,
+// their bytes and their slots are invented.
 namespace
 {
 using Client::Core::Expected;
@@ -56,38 +56,38 @@ using Client::Tests::SameBytes;
 namespace Scenes = Client::Scenes;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
-// Los dos rand() del envío en C3: el relleno y el serial de 0x40b0a0.
+// The C3 send's two rand(): the padding and 0x40b0a0's serial.
 constexpr int SendRandoms = 2;
 constexpr std::int32_t Left = 0x1c2 + 15;
 constexpr std::int32_t Top = 200;
 
-// Los tipos del Item.bmd sintético, con su ancho, su alto y su lugar del equipo (+0x22).
-constexpr std::uint16_t Sword = 0x0001;    // 1 × 3, la mano derecha
-constexpr std::uint16_t Shield = 0x0c01;   // 2 × 2, la izquierda
-constexpr std::uint16_t Helm = 0x0e01;     // 2 × 2, la cabeza
-constexpr std::uint16_t Potion = 0x1c00;   // 1 × 1, se apila
-constexpr std::uint16_t Jewel = 0x1c0d;    // 1 × 1, Jewel of Bless: no se tira
-constexpr std::uint16_t Box = 0x1a20;      // 1 × 1, avisa con 1915
-constexpr std::uint16_t Bundle = 0x181e;   // 1 × 1, el paquete de Bless (0x402b30 da 2)
-constexpr std::uint16_t Wings = 0x1800;    // 3 × 2, las alas
-constexpr std::uint16_t Bow = 0x0801;      // 2 × 4, la izquierda: tira flechas
-constexpr std::uint16_t Crossbow = 0x0808; // 2 × 4, la derecha: tira virotes
+// The synthetic Item.bmd's types, with their width, height and equipment slot (+0x22).
+constexpr std::uint16_t Sword = 0x0001;    // 1 × 3, the right hand
+constexpr std::uint16_t Shield = 0x0c01;   // 2 × 2, the left
+constexpr std::uint16_t Helm = 0x0e01;     // 2 × 2, the head
+constexpr std::uint16_t Potion = 0x1c00;   // 1 × 1, stacks
+constexpr std::uint16_t Jewel = 0x1c0d;    // 1 × 1, Jewel of Bless: not dropped
+constexpr std::uint16_t Box = 0x1a20;      // 1 × 1, warns with 1915
+constexpr std::uint16_t Bundle = 0x181e;   // 1 × 1, the Bless bundle (0x402b30 gives 2)
+constexpr std::uint16_t Wings = 0x1800;    // 3 × 2, the wings
+constexpr std::uint16_t Bow = 0x0801;      // 2 × 4, the left: shoots arrows
+constexpr std::uint16_t Crossbow = 0x0808; // 2 × 4, the right: shoots bolts
 constexpr std::uint16_t Bolts = 0x0807;    // 1 × 1
 constexpr std::uint16_t Arrows = 0x080f;   // 1 × 1
-// 1 × 1, la derecha: el Dark Raven con 32 tipos por grupo, que 0x5bf03f compara (en el Item.bmd real, vacío).
+// 1 × 1, the right: the Dark Raven with 32 types per group, which 0x5bf03f compares (empty in the real Item.bmd).
 constexpr std::uint16_t OldDarkRaven = 0x01a5;
-constexpr std::uint16_t EntryTicket = 0x1c1c; // 1 × 1, el mapa que mira 0x4379f0.
-constexpr std::uint16_t WizardsRing = 0x1a14; // 1 × 1, el primer anillo
+constexpr std::uint16_t EntryTicket = 0x1c1c; // 1 × 1, the map 0x4379f0 checks.
+constexpr std::uint16_t WizardsRing = 0x1a14; // 1 × 1, the first ring
 constexpr std::uint8_t HeadSlot = 2;
 constexpr std::uint8_t WingSlot = 7;
 constexpr std::uint8_t NotWorn = 0xff;
 constexpr std::uint8_t DarkKnight = 1;
 constexpr std::uint8_t Elf = 2;
-// Los textos de 0x561840: las flechas que se equipan (con el tipo 1) y las que se acabaron (con el 2).
+// 0x561840's texts: the arrows that get equipped (with type 1) and those that ran out (with 2).
 constexpr std::size_t EquippedArrowsText = 250;
 constexpr std::size_t NoArrowsText = 251;
 
-// Lo que piden afuera los pasos: cuántas veces se vistió al héroe, los mensajes y los 24 que salieron.
+// What the steps ask for outside: how many times the hero was dressed, the messages and the 24s that went out.
 struct Outside
 {
     int dressed = 0;
@@ -139,8 +139,8 @@ protected:
         return InventoryMoveContext{.world = world, .random = random, .services = services};
     }
 
-    // El ítem `type` con su huella desde la casilla (column, row), como lo deja 0x5bc740: la copia en cada casilla,
-    // con la columna y la fila del origen, y +0x3c en 1 solo en el origen.
+    // The item `type` with its footprint from cell (column, row), as 0x5bc740 leaves it: the copy in every cell, with
+    // the origin's column and row, and +0x3c at 1 only at the origin.
     void Put(std::uint16_t type, std::uint8_t column, std::uint8_t row)
     {
         const auto footprint = Client::Items::ItemFootprintOf(&items, type, "Put");
@@ -175,8 +175,8 @@ protected:
                                           static_cast<std::size_t>(column));
     }
 
-    // El mouse sobre la casilla (column, row) para un ítem de `width` × `height`: la fórmula de 0x5ca2af centra la
-    // huella en el mouse.
+    // The mouse over cell (column, row) for a `width` × `height` item: 0x5ca2af's formula centers the footprint on the
+    // mouse.
     static std::int32_t MouseX(std::int32_t column, std::int32_t width)
     {
         return Left + column * 20 + width * 10;
@@ -214,8 +214,8 @@ protected:
     InventoryServices services;
 };
 
-// 0x5ca2af..0x5ca2fd: _ftol de (mouse − esquina) · 0.05f − tamaño · 0.5f + 0.5f trunca hacia el 0, así que hasta una
-// casilla entera a la izquierda o arriba de la grilla todavía da la columna o la fila 0.
+// 0x5ca2af..0x5ca2fd: _ftol of (mouse − corner) · 0.05f − size · 0.5f + 0.5f truncates toward 0, so up to a whole cell
+// left of or above the grid still gives column or row 0.
 TEST_F(CursorItemTest, TheCellUnderTheMouseTruncatesTowardZero)
 {
     const Client::Items::ItemFootprint one{.width = 1, .height = 1};
@@ -232,8 +232,8 @@ TEST_F(CursorItemTest, TheCellUnderTheMouseTruncatesTowardZero)
     EXPECT_EQ(Client::Items::CellUnderTheMouse(Left - 25, Top, Left, Top, one).column, -1);
 }
 
-// 0x5c9b40: todas las casillas de la huella dentro de la grilla y vacías; si no, el mismo tipo apilable en la casilla
-// de arriba a la izquierda.
+// 0x5c9b40: every cell of the footprint inside the grid and empty; otherwise, the same stackable type in the top-left
+// cell.
 TEST_F(CursorItemTest, AnItemFitsWhereItsWholeFootprintIsFree)
 {
     Put(Sword, 2, 1);
@@ -258,9 +258,9 @@ TEST_F(CursorItemTest, AnItemFitsWhereItsWholeFootprintIsFree)
     EXPECT_FALSE(fits(Wings, 6, 0));
 }
 
-// 0x5c52b1..0x5c5358: levantar desde cualquier casilla de la huella copia la de arriba a la izquierda al cursor, con el
-// lugar 12 + fila · 8 + columna, y 0x5bd750 vacía la huella, sin abrir el registro propio. 0x5be150 la vuelve a
-// poner, con +0x3c en 1 en el origen, viste al héroe y pide el sonido 0x1d.
+// 0x5c52b1..0x5c5358: picking up from any cell of the footprint copies the top-left one to the cursor, with slot
+// 12 + row · 8 + column, and 0x5bd750 empties the footprint, without opening the own record. 0x5be150 puts it back,
+// with +0x3c at 1 at the origin, dresses the hero and asks for sound 0x1d.
 TEST_F(CursorItemTest, PickingUpFromTheGridAndReturningItRestoresTheFootprint)
 {
     Put(Sword, 2, 1);
@@ -301,13 +301,13 @@ TEST_F(CursorItemTest, PickingUpFromTheGridAndReturningItRestoresTheFootprint)
     EXPECT_EQ(random.State(), before.State());
 }
 
-// La caja del entrenador (0x723c80), de 8 × 4 en (0x113, 0x6e) con 0x724580 en 3 (0x44ad10 y 0x44aca0).
+// The trainer's box (0x723c80), 8 × 4 at (0x113, 0x6e) with 0x724580 at 3 (0x44ad10 and 0x44aca0).
 constexpr std::int32_t TrainerLeft = 0x113;
 constexpr std::int32_t TrainerTop = 0x6e;
 
-// 0x5ca250 con el tipo 5 (0x44aca9): con 0x724580 en 3, 0x44acd0 solo deja la joya del caos, las de la mezcla y 0x1a1f;
-// la joya entra (marcas 2) y, con el clic, manda 0x449d80(0, 12, 5, fila · 8 + columna) con los dos rand() del envío.
-// El arma no entra (marcas 3, sin 0x5c9b40) y no manda nada. En Lorencia y Devias.
+// 0x5ca250 with kind 5 (0x44aca9): with 0x724580 at 3, 0x44acd0 only lets in the jewel of chaos, the mix ones and
+// 0x1a1f; the jewel fits (marks 2) and, with the click, sends 0x449d80(0, 12, 5, row · 8 + column) with the send's two
+// rand(). The weapon does not fit (marks 3, without 0x5c9b40) and sends nothing. In Lorencia and Devias.
 TEST_F(CursorItemTest, TheTrainerBoxTakesOnlyItsJewels)
 {
     for (const std::int32_t map : {0, 2})
@@ -364,9 +364,9 @@ TEST_F(CursorItemTest, TheTrainerBoxTakesOnlyItsJewels)
     }
 }
 
-// Levantar de la caja del entrenador (0x44ad10 → 0x5c4110): la copia al cursor desde su esquina (el lugar sin el 12)
-// y la huella vacía; 0x5be150 la vuelve con 0x449c80. Soltarla en el inventario manda 0x449d50, 0x449d80(5, lugar, 0,
-// destino). En Lorencia y Devias.
+// Picking up from the trainer's box (0x44ad10 → 0x5c4110): the copy to the cursor from its corner (the slot without
+// the 12) and the footprint empty; 0x5be150 returns it with 0x449c80. Dropping it in the inventory sends 0x449d50,
+// 0x449d80(5, slot, 0, destination). In Lorencia and Devias.
 TEST_F(CursorItemTest, TheTrainerBoxItemGoesBackOrToTheInventory)
 {
     for (const std::int32_t map : {0, 2})
@@ -425,8 +425,8 @@ TEST_F(CursorItemTest, TheTrainerBoxItemGoesBackOrToTheInventory)
     }
 }
 
-// 0x5ca250 con el clic sobre un lugar libre: las marcas 2 en la huella, la traba, los dos rand() del envío y el
-// C1 0E 24 con el origen, los bytes 0, +4, +0x1a, +0x1b, +0x1c, el tipo >> 5 & 0xf0 y 0, y el destino.
+// 0x5ca250 with the click on a free place: marks 2 on the footprint, the lock, the send's two rand() and the C1 0E 24
+// with the origin, bytes 0, +4, +0x1a, +0x1b, +0x1c, the type >> 5 & 0xf0 and 0, and the destination.
 TEST_F(CursorItemTest, DroppingOnAFreePlaceOfTheGridSendsTheMove)
 {
     Put(Sword, 2, 1);
@@ -457,8 +457,8 @@ TEST_F(CursorItemTest, DroppingOnAFreePlaceOfTheGridSendsTheMove)
         EXPECT_EQ(Cell(6, row).warning, 2) << row;
 }
 
-// Sobre otro ítem, la marca 3 y, con el clic, nada; en el mismo lugar, 0x5be150; con el inventario cerrado, el clic
-// queda en la grilla sin mandar nada. La traba ya puesta tampoco manda.
+// Over another item, mark 3 and, with the click, nothing; on the same place, 0x5be150; with the inventory closed, the
+// click stays in the grid without sending anything. A lock already set does not send either.
 TEST_F(CursorItemTest, TheGridRefusesOccupiedPlacesAndTakesItsOwnPlaceBack)
 {
     Put(Sword, 2, 1);
@@ -495,11 +495,11 @@ TEST_F(CursorItemTest, TheGridRefusesOccupiedPlacesAndTakesItsOwnPlaceBack)
     EXPECT_EQ(Cell(2, 1).id, Sword);
 }
 
-// 0x5c007c..0x5c1d8a, en Lorencia, Devias y Noria: el ítem de otra grilla al equipo manda el 24 desde su grilla con su
-// lugar sin el 12 y los dos rand() del envío: el casco del almacén a la cabeza (2), la espada de la caja del caos a la
-// derecha (3) y el escudo de la caja del entrenador a la izquierda (0x449d50 en 0x5c1d80, el 5). Con la traba del
-// almacén, el movimiento espera la contraseña (2, lugar, 0, destino), el teclado se baraja (40 rand()), 0x78abb20 en
-// 1 y lo tecleado en 0, sin mandar nada. Las demás grillas usan el 1 y esperan el OK antes de la traba del envío.
+// 0x5c007c..0x5c1d8a, in Lorencia, Devias and Noria: an item from another grid to the equipment sends the 24 from its
+// grid with its slot without the 12 and the send's two rand(): the warehouse helmet to the head (2), the chaos box
+// sword to the right (3) and the trainer's box shield to the left (0x449d50 at 0x5c1d80, the 5). With the warehouse
+// lock, the move waits for the password (2, slot, 0, destination), the keypad shuffles (40 rand()), 0x78abb20 at 1 and
+// what was typed at 0, without sending anything. The other grids use 1 and wait for the OK before the send's lock.
 TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -550,7 +550,7 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
         EXPECT_EQ(outside.sent[0].targetFlag, 0);
         EXPECT_EQ(outside.sent[0].targetSlot, HeadSlot);
 
-        // Con la traba del almacén, la contraseña: no mira la traba del envío ni manda.
+        // With the warehouse lock, the password: it does not check the send's lock or send.
         npc.warehouseLocked = 1;
         npc.field78abb1c = 0;
         npc.typedNumber.fill(0x37);
@@ -611,7 +611,7 @@ TEST_F(CursorItemTest, TheItemOfAnotherGridGoesToTheEquipment)
     }
 }
 
-// 0x5c1d90: el fallback también cubre la tienda personal; pone la espera ANTES de probar 0x78abb39.
+// 0x5c1d90: the fallback also covers the personal shop; it sets the wait BEFORE testing 0x78abb39.
 TEST_F(CursorItemTest, TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment)
 {
     for (const auto grid : {Client::Kernel::CursorGrid::OwnTrade, Client::Kernel::CursorGrid::PersonalShop})
@@ -660,8 +660,8 @@ TEST_F(CursorItemTest, TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment)
     }
 }
 
-// 0x5bee04..0x5bf2a0: el casco va en la cabeza (la marca 2 y, con el clic, el 24 al lugar 2) y no en la mano derecha
-// (la marca 3 y, con el clic, 0x5be150). El arma de una mano soltada en la izquierda con la derecha vacía va a la 0.
+// 0x5bee04..0x5bf2a0: the helmet goes on the head (mark 2 and, with the click, the 24 to slot 2) and not in the right
+// hand (mark 3 and, with the click, 0x5be150). A one-handed weapon dropped on the left with the right empty goes to 0.
 TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
 {
     world.Actors()[0].characterClass = DarkKnight;
@@ -703,8 +703,8 @@ TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
     EXPECT_EQ(outside.sent.back().targetSlot, 0);
 }
 
-// 0x5bf013..0x5bf04a: el 0x1a5 pide de liderazgo el nivel del cuervo ([0x723968]) · 15 + 0xb9, en 16 bits que dan
-// la vuelta, contra +0x20 sin agregados (Q-C775).
+// 0x5bf013..0x5bf04a: the 0x1a5 asks for leadership the raven's level ([0x723968]) · 15 + 0xb9, in 16 bits that wrap
+// around, against +0x20 without additions (Q-C775).
 TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
 {
     world.Actors()[0].characterClass = DarkKnight;
@@ -730,7 +730,7 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     own.word36 = 100;
     own.leadership = 0xb9 + 29;
     EXPECT_EQ(mark(), 3);
-    // 4.357 · 15 + 0xb9 = 0x10004: queda 4.
+    // 4357 · 15 + 0xb9 = 0x10004: 4 is left.
     runtime.pets[Client::Kernel::RavenPetStats].level = 4357;
     own.leadership = 4;
     EXPECT_EQ(mark(), 2);
@@ -778,8 +778,8 @@ TEST_F(CursorItemTest, TheCrywolfLockNeedsTheStageThreeOrFourAndTheHerosFlag)
     }
 }
 
-// 0x5c2c65..0x5c2dd0: levantar del equipo deja el lugar en 0xffff (con +0x3c como estaba), viste al héroe y pide el
-// sonido. En Icarus, las únicas alas no se sacan.
+// 0x5c2c65..0x5c2dd0: picking up from the equipment leaves the slot at 0xffff (with +0x3c as it was), dresses the hero
+// and asks for the sound. In Icarus, the only wings are not taken off.
 TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)
 {
     ItemState& helm = world.OwnCharacter().equipment[HeadSlot];
@@ -808,8 +808,8 @@ TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)
     EXPECT_EQ(world.Runtime().cursorItemCount, 0);
 }
 
-// 0x5c35ad: la marca 3 si falta un requisito (+0x26 contra la fuerza, Q-C475) y 2 si no, el ítem del cartel y la
-// esquina de su ayuda en el medio del lugar.
+// 0x5c35ad: mark 3 if a requirement is missing (+0x26 against strength, Q-C475) and 2 otherwise, the label item and
+// its help's corner in the middle of the slot.
 TEST_F(CursorItemTest, HoveringTheEquipmentMarksWhatTheHeroCannotUse)
 {
     ItemState& helm = world.OwnCharacter().equipment[HeadSlot];
@@ -831,8 +831,9 @@ TEST_F(CursorItemTest, HoveringTheEquipmentMarksWhatTheHeroCannotUse)
     EXPECT_EQ(helm.warning, 2);
 }
 
-// 0x5df449..0x5df58b: lo que no se tira avisa con 269 y vuelve; las cajas, con 1915; los paquetes de joyas, con 269
-// salvo con el inventario abierto y el mouse a su derecha. Lo demás corta donde empieza a tirarlo (CL9.3).
+// 0x5df449..0x5df58b: what cannot be dropped warns with 269 and goes back; the boxes, with 1915; the jewel bundles,
+// with 269 except with the inventory open and the mouse to its right. The rest stops where it starts dropping it
+// (CL9.3).
 TEST_F(CursorItemTest, WhatCannotBeDroppedGoesBackWithItsWarning)
 {
     const auto hold = [&](std::uint16_t type)
@@ -864,16 +865,16 @@ TEST_F(CursorItemTest, WhatCannotBeDroppedGoesBackWithItsWarning)
     EXPECT_EQ(outside.messages.size(), 3u);
     EXPECT_EQ(outside.messages.back(), 269u);
 
-    // Lo demás sigue a las ventanas (0x5df58b), que piden el registro de los paneles.
+    // The rest goes on to the windows (0x5df58b), which ask for the panel registry.
     hold(Shield);
     const auto dropped = ground(100, false);
     ASSERT_FALSE(dropped.HasValue());
     EXPECT_TRUE(dropped.Error().starts_with("0x5df59a:")) << dropped.Error();
 }
 
-// 0x5df58b..0x5e069d (CL9 hito 5): sin ventanas sobre el mouse, el anillo (el registro propio), IsOpen(0x20), la celda
-// del terreno bajo el mouse y el C1 06 23 con la celda y el lugar de donde salió, en C3; después [0x6c82ec] con ese
-// lugar y la espera del mouse en 6.
+// 0x5df58b..0x5e069d (CL9 milestone 5): with no windows under the mouse, the ring (the own record), IsOpen(0x20), the
+// terrain cell under the mouse and the C1 06 23 with the cell and the slot it came from, in C3; then [0x6c82ec] with
+// that slot and the mouse wait at 6.
 TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
 {
     Put(Shield, 2, 1);
@@ -888,7 +889,7 @@ TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
     };
     services.pickTheGround = [] { return Expected<std::optional<PathCell>, std::string>(PathCell{130, 121}); };
     Client::Hud::GamePanels panels(world, random);
-    // IsOpen(0x10000) y IsOpen(0x20) de las ventanas, el registro propio, IsOpen(0x20) otra vez y el envío.
+    // IsOpen(0x10000) and IsOpen(0x20) of the windows, the own record, IsOpen(0x20) again and the send.
     const CrtRandom expected = Advanced(random, 1 + 1 + Own + 1 + SendRandoms);
     world.Runtime().mouse.updateTime = 3;
 
@@ -903,13 +904,13 @@ TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
     EXPECT_EQ(world.Runtime().floor.pendingDrop, 22);
     EXPECT_EQ(world.Runtime().mouse.updateTime, 0);
     EXPECT_EQ(world.Runtime().mouse.updateTimeMax, 6);
-    // El ítem queda en el cursor hasta el 23.
+    // The item stays on the cursor until the 23.
     EXPECT_EQ(world.Runtime().cursorItemCount, 1);
     EXPECT_EQ(Cell(2, 1).id, EmptyOwnItemId);
 }
 
-// 0x5dfdfc: sin terreno bajo el mouse no sale nada y el ítem sigue en el cursor. 0x5df58b: con el inventario abierto y
-// el mouse en él, vuelve a su lugar.
+// 0x5dfdfc: with no terrain under the mouse nothing goes out and the item stays on the cursor. 0x5df58b: with the
+// inventory open and the mouse on it, it goes back to its place.
 TEST_F(CursorItemTest, WithoutGroundOrOverTheInventoryNothingIsDropped)
 {
     Put(Potion, 0, 0);
@@ -941,9 +942,9 @@ TEST_F(CursorItemTest, WithoutGroundOrOverTheInventoryNothingIsDropped)
     EXPECT_EQ(Cell(0, 0).id, Potion);
 }
 
-// 0x5df651..0x5df671: con el comercio abierto, el mouse desde la x de su ventana (0x78a5a1c, la de su dibujo en 0x104)
-// no deja tirar; antes de ella sí, pero 0x5dfda8 vuelve a mirar el comercio (otro rand()). Las dos vuelven el ítem a su
-// lugar (0x5be150) sin mandar nada: la de la ventana se ahorra esa consulta.
+// 0x5df651..0x5df671: with the trade open, the mouse from its window's x (0x78a5a1c, its draw's at 0x104) does not
+// allow dropping; before it, it does, but 0x5dfda8 checks the trade again (another rand()). Both return the item to
+// its place (0x5be150) without sending anything: the window one saves that query.
 TEST_F(CursorItemTest, WithTheTradeOpenTheItemGoesBackWithOrWithoutTheWindow)
 {
     int sent = 0;
@@ -983,8 +984,8 @@ TEST_F(CursorItemTest, WithTheTradeOpenTheItemGoesBackWithOrWithoutTheWindow)
     EXPECT_EQ(before, over + 1);
 }
 
-// 0x5df6c8..0x5dfa52: el anillo del mago de nivel 2 pide el nivel 80 (el aviso 923 con el número, del tipo 1) y vuelve;
-// el de nivel 3 vuelve sin aviso.
+// 0x5df6c8..0x5dfa52: the level 2 wizard's ring asks for level 80 (warning 923 with the number, of type 1) and goes
+// back; the level 3 one goes back without a warning.
 TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)
 {
     const auto texts = Client::Tests::MakeTextTable({{923, "hace falta el nivel %d"}});
@@ -1013,7 +1014,8 @@ TEST_F(CursorItemTest, TheWizardsRingAsksForItsLevelBeforeBeingDropped)
     EXPECT_EQ(lines, std::vector<std::string>{"hace falta el nivel 80"});
 }
 
-// 0x5df5cf..0x5df6c4: cada ventana lee la x retenida del dibujo, con comparación signed y sin cortar la UI.
+// 0x5df5cf..0x5df6c4: each window reads the draw's retained x, with a signed comparison and without cutting off the
+// UI.
 TEST_F(CursorItemTest, NpcWindowsKeepTheDropOnlyOnTheirSideOfTheScreen)
 {
     for (const int kind : {0, 1, 2, 3})
@@ -1046,7 +1048,7 @@ TEST_F(CursorItemTest, NpcWindowsKeepTheDropOnlyOnTheirSideOfTheScreen)
     }
 }
 
-// 0x5df635→0x6689d0: sólo modo 3, marca WORD no negativa y maestro 0x80 retienen a la derecha del NPC.
+// 0x5df635→0x6689d0: only mode 3, a non-negative WORD mark and master 0x80 keep it to the NPC's right.
 TEST_F(CursorItemTest, TheSeniorCraftWindowKeepsTheDropWithItsNativeSignedGuildMark)
 {
     struct Case
@@ -1094,7 +1096,7 @@ TEST_F(CursorItemTest, TheSeniorCraftWindowKeepsTheDropWithItsNativeSignedGuildM
     }
 }
 
-// 0x5dfb3e y 0x4379f0: los dwords de la tabla y el corte de mapas son distintos de la zona segura de 0x437a20.
+// 0x5dfb3e and 0x4379f0: the table's dwords and the maps cutoff are different from 0x437a20's safe zone.
 TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
 {
     struct Case
@@ -1165,8 +1167,8 @@ TEST_F(CursorItemTest, EntryTicketsRespectTheNativeThresholdMapAndSafeZone)
     }
 }
 
-// 0x59bd3e..0x59bf56: MoveHero pasa el arma de la izquierda al cursor en un acceso al registro propio, viste al héroe y
-// manda el 24 del lugar 1 al 0, salvo con la traba puesta.
+// 0x59bd3e..0x59bf56: MoveHero moves the left weapon to the cursor in one own record access, dresses the hero and
+// sends the 24 from slot 1 to 0, unless the lock is set.
 TEST_F(CursorItemTest, MoveHeroSendsTheLeftWeaponToTheRight)
 {
     ItemState& left = world.OwnCharacter().equipment[1];
@@ -1198,8 +1200,8 @@ TEST_F(CursorItemTest, MoveHeroSendsTheLeftWeaponToTheRight)
     EXPECT_EQ(outside.sent.size(), 1u);
 }
 
-// 0x5bd750 → 0x561840 → 0x5579e0 (Q-C477): sacar una mano de otra clase cierra el registro dos veces (0x5bd750 y
-// 0x5579e0) y avisa con el 251 y el tipo 2.
+// 0x5bd750 → 0x561840 → 0x5579e0 (Q-C477): removing a hand of another class closes the record twice (0x5bd750 and
+// 0x5579e0) and warns with 251 and type 2.
 TEST_F(CursorItemTest, RemovingAHandOfAnotherClassWarnsThatThereAreNoArrows)
 {
     world.OwnCharacter().characterClass = DarkKnight;
@@ -1214,9 +1216,9 @@ TEST_F(CursorItemTest, RemovingAHandOfAnotherClassWarnsThatThereAreNoArrows)
     EXPECT_TRUE(outside.sent.empty());
 }
 
-// 0x5579e0 recorre la grilla de la columna 7 a la 0 y, en cada una, de abajo arriba: con el arco en la izquierda, las
-// flechas de (6, 2) antes que las de (3, 5). Con el registro abierto por quien llama (como 0x561c50), 0x561840 lee las
-// manos: la derecha vacía recibe las flechas, con el 24 del lugar 34 al 0 y el 250 con el tipo 1.
+// 0x5579e0 walks the grid from column 7 to 0 and, in each, bottom to top: with the bow on the left, the arrows at
+// (6, 2) before those at (3, 5). With the record opened by the caller (like 0x561c50), 0x561840 reads the hands: the
+// empty right one receives the arrows, with the 24 from slot 34 to 0 and 250 with type 1.
 TEST_F(CursorItemTest, AnElfWithABowTakesTheArrowsOfTheLastColumnIntoTheRightHand)
 {
     world.OwnCharacter().characterClass = Elf;
@@ -1247,8 +1249,8 @@ TEST_F(CursorItemTest, AnElfWithABowTakesTheArrowsOfTheLastColumnIntoTheRightHan
     EXPECT_EQ(world.OwnCharacter().equipment[0].id, EmptyOwnItemId);
 }
 
-// Con una ballesta de 0x808 a 0x80e en la derecha, los virotes van a la izquierda (el 1). Con la traba puesta,
-// 0x449d80 no manda nada ni saca sus dos rand(), y el aviso sale igual.
+// With a crossbow from 0x808 to 0x80e on the right, the bolts go to the left (the 1). With the lock set, 0x449d80
+// sends nothing nor takes its two rand(), and the warning goes out anyway.
 TEST_F(CursorItemTest, AnElfWithACrossbowTakesTheBoltsIntoTheLeftHand)
 {
     world.OwnCharacter().characterClass = Elf;
@@ -1272,9 +1274,9 @@ TEST_F(CursorItemTest, AnElfWithACrossbowTakesTheBoltsIntoTheLeftHand)
     EXPECT_EQ(outside.messages, std::vector<std::size_t>{EquippedArrowsText});
 }
 
-// Sin lo que busca, el 251; con el cursor ocupado, 0x561840 cierra su acceso y no hace nada más. Con el registro
-// cerrado por todos, el cierre de 0x561840 deja las manos en lo que dejó (Q-C202) y corta; sin arco ni ballesta, el
-// tipo es la cuenta que dejó la tabla de protección (Q-C772) y corta si hay alguna casilla que pueda serlo.
+// Without what it looks for, 251; with the cursor taken, 0x561840 closes its access and does nothing else. With the
+// record closed by everyone, 0x561840's close leaves the hands as it left them (Q-C202) and stops; without bow or
+// crossbow, the type is the count the protection table left (Q-C772) and it stops if any cell could be it.
 TEST_F(CursorItemTest, TheArrowsStopWhereTheOriginalReadsWhatMuRetDoesNotHave)
 {
     world.OwnCharacter().characterClass = Elf;
@@ -1315,9 +1317,9 @@ TEST_F(CursorItemTest, TheArrowsStopWhereTheOriginalReadsWhatMuRetDoesNotHave)
     EXPECT_EQ(outside.messages.back(), NoArrowsText);
 }
 
-// 0x561c50 (el clic de ataque, CL9 hito 3): sin arma de tiro, un acceso y verdadero; con una ballesta y sus virotes
-// con durabilidad, dos y verdadero. Sin ellos, 0x561840 dentro del segundo acceso (anidado: sin el corte de Q-C202) y
-// falso: el 251 si no hay más en la grilla, o las flechas de la grilla a la derecha vacía del arco, con su 24.
+// 0x561c50 (the attack click, CL9 milestone 3): without a ranged weapon, one access and true; with a crossbow and its
+// bolts with durability, two and true. Without them, 0x561840 inside the second access (nested: without Q-C202's stop)
+// and false: 251 if there are no more in the grid, or the grid's arrows to the bow's empty right hand, with its 24.
 TEST_F(CursorItemTest, TheAttackChecksTheArrowsOfTheRangedWeapon)
 {
     world.OwnCharacter().characterClass = Elf;
@@ -1334,7 +1336,7 @@ TEST_F(CursorItemTest, TheAttackChecksTheArrowsOfTheRangedWeapon)
 
     right = Invented(Sword);
     checked(Own, true);
-    // 0x811 en la derecha no es ballesta para 0x561c50.
+    // 0x811 on the right is not a crossbow for 0x561c50.
     right = Invented(0x0811);
     checked(Own, true);
 
@@ -1359,7 +1361,8 @@ TEST_F(CursorItemTest, TheAttackChecksTheArrowsOfTheRangedWeapon)
     EXPECT_EQ(world.Runtime().cursorItem.id, Arrows);
 }
 
-// Sin el envío, el 24 corta después de la traba y de sus dos rand(); sin Item.bmd, levantar corta antes de tocar nada.
+// Without the send, the 24 stops after the lock and its two rand(); without Item.bmd, picking up stops before touching
+// anything.
 TEST_F(CursorItemTest, WithoutItsServicesAMoveStopsWithItsAddress)
 {
     Put(Sword, 2, 1);

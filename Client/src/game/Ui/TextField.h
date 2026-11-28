@@ -5,19 +5,19 @@
 #include <string>
 #include <string_view>
 
-// Un campo de texto de la UI (CL5.5): cuenta/clave usan ASCII imprimible; Latin1 conserva el perfil
-// previo del nombre de personaje, y Windows1252Xp usa el NLS XP para texto occidental del chat. El
-// límite cuenta bytes, como EM_LIMITTEXT del original. La tabla está en test_text_field.cpp.
+// A UI text field (CL5.5): account/password use printable ASCII; Latin1 keeps the previous character name profile,
+// and Windows1252Xp uses the XP NLS for Western chat text. The limit counts bytes, like the original's EM_LIMITTEXT.
+// The table is in test_text_field.cpp.
 //
-// Sin operator<<: lo que tiene no se imprime nunca, ni al log. El PrintTo de los tests
-// (tests/support/UiPrinters.h) escribe el largo.
+// No operator<<: its contents are never printed, not even to the log. The tests' PrintTo
+// (tests/support/UiPrinters.h) writes the length.
 namespace Client::Ui
 {
 class TextField
 {
 public:
-    // Qué letras toma: ASCII imprimible; Latin-1 U+00A0 a U+00FF como su byte; o el perfil CP1252
-    // Windows XP, incluidos best-fit y '?' para texto sin representación.
+    // Printable ASCII; Latin-1 U+00A0 to U+00FF as its byte; or the Windows XP CP1252 profile, best-fit and '?' for
+    // unrepresentable text included.
     enum class Charset : std::uint8_t
     {
         Ascii,
@@ -27,29 +27,29 @@ public:
 
     TextField(std::size_t maxBytes, bool masked, Charset charset = Charset::Ascii);
 
-    // Suma texto UTF-8 hasta llenar el campo. En Windows1252Xp rechaza la secuencia completa si no
-    // es UTF-8 válido; el primer byte insertado reemplaza lo elegido.
+    // Adds UTF-8 text until the field is full. In Windows1252Xp it rejects the whole sequence if it is not valid UTF-8;
+    // the first inserted byte replaces the selection.
     void Type(std::string_view utf8);
-    // Inserta bytes ya codificados, incluidos los de control, respetando selección y límite.
+    // Already encoded bytes, control ones included, honoring the selection and the limit.
     void InsertBytes(std::string_view bytes);
-    // Convierte todo el UTF-8 al CP1252 del XP, corta en CR o NUL y respeta el límite por byte.
-    // Una conversión válida vacía también reemplaza la selección.
+    // Converts all the UTF-8 to XP's CP1252, cuts at CR or NUL and honors the byte limit. A valid empty conversion also
+    // replaces the selection.
     void PasteUTF8(std::string_view utf8);
-    // Borra la selección, o el byte anterior al cursor.
+    // The selection, or the byte before the cursor.
     void Backspace();
-    // Lo mismo que Backspace, pero borra el byte siguiente al cursor.
+    // Like Backspace, but the byte after the cursor.
     void Delete();
     void Clear();
-    // WM_SETTEXT (la vtable + 0x4c de los EDIT, 0x467ee0): pone `raw` tal cual, en bytes, sin el tope de
-    // EM_LIMITTEXT, que solo frena lo tecleado. Deja el cursor al final y nada elegido.
+    // WM_SETTEXT (the EDITs' vtable + 0x4c, 0x467ee0): sets `raw` as is, in bytes, without the EM_LIMITTEXT cap, which
+    // only stops what is typed. Leaves the cursor at the end and nothing selected.
     void SetText(std::string_view raw);
-    // Los bytes de `raw` tal cual, en el cursor o en lugar de lo elegido, solo si entran todos: el "\r\n" de Enter en
-    // el EDIT de varios renglones (UI/OldEditLines.h).
+    // The bytes of `raw` as is, at the cursor or in place of the selection, only if they all fit: Enter's "\r\n" in the
+    // multi-line EDIT (Ui/OldEditLines.h).
     void Insert(std::string_view raw);
-    // EM_LIMITTEXT (0x467f30, la vtable + 0x3c de los EDIT): el tope de lo tecleado. Lo que ya tiene queda.
+    // EM_LIMITTEXT (0x467f30, the EDITs' vtable + 0x3c): the cap on what is typed. What it already has stays.
     void SetLimit(std::size_t maxBytes);
-    // EM_SETSEL(0, −1): todo elegido. EM_SETSEL(−2, −1) y EM_SETSEL(10000, −1): el cursor al final, nada
-    // elegido.
+    // EM_SETSEL(0, −1): all selected. EM_SETSEL(−2, −1) and EM_SETSEL(10000, −1): the cursor at the end, nothing
+    // selected.
     void SelectAll();
     void Deselect();
     [[nodiscard]] bool AllSelected() const;
@@ -64,14 +64,14 @@ public:
     void MoveHome(bool extend = false);
     void MoveEnd(bool extend = false);
 
-    // Lo que tiene. Vale hasta el próximo cambio.
+    // Valid until the next change.
     [[nodiscard]] std::string_view Value() const&;
-    // Sobre un campo temporal no compila: la vista quedaría colgada.
+    // Does not compile on a temporary field: the view would dangle.
     std::string_view Value() const&& = delete;
-    // Los bytes elegidos. Vale hasta el próximo cambio.
+    // Valid until the next change.
     [[nodiscard]] std::string_view Selected() const&;
     std::string_view Selected() const&& = delete;
-    // Lo que se dibuja: lo que tiene, o un asterisco por byte si es la clave.
+    // What is drawn: its contents, or an asterisk per byte for the password.
     [[nodiscard]] std::string Shown() const;
     [[nodiscard]] std::size_t Size() const;
     [[nodiscard]] bool Masked() const;

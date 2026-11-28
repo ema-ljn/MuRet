@@ -147,7 +147,7 @@ protected:
     {
         const auto screen = m_sprites.Screen();
         const float pixelX = Client::Render::ScaleX(x, screen);
-        // FanCorners conserva las inversas float nativas incluso en 640 × 480: no es simplemente H − y.
+        // FanCorners keeps the native float inverses even at 640 × 480: it is not simply H − y.
         const float pixelTop = static_cast<float>(static_cast<double>(screen.height) -
                                                   static_cast<double>(Client::Render::ScaleY(y, screen)));
         const auto vertices = m_sprites.Vertices();
@@ -329,7 +329,7 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     runtime.panels.delegated.castleSiegeListMode = 2;
     runtime.mouse.pendingClick = true;
     runtime.castleSiege.data.SetU32(Client::CastleSiege::ChaosTaxAt, 2);
-    // Draw usa su propio mouse, igual al de GameScene. Esta prueba pasa la posición en el contexto de abajo.
+    // Draw uses its own mouse, the same as GameScene's. This test passes the position in the context below.
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
     Client::Hud::GameHudContext context{.world = *m_world,
@@ -461,7 +461,7 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     auto& runtime = m_world->Runtime();
     runtime.panels.delegated.castleSiege = 1;
     m_world->Actors()[0].word1f2 = 0xffff;
-    // Q-C1281: la alianza de la entrada −1 coincide con el nombre del miembro74, no se rechaza el índice.
+    // Q-C1281: the alliance of entry −1 matches member 74's name; the index is not rejected.
     runtime.guild.members[Client::Guild::MemberBeforeTheTable].name = {'H', 'E', 'R', 'O'};
     auto& window = runtime.castleSiege.registration;
     window.tab = 2;
@@ -486,8 +486,8 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     ExpectRandoms(0);
 }
 
-// 470540..470627: nombre en x+6 con modo1; marcas/estado/rango terminan en x+89/+124/+144 con modo4.
-// A 800px, 559−12/1,25 se trunca a549: no es 559−trunc(12/1,25).
+// 0x470540..0x470627: name at x+6 with mode 1; marks/state/rank end at x+89/+124/+144 with mode 4.
+// At 800px, 559−12/1.25 truncates to 549: it is not 559−trunc(12/1.25).
 TEST_F(CastleWindowsTest, SiegeGuildColumnsEndAtTheNativeAnchorsAtBothScreenWidths)
 {
     auto& runtime = m_world->Runtime();
@@ -521,7 +521,7 @@ TEST_F(CastleWindowsTest, SiegeGuildColumnsEndAtTheNativeAnchorsAtBothScreenWidt
     ExpectRandoms(0);
 }
 
-// 47139b..471465: nombre izquierdo; los dos estados usan modo4 con anclas x+104 y x+141.
+// 0x47139b..0x471465: left name; the two states use mode 4 with anchors x+104 and x+141.
 TEST_F(CastleWindowsTest, RegisteredGuildColumnsEndAtTheirOwnNativeAnchors)
 {
     auto& runtime = m_world->Runtime();

@@ -32,10 +32,10 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x644120: la tabla de 0x66a1c0 con op2_back1 arriba (0x730, de 213 × 65), las casillas de op2_ch
-// (0x731, dos cuadros de 16), el botón de op1_b_all y los deslizadores: la perilla de op2_volume3
-// (0x732, 13 × 13), la barra de op2_volume1 (0x734, 98 × 13) y el relleno de op2_volume2 (0x733, 4 × 7)
-// en (3, 3, 95, 10). Los sube 0x61e8xx.
+// 0x644120: the table of 0x66a1c0 with op2_back1 on top (0x730, 213 × 65), the checkboxes of op2_ch
+// (0x731, two frames of 16), the button of op1_b_all and the sliders: the knob of op2_volume3
+// (0x732, 13 × 13), the bar of op2_volume1 (0x734, 98 × 13) and the fill of op2_volume2 (0x733, 4 × 7)
+// at (3, 3, 95, 10). 0x61e8xx uploads them.
 constexpr Render::TextureSlot TopSlot{0x730};
 constexpr Render::TextureSlot LineSlot{0x72d};
 constexpr Render::TextureSlot CheckSlot{0x731};
@@ -48,27 +48,27 @@ constexpr Ui::SliderParts SliderLook{.thumb = {.slot = Render::TextureSlot{0x732
 constexpr int FrameWidth = 213;
 constexpr int TopHeight = 65;
 constexpr int BottomHeight = 43;
-// 0x644302 y vtable + 0x1c: 30 líneas, el máximo que le da 0x66a1c0.
+// 0x644302 and vtable + 0x1c: 30 lines, the max 0x66a1c0 gives it.
 constexpr int Lines = 30;
 constexpr int CheckSize = 16;
 constexpr int CheckedFrame = 1;
 constexpr int CloseWidth = 108;
 constexpr int CloseHeight = 30;
-// 0x644520: las casillas a 52 del borde izquierdo y de arriba, una cada 16 + 25; el primer deslizador,
-// 48 abajo de la última casilla más el alto de una, y el otro, 48 más su alto (13) abajo; el botón, a
-// 301 de arriba.
+// 0x644520: the checkboxes at 52 from the left and top edges, one every 16 + 25; the first slider,
+// 48 below the last checkbox plus the height of one, and the other, 48 plus its height (13) below; the
+// button, at 301 from the top.
 constexpr int Inset = 0x34;
 constexpr int CheckGap = 0x19;
 constexpr int SliderGap = 0x30;
 constexpr int CloseTop = 0x12d;
-// 0x644860: el título a 10 de arriba, los rótulos de las casillas 24 a la derecha y 4 abajo, y los de
-// los deslizadores 18 arriba, con el valor 85 a la derecha.
+// 0x644860: the title at 10 from the top, the checkbox labels 24 to the right and 4 down, and the
+// slider labels 18 up, with the value 85 to the right.
 constexpr int TitleTop = 10;
 constexpr int CheckLabelLeft = 0x18;
 constexpr int CheckLabelTop = 4;
 constexpr int SliderLabelAbove = 0x12;
 constexpr int SliderValueLeft = 0x55;
-// 0x6468e0(9) y 0x6468e0(4).
+// 0x6468e0(9) and 0x6468e0(4).
 constexpr int VolumeMax = 9;
 constexpr int GlowMax = 4;
 
@@ -76,10 +76,10 @@ constexpr std::size_t TitleText = 385;
 constexpr std::array<std::size_t, 3> CheckTexts{386, 387, 919};
 constexpr std::array<std::size_t, 2> SliderTexts{389, 1840};
 constexpr std::size_t CloseText = 388;
-// 0x644860 con la fuente de DAT_05763560, blanco sobre 0.
+// 0x644860 with the font of DAT_05763560, white on 0.
 constexpr Render::Text::TextStyle TextLook{Render::Text::FontKind::OtherFace12,
                                            Render::Text::TextColors{0xffffffff, 0}};
-// El rótulo del botón, con los colores de 0x644378 (los de la ventana de Esc).
+// The button's label, with the colors of 0x644378 (those of the Esc window).
 constexpr Ui::ButtonColors CloseColors{.normal = 0xffe2e2e2,
                                        .pressed = 0xffe2e2e2,
                                        .hover = 0xffffffff,
@@ -88,13 +88,13 @@ constexpr Ui::ButtonColors CloseColors{.normal = 0xffe2e2e2,
                                        .checkedHover = 0xffffffff,
                                        .disabled = 0,
                                        .checkedDisabled = 0};
-// La base de 0x669c70 con el slot −1: negra con alfa 0x80.
+// The base of 0x669c70 with slot −1: black with alpha 0x80.
 constexpr float BaseAlpha = 128.0f / 255.0f;
 
 Ui::Button MakeCheck()
 {
-    // 0x63c330(16, 16, 0x731, 2, 0, 0, −1, 1, 1, 1, −1): el cuadro 0 sin marcar, apretada o no, y el 1
-    // marcada.
+    // 0x63c330(16, 16, 0x731, 2, 0, 0, −1, 1, 1, 1, −1): frame 0 unchecked, pressed or not, and 1
+    // checked.
     Ui::Button check(CheckSlot, CheckSize, CheckSize, CheckedFrame);
     check.SetStateFrames(0, 0);
     return check;
@@ -107,7 +107,7 @@ std::string_view TextOf(const Tables::TextTable* texts, std::size_t index)
 
 void DrawAt(Render::Frame::ITextDrawer& text, Ui::Point pixel, std::string_view line, Core::PixelSize screen)
 {
-    // 0x5542f0 con el modo 1 y ancho 0; no dibuja un texto vacío.
+    // 0x5542f0 with mode 1 and width 0; it does not draw an empty text.
     if (line.empty())
     {
         return;
@@ -133,7 +133,7 @@ void ApplyOption(OptionsSettings& settings, const OptionsEvent& event)
         settings.volume = event.value;
         return;
     case OptionsEvent::Kind::GlowDetail:
-        // 0x64480a: el byte bajo del valor.
+        // 0x64480a: the value's low byte.
         settings.glowDetail = static_cast<std::uint8_t>(event.value & 0xff);
         return;
     case OptionsEvent::Kind::Closed:
@@ -249,13 +249,13 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     {
         return std::nullopt;
     }
-    // 0x644730: los deslizadores primero, con el mouse de 0x640850.
+    // 0x644730: the sliders first, with the mouse of 0x640850.
     const Ui::Point raw = Ui::MouseInPixels(input, screen);
     for (Ui::Slider& slider : m_sliders)
     {
         slider.Step(input, raw, elapsedMs, turn.buttonClicked);
     }
-    // Una casilla que cambió escribe su global y termina el paso.
+    // A checkbox that changed writes its global and ends the step.
     constexpr std::array<OptionsEvent::Kind, 3> CheckKinds{
         OptionsEvent::Kind::AutoAttack, OptionsEvent::Kind::NoticeSound, OptionsEvent::Kind::SlidesOn};
     for (std::size_t i = 0; i < m_checks.size(); ++i)
@@ -270,8 +270,8 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
         Close();
         return OptionsEvent{.kind = OptionsEvent::Kind::Closed};
     }
-    // Un deslizador que se mueve (+9 distinto de 0) escribe su valor si es otro, y termina el paso
-    // aunque sea el mismo.
+    // A slider that moves (+9 non-zero) writes its value if it is different, and ends the step
+    // even if it is the same.
     if (m_sliders[0].Moving())
     {
         if (m_sliders[0].Value() == current.volume)
@@ -282,14 +282,14 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     }
     if (m_sliders[1].Moving())
     {
-        // 0x6447fe: compara el byte bajo del valor con el byte del global.
+        // 0x6447fe: compares the value's low byte with the global's byte.
         if ((m_sliders[1].Value() & 0xff) == current.glowDetail)
         {
             return std::nullopt;
         }
         return OptionsEvent{.kind = OptionsEvent::Kind::GlowDetail, .value = m_sliders[1].Value()};
     }
-    // El +0x31 del mouse (0x640850) es siempre 0.
+    // The mouse's +0x31 (0x640850) is always 0.
     if (input.TakePress(Input::Key::Escape))
     {
         if (turn.buttonClicked)
@@ -323,7 +323,7 @@ void OptionsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
     {
         sprites.Image(image);
     }
-    // El título, centrado en el ancho del marco (0x5542f0 con el modo 2), como el rótulo de un botón.
+    // The title, centered in the frame's width (0x5542f0 with mode 2), like a button's label.
     if (const std::string_view title = TextOf(m_texts, TitleText); !title.empty())
     {
         const Render::Text::TextExtent extent = text.Measure(TextLook.font, title);
@@ -337,7 +337,7 @@ void OptionsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
         DrawAt(text, Ui::Point{area.x + CheckLabelLeft, area.y + CheckLabelTop}, TextOf(m_texts, CheckTexts[i]),
                screen);
     }
-    // Los valores son los de los globales: el del brillo, 2 · d + 5.
+    // The values are the globals': the glow's, 2 · d + 5.
     const std::array<int, 2> values{current.volume, current.glowDetail * 2 + 5};
     for (std::size_t i = 0; i < m_sliders.size(); ++i)
     {
@@ -352,7 +352,7 @@ void OptionsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
             }
         }
     }
-    // 0x66a090: las casillas y el botón, en el orden en que 0x66a070 los sumó.
+    // 0x66a090: the checkboxes and the button, in the order 0x66a070 added them.
     for (const Ui::Button& check : m_checks)
     {
         sprites.Image(check.Image(m_sizes));

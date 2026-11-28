@@ -34,9 +34,9 @@
 #include <string>
 #include <vector>
 
-// La ventana de las tiendas personales (0x5f3030) y su grilla en las de los ítems y las cifras (0x5f7821 y 0x5f7af9;
-// CL9 hito 7, fase 6a) en Lorencia (0) y Devias (2), contra el ASM: la propia cerrada y abierta, la de otro y sin modo.
-// Los títulos, los textos y los ítems son inventados.
+// The personal shops' window (0x5f3030) and its grid in the items' and numbers' passes (0x5f7821 and 0x5f7af9; CL9
+// milestone 7, phase 6a) in Lorencia (0) and Devias (2), against the ASM: the own one closed and open, another's and
+// with no mode. The titles, the texts and the items are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -49,16 +49,16 @@ using Client::Render::Text::FontKind;
 
 constexpr std::uint32_t Seed = 0x5f30;
 constexpr Client::Core::PixelSize Screen640{640, 480};
-// 0x5f306e: la esquina, (0x104, 0).
+// 0x5f306e: the corner, (0x104, 0).
 constexpr int Left = 0x104;
 constexpr float LeftF = 260.0f;
-// Un bastón de 1 × 3 (0x0a05): su modelo (0xc17) saca dos rand() sin el pase 3D, como en el inventario.
+// A 1 × 3 staff (0x0a05): its model (0xc17) draws two rand() without the 3D pass, as in the inventory.
 constexpr std::uint16_t StaffType = 0x0a05;
 constexpr int StaffRandoms = 2;
-// La poción (0x1c00) con 2 o más muestra la durabilidad.
+// The potion (0x1c00) with 2 or more shows the durability.
 constexpr std::uint16_t PotionType = 0x1c00;
 constexpr std::uint16_t DigitSlot = 1;
-// El fondo de la ventana (0x5ee220), Item_Money, la casilla vacía y text_button.
+// The window's background (0x5ee220), Item_Money, the empty cell and text_button.
 constexpr std::uint16_t BackTop = 0x104;
 constexpr std::uint16_t BackBottom = 0x105;
 constexpr std::uint16_t MoneyBox = 0x10f;
@@ -95,7 +95,7 @@ struct Corners
     Client::Render::SpriteVertex third;
 };
 
-// El quad `index` del slot, o el de los sin textura (0x621aa0) con `slot` vacío.
+// The quad `index` of the slot, or of the untextured ones (0x621aa0) with `slot` empty.
 std::optional<Corners> NthQuadOf(const SpriteBatch& sprites, std::optional<std::uint16_t> slot, std::size_t index = 0)
 {
     const auto vertices = sprites.Vertices();
@@ -129,7 +129,6 @@ void ExpectQuad(const SpriteBatch& sprites, std::optional<std::uint16_t> slot, s
     EXPECT_NEAR(quad->third.y, 480.0f - y - height, Tolerance);
 }
 
-// Las mezclas de las marcas de los textos, en su orden.
 std::vector<Client::Render::BlendMode> TextBlendsOf(const SpriteBatch& sprites)
 {
     std::vector<Client::Render::BlendMode> blends;
@@ -150,16 +149,16 @@ struct Expected
     int y;
     std::uint32_t color;
     std::uint32_t background;
-    // Las columnas de la caja de 0x467060, o 0 sin caja.
+    // The columns of 0x467060's box, or 0 without a box.
     int columns;
 };
 
-// sen(0) = 0: el alfa del aviso que late, 275 recortado a 255.
+// sin(0) = 0: the pulsing warning's alpha, 275 clamped to 255.
 constexpr std::uint32_t Pulse = 0xff0000d2u;
 constexpr std::uint32_t Lines = 0xff96dcffu;
 constexpr std::uint32_t LinesBack = 0xff141414u;
 
-// El mundo del juego, en el heap.
+// The game's world, on the heap.
 struct ShopWorld
 {
     Client::Kernel::WorldState world;
@@ -205,7 +204,7 @@ protected:
         return Runtime().social.personalShop;
     }
 
-    // Lo que deja Open(0x800) u Open(0x20000): el byte de las dos (0x7d5370f) y 0x6c931c en el modo.
+    // What Open(0x800) or Open(0x20000) leaves: the byte of both (0x7d5370f) and 0x6c931c in the mode.
     void OpenTheShop(std::int32_t mode)
     {
         Runtime().panels.personalShop = 1;
@@ -284,13 +283,12 @@ protected:
     bool withTexts = true;
 };
 
-// Las 32 casillas de la grilla, todas vacías.
 std::vector<std::uint16_t> EmptyGrid()
 {
     return std::vector<std::uint16_t>(32, EmptyBox);
 }
 
-// Con las dos cerradas, 0x5f3030 solo consulta el byte (sin rand()) y no pone la esquina.
+// With both closed, 0x5f3030 only queries the byte (no rand()) and does not set the corner.
 TEST_P(GamePersonalShopWindowTest, ClosedItDrawsNothing)
 {
     ASSERT_TRUE(Window().HasValue());
@@ -300,13 +298,13 @@ TEST_P(GamePersonalShopWindowTest, ClosedItDrawsNothing)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// La propia cerrada y sin título: la esquina, el fondo, la franja roja sin textura con el 560 en blanco, Item_Money
-// con el 1105, la grilla, los dos botones (el de cerrar en gris), el aviso que late, los cinco renglones de la propia y
-// los dos que laten. Todo en la negrita, sin rand().
+// The own one closed and without a title: the corner, the background, the red untextured stripe with the 560 in white,
+// Item_Money with the 1105, the grid, the two buttons (the close one in gray), the pulsing warning, the own one's five
+// lines and the two that pulse. All in bold, no rand().
 TEST_P(GamePersonalShopWindowTest, TheClosedOwnShopDrawsItsStatusAndItsButtons)
 {
     OpenTheShop(Client::Social::OwnShopView);
-    // 0x5f7440 deja la mezcla apagada antes de las ventanas.
+    // 0x5f7440 leaves blending off before the windows.
     sprites.SetBlend(Client::Render::BlendMode::Opaque);
     ASSERT_TRUE(Window().HasValue());
 
@@ -318,7 +316,7 @@ TEST_P(GamePersonalShopWindowTest, TheClosedOwnShopDrawsItsStatusAndItsButtons)
     expected.push_back(TextButton);
     expected.push_back(TextButton);
     EXPECT_EQ(SlotsOf(sprites), expected);
-    // 0x5f3140..0x5f318a: 150 de ancho y el paso de la letra (12 en 640) más 2 de alto, en (0,6; 0; 0; 0,8).
+    // 0x5f3140..0x5f318a: 150 wide and the letter step (12 in 640) plus 2 high, in (0.6, 0, 0, 0.8).
     ExpectQuad(sprites, std::nullopt, 0, LeftF + 20.0f, 48.0f, 150.0f, 14.0f);
     EXPECT_EQ(NthQuadOf(sprites, std::nullopt)->first.color, (Color{0.6f, 0.0f, 0.0f, 0.8f}));
     ExpectQuad(sprites, MoneyBox, 0, LeftF + 20.0f, 65.0f, 150.0f, 24.0f);
@@ -341,7 +339,7 @@ TEST_P(GamePersonalShopWindowTest, TheClosedOwnShopDrawsItsStatusAndItsButtons)
                  {"propia cinco", Left + 0x1e, 0x131, Lines, LinesBack, 0},
                  {"late uno", Left + 0x1e, 0x14a, Pulse, LinesBack, 0},
                  {"late dos", Left + 0x1e, 0x159, Pulse, LinesBack, 0}});
-    // El título sin mezcla (la de 0x5f7440), los demás en la normal; termina sin mezcla.
+    // The title without blending (that of 0x5f7440), the others in the normal one; it ends without blending.
     std::vector<Client::Render::BlendMode> blends(13, Client::Render::BlendMode::Alpha);
     blends[0] = Client::Render::BlendMode::Opaque;
     EXPECT_EQ(TextBlendsOf(sprites), blends);
@@ -349,8 +347,8 @@ TEST_P(GamePersonalShopWindowTest, TheClosedOwnShopDrawsItsStatusAndItsButtons)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// La propia abierta con título: la franja verde con el 1103 en 0xbe000000, el título en Item_Money, el botón de
-// aplicar (1106) y el de cerrar en el color de los botones. Con el reloj, el aviso y los dos últimos laten.
+// The own one open with a title: the green stripe with the 1103 in 0xbe000000, the title in Item_Money, the apply
+// button (1106) and the close one in the buttons' color. With the clock, the warning and the last two pulse.
 TEST_P(GamePersonalShopWindowTest, TheOpenOwnShopShowsItsTitle)
 {
     OpenTheShop(Client::Social::OwnShopView);
@@ -378,8 +376,8 @@ TEST_P(GamePersonalShopWindowTest, TheOpenOwnShopShowsItsTitle)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// La de otro: sin la franja ni los botones; el título de la tienda que se mira aunque esté vacío (0x5f32e5) y los
-// renglones de la de otro.
+// Another's: without the stripe or the buttons; the title of the shop being looked at even if empty (0x5f32e5) and the
+// other's lines.
 TEST_P(GamePersonalShopWindowTest, TheOtherShopShowsItsNameAndItsLines)
 {
     OpenTheShop(Client::Social::OtherShopView);
@@ -405,7 +403,7 @@ TEST_P(GamePersonalShopWindowTest, TheOtherShopShowsItsNameAndItsLines)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// Con el byte abierto y 0x6c931c en −1 (0x5f36bb): el título del cartel o el 1105 y solo el aviso.
+// With the byte open and 0x6c931c at −1 (0x5f36bb): the sign's title or the 1105 and only the warning.
 TEST_P(GamePersonalShopWindowTest, WithoutAModeOnlyTheWarningIsWritten)
 {
     OpenTheShop(Client::Social::NoShopView);
@@ -416,7 +414,6 @@ TEST_P(GamePersonalShopWindowTest, WithoutAModeOnlyTheWarningIsWritten)
                  {"ojo", Left + 0x1e, 0xe6, Pulse, LinesBack, 0}});
 }
 
-// Sin Text.bmd, el título corta con su dirección.
 TEST_P(GamePersonalShopWindowTest, WithoutTheTextsItCuts)
 {
     OpenTheShop(Client::Social::OwnShopView);
@@ -426,8 +423,8 @@ TEST_P(GamePersonalShopWindowTest, WithoutTheTextsItCuts)
     EXPECT_NE(drawn.Error().find("0x5f30f9"), std::string::npos) << drawn.Error();
 }
 
-// 0x5f77f6..0x5f7821: el bastón de la grilla en (x + 15 + 20, y + 110) saca los rand() de su modelo, después de los
-// del inventario abierto; 0x5f7ace..0x5f7af9: la poción con 5 muestra la cifra en su casilla.
+// 0x5f77f6..0x5f7821: the grid's staff at (x + 15 + 20, y + 110) draws its model's rand(), after those of the open
+// inventory; 0x5f7ace..0x5f7af9: the potion with 5 shows the number in its cell.
 TEST_P(GamePersonalShopWindowTest, TheGridDrawsItsItemsAndItsNumbers)
 {
     OpenTheShop(Client::Social::OwnShopView);

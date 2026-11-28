@@ -65,15 +65,15 @@ void Advance(Client::Crt::CrtRandom& random, int count)
         static_cast<void>(random.Next());
 }
 
-// 633f20 deja World54 en SelectionState; 6356f0 presenta el mosaico y 636290 empieza
-// a esperar F303 sin cambiarlo. El retorno temprano de MoveHero no termina el paso de escena.
+// 0x633f20 leaves World54 in SelectionState; 0x6356f0 presents the mosaic and 0x636290 starts waiting for F303
+// without changing it. MoveHero's early return does not end the scene step.
 TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsEffectsAndClothBeforeF303)
 {
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     online.session.RequestCharacterList();
     Client::Tests::CharacterEntryFields entry;
-    entry.equipment[4] = 3; // Pet NONE, sin helper: lista contractual en el wire real del GS falso.
+    entry.equipment[4] = 3; // Pet NONE, no helper: contractual list on the fake GS's real wire.
     online.ReceiveTheList({entry});
     ASSERT_TRUE(online.session.Characters().has_value());
     online.session.ChooseCharacter(std::uint8_t{0});
@@ -93,8 +93,8 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     const auto* player = models.SkeletonOf(Client::Tables::PlayerSkeletonModelId);
     ASSERT_NE(player, nullptr);
 
-    // El constructor de la lista lee el terreno del login anterior; InitializeSelection carga
-    // después el54 real. No se presta un esqueleto sintético ni un TerrainWall vacío de juego.
+    // The list's constructor reads the previous login's terrain; InitializeSelection then loads the real 54. No
+    // synthetic skeleton or empty game TerrainWall is lent.
     auto loginTerrain = Client::Terrain::LoadWorldTerrain(m_dataRoot, 55);
     ASSERT_TRUE(loginTerrain.HasValue()) << loginTerrain.Error();
     selection.RetainTerrain(55, std::move(loginTerrain).Value());
@@ -116,7 +116,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_NE(selectionTerrain, nullptr);
     ASSERT_NE(selectionTerrain->heights, nullptr);
     ASSERT_NE(selectionTerrain->attributes, nullptr);
-    // 0x633f4e carga el 54 en los globales del mundo (0x61a560): la selección presta ese terreno.
+    // 0x633f4e loads the 54 into the world globals (0x61a560): the selection lends that terrain.
     ASSERT_EQ(selectionTerrain, &states.terrain.current);
     ASSERT_EQ(world.Runtime().map, 54);
     ASSERT_TRUE(world.Runtime().drawingEnabled);
@@ -129,8 +129,8 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     const auto cellBefore = selectionTerrain->attributes->cells[0];
     const auto heightBefore = selectionTerrain->heights->cells[0];
 
-    // Probe contractual de la cola viva: Arrival usa su creador nativo sin BMD ni animación
-    // inventados. No se afirma que F303 haya llegado ni que cree este efecto durante la espera.
+    // Contractual probe of the live tail: Arrival uses its native creator with no made-up BMD or animation. It does not
+    // claim that F303 arrived or that it creates this effect during the wait.
     const auto effectSlot = world.Map().effects.Create(Client::Effects::ArrivalEffect, position, {}, {1, 1, 1}, 1);
     ASSERT_TRUE(effectSlot.has_value());
     auto& effect = world.Map().effects.Effects()[*effectSlot];
@@ -169,21 +169,21 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_EQ(target.frames.size(), 1u);
     ASSERT_TRUE(target.frames.front().presented);
     const auto mosaicEvents = target.frames.front().events.size();
-    manager.Step(input); // El paso de escena3 pasa a5 después de presentar el mosaico.
+    manager.Step(input); // Scene 3's step goes to 5 after presenting the mosaic.
     ASSERT_EQ(manager.Current(), Client::Kernel::SceneId::Game);
     ASSERT_NE(game, nullptr);
     ASSERT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     const auto before = cloth;
     Client::Models::ClothWorld expected = before;
-    // 447108..4471b2:54 admite el fallback de425070 sólo con atributo0/2. La CRT
-    // anterior determina candidatos y su admisión contra el .att real, antes de observar GameScene.
-    // El slot BSS conserva type/speed0: si se admite toma timer/scale y un rand de FullMovement;
-    // este fixture exige timer>1, sin sorteo de expiración. No crea un tipo ni un BMD artificial.
+    // 0x447108..0x4471b2: 54 admits the fallback of 0x425070 only with attribute 0/2. The earlier CRT decides the
+    // candidates and their admission against the real .att, before GameScene is observed. The BSS slot keeps type/speed
+    // 0: if admitted it takes timer/scale and one FullMovement rand; this fixture requires timer>1, with no expiry
+    // draw. It creates no artificial type or BMD.
     constexpr float Reciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
-    // 0x4eb620, al empezar el frame: 0x552f10 abre y cierra el registro propio (la espera de las skills). 0x636920: el
-    // cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin Slide.bmd no sortea).
-    // 0x636ded..0x63705b: la UI del paso con todo cerrado (la barra de skills, Q/W/E e IsOpen(0)), antes de los objetos
-    // y de la fauna.
+    // 0x4eb620, at the frame start: 0x552f10 opens and closes the own record (the skill wait). 0x636920: the first
+    // step's slide (0x46b010 and 0x46b0e0, which opens and closes the own record; without Slide.bmd it makes no random
+    // pick). 0x636ded..0x63705b: the step's UI with everything closed (the skill bar, Q/W/E and IsOpen(0)), before the
+    // objects and the fauna.
     Advance(expected.random, Client::Models::OwnRecordCloseRandoms);
     Advance(expected.random, Client::Models::OwnRecordCloseRandoms);
     Advance(expected.random, Client::Models::OwnRecordCloseRandoms + 2 + 2);
@@ -200,14 +200,14 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
         ++admittedFish;
         const auto timer = expected.random.Next() % 128;
         ASSERT_GT(timer, 1) << "la precondición contractual evita el RNG de expiración";
-        Advance(expected.random, 2); // escala inicial y longitud de FullMovement con speed retenido0.
+        Advance(expected.random, 2); // FullMovement's initial scale and length with speed kept at 0.
     }
-    // 54: hojas recién nacidas sin RNG; contador8; TerrainWall8; cuerpo propio3848+1;
-    // celda vista8+1; Arrival1; viento de partículas2. El retorno de MoveHero omite57cfc0.
+    // 54: newborn leaves with no RNG; counter 8; TerrainWall 8; own body 3848+1; seen cell 8+1; Arrival 1; particle
+    // wind 2. MoveHero's return skips 0x57cfc0.
     constexpr int AfterFishBeforeCloth = 8 + 8 + Client::Models::OwnRecordCloseRandoms + 1 + 8 + 1 + 1 + 2;
     Advance(expected.random, AfterFishBeforeCloth);
     Client::Models::StepTheClothWorld(expected);
-    Advance(expected.random, 4); // PrepareFrame consulta/cierra espera después de la tela.
+    Advance(expected.random, 4); // PrepareFrame queries/closes the wait after the cloth.
     Client::App::GameLoop loop(online.clock, manager, Client::Kernel::PacingMode::Faithful);
 
     ASSERT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 1);

@@ -62,8 +62,8 @@ struct ItemDrawContext;
 struct DrawnObject;
 } // namespace Client::Actors::Drawing
 
-// Contratos estáticos de6374fe..637572. Las familias incompletas conservan su prefijo y devuelven
-// la primera dirección no portada; una tabla vacía no acredita su camino vivo.
+// Static contracts of 0x6374fe..0x637572. The incomplete families keep their prefix and return the first unported
+// address; an empty table does not vouch for its live path.
 namespace Client::Scenes
 {
 struct FloorItemDrawContext
@@ -74,7 +74,7 @@ struct FloorItemDrawContext
     const Terrain::TerrainLighting* lighting = nullptr;
     Core::Duration frameClock{};
     std::int32_t map = 0;
-    // 6205b0; ausencia corta después del dibujo sin inventar coordenadas.
+    // 0x6205b0; its absence stops after the draw without inventing coordinates.
     std::function<Core::Expected<glm::ivec2, std::string>(const glm::vec3&)> project{};
     Actors::Drawing::TailPoseObserver onPose{};
     Actors::Drawing::TailMeshProvider posedMeshes{};
@@ -85,7 +85,7 @@ struct FloorItemDrawContext
     const Actors::Drawing::ItemDrawContext* itemContext = nullptr;
 };
 
-// 0x548f40: descenso de vida/velocidad; no consume RNG ni borra el resto del registro al morir.
+// 0x548f40: life/speed decrease; it does not consume RNG or clear the rest of the record on dying.
 void StepDamage(std::span<Kernel::DamageNumberState> damage);
 
 [[nodiscard]] Core::Expected<void, std::string> DrawFloorItems(std::span<Kernel::FloorItemState> items,
@@ -113,23 +113,23 @@ struct ModelEffectDrawResources
     const Data::Terrain::TerrainHeights& heights;
     float worldClock = 0;
     Actors::Drawing::TailPoseObserver onPose{};
-    // 0x4eb860 con Translate y padre en 0 (0x52d33f, 0x52d4f1 y 0x52d7d2): los ítems de 0xf4, 0xfa y 0x10f dejan
-    // sus huesos en el buffer global sin la escala ni el origen del efecto (Q-C411). Comparte el scratch de
-    // posedMeshes, con los vértices ya en el mundo.
+    // 0x4eb860 with Translate and parent at 0 (0x52d33f, 0x52d4f1 and 0x52d7d2): the items of 0xf4, 0xfa and 0x10f
+    // leave their bones in the global buffer without the effect's scale or origin (Q-C411). It shares posedMeshes'
+    // scratch, with the vertices already in the world.
     Actors::Drawing::TailPoseObserver onUntranslatedPose{};
     Actors::Drawing::TailMeshProvider posedMeshes{};
     Particles::FrameSprites* sprites = nullptr;
     Terrain::TerrainLighting* dynamicLighting = nullptr;
     Terrain::ITerrainAttributeQuerySource* attributes = nullptr;
-    bool siegeActive = false;         // 4294b0 lee7239ec; no es un test de mapa.
-    Crt::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
+    bool siegeActive = false;         // 0x4294b0 reads 0x7239ec; it is not a map test.
+    Crt::CrtRandom* random = nullptr; // 0x607b60 only draws for the cases that need it.
     const Actors::Drawing::ItemDrawContext* itemContext = nullptr;
     const Kernel::GameObjectPass* kalimaPass = nullptr;
-    // 0x5ffdff..0x5ffe24: +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23 (el de `kalimaPass`), y
-    // si el dibujo es de un frame del original: sólo entonces la resta de 0,15f queda guardada en el alpha del efecto.
+    // 0x5ffdff..0x5ffe24: the hero's +0x1a1 (0x743a170), which 0x5ffdf0 reads on maps 18 to 23 (`kalimaPass`'s), and
+    // whether the draw is of an original frame: only then does the 0.15f subtraction stay stored in the effect's alpha.
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
-    // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
+    // 0x42cfcb of fragment 3d..40: the same pool 0x518cf0 that 0x4ee770 emits to.
     Effects::ModelEffects* effects = nullptr;
     Particles::Particles* particles = nullptr;
     std::function<std::span<const Math::BoneTransform>()> posedBones{};

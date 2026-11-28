@@ -20,7 +20,7 @@
 
 namespace Client::Scenes
 {
-// Un único dueño en heap por dibujo intermedio: todos sus servicios prestan estas mismas copias.
+// One heap owner per intermediate draw: all its services lend these same copies.
 struct GameSceneFrameProjection
 {
     Kernel::GameDrawTailState tail{};
@@ -36,19 +36,19 @@ struct GameSceneFrameProjection
     std::uint8_t heroXDepth = 0;
     std::uint8_t heroYDepth = 0;
     std::uint8_t ownRecordDepth = 0;
-    // 0x7d325c8: el temblor de la cámara que 0x405e00 escribe en el dibujo.
+    // 0x7d325c8: the camera shake that 0x405e00 writes in the draw.
     float cameraShake = 0.0f;
-    // Lo que el HUD escribe y dura (0x5a7320): sus globales, el humo de Crywolf (0x576353c) y el sonido que pide.
+    // What the HUD (0x5a7320) writes that lasts: its globals, the Crywolf smoke (0x576353c) and the sound it asks for.
     Kernel::HudState hud{};
     std::uint8_t crywolfSandOverlay = 0;
-    // Lo que escribe la interfaz de Crywolf (0x4365c0): las cuentas del cartel, la barra, el reloj y el consejo.
+    // Written by the Crywolf interface (0x4365c0): the banner's counts, the bar, the clock and the tip.
     Kernel::CrywolfInterface crywolfInterface{};
     std::optional<Audio::SoundId> sound{};
-    // 0x77f36d4 + 0x12 · 4 y 0x78abb38: el latch de Alt y los nombres del piso, que invierte el hover (0x5bbbc0).
+    // 0x77f36d4 + 0x12 · 4 and 0x78abb38: the Alt latch and the floor names, which the hover (0x5bbbc0) toggles.
     std::int32_t altLatch = 0;
     std::uint8_t altNames = 0;
-    // Lo que el dibujo de las ventanas viejas escribe (0x490390 y 0x637680): +0x40, los botones de una caja arrastrada
-    // y el renglón y el parpadeo de la lista de ventanas.
+    // What the old windows' draw (0x490390 and 0x637680) writes: +0x40, the buttons of a dragged box and the window
+    // list's row and blink.
     Ui::OldWindowManager oldWindows{};
 };
 } // namespace Client::Scenes

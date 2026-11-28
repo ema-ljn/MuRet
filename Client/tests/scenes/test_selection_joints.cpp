@@ -23,16 +23,16 @@
 #include <cstdint>
 #include <memory>
 
-// El paso de los joints de la selección (0x634310 → 0x53c670): el mismo de 0x637123, con los mismos globales que el
-// juego (06, "Los joints de las familias").
+// The selection's joint step (0x634310 → 0x53c670): the same as 0x637123, with the same globals as the game (06,
+// "Los joints de las familias").
 namespace
 {
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
 using Client::Kernel::JointState;
 
-// El 0x614/0xc con un personaje de dueño se pone en el modelo compartido del tipo del dueño (0x536b1d, 0x5769ad8): en
-// la selección también, sin cortar.
+// 0x614/0xc with a character owner goes on the shared model of the owner's type (0x536b1d, 0x5769ad8): in the
+// selection too, without stopping.
 TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
 {
     Client::Tests::RecordingSink sink;
@@ -69,14 +69,14 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const JointState& joint = joints[0];
     ASSERT_TRUE(joint.alive);
-    // 40 de y de partida, menos que 50 · 1,5: llega en el primer tramo y queda en el origen del modelo compartido.
+    // A starting y of 40, less than 50 · 1.5: it arrives in the first stretch and stays at the shared model's origin.
     EXPECT_EQ(joint.position, origin);
 }
 
-// 0x53c670 en la selección (0x634310) llega a los mismos casos que el juego, pero MuRet no le da el asedio y los
-// blancos del héroe (JointKernels::VolleyServices) ni los modelos del 0x20b: el 0x613/0 de ancho 80 corta donde los
-// lee (0x539a50), el 0x61c/0 del héroe en su primera vuelta (0x53b569) y la 0x632/0 con dueño al llegar al suelo
-// (0x53c1c6), con la dirección de la selección detrás.
+// 0x53c670 in the selection (0x634310) reaches the same cases as the game, but MuRet does not give it the siege and
+// the hero's targets (JointKernels::VolleyServices) nor the 0x20b models: the 0x613/0 of width 80 stops where it reads
+// them (0x539a50), the hero's 0x61c/0 on its first pass (0x53b569) and the 0x632/0 with an owner on reaching the
+// ground (0x53c1c6), with the selection's address behind.
 TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShadowModels)
 {
     struct Case
@@ -87,8 +87,8 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         JointOwnerKind kind;
         const char* cut;
     };
-    // El 0x613/0 de ancho 80 suelta el 0xd0 y lee el asedio; el 0x61c/0 (vida 20, vuelta 0; su dueño va por el tipo)
-    // compara al dueño con el héroe; la 0x632/0 cae y toca el suelo con la cola prendida.
+    // The 0x613/0 of width 80 drops 0xd0 and reads the siege; the 0x61c/0 (life 20, pass 0; its owner goes by type)
+    // compares the owner with the hero; the 0x632/0 falls and touches the ground with its tail lit.
     for (const Case& tested :
          {Case{.type = 0x613, .subtype = 0, .width = 80.0f, .kind = JointOwnerKind::Actor, .cut = "0x539a50"},
           Case{.type = 0x61c, .subtype = 0, .width = 150.0f, .kind = JointOwnerKind::ByType, .cut = "0x53b569"},
@@ -119,7 +119,7 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        // El 0x613/0 nace leyendo el registro propio (0x532675), como en el juego; los otros dos no lo miran.
+        // The 0x613/0 is born reading the own record (0x532675), as in the game; the other two do not look at it.
         std::uint8_t ownRecordDepth = 0;
         const std::uint8_t ownVolley = 0;
         const Client::Joints::JointKernels::CreationServices services{.ownRecordDepth = &ownRecordDepth,

@@ -16,86 +16,85 @@
 #include <optional>
 #include <string_view>
 
-// La ventana de crear un personaje de la selección (+0x8498: 0x63d1a0 la arma, 0x63d4e0 la ubica,
-// 0x63d7c0 cambia la clase, 0x63d880 la atiende y 0x63e0a0 la dibuja; 06 § La ventana de crear).
-// Modal, con la base de toda la pantalla: las cinco clases, el nombre, los atributos y la
-// descripción de la clase, OK y cancelar. Sin la vista previa en 3D (la PR que sigue). Los chequeos
-// del nombre son de quien manda (FrontEnd::NoticeOfNewName). Se atiende en el paso (Q-C81). *Estático*, y
-// *emulado* el lugar en cuatro pantallas.
+// The selection's create-character window (+0x8498: 0x63d1a0 builds it, 0x63d4e0 places it,
+// 0x63d7c0 changes the class, 0x63d880 handles it and 0x63e0a0 draws it; 06 § La ventana de crear).
+// Modal, with the full-screen base: the five classes, the name, the class's attributes and
+// description, OK and cancel. The name checks belong to the sender (FrontEnd::NoticeOfNewName). It is
+// handled in the step (Q-C81). *Static*, and the place *emulated* on four screens.
 namespace Client::FrontEnd
 {
 inline constexpr std::size_t CreatableClassCount = 5;
-// Lo que copia GetWindowTextA en 0x7798bf8 (tope 0xff, con su cero).
+// What GetWindowTextA copies into 0x7798bf8 (limit 0xff, with its zero).
 inline constexpr std::size_t NameBufferSize = 0x100;
 
 struct CreateWindowLayout
 {
-    Ui::Rect box;        // 454 × 406, al centro (no se dibuja)
-    Ui::Rect nameBack;   // cha_id.tga, 346 × 38, en (x, y + 317)
-    Ui::Rect attributes; // negra con alfa 0x8f, 108 × 80 (96 con el Dark Lord), en (x + 346, y + 50)
-    Ui::Rect strip;      // negra con alfa 0x8f, 454 × 51, en (x, y + 355)
+    Ui::Rect box;        // 454 × 406, centered (not drawn)
+    Ui::Rect nameBack;   // cha_id.tga, 346 × 38, at (x, y + 317)
+    Ui::Rect attributes; // black with alpha 0x8f, 108 × 80 (96 with the Dark Lord), at (x + 346, y + 50)
+    Ui::Rect strip;      // black with alpha 0x8f, 454 × 51, at (x, y + 355)
     std::array<Ui::Rect, CreatableClassCount> classes; // cha_bt.tga, 108 × 26
-    Ui::Rect ok;                                       // 54 × 30, en (x + 346, y + 325)
-    Ui::Rect cancel;                                   // 54 × 30, en (x + 400, y + 325)
-    // Dónde va el texto del campo del nombre, en 640 × 480: (ftol((x + 78) / rx), ftol((y + 338) / ry)).
+    Ui::Rect ok;                                       // 54 × 30, at (x + 346, y + 325)
+    Ui::Rect cancel;                                   // 54 × 30, at (x + 400, y + 325)
+    // Where the name field's text goes, in 640 × 480: (ftol((x + 78) / rx), ftol((y + 338) / ry)).
     Ui::Point nameField;
 };
 
-// 0x63d4e0 con ((W − 454) / 2, (H − 406) / 2), la división de C; los atributos con el alto de la
-// clase `characterClass`.
+// 0x63d4e0 with ((W − 454) / 2, (H − 406) / 2), C's division; the attributes with the height of
+// class `characterClass`.
 [[nodiscard]] CreateWindowLayout LayoutCreateWindow(Core::PixelSize screen, std::uint8_t characterClass);
 
 enum class CreateWindowEvent : std::uint8_t
 {
-    Submitted, // OK o Enter: quien manda revisa el nombre y, si va, cierra la ventana (0x63d990)
-    Cancelled, // cancelar o Esc: la ventana ya se cerró
+    Submitted, // OK or Enter: the sender checks the name and, if it passes, closes the window (0x63d990)
+    Cancelled, // cancel or Esc: the window is already closed
 };
 
 class CreateCharacterWindow final : public Ui::NewUiWindow
 {
 public:
-    // `texts` puede ser nullptr y tiene que vivir lo que la ventana. El armado (0x63d1a0) elige al
-    // Dark Knight (+0x890 en 1) y habilita todas las clases hasta que llegue la lista.
+    // `texts` can be nullptr and has to outlive the window. The build (0x63d1a0) picks the
+    // Dark Knight (+0x890 at 1) and enables all classes until the list arrives.
     CreateCharacterWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
-    // 0x63d7c0: habilita las clases de la 0 a `creatable` (pkt[4] de la lista); con 5 o más, las cinco
-    // (el original escribe fuera de los botones: Q-C119).
+    // 0x63d7c0: enables classes 0 to `creatable` (pkt[4] of the list); with 5 or more, the five
+    // (the original writes outside the buttons: Q-C119).
     void EnableClasses(std::uint8_t creatable);
 
-    // 0x63d670(1): el campo vacío. La clase queda la que estaba.
+    // 0x63d670(1): the field empty. The class stays as it was.
     void Open();
-    // 0x63d670(0): el campo vacío.
+    // 0x63d670(0): the field empty.
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
-    // De toda la pantalla, como la base (0x669c70(W, H, −1, 0)): tiene el mouse en toda ella.
+    // Full-screen, like the base (0x669c70(W, H, −1, 0)): it has the mouse on all of it.
     [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
 
-    // La clase elegida, de 0 a 4 (+0x890).
+    // 0 to 4 (+0x890).
     [[nodiscard]] std::uint8_t ChosenClass() const;
-    // El nombre del campo. Vale hasta el próximo cambio; no va al log.
+    // The field's name. Valid until the next change; it does not go to the log.
     [[nodiscard]] std::string_view Name() const;
-    // 0x7798bf8, los 256 bytes donde el OK copia el campo con su cero (GetWindowTextA): detrás pueden
-    // quedar los de un intento anterior más largo, porque solo se vacía al abrir (0x553570). Es lo
-    // que mira 0x447ca0 (Q-C118).
+    // 0x7798bf8, the 256 bytes where OK copies the field with its zero (GetWindowTextA): behind it may
+    // remain those of a previous longer attempt, because it is only emptied on open (0x553570). It is
+    // what 0x447ca0 reads (Q-C118).
     [[nodiscard]] std::string_view Buffer() const;
     [[nodiscard]] const Ui::Button& ClassButton(std::size_t index) const;
     [[nodiscard]] const Ui::Button& OkButton() const;
-    // Con la ventana abierta, el campo tiene el teclado.
+    // With the window open, the field has the keyboard.
     [[nodiscard]] bool WantsTextInput() const;
 
-    // 0x63d880: lo que se escribe va al campo; el clic en una clase habilitada la elige; después, el
-    // OK, cancelar, Enter o Esc, en ese orden.
-    // Sin el foco (un aviso arriba, 0x65fc30): los botones siguen con su estado, sin el mouse
-    // encima y sin clic; el EDIT sigue con el foco de Win32 (nadie se lo saca), así que lo que se
-    // escribe entra al nombre.
+    // 0x63d880: what is typed goes to the field; a click on an enabled class picks it; then OK, cancel,
+    // Enter or Esc, in that order.
+    // Without the focus (a notice on top, 0x65fc30): the buttons keep their state, without the mouse
+    // over them and without a click; the EDIT keeps the Win32 focus (nobody takes it away), so what is
+    // typed goes into the name.
     std::optional<CreateWindowEvent> Step(const Input::InputState& input, Core::PixelSize screen,
                                           Ui::NewUiTurn turn = {});
 
-    // 0x66a050: la base negra de alfa 0x80 de toda la pantalla. La vista previa va entre esto y
-    // Draw, que no se oscurece.
+    // 0x66a050: the full-screen black base with alpha 0x80. The preview goes between this and
+    // Draw, which is not darkened.
     void DrawBase(Render::SpriteBatch& sprites, Core::PixelSize screen) const;
-    // 0x63e0a0 después de la vista previa: el fondo del nombre, la caja de los atributos y la franja,
-    // los siete botones, los atributos, la descripción y el campo.
+    // 0x63e0a0 after the preview: the name background, the attributes box and the strip,
+    // the seven buttons, the attributes, the description and the field.
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:

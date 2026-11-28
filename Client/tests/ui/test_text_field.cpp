@@ -5,21 +5,8 @@
 #include <cstddef>
 #include <string>
 
-// Client::Ui::TextField: el campo de la cuenta y el de la clave (CL5.5, el paso 2 del plan, la
-// tabla del TODO(human)). El original usa dos EDIT de Windows con EM_LIMITTEXT 10, la clave con
-// ES_PASSWORD; MuRet guarda bytes de ASCII imprimible, hasta 10, porque es lo que entra en el
-// paquete del login (Q-C43). La tabla:
-//
-// | se teclea                   | el campo                                                    |
-// | --------------------------- | ----------------------------------------------------------- |
-// | una letra, un dígito        | se suma                                                     |
-// | un espacio (0x20)           | se suma: es imprimible                                      |
-// | "á" (0xC3 0xA1 en UTF-8)    | no se suma ningún byte: ninguno es ASCII                    |
-// | un emoji (4 bytes en UTF-8) | tampoco                                                     |
-// | el byte 11, con 10 adentro  | no se suma; lo que viene detrás de un texto largo, tampoco  |
-// | Backspace, vacío            | nada                                                        |
-// | Backspace, con algo         | borra el último byte                                        |
-// | la clave, con lo que tenga  | se muestra un asterisco por byte                            |
+// The account and password fields. The original uses two Windows EDITs with EM_LIMITTEXT 10, the password with
+// ES_PASSWORD; MuRet keeps printable ASCII bytes, up to 10, because that is what fits in the login packet (Q-C43).
 namespace
 {
 using Client::Ui::TextField;
@@ -39,8 +26,7 @@ TEST(TextFieldTest, TakesPrintableAscii)
     EXPECT_EQ(field.Shown(), "aZ9 ~");
 }
 
-// Cada byte de una secuencia de UTF-8 de más de uno es 0x80 o más: ninguno entra, y lo ASCII que
-// viene al lado sí.
+// Each byte of a UTF-8 sequence longer than one is 0x80 or more: none enters, and the ASCII next to it does.
 TEST(TextFieldTest, DropsWhatIsNotAscii)
 {
     TextField field(Ten, false);
@@ -53,7 +39,7 @@ TEST(TextFieldTest, DropsWhatIsNotAscii)
     EXPECT_EQ(field.Value(), "bc");
 }
 
-// Los de control tampoco: Tab, Enter y Retroceso llegan como teclas, no como texto.
+// Control bytes neither: Tab, Enter and Backspace arrive as keys, not as text.
 TEST(TextFieldTest, DropsTheControlBytes)
 {
     TextField field(Ten, false);
@@ -120,9 +106,9 @@ TEST(TextFieldTest, ClearEmptiesIt)
     EXPECT_EQ(field.Size(), 0u);
 }
 
-// El campo del nombre de un personaje nuevo (Latin1): el EDIT de 0x63d670 no tiene filtro, y en
-// Windows de Occidente lo que se escribe llega en CP1252. MuRet toma, además de ASCII, las letras de
-// U+00A0 a U+00FF como su byte de Latin-1, que en esa franja es el de CP1252; lo demás no entra.
+// The new character's name field (Latin1): 0x63d670's EDIT has no filter, and on Western Windows what is typed
+// arrives in CP1252. Besides ASCII, MuRet takes the letters U+00A0 to U+00FF as their Latin-1 byte, which in that
+// range is the CP1252 one; the rest does not enter.
 TEST(TextFieldTest, ALatin1FieldTakesTheLettersOfItsPage)
 {
     TextField field(10, false, TextField::Charset::Latin1);
@@ -133,19 +119,18 @@ TEST(TextFieldTest, ALatin1FieldTakesTheLettersOfItsPage)
     field.Type("\xc2\xa0\xc3\xbf");
     EXPECT_EQ(field.Value(), "Pe\xf1"
                              "a\xa0\xff");
-    // U+0080 a U+009F, lo de más de dos bytes y lo que no es UTF-8, no.
+    // Not U+0080 to U+009F, anything longer than two bytes, or what is not UTF-8.
     field.Type("\xc2\x80\xe2\x82\xac\xf0\x9f\x98\x80\xc3\xff");
     EXPECT_EQ(field.Value(), "Pe\xf1"
                              "a\xa0\xff");
-    // El de ASCII, como siempre.
     TextField ascii(10, false);
     ascii.Type("Pe\xc3\xb1"
                "a");
     EXPECT_EQ(ascii.Value(), "Pea");
 }
 
-// Los EDIT del chat (CL8 hito 3): EM_SETSEL(0, −1) elige todo y lo primero que entra lo reemplaza, aun con el campo
-// lleno; lo que no entra no lo toca.
+// The chat EDITs (CL8 milestone 3): EM_SETSEL(0, −1) selects all and the first thing that enters replaces it, even
+// with the field full; what does not enter leaves it untouched.
 TEST(TextFieldTest, WhatIsTypedReplacesTheSelection)
 {
     TextField field(4, false, TextField::Charset::Latin1);
@@ -174,7 +159,7 @@ TEST(TextFieldTest, BackspaceErasesTheSelection)
     EXPECT_FALSE(field.AllSelected());
 }
 
-// WM_SETTEXT no mira EM_LIMITTEXT ni el filtro de lo tecleado, y deja el cursor al final.
+// WM_SETTEXT ignores EM_LIMITTEXT and the typing filter, and leaves the cursor at the end.
 TEST(TextFieldTest, SetTextPutsTheBytesAsTheyAre)
 {
     TextField field(4, false, TextField::Charset::Latin1);

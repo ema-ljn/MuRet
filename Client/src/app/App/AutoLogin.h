@@ -6,34 +6,34 @@
 
 #include <cstdint>
 
-// Lo que la ServerSession de la CL4 hacía sin UI, aparte (CL5.5; pregunta 12 del plan de la CL5):
-// con --auto-login, Main lo arma y lo consulta en el pollNetwork del SceneManager, después de la
-// sesión. En ChoosingServer elige el primero de la lista, en el orden en que llegó (pregunta 9 del
-// plan de la CL4), y en WaitingCredentials manda la cuenta y la clave del entorno (pregunta 7).
-// Sirve para la prueba a mano y para depurar la red sin la UI.
+// What CL4's ServerSession did without a UI, split out (CL5.5; question 12 of the CL5 plan): with --auto-login, Main
+// builds it and queries it in the SceneManager's pollNetwork, after the session. In ChoosingServer it picks the first
+// of the list, in the order it arrived (question 9 of the CL4 plan), and in WaitingCredentials it sends the account
+// and password from the environment (question 7). It serves for manual testing and for debugging the network without
+// the UI.
 //
-// Una vez cada una por vuelta (ServerSession::StartCount): si en la misma vuelta la sesión vuelve
-// a esperar, por un servidor ocupado (Q-C71) o un login rechazado, la elección o la cuenta quedan
-// para la UI, con un aviso; elegir el mismo o mandar la misma clave daría lo mismo otra vez. La
-// LoginScene no lo conoce: como elige y manda en el mismo pollNetwork que trae la lista o el
-// saludo, la escena no ve la sesión esperando y no abre sus ventanas, salvo en esos dos casos.
+// Once each per round (ServerSession::StartCount): if in the same round the session waits again, for a busy server
+// (Q-C71) or a rejected login, the choice or the account are left to the UI, with a warning; choosing the same one or
+// sending the same password would give the same again. The LoginScene does not know it: since it picks and sends in
+// the same pollNetwork that brings the list or the hello, the scene does not see the session waiting and does not
+// open its windows, except in those two cases.
 namespace Client::App
 {
 class AutoLogin
 {
 public:
-    // `session` y `log` tienen que vivir más que esto. La cuenta y la clave no van al log.
+    // `session` and `log` must outlive this. The account and password do not go to the log.
     AutoLogin(ServerSession& session, Credentials credentials, Core::Log& log);
 
     AutoLogin(const AutoLogin&) = delete;
     AutoLogin& operator=(const AutoLogin&) = delete;
     ~AutoLogin() = default;
 
-    // Una vez por frame, después de ServerSession::Poll.
+    // Once per frame, after ServerSession::Poll.
     void Poll();
 
 private:
-    // Lo hecho en una vuelta de la sesión.
+    // What was done in one round of the session.
     struct Round
     {
         std::uint32_t start = 0;

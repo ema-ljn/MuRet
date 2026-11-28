@@ -7,7 +7,7 @@
 
 using namespace std::string_view_literals;
 
-// Client::Session::ParsePort y ParseHost: lo que validan la config y la línea de comandos (CL3.4).
+// Client::Session::ParsePort and ParseHost: what the config and the command line validate (CL3.4).
 namespace
 {
 using Client::Session::MaxHostBytes;
@@ -43,8 +43,8 @@ TEST(ServerAddressTest, RejectsAPortOutOfRange)
     }
 }
 
-// from_chars se para en la primera letra ("80x" da 80) y no acepta "+" ni espacios: por el
-// mensaje, todo lo que no son dígitos dice lo mismo.
+// from_chars stops at the first letter ("80x" gives 80) and does not accept "+" or spaces: for the message,
+// everything that is not digits says the same.
 TEST(ServerAddressTest, RejectsAPortThatIsNotDigits)
 {
     for (const std::string_view text : {"", "12a", "80x", "-1", "+80", " 80", "0x50"})
@@ -53,7 +53,7 @@ TEST(ServerAddressTest, RejectsAPortThatIsNotDigits)
     }
 }
 
-// Q-C37: el original copiaba el host sin mirar el largo.
+// Q-C37: the original copied the host without checking its length.
 TEST(ServerAddressTest, AcceptsAHostOf1To255Bytes)
 {
     EXPECT_EQ(ParseHost("a").Value(), "a");
@@ -73,8 +73,8 @@ TEST(ServerAddressTest, RejectsAHostThatIsNotVisibleAscii)
     EXPECT_EQ(HostError("a\tb"), "the host cannot have spaces");
     EXPECT_EQ(HostError("10.0.0.1\0evil.com"sv), "the host cannot have control characters");
     EXPECT_EQ(HostError("a\x7F"), "the host cannot have control characters");
-    // En UTF-8 (la config) o en la página ANSI (el argv de Windows), los mismos bytes no son la
-    // misma letra: el host es ASCII en los dos.
+    // In UTF-8 (the config) or in the ANSI page (Windows' argv), the same bytes are not the same letter: the host is
+    // ASCII in both.
     EXPECT_EQ(HostError("m\xC3\xBA.org"), "the host must be ASCII (a name with accents goes in punycode)");
     EXPECT_EQ(HostError("m\xFA.org"), "the host must be ASCII (a name with accents goes in punycode)");
 }

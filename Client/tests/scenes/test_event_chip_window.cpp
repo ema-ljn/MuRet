@@ -51,8 +51,8 @@
 #include <utility>
 #include <vector>
 
-// CL9 hito 11, fase 4: la ventana de 0x78abb00 (0x5f6550, su paso 0x5e6520 y la entrada del número de serie) contra
-// el ASM de c32bbd5f, sin traza de GL (*estático*). Text.bmd es inventado; el nombre del NPC 236 también.
+// CL9 milestone 11, phase 4: the window of 0x78abb00 (0x5f6550, its step 0x5e6520 and the serial number entry) against
+// the ASM of c32bbd5f, with no GL trace (*static*). Text.bmd is made up; so is the name of NPC 236.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -116,7 +116,7 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// Cuántos rand() hay de `from` a `to` (hasta 100.000).
+// How many rand() there are from `from` to `to` (up to 100000).
 std::uint32_t DrawsBetween(CrtRandom from, std::uint32_t to)
 {
     for (std::uint32_t draws = 0; draws < 100000; ++draws)
@@ -129,7 +129,7 @@ std::uint32_t DrawsBetween(CrtRandom from, std::uint32_t to)
     return 0;
 }
 
-// El x de 0x623690 con la medida falsa (6 columnas por letra) en 640 × 480.
+// The x of 0x623690 with the fake measure (6 columns per letter) in 640 × 480.
 int Centered(int x, std::string_view text)
 {
     return x - static_cast<int>(text.size()) * Client::Tests::RecordingTextDrawer::LetterWidth / 2;
@@ -158,11 +158,11 @@ protected:
         Reset(0);
     }
 
-    // Un mundo nuevo en `map`, con el inventario vacío (0x5bc740) y abierto.
+    // A new world in `map`, with the inventory empty (0x5bc740) and open.
     void Reset(std::int32_t map)
     {
         world = std::make_unique<WorldState>();
-        // El juego llega después de 0x5bbe10: la caja del caos tiene tipos 0xffff, no el cero de la BSS.
+        // The game arrives after 0x5bbe10: the chaos box has types 0xffff, not the BSS zero.
         Client::FrontEnd::ClearSelectionInventory(*world, random);
         world->Inventory().ClearForInventoryReply();
         Runtime().map = map;
@@ -196,7 +196,7 @@ protected:
                                .texts = &texts,
                                .worldClock = worldClock,
                                .mouse = mouse};
-        // 0x7681eb8 (CL9 hito 2): el NPC 236 en el registro 7 de la tabla, con un nombre inventado.
+        // 0x7681eb8 (CL9 milestone 2): NPC 236 in record 7 of the table, with a made-up name.
         Client::Monsters::NpcName& record = runtime.npcNames[7];
         record = {};
         if (withNames)
@@ -224,7 +224,7 @@ protected:
         return Client::Events::StepTheEventChipWindow(context, panels.Registry());
     }
 
-    // El estado de rand() después de 0x65cae0(0x4000000, 0) con los paneles de ahora.
+    // The rand() state after 0x65cae0(0x4000000, 0) with the current panels.
     std::uint32_t AfterClosingTheInventory()
     {
         auto other = std::make_unique<WorldState>();
@@ -256,11 +256,11 @@ protected:
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-// ----- El paso (0x5e6520).
+// ----- The step (0x5e6520).
 
-// Con 4: soltar el clic (0x7d366ec) sobre el botón de 0x1e5..0x25d × 0xdc..0xf4 manda el C1 04 98 01 y apaga el
-// soltado; el mouse en [0x1c2, 0x280) × [0, 0x1b1) es de la UI. Sin soltar, nada. No saca rand(). En Lorencia y en
-// Devias.
+// With 4: releasing the click (0x7d366ec) over the button at 0x1e5..0x25d × 0xdc..0xf4 sends C1 04 98 01 and clears
+// the release; the mouse in [0x1c2, 0x280) × [0, 0x1b1) belongs to the UI. Without a release, nothing. No rand(). In
+// Lorencia and Devias.
 TEST_F(EventChipWindowTest, TheMutoButtonAsksForTheNumber)
 {
     for (const std::int32_t map : {0, 2})
@@ -282,23 +282,23 @@ TEST_F(EventChipWindowTest, TheMutoButtonAsksForTheNumber)
         EXPECT_FALSE(Runtime().mouse.releasedClick);
         EXPECT_EQ(random.State(), before);
 
-        // Fuera del botón (0xf4), el soltado se apaga igual al final (0x5e74cc).
+        // Outside the button (0xf4), the release is cleared anyway at the end (0x5e74cc).
         sent.clear();
         Runtime().mouse.releasedClick = true;
         Runtime().ui.mouseOnUi = 0;
         ASSERT_TRUE(Step(0x1e5, 0xf4).HasValue());
         EXPECT_TRUE(sent.empty());
         EXPECT_FALSE(Runtime().mouse.releasedClick);
-        // 0x1b1 ya no es de la UI.
+        // 0x1b1 no longer belongs to the UI.
         Runtime().ui.mouseOnUi = 0;
         ASSERT_TRUE(Step(0x1e5, 0x1b1).HasValue());
         EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
     }
 }
 
-// Con 1, 2 u otro que no sea 3 ni 4: el soltado sobre 0x1e5..0x25d × 0xe7..0xfd se apaga y, si 0x5583a0 encuentra el
-// 0x1c15 de nivel 1 (con 2) o 0 (con los otros), sale el C1 05 95 con 0x78abb00 − 1 y el lugar crudo. Sin el ítem,
-// nada. No saca rand(). En Lorencia y en Devias.
+// With 1, 2 or another that is neither 3 nor 4: the release over 0x1e5..0x25d × 0xe7..0xfd is cleared and, if 0x5583a0
+// finds 0x1c15 of level 1 (with 2) or 0 (with the others), C1 05 95 goes out with 0x78abb00 − 1 and the raw place.
+// Without the item, nothing. No rand(). In Lorencia and Devias.
 TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
 {
     for (const std::int32_t map : {0, 2})
@@ -324,7 +324,7 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
         EXPECT_TRUE(Client::Tests::SameBytes(sent[1].packet.Bytes(), Bytes({0xC1, 0x05, 0x95, 0x1D, 0xA4})));
         EXPECT_TRUE(Client::Tests::SameBytes(Decoded(sent[1]), Bytes({0xC1, 0x05, 0x95, 0x01, 0x05})));
 
-        // Con 5 busca la Rena de nivel 0 y manda el tipo 4.
+        // With 5 it looks for the level 0 Rena and sends type 4.
         Runtime().panels.field78abb00 = 5;
         Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(0x1e5, 0xe7).HasValue());
@@ -332,7 +332,7 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
         EXPECT_TRUE(Client::Tests::SameBytes(Decoded(sent[2]), Bytes({0xC1, 0x05, 0x95, 0x04, 0x1F})));
         EXPECT_EQ(random.State(), before);
 
-        // Sin la Rena, el soltado se gasta sin enviar.
+        // Without the Rena, the release is spent without sending.
         world->Inventory().cells[31].occupied = 0;
         Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
         Runtime().mouse.releasedClick = true;
@@ -342,9 +342,9 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
     }
 }
 
-// Con 3, el botón de confirmar en (ftol(0x1c2 + 35), ftol(esquina + 290)) de 120 × 22: con alguna casilla libre
-// (0x558740(−1, −1)) el C1 12 9D con los 12 bytes del EDIT de [0x5763504] en tres pedazos de 4 y un 0; un texto más
-// corto deja ceros donde el original deja la pila (P-C247). Después, el izquierdo suelto (0x7d36874).
+// With 3, the confirm button at (ftol(0x1c2 + 35), ftol(corner + 290)), 120 × 22: with some free slot
+// (0x558740(−1, −1)) C1 12 9D with the 12 bytes of the EDIT of [0x5763504] in three pieces of 4 and a 0; a shorter
+// text leaves zeros where the original leaves the stack (P-C247). Then the left button released (0x7d36874).
 TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
 {
     for (const std::int32_t map : {0, 2})
@@ -373,7 +373,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         EXPECT_TRUE(Client::Tests::SameBytes(
             Decoded(sent[1]), Bytes({0xC1, 0x12, 0x9D, 'Q', '7', 'X', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})));
 
-        // Fuera del botón (y + 22), nada, y el izquierdo sigue.
+        // Outside the button (y + 22), nothing, and the left button stays.
         Runtime().mouse.releasedClick = true;
         Runtime().mouse.leftHeld = true;
         ASSERT_TRUE(Step(485, 290 + 22).HasValue());
@@ -382,8 +382,8 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
     }
 }
 
-// Sin casillas libres, 0x5e6d22 abre el aviso 896 y no manda nada; el izquierdo queda suelto igual. Más de 12 bytes en
-// el EDIT (que solo pondría un SetText que el juego no hace) pisarían la pila del paso: corta.
+// Without free slots, 0x5e6d22 opens notice 896 and sends nothing; the left button is released anyway. More than 12
+// bytes in the EDIT (which only a SetText the game does not do would put) would overwrite the step's stack: it stops.
 TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
 {
     for (Client::Kernel::ItemState& item : world->Inventory().cells)
@@ -410,11 +410,11 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
     EXPECT_NE(cut.Error().find("0x5e6d68"), std::string::npos) << cut.Error();
 }
 
-// 0x5e7255..0x5e74c6: el clic (0x7d366d4) en el botón de cerrar (0x19, 0x18b de la esquina, 24 × 24) apaga el clic,
-// pone 0x77f3b10 en 0 y 0x6c8dcc en 6, manda el C1 03 97 en claro, 0x78abb00 en 0, cierra el inventario (con los
-// rand() de 0x65cae0), vacía los buffers del chat, lo cierra, pone en 0 el modo del zen, el zen escrito, 0x78abacc y
-// 0x77f3b6b y le da el foco a la ventana del juego; 0x553570 (con 0x6c7b8c en 1) vacía también el texto del EDIT de
-// [0x5763504]. En Lorencia y en Devias, con cada tipo.
+// 0x5e7255..0x5e74c6: the click (0x7d366d4) on the close button (0x19, 0x18b from the corner, 24 × 24) clears the
+// click, sets 0x77f3b10 to 0 and 0x6c8dcc to 6, sends C1 03 97 in the clear, 0x78abb00 at 0, closes the inventory
+// (with the rand() of 0x65cae0), empties the chat buffers, closes it, zeroes the zen mode, the typed zen, 0x78abacc and
+// 0x77f3b6b and gives the focus to the game window; 0x553570 (with 0x6c7b8c at 1) also empties the text of the EDIT of
+// [0x5763504]. In Lorencia and Devias, with each type.
 TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
 {
     for (const std::int32_t map : {0, 2})
@@ -466,8 +466,8 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
     }
 }
 
-// El cierre saca los rand() de las lecturas protegidas de 0x65cae0 (el comercio y la tienda del NPC, 0x7d531f8 y
-// 0x7d53710): dos con el inventario abierto.
+// The close draws the rand() of the protected reads of 0x65cae0 (the trade and the NPC shop, 0x7d531f8 and
+// 0x7d53710): two with the inventory open.
 TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 {
     Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
@@ -477,13 +477,13 @@ TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
     EXPECT_EQ(DrawsBetween(before, random.State()), 2u);
 }
 
-// ----- La entrada del número de serie (0x4dd8ce..0x4dd920 y 0x56b6a9..0x56b72a).
+// ----- The serial number entry (0x4dd8ce..0x4dd920 and 0x56b6a9..0x56b72a).
 
-// 0x4dd8ce..0x4dd920: el número de serie en cero, 0x553570(0) (el campo elegido y el buffer del mensaje, no el del
-// susurro), el chat cerrado, el modo del zen, el zen escrito y 0x78abacc en 0, el largo del campo en 0xc, un solo campo
-// para el Tab y 0x77f3b6b en 1. 0x56b6a9..0x56b72a: el campo elegido en 0, el buffer del mensaje vacío (el del susurro
-// no), el EDIT vacío, el chat cerrado, el modo del zen, el zen escrito y 0x78abacc en 0 y 0x77f3b6b en 0, sin tocar el
-// foco.
+// 0x4dd8ce..0x4dd920: the serial number zeroed, 0x553570(0) (the chosen field and the message buffer, not the
+// whisper's), the chat closed, the zen mode, the typed zen and 0x78abacc at 0, the field length at 0xc, a single field
+// for Tab and 0x77f3b6b at 1. 0x56b6a9..0x56b72a: the chosen field at 0, the message buffer empty (not the whisper's),
+// the EDIT empty, the chat closed, the zen mode, the typed zen and 0x78abacc at 0 and 0x77f3b6b at 0, without touching
+// the focus.
 TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 {
     Client::Chat::ChatInputState& chat = Runtime().chat.input;
@@ -533,7 +533,7 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     EXPECT_FALSE(Runtime().events.serialEntry);
 }
 
-// La subclase 0x467b10 con +0x4c en 2: cifras y letras, las minúsculas en mayúscula; nada más.
+// Subclass 0x467b10 with +0x4c at 2: digits and letters, lowercase to uppercase; nothing else.
 TEST(EventChipEditTest, TheEditFilterTakesDigitsAndLetters)
 {
     using Client::Ui::FilteredByTheEdit;
@@ -555,11 +555,11 @@ TEST(EventChipEditTest, TheEditFilterTakesDigitsAndLetters)
     EXPECT_EQ(edit.text.Value(), "AB12CD34EF56");
 }
 
-// ----- El dibujo (0x5f6550).
+// ----- The drawing (0x5f6550).
 
-// 0x5f65df: el título es el NPC 236 de la tabla de NpcName(%s).txt (0x54ebb0). Sin un registro con ese tipo, 0x54ebb0
-// da NULL y 0x554180 no dibuja el título, como el de las misiones (0x41be9e): la ventana sigue igual, sin cortar. En
-// Lorencia y en Devias.
+// 0x5f65df: the title is NPC 236 of the NpcName(%s).txt table (0x54ebb0). Without a record of that type, 0x54ebb0
+// gives NULL and 0x554180 does not draw the title, like the quests' (0x41be9e): the window goes on the same, without
+// stopping. In Lorencia and Devias.
 TEST_F(EventChipWindowTest, WithoutTheNpcInTheTableTheTitleIsNotDrawn)
 {
     for (const std::int32_t map : {0, 2})
@@ -577,9 +577,9 @@ TEST_F(EventChipWindowTest, WithoutTheNpcInTheTableTheTitleIsNotDrawn)
     }
 }
 
-// Con 1: la esquina en (0x1c2, 0), el fondo, el título, el botón 0xf0 en (485, 231) blanco y con el texto 243 en
-// negrita (hay Renas), el botón de cerrar, los cuatro textos 700..703 desde y 100 de a 15, el rótulo 245 y "x2" de las
-// dos Renas de nivel 0, el 246 y "x7" de 0x78abb04. No saca rand(). En Lorencia y en Devias.
+// With 1: the corner at (0x1c2, 0), the background, the title, button 0xf0 at (485, 231) in white with text 243 in
+// bold (there are Renas), the close button, the four texts 700..703 from y 100 in steps of 15, label 245 and "x2" of
+// the two level 0 Renas, 246 and "x7" of 0x78abb04. No rand(). In Lorencia and Devias.
 TEST_F(EventChipWindowTest, TheRenaWindowDrawsItsCounts)
 {
     for (const std::int32_t map : {0, 2})
@@ -647,7 +647,7 @@ TEST_F(EventChipWindowTest, TheRenaWindowDrawsItsCounts)
     }
 }
 
-// Con 2 y sin piedras de nivel 1: el botón en gris (0,4) y su texto 818 con la fuente normal, y "x0".
+// With 2 and no level 1 stones: the button in gray (0.4) and its text 818 in the normal font, and "x0".
 TEST_F(EventChipWindowTest, TheStoneWindowWithoutStonesIsGrey)
 {
     PutItem(3, 0x1c15, 0);
@@ -664,8 +664,8 @@ TEST_F(EventChipWindowTest, TheStoneWindowWithoutStonesIsGrey)
     EXPECT_EQ(text.texts[7].text, "x0");
 }
 
-// Con el botón apretado (0x7d366d4) bajo el mouse y el soltado (0x7d366ec), el dibujo apaga el clic y el izquierdo;
-// uno que proyecta no.
+// With the button pressed (0x7d366d4) under the mouse and the release (0x7d366ec), the drawing clears the click and the
+// left button; one that projects does not.
 TEST_F(EventChipWindowTest, ThePressedButtonTakesTheClick)
 {
     Runtime().panels.field78abb00 = Client::Events::MutoNumberWindow;
@@ -685,10 +685,10 @@ TEST_F(EventChipWindowTest, ThePressedButtonTakesTheClick)
     EXPECT_TRUE(pressed);
 }
 
-// Con 3: los textos 893, 916, 917 (en 0xff67bfdf) y 894 (en negrita) sobre la entrada, el marco 0x10f, el EDIT de
-// [0x5763504] reconfigurado (filtro 2, fondo 0, tope 12, 150 × 14 en (495, 265)) con el foco, el botón 895 40 más
-// abajo, los textos 891, 892, 897 y 898 desde y 70 y, con el resultado del 9D, su sombra y él en negrita 0x104 más
-// abajo. Sin cuentas. Uno que proyecta no toca el EDIT ni el foco.
+// With 3: texts 893, 916, 917 (in 0xff67bfdf) and 894 (in bold) above the entry, frame 0x10f, the EDIT of [0x5763504]
+// reconfigured (filter 2, background 0, limit 12, 150 × 14 at (495, 265)) with the focus, button 895 40 lower, texts
+// 891, 892, 897 and 898 from y 70 and, with the 9D result, its shadow and itself in bold 0x104 lower. No counts. One
+// that projects does not touch the EDIT or the focus.
 TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
 {
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
@@ -756,8 +756,7 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     EXPECT_TRUE(frame);
 }
 
-// Con 4: el botón 903 en y 220 (texto en 0xe1), los textos 900, 706, 901 y 902 desde y 70 y las dos cuentas sin
-// rótulos.
+// With 4: button 903 at y 220 (text at 0xe1), texts 900, 706, 901 and 902 from y 70 and the two counts without labels.
 TEST_F(EventChipWindowTest, TheMutoWindowDrawsItsButton)
 {
     Runtime().panels.field78abb00 = Client::Events::MutoNumberWindow;

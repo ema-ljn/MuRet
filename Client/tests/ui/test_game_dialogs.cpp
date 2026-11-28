@@ -11,8 +11,8 @@
 
 #include <gtest/gtest.h>
 
-// Las cajas viejas del juego (CL8 hito 6): 0x632e30, 0x633300 y el paso de sus botones y de las flechas del 0x8c.
-// Textos inventados.
+// The game's old boxes (CL8 milestone 6): 0x632e30, 0x633300 and the step of their buttons and of the 0x8c's arrows.
+// Made-up texts.
 namespace
 {
 using Client::Tests::MakeTextTable;
@@ -21,7 +21,7 @@ using Client::Ui::DialogRow;
 using Client::Ui::DialogState;
 using Client::Ui::Point;
 
-// 0x632e30: el texto partido en renglones de menos de 0x26, un botón y el 0x8a, abierto o esperando.
+// 0x632e30: the text split into lines shorter than 0x26, one button and the 0x8a, open or waiting.
 TEST(GameDialogsTest, TheMessageBoxSplitsItsTextAndOpensTheFriendlyDialog)
 {
     DialogBoxState box;
@@ -46,8 +46,8 @@ TEST(GameDialogsTest, TheMessageBoxSplitsItsTextAndOpensTheFriendlyDialog)
     EXPECT_EQ(dialogs.pending, 0x8a);
 }
 
-// 0x633300: un strcpy por texto en renglones de 0x26; uno largo sigue en el renglón siguiente hasta que el texto de
-// ese renglón lo pisa.
+// 0x633300: one strcpy per text into 0x26 rows; a long one runs into the next row until that row's text overwrites
+// it.
 TEST(GameDialogsTest, TheTextDialogCopiesEachTextIntoItsRow)
 {
     const auto texts = MakeTextTable(
@@ -59,7 +59,7 @@ TEST(GameDialogsTest, TheTextDialogCopiesEachTextIntoItsRow)
 
     EXPECT_EQ(box.lineCount, 3);
     EXPECT_EQ(DialogRow(box, 0), "primer renglon");
-    // Sin '\0' en sus 0x26 bytes, el segundo se lee hasta el que dejó el tercero.
+    // Without a '\0' in its 0x26 bytes, the second one reads up to the one the third left.
     EXPECT_EQ(DialogRow(box, 1), "un renglon que no entra en los treintatercero");
     EXPECT_EQ(DialogRow(box, 2), "tercero");
     EXPECT_EQ(box.buttons[0].state, 1);
@@ -71,7 +71,8 @@ TEST(GameDialogsTest, TheTextDialogCopiesEachTextIntoItsRow)
     EXPECT_EQ(dialogs.current, 0x8b);
 }
 
-// El 0x9a parte cada texto con 0x632c90 detrás del anterior y baja los botones a 0x78; el 0x7f no entra sobre él.
+// The 0x9a splits each text with 0x632c90 after the previous one and lowers the buttons to 0x78; the 0x7f does not
+// get in over it.
 TEST(GameDialogsTest, TheChaosCastleDialogSplitsItsTextsOneAfterTheOther)
 {
     const auto texts = MakeTextTable({{50, "una linea"}, {51, "otra linea que pasa de los treinta y ocho bytes"}});
@@ -92,14 +93,13 @@ TEST(GameDialogsTest, TheChaosCastleDialogSplitsItsTextsOneAfterTheOther)
     EXPECT_EQ(dialogs.pending, 0);
 }
 
-// Los textos con formato son de la CL9.3 (el 0x99 lo abre OpenTheMoneyTextDialog), y lo que pasaría los 7 renglones
-// corta.
+// The formatted texts are CL9.3's (OpenTheMoneyTextDialog opens the 0x99), and what would pass the 7 rows bails out.
 TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
 {
     const auto texts = MakeTextTable({{60, "corto"}});
     DialogBoxState box;
     DialogState dialogs;
-    // Sin el ítem (0x96 y 0xa8) o sin lo que lee su formato (0xa3), cortan con su dirección.
+    // Without the item (0x96 and 0xa8) or without what its format reads (0xa3), they bail out with their address.
     for (const auto& [id, address] :
          {std::pair<std::int32_t, std::string>{0x96, "0x63330f"}, {0xa8, "0x63330f"}, {0xa3, "0x63340d"}})
     {
@@ -116,10 +116,10 @@ TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
     EXPECT_EQ(dialogs.current, 0);
 }
 
-// 0x63332f..0x6333a3 (CL9 hito 7): el 0x99 escribe el primer renglón con el sprintf de su texto y el zen, sin tope (lo
-// largo sigue abajo y el sprintf del segundo lo pisa), pasa los que siguen por el mismo sprintf sin argumentos (el "%%"
-// sale como "%") y abre con los dos botones. Con un renglón, solo el primero; lo que pasaría los 7 corta, como sin
-// Text.bmd.
+// 0x63332f..0x6333a3 (CL9 milestone 7): the 0x99 writes the first row with the sprintf of its text and the zen,
+// uncapped (the long part runs below and the second's sprintf overwrites it), passes the following ones through the
+// same sprintf without arguments (the "%%" comes out as "%") and opens with the two buttons. With one row, only the
+// first; what would pass the 7 bails out, as without Text.bmd.
 TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
 {
     const auto texts = MakeTextTable({{70, "venta : %s zen, un renglon largo"}, {71, "seguro? 100%%"}});
@@ -127,7 +127,7 @@ TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
     DialogState dialogs;
     ASSERT_TRUE(Client::Ui::OpenTheMoneyTextDialog(box, dialogs, &texts, 2, 70, "1,234,567").HasValue());
     EXPECT_EQ(box.lineCount, 2);
-    // Sin '\0' en sus 0x26 bytes, el primero se lee hasta el que dejó el segundo.
+    // Without a '\0' in its 0x26 bytes, the first one reads up to the one the second left.
     EXPECT_EQ(DialogRow(box, 0), "venta : 1,234,567 zen, un renglon largseguro? 100%");
     EXPECT_EQ(DialogRow(box, 1), "seguro? 100%");
     EXPECT_EQ(box.buttons[0].state, 1);
@@ -155,8 +155,8 @@ TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
     EXPECT_EQ(closed.current, Client::Ui::MoneyTextDialog);
 }
 
-// 0x633419..0x633525: la pregunta de la mezcla de joyas partida en dos renglones de 0x1e y el precio debajo; al
-// deshacer, el nivel + 1 y el otro precio.
+// 0x633419..0x633525: the jewel mix question split into two 0x1e rows and the price below; when undoing, the level
+// + 1 and the other price.
 TEST(GameDialogsTest, TheJewelMixQuestionSplitsInTwoRowsAndAddsThePrice)
 {
     const auto texts = MakeTextTable({{1806, "Joya Uno"},
@@ -190,7 +190,8 @@ TEST(GameDialogsTest, TheJewelMixQuestionSplitsInTwoRowsAndAddsThePrice)
     EXPECT_EQ(DialogRow(unmixBox, 1), "Deshacer cuesta 1000000");
 }
 
-// 0x62d756: el rectángulo corrido (0xd5, 0x3c) con sus bordes; con el clic, elige y apaga el clic y el botón abajo.
+// 0x62d756: the rectangle shifted by (0xd5, 0x3c) with its edges; with the click, it chooses and clears the click and
+// the button down.
 TEST(GameDialogsTest, TheButtonsLightUpAndTakeTheClick)
 {
     DialogBoxState box;
@@ -213,7 +214,7 @@ TEST(GameDialogsTest, TheButtonsLightUpAndTakeTheClick)
     EXPECT_FALSE(held);
 }
 
-// 0x62d7eb: las flechas del 0x8c, con el clic y sin gastarlo, entre 0 y la última.
+// 0x62d7eb: the 0x8c's arrows, with the click and without consuming it, between 0 and the last one.
 TEST(GameDialogsTest, TheArrowsTurnThePagesWithinTheirBounds)
 {
     const auto texts = MakeTextTable({{70, "pagina cero"}, {71, "pagina uno"}, {72, "pagina dos"}});
@@ -237,7 +238,6 @@ TEST(GameDialogsTest, TheArrowsTurnThePagesWithinTheirBounds)
     ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0xf9, 0xca}, true).HasValue());
     EXPECT_EQ(box.page, 0);
 
-    // Sin el clic, o fuera de las flechas, nada.
     ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x179, 0xca}, false).HasValue());
     ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x179, 0xdf}, true).HasValue());
     EXPECT_EQ(box.page, 0);

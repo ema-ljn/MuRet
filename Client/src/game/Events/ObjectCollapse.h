@@ -25,48 +25,49 @@ struct WorldObject;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// El derrumbe de los objetos de Blood Castle y de Chaos Castle (CL9 hito 11, fase 3; 06 § El derrumbe de los
-// objetos): lo pide 0x5ff930 desde los paquetes de los eventos (EventGlobals::objectCollapse) y lo hace 0x5ff960 con
-// cada objeto que recorre el paso de los objetos (0x606560).
+// The collapse of the Blood Castle and Chaos Castle objects (CL9 milestone 11, phase 3; 06 § El derrumbe de los
+// objetos): 0x5ff930 requests it from the event packets (EventGlobals::objectCollapse) and 0x5ff960 performs it on
+// each object the object step walks (0x606560).
 namespace Client::Events
 {
 struct ObjectCollapse;
 
-// Lo que 0x5ff960 y 0x405630 leen y escriben fuera del objeto.
+// What 0x5ff960 and 0x405630 read and write outside the object.
 struct ObjectCollapseContext
 {
-    // El pedido (0x6c9dd4..0x6c9de0), el mapa en curso (0x6c9dd0), el área de Chaos Castle (0x6c634c) y el último
-    // sonido (0x41ed10, CL10).
+    // The request (0x6c9dd4..0x6c9de0), the current map (0x6c9dd0), the Chaos Castle area (0x6c634c) and the last sound
+    // (0x41ed10, CL10).
     Kernel::WorldRuntime& runtime;
     Crt::CrtRandom& random;
-    // 0x53fe70: el polvo 5f3/0 de la puerta de Blood Castle y la piedra 5f6/0 de Chaos Castle. Sin el pool, corta
-    // donde lo pide.
+    // 0x53fe70: the Blood Castle gate's 0x5f3/0 dust and the Chaos Castle 0x5f6/0 stone. Without the pool, stops where
+    // it asks for it.
     Particles::Particles* particles = nullptr;
-    // El reloj del mundo (0x5767b88) con que 0x53fe70 crea.
+    // The world clock (0x5767b88) with which 0x53fe70 creates.
     float worldClock = 0.0f;
-    // +0x18 del héroe ([0x743a170]): la z de la piedra.
+    // The hero's +0x18 ([0x743a170]): the stone's z.
     float heroZ = 0.0f;
-    // 0x7d325c8, el temblor de la cámara. nullptr: corta si la rama lo pide.
+    // 0x7d325c8, the camera shake. nullptr: stops if the branch asks for it.
     float* cameraShake = nullptr;
-    // El .att del mapa (0x7d0d348), que la puerta de Blood Castle abre al terminar (0x5f8750). nullptr: corta ahí.
+    // The map's .att (0x7d0d348), which the Blood Castle gate opens when done (0x5f8750). nullptr: stops there.
     Data::Terrain::TerrainAttributes* attributes = nullptr;
 };
 
-// 0x5ff966..0x5ff997: el pedido vale con el mapa, el tipo y la cuenta en 0 o más y el mapa pedido igual al de ahora.
+// 0x5ff966..0x5ff997: the request holds with the map, the type and the count at 0 or more and the requested map equal
+// to the current one.
 [[nodiscard]] bool ObjectCollapseActive(const Kernel::WorldRuntime& runtime);
 
-// 0x5ff910: el pedido a −1, −1, −1 y −1,0f.
+// 0x5ff910: the request to −1, −1, −1 and −1.0f.
 void ResetTheObjectCollapse(ObjectCollapse& collapse);
 
-// 0x606610..0x606618: la cuenta del derrumbe baja uno al final de cada paso de los objetos, también desde −1 (un
-// DEC de 32 bits, que da la vuelta).
+// 0x606610..0x606618: the collapse count drops by one at the end of each object step, also from −1 (a 32-bit DEC,
+// which wraps around).
 void CountDownTheObjectCollapse(Kernel::WorldRuntime& runtime);
 
-// 0x5ff960(objeto): sin el pedido activo, nada. En los mapas 18 a 23, 0x405630 (los escalones de Chaos Castle por el
-// área de 0x6c634c, siempre sin seguir); si no, los objetos 9 y 10 con la cuenta en 0 y los del tipo pedido (la puerta
-// de Blood Castle: el giro de +0x1c con la demora, el sonido 0x89 con la cuenta en 20, el polvo con +0x1c en 80 justo y
-// el final con la cuenta en 0, que saca el atributo 8 de (13..15, 70..75) y borra el pedido). Corta donde MuRet no
-// tiene lo que la rama pide, con lo anterior hecho.
+// 0x5ff960(object): without an active request, nothing. In maps 18 to 23, 0x405630 (the Chaos Castle steps by the area
+// of 0x6c634c, never going on); otherwise objects 9 and 10 with the count at 0 and those of the requested type (the
+// Blood Castle gate: the turn of +0x1c with the delay, sound 0x89 with the count at 20, the dust with +0x1c at exactly
+// 80 and the end with the count at 0, which removes attribute 8 from (13..15, 70..75) and clears the request). Stops
+// where MuRet lacks what the branch asks for, with what came before done.
 [[nodiscard]] Core::Expected<void, std::string> CollapseTheObject(Kernel::WorldObject& object,
                                                                   const ObjectCollapseContext& context);
 } // namespace Client::Events

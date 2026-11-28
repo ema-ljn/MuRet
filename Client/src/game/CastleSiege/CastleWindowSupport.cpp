@@ -129,7 +129,7 @@ Core::Expected<std::pair<std::string_view, std::string_view>, std::string> Guild
     const auto alliance = Guild::UnionNameAt(state, index);
     if (!guild || !alliance)
         return Core::Unexpected(std::string("el castillo lee el gremio del héroe fuera de la tabla 0x787aa48"));
-    // El índice −1 pisa el miembro74 anterior a la tabla; los helpers compartidos conservan ese alias Q-C1281.
+    // Index −1 overwrites member 74 before the table; the shared helpers keep that alias, Q-C1281.
     return std::pair<std::string_view, std::string_view>{*alliance, *guild};
 }
 
@@ -140,7 +140,7 @@ Core::Expected<bool, std::string> HeroCanEditTaxes(const Kernel::WorldState& wor
     auto names = GuildNames(world);
     if (!names.HasValue())
         return Core::Unexpected(std::move(names).Error());
-    // 0x669334 JNZ y 0x66936e JZ: sólo ambos nombres vacíos deniegan, no se exige que coincidan.
+    // 0x669334 JNZ and 0x66936e JZ: only both names empty deny; they are not required to match.
     return names.Value().first != names.Value().second || !names.Value().first.empty();
 }
 

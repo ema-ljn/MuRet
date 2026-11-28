@@ -66,11 +66,11 @@
 #include <utility>
 #include <vector>
 
-// El tooltip de cada ítem de las tiendas de NPC del servidor del laboratorio (Muserver 1.2i 2020, data/shop0.txt a
-// shop17.txt, con sus columnas: tipo, índice, nivel, durabilidad, skill, suerte y opción), con el Data\ del repo. El 31
-// los pone en la grilla de la tienda (PlaceInTheNpcGrid, 0x5bc150) y el mouse sobre su casilla los dibuja con la tienda
-// abierta (DrawTheTooltips, 0x5f7bc0): desde la grilla, con el precio de compra (0x78aba27 en 1), y ya comprados, desde
-// el inventario, con el de venta. Ninguno puede cortar: jugando, un corte cierra el cliente.
+// The tooltip of each item of the lab server's NPC shops (Muserver 1.2i 2020, data/shop0.txt to shop17.txt, with their
+// columns: type, index, level, durability, skill, luck and option), with the repo's Data\. The 31 puts them in the
+// shop's grid (PlaceInTheNpcGrid, 0x5bc150) and the mouse over their cell draws them with the shop open
+// (DrawTheTooltips, 0x5f7bc0): from the grid, with the buy price (0x78aba27 at 1), and once bought, from the
+// inventory, with the sell price. None may stop: in play, a stop closes the client.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -96,7 +96,7 @@ struct ShopItem
     std::string_view name;
 };
 
-// Generada de los shopN.txt del servidor, en su orden.
+// Generated from the server's shopN.txt, in their order.
 constexpr auto ShopItems = std::to_array<ShopItem>({
     {0, 7, 5, 13, 255, 0, 1, 7, "Leather Helm"},
     {0, 7, 0, 13, 255, 0, 1, 7, "Bronze Helm"},
@@ -502,9 +502,9 @@ constexpr auto ShopItems = std::to_array<ShopItem>({
     {17, 12, 19, 0, 255, 0, 0, 0, "Death Stab (DK)"},
 });
 
-// Los siete bytes del ítem como los arma el GameServer, lo que 0x54b3a0 deshace: el tipo (grupo · 512 + índice) en el
-// byte 0, su bit 8 en el 0x80 del byte 3 y los bits 9 a 12 arriba del byte 5; el nivel, la skill, la suerte y los dos
-// bits de abajo de la opción en el byte 1, y su bit 2 en el 0x40 del byte 3.
+// The item's seven bytes as the GameServer builds them, which 0x54b3a0 undoes: the type (group · 512 + index) in byte
+// 0, its bit 8 in the 0x80 of byte 3 and bits 9 to 12 at the top of byte 5; the level, the skill, the luck and the
+// option's two low bits in byte 1, and its bit 2 in the 0x40 of byte 3.
 std::array<std::byte, Client::Items::InventoryItemBytes::extent> ItemBytes(const ShopItem& entry)
 {
     const auto type = static_cast<std::uint16_t>(entry.group * 512 + entry.index);
@@ -520,16 +520,15 @@ std::array<std::byte, Client::Items::InventoryItemBytes::extent> ItemBytes(const
             std::byte{0}};
 }
 
-// Los cortes que MuRet ya conoce en estos ítems, por su dirección, en la tienda y en el inventario. Cuando uno se
-// porte, el test falla hasta sacarlo de acá.
+// The stops MuRet already knows in these items, by their address, in the shop and in the inventory. When one is
+// ported, the test fails until it is removed from here.
 std::optional<std::string_view> KnownCut(const ShopItem& entry)
 {
-    // Q-C415 y Q-C1044: el caballo (0x1a04) con la 0x96 en la primera opción; el lazo de 0x423ae9 agrega otra en cada
-    // vuelta y escribe fuera del ítem hasta que la cuenta da la vuelta.
+    // Q-C415 and Q-C1044: the horse (0x1a04) with 0x96 in the first option; the loop of 0x423ae9 adds another one on
+    // each pass and writes outside the item until the count wraps around.
     if (entry.group == 13 && entry.index == 4)
         return "0x423b07";
-    // Q-C735: desde el nivel 3, el precio de las flechas y las saetas (0x807, 0x80f) multiplica por la dirección del
-    // ítem.
+    // Q-C735: from level 3, the price of the arrows and bolts (0x807, 0x80f) multiplies by the item's address.
     if (entry.group == 4 && (entry.index == 7 || entry.index == 15) && entry.level >= 3)
         return "0x54d283";
     return std::nullopt;
@@ -578,7 +577,7 @@ protected:
         auto options = Client::Tables::LoadItemSetOptionTable(std::as_bytes(std::span(setOptionFile)));
         ASSERT_TRUE(options.HasValue());
         m_sets.emplace(Client::Tables::ItemSetTables{std::move(types).Value(), std::move(options).Value()});
-        // 0x7681eb8: los monstruos de NpcName(Eng).txt, que nombran los anillos de transformación (0x1a0a).
+        // 0x7681eb8: the monsters of NpcName(Eng).txt, which name the transformation rings (0x1a0a).
         const std::vector<char> npcFile = read("Local\\NpcName(Eng).txt");
         auto npcs = Client::Tables::LoadNpcNames(std::as_bytes(std::span(npcFile)));
         ASSERT_TRUE(npcs.HasValue());
@@ -639,7 +638,7 @@ protected:
                               .mouse = m_mouse};
     }
 
-    // El ítem en la casilla 0 de la grilla vacía de la tienda, como lo deja el 31.
+    // The item in cell 0 of the shop's empty grid, as the 31 leaves it.
     Client::Core::Expected<ItemState, std::string> Placed(const ShopItem& entry)
     {
         auto& grid = m_world.Runtime().npcWindows.grid;
@@ -655,8 +654,8 @@ protected:
         return grid[0];
     }
 
-    // El mouse sobre `place`/`index` con la tienda abierta, dos frames: 0x5f7bc0 con el registro propio abierto
-    // alrededor. El caballo y el cuervo piden la mascota en el primero (0x4229d4) y se dibujan en el segundo.
+    // The mouse over `place`/`index` with the shop open, two frames: 0x5f7bc0 with the own record opened around it. The
+    // horse and the raven ask for the pet in the first (0x4229d4) and are drawn in the second.
     Client::Core::Expected<void, std::string> Hover(Client::Ui::HoveredItem::Place place, std::uint8_t fromTheShop)
     {
         Client::Kernel::WorldRuntime& runtime = m_world.Runtime();
@@ -736,8 +735,8 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
     EXPECT_EQ(failed, 0) << failures.str();
     EXPECT_EQ(m_world.Runtime().ownRecordDepth, 0);
 
-    // 0x5b41d0..0x5b421a: el anillo +1 (13 10 1 de shop1) es el monstruo 7 de 0x6c9338, el Giant de NpcName(Eng).txt,
-    // con el 103; desde la grilla de la tienda va después del precio.
+    // 0x5b41d0..0x5b421a: the ring +1 (13 10 1 of shop1) is monster 7 of 0x6c9338, the Giant of NpcName(Eng).txt, with
+    // the 103; from the shop's grid it goes after the price.
     const auto ring = std::ranges::find_if(ShopItems, [](const ShopItem& item)
                                            { return item.group == 13 && item.index == 10 && item.level == 1; });
     ASSERT_NE(ring, ShopItems.end());
@@ -746,10 +745,9 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
     const auto& text = m_world.Runtime().hud.tooltip.text;
     EXPECT_NE(std::ranges::find(text, std::string("Giant Anillo de transformacion")), text.end());
 }
-// El mismo barrido con los modelos del repo: cada ítem en la grilla de la tienda abierta, dibujado como lo dibuja el
-// pase 3D de la UI (0x5ac120 → 0x5f7610, la tienda desde 0x5f769b, cada ítem con 0x5e1480 → 0x5e0720 → 0x60b3d0). Las
-// alas de 12,6 (el modelo 0x1a18, en la tienda de la Potion Girl) cuelgan sus uniones del objeto local (Q-C1821).
-// Ninguno puede cortar.
+// The same sweep with the repo's models: each item in the open shop's grid, drawn as the UI's 3D pass draws it
+// (0x5ac120 → 0x5f7610, the shop from 0x5f769b, each item with 0x5e1480 → 0x5e0720 → 0x60b3d0). The (12, 6) wings
+// (the model 0x1a18, in the Potion Girl's shop) hang their joints from the local object (Q-C1821). None may stop.
 TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
 {
     Client::Tests::FakeTextureStore textures;
@@ -808,7 +806,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
         }
     }
     EXPECT_EQ(failed, 0) << failures.str();
-    // Las alas de 12,6 de la Potion Girl (shop5): 20 uniones cada vez que se dibujan.
+    // The Potion Girl's (12, 6) wings (shop5): 20 joints each time they are drawn.
     EXPECT_GT(joints, 0u);
     EXPECT_EQ(joints % 20, 0u);
     EXPECT_EQ(m_world.Runtime().ownRecordDepth, 0);

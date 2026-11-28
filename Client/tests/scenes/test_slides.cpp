@@ -13,8 +13,8 @@
 #include <memory>
 #include <optional>
 
-// El cartel de Slide.bmd del lado del juego (CL8 hito 3): 0x46b010 en el primer paso, 0x46b0e0 con el registro propio y
-// el WM_TIMER 0x3eb entre dos vueltas de WinMain, con sus rand(). Los textos son inventados.
+// The Slide.bmd banner on the game side (CL8 milestone 3): 0x46b010 in the first step, 0x46b0e0 with the own record and
+// the WM_TIMER 0x3eb between two WinMain loops, with their rand(). The texts are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,7 +52,7 @@ protected:
     CrtRandom m_random;
 };
 
-// 0x46b010: las colas, el timer de 60 s y 0x46b0e0: el cierre del registro propio y el rand() del sorteo.
+// 0x46b010: the queues, the 60 s timer and 0x46b0e0: the own record's close and the pick's rand().
 TEST_F(SlidesTest, TheFirstGameStepArmsTheTimerAndQueuesOne)
 {
     Client::Hud::StartTheSlides(*m_world, m_random, 5000);
@@ -67,7 +67,7 @@ TEST_F(SlidesTest, TheFirstGameStepArmsTheTimerAndQueuesOne)
     EXPECT_EQ(entry.speed, 2.5f);
 }
 
-// Sin el nivel en ningún tramo, el registro se abre y se cierra igual, sin el rand() del sorteo.
+// With the level in no range, the record opens and closes anyway, without the pick's rand().
 TEST_F(SlidesTest, ALevelOutOfTheGroupsDrawsNoPick)
 {
     m_world->OwnCharacter().level = 99;
@@ -78,8 +78,8 @@ TEST_F(SlidesTest, ALevelOutOfTheGroupsDrawsNoPick)
     EXPECT_TRUE(Banner().normal.entries.empty());
 }
 
-// El WM_TIMER 0x3eb: antes de vencer, nada; después, el foco, 0x46b0e0 y el foco otra vez, una vez, y el período vuelve
-// a contar desde ahí.
+// The WM_TIMER 0x3eb: before it is due, nothing; after, the focus, 0x46b0e0 and the focus again, once, and the period
+// counts again from there.
 TEST_F(SlidesTest, TheTimerRunsOnceWhenDue)
 {
     Client::Hud::StartTheSlides(*m_world, m_random, 0);
@@ -98,7 +98,7 @@ TEST_F(SlidesTest, TheTimerRunsOnceWhenDue)
     EXPECT_EQ(m_random.State(), After(2 * (OwnRecordCloseRandoms + 1) + 2));
 }
 
-// Fuera del juego, o con la cola normal todavía prendida, el timer saca solo los dos del foco.
+// Outside the game, or with the normal queue still on, the timer draws only the focus's two.
 TEST_F(SlidesTest, OutsideTheGameOnlyTheFocusIsRead)
 {
     Client::Hud::StartTheSlides(*m_world, m_random, 0);
@@ -117,7 +117,6 @@ TEST_F(SlidesTest, OutsideTheGameOnlyTheFocusIsRead)
     EXPECT_EQ(m_random.State(), After(start + 6));
 }
 
-// Sin el primer paso del juego no hay timer.
 TEST_F(SlidesTest, WithoutTheFirstGameStepThereIsNoTimer)
 {
     Client::Hud::RunTheSlideTimer(*m_world, m_random, 600000, true);

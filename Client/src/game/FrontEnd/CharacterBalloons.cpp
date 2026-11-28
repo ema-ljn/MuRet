@@ -33,16 +33,16 @@ namespace
 {
 using Render::Text::FontKind;
 
-// 0x63c9a0 → 0x647050(0x76, 0x36, 0x13, 0, 0, 0x3b, 0x36, 0, 0, 1, 1): character_ex.tga (el slot 0x13 de 0x61ca30),
-// de 118 × 54, en píxeles (fx = fy = 1), con el punto de +0x58 y +0x5c en (59, 54): 0x6472e0(x, y, 3) la deja
-// centrada en x y con el borde de abajo en y.
+// 0x63c9a0 → 0x647050(0x76, 0x36, 0x13, 0, 0, 0x3b, 0x36, 0, 0, 1, 1): character_ex.tga (slot 0x13 of 0x61ca30),
+// 118 × 54, in pixels (fx = fy = 1), with the point of +0x58 and +0x5c at (59, 54): 0x6472e0(x, y, 3) leaves it
+// centered on x with its bottom edge at y.
 constexpr Render::TextureSlot BalloonSlot{0x13};
 constexpr int BalloonWidth = 0x76;
 constexpr int BalloonHeight = 0x36;
 constexpr double AnchorX = 0x3b;
 constexpr double AnchorY = 0x36;
 
-// 0x63cc60: el color del nombre (+0xac) por el CtlCode, en el orden de sus pruebas, en 0xAABBGGRR.
+// 0x63cc60: the name color (+0xac) by the CtlCode, in the order of its tests, in 0xAABBGGRR.
 constexpr std::uint32_t CyanName = 0xffffff00u;
 constexpr std::uint32_t GoldName = 0xff27d9ffu;
 constexpr std::uint32_t RedName = 0xff0000ffu;
@@ -54,7 +54,7 @@ std::uint32_t NameColorOf(std::uint8_t controlCode)
         return CyanName;
     if ((controlCode & 0x12) != 0)
         return GoldName;
-    // 0x63ccaf: con el 4, blanco antes de mirar el 8 y el 0x20.
+    // 0x63ccaf: with the 4, white before checking the 8 and the 0x20.
     if ((controlCode & 0x04) != 0)
         return WhiteName;
     if ((controlCode & 0x08) != 0 || (controlCode & 0x20) != 0)
@@ -62,8 +62,8 @@ std::uint32_t NameColorOf(std::uint8_t controlCode)
     return WhiteName;
 }
 
-// 0x63cd0d..0x63cd4e: el texto del rango del gremio (+0x368): 0x80 el 1300, 0x40 el 1301, 0x20 el 1302, 0 el 1330 y
-// 0xff (sin gremio, el de 0x511290) el 488; con otro, el 0 (eax en 0 desde 0x63ccfe).
+// 0x63cd0d..0x63cd4e: the guild rank text (+0x368): 0x80 the 1300, 0x40 the 1301, 0x20 the 1302, 0 the 1330 and
+// 0xff (no guild, the one of 0x511290) the 488; with another, the 0 (eax at 0 from 0x63ccfe).
 std::size_t GuildTextOf(std::uint8_t status)
 {
     switch (status)
@@ -83,25 +83,26 @@ std::size_t GuildTextOf(std::uint8_t status)
     }
 }
 
-// 0x63cd82..0x63cdac: el texto de la clase, 20 + (+0x1d4 >> 3) · 5 + (+0x1d4 & 7), como la ventana del personaje.
+// 0x63cd82..0x63cdac: the class text, 20 + (+0x1d4 >> 3) · 5 + (+0x1d4 & 7), like the character window.
 constexpr std::size_t FirstClassText = 20;
 
-// "(%s)" (0x6c6cbc) en +0xc0 y "%s %d" (0x6d6574) en +0xd0: 0x63c9a0 limpia +0xac..+0xef, así que el primero tiene
-// 16 bytes y el segundo 32, hasta el final del globo (+0xf0), donde empieza el que sigue.
+// "(%s)" (0x6c6cbc) at +0xc0 and "%s %d" (0x6d6574) at +0xd0: 0x63c9a0 clears +0xac..+0xef, so the first has 16
+// bytes and the second 32, up to the end of the balloon (+0xf0), where the next one starts.
 constexpr std::size_t GuildBytes = 0x10;
 constexpr std::size_t ClassBytes = 0x20;
 
-// Los renglones de 0x63ca20: 0x5542f0(x, y, texto, 118, 2, 0), centrados en la caja de 118 columnas (0x467060 en el
-// modo 2), en y + 7, + 0x17 y + 0x27 del borde de arriba, con la fuente de DAT_05763560 (0x63cab2) y el fondo de
-// 0x6c8e64 en 0 (0x63cad1).
+// The rows of 0x63ca20: 0x5542f0(x, y, text, 118, 2, 0), centered in the 118-column box (0x467060 in mode 2), at
+// y + 7, + 0x17 and + 0x27 from the top edge, with the font of DAT_05763560 (0x63cab2) and the background of
+// 0x6c8e64 at 0 (0x63cad1).
 constexpr int NameTop = 0x07;
 constexpr int GuildTop = 0x17;
 constexpr int ClassTop = 0x27;
 constexpr std::uint32_t GuildColor = 0xffffffffu;
 constexpr std::uint32_t ClassColor = 0xff27d9ffu;
 
-// 0x63cbbc..0x63cc50: con +0x1d8 & 0x80, que lee en cada dibujo, los textos 1241 a 1243 en 0xffb4c8ff, arriba de la
-// caja (y − 46 + 16 · i): el primero con la negrita (DAT_05763558) y los otros con la normal (DAT_05763554).
+// 0x63cbbc..0x63cc50: with +0x1d8 & 0x80, which it reads on each draw, texts 1241 to 1243 in 0xffb4c8ff, above the
+// box (y − 46 + 16 · i): the first with the bold font (DAT_05763558) and the others with the normal one
+// (DAT_05763554).
 constexpr std::uint8_t ExtraLinesFlag = 0x80;
 constexpr std::size_t FirstExtraText = 1241;
 constexpr int ExtraLines = 3;
@@ -119,8 +120,8 @@ std::string TextOf(const Tables::TextTable* texts, std::size_t index)
     return std::string(Ui::TextAt(texts, index).value_or(std::string_view{}));
 }
 
-// 0x5542f0(x, y, texto, 118, 2, 0) → 0x465950 → 0x467060 en el modo 2: la caja de 118 columnas desde x, con el texto
-// en (118 − cx) / 2. La caja va aunque el texto esté vacío.
+// 0x5542f0(x, y, text, 118, 2, 0) → 0x465950 → 0x467060 in mode 2: the 118-column box from x, with the text at
+// (118 − cx) / 2. The box is drawn even if the text is empty.
 void DrawLine(Render::Frame::ITextDrawer& text, int x, int y, const std::string& line, FontKind font,
               std::uint32_t color)
 {
@@ -137,8 +138,8 @@ CharacterBalloons::CharacterBalloons(Ui::TextureSizes sizes, const Tables::TextT
 
 void CharacterBalloons::Build()
 {
-    // 0x63ce70 arma el arreglo la primera vez (operator new de 0x4b4 y 0x6a0210 con 0x63c940) y, siempre, 0x63c9a0 con
-    // cada registro: 0x647050 saca las UV del buffer del slot en ese momento.
+    // 0x63ce70 builds the array the first time (operator new of 0x4b4 and 0x6a0210 with 0x63c940) and, always, 0x63c9a0
+    // with each record: 0x647050 takes the UVs from the slot's buffer at that moment.
     const Assets::TextureBufferSize buffer = m_sizes ? m_sizes(BalloonSlot) : Assets::TextureBufferSize{};
     for (CharacterBalloon& balloon : m_balloons)
     {
@@ -167,7 +168,7 @@ Core::Expected<void, std::string> CharacterBalloons::Update(std::span<const Ball
     {
         CharacterBalloon& balloon = m_balloons[index];
         const BalloonRecord& record = records[index];
-        // 0x63cc71: el +0 del registro en 0 solo baja +0xa0.
+        // 0x63cc71: the record's +0 at 0 only clears +0xa0.
         if (!record.alive)
         {
             balloon.shown = false;
@@ -175,10 +176,10 @@ Core::Expected<void, std::string> CharacterBalloons::Update(std::span<const Ball
         }
         balloon.shown = true;
         balloon.nameColor = NameColorOf(record.controlCode);
-        // 0x63ccdb..0x63cd03: el strcpy del nombre, de hasta 10 bytes y su 0, en los 16 de +0xb0.
+        // 0x63ccdb..0x63cd03: the strcpy of the name, up to 10 bytes and its 0, into the 16 of +0xb0.
         balloon.name = record.name;
-        // 0x63cd70: sprintf("(%s)") en +0xc0, sin tope. Lo que pasa de 16 bytes cae en +0xd0, que el sprintf que sigue
-        // pisa; lo que pasa de +0xf0 cae en el globo de al lado (o después del arreglo, en el último).
+        // 0x63cd70: sprintf("(%s)") at +0xc0, without a limit. What passes 16 bytes falls into +0xd0, which the next
+        // sprintf overwrites; what passes +0xf0 falls into the next balloon (or after the array, in the last one).
         const std::string guild = "(" + TextOf(m_texts, GuildTextOf(record.guildStatus)) + ")";
         if (guild.size() + 1 > GuildBytes + ClassBytes)
         {
@@ -186,7 +187,7 @@ Core::Expected<void, std::string> CharacterBalloons::Update(std::span<const Ball
                                                 "pasa de los {} que quedan hasta el final del globo",
                                                 index, guild.size() + 1, GuildBytes + ClassBytes));
         }
-        // 0x63cdba: sprintf("%s %d") en +0xd0 con la clase y el nivel (el word, con movzx: sin signo).
+        // 0x63cdba: sprintf("%s %d") at +0xd0 with the class and the level (the word, with movzx: unsigned).
         const std::uint8_t characterClass = record.characterClass;
         const std::size_t classText = FirstClassText + static_cast<std::size_t>(characterClass >> 3u) * 5u +
                                       static_cast<std::size_t>(characterClass & 7u);
@@ -197,7 +198,7 @@ Core::Expected<void, std::string> CharacterBalloons::Update(std::span<const Ball
                                                 "pasan de los {} de +0xd0",
                                                 index, classAndLevel.size() + 1, ClassBytes));
         }
-        // Q-C1503: sin su 0 en los 16 bytes, 0x5542f0 lee +0xc0 hasta el 0 del de +0xd0.
+        // Q-C1503: without its 0 in the 16 bytes, 0x5542f0 reads +0xc0 up to the 0 of the one at +0xd0.
         balloon.guild = guild.size() < GuildBytes ? guild : guild.substr(0, GuildBytes) + classAndLevel;
         balloon.classAndLevel = std::move(classAndLevel);
     }
@@ -215,37 +216,37 @@ CharacterBalloons::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
 {
     if (!m_built)
         return {};
-    // rx y ry (0x5762ea8 y 0x5762eac): W · (1/640) y H · (1/480), en float.
+    // rx and ry (0x5762ea8 and 0x5762eac): W · (1/640) and H · (1/480), as floats.
     const double ratioX = static_cast<double>(Render::ScaleX(1.0f, screen));
     const double ratioY = static_cast<double>(Render::ScaleY(1.0f, screen));
-    // +0x08 de la imagen: H / fy en float, con fy = 1.
+    // +0x08 of the image: H / fy as a float, with fy = 1.
     const double height = static_cast<double>(static_cast<float>(screen.height));
     for (std::size_t index = 0; index < BalloonCount; ++index)
     {
         CharacterBalloon& balloon = m_balloons[index];
         if (!balloon.shown)
             continue;
-        // 0x63ca47: 0x647650 dibuja la caja donde la dejó el dibujo anterior (en (0, 0) el primero), con su blanco.
+        // 0x63ca47: 0x647650 draws the box where the previous draw left it (at (0, 0) the first time), with its white.
         sprites.Image(balloon.image);
         const std::optional<BalloonHead>& head = heads[index];
         if (!head)
             return Core::Unexpected(std::format("0x63ca76: el globo {} se muestra sin su personaje proyectado", index));
-        // 0x63ca7b..0x63caa0: fild del punto, fmul por ry o rx y _ftol; 0x6472e0(x, y, 3) resta el punto de +0x58 y
-        // suma el de +0x5c a H − y, en la x87, y guarda el borde en float.
+        // 0x63ca7b..0x63caa0: fild of the point, fmul by ry or rx and _ftol; 0x6472e0(x, y, 3) subtracts the point of
+        // +0x58 and adds the one of +0x5c to H − y, on the x87, and stores the edge as a float.
         const std::optional<std::int32_t> pixelX = Math::OriginalFtolLow(static_cast<double>(head->point.x) * ratioX);
         const std::optional<std::int32_t> pixelY = Math::OriginalFtolLow(static_cast<double>(head->point.y) * ratioY);
         if (!pixelX || !pixelY)
             return Core::Unexpected(std::format("0x63ca89: el punto del globo {} no entra en un entero", index));
         const auto left = static_cast<float>(static_cast<double>(*pixelX) - AnchorX);
         const auto topFromBottom = static_cast<float>(height - static_cast<double>(*pixelY) + AnchorY);
-        // 0x63cab8..0x63cb15: _ftol de +0x18 y de +0x08 − +0x1c, el borde de arriba con la y desde arriba.
+        // 0x63cab8..0x63cb15: _ftol of +0x18 and of +0x08 − +0x1c, the top edge with y from the top.
         const std::optional<std::int32_t> column = Math::OriginalFtolLow(static_cast<double>(left));
         const std::optional<std::int32_t> row = Math::OriginalFtolLow(height - static_cast<double>(topFromBottom));
         if (!column || !row)
             return Core::Unexpected(std::format("0x63cabb: el borde del globo {} no entra en un entero", index));
         balloon.image.x = *column;
         balloon.image.y = *row;
-        // De los píxeles a 640 × 480: fild, fdiv por rx o ry y _ftol (Render::Text::DesignX y DesignY).
+        // From pixels to 640 × 480: fild, fdiv by rx or ry and _ftol (Render::Text::DesignX and DesignY).
         const int x = Render::Text::DesignX(*column, screen);
         DrawLine(text, x, Render::Text::DesignY(WrappedAdd(*row, NameTop), screen), balloon.name, FontKind::OtherFace12,
                  balloon.nameColor);

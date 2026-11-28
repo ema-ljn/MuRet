@@ -15,14 +15,13 @@
 #include <string>
 #include <string_view>
 
-// El aviso de la UI nueva (CL5.5 y CL6.5; 06 § Los avisos y "Los avisos de la selección"): lo arman
-// 0x6429b0 y 0x642bf0, lo dibuja 0x642f00 y lo atiende 0x642e30. Oscurece la pantalla con una base
-// negra de alfa 0x80 y muestra su caja con el texto del aviso (Notices.h), partido en dos renglones
-// de menos de 52 bytes (0x643100). Los botones van por su tipo (KindOf): ninguno, el OK, el OK y el
-// cancelar, o esos dos con el campo del código del borrado, que toma hasta 7 dígitos enmascarados y
-// se vacía al abrir (0x6436c0). Se atiende en el paso (Q-C81). *Estático*.
+// The new UI's notice (CL5.5 and CL6.5; 06 § Los avisos and "Los avisos de la selección"): 0x6429b0 and 0x642bf0
+// build it, 0x642f00 draws it and 0x642e30 handles it. It darkens the screen with a black base of alpha 0x80 and shows
+// its box with the notice's text (Notices.h), split into two rows under 52 bytes (0x643100). The buttons go by its
+// kind (KindOf): none, the OK, the OK and the cancel, or those two with the deletion code field, which takes up to 7
+// masked digits and empties on opening (0x6436c0). Handled in the step (Q-C81). *Static*.
 //
-// No se llama MessageBox: <windows.h> define una macro con ese nombre.
+// Not called MessageBox: <windows.h> defines a macro with that name.
 namespace Client::Ui
 {
 struct NoticeLayout
@@ -31,12 +30,11 @@ struct NoticeLayout
     Rect ok;
 };
 
-// 0x6429b0: la caja de 352 × 113 en ((W − 352) / 2, (H − 113) / 2), y el OK de 54 × 30 en (+149,
-// +72), el del tipo 2.
+// 0x6429b0: the 352 × 113 box at ((W − 352) / 2, (H − 113) / 2), and the 54 × 30 OK at (+149, +72), kind 2's.
 [[nodiscard]] NoticeLayout LayoutNotice(Core::PixelSize screen);
 
-// Lo que tiene el aviso abierto por su tipo (0x642bf0), en píxeles: la caja, el OK y el cancelar de
-// 54 × 30 y la caja del código de 171 × 23 (delete_secret_number, el slot 0x728).
+// What the open notice has by its kind (0x642bf0), in pixels: the box, the 54 × 30 OK and cancel, and the 171 × 23
+// code box (delete_secret_number, slot 0x728).
 struct NoticeControls
 {
     Rect box;
@@ -48,36 +46,34 @@ struct NoticeControls
 class NoticeWindow final : public NewUiWindow
 {
 public:
-    // `texts` puede ser nullptr (la caja sin texto) y tiene que vivir lo que la ventana.
+    // `texts` may be nullptr (the box without text) and must live as long as the window.
     NoticeWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
-    // Abre el aviso `notice` (0x65ee60). Uno abierto lo cambia. `argument` va en el "%s" del texto
-    // del 0x5e, el único que 0x6431b0 arma con sprintf (el nombre del elegido); los otros no lo usan.
-    // El código se vacía.
+    // 0x65ee60. An open one is replaced. `argument` goes in the "%s" of the 0x5e's text, the only one 0x6431b0 builds
+    // with sprintf (the chosen one's name); the others do not use it. The code empties.
     void Open(NoticeId notice, std::string_view argument = {});
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
-    // De toda la pantalla: 0x6429b0 lo arma de W × H, y su vtable + 8 mueve solo la caja.
+    // The whole screen: 0x6429b0 builds it W × H, and its vtable + 8 moves only the box.
     [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
     [[nodiscard]] std::optional<NoticeId> Notice() const;
 
-    // 0x642e30 en el paso: con OK o Enter (y Esc en el tipo 2) se cierra y da el aviso que se cerró,
-    // para lo que sigue (FollowUpOf); con cancelar o Esc en los tipos 3 y 4 se cierra sin darlo; el
-    // tipo 0 no se cierra. En el 4, lo que se escribe va al campo del código: solo dígitos. Los
-    // botones, Enter y Esc, con el foco.
+    // 0x642e30 in the step: with OK or Enter (and Esc in kind 2) it closes and returns the notice that closed, for what
+    // follows (FollowUpOf); with cancel or Esc in kinds 3 and 4 it closes without returning it; kind 0 does not close.
+    // In kind 4, what is typed goes to the code field: digits only. The buttons, Enter and Esc, with the focus.
     std::optional<NoticeId> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
 
-    // Lo del aviso abierto, en la pantalla del último paso o dibujo.
+    // The open notice's, on the screen of the last step or draw.
     [[nodiscard]] const NoticeControls& Layout() const;
 
-    // Los dígitos del campo del código, hasta que se cancela o se abre otro aviso.
+    // Until it is cancelled or another notice opens.
     [[nodiscard]] std::string_view Code() const;
-    // Los dígitos, y el campo vacío: 0x643740 copia el EDIT después del OK y lo vacía.
+    // The digits, leaving the field empty: 0x643740 copies the EDIT after the OK and empties it.
     [[nodiscard]] std::string TakeCode();
 
-    // Con el campo del código abierto.
+    // With the code field open.
     [[nodiscard]] bool WantsTextInput() const;
-    // La base, la caja, el OK y el texto, con la mezcla normal (Q-C80).
+    // The base, the box, the OK and the text, with the normal blend (Q-C80).
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:

@@ -39,13 +39,13 @@ namespace
 {
 namespace Castle = Protocol::CastleSiege;
 
-// Los textos de Text.bmd que muestran los casos (0x76bd1dc + id × 300).
+// The Text.bmd texts the cases show (0x76bd1dc + id × 300).
 constexpr std::size_t Text860 = 860;   // 0x76fc1ac
 constexpr std::size_t Text1386 = 1386; // 0x7722a14
 constexpr std::size_t Text1609 = 1609; // 0x7732f68
 constexpr std::size_t Text1616 = 1616; // 0x773379c
 
-// 0x4df806: la vida del registro que arma el B2 05, 500000 para una puerta y 400000 para lo demás.
+// 0x4df806: the life of the record B2 05 builds.
 constexpr std::uint32_t BoughtGateLife = 500000;
 constexpr std::uint32_t BoughtStatueLife = 400000;
 constexpr std::uint8_t NoSavedSkill = Tables::NoSkill;
@@ -56,7 +56,7 @@ std::string_view CString(std::string_view text)
     return end == std::string_view::npos ? text : text.substr(0, end);
 }
 
-// 0x555190(nombre, texto, 1). El nombre es un string vacío de la .bss (0x5767ab0..0x5767b48, que solo se apilan).
+// 0x555190(name, text, 1). The name is an empty string of the .bss (0x5767ab0..0x5767b48, which are only pushed).
 Core::Expected<void, std::string> ShowMessage(const CastleReceiveContext& context, std::size_t index)
 {
     if (context.measure == nullptr)
@@ -77,7 +77,7 @@ CastleSiege::CastleSiegeState& CastleOf(const CastleReceiveContext& context)
     return context.world.Runtime().castleSiege;
 }
 
-// Lo que cae fuera de 0x7d5c504..0x7d5c658: el original escribe igual (Q-C1360); MuRet descarta el paquete entero.
+// What falls outside 0x7d5c504..0x7d5c658: the original writes anyway (Q-C1360); MuRet discards the whole packet.
 Core::Expected<void, std::string> Discard(const CastleReceiveContext& context, std::string_view what,
                                           std::uint32_t address)
 {
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> Discard(const CastleReceiveContext& context, s
     return {};
 }
 
-// 0x668fd0: dónde copia un registro entero; std::nullopt para un tipo que no es puerta ni estatua (no copia nada).
+// 0x668fd0: where it copies a whole record; std::nullopt for a type that is neither gate nor statue (copies nothing).
 std::optional<std::uint32_t> RecordTarget(std::uint32_t type, std::uint32_t index)
 {
     if (type != CastleSiege::GateType && type != CastleSiege::StatueType)
@@ -106,7 +106,7 @@ std::uint32_t RecordU32(const Castle::NpcRecord& record, std::size_t at)
     return value;
 }
 
-// 0x668fd0 sobre varios registros: los mira todos antes de copiar el primero.
+// 0x668fd0 on several records: checks them all before copying the first.
 Core::Expected<void, std::string> StoreTheNpcRecords(const CastleReceiveContext& context, std::string_view what,
                                                      const std::vector<Castle::NpcRecord>& records)
 {
@@ -152,7 +152,7 @@ Core::Expected<void, std::string> ApplyState(const Castle::CastleState& state, c
     case 1:
     case 2:
     {
-        // 0x4e50f2: 0x6599a0(0x80000, 0) sin mirar lo que devuelve, y 0x64b0f0.
+        // 0x4e50f2: 0x6599a0(0x80000, 0) without checking what it returns, and 0x64b0f0.
         Hud::GamePanels panels(context.world, context.random);
         LendTheCastlePanelServices(panels, context);
         auto opened = panels.Registry().Open(Ui::CastleSiegePanel);
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> ApplyState(const Castle::CastleState& state, c
     }
 }
 
-// B2 01, 0x4df080 (tabla 0x4df170): un mensaje por resultado, del 1503 al 1511; con 1, antes, 0x64d290(1).
+// B2 01, 0x4df080 (table 0x4df170): one message per result, from 1503 to 1511; with 1, before, 0x64d290(1).
 Core::Expected<void, std::string> ApplyRegister(const Castle::RegisterResult& result,
                                                 const CastleReceiveContext& context)
 {
@@ -196,7 +196,7 @@ Core::Expected<void, std::string> ApplyGiveUp(const Castle::GiveUpResult& result
     case 0:
         return ShowMessage(context, 1512);
     case 1:
-        // 0x4df1e7..0x4df660: el C1 04 B2 03 y el C1 03 B4 por el socket del juego, 0x64d290(0) y el mensaje.
+        // 0x4df1e7..0x4df660: C1 04 B2 03 and C1 03 B4 through the game socket, 0x64d290(0) and the message.
         if (!context.send)
         {
             return Core::Unexpected(std::string("0x4df1e7: el B2 02 con 1 manda dos paquetes y no hay GameServer"));
@@ -214,7 +214,7 @@ Core::Expected<void, std::string> ApplyGiveUp(const Castle::GiveUpResult& result
     }
 }
 
-// B2 03, 0x4e5186: con 0 o 2, 0x64d290(0); con 1, 0x64d290(pkt[0x11] == 0) y 0x64d2b0 con las marcas.
+// B2 03, 0x4e5186: with 0 or 2, 0x64d290(0); with 1, 0x64d290(pkt[0x11] == 0) and 0x64d2b0 with the marks.
 void ApplyRegistration(const Castle::RegistrationInfo& info, CastleSiege::SiegeRegistrationWindow& window)
 {
     if (info.result == 0 || info.result == 2)
@@ -237,7 +237,7 @@ Core::Expected<void, std::string> ApplyRegisterMark(const Castle::RegisterMarkRe
     case 0:
         return ShowMessage(context, 1516);
     case 1:
-        // 0x64d2b0, sin mensaje.
+        // 0x64d2b0, without a message.
         CastleOf(context).registration.marks = result.marks;
         return {};
     case 2:
@@ -258,8 +258,8 @@ Core::Expected<void, std::string> ApplyNpcBuy(const Castle::NpcBuyResult& result
         return ShowMessage(context, 1519);
     case 1:
     {
-        // 0x4df806: el registro en la pila, con la defensa y la recuperación en 0, las dos vidas y +0x1a en 1. +0x18,
-        // +0x19 y +0x1b quedan con lo que había en la pila (Q-C1361): MuRet, 0.
+        // 0x4df806: the record on the stack, with defense and recovery at 0, both lives and +0x1a at 1. +0x18, +0x19
+        // and +0x1b keep whatever was on the stack (Q-C1361): MuRet, 0.
         Castle::NpcRecord record{};
         const std::uint32_t life = result.type == CastleSiege::GateType ? BoughtGateLife : BoughtStatueLife;
         PutU32(record, CastleSiege::RecordType, result.type);
@@ -280,7 +280,7 @@ Core::Expected<void, std::string> ApplyNpcBuy(const Castle::NpcBuyResult& result
     }
 }
 
-// B2 06, 0x4e52b7 (tabla 0x4e61e8): con 1, 0x669030 y las dos vidas, cruzadas.
+// B2 06, 0x4e52b7 (table 0x4e61e8): with 1, 0x669030 and the two lives, crossed.
 Core::Expected<void, std::string> ApplyNpcRepair(const Castle::NpcRepairResult& result,
                                                  const CastleReceiveContext& context)
 {
@@ -308,7 +308,7 @@ Core::Expected<void, std::string> ApplyNpcRepair(const Castle::NpcRepairResult& 
     }
 }
 
-// B2 07, 0x4df950 (tabla 0x4dfa64): con 1, 0x669030 y lo que sube (1 la defensa, 2 la recuperación, 3 las dos vidas).
+// B2 07, 0x4df950 (table 0x4dfa64): with 1, 0x669030 and what goes up (1 defense, 2 recovery, 3 both lives).
 Core::Expected<void, std::string> ApplyNpcUpgrade(const Castle::NpcUpgradeResult& result,
                                                   const CastleReceiveContext& context)
 {
@@ -359,7 +359,7 @@ Core::Expected<void, std::string> ApplyNpcUpgrade(const Castle::NpcUpgradeResult
     return {};
 }
 
-// B2 08, 0x4e537b: con 1, 0x669070.
+// B2 08, 0x4e537b: with 1, 0x669070.
 Core::Expected<void, std::string> ApplyTaxInfo(const Castle::TaxInfo& info, const CastleReceiveContext& context)
 {
     switch (info.result)
@@ -383,7 +383,7 @@ Core::Expected<void, std::string> ApplyTaxInfo(const Castle::TaxInfo& info, cons
     }
 }
 
-// B2 09, 0x4e53e7: con 1, el precio de la zona de caza ([0x7d53700] + 0x18) o 0x6690f0.
+// B2 09, 0x4e53e7: with 1, the hunting zone's price ([0x7d53700] + 0x18) or 0x6690f0.
 Core::Expected<void, std::string> ApplyTaxRate(const Castle::TaxRateResult& rate, const CastleReceiveContext& context)
 {
     switch (rate.result)
@@ -416,7 +416,7 @@ Core::Expected<void, std::string> ApplyTaxRate(const Castle::TaxRateResult& rate
     }
 }
 
-// B2 10, 0x4e548a: con 1, 0x669160.
+// B2 10, 0x4e548a: with 1, 0x669160.
 Core::Expected<void, std::string> ApplyMoneyOut(const Castle::MoneyOutResult& out, const CastleReceiveContext& context)
 {
     switch (out.result)
@@ -500,7 +500,7 @@ void AppendGuild(Ui::OldList& list, std::deque<CastleSiege::CastleGuildRow>& row
         row.name[i] = ended ? '\0' : static_cast<char>(std::to_integer<std::uint8_t>(name[i]));
     }
     rows.push_front(row);
-    // 0x46f7e0/0x470bb0: v6c recorta el BACK antes de ordenar, y el elegido termina en count.
+    // 0x46f7e0/0x470bb0: v6c trims the BACK before sorting, and the selected one ends at count.
     while (rows.size() > static_cast<std::size_t>(list.maxEntries))
         rows.pop_back();
     Ui::SelectInTheList(list, rows.size(), static_cast<std::int32_t>(rows.size()));
@@ -553,7 +553,7 @@ Core::Expected<void, std::string> ApplyRegisteredGuildList(const Castle::Registe
     }
 }
 
-// B6, 0x4e0ed0: solo con el panel del asedio de la clase 2 ([0x5763530], el primer método).
+// B6, 0x4e0ed0: only with the class 2 siege panel ([0x5763530], the first method).
 Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints& points,
                                                      const CastleReceiveContext& context)
 {
@@ -562,7 +562,7 @@ Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints
     {
         return {};
     }
-    // 0x411e80: borra el vector antes del loop, incluso sin puntos; +0x20 vuelve a1.
+    // 0x411e80: clears the vector before the loop, even without points; +0x20 goes back to 1.
     auto& runtime = context.world.Runtime();
     runtime.castleSiege.siegePanel.members.clear();
     runtime.castleSiege.siegePanel.membersHidden = 1;
@@ -571,7 +571,7 @@ Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints
     return {};
 }
 
-// B8 01, 0x4e0700 sobre el héroe ([0x743a170]).
+// B8 01, 0x4e0700 on the hero ([0x743a170]).
 void ApplyKillCount(const Castle::KillCount& count, Kernel::WorldState& world)
 {
     Kernel::ActorState& hero = world.Hero();
@@ -588,7 +588,7 @@ void ApplyKillCount(const Castle::KillCount& count, Kernel::WorldState& world)
     hero.byte372 = 0;
 }
 
-// strncpy(destino, origen, n): hasta el primer 0, y el resto en 0.
+// strncpy(destination, source, n): up to the first 0, and the rest at 0.
 template <std::size_t Size, std::size_t Out>
 void StrNCopy(const std::array<std::byte, Size>& from, std::array<std::uint8_t, Out>& to)
 {

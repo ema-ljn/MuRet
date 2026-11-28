@@ -70,13 +70,13 @@ Core::Expected<void, std::string> RunGameTailPasses(std::int32_t map, std::int32
         return result;
     if (auto result = Eye(callbacks, mode, deviasLeaves); !result.HasValue())
         return result;
-    const auto firstWorld = HasKalimaWorld(callbacks); // 637560: sólo omite daño, no consulta el mapa.
+    const auto firstWorld = HasKalimaWorld(callbacks); // 0x637560: only skips damage, does not query the map.
     if (!firstWorld.HasValue())
         return Core::Unexpected(firstWorld.Error());
     if (!firstWorld.Value())
         if (auto result = Draw(callbacks, GameTailStage::Damage, mode); !result.HasValue())
             return result;
-    const auto secondWorld = HasKalimaWorld(callbacks); // 637577, después del primer6213f0.
+    const auto secondWorld = HasKalimaWorld(callbacks); // 0x637577, after the first 0x6213f0.
     if (!secondWorld.HasValue())
         return Core::Unexpected(secondWorld.Error());
     if (!secondWorld.Value())
@@ -102,14 +102,14 @@ void BeginGameTailPass(Render::ModelBatch& batch, const Render::Pass3D& world, b
         pass.view = glm::mat4(1.0f);
     else
     {
-        // 620eea..620f4c:620db0 conserva blend y binding, pero reinicia estos ejes.
+        // 0x620eea..0x620f4c: 0x620db0 keeps blend and binding, but resets these axes.
         state.alphaTest = false;
         state.texture2d = true;
         state.depthTest = true;
         state.cullEnabled = true;
         state.depthWrite = true;
     }
-    // space describe las coordenadas del emisor, no un eje del material GL que persista entre matrices.
+    // space describes the emitter's coordinates, not a GL material axis that persists between matrices.
     state.space = Render::ModelCoordinateSpace::World;
     batch.Begin(pass, !eye);
     batch.SetState(state);

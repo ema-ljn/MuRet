@@ -3,22 +3,21 @@
 #include <cstdint>
 #include <string_view>
 
-// Las cinco escenas del original, con los números de DAT_006d5dc8, la variable que mira el bucle
-// de dibujo (0x637700) y la lógica de cada paso para elegir qué correr (02 § Las cinco escenas y
-// sus transiciones). En MuRet cada una es una clase (IScene.h), y el número queda para el log y
-// las trazas.
+// The original's five scenes, with the numbers of DAT_006d5dc8, the variable the draw loop (0x637700) and each step's
+// logic look at to choose what to run (02 § Las cinco escenas y sus transiciones). In MuRet each one is a class
+// (IScene.h), and the number stays for the log and the traces.
 namespace Client::Kernel
 {
 enum class SceneId : std::uint8_t
 {
-    Loading = 1,         // la carga, 0x622e40
-    Login = 2,           // 0x6349a0 al entrar, 0x6350b0 el dibujo
-    WorldLoading = 3,    // la carga del mundo, 0x6356f0
-    CharacterSelect = 4, // la selección de personaje, 0x633f20 al entrar
+    Loading = 1,         // 0x622e40
+    Login = 2,           // 0x6349a0 on entering, 0x6350b0 the draw
+    WorldLoading = 3,    // 0x6356f0
+    CharacterSelect = 4, // 0x633f20 on entering
     Game = 5,
 };
 
-// El nombre del enum, para el log: "Login". Un valor fuera del enum da "?".
+// For the log: "Login". A value outside the enum gives "?".
 [[nodiscard]] constexpr std::string_view SceneName(SceneId scene)
 {
     switch (scene)

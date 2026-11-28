@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <optional>
 
-// Client::Ui::Button: el botón de la UI nueva (0x63c330, 0x63c490 y 0x63c710), en el paso (CL5.5).
-// Captura con el apretón encima y hace clic con la soltada encima; sus cuadros, uno abajo del
-// otro: 0 normal, 1 con el mouse encima, 2 apretado, y el marcado (3 en los de los grupos).
+// Client::Ui::Button: the new UI button (0x63c330, 0x63c490 and 0x63c710), in the step (CL5.5). It captures on a
+// press over it and clicks on a release over it; its frames, one below the other: 0 normal, 1 hovered, 2 pressed, and
+// the checked one (3 in the group ones).
 namespace
 {
 using Client::Core::PixelSize;
@@ -35,7 +35,7 @@ using Client::Ui::Rect;
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
 
-// Un botón de grupo: 108 × 26, cha_bt (slot 0xc) con cuatro cuadros, el 3 marcado.
+// A group button: 108 × 26, cha_bt (slot 0xc) with four frames, 3 checked.
 Button GroupButton()
 {
     Button button(TextureSlot{0xc}, 108, 26, 3);
@@ -43,7 +43,7 @@ Button GroupButton()
     return button;
 }
 
-// Un paso del botón con el mouse de `input`; después, los flancos se borran como en GameLoop.
+// A button step with the mouse of `input`; then the edges are cleared as in GameLoop.
 bool StepOnce(Button& button, InputState& input)
 {
     const bool clicked = button.Step(input, MouseInPixels(input, Screen640));
@@ -64,7 +64,7 @@ TEST(ButtonTest, AClickIsAPressAndAReleaseOverIt)
     EXPECT_FALSE(StepOnce(button, input));
 }
 
-// Apretar y soltar entre dos pasos también es un clic: el paso ve los dos flancos.
+// The step sees both edges.
 TEST(ButtonTest, APressAndAReleaseInOneStepAreAClick)
 {
     Button button = GroupButton();
@@ -109,8 +109,8 @@ TEST(ButtonTest, TheClickCallbackRunsOnlyForACapturedReleaseBeforeTheCheckedTogg
     EXPECT_EQ(clicks, 1);
 }
 
-// 0x63c490 hace clic solo si el botón capturó el apretón: soltar encima de otro lado no cuenta, y
-// soltar afuera lo suelta sin clic.
+// 0x63c490 clicks only if the button captured the press: a release over it after a press elsewhere does not count,
+// and a release outside lets go without a click.
 TEST(ButtonTest, OnlyTheButtonThatCapturedIsClicked)
 {
     Button button = GroupButton();
@@ -148,14 +148,14 @@ TEST(ButtonTest, TheFrameFollowsTheMouse)
     EXPECT_EQ(button.Frame(), 2);
     EXPECT_TRUE(button.Pressed());
 
-    // Apretado y afuera: el normal, aunque siga capturado.
+    // Pressed and outside: the normal frame, though still captured.
     MoveMouse(input, 10, 10);
     StepOnce(button, input);
     EXPECT_EQ(button.Frame(), 0);
 }
 
-// Los de los grupos piden el 3 para el marcado, apretado, encima o no (0x6451d0 le pasa -1 a los
-// otros dos, que 0x63c330 cambia por el 3).
+// The group ones ask for 3 for checked, pressed, hovered or not (0x6451d0 passes -1 for the other two, which 0x63c330
+// turns into 3).
 TEST(ButtonTest, ACheckedButtonShowsItsCheckedFrame)
 {
     Button button = GroupButton();
@@ -174,7 +174,6 @@ TEST(ButtonTest, ACheckedButtonShowsItsCheckedFrame)
     EXPECT_EQ(button.Frame(), 3);
 }
 
-// Uno sin cuadro de marcado (el de un servidor, el OK) no cambia de cuadro marcado.
 TEST(ButtonTest, AButtonWithoutACheckedFrameIgnoresTheCheck)
 {
     Button button(TextureSlot{0xd}, 193, 26);
@@ -187,7 +186,7 @@ TEST(ButtonTest, AButtonWithoutACheckedFrameIgnoresTheCheck)
     EXPECT_EQ(button.Frame(), 0);
 }
 
-// La imagen, en píxeles, con el cuadro de ahora: el k empieza en k · h téxeles.
+// Frame k starts at k · h texels.
 TEST(ButtonTest, TheImageShowsTheFrame)
 {
     Button button = GroupButton();
@@ -209,8 +208,8 @@ TEST(ButtonTest, TheImageShowsTheFrame)
     EXPECT_EQ(button.Area(), (Rect{.x = 100, .y = 50, .width = 108, .height = 26}));
 }
 
-// Uno deshabilitado (+0xa8 en 0, 0x63c490) no tiene clic ni se ve encima ni apretado: muestra su
-// cuadro de deshabilitado, el 3 en los de la barra de la selección.
+// +0xa8 at 0, 0x63c490: no click, never hovered or pressed; it shows its disabled frame, 3 in the selection bar's
+// ones.
 TEST(ButtonTest, ADisabledButtonHasNoClickAndShowsItsFrame)
 {
     Button button(TextureSlot{0xf}, 54, 30, std::nullopt, 3);
@@ -225,7 +224,7 @@ TEST(ButtonTest, ADisabledButtonHasNoClickAndShowsItsFrame)
     EXPECT_FALSE(StepOnce(button, input));
     EXPECT_FALSE(button.Enabled());
 
-    // Habilitado otra vez, el clic vuelve; uno sin cuadro de deshabilitado muestra el normal.
+    // Enabled again, the click comes back; one without a disabled frame shows the normal one.
     button.SetEnabled(true);
     PressLeft(input);
     StepOnce(button, input);
@@ -236,7 +235,7 @@ TEST(ButtonTest, ADisabledButtonHasNoClickAndShowsItsFrame)
     EXPECT_EQ(plain.Frame(), 0);
 }
 
-// Deshabilitado, el rótulo va con su color ([3] o [7] marcado).
+// Disabled, the label takes its color ([3], or [7] checked).
 TEST(ButtonTest, ADisabledLabelHasItsColor)
 {
     Button button = GroupButton();
@@ -251,11 +250,10 @@ TEST(ButtonTest, ADisabledLabelHasItsColor)
     EXPECT_EQ(button.DrawLabel(text, Screen640), std::optional<std::uint32_t>{0xff666666});
 }
 
-// 0x63c710: el rótulo va con la fuente DAT_05763560, el color del estado y fondo 0, centrado en
-// el ancho del botón (el modo 2 de 0x467060), y la y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
-// 0,5, o 1,5 apretado, truncada. En 640 × 480, un rótulo de 3 letras (18 × 13) en un botón de
-// 108 × 26 en (100, 50) va en una caja de 108 desde (100, 57), y apretado desde (100, 58), con el
-// texto en la columna (108 − 18) / 2 = 45.
+// 0x63c710: the label goes with font DAT_05763560, the state's color and background 0, centered in the button's width
+// (0x467060's mode 2), and the y in 640 × 480 is ((h − cy) · 0.5 + y) / ry plus 0.5, or 1.5 pressed, truncated. In
+// 640 × 480, a 3-letter label (18 × 13) on a 108 × 26 button at (100, 50) goes in a 108-wide box from (100, 57), and
+// pressed from (100, 58), with the text at column (108 − 18) / 2 = 45.
 TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 {
     Button button = GroupButton();
@@ -270,7 +268,7 @@ TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 
     MoveMouse(input, 120, 60);
     StepOnce(button, input);
-    // Da el color con que lo dibujó (Q-C83).
+    // Returns the color it drew with (Q-C83).
     EXPECT_EQ(button.DrawLabel(text, Screen640), std::optional<std::uint32_t>{0xffffffff});
 
     PressLeft(input);
@@ -292,8 +290,8 @@ TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
     EXPECT_EQ(text.texts[2].style.colors.text, 0xffe2e2e2u);
 }
 
-// En 1024 × 768, la x del botón pasa a 640 × 480 con DesignX (100 / 1,6000001 da 62) y la caja empieza ahí, con el
-// texto 45 columnas adentro; la y, 56,5 / 1,6000001 + 0,5, queda en 35.
+// In 1024 × 768, the button's x goes to 640 × 480 with DesignX (100 / 1.6000001 gives 62) and the box starts there,
+// with the text 45 columns in; the y, 56.5 / 1.6000001 + 0.5, ends at 35.
 TEST(ButtonTest, TheLabelGoesToTheDesignSpace)
 {
     Button button = GroupButton();
@@ -311,7 +309,7 @@ TEST(ButtonTest, TheLabelGoesToTheDesignSpace)
     EXPECT_EQ(text.texts[0].columns, 108);
 }
 
-// Sin pantalla (un lado en 0) el rótulo no tiene dónde ir: la y se divide por la proporción.
+// Without a screen (a side at 0) the label has nowhere to go: the y is divided by the ratio.
 TEST(ButtonTest, WithoutAScreenTheLabelIsNotDrawn)
 {
     Button button = GroupButton();
@@ -326,7 +324,6 @@ TEST(ButtonTest, WithoutAScreenTheLabelIsNotDrawn)
     EXPECT_TRUE(text.texts.empty());
 }
 
-// Sin rótulo no se dibuja texto.
 TEST(ButtonTest, WithoutALabelThereIsNoText)
 {
     const Button button = GroupButton();

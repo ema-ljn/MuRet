@@ -55,12 +55,12 @@
 #include <utility>
 #include <vector>
 
-// El HUD del juego (0x5a7320), sus superposiciones (0x5b0550) y el cursor (0x5ac2d0), CL8 hito 2. La prueba grande es
-// el frame 1 de la traza de GL de Lorencia (GLIntercept, 1024 × 768, líneas 124230..126903, fuera del repo): cada quad
-// del 2D, con su textura, su mezcla, su color, la esquina de arriba a la izquierda y la de abajo a la derecha, tal
-// como los imprime la traza. El estado del personaje sale de lo que dibuja: la vida 1421 de 31131 (la única que da
-// el orbe de la traza), el maná 10613 lleno, el AG 17749 lleno, la experiencia sin avance, la celda (143, 120), la
-// skill 0x2c, 653 pociones de vida y 760 de maná, un ayudante con la barra en 48 y el mouse en (356, 193).
+// The game's HUD (0x5a7320), its overlays (0x5b0550) and the cursor (0x5ac2d0), CL8 milestone 2. The big test is frame
+// 1 of Lorencia's GL trace (GLIntercept, 1024 × 768, lines 124230..126903, outside the repo): every 2D quad, with its
+// texture, blending, color, top left corner and bottom right corner, as the trace prints them. The character state
+// comes from what it draws: life 1421 of 31131 (the only one that gives the trace's orb), mana 10613 full, AG 17749
+// full, experience with no progress, cell (143, 120), skill 0x2c, 653 life potions and 760 mana potions, a helper with
+// the bar at 48 and the mouse at (356, 193).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -78,11 +78,11 @@ constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen1024{1024, 768};
 
-// El estado base: 19 cierres del registro propio (las flechas, los doce avisos, la barra de abajo, la experiencia,
-// el AG y los tres de la barra principal), las dos celdas del héroe y nueve consultas del comercio (0x20) y de la
-// tienda de NPC (0x10000): los avisos, las ventanas, el 3D, las grillas y el IsOpen(0) del final.
+// The base state: 19 own record closes (the arrows, the twelve notices, the bottom bar, the experience, the AG and the
+// three of the main bar), the hero's two cells and nine queries of the trade (0x20) and of the NPC shop (0x10000): the
+// notices, the windows, the 3D, the grids and the IsOpen(0) at the end.
 constexpr int HudBaseDraws = 19 * OwnRecordCloseRandoms + 2 * SmallLogicalCloseRandoms + 9;
-// La skill de la barra: su entrada de Skill.bmd (60) en 0x5a5926 y en las dos llamadas a 0x40ca20.
+// The bar's skill: its Skill.bmd entry (60) at 0x5a5926 and in the two calls to 0x40ca20.
 constexpr int SkillIconDraws = 3 * 60;
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -101,8 +101,8 @@ Client::Tables::SkillTable SkillsForTheList()
     return Client::Tables::SkillTable(encrypted);
 }
 
-// Un quad del lote: su textura, la mezcla, el color de sus vértices y las esquinas 0 y 2 del fan (arriba a la
-// izquierda y abajo a la derecha, en píxeles de GL con la y hacia arriba).
+// A batch quad: its texture, the blending, the color of its vertices and the fan's corners 0 and 2 (top left and
+// bottom right, in GL pixels with y up).
 struct DrawnQuad
 {
     std::optional<std::uint16_t> slot;
@@ -112,7 +112,7 @@ struct DrawnQuad
     SpriteVertex third{};
 };
 
-// Los quads del lote en orden, sin las marcas de los textos.
+// The batch's quads in order, without the text markers.
 std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -135,8 +135,8 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// Un quad de la traza: la línea de su glBegin, el slot de MuRet de su textura (o ninguna), la mezcla, el color y
-// las esquinas 0 y 2 con sus UV.
+// A trace quad: the line of its glBegin, the MuRet slot of its texture (or none), the blending, the color and corners 0
+// and 2 with their UVs.
 struct TraceQuad
 {
     int line = 0;
@@ -153,10 +153,10 @@ constexpr Color Grey{0.6f, 0.6f, 0.6f, 1.0f};
 constexpr std::optional<std::uint16_t> NoTexture{};
 constexpr std::uint16_t DigitSlot = 1;
 
-// Los quads del 2D del frame 1 de Lorencia, sin el texto del ayudante (124259): la barra del ayudante (0x5a6af0),
-// la barra de abajo (0x5a9290), la experiencia, el AG, los orbes, la skill, las celdas, la vida, el maná, las
-// ranuras (0x5a9630) y los dos cursores (0x5ac2d0). Las texturas de GL 21, 18, 19, 20, 74, 22, 23, 879, 2 y 9 son
-// los slots 0xe9, 0xe6, 0xe7, 0xe8, 0x101, 0xea, 0xeb, 0x12a, 1 y 2.
+// The 2D quads of Lorencia's frame 1, without the helper's text (124259): the helper's bar (0x5a6af0), the bottom bar
+// (0x5a9290), the experience, the AG, the orbs, the skill, the cells, the life, the mana, the slots (0x5a9630) and the
+// two cursors (0x5ac2d0). GL textures 21, 18, 19, 20, 74, 22, 23, 879, 2 and 9 are the slots 0xe9, 0xe6, 0xe7, 0xe8,
+// 0x101, 0xea, 0xeb, 0x12a, 1 and 2.
 const std::vector<TraceQuad>& LorenciaFrameQuads()
 {
     static const std::vector<TraceQuad> quads{
@@ -422,9 +422,9 @@ const std::vector<TraceQuad>& LorenciaFrameQuads()
     return quads;
 }
 
-// La traza imprime seis decimales: medio millonésimo de redondeo, y algo de margen.
+// The trace prints six decimals: half a millionth of rounding, and some margin.
 constexpr float TraceTolerance = 2e-6f;
-// Los colores de 0x5a6af0 son bytes sobre 255, que la traza imprime con seis decimales.
+// The colors of 0x5a6af0 are bytes over 255, which the trace prints with six decimals.
 constexpr float ColorTolerance = 1e-6f;
 
 void ExpectTheTraceQuad(const DrawnQuad& drawn, const TraceQuad& trace)
@@ -458,14 +458,15 @@ protected:
         auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
-        // Como lo deja la entrada al mundo.
+        // As world entry leaves it.
         world.OwnCharacter().ClearEquipmentForEntry();
         Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.life = 100;
         own.maxLife = 100;
         own.mana = 100;
         own.maxMana = 100;
-        // La captura base ya recibió F3 30 sin teclas: FF en los cinco bancos, no la .bss anterior al login.
+        // The base capture already received F3 30 with no keys: FF in the five banks, not the .bss from before the
+        // login.
         for (auto& keys : own.skillKeys)
             keys.fill(0xff);
         sprites.Begin(Screen640);
@@ -514,7 +515,7 @@ protected:
         return world.Hero();
     }
 
-    // La cuenta de la ranura rápida: pociones en la fila 0 del inventario.
+    // The quick slot's count: potions in row 0 of the inventory.
     void PutPotion(std::size_t cell, std::uint16_t type, std::uint8_t count)
     {
         ItemState& item = world.Inventory().cells[cell];
@@ -523,7 +524,6 @@ protected:
         item.occupied = 1;
     }
 
-    // El héroe del frame 1 de Lorencia.
     void TheLorenciaHero()
     {
         Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
@@ -572,7 +572,7 @@ protected:
 TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
 {
     TheLorenciaHero();
-    // El ayudante (0x5ab26c) abre el registro propio una vez más para su durabilidad.
+    // The helper (0x5ab26c) opens the own record once more for its durability.
     const CrtRandom expected = Advanced(random, HudBaseDraws + OwnRecordCloseRandoms + SkillIconDraws);
 
     const auto drawn = Hud();
@@ -588,9 +588,9 @@ TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(world.Runtime().movement.skillDepths[0x2c], 0);
-    // La vida por debajo del 20 %: el sonido 0x22 de 0x5a97c3.
+    // Life below 20 %: the sound 0x22 of 0x5a97c3.
     EXPECT_EQ(sound, Client::Audio::SoundId{0x22});
-    // El único texto es el nombre del ayudante, que termina en x = 575 + 50.
+    // The only text is the helper's name, which ends at x = 575 + 50.
     ASSERT_EQ(text.texts.size(), 1u);
     const auto record = data.items->table.Record(0x1a00);
     ASSERT_TRUE(record.has_value());
@@ -611,15 +611,15 @@ TEST_F(GameHudTest, TheBaseStateSpendsTheRandomsOfItsAccessesAndLeavesTheTextCol
     EXPECT_EQ(Hero().cellYAccesses, 0);
     EXPECT_TRUE(text.texts.empty());
     EXPECT_FALSE(sound.has_value());
-    // La barra de abajo deja el blanco sobre negro (0x5a92a6) y apaga el aviso de durabilidad.
+    // The bottom bar leaves white on black (0x5a92a6) and turns off the durability warning.
     const Client::Kernel::HudState& hud = world.Runtime().hud;
     EXPECT_EQ(hud.textColors.text, 0xffffffffu);
     EXPECT_EQ(hud.textColors.background, 0xff000000u);
     EXPECT_EQ(hud.durabilityWarning, 0);
 }
 
-// 0x5a9796..0x5a97b8: el 26 (0x4d3510) y el 27 (0x4d3820) escriben la vida y el maná que leen los orbes: con 25 de
-// 100 al orbe de la vida le faltan 0,75 (v = 36 / 64) y con 50 de 100 al del maná 0,5 (v = 24 / 64).
+// 0x5a9796..0x5a97b8: the 26 (0x4d3510) and the 27 (0x4d3820) write the life and mana the orbs read: with 25 of 100
+// the life orb lacks 0.75 (v = 36 / 64) and with 50 of 100 the mana orb lacks 0.5 (v = 24 / 64).
 TEST_F(GameHudTest, TheLifeAndTheManaPacketsMoveTheOrbs)
 {
     const auto orbV = [&](std::uint16_t slot)
@@ -645,8 +645,8 @@ TEST_F(GameHudTest, TheLifeAndTheManaPacketsMoveTheOrbs)
     EXPECT_EQ(orbV(0xeb), 0.375f);
 }
 
-// 0x5a7539..0x5a7604: en Tarkan, las dos arenas aditivas con (0,3; 0,3; 0,25), primero la lenta y después la rápida,
-// con la u del reloj: ((int) T % 100000) · velocidad.
+// 0x5a7539..0x5a7604: in Tarkan, the two additive sands with (0.3, 0.3, 0.25), first the slow one and then the fast
+// one, with the clock's u: ((int) T % 100000) · speed.
 TEST_F(GameHudTest, TarkanSlidesItsTwoSandsWithTheClock)
 {
     world.Runtime().map = 8;
@@ -666,8 +666,8 @@ TEST_F(GameHudTest, TarkanSlidesItsTwoSandsWithTheClock)
     EXPECT_EQ(quads[1].first.u, static_cast<float>(23456.0 * static_cast<double>(0.001f)));
 }
 
-// 0x5a760e: en Crywolf, el humo de 0x435930 una sola vez: la rápida con la mezcla normal y (0,4; 0,4; 0,45), la lenta
-// aditiva, y 0x576353c en 0.
+// 0x5a760e: in Crywolf, the smoke of 0x435930 only once: the fast one with normal blending and (0.4, 0.4, 0.45), the
+// slow one additive, and 0x576353c at 0.
 TEST_F(GameHudTest, CrywolfDrawsItsSmokeOnce)
 {
     world.Runtime().map = 34;
@@ -690,8 +690,8 @@ TEST_F(GameHudTest, CrywolfDrawsItsSmokeOnce)
     EXPECT_NE(quads[0].slot, 0x5c3);
 }
 
-// 0x5aac20: un ítem puesto con poca durabilidad saca su aviso con el nombre de Item.bmd y la cuenta, de color, y deja
-// su número en D+0x44; un dibujo intermedio de MuRet no lo escribe.
+// 0x5aac20: an equipped item with low durability shows its warning with the Item.bmd name and the count, in color, and
+// leaves its number at D+0x44; an intermediate MuRet drawing does not write it.
 TEST_F(GameHudTest, AWornItemShowsItsWarningAndMarksIt)
 {
     ItemState& sword = world.OwnCharacter().equipment[0];
@@ -709,7 +709,7 @@ TEST_F(GameHudTest, AWornItemShowsItsWarningAndMarksIt)
     EXPECT_EQ(text.texts[0].style.colors.text, 0xff0a0affu);
     EXPECT_EQ(text.texts[0].style.colors.background, 0x80000000u);
     EXPECT_EQ(text.texts[0].y, 15);
-    // Modo 4: termina en el ancho del mundo.
+    // Mode 4: it ends at the world's width.
     EXPECT_EQ(text.texts[0].x +
                   static_cast<int>(text.texts[0].text.size()) * Client::Tests::RecordingTextDrawer::LetterWidth,
               640);
@@ -718,7 +718,7 @@ TEST_F(GameHudTest, AWornItemShowsItsWarningAndMarksIt)
     ASSERT_TRUE(Hud().HasValue());
     EXPECT_EQ(sword.warning, 7);
 
-    // Roto: el 8, en blanco sobre rojo.
+    // Broken: the 8, white on red.
     sword.durability = 0;
     text.texts.clear();
     ASSERT_TRUE(Hud().HasValue());
@@ -726,15 +726,15 @@ TEST_F(GameHudTest, AWornItemShowsItsWarningAndMarksIt)
     ASSERT_EQ(text.texts.size(), 1u);
     EXPECT_EQ(text.texts[0].style.colors.background, 0x800a0affu);
 
-    // Sin la fuerza que pide (D+0x1e contra +0x2a + la fuerza), el 3, aunque la durabilidad alcance.
+    // Without the strength it asks for (D+0x1e against +0x2a + the strength), the 3, even if the durability is enough.
     sword.durability = static_cast<std::uint8_t>(maximum);
     sword.word1e = 10;
     ASSERT_TRUE(Hud().HasValue());
     EXPECT_EQ(sword.warning, 3);
 }
 
-// 0x5ab810: las flechas en la mano derecha muestran el Text 351 con las suyas y las del inventario, en x = ancho −
-// 0x5a con 640 de ancho, y el ayudante baja a y = 24.
+// 0x5ab810: the arrows in the right hand show Text 351 with theirs and the inventory's, at x = width − 0x5a with a
+// width of 640, and the helper goes down to y = 24.
 TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
 {
     ItemState& arrows = world.OwnCharacter().equipment[0];
@@ -758,8 +758,8 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
     EXPECT_EQ(text.texts[1].y, 24);
 }
 
-// 10 y 22 (CL8 hito 3): el freno de las macros dibuja "Macro Time" centrado en el mundo, en y = 0x188; con el campo
-// del chat abierto, la caja sin mezcla (0xf8 y 0xf9) y, con el modo de F3, su indicador (0xef).
+// 10 and 22 (CL8 milestone 3): the macro brake draws "Macro Time" centered in the world, at y = 0x188; with the chat
+// field open, the box without blending (0xf8 and 0xf9) and, with the F3 mode, its indicator (0xef).
 TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
 {
     world.Runtime().hud.macroTime = Client::Chat::MacroLockSteps;
@@ -782,7 +782,7 @@ TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
     EXPECT_EQ(chatSlots, (std::vector<std::uint16_t>{0xf8, 0xf9, 0xef}));
 }
 
-// 0x5a5860 con una skill de comando (0x78 a 0x7c): el atlas command (300) y su número desde 1, sin la espera.
+// 0x5a5860 with a command skill (0x78 to 0x7c): the command atlas (300) and its number from 1, without the wait.
 TEST_F(GameHudTest, ACommandSkillDrawsItsIconAndItsNumber)
 {
     world.OwnCharacter().byte6a = 1;
@@ -795,26 +795,26 @@ TEST_F(GameHudTest, ACommandSkillDrawsItsIconAndItsNumber)
     const std::vector<DrawnQuad> quads = QuadsOf(sprites);
     const auto icon = std::ranges::find_if(quads, [](const DrawnQuad& quad) { return quad.slot == 300; });
     ASSERT_NE(icon, quads.end());
-    // La segunda del atlas: u de 32/256 a 64/256.
+    // The atlas's second one: u from 32/256 to 64/256.
     EXPECT_FLOAT_EQ(icon->first.u, 0.125f);
     EXPECT_FLOAT_EQ(icon->third.u, 0.25f);
     const auto number = std::next(icon);
     ASSERT_NE(number, quads.end());
     EXPECT_EQ(number->slot, DigitSlot);
     EXPECT_EQ(number->color, (Color{1.0f, 0.9f, 0.8f, 1.0f}));
-    // El 2, en (308 − 4,5; 470).
+    // The 2, at (308 − 4.5, 470).
     EXPECT_FLOAT_EQ(number->first.u, 0.125f);
     EXPECT_FLOAT_EQ(number->first.x, 303.5f);
 }
 
-// 5aa29d filtra hidden==1 y 43..48; 5aa2b0 resta46 una sola vez, sin paginar otra vez al mostrado41.
+// 0x5aa29d filters hidden==1 and 43..48; 0x5aa2b0 subtracts 46 only once, without paging again to the shown 41.
 TEST_F(GameHudTest, TheOpenSkillListDrawsTheNativeRowsColorsAndAccesses)
 {
     const auto skills = SkillsForTheList();
     auto& own = world.OwnCharacter();
     for (std::size_t slot = 0; slot < 41; ++slot)
         own.SetSkillAt(slot, 1);
-    own.SetSkillAt(41, 2); // hidden==2 también se dibuja, aunque las reglas lo tiñan por falta de0x200.
+    own.SetSkillAt(41, 2); // hidden==2 is drawn too, though the rules tint it for lacking 0x200.
     own.SetSkillAt(42, 9);
     own.SetSkillAt(43, 0x43);
     own.SetSkillAt(63, 0x11);
@@ -836,7 +836,7 @@ TEST_F(GameHudTest, TheOpenSkillListDrawsTheNativeRowsColorsAndAccesses)
             icons.push_back(quad);
     ASSERT_EQ(icons.size(), 43u);
     EXPECT_FLOAT_EQ(icons[0].first.x, 0.0f);
-    EXPECT_FLOAT_EQ(icons[0].first.y, 110.0f); // GL invierte Y:480−370.
+    EXPECT_FLOAT_EQ(icons[0].first.y, 110.0f); // GL flips Y: 480 − 370.
     EXPECT_FLOAT_EQ(icons[19].first.x, 608.0f);
     EXPECT_FLOAT_EQ(icons[20].first.x, 0.0f);
     EXPECT_FLOAT_EQ(icons[20].first.y, 156.0f);
@@ -872,7 +872,7 @@ TEST_F(GameHudTest, TheOpenListAddsRavenCommandsOnlyWhenTheRavenExists)
         EXPECT_FLOAT_EQ(commands[i].third.y, 114.0f);
         EXPECT_EQ(commands[i].color, (i == 1 ? Color{1.0f, 0.9f, 0.8f, 1.0f} : Color{0.6f, 0.7f, 0.8f, 1.0f}));
     }
-    // El cuervo activa además su HUD de418460, que consulta el equipo con un cierre propio.
+    // The raven also turns on its HUD of 0x418460, which queries the equipment with its own close.
     EXPECT_EQ(random.State(),
               Advanced(CrtRandom(Seed), HudBaseDraws + OwnRecordCloseRandoms + 5 * SkillIconDraws).State());
     Hero().darkSpirit.reset();
@@ -908,8 +908,9 @@ TEST_F(GameHudTest, TheOrdinarySkillDrawsTheHotkeyOfTheChosenCharacter)
     EXPECT_EQ(random.State(), Advanced(CrtRandom(Seed), HudBaseDraws + SkillIconDraws).State());
 }
 
-// 18. 0x5f7440: la party (0x5f0be0, lo primero) y los comandos (0x40a650, casi al final) en (0x1c2, 0), con el fondo
-// de Item_Back01 y 02 y el botón de cerrar; los comandos, con sus once botones de Message_box. En Lorencia y en Devias.
+// 18. 0x5f7440: the party (0x5f0be0, the first thing) and the commands (0x40a650, almost at the end) at (0x1c2, 0),
+// with the background of Item_Back01 and 02 and the close button; the commands, with their eleven Message_box buttons.
+// In Lorencia and in Devias.
 TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
 {
     const auto windowAt = [](const std::vector<DrawnQuad>& quads)
@@ -950,9 +951,9 @@ TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
     }
 }
 
-// 18. y 30. (CL9 hito 6, fase 3): la tienda (0x5f4720) y el almacén (0x5f4e30) en (0x104, 0) con sus botones, y la
-// caja de la contraseña (0x5e9b10) con la barra y la tecla de borrar, con los textos de Text.bmd. En Lorencia, Devias
-// y Noria.
+// 18. and 30. (CL9 milestone 6, phase 3): the shop (0x5f4720) and the warehouse (0x5f4e30) at (0x104, 0) with their
+// buttons, and the password box (0x5e9b10) with the bar and the delete key, with the Text.bmd texts. In Lorencia,
+// Devias and Noria.
 TEST_F(GameHudTest, TheNpcWindowsAndTheKeypadAreDrawn)
 {
     const auto has = [](const std::vector<DrawnQuad>& quads, std::uint16_t slot, float x) {
@@ -988,7 +989,7 @@ TEST_F(GameHudTest, TheNpcWindowsAndTheKeypadAreDrawn)
     }
 }
 
-// 0x5f75ef→0x5f7180: el HUD escribe la esquina450 y dibuja la aceptación del panel2000.
+// 0x5f75ef→0x5f7180: the HUD writes the corner 450 and draws the acceptance of panel 2000.
 TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -1007,10 +1008,10 @@ TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
     }
 }
 
-// 19. 0x65dd70: el fundido corre en cada dibujo (0x65dcd0) y, si no se apagó, el cartel va con 0x620a00(1) y
-// glColor4f(1, 1, 1, alfa): 0x621b60(0x66a, (ancho del mundo · rx − 166) · 0,5, ry · 220, 166, 90, 0, 0, 0,6484375,
-// 0,703125, 0, 0, 0), sin escalar el tamaño ni la posición. En 1024 × 768, con el mundo de 640: x = 429 e
-// y = 352,00003 (ry = 768 · 0x3b088889 es 1,6000001 en float), y el borde de arriba en GL, 768 − y = 415,99997.
+// 19. 0x65dd70: the fade runs on every drawing (0x65dcd0) and, if it did not turn off, the banner goes with
+// 0x620a00(1) and glColor4f(1, 1, 1, alpha): 0x621b60(0x66a, (world width · rx − 166) · 0.5, ry · 220, 166, 90, 0, 0,
+// 0.6484375, 0.703125, 0, 0, 0), without scaling the size or the position. In 1024 × 768, with the 640 world: x = 429
+// and y = 352.00003 (ry = 768 · 0x3b088889 is 1.6000001 in float), and the top edge in GL, 768 − y = 415.99997.
 TEST_F(GameHudTest, TheNineteenthChildDrawsTheMapBannerWhileItFades)
 {
     Client::Hud::MapBanner& banner = world.Runtime().hud.mapBanner;
@@ -1065,7 +1066,7 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5a90be"), std::string::npos) << cut.Error();
 
-    // La vista deja el ojo en (x, y, 1): el dueño en el origen va al centro.
+    // The view leaves the eye at (x, y, 1): the owner at the origin goes to the center.
     Client::Scenes::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
@@ -1087,8 +1088,8 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     EXPECT_EQ(world.Runtime().hud.durabilityWarning, 0);
 }
 
-// 13. 0x451c20: los carteles de las tiendas personales, después de los globos y con la misma proyección (sin ella, un
-// cartel corta). Sin el inventario, 0x5bb8d0 no saca rand(): la cuenta es la del estado base. En Lorencia y Devias.
+// 13. 0x451c20: the personal shop signs, after the bubbles and with the same projection (without it, a sign stops).
+// Without the inventory, 0x5bb8d0 draws no rand(): the count is the base state's. In Lorencia and Devias.
 TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
 {
     const std::optional<std::string_view> header = data.text->Text(1104);
@@ -1126,7 +1127,7 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), Advanced(before, HudBaseDraws).State());
         ASSERT_EQ(text.texts.size(), 3u);
-        // El ancho es el del texto 1104 más el nombre; 36 filas sobre el punto proyectado.
+        // The width is that of text 1104 plus the name; 36 rows above the projected point.
         const int x = 320 - (headerWidth + 36) / 2;
         EXPECT_EQ(text.texts[0].text, *header);
         EXPECT_EQ(text.texts[0].x, x);
@@ -1139,8 +1140,8 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
     }
 }
 
-// 5. 0x42a4d0: las barras de vida de la cola, con la proyección del pase del mundo (sin ella, una barra corta). Cada
-// frame dibuja la mitad redondeada para arriba y deja el resto; un dibujo intermedio vacía una copia.
+// 5. 0x42a4d0: the queue's health bars, with the world pass's projection (without it, a bar stops). Each frame draws
+// the half rounded up and leaves the rest; an intermediate drawing empties a copy.
 TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
 {
     std::deque<Client::Kernel::QueuedHealthBar>& bars = world.Runtime().healthBars;
@@ -1171,8 +1172,8 @@ TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
     EXPECT_EQ(bars.front().fill, 2);
 }
 
-// Devil Square tiene su objeto de evento, pero su método +4 es un ret (0x40bdb0) y la cuenta (0x40bab0) sale con +8
-// en 0: el HUD sigue.
+// Devil Square has its event object, but its method +4 is a ret (0x40bdb0) and the countdown (0x40bab0) exits with +8
+// at 0: the HUD goes on.
 TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
 {
     for (const auto& [map, kind] : {std::pair{9, Client::Events::EventMapKind::DevilSquare},
@@ -1187,9 +1188,9 @@ TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
     }
 }
 
-// CL9 hito 11, el método +4 (0x40c2d0, 0x405090) en el HUD, con el Text.bmd de la Data: los puntos (864 o 1161), 865
-// y el tiempo en la columna 570. Chaos Castle elige el área de la trampa (0x6c634c) por +0x20; un dibujo intermedio
-// no la escribe. Fuera de sus mapas (Lorencia, Devias) no dibuja.
+// CL9 milestone 11, method +4 (0x40c2d0, 0x405090) in the HUD, with the Data's Text.bmd: the points (864 or 1161), 865
+// and the time in column 570. Chaos Castle chooses the trap area (0x6c634c) by +0x20; an intermediate drawing does not
+// write it. Outside their maps (Lorencia, Devias) it does not draw.
 TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
 {
     struct Case
@@ -1241,9 +1242,9 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
     }
 }
 
-// CL9 hito 11, 0x40bab0: con +8 de 1 a 14, el texto de la entrada con los segundos que faltan de 30 desde +0xc
-// (GetTickCount), en 0xffff8080 sobre 0x80000000 en (10, 0x174). El 12 de Chaos Castle toma el 828 (no el 825).
-// Vencida, el frame del original apaga +8; un dibujo intermedio no. En Lorencia, Devias y los mapas del evento.
+// CL9 milestone 11, 0x40bab0: with +8 from 1 to 14, the entry text with the seconds left of 30 since +0xc
+// (GetTickCount), in 0xffff8080 over 0x80000000 at (10, 0x174). Chaos Castle's 12 takes the 828 (not the 825).
+// Expired, the original's frame turns off +8; an intermediate drawing does not. In Lorencia, Devias and the event maps.
 TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
 {
     const std::optional<std::string_view> format = Client::Ui::TextAt(&*data.text, 828);
@@ -1278,8 +1279,8 @@ TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
     }
 }
 
-// CL9 hito 11, 0x4365c0: el hijo 21. Con el aviso de Crywolf (0x6c73d1) en 1, que pone el BD 00 con la etapa 5
-// (0x42fec8), el HUD dibuja el cartel 0x6c0 (0x6b6 + 0x6c73dc) y la tabla del rango en cualquier mapa; con −1, nada.
+// CL9 milestone 11, 0x4365c0: child 21. With the Crywolf notice (0x6c73d1) at 1, which the BD 00 with stage 5 sets
+// (0x42fec8), the HUD draws the banner 0x6c0 (0x6b6 + 0x6c73dc) and the rank table on any map; with −1, nothing.
 TEST_F(GameHudTest, TheCrywolfNoticeIsDrawnOnAnyMap)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1309,7 +1310,7 @@ TEST_F(GameHudTest, TheCrywolfNoticeIsDrawnOnAnyMap)
     }
 }
 
-// 0x5ac2d0: el cuadro de 24 × 24 en (x − 2, y − 2) del slot que elige su tabla.
+// 0x5ac2d0: the 24 × 24 square at (x − 2, y − 2) of the slot its table chooses.
 TEST_F(GameHudTest, TheCursorPicksItsSlot)
 {
     mouse = {100, 200};
@@ -1344,8 +1345,8 @@ TEST_F(GameHudTest, TheCursorPicksItsSlot)
     EXPECT_EQ(slotOf(), 2);
 }
 
-// El de hablar (6) anima sus cuartos con ftol(T · 0,01) % 6: u en 0,5 con 1, 3 y 5; v en 0,5 con 2, 3 y 4. El 0,01
-// es un float (0x6b88d4) un poco menor que 0,01, así que con T = 100 todavía es el cuadro 0.
+// The talk one (6) animates its quarters with ftol(T · 0.01) % 6: u at 0.5 with 1, 3 and 5; v at 0.5 with 2, 3 and 4.
+// The 0.01 is a float (0x6b88d4) a bit below 0.01, so with T = 100 it is still frame 0.
 TEST_F(GameHudTest, TheTalkCursorWalksItsQuarters)
 {
     world.Runtime().selectedTargets[1] = 4;
@@ -1367,8 +1368,8 @@ TEST_F(GameHudTest, TheTalkCursorWalksItsQuarters)
     }
 }
 
-// Con el modo 2 de reparar, el 7 girado por el signo de sin(T · 0,02): 45° en (x + 5, y + 18) o derecho en
-// (x + 10, y + 10), centrado ahí.
+// With repair mode 2, the 7 turned by the sign of sin(T · 0.02): 45° at (x + 5, y + 18) or straight at (x + 10,
+// y + 10), centered there.
 TEST_F(GameHudTest, TheRepairCursorTurnsWithTheClock)
 {
     world.Runtime().panels.repairMode = 2;
@@ -1387,7 +1388,7 @@ TEST_F(GameHudTest, TheRepairCursorTurnsWithTheClock)
     }
 }
 
-// El cursor que lee otra ola: el de los objetos (CL9.1).
+// The cursor another wave reads: the objects one (CL9.1).
 TEST_F(GameHudTest, TheCursorsOfOtherWavesStop)
 {
     world.Runtime().selectedTargets[3] = 1;
@@ -1396,8 +1397,8 @@ TEST_F(GameHudTest, TheCursorsOfOtherWavesStop)
     EXPECT_NE(drawn.Error().find("0x5ac3d8"), std::string::npos) << drawn.Error();
 }
 
-// CL9 hito 3, 0x5ac53c..0x5ac60b: fuera de la zona segura, el elegido atacable (0x558bb0) con el mouse fuera de la UI
-// dibuja el de atacar (4, o 0x68d en el 30); el que no se puede atacar, el normal (2).
+// CL9 milestone 3, 0x5ac53c..0x5ac60b: outside the safe zone, the attackable chosen one (0x558bb0) with the mouse
+// outside the UI draws the attack one (4, or 0x68d in the 30); the one that cannot be attacked, the normal one (2).
 TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
 {
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
@@ -1429,7 +1430,7 @@ TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
         ASSERT_EQ(quads.size(), 1u);
         EXPECT_EQ(quads[0].slot, test.slot);
     }
-    // El mouse sobre la UI no ataca.
+    // The mouse over the UI does not attack.
     runtime.map = 0;
     chosen.byte88 = 2;
     runtime.ui.mouseOnUi = 1;
@@ -1439,9 +1440,9 @@ TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
     EXPECT_EQ(QuadsOf(sprites)[0].slot, 2);
 }
 
-// 6. 0x5a6600 (desde 0x42a735): el mouse sobre un ícono de estado dibuja su ayuda en la caja de los tooltips, en
-// (x + 10, 0x1d), con el registro propio y la entrada de Skill.bmd del ícono abiertos alrededor (3.848 y 60 rand()).
-// El 0xcc escribe tres textos y deja los colores del 3 y del 4 (Q-C597).
+// 6. 0x5a6600 (from 0x42a735): the mouse over a status icon draws its help in the tooltip box, at (x + 10, 0x1d), with
+// the own record and the icon's Skill.bmd entry opened around it (3848 and 60 rand()). The 0xcc writes three texts
+// and leaves the colors of the 3 and the 4 (Q-C597).
 TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
 {
     Hero().flags78 = 0x10000;
@@ -1489,7 +1490,7 @@ TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
     EXPECT_EQ(lines.text[6], "\n");
 }
 
-// 0x5a6600 con un ícono sin texto en la tabla de 0x5a69fc (el 0x35): el renglón 3 queda con lo que tenía, en blanco
+// 0x5a6600 with an icon without text in the table of 0x5a69fc (the 0x35): line 3 keeps what it had, in white
 // (Q-C597).
 TEST_F(GameHudTest, AStatusIconWithoutTextKeepsTheThirdLine)
 {
@@ -1503,14 +1504,13 @@ TEST_F(GameHudTest, AStatusIconWithoutTextKeepsTheThirdLine)
     EXPECT_EQ(lines.text[3], "previo");
     EXPECT_EQ(lines.colors[3], Client::Tooltips::TooltipWhite);
     EXPECT_EQ(lines.text[4], "\n");
-    // El nombre de la entrada 0x35 de Skill.bmd está vacío: la caja mide hasta el renglón 1 y no escribe nada.
+    // The name of Skill.bmd's entry 0x35 is empty: the box measures up to line 1 and writes nothing.
     EXPECT_EQ(lines.text[1], "");
     EXPECT_TRUE(text.texts.empty());
 }
-// 0x5a9ddb: la barra de abajo dibuja los íconos de amigos y cartas (0x4a5120) con la lista de ventanas, después de las
-// ranuras y antes del botón de los comandos. Con un chat que espera, una carta nueva y una sin leer, sin la de amigos:
-// el hombre en (586, 437) y la carta en (615, 440), en el primer dibujo (prendidos). Sin rand(). En Lorencia y en
-// Devias.
+// 0x5a9ddb: the bottom bar draws the friend and letter icons (0x4a5120) with the window list, after the slots and
+// before the commands button. With a chat waiting, a new letter and an unread one, without the friends one: the man at
+// (586, 437) and the letter at (615, 440), on the first drawing (lit). No rand(). In Lorencia and in Devias.
 TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
 {
     for (const std::int32_t map : {0, 2})
@@ -1537,7 +1537,7 @@ TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
         ASSERT_NE(letter, quads.end());
         EXPECT_EQ(std::next(man), letter);
         EXPECT_FLOAT_EQ(man->first.x, 586.0f);
-        // La y de GL (H − y escalada) con el margen del float.
+        // GL's y (H − y scaled) with the float margin.
         EXPECT_NEAR(man->first.y, 480.0f - 437.0f, 1e-3f);
         EXPECT_FLOAT_EQ(letter->first.x, 615.0f);
         EXPECT_NEAR(letter->first.y, 480.0f - 440.0f, 1e-3f);
@@ -1546,9 +1546,9 @@ TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
     }
 }
 
-// Un dibujo intermedio de MuRet (GameScene, en el desacoplado) dibuja los íconos con la copia de la UI vieja de la
-// proyección: los dibujos y los parpadeos de 0x4a5120 (+0x148 y +0x14c) y la carta nueva (+0x144) de la lista de
-// WorldRuntime quedan como los dejó el último frame del original.
+// An intermediate MuRet drawing (GameScene, in the decoupled one) draws the icons with the projection's copy of the old
+// UI: the drawings and blinks of 0x4a5120 (+0x148 and +0x14c) and the new letter (+0x144) of WorldRuntime's list stay
+// as the original's last frame left them.
 TEST_F(GameHudTest, AnIntermediateDrawBlinksTheCopyOfTheIcons)
 {
     Client::Ui::OldWindowManager& windows = world.Runtime().oldWindows;
@@ -1563,7 +1563,8 @@ TEST_F(GameHudTest, AnIntermediateDrawBlinksTheCopyOfTheIcons)
     const auto drawn = Client::Hud::DrawTheHud(context);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // En el 11 de cada 24, prendido, un parpadeo más; con el sexto, la carta nueva se apaga y la cuenta vuelve a 0.
+    // On the 11th of every 24, lit, one more blink; with the sixth, the new letter turns off and the count goes back to
+    // 0.
     EXPECT_EQ(copy.windowList.list.barBlink, 12);
     EXPECT_EQ(copy.windowList.list.letterBlinks, 0);
     EXPECT_EQ(copy.windowList.list.newLetter, 0);
@@ -1571,9 +1572,9 @@ TEST_F(GameHudTest, AnIntermediateDrawBlinksTheCopyOfTheIcons)
     EXPECT_EQ(windows.windowList.list.letterBlinks, 5);
     EXPECT_EQ(windows.windowList.list.newLetter, 1);
 }
-// 4. 0x5a6fc0 con el objeto de 0x5767924 (el B2 20, hito 13): las dos celdas del héroe con sus accesos y, adentro de
-// la zona (X 150..200, Y 180..230), una línea por mitad con +6 distinto de 0 en (0, 150 + 15 · mitad). No mira el
-// mapa. Los nombres son inventados.
+// 4. 0x5a6fc0 with the object of 0x5767924 (the B2 20, milestone 13): the hero's two cells with their accesses and,
+// inside the zone (X 150..200, Y 180..230), one line per half with +6 nonzero at (0, 150 + 15 · half). It does not
+// look at the map. The names are made up.
 std::array<std::uint8_t, Client::CastleSiege::SwitchHoldersSize> SwitchHolders()
 {
     std::array<std::uint8_t, Client::CastleSiege::SwitchHoldersSize> holders{};
@@ -1605,7 +1606,7 @@ TEST_F(GameHudTest, TheSwitchHoldersDrawOneLinePerShownHalfInsideTheZone)
         world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
         Hero().cellX = 150;
         Hero().cellY = 230;
-        // El bit 0x80000 con el bando 2 de la primera mitad: con el nombre; la segunda (4 sin 0x800000), sin él.
+        // Bit 0x80000 with side 2 of the first half: with the name; the second (4 without 0x800000), without it.
         Hero().flags78 = 0x80000;
         text.texts.clear();
         random = CrtRandom(Seed);
@@ -1627,7 +1628,7 @@ TEST_F(GameHudTest, TheSwitchHoldersDrawOneLinePerShownHalfInsideTheZone)
     }
 }
 
-// Las otras dos parejas de bit y bando, y una mitad con +6 en 0, que no se dibuja.
+// The other two pairs of bit and side, and a half with +6 at 0, which is not drawn.
 TEST_F(GameHudTest, TheSwitchHoldersMatchEachSideWithItsFlag)
 {
     world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
@@ -1653,7 +1654,7 @@ TEST_F(GameHudTest, TheSwitchHoldersMatchEachSideWithItsFlag)
     EXPECT_EQ(text.texts[1].text, std::string(*title) + "2 / Pinos");
 }
 
-// Fuera de la zona, 0x4e05f0 libera el objeto después de los dos accesos; un dibujo intermedio no lo libera.
+// Outside the zone, 0x4e05f0 frees the object after the two accesses; an intermediate drawing does not free it.
 TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
 {
     for (const auto& [x, y] :
@@ -1678,7 +1679,7 @@ TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
     }
 }
 
-// Un %s sin 0 antes del final de los 0x36 bytes seguiría leyendo el heap (Q-C1403): corta con la dirección.
+// A %s without a 0 before the end of the 0x36 bytes would keep reading the heap (Q-C1403): it stops with the address.
 TEST_F(GameHudTest, ASwitchHolderTextWithoutItsZeroCuts)
 {
     world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();

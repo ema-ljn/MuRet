@@ -129,42 +129,42 @@ namespace
 
 constexpr Audio::SoundId ButtonClickSound = Sound::ButtonClickSound;
 
-// La acción de parado de la selección. La elige 0x4f2250 por la mascota, las alas y el arma; la de
-// la traza es la 3, con un arma de una mano. Las otras, sin leer (P-C14 c): hasta entonces, la 3.
+// 0x4f2250 picks it by the pet, the wings and the weapon; the trace's is 3, with a one-handed weapon. The others are
+// unread (P-C14 c): until then, 3.
 constexpr std::uint8_t StandingAction = 3;
 
-// La luz de 0x50ba30 en la escena 4: 0,4, y 0,5 para el "héroe" (DAT_0743a170: 0x50d219), más el +0xf4
-// que pone 0x634680, 1 para el elegido. El héroe es el objeto 0, el del lugar 0, hasta la primera entrada
-// al mundo; después de un F1 02 con 1, el lugar que sorteó el juego (Q-C213).
+// 0x50ba30's light in scene 4: 0.4, and 0.5 for the "hero" (DAT_0743a170: 0x50d219), plus the +0xf4 that 0x634680
+// sets, 1 for the chosen one. The hero is object 0, slot 0's, until the first world entry; after an F1 02 with 1, the
+// slot the game drew (Q-C213).
 constexpr float CharacterLight = 0.4f;
-// DAT_006d5dc8 de la selección: la 0x729 y el 6f1/2 la miran.
+// The selection's DAT_006d5dc8: 0x729 and 0x6f1/2 look at it.
 constexpr std::int32_t SelectionSceneId = 4;
 constexpr float HeroLight = 0.5f;
 constexpr float ChosenExtraLight = 1.0f;
 
-// Los textos que 0x622c70 busca en el nombre de uno nuevo.
+// The texts 0x622c70 looks for in a new one's name.
 constexpr std::size_t OperationText = 457;
 constexpr std::size_t ServerText = 458;
-// 0x63420a: el formato del mensaje con los dos números de pkt[5] de la lista.
+// 0x63420a: the message format with the list's two pkt[5] numbers.
 constexpr std::size_t AccountNoticeText = 1240;
 
-// El bit de las banderas (+0x1d8) con el que el armado de la barra muestra los textos 436 y 437.
+// The flags bit (+0x1d8) with which the bar's build shows texts 436 and 437.
 constexpr std::uint8_t BlockedAccountFlag = 0x10;
 
-// 0x5bb8d0 en la selección: 640, sin las ventanas del juego (06 § El trapecio completo).
+// 0x5bb8d0 in the selection: 640, without the game windows (06 § El trapecio completo).
 constexpr std::int32_t SelectionWorldWidth = 640;
 
-// Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
+// Whether the entry is the same one that gave the character: a create on an occupied slot overwrites it.
 bool SameEntry(const Protocol::FrontEnd::CharacterEntry& one, const Protocol::FrontEnd::CharacterEntry& other)
 {
     return one.slot == other.slot && one.name == other.name && one.classByte == other.classByte &&
            one.equipment == other.equipment && one.withoutEquipment == other.withoutEquipment;
 }
 
-// Lo que 0x634680 le pasa a 0x5fbb00 (0x634736..0x63475c) y lo que 0x5fb570 lee de los globales: la escena 4,
-// el mundo en curso (0x6c9dd0, el 54), el punto fijo de la selección, el yaw de la cámara (que en el 54 no se
-// usa: gira 45°), el héroe publicado como selector del mapa 30 (solo en la escena 5) y el ancho de 0x5bb8d0,
-// 640 sin las ventanas del juego (08 P-C41 e). El mapa 6 no llega a la selección.
+// What 0x634680 passes 0x5fbb00 (0x634736..0x63475c) and what 0x5fb570 reads from the globals: scene 4, the current
+// world (0x6c9dd0, the 54), the selection's fixed point, the camera yaw (unused in the 54: it turns 45°), the
+// published hero as the map 30 selector (only in scene 5) and 0x5bb8d0's width, 640 without the game windows (08
+// P-C41 e). Map 6 does not reach the selection.
 Terrain::TerrainPolygonInput SelectionPolygonInput(const Camera::GameCameraInput& input, const Render::Camera3D& camera)
 {
     Terrain::TerrainPolygonInput polygon;
@@ -177,7 +177,7 @@ Terrain::TerrainPolygonInput SelectionPolygonInput(const Camera::GameCameraInput
     return polygon;
 }
 
-// Los dos fondos, 0x621b60(0x717, 0, 25, 320, 320, …) y el 0x718 en x 320, escalados desde 640 × 480.
+// The two backgrounds, 0x621b60(0x717, 0, 25, 320, 320, …) and 0x718 at x 320, scaled from 640 × 480.
 Render::OriginalQuad Background(std::uint16_t slot, float x)
 {
     return Render::OriginalQuad{.slot = Render::TextureSlot{slot},
@@ -265,8 +265,8 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     CameraInputState().scene = Terrain::CullingScene::CharacterSelect;
     if (m_context.selection != nullptr)
     {
-        // Desde el login, el reset precede al único RequestCharacterList del final de Enter.
-        // Al volver, F1/02 ya lo hizo: un F3/00 del mismo Poll puede haber construido la lista nueva.
+        // From the login, the reset comes before the only RequestCharacterList at the end of Enter. On returning, F1/02
+        // already did it: an F3/00 from the same Poll may have built the new list.
         if (m_session == nullptr || m_session->State() == Session::SessionState::LoggedIn)
             m_context.selection->BeginSelection();
         else
@@ -280,7 +280,7 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         return loaded;
     }
-    // Una textura de los NewFace que falta cierra el original (0x60d5f0 con su quinto argumento en 1).
+    // A missing NewFace texture closes the original (0x60d5f0 with its fifth argument at 1).
     const auto startupTexture =
         m_startupModels != nullptr ? m_startupModels->TakeStartupSelectionTexture(m_context.textures) : std::nullopt;
     if (auto loaded =
@@ -289,28 +289,28 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         return loaded;
     }
-    // 0x633f20 → 0x65f4b0 → 0x63d1a0 → 0x63d7c0 → 0x63e3e0, al entrar: la vista previa con la clase
-    // de la ventana (el Dark Knight) y la acción 1.
+    // 0x633f20 → 0x65f4b0 → 0x63d1a0 → 0x63d7c0 → 0x63e3e0, on entering: the preview with the window's class (the Dark
+    // Knight) and action 1.
     if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.selection == nullptr)
     {
         FrontEnd::ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
     }
-    // 0x65f4b0 (CL8, hito 8): el aviso, la de Esc, las opciones, la barra y la de crear, cada una en la
-    // cabeza. El original lo arma con la lista (0x633f20), y hasta entonces sigue con la UI del login, de la
-    // que solo el aviso se abre acá; la barra se abre con la lista (StepTheScene; Q-C495). Las opciones se
-    // arman de nuevo (0x644120) con los globales (0x6446e0).
+    // 0x65f4b0 (CL8, milestone 8): the notice, the Esc one, the options, the bar and the create one, each at the head.
+    // The original builds it with the list (0x633f20), and until then keeps the login's UI, of which only the notice
+    // opens here; the bar opens with the list (StepTheScene; Q-C495). The options are built again (0x644120) with the
+    // globals (0x6446e0).
     m_notice.Close();
     m_create.Close();
     m_bar.Close();
-    // Los globos los suelta la UI del login (0x65f300 → 0x63ce50) y se arman con la lista (0x65f4b0).
+    // The login's UI releases the balloons (0x65f300 → 0x63ce50) and they are built with the list (0x65f4b0).
     m_balloons.Release();
     m_escape.Arm(Ui::NewUiMode::Selection);
     m_options.Arm(CurrentOptions());
     const std::array<Ui::NewUiWindow*, 5> uiWindows{&m_notice, &m_escape, &m_options, &m_bar, &m_create};
     m_ui.Build(Ui::NewUiMode::Selection, uiWindows);
     m_openedTheBar = false;
-    // El F3 00 de la entrada desde el login (0x634dce). Después de un F1 02 con 1 ya lo mandó la sesión
-    // (0x4c3653) y espera la lista: no se pide otra.
+    // The F3 00 of the entry from the login (0x634dce). After an F1 02 with 1 the session already sent it (0x4c3653)
+    // and waits for the list: no other is asked for.
     if (m_session != nullptr && m_session->State() == Session::SessionState::LoggedIn)
     {
         m_session->RequestCharacterList();
@@ -339,7 +339,7 @@ CharacterSelectScene::MakeCharacter(const Protocol::FrontEnd::CharacterEntry& en
     }
     character.entry = entry;
     const std::uint8_t characterClass = Protocol::FrontEnd::CharacterClassOf(entry.classByte);
-    // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
+    // The one the create reply built comes without equipment (0x517270 without 0x5139f0, Q-C103).
     character.appearance = entry.withoutEquipment ? Kernel::ClassAppearance(characterClass, 0)
                                                   : Kernel::AppearanceOf(characterClass, 0, entry.equipment);
     if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId))
@@ -379,16 +379,16 @@ void CharacterSelectScene::SyncTheCharacters()
         synced.push_back(MakeCharacter(entry));
         changed = true;
     }
-    // 0x634680 recorre los cinco registros del pool por índice, no en el orden del paquete.
+    // 0x634680 walks the pool's five records by index, not in the packet's order.
     std::ranges::sort(synced, {}, &Character::slot);
     m_characters = std::move(synced);
     if (!m_tookTheList)
     {
         m_tookTheList = true;
-        // 0x63e820, una vez: algún personaje de los cinco lugares con el bit 0x10 de las banderas.
+        // 0x63e820, once: some character of the five slots with flags bit 0x10.
         m_bar.SetBlockedAccount(std::ranges::any_of(entries, [](const Protocol::FrontEnd::CharacterEntry& entry)
                                                     { return (entry.flags & BlockedAccountFlag) != 0; }));
-        // 0x4c20a0 → 0x622b20 → 0x63d7c0: las clases de la 0 a pkt[4].
+        // 0x4c20a0 → 0x622b20 → 0x63d7c0: classes 0 to pkt[4].
         m_create.EnableClasses(m_session->Characters()->creatableClasses);
         m_context.log.Info("la selección tiene {} personajes", m_characters.size());
     }
@@ -436,10 +436,10 @@ bool CharacterSelectScene::PrepareTheCharacters()
         m_failure = window.Error();
         return false;
     }
-    // 0x633f91: vaciado previo al reset parcial; no es el del F3/10, que toca otros campos y grillas.
+    // 0x633f91: emptying before the partial reset; not the F3/10 one, which touches other fields and grids.
     FrontEnd::ClearSelectionInventory(*m_context.world, m_context.cloth->random);
-    // 0x5bc0e5..0x5bc102: primero cierra 0x400000, después 0x800000, con aux0; el comercio se vacía recién después.
-    // Las dos ventanas comparten el modo 1/2 y su cierre manda el 31 antes de bajar ese modo (0x657ba7/0x657dc1).
+    // 0x5bc0e5..0x5bc102: first it closes 0x400000, then 0x800000, with aux0; the trade is emptied only afterwards.
+    // Both windows share mode 1/2 and their close sends the 31 before lowering that mode (0x657ba7/0x657dc1).
     std::function<void(Protocol::Outgoing)> send;
     if (m_context.worldEntry != nullptr)
         send = m_context.worldEntry->sendGamePacket;
@@ -456,18 +456,17 @@ bool CharacterSelectScene::PrepareTheCharacters()
             return false;
         }
     }
-    // 0x5bc107..0x5bc13f: después vacía el comercio.
+    // 0x5bc107..0x5bc13f: then it empties the trade.
     Social::ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
-    // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
+    // 0x634049..0x634177: the partial reset, with the close of 0x4fc450's same record.
     const Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
                                        Models::OwnRecordCloseRandoms);
     m_context.world->OwnCharacter().ResetForSelection();
     m_charactersPrepared = true;
-    // 0x634199..0x634227: los campos del diálogo apagados (0x77f3b68 el del alta del gremio, 0x77f3b69 el de los
-    // paneles y 0x77f3b6a el modo del zen, CL9 hito 8), el campo del chat abierto (0x6c8e68), las 120 entradas vacías
-    // y, si alguno de los dos números de pkt[5] de la lista (0x5767958 y 0x576795c, 0x4c20a0) no es 0, el 1240 con
-    // ellos, como sistema y sin nombre (el nombre de 0x7d3a17c nadie lo escribe). El vaciado de los campos (0x553570)
-    // es de la entrada del chat.
+    // 0x634199..0x634227: the dialog fields off (0x77f3b68 the guild registration one, 0x77f3b69 the panels one and
+    // 0x77f3b6a the zen mode, CL9 milestone 8), the chat field open (0x6c8e68), the 120 entries empty and, if either of
+    // the list's two pkt[5] numbers (0x5767958 and 0x576795c, 0x4c20a0) is not 0, 1240 with them, as system and without
+    // a name (nobody writes the name at 0x7d3a17c). Emptying the fields (0x553570) belongs to the chat input.
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     runtime.chat.input.dialogFieldOn = false;
     runtime.chat.input.otherInput = false;
@@ -483,7 +482,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
         m_failure = noticed.Error();
         return false;
     }
-    // 0x634271..0x6342a0: la ventana de los comandos ([0x6e592c]) cerrada y sin comando.
+    // 0x634271..0x6342a0: the commands window ([0x6e592c]) closed and without a command.
     Ui::ResetTheCommands(runtime.panels.delegated);
     return true;
 }
@@ -500,7 +499,7 @@ Core::Expected<void, std::string> CharacterSelectScene::AddTheAccountNotice()
     const std::string first = std::to_string(general);
     const std::string second = std::to_string(gladiator);
     const std::array<std::string_view, 2> arguments{first, second};
-    // El original usa el texto como formato de sprintf (Q-C61): MuRet pone los dos números en sus marcas.
+    // The original uses the text as the sprintf format (Q-C61): MuRet puts the two numbers in their marks.
     const std::string text =
         Ui::PlaceArguments(Ui::TextAt(m_texts, AccountNoticeText).value_or(std::string_view{}), arguments);
     return Chat::AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text,
@@ -544,7 +543,7 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .effectHooks = &m_effectHooks};
 }
 
-// 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
+// 0x6342f9, then 0x634303: the 400 records and the NewFace object, before the UI.
 void CharacterSelectScene::StepCharacters()
 {
     if (m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr)
@@ -556,7 +555,7 @@ void CharacterSelectScene::StepCharacters()
                 : 0.0f;
         if (world)
         {
-            // 0x6342e1: 0x606560, los objetos del 54 que vio el último dibujo (0x4250f0).
+            // 0x6342e1: 0x606560, the 54's objects the last draw saw (0x4250f0).
             const auto map = static_cast<std::uint8_t>(m_context.world->Runtime().map);
             if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
             {
@@ -572,7 +571,7 @@ void CharacterSelectScene::StepCharacters()
                 return;
             }
         }
-        // 0x6342f4: 0x445230, los ayudantes, antes del pool. La escena 4 no apaga los de un jinete muerto (Q-C293).
+        // 0x6342f4: 0x445230, the helpers, before the pool. Scene 4 does not turn off a dead rider's (Q-C293).
         if (auto helpers = Pets::StepHelpers(Pets::HelperStepContext{.world = *m_context.world,
                                                                      .models = &m_models,
                                                                      .random = m_context.cloth->random,
@@ -599,8 +598,8 @@ void CharacterSelectScene::StepCharacters()
         const std::function<double(float, float)> height = TerrainHeight();
         if (world)
         {
-            // 0x52d220 y 0x53c670, después del preview: los efectos con modelo y las juntas.
-            // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj de la escena en ms.
+            // 0x52d220 and 0x53c670, after the preview: the effects with a model and the joints. timeGetTime
+            // (0x6b8544), from the Fenrirs' decal 0x14e: the scene clock in ms.
             const auto systemTime =
                 m_context.clock != nullptr
                     ? static_cast<std::uint32_t>(
@@ -614,8 +613,8 @@ void CharacterSelectScene::StepCharacters()
                 return;
             }
         }
-        // 0x634315 → 0x5446e0, después del preview: también sortea el viento con la tabla vacía. La neblina
-        // 622/1 lee su dueño entre los objetos del 54 y el reloj del mundo.
+        // 0x634315 → 0x5446e0, after the preview: it also draws the wind with the empty table. The 0x622/1 mist reads
+        // its owner among the 54's objects and the world clock.
         Particles::PortableParticleTrigonometry trigonometry;
         if (auto particles = Particles::StepParticlesChecked(
                 m_context.world->Particles(), context.random, std::cref(worldClock), &m_context.world->Runtime().map,
@@ -635,18 +634,18 @@ void CharacterSelectScene::StepCharacters()
         }
         return;
     }
-    // Los tests de UI sin WorldState ni terreno conservan la animación de presentación.
+    // The UI tests without WorldState or terrain keep the presentation animation.
     for (Character& character : m_characters)
     {
-        // Lo que termina vuelve a la de parado (0x4fcb10), que en la selección es la 3: como la 3 repite,
-        // es la de ahora, y SetAction no cambia nada.
+        // What ends returns to the standing one (0x4fcb10), which in the selection is 3: since 3 repeats, it is the
+        // current one, and SetAction changes nothing.
         static_cast<void>(Actors::StepCharacterAnimation(character.animation, character.appearance, m_models,
                                                          Models::AnimationScene::CharacterSelect));
     }
 }
 
-// Q-C70: en la selección, un FD_CLOSE abre el aviso 0x70, como en el login, una vez. MuRet lo abre
-// también sin respuesta (NoReply), como el login (Q-C69).
+// Q-C70: in the selection, an FD_CLOSE opens notice 0x70, as in the login, once. MuRet also opens it without a reply
+// (NoReply), like the login (Q-C69).
 bool CharacterSelectScene::ShowTheFailure()
 {
     if (m_failureShown || m_session == nullptr || m_session->State() != Session::SessionState::Failed)
@@ -669,7 +668,7 @@ bool CharacterSelectScene::TakeTheCreationResult()
     }
     m_waitingForTheCreation = false;
     const std::optional<std::uint8_t> result = m_session->CreateResult();
-    // 0x4c23d2: con el creado, los globos de nuevo (0x63cfb0), aunque la sesión haya caído.
+    // 0x4c23d2: with the created one, the balloons again (0x63cfb0), even if the session has dropped.
     if (result && !Ui::NoticeOfCreateResult(*result))
     {
         UpdateTheBalloons();
@@ -681,14 +680,14 @@ bool CharacterSelectScene::TakeTheCreationResult()
     const std::optional<Ui::NoticeId> notice = Ui::NoticeOfCreateResult(*result);
     if (!notice)
     {
-        // Creado: 0x65f6c0(+0x8) cierra el 0x5d; el nuevo ya está en la lista.
+        // Created: 0x65f6c0(+0x8) closes 0x5d; the new one is already in the list.
         if (m_notice.Notice() == Ui::PleaseWaitNotice)
         {
             m_ui.Close(m_notice);
         }
         return false;
     }
-    // La ventana antes que el aviso, que queda arriba (0x6431b0), con el campo vacío.
+    // The window before the notice, which stays on top (0x6431b0), with the field empty.
     OpenTheCreateWindow();
     OpenNotice(*notice);
     return true;
@@ -700,7 +699,7 @@ void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input, U
     {
         SubmitTheCreation();
     }
-    // Al final de 0x63d880, la lógica (con el foco): la vista previa de la clase que quedó, y su avance
+    // At the end of 0x63d880, the logic (with the focus): the preview of the class that stayed, and its advance
     // (0x63e430).
     if (turn.logic)
     {
@@ -740,7 +739,7 @@ FrontEnd::OptionsSettings CharacterSelectScene::CurrentOptions() const
 
 void CharacterSelectScene::OnOptionsEvent(const FrontEnd::OptionsEvent& event)
 {
-    // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
+    // The close button (without sound) and Esc (with 0x19, from CL10) already closed them.
     if (m_context.world != nullptr)
     {
         Kernel::WorldRuntime& runtime = m_context.world->Runtime();
@@ -757,7 +756,7 @@ void CharacterSelectScene::SubmitTheCreation()
     if (const std::optional<Ui::NoticeId> refused =
             FrontEnd::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
     {
-        // El nombre no va al log: solo el aviso. La ventana queda abajo, con el nombre.
+        // The name does not go to the log: only the notice. The window stays below, with the name.
         m_context.log.Info("el nombre del personaje nuevo no pasa: el aviso {:#04x}", static_cast<int>(*refused));
         OpenNotice(*refused);
         return;
@@ -784,13 +783,13 @@ bool CharacterSelectScene::TakeTheDeletionResult()
     }
     m_waitingForTheDeletion = false;
     const std::optional<std::uint8_t> result = m_session->DeleteResult();
-    // 0x643360..0x6433b3: el aviso 0x60 baja el +0 del elegido y pone los globos de nuevo (0x63cfb0). En MuRet el
-    // borrado ya salió de la lista de la sesión (Q-C104).
+    // 0x643360..0x6433b3: notice 0x60 lowers the chosen one's +0 and sets the balloons again (0x63cfb0). In MuRet the
+    // deleted one already left the session's list (Q-C104).
     if (result && Ui::NoticeOfDeleteResult(*result) == Ui::CharacterDeletedNotice)
     {
         UpdateTheBalloons();
     }
-    // Con la sesión caída, el 0x70 de la falla queda arriba aunque la respuesta haya llegado antes.
+    // With the session dropped, the failure's 0x70 stays on top even if the reply arrived before.
     if (!result || m_failureShown)
     {
         return false;
@@ -799,10 +798,9 @@ bool CharacterSelectScene::TakeTheDeletionResult()
     return true;
 }
 
-// El aviso abierto tiene el mouse (Q-C84) y 0x634680 no llama a 0x59ec80 (+0x8de8): el contorno queda
-// en el último que estuvo bajo el mouse. El OK de uno que cierra el juego (el 0x70, Q-C69) lo dice en
-// WantsToQuit; el de la confirmación del borrado abre el del código, y el del código manda el F3 02.
-// Los demás solo se cierran.
+// The open notice has the mouse (Q-C84) and 0x634680 does not call 0x59ec80 (+0x8de8): the outline stays on the last
+// one that was under the mouse. The OK of one that closes the game (0x70, Q-C69) says so in WantsToQuit; that of the
+// delete confirmation opens the code one, and the code one sends the F3 02. The others just close.
 void CharacterSelectScene::StepTheNotice(const Input::InputState& input, Ui::NewUiTurn turn)
 {
     const std::optional<Ui::NoticeId> closed = m_notice.Step(input, m_screen, turn);
@@ -856,7 +854,7 @@ void CharacterSelectScene::OnTheBar(FrontEnd::SelectionBarClick click)
         TryToEnter();
         break;
     case FrontEnd::SelectionBarClick::Menu:
-        // 0x63eb90 con +0x31a: la de Esc (0x65f690).
+        // 0x63eb90 with +0x31a: the Esc one (0x65f690).
         OpenTheEscapeWindow();
         break;
     case FrontEnd::SelectionBarClick::Create:
@@ -879,7 +877,7 @@ void CharacterSelectScene::AskToDelete()
         FrontEnd::NoticeOfDeleteButton(*chosen, FrontEnd::FreeDeletionGroup(m_texts, m_session->ChosenServer()));
     m_context.log.Info("borrar el personaje del lugar {} abre el aviso {:#04x}", chosen->slot,
                        static_cast<int>(notice));
-    // El nombre va en el %s del texto 1712 del 0x5e (0x6431b0); no va al log.
+    // The name goes in the %s of text 1712 of 0x5e (0x6431b0); it does not go to the log.
     OpenNotice(notice, Protocol::FrontEnd::NameAsText(chosen->name));
 }
 
@@ -889,7 +887,7 @@ void CharacterSelectScene::SendTheDeletion()
     {
         return;
     }
-    // El código, como la clave, no va al log, y no se queda en la ventana.
+    // The code, like the password, does not go to the log, and does not stay in the window.
     m_session->DeleteCharacter(Protocol::FrontEnd::DeleteCodeFromText(m_notice.TakeCode()));
     if (m_session->State() == Session::SessionState::WaitingDeleteResult)
     {
@@ -907,7 +905,7 @@ void CharacterSelectScene::Step(const Input::InputState& input)
     StepTheScene(input);
     if (!m_failure && m_context.cloth != nullptr)
     {
-        // 0x637cb2 → 0x6342c0 precede el viento y el contador de 0x637cec/0x637f91.
+        // 0x637cb2 → 0x6342c0 comes before the wind and the counter of 0x637cec/0x637f91.
         Models::StepTheClothWorld(*m_context.cloth);
     }
 }
@@ -915,9 +913,9 @@ void CharacterSelectScene::Step(const Input::InputState& input)
 void CharacterSelectScene::StepTheScene(const Input::InputState& input)
 {
     m_previewAdvanced = false;
-    // La UI nueva antes que el paso de la escena (0x63778c; Q-C490), con lo que se abrió hasta el paso
-    // anterior: un aviso que se abre en este paso se atiende desde el siguiente, y lo que se apretó en este no
-    // lo cierra antes de que se vea. El Esc o el Enter que toma una ventana no los ve el paso (Q-C45).
+    // The new UI before the scene's step (0x63778c; Q-C490), with what opened up to the previous step: a notice that
+    // opens in this step is handled from the next one, and what was pressed in this one does not close it before it is
+    // seen. The step does not see the Esc or the Enter a window takes (Q-C45).
     StepTheWindows(input);
     if (m_failure || m_quit)
     {
@@ -944,8 +942,8 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
             return;
         }
     }
-    // 0x633f20 → 0x65f4b0, con la lista: los globos (0x63ce70, al empezar), la barra, con 0x65f690 (arriba y con el
-    // foco), y los globos con los registros (0x63cfb0, al final).
+    // 0x633f20 → 0x65f4b0, with the list: the balloons (0x63ce70, at the start), the bar, with 0x65f690 (on top and
+    // with the focus), and the balloons with the records (0x63cfb0, at the end).
     if (!m_openedTheBar)
     {
         m_balloons.Build();
@@ -963,7 +961,7 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
         {
             m_context.states->terrain.dynamicLight.Update(*terrain->lighting);
         }
-        // 0x5fbf60, después de la copia de la luz: las olas de la ventana del rango con el reloj del paso.
+        // 0x5fbf60, after the light copy: the waves of the range window with the step's clock.
         if (HasTheWorld() && m_context.clock != nullptr)
         {
             m_world.StepWaves(m_context.clock->Now(), m_context.states->terrain.dynamicLight.Range(),
@@ -984,10 +982,10 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     static_cast<void>(TakeTheDeletionResult());
     static_cast<void>(TakeTheCreationResult());
     EnableTheBar();
-    // 0x634341: Enter (0x8001) con el aviso, la de crear, la de Esc y las opciones cerradas: TryToEnter. Si no
-    // se apretó Enter, Esc con las mismas cerradas: el sonido 0x19 (0x41ed10, de la CL10) y la de Esc
-    // (0x6344ce). Un Enter apretado no deja leer el Esc, aunque no entre. El original pierde un apretón corto
-    // entre dos lecturas; MuRet lo ve (Q-C45).
+    // 0x634341: Enter (0x8001) with the notice, the create one, the Esc one and the options closed: TryToEnter. If
+    // Enter was not pressed, Esc with the same ones closed: sound 0x19 (0x41ed10, from CL10) and the Esc one
+    // (0x6344ce). A pressed Enter does not let Esc be read, even if it does not enter. The original loses a short press
+    // between two reads; MuRet sees it (Q-C45).
     const bool modal = m_notice.IsOpen() || m_create.IsOpen() || m_escape.IsOpen() || m_options.IsOpen();
     if (input.TakePress(Input::Key::Enter))
     {
@@ -1010,22 +1008,21 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     }
     const auto now = Kernel::LogicStep * static_cast<std::int64_t>(m_steps);
     const bool doubleClick = m_doubleClick.Step(input, now);
-    // 0x6344d3: con el mouse en una ventana, la UI lo tiene (+0x8de8): la escena no elige, no hace el doble
-    // clic y no busca quién está debajo, así que el contorno queda en el último.
+    // 0x6344d3: with the mouse on a window, the UI has it (+0x8de8): the scene does not choose, does not do the double
+    // click and does not look for who is below, so the outline stays on the last one.
     if (!m_ui.HasTheMouse())
     {
         m_hovered = UnderTheMouse(input);
         if (doubleClick && m_hovered)
         {
-            // El doble clic elige y entra como Enter, sin el sonido (0x6342c0).
+            // The double click chooses and enters like Enter, without the sound (0x6342c0).
             Choose(m_hovered);
             TryToEnter();
             return;
         }
         if (input.WasPressed(Input::MouseButton::Left))
         {
-            // 0x634671: elegido, 0x63eb40 habilita los botones de la barra, que el próximo paso de la UI ya
-            // atiende así.
+            // 0x634671: chosen, 0x63eb40 enables the bar's buttons, which the next UI step already handles that way.
             Choose(m_hovered);
             EnableTheBar();
         }
@@ -1034,7 +1031,7 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
 
 void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
 {
-    // El original le pasa a cada ventana los milisegundos del frame; MuRet, los del paso (Q-C490).
+    // The original passes each window the frame's milliseconds; MuRet, the step's (Q-C490).
     constexpr double StepMs = std::chrono::duration<double, std::milli>(Kernel::LogicStep).count();
     m_ui.Step(
         input, m_screen,
@@ -1089,7 +1086,7 @@ void CharacterSelectScene::OnEscapeEvent(const FrontEnd::EscapeWindowEvent& even
         AddTheCountdown(event.seconds);
         return;
     case FrontEnd::EscapeWindowEvent::Kind::Quit:
-        // 0x647d87: el log del original (0x41fa40) y el PostMessage con WM_CLOSE: lo hace Main.
+        // 0x647d87: the original's log (0x41fa40) and the PostMessage with WM_CLOSE: Main does it.
         m_context.log.Info("> Menu - Exit game.");
         m_quit = true;
         return;
@@ -1097,18 +1094,18 @@ void CharacterSelectScene::OnEscapeEvent(const FrontEnd::EscapeWindowEvent& even
         JoinAnotherServer();
         return;
     case FrontEnd::EscapeWindowEvent::Kind::Options:
-        // 0x647e6c: 0x65f6c0 la cierra y 0x65f690 abre las opciones.
+        // 0x647e6c: 0x65f6c0 closes it and 0x65f690 opens the options.
         OpenTheOptions();
         return;
     case FrontEnd::EscapeWindowEvent::Kind::Closed:
-        // Con Esc, el sonido 0x19 (0x41ed10, de la CL10).
+        // With Esc, sound 0x19 (0x41ed10, from CL10).
         return;
     }
 }
 
 void CharacterSelectScene::AddTheCountdown(int seconds)
 {
-    // 0x647ef0: sprintf del 380 con lo que falta y 0x555190, de sistema y sin nombre.
+    // 0x647ef0: sprintf of 380 with what is left and 0x555190, as system and without a name.
     if (m_context.world == nullptr || m_context.textMeasure == nullptr)
     {
         return;
@@ -1127,9 +1124,8 @@ void CharacterSelectScene::AddTheCountdown(int seconds)
 
 void CharacterSelectScene::JoinAnotherServer()
 {
-    // 0x647e08: el log del original (0x41fa40), el C3 F1 02 02 (0x647f60), y se cierran la de Esc (que ya se
-    // cerró en su paso) y la barra (+0x7f50, 0x647e48). Lo que contesta el GS, la vuelta a la lista, es de la
-    // CL9 (Q-C79).
+    // 0x647e08: the original's log (0x41fa40), the C3 F1 02 02 (0x647f60), and the Esc one (already closed in its step)
+    // and the bar (+0x7f50, 0x647e48) close. What the GS answers, the return to the list, belongs to CL9 (Q-C79).
     m_context.log.Info("> Menu - Join another server.");
     if (m_context.cloth == nullptr)
     {
@@ -1137,8 +1133,8 @@ void CharacterSelectScene::JoinAnotherServer()
     }
     else
     {
-        // 0x648241: un rand() para el relleno del C3; 0x64826b..: el serial (0x5767913) por la tabla de
-        // protección, un byte, que se vuelve a cifrar al cerrarse con otro.
+        // 0x648241: one rand() for the C3's padding; 0x64826b..: the serial (0x5767913) through the protection table,
+        // one byte, which is encrypted again on closing with another.
         static_cast<void>(m_context.cloth->random.Next());
         std::uint8_t serialDepth = 0;
         {
@@ -1201,7 +1197,7 @@ void CharacterSelectScene::TryToEnter()
             m_context.log.Error("no se entra al mundo: falta el rand() de la CRT para cerrar el registro propio");
             return;
         }
-        // 06, "La entrada al mundo", paso 1: el registro propio y la bandera de la escena 3.
+        // 06, "La entrada al mundo", step 1: the own record and scene 3's flag.
         m_context.world->PrepareSelectedActor(*chosen, m_context.cloth->random);
     }
     m_context.log.Info("se elige el personaje del lugar {} para entrar al mundo", chosen->slot);
@@ -1220,14 +1216,14 @@ Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& characte
 Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const Camera::GameCameraInput& input,
                                                                     Core::Duration clock)
 {
-    // Como CameraForFrame: un dibujo intermedio solo consulta la cámara del último frame.
+    // Like CameraForFrame: an intermediate draw only queries the last frame's camera.
     const int frames = m_cameraFrames.FramesAt(clock, OriginalFramePaceOf(m_context.pacing));
     if (frames == 0)
     {
         const Render::Camera3D camera = Camera::GameCameraOf(CameraState(), input);
         if (m_context.world != nullptr && m_context.states != nullptr)
         {
-            // El trapecio del pase del terreno y de los objetos, con el nivel que hay, sin escribir nada.
+            // The trapezoid of the terrain and objects pass, with the current level, without writing anything.
             auto polygon =
                 Camera::TerrainPolygonBetweenFrames(m_context.states->camera, SelectionPolygonInput(input, camera));
             if (!polygon.HasValue())
@@ -1244,10 +1240,10 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const Camera
     {
         // 0x6346ca: 0x635ae0.
         camera = Camera::StepGameCamera(CameraState(), input);
-        // 0x634736..0x63475c, después de los fondos: 0x5fbb00(w · 0,0015625, &p) con 0x620db0(0, 0, w, 48), el
-        // pase que no dibuja. El rango de bloques no lo lee nadie de MuRet en la selección (08 P-C41 b); el
-        // trapecio y su nivel van a los globales (0x5fbeef → 0x5fb570). Nada de 0x634736..0x634769 llama a
-        // rand() (*estático*). Sin WorldState no hay dónde dejarlos: son los tests que no lo miran.
+        // 0x634736..0x63475c, after the backgrounds: 0x5fbb00(w · 0.0015625, &p) with 0x620db0(0, 0, w, 48), the pass
+        // that does not draw. Nobody in MuRet reads the block range in the selection (08 P-C41 b); the trapezoid and
+        // its level go to the globals (0x5fbeef → 0x5fb570). Nothing in 0x634736..0x634769 calls rand() (*static*).
+        // Without WorldState there is nowhere to leave them: those are the tests that do not look at it.
         if (m_context.world == nullptr || m_context.states == nullptr)
         {
             continue;
@@ -1274,8 +1270,8 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     if (WaitingForTheList() ||
         (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized()))
     {
-        // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí, y lleva el cursor encima (el del
-        // sistema está escondido). Sin aviso, el frame queda retenido (HoldsTheLastFrame).
+        // Without the list, 0x634680 does not draw; the notice belongs to the UI, which does, and carries the cursor on
+        // top (the system one is hidden). Without a notice, the frame stays held (HoldsTheLastFrame).
         m_notice.Draw(canvas.sprites, canvas.text, canvas.screen);
         if (m_notice.IsOpen())
         {
@@ -1283,7 +1279,7 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
         }
         return;
     }
-    // Los handlers reconstruyen o desactivan actores aun si este frame no corre un paso lógico.
+    // The handlers rebuild or deactivate actors even if this frame does not run a logic step.
     SyncTheCharacters();
     Render::SpriteBatch& sprites = canvas.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -1292,8 +1288,8 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     sprites.Quad(Background(0x718, 320.0f));
     canvas.flushSprites();
 
-    // 0x6346ca calcula la cámara con el héroe compartido vigente antes de dibujar los personajes, y 0x63475c el
-    // trapecio del terreno.
+    // 0x6346ca computes the camera with the current shared hero before drawing the characters, and 0x63475c the terrain
+    // trapezoid.
     Camera::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = Terrain::CullingScene::CharacterSelect;
     const std::optional<Render::Frame::SceneWorld> world = WorldOf(Kernel::SceneId::CharacterSelect);
@@ -1324,22 +1320,22 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
                       : scanFrames > 0           ? &m_context.world->PoseCarry()
                                                  : &projection;
     DrawTheWorldAndTheCharacters(canvas, alpha, pass, camera, map, poseCarry, scanFrames);
-    // Como en el juego, el lote abierto se vacía también cuando el dibujo se corta.
+    // As in the game, the open batch is also flushed when the draw stops.
     canvas.flushModels();
     if (m_failure)
     {
         return;
     }
-    // 0x634949..0x63495f: los avisos y el área vieja. La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el
-    // aviso arriba. Y el cursor (0x634980).
+    // 0x634949..0x63495f: the notices and the old area. The mode 4 UI (0x65fe00): the bar, the create window and the
+    // notice on top. And the cursor (0x634980).
     DrawTheMessages(canvas);
-    // 0x65fe00 → 0x63cf80: los globos, antes de las ventanas.
+    // 0x65fe00 → 0x63cf80: the balloons, before the windows.
     DrawTheBalloons(canvas, pass, camera.fieldOfView);
     if (m_failure)
     {
         return;
     }
-    // +0x511: el primer 0D con 1 que llegó en la selección, que guarda el juego.
+    // +0x511: the first 0D with 1 that arrived in the selection, which the game keeps.
     std::string_view serverNotice;
     if (m_context.world != nullptr && m_context.world->Runtime().chat.selectionNotice)
         serverNotice = *m_context.world->Runtime().chat.selectionNotice;
@@ -1427,7 +1423,7 @@ void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, c
                 m_failure = "0x63ca76 → " + projection.Error();
                 return;
             }
-            // 0x63ca20: la x y la y del registro, y la z más 280 (0x6b8c78, un double) en el fstp de un float.
+            // 0x63ca20: the record's x and y, and z plus 280 (0x6b8c78, a double) in a float's fstp.
             const Kernel::ActorState& actor = m_context.world->Actors()[slot];
             const glm::vec3 head{actor.position.x, actor.position.y,
                                  static_cast<float>(static_cast<double>(actor.position.z) +
@@ -1471,9 +1467,9 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
                                                         const Render::Pass3D& pass, const Render::Camera3D& camera,
                                                         std::uint8_t map, Kernel::PoseBuffer* poseCarry, int scanFrames)
 {
-    // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 y la luz +0xf4 en 0 en los cinco primeros registros del
-    // pool, sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
-    // Hero apunta al registro0 incluso cuando la lista recibida está vacía.
+    // 0x6347ba..0x6347e2, after 0x6346ca: Z163 and light +0xf4 at 0 on the pool's first five records, without checking
+    // alive or whether slot 0 is present, after 0x634680's wait for the list. The hero points at record 0 even when the
+    // received list is empty.
     Camera::GameCameraInput& cameraInput = CameraInputState();
     if (m_context.selection != nullptr)
     {
@@ -1503,8 +1499,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
                                               .frames = frames,
                                               .fixedHeight = CameraState().fixedHeight,
                                               .flushModels = canvas.flushModels};
-    // 0x6347e9..0x63483e: el elegido vivo lleva su luz a (1, 1, 1) y la suma al buffer dinámico en su lugar,
-    // con radio 1 (0x5f9780), entre 0x620a90 y 0x620980.
+    // 0x6347e9..0x63483e: the living chosen one takes its light to (1, 1, 1) and adds it to the dynamic buffer at its
+    // place, with radius 1 (0x5f9780), between 0x620a90 and 0x620980.
     const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     Kernel::ActorState* chosenActor =
         chosen != nullptr && chosen->slot < Kernel::SelectionActorCount ? &world.Actors()[chosen->slot] : nullptr;
@@ -1519,14 +1515,14 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
                                  Data::Terrain::TerrainLightColor{1.0f, 1.0f, 1.0f}, 1);
     }
     const Terrain::WorldTerrain& terrain = *m_context.selection->Terrain();
-    // 0x634844: 0x5fc260(0), el terreno, el pasto y las marcas.
+    // 0x634844: 0x5fc260(0), the terrain, the grass and the marks.
     if (auto drawn = m_world.DrawTerrain(world, terrain, m_context.states->terrain.groundMarks, frame);
         !drawn.HasValue())
     {
         m_failure = drawn.Error();
         return;
     }
-    // 0x63484c: 0x6046a0, los objetos del 54 con sus casos de 0x425260.
+    // 0x63484c: 0x6046a0, the 54's objects with their cases of 0x425260.
     if (poseCarry != nullptr)
     {
         if (auto drawn = m_world.DrawObjects(world, frame, *poseCarry); !drawn.HasValue())
@@ -1535,14 +1531,14 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             return;
         }
     }
-    // 0x634851: 0x510d00, los personajes (y el contorno de 0x59ec80 con el de bajo el mouse).
+    // 0x634851: 0x510d00, the characters (and 0x59ec80's outline with the one under the mouse).
     DrawTheCharacters(canvas, alpha, map, poseCarry, scanFrames);
     if (m_failure || poseCarry == nullptr)
     {
         return;
     }
-    // 0x63486a: 0x4453b0, los ayudantes, con la escala en 1 de la escena 4 (0x4452f1), la luz del terreno 54 y los
-    // sprites del frame.
+    // 0x63486a: 0x4453b0, the helpers, with scene 4's scale at 1 (0x4452f1), the terrain 54 light and the frame's
+    // sprites.
     if (auto drawn = Pets::DrawHelpers(Pets::HelperDrawContext{
             .batch = canvas.models,
             .models = m_models,
@@ -1561,7 +1557,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
             .effects = &m_world.FrameEffects(),
             .particles = &m_world.FrameParticles(),
-            // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+            // timeGetTime (0x6b8544), from the Fenrirs' decal 0x14e: the draw clock in ms.
             .systemTime = [systemTime = static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
             { return systemTime; },
@@ -1572,14 +1568,14 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
         m_failure = "0x63486a → " + drawn.Error();
         return;
     }
-    // 0x63486f..0x634883: las cintas, las juntas(0), los efectos con modelo(0) y 0x549510.
+    // 0x63486f..0x634883: the ribbons, the joints(0), the effects with a model(0) and 0x549510.
     if (auto drawn = m_world.DrawAfterCharacters(world, terrain, frame, camera, *poseCarry); !drawn.HasValue())
     {
         m_failure = drawn.Error();
         return;
     }
-    // 0x634896..0x6348dc: el elegido con la luz 0,15 (0x3e19999a), que prestan las dos 0x729 (la luz ancha y
-    // la de Impack03 que sube) en su lugar y con sus ángulos, de escala 1 y sin dueño.
+    // 0x634896..0x6348dc: the chosen one with light 0.15 (0x3e19999a), lent by the two 0x729 (the wide light and
+    // Impack03's that rises) at its place and with its angles, with scale 1 and no owner.
     if (chosenActor != nullptr)
     {
         chosenActor->light = glm::vec3(std::bit_cast<float>(0x3e19999au));
@@ -1596,11 +1592,11 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
                 return;
             }
         }
-        // 0x634906→0x4129f0 guarda el nombre en el objeto de [0x6eed7c] para B1/01 (0x412bb0), no dibuja un cartel.
-        // PrepareSelectedActor ya lo conserva en el registro propio; el consumidor de transferencia es H13.
+        // 0x634906→0x4129f0 stores the name in the object at [0x6eed7c] for B1/01 (0x412bb0), it does not draw a sign.
+        // PrepareSelectedActor already keeps it in the own record; the transfer consumer is H13.
     }
     canvas.flushModels();
-    // 0x63490d..0x634927: el pase de ojo.
+    // 0x63490d..0x634927: the eye pass.
     if (auto drawn = m_world.DrawEye(pass, frame, m_textures, world.DrawTail().damage); !drawn.HasValue())
     {
         m_failure = drawn.Error();
@@ -1645,13 +1641,13 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
             drawn.object.scale = actor->scale;
             drawn.alpha = actor->alpha;
             drawn.safeZone = actor->safeZone != 0;
-            // 0x50bbff..0x50bc71: las guardas de la sombra del mismo 0x50ba30 (0x634851 → 0x510d00): el alpha desde
-            // 0,5, sin +0x3e4 y fuera de los mapas sin sombra (el 54 no es ninguno).
+            // 0x50bbff..0x50bc71: the shadow guards of the same 0x50ba30 (0x634851 → 0x510d00): the alpha from 0.5,
+            // without +0x3e4 and outside the shadowless maps (the 54 is none of them).
             drawn.castsShadow = Actors::Drawing::CastsShadow(*actor, map);
         }
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
-        // 0x50ba30: la base del lugar más +0xf4, que el dibujo dejó en 1 para el elegido vivo y en 0 para los
-        // demás (sin el mundo, la escena lo escribe acá).
+        // 0x50ba30: the slot's base plus +0xf4, which the draw left at 1 for the living chosen one and at 0 for the
+        // others (without the world, the scene writes it here).
         if (actor != nullptr && !HasTheWorld())
         {
             actor->light = glm::vec3(isChosen ? ChosenExtraLight : 0.0f);
@@ -1668,10 +1664,10 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
         drawn.clothWorld = m_context.cloth;
         drawn.map = map;
         drawn.pace = OriginalFramePaceOf(m_context.pacing);
-        // Q-C410: la lista (0x4c20a0) y la respuesta de crear (0x4c2290) arman cada personaje con 0x517270 →
-        // 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su buffer de huesos (+0x120, 0x5123c4..0x5123ff).
-        // 0x510d00 → 0x50ba30 → 0x6001b0 posa ahí el cuerpo (0x600259), que arranca de lo que dejó su dibujo
-        // anterior y no del global; al global (0x68b181c) sólo va lo que cuelga.
+        // Q-C410: the list (0x4c20a0) and the create reply (0x4c2290) build each character with 0x517270 → 0x511290,
+        // which sets its +0x11c to 1 (0x511bf7) and gives it its bone buffer (+0x120, 0x5123c4..0x5123ff). 0x510d00 →
+        // 0x50ba30 → 0x6001b0 poses the body there (0x600259), which starts from what its previous draw left and not
+        // from the global; only what hangs goes to the global (0x68b181c).
         if (poseCarry != nullptr)
             drawn.poseBones = [poseCarry, actor](std::uint16_t model)
             {
@@ -1691,13 +1687,13 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
                     !result.HasValue())
                     m_failure = result.Error();
             };
-        // Con el mundo 54, el mismo 0x50ba30 que el juego: el cuerpo, las partes y la tela, y después lo que
-        // cuelga y los efectos (0x50db57..0x510a7a), que no miran la escena salvo la luz (0x50cc29, 0x50d219).
+        // With world 54, the same 0x50ba30 as the game: the body, the parts and the cloth, and then what hangs and the
+        // effects (0x50db57..0x510a7a), which do not look at the scene except for the light (0x50cc29, 0x50d219).
         if (actor != nullptr && poseCarry != nullptr && HasTheWorld() && HasTheSkeleton())
         {
-            // 0x50cca9..0x50d211: el héroe publicado (0x743a170, el lugar 0 desde WinMain) abre y cierra el registro
-            // propio para su color, aun con los bits apagados, también en la escena 4, que después le pone 0,5 más
-            // +0xf4 (0x50d219): 3.848 rand() al cerrarlo, en cada frame del original.
+            // 0x50cca9..0x50d211: the published hero (0x743a170, slot 0 since WinMain) opens and closes the own record
+            // for its color, even with the bits off, also in scene 4, which then gives it 0.5 plus +0xf4 (0x50d219):
+            // 3848 rand() on closing it, every original frame.
             if (static_cast<std::size_t>(character.slot) == hero)
             {
                 for (int frame = 0; frame < scanFrames; ++frame)
@@ -1709,8 +1705,8 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
             drawn.sprites = &m_world.FrameSprites();
             Actors::Drawing::DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock,
                                            Actors::Drawing::CharacterDrawPass::Body);
-            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel), sólo en un
-            // frame del original.
+            // 0x50bcec: the shadow copies the scale and the position to the 0x20b (WorldState::PlaceShadowModel), only
+            // on an original frame.
             if (scanFrames > 0 && Actors::Drawing::DrawsTheShadow(drawn))
                 m_context.world->PlaceShadowModel(*actor);
             DrawTheTail(canvas, *actor, character.slot, drawn, *poseCarry, scan, scanFrames > 0);
@@ -1719,15 +1715,14 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
             continue;
         }
         Actors::Drawing::DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
-        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
-        // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
-        // (Q-C412).
+        // Only an original frame leaves the body in its bones; an intermediate draw does not touch them. 0x6001b0 first
+        // copies the scale and the position to Player.bmd's shared model, with the alpha from 0.01 (Q-C412).
         if (actor != nullptr && poseCarry != nullptr && scanFrames > 0)
         {
             actor->bodyPose = Actors::Drawing::PoseCharacterBody(m_models, drawn);
             if (actor->alpha >= Kernel::PlayerModelAlpha)
                 m_context.world->PlacePlayerModel(*actor);
-            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
+            // 0x50bcec: the shadow copies the scale and the position to the 0x20b (WorldState::PlaceShadowModel).
             if (Actors::Drawing::DrawsTheShadow(drawn))
                 m_context.world->PlaceShadowModel(*actor);
         }
@@ -1740,11 +1735,11 @@ bool CharacterSelectScene::HasTheSkeleton() const
     return skeleton != nullptr && !skeleton->actions.empty();
 }
 
-// 0x50db57..0x510ac2 sobre el cuerpo ya dibujado (GameCharacters.h, DrawCharacterTail), con las tablas del frame
-// del mundo 54: las del mundo en un frame del original y sus copias entre frames. La luz de lo que cuelga
-// (0x50db94, [ebp−0x44] más +0xf4) es la de la escena 4, 0,4 fijo (0x50cc29), o 0,5 en el héroe publicado, que la
-// rama de su color pisa (0x50d231); con +0x375 desde 6, (1; 0,1; 0,1). El cuervo de un Dark Lord de la lista
-// (EquipSelectionActor) va con el trapecio de la selección.
+// 0x50db57..0x510ac2 on the body already drawn (GameCharacters.h, DrawCharacterTail), with the frame tables of world
+// 54: the world's on an original frame and their copies between frames. The light of what hangs (0x50db94,
+// [ebp−0x44] plus +0xf4) is scene 4's, a fixed 0.4 (0x50cc29), or 0.5 on the published hero, which its color branch
+// overwrites (0x50d231); with +0x375 from 6, (1, 0.1, 0.1). The raven of a listed Dark Lord (EquipSelectionActor) goes
+// with the selection's trapezoid.
 void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor, std::size_t slot,
                                        const Actors::Drawing::DrawnCharacter& drawn, Kernel::PoseBuffer& poseCarry,
                                        const Actors::FullSetScan& scan, bool originalFrame)
@@ -1789,9 +1784,9 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kerne
         m_failure = std::format("{}, en el personaje {} de la selección", drawnTail.Error(), slot);
 }
 
-// 0x50ba30 con cada uno de la lista, en 0x50c91e: son 0x20a con +0x7c y +0x3e4 en 0 (0x517270), y la vista
-// previa de la ventana de crear no lo es. Sin las acciones de Player.bmd sale antes (0x50ba87), como
-// DrawCharacter sin su esqueleto.
+// 0x50ba30 with each one of the list, at 0x50c91e: they are 0x20a with +0x7c and +0x3e4 at 0 (0x517270), and the
+// create window's preview is not. Without Player.bmd's actions it leaves early (0x50ba87), like DrawCharacter without
+// its skeleton.
 Actors::FullSetScan CharacterSelectScene::ScanTheCharacter(const Kernel::CharacterAppearance& appearance, int frames)
 {
     if (m_context.world == nullptr || m_context.cloth == nullptr ||
@@ -1831,7 +1826,7 @@ void CharacterSelectScene::Leave()
     m_world.Release();
     m_textures.Release();
     m_windowTextures.Release();
-    // 0x61cc50 suelta los slots de 0x6f8 a 0x71d.
+    // 0x61cc50 releases slots 0x6f8 to 0x71d.
     m_selectionModels.Release();
     if (m_startupModels != nullptr && m_startupModels->TakeStartupSelectionTexture(m_context.textures))
         m_context.textures.Release(Render::TextureSlot{Assets::StartupSelectionTextureSlot});
@@ -1844,8 +1839,7 @@ void CharacterSelectScene::StepThePreview()
         return;
     }
     m_previewAdvanced = true;
-    // 0x63d880 → 0x63d7c0 → 0x63e3e0: la clase que eligió el clic de este paso arma otra vez la
-    // vista previa, que después avanza.
+    // 0x63d880 → 0x63d7c0 → 0x63e3e0: the class this step's click chose builds the preview again, which then advances.
     if (m_create.ChosenClass() != Preview().characterClass)
     {
         if (m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr)
@@ -1870,14 +1864,13 @@ void CharacterSelectScene::StepThePreview()
     FrontEnd::StepPreview(Preview(), m_selectionModels);
 }
 
-// 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
-// profundidad (se prueba contra la del pase de la selección, como en el original); y 0x63e0a0: lo
-// demás, encima.
+// 0x66a050: the window's base; 0x63e460: the preview in its own pass, without clearing the depth (it is tested
+// against the selection pass's, as in the original); and 0x63e0a0: the rest, on top.
 void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canvas, float alpha)
 {
     if (!m_create.IsOpen())
     {
-        // 0x63e460 solo corre con la ventana dibujada: al reabrir no recupera el tiempo cerrada.
+        // 0x63e460 only runs with the window drawn: on reopening it does not make up the time closed.
         m_previewDrawFrames = {};
         return;
     }
@@ -1899,15 +1892,15 @@ void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canva
     const Render::Pass3D pass =
         Render::MakePass3D(canvas.screen, FrontEnd::PreviewViewport(box, canvas.screen), m_previewCamera);
     canvas.models.Begin(pass);
-    // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
-    // va a dar la haría temblar.
+    // Without this step's advance (a notice on top), the preview stays still: interpolating one that will not come
+    // would make it shake.
     if (m_context.world != nullptr)
     {
-        // Q-C410: 0x63e3e0 la arma con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer (+0x120);
-        // 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 la posa ahí (0x5fff13..0x5fff4c) y no en el global. Sólo un
-        // frame del original guarda la pose en el buffer propio. 0x50ba30 llama con el segundo argumento en 1
-        // (0x5ffdf0 en 0x50baed, 0x602e90 en 0x50bd81): los huesos quedan en el modelo (0x4eb860 con la bandera en 0)
-        // y 0x4ebc80 corre con Translate en 1, la normal sin la escala de la clase (5,9 a 9,1) para la luz por vértice.
+        // Q-C410: 0x63e3e0 builds it with 0x511290 (0x63e409), which sets its +0x11c to 1 and gives it its buffer
+        // (+0x120); 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 poses it there (0x5fff13..0x5fff4c) and not in the
+        // global. Only an original frame keeps the pose in the own buffer. 0x50ba30 calls with the second argument at 1
+        // (0x5ffdf0 at 0x50baed, 0x602e90 at 0x50bd81): the bones stay in the model (0x4eb860 with the flag at 0) and
+        // 0x4ebc80 runs with Translate at 1, the normal without the class scale (5.9 to 9.1) for the per-vertex light.
         Kernel::PoseBuffer own;
         own.bones = Preview().bodyPose;
         if (auto result = Actors::Drawing::PublishPose(own, m_selectionModels, drawn, false); !result.HasValue())
@@ -1952,9 +1945,9 @@ const Kernel::ActorState& CharacterSelectScene::PreviewActor() const
 
 bool CharacterSelectScene::HoldsTheLastFrame() const
 {
-    // 0x634680 sale con al = 0 mientras 0x7d3a13f está en 0 o el estado está antes de 0x33, y sin ese
-    // verdadero 0x637700 no presenta el frame (0x6385e1..0x6385f7): queda el último del login. Hasta que un
-    // paso vio la lista (y contó el primero de los suyos), salvo con un aviso abierto, que MuRet muestra.
+    // 0x634680 returns with al = 0 while 0x7d3a13f is 0 or the state is before 0x33, and without that true 0x637700
+    // does not present the frame (0x6385e1..0x6385f7): the login's last one stays. Until a step saw the list (and
+    // counted the first of its own), except with an open notice, which MuRet shows.
     return m_session != nullptr && (m_steps == 0 || WaitingForTheList()) && !m_notice.IsOpen();
 }
 } // namespace Client::Scenes

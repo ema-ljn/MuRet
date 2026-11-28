@@ -8,10 +8,9 @@
 
 #include <functional>
 
-// Lo que comparten las ventanas de la UI del login (CL5.5): los puntos y los rectángulos en
-// píxeles del framebuffer, con la y desde arriba, como los guarda la UI nueva del original (06 §
-// Las ventanas de la UI nueva); el mouse de la UI, y las imágenes en píxeles. Cada ventana se
-// atiende en el paso, con los flancos de la CL3.3, y se dibuja en el frame (Q-C81).
+// What the login UI windows share (CL5.5): points and rectangles in framebuffer pixels, with y from the top, as the
+// original's new UI keeps them (06 § Las ventanas de la UI nueva); the UI mouse, and the images in pixels. Each window
+// is handled in the step, with CL3.3's edges, and drawn in the frame (Q-C81).
 namespace Client::Ui
 {
 struct Point
@@ -29,22 +28,20 @@ struct Rect
     int width = 0;
     int height = 0;
 
-    // Como PtInRect: el borde de la izquierda y el de arriba son del rectángulo; el de la derecha
-    // y el de abajo, no.
+    // Like PtInRect: the left and top edges belong to the rectangle; the right and bottom ones do not.
     [[nodiscard]] bool Contains(Point point) const;
 
     friend bool operator==(const Rect&, const Rect&) = default;
 };
 
-// El mouse de la UI nueva (0x640940, pregunta 12 del plan de la CL5): la última posición de
-// `input`, que ya llega en píxeles del framebuffer, truncada al píxel y acotada a [0, W − 1] ×
-// [0, H − 1]. Una que no es un número va a 0.
+// The new UI's mouse (0x640940, question 12 of the CL5 plan): the last position of `input`, which already arrives in
+// framebuffer pixels, truncated to the pixel and clamped to [0, W − 1] × [0, H − 1]. One that is not a number goes
+// to 0.
 [[nodiscard]] Point MouseInPixels(const Input::InputState& input, Core::PixelSize screen);
 
-// El buffer de la textura de un slot, para las UV de las imágenes: en el cliente,
-// SceneTextures::BufferSize de la escena.
+// A slot's texture buffer, for the images' UVs: in the client, the scene's SceneTextures::BufferSize.
 using TextureSizes = std::function<Assets::TextureBufferSize(Render::TextureSlot)>;
 
-// Una imagen de una ventana: en píxeles (fx = fy = 1), con la textura de `slot` y su buffer.
+// A window image: in pixels (fx = fy = 1), with the texture of `slot` and its buffer.
 [[nodiscard]] Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Assets::TextureBufferSize buffer);
 } // namespace Client::Ui

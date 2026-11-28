@@ -2,39 +2,36 @@
 
 #include "Input/InputState.h"
 
-// Lo que el bucle llama (CL3.2): la red, una vez por frame (CL4.1); la lógica, un paso por vez, con
-// el input del frame (CL3.3); y el dibujo. Está en su propio header porque lo implementan la
-// escena de Main y el cliente de prueba de los tests, y ninguno necesita el bucle entero.
+// What the loop calls: the network, once per frame; the logic, one step at a time, with the frame's input; and the
+// draw. It has its own header because Main's scene and the tests' client implement it, and neither needs the whole
+// loop.
 namespace Client::Scenes
 {
 class ILoopClient
 {
 public:
     virtual ~ILoopClient() = default;
-    // La red: una vez por frame, antes de los pasos, también minimizada, como la cola de paquetes
-    // que el original despacha en cada vuelta del bucle de WinMain (0x4e1d50). El original la
-    // despacha después del frame (0x4be5b3), que en régimen es lo mismo: entre un frame y el
-    // siguiente. En el modo fiel va antes de BeginFrame, fuera de la medición, como el bucle de
-    // mensajes (GameLoop.h).
+    // Once per frame, before the steps, also minimized, like the packet queue the original dispatches on each turn of
+    // the WinMain loop (0x4e1d50). The original dispatches it after the frame (0x4be5b3), the same in steady state:
+    // between one frame and the next. In faithful mode it goes before BeginFrame, outside the measurement, like the
+    // message loop (GameLoop.h).
     virtual void Poll() = 0;
-    // Un paso. Los flancos de `input` (WasPressed, WasReleased, Wheel) los ve solo el primer paso
-    // del frame: GameLoop llama a ConsumeEdges después (InputState.h).
+    // Only the frame's first step sees the edges of `input` (WasPressed, WasReleased, Wheel): GameLoop calls
+    // ConsumeEdges afterwards (InputState.h).
     virtual void Step(const Input::InputState& input) = 0;
-    // Dibuja y presenta: el swap va adentro de Render, así que el modo fiel lo suma al acumulador
-    // con el dibujo, como el original. alpha en [0, 1): cuánto del próximo paso ya pasó
-    // (Decoupled), o 0 (Faithful).
+    // Draws and presents: the swap is inside Render, so faithful mode adds it to the accumulator with the draw, like
+    // the original. alpha in [0, 1): how much of the next step has already passed (Decoupled), or 0 (Faithful).
     virtual void Render(float alpha) = 0;
-    // Si este frame no se dibuja: en la pantalla queda el último que se presentó, como en el
-    // original mientras un connect bloqueante tiene parado el bucle (el del login, Q-C85). GameLoop
-    // lo mira después de los pasos, y el frame sigue como minimizada: la red y los pasos corren.
+    // Whether this frame is not drawn: the last presented one stays on screen, as in the original while a blocking
+    // connect holds the loop (the login's, Q-C85). GameLoop checks it after the steps, and the frame goes on as when
+    // minimized: the network and the steps run.
     [[nodiscard]] virtual bool HoldsTheLastFrame() const = 0;
-    // Si un paso cambió de escena desde la última vez que se preguntó (y lo olvida): la entrada a una
-    // escena (cargar sus texturas y sus modelos) corre dentro de un paso, y el original no la mide, porque
-    // mide desde después de los pasos (0x63852b). GameLoop lo mira después de los pasos, en los dos modos.
+    // Whether a step changed scene since the last time it was asked (and forgets it): entering a scene (loading its
+    // textures and models) runs inside a step, and the original does not measure it, because it measures from after the
+    // steps (0x63852b). GameLoop checks it after the steps, in both modes.
     [[nodiscard]] virtual bool TakeTheSceneChange() = 0;
-    // El fin de una vuelta del bucle con la ventana sin minimizar, dibujada o retenida: lo que el original saca
-    // después del frame (0x63945d, después de 0x637700) y al empezar la vuelta siguiente (WinMain), P-C61. Sin
-    // nada que hacer por omisión.
+    // The end of a loop turn with the window not minimized, drawn or held: what the original does after the frame
+    // (0x63945d, after 0x637700) and at the start of the next turn (WinMain), P-C61.
     virtual void FinishTheLoop() {}
 };
 } // namespace Client::Scenes

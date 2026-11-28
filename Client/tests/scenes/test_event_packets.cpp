@@ -64,9 +64,9 @@
 #include <utility>
 #include <vector>
 
-// CL9 hito 11 (04 § Los eventos): lo que los paquetes de Devil Square, Blood Castle, Chaos Castle, Kalima y Crywolf
-// hacen al llegar (Events::ApplyEventPacket), la cuenta de 0x40bab0 y el derrumbe de los objetos, contra el ASM de
-// c32bbd5f sin ejecutar el original. Text.bmd es inventado, con los especificadores de los textos del original.
+// CL9 milestone 11 (04 § Los eventos): what the Devil Square, Blood Castle, Chaos Castle, Kalima and Crywolf packets do
+// on arrival (Events::ApplyEventPacket), the 0x40bab0 countdown and the object collapse, against the ASM of c32bbd5f
+// without running the original. Text.bmd is made up, with the specifiers of the original's texts.
 namespace
 {
 namespace Events = Client::Protocol::Events;
@@ -144,7 +144,7 @@ std::map<std::size_t, std::string> EventTexts()
     };
 }
 
-// Item.bmd con dos nombres: una espada (el tipo 1) y un escudo (0x0c05); los demás registros, vacíos.
+// Item.bmd with two names: a sword (type 1) and a shield (0x0c05); the other records, empty.
 Client::Tables::ItemTable EventItems()
 {
     using Client::Tables::ItemRecordSize;
@@ -159,7 +159,7 @@ Client::Tables::ItemTable EventItems()
     return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
-// Los modelos por tipo de 0x4ea030: Player.bmd y uno de transformado con dos acciones.
+// The models by type of 0x4ea030: Player.bmd and a transformed one with two actions.
 class EventModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -206,7 +206,7 @@ public:
     int letterWidth = 6;
 };
 
-// Los mapas de cada evento y los de afuera (Lorencia, Devias, Kalima y Crywolf).
+// The maps of each event and the outside ones (Lorencia, Devias, Kalima and Crywolf).
 constexpr std::array<std::int32_t, 7> BloodCastleMaps{11, 12, 13, 14, 15, 16, 17};
 constexpr std::array<std::int32_t, 6> ChaosCastleMaps{18, 19, 20, 21, 22, 23};
 constexpr std::array<std::int32_t, 2> DevilSquareMaps{9, 32};
@@ -218,7 +218,7 @@ protected:
     void SetUp() override
     {
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        // 0x4ea030 con la acción 0xc0 de 0x5111a0 y la 0xca del BD 03: Player.bmd las tiene.
+        // 0x4ea030 with action 0xc0 of 0x5111a0 and BD 03's 0xca: Player.bmd has them.
         player.actions.resize(0xcb);
         for (auto& action : player.actions)
             action.keyCount = 4;
@@ -274,7 +274,8 @@ protected:
         return applied.HasValue() ? std::string{} : applied.Error();
     }
 
-    // Lo que el original hace fuera de sus tablas: la sesión sigue y el resto del paquete se descarta, con el porqué.
+    // What the original does outside its tables: the session goes on and the rest of the packet is dropped, with the
+    // why.
     std::string Discarded(const Events::EventPacket& packet)
     {
         const EventPacketResult result = Applied(packet);
@@ -282,7 +283,7 @@ protected:
         return result.discarded.value_or(std::string{});
     }
 
-    // El aviso de 0x632e30 con `text`, como lo deja Ui::OpenMessageBox en una caja vacía.
+    // The notice of 0x632e30 with `text`, as Ui::OpenMessageBox leaves it in an empty box.
     void ExpectMessageBox(std::string_view text)
     {
         Client::Ui::DialogBoxState expected;
@@ -299,7 +300,7 @@ protected:
         Runtime().dialogBox = {};
     }
 
-    // El rand() de la CRT después de 0x657a90 (cerrar todo) sobre otro mundo como este.
+    // The CRT rand() after 0x657a90 (close everything) on another world like this one.
     std::uint32_t AfterClosingAll()
     {
         auto other = std::make_unique<WorldState>();
@@ -314,7 +315,7 @@ protected:
         return terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
-    // El terreno del mapa con la Data del repo, como lo deja la carga (0x61a560).
+    // The map's terrain with the repo's Data, as the load leaves it (0x61a560).
     void LoadTheTerrain(std::uint8_t map)
     {
         terrain = {};
@@ -334,7 +335,7 @@ protected:
         return std::move(loaded).Value();
     }
 
-    // La luz de `relative` sombreada con las alturas cargadas del 34.
+    // The light of `relative` shaded with the loaded heights of 34.
     std::unique_ptr<Client::Terrain::TerrainLighting> Shaded(const std::string& relative) const
     {
         const auto bytes = Client::Tests::ReadFileBytes(dataRoot / relative);
@@ -344,7 +345,7 @@ protected:
         return Client::Terrain::ShadeTerrainLight(*light.Value(), *terrain.heights, 34);
     }
 
-    // En el heap: el WorldState pasa de 340 KB (el stack de Windows es de 1 MB).
+    // On the heap: WorldState is over 340 KB (the Windows stack is 1 MB).
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
     Client::Terrain::WorldTerrain terrain;
@@ -356,7 +357,7 @@ protected:
     Client::Models::Skeleton player;
     EventModels models{player};
     std::uint32_t tickCount = 0;
-    // Lo que manda el send() de mundo (el C1 05 18 del BD 03).
+    // What the world send() sends (BD 03's C1 05 18).
     std::vector<Client::Protocol::Outgoing> worldPackets;
 };
 
@@ -380,8 +381,8 @@ TEST_F(EventPacketsTest, ClosingForAnEventKeepsTheSeniorBusyWarningAsALocalConti
 
 // ----- 0B (0x4e3594).
 
-// 0x4e3621..0x4e3663: el 1 prende la tormenta (1) y el 3 la fuerte (3), con pkt[3] en 0 la apagan; otro evento no la
-// toca. Siempre apaga los 40 pájaros (0x4455c0). En todos los mapas igual.
+// 0x4e3621..0x4e3663: 1 turns on the storm (1) and 3 the strong one (3), with pkt[3] at 0 they turn it off; another
+// event leaves it alone. It always puts away the 40 birds (0x4455c0). The same in every map.
 TEST_F(EventPacketsTest, TheEventStateSetsTheStormAndPutsTheBirdsAway)
 {
     for (const std::int32_t map : {0, 2, 9, 11, 18, 24, 34})
@@ -406,7 +407,7 @@ TEST_F(EventPacketsTest, TheEventStateSetsTheStormAndPutsTheBirdsAway)
 
 // ----- 46 (0x4dab90).
 
-// El tipo 1: cada celda con 0x5f8710 (OR) si pkt[5] es 0 y con 0x5f8730 (AND con el complemento) si no.
+// Type 1: each cell with 0x5f8710 (OR) if pkt[5] is 0 and with 0x5f8730 (AND with the complement) otherwise.
 TEST_F(EventPacketsTest, TheCellAttributesAddWithModeZeroAndRemoveOtherwise)
 {
     for (const std::int32_t map : {0, 2, 11, 24})
@@ -424,8 +425,8 @@ TEST_F(EventPacketsTest, TheCellAttributesAddWithModeZeroAndRemoveOtherwise)
     }
 }
 
-// El tipo 0: rectángulos de (x1, y1) a (x2, y2) con 0x5f8750 y 1 − pkt[5] en un byte: 0 agrega, 1 quita y 2 (0xff)
-// también agrega (Q-C1320). En Blood Castle, el atributo 8 pide antes el derrumbe (mapa, 0x24, 0, 1).
+// Type 0: rectangles from (x1, y1) to (x2, y2) with 0x5f8750 and 1 − pkt[5] in a byte: 0 adds, 1 removes and 2 (0xff)
+// also adds (Q-C1320). In Blood Castle, attribute 8 first requests the collapse (map, 0x24, 0, 1).
 TEST_F(EventPacketsTest, TheAreaAttributesMarkRectanglesAndTheBloodCastleGateCollapses)
 {
     for (const std::int32_t map : {0, 2, 9, 11, 14, 17, 18, 24, 36})
@@ -456,14 +457,13 @@ TEST_F(EventPacketsTest, TheAreaAttributesMarkRectanglesAndTheBloodCastleGateCol
         Cell(13, 17) = 0;
         Cell(14, 17) = 0;
     }
-    // Otro atributo no pide el derrumbe.
     Runtime().map = 12;
     Runtime().events.objectCollapse = {};
     Applied(Events::MapAttributes{.type = 0, .attribute = 4, .mode = 0, .count = 1, .areas = {{1, 1, 1, 1}}});
     EXPECT_EQ(Runtime().events.objectCollapse.map, -1);
 }
 
-// Sin el .att del mapa corta; otro tipo no hace nada.
+// Without the map's .att it stops; another type does nothing.
 TEST_F(EventPacketsTest, TheAttributesNeedTheMapAttributes)
 {
     Applied(Events::MapAttributes{.type = 2, .attribute = 8, .mode = 0, .count = 3});
@@ -475,12 +475,13 @@ TEST_F(EventPacketsTest, TheAttributesNeedTheMapAttributes)
 
 // ----- 47 (0x4d6990).
 
-// Con la clave del héroe, nada. Con otra, el mensaje de 0x555190 con el nombre del dueño (+0x1d9): el prefijo de
-// 0x10000 (620) o, sin él, el de 0x20000 (1089) con "%s ", el nombre de 0x5b1c70 (los 13 bits bajos y pkt[0xc]), lo
-// de 0x2000, 0x8000 y 0x4000 en ese orden (176, 177 y 178) y "%s %s" con el 918. Sin nadie con la clave, el 400.
+// With the hero's key, nothing. With another, the message of 0x555190 with the owner's name (+0x1d9): the prefix of
+// 0x10000 (620) or, without it, that of 0x20000 (1089) with "%s ", the name from 0x5b1c70 (the low 13 bits and
+// pkt[0xc]), what 0x2000, 0x8000 and 0x4000 add in that order (176, 177 and 178) and "%s %s" with 918. With nobody
+// holding the key, 400.
 TEST_F(EventPacketsTest, TheItemAcquiredNoticeNamesTheItemAndItsOwner)
 {
-    // Letras de un punto: el aviso entra entero en el primer renglón de 180 de 0x45bb20.
+    // One-pixel letters: the notice fits whole in the first 180-wide line of 0x45bb20.
     letters.letterWidth = 1;
     Client::Kernel::ActorState& other = world.Actors()[5];
     other.alive = true;
@@ -514,7 +515,7 @@ TEST_F(EventPacketsTest, TheItemAcquiredNoticeNamesTheItemAndItsOwner)
         EXPECT_EQ(Runtime().chat.log.entries.front().text, test.text);
         EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::Ui::SystemMessage);
     }
-    // 0x5110d0 sin la clave (y con una desde 0x8000, por el MOVSX) da el 400, sin nombre.
+    // 0x5110d0 without the key (and with one from 0x8000, by the MOVSX) gives 400, with no name.
     for (const std::uint16_t key : {std::uint16_t{0x0789}, std::uint16_t{0x8456}})
     {
         Applied(Events::ItemAcquired{.key = key, .item = 0x0001, .level = 0});
@@ -523,7 +524,7 @@ TEST_F(EventPacketsTest, TheItemAcquiredNoticeNamesTheItemAndItsOwner)
     }
 }
 
-// Sin Item.bmd corta en 0x5b1c70; lo que no entra con su '\0' en los buffers de 100 de la pila, también.
+// Without Item.bmd it stops at 0x5b1c70; so does what does not fit with its '\0' in the 100-byte stack buffers.
 TEST_F(EventPacketsTest, TheItemAcquiredNoticeCutsWithoutTheItemsOrOutsideItsBuffers)
 {
     letters.letterWidth = 1;
@@ -536,20 +537,20 @@ TEST_F(EventPacketsTest, TheItemAcquiredNoticeCutsWithoutTheItemsOrOutsideItsBuf
     auto longTexts = EventTexts();
     longTexts[176] = std::string(86, 'x');
     texts = Client::Tests::MakeTextTable(longTexts);
-    // "Espada" y 86: 92 en el primero, y con " obtuvo" 99 y el '\0' en el segundo: entran justo.
+    // "Espada" and 86: 92 in the first, and with " obtuvo" 99 and the '\0' in the second: they fit exactly.
     Applied(Events::ItemAcquired{.key = 0x0456, .item = 0x2001, .level = 0});
     EXPECT_EQ(Runtime().chat.log.entries.front().text.size(), 99u);
-    // Con "+Habil" y "+Opcion", 105 no entran en el primero.
+    // With "+Habil" and "+Opcion", 105 do not fit in the first.
     const std::string strcat = Cut(Events::ItemAcquired{.key = 0x0456, .item = 0xe001, .level = 0});
     EXPECT_NE(strcat.find("0x4d6b1f"), std::string::npos) << strcat;
-    // Con "+Habil", 98 entran en el primero y 105 no en el segundo.
+    // With "+Habil", 98 fit in the first and 105 do not fit in the second.
     const std::string sprintf = Cut(Events::ItemAcquired{.key = 0x0456, .item = 0xa001, .level = 0});
     EXPECT_NE(sprintf.find("0x4d6b36"), std::string::npos) << sprintf;
 }
 
 // ----- 90 (0x4e4870).
 
-// Cierra la ventana del NPC del evento (0x65cae0(0x1000)) y, con pkt[3] de 1 a 5, el aviso 677, 678, 686, 687 o 679.
+// Closes the event NPC window (0x65cae0(0x1000)) and, with pkt[3] from 1 to 5, notice 677, 678, 686, 687 or 679.
 TEST_F(EventPacketsTest, TheDevilSquareEntryShowsItsNotice)
 {
     const std::array<std::string_view, 5> notices{"ds sin entrada", "ds tarde", "muy fuerte", "muy debil", "ds lleno"};
@@ -570,8 +571,8 @@ TEST_F(EventPacketsTest, TheDevilSquareEntryShowsItsNotice)
     }
 }
 
-// Con la ventana del NPC abierta, 0x65cae0(0x1000) manda el C1 03 31 (0x658a04) y cierra también el inventario; sin
-// el envío de la sesión, cerrarla corta.
+// With the NPC window open, 0x65cae0(0x1000) sends C1 03 31 (0x658a04) and also closes the inventory; without the
+// session's send, closing it stops.
 TEST_F(EventPacketsTest, TheDevilSquareEntryClosesTheOpenWindow)
 {
     Runtime().panels.eventNpc = 1;
@@ -590,9 +591,9 @@ TEST_F(EventPacketsTest, TheDevilSquareEntryClosesTheOpenWindow)
     ExpectMessageBox("muy fuerte");
 }
 
-// 0x4da78f → 0x657a90 → 0x657ab0(0x10000): el 9A que llega con la tienda de un NPC abierta la cierra con el C1 03 31
-// en claro por la sesión de las ventanas (0x659063), vacía su grilla y cierra el inventario; sin ese envío, cerrarla
-// corta. Igual el almacén (C1 03 82) y la caja del caos vacía (C1 03 87).
+// 0x4da78f → 0x657a90 → 0x657ab0(0x10000): the 9A that arrives with an NPC shop open closes it with C1 03 31 in the
+// clear through the windows' session (0x659063), empties its grid and closes the inventory; without that send, closing
+// it stops. The same for the warehouse (C1 03 82) and the empty chaos box (C1 03 87).
 TEST_F(EventPacketsTest, TheBloodCastleEntryClosesAnOpenNpcWindow)
 {
     using Client::Ui::PanelState;
@@ -640,10 +641,10 @@ TEST_F(EventPacketsTest, TheBloodCastleEntryClosesAnOpenNpcWindow)
     }
 }
 
-// ----- 91 (0x4da8c0), con wsprintfA.
+// ----- 91 (0x4da8c0), with wsprintfA.
 
-// El 1: 643 con pkt[4] en 0 y si no 644 con los minutos, que "% d" de wsprintfA no imprime (P-C290). El 2: 850 con
-// el nombre de Blood Castle o 851 con (minutos, nombre). El 3, nada.
+// 1: 643 with pkt[4] at 0 and otherwise 644 with the minutes, which wsprintfA's "% d" does not print (P-C290). 2: 850
+// with the Blood Castle name or 851 with (minutes, name). 3, nothing.
 TEST_F(EventPacketsTest, TheOpenTimeOfDevilSquareAndBloodCastle)
 {
     Applied(Events::EventOpenTime{.kind = 1});
@@ -662,8 +663,8 @@ TEST_F(EventPacketsTest, TheOpenTimeOfDevilSquareAndBloodCastle)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// El 4: con la palabra pkt[4]:pkt[6] en 0, el 0x9a con 850 (nombre) y 1156 (nombre, pkt[5], 100); si no, 1164 con
-// las horas y 851 con (minutos, nombre) pegados por el strcat.
+// 4: with the word pkt[4]:pkt[6] at 0, the 0x9a with 850 (name) and 1156 (name, pkt[5], 100); otherwise, 1164 with
+// the hours and 851 with (minutes, name) joined by the strcat.
 TEST_F(EventPacketsTest, TheOpenTimeOfChaosCastleOpensTheChaosCastleDialog)
 {
     Applied(Events::EventOpenTime{.kind = 4, .value4 = 0, .value5 = 7, .value6 = 0});
@@ -677,7 +678,7 @@ TEST_F(EventPacketsTest, TheOpenTimeOfChaosCastleOpensTheChaosCastleDialog)
         EXPECT_EQ(Runtime().dialogBox.lineCount, expected.lineCount);
     }
     ResetTheBox();
-    // 1 · 256 + 10 = 266 minutos: 4 horas y 26.
+    // 1 · 256 + 10 = 266 minutes: 4 hours and 26.
     Applied(Events::EventOpenTime{.kind = 4, .value4 = 1, .value5 = 0, .value6 = 10});
     Client::Ui::DialogBoxState expected;
     Client::Ui::DialogState dialogs;
@@ -687,19 +688,19 @@ TEST_F(EventPacketsTest, TheOpenTimeOfChaosCastleOpensTheChaosCastleDialog)
     EXPECT_EQ(Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
 }
 
-// 0x4daa3b..0x4daa73: el strcat de 851 sobre el registro 1154 (300 bytes) que no entra con su '\0' pisaría el 1155 y
-// el original abre el 0x9a igual. MuRet descarta el resto del 91 sin el 0x9a, la sesión sigue y el aviso lleva el
-// largo, no los textos (Q-C1109). Con 299 caracteres y su '\0' entra justo y abre el 0x9a.
+// 0x4daa3b..0x4daa73: the strcat of 851 onto record 1154 (300 bytes) that does not fit with its '\0' would overwrite
+// 1155 and the original opens 0x9a anyway. MuRet drops the rest of 91 without 0x9a, the session goes on and the
+// notice carries the length, not the texts (Q-C1109). With 299 characters and its '\0' it fits exactly and opens 0x9a.
 TEST_F(EventPacketsTest, TheChaosCastleTimeThatOverflowsItsRecordIsDiscarded)
 {
-    // "Cuando 4" (1164 con las horas) y "entra en d minutos" (851): 8 y 18 caracteres, más el relleno.
+    // "Cuando 4" (1164 with the hours) and "entra en d minutos" (851): 8 and 18 characters, plus the padding.
     const auto withHours = [this](std::size_t padding)
     {
         auto longer = EventTexts();
         longer[1164] = std::string(padding, 'h') + "Cuando %d";
         texts = Client::Tests::MakeTextTable(longer);
     };
-    // 1 · 256 + 10 = 266 minutos: 4 horas y 26.
+    // 1 · 256 + 10 = 266 minutes: 4 hours and 26.
     const Events::EventOpenTime packet{.kind = 4, .value4 = 1, .value5 = 0, .value6 = 10};
     withHours(300 - 8 - 18);
     const std::string reason = Discarded(packet);
@@ -715,9 +716,10 @@ TEST_F(EventPacketsTest, TheChaosCastleTimeThatOverflowsItsRecordIsDiscarded)
     EXPECT_EQ(Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
 }
 
-// ----- 92 (0x4e4930) y la cuenta (0x40bab0).
+// ----- 92 (0x4e4930) and the countdown (0x40bab0).
 
-// Con el objeto del evento, +8 = pkt[3] + 1 y +0xc = GetTickCount; sin él (Lorencia, Devias, Kalima, Crywolf), nada.
+// With the event object, +8 = pkt[3] + 1 and +0xc = GetTickCount; without it (Lorencia, Devias, Kalima, Crywolf),
+// nothing.
 TEST_F(EventPacketsTest, TheCountdownStartsOnlyWithTheEventObject)
 {
     tickCount = 123456;
@@ -740,8 +742,8 @@ TEST_F(EventPacketsTest, TheCountdownStartsOnlyWithTheEventObject)
     }
 }
 
-// 0x40bab0: 639 + n con 1 a 3 y 8 a 10 (los números), 820 + n con 4 a 7 y el nombre de Blood Castle, 813 + n con 11
-// a 14 y el de Chaos Castle (con el 828 en lugar del 825). Los segundos son 30 − transcurrido / 1000.
+// 0x40bab0: 639 + n with 1 to 3 and 8 to 10 (the numbers), 820 + n with 4 to 7 and the Blood Castle name, 813 + n with
+// 11 to 14 and the Chaos Castle one (with 828 instead of 825). The seconds are 30 − elapsed / 1000.
 TEST_F(EventPacketsTest, TheCountdownTextsByKind)
 {
     struct Case
@@ -754,7 +756,7 @@ TEST_F(EventPacketsTest, TheCountdownTextsByKind)
         {3, "ds tres en 30"},
         {10, "otro diez en 30"},
         {4, "Blood Castle cierra en 30"},
-        // P-C290: "% s" y "% d" de wsprintfA salen como texto, sin argumentos.
+        // P-C290: wsprintfA's "% s" and "% d" come out as text, without arguments.
         {5, " s invasion (en d segundos)"},
         {7, "Blood Castle sigue 30"},
         {11, "Chaos Castle cierra en 30"},
@@ -772,8 +774,8 @@ TEST_F(EventPacketsTest, TheCountdownTextsByKind)
     }
 }
 
-// Los segundos que faltan con la resta sin signo: a los 12,345 s quedan 18; a los 30 s justos, 0; pasados, nada y
-// +8 en 0 si escribe. GetTickCount que dio la vuelta sigue contando bien. Con +8 fuera de 1..14, nada.
+// The seconds left by the unsigned subtraction: at 12.345 s, 18 are left; at exactly 30 s, 0; past it, nothing and +8
+// at 0 if it writes. A GetTickCount that wrapped around still counts right. With +8 outside 1..14, nothing.
 TEST_F(EventPacketsTest, TheCountdownExpiresAfterThirtySeconds)
 {
     EventMapObject event{.field08 = 1, .field0c = 1000};
@@ -800,9 +802,9 @@ TEST_F(EventPacketsTest, TheCountdownExpiresAfterThirtySeconds)
 
 // ----- 93 (0x4e4959).
 
-// Devil Square (0x40bd20): con pkt[4] < 200, los botones, +0x24 = cuenta, +0x28 = puesto, la copia de 24 bytes por
-// registro a +0x2c y el 0x8b. Blood Castle (0x40c0c0) con 0xff y Chaos Castle (0x404da0) con 0xfe: un registro,
-// +0x24 = puesto y el 0x97 o el 0x9b.
+// Devil Square (0x40bd20): with pkt[4] < 200, the buttons, +0x24 = count, +0x28 = rank, the 24-byte copy per record to
+// +0x2c and the 0x8b. Blood Castle (0x40c0c0) with 0xff and Chaos Castle (0x404da0) with 0xfe: one record, +0x24 =
+// rank and the 0x97 or the 0x9b.
 TEST_F(EventPacketsTest, TheResultsFillTheEventObjectAndPushTheirDialog)
 {
     std::vector<std::byte> scores(48);
@@ -848,9 +850,9 @@ TEST_F(EventPacketsTest, TheResultsFillTheEventObjectAndPushTheirDialog)
     }
 }
 
-// Q-C1324: más de 11 registros pasan los 0x108 bytes de +0x2c; menos bytes que los que copia, del buffer de la
-// recepción. En los dos se descarta el resto, después de los botones, +0x24 y +0x28 (0x40bd34..0x40bd81): ni la copia
-// ni el 0x8b. Blood Castle (0x40c12a) y Chaos Castle (0x404e0a) sin los 24 bytes, ídem. La sesión sigue.
+// Q-C1324: more than 11 records pass the 0x108 bytes of +0x2c; fewer bytes than it copies come from the receive
+// buffer. In both the rest is dropped, after the buttons, +0x24 and +0x28 (0x40bd34..0x40bd81): neither the copy nor
+// the 0x8b. Blood Castle (0x40c12a) and Chaos Castle (0x404e0a) without the 24 bytes, the same. The session goes on.
 TEST_F(EventPacketsTest, TheResultsThatOverflowTheObjectAreDiscarded)
 {
     for (const std::int32_t map : DevilSquareMaps)
@@ -899,11 +901,11 @@ TEST_F(EventPacketsTest, TheResultsThatOverflowTheObjectAreDiscarded)
     }
 }
 
-// ----- 94, 95 y 96.
+// ----- 94, 95 and 96.
 
-// 0x4dd8a0: cierra todo (con sus rand()), 0x78abb04 = la cuenta con signo y 0x78abb00 = tipo + 1; con 1, los números
-// del Muto si ninguno es 0xffff; con 3 (0x4dd8ce..0x4dd920), el número de serie en cero, los buffers del chat vacíos,
-// el campo cerrado, un solo campo para el Tab y 0x77f3b6b en 1.
+// 0x4dd8a0: closes everything (with its rand()), 0x78abb04 = the signed count and 0x78abb00 = type + 1; with 1, the
+// Muto numbers if none is 0xffff; with 3 (0x4dd8ce..0x4dd920), the serial number zeroed, the chat buffers empty, the
+// field closed, a single field for Tab and 0x77f3b6b at 1.
 TEST_F(EventPacketsTest, TheChipInfoOpensTheChipWindow)
 {
     for (const std::int32_t map : {0, 2})
@@ -941,8 +943,8 @@ TEST_F(EventPacketsTest, TheChipInfoOpensTheChipWindow)
     }
 }
 
-// 0x4dd926..0x4dd92c: el 94 con el tipo 0 corto lee los números del Muto del buffer de la recepción. Se descartan,
-// después del cierre de todo (con sus rand()) y de 0x78abb00/04; la sesión sigue.
+// 0x4dd926..0x4dd92c: the short 94 with type 0 reads the Muto numbers from the receive buffer. They are dropped, after
+// closing everything (with its rand()) and 0x78abb00/04; the session goes on.
 TEST_F(EventPacketsTest, TheChipInfoWithoutTheMutoNumbersIsDiscarded)
 {
     for (const std::int32_t map : {0, 2})
@@ -961,7 +963,7 @@ TEST_F(EventPacketsTest, TheChipInfoWithoutTheMutoNumbersIsDiscarded)
     }
 }
 
-// 0x4e49d4: la cuenta salvo 0xffff; 0x4e49fb: los tres números salvo con alguno en 0xffff.
+// 0x4e49d4: the count except 0xffff; 0x4e49fb: the three numbers except with one at 0xffff.
 TEST_F(EventPacketsTest, TheChipCountAndTheMutoNumbers)
 {
     Runtime().panels.field78abb04 = 3;
@@ -988,10 +990,10 @@ TEST_F(EventPacketsTest, TheEventDialogPushesItsDialog)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// ----- 9A (0x4da780) y AF 01 (0x4daa90), con sprintf.
+// ----- 9A (0x4da780) and AF 01 (0x4daa90), with sprintf.
 
-// Cierran todo y muestran el aviso. "% s" con el nombre sale con el nombre; el "% d" de 853 toma el puntero al nombre
-// e imprime su dirección (Q-C1321); 867 con 6.
+// They close everything and show the notice. "% s" with the name comes out with the name; the "% d" of 853 takes the
+// pointer to the name and prints its address (Q-C1321); 867 with 6.
 TEST_F(EventPacketsTest, TheCastleEntryResultsShowTheirNotice)
 {
     const std::string bloodAddress =
@@ -1045,10 +1047,10 @@ TEST_F(EventPacketsTest, TheCastleEntryResultsShowTheirNotice)
 
 // ----- 9B (0x4e4999).
 
-// Blood Castle (0x40c140), en los mapas 11 a 17: el 0 gira a los jugadores hacia la puerta (0x5111a0(0xc0)), pide la
-// música 0x8b y sigue en el 1: +0x10 = estado + 1, +0x14 = (900, pkt[4], pkt[6], pkt[8]) y el arma del dueño (sin
-// el bit alto de la clave) en +0x360, con las de los demás en 0. El 2 vuelve a 0x40ba20 y apaga la música; el 3 pide
-// el derrumbe (mapa, 0x24, 0x14, 1).
+// Blood Castle (0x40c140), in maps 11 to 17: 0 turns the players toward the gate (0x5111a0(0xc0)), requests music 0x8b
+// and falls through to 1: +0x10 = state + 1, +0x14 = (900, pkt[4], pkt[6], pkt[8]) and the owner's weapon (without the
+// key's high bit) in +0x360, with the others' at 0. 2 goes back to 0x40ba20 and turns off the music; 3 requests the
+// collapse (map, 0x24, 0x14, 1).
 TEST_F(EventPacketsTest, TheBloodCastlePlayStateTurnsThePlayersAndGivesTheWeapon)
 {
     for (const std::int32_t map : BloodCastleMaps)
@@ -1099,7 +1101,7 @@ TEST_F(EventPacketsTest, TheBloodCastlePlayStateTurnsThePlayersAndGivesTheWeapon
     }
 }
 
-// Q-C1326: 0x511150 sin nadie con la clave escribe el arma en el 400 (fuera de los que recorrió).
+// Q-C1326: 0x511150 with nobody holding the key writes the weapon into 400 (outside those it walked).
 TEST_F(EventPacketsTest, TheWeaponWithoutItsOwnerGoesToTheFourHundredth)
 {
     Runtime().map = 11;
@@ -1110,7 +1112,7 @@ TEST_F(EventPacketsTest, TheWeaponWithoutItsOwnerGoesToTheFourHundredth)
     EXPECT_EQ(world.Actors()[400].byte360, 3);
 }
 
-// Sin Player.bmd, el giro de 0x5111a0 corta.
+// Without Player.bmd, the turn of 0x5111a0 stops.
 TEST_F(EventPacketsTest, TheGateTurnNeedsThePlayerSkeleton)
 {
     Runtime().map = 11;
@@ -1122,10 +1124,10 @@ TEST_F(EventPacketsTest, TheGateTurnNeedsThePlayerSkeleton)
     EXPECT_NE(applied.Error().find("0x40c16a"), std::string::npos) << applied.Error();
 }
 
-// Chaos Castle (0x404e20), en los mapas 18 a 23: el 5 arma la trampa, el área en 0xff, cierra el chat, gira a los
-// jugadores y cambia la música (0x9e por 0x99); el 6, +0x10 = 7 sin arma; el 7 vuelve y, en 18..23, 0x9e y 0x9f.
-// Los 8, 9 y 10 con el área en 0, 3 y 6: la siguiente, el derrumbe (mapa, 1, 0x28, 1), cuatro rectángulos con el 8
-// y el 0x61; con otra área, nada.
+// Chaos Castle (0x404e20), in maps 18 to 23: 5 arms the trap, the area at 0xff, closes the chat, turns the players and
+// changes the music (0x9e for 0x99); 6, +0x10 = 7 without a weapon; 7 goes back and, in 18..23, 0x9e and 0x9f. 8, 9
+// and 10 with the area at 0, 3 and 6: the next one, the collapse (map, 1, 0x28, 1), four rectangles with 8 and the
+// 0x61; with another area, nothing.
 TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
 {
     for (const std::int32_t map : ChaosCastleMaps)
@@ -1153,7 +1155,6 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
         EXPECT_EQ(Runtime().eventObject->field14[1], 50);
         EXPECT_EQ(Hero().byte360, 0);
 
-        // Con el área en 0xff, los derrumbes no hacen nada.
         Applied(Events::EventPlayState{.state = 8});
         EXPECT_EQ(Runtime().events.objectCollapse.map, -1);
         const std::array<std::uint8_t, 3> areas{0, 3, 6};
@@ -1168,13 +1169,13 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
             EXPECT_EQ(Runtime().events.objectCollapse.counter, 0x28);
             EXPECT_EQ(collapsed.sounds, (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x61}}));
         }
-        // El primer anillo: (0x17, 0x4b) de 0x16 × 2, (0x2b, 0x4d) de 2 × 0x20, ...
+        // The first ring: (0x17, 0x4b) of 0x16 × 2, (0x2b, 0x4d) of 2 × 0x20, ...
         EXPECT_EQ(Cell(0x17, 0x4b), 8);
         EXPECT_EQ(Cell(0x2c, 0x4c), 8);
         EXPECT_EQ(Cell(0x2d, 0x4c), 0);
         EXPECT_EQ(Cell(0x2c, 0x6c), 8);
         EXPECT_EQ(Cell(0x2c, 0x6d), 0);
-        // El tercero: (0x1b, 0x4f) de 0xe × 2.
+        // The third: (0x1b, 0x4f) of 0xe × 2.
         EXPECT_EQ(Cell(0x28, 0x50), 8);
 
         const EventPacketResult ended = Applied(Events::EventPlayState{.state = 7});
@@ -1185,7 +1186,7 @@ TEST_F(EventPacketsTest, TheChaosCastlePlayStateCollapsesItsRings)
     }
 }
 
-// Devil Square (0x40bdc0) no hace nada con el 9B; sin el objeto (Lorencia, Devias, Kalima, Crywolf), tampoco.
+// Devil Square (0x40bdc0) does nothing with 9B; without the object (Lorencia, Devias, Kalima, Crywolf), neither.
 TEST_F(EventPacketsTest, ThePlayStateOutsideTheCastlesDoesNothing)
 {
     for (const std::int32_t map : DevilSquareMaps)
@@ -1213,9 +1214,9 @@ TEST_F(EventPacketsTest, ThePlayStateOutsideTheCastlesDoesNothing)
     }
 }
 
-// ----- 9D y 9E.
+// ----- 9D and 9E.
 
-// 0x4e4a86: el aviso 886 + n (de 0 a 4) o 899 (5), y los 0x40 bytes siempre.
+// 0x4e4a86: notice 886 + n (from 0 to 4) or 899 (5), and the 0x40 bytes always.
 TEST_F(EventPacketsTest, TheSerialResultShowsItsNoticeAndKeepsTheData)
 {
     Events::SerialResult serial{.result = 4, .data = {}};
@@ -1235,7 +1236,7 @@ TEST_F(EventPacketsTest, TheSerialResultShowsItsNoticeAndKeepsTheData)
     EXPECT_EQ(Runtime().events.serial[0], std::byte{0x11});
 }
 
-// 0x4e4ad4: 0x5b, 0x5c y 0x5d con 0, 1 y 2.
+// 0x4e4ad4: 0x5b, 0x5c and 0x5d with 0, 1 and 2.
 TEST_F(EventPacketsTest, TheEventSoundPlaysItsSound)
 {
     EXPECT_EQ(Applied(Events::EventSound{0}).sounds, std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x5b}});
@@ -1244,11 +1245,11 @@ TEST_F(EventPacketsTest, TheEventSoundPlaysItsSound)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x5d});
 }
 
-// ----- BC 00 y BC 01.
+// ----- BC 00 and BC 01.
 
-// El mensaje "%s%s %s" (mezcla o deshace, 1816 y 868 tal cual) o el aviso, y después la ventana de la mezcla
-// (0x402e50, Scenes/JewelMix.h, del hito 6) vuelve a elegir: con el modo 0, el 0xa2, y con el 1, el 0xa4. El 1 abre
-// los diálogos 0 y 0xa6. Las tablas enteras, en test_jewel_mix_answers.
+// The message "%s%s %s" (mix or unmix, 1816 and 868 as they are) or the notice, and then the mix window (0x402e50,
+// ChaosMix/JewelMix.h, milestone 6) goes back to the choice: with mode 0, the 0xa2, and with 1, the 0xa4. 1 opens
+// dialogs 0 and 0xa6. The whole tables, in test_jewel_mix_answers.
 TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndReturnToTheChoice)
 {
     Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::MixSubcode, .result = 0});
@@ -1268,7 +1269,7 @@ TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndReturnToTheChoice)
     Runtime().dialogs = {};
     Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::UnmixSubcode, .result = 1});
     EXPECT_EQ(Runtime().dialogs.current, 0xa6);
-    // 0x6236f0(0) pasa al que espera y el 0xa6 queda esperando detrás.
+    // 0x6236f0(0) moves to the waiting one and the 0xa6 stays waiting behind.
     Runtime().dialogs = {.current = 0, .pending = 0x55};
     Applied(Events::JewelMixResult{.subcode = Client::Protocol::JewelMix::MixSubcode, .result = 1});
     EXPECT_EQ(Runtime().dialogs.current, 0x55);
@@ -1278,11 +1279,11 @@ TEST_F(EventPacketsTest, TheJewelResultsSayTheirMessageAndReturnToTheChoice)
     EXPECT_EQ(Runtime().chat.log.entries.size(), entries);
 }
 
-// ----- BD 00 (0x42fe80), en Crywolf (34) y contra el ASM solo.
+// ----- BD 00 (0x42fe80), in Crywolf (34) and against the ASM only.
 
-// La misma etapa y el mismo estado, nada. La 4 prende 0x723bec. La 5 pone 0x6c73e4..0x6c73f4 en −1 y, salvo con el
-// estado 2, el aviso (con el 0, 0x6c73dc en 0xb). La 6 es 0x42fdc0. Sin cambio de estado no corta, y la etapa queda
-// en el recorrido de la cámara (0x4033b0).
+// The same stage and the same state, nothing. 4 sets 0x723bec. 5 sets 0x6c73e4..0x6c73f4 to −1 and, except with state
+// 2, the notice (with 0, 0x6c73dc at 0xb). 6 is 0x42fdc0. Without a state change it does not stop, and the stage stays
+// in the camera tour (0x4033b0).
 TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
 {
     Runtime().map = 34;
@@ -1315,9 +1316,9 @@ TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
     EXPECT_EQ(Runtime().events.cameraTour.stage, 6);
 }
 
-// Con otro estado, 0x42ff81 y 0x42ffe8 vuelven a leer la luz y el .att de la carpeta del mapa + 1, después de lo de la
-// etapa: en Crywolf, TerrainLight1/2 y EncTerrain351/352; con el 0 otra vez, los de siempre. Con el estado 2 la 5 no
-// pone el aviso; con más de 2, el buffer de la luz sin escribir (Q-C1328).
+// With another state, 0x42ff81 and 0x42ffe8 reload the light and the .att from the map's folder + 1, after the stage
+// part: in Crywolf, TerrainLight1/2 and EncTerrain351/352; with 0 again, the usual ones. With state 2, stage 5 does not
+// set the notice; above 2, the light buffer unwritten (Q-C1328).
 TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
 {
     Runtime().map = 34;
@@ -1345,7 +1346,7 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     EXPECT_EQ(terrain.attributes->cells, plain->cells);
     EXPECT_FALSE(Runtime().fatalDataMessage.has_value());
 
-    // Q-C1328: con el estado ya escrito, se descartan la carga y 0x4033b0; la sesión sigue.
+    // Q-C1328: with the state already written, the load and 0x4033b0 are dropped; the session goes on.
     const std::string broken = Discarded(Events::CrywolfState{.state = 3, .stage = 2});
     EXPECT_NE(broken.find("Q-C1328"), std::string::npos) << broken;
     EXPECT_EQ(Runtime().crywolf.state, 3);
@@ -1355,8 +1356,8 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     EXPECT_EQ(Runtime().events.cameraTour.stage, 5);
 }
 
-// En Lorencia y en Devias el BD 00 también recarga, de World1 y World3 (Q-C1340): TerrainLight1 no está y deja el aviso
-// fatal; el .att 11 o 31 tampoco. Lo cargado queda como estaba. Con el 0 otra vez vuelve a leer los suyos.
+// In Lorencia and Devias BD 00 also reloads, from World1 and World3 (Q-C1340): TerrainLight1 is missing and leaves the
+// fatal notice; .att 11 or 31 is missing too. What was loaded stays as it was. With 0 again it reloads its own.
 TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
 {
     for (const std::int32_t map : {0, 2})
@@ -1366,7 +1367,7 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
         Runtime().crywolf.state = 0;
         Runtime().fatalDataMessage.reset();
         LoadTheTerrain(static_cast<std::uint8_t>(map));
-        // Las copias, en el heap: la luz ocupa 768 KB y el stack de Windows es de 1 MB.
+        // The copies, on the heap: the light takes 768 KB and the Windows stack is 1 MB.
         const auto lighting = std::make_unique<Client::Terrain::TerrainLighting>(*terrain.lighting);
         const auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>(*terrain.attributes);
         Applied(Events::CrywolfState{.state = 1, .stage = 0});
@@ -1380,14 +1381,13 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
         Applied(Events::CrywolfState{.state = 0, .stage = 0});
         EXPECT_EQ(terrain.attributes->cells, attributes->cells);
     }
-    // Sin la carpeta Data, corta.
     Runtime().crywolf.state = 0;
     dataRoot.clear();
     const std::string cut = Cut(Events::CrywolfState{.state = 1, .stage = 0});
     EXPECT_NE(cut.find("0x42ff81"), std::string::npos) << cut;
 }
 
-// 0x42fdc0 (también la vuelta a la selección): los globales de la interfaz a su valor inicial.
+// 0x42fdc0 (also the return to the selection): the interface globals to their initial value.
 TEST_F(EventPacketsTest, TheCrywolfInterfaceResetMatchesTheData)
 {
     Client::Kernel::CrywolfInterface& ui = Runtime().crywolf.ui;
@@ -1404,11 +1404,11 @@ TEST_F(EventPacketsTest, TheCrywolfInterfaceResetMatchesTheData)
     EXPECT_EQ(Runtime().crywolf.stage, 0);
 }
 
-// ----- BD 02 a 0C: la interfaz de Crywolf (GS 0.97 no los manda; el oráculo es el ASM del cliente).
+// ----- BD 02 to 0C: the Crywolf interface (GS 0.97 does not send them; the oracle is the client's ASM).
 
-// BD 02, 07, 08 y 09 escriben en cualquier mapa y etapa: la luz y los altares (0x430000), el rango y la experiencia
-// (0x437600), los resultados con su ventana (0x437620) y 0x7d2dc9d. Un lugar de 5 o más escribiría fuera de las tablas
-// (Q-C1341): se descarta desde ese registro, y los de antes quedan.
+// BD 02, 07, 08 and 09 write in any map and stage: the light and the altars (0x430000), the rank and the experience
+// (0x437600), the results with their window (0x437620) and 0x7d2dc9d. A place of 5 or more would write outside the
+// tables (Q-C1341): it is dropped from that record on, and the earlier ones stay.
 TEST_F(EventPacketsTest, TheCrywolfInterfacePacketsWriteOnAnyMap)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1447,8 +1447,8 @@ TEST_F(EventPacketsTest, TheCrywolfInterfacePacketsWriteOnAnyMap)
     }
 }
 
-// BD 04 solo con la etapa 4 en el 34 (0x4359f0 y 0x4303c0): pkt[4], los minutos, GetTickCount y 0x723bf8. BD 05 con
-// la etapa 3 o 4 en el 34: 0x723bd8, la barra prendida con el dword en más de 0 y apagada con 0 o menos, y 0x6c73d4.
+// BD 04 only with stage 4 in 34 (0x4359f0 and 0x4303c0): pkt[4], the minutes, GetTickCount and 0x723bf8. BD 05 with
+// stage 3 or 4 in 34: 0x723bd8, the bar on with the dword above 0 and off with 0 or less, and 0x6c73d4.
 TEST_F(EventPacketsTest, TheCrywolfTimerAndBossNeedTheDefenseInCrywolf)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1480,8 +1480,9 @@ TEST_F(EventPacketsTest, TheCrywolfTimerAndBossNeedTheDefenseInCrywolf)
     }
 }
 
-// BD 03 (0x4e1010) con 0: el héroe se para y, con el registro propio abierto (0xf08 rand() al cerrarlo), menos de 350
-// da 0x36 y 0x37 y 350 o más 0x3a, que solo se ven con la defensa en el 34. Con otro resultado que 0 y 1, nada.
+// BD 03 (0x4e1010) with 0: the hero stands up and, with the own record open (0xf08 rand() when closing it), under 350
+// gives 0x36 and 0x37 and 350 or more 0x3a, which only show with the defense in 34. With a result other than 0 and 1,
+// nothing.
 TEST_F(EventPacketsTest, TheFailedCrywolfContractStandsTheHeroUp)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1521,10 +1522,10 @@ TEST_F(EventPacketsTest, TheFailedCrywolfContractStandsTheHeroUp)
     EXPECT_TRUE(worldPackets.empty());
 }
 
-// BD 03 con 1: 0x435b00(3) y (4), el altar de la clave − 0x13c (0x435ad0) solo con la defensa en el 34, y en cualquier
-// mapa el héroe sentado (0x200000 en +0x7c y la acción 0xca) y el C1 05 18 con el rumbo de +0x24 y 0x82, con el XOR32.
-// No saca rand(). Con la clave fuera de los cinco altares, en el 34 (Q-C1347) se descarta el resto después de los dos
-// renglones: ni el altar ni el héroe sentado ni el 18; fuera del 34 sigue entero.
+// BD 03 with 1: 0x435b00(3) and (4), the altar of the key − 0x13c (0x435ad0) only with the defense in 34, and in any
+// map the hero seated (0x200000 in +0x7c and action 0xca) and C1 05 18 with the heading of +0x24 and 0x82, with
+// XOR32. No rand(). With the key outside the five altars, in 34 (Q-C1347) the rest is dropped after the two lines:
+// neither the altar nor the seated hero nor the 18; outside 34 it goes on whole.
 TEST_F(EventPacketsTest, TheSignedCrywolfContractSitsTheHero)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1579,8 +1580,8 @@ TEST_F(EventPacketsTest, TheSignedCrywolfContractSitsTheHero)
     EXPECT_EQ(worldPackets.size(), 1u);
 }
 
-// BD 03 con 1: 0x4ea030 lee las acciones del modelo del tipo del héroe. Transformado en un modelo sin la 0xca, la
-// acción no cambia y el resto sigue; sin ese modelo cargado, corta.
+// BD 03 with 1: 0x4ea030 reads the actions of the model of the hero's type. Transformed into a model without the 0xca,
+// the action does not change and the rest goes on; without that model loaded, it stops.
 TEST_F(EventPacketsTest, TheSignedCrywolfContractUsesTheActionsOfTheHeroModel)
 {
     Runtime().map = 0;
@@ -1600,14 +1601,14 @@ TEST_F(EventPacketsTest, TheSignedCrywolfContractUsesTheActionsOfTheHeroModel)
     EXPECT_TRUE(worldPackets.empty());
 }
 
-// 0x4e15f0 entrega pkt6..9 a 0x430040; un paquete truncado no tiene esos campos.
+// 0x4e15f0 hands pkt6..9 to 0x430040; a truncated packet does not have those fields.
 TEST_F(EventPacketsTest, TheTruncatedCrywolfEffectIsDiscardedBeforeReadingItsDirection)
 {
     const std::string effects = Discarded(Events::CrywolfUnported{.subcode = 0xc, .bytes = {}});
     EXPECT_NE(effects.find("0x4e15f0"), std::string::npos) << effects;
 }
 
-// ----- F3 22, F3 23 y F3 40.
+// ----- F3 22, F3 23 and F3 40.
 
 TEST_F(EventPacketsTest, TheEventTimeIsKept)
 {
@@ -1616,8 +1617,8 @@ TEST_F(EventPacketsTest, TheEventTimeIsKept)
     EXPECT_EQ(Runtime().events.timeValue, 0x0e10);
 }
 
-// 0x4d9f00: los dos nombres con su '\0', los puntos y el partido activo con pkt[0xc] distinto de 0xff; después, el
-// efecto 0x60e (CL11) corta.
+// 0x4d9f00: the two names with their '\0', the points and the active match with pkt[0xc] other than 0xff; then the
+// effect 0x60e (CL11) stops.
 TEST_F(EventPacketsTest, TheSoccerScoreSharesTheWarPointsAndEmitsOnTheRawHeroCell)
 {
     const Events::SoccerScore score{.firstName = {'A', 'z', 'u', 'l', 'e', 's', 'x', 'y'},
@@ -1670,7 +1671,7 @@ TEST_F(EventPacketsTest, TheGuildOutcomePublishesOnlyTheNativeThreeKinds)
     EXPECT_EQ(random.State(), before);
 }
 
-// 0x4da070: los avisos por comando y el sonido 0x5a; el efecto (CL11) corta.
+// 0x4da070: the notices by command and sound 0x5a; the effect (CL11) stops.
 TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
 {
     struct Case
@@ -1710,9 +1711,9 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// 0x4da18f..0x4da195: el comando 5 es 0x632f70(pkt[5]), el diálogo de Dialog.bmd con sus respuestas en el 0x8d (o
-// esperando, con otra caja abierta). Desde el 200 el original lee fuera de los 200 de 0x7688ac0 (Q-C1325): se
-// descarta. Sin Dialog.bmd corta, como 0x632f70 desde las respuestas.
+// 0x4da18f..0x4da195: command 5 is 0x632f70(pkt[5]), the Dialog.bmd dialog with its answers in the 0x8d (or waiting,
+// with another box open). From 200 on the original reads outside the 200 of 0x7688ac0 (Q-C1325): it is dropped.
+// Without Dialog.bmd it stops, like 0x632f70 from the answers.
 TEST_F(EventPacketsTest, TheServerCommandFiveOpensTheAnswersDialog)
 {
     Client::Tables::DialogTable table(Client::Tables::DialogCount);

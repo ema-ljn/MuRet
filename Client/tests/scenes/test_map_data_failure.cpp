@@ -102,7 +102,7 @@ TEST_F(MapDataFailureTest, WorldSixCreatesItsObjectsBeforeTheMissingHeights)
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, "Data\\World6\\TerrainHeight.OZB file not found.");
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 65536).State());
 }
-// El OBJ real de World6 no tiene registros. World1 acredita un prefijo no vacío antes del fallo.
+// World6's real OBJ has no records. World1 proves a non-empty prefix before the failure.
 TEST_F(MapDataFailureTest, MissingHeightsPreserveTheCreatedObjectsAndTheRandomPrefix)
 {
     const Client::Tests::TemporaryFolder folder("fatal-map-data");
@@ -268,8 +268,8 @@ TEST_F(MapDataFailureTest, MissingObjectsRequestQuitBeforeTheHeightsAreRead)
     EXPECT_FALSE(m_terrain.current.heights);
 }
 
-// La recepción real falla antes de Step; el pedido sobrevive a ApplicationFailed y a manager.Poll.
-// FakeSocket/FakeTextureStore no acreditan el modal nativo de Window ni su observación en Windows.
+// The real receive fails before Step; the request survives ApplicationFailed and manager.Poll. FakeSocket and
+// FakeTextureStore do not prove Window's native modal or its observation on Windows.
 class MapDataSessionFailureTest : public Client::Tests::T16::SceneTest, public ::testing::WithParamInterface<int>
 {
 };

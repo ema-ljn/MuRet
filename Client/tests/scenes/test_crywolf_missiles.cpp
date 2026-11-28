@@ -120,8 +120,8 @@ TEST(CrywolfMissilesTest, TheImpactKeepsCallerRandomsAndTheCommonTailWithBothPoo
     EXPECT_FLOAT_EQ(effect.alpha, 0.9523810148239136f);
     EXPECT_LT(shake, 0);
 }
-// 0x51fff0(kind1): ocho bursts de20 chispas (cinco sorteos cada una) y dos piedras (cinco cada una).
-// Más6 del fuego6ac/0, cuarenta sorteos caller por grupo, dieciséis selectores y cinco de la cola del misil.
+// 0x51fff0(kind 1): eight bursts of 20 sparks (five draws each) and two stones (five each). Plus 6 from fire
+// 0x6ac/0, forty caller draws per group, sixteen selectors and five from the missile's tail.
 TEST(CrywolfMissilesTest, TheNormalImpactBuildsAllEightBurstsSixteenStonesAndTheCrater)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();

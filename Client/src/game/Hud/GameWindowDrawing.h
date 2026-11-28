@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <string_view>
 
-// Las primitivas que comparten las ventanas del paso que son marco (CL8 hito 6, 08 P-C92): la party (0x5f0be0) y los
-// comandos (0x40a650). En 640 × 480, con el estado de GL que dejan y los globales de los textos (0x6c8e5c, 0x6c8e64,
-// la fuente del DC y 0x77f31b8/0x77f31bc) en HudState.
+// The primitives shared by the step's framed windows (CL8 milestone 6, 08 P-C92): the party (0x5f0be0) and the
+// commands (0x40a650). In 640 × 480, with the GL state they leave and the text globals (0x6c8e5c, 0x6c8e64, the DC's
+// font and 0x77f31b8/0x77f31bc) in HudState.
 namespace Client::Hud
 {
 struct GameHudContext;
@@ -16,61 +16,61 @@ struct GameHudContext;
 
 namespace Client::Hud::WindowDrawing
 {
-// 0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa, con el color y la
-// mezcla que haya.
+// 0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0): scaled in size and position, no alpha, with whatever color and
+// blend are set.
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float du,
           float dv);
 
-// 0x471520(x, y, w, h, relleno): las cuatro rayas del marco, de 2: arriba y abajo con el 0x117 (u 0,0390625, v 0,3125,
-// du 0,6640625, dv 0,125; la de abajo 1 más ancha), a los costados con el 0x104 (u 0,00390625, v 0,3125, du 0,0078125,
-// dv 0,48828125). Con el relleno (1), antes, la caja sin textura de glColor4ub(0x92, 0x90, 0x8d, 0xc8) (0x621aa0) y
-// 0x459ec0 (el blanco y la textura); solo lo pide la ventana de los cargos (0x64f1c0).
+// 0x471520(x, y, w, h, fill): the frame's four 2-wide lines: top and bottom with 0x117 (u 0.0390625, v 0.3125, du
+// 0.6640625, dv 0.125; the bottom one 1 wider), the sides with 0x104 (u 0.00390625, v 0.3125, du 0.0078125, dv
+// 0.48828125). With the fill (1), first, the untextured glColor4ub(0x92, 0x90, 0x8d, 0xc8) box (0x621aa0) and
+// 0x459ec0 (the white and the texture); only the positions window asks for it (0x64f1c0).
 void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height, bool filled);
 
-// 0x5ee220(x, y, 0), y la copia que tiene 0x5f0be0: Interface\Item_Back01.jpg (0x104) de 190 × 256 en (x, y) y
-// Item_Back02.jpg (0x105) de 190 × 177 en y + 256 (0x6b8840, la suma de la x87 guardada en float), las dos con du =
-// 0,7421875 y dv = 1 y 0,69140625.
+// 0x5ee220(x, y, 0), and the copy 0x5f0be0 has: Interface\Item_Back01.jpg (0x104), 190 × 256 at (x, y), and
+// Item_Back02.jpg (0x105), 190 × 177 at y + 256 (0x6b8840, the x87 sum stored as float), both with du = 0.7421875 and
+// dv = 1 and 0.69140625.
 void DrawTheWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y);
 
-// SelectObject sobre el DC de los textos (0x57634f4): la fuente con la que miden y dibujan los que siguen.
+// SelectObject on the text DC (0x57634f4): the font the following texts measure and draw with.
 void SelectFont(GameHudContext& context, Render::Text::FontKind font);
 
-// 0x554180(x, y, texto, 0, 0, 0): el modo 1 desde x, con la fuente del DC y los colores de 0x6c8e5c y 0x6c8e64. Un
-// texto vacío no se dibuja, pero se mide igual: su tamaño en 640 × 480 queda en 0x77f31b8 y 0x77f31bc.
+// 0x554180(x, y, text, 0, 0, 0): mode 1 from x, with the DC's font and the colors of 0x6c8e5c and 0x6c8e64. An empty
+// text is not drawn but is measured all the same: its size in 640 × 480 stays in 0x77f31b8 and 0x77f31bc.
 void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
-// El ancho de una caja de 0x554180 en píxeles: W · k / 640, la división sin signo de 0x5f0cd6..0x5f0cef.
+// The width of a 0x554180 box in pixels: W · k / 640, the unsigned division of 0x5f0cd6..0x5f0cef.
 [[nodiscard]] std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth);
 
-// 0x554180(x, y, texto, caja, 1, ·): 0x467060 con el modo 2 centra el texto en una caja de `box` píxeles que empieza
-// en _ftol(x · rx), con el fondo en toda la caja (Render::Text::CenterInBox e ITextDrawer::DrawColumns, Q-C710), y
-// deja en 0x77f31b8 el ancho recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo; vacío y sin caja,
-// nada.
+// 0x554180(x, y, text, box, 1, ·): 0x467060 with mode 2 centers the text in a box of `box` pixels starting at
+// _ftol(x · rx), with the background over the whole box (Render::Text::CenterInBox and ITextDrawer::DrawColumns,
+// Q-C710), and leaves in 0x77f31b8 the width clipped to the box. An empty text measures "0" and draws only the
+// background; empty and with no box, nothing.
 void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box);
 
-// 0x554180(x, y, texto, ancho, 0, ·): 0x467060 con el modo 1 y un ancho, la caja de ese ancho desde x (0x467102..
-// 0x467119); si el texto es más ancho, se ve desde la columna cx − ancho. Deja la medida recortada al ancho, como
-// DrawInBox.
+// 0x554180(x, y, text, width, 0, ·): 0x467060 with mode 1 and a width, the box of that width from x
+// (0x467102..0x467119); if the text is wider, it shows from column cx − width. Leaves the measure clipped to the width,
+// like DrawInBox.
 void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width);
 
-// 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: DrawInBox con la caja de 120.
+// 0x554180(x, y, text, 120 · W / 640, 1, 3), a window's title: DrawInBox with the 120 box.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
-// 0x554180(x, y, texto, ancho · W / 640, 1, p6), lo mismo que DrawTitle con otra caja (CL9 hito 2): el nombre de la
-// misión va en una de 150 (0x41bedc y 0x41c322), y las ventanas de los NPC de evento (0x5f58f0, CL9 hito 11) usan
-// 116, 120 o 130. El sexto argumento le llega a 0x467060, que no lo lee.
+// 0x554180(x, y, text, width · W / 640, 1, p6), the same as DrawTitle with another box (CL9 milestone 2): the quest
+// name goes in a 150 one (0x41bedc and 0x41c322), and the event NPC windows (0x5f58f0, CL9 milestone 11) use 116, 120
+// or 130. The sixth argument reaches 0x467060, which does not read it.
 void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                std::uint32_t designWidth);
 
-// 0x623690(x, y, texto): x − (cx · 640 / W) / 2 y 0x554180(…, 0, 0, 0).
+// 0x623690(x, y, text): x − (cx · 640 / W) / 2 and 0x554180(…, 0, 0, 0).
 void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
-// El botón de cerrar de las ventanas (0x5f11c2 en la party, 0x40a78e en los comandos y 0x5f74a3 en el personaje):
-// glColor3f(1, 1, 1) y Interface\exit_01.jpg (0x118) de 24 × 24 en (x + 25, y + 395), sumas de la x87 guardadas en
-// float, con du = dv = 0,75. Devuelve si el mouse está adentro (x87: izquierda ≤ mouse < izquierda + 24).
+// The windows' close button (0x5f11c2 in the party, 0x40a78e in the commands and 0x5f74a3 in the character):
+// glColor3f(1, 1, 1) and Interface\exit_01.jpg (0x118), 24 × 24 at (x + 25, y + 395), x87 sums stored as float, with
+// du = dv = 0.75. Returns whether the mouse is inside (x87: left ≤ mouse < left + 24).
 [[nodiscard]] bool DrawTheCloseButton(GameHudContext& context, std::int32_t x, std::int32_t y);
 
-// Lo que sigue con el mouse sobre el botón de cerrar: la fuente normal, los colores −1 y 0xff000000 y la ayuda
-// (0x554340) en (_ftol(x + 25), _ftol(y + 395) − 13), que deja la fuente normal y los colores −1 y 0.
+// What follows with the mouse over the close button: the normal font, the colors −1 and 0xff000000 and the help
+// (0x554340) at (_ftol(x + 25), _ftol(y + 395) − 13), which leaves the normal font and the colors −1 and 0.
 void DrawTheCloseHelp(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help);
 } // namespace Client::Hud::WindowDrawing

@@ -38,9 +38,9 @@
 #include <vector>
 #include <string>
 
-// Los paquetes de la batalla del castillo sobre el mundo (CL9 hito 13; 04 § Castle Siege, la batalla). Ningún caso
-// mira el mapa: cada test corre en Lorencia (0), Devias (2) y el castillo (30). Los valores son inventados; el estado
-// del rand() se compara para ver que ninguno saca.
+// The castle battle packets on the world (CL9 milestone 13; 04 § Castle Siege, la batalla). No case looks at the
+// map: each test runs in Lorencia (0), Devias (2) and the castle (30). The values are made up; the rand() state is
+// compared to see that none takes one.
 namespace
 {
 namespace Battle = Client::Protocol::CastleSiege;
@@ -108,7 +108,7 @@ protected:
         return m_world->Actors()[index];
     }
 
-    // Un personaje vivo con esta clave en el lugar `index`.
+    // A live character with this key at slot `index`.
     void Place(std::size_t index, std::uint16_t key)
     {
         Actor(index).alive = true;
@@ -133,7 +133,7 @@ protected:
 
 INSTANTIATE_TEST_SUITE_P(Maps, CastleBattleReceiveTest, ::testing::Values(0, 2, 30));
 
-// B9 01 (0x4e0750): +0x93 del que tiene la clave; sin nadie con ella, el registro 400.
+// B9 01 (0x4e0750).
 TEST_P(CastleBattleReceiveTest, NpcLevelWritesByte93OfTheKeyOrOfRecord400)
 {
     Place(7, 0x0123);
@@ -146,7 +146,7 @@ TEST_P(CastleBattleReceiveTest, NpcLevelWritesByte93OfTheKeyOrOfRecord400)
     ExpectNoRandom();
 }
 
-// B9 02 (0x4e0790): el par de cada byte arriba y el impar abajo, 64 colores, y una vuelta más de la marca.
+// B9 02 (0x4e0790): 64 colors, and the mark applied once more.
 TEST_P(CastleBattleReceiveTest, OwnerMarkUnpacksTheNibblesHighFirst)
 {
     auto& table = m_faunaModels.TextureTable();
@@ -177,7 +177,7 @@ TEST_P(CastleBattleReceiveTest, OwnerMarkUnpacksTheNibblesHighFirst)
     ExpectNoRandom();
 }
 
-// B9 03 (0x4e07f0) distinto de 0: los campos de [0x7d53700] y después el 0x200000, que abre la ventana del hito 12.
+// B9 03 (0x4e07f0) non-zero: the fields of [0x7d53700] and then 0x200000, which opens the milestone 12 window.
 TEST_P(CastleBattleReceiveTest, HuntZoneInfoWritesTheWindowBeforeOpeningIt)
 {
     Apply(Battle::HuntZoneInfo{.mode = 2, .allowed = 9, .fee = 7000, .at0c = 11, .at10 = 22});
@@ -191,7 +191,7 @@ TEST_P(CastleBattleReceiveTest, HuntZoneInfoWritesTheWindowBeforeOpeningIt)
     EXPECT_EQ(window.step, 22u);
 }
 
-// Con 0 cancela el diálogo previo y abre el texto 860, conservando los campos de la zona.
+// With 0 it cancels the previous dialog and opens text 860, keeping the zone's fields.
 TEST_P(CastleBattleReceiveTest, HuntZoneInfoAndEntryWithZeroOpenTheFailureDialog)
 {
     Castle().huntZone.fee = 5;
@@ -209,7 +209,7 @@ TEST_P(CastleBattleReceiveTest, HuntZoneInfoAndEntryWithZeroOpenTheFailureDialog
     ExpectNoRandom();
 }
 
-// BA (0x4cf1b0): +0x1bc solo con cuál en 0x28, también en el registro 400.
+// BA (0x4cf1b0): also on record 400.
 TEST_P(CastleBattleReceiveTest, ActorFieldWritesByte1bcOnlyWithKind28)
 {
     Place(3, 0x0042);
@@ -222,7 +222,7 @@ TEST_P(CastleBattleReceiveTest, ActorFieldWritesByte1bcOnlyWithKind28)
     ExpectNoRandom();
 }
 
-// BB (0x4e0f30): solo con el panel del asedio de la clase 2 y alguna terna.
+// BB (0x4e0f30): only with the class 2 siege panel and some triple.
 TEST_P(CastleBattleReceiveTest, MinimapMembersAppendOnlyToTheClassTwoPanelAndWrapTheirIndex)
 {
     const Battle::MinimapMembers some{.members = {{.index = 0, .x = 10, .y = 20}}};
@@ -250,8 +250,8 @@ Battle::SwitchHolder Holder(std::uint16_t key, std::uint8_t fill)
     return holder;
 }
 
-// B2 20 (0x4e04e0) sin objeto: lo arma con la mitad que elige la clave tal cual, también el último byte; la otra
-// queda en 0 en MuRet (Q-C1400).
+// B2 20 (0x4e04e0) without an object: it builds it with the half the key picks as is, also the last byte; the other
+// stays at 0 in MuRet (Q-C1400).
 TEST_P(CastleBattleReceiveTest, SwitchHolderCreatesTheObjectWithItsHalf)
 {
     Apply(Holder(0x013d, 0x40));
@@ -273,7 +273,7 @@ TEST_P(CastleBattleReceiveTest, SwitchHolderCreatesTheObjectWithItsHalf)
     ExpectNoRandom();
 }
 
-// Con objeto: la mitad tal cual y el último byte en 0 (0x4e05e4, Q-C1401).
+// 0x4e05e4, Q-C1401.
 TEST_P(CastleBattleReceiveTest, SwitchHolderUpdatesItsHalfWithTheLastByteInZero)
 {
     Apply(Holder(0x013d, 0x10));
@@ -289,7 +289,7 @@ TEST_P(CastleBattleReceiveTest, SwitchHolderUpdatesItsHalfWithTheLastByteInZero)
     EXPECT_EQ(holders.at(SwitchHoldersSize - 1), 0);
 }
 
-// 0x4ca799: el 0x14 apaga +4..+6 con la clave 0x13d y +0x1f..+0x21 con cualquier otra; sin objeto, nada.
+// 0x4ca799: the 0x14 clears +4..+6 with key 0x13d and +0x1f..+0x21 with any other; without an object, nothing.
 TEST_P(CastleBattleReceiveTest, ForgetTheSwitchHolderClearsTheKeyAndTheShownByte)
 {
     auto& runtime = m_world->Runtime();
@@ -307,7 +307,7 @@ TEST_P(CastleBattleReceiveTest, ForgetTheSwitchHolderClearsTheKeyAndTheShownByte
         EXPECT_EQ(holders.at(SwitchHolderHalf + at), 0) << at;
     }
     EXPECT_EQ(holders.at(SwitchHolderHalf + 7), 0x67);
-    // Con el bit de arriba, la clave entera no es 0x13d.
+    // With the top bit, the whole key is not 0x13d.
     Client::CastleSiege::ForgetTheSwitchHolder(runtime, 0x813d);
     EXPECT_EQ(holders.at(6), 0x16);
     Client::CastleSiege::ForgetTheSwitchHolder(runtime, 0x013d);
@@ -315,7 +315,7 @@ TEST_P(CastleBattleReceiveTest, ForgetTheSwitchHolderClearsTheKeyAndTheShownByte
         EXPECT_EQ(holders.at(at), 0) << at;
     EXPECT_EQ(holders.at(7), 0x17);
 }
-// El B2 20 y el viewport 14 deben operar sobre el mismo objeto que lee el HUD.
+// B2 20 and viewport 14 must operate on the same object the HUD reads.
 TEST_P(CastleBattleReceiveTest, AViewportLeaveClearsTheReceivedHolderUsingTheFullWireKey)
 {
     Apply(Holder(0x013d, 0x10));

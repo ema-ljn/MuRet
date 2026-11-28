@@ -5,8 +5,8 @@
 #include <array>
 #include <cstdint>
 
-// [0x7d536fc], constructor 0x661090. Abierto y pestaña tienen un único dueño en DelegatedPanels; los registros,
-// selecciones, impuestos y tesoro viven en CastleData. Acá sólo los campos propios restantes.
+// [0x7d536fc], constructor 0x661090. Open and tab have a single owner in DelegatedPanels; the records, selections,
+// taxes and treasury live in CastleData. Here only the remaining own fields.
 namespace Client::CastleSiege
 {
 struct CastleSeniorWindow

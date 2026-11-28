@@ -17,7 +17,8 @@
 
 #include <gtest/gtest.h>
 
-// Client::Actors::StepActorDying: 0x4fb9e0, el paso del que se muere (+0x389), con 0x4fb2b0 y 0x51fd20. 06 § Morirse.
+// Client::Actors::StepActorDying: 0x4fb9e0, the step of the one dying (+0x389), with 0x4fb2b0 and 0x51fd20. 06 §
+// Morirse.
 namespace
 {
 using Client::Actors::ActorDyingContext;
@@ -52,9 +53,9 @@ bool CutsAt(const Client::Core::Expected<void, std::string>& result, std::string
     return !result.HasValue() && result.Error().starts_with(address);
 }
 
-// 0x4fb9fa..0x4fbb0d: las tres banderas se van, +0x3c8 sube 0,02 y, desde 1, el alpha es 1 − (+0x3c8 − 1): mientras no
-// baje de 0,01 la Z baja 0,4; debajo, el que no es el héroe se borra con +0x391, +0x1a1 y +0x1bc en 0. El héroe no se
-// borra ni se hunde. Sin +0x389, nada.
+// 0x4fb9fa..0x4fbb0d: the three flags go, +0x3c8 rises 0.02 and, from 1, alpha is 1 − (+0x3c8 − 1): while it does not
+// drop below 0.01 the Z drops 0.4; below it, the one who is not the hero is cleared with +0x391, +0x1a1 and +0x1bc at
+// 0. The hero is neither cleared nor sunk. Without +0x389, nothing.
 TEST(ActorDyingTest, TheTimerFadesSinksAndRemovesAllButTheHero)
 {
     CrtRandom random(Seed);
@@ -103,8 +104,8 @@ TEST(ActorDyingTest, TheTimerFadesSinksAndRemovesAllButTheHero)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x4fba46..0x4fba8f: el 0x172 en el mapa 7 sube 0,05; el 0x192 sube 0,01 con +0x60 del objeto en 100 o más (con
-// signo) y 0,02 si no, con las banderas ya fuera.
+// 0x4fba46..0x4fba8f: the 0x172 on map 7 rises 0.05; the 0x192 rises 0.01 with the object's +0x60 at 100 or more
+// (signed) and 0.02 if not, with the flags already gone.
 TEST(ActorDyingTest, TheFastOneAndTheSlowOne)
 {
     CrtRandom random(Seed);
@@ -131,8 +132,8 @@ TEST(ActorDyingTest, TheFastOneAndTheSlowOne)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x4fbb10..0x4fbb45 y 0x4fb2b0: en Blood Castle (11 a 17) con +0x1a1 vuela: (0, +0xd0, 0) girado por +0x1a4 desde
-// +0x1b0, +0xd0 más +0xcc, +0xe4 más +0xd8, +0xd8 menos +0xd4, el ángulo X menos 5 y la Z en +0x1b8 + +0xe4.
+// 0x4fbb10..0x4fbb45 and 0x4fb2b0: in Blood Castle (11 to 17) with +0x1a1 it flies: (0, +0xd0, 0) rotated by +0x1a4
+// from +0x1b0, +0xd0 plus +0xcc, +0xe4 plus +0xd8, +0xd8 minus +0xd4, the X angle minus 5 and the Z at +0x1b8 + +0xe4.
 TEST(ActorDyingTest, TheBloodCastleFlight)
 {
     CrtRandom random(Seed);
@@ -166,8 +167,8 @@ TEST(ActorDyingTest, TheBloodCastleFlight)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x4fbb4a..0x4fbc19: en Chaos Castle (18 a 23) vuela con +0x1a1 y el tope es 15 (25 sin él): de tope − 10 al tope, en
-// los pasos impares, 0x51fe10(position, 1) crea veinte 0x5c5/2 y una 0x5ed/0.
+// 0x4fbb4a..0x4fbc19: in Chaos Castle (18 to 23) it flies with +0x1a1 and the cap is 15 (25 without it): from cap − 10
+// to the cap, on the odd steps, 0x51fe10(position, 1) creates twenty 0x5c5/2 and one 0x5ed/0.
 TEST(ActorDyingTest, ChaosCastleSparksOnTheOddSteps)
 {
     struct Case
@@ -271,10 +272,10 @@ TEST(ActorDyingTest, AFullChaosCastlePoolSkipsTheExplosionAndItsSound)
         EXPECT_EQ(particle.type, -1);
 }
 
-// 0x4fbc1e..0x4fbd43 y 0x51fd20: fuera de los castillos, con la skill 0x28 o 0x3b y hasta el paso 14, +0xd0 baja
-// +0xd8 (sin bajar de 0), +0xd8 sube 1 y la posición suma (+0xcc, +0xd0, +0xd4) girado por la cabeza y +0x30. Con la
-// 0x28, hasta el paso 30, diez 0x5ac/5 (vida 25) en un hueso de rand() % 32, con los ángulos del objeto, la luz
-// (0,3f; 0,3f; 1) y la escala (rand() % 100) · 0,02f + 0,5; con el pool lleno, los mismos veinte rand().
+// 0x4fbc1e..0x4fbd43 and 0x51fd20: outside the castles, with skill 0x28 or 0x3b and up to step 14, +0xd0 drops by
+// +0xd8 (not below 0), +0xd8 rises 1 and the position adds (+0xcc, +0xd0, +0xd4) rotated by the head and +0x30. With
+// the 0x28, up to step 30, ten 0x5ac/5 (life 25) at a bone of rand() % 32, with the object's angles, the light (0.3f,
+// 0.3f, 1) and the scale (rand() % 100) · 0.02f + 0.5; with the pool full, the same twenty rand().
 TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
 {
     CrtRandom random(Seed);
@@ -354,9 +355,9 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x4fbd45..0x4fbdf5: en la escena 5 y el mapa 7, cuatro burbujas 0x607/0 (dos rand() cada una al crearse): x e y con
-// rand() % 128 − 64 y z con rand() % 256 sobre la posición, con los ángulos y la luz del que se muere. Sin el pool,
-// corta.
+// 0x4fbd45..0x4fbdf5: in scene 5 and map 7, four bubbles 0x607/0 (two rand() each on creation): x and y with
+// rand() % 128 − 64 and z with rand() % 256 over the position, with the angles and light of the one dying. Without the
+// pool, it stops.
 TEST(ActorDyingTest, AtlansBlowsFourBubbles)
 {
     ActorState actor = Dying();

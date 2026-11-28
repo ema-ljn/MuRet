@@ -45,11 +45,11 @@
 #include <tuple>
 #include <utility>
 
-// CL9 hito 11, fases 3 y 5 (06 § El recorrido de la cámara): CCameraMove contra el ASM de c32bbd5f. El arranque
-// (0x403590, 0x4033f0, 0x4033d0, 0x404c90, 0x403300 y 0x403d60) lo pone solo el BD 00 con la etapa 2; el guion
-// (0x4035f0) mueve la cámara (0x403d90, 0x4034e0, 0x403430, 0x5fc800) y los personajes 10000 en adelante (0x4039f0,
-// 0x403760, 0x4036d0, 0x403900). El mapa no cuenta: Lorencia, Devias y Crywolf dan lo mismo. Las altas usan el Data del
-// repo.
+// CL9 milestone 11, phases 3 and 5 (06 § El recorrido de la cámara): CCameraMove against the ASM of c32bbd5f. Only
+// BD 00 with stage 2 starts it (0x403590, 0x4033f0, 0x4033d0, 0x404c90, 0x403300 and 0x403d60); the script (0x4035f0)
+// moves the camera (0x403d90, 0x4034e0, 0x403430, 0x5fc800) and the characters from 10000 on (0x4039f0, 0x403760,
+// 0x4036d0, 0x403900). The map does not matter: Lorencia, Devias and Crywolf give the same. The spawns use the repo's
+// Data.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -65,7 +65,7 @@ float CellCenter(std::int32_t cell)
     return static_cast<float>(cell * 100 + 50);
 }
 
-// El mundo, la UI que suelta 0x403390 y los recursos de la entrada, en el heap: WorldState pesa unos 350 KB.
+// The world, the UI that 0x403390 releases and the entry's resources, on the heap: WorldState weighs about 350 KB.
 struct Tour
 {
     Tour()
@@ -84,7 +84,7 @@ struct Tour
         return world.Runtime().events.cameraTour;
     }
 
-    // El recorrido andando desde la etapa del guion `scriptStage`, con la cámara quieta.
+    // The tour running from script stage `scriptStage`, with the camera still.
     void Running(std::int32_t scriptStage, bool arrived = true, std::int32_t step = 0)
     {
         CameraTour& tour = State();
@@ -95,7 +95,7 @@ struct Tour
         tour.step = step;
     }
 
-    // Un personaje del guion armado a mano en el registro `slot`, con el esqueleto de Player.bmd.
+    // A script character built by hand in record `slot`, with the Player.bmd skeleton.
     ActorState& ScriptActor(std::size_t slot, std::int32_t key, glm::vec3 position, float angle = 0.0f)
     {
         ActorState& actor = world.Actors()[slot];
@@ -137,7 +137,7 @@ struct Tour
                               }});
     }
 
-    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
@@ -154,9 +154,9 @@ struct Tour
     int released = 0;
 };
 
-// Con la etapa 2, 0x404c90(5000) arranca su reloj en el primer paso y vence a los 5.000 ms (con signo, <=): la espera
-// se apaga y 0x4033d0 da verdadero. En el mismo paso, 0x403390 y la etapa 0 del guion (0x403e00): el tramo al
-// (0x71, 0xe8) a 300 por paso, con +0x144 de vuelta en 0 y +0x140 en 0 aunque el reloj lo subió.
+// With stage 2, 0x404c90(5000) starts its clock on the first step and fires at 5000 ms (signed, <=): the wait goes off
+// and 0x4033d0 gives true. In the same step, 0x403390 and script stage 0 (0x403e00): the leg to (0x71, 0xe8) at 300
+// per step, with +0x144 back at 0 and +0x140 at 0 although the clock raised it.
 TEST(CameraTourTest, TheSecondStageStartsTheTourFiveSecondsLater)
 {
     for (const std::int32_t map : Maps)
@@ -184,15 +184,15 @@ TEST(CameraTourTest, TheSecondStageStartsTheTourFiveSecondsLater)
         EXPECT_TRUE(tour.begin);
         EXPECT_EQ(tour.speed, 300.0f);
         EXPECT_EQ(tour.target, glm::vec3(CellCenter(0x71), CellCenter(0xe8), 50.0f));
-        // Esc (0x623edc) lo da por cortado: 0x4033d0 vuelve a falso y el paso no hace nada.
+        // Esc (0x623edc) marks it as cut short: 0x4033d0 goes back to false and the step does nothing.
         tour.skipped = true;
         EXPECT_TRUE(tested->Step(7000).HasValue());
         EXPECT_EQ(tested->released, 1);
     }
 }
 
-// Otras etapas no lo empiezan: el reloj no corre y 0x4033d0 pide la 2. La 3 lo deshace: 0x403d60 borra los personajes
-// del guion (0x510ff0) y 0x403300 vuelve todo a sus valores. Sin la UI del juego, 0x403390 corta.
+// Other stages do not start it: the clock does not run and 0x4033d0 asks for 2. Stage 3 undoes it: 0x403d60 deletes
+// the script characters (0x510ff0) and 0x403300 resets everything. Without the game UI, 0x403390 stops.
 TEST(CameraTourTest, OtherStagesDoNotStartItAndTheThirdUndoesIt)
 {
     auto tested = std::make_unique<Tour>();
@@ -237,9 +237,9 @@ TEST(CameraTourTest, OtherStagesDoNotStartItAndTheThirdUndoesIt)
     EXPECT_NE(cut.Error().find("0x4035d3"), std::string::npos) << cut.Error();
 }
 
-// 0x4034e0 con 0x403430: el primer tramo sale del héroe (+0x144 pasa a 1) y la cámara anda lo andado · rumbo desde la
-// salida, 300 por paso; con lo andado en el largo, llega al destino y el guion de la etapa 1 (0x403e30) corre en el
-// paso siguiente: su primer alta (0x4039f0) sin los recursos de la entrada corta.
+// 0x4034e0 with 0x403430: the first leg starts from the hero (+0x144 becomes 1) and the camera moves travelled ·
+// heading from the start, 300 per step; with travelled at the length, it reaches the target and the stage 1 script
+// (0x403e30) runs on the next step: its first spawn (0x4039f0) stops without the entry's resources.
 TEST(CameraTourTest, TheCameraLeavesFromTheHeroAndArrivesAtTheCell)
 {
     for (const std::int32_t map : Maps)
@@ -281,8 +281,8 @@ TEST(CameraTourTest, TheCameraLeavesFromTheHeroAndArrivesAtTheCell)
     }
 }
 
-// Con +0x36 en 0 (el guion de la etapa terminó), cada etapa sale al tramo siguiente con 0x403d90: +0x140 en 0, +0x144
-// uno más y la velocidad del tramo. La 5 no tiene tramo: borra los personajes y da el recorrido por terminado.
+// With +0x36 at 0 (the stage script ended), each stage moves to the next leg with 0x403d90: +0x140 at 0, +0x144 one
+// more and the leg's speed. Stage 5 has no leg: it deletes the characters and marks the tour as finished.
 TEST(CameraTourTest, EachStageHeadsToTheNextCellWhenItsScriptEnds)
 {
     struct Leg
@@ -306,7 +306,7 @@ TEST(CameraTourTest, EachStageHeadsToTheNextCellWhenItsScriptEnds)
         EXPECT_EQ(tour.speed, leg.speed);
         EXPECT_EQ(tour.target, glm::vec3(CellCenter(leg.x), CellCenter(leg.y), 50.0f));
     }
-    // Lo que deja +0x36 en 0: el paso de después del último de cada guion.
+    // What leaves +0x36 at 0: the step after the last of each script.
     for (const auto& [stage, step] :
          {std::pair{1, 0x20}, std::pair{2, 8}, std::pair{3, 2}, std::pair{4, 1}, std::pair{5, 3}})
     {
@@ -328,7 +328,7 @@ TEST(CameraTourTest, EachStageHeadsToTheNextCellWhenItsScriptEnds)
     EXPECT_FALSE(Client::Events::Crywolf::CameraTourRunning(tested->State()));
 }
 
-// 0x404c90 en el guion: la etapa 4 espera 3.000 ms y la 1, en el paso 7, 0x294; al vencer, +0x140 uno más.
+// 0x404c90 in the script: stage 4 waits 3000 ms and stage 1, at step 7, 0x294; when it fires, +0x140 one more.
 TEST(CameraTourTest, TheScriptTimersAdvanceTheStep)
 {
     for (const auto& [stage, step, period] : {std::tuple{4, 0, 3000u}, std::tuple{1, 7, 0x294u}})
@@ -345,9 +345,9 @@ TEST(CameraTourTest, TheScriptTimersAdvanceTheStep)
     }
 }
 
-// 0x403760 en el paso 4 de la etapa 1: en su celda (ftol(ftol(x) · 0,01f)), el centro, la acción 0 y +0x38 en 1; si
-// no, mientras gira (+0x38), de a 3 grados hacia el ángulo de 0x4036d0 (180 al sur de la celda) con la acción 0; ya de
-// frente, deja de girar, +0x386 con la velocidad, la acción 2 y 0x508a80. Con los tres en su celda, +0x140 uno más.
+// 0x403760 at step 4 of stage 1: in its cell (ftol(ftol(x) · 0.01f)), the center, action 0 and +0x38 at 1; otherwise,
+// while it turns (+0x38), by 3 degrees toward the angle of 0x4036d0 (180 south of the cell) with action 0; once facing,
+// it stops turning, +0x386 with the speed, action 2 and 0x508a80. With the three in their cell, +0x140 one more.
 TEST(CameraTourTest, TheScriptActorsTurnThenWalkToTheirCell)
 {
     for (const std::int32_t map : Maps)
@@ -383,7 +383,7 @@ TEST(CameraTourTest, TheScriptActorsTurnThenWalkToTheirCell)
         EXPECT_EQ(facing.animation.action, 2);
         EXPECT_EQ(facing.position, walked.position);
         EXPECT_EQ(tour.step, 4);
-        // Ya sin girar camina aunque esté de espaldas; con los tres en su celda, el paso 5.
+        // Once it stops turning it walks even with its back turned; with the three in their cell, step 5.
         turning.position = {CellCenter(0x70), CellCenter(0xe8), 0.0f};
         facing.position = {CellCenter(0x74) - 49.0f, CellCenter(0xe8) + 49.0f, 0.0f};
         ASSERT_TRUE(tested->Step().HasValue());
@@ -392,9 +392,9 @@ TEST(CameraTourTest, TheScriptActorsTurnThenWalkToTheirCell)
     }
 }
 
-// 0x403900: la acción cambia una vez por vuelta (+0x111 distinta), con +0x114 en 0, y cuenta en +0x78; con la cuenta
-// pedida y avanza, +0x78 en 0 y +0x140 uno más. Sin la clave entre los vivos usa el registro 399 (Q-C1349). Con el
-// efecto (la etapa 5), el 0xed se crea después de contar.
+// 0x403900: the action changes once per turn (+0x111 different), with +0x114 at 0, and counts in +0x78; with the
+// requested count it advances, +0x78 at 0 and +0x140 one more. Without the key among the live ones it uses record 399
+// (Q-C1349). With the effect (stage 5), the 0xed is created after counting.
 TEST(CameraTourTest, TheScriptActionsCountOnlyWhenTheyChange)
 {
     for (const bool present : {true, false})
@@ -424,7 +424,7 @@ TEST(CameraTourTest, TheScriptActionsCountOnlyWhenTheyChange)
     EXPECT_EQ(tested->State().actionCounts[0x19], 1);
 }
 
-// Las altas del guion con el Data del repo, en Lorencia, Devias y Crywolf.
+// The script spawns with the repo's Data, in Lorencia, Devias and Crywolf.
 class CameraTourActorsTest : public Client::Tests::GoldenDataTest
 {
 protected:
@@ -441,9 +441,8 @@ protected:
     }
 };
 
-// 0x404830 en el paso 1: las 27 altas de los altares (0x5141e0 con las claves 10000 en adelante), sin chispas ni
-// velocidad, con los rand() de las altas y nada más; la clave en +0x1f4, las manos en 0xffff y el alpha en 0. Dos
-// avanzan: +0x140 pasa a 3.
+// 0x404830 at step 1: the 27 altar spawns (0x5141e0 with keys from 10000 on), without sparks or speed, with the spawns'
+// rand() and nothing else; the key in +0x1f4, the hands at 0xffff and the alpha at 0. Two advance: +0x140 becomes 3.
 TEST_F(CameraTourActorsTest, TheAltarsComeFromTheMonsterCreation)
 {
     struct Spawn
@@ -494,7 +493,7 @@ TEST_F(CameraTourActorsTest, TheAltarsComeFromTheMonsterCreation)
     }
 }
 
-// 0x403e30: las altas34 completan sus chispas; fuera del34 sigue faltando el modelo del guion.
+// 0x403e30: the spawns in 34 complete their sparks; outside 34 the script model is still missing.
 TEST_F(CameraTourActorsTest, TheGuardsCompleteTheirArrivalInCrywolf)
 {
     constexpr std::int32_t CrywolfMap = 34;
@@ -538,7 +537,7 @@ TEST_F(CameraTourActorsTest, TheGuardsCompleteTheirArrivalInCrywolf)
     }
 }
 
-// 0x43114d/0x43116e y 0x403ad5..0x403cfb: con capacidades parciales el alta omitida no termina el caller.
+// 0x43114d/0x43116e and 0x403ad5..0x403cfb: with partial capacities the skipped spawn does not end the caller.
 TEST_F(CameraTourActorsTest, TheBarrierArrivalContinuesAcrossPartialAndFullPools)
 {
     struct Capacity
@@ -554,7 +553,7 @@ TEST_F(CameraTourActorsTest, TheBarrierArrivalContinuesAcrossPartialAndFullPools
         SCOPED_TRACE(capacity.particles);
         auto tested = Load(34);
         auto twin = Load(34);
-        // La creación del personaje tiene sus propios accesos/RNG; este doble real fija sólo ese prefijo.
+        // The character creation has its own accesses/RNG; this real twin fixes only that prefix.
         const auto base = Client::Monsters::CreateMonster(0x15d, 0x72, 0xee, 10000, twin->Resources());
         ASSERT_TRUE(base.HasValue()) << base.Error();
         CrtRandom expected(twin->cloth.random.State());

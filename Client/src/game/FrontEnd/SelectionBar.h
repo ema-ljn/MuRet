@@ -13,65 +13,65 @@
 #include <optional>
 #include <string_view>
 
-// La barra de la selección (la ventana +0x7f50 del modo 4: 0x63e820 la arma, 0x63ec00 la dibuja y
-// 0x63eb90 la atiende; 06 § La selección de personaje, "La barra"). No es modal: tapa solo su
-// rectángulo, y los personajes no se eligen debajo. El texto del primer 0D con 1 que llega en la
-// selección (+0x511) lo guarda el juego (WorldRuntime): la barra del original se arma una vez. Se
-// atiende en el paso (Q-C81). *Estático*, y *emulado* el lugar en cuatro pantallas.
+// The selection bar (window +0x7f50 of mode 4: 0x63e820 builds it, 0x63ec00 draws it and
+// 0x63eb90 handles it; 06 § La selección de personaje, "La barra"). Not modal: it covers only its
+// rectangle, and the characters are not picked under it. The text of the first 0D with 1 that arrives at the
+// selection (+0x511) is kept by the game (WorldRuntime): the original's bar is built once. It is
+// handled in the step (Q-C81). *Static*, and the place *emulated* on four screens.
 namespace Client::FrontEnd
 {
 struct SelectionBarLayout
 {
-    Ui::Rect bar;   // (22, y) de (W − 44) × 54
-    Ui::Rect deco;  // deco.tga, 189 × 103, en (W − 189, y − 46)
-    Ui::Rect strip; // negra con alfa 0x8f, (W − 44) × 21, en (22, y + 33)
+    Ui::Rect bar;   // (22, y), (W − 44) × 54
+    Ui::Rect deco;  // deco.tga, 189 × 103, at (W − 189, y − 46)
+    Ui::Rect strip; // black with alpha 0x8f, (W − 44) × 21, at (22, y + 33)
     Ui::Rect create;
     Ui::Rect menu;
     Ui::Rect connect;
     Ui::Rect remove;
 };
 
-// 0x65f4b0 con 0x63e9e0: x = 22 e y = −ftol(H · −0,945f) − 54, con el producto en la x87; los botones
-// de 54 × 30 en (22, y), (77, y), (W − 131, y) y (W − 76, y).
+// 0x65f4b0 with 0x63e9e0: x = 22 and y = −ftol(H · −0.945f) − 54, with the product on the x87; the
+// 54 × 30 buttons at (22, y), (77, y), (W − 131, y) and (W − 76, y).
 [[nodiscard]] SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen);
 
-// El clic que atiende 0x63eb90, uno por paso, en este orden.
+// The click 0x63eb90 handles, one per step, in this order.
 enum class SelectionBarClick : std::uint8_t
 {
-    Connect, // 0x633c10, lo de Enter
-    Menu,    // abre el menú (+0x3d0)
-    Create,  // abre la ventana de crear (+0x8498)
-    Delete,  // 0x63edf0, las revisiones del borrado
+    Connect, // 0x633c10, the same as Enter
+    Menu,    // opens the menu (+0x3d0)
+    Create,  // opens the create window (+0x8498)
+    Delete,  // 0x63edf0, the delete checks
 };
 
 class SelectionBar final : public Ui::NewUiWindow
 {
 public:
-    // `texts` puede ser nullptr y tiene que vivir lo que la barra.
+    // `texts` can be nullptr and has to outlive the bar.
     SelectionBar(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
-    // El +0x543 que calcula el armado (0x63e820) una vez, con la lista: algún personaje de los
-    // lugares 0 a 4 tiene el bit 0x10 de sus banderas. Con él se dibujan los textos 436 y 437.
+    // The +0x543 that the build (0x63e820) computes once, with the list: some character of slots
+    // 0 to 4 has bit 0x10 of its flags. With it texts 436 and 437 are drawn.
     void SetBlockedAccount(bool blocked);
 
-    // 0x63eb40: crear, con un lugar libre de los cinco; conectar y borrar, con uno elegido. El menú,
-    // siempre.
+    // 0x63eb40: create, with a free slot of the five; connect and delete, with one chosen. The menu,
+    // always.
     void Enable(bool aFreeSlot, bool aChosenOne);
 
-    // 0x65f690 en 0x65f4b0, al armar la selección; la cierra el 1 de la de Esc (0x647e48).
+    // 0x65f690 in 0x65f4b0, when building the selection; button 1 of the Esc window closes it (0x647e48).
     void Open();
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
-    // La barra (`bar` de LayoutSelectionBar).
+    // The bar (`bar` of LayoutSelectionBar).
     [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
 
-    // 0x63c490 en los cuatro botones y, con el foco, 0x63eb90: el que tuvo un clic. Sin el mouse
-    // (una ventana arriba, 0x65fc30), los botones siguen con su estado, sin encima ni clic.
+    // 0x63c490 on the four buttons and, with the focus, 0x63eb90: the one that had a click. Without the mouse
+    // (a window on top, 0x65fc30), the buttons keep their state, without hover or click.
     std::optional<SelectionBarClick> Step(const Input::InputState& input, Core::PixelSize screen,
                                           Ui::NewUiTurn turn = {});
 
-    // El adorno y la franja, el aviso del servidor (+0x511, `serverNotice`), el texto 1710, los 436
-    // y 437 con la cuenta bloqueada y los cuatro botones, con la mezcla normal.
+    // The ornament and the strip, the server notice (+0x511, `serverNotice`), text 1710, 436
+    // and 437 with the account blocked and the four buttons, with the normal blend.
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
               std::string_view serverNotice = {});
 

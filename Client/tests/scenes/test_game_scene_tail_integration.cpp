@@ -85,7 +85,7 @@ struct FrameFixture
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     Client::Assets::GameModels models;
-    // El paso del héroe lee su habilidad de Skill.bmd (0x5526f0); estos tests no miran habilidades.
+    // The hero's step reads its skill from Skill.bmd (0x5526f0); these tests do not look at skills.
     Client::Tables::SkillTable skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     Client::Tests::RecordingFrameTarget target;
     std::unique_ptr<Client::Scenes::GameScene> scene;
@@ -107,8 +107,8 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         frame.world.Runtime().drawingEnabled = true;
         frame.world.Actors()[0].position = {13550, 12550, 0};
-        // Como lo deja la entrada al mundo (WorldEntry): con el equipo en 0, los avisos de durabilidad del HUD
-        // (0x5aac20) leerían Item.bmd, que este dibujo no carga.
+        // As the world entry (WorldEntry) leaves it: with the equipment at 0, the HUD's durability warnings (0x5aac20)
+        // would read Item.bmd, which this draw does not load.
         frame.world.OwnCharacter().ClearEquipmentForEntry();
         frame.scene = std::make_unique<Client::Scenes::GameScene>(
             Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
@@ -177,8 +177,8 @@ protected:
         effect.transform.position.x += offset;
         effect.light = {MovingLightTint.red, MovingLightTint.green, MovingLightTint.blue};
     }
-    // Lo que corre antes del frame del original siguiente: el reloj avanza uno y la escena corre los dos pasos
-    // de 40 ms que completan sus 46,875 ms antes de dibujar, como GameLoop (OriginalFramesOfTheSteps).
+    // What runs before the next frame of the original: the clock advances one and the scene runs the two 40 ms steps
+    // that complete its 46.875 ms before drawing, like GameLoop (OriginalFramesOfTheSteps).
     void StepToTheNextOriginalFrame()
     {
         auto& frame = *m_frame;
@@ -243,7 +243,7 @@ TEST_F(GameSceneTailIntegrationTest, TheFramePulsePrecedesEvenAFailingWorldDraw)
     auto& frame = *m_frame;
     auto& items = frame.world.Runtime().itemRender;
     EXPECT_EQ(items.glowPulse, 0);
-    // Sin el mapping, 0x6371a0 corta (el mapa no está cargado) después del publisher 639482.
+    // Without the mapping, 0x6371a0 stops (the map is not loaded) after the publisher 0x639482.
     frame.states.terrain.current.mapping.reset();
     Render();
     ASSERT_TRUE(frame.scene->Failure().has_value());
@@ -301,7 +301,7 @@ TEST_F(GameSceneTailIntegrationTest, KalimaWaterRunsBothModesWithAnExplicitEmpty
         24, {m_dataRoot, frame.world, frame.states.terrain, Client::Kernel::SceneId::Game, 0, frame.cloth.random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_NE(frame.world.Map().kalima, nullptr);
-    // Aísla la cola de agua; no acredita los cuerpos por tipo de los objetos de este mapa.
+    // Isolates the water tail; it does not credit the per-type bodies of this map's objects.
     frame.world.Map().objects.clear();
     frame.world.Actors()[0].position = {12850, 12850, 400};
     frame.world.Actors()[0].cellX = 128;
@@ -455,8 +455,8 @@ TEST_F(GameSceneTailIntegrationTest, ReloadedProjectedMovingLightKeepsItsSprites
     EXPECT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
     ASSERT_NO_FATAL_FAILURE(IntermediateRender());
     EXPECT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
-    // El 0x5e8 del arreglo no tiene paso portado (0x5208a0): se apaga durante los pasos y vuelve igual para el
-    // dibujo, que es el frame del original siguiente.
+    // The test's 0x5e8 has no ported step (0x5208a0): it is turned off during the steps and comes back the same for the
+    // draw, which is the next frame of the original.
     frame.world.Map().effects.Effects().back().alive = false;
     ASSERT_NO_FATAL_FAILURE(StepToTheNextOriginalFrame());
     MovingLight(100);
@@ -474,7 +474,7 @@ TEST_F(GameSceneTailIntegrationTest, FreshProjectedMovingLightSurvivesTheSecondK
     ASSERT_TRUE(Client::Scenes::LoadMap(24, {m_dataRoot, frame.world, frame.states.terrain,
                                              Client::Kernel::SceneId::Game, 0, frame.cloth.random})
                     .HasValue());
-    frame.world.Map().objects.clear(); // Aislamiento explícito de la cola; no acredita objetos Kalima.
+    frame.world.Map().objects.clear(); // Explicit isolation of the tail; it does not credit Kalima objects.
     frame.world.Actors()[0].position = {9850, 9850, 400};
     frame.world.Actors()[0].cellX = 98;
     frame.world.Actors()[0].cellY = 98;
@@ -496,7 +496,7 @@ TEST_F(GameSceneTailIntegrationTest, TheGlobalPrefixKeepsTheDurablePulseDuringAH
     manager->Poll();
     ASSERT_TRUE(manager->HoldsTheLastFrame());
     EXPECT_FLOAT_EQ(frame.world.Runtime().itemRender.glowPulse, 0.125f);
-    static_cast<void>(manager->HoldsTheLastFrame()); // La consulta repetida del mismo frame tampoco publica dos veces.
+    static_cast<void>(manager->HoldsTheLastFrame()); // Asking again in the same frame does not publish twice either.
     EXPECT_FLOAT_EQ(frame.world.Runtime().itemRender.glowPulse, 0.125f);
     frame.clock.Advance(Client::Models::OriginalFrameTime - std::chrono::milliseconds{1});
     manager->Poll();

@@ -41,13 +41,13 @@
 #include <span>
 #include <string>
 
-// El mundo 54 de la selección (P-C50): lo que 0x6342c0 avanza y 0x634680 dibuja alrededor de los
-// personajes. El paso: las olas de 0x5fbf60, los objetos vistos de 0x606560 (0x4250f0), los efectos con
-// modelo de 0x52d220 (la mariposa 0xae) y las juntas de 0x53c670. El dibujo: el terreno, el pasto y las
-// marcas de 0x5fc260(0); los objetos de 0x6046a0 con sus casos de 0x425260; las cintas, las juntas(0), los
-// efectos con modelo(0) y 0x549510 después de los personajes; y en el pase de ojo los sprites, las
-// partículas y los números. Un dibujo intermedio de MuRet (sin frame del original) corre sobre copias:
-// no saca rand() de la CRT ni cambia el estado del paso. Contrato: 06 § El mundo de la selección.
+// World 54 of the selection (P-C50): what 0x6342c0 advances and 0x634680 draws around the
+// characters. The step: the waves of 0x5fbf60, the seen objects of 0x606560 (0x4250f0), the model
+// effects of 0x52d220 (the butterfly 0xae) and the joints of 0x53c670. The draw: the terrain, the grass and the
+// marks of 0x5fc260(0); the objects of 0x6046a0 with their cases of 0x425260; the ribbons, the joints(0), the
+// model effects(0) and 0x549510 after the characters; and in the eye pass the sprites, the
+// particles and the numbers. A MuRet intermediate draw (without an original frame) runs on copies:
+// it takes no CRT rand() and does not change the step state. Contract: 06 § El mundo de la selección.
 namespace Client::Actors::Drawing
 {
 struct GameItemRenderState;
@@ -63,8 +63,8 @@ class WorldState;
 namespace Client::FrontEnd
 {
 
-// Las texturas que la selección le presta a los sprites y a las partículas: las de su juego (0x61ca30:
-// Impack03 en 0x719 y chasellight en 0x729) y, detrás, las del mundo con las globales de la carga.
+// The textures the selection lends to the sprites and the particles: its game's (0x61ca30:
+// Impack03 at 0x719 and chasellight at 0x729) and, behind them, the world's with the load's globals.
 class SelectionTextureLibrary final : public Models::IModelLibrary
 {
 public:
@@ -85,14 +85,14 @@ private:
     const Assets::SceneTextures& m_scene;
 };
 
-// Lo que un dibujo de la selección necesita prestado para el mundo.
+// What a selection draw needs lent for the world.
 struct SelectionWorldFrame
 {
     Render::ModelBatch& batch;
     const Terrain::TerrainPolygon& polygon;
     const Terrain::TerrainRange& range;
     Core::Duration frameClock;
-    // Los frames del original que cuenta el reloj del dibujo; con 0 todo va sobre la proyección.
+    // The original frames the draw clock counts; with 0 everything goes on the projection.
     int frames = 1;
     float fixedHeight = Terrain::FixedCornerHeight;
     std::function<void()> flushModels{};
@@ -108,8 +108,8 @@ public:
     SelectionWorld& operator=(SelectionWorld&&) = delete;
     ~SelectionWorld();
 
-    // Los tiles con el pasto (0x61a560) y los modelos de Object55 (0x616ec0) del mapa `map`, si no los
-    // tiene ya; `globalModels` y `gameSlots` son los de la carga y tienen que vivir hasta Release.
+    // The tiles with the grass (0x61a560) and the Object55 models (0x616ec0) of map `map`, if it does not
+    // have them already; `globalModels` and `gameSlots` are the load's and have to live until Release.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          const Models::ModelTextureSlots* gameSlots,
                                                          const Models::IModelLibrary* globalModels);
@@ -117,25 +117,25 @@ public:
     [[nodiscard]] bool IsLoaded() const;
     [[nodiscard]] const Assets::WorldModels& Models() const;
 
-    // 0x5fbf60, después de la copia de la luz: las olas de la ventana del rango con el reloj del paso.
+    // 0x5fbf60, after the light copy: the waves of the range's window with the step clock.
     void StepWaves(Core::Duration clock, const Terrain::TerrainRange& range, std::uint8_t map);
-    // 0x606560 en la selección: los objetos vistos en el último dibujo, con la luz dinámica, el pool de
-    // partículas y el pedido sonoro del mundo. `terrain` is the current map's (Terrain::TerrainState::current), and
+    // 0x606560 in the selection: the objects seen in the last draw, with the dynamic light, the particle pool
+    // and the world's sound request. `terrain` is the current map's (Terrain::TerrainState::current), and
     // `dynamicLighting` the dynamic light (Terrain::TerrainState::dynamicLight).
     [[nodiscard]] Core::Expected<void, std::string> StepObjects(Kernel::WorldState& world,
                                                                 const Terrain::WorldTerrain& terrain,
                                                                 Terrain::TerrainLighting& dynamicLighting,
                                                                 Crt::CrtRandom& random, float worldClock);
-    // 0x52d220 y 0x53c670, después de la vista previa: los efectos con modelo (la mariposa, con la altura
-    // del terreno y los sprites del frame, y el calco 0x14e de los Fenrir, con timeGetTime() en `systemTime`) y las
-    // juntas.
+    // 0x52d220 and 0x53c670, after the preview: the model effects (the butterfly, with the terrain height
+    // and the frame's sprites, and the Fenrir's decal 0x14e, with timeGetTime() in `systemTime`) and the
+    // joints.
     [[nodiscard]] Core::Expected<void, std::string>
     StepEffects(Kernel::WorldState& world, Terrain::TerrainLighting& dynamicLighting, Models::ClothWorld& cloth,
                 float worldClock, const std::function<double(float, float)>& height, std::uint32_t systemTime);
 
-    // Al empezar un dibujo: con cero frames copia lo que el dibujo cambia (la luz dinámica, el rand(), las
-    // partículas, los efectos, los objetos, la cola, los globales de los ítems y las mallas sin luz); con frames,
-    // presta los del mundo. Los personajes de la lista (0x50ba30) usan los mismos.
+    // At the start of a draw: with zero frames it copies what the draw changes (the dynamic light, the rand(), the
+    // particles, the effects, the objects, the tail, the items' globals and the unlit meshes); with frames,
+    // it lends the world's. The list's characters (0x50ba30) use the same ones.
     void BeginFrame(Kernel::WorldState& world, Terrain::TerrainLighting& dynamicLighting, Models::ClothWorld& cloth,
                     int frames);
     [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
@@ -144,26 +144,26 @@ public:
     [[nodiscard]] Particles::Particles& FrameParticles();
     [[nodiscard]] Effects::ModelEffects& FrameEffects();
     [[nodiscard]] Kernel::GameDrawTailState& FrameTail();
-    // La tabla de los sprites del frame (0x5491e0): la del mundo, o la proyectada en un dibujo intermedio.
+    // The frame's sprite table (0x5491e0): the world's, or the projected one in an intermediate draw.
     [[nodiscard]] Particles::FrameSprites& FrameSprites();
     [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
     [[nodiscard]] Kernel::ObjectModelStepState& FrameModelState();
 
-    // 0x5fc260(0): el terreno, el pasto y las marcas del suelo.
+    // 0x5fc260(0): the terrain, the grass and the ground marks.
     [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(Kernel::WorldState& world,
                                                                 const Terrain::WorldTerrain& terrain,
                                                                 const Terrain::GroundMarkTable& groundMarks,
                                                                 const SelectionWorldFrame& frame);
-    // 0x6046a0 con los casos de 0x602ed0 → 0x425260. `poseCarry` es el buffer global de la pose del frame.
+    // 0x6046a0 with the cases of 0x602ed0 → 0x425260. `poseCarry` is the frame's global pose buffer.
     [[nodiscard]] Core::Expected<void, std::string>
     DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, Kernel::PoseBuffer& poseCarry);
-    // 0x52e590, 0x53c6a0(0), 0x52d620(0) y 0x549510, después de los personajes.
+    // 0x52e590, 0x53c6a0(0), 0x52d620(0) and 0x549510, after the characters.
     [[nodiscard]] Core::Expected<void, std::string> DrawAfterCharacters(Kernel::WorldState& world,
                                                                         const Terrain::WorldTerrain& terrain,
                                                                         const SelectionWorldFrame& frame,
                                                                         const Render::Camera3D& camera,
                                                                         Kernel::PoseBuffer& poseCarry);
-    // 0x6213e0..0x6213f0: 0x549440(0), 0x548550(0) y 0x548eb0(0) con la modelview en la identidad.
+    // 0x6213e0..0x6213f0: 0x549440(0), 0x548550(0) and 0x548eb0(0) with the modelview at identity.
     [[nodiscard]] Core::Expected<void, std::string> DrawEye(const Render::Pass3D& pass,
                                                             const SelectionWorldFrame& frame,
                                                             const Assets::SceneTextures& sceneTextures,

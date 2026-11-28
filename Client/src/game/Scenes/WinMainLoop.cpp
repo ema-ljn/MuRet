@@ -19,11 +19,11 @@ namespace Client::Scenes
 {
 namespace
 {
-// 0x412890: el cierre de una variable protegida saca un rand() por byte; el contador tiene 4.
+// 0x412890: closing a protected variable takes one rand() per byte; the counter has 4.
 constexpr std::uint16_t CounterCloseRandoms = Models::SmallLogicalCloseRandoms;
-// 0x4c0ec0: el cierre del byte del foco.
+// 0x4c0ec0: the focus byte's close.
 constexpr std::uint16_t FocusCloseRandoms = 1;
-// 0x4bbd44 y 0x4bbed5: los dos contadores comparan con 30.
+// 0x4bbd44 and 0x4bbed5: both counters compare with 30.
 constexpr std::int32_t LastQuietLoop = 0x1e;
 
 void Draw(Crt::CrtRandom& random, std::uint16_t count)
@@ -45,27 +45,27 @@ void StepTheGameMusic(Kernel::WorldState& world, Crt::CrtRandom& random)
 
 void StepTheWinMainLoop(WinMainCounters& counters, Crt::CrtRandom& random)
 {
-    // 0x4bbc57: abre el contador; 0x4bbd35: lo sube.
+    // 0x4bbc57: opens the counter; 0x4bbd35: raises it.
     ++counters.loops;
     if (counters.loops > LastQuietLoop)
     {
-        // 0x4bbd51..0x4bbde5: cierra el acceso de la vuelta.
+        // 0x4bbd51..0x4bbde5: closes the turn's access.
         Draw(random, CounterCloseRandoms);
-        // 0x4bbdea..0x4bbecf: abre el segundo contador y lo sube; 0x4bda4d..0x4bdae3: menor que 31, lo cierra. Con
-        // 31 o más (0x4bbedc), el chequeo de 0x4bc27d, que solo alcanza la ventana minimizada: el reinicio de abajo
-        // lo deja en 0 en cada ronda.
+        // 0x4bbdea..0x4bbecf: opens the second counter and raises it; 0x4bda4d..0x4bdae3: below 31, closes it. With 31
+        // or more (0x4bbedc), 0x4bc27d's check, which only the minimized window reaches: the reset below leaves it at 0
+        // on each round.
         ++counters.rounds;
         Draw(random, CounterCloseRandoms);
-        // 0x4bdaef: con IsIconic(hWnd) en 0, los dos en 0, cada uno con su apertura y su cierre (0x4bdbd9,
-        // 0x4bdd58). 0x4bddfd: vuelve a abrir el primero, que cierra la cola común.
+        // 0x4bdaef: with IsIconic(hWnd) at 0, both at 0, each with its open and close (0x4bdbd9, 0x4bdd58). 0x4bddfd:
+        // opens the first one again, which the common tail closes.
         counters.rounds = 0;
         Draw(random, CounterCloseRandoms);
         counters.loops = 0;
         Draw(random, CounterCloseRandoms);
     }
-    // 0x4bded9: la cola común cierra el contador.
+    // 0x4bded9: the common tail closes the counter.
     Draw(random, CounterCloseRandoms);
-    // 0x4bdf76..0x4bdfdd: abre el foco, lo lee y lo cierra (0x4c0ec0). Con foco, el frame.
+    // 0x4bdf76..0x4bdfdd: opens the focus, reads it and closes it (0x4c0ec0). With focus, the frame.
     Draw(random, FocusCloseRandoms);
 }
 

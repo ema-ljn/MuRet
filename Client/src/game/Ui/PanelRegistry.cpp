@@ -21,7 +21,7 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x657ab0: el orden fijo de las consultas (0x657af0..0x659236).
+// 0x657ab0: the fixed order of the checks (0x657af0..0x659236).
 constexpr std::array<PanelId, 26> CloseOrder{CharacterPanel,       PartyPanel,
                                              QuestPanel,           GuildPanel,
                                              SecondGuildPanel,     CastleSiegePanel,
@@ -36,47 +36,47 @@ constexpr std::array<PanelId, 26> CloseOrder{CharacterPanel,       PartyPanel,
                                              SecondEventNpcPanel,  TrainerPanel,
                                              NpcShopPanel,         InventoryPanel};
 
-// 0x65cae0 con 0x4000000: lo que cierra antes que el inventario (0x65cbd5).
+// 0x65cae0 with 0x4000000: what it closes before the inventory (0x65cbd5).
 constexpr PanelId ClosedWithTheInventory = 0x11d9e0;
-// 0x65cae0 con 0x2000000: la mascota y la tienda personal (0x65cba4).
+// 0x65cae0 with 0x2000000 (0x65cba4).
 constexpr PanelId ClosedWithTheCharacter = PetPanel | PersonalShopPanel;
-// 0x659fa3.. y 0x65c009: el modo de la lista de CS y el entrenador que van con el inventario.
+// 0x659fa3.. and 0x65c009: the mode of the CS list and of the trainer that go with the inventory.
 constexpr std::int32_t InventoryCompanionMode = 3;
-// 0x659860: el quest en 1 no deja abrir nada.
+// 0x659860: the quest at 1 lets nothing open.
 constexpr std::uint8_t BlockingQuestState = 1;
-// 0x6598d4..0x6598e4: los amigos y los comandos no se abren en Chaos Castle (18 a 23).
+// 0x6598d4..0x6598e4: the friends and the commands do not open in Chaos Castle (18 to 23).
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
-// 0x65ca72..0x65ca88 y 0x65cc2c..0x65cc3a: los dos sonidos de abrir y cerrar.
+// 0x65ca72..0x65ca88 and 0x65cc2c..0x65cc3a: the two sounds of opening and closing.
 constexpr Audio::SoundId FirstPanelSound = Sound::ButtonClickSound;
 constexpr Audio::SoundId SecondPanelSound = Sound::CreateWindowSound;
-// 0x420cc0: el valor de 0x723911 con el panel de la mascota abierto.
+// 0x420cc0: the value of 0x723911 with the pet panel open.
 constexpr std::uint8_t PetPanelOpen = 2;
-// 0x657880: la tecla Esc.
+// 0x657880
 constexpr std::int32_t EscapeKey = 0x1b;
-// 0x659290(0) y 0x657880: los bits que recorren, de 1 a 0x40000000.
+// 0x659290(0) and 0x657880: the bits they walk, from 1 to 0x40000000.
 constexpr PanelId LastScannedBit = 0x40000000;
 
-// Una consulta de un byte protegido: abre la entrada, lee el valor y la cierra (0x6594a3..0x6595cf con 0x10000 y
-// 0x6597f9..0x659847 con 0x20). Si la cuenta queda en 0, saca un rand().
+// A read of a protected byte: opens the entry, reads the value and closes it (0x6594a3..0x6595cf with 0x10000 and
+// 0x6597f9..0x659847 with 0x20). If the count ends at 0, it draws a rand().
 bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(depth, random, 1);
     return value != 0;
 }
 
-// Una escritura de un byte protegido (0x65ba67..0x65bd57 abre la tienda, 0x658e28..0x658fd7 la cierra): el mismo
-// acceso, con su rand() al cerrarlo.
+// A write of a protected byte (0x65ba67..0x65bd57 opens the shop, 0x658e28..0x658fd7 closes it): the same access,
+// with its rand() on closing it.
 void WriteProtected(std::uint8_t& value, std::uint8_t& depth, Crt::CrtRandom& random, std::uint8_t written)
 {
     const Models::LogicalAccess access(depth, random, 1);
     value = written;
 }
 
-// 0x6236f0(0x8e) al abrir la caja del caos (0x65aaf2) y su vuelta a 0 al cerrarla (0x658928..0x658934).
+// 0x6236f0(0x8e) on opening the chaos box (0x65aaf2) and its return to 0 on closing it (0x658928..0x658934).
 constexpr std::int32_t ChaosBoxDialog = 0x8e;
 
-// La ola de cada panel que el hito 1 no abre ni cierra (06 § HUD y ventanas, "Los paneles").
+// The wave of each panel milestone 1 neither opens nor closes (06 § HUD y ventanas, "Los paneles").
 const char* WaveOf(PanelId id)
 {
     switch (id)
@@ -148,7 +148,7 @@ bool PanelRegistry::IsOpen(PanelId id)
     case CommandsPanel:
         return delegated.commands != 0;
     case PetPanel:
-        // 0x420cc0: solo el 2 (0x420cc0 compara con 2).
+        // 0x420cc0: only 2 (0x420cc0 compares with 2).
         return delegated.pet == PetPanelOpen;
     case PersonalShopPanel:
     case OtherShopPanel:
@@ -196,7 +196,7 @@ bool PanelRegistry::CanOpen(PanelId id)
         return false;
     if (m_state.field78abb00 != 0 || m_state.delegated.quest == BlockingQuestState)
         return false;
-    // 0x661b90: un ítem en el cursor o en la caja del caos.
+    // 0x661b90: an item on the cursor or in the chaos box.
     const bool busy = m_context.inventoryBusy ? m_context.inventoryBusy()
                                               : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
     if (IsOpen(CastleSiegeListPanel) && busy)
@@ -217,12 +217,12 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
         return false;
     if (m_context.dialogs.current != PanelFriendlyDialog)
         PushDialog(m_context.dialogs, 0);
-    // 0x659a3f: todos menos el id y los amigos.
+    // 0x659a3f: all but the id and the friends.
     PanelId mask = ~id ^ FriendsPanel;
     switch (id)
     {
     case MovePanel:
-        // 0x659f57: sin cerrar nada.
+        // 0x659f57: without closing anything.
         m_state.overlayMode = MoveOverlayMode;
         break;
     case InventoryPanel:
@@ -238,9 +238,9 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
             return closed;
         if (closed.Value())
         {
-            // 0x65c020..0x65c033: 0x7d53708 en 1 y, con un Dark Lord, los pedidos del cuervo y del caballo.
+            // 0x65c020..0x65c033: 0x7d53708 to 1 and, with a Dark Lord, the raven and horse requests.
             m_state.inventory = 1;
-            // 0x65c039: arma el C1 A9 que pide la mascota; el plan pone el A9 en el hito 4 (CL9.2, 08 P-C195).
+            // 0x65c039: builds the C1 A9 that asks for the pet; the plan puts the A9 in milestone 4 (CL9.2, 08 P-C195).
             if (m_context.heroClass == Kernel::CharacterClass::DarkLord)
             {
                 if (!m_context.petRequests)
@@ -254,7 +254,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case PartyPanel:
     {
-        // 0x659a82..0x659c44: con lo que cerró, la cuenta en 0, el pedido de la lista y la party.
+        // 0x659a82..0x659c44: with what it closed, the count to 0, the list request and the party.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -269,7 +269,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case CommandsPanel:
     {
-        // 0x65a91c..0x65a934: con lo que cerró, +4 de [0x6e592c].
+        // 0x65a91c..0x65a934: with what it closed, [0x6e592c]'s +4.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -287,7 +287,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case TrainerPanel:
     {
-        // 0x65be77..0x65be93: con lo que cerró, 0x449940(1), sin abrir el inventario.
+        // 0x65be77..0x65be93: with what it closed, 0x449940(1), without opening the inventory.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -302,7 +302,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case GuildPanel:
     {
-        // 0x659c7a..0x659e41: con lo que cerró, el C1 03 52 y 0x6522d0.
+        // 0x659c7a..0x659e41: with what it closed, the C1 03 52 and 0x6522d0.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -318,7 +318,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case SecondGuildPanel:
     {
-        // 0x65be98..0x65beb5: con lo que cerró, 0x657090.
+        // 0x65be98..0x65beb5: with what it closed, 0x657090.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -327,7 +327,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
         break;
     }
     case FriendsPanel:
-        // 0x659f3d: sin cerrar nada, 0x491080(0x186, 0x106) y los sonidos.
+        // 0x659f3d: without closing anything, 0x491080(0x186, 0x106) and the sounds.
         if (!m_context.friendsOpened)
             return Core::Unexpected(OpenCut(id));
         if (auto opened = m_context.friendsOpened(); !opened.HasValue())
@@ -335,8 +335,9 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
         break;
     case TradePanel:
     {
-        // 0x659e46..0x659f38: con lo que cerró, el inventario (0x6599a0(0x4000000, 0), con sus sonidos) y el byte
-        // protegido 0x7d53711 en 1: abrir la entrada, escribir y cerrarla (un rand() si queda sin accesos).
+        // 0x659e46..0x659f38: with what it closed, the inventory (0x6599a0(0x4000000, 0), with its sounds) and the
+        // protected byte 0x7d53711 to 1: opening the entry, writing and closing it (a rand() if it is left with no
+        // accesses).
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -353,8 +354,9 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     case PersonalShopPanel:
     case OtherShopPanel:
     {
-        // 0x65ac3f..0x65b227 (0x800, que deja el inventario abierto) y 0x65b319..0x65ba41 (0x20000, que lo cierra con
-        // lo demás): con lo que cerró, el inventario (0x6599a0(0x4000000, 0)), lo de la tienda y 0x7d5370f en 1.
+        // 0x65ac3f..0x65b227 (0x800, which leaves the inventory open) and 0x65b319..0x65ba41 (0x20000, which closes it
+        // with the rest): with what it closed, the inventory (0x6599a0(0x4000000, 0)), the shop's part and 0x7d5370f
+        // to 1.
         if (id == PersonalShopPanel)
             mask ^= InventoryPanel;
         auto closed = CloseByMask(mask);
@@ -375,7 +377,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case QuestPanel:
     {
-        // 0x659c50..0x659c70: todos menos el personaje y los amigos; con lo que cerró, 0x419840(−1).
+        // 0x659c50..0x659c70: all but the character and the friends; with what it closed, 0x419840(−1).
         mask ^= CharacterPanel;
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
@@ -391,7 +393,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case Panel2000:
     {
-        // 0x65b240..0x65b259: la máscara se cierra antes de prender los dos bytes de esta ventana.
+        // 0x65b240..0x65b259: the mask closes before this window's two bytes are set.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -405,7 +407,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     case EventNpcPanel:
     case SecondEventNpcPanel:
     {
-        // 0x65b265/0x65b29b: el inventario abre antes del byte0x7d53712 y del tipo0x7d53714.
+        // 0x65b265/0x65b29b: the inventory opens before the byte 0x7d53712 and the type 0x7d53714.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -451,7 +453,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case CastleSiegePanel:
     {
-        // 0x65bef0: el mismo mask de todos menos el id y los amigos, con aux en 0.
+        // 0x65bef0: the same mask of all but the id and the friends, with aux at 0.
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
             return closed;
@@ -466,8 +468,8 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case PetPanel:
     {
-        // 0x659fd9..0x65a8af: todos menos el personaje y los amigos; con lo que cerró, 0x420cb0 (0x723911 en 2) y los
-        // pedidos del cuervo y del caballo.
+        // 0x659fd9..0x65a8af: all but the character and the friends; with what it closed, 0x420cb0 (0x723911 to 2) and
+        // the raven and horse requests.
         mask ^= CharacterPanel;
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
@@ -484,7 +486,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
     }
     case CharacterPanel:
     {
-        // 0x65c94b..0x65ca72: todos menos el inventario y los amigos; con lo que cerró, el personaje.
+        // 0x65c94b..0x65ca72: all but the inventory and the friends; with what it closed, the character.
         mask ^= InventoryPanel;
         auto closed = CloseByMask(mask);
         if (!closed.HasValue())
@@ -498,7 +500,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
         break;
     }
     default:
-        // 0x65bfcb: un id sin caso sale con 0 y sin sonidos.
+        // 0x65bfcb: an id without a case exits with 0 and without sounds.
         return false;
     }
     PlayTheSounds();
@@ -525,7 +527,7 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
     case ChaosBoxPanel:
     case EventNpcPanel:
     {
-        // 0x65cb5b: el panel y, si cerró, el inventario, los dos con `aux`.
+        // 0x65cb5b: the panel and, if it closed, the inventory, both with `aux`.
         auto closed = CloseByMask(id, aux);
         if (!closed.HasValue())
             return closed;
@@ -539,7 +541,7 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
     }
     case CastleSiegeListPanel:
     {
-        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor o caja), aviso 1641 y los sonidos del wrapper aun si no cierra.
+        // 0x65cb7a..0x65cb9d: 0x661b90 (cursor or box), notice 1641 and the wrapper's sounds even if it does not close.
         const bool busy = m_context.inventoryBusy ? m_context.inventoryBusy()
                                                   : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem;
         if (busy)
@@ -576,7 +578,7 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
     }
     case InventoryPanel:
     {
-        // 0x65cbbb: con un ítem en el cursor o en la caja del caos, solo los sonidos.
+        // 0x65cbbb: with an item on the cursor or in the chaos box, only the sounds.
         if (m_context.inventoryBusy ? m_context.inventoryBusy()
                                     : m_context.cursorItemCount > 0 || m_state.delegated.chaosBoxHasItem)
             break;
@@ -610,8 +612,8 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 
 Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool aux)
 {
-    // [EBP−0xd] arranca en 1 y solo lo bajan el almacén y la caja del caos que no cierran (0x658534, 0x658961) y el
-    // entrenador con algo en su caja (0x658df7); los paneles que siguen se cierran igual.
+    // [EBP−0xd] starts at 1 and only the warehouse and the chaos box that do not close (0x658534, 0x658961) and the
+    // trainer with something in its box (0x658df7) clear it; the panels after them close anyway.
     bool closedAll = true;
     for (const PanelId id : CloseOrder)
     {
@@ -641,7 +643,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             break;
         case TradePanel:
         {
-            // 0x657fb5..0x6584cb: el 3D y las grillas, y el byte protegido en 0 (un rand() al cerrar la entrada).
+            // 0x657fb5..0x6584cb: the 3D and the grids, and the protected byte to 0 (a rand() on closing the entry).
             if (!m_context.tradeClosed)
                 return Core::Unexpected(std::string("0x657fb5: cerrar el comercio sin sus grillas (0x78a5a20)"));
             if (auto closed = m_context.tradeClosed(aux); !closed.HasValue())
@@ -656,8 +658,9 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
         case GuildPanel:
         case SecondGuildPanel:
         {
-            // 0x657b50 y 0x657b73: la vtable + 0x2c de [0x7d536f0] (0x6522f0) y de [0x7d536f4] (0x6570b0), sin mirar
-            // nada. MuRet corta sin el cierre prestado (Hud::GamePanels::LendTheGuild o LendTheSession).
+            // 0x657b50 and 0x657b73: vtable + 0x2c of [0x7d536f0] (0x6522f0) and of [0x7d536f4] (0x6570b0), without
+            // checking anything. MuRet bails out without the lent close (Hud::GamePanels::LendTheGuild or
+            // LendTheSession).
             const auto& closer = id == GuildPanel ? m_context.guildClosed : m_context.secondGuildClosed;
             if (!closer)
                 return Core::Unexpected(CloseCut(id));
@@ -668,7 +671,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
         case PersonalShopPanel:
         case OtherShopPanel:
         {
-            // 0x6589b6..0x6589f4: 0x5eb020 y 0x7d5370f en 0. Las dos comparten el byte: la segunda ya no está abierta.
+            // 0x6589b6..0x6589f4: 0x5eb020 and 0x7d5370f to 0. Both share the byte: the second one is no longer open.
             if (!m_context.personalShopClosed)
                 return Core::Unexpected(std::string("0x6589cb: cerrar la tienda personal sin 0x5eb020"));
             if (auto closed = m_context.personalShopClosed(); !closed.HasValue())
@@ -677,11 +680,11 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             break;
         }
         case PetPanel:
-            // 0x6589b1: 0x420ca0, 0x723911 en 0.
+            // 0x6589b1: 0x420ca0, 0x723911 to 0.
             m_state.delegated.pet = 0;
             break;
         case QuestPanel:
-            // 0x657b2b: 0x419900, la ventana en 0 y el C1 03 31.
+            // 0x657b2b: 0x419900, the window to 0 and the C1 03 31.
             if (!m_context.questClosed)
                 return Core::Unexpected(std::string("0x419900: cerrar las misiones manda el C1 03 31 sin el cable"));
             m_state.delegated.quest = 0;
@@ -703,7 +706,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             m_state.field78abb04 = 0;
             break;
         case Panel2000:
-            // 0x658be3..0x658bea: sin envío; los botones de 0x5e74f0 mandan el C1 03 31 antes de CloseAll.
+            // 0x658be3..0x658bea: nothing sent; 0x5e74f0's buttons send the C1 03 31 before CloseAll.
             m_state.panel2000 = 0;
             m_state.field78abb08 = 0;
             break;
@@ -736,7 +739,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
             auto closed = m_context.castleWindowClosing(id);
             if (!closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
-            // 0x657bb7/0x657bda son llamadas void: Senior ocupado no baja el flag de retorno del registro.
+            // 0x657bb7/0x657bda are void calls: a busy Senior does not clear the registry's return flag.
             break;
         }
         default:
@@ -748,14 +751,15 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
 
 Core::Expected<void, std::string> PanelRegistry::OpenTheNpcWindow(PanelId id, PanelId mask)
 {
-    // 0x659f66, 0x65a93d y 0x65ba46: con lo demás cerrado, sigue; si no, solo los sonidos.
+    // 0x659f66, 0x65a93d and 0x65ba46: with the rest closed, it goes on; otherwise, only the sounds.
     auto closed = CloseByMask(mask);
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     if (!closed.Value())
         return {};
-    // El cable va antes de abrir el inventario porque el C1 04 BD 09 va antes (0x65a956..0x65ac07). 0x6c932f, 0x78abb20
-    // (0x659f8d..0x659f94) y 0x7d2dc80 (0x65ac28) el original los escribe después, pero 0x6599a0(0x4000000) no los lee.
+    // The wiring goes before opening the inventory because the C1 04 BD 09 goes first (0x65a956..0x65ac07). The
+    // original writes 0x6c932f, 0x78abb20 (0x659f8d..0x659f94) and 0x7d2dc80 (0x65ac28) after, but 0x6599a0(0x4000000)
+    // does not read them.
     if (id != NpcShopPanel)
     {
         if (!m_context.npcWindowOpened)
@@ -763,7 +767,7 @@ Core::Expected<void, std::string> PanelRegistry::OpenTheNpcWindow(PanelId id, Pa
         if (auto opened = m_context.npcWindowOpened(id); !opened.HasValue())
             return opened;
     }
-    // 0x659f81, 0x65aac1.. y 0x65ba62: abrir el inventario, sin mirar si abrió.
+    // 0x659f81, 0x65aac1.. and 0x65ba62: without checking whether it opened.
     if (auto inventory = Open(InventoryPanel); !inventory.HasValue())
         return Core::Unexpected(std::move(inventory).Error());
     switch (id)
@@ -785,7 +789,7 @@ Core::Expected<void, std::string> PanelRegistry::OpenTheNpcWindow(PanelId id, Pa
 
 Core::Expected<bool, std::string> PanelRegistry::CloseTheNpcWindow(PanelId id)
 {
-    // 0x658e0e..0x658fd7: la tienda pone su byte en 0 antes de mandar el C1 03 31 y vaciar la grilla.
+    // 0x658e0e..0x658fd7: the shop sets its byte to 0 before sending the C1 03 31 and emptying the grid.
     if (id == NpcShopPanel)
         WriteProtected(m_state.npcShop, m_state.npcShopDepth, m_context.random, 0);
     if (!m_context.npcWindowClosing)
@@ -806,7 +810,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseTheNpcWindow(PanelId id)
 
 Core::Expected<bool, std::string> PanelRegistry::PanelKey(std::int32_t virtualKey)
 {
-    // 0x657880: 0x660410 primero, que cerrado da 0.
+    // 0x657880: 0x660410 first, which returns 0 when closed.
     auto dialog = ThePanelDialogKey(m_state.delegated.panelDialog, virtualKey, m_context.panelDialogAnswer);
     if (!dialog.HasValue() || dialog.Value())
         return dialog;
@@ -884,7 +888,7 @@ std::int32_t PanelRegistry::WorldWidth()
     bool decided = false;
     if (IsOpen(InventoryPanel))
     {
-        // 0x5bb8e3..0x5bb9a3: con el inventario, cualquiera de estos deja el mundo en 260.
+        // 0x5bb8e3..0x5bb9a3: with the inventory, any of these leaves the world at 260.
         if (IsOpen(CharacterPanel) || IsOpen(NpcShopPanel) || IsOpen(WarehousePanel) || IsOpen(ChaosBoxPanel) ||
             IsOpen(TradePanel) || IsOpen(EventNpcPanel) || IsOpen(SecondEventNpcPanel) || IsOpen(PersonalShopPanel) ||
             IsOpen(OtherShopPanel))
@@ -895,7 +899,7 @@ std::int32_t PanelRegistry::WorldWidth()
     }
     if (!decided)
     {
-        // 0x5bb9ad..0x5bba5c: los pares que dan 260.
+        // 0x5bb9ad..0x5bba5c: the pairs that give 260.
         if ((IsOpen(CharacterPanel) && IsOpen(QuestPanel)) || (IsOpen(CharacterPanel) && IsOpen(PetPanel)) ||
             (IsOpen(InventoryPanel) && IsOpen(TrainerPanel)) ||
             (IsOpen(InventoryPanel) && IsOpen(CastleSiegeListPanel) && m_context.heroSiegeMark &&
@@ -911,7 +915,7 @@ std::int32_t PanelRegistry::WorldWidth()
             width = FullWorldWidth;
         }
     }
-    // 0x5bbb86..0x5bbbb4: el arma de asedio y la puerta lo dejan en 450.
+    // 0x5bbb86..0x5bbbb4: the siege weapon and the gate leave it at 450.
     if (m_state.delegated.siegeWeapon != 0 || m_state.delegated.siegeGate != 0)
         width = OnePanelWorldWidth;
     return width;

@@ -44,8 +44,8 @@
 #include <span>
 #include <string_view>
 
-// El chat atraviesa GameScene antes del primer dibujo: el modelo del transformado vive en fauna y Player en la
-// biblioteca base. Consultar sólo la base cortaría en 0x576abf antes de los dos C1 18 y del chat (06 § El emote).
+// The chat goes through GameScene before the first draw: the transformed one's model lives in fauna and Player in
+// the base library. Querying only the base would stop at 0x576abf before the two C1 18 and the chat (06 § El emote).
 namespace
 {
 constexpr std::uint16_t TransformedModel = 0x171;
@@ -72,8 +72,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     online.session.ChooseCharacter(std::uint8_t{0});
     ASSERT_NE(online.session.ChosenCharacter(), nullptr);
 
-    // Los modelos de la fauna conservan el backend: store vive más que states, también si un ASSERT termina el test
-    // antes.
+    // The fauna models keep the backend: store outlives states, also if an ASSERT ends the test early.
     Client::Tests::FakeTextureStore store;
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Session::ModuleStates states;
@@ -121,7 +120,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
 
     ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
     EXPECT_FALSE(world->Runtime().drawingEnabled);
-    EXPECT_EQ(hero.animation.action, 1); // 0x4ea030 no cambia a 0xaf: Monster32 sólo tiene ocho acciones.
+    EXPECT_EQ(hero.animation.action, 1); // 0x4ea030 does not change to 0xaf: Monster32 has only eight actions.
     Client::Network::PacketSerials serials;
     const auto received =
         Client::Tests::AsTheGameServerReceives(std::span(online.socket.sent).subspan(sentBefore), serials);

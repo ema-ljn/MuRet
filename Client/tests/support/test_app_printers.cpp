@@ -8,8 +8,8 @@
 
 #include <string>
 
-// support/AppPrinters.h: lo que imprime GoogleTest de unas Credentials, que no puede ser la clave,
-// de una resolución, y de los estados y las fallas de la sesión.
+// support/AppPrinters.h: what GoogleTest prints of Credentials, which cannot be the password, of a resolution, and of
+// the session's states and failures.
 namespace
 {
 using Client::App::Credentials;
@@ -17,8 +17,8 @@ using Client::Platform::Resolution;
 using Client::Session::SessionFailure;
 using Client::Session::SessionState;
 
-// La cuenta y la clave sintéticas de los fixtures de mu-client (MuClientNetFixtures.h). Sin la
-// clave, los largos difieren: cada campo dice el suyo.
+// The synthetic account and password of mu-client's fixtures (MuClientNetFixtures.h). Without the password, the
+// lengths differ: each field says its own.
 TEST(AppPrintersTest, CredentialsShowTheLengthsAndNotTheText)
 {
     const std::string printed = ::testing::PrintToString(Credentials{"user0001", "pass0002"});
@@ -30,7 +30,6 @@ TEST(AppPrintersTest, CredentialsShowTheLengthsAndNotTheText)
               "Credentials{cuenta de 8 bytes, clave de 0 bytes}");
 }
 
-// Los estados y las fallas del GameServer (CL4.4) salen con su nombre, como los de antes.
 TEST(AppPrintersTest, TheGameServerStatesAndFailuresShowTheirNames)
 {
     EXPECT_EQ(::testing::PrintToString(SessionState::WaitingGameHello), "WaitingGameHello");
@@ -41,21 +40,18 @@ TEST(AppPrintersTest, TheGameServerStatesAndFailuresShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionFailure::CredentialsTooLong), "CredentialsTooLong");
 }
 
-// La falla del tope de los Waiting* (CL4.5).
 TEST(AppPrintersTest, NoReplyShowsItsName)
 {
     EXPECT_EQ(::testing::PrintToString(SessionFailure::NoReply), "NoReply");
     EXPECT_EQ(::testing::PrintToString(SessionFailure::ApplicationFailed), "ApplicationFailed");
 }
 
-// Los estados que esperan a la UI (CL5.5).
 TEST(AppPrintersTest, TheStatesThatWaitForTheUiShowTheirNames)
 {
     EXPECT_EQ(::testing::PrintToString(SessionState::ChoosingServer), "ChoosingServer");
     EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCredentials), "WaitingCredentials");
 }
 
-// Los de la selección de personaje (CL6.3).
 TEST(AppPrintersTest, TheCharacterStatesShowTheirNames)
 {
     EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCharacterList), "WaitingCharacterList");
@@ -65,13 +61,12 @@ TEST(AppPrintersTest, TheCharacterStatesShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionState::EnteringWorld), "EnteringWorld");
 }
 
-// El del mundo, el 0x3d (CL7.L1).
 TEST(AppPrintersTest, InWorldShowsItsName)
 {
     EXPECT_EQ(::testing::PrintToString(SessionState::InWorld), "InWorld");
 }
 
-// El de la orden del GameServer de cerrar el juego (Q-C106).
+// The GameServer's order to close the game (Q-C106).
 TEST(AppPrintersTest, QuitOrderedShowsItsName)
 {
     EXPECT_EQ(::testing::PrintToString(SessionState::QuitOrdered), "QuitOrdered");

@@ -33,10 +33,10 @@
 
 #include <gtest/gtest.h>
 
-// El paso del 0xa4, deshacer un paquete de joyas (0x625cf4, CL9 hito 6, fases 4a y 5): las dos joyas con la lista de
-// 0x6e5660 (0x402a10 y 0x402a20), el aviso sin paquetes, el cancelar sin joya y, con una, el paso de la lista, su OK
-// con el elegido y su cancelar (0x625dbe..0x625f37). Ninguno saca rand(). Textos inventados; el mundo, en Lorencia
-// (0), Devias (2) y Noria (3).
+// The step of the 0xa4, unmixing a jewel bundle (0x625cf4, CL9 milestone 6, phases 4a and 5): the two jewels with the
+// list of 0x6e5660 (0x402a10 and 0x402a20), the notice with no bundles, the cancel with no jewel and, with one, the
+// list's step, its OK with the chosen one and its cancel (0x625dbe..0x625f37). None draws rand(). Made-up texts; the
+// world in Lorencia (0), Devias (2) and Noria (3).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -53,11 +53,11 @@ constexpr std::uint16_t BlessBundle = 0x181e;
 constexpr std::uint16_t SoulBundle = 0x181f;
 constexpr std::uint16_t EmptyItem = 0xffff;
 constexpr std::int32_t UnmixDialog = 0xa4;
-// 0x625d00..0x625d6f: las joyas en y de 160 a 185, la primera en x de 235 a 315 y la segunda de 315 a 395.
+// 0x625d00..0x625d6f: the jewels at y from 160 to 185, the first at x from 235 to 315 and the second from 315 to 395.
 constexpr std::int32_t KindY = 170;
 constexpr std::int32_t BlessX = 250;
 constexpr std::int32_t SoulX = 330;
-// 0x625dc3..0x625f37: el OK y el cancelar, en y desde 0x6d + 0xf0 + 10 = 359 hasta 384.
+// 0x625dc3..0x625f37: the OK and the cancel, at y from 0x6d + 0xf0 + 10 = 359 to 384.
 constexpr std::int32_t ButtonsY = 370;
 constexpr std::int32_t OkX = 270;
 constexpr std::int32_t CancelX = 360;
@@ -107,7 +107,6 @@ public:
         return Step(x, y);
     }
 
-    // Un paquete `id` de nivel `level` en la casilla `cell`.
     void Put(std::uint16_t id, std::size_t cell, std::uint32_t level)
     {
         ItemState& item = world->Inventory().cells[cell];
@@ -155,8 +154,8 @@ std::vector<std::pair<std::int32_t, std::uint8_t>> RowsOf(const JewelMixState& j
     return rows;
 }
 
-// 0x625d73..0x625db1: sin paquetes de la joya, la lista queda vacía, el aviso 1818 de error y 0x402e50 la deja sin
-// elegir y vuelve a abrir el 0xa4; el clic se apaga. Los paquetes de la otra joya no cuentan.
+// 0x625d73..0x625db1: with no bundles of the jewel, the list stays empty, the error notice 1818 and 0x402e50 leaves it
+// unchosen and opens the 0xa4 again; the click turns off. The other jewel's bundles do not count.
 TEST(JewelUnmixTest, AKindWithoutBundlesSaysWhyAndGoesBack)
 {
     for (const std::int32_t map : Maps)
@@ -178,8 +177,8 @@ TEST(JewelUnmixTest, AKindWithoutBundlesSaysWhyAndGoesBack)
     }
 }
 
-// 0x625d73..0x625dbe y 0x402a20: la joya del clic (x = 315 es de la primera) llena la lista con sus paquetes en el
-// orden de las casillas, con el nivel de (+4 >> 3) & 0xf, sin elegido; el clic ya no llega al OK ni al cancelar.
+// 0x625d73..0x625dbe and 0x402a20: the clicked jewel (x = 315 belongs to the first) fills the list with its bundles in
+// cell order, with the level from (+4 >> 3) & 0xf, with none chosen; the click no longer reaches the OK or the cancel.
 TEST(JewelUnmixTest, AKindFillsTheList)
 {
     for (const std::int32_t map : Maps)
@@ -211,9 +210,9 @@ TEST(JewelUnmixTest, AKindFillsTheList)
     }
 }
 
-// 0x625d00..0x625d6f, 0x625f4d..0x625f96 y 0x625f1f..0x625f37: sin el clic, ni las joyas ni el cancelar; fuera de
-// ellos, el clic queda. El cancelar (x de 279,5 a 359,5, y de 200 a 225) con el clic cierra todo con 0x402eb0 y el
-// C1 03 31, sin apagarlo (07 Q-C952).
+// 0x625d00..0x625d6f, 0x625f4d..0x625f96 and 0x625f1f..0x625f37: without the click, neither the jewels nor the cancel;
+// outside them, the click stays. The cancel (x from 279.5 to 359.5, y from 200 to 225) with the click closes
+// everything with 0x402eb0 and the C1 03 31, without turning it off (07 Q-C952).
 TEST(JewelUnmixTest, TheCancelClosesAllAndKeepsTheClick)
 {
     for (const std::int32_t map : Maps)
@@ -243,9 +242,9 @@ TEST(JewelUnmixTest, TheCancelClosesAllAndKeepsTheClick)
     }
 }
 
-// 0x625dc3..0x625eb8 y 0x402a90, en los tres mapas: sin elegido el OK solo apaga el clic. Con uno, pide su paquete
-// con su nivel: 0x402b70 lo encuentra en su casilla y abre el 0xa3 con la pregunta; sin el paquete, el aviso 1818 y la
-// vuelta de 0x402e50.
+// 0x625dc3..0x625eb8 and 0x402a90, in the three maps: with none chosen the OK only turns off the click. With one, it
+// asks for its bundle with its level: 0x402b70 finds it in its cell and opens the 0xa3 with the question; without the
+// bundle, the notice 1818 and the return of 0x402e50.
 TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
 {
     for (const std::int32_t map : Maps)
@@ -286,8 +285,8 @@ TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
     }
 }
 
-// 0x46f1a0 y 0x402a90, en los tres mapas: con la lista en su esquina (0xe4, 0x15d), el doble clic sobre una fila
-// la elige y pide su paquete; el de la casilla 0 solo la elige (07 Q-C1152). El OK lo pide igual.
+// 0x46f1a0 and 0x402a90, in the three maps: with the list at its corner (0xe4, 0x15d), the double click on a row
+// chooses it and asks for its bundle; the one of cell 0 only chooses it (07 Q-C1152). The OK asks for it anyway.
 TEST(JewelUnmixTest, TheDoubleClickOnARowAsksForItsBundle)
 {
     for (const std::int32_t map : Maps)
@@ -301,7 +300,7 @@ TEST(JewelUnmixTest, TheDoubleClickOnARowAsksForItsBundle)
         JewelBundleList& list = tested.Jewels().bundles;
         list.x = 0xe4;
         list.y = 0x6d + 0xf0;
-        // Con 2 filas, la fila i en y = (2 − i) · 13 + 230: la 0 en [253, 266) y la 1 en [240, 253).
+        // With 2 rows, row i at y = (2 − i) · 13 + 230: row 0 in [253, 266) and row 1 in [240, 253).
         runtime.ui.doubleClick = true;
         ASSERT_TRUE(tested.Step(300, 260).HasValue());
         EXPECT_EQ(list.selection, 1);
@@ -327,8 +326,9 @@ TEST(JewelUnmixTest, TheDoubleClickOnARowAsksForItsBundle)
     }
 }
 
-// 0x625ebe..0x625f37, en los tres mapas: con una joya, el cancelar (x de 324,5 a 404,5) con el clic cierra todo con
-// 0x402eb0 y el C1 03 31, sin apagarlo; el OK apaga el clic antes y el cancelar ya no lo ve.
+// 0x625ebe..0x625f37, in the three maps: with a jewel, the cancel (x from 324.5 to 404.5) with the click closes
+// everything with 0x402eb0 and the C1 03 31, without turning it off; the OK turns off the click before and the cancel
+// no longer sees it.
 TEST(JewelUnmixTest, TheCancelWithAKindClosesAll)
 {
     for (const std::int32_t map : Maps)

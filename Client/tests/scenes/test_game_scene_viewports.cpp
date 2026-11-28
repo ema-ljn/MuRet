@@ -61,10 +61,9 @@
 #include <utility>
 #include <vector>
 
-// T15, cobertura CPU acotada: F3 03 real, terreno de Data y 0/1/3 pasos lógicos antes del primer
-// dibujo. Los recursos reales permiten presentar el frame completo y después un dibujo intermedio
-// sin volver a avanzar los productores por frame original.
-// RecordingFrameTarget observa BeginFrame/Present y los lotes, sin GL ni comparación visual/VM.
+// T15, bounded CPU coverage: real F3 03, Data terrain and 0/1/3 logical steps before the first draw. The real
+// resources let it present the full frame and then an intermediate draw without advancing the per-original-frame
+// producers again. RecordingFrameTarget watches BeginFrame/Present and the batches, with no GL or visual/VM comparison.
 namespace
 {
 constexpr float SelectionFar = std::bit_cast<float>(std::uint32_t{0x4633ff9a});
@@ -80,9 +79,9 @@ struct ViewportProbe
     std::string_view name;
 };
 
-// 0x620db0: alto 432/480 y división entera. El 768 deja 691 píxeles de mundo y 77 de franja.
-// 0x620480: rayos analíticos para pitch -48,5°, yaw -45°, fov 35° y far 2.000, después de los dos
-// truncamientos del mouse (WndProc y vuelta a píxeles). No usan MakePass3D/RayThrough como oráculo.
+// 0x620db0: height 432/480 and integer division. The 768 leaves 691 world pixels and 77 of strip.
+// 0x620480: analytic rays for pitch -48.5°, yaw -45°, fov 35° and far 2000, after the mouse's two truncations
+// (WndProc and back to pixels). They do not use MakePass3D/RayThrough as the oracle.
 constexpr std::array<ViewportProbe, 3> Viewports{{
     {{640, 480}, {0, 48, 640, 432}, 481.75f, 108.75f, 2.14082649f, {-890.96847f, 1555.68950f, -1062.85695f}, "640x480"},
     {{1024, 768},
@@ -113,8 +112,8 @@ struct EntryProbe
 constexpr std::array<EntryProbe, 2> Entries{{{0, 133, 127, true, "Lorencia"}, {2, 220, 30, false, "Devias"}}};
 using ViewportCase = std::tuple<ViewportProbe, int, EntryProbe>;
 
-// 0x5fb570 de la selección: W640, F=13.823,88, T=6.497,223..., giro 45° y centro
-// (12.975, 15.423, 333). Fixture del último dibujo: la entrada y los pasos no deben reemplazarla.
+// The selection's 0x5fb570: W640, F=13823.88, T=6497.223..., 45° turn and centre (12975, 15423, 333). Fixture of
+// the last draw: the entry and the steps must not replace it.
 constexpr Client::Terrain::TerrainPolygon SelectedPolygon{
     .x = {29.475204467773438f, 126.41022491455078f, 179.11355590820312f, 135.126220703125f},
     .y = {157.5697784423828f, 254.5048065185547f, 148.853759765625f, 104.866455078125f}};
@@ -171,7 +170,7 @@ protected:
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
         ASSERT_EQ(publisher.calls, 1);
         ASSERT_EQ(m_world.Runtime().hero, static_cast<std::size_t>(m_world.Runtime().heroSlot));
-        // El actor viene de 0x511290/0x512a30; el doble solo aporta las 205 acciones de Player.bmd.
+        // The actor comes from 0x511290/0x512a30; the double only provides Player.bmd's 205 actions.
         ASSERT_EQ(Hero().type, Client::Tables::PlayerSkeletonModel);
         ASSERT_EQ(Hero().word376, 0xffff);
         ASSERT_TRUE(Hero().alive);
@@ -179,7 +178,7 @@ protected:
         EXPECT_EQ(Hero().position.y, static_cast<float>(entry.y) * 100.0f + 50.0f);
         EXPECT_EQ(m_world.Runtime().warpCounter, 30);
         ExpectSelectedPolygon();
-        // La selección ya dejó 0x7d3a101 en 1; F3 03 no lo escribe.
+        // The selection already left 0x7d3a101 at 1; F3 03 does not write it.
         m_world.Runtime().drawingEnabled = true;
     }
 
@@ -235,7 +234,7 @@ protected:
 
     void ExpectGamePolygon() const
     {
-        // 0x5fb570 del juego: F/T/N=2.400/1.128/456, medios anchos 1.190/540 y giro 45°.
+        // The game's 0x5fb570: F/T/N=2400/1128/456, half widths 1190/540 and 45° turn.
         constexpr std::array<float, 4> OffsetX{-17.40896797f, -0.57982755f, 8.57013416f, 0.93338096f};
         constexpr std::array<float, 4> OffsetY{0.57982755f, 17.40896797f, -0.93338096f, -8.57013416f};
         const EntryProbe& entry = std::get<2>(GetParam());
@@ -270,7 +269,7 @@ protected:
     Client::Camera::GameCameraInput m_cameraInput;
     Client::Assets::GameModels m_models;
     Client::Tables::GameData m_data;
-    // El renglón de bienvenida del F3 03 (0x4c4b60).
+    // The F3 03 welcome line (0x4c4b60).
     Client::Tests::LetterMeasure m_letters;
     Client::Tests::RecordingFrameTarget m_target;
     Client::Scenes::GameScene* m_game = nullptr;
@@ -301,7 +300,7 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     {
         if (event.kind == Client::Tests::FrameEvent::Kind::Models)
         {
-            // La cola nueva vacía varios lotes; el primero conserva el pase del terreno.
+            // The new tail flushes several batches; the first keeps the terrain pass.
             if (models == nullptr)
             {
                 models = &event;
@@ -328,7 +327,7 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     EXPECT_FLOAT_EQ(*m_camera.lastFrameDistance, 1000.0f);
     ASSERT_TRUE(m_game->MouseRay().has_value());
     const Client::Terrain::TerrainPickingSegment ray = *m_game->MouseRay();
-    // 0x635ae0: D=1.000, desplazamiento (D/√2, -D/√2), altura HeroZ+D-150.
+    // 0x635ae0: D=1000, offset (D/√2, -D/√2), height HeroZ+D-150.
     const glm::vec3 cameraOffset = ray.origin - Hero().position;
     EXPECT_NEAR(cameraOffset.x, 707.10678f, 0.003f);
     EXPECT_NEAR(cameraOffset.y, -707.10678f, 0.003f);
@@ -339,7 +338,7 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     EXPECT_NEAR(delta.z, viewport.rayDelta.z, 0.01f);
     ExpectGamePolygon();
 
-    // Un dibujo intermedio conserva los oráculos de cámara/rayo y sólo cierra la lectura de espera.
+    // An intermediate draw keeps the camera/ray oracles and only closes the wait read.
     const std::uint32_t random = m_cloth.random.State();
     m_manager->Render(0.5f);
     ASSERT_NO_FATAL_FAILURE(ExpectCompleteFrame());
@@ -352,8 +351,9 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     ExpectGamePolygon();
 }
 
-// 0x63733e y 0x63738a: con el inventario abierto, 0x5bb8d0 da 450 y el pase del mundo va con ese ancho (450 · W / 640
-// píxeles, con su aspecto), en Lorencia y en Devias; el frame sigue hasta el HUD, que dibuja la ventana.
+// 0x63733e and 0x63738a: with the inventory open, 0x5bb8d0 gives 450 and the world pass goes with that width
+// (450 · W / 640 pixels, with its aspect), in Lorencia and Devias; the frame goes on to the HUD, which draws the
+// window.
 TEST_P(GameSceneViewportTest, TheInventoryNarrowsTheWorldPass)
 {
     const auto& [viewport, steps, entry] = GetParam();
@@ -383,10 +383,10 @@ TEST_P(GameSceneViewportTest, TheInventoryNarrowsTheWorldPass)
                 3.17159480f * static_cast<float>(viewport.viewport.w) / static_cast<float>(width), 0.00001f);
 }
 
-// 0x5ac120 con los modelos de Item.bmd (P-C70): con el inventario abierto, el arma del lugar 0 y el escudo de la
-// primera casilla van en un lote de modelos propio, después del del mundo y de un cierre del 2D, con la pantalla
-// entera, la perspectiva de 1° con 20 y 2.000 y la vista en la identidad; los vértices quedan delante de la cámara de
-// la UI, a 200 de ella (0,1 del camino a −2.000).
+// 0x5ac120 with Item.bmd's models (P-C70): with the inventory open, the weapon of slot 0 and the shield of the first
+// cell go in their own model batch, after the world's and a 2D close, with the full screen, the 1° perspective with
+// 20 and 2000 and the view at identity; the vertices end up in front of the UI camera, 200 from it (0.1 of the way to
+// −2000).
 TEST_P(GameSceneViewportTest, TheInventoryItemsGoInTheUiPassAfterTheWorld)
 {
     const auto& [viewport, steps, entry] = GetParam();
@@ -439,7 +439,7 @@ TEST_P(GameSceneViewportTest, TheWaitRetainsThePresentedFrameUntilTheCounterReac
     ASSERT_NO_FATAL_FAILURE(EnterWorld());
     m_world.Runtime().warpCounter = 31 + steps;
     ASSERT_NO_FATAL_FAILURE(StartGame());
-    // La imagen ya presentada pertenece al frame anterior; el juego retenido no empieza otro.
+    // The image already presented belongs to the previous frame; the held game does not start another.
     static_cast<void>(m_target.BeginFrame(m_clock.Now()));
     m_target.Present();
     ASSERT_NO_FATAL_FAILURE(RunSteps(steps));

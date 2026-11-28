@@ -59,7 +59,7 @@ class CastleSiegeMapFilesTest : public Client::Tests::GoldenDataTest
 {
 };
 
-// La carga y los paquetes repiten ATT/luz incluso con el mismo estado; los objetos y elMAP quedan.
+// The load and the packets repeat ATT/light even with the same state; the objects and the MAP stay.
 TEST_F(CastleSiegeMapFilesTest, RepeatedWarPacketsReloadTheFilesAndPeaceRestoresThem)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();

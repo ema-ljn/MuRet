@@ -70,180 +70,175 @@ namespace Client::Kernel
 struct PoseBuffer;
 } // namespace Client::Kernel
 
-// La escena 2 (CL5.4): el login de 0x634c60, que entra con 0x6349a0 y dibuja con 0x6350b0 (06 § El
-// login, al entrar y § El login, el dibujo), con el logo y el personaje (CL6.4, Scenes/LoginModels.h)
-// y sin la música (CL10). Con la sesión, su UI (CL5.5): la lista de servidores cuando la sesión espera la elección,
-// con la barra de abajo, que se abre con ella y queda hasta salir; la cuenta cuando espera la
-// cuenta y la clave, y los avisos de 06 § Los avisos. La sesión dice qué ventana va: la escena la
-// mira en cada paso y, con lo que pide el jugador, la llama.
+// Scene 2: the login of 0x634c60, entered with 0x6349a0 and drawn with 0x6350b0 (06 § El login, al entrar and § El
+// login, el dibujo), with the logo and the character (FrontEnd/LoginModels.h) and without the music. With the
+// session, its UI: the server list while the session waits for the choice, with the bottom bar, which opens with it
+// and stays until leaving; the account while it waits for account and password, and the notices of 06 § Los avisos.
+// The session says which window goes: the scene checks it on each step and, with what the player asks, calls it.
 //
-// En cada paso se atiende solo la ventana de arriba (el aviso, la cuenta o la lista): así el Enter
-// que cierra una no le llega a la que se abre en el mismo paso. Sin aviso, también la barra, cuyos
-// botones no se pisan con los de la cuenta ni con los de la lista (Q-C84). El OK de los avisos
-// 0x1a, 0x1c, 0x6f y 0x70 cierra el juego (Q-C69): la escena lo dice en WantsToQuit.
+// Each step handles only the top window (the notice, the account or the list): so the Enter that closes one does not
+// reach the one that opens in the same step. Without a notice, also the bar, whose buttons do not overlap the
+// account's or the list's (Q-C84). The OK of notices 0x1a, 0x1c, 0x6f and 0x70 closes the game (Q-C69): the scene
+// says so in WantsToQuit.
 namespace Client::Scenes
 {
-// Los tres textos de abajo, por su índice en Text.bmd.
+// The three bottom texts, by their index in Text.bmd.
 inline constexpr std::size_t LoginLeftText = 454;
 inline constexpr std::size_t LoginRightText = 455;
 inline constexpr std::size_t LoginVersionText = 456;
 
-// El 456 con la versión, como el sprintf de 0x635464 pero sin usar el texto como formato (Q-C61):
-// el primer "%s" pasa a ser `version` y lo demás queda como está, otros "%" también. Sin "%s", el
-// texto tal cual.
+// The 456 with the version, like 0x635464's sprintf but without using the text as a format (Q-C61): the first "%s"
+// becomes `version` and the rest stays as is, other "%" too. Without "%s", the text as is.
 [[nodiscard]] std::string PlaceVersion(std::string_view text, std::string_view version);
 
 class LoginScene final : public IScene
 {
 public:
-    // `data`, `models` y `session` tienen que vivir más que la escena. `session` es nullptr sin servidor
-    // (Main sin host): la escena dibuja y no conecta. `version` es la de MuRet (MU_VERSION).
-    // `models` tiene los del personaje (GameModels). `seed` es la de los rand() de la acción del
-    // personaje (0x634c60) sin el ClothWorld del contexto, que trae el rand() de la CRT y es el que usa
-    // Main: los tests la fijan.
-    // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
-    // 0x41c como la global del original; sin ella, una vacía.
+    // `data`, `models` and `session` must outlive the scene. `session` is nullptr without a server (Main without host):
+    // the scene draws and does not connect. `version` is MuRet's (MU_VERSION). `models` has the character's
+    // (GameModels). `seed` is the one of the rand() of the character's action (0x634c60) without the context's
+    // ClothWorld, which brings the CRT's rand() that Main uses: the tests fix it. `gameSlots` is the loading's slot
+    // table (GameModels::TextureSlots), which the world continues from 0x41c like the original's global; without it, an
+    // empty one.
     LoginScene(const SceneContext& context, const Tables::GameData& data, const Models::IModelLibrary& models,
                App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                const Models::ModelTextureSlots* gameSlots = nullptr);
 
-    // Las ventanas guardan this (el tamaño de las texturas): no se copia ni se mueve.
+    // The windows keep this (the size of the textures): it is neither copied nor moved.
     LoginScene(const LoginScene&) = delete;
     LoginScene& operator=(const LoginScene&) = delete;
     ~LoginScene() override;
 
-    // Como 0x6349a0, cada vez que se entra: el terreno del mundo 55 (0x61a560, LoadedWorld: el .map,
-    // el .att, las alturas, la luz y los tiles; sin él, el login va sin terreno y la luz del terreno es
-    // 0), sus objetos (0x616ec0, WorldModels, y el .obj; sin ellos, solo el logo), LoginTextureSet
-    // (0x61c7c0), el logo y sus texturas (desde el próximo slot que deja el mundo),
-    // WindowTextureSet (las de las ventanas, de 0x61ccb0), el ConnectServer (0x4c1340,
-    // ServerSession::Start), el logo y el personaje en su lugar y la cuenta de las rutas en −1. Una
-    // textura que falta corta antes de conectar; un Logo03.bmd que no se lee, no (0x60da30 lo saltea).
+    // Like 0x6349a0, on each entry: world 55's terrain (0x61a560, LoadedWorld; without it, the login goes without
+    // terrain and the terrain light is 0), its objects (0x616ec0, WorldModels and the .obj; without them, only the
+    // logo), LoginTextureSet (0x61c7c0), the logo and its textures (from the next slot the world leaves),
+    // WindowTextureSet (from 0x61ccb0), the ConnectServer (0x4c1340, ServerSession::Start), the logo and the character
+    // in place and the route count at −1. A missing texture stops before connecting; an unreadable Logo03.bmd does not
+    // (0x60da30 skips it).
     Core::Expected<void, std::string> Enter() override;
-    // 0x634c60: la acción del personaje (con el reloj del contexto), los objetos y el logo (0x606560), el personaje
-    // (0x508f00) y las rutas (0x633920); después, la UI en el paso (Q-C81): lo que pide la sesión, la
-    // ventana de arriba y, sin aviso, la barra. La sesión la corre el SceneManager, antes.
+    // 0x634c60: the character's action (with the context's clock), the objects and the logo (0x606560), the character
+    // (0x508f00) and the routes (0x633920); then the UI in the step (Q-C81): what the session asks for, the top window
+    // and, without a notice, the bar. The SceneManager runs the session before.
     void Step(const Input::InputState& input) override;
-    // 0x6350b0 sin el fundido (Q-C66) ni lo común a las escenas: en el pase 3D, el terreno, el
-    // personaje (0x510d00), el caballo y los objetos con el logo (0x6046a0), salvo con los créditos
-    // abiertos; al final la UI, cada ventana con la mezcla normal.
+    // 0x6350b0 without the fade (Q-C66) or what is common to the scenes: in the 3D pass, the terrain, the character
+    // (0x510d00), the horse and the objects with the logo (0x6046a0), except with the credits open; at the end the UI,
+    // each window with the normal blend.
     void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
-    // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus slots, los del mundo, los del logo
-    // y las ilustraciones de los créditos.
+    // Closes the windows (the account's clears the password) and releases their slots, the world's, the logo's and the
+    // credits' illustrations.
     void Leave() override;
-    // La selección con el login aceptado (SessionState::LoggedIn), como 0x634dce con el 0x14.
+    // The selection with the login accepted (SessionState::LoggedIn), like 0x634dce with the 0x14.
     [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
-    // Con el OK de un aviso que cierra el juego (Q-C69).
+    // With the OK of a notice that closes the game (Q-C69).
     [[nodiscard]] bool WantsToQuit() const override;
-    // Con la ventana de la cuenta abierta: es la de arriba, porque un aviso la cierra al abrirse.
+    // With the account window open: it is the top one, because a notice closes it on opening.
     [[nodiscard]] bool WantsTextInput() const override;
-    // Mientras la sesión conecta al CS o al GS, y hasta que un paso de la escena vio el estado de
-    // ahora: el original conecta con un connect bloqueante (0x4c1340, que llama a 0x4e8570: al CS
-    // desde 0x6349a0, antes del primer frame del login, y desde el cancelar, 0x642837; al GS desde
-    // 0x4e3396), y en la pantalla queda el último frame hasta que termina (Q-C85). Así el primer
-    // frame que se dibuja después ya trae lo que abrió el paso: el aviso de la falla, o la espera.
-    // Hasta el paso y no solo mientras conecta: un connect que falla enseguida sale en el Poll, que
-    // puede venir sin un paso antes del dibujo (después de Enter, o en un frame sin pasos).
+    // While the session connects to the CS or the GS, and until a scene step saw the current state: the original uses a
+    // blocking connect (0x4c1340, which calls 0x4e8570: to the CS from 0x6349a0, before the login's first frame, and
+    // from cancel, 0x642837; to the GS from 0x4e3396), and the last frame stays on screen until it ends (Q-C85). So the
+    // first frame drawn after it brings what the step opened. Until the step and not only while connecting: a connect
+    // that fails right away comes out in the Poll, which can come without a step before the draw (after Enter, or in a
+    // frame without steps).
     [[nodiscard]] bool HoldsTheLastFrame() const override;
-    // Durante un connect, descarta el tiempo sin dibujo de los efectos de los objetos, de la tela y del cetro:
-    // el próximo dibujo corre un frame de cada uno. Mantiene el pool, las muestras, las telas y los demás
-    // relojes.
+    // During a connect, discards the undrawn time of the object effects, the cloth and the scepter: the next draw runs
+    // one frame of each. Keeps the pool, the samples, the cloths and the other clocks.
     void OnFrameHeld() override;
-    // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
+    // The character's head as the last step left it (0x505de0), the one it draws.
     [[nodiscard]] const Kernel::CharacterHead& Head() const;
     [[nodiscard]] std::optional<std::string> Failure() const override;
-    // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
-    // del paso, la luz del terreno en su lugar más la suya, y su tela y la tabla de los sprites de la escena, con
-    // el ritmo del contexto. Lo que cuelga (el cetro con su brillo) va aparte, con DrawCharacterTail.
+    // The character the frame draws with `alpha` (0x510d00 → 0x50ba30): the body between steps, the step's head, the
+    // terrain light at its place plus its own, and its cloth and the scene's sprite table, at the context's pace. What
+    // hangs (the scepter with its glow) goes apart, with DrawCharacterTail.
     [[nodiscard]] Actors::Drawing::DrawnCharacter TheCharacterToDraw(float alpha);
-    // 0x505820 con el personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState: lo que
-    // devuelve el último, que lee el conjunto completo de la cola de efectos.
+    // 0x505820 with the drawn character, `frames` times (Actors/FullSetScan.h), on WorldState: what the last one
+    // returns, which reads the full set from the effect tail.
     Actors::FullSetScan ScanTheCharacter(const Kernel::CharacterAppearance& appearance, int frames);
 
 private:
-    // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
+    // 0x60da30 and 0x60d5f0 with the 0xa2 (LoginLogoFile), without a 0x60d530 before (Q-C92).
     [[nodiscard]] Core::Expected<void, std::string> LoadTheLogo();
     void LoadTheWorld();
     void LoadTheTerrain();
     void RetainTheTerrain();
     void LoadTheObjects();
-    // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
+    // 0x604ab0 with the 0xa2: the routes' light and the advance to +0xd8.
     void StepTheLogo(Kernel::WorldObject& logo) const;
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheModels();
     void DetachTheDragonOwner();
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheCharacter();
     [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters();
     void StepTheWorld();
-    // 0x52d220 (0x634d18): 0x44dc40(0, 0, 0) y 0x5208a0 con cada efecto vivo de la tabla del mundo, en su orden, con el
-    // rand() de la CRT: el dragón por Effects::StepGameModelEffect y el meteoro 0xc2/9 del 0x59 por
+    // 0x52d220 (0x634d18): 0x44dc40(0, 0, 0) and 0x5208a0 with each live effect of the world's table, in its order,
+    // with the CRT's rand(): the dragon through Effects::StepGameModelEffect and the 0x59's meteor 0xc2/9 through
     // Effects::StepWizardModelEffect.
     [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects();
-    // 0x53c670 (0x634d1d), entre los efectos con modelo y las partículas: el paso de los joints del mundo
-    // (WorldState::DrawTail), con los globales del juego, como la selección (SelectionWorld::StepEffects).
+    // 0x53c670 (0x634d1d), between the model effects and the particles: the step of the world's joints
+    // (WorldState::DrawTail), with the game's globals, like the selection (SelectionWorld::StepEffects).
     [[nodiscard]] Core::Expected<void, std::string> StepTheJoints();
-    // 0x5446e0 (0x634d22): el de la escena del juego, con el dueño de las partículas que siguen a un efecto (la estela
-    // 5f2/0x24 del meteoro).
+    // 0x5446e0 (0x634d22): the game scene's, with the owner of the particles that follow an effect (the meteor's trail
+    // 0x5f2/0x24).
     [[nodiscard]] Core::Expected<void, std::string> StepTheParticles();
-    // 0x5f93c0 sobre el terreno del login, o nada sin él.
+    // 0x5f93c0 on the login's terrain, or nothing without it.
     [[nodiscard]] std::function<double(float, float)> TerrainHeight();
-    // 0x5767b88: el reloj del mundo en ms, o 0 sin reloj.
+    // 0x5767b88: the world clock in ms, or 0 without a clock.
     [[nodiscard]] float WorldClock() const;
     void StepTheScene(const Input::InputState& input, bool connecting);
-    // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
-    // lo dejó el dibujo anterior (antes de este paso).
+    // 0x444010 (0x44453f..0x4445d9), after the horse's step: the breath, with `drawn`, the horse as the previous draw
+    // left it (before this step).
     void BreatheTheHorse(const Kernel::DarkHorse& drawn);
-    // Dónde queda `offset` en el hueso `bone` del buffer global de la pose (0x68b181c) al llegar al paso:
-    // lo dejó el último modelo posado sin buffer propio en el dibujo anterior que tiene ese hueso y no es
-    // dummy (LastPosedBonePoint), en el mundo: el dragón (0x52d620) va después del caballo (0x4453b0), pero
-    // su hueso 27 es dummy, y en el 27 queda el del caballo. Antes del primer dibujo, (0, 0, 0).
+    // Where `offset` lands on bone `bone` of the global pose buffer (0x68b181c) when the step arrives: left by the last
+    // model posed without its own buffer in the previous draw that has that bone and is not dummy (LastPosedBonePoint),
+    // in the world: the dragon (0x52d620) goes after the horse (0x4453b0), but its bone 27 is dummy, so the horse's
+    // stays at
+    // 27. Before the first draw, (0, 0, 0).
     [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
                                             const Kernel::DarkHorse& drawnHorse) const;
     void DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha);
-    // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
+    // 0x4182f0: the raven, if it passes the trapezoid (if not, MissTheView), and its pose for the spark.
     void DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, Kernel::PoseBuffer* carry = nullptr);
-    // 0x50db57..0x510a7a con el personaje, después de su cuerpo, `frames` veces (con cero, una entre frames); un
-    // error queda en m_failure.
+    // 0x50db57..0x510a7a with the character, after its body, `frames` times (with zero, once between frames); an error
+    // stays in m_failure.
     void DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor,
                      const Actors::Drawing::DrawnCharacter& character, Kernel::PoseBuffer& carry,
                      const Actors::FullSetScan& scan, int frames);
-    // El corte del pase de partículas, en el log: una vez por entrada.
+    // The particle pass's cut, in the log: once per entry.
     void ReportParticleFailure(const Particles::ParticleDrawingFailure& failure);
-    // La luz del terreno en (x, y), o 0 sin la del mundo.
+    // The terrain light at (x, y), or 0 without the world's.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(Render::Frame::SceneCanvas& canvas) const;
-    // 0x63552a..0x63553f: los avisos y el área vieja, antes de la UI.
+    // 0x63552a..0x63553f: the notices and the old area, before the UI.
     void DrawTheMessages(Render::Frame::SceneCanvas& canvas);
-    // Lo que cambió en la sesión desde el último paso: abre o cierra las ventanas.
+    // What changed in the session since the last step: opens or closes the windows.
     void FollowSession();
-    // La respuesta al F4 03 (0x4e3341), conecte o no: el 481 en el área de mensajes, una vez por dirección.
+    // The reply to F4 03 (0x4e3341), whether it connects or not: the 481 in the message area, once per address.
     void NoticeTheServerAddress();
-    // 0x555190 con el texto `index` de Text.bmd como sistema y sin nombre: el de 0x6e57a4 y el de 0x5767974 están
-    // en 0. `arguments` van a las marcas del texto, que el original usa como formato (Q-C61).
+    // 0x555190 with Text.bmd text `index` as system and without a name: 0x6e57a4's and 0x5767974's are at 0.
+    // `arguments` go to the text's marks, which the original uses as a format (Q-C61).
     void AddTheMessage(std::size_t index, std::span<const std::string_view> arguments = {});
     void OnServerClick(const FrontEnd::ServerClick& click);
     void OnLoginRequest(const FrontEnd::LoginRequest& request);
     void OnNoticeClosed(Ui::NoticeId notice);
-    // 0x6411b0: el menú abre la de Esc y el crédito, los créditos.
+    // 0x6411b0: the menu opens the Esc one and the credit button, the credits.
     void OnMenuBarClick(Ui::MenuBarClick click);
-    // 0x647d40: lo que pasó en la de Esc.
+    // 0x647d40: what happened in the Esc one.
     void OnEscapeEvent(const FrontEnd::EscapeWindowEvent& event);
-    // 0x644730: lo que cambió en las opciones, a los globales.
+    // 0x644730: what changed in the options, to the globals.
     void OnOptionsEvent(const FrontEnd::OptionsEvent& event);
-    // 0x641203: el F4 06, los créditos con 0x65f690 y lo que pasó al abrirlos.
+    // 0x641203: the F4 06, the credits with 0x65f690 and what happened when opening them.
     void OpenTheCredits();
-    // Lo que pasó en los créditos al abrirlos o en un paso: cada cierre (0x63f9a0) manda el F4 06, y una
-    // ilustración nueva (0x63fc50) se sube.
+    // What happened in the credits on opening them or in a step: each close (0x63f9a0) sends the F4 06, and a new
+    // illustration (0x63fc50) is uploaded.
     void FollowTheCredits(const FrontEnd::CreditsStep& step);
     void ReleaseTheIllustrations();
-    // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x634c60: cada ventana con su turno.
+    // 0x65fc30 at the start of the step, like 0x637700 before 0x634c60: each window in its turn.
     void StepTheWindows(const Input::InputState& input);
-    // 0x65f690: abre la ventana con lo suyo y la pasa arriba con el foco.
+    // 0x65f690: opens the window with its own and raises it with the focus.
     void OpenNotice(Ui::NoticeId notice);
     void OpenTheEscapeWindow();
     void OpenTheOptions();
-    // La ventana de la cuenta, con el título del servidor elegido.
+    // The account window, with the chosen server's title.
     void OpenLogin(FrontEnd::LoginFocus focus);
-    // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
+    // The notice of a failed session: 0x6f with another version, 0x70 with the rest.
     void ShowFailure();
     [[nodiscard]] std::string LoginTitle() const;
     [[nodiscard]] Assets::TextureBufferSize BufferSize(Render::TextureSlot slot) const;
@@ -260,20 +255,20 @@ private:
     [[nodiscard]] Models::ClothWorld& CharacterRandomWorld();
 
     SceneContext m_context;
-    // Los tests de vista sin los globales de main usan el mismo pool y paso, con un dueño local en el heap.
+    // View tests without main's globals use the same pool and step, with a local owner on the heap.
     std::unique_ptr<Kernel::WorldState> m_localWorld;
     std::unique_ptr<Session::ModuleStates> m_localStates;
     Models::ClothWorld m_localCloth;
     std::optional<std::string> m_failure;
-    // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
+    // Explicit fallback for tests without a full context; main always provides both globals.
     Camera::GameCamera m_localCamera;
     Camera::GameCameraInput m_localCameraInput;
     Models::OriginalFrameCarry m_cameraFrames;
-    // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
+    // 0x602ed0: one draw per object and original frame, with replay of the lantern's light between them.
     Models::OriginalFrameCarry m_objectEffectFrames;
-    // Los frames del original de 0x505820 desde el dibujo del personaje (0x50c91e).
+    // The original's frames of 0x505820 from the character's draw (0x50c91e).
     Models::OriginalFrameCarry m_fullSetScanFrames;
-    // Los de los avisos y el área vieja (0x554810 y 0x5554e0): con cero, el dibujo va sobre copias.
+    // Those of the notices and the old area (0x554810 and 0x5554e0): with zero, the draw goes on copies.
     Models::OriginalFrameCarry m_messageFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
     const Models::IModelLibrary& m_models;
@@ -281,72 +276,69 @@ private:
     const Tables::TextTable* m_texts;
     Assets::SceneTextures m_textures;
     Assets::SceneTextures m_windowTextures;
-    // El de SceneWorlds.h: el 55.
+    // The one from SceneWorlds.h: the 55.
     std::optional<Render::Frame::SceneWorld> m_world;
     Assets::LoadedWorld m_terrain;
-    // El rango de bloques del terreno con la cámara del login (0x5fbb00): la carga lo inicializa; cada dibujo
-    // lo actualiza para el paso siguiente. El trapecio (0x5fb570) es el global de WorldRuntime.
+    // The terrain's block range with the login camera (0x5fbb00): the loading initializes it; each draw updates it for
+    // the next step. The trapezoid (0x5fb570) is WorldRuntime's global.
     Terrain::TerrainRange m_terrainRange;
     Render::Camera3D m_drawnCamera;
-    // La luz sola, si el terreno no se pudo leer y su luz sí (Terrain::LoadTerrainLighting).
+    // The light alone, if the terrain could not be read and its light could (Terrain::LoadTerrainLighting).
     std::unique_ptr<Terrain::TerrainLighting> m_lighting;
     const Models::ModelTextureSlots* m_gameSlots;
-    // Los modelos de Object56\ y los registros de EncTerrain56.obj, de cada entrada.
+    // The models of Object56\ and the records of EncTerrain56.obj, from each entry.
     Assets::WorldModels m_worldModels;
     std::vector<Data::Terrain::TerrainObject> m_objectRecords;
-    // Los objetos del mundo como los crea 0x606660, y el logo al final (0x61c7c0 lo crea después de la
-    // carga del mundo).
+    // The world objects as 0x606660 creates them, and the logo at the end (0x61c7c0 creates it after the world load).
     std::vector<Kernel::WorldObject> m_objects;
     std::optional<std::size_t> m_logoIndex;
-    // Los sprites de un frame (0x760f990): los destellos de la tela y el brillo del cetro.
+    // A frame's sprites (0x760f990): the cloth's sparkles and the scepter's glow.
     Particles::FrameSprites m_sprites;
-    // Las hojas (0x75e34b8): en el mapa 55, las 80 brasas.
+    // The leaves (0x75e34b8): on map 55, the 80 embers.
     Weather::Leaves m_leaves;
-    // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
-    // login (P-C26).
+    // Whether a frame was drawn since entering: before, the global pose buffer has nothing of the login (P-C26).
     bool m_drawnSinceEntering = false;
-    // Si ya corrió un paso desde que se entró: antes, 0x6350b0 no dibuja (0x7d3a13d, que prende el paso).
+    // Whether a step ran since entering: before, 0x6350b0 does not draw (0x7d3a13d, which the step sets).
     bool m_steppedSinceEntering = false;
-    // Si el pase de partículas ya se cortó (y se dijo en el log) desde que se entró.
     bool m_particleFailureReported = false;
-    // Los sprites de lo que cuelga y de los efectos del personaje (el brillo del cetro, 0x509340): los del último
-    // frame del original, que un dibujo intermedio repite, como el juego y la selección con toda la tabla.
+    // The sprites of what hangs and of the character's effects (the scepter's glow, 0x509340): those of the original's
+    // last frame, which an intermediate draw repeats, like the game and the selection with the whole table.
     Particles::FrameSprites m_tailSprites;
     Particles::FrameSprites m_tailSpriteReplay;
     bool m_tailSpriteReplayValid = false;
-    // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
+    // The logo: its model, its meshes' slots from where the world ended and its textures.
     FrontEnd::SingleModelLibrary m_logo;
     std::optional<Models::ModelTextureSlots> m_logoSlots;
     std::optional<Assets::SceneTextures> m_logoTextures;
     FrontEnd::LoginRoutes m_routes;
-    // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
+    // The horse it rides (0x443fa0(0xbf, …) of 0x6349a0): it follows the character.
     Kernel::DarkHorse m_horse;
-    // La tela del Dark Lord (0x50ba30), entre frames.
+    // The Dark Lord's cloth (0x50ba30), between frames.
     Actors::Drawing::CharacterCloth m_characterCloth;
-    // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
+    // The three texts, or empty without Text.bmd. The version one, already built.
     std::optional<std::string_view> m_left;
     std::optional<std::string_view> m_right;
     std::optional<std::string> m_version;
 
     FrontEnd::ServerListWindow m_serverList;
-    // La abre la lista y queda abierta hasta salir (06 § Las ventanas de la UI nueva).
+    // The list opens it and it stays open until leaving (06 § Las ventanas de la UI nueva).
     Ui::MenuBar m_menuBar;
     FrontEnd::LoginWindow m_login;
     Ui::NoticeWindow m_notice;
     FrontEnd::EscapeWindow m_escape;
-    // Las opciones (+0x7e8) y los créditos (+0x4578), con la tabla de credit.bmd de GameData.
+    // The options (+0x7e8) and the credits (+0x4578), with GameData's credit.bmd table.
     FrontEnd::OptionsWindow m_options;
     FrontEnd::CreditsWindow m_credits;
-    // El par de ilustraciones de los créditos (0x6f8 y 0x6f9) que subió el último 0x63fc50.
+    // The credits' illustration pair (0x6f8 and 0x6f9) that the last 0x63fc50 uploaded.
     std::optional<Assets::SceneTextures> m_illustrations;
-    // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
+    // The new UI's manager: the windows' order, focus and mouse.
     Ui::NewUi m_ui;
-    // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.
+    // The session state the last step saw, to open each window once.
     std::optional<Session::SessionState> m_seen;
-    // Si el último paso vio la dirección del F4 03 en la sesión.
+    // Whether the last step saw the F4 03 address in the session.
     bool m_sawTheAddress = false;
-    // La pantalla del último frame: las ventanas se ubican y leen el mouse con ella. Hasta el
-    // primero, la de referencia.
+    // The last frame's screen: the windows place themselves and read the mouse with it. Until the first, the reference
+    // one.
     Core::PixelSize m_screen{640, 480};
     bool m_quit = false;
     // Who creates the joints of the character's draw (0x530860).

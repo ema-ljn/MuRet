@@ -13,10 +13,10 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// El strlen de 0x63d990: con menos, el 0x79.
+// 0x63d990's strlen: with fewer, 0x79.
 constexpr std::size_t ShortestName = 4;
 
-// Las que 0x622c70 busca en el nombre tal cual (0x6d6124 a 0x6d6150).
+// The ones 0x622c70 looks for in the name as is (0x6d6124 to 0x6d6150).
 constexpr std::array<std::string_view, 9> FixedWords{" ",      "\xa1\xa1", ".",      "\xa1\xa4", "\xa1\xad",
                                                      "Webzen", "WebZen",   "webzen", "WEBZEN"};
 
@@ -45,7 +45,7 @@ bool ContainsAny(std::string_view text, std::span<const std::string> words)
     return false;
 }
 
-// Un byte que 0x447ca0 rechaza.
+// 0x447ca0
 bool IsBadByte(unsigned char byte)
 {
     return byte < 0x21 || (byte > 0x7e && byte < 0xb0) || byte > 0xf7;
@@ -68,12 +68,12 @@ bool ContainsAFilteredWord(std::string_view text, std::span<const std::string> f
 
 bool IsAShopTitle(std::string_view title, std::span<const std::string> filter)
 {
-    // 0x5ebbd0..0x5ebc4c: la copia sin espacios en 0x800 bytes de la pila y las palabras de 0x77531dc.
+    // 0x5ebbd0..0x5ebc4c: the copy without spaces in 0x800 bytes of the stack and the words of 0x77531dc.
     if (ContainsAny(WithoutSpaces(title), filter))
     {
         return false;
     }
-    // 0x5ebc4e..0x5ebc7d: la cuenta de los espacios seguidos.
+    // 0x5ebc4e..0x5ebc7d: the count of consecutive spaces.
     std::size_t spaces = 0;
     for (std::size_t at = 0; at < title.size(); ++at)
     {

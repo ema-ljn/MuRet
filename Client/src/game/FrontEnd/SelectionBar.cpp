@@ -28,9 +28,9 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x63e820: el adorno (deco.tga, 0xe) y los botones de b_create (0xf), server_menu_b_all (0x10),
-// b_connect (0x11) y b_delete (0x12), de 54 × 30; los de crear, conectar y borrar con el cuadro 3
-// de deshabilitado.
+// 0x63e820: the ornament (deco.tga, 0xe) and the buttons of b_create (0xf), server_menu_b_all (0x10),
+// b_connect (0x11) and b_delete (0x12), 54 × 30; create, connect and delete with frame 3 as
+// disabled.
 constexpr Render::TextureSlot DecoSlot{0xe};
 constexpr Render::TextureSlot CreateSlot{0xf};
 constexpr Render::TextureSlot MenuSlot{0x10};
@@ -46,21 +46,21 @@ constexpr int DecoHeight = 103;
 constexpr int DecoAbove = 46;
 constexpr int StripTop = 33;
 constexpr int StripHeight = 21;
-// La franja de 0x669c70 sin slot y con el alfa de +0x148: 0x8f.
+// The strip of 0x669c70 without a slot and with the alpha of +0x148: 0x8f.
 constexpr float StripAlpha = 143.0f / 255.0f;
-// El texto 1710 de 0x63ec00, en (W − 464, y + 40), con 0xff27d9ff.
+// Text 1710 of 0x63ec00, at (W − 464, y + 40), with 0xff27d9ff.
 constexpr std::size_t RightText = 1710;
 constexpr int RightTextFromRight = 464;
 constexpr int TextTop = 40;
 constexpr Render::Text::TextStyle RightStyle{Render::Text::FontKind::OtherFace12,
                                              Render::Text::TextColors{0xff27d9ff, 0}};
-// 0x63ec45..0x63ecbf: el aviso del servidor (+0x511), en (x + 7, y + 40) con la misma fuente, blanco sobre 0, antes
-// del 1710. 0x5542f0 no dibuja un texto vacío.
+// 0x63ec45..0x63ecbf: the server notice (+0x511), at (x + 7, y + 40) with the same font, white on 0, before
+// 1710. 0x5542f0 does not draw an empty text.
 constexpr int NoticeLeft = 7;
 constexpr Render::Text::TextStyle NoticeStyle{Render::Text::FontKind::OtherFace12,
                                               Render::Text::TextColors{0xffffffff, 0}};
-// Con el +0x543, los textos 436 y 437 centrados en (320, 330) y (320, 348) de 640 × 480
-// (0x623690), en negro sobre 0x8000ffff.
+// With +0x543, texts 436 and 437 centered at (320, 330) and (320, 348) of 640 × 480
+// (0x623690), in black on 0x8000ffff.
 constexpr std::size_t BlockedText = 436;
 constexpr std::size_t BlockedSiteText = 437;
 constexpr int BlockedCenter = 320;
@@ -68,7 +68,7 @@ constexpr int BlockedTop = 330;
 constexpr int BlockedSiteTop = 348;
 constexpr Render::Text::TextStyle BlockedStyle{Render::Text::FontKind::OtherFace12,
                                                Render::Text::TextColors{0xff000000, 0x8000ffff}};
-// La y de 0x65f4b0, con el float 0xbf71eb85 (0x6baae0), como la barra del login (MenuBar.cpp).
+// The y of 0x65f4b0, with the float 0xbf71eb85 (0x6baae0), like the login bar (MenuBar.cpp).
 constexpr float HeightFactor = -0.945f;
 static_assert(std::bit_cast<std::uint32_t>(HeightFactor) == 0xbf71eb85U, "el float de 0x6baae0");
 
@@ -80,7 +80,7 @@ Ui::Rect ButtonAt(int x, int y)
 
 SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen)
 {
-    // fild y fmul con el float: la x87 no redondea el producto, y un double lo guarda exacto.
+    // fild and fmul with the float: the x87 does not round the product, and a double stores it exactly.
     const int y = -static_cast<int>(static_cast<double>(screen.height) * static_cast<double>(HeightFactor)) - BarHeight;
     const int width = screen.width - 2 * BarLeft;
     SelectionBarLayout layout{};
@@ -188,7 +188,7 @@ void SelectionBar::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
                         .width = m_layout.strip.width,
                         .height = m_layout.strip.height,
                         .color = Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = StripAlpha}});
-    // 0x620a00(1) y glColor4f(1, 1, 1, 1): la franja dejó la textura apagada y su color (Q-C75).
+    // 0x620a00(1) and glColor4f(1, 1, 1, 1): the strip left the texture off and its color (Q-C75).
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{});
     if (!serverNotice.empty())

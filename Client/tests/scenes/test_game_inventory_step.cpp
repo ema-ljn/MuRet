@@ -39,9 +39,9 @@
 #include <utility>
 #include <vector>
 
-// El paso del inventario abierto (0x5ee1ac..0x5ee1ca, CL8 hito 4): 0x5e4ce0 con el equipo (0x5c3d20 → 0x5bec50) o
-// la grilla (0x5c4110), los botones del pie y las seis hermanas, y el del ítem del cursor (0x5d8d50). Los ítems son
-// inventados.
+// The open inventory's step (0x5ee1ac..0x5ee1ca, CL8 milestone 4): 0x5e4ce0 with the equipment (0x5c3d20 → 0x5bec50)
+// or the grid (0x5c4110), the footer buttons and the six siblings, and the cursor item's one (0x5d8d50). The items are
+// made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,13 +52,12 @@ using Client::Input::Key;
 using Client::Kernel::WorldState;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
-// El paso con todo cerrado (test_game_ui.cpp): la barra de skills, la cadena de Q, W y E y la cola IsOpen(0).
+// The step with everything closed (test_game_ui.cpp): the skill bar, the Q, W and E chain and the IsOpen(0) tail.
 constexpr int BaseStepRandoms = Own + 2 + 2;
-// 0x5e4ce0 sin nada bajo el mouse: las consultas de la tienda y del comercio de las marcas, de los botones y de las
-// otras grillas (6), los doce lugares del equipo y el nivel (13 cierres del registro), y las hermanas del comercio y
-// de la tienda (2).
+// 0x5e4ce0 with nothing under the mouse: the shop and trade queries of the marks, the buttons and the other grids (6),
+// the twelve equipment slots and the level (13 record closes), and the trade and shop siblings (2).
 constexpr int InventoryStepRandoms = 8 + 13 * Own;
-// 0x5c3d20 con el mouse arriba de la grilla: once 0x5bec50 con su registro y el acceso del casco.
+// 0x5c3d20 with the mouse above the grid: eleven 0x5bec50 with their record and the helm's access.
 constexpr int EquipmentStepRandoms = 12 * Own;
 constexpr std::int32_t WindowX = 0x1c2;
 
@@ -103,8 +102,8 @@ protected:
     InputState input;
 };
 
-// Sin nada bajo el mouse, en Lorencia y en Devias: abajo, la grilla no saca nada; arriba, los doce lugares del
-// equipo cierran su registro. Las marcas +0x44 quedan en 1 con un tipo y en 0 sin él.
+// With nothing under the mouse: below, the grid draws nothing; above, the twelve equipment slots close their record.
+// The +0x44 marks stay at 1 with a type and at 0 without one.
 TEST_F(InventoryStepTest, TheQuietStepSpendsTheRandomsOfItsAccessesInLorenciaAndDevias)
 {
     world.OwnCharacter().equipment[3].id = 0x0c0e;
@@ -129,7 +128,7 @@ TEST_F(InventoryStepTest, TheQuietStepSpendsTheRandomsOfItsAccessesInLorenciaAnd
     }
 }
 
-// 0x5e4ce0..0x5e4d1d: el mouse sobre la ventana (190 × 433) es de la UI.
+// 0x5e4ce0..0x5e4d1d: the window is 190 × 433.
 TEST_F(InventoryStepTest, TheMouseOverTheWindowBelongsToTheUi)
 {
     ASSERT_TRUE(Step(WindowX + 0xbd, 300).HasValue());
@@ -138,8 +137,8 @@ TEST_F(InventoryStepTest, TheMouseOverTheWindowBelongsToTheUi)
     EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
 }
 
-// Q-C1337: con el NPC de Devil Square abierto, el inventario mira la esquina de las ventanas de NPC (0x5e4e76) antes de
-// que su hermana 0x5e5920 la ponga en (0x104, 0): el primer paso la toma en (0, 0).
+// Q-C1337: with the Devil Square NPC open, the inventory looks at the NPC windows' corner (0x5e4e76) before its sibling
+// 0x5e5920 sets it to (0x104, 0): the first step takes it at (0, 0).
 TEST_F(InventoryStepTest, TheEventNpcWindowTakesTheMouseFromItsCornerAfterTheFirstStep)
 {
     world.Runtime().panels.eventNpc = 1;
@@ -155,7 +154,7 @@ TEST_F(InventoryStepTest, TheEventNpcWindowTakesTheMouseFromItsCornerAfterTheFir
     EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
 }
 
-// El botón de cerrar (x + 0x14 a x + 0x2c, y + 0x18b a y + 0x1a3) consume el clic y cierra el inventario.
+// The close button (x + 0x14 to x + 0x2c, y + 0x18b to y + 0x1a3) consumes the click and closes the inventory.
 TEST_F(InventoryStepTest, TheCloseButtonClosesTheInventory)
 {
     world.Runtime().mouse.updateTime = 4;
@@ -167,8 +166,8 @@ TEST_F(InventoryStepTest, TheCloseButtonClosesTheInventory)
     EXPECT_EQ(world.Runtime().mouse.updateTimeMax, 6);
 }
 
-// 0x65cbe6→0x661b90 mira el WORD de los 32 lugares, aunque +0x3c esté en cero. El paso real del botón no cierra
-// hasta que la selección (0x5bbe10) devuelve ese tipo a 0xffff; conserva los demás bytes del ítem.
+// 0x65cbe6→0x661b90 looks at the WORD of the 32 slots, even with +0x3c at zero. The button's real step does not close
+// until the selection (0x5bbe10) sets that type back to 0xffff; it keeps the item's other bytes.
 TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySelection)
 {
     for (const std::size_t cell : {std::size_t{0}, std::size_t{31}})
@@ -198,7 +197,7 @@ TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySel
     }
 }
 
-// Reparar (x + 0x30) solo desde el nivel 50, que también deja 0x78abb10 en 1; el clic invierte 0x78abb0c.
+// Repair (x + 0x30) only from level 50, which also leaves 0x78abb10 at 1; the click toggles 0x78abb0c.
 TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
 {
     world.OwnCharacter().level = 49;
@@ -215,9 +214,9 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
     EXPECT_FALSE(world.Runtime().mouse.pendingClick);
 }
 
-// Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
-// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd. La S abre la tienda
-// personal (que ya no corta) y el comercio abierto.
+// What belongs to other waves, or asks for Item.bmd without having it, stops with its address: a grid item under the
+// mouse (0x5c420a) and the cursor item over an equipment slot (0x5bed9e) without Item.bmd. The S opens the personal
+// shop (which no longer stops) and the open trade.
 TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 {
     world.Inventory().cells[0].id = 0x1c00;
@@ -225,15 +224,15 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     world.Runtime().cursorItemCount = 1;
     ExpectCut(Step(WindowX + 15 + 39, 89 + 59), "0x5bed9e");
     world.Runtime().cursorItemCount = 0;
-    // El cartel del set ya no corta (hito 5): 0x40e6c0 prende la ventana del set.
+    // 0x40e6c0 turns on the set window.
     const auto label = Step(WindowX + 0xe, 0x16);
     ASSERT_TRUE(label.HasValue()) << label.Error();
     EXPECT_EQ(world.ItemSets().byte9304, 1);
 
     world.OwnCharacter().level = 6;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});
-    // La S abre la tienda propia (hito 7, fase 4); el mismo paso sigue con su grilla (0x5e58ea, sin nada bajo el mouse)
-    // y su ventana (0x5ea290, fase 5), que pone su esquina en (0x104, 0).
+    // The S opens the own shop (milestone 7, phase 4); the same step goes on with its grid (0x5e58ea, nothing under the
+    // mouse) and its window (0x5ea290, phase 5), which sets its corner at (0x104, 0).
     const auto opened = Step(100, 300);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_EQ(world.Runtime().social.personalShop.windowX, 0x104);
@@ -243,12 +242,13 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     world.Runtime().panels.personalShop = 0;
     world.Runtime().social.personalShop.mode = Client::Social::NoShopView;
 
-    // El comercio abierto (CL9 hito 7): el mouse sobre su ventana (desde 0x78a5a1c y 0x78a5a18, en 0 antes del
-    // dibujo) es de la UI; un ítem de sus grillas bajo el mouse lee Item.bmd (0x5c420a), que este paso no tiene: corta
-    // ahí. Con él, test_trade_grids.cpp. Las grillas, vacías como las deja la entrada a la selección (0x5bbe10).
+    // The open trade (CL9 milestone 7): the mouse over its window (from 0x78a5a1c and 0x78a5a18, at 0 before the
+    // drawing) belongs to the UI; an item of its grids under the mouse reads Item.bmd (0x5c420a), which this step does
+    // not have: it stops there. With it, test_trade_grids.cpp. The grids, empty as the entry to the selection leaves
+    // them (0x5bbe10).
     Client::Social::TradeState& trade = world.Runtime().social.trade;
     Client::Social::ClearTheTradeForSelection(trade);
-    // 0x5e513a..0x5e5205: +0x44 en cada casilla de las dos grillas; la del otro conserva el 99 (0x5e5172).
+    // 0x5e513a..0x5e5205: +0x44 in each cell of the two grids; the other's keeps the 99 (0x5e5172).
     trade.otherGrid[3].id = 0x1c00;
     trade.otherGrid[3].warning = Client::Social::ChangedFromTheCopy;
     trade.otherGrid[4].id = 0x1c00;
@@ -265,13 +265,14 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     EXPECT_EQ(trade.otherGrid[5].warning, 0);
     EXPECT_EQ(trade.ownGrid[2].warning, 1);
     EXPECT_EQ(trade.ownGrid[6].warning, 0);
-    // La casilla 21 de la grilla del otro (columna 5, fila 2, desde x + 15 e y + 0x46).
+    // Cell 21 of the other's grid (column 5, row 2, from x + 15 and y + 0x46).
     trade.otherGrid[21].id = 0x1c00;
     ExpectCut(Step(15 + 5 * 20 + 5, 0x46 + 2 * 20 + 5), "0x5c420a");
 }
 
-// 0x5c2c56 → 0x5c35ad: el mouse sobre un lugar ocupado, sin el clic, prende 0x78abaac (y 0x5d8d50 no corre), marca el
-// lugar con 2 y deja el ítem del cartel y la esquina de su ayuda. No saca más rand() que el paso quieto.
+// 0x5c2c56 → 0x5c35ad: the mouse over an occupied slot, without the click, turns on 0x78abaac (and 0x5d8d50 does not
+// run), marks the slot with 2 and leaves the banner's item and its help's corner. It draws no more rand() than the
+// quiet step.
 TEST_F(InventoryStepTest, AnOccupiedEquipmentPlaceUnderTheMouseIsMarked)
 {
     world.OwnCharacter().equipment[0].id = 0x0001;
@@ -302,7 +303,7 @@ protected:
             messages.push_back(index);
             return Client::Core::Expected<void, std::string>{};
         };
-        // Una poción en la casilla (1, 2), con su columna y su fila.
+        // A potion in cell (1, 2), with its column and its row.
         Client::Kernel::ItemState& potion = world.Inventory().cells[PotionCell];
         potion.id = Potion;
         potion.gridColumn = 1;
@@ -323,8 +324,8 @@ protected:
     std::vector<std::size_t> messages;
 };
 
-// 0x5c41f4..0x5c4b3b sin el clic: la marca 2, el ítem del cartel (la casilla + 12) y la esquina de la ayuda. Ctrl con
-// W pone el tipo y el nivel en la ranura rápida 1.
+// 0x5c41f4..0x5c4b3b without the click: mark 2, the banner's item (the cell + 12) and the help's corner. Ctrl with W
+// puts the type and the level in quick slot 1.
 TEST_F(InventoryMovesStepTest, AGridItemUnderTheMouseIsMarkedAndCtrlPutsItInAQuickSlot)
 {
     world.Inventory().cells[PotionCell].scalar1Low = 2u << 3;
@@ -345,9 +346,9 @@ TEST_F(InventoryMovesStepTest, AGridItemUnderTheMouseIsMarkedAndCtrlPutsItInAQui
     EXPECT_EQ(world.Runtime().hud.quickSlots.levels[1], 2);
 }
 
-// Con el clic, 0x5c4110 la levanta y sale, con el rand() de IsOpen(0x20) y el sonido 0x1d; en el mismo paso, 0x5d8d50
-// la ve en el cursor sin clic (otro IsOpen(0x20)). Con el inventario cerrado, Esc abre el menú y la vuelve a su lugar
-// (0x623f42).
+// With the click, 0x5c4110 picks it up and exits, with the rand() of IsOpen(0x20) and the sound 0x1d; in the same step,
+// 0x5d8d50 sees it in the cursor without a click (another IsOpen(0x20)). With the inventory closed, Esc opens the menu
+// and puts it back in its place (0x623f42).
 TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
 {
     const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms + 2);
@@ -376,8 +377,8 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(dressed, 1);
 }
 
-// CL9 hito 5, fase 2: el clic derecho sobre la casilla de abajo de una espada (0x5c8e37) ya no corta. La copia va
-// al cursor y, sin el almacén ni 0x7d368a1, el cursor queda en ceros: la espada sigue en la grilla, sin rand() de más.
+// 0x5c8e37, the right click on the bottom cell of a sword: the copy goes to the cursor and, without the warehouse or
+// 0x7d368a1, the cursor stays at zeros: the sword stays in the grid, with no extra rand().
 TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
 {
     for (std::size_t row = 4; row < 7; ++row)
@@ -401,9 +402,9 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
     EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
 }
 
-// 0x5c67e9..0x5c6c25: el clic derecho sobre el 0x1a1d consulta los paneles y manda C1 04 91 04 con XOR32, en claro,
-// sin rand() de envío. Copia el ítem y su lugar +12 para la respuesta; no inicia la espera del 26 ni cierra ventanas.
-// Las dos consultas protegidas (tienda NPC y comercio) agregan dos rand() al paso normal del inventario.
+// 0x5c67e9..0x5c6c25: the right click on the 0x1a1d queries the panels and sends C1 04 91 04 with XOR32, in clear,
+// with no send rand(). It copies the item and its slot +12 for the answer; it does not start the wait of the 26 or
+// close windows. The two protected queries (NPC shop and trade) add two rand() to the inventory's normal step.
 TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsTheTicket)
 {
     std::vector<Client::Protocol::Outgoing> sent;
@@ -442,7 +443,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsThe
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{-1});
     EXPECT_TRUE(messages.empty());
 
-    // 0x5c4132..0x5c413c: la espera sí impide llegar al ítem desde el caller de la grilla.
+    // 0x5c4132..0x5c413c: the wait does keep the grid's caller from reaching the item.
     sent.clear();
     runtime.ui.field5767954 = 4;
     runtime.ui.rightClick = true;
@@ -458,9 +459,9 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsThe
     EXPECT_EQ(runtime.slot78a6758, 99);
 }
 
-// 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo
-// en 6) y lo tira al piso. La poción se tira (CL9 hito 5): sin terreno bajo el mouse (0x5dfdfc) sigue en el cursor; un
-// Jewel of Bless vuelve con el aviso 269.
+// 0x5d8d50 with the item in the cursor and the click outside the grids: it consumes the click (MouseUpdateTime at 0
+// and its maximum at 6) and drops it on the floor. The potion is dropped (CL9 milestone 5): without terrain under the
+// mouse (0x5dfdfc) it stays in the cursor; a Jewel of Bless comes back with notice 269.
 TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
 {
     Click();
@@ -486,9 +487,9 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
 }
 } // namespace
 
-// 0x5c4472..0x5c4a89, con el modo de reparar: el clic sobre un ítem que se repara manda el C1 05 34 con el lugar de su
-// esquina (fila · 8 + columna + 12) y 0x78abb10, con el XOR32 y en C3 (los dos rand() del envío), y gasta el clic. La
-// poción (0x1c00 en adelante) no se repara: no manda nada.
+// 0x5c4472..0x5c4a89, with repair mode: the click on a repairable item sends the C1 05 34 with its corner's slot (row ·
+// 8 + column + 12) and 0x78abb10, with the XOR32 and in C3 (the two send rand()), and spends the click. The potion
+// (0x1c00 onwards) is not repaired: it sends nothing.
 TEST_F(InventoryMovesStepTest, RepairModeSendsTheItemsPlaceByteByByte)
 {
     std::vector<Client::Protocol::Outgoing> sent;

@@ -44,8 +44,8 @@
 #include <string_view>
 #include <vector>
 
-// Cadena de H9: eventos físicos -> GameScene, y mensajes durante Draw -> ServerSession -> Connection -> FakeSocket.
-// Las pasadas intermedias usan los assets locales y la implementación real; los paquetes y nombres son sintéticos.
+// H9 chain: physical events -> GameScene, and messages during Draw -> ServerSession -> Connection -> FakeSocket.
+// The intermediate passes use the local assets and the real implementation; the packets and names are synthetic.
 namespace
 {
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
@@ -219,7 +219,7 @@ TEST_F(GameSceneOldWindowsTest, TwoIntermediateDrawingsKeepThePendingPacketUntil
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     ASSERT_TRUE(m_online.session.Poll().HasValue());
-    // 0x4a2f70 no pasa a la pestaña mientras el marco está arrastrado; este primer paso termina el arrastre.
+    // 0x4a2f70 does not switch to the tab while the frame is dragged; this first step ends the drag.
     EXPECT_TRUE(m_online.socket.sent.empty());
     EXPECT_EQ(Friends().base.state, Client::Ui::ShownWindow);
     ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
@@ -369,7 +369,7 @@ TEST_F(GameSceneOldWindowsTest, ADoubleClickReachesTheGameWithoutRearmingTheOrdi
     EXPECT_FALSE(m_world->Runtime().ui.doubleClick);
 }
 
-// ConsumeEdges puede correr antes del lector del juego: no pierde ni el set pendiente ni el clear de otro mensaje.
+// ConsumeEdges can run before the game's reader: it loses neither the pending set nor another message's clear.
 TEST_F(GameSceneOldWindowsTest, AnUnpublishedDoubleClickUpdateSurvivesEdgeConsumption)
 {
     m_input.Apply(
@@ -387,7 +387,7 @@ TEST_F(GameSceneOldWindowsTest, AnUnpublishedDoubleClickUpdateSurvivesEdgeConsum
     EXPECT_FALSE(m_world->Runtime().ui.doubleClick);
 }
 
-// 0x4a2f7b..0x4a2f8a salta la pestaña arrastrada; sin otro mensaje, el segundo paso aún debe ver 0x7d36849.
+// 0x4a2f7b..0x4a2f8a skips the dragged tab; with no other message, the second step must still see 0x7d36849.
 TEST_F(GameSceneOldWindowsTest, DraggedFriendsConsumeTheDoubleClickOnTheNextStepWithoutAMessage)
 {
     ASSERT_NO_FATAL_FAILURE(OpenFriends());
@@ -405,14 +405,15 @@ TEST_F(GameSceneOldWindowsTest, DraggedFriendsConsumeTheDoubleClickOnTheNextStep
     EXPECT_FALSE(m_world->Runtime().ui.doubleClick);
     ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
     EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::ChosenRowMessage);
-    // RunSteps sólo llama ConsumeEdges tras el primer subpaso: entre el segundo y el tercero tampoco hay mensajes.
+    // RunSteps only calls ConsumeEdges after the first substep: between the second and the third there are no messages
+    // either.
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     EXPECT_FALSE(m_world->Runtime().ui.doubleClick);
     EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
 }
 
-// 0x461fa0 consume el global. Con el mismo pump, el siguiente paso no puede volver a publicar ese doble clic.
+// 0x461fa0 consumes the global. With the same pump, the next step cannot publish that double click again.
 TEST_F(GameSceneOldWindowsTest, AConsumedDoubleClickIsNotRepublishedWithoutANewMessage)
 {
     ASSERT_NO_FATAL_FAILURE(OpenFriends());

@@ -31,34 +31,33 @@ using Result = Core::Expected<void, std::string>;
 
 using Math::F32;
 
-// 0x5ff9c2..0x5ffa1e: los objetos 9 y 10 (con cualquier tipo pedido) se abren con la cuenta en 0: +0x58 en −1 y +0x8a
-// en 4.
+// 0x5ff9c2..0x5ffa1e: objects 9 and 10 (with any requested type) open with the count at 0: +0x58 at −1 and +0x8a at 4.
 constexpr std::int16_t FirstOpeningObject = 9;
 constexpr std::int16_t SecondOpeningObject = 10;
 constexpr std::int16_t OpenedMark = 4;
-// 0x5ffa2c..0x5ffa4c: con la cuenta en 20, +0x1c en 35 y el sonido 0x89.
+// 0x5ffa2c..0x5ffa4c: with the count at 20, +0x1c at 35 and sound 0x89.
 constexpr std::int32_t FallStartCounter = 0x14;
 constexpr float FallStartAngle = 35.0f;
 constexpr Audio::SoundId FallSound{0x89};
-// 0x6b8b94, 0x6b8948 y 0x42a00000: lo que suma la demora en cada objeto, el giro que termina y el giro del polvo.
+// 0x6b8b94, 0x6b8948 and 0x42a00000: what the delay adds to each object, the turn that ends it and the dust's turn.
 constexpr double DelayStep = 1.5;
 constexpr float FallenAngle = 90.0f;
 constexpr std::uint32_t DustAngleBits = 0x42a00000u;
 constexpr float DelayAfterTheFall = 2.0f;
-// 0x5ffac4..0x5ffb2a: diez polvos 5f3/0 corridos en x por rand() % 300 − 150 (0x6b87ac) y atrás en y por rand() % 20
-// + 600 (0x6b8c08), con los ángulos y la luz del objeto, escala 1 y sin dueño.
+// 0x5ffac4..0x5ffb2a: ten 0x5f3/0 dusts shifted in x by rand() % 300 − 150 (0x6b87ac) and back in y by rand() % 20 +
+// 600 (0x6b8c08), with the object's angles and light, scale 1 and no owner.
 constexpr int DustCount = 10;
 constexpr int DustSpreadX = 300;
 constexpr double DustBackX = 150.0;
 constexpr int DustSpreadY = 20;
 constexpr double DustBackY = 600.0;
 constexpr float DustScale = 1.0f;
-// 0x5ffb48..0x5ffb54: 0x5f8750(13, 70, 3, 6, 8, 0), el paso de la puerta de Blood Castle sin el atributo 8.
+// 0x5ffb48..0x5ffb54: 0x5f8750(13, 70, 3, 6, 8, 0), the Blood Castle gate passage without attribute 8.
 constexpr Terrain::TerrainArea GatePassage{.x = 0xd, .y = 0x46, .width = 3, .height = 6};
 constexpr std::uint8_t GateAttribute = 8;
 
-// 0x405630: la tabla de 0x40592c por el tipo (0 a 0x23) a los cuatro casos de 0x40591c: el área de 0x6c634c que
-// esperan y la que dejan al terminar, y dónde cada uno crea la piedra y escribe el temblor; el 3 no hace nada.
+// 0x405630: the table at 0x40592c by type (0 to 0x23) to the four cases of 0x40591c: the area of 0x6c634c they expect
+// and the one they leave when done, and where each creates the stone and writes the shake; 3 does nothing.
 struct ChaosCastleStep
 {
     std::uint8_t expected = 0;
@@ -69,11 +68,11 @@ struct ChaosCastleStep
 constexpr std::int16_t LastChaosCastleType = 0x23;
 constexpr std::array<std::uint8_t, LastChaosCastleType + 1> ChaosCastleStepOfType{
     0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2};
-// 0x40581f, 0x40566b y 0x405745.
+// 0x40581f, 0x40566b and 0x405745.
 constexpr std::array<ChaosCastleStep, 3> ChaosCastleSteps{
     {{1, 2, "0x405899", "0x4058bf"}, {7, 8, "0x4056e5", "0x40570b"}, {4, 5, "0x4057bf", "0x4057e5"}}};
-// 0x40567d..0x405740 (y sus copias): con la cuenta en 30 o más, la piedra; en 0 o menos, el final; si no, la z baja
-// con la demora.
+// 0x40567d..0x405740 (and its copies): with the count at 30 or more, the stone; at 0 or less, the end; otherwise z
+// drops with the delay.
 constexpr std::int32_t ChaosCastleStoneCounter = 0x1e;
 constexpr int StoneSpread = 300;
 constexpr double StoneBack = 150.0;
@@ -95,7 +94,7 @@ Result CreateParticle(const ObjectCollapseContext& context, std::int32_t type, c
     return {};
 }
 
-// 0x405630 en los mapas 18 a 23: devuelve 1 siempre, así que 0x5ff960 no sigue con ningún objeto.
+// 0x405630 in maps 18 to 23: always returns 1, so 0x5ff960 goes on with no object.
 Result StepChaosCastleCollapse(Kernel::WorldObject& object, const ObjectCollapseContext& context)
 {
     Kernel::WorldRuntime& runtime = context.runtime;
@@ -111,8 +110,8 @@ Result StepChaosCastleCollapse(Kernel::WorldObject& object, const ObjectCollapse
     const std::int32_t counter = collapse.counter;
     if (counter >= ChaosCastleStoneCounter)
     {
-        // 0x40569b..0x40570b (el caso 1): la piedra en (x + rand() % 300 − 150, y, z del héroe), con los ángulos del
-        // objeto, luz 1, escala 1,5 y sin dueño, y el temblor (rand() % 3 − 3) · 0,1f.
+        // 0x40569b..0x40570b (case 1): the stone at (x + rand() % 300 − 150, y, hero z), with the object's angles,
+        // light 1, scale 1.5 and no owner, and the shake (rand() % 3 − 3) · 0.1f.
         const int spread = context.random.Next() % StoneSpread;
         const glm::vec3 stone{
             F32((static_cast<double>(spread) - StoneBack) + static_cast<double>(object.transform.position.x)),
@@ -129,13 +128,13 @@ Result StepChaosCastleCollapse(Kernel::WorldObject& object, const ObjectCollapse
     }
     if (counter <= 0)
     {
-        // 0x405715..0x40572c: el objeto oculto, el área siguiente y el pedido borrado.
+        // 0x405715..0x40572c: the object hidden, the next area and the request cleared.
         object.state.hiddenMesh = Kernel::HiddenObject;
         runtime.chaosCastleArea = step.next;
         ResetTheObjectCollapse(collapse);
         return {};
     }
-    // 0x405733..0x405740 y 0x4058f4..0x40590f: z = +0x184 − (30 − cuenta) · demora, y la demora sube 0,4f.
+    // 0x405733..0x405740 and 0x4058f4..0x40590f: z = +0x184 − (30 − count) · delay, and the delay rises 0.4f.
     const std::int32_t fallen = ChaosCastleStoneCounter - counter;
     object.transform.position.z = F32(static_cast<double>(object.basePosition.z) -
                                       (static_cast<double>(fallen) * static_cast<double>(collapse.delay)));
@@ -143,7 +142,7 @@ Result StepChaosCastleCollapse(Kernel::WorldObject& object, const ObjectCollapse
     return {};
 }
 
-// 0x5ffa24..0x5ffb59: el objeto del tipo pedido (la puerta de Blood Castle, 0x24).
+// 0x5ffa24..0x5ffb59: the object of the requested type (the Blood Castle gate, 0x24).
 Result FellTheObject(Kernel::WorldObject& object, const ObjectCollapseContext& context)
 {
     ObjectCollapse& collapse = context.runtime.events.objectCollapse;
@@ -152,21 +151,21 @@ Result FellTheObject(Kernel::WorldObject& object, const ObjectCollapseContext& c
     {
         angle = FallStartAngle;
         object.state.hiddenMesh = Models::NoHiddenMesh;
-        // 0x41ed10(0x89, 0, 0): RequestSound despacha el efecto.
+        // 0x41ed10(0x89, 0, 0): RequestSound dispatches the effect.
         context.runtime.RequestSound(FallSound);
     }
     if (collapse.counter < 0)
         return {};
     angle = F32(static_cast<double>(collapse.delay) + static_cast<double>(angle));
     collapse.delay = F32(static_cast<double>(collapse.delay) + DelayStep);
-    // 0x5ffa81..0x5ffa8e: FCOMP y C0; un NaN no entra.
+    // 0x5ffa81..0x5ffa8e: FCOMP and C0; a NaN does not enter.
     if (angle >= FallenAngle)
     {
         angle = F32(static_cast<double>(angle) - static_cast<double>(collapse.counter));
         collapse.delay = DelayAfterTheFall;
         if (std::bit_cast<std::uint32_t>(angle) == DustAngleBits)
         {
-            // 0x5ffaa8..0x5ffabe: la posición del objeto, con x e y nuevas en cada vuelta y la z de siempre.
+            // 0x5ffaa8..0x5ffabe: the object's position, with new x and y on each turn and the same z.
             glm::vec3 dust = object.transform.position;
             for (int count = 0; count < DustCount; ++count)
             {
@@ -185,7 +184,7 @@ Result FellTheObject(Kernel::WorldObject& object, const ObjectCollapseContext& c
     }
     if (collapse.counter != 0)
         return {};
-    // 0x5ffb36..0x5ffb54: caída, el pedido borrado y el paso abierto.
+    // 0x5ffb36..0x5ffb54: fallen, the request cleared and the passage open.
     object.state.hiddenMesh = Kernel::HiddenObject;
     angle = FallenAngle;
     ResetTheObjectCollapse(collapse);

@@ -56,8 +56,8 @@
 #include <utility>
 #include <vector>
 
-// La vuelta del juego a la selección (0x4c2710 con el F1 02 con 1 cifrado, 0x4c3626..0x4c390f, y 0x4c2480),
-// en lo que MuRet tiene del mundo. Contrato: 06, "La vuelta a la selección", y Q-C211 a Q-C215.
+// The return from the game to the selection (0x4c2710 with the encrypted F1 02 with 1, 0x4c3626..0x4c390f, and
+// 0x4c2480), on what MuRet has of the world. Contract: 06, "La vuelta a la selección", and Q-C211 to Q-C215.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -67,12 +67,12 @@ using Client::Scenes::WorldEntryResources;
 
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::uint16_t PlayerKey = 5;
-// El cierre del registro propio que lo deja sin accesos (0x4c260f..0x4c264b, 0x40b4d0).
+// The close of the own record that leaves it with no accesses (0x4c260f..0x4c264b, 0x40b4d0).
 constexpr int OwnRecordClose = 0xf08;
-// 0x510f70(−1) compara la clave con signo: solo sobrevive esta (Q-C212).
+// 0x510f70(−1) compares the key signed: only this one survives (Q-C212).
 constexpr std::uint16_t SurvivingKey = 0xffff;
 constexpr std::uint16_t OtherKey = 0x1234;
-// El último del pool, que 0x510f70 no recorre.
+// The pool's last one, which 0x510f70 does not walk.
 constexpr std::size_t LastActor = Client::Kernel::ActorPoolSize - 1;
 
 class SilentPublisher final : public Client::Scenes::IWorldEntryPublisher
@@ -81,8 +81,8 @@ public:
     void PublishWorldEntry() override {}
 };
 
-// Lo que dura la sesión, con Player.bmd, un Item.bmd sin armas marcadas y el registro propio sin equipo,
-// como en test_world_entry.cpp.
+// What lasts for the session, with Player.bmd, an Item.bmd without marked weapons and the own record without
+// equipment, as in test_world_entry.cpp.
 struct Returning
 {
     Returning(std::filesystem::path root, std::uint32_t seed)
@@ -107,7 +107,7 @@ struct Returning
                                    .texts = &texts,
                                    .states = &states};
     }
-    // El renglón de bienvenida del F3 03 (0x4c4b60).
+    // The F3 03 welcome line (0x4c4b60).
     Client::Tests::LetterMeasure letters;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
 
@@ -131,7 +131,7 @@ struct Returning
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
 
-// Las tablas de los conjuntos sin ningún conjunto, para que la entrada llegue al final.
+// The set tables without any set, so that the entry gets to the end.
 Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
@@ -139,7 +139,7 @@ Client::Tables::ItemSetTables NoSets()
         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
-// La respuesta del F3 03 en la celda (x, y) de `map`, con la dirección 0, el PK 4 y el CtlCode 0x20.
+// The F3 03 answer at cell (x, y) of `map`, with direction 0, PK 4 and CtlCode 0x20.
 Client::Protocol::FrontEnd::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y)
 {
     Client::Protocol::FrontEnd::CharacterSelectResult reply;
@@ -160,7 +160,7 @@ CrtRandom Advanced(CrtRandom random, int draws)
     return random;
 }
 
-// Un lugar del pool entre los que mata 0x510f70 que no sea `taken`.
+// A pool slot among those 0x510f70 kills that is not `taken`.
 std::size_t SlotOtherThan(std::size_t wanted, std::size_t taken)
 {
     return wanted == taken ? wanted + 1 : wanted;
@@ -179,11 +179,11 @@ class ReturnToSelectionTest : public Client::Tests::GoldenDataTest
 {
 };
 
-// Con el héroe en el mundo, en Lorencia y en Devias: 0x6070a0 suelta los objetos y los efectos sin tocar el
-// terreno ni el pasto; 0x510f70(−1) mata a los 400 menos al de la clave 0xffff, también al héroe, y el 401
-// queda; la orden de la escena 4, el mundo sin cargar, el nivel de la cámara en 0, el mundo en curso en −1 y
-// el registro propio con +0x3c..+0x42 en 0 y su cierre de 3.848 rand(), lo único que saca. El héroe publicado
-// sigue en su lugar, y la cámara copia su posición; la selección mira el terreno del juego (Q-C213).
+// With the hero in the world, in Lorencia and in Devias: 0x6070a0 releases the objects and the effects without
+// touching the terrain or the grass; 0x510f70(−1) kills the 400 but the one with key 0xffff, the hero too, and the
+// 401st stays; scene order 4, the world unloaded, the camera level at 0, the current world at −1 and the own record
+// with +0x3c..+0x42 at 0 and its close of 3848 rand(), the only ones it draws. The published hero stays in place, and
+// the camera copies its position; the selection looks at the game's terrain (Q-C213).
 TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
 {
     for (const ReferenceCell& probe : {Lorencia, Devias})
@@ -202,7 +202,7 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
         ASSERT_TRUE(tested.world.Actors()[hero].alive);
         ASSERT_FALSE(tested.world.Map().objects.empty());
         ASSERT_GT(tested.AliveEffects(), 0u);
-        // Lo que dejó la carga del 54 de la selección (0x633f30) o el paso del juego en el estado 0x3d.
+        // What the selection's 54 load (0x633f30) or the game step in state 0x3d left.
         runtime.drawingEnabled = true;
         tested.camera.level = 2;
         const std::size_t stranger = SlotOtherThan(7, hero);
@@ -254,8 +254,8 @@ TEST_F(ReturnToSelectionTest, TheReturnReleasesTheGameAndKeepsTheTerrain)
     }
 }
 
-// Con el registro propio abierto por otro, el cierre no lo deja sin accesos y no saca rand(); los cuatro
-// campos se escriben igual.
+// With the own record opened by someone else, the close does not leave it with no accesses and draws no rand(); the
+// four fields are written anyway.
 TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
 {
     Returning tested({}, Seed);
@@ -271,7 +271,7 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Kernel::SceneId::CharacterSelect);
 }
 
-// 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 hito 4): la vuelta pone en 0 la pestaña, la ventana y las tres mascotas.
+// 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 milestone 4): the return sets the tab, the window and the three pets to 0.
 TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
@@ -290,9 +290,9 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
     EXPECT_EQ(runtime.pets[0].experience, 0u);
 }
 
-// 0x4c26e7 → 0x657670 → jmp 0x5eb960 (CL9 hito 7): la vuelta vacía las tiendas personales (0x78aba50, 0x6c931c,
-// 0x78aba60, el título, los carteles y los dos mapas de los precios, que el próximo Open vuelve a armar), sin tocar la
-// copia del dueño, la cuenta de los carteles ni si se dibujan.
+// 0x4c26e7 → 0x657670 → jmp 0x5eb960 (CL9 milestone 7): the return empties the personal shops (0x78aba50, 0x6c931c,
+// 0x78aba60, the title, the banners and the two price maps, which the next Open builds again), without touching the
+// owner's copy, the banner count or whether they are drawn.
 TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesThePersonalShops)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
@@ -325,7 +325,8 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesThePersonalShops)
     EXPECT_EQ(shops.signsShown, 0);
 }
 
-// 0x4c268a..0x4c26d2: las misiones vuelven a +4 = 0xff (el A0 se vuelve a pedir) y la ventana se cierra sin el 31.
+// 0x4c268a..0x4c26d2: the quests go back to +4 = 0xff (the A0 is asked for again) and the window closes without the
+// 31.
 TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
@@ -530,8 +531,8 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnKeepsTheNpcWindows)
     EXPECT_EQ(npc.field78abb1c, 4);
 }
 
-// 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38; y
-// 0x4c254b, el personaje que se sigue (0x6c8e50).
+// 0x4c2515..0x4c252d: the return leaves the five picking ones at −1, also the chosen character and 0x6c8e38; and
+// 0x4c254b, the followed character (0x6c8e50).
 TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
@@ -544,8 +545,8 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
     EXPECT_EQ(tested->world.Runtime().movement.followTarget, -1);
 }
 
-// 0x510f70 compara la clave con signo (movsx en 0x510f8a): con −1, la clave 0x7fff muere y la 0xffff no;
-// los muertos quedan muertos. El caballo del que muere se apaga (0x510fa1..0x510fc0); el del que queda, no.
+// 0x510f70 compares the key signed (movsx at 0x510f8a): with −1, key 0x7fff dies and 0xffff does not; the dead stay
+// dead. The horse of the one that dies turns off (0x510fa1..0x510fc0); that of the one that stays, does not.
 TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
 {
     Returning tested({}, Seed);
@@ -588,7 +589,7 @@ TEST(ReturnToSelectionPoolsTest, ReleasesTheLiveFlagsWithoutReplacingRetainedRec
     EXPECT_FALSE(tested.world.DrawTail().joints[4].alive);
     EXPECT_FALSE(tested.world.DrawTail().ribbons[5].alive);
 }
-// 4c2546 y657686: observar el mundo desde el callback de red detecta envíos adelantados/tardíos.
+// 0x4c2546 and 0x657686: observing the world from the network callback detects early or late sends.
 TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetCheckpoints)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
@@ -639,7 +640,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetChe
     EXPECT_EQ(runtime.pets[1].level, 0);
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_EQ(dialog.timerMs, 777u);
-    EXPECT_TRUE(runtime.chat.input.dialogFieldOn); // 660090 no llama callback ni hace cleanup delEDIT.
+    EXPECT_TRUE(runtime.chat.input.dialogFieldOn); // 0x660090 calls no callback and does no EDIT cleanup.
 }
 
 class ResetLetterMeasure final : public Client::Render::Text::ITextMeasure

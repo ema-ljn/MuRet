@@ -44,8 +44,8 @@
 #include <utility>
 #include <vector>
 
-// CL9 hito 11, fase 2: las ventanas de los NPC de evento (0x5f58f0 y su paso 0x5e5920) contra el ASM de c32bbd5f, sin
-// traza de GL (*estático*). Text.bmd es inventado, con los especificadores de los textos del original.
+// CL9 milestone 11, phase 2: the event NPC windows (0x5f58f0 and its step 0x5e5920) against the ASM of c32bbd5f, with
+// no GL trace (*static*). Text.bmd is made up, with the specifiers of the original's texts.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -89,7 +89,7 @@ struct DrawnQuad
     float top = 0.0f;
 };
 
-// Los quads con textura del lote, sin las marcas de los textos.
+// The batch's textured quads, without the text marks.
 std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -175,7 +175,7 @@ protected:
 
     void Open(std::uint8_t kind)
     {
-        // Cada mundo sintético ya pasó por la selección (0x5bbe10), igual que el juego real.
+        // Each synthetic world has already gone through the selection (0x5bbe10), like the real game.
         Client::FrontEnd::ClearSelectionInventory(*world, random);
         Runtime().panels.eventNpc = 1;
         Runtime().panels.eventNpcKind = kind;
@@ -200,14 +200,14 @@ protected:
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-// 0x5583a0: de la columna 7 a la 0 y, en cada una, de la fila 7 a la 0; con +0x3c en 0 o con otro nivel no vale.
+// 0x5583a0: from column 7 to 0 and, in each, from row 7 to 0; with +0x3c at 0 or with another level it does not count.
 TEST_F(EventNpcWindowTest, FindsTheInventoryItemFromTheLastColumn)
 {
     const Client::Kernel::OwnInventory& inventory = world->Inventory();
     EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 0), -1);
-    PutItem(9, 0x1c13, 0);  // fila 1, columna 1
-    PutItem(17, 0x1c13, 0); // fila 2, columna 1
-    PutItem(2, 0x1c13, 3);  // fila 0, columna 2
+    PutItem(9, 0x1c13, 0);  // row 1, column 1
+    PutItem(17, 0x1c13, 0); // row 2, column 1
+    PutItem(2, 0x1c13, 3);  // row 0, column 2
     EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 0), 17);
     EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, -1), 2);
     EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 3), 2);
@@ -216,10 +216,9 @@ TEST_F(EventNpcWindowTest, FindsTheInventoryItemFromTheLastColumn)
     EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1a12, -1), -1);
 }
 
-// Devil Square (0x1000): el fondo, los seis botones 0xf0 desde (285, 187) de a 40 (blanco con el mouse, si no
-// (0,9, 0,8, 0,7)), los renglones con la tabla de la clase del registro propio (abierto y cerrado por fila: 6 × 3.848
-// rand()), el título y los seis textos de abajo. Escribe la esquina y los niveles que lee el paso. En Lorencia y en
-// Devias.
+// Devil Square (0x1000): the background, the six 0xf0 buttons from (285, 187) in steps of 40 (white with the mouse,
+// otherwise (0.9, 0.8, 0.7)), the lines with the table of the own record's class (opened and closed per row: 6 × 3848
+// rand()), the title and the six bottom texts. Writes the corner and the levels the step reads. In Lorencia and Devias.
 TEST_F(EventNpcWindowTest, TheDevilSquareWindowDrawsItsSquares)
 {
     struct Case
@@ -297,8 +296,8 @@ TEST_F(EventNpcWindowTest, TheDevilSquareWindowDrawsItsSquares)
     }
 }
 
-// Con un ítem en el cursor (0x7879fbc), ningún botón se ilumina; un dibujo que proyecta no escribe los niveles ni la
-// esquina.
+// With an item on the cursor (0x7879fbc), no button lights up; a drawing that projects does not write the levels or
+// the corner.
 TEST_F(EventNpcWindowTest, TheDevilSquareWindowWithAnItemOrProjecting)
 {
     Open(0);
@@ -313,9 +312,9 @@ TEST_F(EventNpcWindowTest, TheDevilSquareWindowWithAnItemOrProjecting)
     EXPECT_EQ(Runtime().events.devilSquareLevels[0][1], 0);
 }
 
-// Blood Castle (0x4000): siete botones desde (285, 170) de a 35, de 30 de alto: en gris (0,4, 0,4, 0,5) los que no
-// son del nivel del registro propio (100), blanco el del mouse y (0,7, 0,7, 0,9) los demás; la tabla por la clase del
-// héroe (+0x1d4), siete accesos al registro propio, el título y 832 en renglones de menos de 26 bytes.
+// Blood Castle (0x4000): seven buttons from (285, 170) in steps of 35, 30 high: in gray (0.4, 0.4, 0.5) those not of
+// the own record's level (100), white the one under the mouse and (0.7, 0.7, 0.9) the others; the table by the hero's
+// class (+0x1d4), seven accesses to the own record, the title and 832 in lines of under 26 bytes.
 TEST_F(EventNpcWindowTest, TheBloodCastleWindowDrawsItsBridges)
 {
     for (const std::uint8_t characterClass : {std::uint8_t{0}, std::uint8_t{4}})
@@ -329,13 +328,13 @@ TEST_F(EventNpcWindowTest, TheBloodCastleWindowDrawsItsBridges)
         world->OwnCharacter().level = 100;
         Open(1);
         const CrtRandom expected = Advanced(random, 7u * OwnRecordCloseRandoms);
-        // El mouse en el segundo puente (170 + 35 ≤ 210 < 235).
+        // The mouse on the second bridge (170 + 35 ≤ 210 < 235).
         const auto drawn = Draw({300, 210});
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
         const std::vector<DrawnQuad> quads = QuadsOf(sprites);
         ASSERT_EQ(quads.size(), 9u);
-        // Con la clase 0, el 100 es del puente 2 (81-130); con la 4, también (61-110).
+        // With class 0, 100 belongs to bridge 2 (81-130); with class 4, too (61-110).
         for (std::size_t row = 0; row < 7; ++row)
         {
             SCOPED_TRACE(row);
@@ -361,9 +360,9 @@ TEST_F(EventNpcWindowTest, TheBloodCastleWindowDrawsItsBridges)
     }
 }
 
-// El paso de Devil Square: el clic sobre un cuadrado (285 ≤ x < 425), con el registro propio abierto (3.848 rand()
-// al cerrarlo), el nivel contra el que dejó el dibujo y la invitación de nivel 0 o del cuadrado: el C1 05 90 con el
-// lugar + 0x18. Sin clic, nada.
+// The Devil Square step: the click on a square (285 ≤ x < 425), with the own record open (3848 rand() when closing it),
+// the level against the one the drawing left and the invitation of level 0 or of the square: C1 05 90 with the place +
+// 0x18. Without a click, nothing.
 TEST_F(EventNpcWindowTest, TheDevilSquareStepSendsTheEntry)
 {
     Open(0);
@@ -385,9 +384,9 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepSendsTheEntry)
     EXPECT_EQ(Runtime().ui.npcWindowX, 0x104);
 }
 
-// Fuera del nivel, 0x65cae0(0x4000000, 0) cierra el inventario y con él el panel 0x1000, que manda el C1 03 31
-// (0x658a04), y avisa con 686 (muy alto) o 687 (muy bajo). Sin invitación, 677; con un ítem en el cursor, el clic se
-// gasta sin nada más.
+// Outside the level, 0x65cae0(0x4000000, 0) closes the inventory and with it panel 0x1000, which sends C1 03 31
+// (0x658a04), and warns with 686 (too high) or 687 (too low). Without an invitation, 677; with an item on the cursor,
+// the click is spent with nothing else.
 TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
 {
     for (const auto& [level, warning] : {std::pair<std::uint16_t, std::string_view>{std::uint16_t{200}, "muy fuerte"},
@@ -431,16 +430,16 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// El paso de Blood Castle: cada puente abre y cierra el registro propio hasta el elegido; un puente que no es del
-// nivel no toma el clic. La capa 0x1a12 del puente, y para el 7 también la de nivel 6: el C1 05 9A con el lugar + 12.
-// Sin capa, 854.
+// The Blood Castle step: each bridge opens and closes the own record up to the chosen one; a bridge not of the level
+// does not take the click. The bridge's cloak 0x1a12, and for 7 also the level 6 one: C1 05 9A with the place + 12.
+// Without a cloak, 854.
 TEST_F(EventNpcWindowTest, TheBloodCastleStepSendsTheEntry)
 {
     Open(1);
     world->OwnCharacter().level = 100;
     PutItem(5, 0x1a12, 2);
     Runtime().mouse.pendingClick = true;
-    // El puente 1 (15-80) no es del nivel: los siete accesos y el clic sigue.
+    // Bridge 1 (15-80) is not of the level: the seven accesses and the click goes on.
     CrtRandom expected = Advanced(random, 7u * OwnRecordCloseRandoms);
     ASSERT_TRUE(Step(300, 180).HasValue());
     EXPECT_TRUE(Runtime().mouse.pendingClick);

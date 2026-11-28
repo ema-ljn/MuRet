@@ -36,9 +36,9 @@
 
 #include <gtest/gtest.h>
 
-// El modo de la caja del caos (0x8e) y la mezcla de joyas (0xa1, 0xa2, 0xa3 y 0xa6) en el paso de 0x623e70, con el
-// BC y el 31 byte a byte (CL9 hito 6, fase 3b). Ninguno saca rand(). Textos inventados; el mundo, en Lorencia (0),
-// Devias (2) y Noria (3), el mapa del NPC de las joyas.
+// The chaos box mode (0x8e) and the jewel mix (0xa1, 0xa2, 0xa3 and 0xa6) in the step of 0x623e70, with the BC and the
+// 31 byte by byte (CL9 milestone 6, phase 3b). None draws rand(). Made-up texts; the world in Lorencia (0), Devias (2)
+// and Noria (3), the map of the jewels NPC.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -54,7 +54,7 @@ constexpr std::uint16_t BlessJewel = 0x1c0d;
 constexpr std::uint16_t SoulJewel = 0x1c0e;
 constexpr std::uint16_t SoulBundle = 0x181f;
 constexpr std::uint16_t EmptyItem = 0xffff;
-// Dentro de los botones (con los bordes del original).
+// Inside the buttons (with the original's edges).
 constexpr std::int32_t MixButtonX = 300;
 constexpr std::int32_t MixY = 190;
 constexpr std::int32_t UnmixY = 255;
@@ -67,7 +67,7 @@ constexpr std::int32_t TenY = 225;
 constexpr std::int32_t TwentyY = 270;
 constexpr std::int32_t ThirtyY = 350;
 constexpr std::int32_t ChoiceCloseY = 390;
-// 0x6282dc con el 0xa3: los botones (0x15 y 0x78, 0x5a) corridos (0xd5, 0xd2).
+// 0x6282dc with the 0xa3: the buttons (0x15 and 0x78, 0x5a) shifted (0xd5, 0xd2).
 constexpr std::int32_t YesX = 0x15 + 0xd5;
 constexpr std::int32_t NoX = 0x78 + 0xd5;
 constexpr std::int32_t AnswerY = 0x5a + 0xd2;
@@ -109,7 +109,6 @@ public:
                                                              }});
     }
 
-    // `count` joyas `id` desde la casilla `from`.
     void Fill(std::uint16_t id, std::size_t from, std::size_t count)
     {
         for (std::size_t cell = from; cell < from + count; ++cell)
@@ -151,8 +150,9 @@ public:
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-// 0x625910..0x6259c5, en Lorencia, Devias y Noria: el clic en un botón deja su número en 0x7d3a114 y cierra, sin
-// gastar el clic ni sonar; entre los botones, nada. El paso mira y desde 180 (el dibujo, desde 190: Q-C945).
+// 0x625910..0x6259c5, in Lorencia, Devias and Noria: the click on a button leaves its number at 0x7d3a114 and closes,
+// without spending the click or sounding; between the buttons, nothing. The step looks at y from 180 (the drawing,
+// from 190: Q-C945).
 TEST(JewelMixDialogsTest, TheChaosMixModeButtonsLeaveTheModeAndClose)
 {
     for (const std::int32_t map : Maps)
@@ -179,9 +179,9 @@ TEST(JewelMixDialogsTest, TheChaosMixModeButtonsLeaveTheModeAndClose)
     }
 }
 
-// 0x6259c6..0x625b22: el primero abre el 0xa2 con 0x6e5794 en 0 y el segundo el 0xa4 con 1, con el clic apagado y el
-// MouseUpdateTime en 0 y su máximo en 6; el cierre (0x402eb0) lo vuelve todo a su arranque y manda el C1 03 31 en
-// claro.
+// 0x6259c6..0x625b22: the first opens the 0xa2 with 0x6e5794 at 0 and the second the 0xa4 with 1, with the click off
+// and MouseUpdateTime at 0 and its maximum at 6; the close (0x402eb0) puts everything back to its start and sends the
+// C1 03 31 in clear.
 TEST(JewelMixDialogsTest, TheMenuChoosesMixingOrUnmixingAndTheCloseSends31)
 {
     for (const std::int32_t map : Maps)
@@ -220,9 +220,9 @@ TEST(JewelMixDialogsTest, TheMenuChoosesMixingOrUnmixingAndTheCloseSends31)
     }
 }
 
-// 0x625b23..0x625cf3 y 0x402bc0: sin joya elegida los paquetes no se miran; con la del alma y 20 en el inventario,
-// el de 20 abre el 0xa3 con la pregunta (0x63340d) y el precio (20 · 50.000); el sí (0x62846f) abre el 0xa5 y manda
-// C1 06 BC 00 01 01 en claro, una sola vez.
+// 0x625b23..0x625cf3 and 0x402bc0: with no jewel chosen the bundles are not looked at; with the soul and 20 in the
+// inventory, the 20 one opens the 0xa3 with the question (0x63340d) and the price (20 · 50000); the yes (0x62846f)
+// opens the 0xa5 and sends C1 06 BC 00 01 01 in clear, only once.
 TEST(JewelMixDialogsTest, ChoosingTheSoulAndTwentyAsksAndTheYesSendsBc00)
 {
     for (const std::int32_t map : Maps)
@@ -261,8 +261,8 @@ TEST(JewelMixDialogsTest, ChoosingTheSoulAndTwentyAsksAndTheYesSendsBc00)
     }
 }
 
-// 0x402b70: con 30 elegidas y menos en el inventario, el aviso 1817 de error y la vuelta al 0xa2 (0x402e50) con la
-// joya sin elegir; el no del 0xa3 deja 2 y vuelve igual; el cierre del 0xa2 manda el 31.
+// 0x402b70: with 30 chosen and fewer in the inventory, the error notice 1817 and the return to the 0xa2 (0x402e50) with
+// the jewel unchosen; the no of the 0xa3 leaves 2 and returns the same; the close of the 0xa2 sends the 31.
 TEST(JewelMixDialogsTest, MissingJewelsWarnAndTheNoReturnsToTheChoice)
 {
     for (const std::int32_t map : Maps)
@@ -295,8 +295,8 @@ TEST(JewelMixDialogsTest, MissingJewelsWarnAndTheNoReturnsToTheChoice)
     }
 }
 
-// 0x4029e0 y 0x401f30: deshacer el paquete del alma de nivel 2 de la casilla 17 manda C1 07 BC 01 01 02 1D y deja la
-// casilla como lugar (+12); el 0xa6 (0x625f98) vuelve al 0xa4 con 0x402e50.
+// 0x4029e0 and 0x401f30: unmixing the level 2 soul bundle of cell 17 sends C1 07 BC 01 01 02 1D and leaves the cell as
+// a slot (+12); the 0xa6 (0x625f98) returns to the 0xa4 with 0x402e50.
 TEST(JewelMixDialogsTest, UnmixingSendsBc01WithTheSlotAndTheResultReturns)
 {
     for (const std::int32_t map : Maps)
@@ -311,7 +311,7 @@ TEST(JewelMixDialogsTest, UnmixingSendsBc01WithTheSlotAndTheResultReturns)
         jewels.level = 2;
         jewels.counted = 1;
         jewels.price = 1000000;
-        // 0x402a90 abre el 0xa3 con 0x633300(0, 0, 0xa3), como lo haría la lista del 0xa4.
+        // 0x402a90 opens the 0xa3 with 0x633300(0, 0, 0xa3), as the 0xa4's list would.
         const Client::Ui::DialogTextArguments question{
             .jewelMode = 1, .jewelKind = 1, .jewelCount = 1, .jewelLevel = 2, .jewelPrice = 1000000};
         ASSERT_TRUE(Client::Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &tested.texts, 0, 0,
@@ -323,7 +323,7 @@ TEST(JewelMixDialogsTest, UnmixingSendsBc01WithTheSlotAndTheResultReturns)
         ASSERT_EQ(tested.sent.size(), 1u);
         EXPECT_TRUE(
             SameBytes(Xor32Decode(tested.sent[0].packet).Bytes(), Bytes({0xc1, 0x07, 0xbc, 0x01, 0x01, 0x02, 0x1d})));
-        // Mandada, otro sí no vuelve a mandar.
+        // Once sent, another yes does not send again.
         runtime.dialogs.current = Client::Ui::ServerTimeDialog;
         ASSERT_TRUE(tested.Click(YesX, AnswerY).HasValue());
         EXPECT_EQ(tested.sent.size(), 1u);

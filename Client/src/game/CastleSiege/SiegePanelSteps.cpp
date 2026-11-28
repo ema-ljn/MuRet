@@ -43,12 +43,12 @@ Core::Expected<void, std::string> SendCommand(const Hud::GameUiContext& context)
     return {};
 }
 
-// 0x40f6d0: el mismo prefijo de las tres vtables.
+// 0x40f6d0: the same prefix of the three vtables.
 bool StepBase(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
-    // 0x40f6df..0x40f6f6: primero 0x6578e0, sólo sin campo/foco ajeno consulta y consume Tab.
+    // 0x40f6df..0x40f6f6: first 0x6578e0; only without another's field/focus does it check and consume Tab.
     if (!Hud::GameTextInputBusy(runtime) && Hud::OldWindowKeyEdge(runtime.ui, context.input, 9))
         panel.visible ^= 1;
     if (panel.visible == 0)
@@ -75,7 +75,7 @@ bool StepBase(const Hud::GameUiContext& context)
         panel.alpha = static_cast<float>(sum);
         if (sum > static_cast<double>(1.1f))
             panel.alpha = 0.5f;
-        // 40f81a..40f827: FCOMP activaC0 también si el resultado esunordered; en ambos casos vuelve a1.
+        // 0x40f81a..0x40f827: FCOMP sets C0 also if the result is unordered; in both cases it goes back to 1.
         else if (!(sum >= 0.5))
             panel.alpha = 1.0f;
     }
@@ -83,7 +83,7 @@ bool StepBase(const Hud::GameUiContext& context)
     return true;
 }
 
-// 0x41066f..0x4107df: elegir una fila y una de sus tres órdenes. El derecho sobre una fila vuelve sin consumirlo.
+// 0x41066f..0x4107df: pick a row and one of its three orders. The right button on a row returns without consuming it.
 bool ChooseCommand(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> PlaceCommand(const Hud::GameUiContext& context
         return {};
     if (runtime.mouse.pendingClick)
     {
-        // 0x41085e..0x4108a3: coordenadas en el mapa, truncadas por _ftol y después al byte bajo.
+        // 0x41085e..0x4108a3: map coordinates, truncated by _ftol and then to the low byte.
         const double x = static_cast<double>(panel.offsetX + context.mouseX) - static_cast<double>(panel.x + MapInsetX);
         const double y = static_cast<double>(panel.offsetY + context.mouseY) - static_cast<double>(panel.y + MapInsetY);
         panel.targetX = static_cast<std::uint8_t>(Math::OriginalFtolLow(x * panel.page).value_or(0));

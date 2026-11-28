@@ -20,7 +20,7 @@ namespace Client::Hud
 {
 namespace
 {
-// 0x65d080, en su orden: las cadenas de 0x6d6808..0x6d6990.
+// 0x65d080, in its order: the strings at 0x6d6808..0x6d6990.
 constexpr std::string_view Lorencia = "Interface\\lorencia.tga";
 constexpr std::string_view BloodCastle = "Interface\\bloodcastle.tga";
 constexpr std::string_view ChaosCastle = "Interface\\chaoscastle.tga";
@@ -62,15 +62,15 @@ constexpr auto Files = std::to_array<std::pair<std::int32_t, std::string_view>>(
     {36, Kalima},
 });
 
-// 0x65dc30: el alfa con que entra.
-constexpr float ShowAlpha = std::bit_cast<float>(0x3e4ccccdu); // 0,2
-// 0x6b8a24, 0x6b87d4 y 0x6b86a0, de la .rdata.
-constexpr float FadeStep = std::bit_cast<float>(0x3c75c28fu); // 0,015
+// 0x65dc30
+constexpr float ShowAlpha = std::bit_cast<float>(0x3e4ccccdu); // 0.2
+// 0x6b8a24, 0x6b87d4 and 0x6b86a0, from the .rdata.
+constexpr float FadeStep = std::bit_cast<float>(0x3c75c28fu); // 0.015
 constexpr double FadeInEnd = 1.0;
 constexpr double FadeOutEnd = 0.0;
-// 0x65dd20: lo que se queda (CMP con 0x1388, JBE).
+// 0x65dd20: CMP with 0x1388, JBE.
 constexpr std::uint32_t HoldMilliseconds = 5000;
-// 0x6ba69c, 0x6baad8 y 0x6b882c.
+// 0x6ba69c, 0x6baad8 and 0x6b882c.
 constexpr double BannerTop = 220.0;
 constexpr double BannerWidth = 166.0;
 constexpr double Half = Math::HalfAsDouble;
@@ -98,7 +98,7 @@ void ShowTheMapBanner(MapBanner& banner, std::int32_t map)
     banner.state = MapBannerState::FadingIn;
     banner.alpha = ShowAlpha;
     banner.elapsed = 0;
-    // 0x65dc3c..0x65dc5b: MOVSX del word +0x14 contra el int de 0x6c9dd0.
+    // 0x65dc3c..0x65dc5b: MOVSX of word +0x14 against the int at 0x6c9dd0.
     if (static_cast<std::int32_t>(banner.shownMap) == map)
         return;
     banner.pendingImage = banner.files[map];
@@ -107,13 +107,13 @@ void ShowTheMapBanner(MapBanner& banner, std::int32_t map)
 
 void StepTheMapBanner(MapBanner& banner, std::uint32_t now)
 {
-    // 0x65dcde: la diferencia con el reloj de antes, sin signo.
+    // 0x65dcde: the difference with the previous clock, unsigned.
     const std::uint32_t passed = now - banner.last;
     switch (banner.state)
     {
     case MapBannerState::FadingIn:
     {
-        // 0x65dd3a..0x65dd55: FADD y FST al float, y FCOMP de la suma de la x87 contra 1.
+        // 0x65dd3a..0x65dd55: FADD and FST to the float, and FCOMP of the x87 sum against 1.
         const double sum = static_cast<double>(banner.alpha) + static_cast<double>(FadeStep);
         banner.alpha = static_cast<float>(sum);
         if (FadeInEnd <= sum)
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> UploadTheMapBanner(MapBanner& banner, const st
         return {};
     const std::string image = std::move(*banner.pendingImage);
     banner.pendingImage.reset();
-    // 0x65dc8a..0x65dcb3: 0x63bd00 con GL_NEAREST (0x2600), GL_CLAMP (0x2900), 0 y 1.
+    // 0x65dc8a..0x65dcb3: 0x63bd00 with GL_NEAREST (0x2600), GL_CLAMP (0x2900), 0 and 1.
     const Data::Textures::TextureSetEntry entry{
         .path = image,
         .slot = MapBannerSlot,
@@ -183,7 +183,7 @@ Core::Expected<void, std::string> UploadTheMapBanner(MapBanner& banner, const st
 
 MapBannerQuad MapBannerQuadOf(std::int32_t worldWidth, float rx, float ry)
 {
-    // 0x65dde3..0x65ddf8: FILD del ancho, FMUL rx, FSUB 166, FMUL 0,5 y FSTP; 0x65ddac: FLD ry, FMUL 220 y FSTP.
+    // 0x65dde3..0x65ddf8: FILD of the width, FMUL rx, FSUB 166, FMUL 0.5 and FSTP; 0x65ddac: FLD ry, FMUL 220 and FSTP.
     const double x = (static_cast<double>(worldWidth) * static_cast<double>(rx) - BannerWidth) * Half;
     const double y = static_cast<double>(ry) * BannerTop;
     return {.x = static_cast<float>(x), .y = static_cast<float>(y)};

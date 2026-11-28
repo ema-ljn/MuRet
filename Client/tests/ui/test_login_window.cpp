@@ -21,10 +21,9 @@
 #include <string_view>
 #include <vector>
 
-// Client::FrontEnd::LoginWindow: la ventana de la cuenta (0x6415c0, 0x641700, 0x641990 y 0x6418b0, en el
-// paso; el emisor 0x641bf0; CL5.5). Dos campos de 10 bytes, la clave con asteriscos, OK y cancelar;
-// Enter u OK manda, Esc o cancelar cancela, Tab cambia de campo. Solo la cuenta y la clave
-// sintéticas de los fixtures.
+// Client::FrontEnd::LoginWindow: the account window (0x6415c0, 0x641700, 0x641990 and 0x6418b0, in the step; the
+// sender 0x641bf0; CL5.5). Two 10-byte fields, the password with asterisks, OK and cancel; Enter or OK sends, Esc or
+// cancel cancels, Tab switches field. Only the fixtures' synthetic account and password.
 namespace
 {
 using Client::Core::PixelSize;
@@ -43,8 +42,8 @@ using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
-// Dos ciclos de las 24 llamadas del control original, para rechazar también un glifo intermitente.
-// No verifica el caret rectangular ni un parpadeo basado en tiempo.
+// Two cycles of the original control's 24 calls, to also reject an intermittent glyph. It does not check the
+// rectangular caret or a time-based blink.
 constexpr int RepeatedDrawCount = 48;
 
 Client::Ui::TextureSizes LabSizes()
@@ -53,7 +52,7 @@ Client::Ui::TextureSizes LabSizes()
         {{0x13, {512, 256}}, {0x14, {256, 32}}, {0x724, {64, 128}}, {0x725, {64, 128}}});
 }
 
-// Un paso con lo que haya en `input`; los flancos y el texto se borran después.
+// A step with whatever is in `input`; the edges and the text are cleared afterwards.
 std::optional<LoginRequest> StepOnce(LoginWindow& window, InputState& input, PixelSize screen = Screen640)
 {
     std::optional<LoginRequest> request = window.Step(input, screen);
@@ -61,7 +60,7 @@ std::optional<LoginRequest> StepOnce(LoginWindow& window, InputState& input, Pix
     return request;
 }
 
-// La cuenta y la clave sintéticas, tecleadas con Tab en el medio.
+// The synthetic account and password, typed with Tab in between.
 void TypeBoth(LoginWindow& window, InputState& input)
 {
     TypeText(input, "user0001");
@@ -82,8 +81,8 @@ int MiddleY(const Rect& rect)
     return rect.y + rect.height / 2;
 }
 
-// 0x6415c0: 329 × 245 en ((W − 329) / 2, (H − 245) · 2 / 3); los campos de 156 × 23 en (+109, +106)
-// y (+109, +131); OK y cancelar de 54 × 30 en (+150, +178) y (+211, +178).
+// 0x6415c0: 329 × 245 at ((W − 329) / 2, (H − 245) · 2 / 3); the 156 × 23 fields at (+109, +106) and (+109, +131);
+// OK and cancel, 54 × 30, at (+150, +178) and (+211, +178).
 TEST(LoginWindowTest, ItIsPlacedInPixels)
 {
     const LoginLayout small = LayoutLogin(Screen640);
@@ -113,7 +112,7 @@ TEST(LoginWindowTest, TabMovesTheFocus)
     EXPECT_EQ(window.Focus(), LoginFocus::Account);
 }
 
-// 0x643560 abre la ventana con el foco en la clave después de una clave mala.
+// 0x643560 opens the window with the focus on the password after a bad password.
 TEST(LoginWindowTest, OpenSetsTheFocus)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -126,7 +125,7 @@ TEST(LoginWindowTest, OpenSetsTheFocus)
     EXPECT_EQ(window.Password().Value(), "pass0002");
 }
 
-// 0x6418b0: un clic en un campo le da el foco (DAT_077f3b70).
+// 0x6418b0: a click on a field gives it the focus (DAT_077f3b70).
 TEST(LoginWindowTest, AClickOnAFieldFocusesIt)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -153,9 +152,9 @@ TEST(LoginWindowTest, BackspaceErasesInTheFocusedField)
     EXPECT_EQ(window.Password().Value(), "pass000");
 }
 
-// Lo tecleado en un paso va en el orden en que llegó, como los WM_CHAR al EDIT del foco: lo de
-// antes de un Tab queda en la cuenta y lo de después en la clave, aunque lleguen juntos (una
-// ráfaga, o el auto-type de un gestor de claves). Y el Enter del mismo paso manda los dos.
+// What is typed in a step goes in the order it arrived, like the WM_CHAR to the focused EDIT: what comes before a Tab
+// stays in the account and what comes after in the password, even if they arrive together (a burst, or a password
+// manager's auto-type). And the Enter of the same step sends both.
 TEST(LoginWindowTest, WhatIsTypedAroundATabKeepsItsField)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -174,7 +173,7 @@ TEST(LoginWindowTest, WhatIsTypedAroundATabKeepsItsField)
     EXPECT_TRUE(request->credentials.password == "pass0002");
 }
 
-// Un Backspace antes de lo tecleado, en el mismo paso, borra antes de sumar.
+// A Backspace before the typed text, in the same step, erases before adding.
 TEST(LoginWindowTest, ABackspaceBeforeTheTextErasesFirst)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -190,8 +189,8 @@ TEST(LoginWindowTest, ABackspaceBeforeTheTextErasesFirst)
     EXPECT_EQ(window.Account().Value(), "user0001");
 }
 
-// Backspace sostenido borra uno por cada repetición del teclado, que Platform manda como texto
-// (InputEvents.h), como el EDIT de Windows con los WM_CHAR 8 que se repiten.
+// A held Backspace erases one per keyboard repeat, which Platform sends as text (InputEvents.h), like the Windows
+// EDIT with repeated WM_CHAR 8.
 TEST(LoginWindowTest, AHeldBackspaceRepeats)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -221,11 +220,11 @@ TEST(LoginWindowTest, EnterWithBothFieldsSubmits)
     EXPECT_EQ(request->kind, LoginRequest::Kind::Submit);
     EXPECT_EQ(request->credentials.account, "user0001");
     EXPECT_EQ(request->credentials.password, "pass0002");
-    // El emisor cierra la ventana de arriba antes de mandar (0x641bf0).
+    // The sender closes the top window before sending (0x641bf0).
     EXPECT_FALSE(window.IsOpen());
 }
 
-// 0x641bf0: con la cuenta vacía, el aviso 0x64; con la clave vacía, el 0x65. No sale nada.
+// 0x641bf0: with an empty account, notice 0x64; with an empty password, 0x65. Nothing goes out.
 TEST(LoginWindowTest, EnterWithAnEmptyFieldDoesNotSubmit)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -247,7 +246,7 @@ TEST(LoginWindowTest, EnterWithAnEmptyFieldDoesNotSubmit)
     EXPECT_TRUE(noPassword->credentials.password.empty());
 }
 
-// Lo que se mandó no queda en la ventana: la clave se vacía, la cuenta queda para reintentar.
+// What was sent does not stay in the window: the password empties, the account stays for retrying.
 TEST(LoginWindowTest, SubmittingEmptiesThePassword)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -261,9 +260,8 @@ TEST(LoginWindowTest, SubmittingEmptiesThePassword)
     EXPECT_EQ(window.Account().Value(), "user0001");
 }
 
-// 0x6418b0 lee Enter y Esc si el byte +0x31 del mouse (0x640850) está en 0, y nada lo prende: solo
-// lo escribe, en 0, su init (0x640926). Con el botón del mouse abajo, Enter manda igual, y Esc
-// cancela.
+// 0x6418b0 reads Enter and Esc if the mouse's byte +0x31 (0x640850) is 0, and nothing turns it on: only its init
+// (0x640926) writes it, with 0. With the mouse button down, Enter sends anyway, and Esc cancels.
 TEST(LoginWindowTest, EnterAndEscWorkWithTheMouseHeld)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -286,7 +284,7 @@ TEST(LoginWindowTest, EnterAndEscWorkWithTheMouseHeld)
     EXPECT_EQ(cancelled->kind, LoginRequest::Kind::Cancel);
 }
 
-// Cancelar, con el botón o con Esc, vacía la clave; la cuenta queda.
+// Cancelling, with the button or with Esc, empties the password; the account stays.
 TEST(LoginWindowTest, CancellingEmptiesThePassword)
 {
     const LoginLayout layout = LayoutLogin(Screen640);
@@ -307,8 +305,8 @@ TEST(LoginWindowTest, CancellingEmptiesThePassword)
     EXPECT_EQ(window.Password().Size(), 0u);
 }
 
-// Cerrada desde afuera (la escena, cuando la sesión deja de esperar la cuenta o se va), la clave
-// tecleada no queda en la ventana.
+// Closed from outside (by the scene, when the session stops waiting for the account or leaves), the typed password
+// does not stay in the window.
 TEST(LoginWindowTest, ClosingItEmptiesThePassword)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -323,8 +321,8 @@ TEST(LoginWindowTest, ClosingItEmptiesThePassword)
     EXPECT_EQ(window.Account().Value(), "user0001");
 }
 
-// Con la cuenta vacía, el emisor no toca los campos (0x641bf0): la clave queda para cuando el OK
-// del aviso 0x64 abra otra vez la cuenta.
+// With an empty account, the sender does not touch the fields (0x641bf0): the password stays for when the OK of
+// notice 0x64 opens the account again.
 TEST(LoginWindowTest, AnEmptyAccountKeepsThePassword)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -340,7 +338,7 @@ TEST(LoginWindowTest, AnEmptyAccountKeepsThePassword)
     EXPECT_EQ(window.Password().Size(), 8u);
 }
 
-// Lo apretado antes de cerrar no cuenta al abrir otra vez: soltar encima del OK no es un clic.
+// What was pressed before closing does not count on reopening: releasing over OK is not a click.
 TEST(LoginWindowTest, ReopeningForgetsAPress)
 {
     const LoginLayout layout = LayoutLogin(Screen640);
@@ -393,7 +391,6 @@ TEST(LoginWindowTest, EscCancels)
     EXPECT_EQ(cancel->kind, LoginRequest::Kind::Cancel);
 }
 
-// Cerrada no lee nada: lo tecleado no entra.
 TEST(LoginWindowTest, AClosedWindowTakesNothing)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -405,11 +402,10 @@ TEST(LoginWindowTest, AClosedWindowTakesNothing)
     EXPECT_EQ(window.Account().Value(), "");
 }
 
-// 0x641990: la clave se dibuja con asteriscos, nunca con lo tecleado; los rótulos 450 y
-// 451 en (+30, +113) y (+30, +139) y el título en (+111, +80), con la fuente DAT_05763560 en
-// blanco. El inset (+6, +6) y el color 0xffd2e6ff conservan la presentación previa de MuRet,
-// pendiente de contrastar con la configuración del EDIT activo; este test no prueba igualdad
-// visual. Todo pasa a 640 × 480 con DesignX y DesignY: en 640 × 480, lo mismo.
+// 0x641990: the password is drawn with asterisks, never with what was typed; labels 450 and 451 at (+30, +113) and
+// (+30, +139) and the title at (+111, +80), with the font DAT_05763560 in white. The inset (+6, +6) and the color
+// 0xffd2e6ff keep MuRet's previous presentation, pending a check against the active EDIT's configuration; this test
+// does not test visual equality. Everything goes to 640 × 480 with DesignX and DesignY: at 640 × 480, the same.
 TEST(LoginWindowTest, ThePasswordIsDrawnAsStars)
 {
     const auto texts = Client::Tests::MakeTextTable({{450, "Account"}, {451, "Password"}});
@@ -444,8 +440,8 @@ TEST(LoginWindowTest, ThePasswordIsDrawnAsStars)
     EXPECT_EQ(text.texts[4].y, 236);
 }
 
-// El selector activo de 0x641990 llama a 0x469350 → 0x468320: su caret es una región
-// rectangular del bitmap, nunca el glifo "_" del camino legacy 0x553ae0.
+// 0x641990's active selector calls 0x469350 → 0x468320: its caret is a rectangular region of the bitmap, never the
+// "_" glyph of the legacy path 0x553ae0.
 TEST(LoginWindowTest, EmptyFieldsDoNotEmitACaretGlyph)
 {
     for (const auto focus : {LoginFocus::Account, LoginFocus::Password})
@@ -500,8 +496,8 @@ TEST(LoginWindowTest, EditingPreservesLiteralUnderscoresWithoutAddingACaretGlyph
     }
 }
 
-// El lote llega con la aditiva (Q-C80): la ventana pone la normal. El fondo, los dos campos y los
-// dos botones son imágenes, antes de los textos.
+// The batch arrives with the additive blend (Q-C80): the window sets the normal one. The background, the two fields
+// and the two buttons are images, before the texts.
 TEST(LoginWindowTest, ItDrawsWithTheNormalBlend)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -522,7 +518,7 @@ TEST(LoginWindowTest, ItDrawsWithTheNormalBlend)
     EXPECT_EQ(batch.Commands()[3].texture, Client::Render::TextureSlot{0x725});
 }
 
-// Lo que imprime GoogleTest de un pedido no trae la cuenta ni la clave (UiPrinters.h).
+// Through UiPrinters.h.
 TEST(LoginWindowTest, ARequestPrintsNoCredentials)
 {
     const LoginRequest request{.kind = LoginRequest::Kind::Submit, .credentials = {"user0001", "pass0002"}};

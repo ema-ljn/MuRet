@@ -26,8 +26,8 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x6478c0: la tabla de 0x66a1c0 (op1_stone, op1_back1 a op1_back4) y los botones (op1_b_all, de
-// cuatro cuadros de 30); los sube 0x61ccb0.
+// 0x6478c0: the table of 0x66a1c0 (op1_stone, op1_back1 to op1_back4) and the buttons (op1_b_all, four
+// frames of 30); 0x61ccb0 uploads them.
 constexpr Render::TextureSlot StoneSlot{0x72a};
 constexpr Render::TextureSlot TopSlot{0x72b};
 constexpr Render::TextureSlot BottomSlot{0x72c};
@@ -39,25 +39,25 @@ constexpr int FrameWidth = 213;
 constexpr int TopHeight = 64;
 constexpr int BottomHeight = 43;
 constexpr int SideWidth = 5;
-// 0x66a3d0: el fondo, 3 adentro del marco.
+// 0x66a3d0: the background, 3 inside the frame.
 constexpr int FillInset = 3;
 constexpr int ButtonWidth = 108;
 constexpr int ButtonHeight = 30;
-// 0x647c00: el primero a 33 de arriba, cada uno 4 abajo del anterior, y el último a 52 del borde de
-// abajo.
+// 0x647c00: the first at 33 from the top, each 4 below the previous one, and the last at 52 from the
+// bottom edge.
 constexpr int FirstButtonTop = 0x21;
 constexpr int ButtonGap = 4;
 constexpr int LastButtonFromBottom = 0x34;
-// 0x6478c0 con DAT_006d5dc8: 6 líneas en el login y 10 en la selección (el máximo de 0x66a1c0).
+// 0x6478c0 with DAT_006d5dc8: 6 lines at login and 10 at selection (the max of 0x66a1c0).
 constexpr int LoginLines = 6;
 constexpr int SelectionLines = 10;
-// +0x408 cuando arranca la cuenta, y los milisegundos de cada segundo (0x6baa48).
+// +0x408 when the countdown starts, and the milliseconds of each second (0x6baa48).
 constexpr std::int16_t CountdownStart = 5;
 constexpr std::int16_t NoCountdown = -1;
 constexpr double SecondMs = 1000.0;
 
-// 381, 382, 385 y 388; el rótulo con 0x63c880 y los colores de 0x6478c0: normal y apretado en
-// 0xffe2e2e2, encima en blanco, deshabilitado en 0.
+// The label with 0x63c880 and the colors of 0x6478c0: normal and pressed in 0xffe2e2e2, hovered in
+// white, disabled in 0.
 constexpr std::array<std::size_t, 4> LabelTexts{381, 382, 385, 388};
 constexpr Ui::ButtonColors LabelColors{.normal = 0xffe2e2e2,
                                        .pressed = 0xffe2e2e2,
@@ -72,7 +72,7 @@ constexpr std::size_t ServerButton = 1;
 constexpr std::size_t OptionsButton = 2;
 constexpr std::size_t CloseButton = 3;
 
-// La base de 0x669c70 con el slot −1: negra con alfa 0x80.
+// The base of 0x669c70 with slot −1: black with alpha 0x80.
 constexpr float BaseAlpha = 128.0f / 255.0f;
 
 Ui::Button MakeButton()
@@ -107,7 +107,7 @@ std::array<Render::UiImage, 5> StoneFrameImages(Ui::Rect frame, Render::TextureS
                                                 const Ui::TextureSizes& sizes)
 {
     const int sideHeight = frame.height - topHeight - BottomHeight;
-    // El fondo y los lados siguen a 0x647370 (0x647260 con 1) y repiten su textura; los bordes, no.
+    // The background and the sides follow 0x647370 (0x647260 with 1) and repeat their texture; the edges do not.
     Render::UiImage fill = Ui::PixelImage(StoneSlot,
                                           Ui::Rect{.x = frame.x + FillInset,
                                                    .y = frame.y + FillInset,
@@ -205,8 +205,8 @@ std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& inp
         return std::nullopt;
     }
 
-    // 0x647d47: con la cuenta, nada más que la cuenta. El WORD pasa por 0 y por −1 como en el
-    // original: con 0, WM_CLOSE sin poner el acumulador en 0.
+    // 0x647d47: with the countdown, nothing but the countdown. The WORD goes through 0 and −1 as in the
+    // original: with 0, WM_CLOSE without setting the accumulator to 0.
     if (m_countdown)
     {
         m_elapsed += elapsedMs;
@@ -238,7 +238,7 @@ std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& inp
         Close();
         return EscapeWindowEvent{.kind = EscapeWindowEvent::Kind::Options};
     }
-    // El +0x31 del mouse (0x640850) es siempre 0: Esc vale también con un botón abajo.
+    // The mouse's +0x31 (0x640850) is always 0: Esc also works with a button down.
     const bool escape = input.TakePress(Input::Key::Escape);
     if (escape && turn.buttonClicked)
     {

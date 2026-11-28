@@ -27,7 +27,7 @@ namespace Client::CastleSiege
 void CastleDraw::Center(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                         std::int32_t width)
 {
-    // FLD rx, FMUL ancho (float) y _ftol, distinto del DIV entero de las ventanas 0x554180 antiguas.
+    // FLD rx, FMUL width (float) and _ftol, unlike the integer DIV of the old 0x554180 windows.
     const auto box = Math::OriginalFtolLow(static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen())) *
                                            static_cast<double>(static_cast<float>(width)))
                          .value_or(0);
@@ -97,7 +97,7 @@ Core::Expected<void, std::string> DrawTheCastleWindows(Hud::GameHudContext& cont
     const auto& delegated = runtime.panels.delegated;
     if (delegated.castleSiege == 0 && delegated.castleSiegeList == 0 && delegated.secondCastleSiege == 0)
         return {};
-    // Los dibujos del original escriben bounds, enabled y scroll; el frame intermedio propio usa una copia.
+    // The original's draws write bounds, enabled and scroll; MuRet's own intermediate frame uses a copy.
     std::optional<CastleSiege::CastleSiegeState> projected;
     if (context.projecting)
         projected.emplace(runtime.castleSiege);

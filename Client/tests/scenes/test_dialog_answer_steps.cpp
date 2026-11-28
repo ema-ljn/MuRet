@@ -37,10 +37,10 @@
 
 #include <gtest/gtest.h>
 
-// Los pasos del 0x9a (el AF 01), del 0xa8 (con su tercer botón y Esc) y del 0xaa (el D0 00) en 0x623e70 (CL9 hito 6,
-// fase 4a), con los paquetes byte a byte y los rand() de cada uno contra un paso sin nada elegido. El del 0x91 (el
-// título o el precio de la tienda personal) es el del CL9 hito 7 (test_personal_shop_window.cpp). Textos y números
-// inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
+// The steps of the 0x9a (the AF 01), the 0xa8 (with its third button and Esc) and the 0xaa (the D0 00) in 0x623e70
+// (CL9 milestone 6, phase 4a), with the packets byte by byte and each one's rand() against a step with nothing chosen.
+// The 0x91's (the personal shop's title or price) is CL9 milestone 7's (test_personal_shop_window.cpp). Invented texts
+// and numbers; the world, in Lorencia (0), Devias (2) and Noria (3).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,7 +52,7 @@ using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
-// 0x6282dc: los botones de 0x633300 corridos (0xd5, 0x64): el sí, el no y, en el 0xa8, el tercero.
+// 0x6282dc: 0x633300's buttons shifted (0xd5, 0x64): yes, no and, in the 0xa8, the third.
 constexpr std::int32_t YesX = 0x15 + 0xd5;
 constexpr std::int32_t NoX = 0x78 + 0xd5;
 constexpr std::int32_t ButtonsY = 0x5a + 0x64;
@@ -61,12 +61,11 @@ constexpr std::int32_t LuckYesX = 0x16 + 0xd5;
 constexpr std::int32_t LuckNoX = 0x52 + 0xd5;
 constexpr std::int32_t LuckThirdX = 0x8e + 0xd5;
 constexpr std::int32_t LuckY = 0x5c + 0x64;
-// Lo que deja un diálogo que no suena.
 constexpr std::int32_t Silent = -1;
-// 0x5af520: el almacén y la ventana 0x80 sin rand(); el comercio, un byte protegido, con uno (y solo si los dos
-// primeros están cerrados).
+// 0x5af520: the warehouse and window 0x80 without rand(); the trade, a protected byte, with one (and only if the first
+// two are closed).
 constexpr int TradeQuery = 1;
-// 0x628c11..0x629367 (y el sí): los dos rand() del envío en C3.
+// 0x628c11..0x629367 (and the yes): the C3 send's two rand().
 constexpr int SendRandoms = 2;
 constexpr std::uint8_t LuckItemCell = 0x27;
 constexpr std::uint8_t LuckItemSlot = LuckItemCell + 12;
@@ -108,7 +107,7 @@ public:
         };
     }
 
-    // Abre el diálogo con los botones de 0x633300 (los del 0xa8 y la y del 0x9a).
+    // Opens the dialog with 0x633300's buttons (those of the 0xa8 and the y of the 0x9a).
     void OpenWithTheButtons()
     {
         auto& box = world->Runtime().dialogBox;
@@ -157,7 +156,7 @@ public:
                                               .key = Client::Input::Key::Escape});
     }
 
-    // Los rand() de un paso sin nada elegido, desde el estado de ahora (en una copia del mundo).
+    // The rand() of a step with nothing chosen, from the current state (on a copy of the world).
     [[nodiscard]] CrtRandom QuietStep() const
     {
         AnsweringDialogs quiet(world->Runtime().map, world->Runtime().dialogs.current);
@@ -183,7 +182,7 @@ public:
     std::vector<std::pair<std::size_t, std::int32_t>> messages;
 };
 
-// Lo que deja CloseTheDialog: el que esperaba abierto, MouseUpdateTime en 0 con su máximo en 6 y el sonido 0x19.
+// What CloseTheDialog leaves: the waiting one open, MouseUpdateTime at 0 with its maximum at 6 and sound 0x19.
 void ExpectClosedWithTheSound(const AnsweringDialogs& tested, std::int32_t sound = 0x19)
 {
     auto& runtime = tested.Runtime();
@@ -194,8 +193,8 @@ void ExpectClosedWithTheSound(const AnsweringDialogs& tested, std::int32_t sound
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{sound});
 }
 
-// 0x628582..0x628aaf: el sí del 0x9a con el ítem de los diálogos (+8 en 0x78a59cc: el nivel 5) manda C1 06 AF 01 con
-// el nivel y el byte bajo de 0x78a6758, con el XOR32 y en claro, sin rand(), y cierra con el sonido.
+// 0x628582..0x628aaf: the 0x9a's yes with the dialogs' item (+8 at 0x78a59cc: level 5) sends C1 06 AF 01 with the
+// level and the low byte of 0x78a6758, with the XOR32 and in the clear, without rand(), and closes with the sound.
 TEST(DialogAnswerStepsTest, TheChaosCastleYesSendsTheEntryWithTheItemLevelAndSlot)
 {
     for (const std::int32_t map : Maps)
@@ -216,8 +215,8 @@ TEST(DialogAnswerStepsTest, TheChaosCastleYesSendsTheEntryWithTheItemLevelAndSlo
     }
 }
 
-// 0x628582..0x62858e: sin el ítem (0x78a59cc en 0xff) el sí no hace nada y el diálogo sigue; 0x62854f: el no cierra
-// con el sonido y no manda nada.
+// 0x628582..0x62858e: without the item (0x78a59cc at 0xff) the yes does nothing and the dialog stays; 0x62854f: the no
+// closes with the sound and sends nothing.
 TEST(DialogAnswerStepsTest, TheChaosCastleWithoutItemStaysAndItsNoCloses)
 {
     for (const std::int32_t map : Maps)
@@ -238,7 +237,8 @@ TEST(DialogAnswerStepsTest, TheChaosCastleWithoutItemStaysAndItsNoCloses)
     }
 }
 
-// 0x62a480..0x62a752: el sí del 0xaa manda C1 04 D0 00 con el XOR32, en claro, y cierra; el no (y Esc) solo cierra.
+// 0x62a480..0x62a752: the 0xaa's yes sends C1 04 D0 00 with the XOR32, in the clear, and closes; the no (and Esc) only
+// closes.
 TEST(DialogAnswerStepsTest, TheNoticeYesSendsD0AndTheNoOnlyCloses)
 {
     for (const std::int32_t map : Maps)
@@ -269,9 +269,9 @@ TEST(DialogAnswerStepsTest, TheNoticeYesSendsD0AndTheNoOnlyCloses)
     }
 }
 
-// 0x6283a1..0x628409 y 0x628bb9..0x628bd7: el tercer botón del 0xa8 (sin estado) con el clic, o Esc (0x62841e),
-// eligen 2: cierra con MouseUpdateTime, sin sonido y sin 0x5af520. Con Esc suena igual el 0x19 de 0x623f6a, que es de
-// cualquier diálogo.
+// 0x6283a1..0x628409 and 0x628bb9..0x628bd7: the 0xa8's third button (stateless) with the click, or Esc (0x62841e),
+// choose 2: closes with MouseUpdateTime, without sound and without 0x5af520. With Esc the 0x19 of 0x623f6a sounds
+// anyway, which belongs to any dialog.
 TEST(DialogAnswerStepsTest, TheLuckThirdButtonAndEscapeSkipTheItem)
 {
     for (const std::int32_t map : Maps)
@@ -296,10 +296,10 @@ TEST(DialogAnswerStepsTest, TheLuckThirdButtonAndEscapeSkipTheItem)
     }
 }
 
-// 0x628bdc..0x628c00 y 0x6293b5..0x6293d9: el sí y el no del 0xa8 dejan 0 o 1 en 0x78abb26; con el almacén abierto
-// (0x5af520 en falso con su primer IsOpen, sin rand()), el aviso 474 de error y el cierre con el sonido. Con la espera
-// de 0x5767954 (los tres IsOpen, con el rand() del comercio) cierra sin mandar; sin ella, espera 10 y manda el
-// C1 06 26 en C3 con la casilla del diálogo + 12, destino 0 y la elección, con dos rand() más. Ambos cierran.
+// 0x628bdc..0x628c00 and 0x6293b5..0x6293d9: the 0xa8's yes and no leave 0 or 1 in 0x78abb26; with the warehouse open
+// (0x5af520 false at its first IsOpen, without rand()), the error warning 474 and the close with the sound. With the
+// wait of 0x5767954 (the three IsOpen, with the trade's rand()) it closes without sending; without it, it waits 10 and
+// sends the C1 06 26 in C3 with the dialog's cell + 12, destination 0 and the choice, with two more rand(). Both close.
 TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
 {
     for (const std::int32_t map : Maps)

@@ -18,8 +18,8 @@
 #include <utility>
 #include <vector>
 
-// El diálogo de los paneles (CL9 hito 8; 06 § El diálogo de los paneles): 0x6600d0, 0x660350, 0x6603c0, 0x660410,
-// 0x660580, 0x6605b0 y la parte de 0x660830 que ubica los botones. Los renglones son inventados.
+// The panels' dialog (CL9 milestone 8; 06 § El diálogo de los paneles): 0x6600d0, 0x660350, 0x6603c0, 0x660410,
+// 0x660580, 0x6605b0 and the part of 0x660830 that places the buttons. The lines are invented.
 namespace
 {
 using Client::Render::Text::FontKind;
@@ -99,8 +99,8 @@ protected:
     bool m_doubleClick = false;
 };
 
-// 0x6600d0: el alto suma cy + 2 de cada renglón no vacío, 0x3f con botones (0x2b sin ellos) y 0x11 por el campo y por
-// el reloj; el ancho es 0xd5 y el reloj termina 5.000 ms después.
+// 0x6600d0: the height adds cy + 2 per non-empty line, 0x3f with buttons (0x2b without them) and 0x11 for the field
+// and for the timer; the width is 0xd5 and the timer ends 5000 ms later.
 TEST_F(PanelDialogTest, OpeningMeasuresTheLinesAndStartsTheTimer)
 {
     ASSERT_EQ(Open(Client::Ui::PanelDialogConfirm), PanelDialogOpening::Opened);
@@ -118,7 +118,7 @@ TEST_F(PanelDialogTest, OpeningMeasuresTheLinesAndStartsTheTimer)
     EXPECT_EQ(m_dialog.height, 2 * (13 + 2) + 0x2b + 0x11 + 0x11);
 }
 
-// 0x6600d6 y 0x6600f9: más de diez renglones u otro abierto, no abre.
+// 0x6600d6 and 0x6600f9: with more than ten lines or another one open, it does not open.
 TEST_F(PanelDialogTest, ItDoesNotOpenWithTooManyLinesOrWhenBusy)
 {
     EXPECT_EQ(Open(Client::Ui::PanelDialogOk, std::vector<std::string>(11, "x")), PanelDialogOpening::TooManyLines);
@@ -129,8 +129,8 @@ TEST_F(PanelDialogTest, ItDoesNotOpenWithTooManyLinesOrWhenBusy)
     EXPECT_EQ(m_dialog.owner, PanelDialogOwner::GuildJoin);
 }
 
-// 0x660163..0x66017b: strcpy hasta el '\0' a un lugar de 0x100 bytes. 0xff entran enteros (lo de después del '\0' no
-// se copia); con 0x100 o más el original sigue en el lugar de al lado (Q-C1305): MuRet no lo abre ni lo toca.
+// 0x660163..0x66017b: strcpy up to the '\0' into a 0x100-byte slot. 0xff fit whole (what follows the '\0' is not
+// copied); with 0x100 or more the original runs into the next slot (Q-C1305): MuRet neither opens it nor touches it.
 TEST_F(PanelDialogTest, ALineOfTheWholeSlotOrMoreIsNotOpened)
 {
     const std::string fits(0xff, 'a');
@@ -149,7 +149,7 @@ TEST_F(PanelDialogTest, ALineOfTheWholeSlotOrMoreIsNotOpened)
     EXPECT_EQ(m_dialog.flags, Client::Ui::PanelDialogOk);
 }
 
-// 0x6d69a8: el aviso del diálogo ocupado, los bytes de main.exe hasta su '\0'.
+// 0x6d69a8: the busy dialog notice, the bytes of main.exe up to its '\0'.
 TEST(PanelDialogBusyNoticeTest, IsTheEucKrTextOfTheBinary)
 {
     constexpr std::array<std::uint8_t, 25> Binary{0xc0, 0xcc, 0xb9, 0xcc, 0x20, 0xc6, 0xcb, 0xbe, 0xf7,
@@ -163,8 +163,8 @@ TEST(PanelDialogBusyNoticeTest, IsTheEucKrTextOfTheBinary)
     EXPECT_EQ(Client::Ui::PanelDialogBusyNoticeType, 1);
 }
 
-// 0x660410: Esc responde según los botones (0x50 con Confirmar) y se cierra; Enter sin el campo no es suyo; con la
-// función en 0 queda abierto.
+// 0x660410: Esc answers by the buttons (0x50 with Confirm) and closes; Enter without the field is not its own; when
+// the function returns 0, it stays open.
 TEST_F(PanelDialogTest, TheKeysAnswerByTheButtons)
 {
     ASSERT_EQ(Open(Client::Ui::PanelDialogConfirm), PanelDialogOpening::Opened);
@@ -187,13 +187,13 @@ TEST_F(PanelDialogTest, TheKeysAnswerByTheButtons)
                                                                            {PanelDialogOwner::GuildJoin, 0x50}};
     EXPECT_EQ(m_answers, expected);
 
-    // Cerrado, 0x660410 da 0.
+    // Closed, 0x660410 returns 0.
     auto closed = Client::Ui::ThePanelDialogKey(m_dialog, 0x1b, Recorder());
     ASSERT_TRUE(closed.HasValue());
     EXPECT_FALSE(closed.Value());
 }
 
-// 0x6603c0: el motivo de cancelar de cada botón, sin mirar lo que devuelve la función.
+// 0x6603c0: each button's cancel reason, regardless of what the function returns.
 TEST_F(PanelDialogTest, CancellingAnswersWithTheCancelReason)
 {
     const std::array<std::pair<std::uint32_t, std::uint32_t>, 4> cases{{{Client::Ui::PanelDialogOk, 2},
@@ -210,18 +210,18 @@ TEST_F(PanelDialogTest, CancellingAnswersWithTheCancelReason)
         EXPECT_EQ(m_answers[0].second, reason);
         EXPECT_EQ(m_dialog.opened, 0u);
     }
-    // Sin función (el que abrió sin ella), cierra sin preguntar.
+    // Without a function (its opener had none), it closes without asking.
     ASSERT_EQ(Open(Client::Ui::PanelDialogOk, {"x"}, PanelDialogOwner::None), PanelDialogOpening::Opened);
     ASSERT_TRUE(Client::Ui::CancelThePanelDialog(m_dialog, {}).HasValue());
     EXPECT_EQ(m_dialog.opened, 0u);
 }
 
-// 0x660830 ubica los botones y 0x6605b0 los aprieta: el clic sobre Confirmar y el soltado responden 8.
+// 0x660830 places the buttons and 0x6605b0 presses them: the click on Confirm and the release answer 8.
 TEST_F(PanelDialogTest, TheStepClicksTheConfirmButton)
 {
     ASSERT_EQ(Open(Client::Ui::PanelDialogConfirm), PanelDialogOpening::Opened);
     const Client::Ui::Point box = Client::Ui::PlaceThePanelDialog(m_dialog);
-    // Alto 0x5d: 0x82 − 0x2e = 0x54; los botones en 0x54 + 0x14 + 45 + 9.
+    // Height 0x5d: 0x82 − 0x2e = 0x54; the buttons at 0x54 + 0x14 + 45 + 9.
     EXPECT_EQ(box.x, 0xd6);
     EXPECT_EQ(box.y, 0x54);
     const auto& confirm = m_dialog.buttons[Client::Ui::PanelConfirmButton].base;
@@ -244,8 +244,8 @@ TEST_F(PanelDialogTest, TheStepClicksTheConfirmButton)
     EXPECT_EQ(m_dialog.opened, 0u);
 }
 
-// 0x66061c: con el paso propio (+8, 0x6602b0), 0x6605b0 hace solo el mouse sobre la caja: ni los botones ni el reloj
-// (lo demás es de quien lo puso). Cerrar (0x660350) no borra los ganchos; abrir (0x660090), sí.
+// 0x66061c: with its own step (+8, 0x6602b0), 0x6605b0 only does the mouse over the box: neither the buttons nor the
+// timer (the rest belongs to whoever set it). Closing (0x660350) does not clear the hooks; opening (0x660090) does.
 TEST_F(PanelDialogTest, WithItsOwnStepItOnlyTakesTheMouse)
 {
     ASSERT_EQ(Open(Client::Ui::PanelDialogConfirm | Client::Ui::PanelDialogTimed), PanelDialogOpening::Opened);
@@ -268,7 +268,7 @@ TEST_F(PanelDialogTest, WithItsOwnStepItOnlyTakesTheMouse)
     EXPECT_EQ(m_dialog.hooks, Client::Ui::PanelDialogHooks::None);
 }
 
-// 0x660580: con el reloj (8), al pasar el final responde 0x20; sin él, nunca.
+// 0x660580: with the timer (8), past the end it answers 0x20; without it, never.
 TEST_F(PanelDialogTest, TheTimerAnswersWhenItRunsOut)
 {
     ASSERT_EQ(Open(Client::Ui::PanelDialogConfirm), PanelDialogOpening::Opened);
@@ -286,7 +286,7 @@ TEST_F(PanelDialogTest, TheTimerAnswersWhenItRunsOut)
     EXPECT_EQ(m_dialog.opened, 0u);
 }
 
-// 0x660350: el campo de texto vacía el EDIT o el buffer del chat, que MuRet no abre: corta.
+// 0x660350: the text field clears the EDIT or the chat buffer, which MuRet does not open: it stops.
 TEST_F(PanelDialogTest, ClosingWithTheTextFieldIsCut)
 {
     ASSERT_EQ(Open(Client::Ui::PanelDialogTextField, {"x"}, PanelDialogOwner::None), PanelDialogOpening::Opened);

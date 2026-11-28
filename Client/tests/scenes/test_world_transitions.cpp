@@ -112,7 +112,7 @@ struct Transition
                 .states = &states};
     }
     static constexpr std::uint16_t PlayerKey = 33;
-    // El renglón de bienvenida del F3 03 (0x4c4b60) de los tests que entran por la sesión.
+    // The welcome line of the F3 03 (0x4c4b60) for the tests that enter through the session.
     Client::Tests::LetterMeasure letters;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
     std::filesystem::path dataRoot;
@@ -206,8 +206,8 @@ TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAnd
     EXPECT_EQ(tested.world.Runtime().storm, 0);
     EXPECT_EQ(tested.world.Runtime().selectedTargets[0], -1);
 }
-// 0x4c830c..0x4c831c: el 1C con gate (pkt[3]) dispara 0x65dc30 después de 0x4f2250, con el mapa de 0x6c9dd0; sin gate
-// (el teleport de la magia), no.
+// 0x4c830c..0x4c831c: the 1C with a gate (pkt[3]) triggers 0x65dc30 after 0x4f2250, with the map of 0x6c9dd0;
+// without a gate (the magic teleport), it does not.
 TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
 {
     auto gate = std::make_unique<Transition>();
@@ -230,7 +230,7 @@ TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
     EXPECT_FALSE(quiet.pendingImage.has_value());
 }
 
-// 0x4c5048..0x4c504e: el F3 04 dispara 0x65dc30 antes de cerrar las ventanas (0x657a90).
+// 0x4c5048..0x4c504e: the F3 04 triggers 0x65dc30 before closing the windows (0x657a90).
 TEST(WorldTransitionsTest, RegenShowsTheMapBanner)
 {
     auto tested = std::make_unique<Transition>();
@@ -273,7 +273,7 @@ TEST(WorldTransitionsTest, TeleportReturnsTheCursorToItsInventoryFootprintBefore
     EXPECT_EQ(tested->Hero().cellX, 30);
     EXPECT_EQ(tested->Hero().cellY, 31);
     EXPECT_EQ(tested->Hero().byte80, 3);
-    EXPECT_EQ(publisher.confirmations, 0); // El gate0 es Teleport, no el cambio de mapa con F3 12.
+    EXPECT_EQ(publisher.confirmations, 0); // Gate 0 is a Teleport, not the map change with F3 12.
 }
 
 TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBeforeHeroCellWrites)
@@ -281,7 +281,7 @@ TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBefor
     auto tested = std::make_unique<Transition>();
     Publisher publisher;
     tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
-    tested->models = Client::FrontEnd::SingleModelLibrary{}; // Falta Player.bmd justo en el 512a30 del retorno.
+    tested->models = Client::FrontEnd::SingleModelLibrary{}; // Player.bmd is missing right at the return's 0x512a30.
     auto& runtime = tested->world.Runtime();
     runtime.cursorItemCount = 1;
     runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
@@ -408,9 +408,9 @@ TEST(WorldTransitionsTest, MagicTeleportRetainsTheCounterAndOtherActorsWithoutAc
 class WorldTransitionsMapsTest : public Client::Tests::GoldenDataTest
 {
 };
-// 0x4c7c17..0x4c7c4e: el 1C que cambia de mapa, después de la z con las alturas nuevas, escribe el renglón del sistema
-// "%s%s" (0x6c8410) con el nombre del mapa nuevo (0x5f0b40) y el texto 484, con el nombre vacío (0x5767988, de la
-// .bss). Sin cambio de mapa, no.
+// 0x4c7c17..0x4c7c4e: the 1C that changes map, after the z with the new heights, writes the system line "%s%s"
+// (0x6c8410) with the new map's name (0x5f0b40) and text 484, with the empty name (0x5767988, from the .bss).
+// Without a map change, it does not.
 TEST_F(WorldTransitionsMapsTest, ATeleportToAnotherMapWelcomesToIt)
 {
     Transition tested;
@@ -603,7 +603,7 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
 {
     Transition tested;
     Publisher publisher;
-    // El NPC del evento (0x1000), que cierra la CL9.5.
+    // The event NPC (0x1000), which CL9.5 closes.
     tested.world.Runtime().panels.eventNpc = 1;
     tested.world.Runtime().warpCounter = 9999999;
     tested.Hero().alpha = 1.0f;
@@ -615,7 +615,7 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
     EXPECT_EQ(tested.world.Runtime().warpCounter, 30);
     EXPECT_EQ(tested.Hero().alpha, 1.0f);
     EXPECT_FALSE(tested.world.Map().effects.Effects()[0].alive);
-    // Los 20 del prefijo y la consulta del comercio (0x20, 0x657fc1), que 0x657ab0 hace antes que la del 0x1000.
+    // The prefix's 20 and the trade query (0x20, 0x657fc1), which 0x657ab0 makes before the one for 0x1000.
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 20 + 1).State());
 }
 TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleResetsTheCommandsAndContinuesToArrival)
@@ -721,9 +721,9 @@ TEST(WorldTransitionsTest, TransitionClosersPreserveTheNpcTransportsFailureBefor
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 1).State());
 }
 
-// 0x4c7af1..0x4c7b2f: al entrar a Chaos Castle o al salir, el sonido, las ventanas viejas escondidas sin anotarlas
-// (0x4906a0 con 1 y 0, Q-C572), sin foco y con el teclado en el juego, y la de amigos suelta (0x4914e0); después corta
-// en el objeto de los comandos. La caja se abre a mano: en la CL8 no la abre nadie.
+// 0x4c7af1..0x4c7b2f: entering or leaving Chaos Castle, the sound, the old windows hidden without noting them
+// (0x4906a0 with 1 and 0, Q-C572), no focus and the keyboard in the game, and the friends window released
+// (0x4914e0); then it stops at the commands object. The box is opened by hand: in CL8 nobody opens it.
 TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNotingThem)
 {
     struct Pass

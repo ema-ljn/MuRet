@@ -62,7 +62,7 @@ std::uint32_t SideOf(std::uint32_t flags, std::int32_t offsetY)
     for (const std::uint32_t side : {0x80000u, 0x400000u, 0x800000u, 0x40000u})
         if ((flags & side) == side)
             return side;
-    // 0x40fcc3: sin esos cuatro bits, usa el DWORD de offsetY que dejó en [ebp-8] 0x40fc4b.
+    // 0x40fcc3: without those four bits, it uses the offsetY DWORD that 0x40fc4b left at [ebp-8].
     return static_cast<std::uint32_t>(offsetY);
 }
 
@@ -71,7 +71,7 @@ bool InMap(float x, float y, float left, float top)
     return left <= x && x <= left + MapSize && top <= y && y <= top + MapSize;
 }
 
-// 0x40f850: los accesos de cada actor ocurren aunque su punto termine fuera del rectángulo.
+// 0x40f850: each actor's accesses happen even if its point ends outside the rectangle.
 Core::Expected<void, std::string> DrawBase(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel,
                                            std::uint8_t kind)
 {
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> DrawBase(Hud::GameHudContext& context, CastleS
     if (panel.page == 1)
         Quad(sprites, 0x6a7, static_cast<float>(panel.x + 127), static_cast<float>(panel.y + 13), 24.0f, 22.0f, 0.0f,
              0.0f, 0.75f, 0.6875f);
-    // 410261..410274: _ftol devuelve el dword bajo de un int64, también el0 deNaN (Q-C186).
+    // 0x410261..0x410274: _ftol returns the low dword of an int64, also the 0 of NaN (Q-C186).
     constexpr double PercentScale = 100.0;
     const auto percentage = Math::OriginalFtolLow(static_cast<double>(panel.alpha) * PercentScale);
     if (!percentage)
@@ -142,7 +142,7 @@ Core::Expected<void, std::string> DrawStatus(Hud::GameHudContext& context, Castl
     Render::SpriteBatch& sprites = context.sprites;
     const float left = static_cast<float>(panel.x + MapInsetX);
     const float top = static_cast<float>(panel.y + MapInsetY);
-    // Son locales de una llamada, no de cada fila. Los saltos sin caso conservan sus valores anteriores.
+    // Locals of one call, not of each row. The jumps without a case keep their previous values.
     struct Metrics
     {
         float width;
@@ -275,7 +275,7 @@ Core::Expected<void, std::string> DrawCommands(Hud::GameHudContext& context, Cas
                     const float y = menuY + command * 18.0f;
                     const bool hover =
                         Inside(static_cast<float>(mouse.x), static_cast<float>(mouse.y), menuX, y, 30.0f, 18.0f);
-                    // 411c20/411cf3/411dc6: los tres fondos miden30x18, igual que las filas del paso410773.
+                    // 0x411c20/0x411cf3/0x411dc6: the three backgrounds are 30x18, like the rows of the step 0x410773.
                     Quad(sprites, hover ? 0x6a5 : 0x6a4, menuX, y, 30.0f, 18.0f, 0.0f, 0.0f, 0.9375f, 0.5625f);
                     Quad(sprites, static_cast<std::uint16_t>(FirstCommandSlot + command), menuX + Offsets[command],
                          y + (command == 2 ? 3.0f : 2.0f), Widths[command], Heights[command], 0.0f, 0.0f,
@@ -299,7 +299,7 @@ Core::Expected<void, std::string> DrawTheBattlePanel(Hud::GameHudContext& contex
     if (panels.Registry().IsOpen(Ui::AnyPanel) || !runtime.castleSiege.siegePanelKind ||
         runtime.castleSiege.siegePanel.visible == 0)
         return {};
-    // Los cambios que hace el original al dibujar duran hasta el frame siguiente; un frame proyectado usa su copia.
+    // The changes the original makes while drawing last until the next frame; a projected frame uses its copy.
     CastleSiege::SiegePanelState copy;
     CastleSiege::SiegePanelState& panel =
         context.projecting ? (copy = runtime.castleSiege.siegePanel) : runtime.castleSiege.siegePanel;

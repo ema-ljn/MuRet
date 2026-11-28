@@ -26,11 +26,11 @@ namespace Client::Scenes
 {
 namespace
 {
-// El tamaño en que se diseña la UI de la carga: las inversas de 0x6ba884 y 0x6ba880.
+// The size the loading UI is designed in: the inverses of 0x6ba884 and 0x6ba880.
 constexpr int DesignWidth = 800;
 constexpr int DesignHeight = 600;
 
-// Una imagen de 0x65eeb0: el slot, el tamaño de 0x647050 y la posición de 0x6472e0, en 800 × 600.
+// An image of 0x65eeb0: the slot, 0x647050's size and 0x6472e0's position, in 800 × 600.
 struct LoadingImage
 {
     std::uint16_t slot = 0;
@@ -40,7 +40,7 @@ struct LoadingImage
     int height = 0;
 };
 
-// En el orden en que las dibuja 0x65f200 (los objetos de 0xa8 bytes desde +0x8dd4).
+// In the order 0x65f200 draws them (the 0xa8-byte objects from +0x8dd4).
 constexpr std::array<LoadingImage, 5> Images = {{
     {.slot = 0x71e, .x = 0, .y = 60, .width = 512, .height = 478},
     {.slot = 0x71f, .x = 512, .y = 60, .width = 288, .height = 478},
@@ -49,7 +49,7 @@ constexpr std::array<LoadingImage, 5> Images = {{
     {.slot = 0x722, .x = 307, .y = 225, .width = 187, .height = 151},
 }};
 
-// La barra (0x6402d0 y 0x6404b0), que 0x6407e0 dibuja después de las cinco.
+// The bar (0x6402d0 and 0x6404b0), which 0x6407e0 draws after the five.
 constexpr LoadingImage Bar{.slot = 0x723, .x = 72, .y = 482, .width = 656, .height = 15};
 
 Render::UiImage ImageOf(const LoadingImage& image, const Assets::SceneTextures& textures, Core::PixelSize screen)
@@ -86,7 +86,7 @@ void LoadingScene::Step(const Input::InputState& /*input*/)
     if (m_progress < LoadingAdvances)
     {
         ++m_progress;
-        // El avance 1 de 0x61ccb0 lee los modelos (0x60dbe0 y 0x60ff50) y sus texturas.
+        // 0x61ccb0's advance 1 reads the models (0x60dbe0 and 0x60ff50) and their textures.
         if (m_progress == 1 && m_models != nullptr)
         {
             if (auto loaded = LoadModels(); !loaded.HasValue())
@@ -102,8 +102,8 @@ void LoadingScene::Step(const Input::InputState& /*input*/)
 
 Core::Expected<void, std::string> LoadingScene::LoadModels()
 {
-    // 60dc4c elige la base de la tabla global antes de abrir el primer BMD; el dueño
-    // conserva esa elección aunque falle un archivo o se vuelva a entrar en la carga.
+    // 0x60dc4c picks the global table's base before opening the first BMD; the owner keeps that choice even if a file
+    // fails or the loading is entered again.
     if (m_context.states != nullptr && m_context.cloth != nullptr)
     {
         auto& fauna = m_context.states->assets.fauna;
@@ -125,10 +125,9 @@ void LoadingScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
     {
         canvas.sprites.Image(ImageOf(image, m_textures, canvas.screen));
     }
-    // 0x640580(actual, 10): el ancho es 656 · actual / 10, en enteros sin signo (con actual de 0 a
-    // 10, lo mismo que con signo), y 0x647370(ancho, 0, 1) lo pone: la u de la derecha llega al
-    // ancho, sin medio téxel. La v de abajo ya llegaba a 15 / th: 0x6402d0 la arma con 4 de ancho
-    // y llama a 0x647370(0, 15, 2).
+    // 0x640580(actual, 10): the width is 656 · actual / 10, in unsigned integers (with actual from 0 to 10, the same as
+    // signed), and 0x647370(width, 0, 1) sets it: the right u reaches the width, without half a texel. The bottom v
+    // already reached 15 / th: 0x6402d0 builds it 4 wide and calls 0x647370(0, 15, 2).
     Render::UiImage bar = ImageOf(Bar, m_textures, canvas.screen);
     bar.width = Bar.width * m_progress / LoadingAdvances;
     bar.resizedWidth = true;

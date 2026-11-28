@@ -15,8 +15,8 @@ namespace Client::Ui
 {
 namespace
 {
-// Los 16 bits bajos del píxel de `value`, como el LOWORD o el HIWORD del lParam. Un píxel fuera del rango
-// de int32 no llega de SDL; se acota antes del cast, que con él no estaría definido.
+// The low 16 bits of `value`'s pixel, like the lParam's LOWORD or HIWORD. SDL sends no pixel outside int32; it is
+// clamped before the cast, which would be undefined with one.
 std::uint32_t LowWordOf(float value)
 {
     if (!std::isfinite(value))
@@ -30,7 +30,7 @@ std::uint32_t LowWordOf(float value)
     return static_cast<std::uint32_t>(static_cast<std::int32_t>(bounded)) & 0xffffU;
 }
 
-// `word` · `logical` / `size`, como el IMUL y el DIV sin signo de 0x4b3597..0x4b359f.
+// `word` · `logical` / `size`, like the IMUL and unsigned DIV at 0x4b3597..0x4b359f.
 int ScaledTo(std::uint32_t word, std::uint32_t logical, int size)
 {
     if (size <= 0)
@@ -56,7 +56,7 @@ Point MouseIn640x480(const Input::InputState& input, Core::PixelSize screen)
 
 Render::OriginalQuad CursorQuad(Point mouse, bool leftDown)
 {
-    // 0x41c00000 y el 2,0 de 0x6b8818, restado en la x87 y guardado en float: exacto con estos enteros.
+    // 0x41c00000 and the 2.0 at 0x6b8818, subtracted on the x87 and stored as float: exact with these integers.
     constexpr float Size = 24.0f;
     constexpr float HotSpot = 2.0f;
     return Render::OriginalQuad{.slot = leftDown ? CursorPushSlot : CursorSlot,

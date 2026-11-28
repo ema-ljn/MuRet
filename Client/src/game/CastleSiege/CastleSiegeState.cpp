@@ -93,7 +93,7 @@ std::int32_t LifeLevelOf(std::uint32_t type, std::int32_t maxLife)
     return -1;
 }
 
-// SUB 2, NEG, SBB y AND: el nivel 2 da la base y cualquier otro, la base más el salto.
+// SUB 2, NEG, SBB and AND: level 2 gives the base and any other the base plus the step.
 std::int32_t MaxLifeOfLevel(std::uint32_t type, std::int32_t level)
 {
     if (type == GateType)
@@ -138,7 +138,7 @@ std::int32_t NpcRecoveryIncrease(std::uint32_t type, std::int32_t recovery)
     return recovery >= 0 && recovery <= 2 ? 1 : 0;
 }
 
-// LEA [index × 8], SUB index, LEA [× 4 + base]: base + index × 0x1c, que da la vuelta en 32 bits.
+// LEA [index × 8], SUB index, LEA [× 4 + base]: base + index × 0x1c, which wraps around in 32 bits.
 std::uint32_t NpcRecordAddress(std::uint32_t type, std::uint32_t index)
 {
     const std::uint32_t base = type == GateType ? GateRecordsAt : StatueRecordsAt;

@@ -11,12 +11,10 @@ namespace Client::Ui
 {
 namespace
 {
-// El ASCII imprimible, del espacio a la tilde.
 constexpr unsigned char FirstPrintable = 0x20;
 constexpr unsigned char LastPrintable = 0x7e;
 constexpr char Star = '*';
-// Las letras de Latin-1 que toma el campo de ese juego: de U+00A0 a U+00FF, en UTF-8 con C2 o C3
-// delante.
+// The Latin-1 letters that game's field takes: U+00A0 to U+00FF, in UTF-8 with C2 or C3 in front.
 constexpr unsigned char Latin1Lead = 0xc2;
 constexpr unsigned char Latin1HighLead = 0xc3;
 constexpr unsigned char ContinuationMask = 0xc0;
@@ -59,7 +57,7 @@ void TextField::Type(std::string_view utf8)
             insert(byte);
             continue;
         }
-        // U+00A0 a U+00FF en UTF-8: C2 A0 a C3 BF. Lo demás, de a un byte, no entra.
+        // U+00A0 to U+00FF in UTF-8: C2 A0 to C3 BF. The rest, byte by byte, does not go in.
         const auto lead = static_cast<unsigned char>(byte);
         if (m_charset != Charset::Latin1 || (lead != Latin1Lead && lead != Latin1HighLead) || index + 1 >= utf8.size())
         {
@@ -179,7 +177,7 @@ void TextField::SetText(std::string_view raw)
 
 void TextField::Insert(std::string_view raw)
 {
-    // Todo o nada: lo que queda sin lo elegido más `raw` tiene que entrar en el tope.
+    // All or nothing: what is left without the selection plus `raw` has to fit in the cap.
     const std::size_t erasedBytes = HasSelection() ? SelectionEnd() - SelectionBegin() : 0;
     if (raw.empty() || m_value.size() - erasedBytes + raw.size() > m_maxBytes)
         return;

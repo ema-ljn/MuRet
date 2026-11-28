@@ -98,14 +98,13 @@ using Render::BlendMode;
 using Render::Color;
 
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
-// glColor3f(1; 0,5; 0,5) de la skill que no se puede usar (0x5a5860) y glColor3f(1; 0,9; 0,8) de su barra
-// (0x5a9f4e) y de sus números (0x5a61ea).
+// The unusable skill's tint (0x5a5860), and the color of its bar (0x5a9f4e) and its numbers (0x5a61ea).
 constexpr Color SkillTint{1.0f, 0.5f, 0.5f, 1.0f};
 constexpr Color SkillColor{1.0f, 0.9f, 0.8f, 1.0f};
-// glColor3f(1; 0,95; 0,75): el AG y los números de la vida, el maná y las ranuras (0x5a8d2a, 0x5aa780).
+// The AG and the numbers of life, mana and the slots (0x5a8d2a, 0x5aa780).
 constexpr Color NumberColor{1.0f, 0.95f, 0.75f, 1.0f};
 
-// Los mapas y los textos de Text.bmd (por su índice: la dirección − 0x76bd1dc, sobre 300).
+// Text.bmd texts by index: (the address − 0x76bd1dc) / 300.
 using Maps::CastleSiegeMap;
 using Maps::CrywolfMap;
 using Maps::FirstChaosCastleMap;
@@ -128,47 +127,42 @@ constexpr std::size_t CommandsHelpText = 939;
 constexpr std::size_t DarkHorseText = 1187;
 constexpr std::size_t FenrirText = 1916;
 
-// Los modelos de las mascotas (el tipo de Item.bmd + 0x212): el ángel, el sátiro, la Uniria, el Dinorant, el
-// caballo oscuro y Fenrir.
+// The pets' models: the Item.bmd type + 0x212.
 constexpr std::int16_t UniriaModel = 0x1c14;
 constexpr std::int16_t DinorantModel = 0x1c15;
 constexpr std::int16_t DarkHorseModel = 0x1c16;
 constexpr std::int16_t FenrirModel = 0x1c37;
 
-// Las flechas y los virotes (0x5ab810).
+// 0x5ab810
 constexpr std::uint16_t ArrowsType = 0x80f;
 constexpr std::uint16_t BoltsType = 0x807;
-// El lugar 8 del equipo, el del ayudante.
 constexpr std::size_t HelperSlot = 8;
 
-// 1/256, el téxel de los íconos (0x6b8940).
+// 0x6b8940: the icons' texel.
 constexpr double Texel = 0.00390625;
 
-// 0x5a736b..0x5a7452: el freno de las macros, su texto (0x6c9310) en y = 0x188 y su barra en y = 404, de 50 × 2.
+// 0x5a736b..0x5a7452: the macro brake, its text (0x6c9310) at y = 0x188 and its bar at y = 404, 50 × 2.
 constexpr std::string_view MacroTimeText = "Macro Time";
 constexpr int MacroTimeTextTop = 0x188;
 constexpr float MacroTimeBarTop = 404.0f;
 constexpr float MacroTimeBarWidth = 50.0f;
 constexpr float MacroTimeBarHeight = 2.0f;
-// 0x5aa9a0: la caja de la entrada del chat (los slots 0xf8 y 0xf9, dialogue1 y dialogue2), el indicador de F3 (el
-// 0xef, dialogue2_1) y los nombres del susurro de los otros lugares, de 15 en 15 desde (0x178, 0x1a6).
+// 0x5aa9a0: the chat input's box (slots 0xf8 and 0xf9, dialogue1 and dialogue2), the F3 indicator (0xef,
+// dialogue2_1) and the whisper names of the other places, every 15 from (0x178, 0x1a6).
 constexpr std::uint16_t ChatBoxLeftSlot = 0xf8;
 constexpr std::uint16_t ChatBoxRightSlot = 0xf9;
 constexpr std::uint16_t WhisperModeSlot = 0xef;
 constexpr int WhisperNamesLeft = 0x178;
 constexpr int WhisperNamesTop = 0x1a6;
 constexpr int WhisperNamesStep = 0xf;
-// 0x5aaa77 y 0x5aaa7f: los colores que deja para los nombres.
+// 0x5aaa77 and 0x5aaa7f: the colors it leaves for the names.
 constexpr Render::Text::TextColors WhisperNamesColors{.text = 0xffc8c8c8u, .background = 0x64000000u};
-// 0x4691e0: el color del texto de los EDIT (la vtable + 0x40) y el fondo del del susurro (+ 0x44), con los bytes
-// en el orden de TextColors.
-// La esquina de los dos EDIT (0x45a9d0 en 0x4691e0).
+// 0x4691e0: the EDITs' text color (the vtable + 0x40) and the whisper one's background (+ 0x44), with the bytes in
+// TextColors' order. The two EDITs' corner (0x45a9d0 in 0x4691e0).
 
 using Math::F32;
 using Math::Truncate;
 
-// Lo que comparten los hijos del HUD: el contexto, lo que leen de WorldState y el registro de los paneles, con el
-// rand() del frame.
 struct Frame
 {
     GameHudContext& context;
@@ -178,13 +172,14 @@ struct Frame
     Ui::PanelRegistry& panels;
 };
 
-// Un acceso al registro propio ([0x7681eb4]): abre sin gastar y, si lo deja en 0, cierra con 3.848 rand().
+// An access to the own record ([0x7681eb4]): opens without spending and, if it leaves it at 0, closes with 3848
+// rand().
 Models::LogicalAccess OwnAccess(const Frame& frame)
 {
     return Models::LogicalAccess(frame.context.ownRecordDepth, frame.context.random, Models::OwnRecordCloseRandoms);
 }
 
-// Un acceso a la entrada `skill` de Skill.bmd (0x76bd1d8 + 0x3c · skill): 60 rand() al cerrarla en 0 (0x40f600).
+// An access to Skill.bmd entry `skill` (0x76bd1d8 + 0x3c · skill): 60 rand() when closing it at 0 (0x40f600).
 Models::LogicalAccess SkillAccess(const Frame& frame, std::uint32_t skill)
 {
     return Models::LogicalAccess(frame.runtime.movement.skillDepths[skill], frame.context.random,
@@ -235,8 +230,8 @@ std::uint32_t LittleEndianAt(std::span<const std::byte, Tables::SkillRecordSize>
     return value;
 }
 
-// 0x465950 con la fuente normal (0x5763554) y los colores de 0x6c8e5c y 0x6c8e64: el modo 1, que empieza en x, o
-// el 4, que termina en x (0x467060, Render::Text::EndingAt).
+// 0x465950 with the normal font (0x5763554) and the colors of 0x6c8e5c and 0x6c8e64: mode 1, which starts at x, or
+// 4, which ends at x (0x467060, Render::Text::EndingAt).
 void DrawHudText(Frame& frame, int x, int y, std::string_view text, bool endingAtX)
 {
     const Render::Text::TextStyle style{.font = Render::Text::FontKind::Normal, .colors = frame.context.hud.textColors};
@@ -247,7 +242,7 @@ void DrawHudText(Frame& frame, int x, int y, std::string_view text, bool endingA
     frame.context.text.Draw(at, y, text, style);
 }
 
-// 0x554340 deja el texto en blanco sobre un fondo transparente (0x6c8e5c en −1 y 0x6c8e64 en 0).
+// 0x554340 leaves the text white on a transparent background (0x6c8e5c at −1 and 0x6c8e64 at 0).
 void DrawHelp(Frame& frame, int x, int y, std::string_view help)
 {
     Ui::DrawHelp(frame.context.sprites, frame.context.text, x, y, help);
@@ -260,7 +255,7 @@ bool MouseIn(const Frame& frame, int left, int top, int right, int bottom)
     return left <= mouse.x && mouse.x < right && top <= mouse.y && mouse.y < bottom;
 }
 
-// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa.
+// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): scaled in size and position, without alpha.
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u,
           float v, float du, float dv)
 {
@@ -278,9 +273,9 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-// 0x65dd70: 0x65dcd0 corre el fundido con timeGetTime() y, si el cartel no se apagó, 0x620a00(1), glColor4f(1, 1, 1,
-// alfa), 0x621b60(0x66a, x, y, 166, 90, 0, 0, 0,6484375, 0,703125, 0, 0, 0) sin escalar el tamaño ni la posición
-// (MapBannerQuadOf), glColor4f(1, 1, 1, 1) y 0x620980.
+// 0x65dd70: 0x65dcd0 runs the fade with timeGetTime() and, if the banner has not gone out, 0x620a00(1), glColor4f(1,
+// 1, 1, alpha), 0x621b60(0x66a, x, y, 166, 90, 0, 0, 0.6484375, 0.703125, 0, 0, 0) without scaling size or position
+// (MapBannerQuadOf), glColor4f(1, 1, 1, 1) and 0x620980.
 void DrawTheMapBanner(Frame& frame)
 {
     GameHudContext& context = frame.context;
@@ -310,8 +305,8 @@ void DrawTheMapBanner(Frame& frame)
     sprites.SetBlend(BlendMode::Opaque);
 }
 
-// El índice de 0x5763338, la resolución del registro (0 a 4: 640, 800, 1024, 1280 y 1600 de ancho). MuRet no lo
-// lee del registro: toma la mayor de las cinco que entra en el ancho de la pantalla (08, decisión de la CL8).
+// The index of 0x5763338, the registry's resolution (0 to 4: 640, 800, 1024, 1280 and 1600 wide). MuRet does not
+// read it from the registry: it takes the largest of the five that fits in the screen width (08, a CL8 decision).
 int ResolutionIndex(Core::PixelSize screen)
 {
     constexpr std::array<int, 4> Widths{800, 1024, 1280, 1600};
@@ -325,10 +320,10 @@ int ResolutionIndex(Core::PixelSize screen)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 1. Las arenas (0x5a7520).
+// 1. The sands (0x5a7520).
 
-// 0x622000(slot, 0, 0, 640, 435, ((int) T % 100000) · velocidad, 0, du, dv): el fild del resto por la velocidad en
-// float, guardado en float.
+// 0x622000(slot, 0, 0, 640, 435, ((int) T % 100000) · speed, 0, du, dv): fild of the remainder times the speed in
+// float, stored in float.
 void DrawSand(Frame& frame, std::uint16_t slot, float speed, float du, float dv)
 {
     const std::int32_t remainder = Truncate(frame.context.worldClock) % 100000;
@@ -347,8 +342,8 @@ void DrawSand(Frame& frame, std::uint16_t slot, float speed, float du, float dv)
 constexpr std::uint16_t SlowSand = 0x5c2;
 constexpr std::uint16_t FastSand = 0x5c3;
 
-// 0x435930 y 0x42b100: el humo de Crywolf y del asedio, con su color: primero la rápida con la mezcla normal y
-// después la lenta, aditiva.
+// 0x435930 and 0x42b100: the Crywolf and siege smoke, with its color: first the fast one with the normal blend and
+// then the slow one, additive.
 void DrawSmoke(Frame& frame, Color color)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
@@ -365,7 +360,8 @@ void DrawTheSands(Frame& frame)
     const std::int32_t map = frame.runtime.map;
     if (map == TarkanMap)
     {
-        // 0x5a7539..0x5a7604: el blanco con alfa 0,5 de la mezcla normal no dibuja nada; la aditiva, las dos.
+        // 0x5a7539..0x5a7604: the white with alpha 0.5 of the normal blend draws nothing; the additive blend draws
+        // both.
         sprites.SetBlend(BlendMode::Alpha);
         sprites.SetColor(Color{1.0f, 1.0f, 1.0f, 0.5f});
         sprites.SetBlend(BlendMode::Additive);
@@ -375,7 +371,7 @@ void DrawTheSands(Frame& frame)
     }
     else if (map == CrywolfMap)
     {
-        // 0x5a760e: una sola vez por 0x576353c, que lo apaga.
+        // 0x5a760e: only once per 0x576353c, which turns it off.
         if (frame.context.crywolfSandOverlay == 1)
         {
             DrawSmoke(frame, Color{0.4f, 0.4f, 0.45f, 1.0f});
@@ -384,18 +380,17 @@ void DrawTheSands(Frame& frame)
     }
     else if (map == CastleSiegeMap && frame.runtime.castleSiege.siegeActive)
     {
-        // 0x42b100, con 0x4294b0.
+        // 0x42b100, with 0x4294b0.
         DrawSmoke(frame, Color{0.3f, 0.3f, 0.25f, 1.0f});
     }
     sprites.SetColor(White);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 6. Los íconos de estado (0x42a660 y 0x5a63d0).
+// 6. The status icons (0x42a660 and 0x5a63d0).
 
-// 0x5a63d0(ícono, x, y, w, h): el ícono en su atlas de 8 columnas de 32 × 36 téxeles: los de más de 0xca en
-// StatusIcon (0x68e), los de 0x78 a 0x7c en command (300), los de más de 0x38 en Skill2 (299) y los demás en Skill
-// (0x12a), desde 1.
+// 0x5a63d0(icon, x, y, w, h): the icon in its 8-column atlas of 32 × 36 texels: those above 0xca in StatusIcon
+// (0x68e), 0x78 to 0x7c in command (300), above 0x38 in Skill2 (299) and the rest in Skill (0x12a), from 1.
 void DrawStatusIcon(Frame& frame, std::int32_t icon, int x, int y, int width, int height)
 {
     std::uint16_t slot = 0x12a;
@@ -420,7 +415,7 @@ void DrawStatusIcon(Frame& frame, std::int32_t icon, int x, int y, int width, in
          F32(static_cast<double>((index / 8) * 36) * Texel), 0.125f, 0.13671875f);
 }
 
-// El nombre de un registro de Skill.bmd como lo copia strcpy (0x551e0c): hasta su '\0', dentro del registro.
+// A Skill.bmd record's name as strcpy copies it (0x551e0c): up to its '\0', inside the record.
 std::string SkillRecordName(std::span<const std::byte, Tables::SkillRecordSize> record)
 {
     std::string name;
@@ -433,12 +428,11 @@ std::string SkillRecordName(std::span<const std::byte, Tables::SkillRecordSize> 
     return name;
 }
 
-// 0x5a6600(x, y, ícono), desde 0x42a735 con el mouse sobre el ícono: su ayuda en la caja de los tooltips (0x5af090,
-// con el modo 2 y el marco). Con el registro propio abierto alrededor, el nombre de la entrada `icon` de Skill.bmd
-// (0x551c70, con el acceso de la entrada: 60 rand() al cerrarla en 0) va en azul y negrita en el renglón 1, entre dos
-// "\n", y el texto del ícono (la tabla de 0x5a69fc), en blanco en el 3; el 0xcc lleva tres, del 3 al 5. No limpia
-// los renglones: un ícono sin texto deja el 3 que había, y el 0xcc, los colores y las negritas del 3 y del 4
-// (Q-C597).
+// 0x5a6600(x, y, icon), from 0x42a735 with the mouse over the icon: its help in the tooltip box (0x5af090, with mode
+// 2 and the frame). With the own record open around it, the name of Skill.bmd entry `icon` (0x551c70, with the
+// entry's access: 60 rand() when closing it at 0) goes in blue and bold on line 1, between two "\n", and the icon's
+// text (the table at 0x5a69fc), in white on line 3; 0xcc has three, lines 3 to 5. It does not clear the lines: an
+// icon without text leaves the line 3 that was there, and 0xcc, the colors and bolds of lines 3 and 4 (Q-C597).
 Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x, std::int32_t y, std::int32_t icon)
 {
     struct HelpText
@@ -448,7 +442,7 @@ Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x
     };
     constexpr std::array<HelpText, 6> Texts{
         {{0x40, 1466}, {0x43, 1468}, {0x45, 1469}, {0x46, 1470}, {0x4b, 1467}, {0xcb, 1471}}};
-    // 0x5a6855..0x5a6888: los tres del 0xcc.
+    // 0x5a6855..0x5a6888: the three of 0xcc.
     constexpr std::int32_t ThreeLinesIcon = 0xcc;
     constexpr std::array<std::size_t, 3> ThreeLines{1638, 1639, 1472};
     Tooltips::TooltipLines& lines = frame.context.hud.tooltip;
@@ -534,9 +528,9 @@ Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 7. Las flechas y los virotes (0x5ab810).
+// 7. The arrows and the bolts (0x5ab810).
 
-// Lo que deja la party a la derecha: con alguien en la party, 10 con su ventana abierta o 60.
+// What the party leaves on the right: with someone in the party, 10 with its window open or 60.
 float PartyOffset(Frame& frame)
 {
     if (frame.context.hud.partyCount <= 0)
@@ -544,8 +538,8 @@ float PartyOffset(Frame& frame)
     return frame.panels.IsOpen(Ui::PartyPanel) ? 10.0f : 60.0f;
 }
 
-// Un texto de las flechas: con la mezcla normal, en (x, 4) con el modo 1, y su tamaño en 0x77f31b8 y 0x77f31bc
-// (GetTextExtentPoint pasado a 640 × 480 con _ftol). Un texto vacío no se dibuja ni se mide.
+// An arrows text: with the normal blend, at (x, 4) in mode 1, and its size in 0x77f31b8 and 0x77f31bc
+// (GetTextExtentPoint scaled to 640 × 480 with _ftol). An empty text is neither drawn nor measured.
 void DrawAmmoText(Frame& frame, float x, std::string_view text)
 {
     frame.context.sprites.SetBlend(BlendMode::Alpha);
@@ -557,9 +551,9 @@ void DrawAmmoText(Frame& frame, float x, std::string_view text)
     frame.context.hud.arrowsTextHeight = Render::Text::DesignY(extent.height, frame.context.sprites.Screen());
 }
 
-// 10. 0x5a736b..0x5a7452: con el freno de las macros (0x77f3b74), "Macro Time" centrado en el ancho del mundo
-// (0x5bb8d0, con sus consultas) y la barra (0x5a6af0) con el freno / 2, en verde y dentro de la pantalla. El texto
-// deja su tamaño en 0x77f31b8 y 0x77f31bc.
+// 10. 0x5a736b..0x5a7452: with the macro brake (0x77f3b74), "Macro Time" centered on the world width (0x5bb8d0, with
+// its queries) and the bar (0x5a6af0) with the brake / 2, in green and inside the screen. The text leaves its size
+// in 0x77f31b8 and 0x77f31bc.
 void DrawTheMacroTime(Frame& frame)
 {
     Kernel::HudState& hud = frame.context.hud;
@@ -578,7 +572,7 @@ void DrawTheMacroTime(Frame& frame)
                   static_cast<float>(fill), false, true);
 }
 
-// 0x469350: los dos EDIT usan la misma vtable +0x14 (0x468320) que amigos, cartas y diálogos.
+// 0x469350: both EDITs use the same vtable +0x14 (0x468320) as friends, letters and dialogs.
 void DrawTheChatEdit(Frame& frame, Ui::OldEdit& edit, bool focused)
 {
     GameHudContext& context = frame.context;
@@ -590,9 +584,9 @@ void DrawTheChatEdit(Frame& frame, Ui::OldEdit& edit, bool focused)
                                 edit, focused);
 }
 
-// 22. 0x5aa9a0: con el campo del chat abierto (o 0x77f3b69), la caja sin mezcla, los dos EDIT (0x469350), con el
-// campo del susurro elegido los nombres de los otros lugares (cada uno deja su tamaño en 0x77f31b8 y 0x77f31bc,
-// también los vacíos), y con el modo del susurro (F3) su indicador.
+// 22. 0x5aa9a0: with the chat field open (or 0x77f3b69), the box without blend, the two EDITs (0x469350), with the
+// whisper field chosen the names of the other places (each leaves its size in 0x77f31b8 and 0x77f31bc, the empty ones
+// too), and with the whisper mode (F3) its indicator.
 void DrawTheChatInput(Frame& frame)
 {
     GameHudContext& context = frame.context;
@@ -651,8 +645,8 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
         std::size_t text = 0;
         bool countsTheInventory = false;
     };
-    // 0x5ab96c: las flechas en la mano derecha muestran también las del inventario; 0x5abab3: los virotes en la
-    // izquierda, solo con los suyos (la cuenta del inventario corre igual).
+    // 0x5ab96c: the arrows in the right hand also show the inventory's; 0x5abab3: the bolts in the left, only with
+    // their own (the inventory count runs anyway).
     constexpr std::array<Ammo, 2> Kinds{{{0, ArrowsType, ArrowsText, true}, {1, BoltsType, BoltsText, false}}};
     for (const Ammo& ammo : Kinds)
     {
@@ -663,7 +657,7 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
         const std::int32_t count = item.durability;
         const float x = F32(static_cast<double>(worldWidth) - static_cast<double>(partyOffset) -
                             static_cast<double>(resolutionOffset));
-        // 0x557d80, con su propio acceso al registro, anidado.
+        // 0x557d80, with its own nested access to the record.
         std::int32_t total = 0;
         {
             const auto nested = OwnAccess(frame);
@@ -685,7 +679,7 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 8. El ayudante y el invocado (0x5ab210).
+// 8. The helper and the summon (0x5ab210).
 
 Core::Expected<std::int32_t, std::string> DrawTheHelper(Frame& frame, bool arrowsShown)
 {
@@ -754,7 +748,7 @@ Core::Expected<std::int32_t, std::string> DrawTheHelper(Frame& frame, bool arrow
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 9. Los avisos de durabilidad (0x5aac20).
+// 9. The durability warnings (0x5aac20).
 
 bool ShowsNoDurability(std::int16_t type)
 {
@@ -802,8 +796,8 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
             }
             else
             {
-                // 0x5aaf6d..0x5aafce: fild del máximo, guardado en float, por 0,2, 0,3 y 0,5 en float, contra la
-                // durabilidad en la x87.
+                // 0x5aaf6d..0x5aafce: fild of the maximum, stored in float, times 0.2, 0.3 and 0.5 in float, against
+                // the durability in the x87.
                 const auto current = static_cast<double>(durability);
                 const auto limit = static_cast<double>(static_cast<float>(maximum));
                 if (current <= limit * static_cast<double>(0.2f))
@@ -826,7 +820,7 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
             }
             if (shown)
             {
-                // 0x6c9304: "%s (%d/%d)", el nombre de Item.bmd, la durabilidad y el máximo.
+                // 0x6c9304
                 const std::string text =
                     std::format("{} ({}/{})", Items::ItemRecordName(record.Value()), durability, maximum);
                 hud.durabilityWarning = 1;
@@ -834,7 +828,7 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
                 offset = static_cast<float>(Truncate(offset) + 12);
             }
         }
-        // 0x5ab04e: sin los requisitos, el aviso 3, también en las flechas y los ayudantes.
+        // 0x5ab04e: without the requirements, warning 3, also on the arrows and the helpers.
         if (static_cast<std::uint16_t>(frame.own.agility * 2) < item.word20 ||
             static_cast<std::uint16_t>(frame.own.energy * 2) < item.word22 ||
             static_cast<std::uint16_t>(frame.own.word2a + frame.own.strength) < item.word1e)
@@ -847,9 +841,9 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 11. El objeto del evento ([0x723c60]): 0x40bab0 y su método +4.
+// 11. The event object ([0x723c60]): 0x40bab0 and its method +4.
 
-// 0x40bafe y 0x40bb08: los colores de la cuenta (0x6c8e5c y 0x6c8e64), y 0x40bbd1: dónde la escribe 0x554180.
+// 0x40bafe and 0x40bb08: the countdown's colors (0x6c8e5c and 0x6c8e64), and 0x40bbd1: where 0x554180 writes it.
 constexpr std::uint32_t EventCountdownTextColor = 0xffff8080u;
 constexpr std::uint32_t EventCountdownBackground = 0x80000000u;
 constexpr int EventCountdownLeft = 10;
@@ -860,30 +854,30 @@ Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
     if (!frame.runtime.eventObject)
         return {};
     Events::EventMapObject& event = *frame.runtime.eventObject;
-    // 0x40bab0: la cuenta de 30 segundos con +8 de 1 a 14 (GetTickCount contra +0xc y los textos de la entrada). Un
-    // dibujo intermedio no apaga la cuenta vencida: el frame siguiente del original lo vuelve a hacer.
+    // 0x40bab0: the 30-second countdown with +8 from 1 to 14 (GetTickCount against +0xc and the entry's texts). An
+    // intermediate drawing does not turn off the expired countdown: the original's next frame does it again.
     auto countdown =
         Events::EventCountdownText(event, frame.context.tickCount, frame.context.texts, !frame.context.projecting);
     if (!countdown.HasValue())
         return Core::Unexpected(std::move(countdown).Error());
     if (countdown.Value())
     {
-        // 0x40baf2..0x40bbd8: 0x620980 y 0x620a00(0), el texto en 0xffff8080 sobre 0x80000000 y 0x554180(10, 0x174).
+        // 0x40baf2..0x40bbd8: 0x620980 and 0x620a00(0), the text in 0xffff8080 on 0x80000000 and 0x554180(10, 0x174).
         frame.context.sprites.SetBlend(BlendMode::Opaque);
         frame.context.sprites.SetBlend(BlendMode::Alpha);
         frame.context.hud.textColors =
             Render::Text::TextColors{.text = EventCountdownTextColor, .background = EventCountdownBackground};
         DrawHudText(frame, EventCountdownLeft, EventCountdownTop, *countdown.Value(), false);
     }
-    // El método +4: el de Blood Castle (0x40c2d0), el de Chaos Castle (0x405090) y el de Devil Square (0x40bdb0), un
-    // ret. Los campos los escribe el 9B (CL9 hito 11). Un dibujo intermedio no elige el área de la trampa.
+    // Method +4: Blood Castle's (0x40c2d0), Chaos Castle's (0x405090) and Devil Square's (0x40bdb0), a ret. The 9B
+    // writes the fields (CL9 milestone 11). An intermediate drawing does not choose the trap's area.
     return Events::DrawTheCastleTimeAndPoints(frame.context, event, !frame.context.projecting);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 18. Las ventanas (0x5f7440).
+// 18. The windows (0x5f7440).
 
-// 0x5f7465: la x de la ventana de la party.
+// 0x5f7465
 constexpr std::int32_t PartyWindowLeft = 0x1c2;
 
 Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
@@ -894,65 +888,65 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
     frame.context.hud.textColors.text = 0xffff8080u;
-    // 0x5f7474: 0x5f0be0(0x1c2, 0), que empieza con su IsOpen.
+    // 0x5f7474: 0x5f0be0(0x1c2, 0), which starts with its IsOpen.
     if (auto party = Party::DrawThePartyWindow(frame.context, panels, PartyWindowLeft, 0); !party.HasValue())
         return party;
-    // 0x5f7487: 0x5ee2e0 y el botón de cerrar, con la ventana del personaje abierta.
+    // 0x5f7487: 0x5ee2e0 and the close button, with the character window open.
     if (panels.IsOpen(Ui::CharacterPanel))
     {
         if (auto character = DrawTheCharacterWindow(frame.context); !character.HasValue())
             return character;
     }
-    // 0x5f2340, que empieza con su IsOpen.
+    // 0x5f2340, which starts with its IsOpen.
     if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
         return inventory;
-    // 0x5f3b40, que empieza con su IsOpen.
+    // 0x5f3b40, which starts with its IsOpen.
     if (auto trade = DrawTheTradeWindow(frame.context, panels); !trade.HasValue())
         return trade;
-    // 0x5f3030, que empieza con su IsOpen (CL9 hito 7).
+    // 0x5f3030, which starts with its IsOpen (CL9 milestone 7).
     if (auto shop = DrawThePersonalShopWindow(frame.context, panels); !shop.HasValue())
         return shop;
-    // 0x5f4720, que empieza con su IsOpen (el byte protegido, 1 rand()).
+    // 0x5f4720, which starts with its IsOpen (the protected byte, 1 rand()).
     if (auto shop = Npc::DrawTheNpcShop(frame.context, panels); !shop.HasValue())
         return shop;
-    // 0x5f75b2: 0x5febf0, que empieza con su IsOpen.
+    // 0x5f75b2: 0x5febf0, which starts with its IsOpen.
     if (auto chaos = ChaosMix::DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
         return chaos;
-    // 0x5f75b7: 0x44b510, que mira el modo.
+    // 0x5f75b7: 0x44b510, which checks the mode.
     if (auto trainer = PetTrainer::DrawTheTrainer(frame.context); !trainer.HasValue())
         return trainer;
     if (auto siege = CastleSiege::DrawTheSiegeControls(frame.context); !siege.HasValue())
         return siege;
-    // 0x5f4e30, que empieza con su IsOpen (sin rand()).
+    // 0x5f4e30, which starts with its IsOpen (no rand()).
     if (auto warehouse = Npc::DrawTheWarehouse(frame.context, panels); !warehouse.HasValue())
         return warehouse;
-    // 0x5f75cb: 0x5f58f0, los NPC de evento (CL9 hito 11), que empieza con sus IsOpen.
+    // 0x5f75cb: 0x5f58f0, the event NPCs (CL9 milestone 11), which starts with their IsOpen.
     if (auto events = Events::DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
         return events;
-    // 0x5f75d0: 0x5f6550, con 0x78abb00 distinto de 0.
+    // 0x5f75d0: 0x5f6550, with 0x78abb00 other than 0.
     if (state.field78abb00 != 0)
     {
         if (auto chips = Events::DrawTheEventChipWindow(frame.context); !chips.HasValue())
             return chips;
     }
-    // 0x5f75db (CL9 hito 2): 0x41ca40, la ventana de las misiones y el botón de la del personaje.
+    // 0x5f75db (CL9 milestone 2): 0x41ca40, the quest window and the character window's button.
     if (auto quest = Quests::DrawTheQuestWindow(frame.context, panels); !quest.HasValue())
         return quest;
-    // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
+    // 0x5f75e7: 0x424160 with the hero, always: the pet's button and window and the raven's sign.
     if (auto pet = Pets::DrawThePetWindow(frame.context, panels); !pet.HasValue())
         return pet;
     if (auto drawn = Npc::DrawThePanel2000(frame.context, panels); !drawn.HasValue())
         return drawn;
-    // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
+    // 0x5f75fa: 0x40a650, which starts with +4 of [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
-    // 0x6579e0: [0x7d536f4] por su vtable + 0x14 (0x656e70) primero.
+    // 0x6579e0: [0x7d536f4] through its vtable + 0x14 (0x656e70) first.
     if (panels.IsOpen(Ui::SecondGuildPanel))
     {
         if (auto second = Guild::DrawTheSecondGuildWindow(frame.context); !second.HasValue())
             return second;
     }
-    // 0x657a18: [0x7d536f0] por su vtable + 0x14 (0x651c20).
+    // 0x657a18: [0x7d536f0] through its vtable + 0x14 (0x651c20).
     if (panels.IsOpen(Ui::GuildPanel))
     {
         if (auto guild = Guild::DrawTheGuildWindow(frame.context); !guild.HasValue())
@@ -960,12 +954,12 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     }
     if (auto castle = CastleSiege::DrawTheCastleWindows(frame.context); !castle.HasValue())
         return castle;
-    // 0x6579e0: 0x660830, el diálogo de los paneles, si está abierto.
+    // 0x6579e0: 0x660830, the panels' dialog, if it is open.
     return Guild::DrawThePanelDialog(frame.context, frame.runtime.panels.delegated.panelDialog);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 20. La barra de abajo (0x5a9290).
+// 20. The bottom bar (0x5a9290).
 
 void DrawTheBottomBar(Frame& frame)
 {
@@ -978,7 +972,7 @@ void DrawTheBottomBar(Frame& frame)
     sprites.SetBlend(BlendMode::Opaque);
     Quad(sprites, 0xe6, 0.0f, 432.0f, 256.0f, 48.0f, 0.0f, 0.0f, 1.0f, 0.75f);
     {
-        // 0x5a93b5..0x5a9455: abre y cierra el registro propio sin leer nada que cambie el dibujo.
+        // 0x5a93b5..0x5a9455: opens and closes the own record without reading anything that changes the drawing.
         const auto own = OwnAccess(frame);
     }
     Quad(sprites, 0xe7, 256.0f, 432.0f, 128.0f, 48.0f, 0.0f, 0.0f, 1.0f, 0.75f);
@@ -987,7 +981,7 @@ void DrawTheBottomBar(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 23. La experiencia (0x5abcd0).
+// 23. The experience (0x5abcd0).
 
 Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
 {
@@ -996,7 +990,7 @@ Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
     const Kernel::OwnCharacterRecord& record = frame.own;
     if (record.level != 0)
     {
-        // 0x5abe3b..0x5abe74: la experiencia del nivel, en 32 bits.
+        // 0x5abe3b..0x5abe74: the level's experience, in 32 bits.
         const std::uint32_t steps = static_cast<std::uint32_t>(record.level) - 1u;
         std::uint32_t base = 0;
         if (static_cast<std::int32_t>(steps) > 0)
@@ -1008,14 +1002,15 @@ Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
                 base += (more + 9u) * more * more * 1000u;
             }
         }
-        // 0x5abe77..0x5abebd: fild qword de los dos restos sin signo; lo hecho, 0 si la experiencia no llega a la base.
+        // 0x5abe77..0x5abebd: fild qword of the two unsigned differences; the done part is 0 if the experience does not
+        // reach the base.
         const auto needed = static_cast<double>(record.nextExperience - base);
         const double done = record.experience < base ? 0.0 : static_cast<double>(record.experience - base);
         float fill = 0.0f;
         if (done > 0.0)
             fill = F32(done / needed * 10.0);
-        // 0x5abef0..0x5abf1d: le resta 1 en la x87 mientras pase de 1. Infinito (sin experiencia para el nivel que
-        // sigue) no termina.
+        // 0x5abef0..0x5abf1d: subtracts 1 in the x87 while it is above 1. Infinity (no experience for the next level)
+        // does not end.
         double fraction = fill;
         if (fill > 1.0f)
         {
@@ -1047,7 +1042,7 @@ Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 24. El AG (0x5a8cc0).
+// 24. The AG (0x5a8cc0).
 
 Core::Expected<void, std::string> DrawTheAg(Frame& frame)
 {
@@ -1081,24 +1076,24 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 27. El 3D de la UI (0x5ac120) y 28. las grillas (0x5f7840).
+// 27. The UI's 3D (0x5ac120) and 28. the grids (0x5f7840).
 
 Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
 {
     const Ui::PanelState& state = frame.runtime.panels;
-    // 0x5ac1c7 (CL9 hito 2): 0x41b9e0, los ítems pedidos de la ventana de las misiones.
+    // 0x5ac1c7 (CL9 milestone 2): 0x41b9e0, the quest window's requested items.
     if (auto quest = Quests::DrawTheQuestItems(frame.context); !quest.HasValue())
         return quest;
-    // 0x5ac1cc..0x5ac1df: con 0x78abb00 fuera de 0 y 3, 0x5f70a0 y el salto a 0x5ac269, sin las grillas, el ítem del
-    // cursor ni las ranuras rápidas.
+    // 0x5ac1cc..0x5ac1df: with 0x78abb00 other than 0 and 3, 0x5f70a0 and the jump to 0x5ac269, without the grids, the
+    // cursor item or the quick slots.
     if (state.field78abb00 != 0 && state.field78abb00 != Events::SerialNumberWindow)
         return Events::DrawTheEventChipItems(frame.context);
-    // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
+    // 0x5f7610: the open grids' items, in their order, and the trainer's box (0x44ad40(0)).
     if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
         return grids;
-    // 0x5ac1e9..0x5ac204: el ítem del cursor (0x5f7b10), con 0x7879fbc en más de 0 (lo mira DrawTheCursorItem), sin
-    // un aviso esperando (0x78abb14 en 0: el de vender lo dibuja 0x633110 en su diálogo) y sin el diálogo del precio de
-    // la tienda propia (0x78aba60 distinto de 2).
+    // 0x5ac1e9..0x5ac204: the cursor item (0x5f7b10), with 0x7879fbc above 0 (DrawTheCursorItem checks it), without a
+    // pending notice (0x78abb14 at 0: 0x633110 draws the selling one in its dialog) and without the own shop's price
+    // dialog (0x78aba60 other than 2).
     constexpr std::int32_t ShopPriceDialog = 2;
     const Social::SocialState& social = frame.runtime.social;
     if (social.trade.warningKind == 0 && social.personalShop.dialogMode != ShopPriceDialog)
@@ -1106,8 +1101,8 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
         if (auto cursor = DrawTheCursorItem(frame.context); !cursor.HasValue())
             return cursor;
     }
-    // 0x5ac209..0x5ac267: las tres ranuras rápidas, cada una con 0x5e1480((float)(208 + 31i), 454, 20, 20, tipo, +4, 0,
-    // 0, 0).
+    // 0x5ac209..0x5ac267: the three quick slots, each with 0x5e1480((float)(208 + 31i), 454, 20, 20, type, +4, 0, 0,
+    // 0).
     const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
@@ -1127,10 +1122,9 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     return {};
 }
 
-// 0x5ac120 cierra el 2D y arma su proyección de 1° de la pantalla entera, con la cámara en el origen y la
-// profundidad prendida: el pase de los ítems (Scenes/UiItemDrawing.h), que el primero que dibuja abre. Al final
-// (0x5ac269..0x5ac2bb) vuelve a poner la cámara del mundo sin su giro en 0x7d366f0 y en 0x7d36834 (P-C73) y abre el
-// 2D otra vez.
+// 0x5ac120 closes the 2D and sets up its 1° projection of the whole screen, with the camera at the origin and depth
+// on: the items' pass (Items/UiItemDrawing.h), which the first one to draw opens. At the end (0x5ac269..0x5ac2bb) it
+// puts back the world camera without its turn in 0x7d366f0 and 0x7d36834 (P-C73) and opens the 2D again.
 Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
 {
     auto drawn = DrawTheUi3DItems(frame);
@@ -1146,16 +1140,16 @@ Core::Expected<void, std::string> DrawTheGrids(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// La skill de la barra (0x5a5860, 0x40ca20 y 0x5531d0).
+// The bar's skill (0x5a5860, 0x40ca20 and 0x5531d0).
 
 bool IsRiding(std::int16_t pet)
 {
     return pet == UniriaModel || pet == DinorantModel || pet == FenrirModel;
 }
 
-// 0x40ca20(skill, energía, liderazgo): si el personaje no llega a la skill. La energía que pide es la del registro
-// de Skill.bmd (+0x2c · +0x20 · 4 / 100 + 20), salvo las de la tabla, y el liderazgo (+0x2e) solo se mira con uno
-// pedido mayor que 0.
+// 0x40ca20(skill, energy, leadership): whether the character falls short of the skill. The energy it asks for is the
+// Skill.bmd record's (+0x2c · +0x20 · 4 / 100 + 20), except the table's, and leadership (+0x2e) is only checked when
+// the one asked for is above 0.
 Core::Expected<bool, std::string> CannotUseTheSkill(Frame& frame, std::uint32_t skill, std::int32_t energy,
                                                     std::int32_t leadership)
 {
@@ -1214,8 +1208,8 @@ Core::Expected<bool, std::string> CannotUseTheSkill(Frame& frame, std::uint32_t 
     return energy < static_cast<std::int32_t>(required);
 }
 
-// 0x5531d0(índice, x, y, w, h): la espera de la skill (+0x76c del registro propio), que tapa el ícono de abajo
-// hacia arriba con rojo a medias. Nadie la escribe hasta la CL9.2.
+// 0x5531d0(index, x, y, w, h): the skill's delay (+0x76c of the own record), which covers the icon from the bottom up
+// with half red. Nobody writes it until CL9.2.
 Core::Expected<void, std::string> DrawTheSkillDelay(Frame& frame, std::uint32_t index, int x, int y, int width,
                                                     int height)
 {
@@ -1250,7 +1244,7 @@ Core::Expected<void, std::string> DrawTheSkillDelay(Frame& frame, std::uint32_t 
     return {};
 }
 
-// El ícono `index` de un atlas de 8 columnas de w × h téxeles (0x5a6140..0x5a61b4).
+// Icon `index` of an 8-column atlas of w × h texels (0x5a6140..0x5a61b4).
 void DrawSkillQuad(Frame& frame, std::uint16_t slot, std::int32_t index, int x, int y, int width, int height)
 {
     Quad(frame.context.sprites, slot, static_cast<float>(x), static_cast<float>(y), static_cast<float>(width),
@@ -1259,8 +1253,8 @@ void DrawSkillQuad(Frame& frame, std::uint16_t slot, std::int32_t index, int x, 
          F32((static_cast<double>(height) - 1.0) * Texel));
 }
 
-// 0x5a5860(índice, x, y, w, h): la skill `index` del registro propio (+0x6c + índice; de 0x78 en adelante, el
-// índice es la skill), teñida de rojo si no se puede usar, con su espera y su número.
+// 0x5a5860(index, x, y, w, h): skill `index` of the own record (+0x6c + index; from 0x78 on, the index is the
+// skill), tinted red if it cannot be used, with its delay and its number.
 Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t index, int x, int y, int width,
                                                    int height)
 {
@@ -1308,7 +1302,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
             return Core::Unexpected(cannot.Error());
         if (cannot.Value())
             tinted = true;
-        // 0x5a5c43 y 0x5a5de2: el ayudante sin durabilidad, leído con un acceso anidado al registro.
+        // 0x5a5c43 and 0x5a5de2: the helper without durability, read with a nested access to the record.
         const auto helperWornOut = [&frame]
         {
             const auto nested = OwnAccess(frame);
@@ -1357,7 +1351,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
         }
         if (numbered)
         {
-            // 0x5a61e7: el número de la skill de comando, desde 1.
+            // 0x5a61e7: the command skill's number, from 1.
             sprites.SetColor(SkillColor);
             Ui::DrawNumber(sprites, F32(static_cast<double>(static_cast<float>(x)) + 4.0),
                            F32(static_cast<double>(static_cast<float>(y)) + 26.0), static_cast<int>(skill) - 0x77, 9.0f,
@@ -1367,7 +1361,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
         if (auto delay = DrawTheSkillDelay(frame, index, x, y, width, height); !delay.HasValue())
             return delay;
         sprites.SetBlend(BlendMode::Alpha);
-        // 0x5a630b..0x5a6325: leer la tecla antes del cierre propio; el número va después (0x5a6374..0x5a63b6).
+        // 0x5a630b..0x5a6325: read the key before the own close; the number goes after (0x5a6374..0x5a63b6).
         const std::size_t place = frame.context.chosenSlot.value_or(0);
         if (place < frame.own.skillKeys.size() && index < Kernel::OwnSkillKeyBytes)
             key = frame.own.skillKeys[place][index];
@@ -1381,7 +1375,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
     return {};
 }
 
-// 0x421b90: las cuatro órdenes sólo con cuervo, sin otro gate de clase. Cada icono puede cambiar el color.
+// 0x421b90: the four orders only with the raven, with no other class gate. Each icon can change the color.
 Core::Expected<void, std::string> DrawTheRavenCommands(Frame& frame)
 {
     if (!frame.hero.darkSpirit)
@@ -1398,8 +1392,8 @@ Core::Expected<void, std::string> DrawTheRavenCommands(Frame& frame)
     return {};
 }
 
-// 0x5a9f9a..0x5aa356: los64 slots con el propio exterior abierto. El dibujo baja46 una sola vez; las hitboxes
-// nativas bajan52 (5a083c), por lo que se conservan independientes. No hay una tercera fila ni paginado.
+// 0x5a9f9a..0x5aa356: the 64 slots with the outer own access open. The drawing goes down 46 only once; the native
+// hitboxes go down 52 (0x5a083c), so they are kept independent. There is no third row or paging.
 Core::Expected<void, std::string> DrawTheSkillList(Frame& frame)
 {
     constexpr int RowSize = 20, IconWidth = 32, IconHeight = 36, RowStep = 46;
@@ -1428,7 +1422,7 @@ Core::Expected<void, std::string> DrawTheSkillList(Frame& frame)
             y -= RowStep;
             column = 0;
         }
-        // Los operandos (bytes y hasta64 columnas) dejan todos estos enteros exactos también en float/ftol.
+        // The operands (bytes and up to 64 columns) keep all these integers exact also in float/ftol.
         const int x = column * IconWidth + 320 - width * 16;
         ++shown;
         ++column;
@@ -1440,10 +1434,10 @@ Core::Expected<void, std::string> DrawTheSkillList(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 29. La barra principal (0x5a9630).
+// 29. The main bar (0x5a9630).
 
-// Un orbe: el slot en (x, 432 + falta · 48, 53, 48 − falta · 48 / 64), con la v en falta · 48 / 64. El alto le resta
-// la v y no los píxeles, como el original (0x5a9840).
+// An orb: the slot at (x, 432 + missing · 48, 53, 48 − missing · 48 / 64), with v at missing · 48 / 64. The height
+// subtracts the v and not the pixels, like the original (0x5a9840).
 void DrawOrb(Frame& frame, std::uint16_t slot, float x, float missing)
 {
     const double pixels = static_cast<double>(missing) * 48.0;
@@ -1491,12 +1485,12 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         maxMana = frame.own.maxMana;
         mana = frame.own.mana < maxMana ? frame.own.mana : maxMana;
     }
-    // 0x5a9796..0x5a97b8: lo que falta, sobre el máximo (fidiv: con un máximo en 0, NaN).
+    // 0x5a9796..0x5a97b8: the missing part over the maximum (fidiv: with a maximum of 0, NaN).
     const float missingLife = F32(static_cast<double>(maxLife - life) / static_cast<double>(maxLife));
     const float missingMana = F32(static_cast<double>(maxMana - mana) / static_cast<double>(maxMana));
     if (life != 0 && static_cast<double>(life) / static_cast<double>(maxLife) < static_cast<double>(0.2f))
         frame.context.RequestSound(Audio::SoundId{0x22});
-    // 0x5a97fb: el orbe verde con el veneno (+0x78 & 1).
+    // 0x5a97fb: the green orb with poison (+0x78 & 1).
     DrawOrb(frame, (frame.hero.flags78 & 1u) == 1u ? 0xf7 : 0xea, 97.0f, missingLife);
     if (MouseIn(frame, 97, 432, 150, 480))
     {
@@ -1509,7 +1503,6 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         if (auto help = HelpWithValues(frame, 495, 419, ManaHelpText, mana, maxMana, "0x5a9934"); !help.HasValue())
             return help;
     }
-    // Los botones de la party, el personaje y el inventario, prendidos con su ventana abierta.
     struct Button
     {
         int left = 0;
@@ -1530,14 +1523,13 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         if (panels.IsOpen(button.panel))
             Quad(sprites, button.slot, static_cast<float>(button.left), 452.0f, 24.0f, 24.0f, 0.0f, 0.0f, 0.75f, 0.75f);
     }
-    // 0x5a9c98..0x5a9dd3: con el mouse sobre el botón de los amigos, la ayuda de tres renglones (los textos 1043 a
-    // 1045) que arma 0x78793c8 y dibuja 0x5af090, la de los tooltips del hito 4; solo dibuja, pero los íconos que
-    // siguen salen con la mezcla y el color que deje (P-C63).
-    // 0x5a9ddb: 0x4a5120, los íconos de los amigos y las cartas de la UI vieja (CL9 hito 10), con la lista de ventanas
-    // (la copia de la proyección en un dibujo intermedio).
+    // 0x5a9c98..0x5a9dd3: with the mouse over the friends button, the three-line help (texts 1043 to 1045) that
+    // 0x78793c8 builds and 0x5af090 draws, the tooltip one of milestone 4; it only draws, but the icons that follow
+    // come out with the blend and color it leaves (P-C63). 0x5a9ddb: 0x4a5120, the friends and letters icons of the old
+    // UI (CL9 milestone 10), with the window list (the projection's copy in an intermediate drawing).
     Messenger::DrawTheFriendBarIcons(
         frame.context.oldWindows != nullptr ? *frame.context.oldWindows : frame.runtime.oldWindows, sprites);
-    // 0x5a9de6: 0x40a5b0, el botón de los comandos.
+    // 0x5a9de6: 0x40a5b0, the commands button.
     if (MouseIn(frame, 6, 435, 59, 454))
     {
         if (auto help = HelpWithText(frame, 6, 420, CommandsHelpText, "0x40a5f6"); !help.HasValue())
@@ -1596,30 +1588,30 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         if (count.Value() > 0)
             Ui::DrawNumber(sprites, F32(static_cast<double>(slot) * 31.0 + 226.0), 447.0f, count.Value(), 9.0f, 10.0f);
     }
-    // 0x5aa980: 0x621a90, los pops de las matrices del 2D, que MuRet arma por pase.
+    // 0x5aa980: 0x621a90, the pops of the 2D matrices, which MuRet sets up per pass.
     return {};
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 4. Quiénes tienen los interruptores del castillo (0x5a6fc0), con el objeto de 0x5767924 que arma el B2 20.
+// 4. Who holds the castle switches (0x5a6fc0), with the object at 0x5767924 that the B2 20 builds.
 
-// 0x5a71af..0x5a71d9: la zona del héroe, X en 150..200 e Y en 180..230 (JL y JG, con los bordes adentro).
+// 0x5a71af..0x5a71d9: the hero's zone, X in 150..200 and Y in 180..230 (JL and JG, edges inside).
 constexpr std::uint8_t SwitchZoneLeft = 0x96;
 constexpr std::uint8_t SwitchZoneRight = 0xc8;
 constexpr std::uint8_t SwitchZoneTop = 0xb4;
 constexpr std::uint8_t SwitchZoneBottom = 0xe6;
-// 0x5a71eb y 0x5a72f3: la primera línea en y 150 y la siguiente 15 más abajo, en x 0.
+// 0x5a71eb and 0x5a72f3: the first line at y 150 and the next one 15 lower, at x 0.
 constexpr int SwitchLinesTop = 0x96;
 constexpr int SwitchLineStep = 0xf;
 constexpr std::size_t SwitchHolderText = 1981; // 0x774e358
-// 0x5a7207..0x5a7295: el bando de cada mitad (+7) contra los bits de +0x78 del héroe.
+// 0x5a7207..0x5a7295: each half's side (+7) against the bits of the hero's +0x78.
 constexpr std::array<std::pair<std::uint32_t, std::uint8_t>, 3> SwitchSides{
     {{std::uint32_t{0x80000}, std::uint8_t{2}},
      {std::uint32_t{0x400000}, std::uint8_t{3}},
      {std::uint32_t{0x800000}, std::uint8_t{4}}}};
 
-// Un %s de sprintf sobre el objeto desde `at`: hasta el primer 0. Sin ninguno antes del final de los 0x36 bytes, el
-// original sigue leyendo el heap que viene después (Q-C1403): std::nullopt.
+// A sprintf %s on the object from `at`: up to the first 0. With none before the end of the 0x36 bytes, the original
+// keeps reading the heap that follows (Q-C1403): std::nullopt.
 std::optional<std::string> HolderText(const std::array<std::uint8_t, CastleSiege::SwitchHoldersSize>& holders,
                                       std::size_t at)
 {
@@ -1638,7 +1630,7 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
     auto& storage = frame.runtime.castleSiege.castleSiegeInfo;
     if (!storage)
         return {};
-    // 0x5a6fdb..0x5a71aa: la X (+0x41c) y la Y (+0x420) del héroe, cada una con su acceso a la tabla de protección.
+    // 0x5a6fdb..0x5a71aa: the hero's X (+0x41c) and Y (+0x420), each with its access to the protection table.
     std::uint8_t x = 0;
     std::uint8_t y = 0;
     {
@@ -1653,8 +1645,8 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
     }
     if (x < SwitchZoneLeft || x > SwitchZoneRight || y < SwitchZoneTop || y > SwitchZoneBottom)
     {
-        // 0x5a730d: 0x4e05f0 libera el objeto. Un dibujo intermedio de MuRet no lo libera: el frame siguiente del
-        // original lo hace con sus accesos.
+        // 0x5a730d: 0x4e05f0 frees the object. An intermediate MuRet drawing does not free it: the original's next
+        // frame does it with its accesses.
         if (!frame.context.projecting)
             storage.reset();
         return {};
@@ -1663,7 +1655,7 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
     for (std::size_t half = 0; half < 2; ++half)
     {
         const std::size_t base = half * CastleSiege::SwitchHolderHalf;
-        // 0x5a71f0: JBE, el byte sin signo en 0.
+        // 0x5a71f0: JBE, the unsigned byte at 0.
         if (holders[base + CastleSiege::HolderShownAt] == 0)
             continue;
         const std::uint8_t side = holders[base + CastleSiege::HolderSideAt];
@@ -1681,7 +1673,7 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
                                                 "antes del final de sus 0x36 bytes y sigue leyendo el heap (Q-C1403)",
                                                 half));
         const auto number = static_cast<std::int32_t>(half + 1);
-        // 0x6c9288, 0x6c9298 y 0x6c92a8 son el mismo texto; 0x6c92b8, sin el nombre.
+        // 0x6c9288, 0x6c9298 and 0x6c92a8 are the same text; 0x6c92b8, without the name.
         const std::string line = withName ? Crt::Sprintf("%s%d / %s / %s", title.Value(), number,
                                                          std::string_view(*guild), std::string_view(*name))
                                           : Crt::Sprintf("%s%d / %s", title.Value(), number, std::string_view(*guild));
@@ -1691,7 +1683,7 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 31. El panel del asedio (0x4125b0).
+// 31. The siege panel (0x4125b0).
 
 } // namespace
 
@@ -1709,16 +1701,16 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
-    // 2. 0x5a7640..0x5a7cbd: los tanteadores de guerra y Battle Soccer.
+    // 2. 0x5a7640..0x5a7cbd: the war and Battle Soccer scoreboards.
     if (auto war = Guild::DrawTheWarScore(context, frame.panels); !war.HasValue())
         return war;
-    // 3. 0x5a89b0: las barras de la party.
+    // 3. 0x5a89b0: the party's bars.
     if (auto life = Party::DrawThePartyLife(context); !life.HasValue())
         return life;
-    // 4. 0x5a6fc0: quiénes tienen los interruptores.
+    // 4. 0x5a6fc0: who holds the switches.
     if (auto holders = DrawTheSwitchHolders(frame); !holders.HasValue())
         return holders;
-    // 5. 0x42a4d0: las barras de vida de la cola de 0x7239a8 (Scenes/HealthBars). Un dibujo intermedio vacía una copia.
+    // 5. 0x42a4d0: the health bars of the 0x7239a8 queue (Hud/HealthBars). An intermediate drawing empties a copy.
     {
         std::deque<Kernel::QueuedHealthBar> scratch;
         if (context.projecting)
@@ -1731,7 +1723,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 6. 0x42a660.
     if (auto icons = DrawTheStatusIcons(frame); !icons.HasValue())
         return icons;
-    // 7..9. 0x5ab810, 0x5ab210 y 0x5aac20.
+    // 7..9. 0x5ab810, 0x5ab210 and 0x5aac20.
     auto arrows = DrawTheArrows(frame);
     if (!arrows.HasValue())
         return Core::Unexpected(arrows.Error());
@@ -1740,14 +1732,14 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return Core::Unexpected(top.Error());
     if (auto durability = DrawTheDurability(frame, top.Value()); !durability.HasValue())
         return durability;
-    // 10. La macro.
+    // 10. The macro.
     DrawTheMacroTime(frame);
     // 11.
     context.sprites.SetColor(White);
     if (auto event = DrawTheEventObject(frame); !event.HasValue())
         return event;
-    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0, Scenes/ChatBubbleDraw). No saca rand() y
-    // escribe en cada entrada dónde quedó (+0x278..+0x284), que lee el clic derecho de 0x557650.
+    // 12. 0x5a9050: the bubbles and the names over the heads (0x77e1be0, Chat/ChatBubbleDraw). It draws no rand() and
+    // writes in each entry where it ended up (+0x278..+0x284), which the right click of 0x557650 reads.
     Chat::ChatBubbleDrawContext bubbles{.world = world,
                                         .projection = context.projection,
                                         .sprites = context.sprites,
@@ -1763,9 +1755,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
                                         .texts = context.texts};
     if (auto drawn = Chat::DrawTheChatBubbles(bubbles); !drawn.HasValue())
         return drawn;
-    // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (Scenes/ShopSigns). Sin ninguno (+0xc en 0),
-    // nada; con alguno, 0x5bb8d0 con sus rand(), su lugar (0x451d60), el reparto para que no se pisen (0x451e40), la
-    // cuenta de +0x10 y cada cartel (0x452a10).
+    // 13. 0x451d10 and 0x451c20: the signs of the singleton at 0x7245c8 (PersonalShop/ShopSigns). With none (+0xc at
+    // 0), nothing; with some, 0x5bb8d0 with its rand(), their place (0x451d60), the spread so they do not overlap
+    // (0x451e40), the count of +0x10 and each sign (0x452a10).
     PersonalShop::ShopSignDrawContext signs{.world = world,
                                             .panels = frame.panels,
                                             .projection = context.projection,
@@ -1776,9 +1768,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
                                             .projecting = context.projecting};
     if (auto drawn = PersonalShop::DrawTheShopSigns(signs); !drawn.HasValue())
         return drawn;
-    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8, que prende el AA (CL9 hito 7).
+    // 14. 0x5a6cc0: the duel score, with 0x78abad8, which the AA turns on (CL9 milestone 7).
     Social::DrawTheDuelScore(context, frame.panels);
-    // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
+    // 15. 0x46b090: the Slide.bmd banner ([0x5763528]).
     if (auto slides = Ui::DrawTheSlides(hud.slides, Ui::SlideDrawContext{.sprites = context.sprites,
                                                                          .text = context.text,
                                                                          .dcFont = hud.dcFont,
@@ -1790,7 +1782,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return slides;
     // 16. 0x413ca0.
     CastleSiege::DrawTheBattleClock(context);
-    // 17. [[0x576350c]] + 0x14: el registro del chat (0x479080).
+    // 17. [[0x576350c]] + 0x14: the chat log (0x479080).
     Chat::DrawTheChatLog(
         runtime.chat.log, hud.chatFrame, runtime.ui.chatModes,
         Chat::ChatLogDrawContext{
@@ -1804,17 +1796,17 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 18. 0x5f7440.
     if (auto windows = DrawTheWindows(frame); !windows.HasValue())
         return windows;
-    // 19. 0x65dd70: el cartel con el nombre del mapa ([0x5763534]).
+    // 19. 0x65dd70: the banner with the map's name ([0x5763534]).
     DrawTheMapBanner(frame);
     // 20. 0x5a9290.
     DrawTheBottomBar(frame);
-    // 21. 0x4365c0: la interfaz de Crywolf (Scenes/CrywolfInterfaceDrawing), que empieza siempre con 0x620a00(1); la
-    // traza lo muestra antes de la experiencia.
+    // 21. 0x4365c0: the Crywolf interface (Events/Crywolf/CrywolfInterfaceDrawing), which always starts with
+    // 0x620a00(1); the trace shows it before the experience.
     if (auto crywolf = Events::Crywolf::DrawTheCrywolfInterface(context); !crywolf.HasValue())
         return crywolf;
     // 22. 0x5aa9a0.
     DrawTheChatInput(frame);
-    // 23. y 24. 0x5abcd0 y 0x5a8cc0.
+    // 23. and 24. 0x5abcd0 and 0x5a8cc0.
     if (auto experience = DrawTheExperience(frame); !experience.HasValue())
         return experience;
     if (auto ag = DrawTheAg(frame); !ag.HasValue())
@@ -1822,10 +1814,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 25. 0x652c90.
     if (auto siege = CastleSiege::DrawTheBattleSkill(context); !siege.HasValue())
         return siege;
-    // 26. 0x436240: el color del texto y la ventana del contrato de Crywolf (Scenes/CrywolfInterfaceDrawing).
+    // 26. 0x436240: the text color and the window of the Crywolf contract (Events/Crywolf/CrywolfInterfaceDrawing).
     if (auto contract = Events::Crywolf::DrawTheCrywolfContract(context); !contract.HasValue())
         return contract;
-    // 27. y 28. 0x5ac120 y 0x5f7840.
+    // 27. and 28. 0x5ac120 and 0x5f7840.
     if (auto ui3D = DrawTheUi3D(frame); !ui3D.HasValue())
         return ui3D;
     if (auto grids = DrawTheGrids(frame); !grids.HasValue())
@@ -1833,10 +1825,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 29. 0x5a9630.
     if (auto bar = DrawTheMainBar(frame); !bar.HasValue())
         return bar;
-    // 30. 0x5e9b10, que empieza con el modo del teclado (0x78abb20).
+    // 30. 0x5e9b10, which starts with the keypad's mode (0x78abb20).
     if (auto keypad = Warehouse::DrawTheKeypad(frame.context); !keypad.HasValue())
         return keypad;
-    // 31. Sin ninguna ventana, 0x4125b0.
+    // 31. With no window, 0x4125b0.
     return CastleSiege::DrawTheBattlePanel(context);
 }
 
@@ -1844,7 +1836,7 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
 {
     Kernel::WorldState& world = context.world;
     const std::int32_t& mode = world.Runtime().panels.overlayMode;
-    // 0x5b0559..0x5b06ac: la primera ayuda de F1, y el modo otra vez.
+    // 0x5b0559..0x5b06ac: the first F1 help, and the mode again.
     if (mode == Ui::FirstHelpMode)
     {
         if (auto drawn = Tooltips::DrawTheFunctionHelp(context, Ui::FirstHelpMode); !drawn.HasValue())
@@ -1854,7 +1846,7 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
         return Tooltips::DrawTheFunctionHelp(context, Ui::SecondHelpMode);
     if (mode == Ui::ItemHelpMode)
         return Tooltips::DrawTheItemHelp(context);
-    // 0x5b10cf..0x5b10e0: IsOpen(2), la ventana /move.
+    // 0x5b10cf..0x5b10e0: IsOpen(2), the /move window.
     GamePanels panels(world, context.random);
     if (panels.Registry().IsOpen(Ui::MovePanel))
         return DrawTheMoveWindow(context);
@@ -1868,7 +1860,7 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     Kernel::WorldRuntime& runtime = world.Runtime();
     sprites.SetBlend(BlendMode::Alpha);
     sprites.SetColor(White);
-    // 0x5ac2ee..0x5ac33a: el cuadro del de hablar, ftol(T · 0,01) % 6, en cuartos de la textura.
+    // 0x5ac2ee..0x5ac33a: the talk cursor's frame, ftol(T · 0.01) % 6, in quarters of the texture.
     const std::int32_t frameIndex = Truncate(static_cast<double>(context.worldClock) * static_cast<double>(0.01f)) % 6;
     const float u = frameIndex == 1 || frameIndex == 3 || frameIndex == 5 ? 0.5f : 0.0f;
     const float v = frameIndex == 2 || frameIndex == 3 || frameIndex == 4 ? 0.5f : 0.0f;
@@ -1898,8 +1890,8 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     const Kernel::ActorState& hero = world.Hero();
     if (hero.safeZone == 0 && targets[2] != -1)
     {
-        // 0x5ac53c..0x5ac60b (CL9 hito 3): atacable (0x558bb0) y el mouse fuera de la UI (0x775857c), el de atacar (4,
-        // o 0x68d en el 30); si no, el de los comandos con IsOpen(0x200) o el normal (0x5ac818).
+        // 0x5ac53c..0x5ac60b (CL9 milestone 3): attackable (0x558bb0) and the mouse outside the UI (0x775857c), the
+        // attack one (4, or 0x68d in 30); otherwise, the commands one with IsOpen(0x200) or the normal one (0x5ac818).
         const auto attackable = Combat::IsAttackable(world, context.controlDown);
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
@@ -1924,7 +1916,7 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     }
     if (repairMode == 2)
     {
-        // 0x5ac6d4: fsin(T · 0,02) contra 0; el signo es el mismo en cualquier CPU.
+        // 0x5ac6d4: fsin(T · 0.02) against 0; the sign is the same on any CPU.
         const double turn = Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(0.02f));
         if (turn <= 0.0)
             sprites.RotatedQuad(Render::TextureSlot{7}, F32(static_cast<double>(context.mouse.x) + 5.0),

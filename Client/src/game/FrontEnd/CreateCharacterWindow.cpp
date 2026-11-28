@@ -39,7 +39,7 @@ constexpr int BoxWidth = 454;
 constexpr int BoxHeight = 406;
 constexpr Render::TextureSlot NameBackSlot{0xc}; // Interface\cha_id.tga
 constexpr Render::TextureSlot ClassSlot{0xd};    // Interface\cha_bt.tga, 4 cuadros
-constexpr Render::TextureSlot OkSlot{0x724};     // message_ok_b_all.tga, el del aviso
+constexpr Render::TextureSlot OkSlot{0x724};     // message_ok_b_all.tga, the notice's
 constexpr Render::TextureSlot CancelSlot{0x725}; // loding_cancel_b_all.tga
 constexpr int NameBackTop = 317;
 constexpr int NameBackWidth = 346;
@@ -62,16 +62,16 @@ constexpr int ButtonsTop = 325;
 constexpr int CancelLeft = 400;
 constexpr int NameFieldLeft = 78;
 constexpr int NameFieldTop = 338;
-// La base de 0x669c70(W, H, −1, 0) y las dos cajas negras de alfa 0x8f.
+// The base of 0x669c70(W, H, −1, 0) and the two black boxes with alpha 0x8f.
 constexpr float BaseAlpha = 128.0f / 255.0f;
 constexpr float BoxAlpha = 143.0f / 255.0f;
-// EM_LIMITTEXT(10) en 0x63d670.
+// EM_LIMITTEXT(10) at 0x63d670.
 constexpr std::size_t NameBytes = 10;
-// 0x63c330(108, 26, 0xd, 4, 2, 1, 0, 3, 3, 3, 0): el 3 marcado (también encima y apretado) y el 0
-// deshabilitado, marcado o no.
+// 0x63c330(108, 26, 0xd, 4, 2, 1, 0, 3, 3, 3, 0): 3 checked (also hovered and pressed) and 0
+// disabled, checked or not.
 constexpr int CheckedFrame = 3;
 constexpr int DisabledFrame = 0;
-// Los rótulos de las clases, los textos 20 a 24, con la tabla de 0x63d360.
+// The class labels, texts 20 to 24, with the table of 0x63d360.
 constexpr std::size_t FirstClassText = 20;
 constexpr Ui::ButtonColors ClassColors{.normal = 0xffe2e2e2,
                                        .pressed = 0xffe2e2e2,
@@ -81,8 +81,8 @@ constexpr Ui::ButtonColors ClassColors{.normal = 0xffe2e2e2,
                                        .checkedHover = 0xffffffff,
                                        .disabled = 0xff777777,
                                        .checkedDisabled = 0xff777777};
-// 0x63e0a0: con DAT_05763560, sin fondo; los valores en 0xff00b4ff y los rótulos (1701 + i) en
-// blanco, en (ax + 76) y (ax + 22), de a 17 desde ay + 10; el comando del Dark Lord en ay + 78.
+// 0x63e0a0: with DAT_05763560, no background; the values in 0xff00b4ff and the labels (1701 + i) in
+// white, at (ax + 76) and (ax + 22), every 17 from ay + 10; the Dark Lord's command at ay + 78.
 constexpr Render::Text::TextStyle ValueStyle{Render::Text::FontKind::OtherFace12,
                                              Render::Text::TextColors{0xff00b4ff, 0}};
 constexpr Render::Text::TextStyle LabelStyle{Render::Text::FontKind::OtherFace12,
@@ -95,7 +95,7 @@ constexpr int CommandTop = 78;
 constexpr std::size_t FirstAttributeText = 1701;
 constexpr std::size_t CommandText = 1738;
 constexpr std::string_view CommandValue = "25";
-// Los strings de 0x6d657c..0x6d659c: fuerza, agilidad, vitalidad y energía, por clase.
+// The strings of 0x6d657c..0x6d659c: strength, agility, vitality and energy, per class.
 constexpr std::array<std::array<std::string_view, 4>, CreatableClassCount> Attributes{{
     {"18", "18", "15", "30"},
     {"28", "20", "25", "10"},
@@ -103,16 +103,16 @@ constexpr std::array<std::array<std::string_view, 4>, CreatableClassCount> Attri
     {"26", "26", "26", "26"},
     {"26", "20", "20", "15"},
 }};
-// La descripción: el texto 1705 + clase en dos renglones de menos de 75 bytes (0x632c90), en
-// (x + 10, y + 355 + 12 + 19 j), en blanco.
+// The description: text 1705 + class in two rows of fewer than 75 bytes (0x632c90), at
+// (x + 10, y + 355 + 12 + 19 j), in white.
 constexpr std::size_t FirstDescriptionText = 1705;
 constexpr std::size_t DescriptionLines = 2;
 constexpr std::size_t DescriptionBytes = 75;
 constexpr int DescriptionLeft = 10;
 constexpr int DescriptionTop = StripTop + 12;
 constexpr int DescriptionStep = 19;
-// El EDIT del nombre: el texto en blanco (+0x9c) con DAT_05763554, y el cursor de los campos del
-// login (0x468320 no se leyó entero).
+// The name EDIT: the text in white (+0x9c) with DAT_05763554, and the caret of the login fields
+// (0x468320 was not read in full).
 constexpr Render::Text::TextStyle NameStyle{Render::Text::FontKind::Normal, Render::Text::TextColors{0xffffffff, 0}};
 constexpr std::string_view Caret = "_";
 
@@ -178,7 +178,7 @@ CreateCharacterWindow::CreateCharacterWindow(Ui::TextureSizes sizes, const Table
 
 void CreateCharacterWindow::EnableClasses(std::uint8_t creatable)
 {
-    // Solo los cinco: con un pkt[4] de 5 o más el original escribe fuera de ellos (Q-C119).
+    // Only the five: with a pkt[4] of 5 or more the original writes outside them (Q-C119).
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
         m_classes[i].SetEnabled(i <= creatable);
@@ -228,8 +228,8 @@ void CreateCharacterWindow::CopyTheName()
 
 void CreateCharacterWindow::TypeInto(const Input::InputState& input)
 {
-    // El subclass del EDIT (0x467b10) descarta Esc y le pasa Enter a la ventana; Tab y Enter no son
-    // bytes que el campo tome.
+    // The EDIT's subclass (0x467b10) drops Esc and passes Enter to the window; Tab and Enter are not
+    // bytes the field takes.
     const std::string_view typed = input.Text();
     std::size_t start = 0;
     for (std::size_t index = 0; index <= typed.size(); ++index)
@@ -239,7 +239,7 @@ void CreateCharacterWindow::TypeInto(const Input::InputState& input)
         {
             continue;
         }
-        // Lo de entre dos teclas de control llega entero al encoder de la página XP.
+        // What lies between two control keys reaches the XP page encoder whole.
         m_name.Type(typed.substr(start, index - start));
         if (index < typed.size() && typed[index] == Input::BackspaceChar)
         {
@@ -346,13 +346,13 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::IT
         return;
     }
     Place(screen);
-    // 0x620a00(1): la mezcla normal con la textura (la base la apagó).
+    // 0x620a00(1): the normal blend with the texture (the base turned it off).
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{});
     sprites.Image(Ui::PixelImage(NameBackSlot, m_layout.nameBack, m_sizes(NameBackSlot)));
     sprites.Image(BlackBox(m_layout.attributes, BoxAlpha));
     sprites.Image(BlackBox(m_layout.strip, BoxAlpha));
-    // Las cajas apagaron la textura (Q-C75): la imagen de cada botón, con su slot, la vuelve a prender.
+    // The boxes turned the texture off (Q-C75): each button's image, with its slot, turns it back on.
     for (const Ui::Button& button : m_classes)
     {
         sprites.Image(button.Image(m_sizes));

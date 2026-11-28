@@ -2,48 +2,46 @@
 
 #include <cstdint>
 
-// En qué está la ServerSession (game/Session/ServerSession.h) y por qué falló, aparte de la sesión: así los
-// PrintTo de los tests (tests/support/AppPrinters.h) no traen la Connection ni el Dispatcher.
-// Contrato: el plan de la CL4, "Interfaces" y el diagrama de estados de la CL4.3, paso 1, y la
-// CL4.4, "Contrato"; los dos estados que esperan a la UI, el de la CL5 (CL5.5); los de la
-// selección de personaje, el de la CL6 (CL6.3, pregunta 9); y el del mundo, el de la CL7 (CL7.L1,
-// el 0x3d de 06 § La entrada al mundo). Un servidor ocupado y un login
-// rechazado no son fallas desde la CL5.5: la sesión vuelve a esperar. La orden de cerrar el juego
-// tampoco es una falla: no tiene aviso (Q-C106).
+// What the ServerSession (game/Session/ServerSession.h) is doing and why it failed, apart from the session: so the
+// tests' PrintTo (tests/support/AppPrinters.h) do not bring in the Connection or the Dispatcher. Contract: the CL4
+// plan, "Interfaces" and the CL4.3 state diagram, step 1, and CL4.4, "Contrato"; the two states that wait for the
+// UI, CL5's (CL5.5); the character selection ones, CL6's (CL6.3, question 9); and the world one, CL7's (CL7.L1, the
+// 0x3d of 06 § La entrada al mundo). A busy server and a rejected login are not failures since CL5.5: the session
+// waits again. The order to close the game is not a failure either: it has no notice (Q-C106).
 namespace Client::Session
 {
 enum class SessionState : std::uint8_t
 {
-    Idle,                    // sin conexión activa; también F1/02=2 antes de entrar al login
-    ConnectingConnectServer, // Start abrió el CS
-    WaitingConnectHello,     // el A9 salió; se espera C1 04 00 01
-    WaitingServerList,       // F4 02 salió
-    ChoosingServer,          // la lista llegó; se espera ChooseServer (CL5.5)
-    WaitingServerAddress,    // F4 03 salió
-    ConnectingGameServer,    // el CS se cerró y se abrió el GS
-    WaitingGameHello,        // el GS abrió; se espera su saludo, F1 00
-    WaitingCredentials,      // el GS saludó; se espera SubmitCredentials (CL5.5)
-    WaitingLoginResult,      // el login, F1 01, salió cifrado
-    LoggedIn,                // el GS aceptó el login: sale el keepalive (CL4.5)
-    WaitingCharacterList,    // F3 00 salió (el 0x32 del original)
-    ChoosingCharacter,       // la lista llegó (0x33); se espera EnterWorld (CL6.3)
-    WaitingCreateResult,     // F3 01 salió (0x34); con su respuesta vuelve a ChoosingCharacter (CL6.5)
-    WaitingDeleteResult,     // F3 02 salió (0x38); con su respuesta vuelve a ChoosingCharacter (CL6.5)
-    EnteringWorld,           // F3 03 salió (0x3c); sin tope: la respuesta aplicada pasa a InWorld
-    InWorld,                 // la respuesta del F3 03 publicó el 0x3d (0x4c4854); sin tope
-    QuitOrdered,             // el GS ordenó cerrar el juego (F1 02 con 0): la conexión se cerró (Q-C106)
+    Idle,                    // no active connection; also F1/02=2 before entering the login
+    ConnectingConnectServer, // Start opened the CS
+    WaitingConnectHello,     // the A9 went out; C1 04 00 01 expected
+    WaitingServerList,       // F4 02 went out
+    ChoosingServer,          // the list arrived; ChooseServer expected (CL5.5)
+    WaitingServerAddress,    // F4 03 went out
+    ConnectingGameServer,    // the CS closed and the GS opened
+    WaitingGameHello,        // the GS opened; its hello, F1 00, expected
+    WaitingCredentials,      // the GS said hello; SubmitCredentials expected (CL5.5)
+    WaitingLoginResult,      // the login, F1 01, went out encrypted
+    LoggedIn,                // the GS accepted the login: the keepalive goes out (CL4.5)
+    WaitingCharacterList,    // F3 00 went out (the original's 0x32)
+    ChoosingCharacter,       // the list arrived (0x33); EnterWorld expected (CL6.3)
+    WaitingCreateResult,     // F3 01 went out (0x34); its reply goes back to ChoosingCharacter (CL6.5)
+    WaitingDeleteResult,     // F3 02 went out (0x38); its reply goes back to ChoosingCharacter (CL6.5)
+    EnteringWorld,           // F3 03 went out (0x3c); no timeout: the applied reply moves to InWorld
+    InWorld,                 // the F3 03 reply published the 0x3d (0x4c4854); no timeout
+    QuitOrdered,             // the GS ordered the game closed (F1 02 with 0): the connection closed (Q-C106)
     Failed,
 };
 
 enum class SessionFailure : std::uint8_t
 {
-    ConnectServerLost,  // la conexión con el CS se cerró: el motivo va al log y queda en la conexión
-    EmptyServerList,    // el CS no tiene ningún servidor
-    GameServerLost,     // la conexión con el GS se cerró
-    HelloRejected,      // el saludo del GS trae otro resultado que HelloAccepted
-    VersionMismatch,    // el saludo aceptado trae otra versión que ClientVersion
-    CredentialsTooLong, // la cuenta o la clave no entran en el login (WriteLoginRequest)
-    ApplicationFailed,  // el consumidor síncrono no pudo aplicar una recepción
-    NoReply,            // un estado Waiting* pasó ReplyTimeout sin su respuesta (CL4.5)
+    ConnectServerLost,  // the CS connection closed: the reason goes to the log and stays in the connection
+    EmptyServerList,    // the CS has no server
+    GameServerLost,     // the GS connection closed
+    HelloRejected,      // the GS hello carries a result other than HelloAccepted
+    VersionMismatch,    // the accepted hello carries a version other than ClientVersion
+    CredentialsTooLong, // the account or the password does not fit in the login (WriteLoginRequest)
+    ApplicationFailed,  // the synchronous consumer could not apply a receive
+    NoReply,            // a Waiting* state passed ReplyTimeout without its reply (CL4.5)
 };
 } // namespace Client::Session

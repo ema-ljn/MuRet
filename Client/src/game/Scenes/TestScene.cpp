@@ -11,10 +11,10 @@ namespace Client::Scenes
 {
 namespace
 {
-// El ciclo de DAT_07d2d360: (n + 1) mod 32 en cada paso (02, "Qué corre por paso").
+// The cycle of DAT_07d2d360: (n + 1) mod 32 on each step (02, "Qué corre por paso").
 constexpr std::uint32_t CycleSteps = 32;
-// Los dos extremos del fondo: un azul oscuro al empezar el ciclo y uno claro a la mitad. Son de
-// MuRet, elegidos para que el ciclo se vea.
+// The background's two ends: a dark blue at the cycle's start and a light one at the middle. They are MuRet's,
+// chosen so the cycle shows.
 constexpr TestScene::Color Dark{0.08f, 0.10f, 0.18f};
 constexpr TestScene::Color Light{0.20f, 0.35f, 0.60f};
 } // namespace
@@ -45,8 +45,8 @@ bool TestScene::TakeTheSceneChange()
 
 TestScene::Color TestScene::Background(float alpha) const
 {
-    // La posición en el ciclo, en [0, 1), y una rampa que sube y baja: en 32 vuelve a 0 sin salto,
-    // así que la interpolación es continua también ahí. std::lerp da justo los extremos con 0 y 1.
+    // The position in the cycle, in [0, 1), and a ramp that goes up and down: at 32 it returns to 0 without a jump, so
+    // the interpolation is continuous there too. std::lerp gives exactly the ends with 0 and 1.
     const float position = (static_cast<float>(m_cycle) + alpha) / static_cast<float>(CycleSteps);
     const float ramp = position < 0.5f ? 2.0f * position : 2.0f - 2.0f * position;
     return {std::lerp(Dark.red, Light.red, ramp), std::lerp(Dark.green, Light.green, ramp),

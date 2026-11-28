@@ -16,11 +16,11 @@
 #include <optional>
 #include <string>
 
-// El HUD del juego (06 § HUD y ventanas, CL8 hito 2): 0x5a7320(1), lo que el dibujo del juego llama en 0x637660, las
-// superposiciones de 0x5b0550 (0x6376bb) y el cursor del juego, 0x5ac2d0, que llama dos veces (0x6376d7 y 0x6376e1).
-// En 640 × 480, con el estado de GL que dejan sus primitivas y con los rand() de la tabla de protección en su orden.
-// Lo que es de otra ola corta con su dirección donde su condición se cumple. Los modelos de los ítems de la UI (las
-// grillas, el cursor y las ranuras rápidas) van en el pase 3D de 0x5ac120 (Scenes/UiItemDrawing.h).
+// The game's HUD (06 § HUD y ventanas, CL8 milestone 2): 0x5a7320(1), which the game's draw calls at 0x637660, the
+// overlays of 0x5b0550 (0x6376bb) and the game cursor 0x5ac2d0, called twice (0x6376d7 and 0x6376e1). In 640 × 480,
+// with the GL state its primitives leave and the protection table's rand() in their order. What belongs to another
+// wave stops with its address where its condition holds. The UI item models (grids, cursor and quick slots) go in the
+// 3D pass of 0x5ac120 (Items/UiItemDrawing.h).
 namespace Client::Crt
 {
 class CrtRandom;
@@ -59,20 +59,20 @@ namespace Client::Hud
 struct GameHudContext
 {
     Kernel::WorldState& world;
-    // El rand() del frame y las cuentas de accesos del registro propio y de las celdas del héroe (+0x41c y +0x420):
-    // las reales, o las copias de un dibujo intermedio de MuRet.
+    // The frame's rand() and the access counts of the own record and the hero's cells (+0x41c and +0x420): the real
+    // ones, or the copies of a MuRet intermediate draw.
     Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
     std::uint8_t& cellXDepth;
     std::uint8_t& cellYDepth;
-    // Lo que el HUD escribe y dura de un frame al otro: los globales de HudState y 0x576353c (el humo de Crywolf, que
-    // 0x5a7520 apaga después de dibujarlo una vez). En un dibujo intermedio, copias que nadie vuelve a leer.
+    // What the HUD writes that lasts from one frame to the next: HudState's globals and 0x576353c (Crywolf's smoke,
+    // which 0x5a7520 turns off after drawing it once). In an intermediate draw, copies nobody reads again.
     Kernel::HudState& hud;
     std::uint8_t& crywolfSandOverlay;
-    // Lo que escribe la interfaz de Crywolf (0x4365c0): en un dibujo intermedio, la copia que nadie vuelve a leer;
-    // nullptr, la de WorldRuntime.
+    // What Crywolf's interface writes (0x4365c0): in an intermediate draw, the copy nobody reads again; nullptr,
+    // WorldRuntime's.
     Kernel::CrywolfInterface* crywolfInterface = nullptr;
-    // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
+    // 0x41ed10(id, 0, 0): the sound the main bar asks for (0x22, low life), the CL10 hook.
     std::optional<Audio::SoundId>& sound;
     std::function<void(Audio::SoundId)> soundRequest{};
 
@@ -83,70 +83,71 @@ struct GameHudContext
         else
             sound = id;
     }
-    // La UI vieja que lee y escribe 0x4a5120, los íconos de la barra (la lista de ventanas de [0x5763524]: +0x144, la
-    // carta nueva, y +0x148 y +0x14c, los dibujos y los parpadeos). Sin ella, la de WorldRuntime; en un dibujo
-    // intermedio, la copia de la proyección, que nadie vuelve a leer.
+    // The old UI that 0x4a5120 reads and writes, the bar's icons (the window list of [0x5763524]: +0x144, the new
+    // letter, and +0x148 and +0x14c, the drawings and blinks). Without it, WorldRuntime's; in an intermediate draw, the
+    // projection's copy, which nobody reads again.
     Ui::OldWindowManager* oldWindows = nullptr;
-    // Un dibujo intermedio de MuRet no escribe los avisos de los ítems puestos (D+0x44): van a una copia que nadie
-    // lee, y el frame siguiente del original los vuelve a escribir.
+    // A MuRet intermediate draw does not write the worn items' warnings (D+0x44): they go to a copy nobody reads, and
+    // the original's next frame writes them again.
     bool projecting = false;
-    // 0x6203c0 del pase del mundo de este frame, que leen los globos (0x5a9050 → 0x6205b0). Sin ella, un globo vivo
-    // corta.
+    // 0x6203c0 of this frame's world pass, which the bubbles read (0x5a9050 → 0x6205b0). Without it, a live bubble
+    // stops.
     const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
-    // Text.bmd, Item.bmd y Skill.bmd; sin alguna, lo que la lee corta con error.
+    // Text.bmd, Item.bmd and Skill.bmd; without one, whatever reads it stops with an error.
     const Tables::TextTable* texts = nullptr;
     const Tables::ItemTable* items = nullptr;
     const Tables::SkillTable* skills = nullptr;
-    // [0x6eed3c] + 0x8004, los 64 conjuntos de ItemSetOption.bmd que lee el cartel (0x40eca0); sin ellos, corta.
+    // [0x6eed3c] + 0x8004, the 64 sets of ItemSetOption.bmd the set label reads (0x40eca0); without them, it stops.
     const Tables::ItemSetOptionTable* setOptions = nullptr;
-    // [0x6eed3c] + 4, ItemSetType.bmd: el conjunto de cada tipo que leen el nombre y las opciones de un ítem en su
-    // tooltip (0x40cf30, 0x40eee0); sin ella, un ítem de conjunto corta.
+    // [0x6eed3c] + 4, ItemSetType.bmd: each type's set, read by an item's name and options in its tooltip (0x40cf30,
+    // 0x40eee0); without it, a set item stops.
     const Tables::ItemSetTypeTable* setTypes = nullptr;
-    // 0x5767b88: el reloj del mundo, en ms.
+    // 0x5767b88, in ms.
     float worldClock = 0.0f;
-    // GetTickCount del frame (Kernel::TickCountMs), que leen la cuenta de los eventos (0x40bab0) y el reloj de la
-    // interfaz de Crywolf (0x437410 y 0x437426), y que MuRet da también por el timeGetTime() de 0x63b0e3 (0x430180).
+    // The frame's GetTickCount (Kernel::TickCountMs), read by the events' countdown (0x40bab0) and Crywolf's interface
+    // clock (0x437410 and 0x437426), which MuRet also gives for the timeGetTime() of 0x63b0e3 (0x430180).
     std::uint32_t tickCount = 0;
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (Ui::MouseIn640x480).
+    // 0x7d3682c and 0x7d36828, in 640 × 480 (Ui::MouseIn640x480).
     Ui::Point mouse{};
-    // 0x7d36874: el botón izquierdo abajo.
+    // 0x7d36874
     bool leftDown = false;
-    // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: la subclase de los EDIT (0x467b10) las
-    // mira con el WM_GETTEXT de 0x468320 (Ui::OldWindowDrawContext::arrowHeld).
+    // GetAsyncKeyState of the arrows (0x25..0x28) at draw time: the EDIT subclass (0x467b10) checks them with the
+    // WM_GETTEXT of 0x468320 (Ui::OldWindowDrawContext::arrowHeld).
     bool arrowHeld = false;
-    // GetAsyncKeyState(0x11) en el dibujo: Ctrl abajo, que 0x558bb0 mira para atacar a otro jugador (0x558e7f).
+    // GetAsyncKeyState(0x11) at draw time, which 0x558bb0 checks to attack another player (0x558e7f).
     bool controlDown = false;
-    // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
-    // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
+    // The chosen server's code (App::ServerSession::ChosenServer), the source of [0x6d5ec4] (the group's place) and
+    // [0x6d5ecc] (the number) that the character window reads; without it, it stops.
     std::optional<std::uint16_t> chosenServer{};
-    // [0x6d5edc], el lugar del personaje: el banco de teclas +0x26c + lugar·0x100. Sin sesión, el banco inicial 0.
+    // [0x6d5edc], the character's slot: the key bank +0x26c + slot·0x100. Without a session, the initial bank 0.
     std::optional<std::uint8_t> chosenSlot{};
-    // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
-    // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
+    // What the 3D stretch of 0x5ac120 needs to draw the UI items' models. Without it (a scene without the model
+    // library, like the tests'), each item takes its rand() without drawing.
     Items::UiItemResources* uiItems = nullptr;
-    // Las marcas de los gremios (0x5f16a0) del marcador de la guerra (0x5a7640); sin ellas, la guerra corta.
+    // The guild marks (0x5f16a0) of the war scoreboard (0x5a7640); without them, the war stops.
     Guild::IGuildMarks* guildMarks = nullptr;
-    // El send() de la sesión, el del A9 que pide el tooltip de las mascotas (0x423c87..0x42403d). Sin él (una escena
-    // sin sesión, como las de las pruebas), el pedido no sale; un dibujo intermedio no lo llama.
+    // The session's send(), for the A9 that asks for the pets' tooltip (0x423c87..0x42403d). Without it (a scene
+    // without a session, like the tests'), the request does not go out; an intermediate draw does not call it.
     std::function<void(Protocol::Outgoing)> send{};
 };
 
-// 0x5a7320(1): los 31 hijos del HUD en su orden (06 § HUD y ventanas, "El HUD hijo por hijo"). En el estado base
-// (sin ventanas, sin party, sin evento) dibuja las arenas o el humo de su mapa, la barra de abajo, la experiencia,
-// el AG, los orbes, la skill actual, las celdas, los números y las cuentas de las ranuras rápidas, y saca del rand()
-// los cierres del registro propio de las flechas, los doce avisos de durabilidad, la barra, la experiencia, el AG y
-// la barra principal, las consultas del comercio y de la tienda y las dos celdas del héroe.
+// 0x5a7320(1): the HUD's 31 children in their order (06 § HUD y ventanas, "El HUD hijo por hijo"). In the base state
+// (no windows, no party, no event) it draws its map's sands or smoke, the bottom bar, the experience, the AG, the orbs,
+// the current skill, the cells, the numbers and the quick slots' counts, and takes from rand() the closes of the
+// arrows' own record, the twelve durability warnings, the bar, the experience, the AG and the main bar, the trade and
+// shop queries and the hero's two cells.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHud(GameHudContext& context);
 
-// 0x5b0550: las superposiciones del modo 0x77f3b08 (GameHelps.h): la primera ayuda de F1 (1) y, con el modo que quede,
-// la segunda (2) o la del ítem (3); con otro, IsOpen(2) y la ventana /move (el 4, GameMoveWindow.h).
+// 0x5b0550: the overlays of mode 0x77f3b08 (Tooltips/GameHelps.h): F1's first help (1) and, with the mode left, the
+// second (2) or the item's (3); with another, IsOpen(2) and the /move window (the 4, GameMoveWindow.h).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context);
 
-// 0x5ac2d0: el cursor del juego, con su tabla de elección (06 § El cursor del juego). Con un diálogo (0x7d3a10c) o
-// 0x78abb20, el de siempre; si no, el del ítem del piso (5), el de hablar (6, que anima sus UV con el reloj), el del
-// objeto, el de atacar (4, o 0x68d en el 30), el de los comandos (0x65a), el de reparar (7, girando con el modo 2),
-// el de apretar (3, o 0xa con 0x77f3b5c) y el normal (2). Lo que lee de otra ola corta con su dirección.
+// 0x5ac2d0: the game cursor, with its choice table (06 § El cursor del juego). With a dialog (0x7d3a10c) or
+// 0x78abb20, the usual one; otherwise the floor item's (5), the talk one (6, which animates its UVs with the clock),
+// the object's, the attack one (4, or 0x68d in the 30), the commands' (0x65a), the repair one (7, spinning with mode
+// 2), the press one (3, or 0xa with 0x77f3b5c) and the normal one (2). What it reads from another wave stops with its
+// address.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context);
 } // namespace Client::Hud

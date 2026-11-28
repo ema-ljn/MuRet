@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-// Client::UI: el par de diálogos del juego y 0x6236f0 (CL8 hito 1; 06 § HUD y ventanas, "Los diálogos del juego").
+// Client::Ui: the game's dialog pair and 0x6236f0 (CL8 milestone 1; 06 § HUD y ventanas, "Los diálogos del juego").
 namespace
 {
 using Client::Ui::DialogState;

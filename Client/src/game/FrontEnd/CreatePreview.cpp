@@ -47,27 +47,27 @@ namespace
 constexpr std::string_view LogoFolder = "Logo\\";
 constexpr Data::Textures::Sampling LogoSampling{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};
 constexpr Data::Textures::Sampling NewFaceSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
-// 0x3e99999a en las acciones 0 y 1 de los NewFace (0x61ca30), por 2 en 0x4f9580 (0xa8 a 0xac).
+// 0x3e99999a in actions 0 and 1 of the NewFace (0x61ca30), times 2 in 0x4f9580 (0xa8 to 0xac).
 constexpr float NewFaceActionSpeed = 0.3f;
 constexpr float NewFaceSpeedFactor = 2.0f;
 constexpr std::uint8_t StandingAction = 0;
 constexpr std::uint8_t GreetingAction = 1;
-// 0x511290(objeto, modelo, 0, 0, 0): x = y = 0 · 100 + 50.
+// 0x511290(object, model, 0, 0, 0): x = y = 0 · 100 + 50.
 constexpr glm::vec3 PreviewPosition{50.0f, 50.0f, 0.0f};
-// 0x511290 prende la luz por vértice (+0xe8 en 1, 0x511be6), y 0x6002e0 les pisa el color a los
-// 0xa8 a 0xac con 4,8 (0x4099999a, 0x6007d7) antes de RenderBody(2): cada esquina queda en
-// 4,8 · max(0,2; 0,8 · L · n + 0,4), que el shader recorta a 1 salvo de espaldas a la luz.
+// 0x511290 turns on the per-vertex light (+0xe8 at 1, 0x511be6), and 0x6002e0 overwrites the color of
+// 0xa8 to 0xac with 4.8 (0x4099999a, 0x6007d7) before RenderBody(2): each corner ends at
+// 4.8 · max(0.2; 0.8 · L · n + 0.4), which the shader clamps to 1 except facing away from the light.
 constexpr float PreviewColor = 4.8f;
-// 0x63e460: el desplazamiento de la cámara, sus ángulos y el fov.
+// 0x63e460.
 constexpr glm::vec3 CameraOffset{10.0f, -500.0f, 48.0f};
 constexpr glm::vec3 CameraAngles{-90.0f, 0.0f, 0.0f};
 constexpr float PreviewFieldOfView = 10.0f;
-// El viewport: 410 × 335 de 640 × 480 desde la esquina de la caja.
+// 410 × 335 of 640 × 480 from the box's corner.
 constexpr int PreviewWidth = 410;
 constexpr int PreviewHeight = 335;
 
-// Lo de 0x63e460 por clase: los ángulos (+0x1c), la escala (+0xc) y el corrimiento que suma a la
-// posición (0x6b8bf0 en x con la clase 2 y 0x6b8bf8 en z con la 3).
+// What 0x63e460 has per class: the angles (+0x1c), the scale (+0xc) and the offset it adds to the
+// position (0x6b8bf0 in x with class 2 and 0x6b8bf8 in z with class 3).
 struct ClassPose
 {
     glm::vec3 angles;
@@ -110,7 +110,7 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
     m_startupTexture = startupTexture;
     m_startupStore = startupTexture ? &textures : nullptr;
     m_models.Clear();
-    // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
+    // The textures point to what the slots ask for: they go before them.
     m_textures.reset();
     m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SelectionModelsFirstSlot)
                                          : Models::ModelTextureSlots(SelectionModelsFirstSlot));
@@ -154,7 +154,7 @@ void SelectionModels::Release()
     }
     if (m_startupStore != nullptr)
     {
-        // 0x61cc65..0x61cc7a: el slot se libera aun si no lo reemplazó NewFace05.
+        // 0x61cc65..0x61cc7a: the slot is released even if NewFace05 did not replace it.
         m_startupStore->Release(slot);
         m_startupStore = nullptr;
         m_startupTexture.reset();

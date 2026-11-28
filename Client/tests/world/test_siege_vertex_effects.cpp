@@ -22,7 +22,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 
-// La primera semilla desde 1 con la que `wanted` (que saca los rand() que mira) da true.
+// The first seed from 1 for which `wanted` (which takes the rand() it checks) gives true.
 std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& wanted)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -54,9 +54,9 @@ Client::Effects::ModelEffect Fragment(std::int16_t type, std::int32_t subtype)
     return effect;
 }
 
-// 0x51d32c y 0x51d3b1: el 0x13c y las piedritas 0x12d/2 y 0x12e/2 empujan ((r & 127) + 32) · 0,1f y caen r % 5 + 2;
-// la escala, ((r & 1) + 10) · 0,25 el 0x13c y ((r & 1) + 4) · 0,12f + 0,6f las piedritas. Después la cola común de
-// 0x51d50d: vida, yaw del empuje, tres ángulos y la altura. Ocho rand().
+// 0x51d32c and 0x51d3b1: the 0x13c and the pebbles 0x12d/2 and 0x12e/2 push ((r & 127) + 32) · 0.1f and fall
+// r % 5 + 2; the scale, ((r & 1) + 10) · 0.25 for the 0x13c and ((r & 1) + 4) · 0.12f + 0.6f for the pebbles. Then
+// the common tail of 0x51d50d: life, push yaw, three angles and the height. Eight rand().
 TEST(SiegeVertexEffectsTest, TheGolemStoneAndTheShowerTakeTheirSmallPush)
 {
     for (const auto& [type, subtype] :
@@ -92,8 +92,8 @@ TEST(SiegeVertexEffectsTest, TheGolemStoneAndTheShowerTakeTheirSmallPush)
     }
 }
 
-// 0x51d438..0x51d4a4: el 0x12e/3 solo saca la vida, la escala ((r % 3 + 2) · 0,12f + 1,2f) y la caída (−20 − r % 5)
-// y pone +0xd8 en 1,8f: conserva los ángulos y la altura del llamador.
+// 0x51d438..0x51d4a4: the 0x12e/3 only takes the life, the scale ((r % 3 + 2) · 0.12f + 1.2f) and the fall
+// (−20 − r % 5) and sets +0xd8 to 1.8f: it keeps the caller's angles and height.
 TEST(SiegeVertexEffectsTest, TheThrownStoneKeepsItsAnglesAndHeight)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();
@@ -113,9 +113,9 @@ TEST(SiegeVertexEffectsTest, TheThrownStoneKeepsItsAnglesAndHeight)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x5291ce..0x529385: el 0x13c cae de a 3 (no de a 6 como la puerta) y, después de la vida · 0,1f, con rand() & 3 en
-// 0 suelta la piedra 0x6ec/5 y el humo 0x5f2/0x15; con rand() % 10 en 0, el polvo 0x5f3/0. Con la tabla de partículas
-// llena, solo esos dos rand().
+// 0x5291ce..0x529385: the 0x13c falls by 3 (not by 6 like the gate) and, after the life · 0.1f, with rand() & 3 at
+// 0 drops stone 0x6ec/5 and smoke 0x5f2/0x15; with rand() % 10 at 0, dust 0x5f3/0. With the particle table full,
+// only those two rand().
 TEST(SiegeVertexEffectsTest, TheGolemStoneFallsLikeAStoneAndCrumbles)
 {
     const Client::Effects::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 0; }};
@@ -152,7 +152,7 @@ TEST(SiegeVertexEffectsTest, TheGolemStoneFallsLikeAStoneAndCrumbles)
     expected.Discard(3);
     EXPECT_EQ(random.State(), expected.State());
 
-    // Sin la piedra, el polvo 0x5f3/0 sale con rand() % 10 en 0.
+    // Without the stone, the dust 0x5f3/0 comes out with rand() % 10 at 0.
     const std::uint32_t dusty = SeedWhere(
         [](CrtRandom& draw)
         {
@@ -169,8 +169,8 @@ TEST(SiegeVertexEffectsTest, TheGolemStoneFallsLikeAStoneAndCrumbles)
     EXPECT_EQ(room.All()[0].subtype, 0);
 }
 
-// 0x52938a..0x5293ea: el 0x12d/2, con rand() % 10 en 0, baja su z a la altura del terreno de este paso y suelta el
-// humo 0x5f2/0xb; el 0x12e/2 no.
+// 0x52938a..0x5293ea: the 0x12d/2, with rand() % 10 at 0, lowers its z to this step's terrain height and drops smoke
+// 0x5f2/0xb; the 0x12e/2 does not.
 TEST(SiegeVertexEffectsTest, TheShowerStoneSmokesOnTheGround)
 {
     const Client::Effects::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 40; }};
@@ -204,9 +204,9 @@ TEST(SiegeVertexEffectsTest, TheShowerStoneSmokesOnTheGround)
     }
 }
 
-// 0x5290df..0x5291c9: el 0x12e/3 baja su velocidad z en +0xd8, que sube 0,3f. En el aire, con rand() & 1 en 0, el
-// humo 0x5f2/0x18 de escala 0,2f (0x5291c1) con sus rand(). Con el terreno por encima, la z en el terreno y la
-// velocidad, los ángulos y +0x58 en 0; con rand() % 10 en 0, el mismo humo.
+// 0x5290df..0x5291c9: the 0x12e/3 lowers its z speed by +0xd8, which goes up by 0.3f. In the air, with rand() & 1 at
+// 0, smoke 0x5f2/0x18 of scale 0.2f (0x5291c1) with its rand(). With the terrain above, z at the terrain and the
+// speed, the angles and +0x58 at 0; with rand() % 10 at 0, the same smoke.
 TEST(SiegeVertexEffectsTest, TheThrownStoneFallsFasterAndLands)
 {
     const std::uint32_t even = SeedWhere(
@@ -331,7 +331,7 @@ TEST(SiegeVertexEffectsTest, IndeterminateDustCutsAfterThePrefixUnlessTheParticl
     Client::Particles::Particles particles;
     const Client::Effects::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 0; }};
     Client::Crt::CrtRandom random(1);
-    // El segundo sorteo de seed1 es18467; seed2 produce29216. Buscar el primer estado con polvo.
+    // The second draw of seed 1 is 18467; seed 2 gives 29216. Find the first state with dust.
     for (int attempt = 0; attempt < 100; ++attempt)
     {
         auto effect = initial;

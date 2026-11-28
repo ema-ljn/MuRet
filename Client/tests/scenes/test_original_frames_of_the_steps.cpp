@@ -15,18 +15,16 @@ namespace
 using Client::Models::OriginalFramePace;
 using Client::Scenes::OriginalFramesOfTheSteps;
 
-// Cómo cuenta los frames del original el dibujo: por los pasos de la escena, o por el reloj del dibujo, como
-// antes de #307.
+// How the draw counts the frames of the original: by the scene's steps, or by the draw clock, as before #307.
 enum class Count
 {
     ByTheSteps,
     ByTheDrawClock
 };
 
-// Los pasos que vio cada frame del original, con el bucle de GameLoop a `fps` (con `jitter` de más o de menos en
-// cada dibujo, un patrón fijo): antes de cada dibujo, los pasos de 40 ms que debe el reloj, y después el dibujo,
-// que cuenta sus frames del original. Un dibujo que corre más de un frame deja una entrada por frame, y el
-// segundo no vio ningún paso.
+// The steps each frame of the original saw, with GameLoop's loop at `fps` (with `jitter` more or less on each draw, a
+// fixed pattern): before each draw, the 40 ms steps the clock owes, and then the draw, which counts its frames of the
+// original. A draw that runs more than one frame leaves one entry per frame, and the second saw no step.
 std::vector<int> StepsPerOriginalFrame(double fps, int draws, Count count = Count::ByTheSteps,
                                        Client::Core::Duration jitter = {})
 {
@@ -65,10 +63,9 @@ std::vector<int> StepsPerOriginalFrame(double fps, int draws, Count count = Coun
     return seen;
 }
 
-// 02 § El ritmo: el original corre los pasos que debe y después dibuja, así que cada frame ve 1 o 2 pasos
-// (75 cada 64 frames). Contados por los pasos de la escena, igual a cualquier FPS de MuRet desde 25; por el
-// reloj del dibujo, a 60 FPS, unos 40 por minuto no veían ninguno y el siguiente veía 2: la capa del que camina
-// daba un tirón (#307).
+// 02 § El ritmo: the original runs the steps it owes and then draws, so each frame sees 1 or 2 steps (75 every 64
+// frames). Counted by the scene's steps, the same at any MuRet FPS from 25; by the draw clock, at 60 FPS, about 40
+// per minute saw none and the next saw 2: the walker's cape jerked (#307).
 TEST(OriginalFramesOfTheStepsTest, EachOriginalFrameSeesOneOrTwoStepsAtAnyFrameRate)
 {
     for (const double fps : {25.0, 30.0, 59.94, 60.0, 75.0, 144.0, 240.0})
@@ -81,14 +78,14 @@ TEST(OriginalFramesOfTheStepsTest, EachOriginalFrameSeesOneOrTwoStepsAtAnyFrameR
             EXPECT_TRUE(steps == 1 || steps == 2) << fps << " FPS: un frame del original vio " << steps << " pasos";
             twos += steps == 2 ? 1 : 0;
         }
-        // 11 de cada 64 frames ven 2 pasos: 220 de los 1.279 de un minuto.
+        // 11 of every 64 frames see 2 steps: 220 of the 1279 in a minute.
         EXPECT_NEAR(static_cast<double>(twos) / static_cast<double>(seen.size()), 11.0 / 64.0, 0.01) << fps << " FPS";
     }
 }
 
-// Por debajo de 25 FPS un dibujo puede deber más de 46,875 ms de pasos. El original nunca corre dos frames en un
-// dibujo (0x637791..0x6381a5: los pasos que debe y un dibujo): cada frame ve al menos un paso, y por debajo de
-// 21,33 FPS, más de dos, como el original en una máquina lenta. Con un poco de jitter, lo mismo.
+// Below 25 FPS a draw can owe more than 46.875 ms of steps. The original never runs two frames in one draw
+// (0x637791..0x6381a5: the steps it owes and one draw): each frame sees at least one step, and below 21.33 FPS, more
+// than two, like the original on a slow machine. With a little jitter, the same.
 TEST(OriginalFramesOfTheStepsTest, BelowTwentyFiveFpsNoOriginalFrameIsLeftWithoutSteps)
 {
     using namespace std::chrono_literals;
@@ -108,8 +105,8 @@ TEST(OriginalFramesOfTheStepsTest, BelowTwentyFiveFpsNoOriginalFrameIsLeftWithou
     }
 }
 
-// Con el reloj del dibujo, a 22 FPS no había frames sin pasos; contados por los pasos sin el tope de uno por
-// dibujo, eran 139 por minuto. Con el tope, ninguno, y cada dibujo es como mucho un frame.
+// With the draw clock, at 22 FPS there were no frames without steps; counted by the steps without the one-per-draw
+// cap, there were 139 per minute. With the cap, none, and each draw is at most one frame.
 TEST(OriginalFramesOfTheStepsTest, ADrawIsAtMostOneOriginalFrame)
 {
     OriginalFramesOfTheSteps frames;
@@ -118,15 +115,15 @@ TEST(OriginalFramesOfTheStepsTest, ADrawIsAtMostOneOriginalFrame)
     {
         frames.Step();
     }
-    // 200 ms de pasos: el original lo habría dibujado en un solo frame.
+    // 200 ms of steps: the original would have drawn it in a single frame.
     EXPECT_EQ(frames.FramesAtDraw(OriginalFramePace::ByTheClock), 1);
-    // Lo que sobró no alcanza para otro frame sin pasos nuevos.
+    // What was left over is not enough for another frame without new steps.
     EXPECT_EQ(frames.FramesAtDraw(OriginalFramePace::ByTheClock), 0);
     frames.Step();
     EXPECT_EQ(frames.FramesAtDraw(OriginalFramePace::ByTheClock), 1) << "lo que sobró del frame más 40 ms";
 }
 
-// Lo de antes de #307, por el reloj del dibujo: a 60 FPS hay frames del original que no ven ningún paso.
+// Before #307, by the draw clock.
 TEST(OriginalFramesOfTheStepsTest, ByTheDrawClockSomeOriginalFramesSawNoStepAt60Fps)
 {
     const std::vector<int> seen = StepsPerOriginalFrame(60.0, 60 * 60, Count::ByTheDrawClock);
@@ -138,7 +135,6 @@ TEST(OriginalFramesOfTheStepsTest, ByTheDrawClockSomeOriginalFramesSawNoStepAt60
     EXPECT_GT(none, 0);
 }
 
-// Sin pasos no hay frame del original: los dibujos de en medio son intermedios.
 TEST(OriginalFramesOfTheStepsTest, WithoutStepsTheDrawsAreIntermediate)
 {
     OriginalFramesOfTheSteps frames;
@@ -152,9 +148,9 @@ TEST(OriginalFramesOfTheStepsTest, WithoutStepsTheDrawsAreIntermediate)
     EXPECT_EQ(frames.FramesAtDraw(OriginalFramePace::ByTheClock), 1) << "80 ms de pasos: un frame de 46,875";
 }
 
-// El PrepareFrame del juego pregunta antes del dibujo si va a ser un frame del original, para olvidar el scan de
-// 0x505820 solo entonces: la respuesta es la del FramesAtDraw que sigue, a cualquier FPS y en los dos modos, y
-// preguntar no cuenta el dibujo. A más de 25 FPS en el desacoplado hay dibujos intermedios; en el fiel, ninguno.
+// The game's PrepareFrame asks before the draw whether it will be a frame of the original, to forget 0x505820's scan
+// only then: the answer is that of the FramesAtDraw that follows, at any FPS and in both modes, and asking does not
+// count the draw. Above 25 FPS in decoupled mode there are intermediate draws; in faithful, none.
 TEST(OriginalFramesOfTheStepsTest, TheQuestionBeforeTheDrawIsWhatTheDrawCounts)
 {
     for (const OriginalFramePace pace : {OriginalFramePace::ByTheClock, OriginalFramePace::OncePerDraw})
@@ -192,7 +188,7 @@ TEST(OriginalFramesOfTheStepsTest, TheQuestionBeforeTheDrawIsWhatTheDrawCounts)
     }
 }
 
-// En el modo fiel, uno por dibujo, como antes: el dibujo fiel ya viene después de sus pasos.
+// The faithful draw already comes after its steps.
 TEST(OriginalFramesOfTheStepsTest, InTheFaithfulModeEachDrawIsOneOriginalFrame)
 {
     OriginalFramesOfTheSteps frames;

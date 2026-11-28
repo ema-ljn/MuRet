@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// 0x660ad6..0x660b98: los datos de la barra del diálogo calculados durante su dibujo, con los FSTP de la x87.
+// 0x660ad6..0x660b98: the dialog bar's data computed during its drawing, with the x87 FSTPs.
 namespace Client::Ui
 {
 struct PanelTimerFrame

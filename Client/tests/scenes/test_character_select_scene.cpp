@@ -109,10 +109,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::CharacterSelectScene: la escena 4 con una ServerSession sobre un FakeSocket
-// (support/SessionHarness.h), una biblioteca de modelos de un triángulo y el RecordingFrameTarget.
-// La lista es sintética (support/CharacterPackets.h). El dibujo de cada personaje contra la traza
-// está en GoldenCharacterDrawing.
+// Client::Scenes::CharacterSelectScene: scene 4 with a ServerSession over a FakeSocket (support/SessionHarness.h), a
+// one-triangle model library and the RecordingFrameTarget. The list is synthetic (support/CharacterPackets.h). Each
+// character's draw against the trace is in GoldenCharacterDrawing.
 namespace
 {
 using Client::Assets::SelectionTextureSet;
@@ -144,15 +143,14 @@ using Client::Tests::TemporaryFolder;
 
 using Kind = FrameEvent::Kind;
 
-// Player.bmd con 48 huesos y cuatro acciones de dos keys iguales, que avanzan una key por paso: en la
-// 3, la de parado, todos en el origen; en las otras, 100 más arriba. Después del primer paso, la pose
-// es la de la acción de ahora, sin la mezcla con la anterior. Y un modelo de un triángulo, del hueso
-// 0, para cualquier otro número.
+// Player.bmd with 48 bones and four actions of two equal keys, which advance one key per step: in the 3, the standing
+// one, all at the origin; in the others, 100 higher. After the first step, the pose is the current action's, without
+// blending with the previous one. And a one-triangle model, of bone 0, for any other number.
 class FlatModels final : public IModelLibrary
 {
 public:
-    // Con `withWings`, las alas del equipo en 0 (0x1a12) tienen un esqueleto de un hueso que sube 10
-    // de una key a la otra, y se dibujan.
+    // With `withWings`, the wings of equipment 0 (0x1a12) have a one-bone skeleton that rises 10 from one key to the
+    // other, and are drawn.
     explicit FlatModels(bool withWings = false) : m_withWings(withWings)
     {
         SkeletonBone wingBone;
@@ -184,7 +182,7 @@ public:
         m_part.meshes = {mesh};
     }
 
-    // Sin la sombra (0x20b), que tiene sus tests en CharacterDrawingTest: así se cuentan las partes.
+    // Without the shadow (0x20b), which has its tests in CharacterDrawingTest: so the parts can be counted.
     [[nodiscard]] const Model* Find(Client::Models::ModelId model) const override
     {
         return model.Value() == 0x20b ? nullptr : &m_part;
@@ -206,14 +204,14 @@ public:
         }
         return m_withWings && model.Value() == 0x1a12 ? &m_wings : nullptr;
     }
-    // Las alas, que cuelgan, van con su textura: 0x60b3d0 (DrawGameHanging) la pide. El cuerpo, sin.
+    // The wings, which hang, go with their texture: 0x60b3d0 (DrawGameHanging) asks for it. The body, without.
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
         if (m_withWings && model.Value() == 0x1a12)
             return m_wingTextures;
         return {};
     }
-    // Las texturas de efectos de GameModels: las piden las partículas y los sprites del mundo 54.
+    // GameModels' effect textures: the particles and the sprites of world 54 ask for them.
     [[nodiscard]] std::optional<Client::Models::TextureMetadata>
     TextureMetadataOf(std::uint32_t selector) const override
     {
@@ -234,7 +232,7 @@ public:
         m_withRaven = true;
     }
 
-    // El esqueleto del cuerpo también para el Uniria y el Dinorant (Skill\Rider01.bmd y Rider02.bmd).
+    // The body's skeleton also for the Uniria and the Dinorant (Skill\Rider01.bmd and Rider02.bmd).
     void EnableHelpers()
     {
         m_withHelpers = true;
@@ -250,7 +248,7 @@ private:
     Model m_part;
 };
 
-// Dos personajes sintéticos en los lugares 0 y 3; el 3 bloqueado si `locked`.
+// Two synthetic characters in slots 0 and 3; the 3 locked if `locked`.
 std::vector<CharacterEntryFields> TwoCharacters(bool locked = false)
 {
     return {{0, "char0001"}, {3, "char0002", 1, static_cast<std::uint8_t>(locked ? 0x01 : 0x00)}};
@@ -264,7 +262,7 @@ void RetainLoginTerrain(Client::FrontEnd::SelectionState& selection)
     selection.RetainTerrain(LoginMap, std::move(terrain).Value());
 }
 
-// Seis píxeles por byte: los textos de los tests no llegan a los 256 del corte de 0x555190.
+// Six pixels per byte: the tests' texts do not reach the 256 of 0x555190's cut.
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
 public:
@@ -343,14 +341,14 @@ struct Harness
             data, models, withSession ? &online.session : nullptr);
     }
 
-    // El login aceptado y Enter: la escena pidió la lista.
+    // The login accepted and Enter: the scene asked for the list.
     void Enter()
     {
         ASSERT_NO_FATAL_FAILURE(online.LogIn());
         ASSERT_TRUE(scene->Enter().HasValue());
     }
 
-    // Y la lista, y un paso: los personajes están en sus lugares.
+    // And the list, and a step: the characters are in their places.
     void ReachTheChoice(bool locked = false)
     {
         ASSERT_NO_FATAL_FAILURE(ReachTheChoiceWith(TwoCharacters(locked)));
@@ -364,7 +362,7 @@ struct Harness
         Step();
     }
 
-    // Un paso con `bytes` del GameServer, en claro.
+    // A step with `bytes` from the GameServer, in clear.
     void Receive(const std::vector<std::byte>& bytes)
     {
         online.socket.reads = {bytes};
@@ -377,13 +375,13 @@ struct Harness
         Step();
     }
 
-    // Los F3 02 que mandó el cliente, sin el XOR32.
+    // The F3 02 the client sent, without the XOR32.
     [[nodiscard]] std::vector<Client::Network::Packet> DeletesSent() const
     {
         return CharacterPacketsSent(0x02);
     }
 
-    // Los F3 de `subcode` que mandó el cliente, sin el XOR32.
+    // The F3 of `subcode` the client sent, without the XOR32.
     [[nodiscard]] std::vector<Client::Network::Packet> CharacterPacketsSent(std::uint8_t subcode) const
     {
         Client::Network::PacketSerials serials;
@@ -404,7 +402,7 @@ struct Harness
         return found;
     }
 
-    // La lista con las clases que se pueden crear hasta `creatable` (pkt[4]).
+    // The list with the classes that can be created up to `creatable` (pkt[4]).
     void ReachTheChoiceWithClasses(std::uint8_t creatable)
     {
         ASSERT_NO_FATAL_FAILURE(Enter());
@@ -430,7 +428,7 @@ struct Harness
         ++steps;
     }
 
-    // El fixture de escena aplica las copias del collector; el pipeline síncrono real se prueba aparte.
+    // The scene fixture applies the collector's copies; the real synchronous pipeline is tested apart.
     void Poll()
     {
         static_cast<void>(online.session.Poll());
@@ -450,7 +448,7 @@ struct Harness
         return target.frames.back().events;
     }
 
-    // Dónde cae en la pantalla el pecho del personaje del lugar `slot`, con el pase del último frame.
+    // Where the chest of the character in slot `slot` lands on screen, with the last frame's pass.
     [[nodiscard]] glm::vec2 OnScreen(std::uint8_t slot)
     {
         const std::vector<FrameEvent> events = Frame();
@@ -495,7 +493,7 @@ struct Harness
     std::optional<CharacterSelectScene> scene;
 };
 
-// 0x634c60 manda el F3 00 al pasar a la escena 4: acá, la escena al entrar.
+// 0x634c60 sends the F3 00 on going to scene 4: here, the scene on entering.
 TEST(CharacterSelectSceneTest, EnterRequestsTheList)
 {
     Harness tested;
@@ -505,7 +503,7 @@ TEST(CharacterSelectSceneTest, EnterRequestsTheList)
     EXPECT_EQ(tested.online.session.State(), SessionState::WaitingCharacterList);
 }
 
-// 0x6342c0 y 0x634680 salen antes del 0x33: la escena no dibuja nada.
+// 0x6342c0 and 0x634680 leave before the 0x33: the scene draws nothing.
 TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
 {
     Harness tested;
@@ -515,9 +513,9 @@ TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
     EXPECT_TRUE(tested.Frame().empty());
 }
 
-// Y sin el verdadero de 0x634680, 0x637700 no presenta el frame (0x6385e1..0x6385f7): el clear no se ve y
-// queda el último del login. La escena retiene el frame hasta que un paso vio la lista, como el login con
-// el connect (Q-C85): la lista que llegó en un Poll sin paso todavía no puso a los personajes.
+// And without 0x634680's true, 0x637700 does not present the frame (0x6385e1..0x6385f7): the clear is not seen and
+// the login's last one stays. The scene holds the frame until a step saw the list, like the login with the connect
+// (Q-C85): the list that arrived in a Poll without a step has not placed the characters yet.
 TEST(CharacterSelectSceneTest, HoldsTheLastFrameUntilAStepSawTheList)
 {
     Harness tested;
@@ -533,8 +531,8 @@ TEST(CharacterSelectSceneTest, HoldsTheLastFrameUntilAStepSawTheList)
     EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
 }
 
-// Con un aviso abierto antes de la lista, MuRet lo muestra (AFailureBeforeTheListShowsTheNoticeToo): el
-// frame no se retiene. Sin sesión no hay lista que esperar.
+// With a notice open before the list, MuRet shows it (AFailureBeforeTheListShowsTheNoticeToo): the frame is not held.
+// Without a session there is no list to wait for.
 TEST(CharacterSelectSceneTest, ANoticeOrNoSessionDoesNotHoldTheFrame)
 {
     Harness failed;
@@ -549,7 +547,7 @@ TEST(CharacterSelectSceneTest, ANoticeOrNoSessionDoesNotHoldTheFrame)
     EXPECT_FALSE(offline.scene->HoldsTheLastFrame());
 }
 
-// La barra de la selección (0x63ec00): el adorno, la franja sin textura y los cuatro botones.
+// The selection bar (0x63ec00): the ornament, the untextured strip and the four buttons.
 void ExpectTheBar(const std::vector<FrameEvent>& events, std::size_t first)
 {
     ASSERT_GE(events.size(), first + 6);
@@ -563,8 +561,8 @@ void ExpectTheBar(const std::vector<FrameEvent>& events, std::size_t first)
     }
 }
 
-// Los fondos, el fin del 2D, el pase del mundo y los modelos, en el orden de 0x634680, y la UI arriba:
-// la barra (0x65fe00).
+// The backgrounds, the end of the 2D, the world pass and the models, in 0x634680's order, and the UI on top: the bar
+// (0x65fe00).
 TEST(CharacterSelectSceneTest, DrawsInTheOrderOfTheOriginal)
 {
     Harness tested;
@@ -582,8 +580,8 @@ TEST(CharacterSelectSceneTest, DrawsInTheOrderOfTheOriginal)
     ExpectTheBar(events, 5);
 }
 
-// 0x634980: después de la UI (0x65fe00), el cursor del juego en el mouse del WndProc, con la mezcla
-// normal y en blanco. Antes de la lista, 0x634680 sale antes de llegar ahí: sin cursor.
+// 0x634980: after the UI (0x65fe00), the game cursor at the WndProc's mouse, with the normal blend and in white.
+// Before the list, 0x634680 leaves before getting there: no cursor.
 TEST(CharacterSelectSceneTest, DrawsTheGameCursorAfterTheUi)
 {
     Harness tested(true, false, true);
@@ -607,12 +605,12 @@ TEST(CharacterSelectSceneTest, DrawsTheGameCursorAfterTheUi)
     {
         EXPECT_EQ(vertex.color, Client::Render::Color{});
     }
-    // (100, 200) de 640 × 480 es (100, 200) del WndProc: el quad va de x 98 a 122.
+    // (100, 200) of 640 × 480 is the WndProc's (100, 200): the quad goes from x 98 to 122.
     EXPECT_EQ(cursor.vertices.front().x, 98.0f);
 }
 
-// Cada personaje en su lugar de 0x4c20a0, a z = 163, con su giro: el triángulo de cada parte empieza
-// en la posición del personaje.
+// Each character at its place from 0x4c20a0, at z = 163, with its turn: each part's triangle starts at the
+// character's position.
 TEST(CharacterSelectSceneTest, PlacesEachCharacterInItsSlot)
 {
     Harness tested;
@@ -622,8 +620,8 @@ TEST(CharacterSelectSceneTest, PlacesEachCharacterInItsSlot)
 
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(models, events.end());
-    // Seis mallas de un triángulo por personaje: con el equipo en 0, el casco es el 0x1012, que deja
-    // ver la cabeza de la clase (0x512930).
+    // Six one-triangle meshes per character: with equipment 0, the helmet is the 0x1012, which shows the class's head
+    // (0x512930).
     ASSERT_EQ(models->modelVertices.size(), 2u * 6u * 3u);
     for (const auto& [first, slot] : {std::pair{0u, 0u}, std::pair{18u, 3u}})
     {
@@ -634,8 +632,8 @@ TEST(CharacterSelectSceneTest, PlacesEachCharacterInItsSlot)
     }
 }
 
-// El clic elige al que está bajo el mouse (el picking con el rayo del pase), y uno sobre nadie, a
-// ninguno (el -1 de 0x6342c0).
+// The click picks the one under the mouse (the picking with the pass's ray), and one over nobody, none (0x6342c0's
+// -1).
 TEST(CharacterSelectSceneTest, AClickChoosesTheOneUnderTheMouse)
 {
     Harness tested;
@@ -649,9 +647,8 @@ TEST(CharacterSelectSceneTest, AClickChoosesTheOneUnderTheMouse)
     EXPECT_EQ(tested.online.session.ChosenCharacter(), nullptr);
 }
 
-// La luz de un personaje en la selección (06 § El color del personaje), con el mouse afuera para
-// que nadie lleve el contorno: la de cada lugar, los 18 primeros vértices del lugar 0 y los otros
-// del 3.
+// A character's light in the selection (06 § El color del personaje), with the mouse outside so that nobody has the
+// outline: each slot's, the first 18 vertices of slot 0 and the others of slot 3.
 std::pair<float, float> LightsAfterChoosing(std::uint8_t slot)
 {
     Harness tested;
@@ -666,7 +663,7 @@ std::pair<float, float> LightsAfterChoosing(std::uint8_t slot)
     return {models->modelVertices[0].color.red, models->modelVertices[18].color.red};
 }
 
-// 0x50ba30: la base es 0,4 más +0xf4, y el elegido lleva +0xf4 en 1 (0x634680).
+// 0x50ba30: the base is 0.4 plus +0xf4, and the chosen one has +0xf4 at 1 (0x634680).
 TEST(SelectLightTest, ChosenIsBrighter)
 {
     const auto [slot0, slot3] = LightsAfterChoosing(3);
@@ -675,8 +672,8 @@ TEST(SelectLightTest, ChosenIsBrighter)
     EXPECT_FLOAT_EQ(slot0, 0.5f);
 }
 
-// El personaje del lugar 0 es el "héroe" (DAT_0743a170, el objeto 0 desde el arranque): en la escena
-// 4, 0x50ba30 le da 0,5 más +0xf4 (0x50d219), y la traza lo muestra: 1,5 con él elegido.
+// Slot 0's character is the "hero" (DAT_0743a170, object 0 since startup): in scene 4, 0x50ba30 gives it 0.5 plus
+// +0xf4 (0x50d219), and the trace shows it: 1.5 with it chosen.
 TEST(SelectLightTest, TheFirstSlotIsTheHero)
 {
     const auto [slot0, slot3] = LightsAfterChoosing(0);
@@ -685,7 +682,6 @@ TEST(SelectLightTest, TheFirstSlotIsTheHero)
     EXPECT_FLOAT_EQ(slot3, 0.4f);
 }
 
-// Enter con uno elegido va a la carga del mundo; sin elegido, nada.
 TEST(CharacterSelectSceneTest, EnterGoesToWorldLoading)
 {
     Harness tested;
@@ -699,8 +695,8 @@ TEST(CharacterSelectSceneTest, EnterGoesToWorldLoading)
     EXPECT_EQ(tested.scene->Next(), SceneId::WorldLoading);
 }
 
-// Q-C45: un Enter corto, apretado y soltado en el mismo paso, también entra. El original lo pierde
-// si cae entre dos lecturas de GetAsyncKeyState; MuRet lo ve, como en el login.
+// Q-C45: a short Enter, pressed and released in the same step, also enters. The original loses it if it falls between
+// two GetAsyncKeyState reads; MuRet sees it, as in the login.
 TEST(CharacterSelectSceneTest, AShortEnterAlsoEnters)
 {
     Harness tested;
@@ -713,7 +709,7 @@ TEST(CharacterSelectSceneTest, AShortEnterAlsoEnters)
     EXPECT_EQ(tested.scene->Next(), SceneId::WorldLoading);
 }
 
-// El doble clic sobre uno lo elige y entra (Q-C99: el reloj propio de 0x640940).
+// The double click on one picks it and enters (Q-C99: 0x640940's own clock).
 TEST(CharacterSelectSceneTest, ADoubleClickEnters)
 {
     Harness tested;
@@ -727,7 +723,7 @@ TEST(CharacterSelectSceneTest, ADoubleClickEnters)
     EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
 }
 
-// Con el bit 0x1 de las banderas, el aviso 0x84 y no se entra.
+// With bit 0x1 of the flags, notice 0x84 and no entry.
 TEST(CharacterSelectSceneTest, ALockedCharacterShowsTheNotice)
 {
     Harness tested;
@@ -742,7 +738,7 @@ TEST(CharacterSelectSceneTest, ALockedCharacterShowsTheNotice)
                                     { return event.texture == std::optional<TextureSlot>{TextureSlot{0x727}}; }));
 }
 
-// 0x6342c0 no hace nada antes de la lista: un clic de entonces no es el primero de un doble clic.
+// 0x6342c0 does nothing before the list: a click from then is not the first of a double click.
 TEST(CharacterSelectSceneTest, AClickBeforeTheListIsNotHalfADoubleClick)
 {
     Harness shown;
@@ -762,7 +758,7 @@ TEST(CharacterSelectSceneTest, AClickBeforeTheListIsNotHalfADoubleClick)
     EXPECT_EQ(tested.scene->Next(), std::nullopt);
 }
 
-// Con el aviso abierto, la escena atiende solo el aviso (Q-C84): un clic sobre otro no lo elige.
+// With the notice open, the scene handles only the notice (Q-C84): a click on another one does not pick it.
 TEST(CharacterSelectSceneTest, WithTheNoticeOpenAClickDoesNotChoose)
 {
     Harness tested;
@@ -777,15 +773,15 @@ TEST(CharacterSelectSceneTest, WithTheNoticeOpenAClickDoesNotChoose)
     EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
 }
 
-// Si el frame trae la caja de un aviso (0x727, de las ventanas).
+// If the frame has a notice's box (0x727, from the windows).
 bool ShowsANotice(const std::vector<FrameEvent>& events)
 {
     return std::ranges::any_of(events, [](const FrameEvent& event)
                                { return event.texture == std::optional<TextureSlot>{TextureSlot{0x727}}; });
 }
 
-// Q-C70: en la selección (el modo 4 de la UI), el FD_CLOSE abre el aviso 0x70, como en el login, y
-// su OK cierra el juego (Q-C69). La escena no vuelve al login.
+// Q-C70: in the selection (the UI's mode 4), FD_CLOSE opens notice 0x70, as in the login, and its OK closes the game
+// (Q-C69). The scene does not go back to the login.
 TEST(CharacterSelectSceneTest, AFailedSessionShowsTheConnectNoticeAndItsOkQuits)
 {
     Harness tested;
@@ -803,8 +799,8 @@ TEST(CharacterSelectSceneTest, AFailedSessionShowsTheConnectNoticeAndItsOkQuits)
     EXPECT_TRUE(tested.scene->WantsToQuit());
 }
 
-// Sin la lista y con el aviso abierto (la sesión cayó), el aviso lleva el cursor encima: el del sistema
-// está escondido, y sin este no se vería dónde está el mouse.
+// Without the list and with the notice open (the session fell), the notice has the cursor on top: the system one is
+// hidden, and without this one the mouse could not be seen.
 TEST(CharacterSelectSceneTest, TheNoticeBeforeTheListHasTheGameCursor)
 {
     Harness tested(true, false, true);
@@ -823,8 +819,8 @@ TEST(CharacterSelectSceneTest, TheNoticeBeforeTheListHasTheGameCursor)
     EXPECT_EQ(events.back().vertices.front().x, 98.0f);
 }
 
-// El 0x70 que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no cierra el
-// juego antes de que se vea el aviso; con la lista y antes de ella.
+// The 0x70 that opens in a step is handled from the next one: an Enter of that step does not close the game before
+// the notice is seen; with the list and before it.
 TEST(CharacterSelectSceneTest, TheFailureNoticeIsSeenEvenWithAnEnterInItsStep)
 {
     for (const bool withTheList : {true, false})
@@ -848,7 +844,7 @@ TEST(CharacterSelectSceneTest, TheFailureNoticeIsSeenEvenWithAnEnterInItsStep)
     }
 }
 
-// Esperando la lista, lo mismo: el aviso se dibuja aunque la escena todavía no dibuje nada más.
+// Waiting for the list, the same: the notice is drawn even though the scene does not draw anything else yet.
 TEST(CharacterSelectSceneTest, AFailureBeforeTheListShowsTheNoticeToo)
 {
     Harness tested;
@@ -862,7 +858,7 @@ TEST(CharacterSelectSceneTest, AFailureBeforeTheListShowsTheNoticeToo)
     EXPECT_EQ(tested.scene->Next(), std::nullopt);
 }
 
-// Los vértices del segundo pase del contorno, en (0,7; 0,2; 0), y el primero de ellos.
+// The vertices of the outline's second pass, at (0.7, 0.2, 0), and the first of them.
 std::vector<Client::Render::ModelVertex> OutlineVertices(const std::vector<FrameEvent>& events)
 {
     std::vector<Client::Render::ModelVertex> outline;
@@ -881,8 +877,8 @@ std::vector<Client::Render::ModelVertex> OutlineVertices(const std::vector<Frame
     return outline;
 }
 
-// El personaje bajo el mouse lleva el contorno (0x510d00 con DAT_006c8e30): las seis mallas de un
-// triángulo, en su lugar; el de al lado no, y sin el mouse encima, nadie.
+// The character under the mouse has the outline (0x510d00 with DAT_006c8e30): the six one-triangle meshes, in its
+// place; the one next to it does not, and without the mouse over, nobody.
 TEST(CharacterSelectSceneTest, TheOneUnderTheMouseIsOutlined)
 {
     Harness tested;
@@ -901,8 +897,8 @@ TEST(CharacterSelectSceneTest, TheOneUnderTheMouseIsOutlined)
     EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
 }
 
-// Con el aviso abierto, la UI tiene el mouse (+0x8de8) y 0x634680 no llama a 0x59ec80: el contorno
-// queda en el último que estuvo bajo el mouse, aunque el mouse se vaya.
+// With the notice open, the UI has the mouse (+0x8de8) and 0x634680 does not call 0x59ec80: the outline stays on the
+// last one under the mouse, even if the mouse leaves.
 TEST(CharacterSelectSceneTest, WithTheNoticeOpenTheOutlineStaysWhereItWas)
 {
     Harness tested;
@@ -920,9 +916,9 @@ TEST(CharacterSelectSceneTest, WithTheNoticeOpenTheOutlineStaysWhereItWas)
     EXPECT_NEAR(outline[0].position.x, CharacterSlots[3].position.x, 1e-2f);
 }
 
-// 0x50ba30 avanza las alas (0x509340 con +0x308: 0,25 keys por frame del original, 1 en las acciones
-// 0x1e y 0x1f), y la selección las avanza por tiempo, como la mascota: las alas del lugar 0 (la
-// séptima malla, después de las cinco partes y la cabeza) suben.
+// 0x50ba30 advances the wings (0x509340 with +0x308: 0.25 keys per frame of the original, 1 in actions 0x1e and 0x1f),
+// and the selection advances them by time, like the pet: slot 0's wings (the seventh mesh, after the five parts and
+// the head) rise.
 TEST(CharacterSelectSceneTest, TheWingsMove)
 {
     Harness tested(true, true);
@@ -945,7 +941,6 @@ TEST(CharacterSelectSceneTest, TheWingsMove)
     EXPECT_GT(wingZ(), before);
 }
 
-// Leave suelta las de la escena y las de las ventanas.
 TEST(CharacterSelectSceneTest, LeaveReleasesItsSlots)
 {
     Harness tested;
@@ -960,7 +955,6 @@ TEST(CharacterSelectSceneTest, LeaveReleasesItsSlots)
     }
 }
 
-// Sin servidor, los fondos y el pase, sin personajes.
 TEST(CharacterSelectSceneTest, WithoutASessionOnlyDraws)
 {
     Harness tested(false);
@@ -975,7 +969,7 @@ TEST(CharacterSelectSceneTest, WithoutASessionOnlyDraws)
     ExpectTheBar(events, 5);
 }
 
-// La respuesta del F3 01 con 1: char0003 de clase 1 (0x20) y nivel 1, en `slot`.
+// The F3 01 reply with 1: char0003 of class 1 (0x20) and level 1, in `slot`.
 std::vector<std::byte> CreatedBytes(std::uint8_t slot)
 {
     std::vector<std::byte> created = Client::Tests::Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01});
@@ -988,7 +982,7 @@ std::vector<std::byte> CreatedBytes(std::uint8_t slot)
     return created;
 }
 
-// El quad del botón de conectar (0x11): con uno elegido y sin el mouse, el cuadro normal.
+// The connect button's quad (0x11): with one chosen and without the mouse, the normal frame.
 FrameEvent ConnectQuad(const std::vector<FrameEvent>& events)
 {
     const auto connect = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0x11}}, &FrameEvent::texture);
@@ -996,7 +990,6 @@ FrameEvent ConnectQuad(const std::vector<FrameEvent>& events)
     return connect == events.end() ? FrameEvent{} : *connect;
 }
 
-// Los textos que dibuja el frame, en orden.
 std::vector<std::string> TextsOf(const std::vector<FrameEvent>& events)
 {
     std::vector<std::string> texts;
@@ -1016,14 +1009,13 @@ bool Draws(const std::vector<FrameEvent>& events, std::string_view text)
     return std::ranges::find(texts, text) != texts.end();
 }
 
-// Los botones de la barra en 640 × 480: crear en (22, 399), conectar en (509, 399) y borrar en
-// (564, 399), de 54 × 30.
+// The bar's buttons in 640 × 480: create at (22, 399), connect at (509, 399) and delete at (564, 399), 54 × 30.
 constexpr glm::vec2 CreateButton{30.0f, 410.0f};
 constexpr glm::vec2 ConnectButton{515.0f, 410.0f};
 constexpr glm::vec2 DeleteButton{570.0f, 410.0f};
 
-// La barra no es modal, pero tapa su rectángulo (+0x8de8, 06 § La lógica): un clic encima no elige
-// ni saca la elección (el contorno queda en el último, OverTheBarTheOutlineStaysWhereItWas).
+// The bar is not modal, but covers its rectangle (+0x8de8, 06 § La lógica): a click on it neither picks nor clears
+// the choice (the outline stays on the last one, OverTheBarTheOutlineStaysWhereItWas).
 TEST(CharacterSelectSceneTest, TheBarBlocksThePicking)
 {
     Harness tested;
@@ -1035,13 +1027,12 @@ TEST(CharacterSelectSceneTest, TheBarBlocksThePicking)
 
     ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
-    // Afuera de la barra, el mismo clic sobre nadie saca la elección.
     tested.ClickAt({300.0f, 390.0f});
     EXPECT_EQ(tested.online.session.ChosenCharacter(), nullptr);
 }
 
-// El armado de la barra (0x63e820) mira las banderas de la lista una vez: con el bit 0x10 en alguno,
-// los textos 436 y 437; sin él, no.
+// The bar's build (0x63e820) looks at the list's flags once: with bit 0x10 in any, texts 436 and 437; without it,
+// not.
 TEST(CharacterSelectSceneTest, ABlockedAccountShowsItsTexts)
 {
     Harness blocked;
@@ -1055,7 +1046,7 @@ TEST(CharacterSelectSceneTest, ABlockedAccountShowsItsTexts)
     EXPECT_FALSE(Draws(free.Frame(), "cuenta del ADM"));
 }
 
-// Conectar es lo de Enter (0x633c10): sin elegido está deshabilitado; con uno, entra.
+// Connect is Enter's (0x633c10): without a chosen one it is disabled; with one, it enters.
 TEST(CharacterSelectSceneTest, TheConnectButtonEnters)
 {
     Harness tested;
@@ -1069,7 +1060,7 @@ TEST(CharacterSelectSceneTest, TheConnectButtonEnters)
     EXPECT_EQ(tested.scene->Next(), std::optional{SceneId::WorldLoading});
 }
 
-// La v de arriba del botón de crear en el frame: el cuadro 3 (deshabilitado) baja la textura.
+// The top v of the create button in the frame: frame 3 (disabled) lowers the texture.
 float CreateButtonTop(const std::vector<FrameEvent>& events)
 {
     const auto create = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0xf}}, &FrameEvent::texture);
@@ -1081,7 +1072,7 @@ float CreateButtonTop(const std::vector<FrameEvent>& events)
     return std::ranges::min(create->vertices, {}, &Client::Render::SpriteVertex::v).v;
 }
 
-// 0x63eb40: crear, con un lugar libre de los cinco. Con los cinco, el cuadro deshabilitado.
+// 0x63eb40: create, with a free place of the five. With the five, the disabled frame.
 TEST(CharacterSelectSceneTest, CreateIsDisabledWithFiveCharacters)
 {
     Harness two;
@@ -1095,7 +1086,7 @@ TEST(CharacterSelectSceneTest, CreateIsDisabledWithFiveCharacters)
     EXPECT_GT(CreateButtonTop(five.Frame()), CreateButtonTop(two.Frame()));
 }
 
-// 0x63edf0: uno del gremio no se borra (el 0x92), y el aviso se cierra con su OK.
+// 0x63edf0: a guild member is not deleted (the 0x92), and the notice closes with its OK.
 TEST(CharacterSelectSceneTest, AGuildMemberIsNotDeleted)
 {
     Harness tested;
@@ -1110,8 +1101,8 @@ TEST(CharacterSelectSceneTest, AGuildMemberIsNotDeleted)
     EXPECT_TRUE(tested.DeletesSent().empty());
 }
 
-// De nivel 80 o más, en un grupo que no se llama como el texto 559, el 0x83. El servidor elegido
-// del arnés es el 400, del grupo 20 (el texto 1829, que falta: vacío).
+// Level 80 or more, in a group not named like text 559, the 0x83. The harness's chosen server is 400, of group 20
+// (text 1829, which is missing: empty).
 TEST(CharacterSelectSceneTest, AHighLevelOneOutsideTheFreeGroupIsNotDeleted)
 {
     Harness tested;
@@ -1123,9 +1114,9 @@ TEST(CharacterSelectSceneTest, AHighLevelOneOutsideTheFreeGroupIsNotDeleted)
     EXPECT_TRUE(Draws(tested.Frame(), "nivel alto"));
 }
 
-// El borrado entero: la confirmación con el nombre (0x5e), el código (0x5f, solo dígitos y con el
-// campo de texto), el F3 02 con el nombre y el código y el "espere" (0x5d), y con la respuesta 1, el
-// 0x60: el personaje se va y nadie queda elegido.
+// The whole deletion: the confirmation with the name (0x5e), the code (0x5f, digits only and with the text field),
+// the F3 02 with the name and the code and the "wait" (0x5d), and with reply 1, the 0x60: the character leaves and
+// nobody stays chosen.
 TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
 {
     Harness tested;
@@ -1164,7 +1155,7 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
     EXPECT_FALSE(ShowsANotice(tested.Frame()));
 }
 
-// El trapecio que deja el dibujo de la selección: el de su punto fijo en el 54, con su cámara.
+// The trapezoid the selection's draw leaves: that of its fixed point on the 54, with its camera.
 Client::Terrain::TerrainPolygon SelectionPolygon()
 {
     return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, 54,
@@ -1172,9 +1163,9 @@ Client::Terrain::TerrainPolygon SelectionPolygon()
                                              Client::Camera::SelectionCamera().angles.z);
 }
 
-// 0x63475c: cada frame del original, después de la cámara (0x6346ca), 0x5fbb00 deja en los globales el trapecio
-// del punto fijo de la selección (0x6346b5..0x6346c3), que no es ningún personaje, y la transición del nivel
-// efectivo (0x5fb731) con el nivel que pidió la cámara, en 0. Un dibujo intermedio, al mismo reloj, no escribe.
+// 0x63475c: each frame of the original, after the camera (0x6346ca), 0x5fbb00 leaves in the globals the trapezoid of
+// the selection's fixed point (0x6346b5..0x6346c3), which is no character, and the effective level's transition
+// (0x5fb731) with the level the camera asked for, at 0. An intermediate draw, at the same clock, does not write.
 TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
 {
     Client::Kernel::WorldState world;
@@ -1200,8 +1191,8 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// 0x6342f9 recorre los 400 lugares, también un vivo que no vino en la lista de cinco. Su modelo, sin cargar, es el
-// registro en 0 de 0x5769ad8: 0x4f9580 no avanza el cuadro y 0x505de0 arma la caja y sale (revisión B del hito 2, B3).
+// 0x6342f9 walks the 400 places, also a living one that did not come in the list of five. Its model, not loaded, is
+// 0x5769ad8's zero record: 0x4f9580 does not advance the frame and 0x505de0 builds the box and leaves.
 TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 {
     Client::Kernel::WorldState world;
@@ -1221,11 +1212,12 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
     tested.Step();
 
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
-    // El 0xf1 cae (0x4fb910, sin rand(): el piso del login lo sube y +0xe4 rebota) y su cuadro sigue en 0.
+    // The 0xf1 falls (0x4fb910, without rand(): the login's floor raises it and +0xe4 bounces) and its frame stays at
+    // 0.
     EXPECT_EQ(other.floatE4, static_cast<float>(-6.0 * static_cast<double>(-0.4f)));
     EXPECT_EQ(other.animation.frame, 0.0f);
     EXPECT_EQ(cloth.logicSteps, 78);
-    // Los 32 rand() del paso sin él y los 24 de su paso.
+    // The step's 32 rand() without it and the 24 of its step.
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 32 + 24).State());
 }
 
@@ -1283,12 +1275,12 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     }
     EXPECT_EQ(world.Inventory().secondCells[0].id, 7u);
     EXPECT_EQ(world.Inventory().secondCells[0].occupied, 2);
-    // Constructores56, vaciado3848, propio3848, preview19, partículas2 y finalmente tela9; antes, los 65.536 del pasto
-    // (0x5f8300) de la carga del 54 (0x61a560), que no crea objetos con rand().
+    // Constructors 56, emptying 3848, own record 3848, preview 19, particles 2 and finally cloth 9; before, the 65536
+    // of the grass (0x5f8300) of the 54's load (0x61a560), which creates no objects with rand().
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 3848 + 65536).State());
 }
 
-// 0x5bc0f1/0x5bc102: ambas máscaras se consultan en orden; el único modo activo manda un 31 antes del comercio.
+// 0x5bc0f1/0x5bc102: both masks are queried in order; the only active mode sends a 31 before the trade.
 TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInventoryAndTradeReset)
 {
     for (const std::uint8_t mode : {std::uint8_t{1}, std::uint8_t{2}})
@@ -1323,12 +1315,12 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
         std::vector<Client::Protocol::Outgoing> sent;
         resources.sendGamePacket = [&](Client::Protocol::Outgoing packet)
         {
-            EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode); // El 31 precede a 0x44dcf0.
+            EXPECT_EQ(runtime.panels.delegated.siegeWeapon, mode); // The 31 precedes 0x44dcf0.
             EXPECT_EQ(world->Inventory().cells[0].id, Client::Kernel::EmptyOwnItemId);
             EXPECT_EQ(world->Inventory().cells[0].occupied, 0);
             EXPECT_EQ(runtime.social.trade.changed, 1);
             EXPECT_EQ(runtime.social.trade.ownGrid[0].id, 7);
-            EXPECT_EQ(world->OwnCharacter().equipment[0].scalar1Low, 31u); // El reset propio viene después.
+            EXPECT_EQ(world->OwnCharacter().equipment[0].scalar1Low, 31u); // The own reset comes after.
             sent.push_back(std::move(packet));
         };
         Harness tested(true, false, false, &selection, world.get(), &cloth, true, &resources);
@@ -1340,7 +1332,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
         EXPECT_TRUE(Client::Tests::SameBytes(sent.front().packet.Bytes(), Client::Tests::Bytes({0xc1, 3, 0x31})));
         EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
         EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 0);
-        EXPECT_EQ(runtime.panels.delegated.siegeGate, 1); // 0x5bbe10 sólo consulta las dos armas.
+        EXPECT_EQ(runtime.panels.delegated.siegeGate, 1); // 0x5bbe10 only queries the two weapons.
         EXPECT_EQ(runtime.social.trade.changed, 0);
         EXPECT_EQ(runtime.social.trade.ownGrid[0].id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(world->OwnCharacter().equipment[0].scalar1Low, 0u);
@@ -1348,9 +1340,9 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
     }
 }
 
-// 0x634199..0x634227: el primer paso con la lista apaga los campos del diálogo (0x77f3b68..0x77f3b6a), abre el campo
-// del chat, vacía el área vieja con 120 entradas y, con los dos números de pkt[5] (el bajo y el alto), escribe el 1240
-// como sistema y sin nombre.
+// 0x634199..0x634227: the first step with the list clears the dialog fields (0x77f3b68..0x77f3b6a), opens the chat
+// field, empties the old area with 120 entries and, with the two numbers of pkt[5] (the low and the high), writes the
+// 1240 as system and without a name.
 TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccountNotice)
 {
     Client::Kernel::WorldState world;
@@ -1382,7 +1374,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
     EXPECT_EQ(area.rows.back().type, Client::Ui::SystemMessage);
 }
 
-// Con pkt[5] en 0, solo las entradas vacías.
+// With pkt[5] at 0, only the empty entries.
 TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
 {
     Client::Kernel::WorldState world;
@@ -1398,7 +1390,7 @@ TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
     EXPECT_EQ(world.Runtime().chat.area.rows.back().text, "");
 }
 
-// 0x633f91 vacía el lugar 7 antes de que 0x4fd5f0 consulte su ítem en 0x54efe0.
+// 0x633f91 empties slot 7 before 0x4fd5f0 queries its item at 0x54efe0.
 TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBodyReadsItemBmd)
 {
     Client::Kernel::WorldState world;
@@ -1408,7 +1400,7 @@ TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBody
     Harness tested(true, false, false, &selection, &world, &cloth, false);
 
     CharacterEntryFields hero;
-    hero.equipment[4] = 3; // petNONE: esta prueba llega a las tablas del actor, no al helper6342f4.
+    hero.equipment[4] = 3; // Pet NONE: this test reaches the actor's tables, not the helper 0x6342f4.
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
 
     ASSERT_FALSE(tested.scene->Failure().has_value());
@@ -1496,7 +1488,7 @@ TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCou
     tested.Step();
 
     ASSERT_FALSE(tested.scene->Failure());
-    // Rand18..20:26176,32288,30626. La cabeza sortea antes de ambos vientos.
+    // Rand 18..20: 26176, 32288, 30626. The head draws before both winds.
     EXPECT_EQ(preview.headTurn.target, (glm::vec2{328.0f, 346.0f}));
     EXPECT_FLOAT_EQ(preview.headTurn.angles.x, 353.6f);
     EXPECT_FLOAT_EQ(preview.headTurn.angles.y, 357.2f);
@@ -1538,9 +1530,9 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
     EXPECT_EQ(*reused, 0u);
 }
 
-// Q-C293: 0x6342f4 pasa los diez ayudantes por 0x444010 en la escena 4, sin la guarda del jinete muerto de la 5
-// (0x44402a): el Uniria del jinete 0, muerto, toma su lugar y su acción, el alpha en 1 (con +0x80 del jinete en 0),
-// la velocidad 0,34 y el byte vivo del jinete (0x444ac0), y la selección sigue.
+// Q-C293: 0x6342f4 passes the ten helpers through 0x444010 in scene 4, without scene 5's dead rider guard (0x44402a):
+// rider 0's Uniria, dead, takes its place and its action, alpha at 1 (with the rider's +0x80 at 0), speed 0.34 and
+// the rider's alive byte (0x444ac0), and the selection goes on.
 TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
 {
     Client::Kernel::WorldState world;
@@ -1567,8 +1559,8 @@ TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
     EXPECT_EQ(helpers[1].horse.speed, std::bit_cast<float>(0x3eae147bu));
 }
 
-// 0x63486a: 0x4453b0 en la escena 4 dibuja el Uniria del personaje con la escala en 1 (0x4452f1, no el 0,9 de
-// 0x443d70) y el color de 0x5ffce0 con la luz del terreno 54, sin cortar.
+// 0x63486a: 0x4453b0 in scene 4 draws the character's Uniria with the scale at 1 (0x4452f1, not 0x443d70's 0.9) and
+// 0x5ffce0's color with the terrain light of the 54, without stopping.
 TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
 {
     Client::Kernel::WorldState world;
@@ -1577,7 +1569,7 @@ TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
     tested.models.EnableHelpers();
-    // Sin nada en las manos ni alas: la cola de 0x50ba30 dibuja lo que cuelga, y el modelo de prueba no tiene ítems.
+    // Nothing in the hands and no wings: 0x50ba30's tail draws what hangs, and the test model has no items.
     CharacterEntryFields hero;
     hero.equipment[0] = 0xff;
     hero.equipment[1] = 0xff;
@@ -1601,8 +1593,8 @@ TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
     EXPECT_EQ(uniria.scale, 1.0f);
 }
 
-// Un ayudante que 0x444010 no sabe mover corta en 0x6342f4 → 0x444083 antes del pool, el preview y las partículas
-// (0x634315): no gasta rand() ni avanza el contador, y el alpha que subió (0x4e9980) queda.
+// A helper 0x444010 cannot move stops at 0x6342f4 → 0x444083 before the pool, the preview and the particles
+// (0x634315): it spends no rand() and does not advance the counter, and the alpha that rose (0x4e9980) stays.
 TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePool)
 {
     Client::Kernel::WorldState world;
@@ -1675,8 +1667,8 @@ TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClot
     EXPECT_NE(tested.scene->Failure()->find("0x634315"), std::string::npos);
 }
 
-// ADR 0009: si 0x5fb570 no puede con la D de la cámara (no entra en un int64), el frame se corta antes del pase
-// del mundo, la escena queda en Failure con la dirección y los globales quedan como estaban.
+// ADR 0009: if 0x5fb570 cannot handle the camera's D (it does not fit in an int64), the frame is cut before the world
+// pass, the scene stays in Failure with the address and the globals stay as they were.
 TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
 {
     Client::Kernel::WorldState world;
@@ -1697,7 +1689,7 @@ TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
     EXPECT_TRUE(tested.Frame().empty()) << "cortada, no vuelve a dibujar";
 }
 
-// F3 02 desactiva la vista desde Poll: sin otro Step desaparece, pero el registro CPU sigue vivo.
+// F3 02 deactivates the view from Poll: without another Step it disappears, but the CPU record stays alive.
 TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWithoutStep)
 {
     constexpr std::uint8_t DeletedSlot = 1;
@@ -1729,7 +1721,7 @@ TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWi
     EXPECT_EQ(selection.Slots()[DeletedSlot].position, retained.position);
 }
 
-// Las respuestas que no borran: 0 → 0x92, 3 → 0x62 y otra → 0x89 (0x4e2fe9). El personaje queda.
+// The replies that do not delete: 0 → 0x92, 3 → 0x62 and another → 0x89 (0x4e2fe9). The character stays.
 TEST(CharacterSelectSceneTest, ARefusedDeletionShowsItsNotice)
 {
     for (const auto& [result, text] : {std::pair{std::uint8_t{0}, std::string_view{"del gremio"}},
@@ -1749,8 +1741,7 @@ TEST(CharacterSelectSceneTest, ARefusedDeletionShowsItsNotice)
         EXPECT_TRUE(Draws(events, text)) << static_cast<int>(result);
         ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
         EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
-        // Los dos siguen: seis mallas cada uno, con el contorno (dos pases más) en el 3, el último
-        // que estuvo bajo el mouse.
+        // Both stay: six meshes each, with the outline (two more passes) on the 3, the last one under the mouse.
         const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
         ASSERT_NE(models, events.end());
         EXPECT_EQ(models->modelVertices.size(), 2u * 6u * 3u + 2u * 6u * 3u);
@@ -1758,7 +1749,7 @@ TEST(CharacterSelectSceneTest, ARefusedDeletionShowsItsNotice)
     }
 }
 
-// Esc en la confirmación o en el código cierra sin mandar nada (0x6436a0).
+// Esc in the confirmation or in the code closes without sending anything (0x6436a0).
 TEST(CharacterSelectSceneTest, CancellingTheDeletionSendsNothing)
 {
     Harness tested;
@@ -1781,8 +1772,8 @@ TEST(CharacterSelectSceneTest, CancellingTheDeletionSendsNothing)
     EXPECT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
 }
 
-// El que creó la sesión (F3 01 con 1) aparece en su lugar, con las partes de su clase y sin equipo
-// (Q-C103), y los otros siguen con su animación.
+// The one the session created (F3 01 with 1) appears in its place, with its class's parts and without equipment
+// (Q-C103), and the others keep their animation.
 TEST(CharacterSelectSceneTest, ACreatedOneAppearsWhenPollIsFollowedByRenderWithoutStep)
 {
     Harness tested;
@@ -1797,8 +1788,8 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsWhenPollIsFollowedByRenderWitho
     EXPECT_FALSE(models->modelVertices.empty());
 }
 
-// Dos F3 01 idénticos construyen dos veces: el segundo reinicia la pose aunque SameEntry dé igual.
-// Los vértices del mundo del slot 1 permiten observarlo sin que Hero ni la cámara expliquen el cambio.
+// Two identical F3 01 build twice: the second restarts the pose even though SameEntry says they are equal.
+// Slot 1's world vertices let it be observed without Hero or the camera explaining the change.
 TEST(CharacterSelectSceneTest, AnIdenticalCreationRestartsItsVisualWhenPollIsFollowedByRenderWithoutStep)
 {
     constexpr int SelectionMap = 54;
@@ -1887,8 +1878,7 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
     const std::vector<FrameEvent> events = tested.Frame();
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(models, events.end());
-    // Las cinco partes de la clase, sin la cabeza (que va solo con los cascos 0x1012 y otros), de un
-    // triángulo cada una.
+    // The class's five parts, without the head (which goes only with the 0x1012 helmets and others), one triangle each.
     ASSERT_EQ(models->modelVertices.size(), 2u * 6u * 3u + 5u * 3u);
     const bool inSlotOne =
         std::ranges::any_of(models->modelVertices,
@@ -1898,7 +1888,7 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
                                        std::abs(vertex.position.y - CharacterSlots[1].position.y) < 1e-3f;
                             });
     EXPECT_TRUE(inSlotOne);
-    // Una vez: la línea es del cambio, no de cada paso.
+    // Once: the line belongs to the change, not to each step.
     tested.Step();
     EXPECT_EQ(std::ranges::count_if(tested.sink.lines, [](const std::string& line)
                                     { return line.find("la selección tiene ahora") != std::string::npos; }),
@@ -1907,8 +1897,8 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
                                     { return line.find("la selección tiene 2 personajes") != std::string::npos; }),
               1);
 }
-// La sesión termina con la respuesta del F3 02 y el cierre del GS en la misma lectura: el aviso 0x70
-// de la falla queda arriba y su OK cierra el juego; la respuesta no lo tapa.
+// The session ends with the F3 02 reply and the GS close in the same read: the failure's 0x70 notice stays on top
+// and its OK closes the game; the reply does not cover it.
 TEST(CharacterSelectSceneTest, AResultThatComesWithTheCloseLeavesTheFailureNotice)
 {
     Harness tested;
@@ -1931,8 +1921,8 @@ TEST(CharacterSelectSceneTest, AResultThatComesWithTheCloseLeavesTheFailureNotic
     EXPECT_TRUE(tested.scene->WantsToQuit());
 }
 
-// Un aviso que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no lo cierra
-// antes de que se vea.
+// A notice that opens in a step is handled from the next one: an Enter of that step does not close it before it is
+// seen.
 TEST(CharacterSelectSceneTest, TheResultNoticeIsSeenEvenWithAnEnterInItsStep)
 {
     Harness tested;
@@ -1948,8 +1938,8 @@ TEST(CharacterSelectSceneTest, TheResultNoticeIsSeenEvenWithAnEnterInItsStep)
     EXPECT_TRUE(Draws(tested.Frame(), "codigo invalido"));
 }
 
-// 0x511290 deja a un personaje nuevo sin gremio (+0x368 en 0xff): el que se crea en la sesión se
-// puede borrar, con la confirmación.
+// 0x511290 leaves a new character without a guild (+0x368 at 0xff): the one created in the session can be deleted,
+// with the confirmation.
 TEST(CharacterSelectSceneTest, ACreatedOneCanBeDeleted)
 {
     Harness tested;
@@ -1965,8 +1955,8 @@ TEST(CharacterSelectSceneTest, ACreatedOneCanBeDeleted)
     EXPECT_TRUE(Draws(tested.Frame(), "borrar char0003"));
 }
 
-// Los que siguen en la lista guardan su animación cuando entra otro: las alas del lugar 0 siguen
-// donde iban, como en una selección en la que no pasó nada.
+// Those still in the list keep their animation when another enters: slot 0's wings stay where they were going, as in
+// a selection where nothing happened.
 TEST(CharacterSelectSceneTest, TheOthersKeepTheirAnimation)
 {
     const auto wingZ = [](Harness& tested)
@@ -1993,7 +1983,8 @@ TEST(CharacterSelectSceneTest, TheOthersKeepTheirAnimation)
     EXPECT_FLOAT_EQ(wingZ(busy), wingZ(quiet));
 }
 
-// El que se crea en un lugar ocupado lo pisa (Q-C103): sale con las partes de su clase, sin equipo.
+// The one created in an occupied place overwrites it (Q-C103): it comes out with its class's parts, without
+// equipment.
 TEST(CharacterSelectSceneTest, ACreatedOneReplacesTheOneInItsSlot)
 {
     Harness tested;
@@ -2008,8 +1999,8 @@ TEST(CharacterSelectSceneTest, ACreatedOneReplacesTheOneInItsSlot)
     EXPECT_EQ(models->modelVertices.size(), 6u * 3u + 5u * 3u);
 }
 
-// Con un aviso abierto, los botones de la barra no tienen el mouse (0x65fc30 se lo da al aviso): el
-// de borrar, que se acaba de apretar, vuelve a su cuadro normal debajo de la confirmación.
+// With a notice open, the bar's buttons do not have the mouse (0x65fc30 gives it to the notice): delete, just
+// pressed, returns to its normal frame under the confirmation.
 TEST(CharacterSelectSceneTest, TheBarLetsGoOfTheMouseUnderANotice)
 {
     Harness tested;
@@ -2025,7 +2016,7 @@ TEST(CharacterSelectSceneTest, TheBarLetsGoOfTheMouseUnderANotice)
                     std::ranges::min(ConnectQuad(events).vertices, {}, &Client::Render::SpriteVertex::v).v);
 }
 
-// Con el mouse sobre la barra, el contorno se queda en el último (0x59ec80 no corre).
+// With the mouse over the bar, the outline stays on the last one (0x59ec80 does not run).
 TEST(CharacterSelectSceneTest, OverTheBarTheOutlineStaysWhereItWas)
 {
     Harness tested;
@@ -2042,15 +2033,15 @@ TEST(CharacterSelectSceneTest, OverTheBarTheOutlineStaysWhereItWas)
     tested.Step();
     EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
 }
-// Si el frame trae la ventana de crear: el fondo del nombre, cha_id (0xc).
+// If the frame has the create window: the name's background, cha_id (0xc).
 bool ShowsTheCreateWindow(const std::vector<FrameEvent>& events)
 {
     return std::ranges::any_of(events, [](const FrameEvent& event)
                                { return event.texture == std::optional<TextureSlot>{TextureSlot{0xc}}; });
 }
 
-// El botón de crear de la barra abre la ventana (0x65f690(+0x8498)), arriba de la barra y con el
-// campo del nombre, que tiene el teclado.
+// The bar's create button opens the window (0x65f690(+0x8498)), above the bar and with the name field, which has the
+// keyboard.
 TEST(CharacterSelectSceneTest, TheCreateButtonOpensTheWindow)
 {
     Harness tested;
@@ -2067,9 +2058,8 @@ TEST(CharacterSelectSceneTest, TheCreateButtonOpensTheWindow)
     EXPECT_LT(bar, window);
 }
 
-// 0x63d990 con un nombre que pasa: el F3 01 con el nombre y la clase (el Dark Knight, marcado
-// aunque pkt[4] en 0 lo deje deshabilitado), la ventana se cierra y se abre el 0x5d. Con 1, el
-// 0x5d se cierra y el nuevo entra.
+// 0x63d990 with a name that passes: the F3 01 with the name and the class (the Dark Knight, marked even though pkt[4]
+// at 0 leaves it disabled), the window closes and the 0x5d opens. With 1, the 0x5d closes and the new one enters.
 TEST(CharacterSelectSceneTest, ACreationSendsF301AndTheNewOneEnters)
 {
     Harness tested;
@@ -2098,9 +2088,8 @@ TEST(CharacterSelectSceneTest, ACreationSendsF301AndTheNewOneEnters)
     EXPECT_EQ(models->modelVertices.size(), 2u * 6u * 3u + 5u * 3u);
 }
 
-// Los chequeos del nombre (0x63d990): uno corto da el 0x79 y uno con una palabra de FilterName.bmd
-// el 0x72, arriba de la ventana, que se queda con el nombre; el OK del aviso vuelve a ella, y no
-// sale nada.
+// The name checks (0x63d990): a short one gives the 0x79 and one with a FilterName.bmd word the 0x72, above the
+// window, which keeps the name; the notice's OK returns to it, and nothing is sent.
 TEST(CharacterSelectSceneTest, ARefusedNameKeepsTheWindow)
 {
     Harness tested;
@@ -2124,7 +2113,7 @@ TEST(CharacterSelectSceneTest, ARefusedNameKeepsTheWindow)
     EXPECT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
 }
 
-// Con 0 o 2, la ventana vuelve a abrirse, vacía, con el 0x36 o el 0x37 arriba (0x4c2290).
+// With 0 or 2, the window opens again, empty, with the 0x36 or the 0x37 on top (0x4c2290).
 TEST(CharacterSelectSceneTest, ARefusedCreationReopensTheWindow)
 {
     for (const auto& [result, text] : {std::pair{std::uint8_t{0}, std::string_view{"rechazado"}},
@@ -2149,7 +2138,7 @@ TEST(CharacterSelectSceneTest, ARefusedCreationReopensTheWindow)
     }
 }
 
-// 0x63d7c0 con pkt[4]: con 2, la clase 2 se elige y la 4 no; el F3 01 lleva la elegida.
+// 0x63d7c0 with pkt[4]: with 2, class 2 can be picked and 4 cannot; the F3 01 carries the chosen one.
 TEST(CharacterSelectSceneTest, TheClassesFollowTheList)
 {
     Harness tested;
@@ -2167,8 +2156,8 @@ TEST(CharacterSelectSceneTest, TheClassesFollowTheList)
     EXPECT_EQ(creates[0].Bytes().back(), std::byte{0x20});
 }
 
-// Con un aviso del nombre arriba, los botones de la ventana sueltan el mouse: el OK de la ventana,
-// con el mouse encima cuando se apretó Enter, vuelve a su cuadro normal, como el OK del aviso.
+// With a name notice on top, the window's buttons let go of the mouse: the window's OK, with the mouse over it when
+// Enter was pressed, returns to its normal frame, like the notice's OK.
 TEST(CharacterSelectSceneTest, UnderANoticeTheWindowLetsGoOfTheMouse)
 {
     Harness tested;
@@ -2192,7 +2181,7 @@ TEST(CharacterSelectSceneTest, UnderANoticeTheWindowLetsGoOfTheMouse)
     EXPECT_FLOAT_EQ(tops[0], tops[1]);
 }
 
-// Con la ventana abierta, Esc la cierra y Enter es de ella: no entra al mundo con el elegido.
+// With the window open, Esc closes it and Enter is its own: it does not enter the world with the chosen one.
 TEST(CharacterSelectSceneTest, TheWindowTakesEnterAndEsc)
 {
     Harness tested;
@@ -2210,8 +2199,8 @@ TEST(CharacterSelectSceneTest, TheWindowTakesEnterAndEsc)
     EXPECT_FALSE(tested.scene->WantsTextInput());
     EXPECT_EQ(tested.scene->Next(), std::nullopt);
 }
-// La respuesta del F3 01 con 0 y el cierre del GS en la misma lectura: queda el 0x70 de la falla, y
-// la ventana no se vuelve a abrir sobre una sesión caída.
+// The F3 01 reply with 0 and the GS close in the same read: the failure's 0x70 stays, and the window does not open
+// again over a fallen session.
 TEST(CharacterSelectSceneTest, ACreationResultWithTheCloseLeavesTheFailureNotice)
 {
     Harness tested;
@@ -2233,8 +2222,8 @@ TEST(CharacterSelectSceneTest, ACreationResultWithTheCloseLeavesTheFailureNotice
     EXPECT_TRUE(tested.scene->WantsToQuit());
 }
 
-// El aviso de la respuesta del F3 01 se atiende desde el paso que sigue: un Enter del paso en que
-// llega no lo cierra antes de que se vea.
+// The F3 01 reply's notice is handled from the next step: an Enter of the step it arrives in does not close it
+// before it is seen.
 TEST(CharacterSelectSceneTest, TheCreationNoticeIsSeenEvenWithAnEnterInItsStep)
 {
     Harness tested;
@@ -2249,7 +2238,7 @@ TEST(CharacterSelectSceneTest, TheCreationNoticeIsSeenEvenWithAnEnterInItsStep)
     EXPECT_TRUE(Draws(tested.Frame(), "rechazado"));
 }
 
-// Las dos listas van a su lugar: un nombre que empieza con '/' se saltea Filter.bmd, no FilterName.bmd.
+// Both lists go to their place: a name that starts with '/' skips Filter.bmd, not FilterName.bmd.
 TEST(CharacterSelectSceneTest, ASlashNameStillMeetsFilterName)
 {
     Harness tested;
@@ -2263,8 +2252,8 @@ TEST(CharacterSelectSceneTest, ASlashNameStillMeetsFilterName)
     EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
 }
 
-// Q-C118: con un intento más largo antes, 0x447ca0 ve sus restos en el buffer: "abcde" detrás de
-// "abcdef g" da el 0x7a. Y con un aviso arriba, lo que se escribe sigue yendo al nombre.
+// Q-C118: with a longer try before, 0x447ca0 sees its leftovers in the buffer: "abcde" after "abcdef g" gives the
+// 0x7a. And with a notice on top, what is typed still goes to the name.
 TEST(CharacterSelectSceneTest, TheBufferOfAnEarlierTryCounts)
 {
     Harness tested;
@@ -2284,8 +2273,6 @@ TEST(CharacterSelectSceneTest, TheBufferOfAnEarlierTryCounts)
     EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
 }
 
-// El nombre que se escribe no va al log, ni el que no pasa ni el que se manda: ni el de la escena
-// ni el de la sesión.
 TEST(CharacterSelectSceneTest, TheNameIsNotLogged)
 {
     Harness tested;
@@ -2307,14 +2294,13 @@ TEST(CharacterSelectSceneTest, TheNameIsNotLogged)
         }
     }
 }
-// Un NewFace de la clase `characterClass` en Logo\ (el modelo de los tests, con la textura de
-// chasellight, que el juego de la selección ya escribió) para la vista previa.
+// A NewFace of class `characterClass` in Logo\ (the tests' model, with the chasellight texture, which the
+// selection's set already wrote) for the preview.
 void WriteNewFace(const Harness& tested, int characterClass)
 {
     Client::Data::Models::Model face = Client::Tests::SampleModel();
     face.meshes[0].textureName = "chasellight.jpg";
-    // Todos los vértices en la raíz: la malla se mueve entera, y sus aristas solo cambian con la
-    // escala del objeto.
+    // All vertices at the root: the mesh moves whole, and its edges only change with the object's scale.
     for (auto& vertex : face.meshes[0].vertices)
     {
         vertex.bone = 0;
@@ -2323,7 +2309,6 @@ void WriteNewFace(const Harness& tested, int characterClass)
                                   Client::Tests::EncryptedBmd(Client::Tests::BmdContent(face)));
 }
 
-// Los Models del frame, en orden.
 std::vector<FrameEvent> ModelPasses(const std::vector<FrameEvent>& events)
 {
     std::vector<FrameEvent> passes;
@@ -2332,9 +2317,8 @@ std::vector<FrameEvent> ModelPasses(const std::vector<FrameEvent>& events)
     return passes;
 }
 
-// 0x63e460: con la ventana abierta, después de su base, un pase 3D propio con el viewport de 410 ×
-// 335 desde la caja y la cámara de la vista previa, con el NewFace de la clase elegida; después, lo
-// demás de la ventana.
+// 0x63e460: with the window open, after its base, its own 3D pass with the 410 × 335 viewport from the box and the
+// preview's camera, with the chosen class's NewFace; then, the rest of the window.
 TEST(CharacterSelectSceneTest, TheWindowDrawsThePreviewInItsOwnPass)
 {
     Harness tested;
@@ -2356,12 +2340,11 @@ TEST(CharacterSelectSceneTest, TheWindowDrawsThePreviewInItsOwnPass)
     EXPECT_EQ(passes[1].pass->viewport, expected.viewport);
     EXPECT_EQ(passes[1].pass->view, expected.view);
     EXPECT_FALSE(passes[1].modelVertices.empty());
-    // La base de la ventana antes del pase, y el fondo del nombre después.
     const auto preview = std::ranges::find_if(
         events, [](const FrameEvent& event)
         { return event.kind == Kind::Models && !event.modelVertices.empty() && event.pass->viewport.z == 410; });
     const auto back = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0xc}}, &FrameEvent::texture);
-    // La base: el negro de toda la pantalla, sin textura (0x669c70(W, H, −1, 0)).
+    // The base: the full-screen black, untextured (0x669c70(W, H, −1, 0)).
     const auto base = std::ranges::find_if(
         events, [](const FrameEvent& event)
         { return event.kind == Kind::Quad && !event.texture && event.vertices[0].color.alpha == 128.0f / 255.0f; });
@@ -2371,8 +2354,8 @@ TEST(CharacterSelectSceneTest, TheWindowDrawsThePreviewInItsOwnPass)
     EXPECT_LT(preview, back);
 }
 
-// La vista previa sigue a la clase de la ventana (0x63d7c0 → 0x63e3e0), con su escala: la del Elf es
-// 9,1 y la del Dark Knight 6,05, en la misma pose (la acción 1 desde el principio).
+// The preview follows the window's class (0x63d7c0 → 0x63e3e0), with its scale: the Elf's is 9.1 and the Dark
+// Knight's 6.05, in the same pose (action 1 from the start).
 TEST(CharacterSelectSceneTest, ThePreviewFollowsTheClass)
 {
     Harness tested;
@@ -2380,7 +2363,7 @@ TEST(CharacterSelectSceneTest, ThePreviewFollowsTheClass)
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 2));
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWithClasses(2));
     tested.ClickAt(CreateButton);
-    // El largo de la primera arista: no cambia con el giro, solo con la escala.
+    // The first edge's length: it does not change with the turn, only with the scale.
     const auto spread = [](const FrameEvent& pass)
     { return glm::length(pass.modelVertices[1].position - pass.modelVertices[0].position); };
     const std::vector<FrameEvent> knight = ModelPasses(tested.Frame());
@@ -2397,7 +2380,7 @@ TEST(CharacterSelectSceneTest, ThePreviewFollowsTheClass)
     EXPECT_NEAR(spread(elf[1]) / knightSpread, 9.1f / 6.05f, 1e-3f);
 }
 
-// Leave suelta también los slots de la vista previa (0x61cc50, desde 0x6f8).
+// Leave also releases the preview's slots (0x61cc50, from 0x6f8).
 TEST(CharacterSelectSceneTest, LeaveReleasesThePreviewSlots)
 {
     Harness tested;
@@ -2409,8 +2392,8 @@ TEST(CharacterSelectSceneTest, LeaveReleasesThePreviewSlots)
     EXPECT_NE(std::ranges::find(tested.store.released, std::uint16_t{0x6f8}), tested.store.released.end());
 }
 
-// Con un aviso arriba la vista previa no avanza, y se dibuja quieta: sin interpolar un paso que no
-// va a dar, que la haría temblar.
+// With a notice on top the preview does not advance, and it is drawn still: without interpolating a step it will not
+// take, which would make it shake.
 TEST(CharacterSelectSceneTest, UnderANoticeThePreviewStaysStill)
 {
     Harness tested;
@@ -2418,7 +2401,6 @@ TEST(CharacterSelectSceneTest, UnderANoticeThePreviewStaysStill)
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
     tested.ClickAt(CreateButton);
     tested.Step();
-    // Con la ventana arriba, avanza, y el dibujo interpola entre dos pasos.
     const std::vector<FrameEvent> moving = ModelPasses(tested.Frame(0.0f));
     const std::vector<FrameEvent> moved = ModelPasses(tested.Frame(0.9f));
     ASSERT_EQ(moving.size(), 2u);
@@ -2442,10 +2424,10 @@ TEST(CharacterSelectSceneTest, UnderANoticeThePreviewStaysStill)
     }
 }
 
-// La vista previa saluda desde la entrada (0x633f20 → … → 0x63e3e0 con el Dark Knight): en el paso que
-// abre la ventana, la misma pose que elegir otra clase y volver al Dark Knight, que la arman de nuevo con
-// la acción 1 y la avanzan. El clic de la barra la abre y 0x65fc30 la atiende en el mismo paso, porque la
-// barra va antes en la copia de la lista: ya avanza una vez.
+// The preview greets from the entry (0x633f20 → … → 0x63e3e0 with the Dark Knight): in the step that opens the
+// window, the same pose as picking another class and going back to the Dark Knight, which rebuild it with action 1
+// and advance it. The bar's click opens it and 0x65fc30 handles it in the same step, because the bar goes before in
+// the list's copy: it already advances once.
 TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
 {
     const auto firstVertex = [](Harness& tested)
@@ -2475,8 +2457,8 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
 
 namespace
 {
-// Dos personajes con las alas 0 (0x1a12), sin mascota (sin el cuerpo del ayudante, 0x444059) y con las manos vacías
-// (0xfff: b0 y b1 en 0xff y los nibbles altos de b11 y b12), que FlatModels no tiene.
+// Two characters with wings 0 (0x1a12), without a pet (without the helper's body, 0x444059) and with empty hands
+// (0xfff: b0 and b1 at 0xff and the high nibbles of b11 and b12), which FlatModels does not have.
 std::vector<CharacterEntryFields> TwoWingedCharacters()
 {
     auto characters = TwoCharacters();
@@ -2491,7 +2473,6 @@ std::vector<CharacterEntryFields> TwoWingedCharacters()
     return characters;
 }
 
-// Lo que cuelga del personaje (las alas) va al buffer global en un frame del original y no en uno intermedio.
 TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeFrames)
 {
     Client::Kernel::WorldState world;
@@ -2509,8 +2490,8 @@ TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeF
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// F1/02 y F3/00 pueden despacharse en el mismo Poll, antes del Enter de la escena 4.
-// La lista nueva ya construyó los actores: Enter no debe volver a esperar otra respuesta.
+// F1/02 and F3/00 can be dispatched in the same Poll, before scene 4's Enter.
+// The new list already built the actors: Enter must not wait for another reply.
 TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastFrameHeld)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -2523,7 +2504,7 @@ TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastF
     tested.online.session.RequestCharacterList();
     auto characters = TwoCharacters();
     for (auto& character : characters)
-        character.equipment[4] = 3; // Sin mascota: FlatModels no presta Helper01.bmd.
+        character.equipment[4] = 3; // No pet: FlatModels does not lend Helper01.bmd.
     tested.online.ReceiveTheList(characters);
     ASSERT_NO_FATAL_FAILURE(tested.Poll());
     ASSERT_TRUE(selection.HasReceivedList());
@@ -2540,10 +2521,10 @@ TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastF
     EXPECT_EQ(tested.CharacterPacketsSent(0x00).size(), 1u);
 }
 
-// Q-C410: la lista (0x4c20a0) arma cada personaje con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le
-// da su buffer de huesos (+0x120); 0x6001b0 posa ahí el cuerpo (0x600259). El cuerpo no llega al buffer global
-// (0x68b181c) ni en un frame del original ni en uno intermedio, y sólo el frame del original lo guarda en el propio.
-// Las alas, que cuelgan, sí van al global.
+// Q-C410: the list (0x4c20a0) builds each character with 0x517270 → 0x511290, which sets its +0x11c to 1 (0x511bf7)
+// and gives it its bone buffer (+0x120); 0x6001b0 poses the body there (0x600259). The body reaches the global buffer
+// (0x68b181c) neither in a frame of the original nor in an intermediate one, and only the original's frame stores it
+// in its own. The wings, which hang, do go to the global one.
 TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     Client::Kernel::WorldState world;
@@ -2563,7 +2544,7 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     EXPECT_FALSE(world.PoseCarry().models.contains(Client::Tables::PlayerSkeletonModel));
     EXPECT_TRUE(world.PoseCarry().models.contains(std::uint16_t{0x1a12}));
-    // Q-C412: el último de la lista deja su escala y su posición en el modelo compartido de Player.bmd.
+    // Q-C412: the last one of the list leaves its scale and its position in Player.bmd's shared model.
     EXPECT_EQ(world.PlayerModel().scale, world.Actors()[3].scale);
     EXPECT_EQ(world.PlayerModel().origin, world.Actors()[3].position);
     for (const std::size_t slot : Slots)
@@ -2581,9 +2562,9 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// 0x50bc05..0x50bcec en la selección (0x634851 → 0x510d00 → 0x50ba30, con el mundo 54): la sombra de cada personaje de
-// la lista le copia su escala y su posición al 0x20b compartido (0x60cf70), en el orden de la lista: queda la del
-// último. Con el alpha por debajo de 0,5 (0x50bc05) no tiene sombra y no la copia. Un frame intermedio no la toca.
+// 0x50bc05..0x50bcec in the selection (0x634851 → 0x510d00 → 0x50ba30, with world 54): the shadow of each list
+// character copies its scale and position to the shared 0x20b (0x60cf70), in list order: the last one's stays. With
+// alpha below 0.5 (0x50bc05) it has no shadow and does not copy it. An intermediate frame does not touch it.
 TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 {
     using Client::Models::OriginalFrameTime;
@@ -2605,7 +2586,7 @@ TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 
     drawAt(OriginalFrameTime);
 
-    // El lugar 3 es el último de la lista; su cola (DrawCharacterTail) le dejó la luz de lo que cuelga de la escena 4.
+    // Slot 3 is the last of the list; its tail (DrawCharacterTail) left it scene 4's light of what hangs.
     EXPECT_EQ(world->Actors()[3].drawnLight, glm::vec3(0.4f));
     EXPECT_EQ(world->ModelPlacement(Shadow).origin, world->Actors()[3].position);
     EXPECT_EQ(world->ModelPlacement(Shadow).scale, world->Actors()[3].scale);
@@ -2621,9 +2602,9 @@ TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
     EXPECT_EQ(world->ModelPlacement(Shadow).scale, world->Actors()[0].scale);
 }
 
-// 0x50db57..0x510a7a: con el mundo 54 la lista corre la misma cola de 0x50ba30 que el juego (DrawCharacterTail). La
-// luz de lo que cuelga (+0x3b4, 0x50db94) es [ebp−0x44] más +0xf4: el 0,4 fijo de la escena 4 (0x50cc29), o el 0,5
-// que la rama del color del héroe deja ahí (0x50d231). Un frame intermedio no saca rand().
+// 0x50db57..0x510a7a: with world 54 the list runs the same tail of 0x50ba30 as the game (DrawCharacterTail). The
+// light of what hangs (+0x3b4, 0x50db94) is [ebp−0x44] plus +0xf4: scene 4's fixed 0.4 (0x50cc29), or the 0.5 the
+// hero's color branch leaves there (0x50d231). An intermediate frame takes no rand().
 TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFour)
 {
     Client::Kernel::WorldState world;
@@ -2636,8 +2617,8 @@ TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFou
     static_cast<void>(tested.Frame());
 
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
-    // El lugar 0 es el héroe publicado: 0x50d231 le pisa [ebp−0x44] con 0,5 (la traza de la selección: Helper02 con
-    // 1,5 en el elegido). Los demás, 0,4 (0x50cc32).
+    // Slot 0 is the published hero: 0x50d231 overwrites its [ebp−0x44] with 0.5 (the selection's trace: Helper02
+    // with 1.5 on the chosen one). The others, 0.4 (0x50cc32).
     EXPECT_EQ(world.Actors()[0].drawnLight, glm::vec3(0.5f));
     EXPECT_EQ(world.Actors()[3].drawnLight, glm::vec3(0.4f));
     const auto random = cloth.random.State();
@@ -2646,7 +2627,7 @@ TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFou
     EXPECT_EQ(cloth.random.State(), random);
 }
 
-// Los rand() que se sacaron de `before` hasta `after` (el LCG de la CRT), hasta 100.000.
+// The rand() drawn from `before` to `after` (the CRT's LCG), up to 100000.
 int DrawsBetween(Client::Crt::CrtRandom before, std::uint32_t after)
 {
     for (int draws = 0; draws <= 100000; ++draws)
@@ -2658,10 +2639,9 @@ int DrawsBetween(Client::Crt::CrtRandom before, std::uint32_t after)
     return -1;
 }
 
-// 0x50cca9..0x50d211 en la escena 4: el héroe publicado (0x743a170, el lugar 0 desde WinMain) abre y cierra el
-// registro propio para su color en cada frame del original, aunque después la escena le pone 0,5 más +0xf4
-// (0x50d219). Con el registro abierto por otro no lo cierra; cerrado, 3.848 rand() más en el dibujo. MuRet no lo
-// hacía: un frame de la lista sacaba unos 380.
+// 0x50cca9..0x50d211 in scene 4: the published hero (0x743a170, slot 0 since WinMain) opens and closes the own record
+// for its color on each frame of the original, even though the scene then gives it 0.5 plus +0xf4 (0x50d219). With
+// the record opened by another it does not close it; closed, 3848 more rand() in the draw.
 TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 {
     using Client::Models::OriginalFrameTime;
@@ -2697,13 +2677,14 @@ TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
     constexpr int Close = Client::Models::OwnRecordCloseRandoms;
     EXPECT_LT(held, Close);
     EXPECT_GE(closed, Close);
-    // Los objetos y los efectos del 54 sacan unos pocos rand() más o menos de un frame a otro.
+    // The 54's objects and effects take a few rand() more or less from one frame to another.
     EXPECT_NEAR(closed - held, Close, 16);
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x510abd: el cuervo de un Dark Lord de la lista (EquipSelectionActor) se dibuja al final de su 0x50ba30 (0x420df0
-// → 0x4182f0), también en la selección, con su trapecio: en un frame del original deja su pose en el buffer global.
+// 0x510abd: the raven of a Dark Lord in the list (EquipSelectionActor) is drawn at the end of its 0x50ba30 (0x420df0
+// → 0x4182f0), also in the selection, with its trapezoid: in a frame of the original it leaves its pose in the global
+// buffer.
 TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
 {
     Client::Kernel::WorldState world;
@@ -2721,7 +2702,7 @@ TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({lord}));
     ASSERT_TRUE(world.Actors()[4].darkSpirit.has_value());
     ASSERT_FALSE(world.PoseCarry().models.contains(Client::Pets::DarkSpiritModel));
-    // Nace en el centro de la celda (0, 0), fuera de la vista, y vuela hacia su dueño: acá ya llegó.
+    // It spawns at the center of cell (0, 0), out of view, and flies toward its owner: here it has arrived.
     world.Actors()[4].darkSpirit->position = world.Actors()[4].position + glm::vec3(0.0f, 0.0f, 250.0f);
 
     static_cast<void>(tested.Frame());
@@ -2731,9 +2712,9 @@ TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
     EXPECT_FALSE(world.Actors()[4].darkSpirit->pose.empty());
 }
 
-// Q-C410: 0x63e3e0 arma la vista previa con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer
-// (+0x120); 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 la posa ahí (0x5fff13..0x5fff4c). No llega al global, y un
-// dibujo intermedio, que interpola otra pose, no toca el propio.
+// Q-C410: 0x63e3e0 builds the preview with 0x511290 (0x63e409), which sets its +0x11c to 1 and gives it its buffer
+// (+0x120); 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 poses it there (0x5fff13..0x5fff4c). It does not reach the
+// global one, and an intermediate draw, which interpolates another pose, does not touch its own.
 TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     Client::Kernel::WorldState world;
@@ -2764,10 +2745,10 @@ TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPos
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// 0x63e637 → 0x50ba30 → 0x5ffdf0 (0x50baed) y 0x602e90 (0x50bd81), siempre con el segundo argumento en 1: 0x4eb860
-// con la bandera en 0 deja en +0x120 los huesos en el modelo, sin la escala de la clase (6,05 con la 1) ni la posición,
-// y 0x4ebc80 corre con Translate en 1: la luz por vértice (0x4ecc30 con +0x44) toma cada normal solo girada por su
-// hueso, sin escalar.
+// 0x63e637 → 0x50ba30 → 0x5ffdf0 (0x50baed) and 0x602e90 (0x50bd81), always with the second argument at 1: 0x4eb860
+// with the flag at 0 leaves in +0x120 the bones in the model, without the class's scale (6.05 with the 1) or the
+// position, and 0x4ebc80 runs with Translate at 1: the per-vertex light (0x4ecc30 with +0x44) takes each normal only
+// rotated by its bone, unscaled.
 TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNormals)
 {
     Client::Kernel::WorldState world;
@@ -2788,13 +2769,13 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
     const auto drawn = std::ranges::find_if(passes, [](const FrameEvent& pass)
                                             { return pass.pass.has_value() && pass.pass->viewport.z == 410; });
     ASSERT_NE(drawn, passes.end());
-    // Los dos huesos del NewFace que no son dummy, sin la escala: cada columna del giro, de largo 1.
+    // The NewFace's two bones that are not dummy, without the scale: each column of the rotation, of length 1.
     ASSERT_GE(preview.bodyPose.size(), 3u);
     for (std::size_t bone = 0; bone < 2; ++bone)
         for (int column = 0; column < 3; ++column)
             EXPECT_NEAR(glm::length(glm::vec3(preview.bodyPose[bone][column])), 1.0f, 1e-5f) << bone << ", " << column;
-    // La selección dibuja el NewFace02.bmd de la Data del repo. Cada esquina de su malla 0 va con el color del modelo
-    // por la luz de su normal girada por esos huesos (SkinMesh, sin la escala): la misma base en todas.
+    // The selection draws the NewFace02.bmd of the repo's Data. Each corner of its mesh 0 goes with the model's color
+    // times the light of its normal rotated by those bones (SkinMesh, unscaled): the same base in all.
     std::ifstream file(Client::Tests::RepoDataDir() / "Logo" / "NewFace02.bmd", std::ios::binary);
     const std::vector<char> raw{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
     const auto face = Client::Data::Models::LoadBmd(std::as_bytes(std::span(raw)));
@@ -2820,10 +2801,10 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
         }
 }
 
-// 0x6347e9..0x6348dc: con el mundo 54, el elegido vivo lleva su luz a 1 y la suma al buffer dinámico en su
-// lugar (0x5f9780, radio 1) antes del terreno; después de los personajes, su luz queda en 0,15 y presta las
-// dos 0x729 (/0 y /1) de escala 1 y sin dueño. Un dibujo intermedio de MuRet (sin frame del original) no
-// cambia el pool del paso.
+// 0x6347e9..0x6348dc: with world 54, the chosen living one takes its light to 1 and adds it to the dynamic buffer at
+// its place (0x5f9780, radius 1) before the terrain; after the characters, its light stays at 0.15 and it lends the
+// two 0x729 (/0 and /1) of scale 1 and without owner. A MuRet intermediate draw (without a frame of the original)
+// does not change the step's pool.
 TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNativeFrames)
 {
     Client::Kernel::WorldState world;
@@ -2870,13 +2851,13 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
         tested.states.terrain.dynamicLight.Lighting().cells[Client::Data::Terrain::CellIndex(cellX, cellY)];
     EXPECT_GT(lit[0], 0.0f);
 
-    // El mismo reloj: un dibujo intermedio sobre las copias.
+    // The same clock: an intermediate draw on the copies.
     static_cast<void>(tested.Frame());
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
     EXPECT_EQ(chaseLights().size(), 2u);
 }
 
-// Los F1 02 que mandó el cliente, sin el XOR32 (el F1 01 de la cuenta va antes).
+// The F1 02 the client sent, without the XOR32 (the account's F1 01 goes before).
 std::vector<Client::Network::Packet> LogoutsSent(const Harness& tested)
 {
     Client::Network::PacketSerials serials;
@@ -2902,10 +2883,10 @@ bool DrawsTheSlot(const std::vector<FrameEvent>& events, TextureSlot slot)
     return std::ranges::find(events, std::optional<TextureSlot>{slot}, &FrameEvent::texture) != events.end();
 }
 
-// La de Esc de la selección (CL8, hito 8): Esc la abre con la escena libre (0x6344ce), y con ella abierta
-// Enter no entra (0x634341). Su 1 (0x647e08) manda el C3 F1 02 02 con dos rand() de la CRT (0x648241 y el
-// serial de 0x5767913, Render/Models/LogicalAccess) y cierra la de Esc y la barra. Un clic en el marco, fuera
-// de los botones, no hace nada. La vuelta a la lista, con la respuesta del GS, es de la CL9 (Q-C79).
+// The selection's Esc window: Esc opens it with the scene free (0x6344ce), and with it open Enter does not enter
+// (0x634341). Its 1 (0x647e08) sends the C3 F1 02 02 with two CRT rand() (0x648241 and the serial of 0x5767913,
+// Models/LogicalAccess) and closes the Esc window and the bar. A click on the frame, outside the buttons, does
+// nothing. Going back to the list, with the GS reply, belongs to CL9 (Q-C79).
 TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
 {
     static constexpr TextureSlot EscapeButtons{0x72f};
@@ -2953,9 +2934,9 @@ TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
     EXPECT_EQ(joined.scene->Next(), std::nullopt);
 }
 
-// Las opciones de la selección (0x647e75, en el modo 4 entre la de Esc y la barra): el 2 de la de Esc las abre
-// arriba. Con ellas abiertas, Enter no entra (0x634341, +0x7f4). El volumen sube con un clic a la derecha de
-// su perilla (0x6447d9), y Esc las cierra sin volver a abrir la de Esc.
+// The selection's options (0x647e75, in mode 4 between the Esc window and the bar): the Esc window's 2 opens them on
+// top. With them open, Enter does not enter (0x634341, +0x7f4). The volume rises with a click to the right of its
+// knob (0x6447d9), and Esc closes them without opening the Esc window again.
 TEST(CharacterSelectSceneTest, TheOptionsOpenFromTheEscapeWindow)
 {
     static constexpr TextureSlot EscapeButtons{0x72f};
@@ -2976,7 +2957,7 @@ TEST(CharacterSelectSceneTest, TheOptionsOpenFromTheEscapeWindow)
     tested.Tap(Key::Escape);
     const Client::Ui::Rect button = escape.buttons[2];
     tested.ClickAt({static_cast<float>(button.x + 5), static_cast<float>(button.y + 5)});
-    // Las tres casillas y el botón de cerrar, de op1_b_all como los de la de Esc, que ya no se dibujan.
+    // The three checkboxes and the close button, from op1_b_all like the Esc window's, which are no longer drawn.
     std::vector<FrameEvent> frame = tested.Frame();
     EXPECT_EQ(std::ranges::count(frame, std::optional<TextureSlot>{Checks}, &FrameEvent::texture), 3);
     EXPECT_EQ(std::ranges::count(frame, std::optional<TextureSlot>{EscapeButtons}, &FrameEvent::texture), 1);

@@ -6,13 +6,13 @@
 
 #include <chrono>
 
-// Client::App::FixedStep: el paso fijo de 40 ms del modo normal, con su alfa y su tope.
+// Client::App::FixedStep: the normal mode's 40 ms fixed step, with its alpha and its cap.
 namespace
 {
 using namespace std::chrono_literals;
 using Client::App::FixedStep;
 
-// La tolerancia de los alfas que fija el plan (1e-6).
+// The alpha tolerance the plan sets.
 constexpr double AlphaTolerance = 1e-6;
 
 TEST(FixedStepTest, FortyIsOneStep)
@@ -31,7 +31,7 @@ TEST(FixedStepTest, ThirtyNineIsNone)
     EXPECT_NEAR(fixedStep.Alpha(), 0.975, AlphaTolerance);
 }
 
-// El alcanzar del 02: un frame de 130 ms corre 3 pasos y deja 10 ms.
+// The 02 catch-up: a 130 ms frame runs 3 steps and leaves 10 ms.
 TEST(FixedStepTest, OneHundredThirtyIsThree)
 {
     FixedStep fixedStep;
@@ -49,7 +49,7 @@ TEST(FixedStepTest, AlphaIsTheFractionLeft)
     EXPECT_NEAR(fixedStep.Alpha(), 0.25, AlphaTolerance);
 }
 
-// 39.999.999 / 40.000.000 en float redondea a 1: el recorte lo deja debajo.
+// 39999999 / 40000000 in float rounds to 1: the clamp keeps it below.
 TEST(FixedStepTest, AlphaStaysBelowOne)
 {
     FixedStep fixedStep;

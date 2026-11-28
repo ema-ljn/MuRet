@@ -67,9 +67,9 @@
 #include <utility>
 #include <vector>
 
-// La ventana del comercio (0x5f3b40) y sus grillas (0x5f7610 y 0x5f7840; CL9 hito 7, fase 2) con el otro que trae el
-// 0x12 (hito 1) al lado del héroe: el /trade, el 37 que abre la ventana, el 39 con un ítem y el zen de los dos, en
-// Lorencia (0) y Devias (2). Los nombres, los textos y los ítems son inventados.
+// The trade window (0x5f3b40) and its grids (0x5f7610 and 0x5f7840; CL9 milestone 7, phase 2) with the other one that
+// the 0x12 (milestone 1) brings next to the hero: the /trade, the 37 that opens the window, the 39 with an item and the
+// zen of both, in Lorencia (0) and Devias (2). The names, the texts and the items are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -87,17 +87,17 @@ constexpr std::uint16_t HeroKey = 33;
 constexpr std::uint16_t OtherKey = 0x0456;
 constexpr std::size_t Chosen = 2;
 constexpr Client::Core::PixelSize Screen640{640, 480};
-// 0x5f3b40 corre en (0x104, 0).
+// 0x5f3b40 runs at (0x104, 0).
 constexpr float Left = 260.0f;
-// Un bastón de 1 × 3 (0x0a05): su modelo (0xc17) saca dos rand() sin el pase 3D, como en el inventario.
+// A 1 × 3 staff (0x0a05): its model (0xc17) draws two rand() without the 3D pass, as in the inventory.
 constexpr std::uint16_t StaffType = 0x0a05;
 constexpr int StaffRandoms = 2;
-// La poción (0x1c00) con 2 o más muestra la durabilidad.
+// The potion (0x1c00) with 2 or more shows the durability.
 constexpr std::uint16_t PotionType = 0x1c00;
 constexpr std::uint16_t DigitSlot = 1;
-// IsOpen(0x20): la entrada protegida del byte del comercio, un rand() al cerrarla.
+// IsOpen(0x20): the protected entry of the trade byte, one rand() on closing it.
 constexpr int TradeQueryRandoms = 1;
-// Interface\accept_box01/02, Money_01/02, Item_Money, exit_01, Trading_line y la flecha (CursorSitDown).
+// Interface\accept_box01/02, Money_01/02, Item_Money, exit_01, Trading_line and the arrow (CursorSitDown).
 constexpr std::uint16_t OkOff = 0x122;
 constexpr std::uint16_t OkOn = 0x123;
 constexpr std::uint16_t Money = 0x110;
@@ -127,8 +127,8 @@ Client::Protocol::FrontEnd::NameBytes NameOf(std::string_view text)
     return name;
 }
 
-// Los siete bytes de un ítem del 39 (0x5bc740): el tipo en el byte 0, el bit 8 en el 0x80 del 3 y los de arriba en
-// el 5.
+// The seven bytes of an item of the 39 (0x5bc740): the type in byte 0, bit 8 in the 0x80 of byte 3 and the upper ones
+// in byte 5.
 Client::Protocol::Items::ItemData ItemBytes(std::uint16_t type)
 {
     return {static_cast<std::byte>(type & 0xff),
@@ -192,7 +192,7 @@ void ExpectQuad(const SpriteBatch& sprites, std::uint16_t slot, std::size_t inde
     EXPECT_NEAR(quad->third.y, 480.0f - y - height, Tolerance);
 }
 
-// El mundo del juego, en el heap.
+// The game's world, on the heap.
 struct Game
 {
     Game()
@@ -253,7 +253,7 @@ protected:
         sprites.Begin(Screen640);
     }
 
-    // La primera fila libre de dos celdas desde (100, 100).
+    // The first free row of two cells from (100, 100).
     [[nodiscard]] std::array<std::uint8_t, 2> FreeRow() const
     {
         const auto& cells = game->states.terrain.current.attributes->cells;
@@ -266,7 +266,7 @@ protected:
         return {};
     }
 
-    // El héroe en la primera celda y el 0x12 con Brezal en la de al lado.
+    // The hero in the first cell and the 0x12 with Brezal in the one next to it.
     void TheOtherArrives()
     {
         const auto [x, y] = FreeRow();
@@ -287,7 +287,8 @@ protected:
         ASSERT_EQ(game->world.Actors()[1].key, OtherKey);
     }
 
-    // /trade al elegido, el 37 con el sí, un bastón del otro (39) y el zen de los dos (3B y 3A aceptado).
+    // /trade to the chosen one, the 37 with the yes, a staff of the other (39) and the zen of both (3B and 3A
+    // accepted).
     void TradeWithTheOther()
     {
         Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
@@ -385,7 +386,7 @@ protected:
                                                                           {370, "ojo"}});
 };
 
-// Con el comercio cerrado, 0x5f3b40 solo consulta su byte.
+// With the trade closed, 0x5f3b40 only queries its byte.
 TEST_P(GameTradeWindowTest, ClosedItDrawsNothing)
 {
     ASSERT_TRUE(Window().HasValue());
@@ -394,8 +395,8 @@ TEST_P(GameTradeWindowTest, ClosedItDrawsNothing)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TradeQueryRandoms).State());
 }
 
-// 0x5f3b40 con el comercio de Brezal abierto: el fondo en (260, 0) con la línea, las dos grillas (el bastón del otro
-// llena tres casillas), los botones, las cajas del zen, la flecha y los textos en su orden. Solo el rand() de IsOpen.
+// 0x5f3b40 with Brezal's trade open: the background at (260, 0) with the line, the two grids (the other's staff fills
+// three cells), the buttons, the zen boxes, the arrow and the texts in their order. Only IsOpen's rand().
 TEST_P(GameTradeWindowTest, TheOpenTradeDrawsTheWindowOfTheOther)
 {
     TradeWithTheOther();
@@ -422,7 +423,7 @@ TEST_P(GameTradeWindowTest, TheOpenTradeDrawsTheWindowOfTheOther)
     ExpectQuad(sprites, Close, 0, Left + 137.0f, 390.0f, 24.0f, 24.0f);
     ExpectQuad(sprites, MoneyBox, 0, Left + 50.0f, 160.0f, 113.0f, 18.0f);
     ExpectQuad(sprites, MoneyBox, 1, Left + 50.0f, 360.0f, 113.0f, 18.0f);
-    // sen(0) = 0: la flecha en y + 28, en (1; 0,86; 0,58).
+    // sin(0) = 0: the arrow at y + 28, in (1, 0.86, 0.58).
     ExpectQuad(sprites, Arrow, 0, Left + 140.0f, 28.0f, 15.0f, 24.0f);
     const auto arrow = NthQuadOf(sprites, Arrow);
     ASSERT_TRUE(arrow.has_value());
@@ -437,7 +438,7 @@ TEST_P(GameTradeWindowTest, TheOpenTradeDrawsTheWindowOfTheOther)
         FontKind font;
         std::uint32_t color;
     };
-    // El nivel 150 cae en el piso de 100, en verde; el aviso, con sen(0), en 275 recortado a 255.
+    // Level 150 falls in the floor of 100, in green; the warning, with sin(0), at 275 clamped to 255.
     const std::vector<Expected> texts{{"Comercio", 260 + 0x23, 0xc, FontKind::Bold, 0xffdcdcdcu},
                                       {"Zen", 260 + 50 - 30, 162, FontKind::Bold, 0xff96dcffu},
                                       {"2,500", 260 + 50 + 10, 162, FontKind::Bold, 0xff96dcffu},
@@ -467,10 +468,10 @@ TEST_P(GameTradeWindowTest, TheOpenTradeDrawsTheWindowOfTheOther)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TradeQueryRandoms).State());
 }
 
-// 0x5f3bf9..0x5f3c8a (CL9 hito 8): con el gremio del otro en la tabla (la clave del 37 en 0x6c9324), su marca va
-// con 0x5f16a0(i, 0) en (260 − 32, 40), de 32 × 32, después de las grillas, y su nombre en (260, 30) antes del título,
-// con la fuente y los colores que había. Con la clave 0 del 37 de los otros tests ("sin gremio") y las claves en −1
-// (0x447ae0) no sale nada; sin las marcas, corta. Los gremios son inventados.
+// 0x5f3bf9..0x5f3c8a (CL9 milestone 8): with the other's guild in the table (the 37's key at 0x6c9324), its mark goes
+// with 0x5f16a0(i, 0) at (260 − 32, 40), 32 × 32, after the grids, and its name at (260, 30) before the title, with the
+// font and colors that were there. With the 37's key 0 of the other tests ("no guild") and the keys at −1 (0x447ae0)
+// nothing comes out; without the marks, it stops. The guilds are made up.
 TEST_P(GameTradeWindowTest, TheOthersGuildDrawsItsMarkAndName)
 {
     TradeWithTheOther();
@@ -498,16 +499,16 @@ TEST_P(GameTradeWindowTest, TheOthersGuildDrawsItsMarkAndName)
     EXPECT_EQ(text.texts[1].text, "Comercio");
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TradeQueryRandoms).State());
 
-    // Sin la tabla de las marcas, el lazo corta en 0x5f3c10.
+    // Without the marks table, the loop stops at 0x5f3c10.
     withMarks = false;
     const auto cut = Window();
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5f3c10"), std::string::npos);
 }
 
-// Con 0x78abac4 y la espera (0x78abac8) sobre 0 los dos OK van en rojo, con la marca si los dos los dieron; el mouse
-// sobre el zen con el izquierdo abajo pone Money_02 encima y su ayuda 13 arriba en la normal. Con el reloj, la flecha
-// sube y baja y el aviso late.
+// With 0x78abac4 and the wait (0x78abac8) above 0 both OKs go red, with the mark if both gave them; the mouse over the
+// zen with the left button down puts Money_02 on top and its help 13 above in the normal font. With the clock, the
+// arrow goes up and down and the warning pulses.
 TEST_P(GameTradeWindowTest, TheButtonsLightAndTheArrowMoves)
 {
     TradeWithTheOther();
@@ -547,8 +548,8 @@ TEST_P(GameTradeWindowTest, TheButtonsLightAndTheArrowMoves)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TradeQueryRandoms).State());
 }
 
-// 0x5f76b4..0x5f7717: el bastón del otro en (x + 15 + 20, y + 70 + 20) saca los rand() de su modelo, después de los
-// del inventario abierto; 0x5f798c..0x5f79f0: la poción propia con 5 muestra la cifra en la grilla de abajo.
+// 0x5f76b4..0x5f7717: the other's staff at (x + 15 + 20, y + 70 + 20) draws its model's rand(), after those of the
+// open inventory; 0x5f798c..0x5f79f0: the own potion with 5 shows the number in the bottom grid.
 TEST_P(GameTradeWindowTest, TheGridsDrawTheItemsOfBoth)
 {
     TradeWithTheOther();
@@ -557,7 +558,7 @@ TEST_P(GameTradeWindowTest, TheGridsDrawTheItemsOfBoth)
 
     const CrtRandom beforeEmpty = random;
     const auto staff = trade.otherGrid;
-    // La grilla propia sigue vacía (0x5bbe10).
+    // The own grid stays empty (0x5bbe10).
     trade.otherGrid = trade.ownGrid;
     ASSERT_TRUE(GridItems().HasValue());
     CrtRandom empty = beforeEmpty;

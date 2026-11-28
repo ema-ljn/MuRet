@@ -35,8 +35,8 @@ Core::Expected<Data::Textures::Texture, std::string> PaintTheCastleFlag(std::spa
     std::uint32_t gray = 0;
     for (int y = 0; y < height; ++y, gray += 0x10101u)
     {
-        // 0x5f1abb: no se redondea ni trunca el segundo término antes de sumarlo al dword firmado.
-        // Estas operaciones con dimensiones de hasta 512 son exactas en double, igual que en x87.
+        // 0x5f1abb: the second term is neither rounded nor truncated before adding it to the signed dword.
+        // These operations with dimensions up to 512 are exact in double, as on the x87.
         const auto q = Math::OriginalFtolLow(static_cast<double>(y) * static_cast<double>(1.6f) + 50.0).value();
         const auto base = std::bit_cast<std::int32_t>((static_cast<std::uint32_t>(q) - 65536u) << 8u);
         const auto border =

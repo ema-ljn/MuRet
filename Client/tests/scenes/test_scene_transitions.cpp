@@ -9,9 +9,8 @@
 #include <array>
 #include <cstdint>
 
-// La tabla de transiciones de escena: los ocho `mov` a DAT_006d5dc8 del binario (02 § Las cinco
-// escenas y sus transiciones, leída otra vez en el paso 1 de la CL5.4). La usa el SceneManager
-// (test_scene_manager.cpp).
+// The scene transition table: the binary's eight `mov` to DAT_006d5dc8 (02 § Las cinco escenas y sus transiciones,
+// read again in step 1 of CL5.4). The SceneManager uses it (test_scene_manager.cpp).
 namespace
 {
 using Client::Kernel::SceneId;
@@ -24,15 +23,15 @@ using Client::Scenes::SceneTransition;
 constexpr std::array<SceneId, 5> AllScenes = {SceneId::Loading, SceneId::Login, SceneId::WorldLoading,
                                               SceneId::CharacterSelect, SceneId::Game};
 
-// Las del original, escritas otra vez a mano: de dónde, adónde, y dónde lo escribe el binario.
+// The original's, written again by hand: from where, to where, and where the binary writes it.
 constexpr std::array<SceneTransition, 8> Expected = {{
-    {SceneId::Loading, SceneId::Login},                // 0x622f93, al final de 0x622e40
-    {SceneId::Login, SceneId::CharacterSelect},        // 0x634dce, en 0x634c60
-    {SceneId::CharacterSelect, SceneId::WorldLoading}, // 0x633f05, 0x634470 y 0x634638
-    {SceneId::WorldLoading, SceneId::Game},            // 0x635a91, en 0x6356f0
-    {SceneId::Game, SceneId::CharacterSelect},         // 0x4c363f, en 0x4c2710
+    {SceneId::Loading, SceneId::Login},                // 0x622f93, at the end of 0x622e40
+    {SceneId::Login, SceneId::CharacterSelect},        // 0x634dce, in 0x634c60
+    {SceneId::CharacterSelect, SceneId::WorldLoading}, // 0x633f05, 0x634470 and 0x634638
+    {SceneId::WorldLoading, SceneId::Game},            // 0x635a91, in 0x6356f0
+    {SceneId::Game, SceneId::CharacterSelect},         // 0x4c363f, in 0x4c2710
     {SceneId::CharacterSelect, SceneId::CharacterSelect},
-    {SceneId::Game, SceneId::Login}, // 0x4c2f1a, en 0x4c2710
+    {SceneId::Game, SceneId::Login}, // 0x4c2f1a, in 0x4c2710
     {SceneId::CharacterSelect, SceneId::Login},
 }};
 
@@ -42,7 +41,7 @@ bool IsExpected(SceneId from, SceneId to)
                        { return transition.from == from && transition.to == to; });
 }
 
-// Los números de DAT_006d5dc8, para el log y las trazas.
+// The numbers of DAT_006d5dc8, for the log and the traces.
 TEST(SceneTransitionsTest, TheScenesHaveTheNumbersOfTheOriginal)
 {
     EXPECT_EQ(static_cast<int>(SceneId::Loading), 1);
@@ -52,7 +51,7 @@ TEST(SceneTransitionsTest, TheScenesHaveTheNumbersOfTheOriginal)
     EXPECT_EQ(static_cast<int>(SceneId::Game), 5);
 }
 
-// En la .data de c32bbd5f, DAT_006d5dc8 vale 1.
+// In c32bbd5f's .data, DAT_006d5dc8 is 1.
 TEST(SceneTransitionsTest, TheFirstSceneIsTheLoading)
 {
     EXPECT_EQ(FirstScene, SceneId::Loading);
@@ -68,8 +67,8 @@ TEST(SceneTransitionsTest, TheTableIsTheOneOfTheOriginal)
     }
 }
 
-// Las 25 de cinco escenas: solo las ocho de la tabla valen. Entre las que no: de la carga al juego,
-// quedarse en el login, volver a la carga, y el F1 02 en el login o en la carga del mundo (Q-C79).
+// The 25 of five scenes: only the table's eight are valid. Among those that are not: from the loading to the game,
+// staying in the login, going back to the loading, and the F1 02 in the login or in the world loading (Q-C79).
 TEST(SceneTransitionsTest, RefusesEveryOther)
 {
     for (const SceneId from : AllScenes)

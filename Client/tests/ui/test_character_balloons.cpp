@@ -24,8 +24,8 @@
 #include <utility>
 #include <vector>
 
-// Client::FrontEnd::CharacterBalloons: los globos de la selección (+0x8dc8 de la UI nueva: 0x63ce70, 0x63cfb0 →
-// 0x63cc60 y 0x63cf80 → 0x63ca20). Los textos son inventados: solo importan sus índices y largos.
+// Client::FrontEnd::CharacterBalloons: the selection's balloons (+0x8dc8 of the new UI: 0x63ce70, 0x63cfb0 → 0x63cc60
+// and 0x63cf80 → 0x63ca20). The texts are made up: only their indices and lengths matter.
 namespace
 {
 using Client::Core::PixelSize;
@@ -43,14 +43,14 @@ const std::uint16_t Marker = Client::Tests::TextMarkerSlot.value;
 using Records = std::array<BalloonRecord, BalloonCount>;
 using Heads = std::array<std::optional<BalloonHead>, BalloonCount>;
 
-// character_ex.tga, de 118 × 54, en un buffer de 128 × 64.
+// character_ex.tga, 118 × 54, in a 128 × 64 buffer.
 Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{BalloonSlot, {128, 64}}});
 }
 
-// Los rangos del gremio (1300, 1301, 1302, 1330 y 488, y el 0 con otro), las clases de la 20 en adelante y los tres
-// renglones del 0x80 (1241 a 1243).
+// The guild ranks (1300, 1301, 1302, 1330 and 488, and 0 with another), the classes from 20 on and the three lines of
+// 0x80 (1241 to 1243).
 Client::Tables::TextTable LabTexts()
 {
     return Client::Tests::MakeTextTable({{0, "Otro"},
@@ -77,7 +77,6 @@ BalloonRecord Alive(std::string name, std::uint8_t controlCode = 0)
                          .guildStatus = 0xff};
 }
 
-// La textura de cada quad del lote, en orden.
 std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
 {
     std::vector<std::uint16_t> slots;
@@ -89,7 +88,7 @@ std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
     return slots;
 }
 
-// La esquina de arriba a la izquierda del primer quad del lote, con la y desde arriba.
+// Top left, with y from the top.
 Point FirstQuadCorner(const Client::Render::SpriteBatch& batch, PixelSize screen)
 {
     const auto vertices = batch.Vertices();
@@ -116,8 +115,8 @@ Frame DrawOnce(CharacterBalloons& balloons, PixelSize screen, const Heads& heads
     return frame;
 }
 
-// 0x63ce70 → 0x63c9a0: cinco cajas de 118 × 54 de character_ex.tga en (0, 0), sin mostrar, sin color y sin textos.
-// Sin armar (0x63ce50), ni la puesta al día ni el dibujo hacen nada.
+// 0x63ce70 → 0x63c9a0: five 118 × 54 boxes of character_ex.tga at (0, 0), hidden, without color and without texts.
+// Unbuilt (0x63ce50), neither the update nor the draw does anything.
 TEST(CharacterBalloonsTest, BuildingLeavesFiveHiddenBoxesAtTheOrigin)
 {
     const auto texts = LabTexts();
@@ -157,8 +156,8 @@ TEST(CharacterBalloonsTest, BuildingLeavesFiveHiddenBoxesAtTheOrigin)
     EXPECT_TRUE(released.batch.Commands().empty());
 }
 
-// 0x63cc60: el color del nombre por el CtlCode, en el orden de sus pruebas: 1 amarillo, 0x12 naranja, 4 blanco antes
-// de mirar el 8 y el 0x20, que van en rojo, y blanco sin nada.
+// 0x63cc60: the name color by the CtlCode, in the order of its tests: 1 yellow, 0x12 orange, 4 white before looking
+// at 8 and 0x20, which go red, and white with nothing.
 TEST(CharacterBalloonsTest, TheNameColorFollowsTheControlCode)
 {
     const auto texts = LabTexts();
@@ -183,8 +182,8 @@ TEST(CharacterBalloonsTest, TheNameColorFollowsTheControlCode)
         (std::array<std::uint32_t, BalloonCount>{0xff0000ffu, 0xff0000ffu, 0xffffffffu, 0xffffff00u, 0xffffffffu}));
 }
 
-// 0x63cd0d..0x63cdba: "(%s)" con el rango del gremio y "%s %d" con la clase (20 + (c >> 3) · 5 + (c & 7)) y el
-// nivel, sin signo.
+// 0x63cd0d..0x63cdba: "(%s)" with the guild rank and "%s %d" with the class (20 + (c >> 3) · 5 + (c & 7)) and the
+// level, unsigned.
 TEST(CharacterBalloonsTest, TheGuildAndClassLinesComeFromTheRecord)
 {
     const auto texts = LabTexts();
@@ -221,8 +220,8 @@ TEST(CharacterBalloonsTest, TheGuildAndClassLinesComeFromTheRecord)
     EXPECT_EQ(shown[0].guild, "(Sin gremio)");
 }
 
-// Q-C1503: "(%s)" tiene 16 bytes en +0xc0. Con un rango de 13 letras, sus 15 y el 0 entran; con 14, el 0 cae en +0xd0,
-// que el sprintf de la clase pisa, y 0x5542f0 lee el rango seguido de la clase y el nivel.
+// Q-C1503: "(%s)" has 16 bytes at +0xc0. With a 13-letter rank, its 15 and the 0 fit; with 14, the 0 falls on +0xd0,
+// which the class sprintf overwrites, and 0x5542f0 reads the rank followed by the class and the level.
 TEST(CharacterBalloonsTest, ALongGuildRankRunsIntoTheClassLine)
 {
     auto texts = Client::Tests::MakeTextTable({{20, "Mago"}, {488, "abcdefghijklm"}, {1300, "abcdefghijklmn"}});
@@ -238,10 +237,11 @@ TEST(CharacterBalloonsTest, ALongGuildRankRunsIntoTheClassLine)
     EXPECT_EQ(balloons.Balloons()[1].classAndLevel, "Mago 1");
 }
 
-// 0x63cd70 y 0x63cdba: un sprintf que pasa del final del globo (+0xf0) pisa el que sigue: MuRet corta con la dirección.
+// 0x63cd70 and 0x63cdba: a sprintf past the balloon's end (+0xf0) overwrites the next one: MuRet stops with the
+// address.
 TEST(CharacterBalloonsTest, ASprintfPastTheBalloonCuts)
 {
-    // "(" + 45 + ")" y el 0 son los 48 bytes de +0xc0 a +0xef; con 46, el 0 cae en +0xf0.
+    // "(" + 45 + ")" and the 0 are the 48 bytes from +0xc0 to +0xef; with 46, the 0 falls on +0xf0.
     auto texts = Client::Tests::MakeTextTable({{20, "Mago"},
                                                {21, std::string(29, 'c')},
                                                {22, std::string(30, 'c')},
@@ -258,7 +258,7 @@ TEST(CharacterBalloonsTest, ASprintfPastTheBalloonCuts)
     EXPECT_NE(guild->find("0x63cd70"), std::string::npos) << *guild;
     EXPECT_NE(guild->find("lugar 2"), std::string::npos) << *guild;
 
-    // La clase de 29 letras, " 1" y el 0 son 32 bytes: entran justos en +0xd0; con 30, no.
+    // The 29-letter class, " 1" and the 0 are 32 bytes: they fit exactly at +0xd0; with 30, not.
     records[2].guildStatus = 0xff;
     records[2].characterClass = 0x01;
     ASSERT_FALSE(Client::Tests::ErrorOf(balloons.Update(records)));
@@ -268,7 +268,7 @@ TEST(CharacterBalloonsTest, ASprintfPastTheBalloonCuts)
     EXPECT_NE(level->find("0x63cdba"), std::string::npos) << *level;
 }
 
-// 0x63cc71: con el +0 del registro en 0, el globo solo se esconde: los textos y el color quedan.
+// 0x63cc71: with the record's +0 at 0, the balloon only hides: the texts and the color stay.
 TEST(CharacterBalloonsTest, ADeadRecordOnlyHidesItsBalloon)
 {
     const auto texts = LabTexts();
@@ -288,9 +288,9 @@ TEST(CharacterBalloonsTest, ADeadRecordOnlyHidesItsBalloon)
     EXPECT_EQ(balloons.Balloons()[3].classAndLevel, "Mago 1");
 }
 
-// 0x63ca20 en 640 × 480: la caja va donde la dejó el dibujo anterior (en (0, 0) el primero) y después se ubica con el
-// punto (59, 54) en la cabeza: (320, 200) deja la esquina en (261, 146). Los tres renglones van centrados en la caja de
-// 118 columnas, en y + 7, + 23 y + 39, con la fuente de DAT_05763560 y el fondo en 0.
+// 0x63ca20 at 640 × 480: the box goes where the previous draw left it (at (0, 0) the first one) and then is placed
+// with the point (59, 54) on the head: (320, 200) leaves the corner at (261, 146). The three lines go centered in the
+// 118-column box, at y + 7, + 23 and + 39, with the font of DAT_05763560 and the background at 0.
 TEST(CharacterBalloonsTest, TheBoxLagsOneFrameAndTheLinesFollowTheHead)
 {
     const auto texts = LabTexts();
@@ -322,7 +322,7 @@ TEST(CharacterBalloonsTest, TheBoxLagsOneFrameAndTheLinesFollowTheHead)
         EXPECT_EQ(drawn.style.colors.text, colors[line]);
         EXPECT_EQ(drawn.style.colors.background, 0u);
         EXPECT_TRUE(drawn.windowed);
-        // (118 − 6 · letras) / 2 con la división de C.
+        // (118 − 6 · letters) / 2 with C division.
         const int column = (118 - 6 * static_cast<int>(lines[line].size())) / 2;
         EXPECT_EQ(drawn.firstColumn, -column);
         EXPECT_EQ(drawn.columns, 6 * static_cast<int>(lines[line].size()) + 2 * column);
@@ -341,8 +341,8 @@ TEST(CharacterBalloonsTest, TheBoxLagsOneFrameAndTheLinesFollowTheHead)
     EXPECT_EQ(moved.texts[0].y, 3);
 }
 
-// En 800 × 600 y 1024 × 768, el punto de 640 × 480 pasa a píxeles (fild, fmul por rx o ry y _ftol), la caja se ubica
-// en píxeles y los renglones vuelven a 640 × 480 (fild, fdiv y _ftol).
+// At 800 × 600 and 1024 × 768, the 640 × 480 point goes to pixels (fild, fmul by rx or ry and _ftol), the box is
+// placed in pixels and the lines go back to 640 × 480 (fild, fdiv and _ftol).
 TEST(CharacterBalloonsTest, OtherResolutionsScaleThePointAndTheLines)
 {
     const auto texts = LabTexts();
@@ -377,8 +377,8 @@ TEST(CharacterBalloonsTest, OtherResolutionsScaleThePointAndTheLines)
     }
 }
 
-// 0x63cbbc..0x63cc50: con el 0x80 del CtlCode de ahora, los textos 1241 a 1243 arriba de la caja (y − 46 + 16 · i) en
-// 0xffb4c8ff: el primero con la negrita y los otros con la normal. El 0x80 de la puesta al día no cuenta.
+// 0x63cbbc..0x63cc50: with the current CtlCode's 0x80, texts 1241 to 1243 above the box (y − 46 + 16 · i) in
+// 0xffb4c8ff: the first in bold and the others in normal. The update's 0x80 does not count.
 TEST(CharacterBalloonsTest, TheLiveControlCodeAddsThreeLinesAbove)
 {
     const auto texts = LabTexts();
@@ -410,7 +410,7 @@ TEST(CharacterBalloonsTest, TheLiveControlCodeAddsThreeLinesAbove)
     }
 }
 
-// 0x63ca76: un globo que se muestra sin su personaje proyectado corta, después de su caja; uno escondido no lo pide.
+// 0x63ca76: a balloon shown without its character projected stops, after its box; a hidden one does not ask for it.
 TEST(CharacterBalloonsTest, AShownBalloonWithoutItsHeadCuts)
 {
     const auto texts = LabTexts();

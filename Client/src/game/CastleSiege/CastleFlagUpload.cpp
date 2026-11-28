@@ -43,8 +43,8 @@ Core::Expected<void, std::string> UploadTheCastleFlag(std::span<const std::uint8
         .slot = 0x69c,
         .sampling = {.filter = Data::Textures::Filter::Linear, .wrap = Data::Textures::Wrap::Clamp},
         .texture = std::move(image)};
-    // 0x5f1b41: glTexImage2D usa interno RGB desde el buffer RGBA. La tabla CPU sigue con cuatro componentes,
-    // las dimensiones y las referencias anteriores; no se llama al cargador ni se omiten paquetes repetidos.
+    // 0x5f1b41: glTexImage2D uses internal RGB from the RGBA buffer. The CPU table keeps four components, the
+    // dimensions and the previous references; the loader is not called and repeated packets are not skipped.
     return table.Store()->Load(std::span(&texture, 1));
 }
 } // namespace Client::CastleSiege

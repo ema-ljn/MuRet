@@ -21,8 +21,8 @@
 #include <string>
 #include <string_view>
 
-// El hover y Alt del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0. El texto mide como
-// el rasterizador falso: 6 columnas por letra y 13 filas. Los nombres son inventados.
+// The game's hover and Alt (CL8 milestone 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0. The text
+// measures like the fake rasterizer: 6 columns per letter and 13 rows. The names are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -41,7 +41,7 @@ constexpr std::size_t Hero = 0;
 constexpr std::size_t Guard = 5;
 constexpr std::size_t Player = 7;
 constexpr std::size_t Monster = 9;
-// +0x88: 1 un jugador, 2 un monstruo y 4 un NPC.
+// +0x88: 1 a player, 2 a monster and 4 an NPC.
 constexpr std::uint8_t PlayerKind = 1;
 constexpr std::uint8_t MonsterKind = 2;
 constexpr std::uint8_t NpcKind = 4;
@@ -103,7 +103,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     std::unique_ptr<GameDrawTailState> m_tail;
     CrtRandom m_random{Seed};
-    // El ítem del piso, el NPC, el personaje, 0x6c8e34 y 0x6c8e38.
+    // The floor item, the NPC, the character, 0x6c8e34 and 0x6c8e38.
     std::array<std::int32_t, 5> m_targets{None, None, None, None, None};
     HudState m_hud{};
     std::int32_t m_altLatch = 0;
@@ -112,7 +112,7 @@ protected:
     RecordingTextDrawer m_text;
 };
 
-// 0x5bbc10..0x5bbc2c: sin elegido, solo 0x77f3b66 en 1, el blanco y sin mezcla.
+// 0x5bbc10..0x5bbc2c: with no target, only 0x77f3b66 at 1, the white and no blending.
 TEST_F(GameHoverTest, WithoutATargetItOnlyRaisesTheDurabilityWarning)
 {
     ASSERT_TRUE(Draw().HasValue());
@@ -123,7 +123,7 @@ TEST_F(GameHoverTest, WithoutATargetItOnlyRaisesTheDurabilityWarning)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5bbc57..0x5bbc78: el NPC, con su nombre solo en un globo (el texto vacío: 100 pasos).
+// 0x5bbc57..0x5bbc78: the NPC, with its name alone in a bubble (the empty text: 100 steps).
 TEST_F(GameHoverTest, AnNpcGetsItsNameAloneInABubble)
 {
     m_targets[1] = static_cast<std::int32_t>(Guard);
@@ -135,7 +135,7 @@ TEST_F(GameHoverTest, AnNpcGetsItsNameAloneInABubble)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// 0x5bbc53: con el NPC elegido, el personaje no se mira.
+// 0x5bbc53: with the NPC picked, the character is not looked at.
 TEST_F(GameHoverTest, TheNpcGoesBeforeTheCharacter)
 {
     m_targets[1] = static_cast<std::int32_t>(Guard);
@@ -146,7 +146,7 @@ TEST_F(GameHoverTest, TheNpcGoesBeforeTheCharacter)
     EXPECT_TRUE(m_text.texts.empty());
 }
 
-// 0x5bbd17..0x5bbd27: un jugador, sin tienda personal, en un globo como el NPC.
+// 0x5bbd17..0x5bbd27: a player, without a personal shop, in a bubble like the NPC.
 TEST_F(GameHoverTest, APlayerGetsItsNameInABubble)
 {
     m_targets[2] = static_cast<std::int32_t>(Player);
@@ -155,7 +155,7 @@ TEST_F(GameHoverTest, APlayerGetsItsNameInABubble)
     EXPECT_EQ(Bubbles()[0].name, "Viajero");
 }
 
-// 0x5bbc92: con 0x6c8e38 elegido, el personaje no va.
+// 0x5bbc92: with 0x6c8e38 picked, the character does not go.
 TEST_F(GameHoverTest, ThePickedOtherHidesTheCharacter)
 {
     m_targets[2] = static_cast<std::int32_t>(Player);
@@ -165,8 +165,8 @@ TEST_F(GameHoverTest, ThePickedOtherHidesTheCharacter)
     EXPECT_EQ(m_hud.durabilityWarning, 1);
 }
 
-// 0x5bbcbb..0x5bbcfc: un monstruo, con su nombre centrado en la mitad del mundo (640 sin paneles) y en y = 10, con
-// el fondo 0xff000064 y el texto 0xffc8e6ff, que quedan; 0x554180 guarda el tamaño.
+// 0x5bbcbb..0x5bbcfc: a monster, with its name centered in the middle of the world (640 without panels) and at y = 10,
+// with the background 0xff000064 and the text 0xffc8e6ff, which stay; 0x554180 keeps the size.
 TEST_F(GameHoverTest, AMonsterGetsItsNameAtTheTop)
 {
     m_targets[2] = static_cast<std::int32_t>(Monster);
@@ -182,11 +182,11 @@ TEST_F(GameHoverTest, AMonsterGetsItsNameAtTheTop)
     EXPECT_EQ(m_hud.arrowsTextWidth, 30);
     EXPECT_EQ(m_hud.arrowsTextHeight, 13);
     EXPECT_FALSE(Bubbles()[0].owner.has_value());
-    // Sin el inventario abierto, el ancho del mundo no consulta el comercio ni la tienda de NPC.
+    // Without the inventory open, the world's width does not consult the trade or the NPC shop.
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5bbd31..0x5bbd62: el nombre del ítem del piso elegido (0x5ba790) sin sus tablas corta. Con ellas, en
+// 0x5bbd31..0x5bbd62: the name of the picked floor item (0x5ba790) without its tables stops. With them, in
 // test_floor_items_scene.
 TEST_F(GameHoverTest, TheFloorItemUnderTheMouseCuts)
 {
@@ -196,7 +196,8 @@ TEST_F(GameHoverTest, TheFloorItemUnderTheMouseCuts)
     EXPECT_NE(drawn.Error().find("0x5bbd62"), std::string::npos);
 }
 
-// 0x5bbbd0..0x5bbc0a: en Chaos Castle, sin "webzen" en el nombre del héroe y con un NPC o un personaje elegido, nada.
+// 0x5bbbd0..0x5bbc0a: in Chaos Castle, without "webzen" in the hero's name and with an NPC or a character picked,
+// nothing.
 TEST_F(GameHoverTest, ChaosCastleHidesTheNamesOfThePicked)
 {
     m_world->Runtime().map = 0x12;
@@ -211,13 +212,13 @@ TEST_F(GameHoverTest, ChaosCastleHidesTheNamesOfThePicked)
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_TRUE(m_text.texts.empty());
 
-    // Fuera de los dos, la puerta deja pasar.
+    // Outside the two, the gate lets it through.
     m_world->Runtime().map = 0x18;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(m_text.texts.size(), 1U);
 }
 
-// 0x5bbbec: con "webzen" en el nombre del héroe, Chaos Castle no esconde nada.
+// 0x5bbbec: "webzen" in the hero's name.
 TEST_F(GameHoverTest, WebzenSeesTheNamesInChaosCastle)
 {
     m_world->Runtime().map = 0x14;
@@ -228,7 +229,7 @@ TEST_F(GameHoverTest, WebzenSeesTheNamesInChaosCastle)
     EXPECT_EQ(Bubbles()[0].owner, Guard);
 }
 
-// 0x5bbd6a..0x5bbd7f: el flanco de Alt invierte 0x78abb38; Alt abajo no lo vuelve a invertir y soltarlo baja el
+// 0x5bbd6a..0x5bbd7f: the Alt edge toggles 0x78abb38; Alt held does not toggle it again and releasing it lowers the
 // latch.
 TEST_F(GameHoverTest, TheAltEdgeTogglesTheFloorNames)
 {
@@ -244,8 +245,8 @@ TEST_F(GameHoverTest, TheAltEdgeTogglesTheFloorNames)
     EXPECT_EQ(m_altNames, 0);
 }
 
-// 0x5bbd86..0x5bbdd2: con los nombres prendidos, el nombre de un ítem del piso vivo y a la vista (0x5ba790) sin sus
-// tablas corta; el que no está a la vista no se nombra.
+// 0x5bbd86..0x5bbdd2: with the names on, the name of a live, visible floor item (0x5ba790) without its tables stops;
+// the one not visible is not named.
 TEST_F(GameHoverTest, TheFloorNamesCutOnASeenItem)
 {
     FloorItem(30, false);
@@ -258,7 +259,7 @@ TEST_F(GameHoverTest, TheFloorNamesCutOnASeenItem)
     EXPECT_NE(drawn.Error().find("31"), std::string::npos);
 }
 
-// 0x5bbd8f..0x5bbd9e: sin los nombres prendidos, solo con Alt abajo. Acá Alt apaga los que estaban y sigue abajo.
+// 0x5bbd8f..0x5bbd9e: with the names off, only with Alt held. Here Alt turns off the ones that were on and stays held.
 TEST_F(GameHoverTest, AltDownShowsTheFloorNamesEvenWhenItTurnsThemOff)
 {
     FloorItem(31, true);
@@ -270,7 +271,7 @@ TEST_F(GameHoverTest, AltDownShowsTheFloorNamesEvenWhenItTurnsThemOff)
     EXPECT_NE(drawn.Error().find("0x5bbdd2"), std::string::npos);
 }
 
-// 0x5bbdb6: el ítem elegido no se nombra otra vez. Con el NPC elegido, el del piso no corta en 0x5bbd62.
+// 0x5bbdb6: the picked item is not named again. With the NPC picked, the floor one does not stop at 0x5bbd62.
 TEST_F(GameHoverTest, ThePickedFloorItemIsSkippedWithAlt)
 {
     FloorItem(31, true);
@@ -280,7 +281,7 @@ TEST_F(GameHoverTest, ThePickedFloorItemIsSkippedWithAlt)
     EXPECT_EQ(Bubbles()[0].owner, Guard);
 }
 
-// Un dibujo intermedio de MuRet no escribe los globos; el nombre del monstruo sale igual.
+// An intermediate MuRet drawing does not write the bubbles; the monster's name comes out anyway.
 TEST_F(GameHoverTest, AProjectedDrawWritesNoBubble)
 {
     m_targets[1] = static_cast<std::int32_t>(Guard);

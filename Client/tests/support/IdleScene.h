@@ -9,9 +9,8 @@
 #include <optional>
 #include <string>
 
-// Una escena que no hace nada: el lugar de la selección en los tests que solo miran cómo se llega a
-// ella o qué hace la sesión mientras tanto, como hacía la selección vacía de la CL5. La de verdad
-// (CL6.3) pide la lista al entrar.
+// A scene that does nothing: the selection's place in the tests that only look at how it is reached or what the
+// session does meanwhile. The real one (CL6.3) asks for the list on entering.
 namespace Client::Tests
 {
 class IdleScene final : public Scenes::IScene

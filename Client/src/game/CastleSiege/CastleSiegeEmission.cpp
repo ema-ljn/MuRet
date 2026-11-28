@@ -29,7 +29,7 @@ constexpr float ArrowZ = 350.0f;
 constexpr float CellScale = Terrain::CellSize;
 constexpr std::int32_t ArrowSpacing = 60;
 
-// El negativo pequeño se corre otros100+rand; no se reemplaza como el positivo (42bb5c/42bc73/42c22f).
+// The small negative is shifted another 100 + rand; it is not replaced like the positive (0x42bb5c/0x42bc73/0x42c22f).
 int SeparateFromTheHero(int offset, int threshold, CrtRandom& random)
 {
     constexpr int Correction = 100;
@@ -48,7 +48,7 @@ Result Emit(const CastleSiegePrelude& prelude, const Kernel::ModelEffectArgument
     return prelude.emit(arguments);
 }
 
-// 42baa2..42bd01: el rand%3 precede al rango; el caller vuelve a leerY aun sin crear una piedra.
+// 0x42baa2..0x42bd01: the rand%3 comes before the range; the caller reads Y again even without creating a rock.
 Result EmitTheRock(const CastleSiegePrelude& prelude, std::int32_t y)
 {
     CrtRandom& random = *prelude.random;
@@ -69,7 +69,7 @@ Result EmitTheRock(const CastleSiegePrelude& prelude, std::int32_t y)
     return Emit(prelude, arguments);
 }
 
-// 42c198..42c31e: FSUBP resta n*60; cada vuelta suma60 ANTES de emitir. Dos rand por vuelta, uno descartado.
+// 0x42c198..0x42c31e: FSUBP subtracts n*60; each loop adds 60 BEFORE emitting. Two rand per loop, one discarded.
 Result EmitTheArrowRow(const CastleSiegePrelude& prelude, std::int32_t y)
 {
     if (prelude.logicSteps % 60 != 0 || !((y > 58 && y < 113) || (y > 117 && y < 159)))
@@ -96,7 +96,7 @@ Result EmitTheArrowRow(const CastleSiegePrelude& prelude, std::int32_t y)
     return {};
 }
 
-// 42c3ed..42c41a: dentro82..112 el segundo rand%10 se pide sólo si el primero dio0; afuera, siempre uno.
+// 0x42c3ed..0x42c41a: inside 82..112 the second rand%10 is drawn only if the first gave 0; outside, always one.
 int ArrowSubtype(std::int32_t y, CrtRandom& random)
 {
     if (y >= 82 && y <= 112 && random.Next() % 10 != 0)

@@ -41,9 +41,9 @@
 #include <utility>
 #include <vector>
 
-// La ventana del personaje en el HUD (CL8 hito 5; 06 § La ventana del personaje): el dibujo de 0x5ee2e0 y el botón de
-// cerrar de 0x5f7440, con Text.bmd del laboratorio y el texto falso de RecordingTextDrawer (6 columnas por letra). El
-// nombre, los stats y el equipo son inventados; las cuentas de rand() salen del ASM.
+// The character window in the HUD (CL8 milestone 5; 06 § La ventana del personaje): the drawing of 0x5ee2e0 and the
+// close button of 0x5f7440, with the lab's Text.bmd and RecordingTextDrawer's fake text (6 columns per letter). The
+// name, the stats and the equipment are made up; the rand() counts come from the ASM.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -62,18 +62,17 @@ constexpr std::uint32_t Seed = 0x0badf00du;
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int Own = OwnRecordCloseRandoms;
 constexpr int SkillEntry = static_cast<int>(Client::Tables::SkillRecordSize);
-// Los accesos de un frame sin set: los siete de arriba, 0x5b8b80, la primera vuelta del set y los tres de abajo.
+// The accesses of a frame without a set: the seven above, 0x5b8b80, the set's first pass and the three below.
 constexpr int PlainWindowCloses = 7 + 1 + 1 + 3;
-// El HUD sin ventanas, como en GameHudTest.
+// The HUD with no windows, as in GameHudTest.
 constexpr int HudBaseDraws = 19 * Own + 2 * SmallLogicalCloseRandoms + 9;
-// El código del servidor elegido: el grupo 0 (el texto 540) y el número 2, con PvP (el texto 461).
+// The chosen server's code: group 0 (text 540) and number 2, with PvP (text 461).
 constexpr std::uint16_t ServerCode = 1;
-// La ventana en (0x1c2, 0): las x de los textos centrados en sus cajas y las de los renglones.
+// The window at (0x1c2, 0): the x of the texts centered in their boxes and of the lines.
 constexpr int Left = 0x1c2;
 constexpr int StatX = Left + 0xe;
 constexpr int LineX = Left + 0x18;
 constexpr int Letter = Client::Tests::RecordingTextDrawer::LetterWidth;
-// Un nombre inventado.
 constexpr std::string_view Name = "Probador";
 
 constexpr std::uint8_t WizardClass = 0;
@@ -101,7 +100,7 @@ std::vector<std::uint16_t> SlotsOf(const SpriteBatch& sprites)
     return slots;
 }
 
-// El vértice 0 (arriba a la izquierda, con la y de GL hacia arriba) del quad `index` con la textura `slot`.
+// Vertex 0 (top left, with GL's y going up) of quad `index` with texture `slot`.
 std::optional<Client::Render::SpriteVertex> NthQuadOf(const SpriteBatch& sprites, std::uint16_t slot,
                                                       std::size_t index = 0)
 {
@@ -120,8 +119,7 @@ std::optional<Client::Render::SpriteVertex> NthQuadOf(const SpriteBatch& sprites
     return std::nullopt;
 }
 
-// Lo que 0x467060 hace con un texto de 6 columnas por letra: centrado en `box` (el modo 2) o desde x con `width`
-// (el modo 1).
+// What 0x467060 does with a text of 6 columns per letter: centered in `box` (mode 2) or from x with `width` (mode 1).
 struct Columns
 {
     int first = 0;
@@ -151,7 +149,7 @@ protected:
         auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
-        // Como lo deja la entrada al mundo con un F3 03 inventado y un F3 10 sin ítems.
+        // As world entry leaves it with a made-up F3 03 and an F3 10 with no items.
         Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.ClearEquipmentForEntry();
         std::memcpy(own.name.data(), Name.data(), Name.size());
@@ -181,7 +179,7 @@ protected:
         return world.Hero();
     }
 
-    // La clase en el registro (+0xb) y en el héroe (+0x1d4).
+    // The class in the record (+0xb) and in the hero (+0x1d4).
     void SetClass(std::uint8_t characterClass)
     {
         world.OwnCharacter().characterClass = characterClass;
@@ -222,7 +220,6 @@ protected:
         return std::string(Client::Ui::TextAt(&*data.text, index).value_or("?"));
     }
 
-    // El texto que la ventana dejó con ese contenido, o nada.
     const RecordedText* Find(std::string_view shown) const
     {
         for (const RecordedText& recorded : text.texts)
@@ -233,7 +230,6 @@ protected:
         return nullptr;
     }
 
-    // Que el texto `index` sea `shown` en (x, y), con la fuente, los colores y la caja de 0x467060.
     void ExpectText(std::size_t index, std::string_view shown, int x, int y, FontKind font, std::uint32_t color,
                     std::uint32_t background, Columns columns) const
     {
@@ -265,9 +261,9 @@ protected:
     Client::Tables::GameData data;
 };
 
-// Un Dark Knight sin equipo en Lorencia y en Devias: los fondos, los cinco de los stats y cerrar; los 17 textos en su
-// orden, con su lugar, su fuente, sus colores y su caja; doce cierres del registro (la primera vuelta del set corta en
-// el casco vacío); la esquina en 0x78aba14 y 0x78aba18. La ventana no mira el mapa.
+// A Dark Knight with no equipment: the backgrounds, the five of the stats and close; the 17 texts in their order, with
+// their place, font, colors and box; twelve record closes (the set's first pass stops at the empty helm); the corner
+// at 0x78aba14 and 0x78aba18. The window does not look at the map.
 TEST_F(GameCharacterHudTest, TheKnightWindowDrawsItsQuadsTextsAndRandomsInLorenciaAndDevias)
 {
     for (const std::int32_t map : {0, 2})
@@ -328,7 +324,7 @@ TEST_F(GameCharacterHudTest, TheKnightWindowDrawsItsQuadsTextsAndRandomsInLorenc
         ExpectText(15, skill, LineX, 0x14f, FontKind::Normal, White, Shade, FromLeft(skill, 130));
         ExpectText(16, letters, Left + 0x5b, 0x41, FontKind::Normal, Orange, Shade, Centered(letters, 84));
     }
-    // El fondo de arriba en (450, 0), el primer fondo de los stats en (463, 56) y el último en (463, 296), cerrar en
+    // The top background at (450, 0), the first stats background at (463, 56) and the last at (463, 296), close at
     // (475, 395).
     const auto back = NthQuadOf(sprites, 0x104);
     ASSERT_TRUE(back.has_value());
@@ -350,9 +346,9 @@ TEST_F(GameCharacterHudTest, TheKnightWindowDrawsItsQuadsTextsAndRandomsInLorenc
     EXPECT_FLOAT_EQ(close->y, 480.0f - 395.0f);
 }
 
-// El Dark Lord, en Lorencia y en Devias: seis fondos, el mando (+0x20 más +0x36, en naranja con algo sumado) con un
-// acceso más, el daño de la skill con la energía / 20 y, con puntos para repartir, el cartel y cinco botones, el
-// segundo apretado con el botón abajo encima.
+// The Dark Lord: six backgrounds, the command (+0x20 plus +0x36, orange when something is added) with one more access,
+// the skill damage with energy / 20 and, with points to spend, the banner and five buttons, the second pressed with
+// the button down over it.
 TEST_F(GameCharacterHudTest, TheDarkLordAddsTheCommandAndItsButtonsInLorenciaAndDevias)
 {
     SetClass(DarkLordClass);
@@ -388,7 +384,7 @@ TEST_F(GameCharacterHudTest, TheDarkLordAddsTheCommandAndItsButtonsInLorenciaAnd
         const std::string command = Sprintf(TextAt(1170), 30);
         ExpectText(18, command, StatX, 0x168, FontKind::Bold, 0xffff9664u, 0, Centered(command, 70));
     }
-    // Los botones en (0x1c2 + 125, 115 + 60 · i).
+    // The buttons at (0x1c2 + 125, 115 + 60 · i).
     const auto second = NthQuadOf(sprites, 0x121);
     ASSERT_TRUE(second.has_value());
     EXPECT_FLOAT_EQ(second->x, 575.0f);
@@ -398,7 +394,7 @@ TEST_F(GameCharacterHudTest, TheDarkLordAddsTheCommandAndItsButtonsInLorenciaAnd
     EXPECT_FLOAT_EQ(fifth->y, 480.0f - 355.0f);
 }
 
-// Skill.bmd e Item.bmd inventados para la magia.
+// Made-up Skill.bmd and Item.bmd for the magic.
 struct MagicTables
 {
     Client::Tables::SkillTable skills;
@@ -417,10 +413,10 @@ MagicTables MagicTablesWith(std::uint8_t skill, std::uint8_t damage, std::uint16
                        .items = Client::Tables::ItemTable(std::span<const std::byte>(itemsEncrypted))};
 }
 
-// El Dark Wizard: la magia de 0x5513d0 con la skill del héroe (+0x425 sobre +0x6c del registro), con su entrada de
-// Skill.bmd (60 rand() en el medio) y, con un báculo en la derecha, el agregado de su +0x16 por la durabilidad que le
-// queda contra el +0x2e de Item.bmd; el bit 0x02 de +0x3c suma 10 a los dos, no al máximo del agregado. Sin báculo, el
-// texto 216. La velocidad es la de la magia (+0x58) y no hay daño de skill.
+// The Dark Wizard: the magic of 0x5513d0 with the hero's skill (+0x425 over the record's +0x6c), its Skill.bmd entry
+// (60 rand() in between) and, with a staff in the right hand, the bonus of its +0x16 by the durability it has left
+// against Item.bmd's +0x2e; bit 0x02 of +0x3c adds 10 to both, not to the bonus's maximum. Without a staff, text 216.
+// The speed is the magic's (+0x58) and there is no skill damage.
 TEST_F(GameCharacterHudTest, TheWizardShowsTheMagicOfItsSkill)
 {
     SetClass(WizardClass);
@@ -430,7 +426,7 @@ TEST_F(GameCharacterHudTest, TheWizardShowsTheMagicOfItsSkill)
     items = &tables.items;
     skills = &tables.skills;
     Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
-    own.words6c[0] = 0x0000'0900u; // el byte +0x6d: la skill 9.
+    own.words6c[0] = 0x0000'0900u; // byte +0x6d: skill 9
     Hero().skillIndex = 1;
     own.word5a = 12;
     own.word5c = 30;
@@ -447,7 +443,7 @@ TEST_F(GameCharacterHudTest, TheWizardShowsTheMagicOfItsSkill)
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().movement.skillDepths[Skill], 0);
     ASSERT_EQ(text.texts.size(), 17u);
-    // min = 12 + 20 y max = 30 + 20 + 10, más 10 cada uno; el agregado, (0,5 − 0 · 0,5) · 60.
+    // min = 12 + 20 and max = 30 + 20 + 10, plus 10 each; the bonus, (0.5 − 0 · 0.5) · 60.
     const std::string magic = Sprintf(TextAt(215), 42, 70, 30);
     ExpectText(15, magic, LineX, 0x14f, FontKind::Normal, 0xffffffffu, 0x80000000u, FromLeft(magic, 130));
     EXPECT_EQ(text.texts[10].text, Sprintf(TextAt(64), 9));
@@ -458,9 +454,9 @@ TEST_F(GameCharacterHudTest, TheWizardShowsTheMagicOfItsSkill)
     EXPECT_EQ(text.texts[15].text, Sprintf(TextAt(216), 42, 70));
 }
 
-// El Magic Gladiator sin casco y con una de sus cuatro armaduras: las cinco vueltas del set y la comparación de los
-// tipos % 512 (17 cierres), la defensa con la tasa (texto 207, sin +0x60), la magia y el 582 fijo un renglón más
-// abajo. Con otra armadura no es set; con las botas rotas, la quinta vuelta corta antes de comparar.
+// The Magic Gladiator with no helm and one of its four armors: the set's five passes and the comparison of the types
+// % 512 (17 closes), the defense with the rate (text 207, without +0x60), the magic and the fixed 582 one line lower.
+// With another armor it is not a set; with broken boots, the fifth pass stops before comparing.
 TEST_F(GameCharacterHudTest, TheGladiatorSetComparesTheArmorTypes)
 {
     SetClass(GladiatorClass);
@@ -510,8 +506,8 @@ TEST_F(GameCharacterHudTest, TheGladiatorSetComparesTheArmorTypes)
     EXPECT_EQ(text.texts[9].text, Sprintf(TextAt(209), 123));
 }
 
-// Las demás clases comparan los lugares 3 a 6 con el tipo % 512 del casco; con +0x60 y el bit 0x2000000 de +0x78, la
-// defensa suma nivel / 5 + 50 y lleva la tasa (texto 206).
+// The other classes compare slots 3 to 6 with the helm's type % 512; with +0x60 and bit 0x2000000 of +0x78, the
+// defense adds level / 5 + 50 and carries the rate (text 206).
 TEST_F(GameCharacterHudTest, TheKnightSetComparesWithTheHelm)
 {
     Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
@@ -529,12 +525,12 @@ TEST_F(GameCharacterHudTest, TheKnightSetComparesWithTheHelm)
 
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(text.texts[9].text, Sprintf(TextAt(206), 160, 4, 16));
-    // Y el daño con el mismo bit: nivel / 3 + 45 a los dos.
+    // And the damage with the same bit: level / 3 + 45 to both.
     EXPECT_EQ(text.texts[7].text, Sprintf(TextAt(204), 61, 61));
 }
 
-// El renglón del daño: dos armas en el Dark Knight lo pintan de naranja, y con el bit 0x400 de +0x78 la agilidad
-// (más +0x2c) se suma a +0x4e y sale el texto 203 con la tasa.
+// The damage line: two weapons on the Dark Knight paint it orange, and with bit 0x400 of +0x78 the agility (plus
+// +0x2c) is added to +0x4e and text 203 comes out with the rate.
 TEST_F(GameCharacterHudTest, TheDamageLineTakesItsRateAndItsColor)
 {
     Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
@@ -550,13 +546,13 @@ TEST_F(GameCharacterHudTest, TheDamageLineTakesItsRateAndItsColor)
 
     const std::string damage = Sprintf(TextAt(203), 22, 33, 3 + 18);
     ExpectText(7, damage, LineX, 0x8c, FontKind::Normal, 0xffff9664u, 0x80000000u, FromLeft(damage, 130));
-    // La agilidad con lo que le suman los ítems, en 16 bits: 20 + 0xfffe = 18, en naranja.
+    // The agility with what the items add, in 16 bits: 20 + 0xfffe = 18, in orange.
     EXPECT_EQ(text.texts[8].text, Sprintf(TextAt(205), 18));
     EXPECT_EQ(text.texts[8].style.colors.text, 0xffff9664u);
 }
 
-// El renglón de los puntos: antes del nivel 10, en 0; desde el 10, +0x44 y +0x46 con signo y +0x48 y +0x4a negados.
-// Las letras: +0x44 · 100 / +0x46 da 70, 60, 50 o 40; +0x48 pasado 10 da 40 (la división por 1, Q-C670).
+// The points line: before level 10, at 0; from 10, +0x44 and +0x46 signed and +0x48 and +0x4a negated. The letters:
+// +0x44 · 100 / +0x46 gives 70, 60, 50 or 40; +0x48 past 10 gives 40 (the division by 1, Q-C670).
 TEST_F(GameCharacterHudTest, ThePointsLineAndTheLettersFollowTheAddedPoints)
 {
     Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
@@ -598,7 +594,7 @@ TEST_F(GameCharacterHudTest, ThePointsLineAndTheLettersFollowTheAddedPoints)
     }
 }
 
-// Con el mouse sobre cerrar, la ayuda del texto 222 en (_ftol(x + 25), _ftol(395) − 13), con la fuente normal.
+// With the mouse over close, the help of text 222 at (_ftol(x + 25), _ftol(395) − 13), with the normal font.
 TEST_F(GameCharacterHudTest, TheCloseButtonShowsItsHelp)
 {
     mouse = {Left + 25 + 5, 395 + 5};
@@ -612,8 +608,8 @@ TEST_F(GameCharacterHudTest, TheCloseButtonShowsItsHelp)
     EXPECT_EQ(text.texts[17].style.font, FontKind::Normal);
 }
 
-// La clase y el servidor van en el mismo lugar con alfas que suman 2: 2 menos (float)(sin(T · 0,001f) + 1) y eso. Sin
-// PvP (el número 1 del grupo 0), el texto 460.
+// The class and the server go in the same place with alphas that add up to 2: 2 minus (float)(sin(T · 0.001f) + 1),
+// and that. Without PvP (number 1 of group 0), text 460.
 TEST_F(GameCharacterHudTest, TheClassAndTheServerFadeIntoEachOther)
 {
     worldClock = 1000.0f;
@@ -628,7 +624,7 @@ TEST_F(GameCharacterHudTest, TheClassAndTheServerFadeIntoEachOther)
     ASSERT_TRUE(classMarker.has_value());
     ASSERT_TRUE(serverMarker.has_value());
     EXPECT_FLOAT_EQ(classMarker->color.alpha, static_cast<float>(2.0 - static_cast<double>(alpha)));
-    // glColor4f con más de 1: el lote lo recorta, como GL.
+    // glColor4f with more than 1: the batch clamps it, like GL.
     EXPECT_FLOAT_EQ(serverMarker->color.alpha, std::min(alpha, 1.0f));
     EXPECT_GT(alpha, 1.0f);
     const auto level = NthQuadOf(sprites, Client::Tests::TextMarkerSlot.value, 3);
@@ -636,7 +632,7 @@ TEST_F(GameCharacterHudTest, TheClassAndTheServerFadeIntoEachOther)
     EXPECT_EQ(level->color, (Color{1.0f, 1.0f, 1.0f, 1.0f}));
 }
 
-// Un texto más ancho que su caja se recorta como en 0x467060: el modo 2 muestra el centro y el 1, el final.
+// A text wider than its box is clipped as in 0x467060: mode 2 shows the center and mode 1 the end.
 TEST_F(GameCharacterHudTest, ATextWiderThanItsBoxIsClipped)
 {
     world.OwnCharacter().experience = 4000000000u;
@@ -657,8 +653,8 @@ TEST_F(GameCharacterHudTest, ATextWiderThanItsBoxIsClipped)
     EXPECT_EQ(strength.columns, width + 2 * ((70 - width) / 2));
 }
 
-// Lo que el original lee y MuRet no tiene corta con su dirección, después de los rand() de antes: sin el servidor
-// elegido, después del primer acceso; con +0x46 en 0 y +0x44 en más de 10, la división de 0x5f08ac.
+// What the original reads and MuRet does not have stops with its address, after the earlier rand(): without the
+// chosen server, after the first access; with +0x46 at 0 and +0x44 above 10, the division at 0x5f08ac.
 TEST_F(GameCharacterHudTest, WhatMuRetDoesNotHaveStopsWithItsAddress)
 {
     chosenServer.reset();
@@ -677,8 +673,7 @@ TEST_F(GameCharacterHudTest, WhatMuRetDoesNotHaveStopsWithItsAddress)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// El HUD entero con la ventana del personaje abierta, en Lorencia y en Devias: el estado base más los cierres de la
-// ventana, sin corte.
+// The base state plus the window's closes, with no stop.
 TEST_F(GameCharacterHudTest, TheHudWithTheCharacterOpenSpendsItsRandomsInLorenciaAndDevias)
 {
     for (const std::int32_t map : {0, 2})

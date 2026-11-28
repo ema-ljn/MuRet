@@ -31,23 +31,23 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x606660 con el 0xa2 y su caso de 0x6068d5 (0x400ccccd, y +0x64 en 1).
+// 0x606660 with the 0xa2 and its case of 0x6068d5 (0x400ccccd, and +0x64 at 1).
 constexpr float LogoScale = 2.2f;
 constexpr std::int16_t LogoBlendMesh = 1;
 // +0xd8 de 0x606660 (0x3e23d70a).
 constexpr float ObjectSpeed = 0.16f;
 
-// 0x633920: la fase 0 dura 40 pasos, y en la 1 la cámara cambia de ruta cada 128.
+// 0x633920: phase 0 lasts 40 steps, and in phase 1 the camera changes route every 128.
 constexpr int FirstPhaseSteps = 40;
 constexpr int RouteSteps = 128;
-// 0x604ab0: 0x6b8b90 (0,02) y 0x6b8b94 (1,5).
+// 0x604ab0: 0x6b8b90 and 0x6b8b94.
 constexpr float LogoLightPerStep = 0.02f;
 constexpr float LogoLightAfterTheFade = 1.5f;
 
 // 0x5ffce0: 0x6b87b8.
 constexpr float TerrainLightShare = 0.1f;
 
-// 0x517270 en la escena 2.
+// 0x517270 in scene 2.
 constexpr std::uint8_t LoginClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkLord);
 constexpr std::uint8_t PartLevel = 7;
 constexpr std::uint8_t WeaponLevel = 13;
@@ -56,7 +56,7 @@ constexpr std::uint16_t Mace = 0x620;
 constexpr std::uint16_t Cape = 0x1c30;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 
-// 0x634c60: ftol(T) % 2300 (0x8fc) y el resto por 0,01 (0x6b88d4) en la x87.
+// 0x634c60: ftol(T) % 2300 (0x8fc) and the remainder times 0.01 (0x6b88d4) on the x87.
 constexpr std::int64_t ActionPeriodMs = 2300;
 constexpr float WindowScale = 0.01f;
 constexpr std::uint_fast32_t RandRange = 32768;
@@ -167,7 +167,7 @@ Pets::DarkSpiritOwner LoginRavenOwner()
 
 namespace
 {
-// La ventana: ftol(T % 2300 · 0,01) en 0, con el producto en la x87, sin redondear a float antes del ftol.
+// The window: ftol(T % 2300 · 0.01) at 0, with the product on the x87, not rounded to float before the ftol.
 bool InTheActionWindow(Core::Duration frameClock)
 {
     const std::int64_t remainder =
@@ -175,7 +175,7 @@ bool InTheActionWindow(Core::Duration frameClock)
     return static_cast<std::int64_t>(static_cast<double>(remainder) * static_cast<double>(WindowScale)) == 0;
 }
 
-// rand() % 6: 1 la 0x54 y 2 la 0x55.
+// rand() % 6: 1 gives 0x54 and 2 gives 0x55.
 std::optional<std::uint8_t> ActionOfRand(int rand)
 {
     const int choice = rand % RandChoices;

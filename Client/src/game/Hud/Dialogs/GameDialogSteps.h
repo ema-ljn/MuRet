@@ -9,10 +9,9 @@
 #include <string>
 #include <string_view>
 
-// Los diálogos del juego en el paso (06 § HUD y ventanas, "Los diálogos del juego", CL8 hito 6): lo que 0x623e70 hace
-// con el diálogo abierto (0x7d3a10c) después de Esc, desde 0x623f78. Cada id va por su tramo de la tabla de
-// despacho: el menú de Esc, las opciones, las cajas con botones, el OK genérico, o el corte de su ola con la dirección
-// del tramo. Una ola que porta un tramo cambia su fila.
+// The game dialogs in the step (06 § HUD y ventanas, "Los diálogos del juego", CL8 milestone 6): what 0x623e70 does
+// with the open dialog (0x7d3a10c) after Esc, from 0x623f78. Each id goes through its range of the dispatch table: the
+// Esc menu, the options, the boxes with buttons, the generic OK, or its wave's stop with the range's address.
 namespace Client::Crt
 {
 class CrtRandom;
@@ -33,35 +32,35 @@ namespace Client::Hud::Dialogs
 
 enum class DialogStep : std::uint8_t
 {
-    // 0x623f90: el menú de Esc (0x6e).
+    // 0x623f90 (0x6e)
     EscapeMenu,
-    // 0x62556f: las opciones (0x93).
+    // 0x62556f (0x93)
     Options,
-    // 0x62d756: los dos botones de 0x7d368b8 (y las flechas del 0x8c, y las respuestas del 0x8d).
+    // 0x62d756: 0x7d368b8's two buttons (and 0x8c's arrows, and 0x8d's answers).
     Buttons,
-    // 0x6263df: Enter o el botón (0x11c, 0x62, 0x46, 0x15) cierran.
+    // 0x6263df: Enter or the button (0x11c, 0x62, 0x46, 0x15) close it.
     GenericOk,
-    // 0x62a7f7: sí (0xea, 0x62, 0x46 × 0x15) y no (0x14e) o Esc, de la invitación a la party (0x77, el C1 05 41 en C3)
-    // y del pedido de comercio (0x78, el C1 04 37 en claro).
+    // 0x62a7f7: yes (0xea, 0x62, 0x46 × 0x15) and no (0x14e) or Esc, of the party invitation (0x77, the C1 05 41 in C3)
+    // and the trade request (0x78, the C1 04 37 in clear).
     YesNo,
-    // 0x6260d1 (CL9 hito 7): la caja de confirmación 0x9c, 0x471930 sobre 0x575d9d0 (0x471e80, que la construye la
-    // primera vez).
+    // 0x6260d1 (CL9 milestone 7): the confirmation box 0x9c, 0x471930 over 0x575d9d0 (0x471e80, which builds it the
+    // first time).
     ConfirmBox,
-    // 0x6260f6 (CL9 hito 7): el título o el precio de la tienda personal (0x91), con el EDIT de [0x5763504].
+    // 0x6260f6 (CL9 milestone 7): the personal shop's title or price (0x91), with the EDIT of [0x5763504].
     ShopDialog,
-    // 0x6282dc..0x62843f y 0x62a779 (CL9 hitos 6 y 7): los dos botones de sí y no (y Esc, el no) de 0x94, 0x96, 0x98,
-    // 0x99, 0x9a, 0xa3, 0xa8 (con su tercero), 0xa9 y 0xaa. El 0x94, el 0x98 y el 0x99 dejan la respuesta en 0x6c932e.
+    // 0x6282dc..0x62843f and 0x62a779 (CL9 milestones 6 and 7): the two yes/no buttons (and Esc, the no) of 0x94, 0x96,
+    // 0x98, 0x99, 0x9a, 0xa3, 0xa8 (with its third), 0xa9 and 0xaa. 0x94, 0x98 and 0x99 leave the answer in 0x6c932e.
     Warning,
-    // 0x625910: el modo de la caja del caos (0x8e).
+    // 0x625910 (0x8e)
     ChaosMixMode,
-    // 0x6259c6, 0x625b23, 0x625cf4 y 0x625f98: la mezcla de joyas (0xa1, 0xa2, 0xa4 y 0xa6, Scenes/JewelMix.h).
+    // 0x6259c6, 0x625b23, 0x625cf4 and 0x625f98: the jewel mix (0xa1, 0xa2, 0xa4 and 0xa6, ChaosMix/JewelMix.h).
     JewelMenu,
     JewelChoice,
     JewelUnmix,
     JewelResult,
-    // 0x62601e: cerrar el resultado de guerra sin consumir el clic.
+    // 0x62601e: closing the war outcome without consuming the click.
     WarOutcome,
-    // Un tramo de otra ola: corta con `address` y `wave`.
+    // A range of another wave: it stops with `address` and `wave`.
     Cut,
 };
 
@@ -69,28 +68,27 @@ struct DialogRoute
 {
     std::int32_t id = 0;
     DialogStep step = DialogStep::GenericOk;
-    // El tramo del original y la ola que lo porta, para el corte.
+    // The original's range and the wave that ports it, for the stop.
     std::string_view address{};
     std::string_view wave{};
 };
 
-// La tabla de despacho de 0x623f78..0x6263d9 en el orden del original. Un id que no está va al OK genérico, como en
-// el original, que lo alcanza después de todas las comparaciones.
+// The dispatch table of 0x623f78..0x6263d9 in the original's order. An id that is not there goes to the generic OK,
+// as in the original, which reaches it after all the comparisons.
 [[nodiscard]] std::span<const DialogRoute> DialogRoutes();
 
-// El tramo de `id`.
 [[nodiscard]] DialogRoute DialogRouteOf(std::int32_t id);
 
-// 0x623f78: con un diálogo abierto, su tramo. Sin ninguno, nada. `escape` es [EBP−0x7d] de 0x623e70: Esc leído
-// (0x553520(0x1b)) con la ventana de amigos cerrada, que miran el no de 0x62c50e y los de sí y no de 0x628409.
+// 0x623f78: with a dialog open, its range. With none, nothing. `escape` is 0x623e70's [EBP−0x7d]: Esc read
+// (0x553520(0x1b)) with the friends window closed, which 0x62c50e's no and 0x628409's yes/no dialogs look at.
 [[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape);
 
-// 0x61c210 hasta el paquete: los 24 bytes de su pila. Abre y cierra el registro propio (0xf08 rand() de la tabla de
-// protección, 0x61c26a..0x61c34f) y, para cada lugar `at` de 0 a 0x71 con tecla (+0x26c + elegido · 0x100 + at no es
-// 0xff), escribe el byte de la skill (+0x6c + at) en [tecla]. Después, en [10], OR de 1 o 2 (el ataque automático),
-// de 4 u 8 (el sonido de los avisos) y de 0x10 sin carteles; en [11..13], el byte bajo de Q, W y E (0x6c8e40..48), y
-// en [14] los renglones del registro / 3 (0 con su lugar en 0) en el nibble alto y, en el bajo, la transparencia · 10
-// truncada (0x69fd3c). Sin elegido, o con una tecla de 24 o más (pisaría la pila), corta con error.
+// 0x61c210 up to the packet: the 24 bytes of its stack. It opens and closes the own record (0xf08 rand() of the
+// protection table, 0x61c26a..0x61c34f) and, for each slot `at` from 0 to 0x71 with a key (+0x26c + chosen · 0x100 +
+// at is not 0xff), writes the skill's byte (+0x6c + at) at [key]. Then, in [10], OR of 1 or 2 (auto attack), of 4 or 8
+// (the notices' sound) and of 0x10 without the slides; in [11..13], the low byte of Q, W and E (0x6c8e40..48), and in
+// [14] the log rows / 3 (0 with its place at 0) in the high nibble and, in the low one, the transparency · 10 truncated
+// (0x69fd3c). Without a chosen one, or with a key of 24 or more (it would overwrite the stack), it stops with an error.
 [[nodiscard]] Core::Expected<Protocol::Player::OptionBody, std::string>
 OptionBodyOf(Kernel::WorldState& world, Crt::CrtRandom& random, std::optional<std::uint8_t> chosenSlot);
 } // namespace Client::Hud::Dialogs

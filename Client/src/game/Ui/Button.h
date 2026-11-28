@@ -12,21 +12,19 @@
 #include <optional>
 #include <string>
 
-// Un botón de la UI nueva (CL5.5): 0x63c330 lo arma, 0x63c490 lo atiende y 0x63c710 dibuja su
-// rótulo (06 § Las ventanas de la UI nueva). Su textura tiene los cuadros uno abajo del otro, del
-// alto del botón: el k empieza en la fila k · h (0x63c330 arma la tabla con (0, k · h)), y
-// 0x647560 corre las UV (UiImage::frameTop). Los de la lista y los de la cuenta y los avisos usan
-// el 0 normal, el 1 con el mouse encima y el 2 apretado; los de los grupos, el 3 marcados.
+// A new-UI button (CL5.5): 0x63c330 builds it, 0x63c490 handles it and 0x63c710 draws its label (06 § Las ventanas de
+// la UI nueva). Its texture has the frames one below the other, each as tall as the button: frame k starts at row
+// k · h (0x63c330 builds the table with (0, k · h)), and 0x647560 shifts the UVs (UiImage::frameTop). The list,
+// account and notice buttons use 0 normal, 1 hovered and 2 pressed; the group ones, 3 checked.
 //
-// La captura: con el botón izquierdo apretado encima, el botón la toma (DAT_07d53534); soltado
-// encima y capturado, es un clic (+0xaa), y soltado en cualquier lado, la suelta. El original
-// tiene una captura para toda la UI; acá cada botón tiene la suya, y "encima" es encima y con el
-// botón del mouse arriba: con el mouse apretado afuera de todo y arrastrado encima, el original
-// muestra el cuadro 1 y MuRet el 0. Se atiende en el paso, no en el frame (Q-C81).
+// Capture: with the left button pressed over it, the button takes it (DAT_07d53534); released over it while captured,
+// it is a click (+0xaa), and released anywhere, it lets go. The original has one capture for the whole UI; here each
+// button has its own, and "over" means over with the mouse button up: pressed outside everything and dragged over,
+// the original shows frame 1 and MuRet frame 0. Handled in the step, not the frame (Q-C81).
 namespace Client::Ui
 {
-// Los colores del rótulo por estado (la tabla de +0xd0, 0xAABBGGRR): [0] a [3] sin marcar (normal,
-// apretado, encima y deshabilitado) y [4] a [7] marcado.
+// The label colors by state (the +0xd0 table, 0xAABBGGRR): [0] to [3] unchecked (normal, pressed, hover and disabled)
+// and [4] to [7] checked.
 struct ButtonColors
 {
     std::uint32_t normal = 0xffffffff;
@@ -42,50 +40,48 @@ struct ButtonColors
 class Button
 {
 public:
-    // `checkedFrame`: el cuadro de marcado (+0xbc), o nada si el botón no se marca. `disabledFrame`:
-    // el de deshabilitado (+0xb8, y +0xc8 marcado), o nada para el normal.
+    // `checkedFrame`: the checked frame (+0xbc), or none if the button does not check. `disabledFrame`: the disabled
+    // one
+    // (+0xb8, and +0xc8 checked), or none for the normal one.
     Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame = std::nullopt,
            std::optional<int> disabledFrame = std::nullopt);
 
-    // +0xb0 y +0xb4: los cuadros de apretado y de encima, el 2 y el 1 salvo que 0x63c330 reciba
-    // otros (−1 es el 0). Las casillas de las opciones y la perilla de un deslizador tienen el 0 en
-    // los dos.
+    // +0xb0 and +0xb4: the pressed and hover frames, 2 and 1 unless 0x63c330 gets others (−1 is 0). The options'
+    // checkboxes and a slider's knob have 0 in both.
     void SetStateFrames(int pressed, int hover);
 
-    // +0xa8: deshabilitado no tiene clic ni se ve encima ni apretado (0x63c490). Arranca habilitado.
+    // +0xa8: disabled, it has no click and never shows hover or pressed (0x63c490). Starts enabled.
     void SetEnabled(bool enabled);
     [[nodiscard]] bool Enabled() const;
 
-    // 0x6472e0(x, y, 3): la esquina de arriba a la izquierda, en píxeles.
+    // 0x6472e0(x, y, 3): the top-left corner, in pixels.
     void MoveTo(Point topLeft);
     [[nodiscard]] Rect Area() const;
 
-    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic. `onClick` corre para ese
-    // clic después de poner +0xaa en 1 y antes de voltear el marcado (0x63c4fc, 0x63c503). Sin
-    // mouse, el +0xa9 en 0 de una ventana que no lo tiene (0x669ed0): nunca está encima (0x63c470).
+    // One step of 0x63c490: true on a click. `onClick` runs for that click after +0xaa is set to 1 and before the check
+    // flips (0x63c4fc, 0x63c503). No mouse is the +0xa9 at 0 of a window without one (0x669ed0): never over (0x63c470).
     bool Step(const Input::InputState& input, std::optional<Point> mouse, const std::function<void()>& onClick = {});
 
     void SetChecked(bool checked);
     [[nodiscard]] bool Checked() const;
 
-    // El cuadro del último paso.
+    // The last step's frame.
     [[nodiscard]] int Frame() const;
-    // Encima y capturado: el cuadro 2, y el rótulo un punto más abajo.
+    // Over and captured: frame 2, and the label one point lower.
     [[nodiscard]] bool Pressed() const;
 
-    // La imagen del botón con su cuadro, en píxeles.
+    // With its frame, in pixels.
     [[nodiscard]] Render::UiImage Image(const TextureSizes& sizes) const;
 
-    // El rótulo (+0xcc) y sus colores (+0xd0). Vacío no se dibuja.
+    // +0xcc and +0xd0. An empty label is not drawn.
     void SetLabel(std::string label, ButtonColors colors);
-    // 0x63c710: con la fuente DAT_05763560, el color del estado y el fondo en 0, centrado en el
-    // ancho del botón (el modo 2 de 0x467060). La y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
-    // 0,5, o 1,5 apretado (+0xd8), truncada. La caja, del ancho del botón, empieza en su x pasada a
-    // 640 × 480 (DesignX), y 0x467060 pone el texto adentro, en píxeles (ITextDrawer::DrawColumns
-    // con CenterInBox): un rótulo más ancho que el botón sale cortado de los dos lados (Q-C710), y
-    // el fondo en 0 no se ve. Sin pantalla (un lado en 0), nada. Da el
-    // color con que lo dibujó, o nada si no lo dibujó: 0x63c710 lo deja como el color del texto
-    // (DAT_006c8e5c), y lo que se dibuja después sin poner otro sale con él (Q-C83).
+    // 0x63c710: with font DAT_05763560, the state's color and background 0, centered in the button's width (0x467060's
+    // mode 2). The y in 640 × 480 is ((h − cy) · 0.5 + y) / ry plus 0.5, or 1.5 pressed (+0xd8), truncated. The box, as
+    // wide as the button, starts at its x in 640 × 480 (DesignX), and 0x467060 places the text inside, in pixels
+    // (ITextDrawer::DrawColumns with CenterInBox): a label wider than the button is cut on both sides (Q-C710), and the
+    // background 0 does not show. Without a screen (a side at 0), nothing. Returns the color it drew with, or none if
+    // it did not draw: 0x63c710 leaves it as the text color (DAT_006c8e5c), and what is drawn next without setting
+    // another comes out with it (Q-C83).
     std::optional<std::uint32_t> DrawLabel(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
 private:

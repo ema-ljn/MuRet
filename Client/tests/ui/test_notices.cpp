@@ -8,9 +8,9 @@
 #include <optional>
 #include <vector>
 
-// Client::UI: los avisos del login por número (CL5.5; 06 § Los avisos). El texto de cada uno sale
-// de la tabla de saltos de 0x6431b0, el aviso del resultado del F1 01 de 0x4e5ebc y 0x4e5f04, y lo
-// que hace su OK, de 0x643560. Todos son del tipo 2, con un OK.
+// Client::Ui: the login notices by number (CL5.5; 06 § Los avisos). Each one's text comes from 0x6431b0's jump table,
+// the F1 01 result's notice from 0x4e5ebc and 0x4e5f04, and what its OK does, from 0x643560. All are type 2, with an
+// OK.
 namespace
 {
 using Client::Ui::FollowUpOf;
@@ -24,13 +24,13 @@ using Client::Ui::NoticeOfLoginResult;
 using Client::Ui::NoticeTexts;
 using Client::Ui::TextsOf;
 
-// Un aviso como optional, sin pasar un int por la plantilla de std::optional (C4242 en MSVC).
+// Without passing an int through std::optional's template (C4242 in MSVC).
 std::optional<NoticeId> Some(NoticeId notice)
 {
     return notice;
 }
 
-// El primer texto de un aviso, o 0 si no tiene.
+// 0 if it has none.
 std::size_t FirstText(NoticeId notice)
 {
     const std::optional<NoticeTexts> texts = TextsOf(notice);
@@ -59,7 +59,7 @@ TEST(NoticesTest, EachNoticeHasItsText)
     EXPECT_EQ(FirstText(0x70), 402u);
 }
 
-// El 0x1a y el 0x6f tienen dos líneas: el 405 y el 406. Los demás, una.
+// The 0x1a and the 0x6f have two lines: 405 and 406. The rest, one.
 TEST(NoticesTest, TheVersionNoticeHasTwoLines)
 {
     constexpr std::array<NoticeId, 2> TwoLines{0x1a, 0x6f};
@@ -73,7 +73,7 @@ TEST(NoticesTest, TheVersionNoticeHasTwoLines)
     EXPECT_EQ(TextsOf(0x70)->second, std::nullopt);
 }
 
-// Uno que el login no abre no tiene texto acá.
+// One the login does not open has no text here.
 TEST(NoticesTest, AnUnknownNoticeHasNoText)
 {
     EXPECT_EQ(TextsOf(0x00), std::nullopt);
@@ -81,8 +81,8 @@ TEST(NoticesTest, AnUnknownNoticeHasNoText)
     EXPECT_EQ(TextsOf(0xff), std::nullopt);
 }
 
-// 0x4e5ebc y 0x4e5f04: el resultado del F1 01. El 1 es el aceptado, sin aviso; el resto, por la
-// tabla, y lo que no está en ella (el 7, el 14, el 18 a 191, el 211 y más) da el 0x1b.
+// 0x4e5ebc and 0x4e5f04: the F1 01 result. 1 is accepted, without a notice; the rest, by the table, and what is not
+// in it (7, 14, 18 to 191, 211 and up) gives the 0x1b.
 TEST(NoticesTest, EachLoginResultHasItsNotice)
 {
     EXPECT_EQ(NoticeOfLoginResult(1), std::nullopt);
@@ -113,9 +113,9 @@ TEST(NoticesTest, EachLoginResultHasItsNotice)
     EXPECT_EQ(NoticeOfLoginResult(255), Some(0x1b));
 }
 
-// 0x643560: después de una clave mala (0x15) o vacía (0x65), la cuenta se abre con el foco en la
-// clave; con los demás del login, en la cuenta; con la versión, el bloqueo y el no conectó, el
-// juego se cierra (Q-C69); los otros solo cierran el aviso.
+// 0x643560: after a wrong (0x15) or empty (0x65) password, the account window opens with the focus on the password;
+// with the other login ones, on the account; with the version, the lock and the not connected, the game closes
+// (Q-C69); the others only close the notice.
 TEST(NoticesTest, TheOkOfEachNotice)
 {
     EXPECT_EQ(FollowUpOf(0x15), NoticeFollowUp::ReopenAtPassword);
@@ -135,7 +135,7 @@ TEST(NoticesTest, TheOkOfEachNotice)
     EXPECT_EQ(FollowUpOf(0x61), NoticeFollowUp::Close);
 }
 
-// Los de la selección (CL6.5), con el texto de la tabla de saltos de 0x6431b0.
+// The selection ones (CL6.5), with the text of 0x6431b0's jump table.
 TEST(NoticesTest, EachSelectionNoticeHasItsText)
 {
     struct NoticeText
@@ -155,8 +155,8 @@ TEST(NoticesTest, EachSelectionNoticeHasItsText)
     }
 }
 
-// Los tipos de 0x6431b0 (0x642bf0): el 0x5d sin botones, el 0x5e con OK y cancelar, el 0x5f con el
-// campo del código; los demás, y todos los del login, con un OK.
+// 0x6431b0's kinds (0x642bf0): the 0x5d without buttons, the 0x5e with OK and cancel, the 0x5f with the code field;
+// the rest, and all the login ones, with an OK.
 TEST(NoticesTest, EachNoticeHasItsKind)
 {
     EXPECT_EQ(KindOf(0x5d), NoticeKind::NoButton);
@@ -169,7 +169,7 @@ TEST(NoticesTest, EachNoticeHasItsKind)
     }
 }
 
-// El OK del 0x5e abre el del código, y el del 0x5f manda el borrado (0x643560).
+// The 0x5e's OK opens the code one, and the 0x5f's sends the deletion (0x643560).
 TEST(NoticesTest, TheDeletionGoesFromTheConfirmationToTheCode)
 {
     EXPECT_EQ(FollowUpOf(0x5e), NoticeFollowUp::AskForTheCode);
@@ -178,8 +178,8 @@ TEST(NoticesTest, TheDeletionGoesFromTheConfirmationToTheCode)
     EXPECT_EQ(FollowUpOf(0x92), NoticeFollowUp::Close);
 }
 
-// Las respuestas: crear (0x4c2290) con 0 el 0x36 y con 2 el 0x37; borrar (0x4e2b10) con 0 el 0x92,
-// con 1 el 0x60, con 3 el 0x62 y con otro el 0x89.
+// The answers: create (0x4c2290) with 0 the 0x36 and with 2 the 0x37; delete (0x4e2b10) with 0 the 0x92, with 1 the
+// 0x60, with 3 the 0x62 and with another the 0x89.
 TEST(NoticesTest, EachCreateAndDeleteResultHasItsNotice)
 {
     EXPECT_EQ(NoticeOfCreateResult(0), std::optional{NoticeId{0x36}});

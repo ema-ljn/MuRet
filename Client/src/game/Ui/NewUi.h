@@ -10,37 +10,34 @@
 #include <span>
 #include <vector>
 
-// El administrador de la UI nueva (CL8, hito 8; 06 § Las ventanas de la UI nueva): el objeto de
-// 0x7d53728 (0x65ee60) con su lista doble de ventanas, la cabeza en +0x8ddc, la cola en +0x8de0 y
-// la cuenta en +0x8de4. La cabeza va arriba: 0x65fe00 dibuja desde la cola hasta la cabeza, y
-// 0x65fc30 le da el mouse a la primera desde la cabeza que lo tiene adentro. Abrir una (0x65f690 →
-// 0x65f610) la pasa a la cabeza con el foco (+0xd), y cerrarla (0x65f6c0) la pasa a la cola y le
-// da el foco a la nueva cabeza, si está abierta: solo la que tiene el foco corre su lógica (+0x30,
-// los clics y las teclas), y como el foco lo da 0x65f610, que antes se lo saca a la cabeza, lo
-// tiene una sola.
+// The new UI's manager (CL8, milestone 8; 06 § Las ventanas de la UI nueva): the object at 0x7d53728 (0x65ee60) with
+// its doubly linked window list, the head at +0x8ddc, the tail at +0x8de0 and the count at +0x8de4. The head is on
+// top: 0x65fe00 draws from the tail to the head, and 0x65fc30 gives the mouse to the first from the head that has it
+// inside. Opening one (0x65f690 → 0x65f610) moves it to the head with the focus (+0xd), and closing it (0x65f6c0)
+// moves it to the tail and gives the focus to the new head, if open: only the one with the focus runs its logic
+// (+0x30, the clicks and the keys), and since 0x65f610 gives the focus after taking it from the head, only one has
+// it.
 //
-// Las ventanas son de la escena: el administrador guarda de cada una lo que en el original es de
-// la base de 0x669c70 y mira 0x65fc30 (el foco, +0xd; el arrastre, +0x10, +4, +8, +0x28 y +0x2c;
-// y si quedó pegada, +0xe), y le pide a la ventana si está abierta (+0xc), su rectángulo
-// (+0x18..+0x24) y el resto de su vtable. El original lo corre una vez por frame, antes de los pasos
-// de ese frame (0x63778c, con los milisegundos del frame, hasta 200); MuRet, como el resto de la UI
-// (Q-C81), al empezar cada paso de la escena, con los 40 ms del paso (Q-C490).
+// The windows belong to the scene: the manager keeps for each what in the original belongs to 0x669c70's base and
+// 0x65fc30 reads (the focus, +0xd; the drag, +0x10, +4, +8, +0x28 and +0x2c; and whether it got stuck, +0xe), and
+// asks the window whether it is open (+0xc), its rectangle (+0x18..+0x24) and the rest of its vtable. The original
+// runs it once per frame, before that frame's steps (0x63778c, with the frame's milliseconds, up to 200); MuRet, like
+// the rest of the UI (Q-C81), at the start of each scene step, with the step's 40 ms (Q-C490).
 namespace Client::Ui
 {
-// Qué mira vtable + 0xc (0x669df0): el rectángulo entero (0) o el título, los 26 píxeles de arriba
-// (2), que es lo que se agarra para arrastrar.
+// What vtable + 0xc (0x669df0) checks: the whole rectangle (0) or the title, the top 26 pixels (2), which is what is
+// grabbed to drag.
 enum class WindowHit : std::uint8_t
 {
     Area,
     Title,
 };
 
-// Lo que 0x669f40 hace con una ventana abierta en un frame. `buttons`: +0x10 en 0, sin arrastre,
-// atiende sus botones (0x63c490). `mouse`: el +0xa9 de sus botones (0x669ed0), que es 1 solo en la
-// primera desde la cabeza con el mouse adentro; con 0, ningún botón está debajo del mouse
-// (0x63c470). `logic`: tiene el foco (+0xd) y corre su +0x30. Las del login y la selección no se
-// arrastran, así que para ellas `buttons` vale siempre true. Una ventana que se atiende sola
-// (sus pruebas, por ejemplo) lo hace con todo en true.
+// What 0x669f40 does with an open window in a frame. `buttons`: +0x10 at 0, not dragged, it handles its buttons
+// (0x63c490). `mouse`: its buttons' +0xa9 (0x669ed0), 1 only in the first from the head with the mouse inside; with
+// 0, no button is under the mouse (0x63c470). `logic`: it has the focus (+0xd) and runs its +0x30. The login and
+// selection ones are not dragged, so for them `buttons` is always true. A window that handles itself (its tests, for
+// example) does so with everything true.
 struct NewUiTurn
 {
     bool buttons = true;
@@ -49,12 +46,11 @@ struct NewUiTurn
     std::function<void()> buttonClicked{};
 };
 
-// El mouse que ven los botones de una ventana en su turno: el de la UI nueva (MouseInPixels), o
-// ninguno con `mouse` en false.
+// The mouse a window's buttons see in its turn: the new UI's (MouseInPixels), or none with `mouse` false.
 [[nodiscard]] std::optional<Point> MouseOfTheTurn(NewUiTurn turn, const Input::InputState& input,
                                                   Core::PixelSize screen);
 
-// Una ventana de la UI nueva, como la ve el administrador.
+// As the manager sees it.
 class NewUiWindow
 {
 public:
@@ -63,15 +59,15 @@ public:
 
     // +0xc.
     [[nodiscard]] virtual bool IsOpen() const = 0;
-    // vtable + 0x10 con 0.
+    // vtable + 0x10 with 0.
     virtual void Close() = 0;
-    // +0x18..+0x24: la esquina y el tamaño, en píxeles.
+    // +0x18..+0x24: the corner and the size, in pixels.
     [[nodiscard]] virtual Rect Bounds(Core::PixelSize screen) const = 0;
-    // vtable + 0xc. Todas las del login y la selección (0x647d10 la de Esc, y las demás igual)
-    // contestan que no al título y llaman a 0x669df0 con el resto: no se arrastran.
+    // vtable + 0xc. All the login and selection ones (0x647d10 the Esc one, and the rest alike) answer no to the title
+    // and call 0x669df0 with the rest: they are not dragged.
     [[nodiscard]] virtual bool Hit(WindowHit hit, Point mouse, Core::PixelSize screen) const;
-    // vtable + 8: el arrastre la mueve a `topLeft`. La base solo mueve el rectángulo; las del login
-    // y la selección no se arrastran, y no hace nada.
+    // vtable + 8: the drag moves it to `topLeft`. The base only moves the rectangle; the login and selection ones are
+    // not dragged, and it does nothing.
     virtual void PlaceAt(Point topLeft, Core::PixelSize screen);
 
 protected:
@@ -81,11 +77,11 @@ protected:
     NewUiWindow& operator=(NewUiWindow&&) = default;
 };
 
-// 0x669df0: abierta y el mouse adentro del rectángulo (x, y, x + w, y + h) o del título
-// (x, y, x + w, y + 26), con PtInRect.
+// 0x669df0: open and the mouse inside the rectangle (x, y, x + w, y + h) or the title (x, y, x + w, y + 26), with
+// PtInRect.
 [[nodiscard]] bool HitTheBounds(const NewUiWindow& window, WindowHit hit, Point mouse, Core::PixelSize screen);
 
-// +0x8dec: lo que arma 0x65f300 (el login), 0x65f4b0 (la selección) o 0x65f5f0 (el juego).
+// +0x8dec: what 0x65f300 (login), 0x65f4b0 (selection) or 0x65f5f0 (game) builds.
 enum class NewUiMode : std::uint8_t
 {
     None = 0,
@@ -97,40 +93,39 @@ enum class NewUiMode : std::uint8_t
 class NewUi
 {
 public:
-    // Lo que 0x669f40 hace con cada ventana abierta, en el orden de 0x65fc30: la escena atiende la
-    // ventana con su turno y lo que salga de ella.
+    // What 0x669f40 does with each open window, in 0x65fc30's order: the scene handles the window with its turn and
+    // whatever comes out of it.
     using StepWindow = std::function<void(NewUiWindow&, NewUiTurn)>;
 
-    // 0x65f300 y 0x65f4b0: vacía la lista (0x65f2b0) y suma `windows` en ese orden, cada una en la
-    // cabeza (0x644b60), así que la última queda arriba. Ninguna con el foco.
+    // 0x65f300 and 0x65f4b0: empties the list (0x65f2b0) and adds `windows` in that order, each at the head (0x644b60),
+    // so the last one ends on top. None with the focus.
     void Build(NewUiMode mode, std::span<NewUiWindow* const> windows);
-    // 0x65f5f0: vacía la lista (0x65f2b0) y pone el modo 5.
+    // 0x65f5f0: empties the list (0x65f2b0) and sets mode 5.
     void EnterTheGame();
-    // Sin ventanas y en el modo 0, como 0x65f2e0 (al salir de la escena).
+    // No windows and mode 0, like 0x65f2e0 (on leaving the scene).
     void Clear();
     [[nodiscard]] NewUiMode Mode() const;
 
-    // 0x65f610: le saca el foco a la cabeza y, si `window` está abierta, la pasa a la cabeza con el
-    // foco. La escena la abre antes con lo suyo: las dos cosas son 0x65f690.
+    // 0x65f610: takes the focus from the head and, if `window` is open, moves it to the head with the focus. The scene
+    // opens it before with its own: both together are 0x65f690.
     void Raise(NewUiWindow& window);
-    // 0x65f6c0: si está en la lista, la cierra, le saca el foco, la pasa a la cola y le da el foco a
-    // la nueva cabeza, si está abierta.
+    // 0x65f6c0: if it is in the list, closes it, takes its focus, moves it to the tail and gives the focus to the new
+    // head, if open.
     void Close(NewUiWindow& window);
 
-    // 0x65fc30, con el mouse de este paso: el foco con el botón izquierdo apretado, el mouse de los
-    // botones, cada ventana abierta con `step` (y el arrastre de 0x669f40), el pegado del arrastre
-    // (0x65f720) y +0x8de8. Una ventana que se cerró sola en su turno pasa por 0x65f6c0, como las del
-    // original, que lo llaman ellas.
+    // 0x65fc30, with this step's mouse: the focus with the left button pressed, the buttons' mouse, each open window
+    // with `step` (and 0x669f40's drag), the drag's sticking (0x65f720) and +0x8de8. A window that closed itself in its
+    // turn goes through 0x65f6c0, like the original's, which call it themselves.
     void Step(const Input::InputState& input, Core::PixelSize screen, const StepWindow& step,
               const std::function<void()>& buttonClicked = {});
 
-    // +0x8de8: alguna ventana tiene el mouse (o se está arrastrando) en este paso. Con él, la
-    // selección no elige personajes (0x634680).
+    // +0x8de8: some window has the mouse (or is being dragged) in this step. With it, the selection does not pick
+    // characters (0x634680).
     [[nodiscard]] bool HasTheMouse() const;
 
-    // Desde la cabeza hasta la cola.
+    // From the head to the tail.
     [[nodiscard]] std::vector<NewUiWindow*> Order() const;
-    // 0x65fe00: desde la cola hasta la cabeza, las abiertas (vtable + 0x18 no dibuja las cerradas).
+    // 0x65fe00: from the tail to the head, the open ones (vtable + 0x18 does not draw closed ones).
     [[nodiscard]] std::vector<NewUiWindow*> DrawOrder() const;
     [[nodiscard]] bool HasTheFocus(const NewUiWindow& window) const;
     [[nodiscard]] bool IsDragged(const NewUiWindow& window) const;
@@ -142,9 +137,9 @@ private:
         NewUiWindow* window = nullptr;
         bool focused = false;  // +0xd
         bool stuck = false;    // +0xe
-        bool dragging = false; // +0x10 en 2
-        Point dragFrom{};      // +4, +8: el mouse del último paso del arrastre
-        Point dragAt{};        // +0x28, +0x2c: adónde va la ventana
+        bool dragging = false; // +0x10 at 2
+        Point dragFrom{};      // +4, +8: the mouse at the drag's last step
+        Point dragAt{};        // +0x28, +0x2c: where the window goes
     };
 
     [[nodiscard]] Entry* Find(const NewUiWindow& window);
@@ -154,7 +149,7 @@ private:
     void StickTheDragged(Core::PixelSize screen);
     bool StickAt(Entry& entry, Point at, Core::PixelSize screen);
 
-    // [0] es la cabeza.
+    // [0] is the head.
     std::vector<Entry> m_entries;
     NewUiMode m_mode = NewUiMode::None;
     bool m_hasTheMouse = false;

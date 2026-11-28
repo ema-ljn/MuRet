@@ -103,7 +103,7 @@ TEST(GameJointDrawingTest, FlareZeroSelectsItsGrayAtEachSegment)
     EXPECT_FLOAT_EQ(batch.Vertices()[12].color.red, 0);
 }
 
-// 0x53d01d..0x53d043: en 614 y 615 la segunda cara corre sus dos u en dos veces el corrimiento del reloj.
+// 0x53d01d..0x53d043: in 0x614 and 0x615 the second face scrolls its two u by twice the clock's shift.
 TEST(GameJointDrawingTest, BoltsShiftTheirSecondFaceByTwiceTheScroll)
 {
     for (const auto type : {0x614, 0x615})
@@ -203,7 +203,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 0.35f);
     }
-    // Con un personaje de dueño (AuraJoints.cpp, 0x4e644f), la misma altura sale de su +0x18.
+    // With a character as owner (AuraJoints.cpp, 0x4e644f), the same height comes from its +0x18.
     Client::Kernel::ActorState actor;
     actor.alive = true;
     actor.position.z = 10;

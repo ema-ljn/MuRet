@@ -4,10 +4,10 @@
 
 #include <gtest/gtest.h>
 
-// Por los literales (1s, 1ns), que include-cleaner 18 no asocia a <chrono>.
+// For the literals (1s, 1ns), which include-cleaner 18 does not tie to <chrono>.
 #include <chrono> // IWYU pragma: keep
 
-// Client::App::FrameRateMeter: los promedios de --stats, de a StatsInterval.
+// Client::App::FrameRateMeter: the --stats averages, per StatsInterval.
 namespace
 {
 using namespace std::chrono_literals;
@@ -22,7 +22,7 @@ TEST(FrameRateMeterTest, GivesNothingBeforeTheInterval)
     EXPECT_FALSE(meter.Update(1s + StatsInterval - 1ns, FrameStats{.frames = 100, .steps = 125}).has_value());
 }
 
-// En 5 s, 100 frames y 125 pasos: 20 FPS y 25 pasos por segundo.
+// In 5 s, 100 frames and 125 steps: 20 FPS and 25 steps per second.
 TEST(FrameRateMeterTest, AveragesTheFramesAndStepsOfTheInterval)
 {
     FrameRateMeter meter{1s};
@@ -34,8 +34,8 @@ TEST(FrameRateMeterTest, AveragesTheFramesAndStepsOfTheInterval)
     EXPECT_DOUBLE_EQ(rates->stepsPerSecond, 25.0);
 }
 
-// El segundo promedio cuenta desde el primero: solo los frames y los pasos de su tramo, aunque el
-// tramo dure más que StatsInterval.
+// The second average counts from the first: only the frames and steps of its stretch, even if the stretch lasts
+// longer than StatsInterval.
 TEST(FrameRateMeterTest, TheNextAverageStartsFromTheLastOne)
 {
     FrameRateMeter meter{0s};

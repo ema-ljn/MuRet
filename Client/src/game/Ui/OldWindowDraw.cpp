@@ -49,10 +49,10 @@ using OldDraw::ToFloat;
 using OldDraw::Truncate;
 using OldDraw::WhiteWithTexture;
 
-// 0x459f00: el rectángulo desde arriba a la izquierda.
+// 0x459f00
 constexpr std::int32_t TopLeftRect = 1;
-// 0x491960: los 19 colores (r, g, b) de glColor4ub; el 3 y el 7 son negros con su alfa, y el 3 lo toma de alfa · 179
-// (0x6b9f94) en lugar de alfa · 255 (0x6b9f98).
+// 0x491960: the 19 (r, g, b) colors of glColor4ub; the 3 and the 7 are black with their alpha, and the 3 takes it
+// from alpha · 179 (0x6b9f94) instead of alpha · 255 (0x6b9f98).
 struct PaletteEntry
 {
     std::uint8_t red;
@@ -60,20 +60,20 @@ struct PaletteEntry
     std::uint8_t blue;
 };
 constexpr std::array<PaletteEntry, 19> Palette{{
-    {146, 134, 121}, // 0, el filo de afuera del borde
-    {37, 37, 37},    // 1, el medio del borde
-    {106, 97, 88},   // 2, el filo de adentro y la raya bajo el título
-    {0, 0, 0},       // 3, la sombra
-    {173, 167, 150}, // 4, las cuatro esquinas
+    {146, 134, 121}, // 0, the outer edge of the border
+    {37, 37, 37},    // 1, the middle of the border
+    {106, 97, 88},   // 2, the inner edge and the line under the title
+    {0, 0, 0},       // 3, the shadow
+    {173, 167, 150}, // 4, the four corners
     {53, 49, 48},    // 5
     {26, 22, 21},    // 6
     {0, 0, 0},       // 7
-    {153, 156, 166}, // 8, la punta de arriba de la izquierda de la barra
-    {136, 138, 147}, // 9, la izquierda de la barra
-    {83, 85, 93},    // 10, la punta de abajo de la izquierda (y las de arriba, sin el foco)
-    {102, 104, 112}, // 11, la punta de arriba de la derecha
-    {0, 0, 8},       // 12, la derecha de la barra
-    {0, 0, 0},       // 13, la punta de abajo de la derecha
+    {153, 156, 166}, // 8, the bar's top left tip
+    {136, 138, 147}, // 9, the bar's left
+    {83, 85, 93},    // 10, the bottom left tip (and the top ones, without the focus)
+    {102, 104, 112}, // 11, the top right tip
+    {0, 0, 8},       // 12, the bar's right
+    {0, 0, 0},       // 13, the bottom right tip
     {185, 185, 185}, // 14
     {194, 194, 194}, // 15
     {194, 194, 194}, // 16
@@ -83,35 +83,35 @@ constexpr std::array<PaletteEntry, 19> Palette{{
 constexpr std::int32_t ShadowIndex = 3;
 constexpr float FullAlpha = 255.0f;
 constexpr float ShadowAlpha = 179.0f;
-// 0x492500: la sombra cae 5 más abajo; con el borde, 10 más corta.
+// 0x492500: the shadow falls 5 lower; with the border, 10 shorter.
 constexpr float ShadowDrop = 5.0f;
 constexpr float ShadowCut = 10.0f;
-// 0x492500: la barra del título, de 15 de alto en (x + 6, y + 5) y 12 menos de ancho, con 1 × 0,9375 de la textura.
+// 0x492500: the title bar, 15 high at (x + 6, y + 5) and 12 narrower, with 1 × 0.9375 of the texture.
 constexpr float TitleBarX = 6.0f;
 constexpr float TitleBarY = 5.0f;
 constexpr float TitleBarCut = 12.0f;
 constexpr float TitleBarHeight = 15.0f;
 constexpr float TitleBarDv = 0.9375f;
-// Los filos de la barra: puntos en y + 5 e y + 19 y una raya de 13 en y + 6, en x + 5 y en x + w − 6.
+// The bar's edges: points at y + 5 and y + 19 and a 13 line at y + 6, at x + 5 and at x + w − 6.
 constexpr float TitleEdgeLeft = 5.0f;
 constexpr float TitleEdgeRight = 6.0f;
 constexpr float TitleEdgeTop = 5.0f;
 constexpr float TitleEdgeMiddle = 6.0f;
 constexpr float TitleEdgeLength = 13.0f;
 constexpr float TitleEdgeBottom = 19.0f;
-// La raya bajo el título, en (x + 5, y + 20), 10 menos de ancho.
+// The line under the title, at (x + 5, y + 20), 10 narrower.
 constexpr float TitleLineX = 5.0f;
 constexpr float TitleLineY = 20.0f;
 constexpr float TitleLineCut = 10.0f;
-// El título, en (x + 9, y + 8), cortado en un renglón de w − 0x32.
+// The title, at (x + 9, y + 8), cut to one row of w − 0x32.
 constexpr std::int32_t TitleTextX = 9;
 constexpr std::int32_t TitleTextY = 8;
 constexpr int TitleWrapCut = 0x32;
-// Los colores del título (0x6c8e5c): el de la de arriba y, sin ella, la suma de 0x492838 (0xff9b918d + 0xffc8dce6).
+// The title colors (0x6c8e5c): the top window's and, for the rest, the sum at 0x492838 (0xff9b918d + 0xffc8dce6).
 constexpr std::uint32_t TitleColor = 0xffc8dce6u;
 constexpr std::uint32_t DimTitleColor = 0xff646e73u;
-// Los botones de la barra: 9 × 9 en y + 8, con 0,28125 de la textura de lado. El de minimizar está en x + w − 0x1b o,
-// con el de estirar, en x + w − 0x26; el de estirar, en x + w − 27, y la cruz, en x + w − 16.
+// The bar's buttons: 9 × 9 at y + 8, with 0.28125 of the texture per side. Minimize is at x + w − 0x1b or, with
+// stretch, at x + w − 0x26; stretch at x + w − 27, and the cross at x + w − 16.
 constexpr float TitleButtonSize = 9.0f;
 constexpr float TitleButtonY = 8.0f;
 constexpr std::int32_t MinimizeAloneX = 0x1b;
@@ -119,49 +119,49 @@ constexpr std::int32_t MinimizeWithStretchX = 0x26;
 constexpr float StretchButtonX = 27.0f;
 constexpr float CloseButtonX = 16.0f;
 constexpr float TitleButtonUv = 0.28125f;
-// 0x492460: el rectángulo de los tres botones, 0x26 × 9 desde x + w − 0x26.
+// 0x492460: the three buttons' rectangle, 0x26 × 9 from x + w − 0x26.
 constexpr std::int32_t TitleButtonsWidth = 0x26;
 constexpr std::int32_t TitleButtonsHeight = 9;
-// La esquina del tamaño, 9 × 9 en (x + w − 10, y + h − 10), con 0,5625 de la textura.
+// The resize grip, 9 × 9 at (x + w − 10, y + h − 10), with 0.5625 of the texture.
 constexpr float ResizeGripInset = 10.0f;
 constexpr float ResizeGripSize = 9.0f;
 constexpr float ResizeGripUv = 0.5625f;
-// Los grises de glColor4f: el de las que no son la de arriba (0,5), el de un botón sin el mouse (0,8, 0x3f4ccccd) y
-// el apretado (0,6, 0x3f19999a).
+// The glColor4f grays: for windows not on top (0.5), for a button without the mouse (0.8, 0x3f4ccccd) and pressed
+// (0.6, 0x3f19999a).
 constexpr float DimGray = 0.5f;
 constexpr float IdleGray = 0.8f;
 constexpr float PressedGray = 0.6f;
-// 0x45b2e0: el botón apagado, en rojo (1, 0,4, 0,4).
+// 0x45b2e0: the disabled button, in red (1, 0.4, 0.4).
 constexpr float DisabledGreen = 0.4f;
-// 0x45b2e0: win_button.tga, 0,765625 × 1 de la textura; apretado, 1 adentro y 0,75 × 0,9375.
+// 0x45b2e0: win_button.tga, 0.765625 × 1 of the texture; pressed, 1 inside and 0.75 × 0.9375.
 constexpr float ButtonDu = 0.765625f;
 constexpr float ButtonDv = 1.0f;
 constexpr float PressedButtonDu = 0.75f;
 constexpr float PressedButtonDv = 0.9375f;
-// 0x45b2e0: el texto del botón, centrado con ((lado − texto) + 0,5) · 0,5 (0x6b882c).
+// 0x45b2e0: the button's text, centered with ((side − text) + 0.5) · 0.5 (0x6b882c).
 constexpr double Half = Math::HalfAsDouble;
 constexpr std::uint32_t ButtonTextColor = 0xffc8dce6u;
-// 0x4a3a90: el texto de la caja, en blanco, en (5, 8) del área de adentro; el segundo renglón 8 más abajo que el alto
-// del primero (0x6b86c4).
+// 0x4a3a90: the box's text, in white, at (5, 8) of the inner area; the second row 8 below the first's height
+// (0x6b86c4).
 constexpr std::uint32_t BoxTextColor = 0xffffffffu;
 constexpr std::int32_t BoxTextX = 5;
 constexpr std::int32_t BoxTextY = 8;
 constexpr double BoxLineGap = 8.0;
-// 0x48f890 y 0x48f8b0: el área de adentro empieza en (x + 5, y + 0x15).
+// 0x48f890 and 0x48f8b0: the inner area starts at (x + 5, y + 0x15).
 constexpr std::int32_t ClientLeft = 5;
 constexpr std::int32_t ClientTop = 0x15;
-// 0x4a5490: el renglón de la lista se mide con "0" (0x6c7ae4).
+// 0x4a5490: the list's row is measured with "0" (0x6c7ae4).
 constexpr std::string_view ListRowSample = "0";
-// 0x6b87d4, 0x6b8818 y 0x6b86b8: el 1, el 2 y el 3 de float de los dibujos.
+// 0x6b87d4, 0x6b8818 and 0x6b86b8: the draws' float 1, 2 and 3.
 constexpr double One = 1.0;
 constexpr double Two = 2.0;
 constexpr double Three = 3.0;
-// 0x4a2460: el encabezado de la vista con los filos del 2 y el relleno del 5; los otros, con el relleno del 6.
+// 0x4a2460: the view's header with the edges of the 2 and the fill of the 5; the others, with the fill of the 6.
 constexpr std::int32_t HeaderEdgeIndex = 2;
 constexpr std::int32_t CurrentHeaderIndex = 5;
 constexpr std::int32_t OtherHeaderIndex = 6;
-// 0x463090: el marco de 9 × 9 con el 0 de la paleta, su lado de enfrente en +8, y la marca de win_check.tga (0x64a)
-// de 5 × 5 en (x + 2, y + 2), con 0,625 de la textura.
+// 0x463090: the 9 × 9 frame with palette 0, its opposite side at +8, and the win_check.tga mark (0x64a), 5 × 5 at
+// (x + 2, y + 2), with 0.625 of the texture.
 constexpr std::uint16_t CheckSlot = 0x64a;
 constexpr std::int32_t CheckboxEdgeIndex = 0;
 constexpr float CheckboxSize = 9.0f;
@@ -169,38 +169,37 @@ constexpr std::int32_t CheckboxFar = 8;
 constexpr std::int32_t CheckInset = 2;
 constexpr float CheckSize = 5.0f;
 constexpr float CheckUv = 0.625f;
-// 0x461890: las flechas de win_scrollbar.jpg (0x649), de 13 × 13 a 12 del borde derecho (0x6b8864); la de arriba un
-// punto sobre el borde de arriba y la de abajo a 12 del de abajo. El mouse las toma desde 12 del borde derecho.
+// 0x461890: the win_scrollbar.jpg arrows (0x649), 13 × 13 at 12 from the right edge (0x6b8864); the top one a point
+// above the top edge and the bottom one at 12 from the bottom. The mouse takes them from 12 off the right edge.
 constexpr std::uint16_t ScrollbarSlot = 0x649;
 constexpr std::int32_t ArrowInset = 12;
 constexpr std::int32_t ArrowSize = 13;
 constexpr float ArrowSide = 13.0f;
-// Las UV de las flechas: la de arriba de (0, 0,09375) y la de abajo de (0, 0,5), de 0,8125 × 0,40625; con el clic,
-// dadas vuelta desde (0,8125, 0,90625) y (0,8125, 0,5).
+// The arrows' UVs: the top one from (0, 0.09375) and the bottom one from (0, 0.5), 0.8125 × 0.40625; with the click,
+// flipped from (0.8125, 0.90625) and (0.8125, 0.5).
 constexpr float ArrowDu = 0.8125f;
 constexpr float ArrowDv = 0.40625f;
 constexpr float UpArrowV = 0.09375f;
 constexpr float PressedUpArrowV = 0.90625f;
 constexpr float DownArrowV = 0.5f;
-// Los filos de la pista con el 2 de la paleta, 1 adentro del cursor y en el borde; el cursor, 2 adentro y 2 más
-// angosto, con el medio de (0, 0,03125), la punta de arriba de (0, 0) y la de abajo de (0, 0,0625), de 0,6875 ×
-// 0,03125.
+// The track's edges with palette 2, 1 inside the thumb and on the border; the thumb, 2 inside and 2 narrower, with
+// the middle from (0, 0.03125), the top tip from (0, 0) and the bottom one from (0, 0.0625), 0.6875 × 0.03125.
 constexpr std::int32_t TrackEdgeIndex = 2;
 constexpr float ThumbDu = 0.6875f;
 constexpr float ThumbDv = 0.03125f;
 constexpr float ThumbMiddleV = 0.03125f;
 constexpr float ThumbBottomV = 0.0625f;
-// 0x461cd0: la franja del elegido, 13 de alto y 3 más arriba que el renglón, de alfa 0x3f333333 con las flechas del
-// teclado y 0x3e99999a sin ellas; su texto en negro y el de los demás en 0xffc8dce6.
+// 0x461cd0: the chosen one's band, 13 high and 3 above the row, with alpha 0x3f333333 with the arrow keys and
+// 0x3e99999a without; its text in black and the others' in 0xffc8dce6.
 constexpr std::int32_t ChosenBandRise = 3;
 constexpr float ChosenBandHeight = 13.0f;
 constexpr float FocusedBandAlpha = 0.7f;
 constexpr float BandAlpha = 0.3f;
 constexpr std::uint32_t ChosenRowTextColor = 0xff000000u;
 constexpr std::uint32_t RowTextColor = 0xffc8dce6u;
-// 0x468320: el cursor de 1,5 de ancho sin IME (+0xa8, 0x3fc00000) y la caja del bitmap 1,5 más ancha que el texto y
-// el cursor (0x6b8b94); el alto del cursor, el de "Q" (0x6c7af4); prendido con el resto de 24 menor que 12, y sus
-// píxeles en 0xffc8c8c8.
+// 0x468320: the caret 1.5 wide without IME (+0xa8, 0x3fc00000) and the bitmap box 1.5 wider than the text and the
+// caret (0x6b8b94); the caret's height, that of "Q" (0x6c7af4); on with the remainder mod 24 below 12, and its
+// pixels in 0xffc8c8c8.
 constexpr double CaretWidth = 1.5;
 constexpr double BoxSlack = 1.5;
 constexpr std::uint32_t FocusedSelectionBackground = 0xff969696u;
@@ -208,11 +207,11 @@ constexpr std::string_view CaretSample = "Q";
 constexpr std::int32_t BlinkPeriod = 0x18;
 constexpr std::int32_t BlinkOn = 0xc;
 constexpr std::uint32_t CaretColor = 0xffc8c8c8u;
-// +0x4c & 8 del EDIT (el filtro de la subclase, que con 8 no filtra): el negro de antes (glColor3f(0, 0, 0)).
+// The EDIT's +0x4c & 8 (the subclass's filter, which with 8 does not filter): the black before (glColor3f(0, 0, 0)).
 constexpr std::int32_t EditBlackFlag = 0x8;
-// 0x468970: la barra del EDIT de varios renglones, de 13 de ancho (+0xd4, 0x41500000), con la pista de y + 9 a
-// y + h − 9, las flechas en x + w − 15 (0x6b87bc), en y − 4 (0x6b8a44) y en y + h − 9 (0x6b887c); los filos en
-// x + w − 13 − 2 y x + w − 3.
+// 0x468970: the multiline EDIT's bar, 13 wide (+0xd4, 0x41500000), with the track from y + 9 to y + h − 9, the
+// arrows at x + w − 15 (0x6b87bc), at y − 4 (0x6b8a44) and at y + h − 9 (0x6b887c); the edges at x + w − 13 − 2 and
+// x + w − 3.
 constexpr float EditBarWidth = 13.0f;
 constexpr std::int32_t EditBarEnd = 9;
 constexpr double EditArrowInset = 15.0;
@@ -251,7 +250,7 @@ void DrawOldEditTextSpan(const OldWindowDrawContext& context, std::string_view t
     DrawOldEditTextColumns(context, text, layout, layout.caretTextColumn + 1, columns - beforeCaret - 1, colors);
 }
 
-// Lo elegido de `text`, de `firstByte` a `lastByte` (en bytes de `text`).
+// From `firstByte` to `lastByte` (in bytes of `text`).
 void DrawOldEditSelection(const OldWindowDrawContext& context, const OldEdit& edit, std::string_view text,
                           const OldEditTextLayout& layout, std::size_t firstByte, std::size_t lastByte)
 {
@@ -291,15 +290,15 @@ void DrawOldEditCaret(const OldWindowDrawContext& context, const OldEdit& edit, 
 
 using Math::F32;
 
-// Un color de 0xAABBGGRR (Render/Text/TextStyle.h) en glColor.
+// A 0xAABBGGRR color (Render/Text/TextStyle.h) as glColor.
 Render::Color ColorOf(std::uint32_t abgr)
 {
     const auto channel = [abgr](std::uint32_t shift) { return static_cast<float>((abgr >> shift) & 0xffu) / 255.0f; };
     return Render::Color{.red = channel(0), .green = channel(8), .blue = channel(16), .alpha = channel(24)};
 }
 
-// 0x492180(x, y, w, h): el borde de tres filos (0, 1 y 2 de la paleta) arriba, abajo, a la izquierda y a la derecha, y
-// las cuatro esquinas del 4; la de abajo a la derecha no, con la esquina del tamaño (+0x4c & 4).
+// 0x492180(x, y, w, h): the three-edge border (palette 0, 1 and 2) on top, bottom, left and right, and the four
+// corners in 4; not the bottom right one with the resize grip (+0x4c & 4).
 void DrawTheEdges(Render::SpriteBatch& sprites, const OldWindowBase& base)
 {
     const float x = ToFloat(base.x);
@@ -340,8 +339,8 @@ void DrawTheEdges(Render::SpriteBatch& sprites, const OldWindowBase& base)
         sprites.ColorQuad(right - 3.0f, bottom - 3.0f, 1.0f, 1.0f);
 }
 
-// 0x492460(botón): el gris de un botón de la barra: el del mouse (1, o 0,6 con el clic) si es el de +0xa0 y el mouse
-// está sobre los tres; si no, 0,8.
+// 0x492460(button): a bar button's gray: the mouse one (1, or 0.6 with the click) if it is +0xa0's and the mouse is
+// over the three; otherwise 0.8.
 void TitleButtonGray(Render::SpriteBatch& sprites, const OldWindow& window, std::int32_t button,
                      const OldWindowDrawView& view)
 {
@@ -356,8 +355,8 @@ void TitleButtonGray(Render::SpriteBatch& sprites, const OldWindow& window, std:
     Gray(sprites, IdleGray);
 }
 
-// 0x4a3a90, la vtable + 0x50 de la caja: arrastrada o cambiando de tamaño, vuelve a ubicar los botones; el texto en
-// blanco y los botones (el segundo, solo con dos).
+// 0x4a3a90, the box's vtable + 0x50: dragged or resizing, it places the buttons again; the text in white and the
+// buttons (the second, only with two).
 void DrawTheBox(OldWindowManager& manager, OldWindow& window, const OldWindowDrawContext& context,
                 const OldWindowDrawView& view)
 {
@@ -375,8 +374,8 @@ void DrawTheBox(OldWindowManager& manager, OldWindow& window, const OldWindowDra
         DrawTheButton(context, window.box.buttons[1], view);
 }
 
-// 0x4a5490, la vtable + 0x50 de la lista: mide el renglón la primera vez, corre el parpadeo y, con entradas y a la
-// vista, las dibuja (los chats con un amigo, hito 10: DrawTheChatsInTheList).
+// 0x4a5490, the list's vtable + 0x50: measures the row the first time, runs the blink and, with entries and in view,
+// draws them (the chats with a friend, milestone 10: DrawTheChatsInTheList).
 Core::Expected<void, std::string> DrawTheListRows(OldWindowManager& manager, OldWindow& window,
                                                   const OldWindowDrawContext& context, const OldWindowDrawView& view)
 {
@@ -405,7 +404,7 @@ Core::Expected<void, std::string> DrawTheListRows(OldWindowManager& manager, Old
     return {};
 }
 
-// 0x492500, la vtable + 0x14 del marco, la caja y la lista.
+// 0x492500, the vtable + 0x14 of the frame, the box and the list.
 Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWindow& window,
                                                const OldWindowDrawContext& context, const OldWindowDrawView& view)
 {
@@ -421,7 +420,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     }
     WhiteWithTexture(sprites);
     context.dcFont = Render::Text::FontKind::Normal;
-    // La vtable + 0x50: 0x48fb00 (nada) en el marco.
+    // vtable + 0x50: 0x48fb00 (nothing) in the frame.
     if (window.kind == OldWindowKind::MessageBox)
         DrawTheBox(manager, window, context, view);
     else if (window.kind == OldWindowKind::AddFriendBox)
@@ -455,8 +454,8 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
             return drawn;
     }
     const OldWindowBase& base = window.base;
-    // 0x49258d..0x4925dd: la del final de la lista con la ventana de amigos abierta se dibuja como es; las demás, en
-    // gris.
+    // 0x49258d..0x4925dd: the one at the end of the list with the friends window open is drawn as it is; the rest, in
+    // gray.
     const bool dim = LastOldWindow(manager) != base.id || !view.friendsOpen;
     if (dim)
         Gray(sprites, DimGray);
@@ -494,7 +493,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         WhiteWithTexture(sprites);
         context.dcFont = Render::Text::FontKind::Bold;
         context.textColors = Render::Text::TextColors{.text = dim ? DimTitleColor : TitleColor, .background = 0};
-        // 0x459c70(título, renglón, w − 0x32, 1, 0x100, 0, 0), con la fuente del DC.
+        // 0x459c70(title, row, w − 0x32, 1, 0x100, 0, 0), with the DC's font.
         auto wrapped = Chat::WrapByWidth(window.frame.title.value_or(std::string()), context.text, context.dcFont,
                                          sprites.Screen(), base.width - TitleWrapCut, 1, 0);
         if (!wrapped.HasValue())
@@ -529,7 +528,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         sprites.SetColor(Render::Color{});
         sprites.SetBlend(Render::BlendMode::Opaque);
     }
-    // La vtable + 0x54: 0x48f900 (nada) en todas, salvo en las de una carta (0x49a1d0 y 0x498800, el retrato).
+    // vtable + 0x54: 0x48f900 (nothing) in all, except a letter's (0x49a1d0 and 0x498800, the portrait).
     return Messenger::DrawTheLetterPortrait(window, view);
 }
 } // namespace
@@ -546,13 +545,13 @@ OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWin
     }
     return current;
 }
-// _ftol (0x69fd3c): trunca hacia el 0.
+// _ftol (0x69fd3c): toward 0.
 std::int32_t Truncate(double value)
 {
     return static_cast<std::int32_t>(value);
 }
 
-// rx y ry (0x5762ea8 y 0x5762eac): W / 640 y H / 480 en float. Sin pantalla, 1.
+// rx and ry (0x5762ea8 and 0x5762eac): W / 640 and H / 480 as float. Without a screen, 1.
 double RatioX(Core::PixelSize screen)
 {
     return screen.width > 0 ? static_cast<double>(Render::ScaleX(1.0f, screen)) : 1.0;
@@ -573,7 +572,7 @@ void Gray(Render::SpriteBatch& sprites, float gray)
     sprites.SetColor(Render::Color{.red = gray, .green = gray, .blue = gray, .alpha = 1.0f});
 }
 
-// 0x459ec0: glColor4f(1, 1, 1, 1) y glEnable(GL_TEXTURE_2D), después de los quads sin textura.
+// 0x459ec0: glColor4f(1, 1, 1, 1) and glEnable(GL_TEXTURE_2D), after the untextured quads.
 void WhiteWithTexture(Render::SpriteBatch& sprites)
 {
     sprites.SetColor(Render::Color{});
@@ -586,7 +585,7 @@ void SetThePalette(Render::SpriteBatch& sprites, std::int32_t index, float alpha
         sprites.SetColor(*color);
 }
 
-// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa.
+// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): scaled in size and position, without alpha.
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u,
           float v, float du, float dv)
 {
@@ -604,10 +603,10 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-// 0x5542f0(x, y, texto, 0, 1, 0) → 0x465950: el texto con la fuente del DC y los colores de 0x6c8e5c; uno vacío no
-// se dibuja, ni su fondo (0x467077..0x467098: sin texto y con la caja, el cuarto argumento, en 0, que es lo que pasan
-// 0x460550 y 0x465770, vuelve antes). Devuelve lo que deja en la x87 0x467060: el alto del texto en 640 × 480 (cy /
-// ry), la mitad si empieza con '\n', o 0 sin texto.
+// 0x5542f0(x, y, text, 0, 1, 0) → 0x465950: the text with the DC's font and 0x6c8e5c's colors; an empty one is not
+// drawn, nor its background (0x467077..0x467098: without text and with the box, the fourth argument, at 0, which is
+// what 0x460550 and 0x465770 pass, it returns early). Returns what 0x467060 leaves on the x87: the text's height in
+// 640 × 480 (cy / ry), half if it starts with '\n', or 0 without text.
 double DrawText(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     if (text.empty())
@@ -618,8 +617,8 @@ double DrawText(const OldWindowDrawContext& context, std::int32_t x, std::int32_
     return text.front() == '\n' ? height / 2.0 : height;
 }
 
-// 0x45b2e0, la vtable + 0x14 del botón: win_button.tga del gris del mouse y el texto centrado. Apagado, en rojo y sin
-// volver a la mezcla opaca.
+// 0x45b2e0, the button's vtable + 0x14: win_button.tga in the mouse's gray and the text centered. Disabled, in red and
+// without going back to the opaque blend.
 void DrawTheButton(const OldWindowDrawContext& context, const OldButton& button, const OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -714,7 +713,7 @@ void DrawTheListBar(Render::SpriteBatch& sprites, OldList& list, std::size_t siz
 {
     PlaceTheListBar(list, size);
     const OldWindowBase& base = list.base;
-    // FILD x y FIADD w.
+    // FILD x and FIADD w.
     const double right = static_cast<double>(ToFloat(base.x)) + static_cast<double>(base.width);
     const float arrowX = F32(right - static_cast<double>(ArrowInset));
     const std::int32_t mouseX = base.x + base.width - ArrowInset;
@@ -732,7 +731,7 @@ void DrawTheListBar(Render::SpriteBatch& sprites, OldList& list, std::size_t siz
     sprites.ColorQuad(F32(right), list.barTop, 1.0f, track);
     WhiteWithTexture(sprites);
 
-    // 0x461a53: con menos que los renglones, el cursor es toda la pista.
+    // 0x461a53: with fewer than the rows, the thumb is the whole track.
     const bool full = ListCount(list, size) < list.rows;
     const float top = full ? list.barTop : list.thumbY;
     const float height = full ? track : list.thumbHeight;
@@ -752,7 +751,7 @@ void DrawTheOldList(const OldWindowDrawContext& context, const OldList& list, st
     std::size_t at = FirstShownInTheList(list);
     context.sprites.SetColor(Render::Color{});
     context.dcFont = Render::Text::FontKind::Normal;
-    // 0x47a859..0x47a8ed: +0x104 se vuelve a leer en cada vuelta; el iterador corre uno por renglón dibujado.
+    // 0x47a859..0x47a8ed: +0x104 is read again each pass; the iterator advances one per row drawn.
     for (std::int32_t row = 0; row < list.rows && at < size; ++row, ++at)
     {
         const std::int32_t step = drawing.row ? drawing.row(row, at) : 1;
@@ -789,7 +788,7 @@ void DrawTheEditBar(const OldWindowDrawContext& context, OldEdit& edit, std::int
 {
     Render::SpriteBatch& sprites = context.sprites;
     const OldWindowBase& base = edit.base;
-    // GetScrollPos(SB_VERT) y EM_GETLINECOUNT, en la x87; +0xd0 / renglones, a un float.
+    // GetScrollPos(SB_VERT) and EM_GETLINECOUNT, on the x87; +0xd0 / rows, to a float.
     const double position = static_cast<double>(edit.firstLine);
     const double lines = static_cast<double>(lineCount);
     const auto shown = static_cast<float>(static_cast<double>(edit.visibleLines) / lines);
@@ -799,7 +798,7 @@ void DrawTheEditBar(const OldWindowDrawContext& context, OldEdit& edit, std::int
     const double track = static_cast<double>(edit.barBottom) - static_cast<double>(edit.barTop);
     edit.thumbHeight = F32(track * std::min(static_cast<double>(shown), One));
     edit.thumbY = F32(static_cast<double>(edit.barTop) + track * std::min(position / lines, One));
-    // FILD w, FIADD x: las flechas en x + w − 15, y − 4 e y + h − 9.
+    // FILD w, FIADD x: the arrows at x + w − 15, y − 4 and y + h − 9.
     const double right = static_cast<double>(base.width) + static_cast<double>(base.x);
     const float arrowX = F32(right - EditArrowInset);
     const std::int32_t mouseArrowX = base.x + base.width - static_cast<std::int32_t>(EditArrowInset);
@@ -833,35 +832,36 @@ void DrawTheEditBar(const OldWindowDrawContext& context, OldEdit& edit, std::int
 
 void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused, const OldWindowDrawView& view)
 {
-    // IsWindowVisible: la vtable + 4 (0x468260) la esconde con el estado 3.
+    // IsWindowVisible: vtable + 4 (0x468260) hides it with state 3.
     if (edit.base.state == HiddenWindow)
         return;
     Render::SpriteBatch& sprites = context.sprites;
     const Core::PixelSize screen = sprites.Screen();
     const double rx = RatioX(screen);
     const double ry = RatioY(screen);
-    // 0x468444: GetTextExtentPointA de "Q" en el DC, en píxeles, la primera vez.
+    // 0x468444: GetTextExtentPointA of "Q" in the DC, in pixels, the first time.
     if (edit.caretHeight == 0.0f)
         edit.caretHeight = ToFloat(context.text.Measure(context.dcFont, CaretSample).height);
     const OldWindowBase& base = edit.base;
-    // 0x468477: +0x4c del EDIT, el filtro de la subclase (OldEdit::filter).
+    // 0x468477: the EDIT's +0x4c, the subclass's filter (OldEdit::filter).
     if ((edit.filter & EditBlackFlag) != 0)
     {
         sprites.SetColor(Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f});
         sprites.ColorQuad(ToFloat(base.x), ToFloat(base.y), ToFloat(base.width), edit.caretHeight);
         WhiteWithTexture(sprites);
     }
-    // 0x4684bc..0x4684e4: GetFocus() es el EDIT y +0x80 % 0x18 < 0xc.
+    // 0x4684bc..0x4684e4: GetFocus() is the EDIT and +0x80 % 0x18 < 0xc.
     const bool caretOn = focused && edit.draws % BlinkPeriod < BlinkOn;
-    // 0x46854d: GetWindowTextA (la vtable + 0x50, 0x467ec0) le manda WM_GETTEXT al EDIT, que pasa por su subclase
-    // (0x467b10): con una flecha abajo (0x467b35..0x467b69), +0x80 en 0. El INC del final lo deja en 1: con una flecha
-    // apretada, el cursor queda prendido (Q-C1304).
+    // 0x46854d: GetWindowTextA (vtable + 0x50, 0x467ec0) sends WM_GETTEXT to the EDIT, which goes through its subclass
+    // (0x467b10): with an arrow down (0x467b35..0x467b69), +0x80 at 0. The INC at the end leaves it at 1: with an arrow
+    // held, the caret stays on (Q-C1304).
     if (context.arrowHeld)
         edit.draws = 0;
-    // 0x468550..0x4685ec: cx del texto en el DC con la fuente que tenga; con ES_PASSWORD (+0xb0, TextField::Masked), el
-    // de tantos '*' como bytes en la negrita (SelectObject con 0x5763558), y el DC queda con la normal (0x5763554). El
-    // EDIT se pinta con su fuente (la normal de WinMain) y '*' por byte (*inferido*: el carácter de ES_PASSWORD de un
-    // EDIT sin el manifiesto de comctl32 6), y su cursor queda al final de eso.
+    // 0x468550..0x4685ec: the text's cx in the DC with whatever font it has; with ES_PASSWORD (+0xb0,
+    // TextField::Masked), that of as many '*' as bytes in bold (SelectObject with 0x5763558), and the DC is left with
+    // the normal one (0x5763554). The EDIT paints with its font (WinMain's normal one) and one '*' per byte
+    // (*inferred*: the ES_PASSWORD character of an EDIT without the comctl32 6 manifest), and its caret ends up at the
+    // end of that.
     const std::string text = edit.text.Shown();
     std::int32_t textWidth = 0;
     if (edit.text.Masked())
@@ -871,7 +871,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     }
     else
         textWidth = context.text.Measure(context.dcFont, text).width;
-    // Los renglones (uno sin +0xc4), el primero a la vista y el del cursor (CL9 hito 10).
+    // The rows (one without +0xc4), the first in view and the caret's (CL9 milestone 10).
     const std::vector<std::string_view> lines = EditLines(edit, context.text);
     const auto lineCount = static_cast<std::int32_t>(lines.size());
     const std::int32_t caretLine = EditCaretLine(edit, lines);
@@ -880,7 +880,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     std::int32_t height = 0;
     if (edit.multiline == 0)
     {
-        // 0x4685ee..0x468622: el ancho del bitmap, ftol(+0xa8 + 1,5 + cx), hasta ftol(w · rx); el alto, ftol(h · ry).
+        // 0x4685ee..0x468622: the bitmap's width, ftol(+0xa8 + 1.5 + cx), up to ftol(w · rx); the height, ftol(h · ry).
         width = Truncate(CaretWidth + BoxSlack + static_cast<double>(textWidth));
         const double edge = static_cast<double>(base.width) * rx;
         if (static_cast<double>(width) > edge)
@@ -889,15 +889,15 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     }
     else
     {
-        // 0x468638..0x468687: con +0xc4, todo el ancho (ftol(w · rx), en una o dos texturas); con 1 y menos renglones
-        // que +0xd0, ftol(renglones · +0xac) de alto, y si no, ftol(h · ry).
+        // 0x468638..0x468687: with +0xc4, the whole width (ftol(w · rx), in one or two textures); with 1 and fewer rows
+        // than +0xd0, ftol(rows · +0xac) high, and otherwise ftol(h · ry).
         width = Truncate(static_cast<double>(base.width) * rx);
         if (edit.multiline == 1 && lineCount < edit.visibleLines)
             height = Truncate(static_cast<double>(lineCount) * static_cast<double>(edit.caretHeight));
         else
             height = Truncate(static_cast<double>(base.height) * ry);
     }
-    // 0x4688d8..0x468915: 0x554000 en (ftol(x · rx), ftol(y · ry)), en píxeles.
+    // 0x4688d8..0x468915: 0x554000 at (ftol(x · rx), ftol(y · ry)), in pixels.
     const std::int32_t left = Truncate(static_cast<double>(base.x) * rx);
     const std::int32_t top = Truncate(static_cast<double>(base.y) * ry);
     sprites.SetColor(ColorOf(edit.backgroundColor));
@@ -907,22 +907,21 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     if (edit.multiline == 0)
     {
         const std::int32_t visibleTextWidth = std::min(textWidth, std::max(width - EditTextMargin, 0));
-        // La columna del cursor (GetCaretPos): con ES_PASSWORD, la de los '*' en la fuente normal que el DC tiene
-        // ahora.
+        // The caret's column (GetCaretPos): with ES_PASSWORD, that of the '*' in the normal font the DC has now.
         const std::int32_t cursorWidth =
             context.text.Measure(context.dcFont, std::string_view(text).substr(0, edit.text.Cursor())).width;
         const std::int32_t caretColumn = EditTextMargin + cursorWidth + 1;
         const OldEditTextLayout textLayout{left, top, visibleTextWidth, caretColumn - EditTextMargin,
                                            caretOn && caretColumn < width};
         DrawOldEditText(context, edit, text, textLayout, focused, edit.text.SelectionBegin(), edit.text.SelectionEnd());
-        // 0x468320 cambia el color de los píxeles de tinta al fondo y el de los demás a c8.
+        // 0x468320 changes the ink pixels' color to the background and the others' to c8.
         DrawOldEditCaret(context, edit, text, textLayout);
     }
     else
     {
-        // Lo que pinta el EDIT de Windows de varios renglones: los renglones enteros que entran en el alto desde el
-        // primero a la vista, cada uno con el alto de "Q" (*inferido*, P-C217), con el margen y el cursor del de una
-        // línea (la columna del cursor en el renglón del cursor).
+        // What the multiline Windows EDIT paints: the whole rows that fit in the height from the first in view, each as
+        // tall as "Q" (*inferred*, P-C217), with the single-line one's margin and caret (the caret's column in the
+        // caret's row).
         const std::string_view value = edit.text.Value();
         const double lineHeight = static_cast<double>(edit.caretHeight);
         for (std::int32_t at = edit.firstLine, row = 0; at < lineCount; ++at, ++row)
@@ -946,7 +945,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
             DrawOldEditCaret(context, edit, line, lineLayout);
         }
     }
-    // 0x46894e: con +0xc4 en 1, la barra (0x468970).
+    // 0x46894e: with +0xc4 at 1, the bar (0x468970).
     if (edit.multiline == 1)
         DrawTheEditBar(context, edit, lineCount, view);
     ++edit.draws;
@@ -962,7 +961,7 @@ std::optional<Render::Color> OldWindowPalette(std::int32_t index, float alpha)
 {
     if (index < 0 || index >= static_cast<std::int32_t>(Palette.size()))
         return std::nullopt;
-    // ftol(alfa · 255) y ftol(alfa · 179), de los que glColor4ub toma el byte de abajo.
+    // ftol(alpha · 255) and ftol(alpha · 179), of which glColor4ub takes the low byte.
     const auto byteOf = [](double value)
     { return static_cast<float>(static_cast<std::uint32_t>(OldDraw::Truncate(value)) & 0xffu) / 255.0f; };
     const PaletteEntry& entry = Palette[static_cast<std::size_t>(index)];

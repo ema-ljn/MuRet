@@ -9,28 +9,28 @@ namespace Client::Hud
 struct GameHudContext;
 } // namespace Client::Hud
 
-// CL9 hito 11, fase 2: los dibujos de los eventos en la pasada 2D del juego (06 § Los eventos), *estático*: no hay
-// traza de GL de ninguno; lo que la VM tiene que confirmar está en 08 (P-C294).
+// CL9 milestone 11, phase 2: the event drawings in the game's 2D pass (06 § Los eventos), *static*: there is no GL
+// trace of any of them; what the VM has to confirm is in 08 (P-C294).
 namespace Client::Events
 {
 struct EventMapObject;
 
-// 0x5a7eb0, después del HUD (0x637668): con la palabra del F3 22 (0x5767816) distinta de 0 y a lo sumo 10 minutos, el
-// tiempo con la fuente 0x576355c, centrado en la mitad del ancho del mundo (0x5bb8d0, con sus rand()): en color en
-// (x, 350) y en blanco en (x + 1, 351). La otra mitad (0x5a800e, la guerra de gremios con 0x57678ed distinto de
-// 0x77f3cc0) es del hito 8: MuRet no escribe 0x57678ed y no la alcanza.
+// 0x5a7eb0, after the HUD (0x637668): with the F3 22 word (0x5767816) other than 0 and at most 10 minutes, the time in
+// font 0x576355c, centered on half the world's width (0x5bb8d0, with its rand()): in color at (x, 350) and in white at
+// (x + 1, 351). The other half (0x5a800e, the guild war with 0x57678ed other than 0x77f3cc0) belongs to milestone 8:
+// MuRet does not write 0x57678ed and does not reach it.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheEventTime(Hud::GameHudContext& context);
 
-// El método +4 del objeto del evento: 0x40c2d0 (Blood Castle, mapas 11 a 17, +0x10 en 1, 2 o 5) y 0x405090 (Chaos
-// Castle, mapas 18 a 23, +0x10 de 6 a 8), con +0x18 (el tiempo) en 1 o más: los puntos de +0x20 y +0x1c, el 865 y
-// el tiempo (0x40bbf0). Chaos Castle, después, elige el área de la trampa (0x6c634c) por +0x20, solo si `write` (un
-// dibujo intermedio de MuRet no escribe). Devil Square (0x40bdb0) es un ret.
+// The event object's method +4: 0x40c2d0 (Blood Castle, maps 11 to 17, +0x10 at 1, 2 or 5) and 0x405090 (Chaos Castle,
+// maps 18 to 23, +0x10 from 6 to 8), with +0x18 (the time) at 1 or more: the points of +0x20 and +0x1c, 865 and the
+// time (0x40bbf0). Chaos Castle then picks the trap area (0x6c634c) by +0x20, only if `write` (an intermediate MuRet
+// drawing does not write). Devil Square (0x40bdb0) is a ret.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCastleTimeAndPoints(Hud::GameHudContext& context,
                                                                            EventMapObject& event, bool write);
 
-// 0x632a2b: el método +0x10 del objeto del evento con la caja 0x8b, 0x97 o 0x9b, por su tipo y no por la caja: los
-// resultados de Devil Square (0x40bdd0, el ranking de +0x24 registros de +0x2c), de Blood Castle (0x40c440) y de
-// Chaos Castle (0x405220), con el registro de +0x2c (+0x38, +0x3c y +0x40) y +0x24.
+// 0x632a2b: the event object's method +0x10 with box 0x8b, 0x97 or 0x9b, by its type and not by the box: the results
+// of Devil Square (0x40bdd0, the ranking of +0x24 records of +0x2c), Blood Castle (0x40c440) and Chaos Castle
+// (0x405220), with the record of +0x2c (+0x38, +0x3c and +0x40) and +0x24.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheEventBoxText(Hud::GameHudContext& context,
                                                                     const EventMapObject& event);
 } // namespace Client::Events

@@ -32,7 +32,7 @@ using Core::Unexpected;
 
 namespace
 {
-// El BOM de UTF-8: el Bloc de notas lo pone adelante al guardar en UTF-8.
+// Notepad puts it at the start when it saves as UTF-8.
 constexpr std::string_view Utf8Bom = "\xEF\xBB\xBF";
 
 enum class Key : std::uint8_t
@@ -59,7 +59,6 @@ struct KnownKey
     Key key;
 };
 
-// Las claves de muret-client.ini, con la sección donde van (Config.h).
 constexpr std::array KnownKeys = {
     KnownKey{"Data", "Path", Key::DataPath},
     KnownKey{"Server", "Host", Key::ServerHost},
@@ -86,15 +85,14 @@ bool IsDigit(char c)
     return c >= '0' && c <= '9';
 }
 
-// Los de ASCII: del 0x00 al 0x1F y el 0x7F.
 bool IsControl(char c)
 {
     const auto byte = static_cast<unsigned char>(c);
     return byte < 0x20 || byte == 0x7F;
 }
 
-// Saca un par de comillas dobles de alrededor, las que pone "Copiar como ruta" del Explorador.
-// Una comilla sola queda como parte del valor.
+// Strips a pair of surrounding double quotes, the ones Explorer's "Copy as path" adds. A lone quote stays part of
+// the value.
 std::string_view WithoutQuotes(std::string_view value)
 {
     if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
@@ -117,7 +115,7 @@ std::string_view Trim(std::string_view text)
     return text;
 }
 
-// Corta en el primer `;` que esté al principio o después de un espacio: "a;b" es un valor.
+// Cuts at the first `;` that is at the start or after a space: "a;b" is a value.
 std::string_view WithoutComment(std::string_view line)
 {
     for (std::size_t i = 0; i < line.size(); ++i)
@@ -142,7 +140,6 @@ bool IsRemovedObfuscationKey(std::string_view section, std::string_view name)
     return EqualsIgnoringAsciiCase(section, "Server") && EqualsIgnoringAsciiCase(name, "Obfuscation");
 }
 
-// La posición en KnownKeys, o KnownKeys.size() si no está.
 std::size_t FindKey(std::string_view section, std::string_view name)
 {
     const auto found = std::ranges::find_if(
@@ -153,7 +150,7 @@ std::size_t FindKey(std::string_view section, std::string_view name)
 
 Core::Expected<int, std::string> ParseSize(std::string_view value)
 {
-    // Como en ParsePort: los dígitos se miran antes por el mensaje.
+    // As in ParsePort: the digits are checked first, for the message.
     if (!std::ranges::all_of(value, IsDigit))
     {
         return Unexpected(std::string("tiene que ser un número"));
@@ -167,8 +164,7 @@ Core::Expected<int, std::string> ParseSize(std::string_view value)
     return size;
 }
 
-// [Video] MaxFps: 0 (sin tope), o de MinFpsLimit a MaxFpsLimit (IsValidMaxFps). Como en ParseSize,
-// los dígitos se miran antes por el mensaje.
+// As in ParseSize, the digits are checked first, for the message.
 Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
 {
     if (!std::ranges::all_of(value, IsDigit))
@@ -227,9 +223,8 @@ Core::Expected<Kernel::PacingMode, std::string> ParsePacing(std::string_view val
     return Unexpected(std::string("tiene que ser decoupled o faithful"));
 }
 
-// El archivo es UTF-8, y path(std::string) en Windows lee la página de códigos ANSI: una carpeta
-// con una letra que no sea ASCII quedaría mal. Core::PathFromUtf8 la lee como UTF-8 y rechaza el
-// texto que no lo es.
+// The file is UTF-8, and path(std::string) on Windows reads the ANSI code page: a folder with a non-ASCII letter
+// would come out wrong. Core::PathFromUtf8 reads it as UTF-8 and rejects text that is not.
 Core::Expected<std::filesystem::path, std::string> ParsePath(std::string_view value)
 {
     const std::string_view text = WithoutQuotes(value);
@@ -249,7 +244,6 @@ Core::Expected<std::filesystem::path, std::string> ParsePath(std::string_view va
     return std::move(*path);
 }
 
-// El campo de una clave que es una ruta.
 std::optional<std::filesystem::path>& PathField(ClientConfig& config, Key key)
 {
     switch (key)
@@ -265,7 +259,7 @@ std::optional<std::filesystem::path>& PathField(ClientConfig& config, Key key)
     }
 }
 
-// Guarda el valor en su campo; si no se puede leer, devuelve por qué.
+// Returns why the value cannot be read, if it cannot.
 std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view value)
 {
     switch (key)
@@ -285,7 +279,7 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
     }
     case Key::ServerHost:
     {
-        // ParseHost acepta solo ASCII, así que acá no hace falta mirar el UTF-8.
+        // ParseHost accepts only ASCII, so UTF-8 needs no check here.
         const auto host = Session::ParseHost(WithoutQuotes(value));
         if (!host.HasValue())
         {
@@ -378,9 +372,9 @@ std::filesystem::path FromFolder(const std::filesystem::path& folder, const std:
     return path.is_relative() ? folder / path : path;
 }
 
-// El texto del archivo, o vacío si no está; con `required`, que no esté es un error. Solo "no
-// está" (not_found) da los valores por defecto: un error del sistema (un permiso) se dice. Se lee
-// sin excepciones: con istreambuf_iterator, una carpeta abierta en Linux tira ios_base::failure.
+// Empty if the file is missing; with `required`, missing is an error. Only not_found gives the defaults: a system
+// error (a permission) is reported. Read without exceptions: with istreambuf_iterator, an opened folder on Linux
+// throws ios_base::failure.
 Core::Expected<std::optional<std::string>, std::string> ReadConfigFile(const std::filesystem::path& path, bool required)
 {
     std::error_code error;
@@ -439,8 +433,8 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
         text.remove_prefix(newline == std::string_view::npos ? text.size() : newline + 1);
         ++lineNumber;
 
-        // El fin de línea es \n o \r\n. Un \r solo (el de los Mac viejos) no corta la línea, y
-        // sin este error todo lo que sigue a un comentario quedaría adentro de él.
+        // The line end is \n or \r\n. A lone \r (old Macs) does not end the line, and without this error everything
+        // after a comment would end up inside it.
         if (rawLine.ends_with('\r'))
         {
             rawLine.remove_suffix(1);
@@ -519,14 +513,12 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
 Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,
                                                   const CommandLine& commandLine)
 {
-    // 1. El archivo.
     const std::filesystem::path configPath = commandLine.configPath.value_or(exeFolder / DefaultConfigFileName);
     const auto text = ReadConfigFile(configPath, commandLine.configPath.has_value());
     if (!text.HasValue())
     {
         return Unexpected(text.Error());
     }
-    // 2. ParseConfig, con las rutas relativas desde la carpeta del ejecutable.
     ClientConfig config;
     if (text.Value())
     {
@@ -546,7 +538,6 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
             }
         }
     }
-    // 3. La línea de comandos pisa.
     if (commandLine.connect)
     {
         config.server = commandLine.connect;
@@ -567,7 +558,7 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     {
         config.maxFps = *commandLine.maxFps;
     }
-    // 4. Las combinaciones: en el modo fiel VSync va apagado, como el original (CL3.2).
+    // In faithful mode VSync is off, like the original (CL3.2).
     if (config.pacing == Kernel::PacingMode::Faithful)
     {
         if (config.vsync && *config.vsync != Platform::VSyncMode::Off)
@@ -588,13 +579,13 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     {
         config.vsync = Platform::VSyncMode::On;
     }
-    // Y --auto-login entra a un servidor (CL5.5): sin un host no hay a cuál.
+    // --auto-login enters a server (CL5.5): without a host there is none to enter.
     if (commandLine.autoLogin && !HasServerHost(config))
     {
         return Unexpected(
             std::string("--auto-login needs a server: --host and --port, or [Server] Host in the config"));
     }
-    // 5. La carpeta de datos, solo si se dio (Q-C35: el original salía sin avisar).
+    // The data folder, only if given (Q-C35: the original exited without a warning).
     if (config.dataPath)
     {
         const std::string folder = Core::PathText(*config.dataPath);

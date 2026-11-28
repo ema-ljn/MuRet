@@ -31,8 +31,8 @@
 #include <string>
 #include <vector>
 
-// Client::App::GameLoop en el modo normal (Decoupled): el paso fijo con el reloj falso. Y el Poll
-// de la red en los dos modos (CL4.1).
+// Client::App::GameLoop in normal mode (Decoupled): the fixed step with the fake clock. And the network Poll in both
+// modes (CL4.1).
 namespace
 {
 using namespace std::chrono_literals;
@@ -107,7 +107,7 @@ private:
     Duration m_renderCost;
 };
 
-// NoStepOnAbort se observa a través del manager real, en ambos modos y con varios pasos pendientes.
+// NoStepOnAbort is observed through the real manager, in both modes and with several steps pending.
 TEST(GameLoopTest, ASessionApplicationFailureStopsTheSceneInTheSameFrame)
 {
     for (const PacingMode mode : {PacingMode::Decoupled, PacingMode::Faithful})
@@ -161,10 +161,10 @@ TEST(GameLoopTest, ASessionApplicationFailureStopsTheSceneInTheSameFrame)
     }
 }
 
-// La tolerancia de los alfas que fija el plan (1e-6).
+// The alpha tolerance the plan sets.
 constexpr double AlphaTolerance = 1e-6;
 
-// Lo que avanza el frame `frame` para que `framesPerSecond` frames sumen 1 s exacto.
+// How far frame `frame` advances so that `framesPerSecond` frames add up to exactly 1 s.
 Duration FrameTime(std::int64_t frame, std::int64_t framesPerSecond)
 {
     const std::int64_t second = Duration{1s}.count();
@@ -175,10 +175,9 @@ class GameLoopTest : public ::testing::TestWithParam<int>
 {
 };
 
-// En 4 s simulados, 100 pasos con cualquier tasa de frames. El primer frame solo fija el inicio.
-// Además, el frame que más pasos corre: 1 con 25 FPS o más, 25 con 1 FPS (como largestStep en
-// test_reference_frame_steps.cpp de MuMain). Sin eso, un bucle que corriera 2 pasos cada dos
-// frames daría el mismo total.
+// In 4 simulated s, 100 steps at any frame rate. The first frame only sets the start. Also the frame that runs the
+// most steps: 1 at 25 FPS or more, 25 at 1 FPS (like largestStep in MuMain's test_reference_frame_steps.cpp).
+// Without it, a loop that ran 2 steps every two frames would give the same total.
 TEST_P(GameLoopTest, TwentyFiveStepsPerSecondAtAnyFrameRate)
 {
     const std::int64_t framesPerSecond = GetParam();
@@ -222,7 +221,7 @@ TEST(GameLoopTest, ASlowFrameCatchesUpWithThreeSteps)
     EXPECT_NEAR(client.alphas.back(), 0.25, AlphaTolerance);
 }
 
-// El breakpoint: un dibujo de 10 s corre 25 pasos (MaxFrameTime) y no 250 como el original.
+// The breakpoint: a 10 s drawing runs 25 steps (MaxFrameTime) and not 250 like the original.
 TEST(GameLoopTest, AFrameLongerThanTheCapRunsOnlyTheCap)
 {
     FakeClock clock;
@@ -243,10 +242,10 @@ TEST(GameLoopTest, AFrameLongerThanTheCapRunsOnlyTheCap)
     EXPECT_EQ(loop.Stats().clampedFrames, 1u);
 }
 
-// La entrada a una escena corre dentro de un paso (0x6349a0 desde 0x634c8e, la carga fuera del bucle), y el
-// original mide desde después de los pasos (0x63852b): lo que tarda cargar una escena no es tiempo del
-// juego. Un paso que cambia de escena y tarda 2 s deja el frame siguiente en 1 paso; el mismo paso sin el
-// cambio de escena sí cuenta, y el frame siguiente se pone al día hasta el tope.
+// Entering a scene runs inside a step (0x6349a0 from 0x634c8e, the load outside the loop), and the original
+// measures from after the steps (0x63852b): the time to load a scene is not game time. A step that changes scene and
+// takes 2 s leaves the next frame at 1 step; the same step without the scene change does count, and the next frame
+// catches up to the cap.
 TEST(GameLoopTest, TheTimeOfASceneChangeDoesNotCount)
 {
     for (const bool changesTheScene : {true, false})
@@ -284,12 +283,12 @@ TEST(GameLoopTest, AClockThatGoesBackRunsNoSteps)
     EXPECT_EQ(loop.Stats().accumulated, 0ns);
     EXPECT_NEAR(loop.LastAlpha(), 0.0, AlphaTolerance);
 
-    // El siguiente se mide desde el valor nuevo.
+    // The next one is measured from the new value.
     clock.Advance(40ms);
     EXPECT_EQ(loop.RunFrame(WindowState{}, input), 1);
 }
 
-// Con VSync apagado, dos frames pueden leer el mismo instante.
+// With VSync off, two frames can read the same instant.
 TEST(GameLoopTest, AClockThatDoesNotMoveRunsNoSteps)
 {
     FakeClock clock;
@@ -309,8 +308,7 @@ TEST(GameLoopTest, AClockThatDoesNotMoveRunsNoSteps)
     EXPECT_EQ(client.steps, 0u);
 }
 
-// Minimizada, la lógica sigue y el dibujo no: cada frame duerme lo que falta para el próximo
-// paso, así que el bucle duerme en vez de girar.
+// Each frame sleeps what is left until the next step, so the loop sleeps instead of spinning.
 TEST(GameLoopTest, AMinimizedWindowStepsWithoutDrawing)
 {
     FakeClock clock;
@@ -331,9 +329,9 @@ TEST(GameLoopTest, AMinimizedWindowStepsWithoutDrawing)
     EXPECT_EQ(std::accumulate(sleeps.begin(), sleeps.end(), Duration::zero()), 1040ms);
 }
 
-// Con el frame retenido (el connect del login, que en el original bloquea antes del dibujo,
-// Q-C85), como minimizada: la red y los pasos siguen, no dibuja y duerme hasta el próximo paso.
-// Cuando lo suelta, dibuja otra vez.
+// With the frame held (the login's connect, which in the original blocks before the drawing, Q-C85), like
+// minimized: the network and the steps go on, it does not draw and sleeps until the next step. When released, it
+// draws again.
 TEST(GameLoopTest, AHeldFrameStepsWithoutDrawing)
 {
     FakeClock clock;
@@ -358,8 +356,8 @@ TEST(GameLoopTest, AHeldFrameStepsWithoutDrawing)
     EXPECT_EQ(client.alphas.size(), 1u);
 }
 
-// El frame retenido se mira después de los pasos: el paso que empieza el connect (el que entra al
-// login) ya no deja dibujar su frame. Mirado antes, ese frame sería el login sin el aviso.
+// The held frame is checked after the steps: the step that starts the connect (the one that enters the login) no
+// longer lets its frame draw. Checked before, that frame would be the login without the notice.
 TEST(GameLoopTest, AHoldFromAStepSkipsThatFramesDrawing)
 {
     FakeClock clock;
@@ -375,7 +373,7 @@ TEST(GameLoopTest, AHoldFromAStepSkipsThatFramesDrawing)
     EXPECT_EQ(client.calls, (std::vector<LoopCall>{LoopCall::Poll, LoopCall::Render, LoopCall::Poll, LoopCall::Step}));
 }
 
-// Minimizada, duerme lo que falta del paso: 10 ms acumulados son 30 ms de sueño, no 40.
+// 10 ms accumulated are 30 ms of sleep, not 40.
 TEST(GameLoopTest, AMinimizedWindowSleepsWhatIsLeftOfTheStep)
 {
     FakeClock clock;
@@ -393,8 +391,7 @@ TEST(GameLoopTest, AMinimizedWindowSleepsWhatIsLeftOfTheStep)
     EXPECT_EQ(loop.RunFrame(minimized, input), 1);
 }
 
-// El primer frame solo fija el inicio: con SdlClock, el primer Now() llega después de crear la
-// ventana, y lo que tardó eso no son pasos.
+// With SdlClock, the first Now() comes after creating the window, and the time that took is not steps.
 TEST(GameLoopTest, TheFirstFrameOnlySetsTheStart)
 {
     FakeClock clock;
@@ -443,8 +440,8 @@ TEST(GameLoopTest, AlphaGrowsBetweenSteps)
     EXPECT_EQ(client.alphas.size(), static_cast<std::size_t>(FramesPerSecond + 1));
 }
 
-// Un frame de 80 ms corre 2 pasos con un apretón: lo ve el primero, y el segundo no (Q-C45). La
-// tecla sigue abajo: ConsumeEdges borra los flancos y no el estado.
+// An 80 ms frame runs 2 steps with a press: the first sees it, and the second does not (Q-C45). The key stays down:
+// ConsumeEdges clears the edges and not the state.
 TEST(GameLoopTest, APressIsSeenByExactlyOneStep)
 {
     FakeClock clock;
@@ -463,8 +460,8 @@ TEST(GameLoopTest, APressIsSeenByExactlyOneStep)
     EXPECT_FALSE(input.WasPressed(Key::A));
 }
 
-// A 240 FPS, un apretón y su soltada en un frame sin pasos: el frame no toca el input, y el
-// apretón lo ve el primer paso que venga, aunque la tecla ya esté arriba. El paso siguiente, no.
+// At 240 FPS, a press and its release in a frame without steps: the frame does not touch the input, and the first
+// step that comes sees the press, even if the key is already up. The step after it does not.
 TEST(GameLoopTest, APressInAFrameWithoutStepsWaitsForTheNextStep)
 {
     constexpr std::int64_t FramesPerSecond = 240;
@@ -493,9 +490,8 @@ TEST(GameLoopTest, APressInAFrameWithoutStepsWaitsForTheNextStep)
     EXPECT_FALSE(input.IsDown(Key::Space));
 }
 
-// El tope de FPS (MaxFps, el FpsCap de MuMain): con 100, un frame que dibuja en 3 ms duerme los
-// 7 que le faltan para llegar a su meta, 10 ms después de la anterior. En 1 s simulado corren 100
-// frames y la lógica sigue a 25 pasos.
+// The FPS cap (MaxFps, MuMain's FpsCap): with 100, a frame that draws in 3 ms sleeps the 7 it lacks to reach its
+// target, 10 ms after the previous one. In 1 simulated s, 100 frames run and the logic stays at 25 steps.
 TEST(GameLoopTest, AnFpsCapSleepsWhatIsLeftOfTheFrame)
 {
     FakeClock clock;
@@ -504,7 +500,7 @@ TEST(GameLoopTest, AnFpsCapSleepsWhatIsLeftOfTheFrame)
     InputState input;
     client.renderCost = 3ms;
 
-    // El primer frame fija el inicio; los 100 siguientes miden 10 ms cada uno.
+    // The first frame sets the start; the next 100 measure 10 ms each.
     for (int frame = 0; frame <= 100; ++frame)
     {
         loop.RunFrame(WindowState{}, input);
@@ -518,8 +514,7 @@ TEST(GameLoopTest, AnFpsCapSleepsWhatIsLeftOfTheFrame)
     EXPECT_EQ(clock.Now(), 1010ms);
 }
 
-// Lo que tardan los pasos también es parte del frame: con 50 (20 ms) y pasos de 5 ms, el frame
-// que corre un paso duerme 15 ms.
+// With 50 (20 ms) and 5 ms steps, the frame that runs a step sleeps 15 ms.
 TEST(GameLoopTest, TheFpsCapCountsTheStepsToo)
 {
     FakeClock clock;
@@ -539,7 +534,8 @@ TEST(GameLoopTest, TheFpsCapCountsTheStepsToo)
     EXPECT_EQ(sleeps[2], 15ms);
 }
 
-// Un frame que ya tardó más que el tope no duerme, y sin tope (0, el valor por defecto) tampoco.
+// A frame that already took longer than the cap does not sleep, and neither does one without a cap (0, the
+// default).
 TEST(GameLoopTest, AFrameLongerThanTheFpsCapDoesNotSleep)
 {
     for (const int maxFps : {100, 0})
@@ -559,10 +555,10 @@ TEST(GameLoopTest, AFrameLongerThanTheFpsCapDoesNotSleep)
     }
 }
 
-// Minimizada, el tope no se usa: duerme lo que falta para el próximo paso, como sin tope. Y al
-// volver, la meta arranca de nuevo desde el Now() del frame. Con 40 (25 ms): el frame visible
-// duerme 25; el minimizado, 15, hasta el paso de los 40 ms y no hasta la meta de los 50; y el
-// visible que sigue, 25, hasta los 65 y no hasta los 50 de la meta vieja.
+// Minimized, the cap is not used: it sleeps what is left until the next step, as without a cap. And on return, the
+// target starts over from the frame's Now(). With 40 (25 ms): the visible frame sleeps 25; the minimized one 15,
+// until the 40 ms step and not until the 50 target; and the visible one after it 25, until 65 and not until the old
+// target's 50.
 TEST(GameLoopTest, AMinimizedWindowIgnoresTheFpsCap)
 {
     FakeClock clock;
@@ -584,8 +580,8 @@ TEST(GameLoopTest, AMinimizedWindowIgnoresTheFpsCap)
     EXPECT_EQ(sleeps[2], 25ms);
 }
 
-// Si el reloj vuelve durante el frame (solo el FakeClock, sin bajar de 0), el tope no duerme: la
-// resta daría más que un frame entero.
+// If the clock goes back during the frame (only the FakeClock, without going below 0), the cap does not sleep: the
+// subtraction would give more than a whole frame.
 TEST(GameLoopTest, AClockThatGoesBackDuringTheFrameDoesNotSleep)
 {
     FakeClock clock;
@@ -600,9 +596,9 @@ TEST(GameLoopTest, AClockThatGoesBackDuringTheFrameDoesNotSleep)
     EXPECT_TRUE(clock.Sleeps().empty());
 }
 
-// Lo que corre entre dos RunFrame (los eventos, --stats) no se suma: la meta de cada frame es la
-// del anterior más 10 ms. Con 1 ms afuera y 2 de dibujo, el primer frame duerme 8 y los otros 7,
-// y 100 frames siguen siendo 1 s, no 1,1.
+// What runs between two RunFrame (the events, --stats) does not add up: each frame's target is the previous one's
+// plus 10 ms. With 1 ms outside and 2 of drawing, the first frame sleeps 8 and the others 7, and 100 frames are still
+// 1 s, not 1.1.
 TEST(GameLoopTest, TheFpsCapDoesNotAddTheTimeBetweenFrames)
 {
     FakeClock clock;
@@ -624,11 +620,10 @@ TEST(GameLoopTest, TheFpsCapDoesNotAddTheTimeBetweenFrames)
     EXPECT_EQ(clock.Now(), 1001ms);
 }
 
-// Si un frame se pasa de la meta, la próxima cuenta desde donde terminó, y no desde el Now() del
-// frame que sigue: lo que corre entre los dos tampoco se suma. Con 100 (10 ms), 6 ms de dibujo y 5
-// afuera, cada frame dura 11: solo el primero duerme (4 ms), y 6 frames son 70 ms, los 66 de sin
-// tope más esos 4. Contando desde el Now(), uno de cada dos dormiría 4 y serían 78: el tope daría
-// menos FPS que no tener tope.
+// If a frame overruns the target, the next counts from where it ended, not from the following frame's Now(): what
+// runs between the two does not add up either. With 100 (10 ms), 6 ms of drawing and 5 outside, each frame lasts 11:
+// only the first sleeps (4 ms), and 6 frames are 70 ms, the 66 without a cap plus those 4. Counting from the Now(),
+// one in two would sleep 4 and they would be 78: the cap would give fewer FPS than no cap.
 TEST(GameLoopTest, AfterAMissedDeadlineTheTimeBetweenFramesStillCounts)
 {
     FakeClock clock;
@@ -649,9 +644,8 @@ TEST(GameLoopTest, AfterAMissedDeadlineTheTimeBetweenFramesStillCounts)
     EXPECT_EQ(clock.Now(), 70ms);
 }
 
-// Un hueco entre frames más largo que el tope también cuenta: el frame que sigue ya llega tarde a su
-// meta y no duerme, y el otro vuelve al tope. Con 100, 2 ms de dibujo y 15 ms afuera después del
-// primero.
+// A gap between frames longer than the cap counts too: the next frame is already late for its target and does not
+// sleep, and the one after goes back to the cap. With 100, 2 ms of drawing and 15 ms outside after the first.
 TEST(GameLoopTest, ATimeBetweenFramesLongerThanTheFpsCapCountsToo)
 {
     FakeClock clock;
@@ -660,12 +654,12 @@ TEST(GameLoopTest, ATimeBetweenFramesLongerThanTheFpsCapCountsToo)
     InputState input;
     client.renderCost = 2ms;
 
-    // Dibuja hasta los 2 ms y duerme hasta la meta, a los 10.
+    // Draws until 2 ms and sleeps until the target, at 10.
     loop.RunFrame(WindowState{}, input);
     clock.Advance(15ms);
-    // La meta era a los 20, y el frame empieza a los 25: dibuja hasta los 27 sin dormir.
+    // The target was at 20, and the frame starts at 25: it draws until 27 without sleeping.
     loop.RunFrame(WindowState{}, input);
-    // La meta, 10 ms después de los 27: dibuja hasta los 29 y duerme 8.
+    // The target, 10 ms after 27: it draws until 29 and sleeps 8.
     loop.RunFrame(WindowState{}, input);
 
     const auto sleeps = clock.Sleeps();
@@ -675,9 +669,9 @@ TEST(GameLoopTest, ATimeBetweenFramesLongerThanTheFpsCapCountsToo)
     EXPECT_EQ(clock.Now(), 37ms);
 }
 
-// Si el reloj vuelve entre dos frames (solo el FakeClock), la meta anterior queda adelante y no
-// sirve: el frame cuenta desde su Now(). Con 100 y 2 ms de dibujo, después de volver 5 ms duerme 8,
-// no los 13 que faltarían para la meta vieja más 10.
+// If the clock goes back between two frames (only the FakeClock), the previous target is left ahead and is of no
+// use: the frame counts from its Now(). With 100 and 2 ms of drawing, after going back 5 ms it sleeps 8, not the 13
+// left for the old target plus 10.
 TEST(GameLoopTest, AClockThatGoesBackBetweenFramesStartsTheFpsCapOver)
 {
     FakeClock clock;
@@ -696,8 +690,8 @@ TEST(GameLoopTest, AClockThatGoesBackBetweenFramesStartsTheFpsCapOver)
     EXPECT_EQ(sleeps[1], 8ms);
 }
 
-// Después de un frame más largo que el tope, el siguiente cuenta desde donde terminó el largo:
-// duerme los 7 ms enteros y no se pone al día con un frame más corto.
+// After a frame longer than the cap, the next counts from where the long one ended: it sleeps the whole 7 ms and does
+// not catch up with a shorter frame.
 TEST(GameLoopTest, AfterALongFrameTheFpsCapStartsOver)
 {
     FakeClock clock;
@@ -718,8 +712,8 @@ TEST(GameLoopTest, AfterALongFrameTheFpsCapStartsOver)
     EXPECT_EQ(sleeps[1], 7ms);
 }
 
-// En Faithful el tope no se usa (Resolve tampoco lo deja): espera como el original. Con 1, que
-// fuera de Faithful dormiría casi 1 s por frame, los sueños son los mismos que sin tope.
+// In Faithful the cap is not used (Resolve does not allow it either): it waits like the original. With 1, which
+// outside Faithful would sleep almost 1 s per frame, the sleeps are the same as without a cap.
 TEST(GameLoopTest, AFaithfulLoopIgnoresTheFpsCap)
 {
     std::vector<std::vector<Duration>> sleeps;
@@ -740,11 +734,11 @@ TEST(GameLoopTest, AFaithfulLoopIgnoresTheFpsCap)
     EXPECT_FALSE(sleeps[0].empty());
     EXPECT_EQ(sleeps[0], sleeps[1]);
 }
-// El orden de un frame (CL4.1): la red una vez, antes de los pasos, y el dibujo al final. El
-// segundo frame corre dos pasos: en Decoupled, 80 ms después del primero, que solo fija el inicio;
-// en Faithful, con un primer dibujo de 100 ms, que mide 6 ticks (93 ms) y deja el acumulador en 93
-// después del paso del valor inicial. Un Poll después de los pasos o uno por paso darían otro
-// orden; en el modo fiel, FaithfulDoesNotMeasureThePoll no los distingue, y este sí.
+// The order of a frame (CL4.1): the network once, before the steps, and the drawing at the end. The second frame
+// runs two steps: in Decoupled, 80 ms after the first, which only sets the start; in Faithful, with a first drawing
+// of 100 ms, which measures 6 ticks (93 ms) and leaves the accumulator at 93 after the initial value's step. A Poll
+// after the steps or one per step would give another order; in faithful mode, FaithfulDoesNotMeasureThePoll does not
+// tell them apart, and this one does.
 TEST(GameLoopTest, PollsOncePerFrameBeforeTheSteps)
 {
     struct Case
@@ -778,9 +772,9 @@ TEST(GameLoopTest, PollsOncePerFrameBeforeTheSteps)
     }
 }
 
-// P-C61: cada vuelta con la ventana sin minimizar termina con FinishTheLoop, después del dibujo y también con el
-// frame retenido, donde el original corre el frame sin presentarlo; minimizada, no (la rama sin frame de
-// WinMain). En los dos modos.
+// P-C61: each loop with the window not minimized ends with FinishTheLoop, after the drawing and also with the frame
+// held, where the original runs the frame without presenting it; minimized, it does not (WinMain's frameless
+// branch). In both modes.
 TEST(GameLoopTest, EachLoopNotMinimizedFinishesAfterTheDrawing)
 {
     WindowState minimized;
@@ -810,9 +804,9 @@ TEST(GameLoopTest, EachLoopNotMinimizedFinishesAfterTheDrawing)
     }
 }
 
-// Minimizada no se dibuja, pero la red sigue, como en el original (0x4e1d50 corre en cada vuelta
-// del bucle de WinMain): 26 frames son 26 polls, con los 25 pasos de
-// AMinimizedWindowStepsWithoutDrawing. En el modo fiel, también uno por frame.
+// Minimized there is no drawing, but the network goes on, as in the original (0x4e1d50 runs on every loop of
+// WinMain): 26 frames are 26 polls, with the 25 steps of AMinimizedWindowStepsWithoutDrawing. In faithful mode, also
+// one per frame.
 TEST(GameLoopTest, PollsWhileMinimized)
 {
     WindowState minimized;
@@ -846,12 +840,11 @@ TEST(GameLoopTest, PollsWhileMinimized)
     }
 }
 
-// En el modo fiel el Poll va antes de BeginFrame, fuera de la medición, como el bucle de mensajes
-// del original: lo que tarda se pierde de a ticks enteros, como el tiempo de los pasos (Q-C44).
-// Con polls de 20 ms, que siempre cruzan el borde de un tick, cada frame dura 4 ticks y no 3: en
-// 3 s, 48 frames y 56 pasos. Si el poll quedara adentro de la medición, la espera de 40 ms lo
-// taparía y serían 64 y 74, como sin poll. Con polls de 10 ms, que no cruzan ninguno, no se pierde
-// nada: 64 y 74.
+// In faithful mode the Poll goes before BeginFrame, outside the measurement, like the original's message loop: its
+// time is lost in whole ticks, like the steps' time (Q-C44). With 20 ms polls, which always cross a tick edge, each
+// frame lasts 4 ticks and not 3: in 3 s, 48 frames and 56 steps. If the poll were inside the measurement, the 40 ms
+// wait would hide it and they would be 64 and 74, as without a poll. With 10 ms polls, which cross none, nothing is
+// lost: 64 and 74.
 TEST(GameLoopTest, FaithfulDoesNotMeasureThePoll)
 {
     struct Case

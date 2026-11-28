@@ -99,10 +99,9 @@
 #include <utility>
 #include <vector>
 
-// La carga y el login con el Data\ del laboratorio: entran (sus juegos de texturas en sus slots
-// de la tabla falsa, el login con las de las ventanas), y el login dibuja sus tres textos de
-// Text.bmd. Ningún texto va a la salida:
-// se miran el largo y dónde quedó la versión, nunca lo que dicen.
+// The loading and the login with the lab's Data\: they enter (their texture sets in their slots of the fake table,
+// the login with the windows' ones), and the login draws its three Text.bmd texts. No text goes to the output: the
+// length and where the version ended up are checked, never what they say.
 namespace
 {
 using Client::FrontEnd::SingleModelLibrary;
@@ -150,13 +149,13 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     const auto entered = scene.Enter();
 
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    // Y las dos del logo (TheLogoLoads), las 15 del terreno (los 14 tiles de World56 y el 0x122,
-    // TheTerrainGoesBeforeTheCharacter) y las 63 del mundo: las 3 del dragón y 62 de Object56\ que esta
-    // tabla vacía no tiene, menos fire01 y fire02, que no están (GoldenWorldModels).
+    // And the logo's two (TheLogoLoads), the terrain's 15 (World56's 14 tiles and 0x122,
+    // TheTerrainGoesBeforeTheCharacter) and the world's 63: the dragon's 3 and 62 of Object56\ that this empty table
+    // lacks, minus fire01 and fire02, which are missing (GoldenWorldModels).
     constexpr std::array weatherSlots{TextureSlot{0x64}, TextureSlot{0x65}, TextureSlot{0x66}, TextureSlot{0x67},
                                       TextureSlot{0x68}};
-    // 61ac3e..61ad7a: dos hojas del mundo y tres imágenes globales de lluvia; 0x616eeb: la gota (0x607).
-    // 0x618dda..0x618e29: las 32 cáusticas también se suben en el mapa 55, antes de los tiles.
+    // 0x61ac3e..0x61ad7a: two world leaves and three global rain images; 0x616eeb: the drop (0x607).
+    // 0x618dda..0x618e29: the 32 caustics are uploaded on map 55 too, before the tiles.
     ASSERT_EQ(store.Size(),
               LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 1 + 32 + weatherSlots.size() + 63);
     for (const auto slot : weatherSlots)
@@ -175,7 +174,7 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     target.Present();
     scene.Leave();
 
-    // Los tres están en el Text.bmd del laboratorio, y el 456 tiene un "%s" para la versión.
+    // The three are in the lab's Text.bmd, and 456 has a "%s" for the version.
     const std::vector<RecordedText>& texts = target.Texts();
     ASSERT_EQ(texts.size(), 3u);
     for (const RecordedText& text : texts)
@@ -187,10 +186,10 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     EXPECT_EQ(store.Size(), 0u);
 }
 
-// Q-C92: Logo03.bmd tiene dos mallas, logo.jpg y logo2.jpg, que 0x60d5f0 sube a los dos slots que
-// siguen al mundo (0x455 y 0x456 en el original; acá, sin la tabla de la carga, 0x45a y 0x45b) con
-// GL_LINEAR; al salir, se sueltan. El logo se dibuja: un tramo opaco y el aditivo de su
-// blendMesh, con la luz del primer paso.
+// Q-C92: Logo03.bmd has two meshes, logo.jpg and logo2.jpg, which 0x60d5f0 uploads to the two slots after the world
+// (0x455 and 0x456 in the original; here, without the loading's table, 0x45a and 0x45b) with GL_LINEAR; on leaving,
+// they are released. The logo is drawn: an opaque stretch and the additive one of its blendMesh, with the first
+// step's light.
 TEST_F(GoldenLoginScene, TheLogoLoads)
 {
     auto data = LoadGameData(m_dataRoot);
@@ -203,7 +202,7 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
 
     ASSERT_TRUE(scene.Enter().HasValue());
 
-    // Sin la tabla de la carga, el mundo deja el próximo en 0x45a (GoldenWorldModels).
+    // Without the loading's table, the world leaves the next one at 0x45a (GoldenWorldModels).
     for (const std::uint16_t slot : {std::uint16_t{0x45a}, std::uint16_t{0x45b}})
     {
         const auto texture = store.Find(TextureSlot{slot});
@@ -219,8 +218,8 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
     target.Present();
     const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(drawn, target.frames.back().events.end());
-    // Sus dos tramos seguidos, entre los de los objetos del mundo (TheLogoIsAWorldObject): el opaco con
-    // logo.jpg y el aditivo de su blendMesh con logo2.jpg.
+    // Its two stretches in a row, among the world objects' (TheLogoIsAWorldObject): the opaque one with logo.jpg and
+    // the additive one of its blendMesh with logo2.jpg.
     const auto& commands = drawn->modelCommands;
     const auto logo =
         std::ranges::find(commands, std::optional{TextureSlot{0x45a}},
@@ -236,9 +235,9 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
     EXPECT_FALSE(store.Find(TextureSlot{0x45b}).has_value());
 }
 
-// CL7.1: el login carga el terreno de World56 y lo dibuja primero en el pase 3D (0x5fc260(0) antes de
-// 0x510d00): los tramos del principio son de los tiles (0x23..0x30) y del 0x122, y en el login, con el
-// lago al fondo, hay agua (TileWater01, el 0x28). Al salir, sus 15 slots se sueltan.
+// CL7.1: the login loads World56's terrain and draws it first in the 3D pass (0x5fc260(0) before 0x510d00): the
+// first stretches are the tiles' (0x23..0x30) and 0x122's, and in the login, with the lake at the back, there is
+// water (TileWater01, 0x28). On leaving, its 15 slots are released.
 TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
 {
     auto data = LoadGameData(m_dataRoot);
@@ -246,7 +245,7 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    // Con los modelos de la carga, para que el personaje se dibuje.
+    // With the loading's models, so the character is drawn.
     Client::Assets::GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
     LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
@@ -257,7 +256,7 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     }
     EXPECT_TRUE(store.Find(TextureSlot{0x122}).has_value());
 
-    // 0x508f00 escribe +0x16c antes del primer frame que el original permite dibujar.
+    // 0x508f00 writes +0x16c before the first frame the original allows drawing.
     scene.Step(Client::Input::InputState{});
     ASSERT_FALSE(scene.Failure().has_value());
     RecordingFrameTarget target;
@@ -277,8 +276,8 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     EXPECT_TRUE(std::all_of(firstOther, drawn->modelCommands.end(),
                             [&isTerrain](const auto& command) { return !isTerrain(command); }))
         << "el terreno va todo antes que los modelos";
-    // Y el personaje está, después: sus partes van con las texturas de Player\ (desde 0x138, 0x60f7d0) o
-    // las de la piel (0x12e..0x137).
+    // And the character is there, after: its parts go with the Player\ textures (from 0x138, 0x60f7d0) or the skin's
+    // (0x12e..0x137).
     const auto isCharacter = [](const Client::Render::ModelDrawCommand& command)
     {
         return command.state.texture.has_value() && command.state.texture->value >= 0x12e &&
@@ -296,9 +295,9 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     EXPECT_FALSE(store.Find(TextureSlot{0x122}).has_value());
 }
 
-// CL7.2: con los modelos de la carga (GameModels y su tabla de slots, como en main.cpp), las texturas
-// de los objetos de Object56\ van desde 0x41c. Los cinco nombres ya globales dejan 57 nuevos y el logo
-// sigue en 0x455, inferido del ASM; GoldenWorldModels comprueba la reutilización de esos nombres.
+// CL7.2: with the loading's models (GameModels and its slot table, as in main.cpp), the textures of Object56\'s
+// objects go from 0x41c. The five names already global leave 57 new ones and the logo stays at 0x455, inferred from
+// the ASM; GoldenWorldModels checks the reuse of those names.
 constexpr std::uint16_t WorldFirstSlot = 0x41c;
 constexpr std::uint16_t LogoFirstSlot = 0x455;
 
@@ -326,7 +325,6 @@ protected:
         ASSERT_TRUE(m_models.Load(m_dataRoot, m_store, m_log).HasValue());
     }
 
-    // Un frame del login después de `steps` pasos: sus tramos y sus vértices.
     FrameEvent Frame(LoginScene& scene, int steps)
     {
         for (int k = 0; k < steps; ++k)
@@ -340,7 +338,7 @@ protected:
         return drawn != target.frames.back().events.end() ? *drawn : FrameEvent{};
     }
 
-    // Mundo real con atributos sintéticos 0x40; la escena sigue recorriendo sus consumidores reales.
+    // Real world with synthetic 0x40 attributes; the scene keeps going through its real consumers.
     void MakeFixedHeightWorld(const std::filesystem::path& copyRoot)
     {
         std::error_code error;
@@ -351,7 +349,7 @@ protected:
         ASSERT_TRUE(accept.has_value());
         std::filesystem::create_directories(copyRoot / "Interface");
         std::filesystem::copy_file(*accept, copyRoot / "Interface" / accept->filename());
-        // 0x616eeb: la gota que 0x616ec0 sube en todos los mapas.
+        // 0x616eeb: the drop that 0x616ec0 uploads on every map.
         const auto drop = DataFile("Object8\\drop01.OZJ");
         ASSERT_TRUE(drop.has_value());
         std::filesystem::create_directories(copyRoot / "Object8");
@@ -375,7 +373,7 @@ protected:
 
 TEST_F(GoldenLoginWorld, LeavingLoginKeepsTheCommonFireSnuffSlot)
 {
-    // 0x61ccb0 carga primero este slot y 0x61c7c0 repite la misma subida.
+    // 0x61ccb0 loads this slot first and 0x61c7c0 repeats the same upload.
     constexpr TextureSlot fireSnuff{0x635};
     EXPECT_EQ(m_models.TextureSlotOf(fireSnuff.value), fireSnuff);
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -387,7 +385,6 @@ TEST_F(GoldenLoginWorld, LeavingLoginKeepsTheCommonFireSnuffSlot)
     EXPECT_FALSE(m_store.Find(TextureSlot{0x15}).has_value());
 }
 
-// Un frame del login con el reloj `clock`, sin mirar lo que dibujó.
 void DrawAt(LoginScene& scene, Client::Core::Duration clock)
 {
     RecordingFrameTarget target;
@@ -395,7 +392,7 @@ void DrawAt(LoginScene& scene, Client::Core::Duration clock)
     target.Present();
 }
 
-// 0x6046a0 después de 0x4453b0: los objetos del mundo van después del caballo.
+// 0x6046a0 after 0x4453b0.
 TEST_F(GoldenLoginWorld, TheObjectsGoAfterTheHorse)
 {
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -424,8 +421,8 @@ TEST_F(GoldenLoginWorld, TheObjectsGoAfterTheHorse)
     scene.Leave();
 }
 
-// El logo es uno más de la lista (el 0xa2 en el sector (6, 9)): sus dos texturas, con GL_LINEAR, van al
-// próximo slot que dejó el mundo, y se dibuja entre los objetos de los sectores de antes y de después.
+// The logo is one more of the list (0xa2 in sector (6, 9)): its two textures, with GL_LINEAR, go to the next slot
+// the world left, and it is drawn among the objects of the sectors before and after.
 TEST_F(GoldenLoginWorld, TheLogoIsAWorldObject)
 {
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -460,8 +457,8 @@ TEST_F(GoldenLoginWorld, TheLogoIsAWorldObject)
     }
 }
 
-// 0x606560 solo avanza los objetos que ya se dibujaron: los pasos que corren antes del primer dibujo
-// (el del mismo frame que trae la carga, o los de la espera del connect, Q-C85) no los mueven.
+// 0x606560 only advances the objects already drawn: the steps that run before the first draw (the one in the same
+// frame that brings the load, or those of the connect wait, Q-C85) do not move them.
 TEST_F(GoldenLoginWorld, TheObjectsDoNotStepBeforeTheirFirstDraw)
 {
     const auto objectVertices = [](const FrameEvent& frame)
@@ -491,8 +488,8 @@ TEST_F(GoldenLoginWorld, TheObjectsDoNotStepBeforeTheirFirstDraw)
     stepped.Leave();
 }
 
-// El original saltea sin avisar un modelo que falta (Q-C23); MuRet lo dice una vez por entrada, con los
-// tipos que pide el .obj y no tienen modelo: en el Data\ del laboratorio, el 82 (Object83.bmd).
+// The original skips a missing model without warning (Q-C23); MuRet says so once per entry, with the types the .obj
+// asks for that have no model: in the lab's Data\, 82 (Object83.bmd).
 TEST_F(GoldenLoginWorld, TheObjWarnsOfTheModelsThatAreMissing)
 {
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -511,8 +508,8 @@ TEST_F(GoldenLoginWorld, TheObjWarnsOfTheModelsThatAreMissing)
     scene.Leave();
 }
 
-// Cada entrada vuelve a cargar el mundo (0x61a560) y a crear los objetos (0x606660): el primer frame
-// de la segunda es el de la primera, aunque en el medio los remolinos giraron y el 90 se prendió.
+// Each entry loads the world again (0x61a560) and creates the objects again (0x606660): the second's first frame is
+// the first's, even though in between the whirlpools turned and the 90 lit up.
 TEST_F(GoldenLoginWorld, EnteringAgainCreatesTheObjectsAgain)
 {
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -542,10 +539,9 @@ TEST_F(GoldenLoginWorld, EnteringAgainCreatesTheObjectsAgain)
     scene.Leave();
 }
 
-// El agua del lago (TileWater01, el 0x28) se mueve: 0x5fc260 le corre la u con el reloj del frame,
-// (ftol(T) % 20000) · 5e-5, y 0x5fbf60 le escribe la ola de la v en cada paso, con el reloj de la lógica
-// (06 § El terreno del login). Un segundo después, cada esquina del agua está 0,05 más allá en u y la ola
-// cambió.
+// The lake water (TileWater01, 0x28) moves: 0x5fc260 shifts its u with the frame clock, (ftol(T) % 20000) · 5e-5,
+// and 0x5fbf60 writes the v wave on each step, with the logic clock (06 § El terreno del login). A second later, each
+// water corner is 0.05 further in u and the wave changed.
 TEST_F(GoldenLoginScene, TheLakeMovesWithTheClock)
 {
     auto data = LoadGameData(m_dataRoot);
@@ -602,8 +598,8 @@ TEST_F(GoldenLoginScene, TheLakeMovesWithTheClock)
     EXPECT_GT(wavesThatChanged, before.size() / 2) << "la ola de la v sigue a los pasos";
 }
 
-// Cada entrada vuelve a leer el terreno (0x6349a0 → 0x61a560): al salir se sueltan sus slots, y al
-// volver a entrar suben de nuevo y el primer frame dibuja lo mismo que el de la primera vez.
+// Each entry reads the terrain again (0x6349a0 → 0x61a560): on leaving its slots are released, and on entering again
+// they are uploaded again and the first frame draws the same as the first time.
 TEST_F(GoldenLoginScene, EnteringAgainLoadsTheTerrainAgain)
 {
     auto data = LoadGameData(m_dataRoot);
@@ -640,8 +636,8 @@ TEST_F(GoldenLoginScene, EnteringAgainLoadsTheTerrainAgain)
     scene.Leave();
 }
 
-// CL7.6 A: el dragón (el efecto 0xb4, con las texturas de Dragon.bmd en 0x69..0x6b) se dibuja después de
-// los objetos del mundo y del logo (0x52d620 después de 0x6046a0), opaco.
+// CL7.6 A: the dragon (effect 0xb4, with Dragon.bmd's textures at 0x69..0x6b) is drawn after the world objects and
+// the logo (0x52d620 after 0x6046a0), opaque.
 bool IsDragon(const Client::Render::ModelDrawCommand& command)
 {
     return command.state.texture.has_value() && command.state.texture->value >= 0x69 &&
@@ -663,7 +659,7 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
     scene.Leave();
 }
 
-// Q-C278: una sola tabla sobrevive login → espera de lista → carga54 → llegada al juego.
+// Q-C278: a single table survives login → list wait → load 54 → game arrival.
 TEST_F(GoldenLoginWorld, LoginUpdatesTheSharedLightBeforeItsDrawPublishesANewRange)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -759,7 +755,7 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     EXPECT_FALSE(effects[1].seen);
 }
 
-// El mundo sobrevive a la escena: se retiran sólo los enlaces a sus objetos, aun en un slot inactivo.
+// The world outlives the scene: only the links to its objects are removed, even in an inactive slot.
 TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -796,12 +792,11 @@ TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
     EXPECT_EQ(effects[2].ownerContext, &unrelatedOwner);
 }
 
-// CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
-// frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
-// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Siguen los
-// dos del farol (CL7.6 B4). Después van las partículas (0x548550, CL7.6 B2): los alientos del caballo,
-// las chispas del cuervo (CL7.6 C2) y las nubes del 0x54 que haya (con el rand() que el paso del dragón saca en
-// 0x5208c5, la guarda de este frame suelta una).
+// CL7.6 B1: with the cloth's globals (as in main.cpp), the character's draw asks for the frame's sprites, the white
+// helm's 30 flares (0x455930) and then the scepter's five (0x509340, case 0x620), and they go additive in their pass,
+// the last of the models, with the view at identity. Then the lantern's two (CL7.6 B4). Then the particles (0x548550,
+// CL7.6 B2): the horse's breaths, the raven's sparks (CL7.6 C2) and the clouds of whatever 0x54 there is (with the
+// rand() the dragon's step draws at 0x5208c5, this frame's guard drops one).
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
     Client::Models::ClothWorld cloth;
@@ -819,10 +814,10 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
                          [](const FrameEvent& event) { return event.kind == Kind::Models; });
     ASSERT_EQ(models.size(), 2u) << "el mundo y los sprites";
-    // Cada sprite, dos triángulos; el lote junta los seguidos con el mismo estado. Los pares van con
-    // int: armarlos desde los literales con std::uint16_t haría la conversión adentro de std::pair, y
-    // MSVC la avisa (C4242). Solo los tramos que dibujan: las partículas publican antes de cada quad los
-    // efectos sin geometría de su material y su binder (0x620a90 y 0x620780), con la textura que estaba.
+    // Each sprite, two triangles; the batch joins consecutive ones with the same state. The pairs are int: building
+    // them from the literals with std::uint16_t would do the conversion inside std::pair, and MSVC warns (C4242). Only
+    // the stretches that draw: the particles publish before each quad the geometry-less effects of their material and
+    // their binder (0x620a90 and 0x620780), with the texture that was bound.
     constexpr std::size_t PerSprite = 6;
     std::vector<std::pair<int, int>> runs;
     for (const auto& command : models.back().modelCommands)
@@ -832,12 +827,12 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
             continue;
         }
         ASSERT_TRUE(command.state.texture.has_value());
-        // Las nubes 0x622/10 del marcador 0x54 (0x6044bc), si el rand() de su guarda las suelta, van sustractivas.
+        // The clouds 0x622/10 of marker 0x54 (0x6044bc), if their guard's rand() drops them, go subtractive.
         EXPECT_EQ(command.state.blend, command.state.texture->value == 0x622 ? Client::Render::ModelBlend::Subtractive
                                                                              : Client::Render::ModelBlend::Additive);
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
-    // Después de los del personaje, los dos del farol (0x602ed0, CL7.6 B4), en el dibujo de los objetos.
+    // After the character's, the lantern's two (0x602ed0, CL7.6 B4), in the objects' draw.
     const std::vector<std::pair<int, int>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}, {0x5ac, 2}};
     ASSERT_GE(runs.size(), expected.size());
     const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 5);
@@ -845,8 +840,8 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(), [](const auto& run)
                             { return run.first == 0x5f2 || run.first == 0x5c6 || run.first == 0x622; }))
         << "después, solo las partículas: los alientos, las chispas del cuervo y las nubes";
-    // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
-    // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
+    // 0x549510 marks them seen before the pass: 0x549290 measures them with alpha at 1. The first flare (column 0,
+    // scale 0.4, no rotation) goes at 0.4 of flare01's width, in eye coordinates.
     const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});
     ASSERT_TRUE(flareSize.has_value());
     const auto& vertices = models.back().modelVertices;
@@ -854,16 +849,16 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     const auto [left, right] =
         std::minmax_element(vertices.begin(), vertices.begin() + PerSprite,
                             [](const auto& a, const auto& b) { return a.position.x < b.position.x; });
-    // Las esquinas van lejos del ojo: la resta pierde los últimos bits (sin 0x549510 daría 0,36).
+    // The corners are far from the eye: the subtraction loses the last bits (without 0x549510 it would give 0.36).
     EXPECT_NEAR(right->position.x - left->position.x, 0.4f * flareSize->x, 0.01f);
     ASSERT_TRUE(models.back().pass.has_value());
     EXPECT_EQ(models.back().pass->view, glm::mat4(1.0f));
     scene.Leave();
 }
 
-// 0x505de0 (0x5068eb..0x5069ab) en cada paso de 0x508ea0: el Dark Lord del login se ve, no es el héroe ni se
-// muere, así que sortea hacia dónde mira (rand() % 32 en 0) y la cabeza gira hacia ahí de a 20 %. Al entrar,
-// derecha; en 400 pasos sortea alguna vez, y cada paso queda más cerca de su blanco que el anterior o igual.
+// 0x505de0 (0x5068eb..0x5069ab) on each step of 0x508ea0: the login's Dark Lord is seen, is not the hero and does not
+// die, so it picks where to look (rand() % 32 at 0) and the head turns toward there by 20 %. On entering, straight;
+// in 400 steps it picks at some point, and each step ends up as close to its target as the previous one or closer.
 TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
 {
     Client::Kernel::WorldState world;
@@ -896,7 +891,7 @@ TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
     EXPECT_EQ(actor.pet.model, 0x1c16);
     EXPECT_FALSE(world.Actors()[0].alive);
     auto expected = before;
-    // Los 28 de 0x511290, el sufijo de 0x4f2250 y los 12 de 0x420d60.
+    // The 28 of 0x511290, the suffix of 0x4f2250 and the 12 of 0x420d60.
     for (int draw = 0; draw < 41; ++draw)
     {
         static_cast<void>(expected.Next());
@@ -940,9 +935,9 @@ TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
     EXPECT_EQ(actor.darkSpirit->position, glm::vec3(50.0f, 50.0f, 750.0f));
 }
 
-// El Dark Lord del login corre lo que cuelga y los efectos de 0x50ba30 como el juego (0x50db57..0x510a7a): la luz de lo
-// que cuelga (0x50db94) es la del terreno en su lugar más +0xf4, la del cuerpo, o el rojo de un PK desde 6; un frame
-// del original deja el cuerpo en sus huesos (+0x120), y uno intermedio no los toca.
+// The login's Dark Lord runs what hangs and the effects of 0x50ba30 like the game (0x50db57..0x510a7a): the light of
+// what hangs (0x50db94) is the terrain's at its place plus +0xf4, the body's, or a PK's red from 6; a frame of the
+// original leaves the body in its bones (+0x120), and an intermediate one does not touch them.
 TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
 {
     using namespace std::chrono_literals;
@@ -952,7 +947,7 @@ TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    // 0x634d13 termina en 0x5091d0 después de avanzar los personajes del login.
+    // 0x634d13 ends at 0x5091d0 after advancing the login's characters.
     auto& ribbon = world.DrawTail().ribbons[0];
     ribbon.alive = true;
     ribbon.count = 3;
@@ -988,8 +983,8 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[2].movement = 1;
     world.Actors()[2].animation.action = 0x4b;
-    // 0x508e27 ya ejecuta el movimiento. La continuación del cuerpo con el nombre de 0x6c88b0 llega al
-    // mensaje del nombre (0x4fcd82), que en el login no tiene timeGetTime() y corta.
+    // 0x508e27 already runs the movement. The body's continuation with the name of 0x6c88b0 reaches the name message
+    // (0x4fcd82), which in the login has no timeGetTime() and stops.
     constexpr std::array<std::uint8_t, 11> MessageName{0xc8, 0xb2, 0xb1, 0xdd, 0xc0, 0xc7,
                                                        0x20, 0xb1, 0xc3, 0xbc, 0xf6};
     for (std::size_t i = 0; i < world.Actors()[2].name.size(); ++i)
@@ -1008,8 +1003,8 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     EXPECT_NE(scene.Failure()->find("0x4fcd82"), std::string::npos);
     EXPECT_GT(world.Actors()[2].run, 0) << "el movimiento precede al corte publicado del cuerpo";
     EXPECT_EQ(ribbon.life, 3) << "el corte del personaje precede a 0x5091d0";
-    // Ochenta brasas con10 rand; siguen8 de TerrainWall y1 de SetActorWalk. El cuerpo corta
-    // antes de los efectos, las partículas y la tela.
+    // Eighty embers with 10 rand; then 8 of TerrainWall and 1 of SetActorWalk. The body stops before the effects, the
+    // particles and the cloth.
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 809).State());
     EXPECT_EQ(cloth.logicSteps, 77);
     EXPECT_EQ(cloth.wind, wind);
@@ -1050,14 +1045,13 @@ TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
     }
     EXPECT_GT(targets, 3u);
     EXPECT_NE(scene.Head().angles, glm::vec2(0.0f));
-    // Y el dibujo la usa: el personaje que dibuja lleva los ángulos del paso, sin interpolar.
     EXPECT_EQ(scene.TheCharacterToDraw(0.5f).headAngles, scene.Head().angles);
 }
 
-// 0x505de0 corre con el personaje visto (+0x16c, que 0x508ea0 escribe con 0x5fba90: su lugar por 0,01f, con el
-// margen de −20), y en el login siempre se ve (P-C27 i): con la cámara fija, el trapecio de cada dibujo lo tiene
-// adentro. Después de dibujar, la cabeza sortea un blanco, y en cada paso entre dibujos gira hacia él. Lo que ve
-// el original antes del primer dibujo es P-C27 e, y no se mira acá.
+// 0x505de0 runs with the character seen (+0x16c, which 0x508ea0 writes with 0x5fba90: its place times 0.01f, with
+// the −20 margin), and in the login it is always seen (P-C27 i): with the camera fixed, each draw's trapezoid has it
+// inside. After drawing, the head picks a target, and on each step between draws it turns toward it. What the
+// original sees before the first draw is P-C27 e, and is not checked here.
 TEST_F(GoldenLoginWorld, TheHeadSeesTheCharacterAfterEveryDraw)
 {
     using namespace std::chrono_literals;
@@ -1084,9 +1078,9 @@ TEST_F(GoldenLoginWorld, TheHeadSeesTheCharacterAfterEveryDraw)
     scene.Leave();
 }
 
-// El cetro sortea una vez por frame del original: lo que cuelga (0x509340) corre con el flujo global sólo en un frame
-// que cuenta el reloj, y un dibujo intermedio repite sus sprites del último. Dos frames de MuRet con el mismo reloj
-// dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
+// The scepter rolls once per frame of the original: what hangs (0x509340) runs with the global stream only on a frame
+// the clock counts, and an intermediate draw repeats its sprites from the last one. Two MuRet frames with the same
+// clock draw the same five sprites, in the same place; one 47 ms later, others.
 TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
 {
     Client::Models::ClothWorld cloth;
@@ -1094,7 +1088,7 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
-    // Los vértices de los cinco del cetro (después de los 30 destellos del casco) de un frame con `clock`.
+    // The vertices of the scepter's five (after the helm's 30 flares) of a frame with `clock`.
     const auto scepterAt = [&scene](std::chrono::milliseconds clock)
     {
         RecordingFrameTarget target;
@@ -1125,23 +1119,22 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
     ASSERT_EQ(first.size(), 30u);
     EXPECT_NE(beforeAgain, beforeFirst.State());
     EXPECT_EQ(again, first);
-    // El dibujo intermedio no saca del flujo global: ni el cetro ni los objetos.
+    // The intermediate draw takes nothing from the global stream: neither the scepter nor the objects.
     EXPECT_EQ(afterAgain, beforeAgain);
     EXPECT_NE(next, first);
     scene.Leave();
 }
 
-// Cada entrada empieza el ritmo de lo que cuelga y de la tela (P-C27 i): el original los corre en cada frame que
-// dibuja (0x509340, 0x50d58b), y entre una entrada y la otra el login no se dibuja. El primer dibujo de la segunda
-// corre uno, por más que haya pasado desde el último de la primera (por el reloj, 5 s serían 64): saca del flujo
-// global lo que el primero de la primera entrada.
+// Each entry starts the pace of what hangs and of the cloth (P-C27 i): the original runs them on each frame it draws
+// (0x509340, 0x50d58b), and between one entry and the other the login is not drawn. The second's first draw runs
+// one, however long passed since the first's last (by the clock, 5 s would be 64): it takes from the global stream
+// what the first entry's first one did.
 TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
 {
     using namespace std::chrono_literals;
     Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
-    // Los rand() que sacó un dibujo, contados desde el estado de antes.
     const auto spent = [&cloth](const Client::Crt::CrtRandom& before)
     {
         Client::Crt::CrtRandom walk = before;
@@ -1166,18 +1159,18 @@ TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
     DrawAt(scene, 40ms + 5s);
     const int secondEntry = spent(beforeSecondEntry);
 
-    // Un frame cuesta unos 370 (la tela, el cetro y un rand() por objeto, con algunos que dependen de lo que sale);
-    // 64 serían miles.
+    // A frame costs about 370 (the cloth, the scepter and one rand() per object, with some that depend on what comes
+    // out); 64 would be thousands.
     ASSERT_GT(firstEntry, 0);
     EXPECT_LT(secondEntry, firstEntry + firstEntry / 2) << "un frame del original, no 64";
     EXPECT_GT(secondEntry, firstEntry / 2);
     scene.Leave();
 }
 
-// En el modo fiel (el ritmo del contexto en Faithful), la tela y el cetro corren uno por frame dibujado
-// aunque el frame no dure justo 46,875 ms: el login fiel, con el primer frame 0,3 ms tarde y los demás
-// 0,1 ms, saca los mismos rand() que uno por el reloj con frames exactos. Por el reloj, el segundo frame
-// del fiel no correría ninguno.
+// In faithful mode (the context's pacing at Faithful), the cloth and the scepter run once per drawn frame even if the
+// frame does not last exactly 46.875 ms: the faithful login, with the first frame 0.3 ms late and the others 0.1 ms,
+// takes the same rand() as one by the clock with exact frames. By the clock, the faithful one's second frame would
+// run none.
 TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFrame)
 {
     using namespace std::chrono_literals;
@@ -1213,8 +1206,7 @@ TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFr
     exact.Leave();
 }
 
-// Un login con su sesión sobre un FakeSocket y lo global de la tela, para retener el frame con un connect
-// (Q-C85).
+// A login with its session on a FakeSocket and the cloth's globals, to hold the frame with a connect (Q-C85).
 struct LoginWithASession
 {
     Client::Tests::LoggedInSession online;
@@ -1222,8 +1214,8 @@ struct LoginWithASession
     std::optional<LoginScene> scene;
 };
 
-// Un frame del GameLoop con un paso: la sesión y el paso de la escena. Si la escena retiene el frame, se
-// lo avisa como SceneManager::HoldsTheLastFrame (IScene::OnFrameHeld).
+// A GameLoop frame with one step: the session and the scene's step. If the scene holds the frame, it is told so like
+// SceneManager::HoldsTheLastFrame (IScene::OnFrameHeld).
 void StepWithTheSession(LoginWithASession& login)
 {
     static_cast<void>(login.online.session.Poll());
@@ -1234,12 +1226,12 @@ void StepWithTheSession(LoginWithASession& login)
     }
 }
 
-// P-C27 f: el connect al GS (0x4e3396) bloquea dentro de un paso, y el original no dibuja mientras tanto
-// (Q-C85). En el primer frame que dibuja después, la tela (0x50ba30) y el cetro (0x509340) corren uno, como en
-// cualquier frame dibujado. MuRet retiene el frame mientras conecta, y en el modo normal los cuenta por el
-// reloj: sin reiniciar sus relojes con el frame retenido, el primero después de 5 s de connect correría 64
-// frames del original de golpe. Los dos logins hacen los mismos pasos y dibujan con los mismos relojes; el
-// fiel corre uno por dibujo, y el normal tiene que sacar los mismos rand() que él.
+// P-C27 f: the connect to the GS (0x4e3396) blocks inside a step, and the original does not draw meanwhile (Q-C85).
+// On the first frame it draws after, the cloth (0x50ba30) and the scepter (0x509340) run one, as on any drawn frame.
+// MuRet holds the frame while it connects, and in normal mode counts them by the clock: without restarting their
+// clocks with the held frame, the first after 5 s of connect would run 64 frames of the original at once. Both
+// logins do the same steps and draw with the same clocks; the faithful one runs one per draw, and the normal one must
+// take the same rand() as it.
 TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
 {
     using namespace std::chrono_literals;
@@ -1261,7 +1253,7 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
                 .dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &login.cloth, .pacing = pacings[k]},
             *m_data, m_models, &login.online.session, Version, FixedSeed, &m_models.TextureSlots());
         ASSERT_TRUE(login.scene->Enter().HasValue());
-        // El saludo y la lista del CS, y la elección: la sesión pide la dirección del GS.
+        // The CS hello and list, and the choice: the session asks for the GS address.
         login.online.socket.reads = {Client::Tests::Hello()};
         StepWithTheSession(login);
         login.online.socket.reads = {Client::Tests::ServerList({LabServer})};
@@ -1271,7 +1263,7 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
         StepWithTheSession(login);
         ASSERT_EQ(login.online.session.State(), SessionState::WaitingServerAddress);
         ASSERT_FALSE(login.scene->HoldsTheLastFrame());
-        // Unos frames justo de a uno del original: por el reloj también corren uno cada uno.
+        // A few frames exactly one original frame apart: by the clock they also run one each.
         for (int frame = 0; frame < FramesBefore; ++frame)
         {
             StepWithTheSession(login);
@@ -1282,7 +1274,7 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
 
     for (LoginWithASession& login : logins)
     {
-        // La dirección: el connect al GS tarda dos Poll, y mientras tanto el frame queda retenido.
+        // The address: the connect to the GS takes two Polls, and meanwhile the frame stays held.
         login.online.socket.pollsUntilConnected = 2;
         login.online.socket.reads = {Client::Tests::AddressReply(GameHost, GamePort)};
         StepWithTheSession(login);
@@ -1295,7 +1287,7 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
         }
         ASSERT_EQ(login.online.session.State(), SessionState::WaitingGameHello);
         ASSERT_FALSE(login.scene->HoldsTheLastFrame());
-        // El primer frame después del connect, que duró 5 s.
+        // The first frame after the connect, which took 5 s.
         DrawAt(*login.scene, (OriginalFrameTime * FramesBefore) + 5s);
     }
     EXPECT_EQ(logins[0].cloth.random.State(), logins[1].cloth.random.State())
@@ -1307,13 +1299,12 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
     }
 }
 
-// CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe
-// el último modelo posado que tiene ese hueso y no es dummy (0x4eb973 saltea los dummy): el dragón se dibuja
-// después del caballo (0x52d620), pero su hueso 27 es dummy, y los objetos del mapa 55 tienen menos de 28.
-// Queda el del caballo, Bone03, con la pose del dibujo anterior: el avance del caballo (0x4ec200, en
-// 0x445039) corre después del aliento. El test repite los pasos del caballo y espera cada aliento nuevo en
-// (50; −4; 0) del hueso 27 de la pose de antes de su paso, más la subida de su primer paso (0,2); antes
-// de que el caballo se vea, en (0, 0, 0).
+// CL7.6 B2: the horse's breath (0x444010) comes out of bone 27 of the pose's global buffer. It is written by the last
+// posed model that has that bone and is not a dummy (0x4eb973 skips dummies): the dragon is drawn after the horse
+// (0x52d620), but its bone 27 is a dummy, and map 55's objects have fewer than 28. The horse's remains, Bone03, with
+// the previous draw's pose: the horse's advance (0x4ec200, at 0x445039) runs after the breath. The test repeats the
+// horse's steps and expects each new breath at (50, −4, 0) of bone 27 of the pose before its step, plus its first
+// step's rise (0.2); before the horse is seen, at (0, 0, 0).
 TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
 {
     Client::Models::ClothWorld cloth;
@@ -1333,8 +1324,8 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
         RecordingFrameTarget before;
         scene.Render(before.BeginFrame(std::chrono::milliseconds{40 * step}), 0.0f);
         before.Present();
-        // Lo que va a leer el aliento de este paso: el caballo como se dibujó recién. Con el alpha por debajo
-        // de 0,01 (antes de su primer paso) no se dibujó ni escribió el hueso: el aliento nace en (0, 0, 0).
+        // What this step's breath will read: the horse as just drawn. With alpha below 0.01 (before its first step) the
+        // bone was neither drawn nor written: the breath is born at (0, 0, 0).
         const bool horseDrawn = horse.alpha >= 0.01f;
         const auto expected = Client::Actors::Drawing::PosedBonePoint(
             m_models,
@@ -1373,7 +1364,7 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
                 }
             }
         }
-        // Uno más que en el paso anterior (y ninguno se apaga antes de 16): nació en este.
+        // One more than in the previous step (and none goes out before 16): it was born in this one.
         if (centers.size() > previous)
         {
             ++breaths;
@@ -1394,13 +1385,12 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
     scene.Leave();
 }
 
-// CL7.6 B4: el farol del castillo (0x602ed0, caso 0x3c en la escena 2) pide dos sprites de flare01 en
-// las traslaciones de los huesos 8 y 9 del buffer global de la pose, pero Object61.bmd tiene un solo
-// hueso (Q-C140). Ningún objeto del .obj llega al hueso 8, pero antes que ellos la carga del mapa 55
-// crea el dueño del dragón (0x6188ae: 0x606660(0xb4, (5.600; 23.000; 0), (0, 0, 0), 1)), en el sector
-// (3, 14), antes que el farol (5, 14): no se dibuja (+0x58 en −2), pero 0x5ffdf0 lo posa con Dragon.bmd,
-// y sus huesos 8 y 9 son Bip01 L Toe0 y Bip01 L Toe01. El brillo sale ahí, no en el caballo, con la luz
-// (L; 0,5 · L; 0,2 · L) y L entre 0,7 y 0,99.
+// CL7.6 B4: the castle lantern (0x602ed0, case 0x3c in scene 2) asks for two flare01 sprites at the translations of
+// bones 8 and 9 of the pose's global buffer, but Object61.bmd has a single bone (Q-C140). No .obj object reaches bone
+// 8, but before them map 55's load creates the dragon's owner (0x6188ae: 0x606660(0xb4, (5600, 23000, 0), (0, 0, 0),
+// 1)), in sector (3, 14), before the lantern (5, 14): it is not drawn (+0x58 at −2), but 0x5ffdf0 poses it with
+// Dragon.bmd, and its bones 8 and 9 are Bip01 L Toe0 and Bip01 L Toe01. The glow comes out there, not on the horse,
+// with the light (L, 0.5 · L, 0.2 · L) and L between 0.7 and 0.99.
 TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 {
     Client::Assets::WorldModels world;
@@ -1426,7 +1416,7 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     for (int step = 0; step < 3; ++step)
     {
         scene.Step(Client::Input::InputState{});
-        // 0x606560 avanza solo los que se vieron en el último dibujo.
+        // 0x606560 only advances the ones seen in the last draw.
         if (owner.seen)
         {
             Client::WorldObjects::StepWorldObject(owner, 0x37, dragon);
@@ -1442,7 +1432,7 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
         ASSERT_EQ(models.size(), 2u) << "el mundo y los sprites";
         ASSERT_TRUE(models.front().pass.has_value());
         const glm::dmat4 toWorld = glm::inverse(glm::dmat4(models.front().pass->view));
-        // Los sprites del farol: los de flare01 que siguen al último del cetro (0x5fd).
+        // The lantern's sprites: the flare01 ones that follow the scepter's last (0x5fd).
         const auto& commands = models.back().modelCommands;
         const auto lastOfTheScepter = std::find_if(commands.rbegin(), commands.rend(), [](const auto& command)
                                                    { return command.state.texture == TextureSlot{0x5fd}; });
@@ -1496,10 +1486,10 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     scene.Leave();
 }
 
-// CL7.6 B4: 0x602ed0 saca un rand() de la CRT de la tela por cada objeto visto en el dibujo (0x602ef4):
-// los 276 del .obj, el dueño del dragón y el logo, todos vistos en el login. De ellos, los dos 0x54
-// agregan un guard cada uno y 0, 5 o 10 rand de creación. La tela y el cetro sacan menos de 100 más.
-// El test usa Faithful: cada dibujo representa un frame original aunque entre sus relojes pasen 40 ms.
+// CL7.6 B4: 0x602ed0 takes one rand() from the cloth's CRT for each object seen in the draw (0x602ef4): the .obj's
+// 276, the dragon's owner and the logo, all seen in the login. Of them, the two 0x54 add one guard each and 0, 5 or
+// 10 creation rand. The cloth and the scepter take fewer than 100 more. The test uses Faithful: each draw stands for
+// an original frame even though 40 ms pass between their clocks.
 TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
 {
     Client::Models::ClothWorld cloth;
@@ -1536,8 +1526,8 @@ TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
     scene.Leave();
 }
 
-// CL7.6 C1: el cuervo (0xc0) se dibuja con la malla 3 (dksbody.tga, en 0x26f) y la 2 (dkonebody.jpg, en
-// 0x3c9). El centro de los vértices de su malla 2 en el último frame, si se dibujó.
+// CL7.6 C1: the raven (0xc0) is drawn with mesh 3 (dksbody.tga, at 0x26f) and mesh 2 (dkonebody.jpg, at 0x3c9). The
+// centre of its mesh 2's vertices in the last frame, if it was drawn.
 std::optional<glm::vec3> RavenCenterOf(const RecordingFrameTarget& target)
 {
     const auto world = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
@@ -1566,11 +1556,11 @@ std::optional<glm::vec3> RavenCenterOf(const RecordingFrameTarget& target)
     return glm::vec3(sum / static_cast<double>(count));
 }
 
-// CL7.6 C1: el cuervo nace en la celda (0, 0) del dueño (Q-C130: 0x6349a0 no le escribe las celdas al
-// personaje del login), a la altura del terreno ahí (450) más 300: el centro de su malla 2 queda a unos
-// 35 de (50, 50, 750). Viaja lejos y salta junto al jinete cuando el contador de lejanía pasa de 90:
-// como pronto en el paso 91. Pasada la subida, ronda a 350 sobre el dueño en el mapa 55 (Q-C131): con
-// 250 la altura media daría unos 330; con 350, unos 500.
+// CL7.6 C1: the raven is born at the owner's cell (0, 0) (Q-C130: 0x6349a0 does not write the cells of the login's
+// character), at the terrain height there (450) plus 300: the centre of its mesh 2 ends up about 35 from
+// (50, 50, 750). It travels far and jumps next to the rider when the distance counter passes 90: at the earliest on
+// step 91. Past the climb, it circles at 350 above the owner on map 55 (Q-C131): with 250 the mean height would give
+// about 330; with 350, about 500.
 TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
 {
     Client::Models::ClothWorld cloth;
@@ -1581,9 +1571,9 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     std::optional<int> jumped;
     std::size_t heights = 0;
     double sum = 0.0;
-    // Se dibuja cada 5 pasos hasta el salto (uno antes del 91 caería en alguno) y, pasados 60 de la
-    // subida, cada 8: el dibujo es lo caro del test. El dibujo saca rand() (0x602ed0, la tela) y corre el
-    // salto de paso, pero no antes del 91.
+    // It is drawn every 5 steps until the jump (one before 91 would land on one of them) and, 60 past the climb, every
+    // 8: the draw is the test's cost. The draw takes rand() (0x602ed0, the cloth) and runs the step's jump, but not
+    // before 91.
     constexpr int Earliest = 91;
     constexpr int Climb = 60;
     constexpr std::size_t Samples = 90;
@@ -1627,17 +1617,16 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     EXPECT_GE(*jumped, Earliest) << "el contador pasa de 90";
     ASSERT_EQ(heights, Samples);
     const double mean = sum / static_cast<double>(heights);
-    // La media depende de los 41 rand() de entrada y del paso completo (paredes, cuerpo, cuervo y cabeza).
-    // El umbral separa las dos alturas; el que fija los 350 bit a bit es
-    // DarkSpiritTest.ItFliesHigherInTheLoginMap.
+    // The mean depends on the 41 entry rand() and the full step (walls, body, raven and head). The threshold separates
+    // the two heights; the one that fixes the 350 bit for bit is DarkSpiritTest.ItFliesHigherInTheLoginMap.
     EXPECT_GT(mean, 390.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
     EXPECT_LT(mean, 600.0);
     scene.Leave();
 }
 
-// Cada entrada arma otra vez al personaje y a su cuervo (0x517270 y 0x420d60, desde 0x6349a0), con las celdas del
-// personaje en (0, 0) (Q-C130, P-C27 i): en la segunda entrada el cuervo nace otra vez en (50, 50, 750), aunque en
-// la primera ya se alejó de ahí.
+// Each entry builds the character and its raven again (0x517270 and 0x420d60, from 0x6349a0), with the character's
+// cells at (0, 0) (Q-C130, P-C27 i): on the second entry the raven is born at (50, 50, 750) again, even though on the
+// first it already moved away.
 TEST_F(GoldenLoginWorld, EnteringAgainTheRavenIsBornAtCell0Again)
 {
     using namespace std::chrono_literals;
@@ -1647,7 +1636,7 @@ TEST_F(GoldenLoginWorld, EnteringAgainTheRavenIsBornAtCell0Again)
     Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
-    // Qué tan lejos de donde nace queda el centro de su malla 2 después de `steps` pasos, en un dibujo.
+    // How far mesh 2's centre is from where it is born after `steps` steps, in a draw.
     const auto distanceAfter = [&scene, &birth](int steps) -> std::optional<double>
     {
         for (int step = 0; step < steps; ++step)
@@ -1680,7 +1669,6 @@ TEST_F(GoldenLoginWorld, EnteringAgainTheRavenIsBornAtCell0Again)
     scene.Leave();
 }
 
-// La consulta real de nacimiento y la de la sombra deben usar la misma altura global de la cámara.
 TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
 {
     Client::Tests::TemporaryFolder copy{"raven-shared-height"};
@@ -1704,7 +1692,7 @@ TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
             ADD_FAILURE() << entered.Error();
             return std::nullopt;
         }
-        // El primer paso común publica la visibilidad del dueño y mueve su cuervo antes del dibujo.
+        // The first common step publishes the owner's visibility and moves its raven before the draw.
         scene.Step(Client::Input::InputState{});
         if (scene.Failure())
         {
@@ -1745,10 +1733,10 @@ TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
     EXPECT_EQ(after->y, 1206.0f) << "la sombra queda cinco unidades sobre la altura compartida";
 }
 
-// CL7.6 C2: la chispa del cuervo, una por paso desde un hueso de la pose del último dibujo (Q-C133), nace
-// con vida 10 y el paso de las partículas, al final del mismo paso, ya le baja uno: en cada dibujo hay 9,
-// en el pase de ojo con Effect\Spark03.jpg (0x5c6), aditivas. Pasado el salto rodean al cuervo. La escala
-// y la luz de cada paso las fijan los vectores (ParticlesTest).
+// CL7.6 C2: the raven's spark, one per step from a bone of the last draw's pose (Q-C133), is born with life 10 and
+// the particles' step, at the end of the same step, already lowers it by one: each draw has 9, in the eye pass with
+// Effect\Spark03.jpg (0x5c6), additive. Past the jump they surround the raven. Each step's scale and light are fixed
+// by the vectors (ParticlesTest).
 TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
 {
     Client::Models::ClothWorld cloth;
@@ -1780,8 +1768,8 @@ TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
         std::size_t sparks = 0;
         for (const auto& command : models.back().modelCommands)
         {
-            // Los efectos sin geometría van con la textura que estaba ligada: una nube que sigue a una
-            // chispa cambia la mezcla (0x620b10) antes de ligar la suya (0x620780).
+            // The geometry-less effects go with the texture that was bound: a cloud that follows a spark changes the
+            // blending (0x620b10) before binding its own (0x620780).
             if (command.state.texture != TextureSlot{0x5c6} ||
                 command.operation != Client::Render::ModelStateOperation::Draw)
             {
@@ -1805,8 +1793,8 @@ TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
     scene.Leave();
 }
 
-// CL7.6 C1: 0x4182f0 al final del dibujo del personaje (0x50ba30), antes del caballo: la malla 3, la 2
-// y la sombra de las cinco mallas (Q-C132), negra, opaca y mezclada.
+// CL7.6 C1: 0x4182f0 at the end of the character's draw (0x50ba30), before the horse: mesh 3, mesh 2 and the shadow
+// of the five meshes (Q-C132), black, opaque and blended.
 TEST_F(GoldenLoginWorld, TheRavenDrawsMeshes3And2WithItsShadow)
 {
     Client::Models::ClothWorld cloth;
@@ -1836,8 +1824,8 @@ TEST_F(GoldenLoginWorld, TheRavenDrawsMeshes3And2WithItsShadow)
         }
     }
     EXPECT_GE(shadows, 1u) << "la sombra, mezclada, después de las mallas";
-    // Aplastada sobre la altura del terreno bajo el cuervo (0x600a0b): plana, y unos 300 debajo de él
-    // en el lugar donde nace (450 + 300); la regla del caballo la dejaría a su altura.
+    // Flattened onto the terrain height under the raven (0x600a0b): flat, and about 300 below it at the birth place
+    // (450 + 300); the horse's rule would leave it at its height.
     float lowest = std::numeric_limits<float>::max();
     for (auto it = body; it != std::next(wing); ++it)
     {
@@ -1862,13 +1850,13 @@ TEST_F(GoldenLoginWorld, TheRavenDrawsMeshes3And2WithItsShadow)
     }
     ASSERT_TRUE(flat.has_value());
     EXPECT_LT(*flat, lowest - 200.0f) << "en el suelo, no a la altura del cuervo";
-    // Las cinco mallas de DarkSpirit.bmd: 288 + 96 + 111 + 300 + 206 triángulos.
+    // The five meshes of DarkSpirit.bmd.
     EXPECT_EQ(shadowVertices, 3u * (288u + 96u + 111u + 300u + 206u));
     scene.Leave();
 }
 
-// El centro de cada brasa del último frame, en el orden de su dibujo (el de sus lugares): las esquinas
-// 0 y 2 de su cuadrado son opuestas.
+// The centre of each ember of the last frame, in its draw order (that of their places): corners 0 and 2 of its square
+// are opposite.
 std::vector<glm::vec3> EmberCentersOf(const RecordingFrameTarget& target)
 {
     std::vector<glm::vec3> centers;
@@ -1934,7 +1922,7 @@ TEST_F(GoldenLoginWorld, TheSceneEmbersReadTheSharedGroundHeight)
                                   .cameraInput = &cameraInput},
                      *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    // Antes del primer dibujo, el héroe conocido del arranque es 0 y nacen por debajo de 1200.
+    // Before the first draw, the startup's known hero is 0 and they are born below 1200.
     scene.Step(Client::Input::InputState{});
     scene.Step(Client::Input::InputState{});
     RecordingFrameTarget target;
@@ -1964,7 +1952,7 @@ TEST_F(GoldenLoginWorld, ASelectionDrawSetsTheHeroHeightUsedByTheFirstLoginEmber
                                .cameraInput = &cameraInput};
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    // Lista F3/00 recibida con 0 registros: la compuerta ya permite dibujar sin slot0.
+    // F3/00 list received with 0 records: the gate already allows drawing without slot 0.
     Client::Scenes::CharacterSelectScene selection(context, *m_data, m_models, &online.session,
                                                    &m_models.TextureSlots());
     ASSERT_TRUE(selection.Enter().HasValue());
@@ -1978,7 +1966,7 @@ TEST_F(GoldenLoginWorld, ASelectionDrawSetsTheHeroHeightUsedByTheFirstLoginEmber
 
     LoginScene login(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(login.Enter().HasValue());
-    // Nacen con el Hero del último dibujo de selección, antes de que el dibujo del login lo reescriba.
+    // They are born with the Hero of the last selection draw, before the login's draw rewrites it.
     login.Step(Client::Input::InputState{});
     RecordingFrameTarget target;
     login.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
@@ -1991,7 +1979,7 @@ TEST_F(GoldenLoginWorld, ASelectionDrawSetsTheHeroHeightUsedByTheFirstLoginEmber
                                         return center.z >= Client::FrontEnd::CharacterSlotHeight + 49.5f &&
                                                center.z <= Client::FrontEnd::CharacterSlotHeight + 1049.5f;
                                     }));
-    // Con HeroZ333 todos estarían por encima de383; el seed fijo también observa el extremo bajo.
+    // With HeroZ 333 all would be above 383; the fixed seed also observes the low end.
     EXPECT_TRUE(std::ranges::any_of(centers, [](const glm::vec3& center) { return center.z < 383.0f; }));
     login.Leave();
 }
@@ -2000,7 +1988,7 @@ TEST_F(GoldenLoginWorld, AFailedLoginEntryRetainsItsTerrainBeforeDestruction)
 {
     Client::Tests::TemporaryFolder copy{"failed-login-retains-cpu"};
     ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
-    // Falla la primera textura de escena, después de cargar correctamente el mundo.
+    // The first scene texture fails, after the world loads correctly.
     const auto texture = Client::Tests::SceneTextureFile(Client::Assets::LoginTextureSet.front());
     ASSERT_TRUE(std::filesystem::remove(copy.Path() / texture));
     Client::Camera::GameCamera camera;
@@ -2028,7 +2016,7 @@ TEST_F(GoldenLoginWorld, AFailedLoginEntryRetainsItsTerrainBeforeDestruction)
               1200.0);
 }
 
-// Render163 no sobrevive a otra creación de slot0, aunque selección no se dibuje otra vez.
+// Render163 does not survive another creation of slot 0, even if the selection is not drawn again.
 TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAnotherSelectionDraw)
 {
     Client::Tests::TemporaryFolder copy{"recreated-selection-login"};
@@ -2046,8 +2034,8 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     Client::Tests::WriteTextureSet(copy.Path(), Client::Assets::SelectionTextureSet);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
-    // En el heap: WorldState pesa unos 900 KB con las ventanas de los NPC (hito 6) y, con la sesión y los dos
-    // destinos del dibujo, el frame no entra en la pila de 1 MB de MSVC.
+    // On the heap: WorldState weighs about 900 KB with the NPC windows (milestone 6) and, with the session and the two
+    // draw targets, the frame does not fit in MSVC's 1 MB stack.
     const auto ownedWorld = std::make_unique<Client::Kernel::WorldState>();
     Client::Kernel::WorldState& worldState = *ownedWorld;
     Client::FrontEnd::SelectionState state(worldState);
@@ -2111,10 +2099,10 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     login.Leave();
 }
 
-// CL7.6 B3: las 80 brasas (0x530490 → 0x42b1e0) nacen alrededor del héroe, el personaje 0, al que 0x6350b0
-// le escribe la posición en el dibujo: en el primer paso, antes de dibujar, nacen alrededor de (0, 0, 0)
-// (Q-C137); después de un dibujo, alrededor de (11.679; 14.191; 333), en la caja de 0x42b1e0. Van en el
-// pase del mundo, aditivas, con FireSnuff (0x635), después del dragón.
+// CL7.6 B3: the 80 embers (0x530490 → 0x42b1e0) are born around the hero, character 0, whose position 0x6350b0
+// writes in the draw: on the first step, before drawing, they are born around (0, 0, 0) (Q-C137); after a draw,
+// around (11679, 14191, 333), in 0x42b1e0's box. They go in the world pass, additive, with FireSnuff (0x635), after
+// the dragon.
 TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
 {
     Client::Models::ClothWorld cloth;
@@ -2157,10 +2145,10 @@ TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
     scene.Leave();
 }
 
-// CL7.6 B3: al entrar, 0x6349a0 deja la cámara en (0, 0, 0) (0x634b80) y 0x635ae0 le escribe 12.678 de y
-// recién en el dibujo (0x635f7e). Las brasas del primer paso nacen con el héroe en (0, 0, 0) y la y de
-// 0x42b1e0 entre −500 y 899: las que quedan debajo de la cámara + 400 van hacia +x (3,2 menos la caída) y
-// las de 400 o más, hacia −x. Con 12.678, irían todas hacia +x. Las que tocan el suelo no se mueven.
+// CL7.6 B3: on entering, 0x6349a0 leaves the camera at (0, 0, 0) (0x634b80) and 0x635ae0 writes its y of 12678 only
+// in the draw (0x635f7e). The first step's embers are born with the hero at (0, 0, 0) and 0x42b1e0's y between −500
+// and 899: those below the camera + 400 go toward +x (3.2 minus the fall) and those at 400 or more, toward −x. With
+// 12678, all would go toward +x. Those touching the ground do not move.
 TEST_F(GoldenLoginWorld, TheFirstEmbersSeeTheCameraAtTheOrigin)
 {
     Client::Models::ClothWorld cloth;
@@ -2204,10 +2192,9 @@ TEST_F(GoldenLoginWorld, TheFirstEmbersSeeTheCameraAtTheOrigin)
     scene.Leave();
 }
 
-// Cada entrada carga el mapa otra vez (0x61a560), y la carga apaga las hojas (0x6070a0, el byte vivo de cada
-// entrada de 0x75e34b8): las brasas de la entrada anterior no siguen (P-C27 i). En el primer paso nacen las 80
-// otra vez, en la caja de 0x42b1e0 alrededor del héroe, que quedó donde lo dejó el último dibujo (0x6349a0 no le
-// escribe la posición).
+// Each entry loads the map again (0x61a560), and the load turns the leaves off (0x6070a0, the live byte of each entry
+// of 0x75e34b8): the previous entry's embers do not go on (P-C27 i). On the first step the 80 are born again, in
+// 0x42b1e0's box around the hero, who stayed where the last draw left it (0x6349a0 does not write its position).
 TEST_F(GoldenLoginWorld, EnteringAgainTheEmbersAreBornAgain)
 {
     using namespace std::chrono_literals;
@@ -2249,8 +2236,8 @@ TEST_F(GoldenLoginWorld, EnteringAgainTheEmbersAreBornAgain)
     scene.Leave();
 }
 
-// El dragón avanza por paso (0x52d220, 25 por segundo), no por frame: varios frames sin pasos no lo
-// mueven, a cualquier FPS.
+// The dragon advances per step (0x52d220, 25 per second), not per frame: several frames without steps do not move
+// it, at any FPS.
 TEST_F(GoldenLoginWorld, TheDragonMovesOnlyWithTheSteps)
 {
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -2290,9 +2277,8 @@ TEST_F(GoldenLoginWorld, TheDragonMovesOnlyWithTheSteps)
     scene.Leave();
 }
 
-// Cada entrada vacía la tabla de efectos (0x6070a0) y la carga del mapa crea el dragón otra vez
-// (0x606660 → 0x518cf0): el primer frame de la segunda entrada lo tiene donde la primera, aunque en el
-// medio voló.
+// Each entry empties the effects table (0x6070a0) and the map load creates the dragon again (0x606660 → 0x518cf0):
+// the second entry's first frame has it where the first did, even though it flew in between.
 TEST_F(GoldenLoginWorld, EnteringAgainStartsTheDragonAgain)
 {
     LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
@@ -2323,13 +2309,12 @@ TEST_F(GoldenLoginWorld, EnteringAgainStartsTheDragonAgain)
     scene.Leave();
 }
 
-// Los textos de los avisos de la selección que vienen vacíos en el Text.bmd del laboratorio.
+// The selection notices' texts that are empty in the lab's Text.bmd.
 constexpr std::array<std::size_t, 6> SelectionEmptyTexts{1711, 1712, 1713, 1714, 1715, 1716};
 
-// Los textos de las ventanas (CL5.5), por índice: los de cada aviso que abre el login (los del F1
-// 01 de 0x15 a 0x26 y los suyos), los rótulos de la cuenta (450 y 451), los dos títulos, las tres
-// cargas y el nombre de cada grupo con botón. Todos están y no son vacíos; si uno falla, sale su
-// índice y no el texto.
+// The windows' texts (CL5.5), by index: those of each notice the login opens (the F1 01's from 0x15 to 0x26 and its
+// own), the account labels (450 and 451), the two titles, the three loads and the name of each group with a button.
+// All are there and none is empty; if one fails, its index comes out and not the text.
 TEST_F(GoldenLoginScene, TheTextsOfItsWindowsAreInTheLabTable)
 {
     auto data = LoadGameData(m_dataRoot);
@@ -2356,7 +2341,7 @@ TEST_F(GoldenLoginScene, TheTextsOfItsWindowsAreInTheLabTable)
         }
     }
 
-    // Los de los avisos de la selección que este Text.bmd deja vacíos (TheSelectionLeavesSixTextsEmpty).
+    // The selection notices' ones that this Text.bmd leaves empty (TheSelectionLeavesSixTextsEmpty).
     for (const std::size_t empty : SelectionEmptyTexts)
     {
         indices.erase(empty);
@@ -2369,8 +2354,8 @@ TEST_F(GoldenLoginScene, TheTextsOfItsWindowsAreInTheLabTable)
     }
 }
 
-// Los textos 1711 a 1716 de los avisos de la selección (0x83, 0x5e, 0x5f, 0x60, 0x72 y 0x36) están
-// vacíos en el Text.bmd del laboratorio: esas cajas salen sin texto, como en el original.
+// Texts 1711 to 1716 of the selection notices (0x83, 0x5e, 0x5f, 0x60, 0x72 and 0x36) are empty in the lab's
+// Text.bmd: those boxes come out without text, as in the original.
 TEST_F(GoldenLoginScene, TheSelectionLeavesSixTextsEmpty)
 {
     auto data = LoadGameData(m_dataRoot);

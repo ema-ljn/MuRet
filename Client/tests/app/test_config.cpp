@@ -21,8 +21,8 @@
 
 using namespace std::string_view_literals;
 
-// Client::App::ParseConfig: el texto de muret-client.ini (CL3.4). Y Resolve, que abre el archivo y
-// junta la config con la línea de comandos (al final).
+// Client::App::ParseConfig (CL3.4), and at the end Resolve, which opens the file and merges the config with the
+// command line.
 namespace
 {
 using Client::App::ClientConfig;
@@ -77,7 +77,7 @@ TEST(ConfigTest, ReadsTheSections)
     EXPECT_EQ(config.Value().logPath, std::filesystem::path("cliente.log"));
 }
 
-// Lo de Resolve (VSync on en el modo normal y off en el fiel) va con sus tests.
+// Resolve's part (VSync on in normal mode and off in faithful) goes with its tests.
 TEST(ConfigTest, DefaultsWhenAKeyIsMissing)
 {
     const auto empty = ParseConfig("");
@@ -98,7 +98,7 @@ TEST(ConfigTest, DefaultsWhenAKeyIsMissing)
     EXPECT_EQ(onlyHost.Value().server->port, DefaultConnectPort);
     EXPECT_EQ(onlyHost.Value().server->port, 44405);
 
-    // El host vacío no es error acá: lo pide la CL4 al conectarse.
+    // An empty host is not an error here: CL4 asks for it when connecting.
     const auto onlyPort = ParseConfig("[Server]\nPort = 55901\n");
     ASSERT_TRUE(onlyPort.HasValue());
     ASSERT_TRUE(onlyPort.Value().server.has_value());
@@ -144,8 +144,8 @@ TEST(ConfigTest, RejectsAnUnknownVSyncValue)
     EXPECT_EQ(error.message, "[Video] VSync: tiene que ser on, adaptive u off");
 }
 
-// La config es UTF-8: en Windows, una ruta leída como ANSI quedaría mal. Solo distingue en
-// Windows: en Linux, path(std::string) y path(std::u8string) dan lo mismo.
+// The config is UTF-8: on Windows, a path read as ANSI would come out wrong. It only tells them apart on Windows: on
+// Linux, path(std::string) and path(std::u8string) give the same.
 TEST(ConfigTest, ReadsAPathThatIsNotAscii)
 {
     const auto config = ParseConfig("[Data]\nPath = C:\\Juegos\\M\xC3\x9A\n[Log]\nPath = registro-\xC3\xB1.log\n");
@@ -180,7 +180,7 @@ TEST(ConfigTest, SkipsCommentsBlankLinesAndTheBom)
                                     "  Host = 10.0.0.1   ; el del launcher\r\n"
                                     "Port = 55901;\r\n");
 
-    // "55901;" no es un comentario: el `;` no tiene un espacio adelante.
+    // "55901;" is not a comment: the `;` has no space before it.
     ASSERT_FALSE(config.HasValue());
     EXPECT_EQ(config.Error().line, 5u);
 
@@ -215,7 +215,6 @@ TEST(ConfigTest, RejectsAnUnknownSectionOrKey)
 {
     EXPECT_EQ(ErrorOf("[Sever]\nHost = 10.0.0.1\n").line, 1u);
     EXPECT_EQ(ErrorOf("[Server]\nHots = 10.0.0.1\n").line, 2u);
-    // Una clave antes de la primera sección no es de ninguna.
     EXPECT_EQ(ErrorOf("Host = 10.0.0.1\n").message, "Host está antes de la primera sección");
 }
 
@@ -236,7 +235,7 @@ TEST(ConfigTest, RejectsAPortOutOfRange)
     EXPECT_EQ(ErrorOf("[Server]\nPort = -1\n").message, "[Server] Port: the port must be a number");
 }
 
-// Q-C37: el original copiaba el host sin mirar el largo.
+// Q-C37: the original copied the host without checking its length.
 TEST(ConfigTest, AcceptsAHostOf255BytesAndRejects256)
 {
     const auto config = ParseConfig("[Server]\nHost = " + std::string(MaxHostBytes, 'a') + "\n");
@@ -274,7 +273,7 @@ TEST(ConfigTest, ReadsEachVSyncAndPacingValue)
     EXPECT_EQ(ParseConfig("[Video]\nVSync = adaptive\n").Value().vsync, VSyncMode::Adaptive);
     EXPECT_EQ(ParseConfig("[Video]\nVSync = off\n").Value().vsync, VSyncMode::Off);
     EXPECT_EQ(ParseConfig("[Video]\nPacing = faithful\n").Value().pacing, PacingMode::Faithful);
-    // Decoupled es también el valor por defecto: se mira que no sea error.
+    // Decoupled is also the default: this checks that it is not an error.
     const auto decoupled = ParseConfig("[Video]\nPacing = decoupled\n");
     ASSERT_TRUE(decoupled.HasValue());
     EXPECT_EQ(decoupled.Value().pacing, PacingMode::Decoupled);
@@ -305,7 +304,6 @@ TEST(ConfigTest, RemovesTheQuotesAroundAPathOrTheHost)
     EXPECT_EQ(config.Value().dataPath, std::filesystem::path("C:\\Program Files\\MU"));
     EXPECT_EQ(config.Value().server->host, "10.0.0.1");
 
-    // Una comilla sola es parte del valor.
     const auto single = ParseConfig("[Log]\nPath = \"muret.log\n");
     ASSERT_TRUE(single.HasValue());
     EXPECT_EQ(single.Value().logPath, std::filesystem::path("\"muret.log"));
@@ -319,17 +317,17 @@ TEST(ConfigTest, ReadsAPathWithSpaces)
     EXPECT_EQ(config.Value().dataPath, std::filesystem::path("C:\\Program Files\\MU"));
 }
 
-// Un ini guardado como ANSI: 0xDA es la Ú de Windows-1252, y sola no es UTF-8.
+// An ini saved as ANSI: 0xDA is Windows-1252's Ú, and alone it is not UTF-8.
 TEST(ConfigTest, RejectsAPathOrHostThatIsNotUtf8)
 {
     const ConfigError path = ErrorOf("[Data]\nPath = C:\\M\xDA\n");
     EXPECT_EQ(path.line, 2u);
     EXPECT_EQ(path.message, "[Data] Path: no es UTF-8");
 
-    // El host no se mira como UTF-8: tiene que ser ASCII (ParseHost, test_server_address.cpp).
+    // The host is not checked as UTF-8: it must be ASCII (ParseHost, test_server_address.cpp).
     EXPECT_EQ(ErrorOf("[Server]\nHost = \xDA\n").message,
               "[Server] Host: the host must be ASCII (a name with accents goes in punycode)");
-    // Una forma larga de más ("/" en dos bytes) y una mitad de UTF-16 (U+D800).
+    // An overlong form ("/" in two bytes) and a UTF-16 half (U+D800).
     EXPECT_EQ(ErrorOf("[Log]\nPath = \xC0\xAF\n").message, "[Log] Path: no es UTF-8");
     EXPECT_EQ(ErrorOf("[Log]\nPath = \xED\xA0\x80\n").message, "[Log] Path: no es UTF-8");
 }
@@ -360,14 +358,13 @@ TEST(ConfigTest, SaysWhatIsWrongWithALine)
     EXPECT_EQ(ErrorOf("[Server]\n= 5\n").message, "falta el nombre de la clave");
     EXPECT_EQ(ErrorOf("[Server\n").message, "a la sección le falta el ]");
     EXPECT_EQ(ErrorOf("[Server] x\n").message, "hay texto después del ] de la sección");
-    // `#` no es comentario (inih lo acepta; Config.h).
+    // `#` is not a comment (inih accepts it; Config.h).
     const ConfigError hash = ErrorOf("# comentario\n");
     EXPECT_EQ(hash.line, 1u);
     EXPECT_EQ(hash.message, "se esperaba [Sección] o Clave = valor");
 }
 
-// Una carpeta nueva en el temporal, que se borra al final. El nombre lleva un número al azar: los
-// tests corren en paralelo, y otras compilaciones pueden correr los mismos.
+// The name carries a random number: the tests run in parallel, and other builds can run the same ones.
 class TempFolder
 {
 public:
@@ -389,7 +386,6 @@ public:
         return m_path;
     }
 
-    // Escribe muret-client.ini (u otro nombre) con ese texto y devuelve su ruta.
     std::filesystem::path Write(std::string_view text, std::string_view name = "muret-client.ini") const
     {
         const std::filesystem::path file = m_path / name;
@@ -401,8 +397,8 @@ private:
     std::filesystem::path m_path;
 };
 
-// Cambia la carpeta actual mientras vive y deja la de antes al morir. Va después de la TempFolder
-// a la que entra, así sale antes de que se borre (en Windows no se borra la carpeta actual).
+// Changes the current folder while it lives. It goes after the TempFolder it enters, so it leaves before that one is
+// deleted (on Windows the current folder is not deleted).
 class CurrentFolder
 {
 public:
@@ -501,7 +497,7 @@ TEST(ConfigTest, TheCommandLineWins)
     EXPECT_EQ(config.Value().pacing, PacingMode::Faithful);
     EXPECT_EQ(config.Value().vsync, VSyncMode::Off);
 
-    // --vsync off pisa un VSync = on que el modo fiel no deja.
+    // --vsync off overrides a VSync = on that faithful mode does not allow.
     exeFolder.Write("[Video]\nPacing = faithful\nVSync = on\n");
     CommandLine vsyncOff;
     vsyncOff.vsync = VSyncMode::Off;
@@ -510,16 +506,15 @@ TEST(ConfigTest, TheCommandLineWins)
     EXPECT_EQ(fixed.Value().vsync, VSyncMode::Off);
 }
 
-// --config y --data se toman desde la carpeta actual, como cualquier argumento.
+// --config and --data are taken from the current folder, like any argument.
 TEST(ConfigTest, ACommandLinePathIsFromTheCurrentFolder)
 {
     const TempFolder exeFolder;
     const TempFolder other;
     std::filesystem::create_directories(other.Path() / "Data");
     other.Write("[Video]\nWidth = 800\n", "otra.ini");
-    // Las rutas relativas salen de la carpeta actual y no de la del ejecutable. Se entra a la
-    // temporal en vez de calcular la ruta con relative(): en Windows la temporal puede estar en
-    // otra unidad que la carpeta actual, y ahí relative() da una ruta vacía.
+    // It enters the temp folder instead of computing the path with relative(): on Windows the temp folder can be on
+    // another drive than the current folder, and there relative() gives an empty path.
     const CurrentFolder current(other.Path());
     CommandLine commandLine;
     commandLine.configPath = std::filesystem::path("otra.ini");
@@ -541,7 +536,7 @@ TEST(ConfigTest, AConfigPathThatIsAFolderIsAnError)
     ASSERT_FALSE(folder.HasValue());
     EXPECT_NE(folder.Error().find("no es un archivo"), std::string::npos) << folder.Error();
 
-    // Una carpeta muret-client.ini junto al ejecutable, también.
+    // A muret-client.ini folder next to the executable, too.
     std::filesystem::create_directories(exeFolder.Path() / "muret-client.ini");
     const auto byDefault = Resolve(exeFolder.Path(), CommandLine{});
     ASSERT_FALSE(byDefault.HasValue());
@@ -560,7 +555,7 @@ TEST(ConfigTest, AConfigLongerThanTheCapIsAnError)
     EXPECT_NE(config.Error().find("pasa de 65536 bytes"), std::string::npos) << config.Error();
 }
 
-// El orden de Resolve: el archivo, ParseConfig, la regla del modo fiel y recién la carpeta.
+// Resolve's order: the file, ParseConfig, the faithful mode rule and only then the folder.
 TEST(ConfigTest, ResolveStopsAtTheFirstErrorInOrder)
 {
     const TempFolder exeFolder;
@@ -587,7 +582,7 @@ TEST(ConfigTest, FaithfulWithVSyncOnIsAnError)
     EXPECT_NE(fromConfig.Error().find("Pacing"), std::string::npos) << fromConfig.Error();
     EXPECT_NE(fromConfig.Error().find("VSync"), std::string::npos) << fromConfig.Error();
 
-    // La config pide VSync y la línea de comandos el modo fiel: es el mismo error.
+    // The config asks for VSync and the command line for faithful mode: the same error.
     exeFolder.Write("[Video]\nVSync = adaptive\n");
     CommandLine commandLine;
     commandLine.pacing = PacingMode::Faithful;
@@ -595,7 +590,7 @@ TEST(ConfigTest, FaithfulWithVSyncOnIsAnError)
     ASSERT_FALSE(mixed.HasValue());
     EXPECT_EQ(mixed.Error(), fromConfig.Error());
 
-    // Solo con la línea de comandos (la regla de la CL3.2): el mensaje nombra las dos opciones.
+    // Only with the command line (the CL3.2 rule): the message names both options.
     const TempFolder empty;
     for (const VSyncMode vsync : {VSyncMode::On, VSyncMode::Adaptive})
     {
@@ -617,7 +612,7 @@ TEST(ConfigTest, FaithfulWithVSyncOnIsAnError)
     EXPECT_TRUE(Resolve(empty.Path(), decoupled).HasValue());
 }
 
-// El test del 02 y Q-C35: el original salía sin avisar si no encontraba lo suyo.
+// The 02 test and Q-C35: the original exited without a warning if it did not find its files.
 TEST(ConfigTest, AMissingDataFolderNamesIt)
 {
     const TempFolder exeFolder;
@@ -630,7 +625,7 @@ TEST(ConfigTest, AMissingDataFolderNamesIt)
     EXPECT_NE(config.Error().find("no existe la carpeta de datos"), std::string::npos) << config.Error();
     EXPECT_NE(config.Error().find("Data-que-no-esta"), std::string::npos) << config.Error();
 
-    // Un archivo no es una carpeta, y lo dice.
+    // A file is not a folder, and it says so.
     commandLine.dataPath = exeFolder.Write("[Video]\n");
     const auto file = Resolve(exeFolder.Path(), commandLine);
     ASSERT_FALSE(file.HasValue());
@@ -661,9 +656,8 @@ TEST(ConfigTest, NoDataFolderIsNotAnError)
     EXPECT_FALSE(config.Value().dataPath.has_value());
 }
 
-// [Video] FontFile y BoldFontFile (pregunta 8 del plan de la CL5): las fuentes de FreeType, rutas
-// como la de [Data]. Sin ellas quedan vacías; qué hace el cliente sin FontFile lo dice la CL5.3 en
-// la búsqueda de Platform, no la config.
+// [Video] FontFile and BoldFontFile (question 8 of the CL5 plan): FreeType's fonts, paths like [Data]'s. Without them
+// they stay empty; what the client does without FontFile is CL5.3's search in Platform, not the config's.
 TEST(ConfigTest, ReadsTheFontFiles)
 {
     const auto config = ParseConfig("[Video]\nFontFile = \"fuentes/letra.ttf\"\nBoldFontFile = negrita.ttf\n");
@@ -685,8 +679,8 @@ TEST(ConfigTest, ReadsTheFontFiles)
     EXPECT_EQ(ErrorOf("[Video]\nFontFile = \"\"\n").message, "[Video] FontFile: la ruta está vacía");
 }
 
-// Como las de [Data] y [Log]: desde la carpeta del ejecutable. Resolve no mira si existen: el error
-// de un archivo que falta lo da FreeTypeRasterizer::Open, con la ruta.
+// Like [Data] and [Log]: from the executable's folder. Resolve does not check that they exist: FreeTypeRasterizer::Open
+// gives the error of a missing file, with the path.
 TEST(ConfigTest, ARelativeFontFileIsFromTheExeFolder)
 {
     const TempFolder exeFolder;
@@ -699,7 +693,7 @@ TEST(ConfigTest, ARelativeFontFileIsFromTheExeFolder)
     EXPECT_EQ(config.Value().boldFontFile, exeFolder.Path() / "negrita.ttf");
 }
 
-// Lo pide la CL4, al conectarse.
+// CL4 asks for it, when connecting.
 TEST(ConfigTest, NoHostIsNotAnError)
 {
     const TempFolder exeFolder;
@@ -712,8 +706,7 @@ TEST(ConfigTest, NoHostIsNotAnError)
     EXPECT_TRUE(config.Value().server->host.empty());
 }
 
-// Main se conecta solo con un host (el plan de la CL4, CL4.4): un [Server] con solo el puerto no
-// alcanza.
+// Main connects only with a host (the CL4 plan, CL4.4): a [Server] with only the port is not enough.
 TEST(ConfigTest, OnlyThePortIsNotAServerHost)
 {
     const auto config = ParseConfig("[Server]\nPort = 55901\n");
@@ -723,7 +716,7 @@ TEST(ConfigTest, OnlyThePortIsNotAServerHost)
     EXPECT_FALSE(HasServerHost(config.Value()));
 }
 
-// Sin [Server], o con un host vacío, tampoco.
+// Without [Server], or with an empty host, neither.
 TEST(ConfigTest, AnEmptyHostIsNotAServerHost)
 {
     ClientConfig config;
@@ -741,8 +734,8 @@ TEST(ConfigTest, AHostIsAServerHost)
     EXPECT_TRUE(HasServerHost(config.Value()));
 }
 
-// --auto-login (CL5.5) es para entrar a un servidor: sin un host, de la config o de /u /p, no hay
-// a qué entrar, y Resolve lo dice antes de abrir la ventana.
+// --auto-login (CL5.5) is for entering a server: without a host, from the config or from /u /p, there is nothing to
+// enter, and Resolve says so before opening the window.
 TEST(ConfigTest, AutoLoginNeedsAServer)
 {
     const TempFolder exeFolder;
@@ -761,8 +754,7 @@ TEST(ConfigTest, AutoLoginNeedsAServer)
     EXPECT_TRUE(Resolve(empty.Path(), commandLine).HasValue());
 }
 
-// [Video] MaxFps, el tope de FPS del modo normal: 0 (sin tope, el valor por defecto), o de 25 a
-// 1000.
+// [Video] MaxFps, the normal mode's FPS cap: 0 (no cap, the default), or 25 to 1000.
 TEST(ConfigTest, ReadsMaxFps)
 {
     const auto defaults = ParseConfig("");
@@ -776,7 +768,7 @@ TEST(ConfigTest, ReadsMaxFps)
     }
 }
 
-// 1 duraría MaxFrameTime y se recortaría siempre: el más bajo es MinFpsLimit.
+// 1 would last MaxFrameTime and always be clamped: the lowest is MinFpsLimit.
 TEST(ConfigTest, RejectsAMaxFpsOutOfRange)
 {
     for (const std::string_view maxFps : {"1001", "99999999999", "1", "24"})
@@ -789,7 +781,7 @@ TEST(ConfigTest, RejectsAMaxFpsOutOfRange)
     EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 60fps\n").message, "[Video] MaxFps: tiene que ser un número");
 }
 
-// --max-fps pisa la config, también con 0 (sin tope).
+// --max-fps overrides the config, also with 0 (no cap).
 TEST(ConfigTest, TheCommandLineMaxFpsWins)
 {
     const TempFolder exeFolder;
@@ -808,8 +800,8 @@ TEST(ConfigTest, TheCommandLineMaxFpsWins)
     }
 }
 
-// El modo fiel espera como el original (46,875 ms por frame): un tope de FPS es error y nombra
-// las dos opciones. MaxFps = 0 sí va.
+// Faithful mode waits like the original (46.875 ms per frame): an FPS cap is an error and names both options.
+// MaxFps = 0 is fine.
 TEST(ConfigTest, FaithfulWithAnFpsCapIsAnError)
 {
     const TempFolder exeFolder;
@@ -832,7 +824,7 @@ TEST(ConfigTest, FaithfulWithAnFpsCapIsAnError)
     ASSERT_TRUE(withoutCap.HasValue()) << withoutCap.Error();
     EXPECT_EQ(withoutCap.Value().maxFps, 0);
 
-    // Mezclados: el modo de la config y el tope de la línea de comandos, y al revés.
+    // Mixed: the mode from the config and the cap from the command line, and the other way round.
     const TempFolder faithfulConfig;
     faithfulConfig.Write("[Video]\nPacing = faithful\n");
     CommandLine capOnly;
@@ -845,8 +837,7 @@ TEST(ConfigTest, FaithfulWithAnFpsCapIsAnError)
     EXPECT_FALSE(Resolve(capConfig.Path(), faithfulOnly).HasValue());
 }
 
-// El tope va solo con el VSync que quedó apagado, como el FpsCap de MuMain: con VSync el swap ya
-// frena al refresco.
+// Like MuMain's FpsCap: with VSync the swap already paces to the refresh.
 TEST(ConfigTest, TheFpsCapIsOnlyForVSyncOff)
 {
     EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::Off), 60);

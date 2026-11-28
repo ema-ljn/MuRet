@@ -27,35 +27,35 @@ namespace
 {
 using Math::F32;
 
-// 0x604ad5..0x604ae2: ftol(reloj) % 4.000 (0xfa0) contra 1.000 (0x3e8), con signo.
+// 0x604ad5..0x604ae2: ftol(clock) % 4000 (0xfa0) against 1000 (0x3e8), signed.
 constexpr std::int32_t FlashPeriod = 4000;
 constexpr std::int32_t FlashWindow = 1000;
 // 0x604aee: rand() % 100.
 constexpr int FlashOdds = 100;
-// 0x604b03..0x604b10: rand() % 12 + 4, por 0,1f (0x6b87b8).
+// 0x604b03..0x604b10: rand() % 12 + 4, times 0.1f (0x6b87b8).
 constexpr int FlashSpan = 12;
 constexpr int FlashBase = 4;
 constexpr double Tenth = Math::TenthAsDouble;
-// 0x6b8854 (0,2f), 0x6b89dc (0,3f) y 0x6b882c (0,5).
+// 0x6b8854 (0.2f), 0x6b89dc (0.3f) and 0x6b882c (0.5).
 constexpr double FlashRed = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
 constexpr double FlashGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au));
 constexpr double FlashBlue = 0.5;
-// 0x604b48 y 0x604b6e: rand() % 1.200 (0x4b0), menos 600 (0x6b8c08).
+// 0x604b48 and 0x604b6e: rand() % 1200 (0x4b0), minus 600 (0x6b8c08).
 constexpr int FlashSpread = 1200;
 constexpr double FlashCenter = 600.0;
-// 0x604b0f: el radio, el 12 que quedó en ecx del idiv.
+// 0x604b0f: the radius, the 12 left in ecx by the idiv.
 constexpr std::int32_t FlashRadius = 12;
 // 0x604b96..0x604b9b: 0x41ed10(1, 0, 1).
 constexpr Audio::SoundId DevilSquareAmbient{1};
 
-// 0x606328..0x60638e: rand() % 900 (0x384) − 300 (0x12c) en x e y, rand() % 50 (0x32) + 250 (0x6b8920) en z.
+// 0x606328..0x60638e: rand() % 900 (0x384) − 300 (0x12c) in x and y, rand() % 50 (0x32) + 250 (0x6b8920) in z.
 constexpr int OrbSpread = 900;
 constexpr int OrbBack = 300;
 constexpr int OrbRise = 50;
 constexpr double OrbHeight = 250.0;
-// 0x606396: rand() & 0x80000003 con el ajuste del signo, el resto de dividir por 4.
+// 0x606396: rand() & 0x80000003 with the sign fix-up, the remainder of dividing by 4.
 constexpr int OrbOdds = 4;
-// 0x6063a4..0x6063b9: 0x53fe70(0x60f, punto, ángulos en 0, luz (1; 1; 1), 3, 0x3e428f5c, 0).
+// 0x6063a4..0x6063b9: 0x53fe70(0x60f, point, angles at 0, light (1, 1, 1), 3, 0x3e428f5c, 0).
 constexpr std::int32_t OrbSubtype = 3;
 constexpr float OrbScale = std::bit_cast<float>(0x3e428f5cu);
 
@@ -63,7 +63,7 @@ constexpr std::int16_t FirstGate = 9;
 constexpr std::int16_t LastGate = 10;
 constexpr std::int16_t OpenGate = 4;
 
-// fild del entero, fadd del float del héroe y fsub de 600, guardado en float.
+// fild of the integer, fadd of the hero's float and fsub of 600, stored as a float.
 float FlashCoordinate(int spread, float hero)
 {
     return F32((static_cast<double>(spread) + static_cast<double>(hero)) - FlashCenter);
@@ -100,7 +100,7 @@ Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
 Core::Expected<void, std::string> StepBloodCastlePrelude(Crt::CrtRandom& random, const glm::vec3& hero,
                                                          Particles::Particles* particles, const float& worldClock)
 {
-    // fild del entero y fadd del float del héroe; la z suma después los 250. Todo cabe exacto en la x87.
+    // fild of the integer and fadd of the hero's float; z adds the 250 afterwards. Everything fits exactly in the x87.
     const int spreadX = random.Next() % OrbSpread - OrbBack;
     const float x = F32(static_cast<double>(spreadX) + static_cast<double>(hero.x));
     const int spreadY = random.Next() % OrbSpread - OrbBack;

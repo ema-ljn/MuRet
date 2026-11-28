@@ -11,9 +11,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::FrontEnd::NoticeOfNewName: los chequeos del nombre del OK de crear (0x63d990), con las palabras
-// de FilterName.bmd del laboratorio y los textos 457 y 458 de su Text.bmd. Los nombres son los de la
-// emulación del contrato, sintéticos.
+// Client::FrontEnd::NoticeOfNewName: the name checks of the create OK (0x63d990), with the lab's FilterName.bmd words
+// and texts 457 and 458 of its Text.bmd. The names are those of the contract's emulation, synthetic.
 namespace
 {
 using Client::FrontEnd::ContainsAFilteredWord;
@@ -34,8 +33,7 @@ NameFilters LabFilters()
     return NameFilters{.filterName = LabFilterName, .filter = {}, .operation = "Operacion ", .server = "Mu Baires 3"};
 }
 
-// 0x576960: la subcadena, distinguiendo mayúsculas; una palabra vacía está en cualquier texto, y
-// una más larga que el texto, en ninguno.
+// 0x576960: the substring, case-sensitive; an empty word is in any text, and one longer than the text, in none.
 TEST(NameChecksTest, TheSearchIsASubstring)
 {
     EXPECT_TRUE(ContainsLikeTheOriginal("xGMx", "GM"));
@@ -46,8 +44,8 @@ TEST(NameChecksTest, TheSearchIsASubstring)
     EXPECT_TRUE(ContainsLikeTheOriginal("", ""));
 }
 
-// La tabla de la emulación (contrato § 3.8): menos de 4 bytes, 0x79; una palabra filtrada, 0x72;
-// un byte malo en un lugar par, 0x7a; si no, se manda.
+// The emulation's table (contract § 3.8): under 4 bytes, 0x79; a filtered word, 0x72; a bad byte at an even place,
+// 0x7a; otherwise, it is sent.
 TEST(NameChecksTest, TheLabNamesGiveTheEmulatedNotices)
 {
     const NameFilters filters = LabFilters();
@@ -78,9 +76,9 @@ TEST(NameChecksTest, TheLabNamesGiveTheEmulatedNotices)
     }
 }
 
-// 0x622c70: FilterName.bmd contra el nombre sin espacios; las fijas, contra el nombre tal cual: el
-// espacio, el punto, los tres de GB2312 y las cuatro de Webzen, y los textos 457 y 458. Que la
-// primera vaya sin espacios no se ve: un nombre con un espacio ya lo filtra la fija " ".
+// 0x622c70: FilterName.bmd against the name without spaces; the fixed ones, against the name as is: the space, the
+// dot, the three of GB2312 and the four of Webzen, and texts 457 and 458. That the first goes without spaces does not
+// show: a name with a space is already filtered by the fixed " ".
 TEST(NameChecksTest, TheWordsOfTheFilesAndTheFixedOnesAreFiltered)
 {
     const NameFilters filters = LabFilters();
@@ -101,7 +99,7 @@ TEST(NameChecksTest, TheWordsOfTheFilesAndTheFixedOnesAreFiltered)
     EXPECT_FALSE(IsFilteredName("Synthetic", filters));
 }
 
-// 0x622b40 con 1: Filter.bmd contra el nombre sin espacios, salvo si empieza con '/'.
+// 0x622b40 with 1: Filter.bmd against the name without spaces, unless it starts with '/'.
 TEST(NameChecksTest, TheFilterWordsSkipANameThatStartsWithASlash)
 {
     const std::vector<std::string> words{"bad"};
@@ -113,7 +111,7 @@ TEST(NameChecksTest, TheFilterWordsSkipANameThatStartsWithASlash)
     EXPECT_TRUE(IsFilteredName("x/bad", filters));
 }
 
-// 0x622b40 desde el chat (0x4b5734): con 1, un comando ("/…") no se mira; con 0 sí. Los espacios no separan.
+// 0x622b40 from the chat (0x4b5734): with 1, a command ("/…") is not looked at; with 0 it is. Spaces do not separate.
 TEST(NameChecksTest, TheChatFilterLooksAtTheTextWithoutSpaces)
 {
     const std::vector<std::string> words{"bad"};
@@ -124,8 +122,8 @@ TEST(NameChecksTest, TheChatFilterLooksAtTheTextWithoutSpaces)
     EXPECT_FALSE(ContainsAFilteredWord("bad", {}, false));
 }
 
-// 0x5ebbd0, el título de la tienda personal: ninguna palabra de Filter.bmd en el título sin espacios; dos espacios
-// seguidos al principio (la cuenta en la letra 1) o al final no pasan, y los del medio sí. Vacío, pasa.
+// 0x5ebbd0, the personal shop title: no Filter.bmd word in the title without spaces; two consecutive spaces at the
+// start (the count at letter 1) or at the end do not pass, and those in the middle do. Empty, it passes.
 TEST(NameChecksTest, TheShopTitleLooksAtTheFilterAndTheSpaces)
 {
     const std::vector<std::string> words{"bad"};
@@ -139,14 +137,13 @@ TEST(NameChecksTest, TheShopTitleLooksAtTheFilterAndTheSpaces)
     EXPECT_FALSE(IsAShopTitle("  ", words));
     EXPECT_FALSE(IsAShopTitle("b a d", words));
     EXPECT_FALSE(IsAShopTitle("/bad", words));
-    // Tres espacios desde la letra 0: en la 1 la cuenta ya es 2.
+    // Three spaces from letter 0: at letter 1 the count is already 2.
     EXPECT_FALSE(IsAShopTitle("   x", words));
-    // Desde la letra 1, en la 1 la cuenta es 1: pasa.
+    // From letter 1, at letter 1 the count is 1: it passes.
     EXPECT_TRUE(IsAShopTitle("x  y", {}));
 }
 
-// Con el texto 457 o el 458 vacíos (otro Text.bmd), 0x576960 los encuentra en cualquier nombre, y
-// ninguno se puede crear.
+// With text 457 or 458 empty (another Text.bmd), 0x576960 finds them in any name, and none can be created.
 TEST(NameChecksTest, AnEmptyTextFiltersEveryName)
 {
     NameFilters filters = LabFilters();
@@ -154,8 +151,8 @@ TEST(NameChecksTest, AnEmptyTextFiltersEveryName)
     EXPECT_TRUE(IsFilteredName("Synthetic", filters));
 }
 
-// 0x447ca0 parchado: mira los bytes 0, 2, 4…, mientras el de dos más adelante no sea 0. Malo, uno
-// menor que 0x21, de 0x7f a 0xaf o mayor que 0xf7.
+// 0x447ca0 patched: it looks at bytes 0, 2, 4…, while the one two ahead is not 0. Bad: one below 0x21, from 0x7f to
+// 0xaf or above 0xf7.
 TEST(NameChecksTest, OnlyTheEvenBytesAreChecked)
 {
     EXPECT_FALSE(HasForbiddenSymbol(""));
@@ -174,7 +171,7 @@ TEST(NameChecksTest, OnlyTheEvenBytesAreChecked)
     EXPECT_FALSE(HasForbiddenSymbol("abc\xff"));
 }
 
-// El largo va antes que los filtros: "GM" y "a b" son cortos (0x79) aunque estén filtrados.
+// The length goes before the filters: "GM" and "a b" are short (0x79) even if filtered.
 TEST(NameChecksTest, TheLengthComesFirst)
 {
     const NameFilters filters = LabFilters();
@@ -182,8 +179,8 @@ TEST(NameChecksTest, TheLengthComesFirst)
     EXPECT_EQ(NoticeOfNewName("a b", filters), std::optional{ShortNameNotice});
 }
 
-// 0x447ca0 lee el buffer de la ventana: detrás del nombre pueden quedar bytes de un intento anterior
-// más largo, y los mira (Q-C118). Con "abcde" sobre "abcdef g", el byte 6 es el espacio.
+// 0x447ca0 reads the window's buffer: bytes from a longer earlier attempt can remain behind the name, and it looks at
+// them (Q-C118). With "abcde" over "abcdef g", byte 6 is the space.
 TEST(NameChecksTest, TheSymbolsSeeWhatIsLeftInTheBuffer)
 {
     const NameFilters filters = LabFilters();

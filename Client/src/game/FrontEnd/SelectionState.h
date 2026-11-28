@@ -36,45 +36,45 @@ namespace Client::Terrain
 struct TerrainState;
 }
 
-// La selección sobre el pool durable (06, "Los personajes de la lista", y CL7.3 B): construye en los
-// cinco primeros registros de WorldState y escribe el mundo en curso en su WorldRuntime, sin otra
-// copia. main es dueño de los dos; la vista usa las revisiones, nunca la igualdad de las entradas.
+// The selection on the durable pool (06, "Los personajes de la lista", and CL7.3 B): it builds in the
+// first five records of WorldState and writes the current world in its WorldRuntime, without another
+// copy. main owns both; the view uses the revisions, never the equality of the entries.
 namespace Client::FrontEnd
 {
 class SelectionState
 {
 public:
-    // `world` tiene que vivir más que este estado.
+    // `world` has to outlive this state.
     explicit SelectionState(Kernel::WorldState& world);
 
-    // Los cinco primeros registros del pool, los lugares de la lista.
+    // The pool's first five records, the list's slots.
     [[nodiscard]] std::span<const Kernel::ActorState, Kernel::SelectionActorCount> Slots() const;
-    // 0x7437050 vive fuera del pool y sobrevive al objeto visual de la escena, igual que las tablas.
+    // 0x7437050 lives outside the pool and outlives the scene's visual object, like the tables.
     [[nodiscard]] Kernel::ActorState& PreviewActor();
     [[nodiscard]] const Kernel::ActorState& PreviewActor() const;
     [[nodiscard]] bool HasReceivedList() const;
     [[nodiscard]] bool IsInitialized() const;
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     [[nodiscard]] const Terrain::WorldTerrain* Terrain() const;
-    // El mundo en curso, WorldRuntime::map.
+    // The current world, WorldRuntime::map.
     [[nodiscard]] int Map() const;
     void SetScene(Terrain::CullingScene scene);
-    // Las dos escriben `map` como mundo en curso, como quien llama a 0x61a560.
-    // El dueño de `terrain` debe mantenerlo vivo hasta RetainTerrain o el próximo BorrowTerrain.
-    // Si ya es el terreno retenido por este estado, conserva su ownership.
+    // Both write `map` as the current world, like whoever calls 0x61a560.
+    // The owner of `terrain` must keep it alive until RetainTerrain or the next BorrowTerrain.
+    // If it is already the terrain this state retains, it keeps its ownership.
     void BorrowTerrain(int map, const Terrain::WorldTerrain* terrain);
     void RetainTerrain(int map, Terrain::WorldTerrain terrain);
     void BeginSelection();
     void EnterLogin();
-    // CL7.3 B: Hero conserva celda lógica 0; copia su atributo vivo sin escribir XYZ. Después de un F1 02
-    // con 1 el héroe es el del juego, en su celda, pero la cámara de la selección solo mira el 0x40 y el
-    // 0x80, y fuera del mapa 30, que MuRet no carga, ningún .att los tiene (05): con el terreno del juego
-    // o con el del 54, da lo mismo (Q-C213).
+    // CL7.3 B: Hero keeps logical cell 0; it copies its live attribute without writing XYZ. After an F1 02
+    // with 1 the hero is the game's, in its cell, but the selection camera only checks 0x40 and
+    // 0x80, and outside map 30, which MuRet does not load, no .att has them (05): with the game's terrain
+    // or with 54's, it makes no difference (Q-C213).
     void RefreshCameraAttribute(Camera::GameCameraInput& input) const;
-    // 0x633f20 con la lista: el mundo cargado, el 54 como mundo en curso (0x633f44) y 0x61a560(54), la carga
-    // de LoadMap en la escena 4 (los objetos del .obj con sus casos de la selección, 0x606660, y el pasto
-    // con sus 65.536 rand()). El terreno queda en `terrain.current` y este estado lo presta.
-    // `random` es el rand() de la CRT; sin él, el local de las pruebas. `faunaModels`: MapLoadContext::faunaModels.
+    // 0x633f20 with the list: the world loaded, 54 as the current world (0x633f44) and 0x61a560(54), LoadMap's
+    // load in scene 4 (the .obj objects with their selection cases, 0x606660, and the grass
+    // with its 65536 rand()). The terrain stays in `terrain.current` and this state lends it.
+    // `random` is the CRT's rand(); without it, the tests' local one. `faunaModels`: MapLoadContext::faunaModels.
     [[nodiscard]] Core::Expected<void, std::string> InitializeSelection(const std::filesystem::path& dataRoot,
                                                                         Terrain::TerrainState& terrain,
                                                                         Camera::GameCameraInput& input,
@@ -84,7 +84,7 @@ public:
                                                           Camera::GameCamera& camera, Camera::GameCameraInput& input,
                                                           Models::ClothWorld* cloth = nullptr,
                                                           const Models::Skeleton* playerSkeleton = nullptr);
-    // Se llama después de la cámara de selección: 0x634680 escribe Z a los cinco slots.
+    // Called after the selection camera: 0x634680 writes Z to the five slots.
     void DrawSelection(Camera::GameCameraInput& input);
 
 private:
@@ -95,7 +95,7 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> Fail(std::string error);
     Kernel::WorldState& m_world;
     Kernel::ActorState m_preview;
-    // Solo quien prueba el estado sin el bucle usa este rand(); main aporta el de toda la sesión.
+    // Only whoever tests the state without the loop uses this rand(); main provides the whole session's.
     Models::ClothWorld m_localCloth;
     std::optional<Terrain::WorldTerrain> m_ownedTerrain;
     const Terrain::WorldTerrain* m_borrowedTerrain = nullptr;

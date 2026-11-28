@@ -15,42 +15,37 @@
 #include <optional>
 #include <string>
 
-// La máquina de escenas (CL5.4): el cliente del bucle de Main, que tiene la escena de ahora y la
-// cambia solo por una transición de la tabla del original (SceneTransitions.h). Cambiar es Leave de
-// la que sale, la fábrica arma la nueva y su Enter; un Enter que falla deja el SceneManager sin
-// escena, con el error en Failure, para que main.cpp cierre, y la escena que falló hace su Leave,
-// que suelta lo que alcanzó a subir. Una escena que falla en su paso o en su dibujo (IScene::Failure)
-// queda, con el error en Failure, y no vuelve a correr: el frame cortado no se presenta. Al destruirse,
-// la escena de ahora hace su Leave.
+// The scene machine: the client of Main's loop, which holds the current scene and changes it only by a transition of
+// the original's table (SceneTransitions.h). An Enter that fails leaves the SceneManager without a scene, with the
+// error in Failure, so main.cpp closes, and the failed scene does its Leave, which releases what it managed to load.
+// A scene that fails in its step or its draw (IScene::Failure) stays, with the error in Failure, and does not run
+// again: the cut frame is not presented.
 //
-// La red no es de una escena: la ServerSession sigue viva del login a la selección y al juego. El
-// SceneManager la corre en cada Poll, también minimizada, con `pollNetwork`. Un error de aplicación
-// conserva el primer diagnóstico y bloquea red, pasos, transiciones y dibujo hasta el cierre normal.
-// Lo que la red ordena de la escena (el F1 02 con 1, que el original escribe en DAT_006d5dc8 mientras la
-// lee) lo toma `takeSceneOrder` después de cada Poll, y el próximo Step entra antes del paso, por la
-// misma tabla que un pedido de la escena.
+// The network does not belong to a scene: the ServerSession lives on from the login to the selection and the game.
+// The SceneManager runs it on each Poll, also minimized, with `pollNetwork`. An application error keeps the first
+// diagnostic and blocks network, steps, transitions and draw until the normal close. What the network orders of the
+// scene (the F1 02 with 1, which the original writes into DAT_006d5dc8 while reading it) is taken by `takeSceneOrder`
+// after each Poll, and the next Step enters it before the step, through the same table as a scene's request.
 namespace Client::Scenes
 {
-// Arma la escena de un SceneId: main.cpp con las de verdad, los tests con dobles. nullptr si no
-// tiene esa escena.
+// Builds the scene of a SceneId: main.cpp with the real ones, the tests with doubles. nullptr if it does not have
+// that scene.
 using SceneFactory = std::function<std::unique_ptr<IScene>(Kernel::SceneId)>;
 
 class SceneManager final : public Scenes::ILoopClient
 {
 public:
-    // `pollNetwork` corre en cada Poll: main.cpp propaga Online::Poll y, sin servidor, devuelve
-    // éxito sin red. `takeSceneOrder` corre después de un pollNetwork que salió bien y devuelve la
-    // escena que ordenó la red, una vez (main.cpp: WorldRuntime::orderedScene). Los dos pueden estar
-    // vacíos. beforeSceneFrame publica el prefijo global aun si la escena retiene el dibujo;
-    // el caller decide qué frames son originales. afterSceneFrame corre al final de cada vuelta del bucle con la
-    // ventana sin minimizar (FinishTheLoop), dibujada o retenida, con una escena y sin un error: la cola de
-    // 0x63945d y el principio de la vuelta siguiente de WinMain (P-C61). afterSceneStep corre después de cada paso de
-    // la escena que salió bien, antes de su pedido de otra: lo que 0x637700 hace en todas las escenas detrás de su
-    // lógica, como los relojes de los mensajes (0x637cf3 y 0x637cf8). Su error queda en Failure, como el de un
-    // paso. beforeSceneDraw corre en cada Render antes de BeginFrame, y afterSceneDraw después del dibujo de la
-    // escena y antes de Present, con su lienzo: lo que 0x637700 hace en todas las escenas alrededor del dibujo (la
-    // captura de pantalla, 0x6381bb..0x63835a y 0x638586..0x6385da). Sus errores quedan en Failure y el frame no se
-    // presenta. La fábrica, el frame, el reloj y el log viven más.
+    // `pollNetwork` runs on each Poll: main.cpp propagates Online::Poll and, without a server, returns success without
+    // network. `takeSceneOrder` runs after a pollNetwork that succeeded and returns the scene the network ordered, once
+    // (main.cpp: WorldRuntime::orderedScene). Both can be empty. beforeSceneFrame publishes the global prefix even if
+    // the scene holds the draw; the caller decides which frames are original. afterSceneFrame runs at the end of each
+    // loop turn with the window not minimized (FinishTheLoop), drawn or held, with a scene and without an error: the
+    // tail of 0x63945d and the start of WinMain's next turn (P-C61). afterSceneStep runs after each successful scene
+    // step, before its request for another: what 0x637700 does in all scenes after their logic, like the message clocks
+    // (0x637cf3 and 0x637cf8). Its error stays in Failure, like a step's. beforeSceneDraw runs on each Render before
+    // BeginFrame, and afterSceneDraw after the scene's draw and before Present, with its canvas: what 0x637700 does in
+    // all scenes around the draw (the screenshot, 0x6381bb..0x63835a and 0x638586..0x6385da). Their errors stay in
+    // Failure and the frame is not presented. The factory, the frame, the clock and the log outlive it.
     SceneManager(SceneFactory factory, Render::Frame::IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                  std::function<std::optional<Kernel::SceneId>()> takeSceneOrder = {},
@@ -64,57 +59,57 @@ public:
     SceneManager(const SceneManager&) = delete;
     SceneManager& operator=(const SceneManager&) = delete;
 
-    // Entra a `first` (main.cpp pasa FirstScene, la carga). Si su Enter falla, el error, que queda
-    // también en Failure. Con una escena ya entrada es un error y la de ahora sigue: para cambiar
-    // está Request. Un error anterior de Poll es terminal, incluso antes de la primera escena:
-    // devuelve el primer diagnóstico y no entra. Un Enter fallido sí permite reintentar Start.
+    // Enters `first` (main.cpp passes FirstScene, the loading). If its Enter fails, the error, which also stays in
+    // Failure. With a scene already entered it is an error and the current one goes on: Request is for changing. A
+    // previous Poll error is terminal, even before the first scene: it returns the first diagnostic and does not enter.
+    // A failed Enter does allow retrying Start.
     Core::Expected<void, std::string> Start(Kernel::SceneId first);
-    // La red, también minimizada y antes de Start; sólo un fallo de Poll la detiene.
-    // Un Enter fallido no corta la red mientras el host decide reintentar Start.
+    // The network, also minimized and before Start; only a Poll failure stops it.
+    // A failed Enter does not cut the network while the host decides whether to retry Start.
     void Poll() override;
-    // Si la red ordenó una escena, primero Request a esa, y el paso ya es de la nueva. Después, el paso
-    // de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
-    // de un pedido rechazado: si vuelve, se avisa otra vez. Si la escena falló (IScene::Failure), su
-    // error queda en Failure y no pide nada.
+    // If the network ordered a scene, first Request to it, and the step already belongs to the new one. Then, the
+    // scene's step and, if it asks for another (Next), Request. A step without a request ends the run of a rejected
+    // request: if it comes back, it is reported again. If the scene failed (IScene::Failure), its error stays in
+    // Failure and it asks for nothing.
     void Step(const Input::InputState& input) override;
-    // BeginFrame con el reloj, el Render de la escena y Present, entre beforeSceneDraw y afterSceneDraw. Sin
-    // escena, nada. Antes, el IScene::PrepareFrame del frame si nadie lo corrió. No mira HoldsTheLastFrame: el
-    // GameLoop no lo llama con el frame retenido. Si el dibujo falló (IScene::Failure), su error queda en Failure y
-    // el frame no se presenta.
+    // BeginFrame with the clock, the scene's Render and Present, between beforeSceneDraw and afterSceneDraw. Without a
+    // scene, nothing. Before, the frame's IScene::PrepareFrame if nobody ran it. It does not look at HoldsTheLastFrame:
+    // the GameLoop does not call it with the frame held. If the draw failed (IScene::Failure), its error stays in
+    // Failure and the frame is not presented.
     void Render(float alpha) override;
 
-    // Cambia a `next` si de la escena de ahora se puede ir (IsOriginalTransition): Leave, la
-    // fábrica y Enter. Si no se puede, un error en el log (una vez por pedido seguido igual) y nada
-    // cambia. No se llama desde adentro de una escena: la escena lo pide con Next.
+    // Changes to `next` if the current scene can go there (IsOriginalTransition): Leave, the factory and Enter. If not,
+    // an error in the log (once per run of the same request) and nothing changes. Not called from inside a scene: the
+    // scene asks with Next.
     void Request(Kernel::SceneId next);
 
-    // La escena de ahora; vacío antes de Start o después de un Enter que falló.
+    // The current scene; empty before Start or after a failed Enter.
     [[nodiscard]] std::optional<Kernel::SceneId> Current() const;
-    // El error vigente de Enter, del paso o del dibujo de la escena, o el primer fallo terminal de Poll
-    // (que gana al de Enter), o vacío.
+    // The current error of Enter, of the scene's step or draw, or the first terminal Poll failure (which wins over
+    // Enter's), or empty.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
-    // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
+    // IScene::WantsToQuit; without a scene, false.
     [[nodiscard]] bool WantsToQuit() const;
-    // Si la escena de ahora pide el texto tecleado (IScene::WantsTextInput); sin escena, false.
+    // IScene::WantsTextInput; without a scene, false.
     [[nodiscard]] bool WantsTextInput() const;
-    // Con Failure retiene sin notificar la escena; de otro modo consulta IScene::HoldsTheLastFrame,
-    // después de IScene::PrepareFrame si este frame todavía no la corrió. Un frame termina con Render,
-    // y Poll y Step empiezan otro: preguntar dos veces en el mismo frame no lee dos veces.
+    // With Failure it holds without notifying the scene; otherwise it queries IScene::HoldsTheLastFrame, after
+    // IScene::PrepareFrame if this frame has not run it yet. A frame ends with Render, and Poll and Step start another:
+    // asking twice in the same frame does not read twice.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
-    // Si un Step entró a otra escena desde la última vez (Request); el Start no cuenta, porque va antes
-    // del bucle.
+    // Whether a Step entered another scene since the last time (Request); Start does not count, because it goes before
+    // the loop.
     [[nodiscard]] bool TakeTheSceneChange() override;
-    // afterSceneFrame con el reloj, con una escena y sin un error.
+    // afterSceneFrame with the clock, with a scene and without an error.
     void FinishTheLoop() override;
 
 private:
-    // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.
+    // The factory and the Enter of `id`; if it fails, it stays without a scene and with the error.
     Core::Expected<void, std::string> Enter(Kernel::SceneId id);
-    // IScene::PrepareFrame, una vez por frame.
+    // IScene::PrepareFrame, once per frame.
     void PrepareFrame() const;
-    // Si la escena falló en `where` (IScene::Failure): guarda el error, lo anota y devuelve true.
+    // If the scene failed in `where` (IScene::Failure): stores the error, logs it and returns true.
     bool TakeTheSceneFailure(const char* where);
-    // Si `done` es un error de lo que corre alrededor del dibujo: lo guarda, lo anota y devuelve true.
+    // If `done` is an error of what runs around the draw: stores it, logs it and returns true.
     bool TakeTheDrawFailure(const Core::Expected<void, std::string>& done);
 
     SceneFactory m_factory;
@@ -123,27 +118,27 @@ private:
     std::function<Core::Expected<void, std::string>()> m_pollNetwork;
     Core::Log& m_log;
     std::function<std::optional<Kernel::SceneId>()> m_takeSceneOrder;
-    // Prefijo global del dibujo, una vez por frame, antes del despacho y de la guarda de la escena.
+    // The draw's global prefix, once per frame, before the dispatch and the scene's guard.
     std::function<void(Core::Duration)> m_beforeSceneFrame;
-    // Lo de la vuelta del bucle después del frame (FinishTheLoop).
+    // The loop turn's work after the frame (FinishTheLoop).
     std::function<void(Core::Duration)> m_afterSceneFrame;
-    // Lo de 0x637700 detrás del paso de cualquier escena.
+    // 0x637700's work after the step of any scene.
     std::function<Core::Expected<void, std::string>()> m_afterSceneStep;
-    // Lo de 0x637700 antes y después del dibujo de cualquier escena.
+    // 0x637700's work before and after the draw of any scene.
     std::function<Core::Expected<void, std::string>()> m_beforeSceneDraw;
     std::function<Core::Expected<void, std::string>(Render::Frame::SceneCanvas&)> m_afterSceneDraw;
-    // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
+    // The scene the network ordered that has not entered yet: the next Step takes it.
     std::optional<Kernel::SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;
     std::optional<Kernel::SceneId> m_current;
     std::optional<std::string> m_failure;
-    // Distingue el aborto fatal de Poll del Enter fallido que Start puede reintentar.
+    // Tells Poll's fatal abort from the failed Enter that Start can retry.
     bool m_pollFailed = false;
-    // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
+    // The last rejected request, so the notice is not repeated on each step while it keeps being asked.
     std::optional<Kernel::SceneId> m_rejected;
     bool m_sceneChanged = false;
-    // Si la escena de ahora ya corrió PrepareFrame en este frame. Es mutable porque la decide la
-    // consulta const HoldsTheLastFrame, como el aviso OnFrameHeld.
+    // Whether the current scene already ran PrepareFrame in this frame. Mutable because the const query
+    // HoldsTheLastFrame decides it, like the OnFrameHeld notice.
     mutable bool m_framePrepared = false;
 };
 } // namespace Client::Scenes

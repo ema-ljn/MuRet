@@ -2,21 +2,21 @@
 
 #include <cstdint>
 
-// Los avisos del juego (06 § HUD y ventanas, "Los diálogos del juego"): 0x7d3a10c es el abierto (0: ninguno) y
-// 0x7d3a110 el que espera. Los atiende 0x623e70 en cada paso y los dibuja 0x62db60 en cada frame (hito 6).
+// The game's dialogs (06 § HUD y ventanas, "Los diálogos del juego"): 0x7d3a10c is the open one (0: none) and
+// 0x7d3a110 the waiting one. 0x623e70 handles them each step and 0x62db60 draws them each frame (milestone 6).
 namespace Client::Ui
 {
-// 0x623ea8: el menú de Esc.
+// 0x623ea8
 inline constexpr std::int32_t EscapeMenuDialog = 0x6e;
-// 0x56b387: la desconexión, con la que SendMove no pone a caminar al héroe.
+// 0x56b387: with it, SendMove does not set the hero walking.
 inline constexpr std::int32_t DisconnectDialog = 0x70;
-// 0x6236f0: el que se fuerza aunque haya otro abierto.
+// 0x6236f0: forced even with another one open.
 inline constexpr std::int32_t ForcedDialog = 0x78;
-// 0x623f4d: las opciones, que Esc cierra como el menú.
+// 0x623f4d: Esc closes it like the menu.
 inline constexpr std::int32_t OptionsDialog = 0x93;
-// 0x659860 y 0x6599a0: el único aviso con el que se puede abrir un panel.
+// 0x659860 and 0x6599a0: the only dialog with which a panel can be opened.
 inline constexpr std::int32_t PanelFriendlyDialog = 0x8a;
-// 0x6236f0: con el 0x9a abierto, el 0x7f no entra.
+// 0x6236f0: with the 0x9a open, the 0x7f does not get in.
 inline constexpr std::int32_t ChaosCastleDialog = 0x9a;
 inline constexpr std::int32_t IgnoredOverChaosCastle = 0x7f;
 
@@ -28,8 +28,8 @@ struct DialogState
     std::int32_t pending = 0;
 };
 
-// 0x6236f0(id): con 0 pasa al que espera; con 0x78 lo fuerza; con uno abierto, lo deja esperando; si no, lo abre.
-// Con el 0x9a abierto, el 0x7f no entra.
+// 0x6236f0(id): 0 moves to the waiting one; 0x78 forces it; with one open, it waits; otherwise it opens. With the
+// 0x9a open, the 0x7f does not get in.
 inline void PushDialog(DialogState& dialogs, std::int32_t id)
 {
     if (dialogs.current == ChaosCastleDialog && id == IgnoredOverChaosCastle)

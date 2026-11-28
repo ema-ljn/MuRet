@@ -9,7 +9,7 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-// La misma subclase 0x467b10 y el EDIT occidental de Windows para el chat, los diálogos, amigos y cartas.
+// The same subclass 0x467b10 and the Western Windows EDIT for the chat, the dialogs, friends and letters.
 namespace Client::Platform
 {
 class IClipboard;
@@ -37,7 +37,7 @@ enum class OldEditKey : std::uint8_t
     PageDown,
 };
 
-// Tab con padre puede pedir el foco en +0x98; los EDIT sin padre lo reenvían al juego desde GameChat.
+// Tab with a parent can ask for the focus in +0x98; EDITs without a parent forward it to the game from GameChat.
 void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Platform::IClipboard* clipboard = nullptr,
                        const Render::Text::ITextMeasure* measure = nullptr,
                        const std::function<void(std::int32_t)>& focusNext = {});

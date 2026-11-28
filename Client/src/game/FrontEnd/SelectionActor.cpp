@@ -39,8 +39,8 @@ void PutAppearance(Kernel::ActorState& actor, const Kernel::CharacterAppearance&
     actor.skin = appearance.skin;
     actor.scale = appearance.scale;
     actor.head = appearance.head.value_or(Kernel::NoItemModel);
-    // 0x512a30 escribe el modelo, el nivel y los bytes +3 y +4: el hueso y la animación de lo que cuelga
-    // quedan como estaban.
+    // 0x512a30 writes the model, the level and bytes +3 and +4: the bone and the animation of what hangs
+    // stay as they were.
     const auto put = [](Kernel::ActorItemPart& part, const Kernel::WornItem& item)
     {
         part.model = item.model;
@@ -137,7 +137,7 @@ Core::Expected<void, std::string> ConstructSelectionActor(Kernel::WorldState& wo
     actor.flags7c = 0;
     const auto characterClass = Protocol::FrontEnd::CharacterClassOf(entry.classByte);
     PutAppearance(actor, Kernel::ClassAppearance(characterClass, 0));
-    // 0x51736f, antes de 0x5139f0: las partes de la clase base, aun para una segunda clase.
+    // 0x51736f, before 0x5139f0: the base class's parts, even for a second class.
     constexpr std::uint8_t ClassMask = 7;
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {

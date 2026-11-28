@@ -20,24 +20,23 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x555190 y 0x554610 cortan desde 256 píxeles (cx < 0x100 y cx > 0xff).
+// 0x555190 and 0x554610 split from 256 pixels (cx < 0x100 and cx > 0xff).
 constexpr int SplitWidth = 0x100;
-// 0x555190 con la tabla llena: la deja en 0x77 y corre los renglones.
+// 0x555190 with the table full: leaves it at 0x77 and shifts the rows.
 constexpr std::int32_t LastAreaRow = 0x77;
 constexpr std::int32_t LastNotice = 5;
 constexpr int RowHeight = 13;
-// 0x5554e0 y 0x554810 terminan cuando la y pasa de 0x4d (6 renglones) o cuando el puntero pasa del sexto aviso.
+// 0x5554e0 and 0x554810 end when the y passes 0x4d (6 rows) or when the pointer passes the sixth notice.
 constexpr int LastAreaY = 0x4d;
-// 0x5554e0: la y con el estado 3 o 4 de Crywolf (0x723c05).
+// 0x5554e0: the y with Crywolf's state 3 or 4 (0x723c05).
 constexpr int CrywolfOffset = 0x89;
-// 0x554810: el primer aviso, y lo que sube con el registro del chat en su ventana.
+// 0x554810: the first notice, and how much it rises with the chat log in its window.
 constexpr int FirstNoticeY = 300;
 constexpr int NoticeRise = 0x118;
 constexpr int NoticeCenter = 0x140;
-// La segunda mitad de un renglón cortado: 0x20202020, 0x20202020 y 0x2020 en el nombre.
+// The second half of a split row: 0x20202020, 0x20202020 and 0x2020 in the name.
 constexpr std::string_view ContinuedName = "          ";
 
-// Un texto de C: hasta su primer '\0'.
 std::string_view CString(std::string_view text)
 {
     const std::size_t end = text.find('\0');
@@ -49,14 +48,14 @@ std::string Bounded(std::string_view text, std::size_t bytes)
     return std::string(CString(text).substr(0, bytes));
 }
 
-// 0x555190: corre los renglones 1..119 a 0..118 (nombre, texto y tipo). El 119 queda como estaba.
+// 0x555190: shifts rows 1..119 to 0..118 (name, text and type). Row 119 stays as it was.
 void ShiftTheArea(MessageAreaState& area)
 {
     for (std::size_t row = 0; row + 1 < MessageAreaRows; ++row)
         area.rows[row] = area.rows[row + 1];
 }
 
-// 0x554610: corre los avisos 1..5 a 0..4 (el color y el texto). El 5 queda como estaba.
+// 0x554610: shifts notices 1..5 to 0..4 (the color and the text). Notice 5 stays as it was.
 void ShiftTheNotices(MessageAreaState& area)
 {
     for (std::size_t row = 0; row + 1 < NoticeRows; ++row)
@@ -77,7 +76,7 @@ bool OnlyInTheList(std::string_view name, std::int32_t type)
                              type == GuildMessage || type == GuildNoticeMessage);
 }
 
-// 0x5554e0: los colores por tipo. El 6 y los otros no tienen caso y quedan los del texto anterior.
+// 0x5554e0: type 6 and the others have no case and keep the previous text's colors.
 void ColorsOf(std::int32_t type, Render::Text::TextColors& colors)
 {
     switch (type)
@@ -105,8 +104,8 @@ void ColorsOf(std::int32_t type, Render::Text::TextColors& colors)
     }
 }
 
-// 0x5554e0: "%s%s" (0x6c8f20) con dos espacios al principio del nombre, "%s" (0x6c8f30) con el nombre vacío y
-// "%s: %s" (0x6c8f28) si no.
+// 0x5554e0: "%s%s" (0x6c8f20) with two spaces at the start of the name, "%s" (0x6c8f30) with the name empty and
+// "%s: %s" (0x6c8f28) otherwise.
 std::string LineOf(const MessageAreaRow& row)
 {
     if (row.name.size() >= 2 && row.name[0] == ' ' && row.name[1] == ' ')
@@ -116,7 +115,7 @@ std::string LineOf(const MessageAreaRow& row)
     return row.name + ": " + row.text;
 }
 
-// 0x77f31b8 y 0x77f31bc: ftol(cx / rx) y ftol(cy / ry).
+// 0x77f31b8 and 0x77f31bc: ftol(cx / rx) and ftol(cy / ry).
 void KeepTheSize(const MessageDrawContext& context, Render::Text::TextExtent extent)
 {
     context.textWidth = Render::Text::DesignX(extent.width, context.sprites.Screen());
@@ -148,7 +147,7 @@ void AddToTheMessageArea(MessageAreaState& area, const Render::Text::ITextMeasur
     area.clock = MessageClockSteps;
     if (OnlyInTheList(name, type))
         return;
-    // sprintf("%s: %s") y GetTextExtentPointA sobre el DC, sin elegir la fuente.
+    // sprintf("%s: %s") and GetTextExtentPointA on the DC, without selecting the font.
     const std::string line = std::string(name) + ": " + std::string(text);
     const Render::Text::TextExtent extent = measure.Measure(dcFont, line);
     std::int32_t index = area.count;
@@ -228,7 +227,7 @@ void DrawTheMessageArea(const MessageAreaState& area, MessageFrameState& frame, 
     for (int y = 0, shown = 0; y <= LastAreaY; y += RowHeight, ++shown)
     {
         const std::int32_t index = area.firstShown + shown;
-        // 0x6c8eb4 es siempre 0x72: el original no mira el rango.
+        // 0x6c8eb4 is always 0x72: the original does not check the range.
         if (index < 0 || index >= static_cast<std::int32_t>(MessageAreaRows))
             continue;
         const MessageAreaRow& row = area.rows[static_cast<std::size_t>(index)];
@@ -238,8 +237,8 @@ void DrawTheMessageArea(const MessageAreaState& area, MessageFrameState& frame, 
         const std::string line = LineOf(row);
         const Render::Text::TextExtent extent = context.text.Measure(context.dcFont, line);
         frame.widths[static_cast<std::size_t>(index)] = extent.width;
-        // El mouse sobre el renglón de otro, con el chat abierto: el texto y el fondo se cambian tres dibujos de cada
-        // seis. El ancho va a 640 con cx · 640 / W en 32 bits sin signo.
+        // The mouse over another's row, with the chat open: the text and the background swap three draws out of six.
+        // The width goes to 640 with cx · 640 / W in unsigned 32 bits.
         const std::uint32_t right = screen.width > 0 ? static_cast<std::uint32_t>(extent.width) * 640u /
                                                            static_cast<std::uint32_t>(screen.width)
                                                      : static_cast<std::uint32_t>(extent.width);

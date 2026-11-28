@@ -20,13 +20,11 @@ GameLoop::GameLoop(Core::IClock& clock, Scenes::ILoopClient& client, Kernel::Pac
 
 int GameLoop::RunFrame(const Platform::WindowState& state, Input::InputState& input)
 {
-    // La red primero, también minimizada: lo que llegue lo ven los pasos de este frame. El
-    // original despacha la cola después del frame (0x4be5b3), que entre un frame y otro es lo
-    // mismo. En Decoupled lo que tarda entra en el frame (se mide de un Now() al siguiente,
-    // después del Poll); en Faithful queda antes de BeginFrame y fuera de la medición, como el
-    // bucle de mensajes de WinMain (Q-C44). Minimizado, el original da vueltas sin parar y acá el
-    // Poll va a unos 25 Hz (duerme hasta el próximo paso de 40 ms), de sobra para un keepalive de
-    // 20 s.
+    // The network first, also minimized: what arrives is seen by this frame's steps. The original dispatches the queue
+    // after the frame (0x4be5b3), which between frames is the same. In Decoupled its time goes into the frame (measured
+    // from one Now() to the next, after the Poll); in Faithful it stays before BeginFrame and outside the measurement,
+    // like WinMain's message loop (Q-C44). Minimized, the original spins nonstop and here the Poll runs at about 25 Hz
+    // (it sleeps until the next 40 ms step), plenty for a 20 s keepalive.
     m_client.Poll();
     const int steps = m_mode == Kernel::PacingMode::Faithful ? RunFaithful(state, input) : RunDecoupled(state, input);
     ++m_stats.frames;
@@ -47,8 +45,8 @@ float GameLoop::LastAlpha() const
 int GameLoop::RunDecoupled(const Platform::WindowState& state, Input::InputState& input)
 {
     const Core::Duration now = m_clock.Now();
-    // El frame se mide desde el Now() anterior, también si el reloj volvió para atrás: ese frame
-    // cuenta 0 (FixedStep) y el siguiente se mide desde el valor nuevo.
+    // Measured from the previous Now(), also if the clock went backwards: that frame counts 0 (FixedStep) and the next
+    // one is measured from the new value.
     const Core::Duration frameTime = m_lastNow ? now - *m_lastNow : Core::Duration::zero();
     m_lastNow = now;
 
@@ -58,8 +56,8 @@ int GameLoop::RunDecoupled(const Platform::WindowState& state, Input::InputState
         ++m_stats.clampedFrames;
     }
     RunSteps(steps, input);
-    // Lo que tardó la entrada a una escena no cuenta (ILoopClient::TakeTheSceneChange): el frame siguiente
-    // se mide desde acá, después de los pasos, como mide el original todos.
+    // The time a scene entry took does not count (ILoopClient::TakeTheSceneChange): the next frame is measured from
+    // here, after the steps, as the original measures all of them.
     if (m_client.TakeTheSceneChange())
     {
         m_lastNow = m_clock.Now();
@@ -67,17 +65,16 @@ int GameLoop::RunDecoupled(const Platform::WindowState& state, Input::InputState
     m_stats.accumulated = m_fixedStep.Accumulated();
     m_lastAlpha = m_fixedStep.Alpha();
 
-    // Con el frame retenido (el connect del login, Q-C85), como minimizada: se mira después de los
-    // pasos, que son los que ven lo que trajo el Poll.
+    // With the frame held (the login's connect, Q-C85), like minimized: checked after the steps, which are the ones
+    // that see what the Poll brought.
     if (state.minimized || m_client.HoldsTheLastFrame())
     {
-        // Sin dibujo, el swap no frena el bucle: duerme lo que falta para el próximo paso, que
-        // es más que 0 porque el acumulador quedó debajo de LogicStep. El tope no se usa, y al
-        // volver arranca de nuevo.
+        // Without drawing, the swap does not pace the loop: it sleeps what is left until the next step, more than 0
+        // because the accumulator stayed below LogicStep. The cap is not used, and it starts over on return.
         m_clock.SleepFor(Kernel::LogicStep - m_fixedStep.Accumulated());
         m_frameDeadline.reset();
-        // Retenido, el original da la vuelta y corre el frame sin presentarlo; minimizada, va por la rama sin
-        // frame, que no se modela (P-C61).
+        // Held, the original goes around and runs the frame without presenting it; minimized, it takes the frameless
+        // branch, which is not modeled (P-C61).
         if (!state.minimized)
         {
             m_client.FinishTheLoop();
@@ -97,17 +94,17 @@ int GameLoop::RunDecoupled(const Platform::WindowState& state, Input::InputState
 
 void GameLoop::SleepRestOfFrame(Core::Duration frameStart)
 {
-    // La meta es m_frameDeadline (hasta dónde durmió el frame anterior, o dónde terminó si se pasó)
-    // más m_minFrameTime, y no frameStart + m_minFrameTime: así lo que corre entre dos RunFrame (los
-    // eventos, --stats) cae adentro del frame y no se suma, y el ritmo queda en maxFps, o en lo que
-    // dé la máquina si es menos. Sin meta anterior (el primer frame, al volver de minimizada) o con
-    // una que quedó adelante (el reloj volvió entre frames), cuenta desde frameStart.
+    // The target is m_frameDeadline (how far the previous frame slept, or where it ended if it overran) plus
+    // m_minFrameTime, not frameStart + m_minFrameTime: so what runs between two RunFrame (the events, --stats) falls
+    // inside the frame and does not add up, and the rate stays at maxFps, or at what the machine gives if less. With no
+    // previous target (the first frame, back from minimized) or one left ahead (the clock went back between frames), it
+    // counts from frameStart.
     const bool followsLastDeadline = m_frameDeadline && frameStart >= *m_frameDeadline;
     const Core::Duration deadline = (followsLastDeadline ? *m_frameDeadline : frameStart) + m_minFrameTime;
     const Core::Duration afterRender = m_clock.Now();
     if (afterRender < frameStart)
     {
-        // El reloj volvió durante el frame: la resta daría más que un frame entero.
+        // The clock went back during the frame: the subtraction would give more than a whole frame.
         m_frameDeadline.reset();
     }
     else if (afterRender < deadline)
@@ -117,9 +114,8 @@ void GameLoop::SleepRestOfFrame(Core::Duration frameStart)
     }
     else
     {
-        // Se pasó de la meta (un frame largo, o un hueco largo antes de empezar): no duerme, y la
-        // próxima cuenta desde acá. Así no se pone al día con frames más cortos, y lo que corra
-        // hasta el próximo RunFrame tampoco se suma.
+        // Past the target (a long frame, or a long gap before it started): no sleep, and the next counts from here. So
+        // it does not catch up with shorter frames, and what runs until the next RunFrame does not add up either.
         m_frameDeadline = afterRender;
     }
 }
@@ -128,18 +124,18 @@ int GameLoop::RunFaithful(const Platform::WindowState& state, Input::InputState&
 {
     const int steps = m_pacer.BeginFrame();
     RunSteps(steps, input);
-    // La medición ya empieza después de los pasos: el cambio de escena no se suma.
+    // The measurement already starts after the steps: the scene change does not add up.
     static_cast<void>(m_client.TakeTheSceneChange());
-    // Después de los pasos (0x63852b): lo que tardan no se acumula.
+    // After the steps (0x63852b): their time does not accumulate.
     m_pacer.StartMeasure(m_clock);
-    // El original dibuja el estado después de los pasos, sin interpolar. Render también presenta
-    // (ILoopClient), así que el swap queda adentro de la medición, como en 0x63852b..0x638632.
+    // The original draws the state after the steps, without interpolating. Render also presents (ILoopClient), so the
+    // swap stays inside the measurement, as in 0x63852b..0x638632.
     m_lastAlpha = 0.0f;
     if (!state.minimized && !m_client.HoldsTheLastFrame())
     {
         m_client.Render(m_lastAlpha);
     }
-    // Sin dibujo también: sin la espera el acumulador no suma y no corre nunca más un paso.
+    // Without drawing too: without the wait the accumulator does not grow and no step ever runs again.
     m_pacer.EndFrame(m_clock);
     if (!state.minimized)
     {
@@ -157,8 +153,8 @@ void GameLoop::RunSteps(int steps, Input::InputState& input)
         m_client.Step(input);
         if (step == 0)
         {
-            // Como el primer lector del original, que borra el bit bajo: el segundo paso del
-            // frame ya no ve el apretón, y lo que está abajo sigue abajo.
+            // Like the original's first reader, which clears the low bit: the frame's second step no longer sees the
+            // press, and what is held stays held.
             input.ConsumeEdges();
         }
     }

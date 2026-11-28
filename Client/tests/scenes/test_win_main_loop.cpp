@@ -18,8 +18,8 @@
 #include <optional>
 #include <string>
 
-// Client::Scenes::StepTheWinMainLoop y CloseTheFrameCounter: los rand() de la vuelta de WinMain (P-C61, Q-C461),
-// leídos del ASM de 0x4bbc57..0x4be02f y de 0x63950d..0x63b066.
+// Client::Scenes::StepTheWinMainLoop and CloseTheFrameCounter: the rand() of WinMain's loop (P-C61, Q-C461), read
+// from the ASM of 0x4bbc57..0x4be02f and 0x63950d..0x63b066.
 namespace
 {
 using Client::Core::Duration;
@@ -36,7 +36,6 @@ using Client::Scenes::WinMainLoopState;
 
 constexpr std::uint32_t Seed = 0x1234;
 
-// La CRT con `draws` rand() sacados desde Seed.
 CrtRandom After(int draws)
 {
     CrtRandom random(Seed);
@@ -54,7 +53,7 @@ std::uint32_t PackedAfter(int draws)
     return packed;
 }
 
-// Cada vuelta abre, sube y cierra el contador (4) y lee el byte del foco (1).
+// Each loop opens, raises and closes the counter (4) and reads the focus byte (1).
 TEST(WinMainLoopTest, AQuietLoopDrawsFiveAndCountsIt)
 {
     WinMainCounters counters;
@@ -67,8 +66,8 @@ TEST(WinMainLoopTest, AQuietLoopDrawsFiveAndCountsIt)
     EXPECT_EQ(counters.rounds, 0);
 }
 
-// 0x4bbd44: la vuelta 31 cierra el primero, abre, sube y cierra el segundo, y con la ventana sin minimizar
-// (0x4bdaef) deja los dos en 0, cada uno con su cierre, antes de la cola común: 4 * 5 + 1.
+// 0x4bbd44: loop 31 closes the first, opens, raises and closes the second, and with the window not minimized
+// (0x4bdaef) leaves both at 0, each with its close, before the common tail: 4 * 5 + 1.
 TEST(WinMainLoopTest, TheThirtyFirstLoopResetsBothCounters)
 {
     WinMainCounters counters;
@@ -84,13 +83,13 @@ TEST(WinMainLoopTest, TheThirtyFirstLoopResetsBothCounters)
     EXPECT_EQ(counters.loops, 0);
     EXPECT_EQ(counters.rounds, 0);
 
-    // Y vuelve a empezar: la vuelta siguiente es la 1.
+    // And it starts again: the next loop is 1.
     StepTheWinMainLoop(counters, random);
     EXPECT_EQ(random.State(), After(30 * 5 + 21 + 5).State());
     EXPECT_EQ(counters.loops, 1);
 }
 
-// 0x63945d, después de 0x637700: abre y cierra el contador.
+// 0x63945d, after 0x637700: opens and closes the counter.
 TEST(WinMainLoopTest, TheFrameClosesTheCounterWithFour)
 {
     CrtRandom random(Seed);
@@ -141,7 +140,7 @@ TEST(WinMainLoopTest, DeviasClosesEachReachedCoordinateRead)
     EXPECT_EQ(hero.cellYLeft, PackedAfter(4));
 }
 
-// Una vuelta entera con su frame: 9, y 25 en la de las rondas.
+// A whole loop with its frame: 9, and 25 in the rounds one.
 TEST(WinMainLoopTest, ThirtyOneLoopsWithTheirFramesDrawTwoHundredNinetyFive)
 {
     WinMainCounters counters;

@@ -56,7 +56,7 @@ public:
     Client::Models::Skeleton skeleton;
 };
 
-// 4fd5c1..4fd5df: 1b1/1b3 pasan por dos productores distintos que apendean las mismas keys.
+// 0x4fd5c1..0x4fd5df: 0x1b1/0x1b3 go through two different producers that append the same keys.
 TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnconditionalRandom)
 {
     struct Case
@@ -84,7 +84,7 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         actor.type = probe.type;
         actor.byte88 = 2;
         actor.scale = 1.0f;
-        actor.position = {10000, 20000, 0}; // Fuera del trapecio: el sufijo no pide efectos del dibujo.
+        actor.position = {10000, 20000, 0}; // Outside the trapezoid: the suffix asks for no draw effects.
         actor.animation.action = probe.action;
         actor.animation.previousAction = probe.action;
         actor.animation.frame = 3.0f;
@@ -95,7 +95,7 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
             actor,
             {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels, .hooks = &StepHooks});
 
-        // 1b1 alcanza después el sprite de un helper CL11; la estela ya tiene ambas tandas.
+        // 0x1b1 then reaches the sprite of a CL11 helper; the trail already has both batches.
         if (probe.type == 0x1b1)
         {
             ASSERT_FALSE(stepped.HasValue());
@@ -117,7 +117,7 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         }
     }
 }
-// 0x4fd580 antes de 0x4fd5a0: una partícula cada dos muestras y después el rand() común de 0x432bd0.
+// 0x4fd580 before 0x4fd5a0: one particle every two samples and then the common rand() of 0x432bd0.
 TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep)
 {
     std::uint32_t withoutBirths = 0;
@@ -177,7 +177,7 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
     }
 }
 
-// 4fcbe3 vuelve a 4f9580 sin volver a publicar+a0 después de cambiar la acción del actor.
+// 0x4fcbe3 goes back to 0x4f9580 without publishing +0xa0 again after changing the actor's action.
 TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();

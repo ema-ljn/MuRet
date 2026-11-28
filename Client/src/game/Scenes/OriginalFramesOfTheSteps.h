@@ -5,31 +5,29 @@
 
 #include <cstdint>
 
-// Los frames del original de una escena, contados por los pasos de lógica que corrió y no por el reloj del
-// dibujo (#307). El original corre los pasos que debe y después dibuja (02 § El ritmo, 0x637791..0x6381a5):
-// cada dibujo es un frame, que a 21,33 FPS ve 1 o 2 pasos (75 cada 64 frames) y en una máquina más lenta, más.
-// Nunca corre dos frames en un dibujo ni un frame sin pasos. Contados por el reloj del dibujo, a 60 FPS, el
-// dibujo que cruza la marca de 46,875 ms a veces llega antes del paso que le toca y a veces después: unos 40
-// frames por minuto no veían ningún paso y el siguiente veía 2, y la capa del que camina daba un tirón.
+// The original's frames of a scene, counted by the logic steps it ran and not by the draw clock (#307). The original
+// runs the steps it owes and then draws (02 § El ritmo, 0x637791..0x6381a5): each draw is a frame, which at 21.33 FPS
+// sees 1 or 2 steps (75 every 64 frames), more on a slower machine; it never runs two frames in one draw or a frame
+// without steps. Counted by the draw clock, at 60 FPS, the draw crossing the 46.875 ms mark sometimes came before its
+// step and sometimes after: some 40 frames a minute saw no step and the next saw 2, and the walker's layer jerked.
 namespace Client::Scenes
 {
 class OriginalFramesOfTheSteps
 {
 public:
-    // Un paso de lógica de la escena.
     void Step()
     {
         ++m_steps;
     }
 
-    // Si este dibujo es un frame del original (1) o uno intermedio (0). El primero de la escena lo es; en el modo
-    // fiel (OncePerDraw), todos. Si no, lo es el dibujo que trae al menos un paso nuevo y completa 46,875 ms de
-    // pasos desde el frame anterior. Como mucho uno por dibujo: lo que sobra de un frame más se descarta, y por
-    // debajo de 21,33 FPS cada dibujo es un frame, con más pasos, como el original en una máquina lenta.
+    // Whether this draw is a frame of the original (1) or an intermediate one (0). The scene's first one is; in
+    // faithful mode (OncePerDraw), all are. Otherwise, it is the draw that brings at least one new step and
+    // completes 46.875 ms of steps since the previous frame. At most one per draw: what is left of one more frame is
+    // discarded, and below 21.33 FPS each draw is a frame, with more steps, like the original on a slow machine.
     [[nodiscard]] int FramesAtDraw(Models::OriginalFramePace pace);
 
-    // Lo que daría FramesAtDraw ahora, sin contar el dibujo: si el próximo es un frame del original. Lo pregunta el
-    // PrepareFrame del juego antes del dibujo, para olvidar solo en un frame del original lo que ese frame reescribe.
+    // What FramesAtDraw would give now, without counting the draw: whether the next one is a frame of the original. The
+    // game's PrepareFrame asks it before the draw, to forget only in a frame of the original what that frame rewrites.
     [[nodiscard]] bool NextDrawIsAnOriginalFrame(Models::OriginalFramePace pace) const;
 
 private:

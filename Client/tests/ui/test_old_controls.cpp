@@ -12,8 +12,9 @@
 #include <utility>
 #include <vector>
 
-// Los controles de las ventanas viejas (CL9 hito 9): la plantilla de lista de 0x47b0f0, 0x47a9d0, 0x47a910,
-// 0x461830, 0x47aef0..0x47afd0, 0x47b9c0 y 0x461c70. Las listas no tienen elementos propios: el test dice cuántos hay.
+// The old windows' controls (CL9 milestone 9): the list template of 0x47b0f0, 0x47a9d0, 0x47a910, 0x461830,
+// 0x47aef0..0x47afd0, 0x47b9c0 and 0x461c70. The lists have no elements of their own: the test says how many there
+// are.
 namespace
 {
 using Client::Ui::ArrowDownMessage;
@@ -41,7 +42,7 @@ protected:
 
     void SetUp() override
     {
-        // Como la de amigos en su pestaña: el rectángulo cuelga de y = 300, de 0xe6 × 0x5b.
+        // Like the friend list in its tab: the rectangle hangs from y = 300, 0xe6 × 0x5b.
         m_list.base.id = 40;
         m_list.base.parent = 39;
         m_list.base.x = 100;
@@ -100,7 +101,7 @@ TEST_F(OldListTest, ScrollingNeedsAsManyAsTheRowsAndStaysInRange)
     EXPECT_EQ(m_list.scroll, 0);
 }
 
-// 0x461830: menos renglones que antes y que la cuenta corren uno; más que la cuenta vuelven a 0.
+// 0x461830: fewer rows than before and than the count scroll one; more than the count go back to 0.
 TEST_F(OldListTest, FewerRowsScrollOneMore)
 {
     m_list.scroll = 2;
@@ -127,7 +128,8 @@ TEST_F(OldListTest, TheSelectionMovesInsideTheCount)
     EXPECT_EQ(m_list.selection, 0);
 }
 
-// 0x47a9d0: el 9 cuenta con el alto de antes (0x5b · 1/13 − 0,5 = 6,5 → 6); el 0xe va al final y elige el último.
+// 0x47a9d0: message 9 counts with the previous height (0x5b · 1/13 − 0.5 = 6.5 → 6); 0xe goes to the end and chooses
+// the last one.
 TEST_F(OldListTest, TheMessagesCountRowsAndGoToTheEnd)
 {
     m_list.rows = 3;
@@ -138,7 +140,7 @@ TEST_F(OldListTest, TheMessagesCountRowsAndGoToTheEnd)
     EXPECT_EQ(m_list.selection, 20);
 }
 
-// 0xf sube la elección y 0x10 la baja, y el corrimiento la sigue.
+// 0xf moves the selection up and 0x10 down, and the scroll follows it.
 TEST_F(OldListTest, TheKeyboardArrowsKeepTheSelectionInSight)
 {
     Client::Ui::SelectInTheList(m_list, 20, 6);
@@ -151,7 +153,7 @@ TEST_F(OldListTest, TheKeyboardArrowsKeepTheSelectionInSight)
     EXPECT_EQ(m_list.scroll, 0);
 }
 
-// 0x47b11f: con la lista con el foco, la flecha se manda su mensaje al apretarla y desde el sexto paso en cada paso.
+// 0x47b11f: with the list focused, the arrow sends its message on the press and on every step from the sixth.
 TEST_F(OldListTest, AHeldArrowRepeatsFromTheSixthStep)
 {
     m_focused = 40;
@@ -178,8 +180,8 @@ TEST_F(OldListTest, TheWheelScrollsThreeRowsPerStep)
     EXPECT_EQ(m_mouseOnUi, 1);
 }
 
-// La flecha de arriba de la barra (x + 8 − 0x15 + w, y − h) corre uno con el sonido; con padre, la cuenta solo sube con
-// el administrador dibujado.
+// The bar's up arrow (x + 8 − 0x15 + w, y − h) scrolls one with the sound; with a parent, the count only rises with
+// the manager drawn.
 TEST_F(OldListTest, TheBarArrowCountsOnlyAfterADraw)
 {
     m_leftClick = true;
@@ -199,7 +201,6 @@ TEST_F(OldListTest, TheBarArrowCountsOnlyAfterADraw)
     EXPECT_EQ(m_list.arrowRepeat, 0);
 }
 
-// Agarrar el cursor de la barra y arrastrarlo arriba del todo va al final de la cuenta.
 TEST_F(OldListTest, DraggingTheThumbToTheTopScrollsToTheEnd)
 {
     Client::Ui::PlaceTheListBar(m_list, 20);
@@ -219,7 +220,7 @@ TEST_F(OldListTest, DraggingTheThumbToTheTopScrollsToTheEnd)
     EXPECT_EQ(m_capture, 0);
 }
 
-// 0x47b714: los renglones desde el corrimiento, hasta los renglones o el final; con una caja modal, ninguno.
+// 0x47b714: the rows from the scroll, up to the rows or the end; with a modal box, none.
 TEST_F(OldListTest, TheRowsAreWalkedFromTheScroll)
 {
     m_list.scroll = 2;
@@ -234,7 +235,7 @@ TEST_F(OldListTest, TheRowsAreWalkedFromTheScroll)
     EXPECT_TRUE(rows.empty());
 }
 
-// 0x461c70: el primero que se ve va abajo y los demás suben de a 13.
+// 0x461c70: the others go up by 13.
 TEST_F(OldListTest, TheFirstShownRowIsTheLowest)
 {
     EXPECT_EQ(Client::Ui::ListRowY(m_list, 20, 0), 6 * 13 - 0x5b - 10 + 300);

@@ -93,9 +93,8 @@ using Client::Tests::AfterDraws;
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::uint16_t PlayerKey = 5;
 constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
-// 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
-// alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
-// se consulta además la espera: estos fixtures conservan el contador positivo.
+// 0x599f41..0x599ffd: real Gate.bmd, one logical read (4 rand) per comparison reached, short-circuiting X>=x1,
+// Y>=y1, X<=x2, Y<=y2. Entering the rectangle also queries the wait: these fixtures keep the counter positive.
 int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, const Client::Kernel::ActorState& hero)
 {
     int draws = 0;
@@ -116,14 +115,14 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
         draws += 4;
         if (hero.cellY > gate->y2)
             continue;
-        draws += 4; // 59a018: ReadWait; con espera positiva no abre el registro propio.
+        draws += 4; // 0x59a018: ReadWait; with a positive wait it does not open the own record.
     }
     return draws;
 }
 
-// Oráculo de composición: ejecuta los kernels ya contrastados de 637082/6370ea/6370ef en
-// dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
-// Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
+// Composition oracle: runs the already checked kernels of 0x637082/0x6370ea/0x6370ef on new owners, with the hero
+// and weather from before the step. It does not take the observed CRT state. Families 0/2 need no outside creators;
+// the loaded library only lends BMD.
 Client::Core::Expected<void, std::string>
 AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::ModuleStates& states,
                          const Client::Kernel::ActorState& hero, Client::Weather::LeafWeather weather,
@@ -132,7 +131,7 @@ AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::Mod
     const Client::Terrain::WorldTerrain& terrain = states.terrain.current;
     Client::Weather::Leaves leaves;
     Client::Fauna::FaunaState fauna;
-    const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
+    const float cameraY = 0.0f; // The scene has not done its first game draw yet.
     const float worldClock = 0.0f;
     Client::Weather::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
                                                  hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
@@ -153,46 +152,45 @@ AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::Mod
     return Client::Fauna::StepGameFauna(faunaContext);
 }
 
-// Los cierres del registro propio, el pasto, el lugar del héroe, 0x511290 y el sufijo de 0x4f2250.
+// The own record closes, the grass, the hero slot, 0x511290 and 0x4f2250's suffix.
 constexpr int OwnRecordClose = 0xf08;
 constexpr int GrassRandoms = 65536;
 constexpr int HeroRandom = 1;
 constexpr int ConstructionRandoms = 28;
 constexpr int StopRandom = 1;
-// Los de la cola de 0x550d10, con 0x512a30 entera.
+// Those of 0x550d10's tail, with 0x512a30 whole.
 constexpr int TailRandoms = 3;
-// Después de 0x512a30: el contador (4) y las dos consultas de 0x657a90.
+// After 0x512a30: the counter (4) and 0x657a90's two queries.
 constexpr int WaitClose = 4;
 constexpr int WindowRandoms = 2;
-// 0x637641: el picking del frame del Dark Wizard (la clase 0, la del registro vacío) lee su skill del registro
-// propio (0x59efda), después del pase del mundo.
+// 0x637641: the frame picking of the Dark Wizard (class 0, the empty record's) reads its skill from the own record
+// (0x59efda), after the world pass.
 constexpr int FramePickingRandoms = OwnRecordClose;
-// 0x637660: el HUD (0x5a7320) del estado base, después del picking: 19 cierres del registro propio (las flechas, los
-// doce avisos de durabilidad, la barra de abajo, la experiencia, el AG y los tres de la barra principal), los de las
-// dos celdas del héroe y nueve consultas del comercio y de la tienda de NPC.
+// 0x637660: the HUD (0x5a7320) in the base state, after the picking: 19 own record closes (the arrows, the twelve
+// durability warnings, the bottom bar, the experience, the AG and the three of the main bar), those of the hero's two
+// cells and nine trade and NPC shop queries.
 constexpr int HudRandoms = 19 * OwnRecordClose + 2 * Client::Models::SmallLogicalCloseRandoms + 9;
-// 0x636ded..0x63705b: la UI del paso con todo cerrado (la barra de skills, Q/W/E e IsOpen(0)), antes de los objetos.
+// 0x636ded..0x63705b: the step's UI with everything closed (the skill bar, Q/W/E and IsOpen(0)), before the objects.
 constexpr int GameUiStepRandoms = OwnRecordClose + 2 + 2;
 constexpr std::size_t PublishedSlot = 42;
-// Los rand() del pase de los objetos del primer frame del juego (0x602ef4), uno por objeto visto que llega a
-// 0x602ed0, con el héroe en la primera celda de cada mapa de referencia (*simulado*, con el port y la Data del
-// repo). En Lorencia, en (133, 127): 84 antes del 0x69 (1720) y el suyo; después, su rand() % 2 (0x60303c). Par,
-// los ocho de las dos gotas; después siguen los 18 objetos restantes. Los efectos de llegada aún no tienen
-// su seen publicado por 0x52d620: el pase del suelo los omite.
-// En Devias, en (220, 30), el pase entero consume 54. Los dos frames completan su cola.
+// The rand() of the objects pass of the first game frame (0x602ef4), one per seen object that reaches 0x602ed0, with
+// the hero in the first cell of each reference map (*simulated*, with the port and the repo's Data). In Lorencia, at
+// (133, 127): 84 before the 0x69 (1720) and its own; then its rand() % 2 (0x60303c). Even, the eight of the two
+// drops; then the remaining 18 objects follow. The arrival effects do not have their seen published by 0x52d620 yet:
+// the floor pass skips them. In Devias, at (220, 30), the whole pass takes 54. Both frames complete their tail.
 constexpr int LorenciaRandomsUpToTheFountain = 84 + 1;
 constexpr int DropRandoms = 8;
 constexpr int LorenciaObjectsAfterTheFountain = 18;
 constexpr int DeviasObjectRandoms = 54;
 
-// El pase de los objetos de un primer frame del juego: sus rand() y las gotas creadas.
+// The objects pass of a first game frame: its rand() and the drops it created.
 struct FirstObjectPass
 {
     int randoms = 0;
     int drops = 0;
 };
 
-// El de Lorencia en (133, 127), con `random` al llegar a los objetos.
+// Lorencia's at (133, 127), with `random` on reaching the objects.
 FirstObjectPass LorenciaObjectPass(CrtRandom random)
 {
     for (int draw = 0; draw < LorenciaRandomsUpToTheFountain; ++draw)
@@ -223,11 +221,11 @@ public:
     std::function<void()> onPublish;
 };
 
-// Lo que dura la sesión, con Player.bmd, un Item.bmd sin armas marcadas y el registro propio sin equipo.
+// What lasts the session, with Player.bmd, an Item.bmd without marked weapons and the own record without equipment.
 class Entry
 {
 private:
-    // Los escenarios simultáneos conservan mundos durables sin agotar la pila de Windows.
+    // The simultaneous scenarios keep durable worlds without exhausting the Windows stack.
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
 
 public:
@@ -270,7 +268,7 @@ public:
             effects, [](const auto& effect) { return effect.alive && effect.type == Client::Effects::ArrivalEffect; }));
     }
 
-    // El héroe ya vestido en `slot`, para lo que sigue a 0x512a30.
+    // The hero already dressed in `slot`, for what follows 0x512a30.
     ActorState& DressedHero(std::size_t slot)
     {
         world.Runtime().heroSlot = static_cast<std::int32_t>(slot);
@@ -294,13 +292,13 @@ public:
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    // El nombre del mapa 0 (0x5f0b40: el 30) y el 484 del renglón de bienvenida, sintéticos.
+    // The name of map 0 (0x5f0b40: text 30) and the welcome line's 484, synthetic.
     Client::Tests::LetterMeasure letters;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{30, "<mapa 0>"}, {484, " <bienvenida>"}});
 };
 
-// Recursos productivos para los tests que ahora atraviesan toda la cola del frame.
-// Los tests unitarios de ApplyWorldEntry conservan su biblioteca mínima y sus fronteras deliberadas.
+// Production resources for the tests that go through the whole frame tail. The ApplyWorldEntry unit tests keep their
+// minimal library and their deliberate boundaries.
 struct CompleteFrameResources
 {
     Client::Core::Expected<void, std::string> Load(const std::filesystem::path& root, Client::Core::Log& log)
@@ -318,7 +316,7 @@ struct CompleteFrameResources
     Client::Tables::GameData data;
 };
 
-// La respuesta del cable: la celda (133, 127) del mapa 0 con la dirección 0, el PK 4 y el CtlCode 0x20.
+// The wire reply: cell (133, 127) of map 0 with direction 0, PK 4 and CtlCode 0x20.
 Client::Protocol::FrontEnd::CharacterSelectResult CableReply()
 {
     Client::Protocol::FrontEnd::CharacterSelectResult reply;
@@ -335,7 +333,7 @@ class WorldEntryTest : public Client::Tests::GoldenDataTest
 {
 };
 
-// 06, fila 3: el lugar del héroe es el rand() que sigue al primer cierre del registro y al pasto.
+// 06, row 3: the hero slot is the rand() after the first record close and the grass.
 TEST_F(WorldEntryTest, TheHeroSlotIsTheRandAfterTheGrassOffsets)
 {
     Entry tested(m_dataRoot, Seed);
@@ -347,8 +345,8 @@ TEST_F(WorldEntryTest, TheHeroSlotIsTheRandAfterTheGrassOffsets)
     EXPECT_EQ(tested.world.Runtime().heroSlot, replay.Next() % 400);
 }
 
-// Q-C175: la dirección 0 da −45°, y el héroe queda en el centro de la celda, con la clave, la clase
-// del registro, la piel en 0 y el PK y el CtlCode de la respuesta.
+// Q-C175: direction 0 gives −45°, and the hero is at the center of the cell, with the key, the record's class, the
+// skin at 0 and the reply's PK and CtlCode.
 TEST_F(WorldEntryTest, TheCableReplyGives13350_12750AndMinus45)
 {
     Entry tested(m_dataRoot, Seed);
@@ -371,7 +369,7 @@ TEST_F(WorldEntryTest, TheCableReplyGives13350_12750AndMinus45)
     EXPECT_EQ(tested.cameraInput.map, 0);
 }
 
-// 06, filas 5 y 7: 0x512a30 viste con el registro viejo, y recién después se vacía su equipo.
+// 06, rows 5 and 7: 0x512a30 dresses with the old record, and only then is its equipment emptied.
 TEST_F(WorldEntryTest, TheOldRecordDressesTheHeroBeforeItIsEmptied)
 {
     Entry tested(m_dataRoot, Seed);
@@ -384,7 +382,7 @@ TEST_F(WorldEntryTest, TheOldRecordDressesTheHeroBeforeItIsEmptied)
     EXPECT_EQ(tested.Hero().hands[0].model, Sword);
     EXPECT_EQ(tested.world.OwnCharacter().equipment[0].id, 5);
 
-    // Con 0x512a30 entero, lo que sigue vacía el registro y el héroe conserva lo puesto.
+    // With 0x512a30 whole, what follows empties the record and the hero keeps what it wears.
     ASSERT_TRUE(SettleWorldEntry({}, tested.Resources(), publisher).HasValue());
     EXPECT_EQ(tested.Hero().hands[0].model, Sword);
     for (const auto& item : tested.world.OwnCharacter().equipment)
@@ -393,8 +391,8 @@ TEST_F(WorldEntryTest, TheOldRecordDressesTheHeroBeforeItIsEmptied)
     }
 }
 
-// La respuesta del F3 03 del GS, cifrada: C1 de 0x34 bytes con la celda (x, y) del mapa 0, la dirección 0,
-// el PK 4 (pkt[0x2c]) y el CtlCode 0x20 (pkt[0x2d]).
+// The GS's encrypted F3 03 reply: a C1 of 0x34 bytes with cell (x, y) of map 0, direction 0, PK 4 (pkt[0x2c]) and
+// CtlCode 0x20 (pkt[0x2d]).
 std::vector<std::byte> EntryPacket(std::uint8_t x, std::uint8_t y, Client::Network::PacketSerials& serials)
 {
     constexpr std::size_t Size = 0x34;
@@ -410,8 +408,8 @@ std::vector<std::byte> EntryPacket(std::uint8_t x, std::uint8_t y, Client::Netwo
     return Client::Tests::FromTheGameServer(reply, serials);
 }
 
-// Por la sesión: 0x512a30 corta (hoy en 0x550d10, en su primera llamada, 0x40e1b0) y la sesión falla con el
-// héroe sin publicar, el contador sin tocar y los rand() que el original sacó hasta ahí.
+// Through the session: 0x512a30 stops (currently in 0x550d10, on its first call, 0x40e1b0) and the session fails
+// with the hero unpublished, the counter untouched and the rand() the original took up to there.
 TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
 {
     Entry tested(m_dataRoot, Seed);
@@ -436,7 +434,7 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
         AfterDraws(Seed, 3 * OwnRecordClose + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom).State());
 }
 
-// Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
+// The set tables with no set: 0x40e1b0 walks the equipment and applies nothing.
 Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
@@ -444,17 +442,17 @@ Client::Tables::ItemSetTables NoSets()
         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
-// El lugar del héroe con `Seed`, el de la primera prueba.
+// The hero slot with `Seed`, the first test's.
 std::size_t HeroSlotOfSeed()
 {
     CrtRandom replay = AfterDraws(Seed, OwnRecordClose + GrassRandoms);
     return static_cast<std::size_t>(replay.Next() % 400);
 }
 
-// Con las tablas de los conjuntos, 0x550d10 llega al final y la entrada sigue hasta asentarse. El lugar del
-// héroe no es el publicado (el 0 de WinMain): 0x505820 no corre en 0x512a30, y 0x550990 lee el 0 de la
-// .bss, el de un proceso que no dibujó a nadie. Los accesos de adentro anidan en el de 0x512a30: los
-// rand() de más son los tres de la cola, y después los de SettleWorldEntry con su cierre.
+// With the set tables, 0x550d10 reaches the end and the entry goes on until it settles. The hero slot is not the
+// published one (WinMain's 0): 0x505820 does not run in 0x512a30, and 0x550990 reads the 0 of the .bss, that of a
+// process that drew nobody. The inner accesses nest in 0x512a30's: the extra rand() are the tail's three, and then
+// SettleWorldEntry's with its close.
 TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 {
     Entry tested(m_dataRoot, Seed);
@@ -480,9 +478,9 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
               AfterDraws(Seed, 3 * OwnRecordClose + BeforeTheSettling + TheSettling).State());
 }
 
-// 0x4c4b22..0x4c4b60, al final: 0x65dc30 (el cartel entra con el alfa en 0,2 y pide Interface\lorencia.tga para el
-// slot 0x66a) y el renglón del sistema con el nombre vacío: sprintf("%s%s", 0x5f0b40(mapa), texto 484), el nombre del
-// mapa primero.
+// 0x4c4b22..0x4c4b60, at the end: 0x65dc30 (the banner enters with alpha at 0.2 and asks for Interface\lorencia.tga
+// for slot 0x66a) and the system line with the empty name: sprintf("%s%s", 0x5f0b40(map), text 484), the map name
+// first.
 TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
 {
     Entry tested(m_dataRoot, Seed);
@@ -507,11 +505,11 @@ TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
     EXPECT_EQ(welcome.type, Client::Ui::SystemMessage);
 }
 
-// La respuesta aplicada y, sin ningún paso, el primer frame del juego: el contador en 30 no retiene, la
-// cámara mira al héroe publicado y lee su celda (8 rand() después de los 4 de 0x637229), el terreno de
-// Lorencia sale con sus tiles y su pasto (0x5fc353, sin rand()), las marcas del suelo no dibujan ninguna
-// (0x5fc365: la tabla de la .bss, vacía) y los objetos sacan su rand() hasta el 0x69; con la semilla, su rand() %
-// 2 es par y crea las dos gotas. Los efectos aún no vistos se omiten y la cola completa presenta el frame.
+// The applied reply and, without any step, the first game frame: the counter at 30 does not hold, the camera looks
+// at the published hero and reads its cell (8 rand() after the 4 of 0x637229), Lorencia's terrain comes out with its
+// tiles and its grass (0x5fc353, without rand()), the floor marks draw none (0x5fc365: the .bss table, empty) and
+// the objects take their rand() up to the 0x69; with the seed, its rand() % 2 is even and creates the two drops.
+// Effects not yet seen are skipped and the complete tail presents the frame.
 TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 {
     Entry tested(m_dataRoot, Seed);
@@ -520,7 +518,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
     ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
-    // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
+    // What loading the selection's 54 left (0x633f30): the world loaded.
     tested.world.Runtime().drawingEnabled = true;
     CompleteFrameResources frameResources;
     const auto loadedFrame = frameResources.Load(m_dataRoot, tested.log);
@@ -579,8 +577,8 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     scene.Leave();
 }
 
-// 0x550990 lee lo que dejó el último 0x505820, acá el de la selección: [0x743a17c] en 1 y [0x743a178] en 12
-// suman _ftol(+0x62 · 0.15f) a +0x62, que con la clase 0 es la agilidad >> 2 (0x550990).
+// 0x550990 reads what the last 0x505820 left, here the selection's: [0x743a17c] at 1 and [0x743a178] at 12 add
+// _ftol(+0x62 · 0.15f) to +0x62, which with class 0 is the agility >> 2 (0x550990).
 TEST_F(WorldEntryTest, TheEntryReadsWhatTheSelectionDrawingLeft)
 {
     Entry tested(m_dataRoot, Seed);
@@ -600,8 +598,8 @@ TEST_F(WorldEntryTest, TheEntryReadsWhatTheSelectionDrawingLeft)
     EXPECT_EQ(tested.world.Runtime().fullSetScan->dword743a178, 12);
 }
 
-// Después de un frame del juego que dibuja los personajes MuRet no sabe qué dejó 0x505820: con otro
-// lugar, la entrada corta en 0x550990 con el héroe sin publicar y los rand() de hasta ahí, sin la cola.
+// After a game frame that draws the characters, MuRet does not know what 0x505820 left: with another slot, the
+// entry stops at 0x550990 with the hero unpublished and the rand() up to there, without the tail.
 TEST_F(WorldEntryTest, WithoutKnowingTheLastScanTheEntryStopsAt0x550990)
 {
     Entry tested(m_dataRoot, Seed);
@@ -623,9 +621,9 @@ TEST_F(WorldEntryTest, WithoutKnowingTheLastScanTheEntryStopsAt0x550990)
         AfterDraws(Seed, 3 * OwnRecordClose + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom).State());
 }
 
-// Si rand() % 400 da el lugar del héroe publicado (en una segunda entrada, o el 0 de WinMain), 0x512a30
-// viste a ese mismo y 0x505820 corre con él (0x512ee7): lo de antes no importa. El registro vacío deja
-// las partes de la clase, que no son un conjunto: [0x743a178] en 0 y [0x743a17c] en 1.
+// If rand() % 400 gives the published hero's slot (on a second entry, or WinMain's 0), 0x512a30 dresses that same
+// one and 0x505820 runs with it (0x512ee7): what came before does not matter. The empty record leaves the class's
+// parts, which are not a set: [0x743a178] at 0 and [0x743a17c] at 1.
 TEST_F(WorldEntryTest, WithThePublishedHeroSlotTheEntryScansTheHero)
 {
     Entry tested(m_dataRoot, Seed);
@@ -645,8 +643,8 @@ TEST_F(WorldEntryTest, WithThePublishedHeroSlotTheEntryScansTheHero)
     EXPECT_EQ(tested.world.Runtime().fullSetScan->byte743a17c, 1);
 }
 
-// Tres cierres en línea (0x4c41c4, 0x4c46f0 y 0x4c481e) y el de 0x512a30: cada uno saca 3.848 rand()
-// solo si deja el registro sin accesos.
+// Three inline closes (0x4c41c4, 0x4c46f0 and 0x4c481e) and 0x512a30's: each takes 3848 rand() only if it leaves
+// the record without accesses.
 TEST_F(WorldEntryTest, TheEntryClosesTheOwnRecordAtItsThreeSites)
 {
     constexpr int BeforeTheSettling = GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom;
@@ -675,7 +673,7 @@ TEST_F(WorldEntryTest, TheEntryClosesTheOwnRecordAtItsThreeSites)
     EXPECT_EQ(settlingHeld.cloth.random.State(), AfterDraws(Seed, AfterTheThirdClose).State());
 }
 
-// 06, filas 6 a 17 y "El héroe": lo que ve la sesión al publicar el 0x3d y lo que queda al terminar.
+// 06, rows 6 to 17 and "El héroe": what the session sees when it publishes the 0x3d and what is left at the end.
 TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
 {
     Entry tested(m_dataRoot, Seed);
@@ -726,7 +724,7 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
     }
 }
 
-// Falta el servicio del C1 18 al sentarse: el contador ya quedó en30 y los dos efectos de llegada están creados.
+// The sitting C1 18 service is missing: the counter is already at 30 and the two arrival effects are created.
 TEST_F(WorldEntryTest, AStopFailureKeepsCounterThirtyAndTwoArrivals)
 {
     Entry tested(m_dataRoot, Seed);
@@ -748,7 +746,7 @@ TEST_F(WorldEntryTest, AStopFailureKeepsCounterThirtyAndTwoArrivals)
     EXPECT_EQ(hero.animation.action, 0xca);
 }
 
-// 0x4c49d6..0x4c4a11: sin el 0x8b en Blood Castle y sin el 0x99 ni el 0x9e en Chaos Castle.
+// 0x4c49d6..0x4c4a11: without the 0x8b in Blood Castle and without the 0x99 or the 0x9e in Chaos Castle.
 TEST_F(WorldEntryTest, TheSoundsSkipTheEventMaps)
 {
     Entry tested(m_dataRoot, Seed);
@@ -767,9 +765,9 @@ TEST_F(WorldEntryTest, TheSoundsSkipTheEventMaps)
     EXPECT_EQ(chaosCastle.Value().sounds, (std::vector<Client::Audio::SoundId>{Client::Audio::SoundId{0x8b}}));
 }
 
-// 0x4c4954: 0x420d60 con el héroe publicado, entre la espera y el segundo efecto de llegada. Con el 0x1c17 en
-// la mano izquierda suelta el cuervo que tenía y crea otro (0x4167b0) en el centro de su celda, 300 sobre el
-// terreno, con los 12 rand() de los cierres de sus celdas y del contador; sin el 0x1c17 no toca nada.
+// 0x4c4954: 0x420d60 with the published hero, between the wait and the second arrival effect. With the 0x1c17 in the
+// left hand it releases the raven it had and creates another (0x4167b0) at the center of its cell, 300 above the
+// terrain, with the 12 rand() of its cells' closes and the counter's; without the 0x1c17 it touches nothing.
 TEST_F(WorldEntryTest, ARavenIsCreatedAt420d60AfterTheWait)
 {
     constexpr int RavenRandoms = 3 * Client::Models::SmallLogicalCloseRandoms;
@@ -804,23 +802,22 @@ TEST_F(WorldEntryTest, ARavenIsCreatedAt420d60AfterTheWait)
     EXPECT_EQ(walker.darkSpirit->state, 4);
 }
 
-// ---- Una segunda respuesta (T13; 06, "La entrada al mundo", "Una segunda respuesta") ----
+// ---- A second reply (T13; 06, "La entrada al mundo", "Una segunda respuesta") ----
 
-// Una entrada entera con las tablas de los conjuntos y el registro vacío, en el 0 o en el 2: los cuatro
-// cierres del registro, el pasto, el lugar, 0x511290, los dos sufijos de 0x4f2250, la cola de 0x550d10, el
-// contador y las ventanas.
+// A whole entry with the set tables and the empty record, in 0 or in 2: the four record closes, the grass, the slot,
+// 0x511290, 0x4f2250's two suffixes, 0x550d10's tail, the counter and the windows.
 constexpr int WholeEntryRandoms = (4 * OwnRecordClose) + GrassRandoms + HeroRandom + ConstructionRandoms +
                                   (2 * StopRandom) + TailRandoms + WaitClose + WindowRandoms;
-// Lo que corta 0x550990 sin saber qué dejó 0x505820: el primer y el segundo cierre en línea, el pasto, el
-// lugar, 0x511290, el sufijo de 0x4f2250 y el cierre de 0x512a30, sin la cola.
+// Up to the stop at 0x550990, without knowing what 0x505820 left: the first and the second inline close, the grass,
+// the slot, 0x511290, 0x4f2250's suffix and 0x512a30's close, without the tail.
 constexpr int EntryUpTo550990 = (3 * OwnRecordClose) + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom;
-// Un frame del juego sin pasos: el contador (0x637229) y los dos accesos a la celda del héroe (0x635ae0).
+// A game frame without steps: the counter (0x637229) and the two accesses to the hero's cell (0x635ae0).
 constexpr int FrameRandoms = 4 + 8;
-// Del lugar de una entrada al frame del juego de Lorencia que la sigue; del frame, al lugar de la siguiente.
+// From an entry's slot to the Lorencia game frame after it; from the frame, to the next one's slot.
 constexpr int FromTheSlotToTheFrame = WholeEntryRandoms - (OwnRecordClose + GrassRandoms + HeroRandom);
 constexpr int FromTheFrameToTheSlot = OwnRecordClose + GrassRandoms;
 
-// Los mapas de referencia, cada uno con dos celdas.
+// The reference maps, each with two cells.
 struct ReferenceMap
 {
     std::uint8_t map = 0;
@@ -832,7 +829,7 @@ struct ReferenceMap
 constexpr ReferenceMap Lorencia{.map = 0, .firstX = 133, .firstY = 127, .secondX = 143, .secondY = 120};
 constexpr ReferenceMap Devias{.map = 2, .firstX = 220, .firstY = 30, .secondX = 210, .secondY = 40};
 
-// El primer frame del juego de `map` con el héroe en su primera celda, con `random` al llegar a los objetos.
+// The first game frame of `map` with the hero in its first cell, with `random` on reaching the objects.
 FirstObjectPass FirstObjectPassOf(const ReferenceMap& map, const CrtRandom& random)
 {
     if (map.map == 0)
@@ -842,7 +839,6 @@ FirstObjectPass FirstObjectPassOf(const ReferenceMap& map, const CrtRandom& rand
     return {.randoms = DeviasObjectRandoms};
 }
 
-// La respuesta del cable en la celda (x, y) de `map`, con `direction`.
 Client::Protocol::FrontEnd::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y,
                                                           std::uint8_t direction)
 {
@@ -863,15 +859,14 @@ CrtRandom Advanced(CrtRandom random, int draws)
     return random;
 }
 
-// El lugar que sortea la próxima respuesta desde `random`: el rand() después del primer cierre y el pasto.
+// The slot the next reply draws from `random`: the rand() after the first close and the grass.
 std::size_t NextHeroSlot(const CrtRandom& random)
 {
     CrtRandom replay = Advanced(random, OwnRecordClose + GrassRandoms);
     return static_cast<std::size_t>(replay.Next() % 400);
 }
 
-// La primera semilla con la que las dos entradas de Lorencia, con un frame del juego en el medio, sortean el
-// mismo lugar.
+// The first seed with which both Lorencia entries, with a game frame in between, draw the same slot.
 std::uint32_t SeedOfTheSameSlotAfterAFrame()
 {
     return Client::Tests::FirstSeedWhere(
@@ -892,8 +887,8 @@ std::size_t AliveActors(const Entry& tested)
         std::ranges::count_if(tested.world.Actors(), [](const ActorState& actor) { return actor.alive; }));
 }
 
-// Un frame completo sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects:
-// llega a 0x510d00 sin un actor visto que publique 0x505820; conserva el scan desconocido.
+// A complete frame without steps, like AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects: it reaches
+// 0x510d00 without a seen actor that publishes 0x505820; it keeps the unknown scan.
 void DrawAGameFrame(Entry& tested)
 {
     tested.world.Runtime().drawingEnabled = true;
@@ -929,11 +924,11 @@ void DrawAGameFrame(Entry& tested)
     scene.Leave();
 }
 
-// Con el héroe en el mundo, otro F3 03 al mismo mapa, en Lorencia y en Devias: 0x61a560 lo vuelve a cargar
-// sin compararlo con el cargado (los objetos otra vez, no además; el pasto con 65.536 rand() nuevos; de los
-// efectos de llegada, solo los dos de esta), el lugar se sortea de nuevo después del pasto y el héroe nuevo
-// se construye y se publica ahí. El anterior tiene la clave del jugador: 0x510f70 no lo mata y queda como
-// estaba, vivo en su lugar (Q-C196). Los rand() son los de la primera.
+// With the hero in the world, another F3 03 to the same map, in Lorencia and in Devias: 0x61a560 loads it again
+// without comparing it with the loaded one (the objects again, not in addition; the grass with 65536 new rand(); of
+// the arrival effects, only this one's two), the slot is drawn again after the grass and the new hero is built and
+// published there. The previous one has the player's key: 0x510f70 does not kill it and it stays as it was, alive in
+// its slot (Q-C196). The rand() are those of the first.
 TEST_F(WorldEntryTest, ASecondEntryReloadsAndRedrawsTheHeroSlot)
 {
     for (const ReferenceMap& probe : {Lorencia, Devias})
@@ -1006,10 +1001,9 @@ TEST_F(WorldEntryTest, WithoutTheTerrainsStateTheLoadStops)
     EXPECT_NE(entered.Error().find("0x61a560"), std::string::npos) << entered.Error();
 }
 
-// La segunda respuesta en el otro mapa de referencia, de Lorencia a Devias y al revés: el terreno, los
-// objetos (en Devias, los especiales 0x201 y 0x202 primero) y la cámara son los del mapa nuevo, y el héroe
-// anterior sigue vivo con la posición del de antes. Los objetos del 0 y del 2 no sacan rand(): la cuenta es
-// la de una entrada al mismo mapa.
+// The second reply on the other reference map, from Lorencia to Devias and back: the terrain, the objects (in Devias,
+// the special 0x201 and 0x202 first) and the camera are the new map's, and the previous hero stays alive with the old
+// one's position. The objects of 0 and 2 take no rand(): the count is that of an entry to the same map.
 TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePreviousHero)
 {
     struct MapChange
@@ -1058,8 +1052,8 @@ TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePrevi
     }
 }
 
-// Q-C197: mientras 0x512a30 viste al héroe nuevo, el publicado (0x743a170) es el anterior, y 0x40d010 le
-// pone a él el +0x358 en 0 (0x40d07d). El nuevo lo tiene en 0 desde 0x511290 (0x511c99).
+// Q-C197: while 0x512a30 dresses the new hero, the published one (0x743a170) is the previous, and 0x40d010 sets its
+// +0x358 to 0 (0x40d07d). The new one has it at 0 from 0x511290 (0x511c99).
 TEST_F(WorldEntryTest, TheSecondEntryRecalculatesThe358OfThePreviousHero)
 {
     Entry tested(m_dataRoot, Seed);
@@ -1080,10 +1074,9 @@ TEST_F(WorldEntryTest, TheSecondEntryRecalculatesThe358OfThePreviousHero)
     EXPECT_EQ(tested.world.Actors()[secondSlot].byte358, 0);
 }
 
-// Después de un frame del juego, una segunda respuesta en otro lugar viste al nuevo con el anterior
-// publicado: 0x505820 no corre y 0x550990 lee lo que dejó el dibujo de los personajes del frame, que MuRet
-// no tiene. Corta ahí (P-C40) con el anterior todavía publicado y el nuevo construido, los dos vivos, y el
-// contador como estaba.
+// After a game frame, a second reply elsewhere dresses the new one with the previous one published: 0x505820 does
+// not run and 0x550990 reads what the frame's character drawing left, which MuRet does not have. It stops there
+// (P-C40) with the previous one still published and the new one built, both alive, and the counter as it was.
 TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryElsewhereStopsAt0x550990)
 {
     Entry tested(m_dataRoot, Seed);
@@ -1094,7 +1087,7 @@ TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryElsewhereStopsAt0x550990)
     ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
     const std::size_t firstSlot = tested.world.Runtime().hero;
     ASSERT_NO_FATAL_FAILURE(DrawAGameFrame(tested));
-    // Como si hubieran corrido pasos (0x59af01).
+    // As if steps had run (0x59af01).
     tested.world.Runtime().warpCounter = 7;
     const CrtRandom afterTheFrame = tested.cloth.random;
     const std::size_t secondSlot = NextHeroSlot(afterTheFrame);
@@ -1116,10 +1109,10 @@ TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryElsewhereStopsAt0x550990)
     EXPECT_EQ(tested.cloth.random.State(), Advanced(afterTheFrame, EntryUpTo550990).State());
 }
 
-// Con la semilla que sortea dos veces el mismo lugar, la segunda respuesta reconstruye al héroe publicado en
-// su registro: 0x512a30 viste al publicado, 0x505820 corre con él (0x512ee7) y deja lo suyo, y 0x550990 lo
-// lee aunque un frame del juego haya borrado lo de antes. Las partes de la clase no son un conjunto:
-// [0x743a178] en 0 y [0x743a17c] en 1.
+// With the seed that draws the same slot twice, the second reply rebuilds the published hero in its record:
+// 0x512a30 dresses the published one, 0x505820 runs with it (0x512ee7) and leaves its own, and 0x550990 reads it
+// even though a game frame erased what came before. The class's parts are not a set: [0x743a178] at 0 and
+// [0x743a17c] at 1.
 TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero)
 {
     const std::uint32_t seed = SeedOfTheSameSlotAfterAFrame();
@@ -1150,8 +1143,8 @@ TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHe
     EXPECT_EQ(tested.cloth.random.State(), Advanced(afterTheFrame, WholeEntryRandoms).State());
 }
 
-// Por la sesión: con el 0x3d ya publicado, otro F3 03 cifrado va igual a 0x4c3940 (0x4e306b no mira el
-// estado ni la escena) y vuelve a publicar el 0x3d, con el héroe nuevo.
+// Through the session: with the 0x3d already published, another encrypted F3 03 still goes to 0x4c3940 (0x4e306b
+// checks neither the state nor the scene) and publishes the 0x3d again, with the new hero.
 TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 {
     Entry tested(m_dataRoot, Seed);
@@ -1179,15 +1172,15 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WaitDrawThreshold);
 }
 
-// T11b, de punta a punta: el dibujo de la selección (0x63475c) deja en los globales el trapecio de su punto fijo;
-// la entrada al mundo (F3 03) no lo toca, y el primer paso del juego después de la espera lo lee en 0x508f00
-// (0x63710f). En Lorencia el héroe de (133, 127) cae adentro y se ve; en Devias el de (220, 30) cae afuera
-// (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall, el cuerpo del héroe (0x4fd5f0: el
-// cierre del registro propio en 0x4fc450 y el rand() % 6 de 0x4fd7e4) y, con el héroe visto, los 8 de su celda
-// lógica y el rand() & 7; después, los dos del viento de las partículas y la tela. El frame que sigue pasa las marcas
-// del suelo (0x5fc365), que no sacan rand(), y los objetos, con sus 4 + 8 y uno por objeto visto; Lorencia, con el
-// rand() % 2 del 0x69 impar, sigue. Los dos omiten los efectos de llegada aún no vistos y presentan
-// el frame completo. El prefijo nuevo incluye hojas/fauna, Gate.bmd, own/Skill y dos Arrival vivos.
+// T11b, end to end: the selection drawing (0x63475c) leaves in the globals the trapezoid of its fixed point; the
+// world entry (F3 03) does not touch it, and the first game step after the wait reads it in 0x508f00 (0x63710f). In
+// Lorencia the hero at (133, 127) falls inside and is seen; in Devias the one at (220, 30) falls outside (Q-C216).
+// The step's rand(): MoveHero's 8, the TerrainWall's 8, the hero's body (0x4fd5f0: the own record close in
+// 0x4fc450 and the rand() % 6 of 0x4fd7e4) and, with the hero seen, the 8 of its logical cell and the rand() & 7;
+// then the particle wind's two and the cloth. The next frame passes the floor marks (0x5fc365), which take no
+// rand(), and the objects, with their 4 + 8 and one per seen object; Lorencia, with the odd rand() % 2 of the 0x69,
+// goes on. Both skip the arrival effects not yet seen and present the complete frame. The new prefix includes
+// leaves/fauna, Gate.bmd, own/Skill and two live Arrival.
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
     const Client::Terrain::TerrainPolygon selected = Client::Terrain::TerrainPolygonOf(
@@ -1226,7 +1219,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
         EXPECT_EQ(tested.states.camera.trapezoid.x, selected.x) << "la entrada no toca el trapecio";
         EXPECT_EQ(tested.states.camera.trapezoid.y, selected.y);
-        // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
+        // What loading the selection's 54 left (0x633f30): the world loaded.
         tested.world.Runtime().drawingEnabled = true;
         CompleteFrameResources frameResources;
         const auto loadedFrame = frameResources.Load(m_dataRoot, tested.log);
@@ -1244,9 +1237,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                        &*frameResources.data.skills);
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Models::ClothWorld reference = tested.cloth;
-        // 0x4eb620, al empezar el frame: 0x552f10 (la espera de las skills) abre y cierra el registro propio. 0x636920:
-        // el cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin Slide.bmd no
-        // sortea), y la UI del paso.
+        // 0x4eb620, at the start of the frame: 0x552f10 (the skill wait) opens and closes the own record. 0x636920: the
+        // first step's banner (0x46b010 and 0x46b0e0, which opens and closes the own record; without Slide.bmd it makes
+        // no random pick), and the step's UI.
         reference.random = Advanced(reference.random, OwnRecordClose + OwnRecordClose + GameUiStepRandoms);
         const auto heroBefore = tested.Hero();
         const auto weatherBefore = tested.world.Runtime().leafWeather;
@@ -1259,7 +1252,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
             AdvanceEnvironmentPrefix(tested.world, tested.states, heroBefore, weatherBefore, layerBefore, reference)
                 .HasValue());
         const int body = OwnRecordClose + 1;
-        // 57cfc0 cierra own (3.848) y Skill.bmd (60); los dos Arrival vivos aportan uno cada uno.
+        // 0x57cfc0 closes own (3848) and Skill.bmd (60); the two live Arrival add one each.
         reference.random = Advanced(
             reference.random, (seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body) + OwnRecordClose + 60 + 2 + 2 +
                                   GateProbeRandoms(*frameResources.data.gates, tested.world.Runtime().map, heroBefore));
@@ -1276,13 +1269,13 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         ASSERT_FALSE(game.Failure().has_value()) << *game.Failure();
         target.Present();
         EXPECT_TRUE(target.frames.back().presented);
-        // El héroe visto llega a su color propio (cierre de 3.848) y al rand() común de 0x50db57.
+        // The seen hero reaches its own color (a 3848 close) and the common rand() of 0x50db57.
         const int characterDraws = seen ? OwnRecordClose + 1 : 0;
         EXPECT_EQ(tested.cloth.random.State(),
                   Advanced(reference.random,
                            FrameRandoms + objects.randoms + characterDraws + FramePickingRandoms + HudRandoms)
                       .State());
-        // El héroe del cable es GM (CtlCode 0x20): dibujado, 0x413fe0 le pone +0x360 en 5 y la capa de MuSign.
+        // The wire's hero is a GM (CtlCode 0x20): drawn, 0x413fe0 sets its +0x360 to 5 and the MuSign layer.
         EXPECT_EQ(tested.Hero().byte360, seen ? 5 : 0);
         EXPECT_EQ(tested.Hero().layer.has_value(), seen);
         game.Leave();

@@ -148,7 +148,7 @@ protected:
         m_game.reset();
         m_scene = Client::Kernel::SceneId::CharacterSelect;
         Client::Tests::CharacterEntryFields knight{.slot = 0, .name = "knight", .classByte = 0x10};
-        // Manos, alas y mascota vacías en la fotografía de la lista; no toca el registro propio.
+        // Empty hands, wings and pet in the list's snapshot; it does not touch the own record.
         knight.equipment[0] = 0xff;
         knight.equipment[1] = 0xff;
         knight.equipment[4] = 0x0f;
@@ -245,7 +245,7 @@ class FirstCreatedWorldEntryTest : public CharacterFirstWorldEntryTest, public :
 {
 };
 
-// 633f91 -> 5bbe10 precede al primer F303. F310 vacío o sólo mochila no vuelve a vestir el cuerpo.
+// 0x633f91 -> 0x5bbe10 precedes the first F303. An empty or backpack-only F310 does not dress the body again.
 TEST_P(FirstCreatedWorldEntryTest, TheFirstCreatedWizardDrawsItsClassBodyWithoutEquippedItems)
 {
     ASSERT_NO_FATAL_FAILURE(Load());
@@ -269,7 +269,7 @@ TEST_P(FirstCreatedWorldEntryTest, TheFirstCreatedWizardDrawsItsClassBodyWithout
 
 INSTANTIATE_TEST_SUITE_P(EmptyOrBackpackOnly, FirstCreatedWorldEntryTest, ::testing::Bool());
 
-// Regresión del reporte: caballero equipado -> selección -> crear mago -> F303 del lugar nuevo.
+// Regression from the report: equipped knight -> selection -> create wizard -> F303 of the new place.
 TEST_F(CharacterFirstWorldEntryTest, ASecondCreatedWizardEntersAfterAnEquippedKnight)
 {
     ASSERT_NO_FATAL_FAILURE(Load());

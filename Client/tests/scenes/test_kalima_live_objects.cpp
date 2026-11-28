@@ -55,8 +55,8 @@
 
 namespace
 {
-// La semilla que deja el rand() de la CRT en `state` después de `draws` llamadas: el LCG (· 214013 + 2531011) se
-// invierte módulo 2^32 con el inverso de 214013.
+// The seed that leaves the CRT rand() at `state` after `draws` calls: the LCG (· 214013 + 2531011) is inverted modulo
+// 2^32 with the inverse of 214013.
 constexpr std::uint32_t SeedBefore(std::uint32_t state, int draws)
 {
     constexpr std::uint32_t InverseMultiplier = 0xb9b33155u;
@@ -65,8 +65,8 @@ constexpr std::uint32_t SeedBefore(std::uint32_t state, int draws)
     return state;
 }
 
-// 0x636ded..0x63705b con el registro propio abierto: la barra de skills no saca, y quedan las consultas del
-// comercio y de la tienda de NPC de Q, W y E (0x5a343e) y las de IsOpen(0) (0x5a5511).
+// 0x636ded..0x63705b with the own record open: the skill bar takes none, and the trade and NPC shop queries of Q, W
+// and E (0x5a343e) and those of IsOpen(0) (0x5a5511) remain.
 constexpr int NestedGameUiStepDraws = 2 + 2;
 
 class KalimaLiveObjectsTest : public Client::Tests::T16::SceneTest, public testing::WithParamInterface<int>
@@ -101,7 +101,7 @@ protected:
     }
 };
 
-// Data real conservada: los siete aliases deben completar el cuadro poblado.
+// Real Data kept: the seven aliases must complete the populated frame.
 TEST_P(KalimaLiveObjectsTest, HotEntryDrawFinishesMovementBodiesAndWaterOverlays)
 {
     OpenScene();
@@ -110,7 +110,7 @@ TEST_P(KalimaLiveObjectsTest, HotEntryDrawFinishesMovementBodiesAndWaterOverlays
     Teleport(static_cast<std::uint8_t>(GetParam()), 64, 64);
     ASSERT_FALSE(m_pollFailure.has_value()) << *m_pollFailure;
     ASSERT_EQ(m_world->Map().objects.size(), 2266u);
-    // Primer dibujo después del1C, antes del pasoKalima: no nace fauna y quedan2266 objetos.
+    // First draw after the 1C, before the Kalima step: no fauna is born and 2266 objects remain.
     Draw();
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     EXPECT_EQ(m_world->Map().objects.size(), 2266u);
@@ -121,11 +121,11 @@ TEST_P(KalimaLiveObjectsTest, HotEntryDrawFinishesMovementBodiesAndWaterOverlays
             if (command.vertexCount > 0 && command.state.texture && command.state.texture->value >= 65 &&
                 command.state.texture->value < 97)
                 causticPrefix = true;
-    EXPECT_TRUE(causticPrefix); // Geometría real de4395ba, no sólo un mensaje de frontera.
+    EXPECT_TRUE(causticPrefix); // Real geometry of 0x4395ba, not only a boundary message.
 }
 
-// El objeto 40 suelta la 0x6f1 con rand() % 4 en 0 (0x438c10). Con los 3.848 rand() de 0x4eb620 al empezar cada frame
-// (la espera de las skills, CL9 hito 4), el primero que la saca con la semilla de la fixture es el tercero.
+// Object 40 drops the 0x6f1 with rand() % 4 at 0 (0x438c10). With the 3848 rand() of 0x4eb620 at the start of each
+// frame (the skill wait, CL9 milestone 4), the first that draws it with the fixture's seed is the third.
 TEST_P(KalimaLiveObjectsTest, TheFirstPopulatedFramesFinishWithNativeWaterfallParticles)
 {
     Teleport(static_cast<std::uint8_t>(GetParam()), 64, 64);
@@ -191,7 +191,7 @@ TEST_P(KalimaLiveObjectsTest, SeveralTicksAndIntermediateFramesPreserveDurablePo
     auto expectedPrepare = m_cloth->random;
     for (int close = 0; close < 4; ++close)
         static_cast<void>(expectedPrepare.Next());
-    m_scene->PrepareFrame(); // 6371b7 común: corre antes de Render, también con frame0.
+    m_scene->PrepareFrame(); // Common 0x6371b7: runs before Render, also with frame 0.
     EXPECT_EQ(m_cloth->random.State(), expectedPrepare.State());
     const auto preparedRandom = m_cloth->random.State();
     auto& projectedCanvas = m_target.BeginFrame(m_clock.Now());
@@ -280,7 +280,8 @@ TEST_P(KalimaLiveObjectsTest, NativeStepSpawnsTheAmbientModelAndDrawsItsWholeLif
     Step();
     DrawCompleteFrame();
     ASSERT_FALSE(m_scene->Failure()) << *m_scene->Failure();
-    // Semilla del contrato4385a0: selección,spawn,XY,tres del5ac/7,guard15 y escala9. La UI del paso saca antes.
+    // Seed of the 0x4385a0 contract: selection, spawn, XY, three of the 0x5ac/7, guard 15 and scale 9. The step's UI
+    // draws before.
     m_world->OwnCharacter().level = 40;
     m_world->Runtime().ownRecordDepth = 1;
     m_cloth->logicSteps = 1;
@@ -346,7 +347,7 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     const auto drawn = Client::Scenes::DrawGameModelEffects(
         batch, models, effects->Effects(), Client::Terrain::SphereFrustum{}, nullptr, {}, 0, resources);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(batch.Vertices().size(), 204u); // 34 triángulos del cuerpo y34 de cáusticas.
+    EXPECT_EQ(batch.Vertices().size(), 204u); // 34 body triangles and 34 caustic ones.
     ASSERT_EQ(batch.Commands().size(), 2u);
     ASSERT_TRUE(batch.Commands()[0].state.texture);
     EXPECT_TRUE(store.Find(*batch.Commands()[0].state.texture));

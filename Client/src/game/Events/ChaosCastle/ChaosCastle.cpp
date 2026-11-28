@@ -23,23 +23,23 @@ namespace
 {
 using Math::F32;
 
-// 0x405e1e..0x405e2f: rand() & 0x80000007 con el ajuste del signo, el resto de dividir por 8.
+// 0x405e1e..0x405e2f: rand() & 0x80000007 with the sign fix, the remainder of dividing by 8.
 constexpr int CellOdds = 8;
 constexpr std::uint8_t FirstArea = 0;
 constexpr std::uint8_t SecondArea = 3;
 constexpr std::uint8_t ThirdArea = 6;
-// 0x405eb0..0x405f0e: rand() % 30 (0x1e), menos 15 (0x6b87bc), más la celda por 100 (0x6b86b4).
+// 0x405eb0..0x405f0e: rand() % 30 (0x1e), minus 15 (0x6b87bc), plus the cell times 100 (0x6b86b4).
 constexpr int StoneSpread = 30;
 constexpr double StoneBack = 15.0;
 constexpr double CellSize = Terrain::CellSizeAsDouble;
-// 0x405ee6: la escala 1,5 (0x3fc00000).
+// 0x405ee6: the scale 1.5 (0x3fc00000).
 constexpr float StoneScale = 1.5f;
-// 0x405f2c..0x405f58: rand() % 5 y (rand() % 3 − 3) por 0,1f (0x6b87b8).
+// 0x405f2c..0x405f58: rand() % 5 and (rand() % 3 − 3) times 0.1f (0x6b87b8).
 constexpr int ShakeOdds = 5;
 constexpr int ShakeSpan = 3;
 constexpr double ShakeStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-// 0x4054ad..0x40559c: los rand() % 10, el desparramo de 800 (0x320) menos 400 (0x6b87b0), la z menos 150
-// (0x6b87ac) y la escala más 50 (0x6b86b0).
+// 0x4054ad..0x40559c: the rand() % 10, the spread of 800 (0x320) minus 400 (0x6b87b0), the z minus 150 (0x6b87ac) and
+// the scale plus 50 (0x6b86b0).
 constexpr int PreludeOdds = 10;
 constexpr int MeteorSpread = 800;
 constexpr double MeteorBack = 400.0;
@@ -48,7 +48,7 @@ constexpr int MeteorScaleSpan = 10;
 constexpr double MeteorScaleBase = 50.0;
 constexpr std::int32_t MeteorJoint = 0x6ee;
 constexpr std::int32_t MeteorSubtype = 9;
-// 0x4055b0: el 3, la cuenta de +0x60 y +0x8a.
+// 0x4055b0: the 3, the count of +0x60 and +0x8a.
 constexpr std::int16_t TrapObject = 3;
 constexpr std::int32_t TrapCount = 10;
 
@@ -63,7 +63,7 @@ const std::array<ChaosCastleCellRect, 4>* RectsOf(std::uint8_t area)
     return nullptr;
 }
 
-// fild del resto, fsub de 15, fild de la celda, fmul de 100 y faddp: exacto en la x87, guardado en float.
+// fild of the remainder, fsub of 15, fild of the cell, fmul of 100 and faddp: exact on the x87, stored in float.
 float StoneCoordinate(int spread, std::uint8_t cell)
 {
     return F32((static_cast<double>(spread) - StoneBack) + (static_cast<double>(cell) * CellSize));
@@ -122,7 +122,7 @@ Core::Expected<std::int32_t, std::string> StepChaosCastlePrelude(std::int32_t co
         return random.Next() % count;
     if (context.heroInSafeZone || random.Next() % PreludeOdds != 0)
         return 0;
-    // fild del resto, fadd de la coordenada y fsub de 400, guardado en float; la z con fld, fsub y fstp.
+    // fild of the remainder, fadd of the coordinate and fsub of 400, stored in float; the z with fld, fsub and fstp.
     glm::vec3 position;
     position.x = F32((static_cast<double>(random.Next() % MeteorSpread) + static_cast<double>(context.heroPosition.x)) -
                      MeteorBack);

@@ -19,42 +19,40 @@
 #include <string>
 #include <vector>
 
-// La ventana de la lista de servidores (CL5.5; 06 § La lista de servidores): la arma 0x6451d0, la
-// ubica 0x645520 con 0x6456c0 y 0x6457c0, le pone los rótulos y la descripción 0x645860, atiende
-// los clics 0x645e10 y la dibuja 0x6463b0. 21 botones de grupo, en dos columnas de 10 y uno abajo
-// al medio, y en el medio los del grupo elegido: uno por servidor, o uno solo sin número si el
-// grupo tiene uno. El original tiene 16 de servidor; MuRet tiene 20, uno por número (Q-C63). Hasta
-// que se elige un grupo no hay ninguno (+0x3138 empieza en -1). Alrededor, el marco de
-// server_deco_all y, con un grupo elegido, la caja de abajo con su descripción en dos renglones; y
-// con el grupo 20, tres textos arriba a la izquierda (Q-C83). *Estático*.
+// The server list window (CL5.5; 06 § La lista de servidores): 0x6451d0 builds it, 0x645520 places it with 0x6456c0
+// and 0x6457c0, 0x645860 sets its labels and description, 0x645e10 handles the clicks and 0x6463b0 draws it. 21 group
+// buttons, in two columns of 10 and one centered below, and in the middle those of the chosen group: one per server,
+// or a single one without a number if the group has one. The original has 16 server buttons; MuRet has 20, one per
+// number (Q-C63). Until a group is chosen there are none (+0x3138 starts at -1). Around it, the server_deco_all frame
+// and, with a group chosen, the bottom box with its description in two lines; and with group 20, three texts top
+// left (Q-C83). *Static*.
 //
-// Un clic en un grupo no vuelve a pedir la lista: el original manda otro F4 02 (Q-C82). Y todo se
-// atiende en el paso (Q-C81).
+// A click on a group does not ask for the list again: the original sends another F4 02 (Q-C82). And everything is
+// handled in the step (Q-C81).
 namespace Client::FrontEnd
 {
-// El ancho de la ventana (0x6451d0): dos columnas de botones de grupo, una de servidor y 56.
+// 0x6451d0: two columns of group buttons, one of server buttons and 56.
 inline constexpr int ServerListWidth = 465;
-// El de la caja de la descripción (0x66a1c0): el de server_ex01, el borde de arriba.
+// 0x66a1c0: server_ex01's, the top edge.
 inline constexpr int DescriptionWidth = 512;
 
-// La descripción del botón de grupo k es el texto 1717 + k (0x645860), en dos renglones de 83
-// bytes (0x632c90). El botón k del original es el lugar 4 + k; en MuRet, que muestra todos los
-// lugares (Q-C62), es la del lugar del grupo: 1717 + lugar − 4.
+// The description of group button k is text 1717 + k (0x645860), in two lines of 83 bytes (0x632c90). The original's
+// button k is slot 4 + k; in MuRet, which shows every slot (Q-C62), it is that of the group's slot: 1717 + slot − 4.
 inline constexpr std::size_t FirstDescriptionText = 1717;
 inline constexpr std::size_t DescriptionLines = 2;
 inline constexpr std::size_t DescriptionLineBytes = 83;
-// Con el grupo 20 elegido, los textos 565, 566 y 567 (0x6463b0).
+// With group 20 chosen, texts 565, 566 and 567 (0x6463b0).
 inline constexpr std::size_t FirstGroupTwentyText = 565;
 inline constexpr std::size_t GroupTwentyTextCount = 3;
 
-// Lo que pasó con un clic en un servidor (0x645e10).
+// 0x645e10
 struct ServerClick
 {
     enum class Kind : std::uint8_t
     {
-        // Con carga de menos de 100: la lista se cierra y se elige (el F4 03).
+        // Load under 100: the list closes and it is chosen (the F4 03).
         Chosen,
-        // Con carga de 100 a 127: el aviso 0x63, y la lista queda. Con 128 o más no pasa nada.
+        // Load from 100 to 127: notice 0x63, and the list stays. With 128 or more nothing happens.
         Full,
     };
 
@@ -64,81 +62,76 @@ struct ServerClick
     friend bool operator==(const ServerClick&, const ServerClick&) = default;
 };
 
-// Dónde va cada cosa, en píxeles con la y desde arriba.
+// In pixels, with y from the top.
 struct ServerListLayout
 {
     Ui::Rect window;
     std::array<Ui::Rect, GroupButtonCount> groupButtons{};
-    // Los 20 lugares de servidor del grupo, para `serverCount` servidores.
+    // The group's 20 server slots, for `serverCount` servers.
     std::array<Ui::Rect, ServersPerGroup> serverButtons{};
-    // La barra de la carga de cada uno, de su ancho entero (160).
+    // Each one's load bar, at its full width (160).
     std::array<Ui::Rect, ServersPerGroup> loadBars{};
-    // La caja de la descripción, centrada abajo de la ventana (0x645520).
+    // Centered below the window (0x645520).
     Ui::Rect description;
 };
 
-// Las cuatro piezas de server_deco_all que van alrededor de los botones de grupo (0x6451d0,
-// 0x645520, 0x6457c0, 0x645c70 y 0x645ca0), en píxeles y ya corridas por su punto: por cada
-// columna, la de arriba y la marca del elegido, en el orden en que las dibuja 0x6463b0.
+// The four pieces of server_deco_all around the group buttons (0x6451d0, 0x645520, 0x6457c0, 0x645c70 and
+// 0x645ca0), in pixels and already shifted by their point: for each column, the top one and the chosen one's mark, in
+// the order 0x6463b0 draws them.
 struct ServerListFrame
 {
-    // La de la columna de la izquierda, siempre, y la de la derecha, con más de 10 botones.
+    // The left column's, always, and the right one's, with more than 10 buttons.
     std::array<std::optional<Render::UiImage>, 2> corners{};
-    // La marca del elegido, en la columna de él: del 0 al 9 a la izquierda, del 10 al 19 a la
-    // derecha, y ninguna con el 20.
+    // The chosen one's mark, in its column: 0 to 9 on the left, 10 to 19 on the right, and none with the 20.
     std::array<std::optional<Render::UiImage>, 2> markers{};
 };
 
-// El alto de la caja de la descripción (+0x3064, 0x6451d0): 10 líneas del alto del buffer de la
-// textura del slot 0x19 (server_ex02), más 6 arriba y 6 abajo.
+// The description box height (+0x3064, 0x6451d0): 10 lines of the buffer height of the slot 0x19 texture
+// (server_ex02), plus 6 above and 6 below.
 [[nodiscard]] int DescriptionHeight(Assets::TextureBufferSize lineTexture);
 
-// 0x6451d0, 0x645520 y 0x6456c0 con la ventana donde la pone 0x65f300: ((W − 465) / 2,
-// (H − alto) / 2) con la división de C, y el alto, 16 · 26 + 26 + la caja + 10. Las filas de los
-// grupos empiezan en y + alto − 11 · 26 − la caja − 10; el 20 va al medio, en y + alto − la caja −
-// 26 − 5. Los de servidor van en x + 136 desde la primera fila; con 10 o más, el último termina en
-// la fila 10 y los de antes suben, aunque salgan de la ventana. La caja, de 512 de ancho, va en
-// (x − (512 − 465) / 2, y + alto − la caja).
+// 0x6451d0, 0x645520 and 0x6456c0 with the window where 0x65f300 puts it: ((W − 465) / 2, (H − height) / 2) with C
+// division, and the height, 16 · 26 + 26 + the box + 10. The group rows start at y + height − 11 · 26 − the box − 10;
+// the 20 goes in the middle, at y + height − the box − 26 − 5. The server ones go at x + 136 from the first row; with
+// 10 or more, the last ends at row 10 and the earlier ones move up, even if they leave the window. The box, 512 wide,
+// goes at (x − (512 − 465) / 2, y + height − the box).
 [[nodiscard]] ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight, std::size_t serverCount);
 
-// El marco para `groupButtons` botones de grupo y el elegido, desde 0. Cada pieza pone su punto
-// en una esquina de un botón: (8, 19) arriba a la izquierda del 0, (60, 19) arriba a la derecha
-// del 10, (1, 2) arriba a la derecha del elegido de la izquierda y (23, 2) arriba a la izquierda
-// del de la derecha.
+// The frame for `groupButtons` group buttons and the chosen one, from 0. Each piece puts its point on a corner of a
+// button: (8, 19) top left of the 0, (60, 19) top right of the 10, (1, 2) top right of the chosen one on the left and
+// (23, 2) top left of the one on the right.
 [[nodiscard]] ServerListFrame LayoutServerListFrame(const ServerListLayout& layout, std::size_t groupButtons,
                                                     std::optional<std::size_t> selected, const Ui::TextureSizes& sizes);
 
-// Las cinco imágenes de la caja de 0x66a1c0 en `box`, en el orden de 0x66a960: el fondo de
-// server_ex03 en (3, 3), repetido; el borde de arriba y el de abajo de server_ex01; y los lados de
-// server_ex02, el de la izquierda repetido y el de la derecha estirado (06 § La lista de
-// servidores).
+// The five images of 0x66a1c0's box in `box`, in 0x66a960's order: the server_ex03 fill at (3, 3), repeated; the top
+// and bottom edges from server_ex01; and the server_ex02 sides, the left one repeated and the right one stretched (06
+// § La lista de servidores).
 [[nodiscard]] std::array<Render::UiImage, 5> DescriptionBoxImages(Ui::Rect box, const Ui::TextureSizes& sizes);
 
 class ServerListWindow final : public Ui::NewUiWindow
 {
 public:
-    // `texts` puede ser nullptr (sin Text.bmd: los botones salen sin rótulo) y tiene que vivir lo
-    // que la ventana.
+    // `texts` can be nullptr (without Text.bmd the buttons have no label) and must live as long as the window.
     ServerListWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
-    // Abre con la lista ya agrupada (GroupServers), sin grupo elegido.
+    // With the list already grouped (GroupServers), with no group chosen.
     void Open(ServerGroups groups);
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
-    // La ventana (`window` de LayoutServerList).
+    // `window` from LayoutServerList.
     [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
-    // El botón de grupo elegido, desde 0.
+    // The chosen group button, from 0.
     [[nodiscard]] std::optional<std::size_t> Selected() const;
 
-    // 0x645e10 en el paso, con el foco: un clic en un grupo lo elige; uno en un servidor dice qué
-    // pasó. Sin el foco, solo los botones.
+    // 0x645e10 in the step, with the focus: a click on a group chooses it; one on a server says what happened. Without
+    // the focus, only the buttons.
     std::optional<ServerClick> Step(const Input::InputState& input, Core::PixelSize screen, Ui::NewUiTurn turn = {});
-    // Los renglones de la descripción del grupo elegido, vacío sin él.
+    // The chosen group's description lines, empty without one.
     [[nodiscard]] const std::vector<std::string>& Description() const;
 
-    // 0x6463b0 con la mezcla normal (el lote llega con la aditiva de la arena, Q-C80): la caja,
-    // las piezas del marco con los renglones de la descripción, los botones con sus rótulos, las
-    // barras y, con el grupo 20, sus tres textos. Ubica todo para `screen` antes, por si cambió.
+    // 0x6463b0 with normal blending (the batch arrives with the arena's additive one, Q-C80): the box, the frame pieces
+    // with the description lines, the buttons with their labels, the bars and, with group 20, its three texts. It lays
+    // everything out for `screen` first, in case it changed.
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
@@ -146,11 +139,10 @@ private:
     void Place(Core::PixelSize screen);
     [[nodiscard]] std::size_t ShownServers() const;
     [[nodiscard]] const ServerGroup* SelectedGroup() const;
-    // Si el nombre del grupo elegido es el texto del grupo 20 (el strcmp de 0x6463b0).
+    // Whether the chosen group's name is group 20's text (0x6463b0's strcmp).
     [[nodiscard]] bool ShowsGroupTwentyTexts() const;
-    // Los pasos de 0x6463b0: la caja y, por renglón, las piezas del marco y la descripción; los
-    // botones y las barras, que dan el color del último rótulo, o `textColor` sin ninguno; y los
-    // textos del grupo 20 con ese color.
+    // 0x6463b0's steps: the box and, per line, the frame pieces and the description; the buttons and the bars, which
+    // give the last label's color, or `textColor` without any; and group 20's texts in that color.
     void DrawBoxAndDescription(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
                                Core::PixelSize screen) const;
     [[nodiscard]] std::uint32_t DrawButtons(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,

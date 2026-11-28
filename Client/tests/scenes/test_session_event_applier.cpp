@@ -62,7 +62,7 @@
 
 namespace
 {
-// El aplicador con lo suyo: sin datos (dataRoot vacío) y con Player.bmd.
+// The applier with what it needs: no data (empty dataRoot) and Player.bmd.
 struct Applier
 {
     explicit Applier(std::filesystem::path dataRoot = {})
@@ -140,8 +140,8 @@ TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
     EXPECT_EQ(tested.selection.Slots()[0].revision, 0u);
 }
 
-// El F3 10 va a 0x4c55a0: con la cantidad en 0, la inicialización común vacía el equipo del registro y las
-// dos grillas y cierra el registro con sus 3.848 rand(), sin tocar la sesión ni la selección.
+// The F3 10 goes to 0x4c55a0: with the count at 0, the common initialization empties the record's equipment and the
+// two grids and closes the record with its 3848 rand(), without touching the session or the selection.
 
 TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 {
@@ -165,7 +165,7 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
 
-// Sin cifrar, 0x4c55a0 hace lo mismo antes de mirar el flag (0x4c56e2), y nada después en el mundo.
+// Unencrypted, 0x4c55a0 does the same before checking the flag (0x4c56e2), and nothing after it in the world.
 
 TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
 {
@@ -184,8 +184,8 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
-// El F3 03 va a 0x4c3940: sin datos, el MAP no abre y la carga alcanza el ATT de World1
-// (Q-C180), después de los stats en el registro propio.
+// The F3 03 goes to 0x4c3940: without data, the MAP does not open and the load reaches World1's ATT (Q-C180), after
+// the stats in the own record.
 
 TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 {
@@ -205,8 +205,8 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
     EXPECT_EQ(online.session.State(), Client::Session::SessionState::Idle);
 }
 
-// El F1 02 con 1 cifrado va a la vuelta de 0x4c2710: deja la orden de la escena 4 y el mundo en −1, y
-// cierra el registro propio con sus 3.848 rand(), sin tocar la sesión ni la selección.
+// The encrypted F1 02 with 1 goes to 0x4c2710's return: it leaves the scene 4 order and the world at −1, and closes
+// the own record with its 3848 rand(), without touching the session or the selection.
 
 TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
 {
@@ -281,7 +281,7 @@ TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
         {Client::Tests::Bytes({0xc1, 5, 0xf3, 0x20, 0x42}), Client::Tests::Bytes({0xc1, 6, 0x1b, 0x1b, 0x07, 0x77}),
          Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x19, 0x13, 0x07, 0x77, 0x08, 0x88}),
                                           serverSerials),
-         // El A8 sin el cuervo del dueño no hace nada.
+         // The A8 without the owner's raven does nothing.
          Client::Tests::Bytes({0xc1, 9, 0xa8, 0, 1, 0x07, 0x77, 0x08, 0x88}),
          Client::Tests::Bytes({0xc1, 8, 0xf3, 0x11, 0xfe, 0, 0, 0x11})})};
 
@@ -294,7 +294,8 @@ TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
                                      { return line.find("no llegó cifrada") != std::string::npos; }));
 }
 
-// 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
+// 0x4cb750: another's 18 reaches ApplyActionReply, and the sitting C1 18 it triggers (0x4f2250) goes out through the
+// session.
 
 TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
 {
@@ -316,8 +317,8 @@ TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
     const auto plain = Client::Network::Xor32Decode(Client::Tests::PacketOf(action));
     EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x82})));
 }
-// 0x4dd92c: un 94 de tipo 0 sin los números del Muto (el original los lee del buffer de la recepción) se descarta con
-// un aviso en el log, después de lo que el original hizo antes, y la sesión sigue (CL9 hito 11, como Q-C778).
+// 0x4dd92c: a 94 of type 0 without the Muto numbers (the original reads them from the receive buffer) is dropped with
+// a warning in the log, after what the original did before, and the session goes on (CL9 milestone 11, like Q-C778).
 TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
 {
     auto tested = std::make_unique<Applier>();
@@ -334,7 +335,8 @@ TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
     EXPECT_NE(tested->sink.lines[0].find("0x4dd92c"), std::string::npos) << tested->sink.lines[0];
 }
 
-// 0x4c6098: en la escena 2, el 00 pide la lista por el GameServer sin mirar el paquete (CL8 hito 3).
+// 0x4c6098: in scene 2, the 00 asks for the list through the GameServer without looking at the packet (CL8 milestone
+// 3).
 
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {
@@ -361,8 +363,8 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
     EXPECT_EQ(request, Client::Tests::ListRequest());
     EXPECT_EQ(tested.cloth.random.State(), Client::Crt::CrtRandom{}.State());
 }
-// CL9 hito 12: los paquetes del castillo llegan a su aplicador, y lo que manda el B2 02 con 1 sale por el GameServer de
-// la sesión antes del mensaje, que sin medidor corta.
+// CL9 milestone 12: the castle packets reach their applier, and what the B2 02 with 1 sends goes out through the
+// session's GameServer before the message, which stops without a meter.
 TEST(SessionEventApplierTest, TheCastlePacketsReachTheirApplierAndSendThroughTheSession)
 {
     const auto tested = std::make_unique<Applier>();
@@ -395,9 +397,9 @@ TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
     EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
 }
 
-// 0x4e3e98..0x4e3f1d: el dispatcher copia el 1C a la cola de 0x77f27b4, la misma de los 12 (Q-C801), antes de mirar el
-// flag de cifrado. Con la sesión de verdad y este aplicador, un 1C sin cifrar, que se rechaza sin leerlo, ocupa una
-// ranura.
+// 0x4e3e98..0x4e3f1d: the dispatcher copies the 1C to the queue at 0x77f27b4, the same as the 12's (Q-C801), before
+// checking the encryption flag. With the real session and this applier, an unencrypted 1C, rejected without reading
+// it, takes a slot.
 
 TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
 {
@@ -530,7 +532,8 @@ TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleas
     }
 }
 
-// 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
+// 0x4cb750: another's 18 reaches ApplyActionReply, and the sitting C1 18 it triggers (0x4f2250) goes out through the
+// session.
 TEST(SessionEventApplierTest, EveryPostLoginHelloClearsOnlyGuildKeysAndTheCount)
 {
     auto owned = std::make_unique<Applier>();

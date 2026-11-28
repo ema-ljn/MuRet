@@ -7,19 +7,19 @@
 #include <cstdint>
 #include <optional>
 
-// Las revisiones del botón de borrar de la selección (0x63edf0; Client/docs/research/06-render-
-// escenas-y-ui.md, "Borrar un personaje"). *Estático*.
+// The checks of the selection's delete button (0x63edf0; Client/docs/research/06-render-escenas-y-ui.md,
+// "Borrar un personaje"). *Static*.
 namespace Client::FrontEnd
 {
-// Si el grupo del servidor elegido deja borrar a uno de nivel alto: strcmp de su nombre
-// (GroupNameText de código / 20, el que puso 0x4c1860 en 0x7d36bb0 + 0x21e · DAT_006d5ec4) con el
-// texto 559. Un texto que falta cuenta como vacío. Sin servidor elegido (MuRet sin ConnectServer),
-// sí: el original pasa siempre por la lista.
+// Whether the chosen server's group lets a high-level one be deleted: strcmp of its name
+// (GroupNameText of code / 20, the one 0x4c1860 put at 0x7d36bb0 + 0x21e · DAT_006d5ec4) with
+// text 559. A missing text counts as empty. Without a chosen server (MuRet without ConnectServer),
+// yes: the original always goes through the list.
 [[nodiscard]] bool FreeDeletionGroup(const Tables::TextTable* texts, std::optional<std::uint16_t> chosenServer);
 
-// El aviso que abre el botón de borrar con `chosen`, en este orden: con gremio (+0x368 distinto de
-// 0xff), el 0x92; de nivel 80 o más (0x6d5e24) fuera del grupo libre, el 0x83; con las banderas
-// 0x12, el 0x61; si no, la confirmación 0x5e.
+// The notice the delete button opens with `chosen`, in this order: with a guild (+0x368 other than
+// 0xff), 0x92; level 80 or more (0x6d5e24) outside the free group, 0x83; with flags
+// 0x12, 0x61; otherwise, the confirmation 0x5e.
 [[nodiscard]] Ui::NoticeId NoticeOfDeleteButton(const Protocol::FrontEnd::CharacterEntry& chosen,
                                                 bool freeDeletionGroup);
 } // namespace Client::FrontEnd

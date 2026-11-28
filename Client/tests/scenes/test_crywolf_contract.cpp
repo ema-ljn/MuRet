@@ -27,9 +27,9 @@
 #include <utility>
 #include <vector>
 
-// CL9 hito 11, fase 4 (06 § La interfaz de Crywolf): el contrato de los altares, 0x435b00, 0x435ad0, el paso de su
-// ventana (0x435c5c..0x436220) y el clic en un altar (0x567b00..0x567c23), contra el ASM de c32bbd5f (*estático*: GS
-// 0.97 no tiene Crywolf). Text.bmd es inventado. Nada de esto saca rand().
+// CL9 milestone 11, phase 4 (06 § La interfaz de Crywolf): the altar contract, 0x435b00, 0x435ad0, its window's step
+// (0x435c5c..0x436220) and the click on an altar (0x567b00..0x567c23), against the ASM of c32bbd5f (*static*: GS 0.97
+// has no Crywolf). Text.bmd is made up. None of this draws rand().
 namespace
 {
 using Client::Events::Crywolf::AltarClick;
@@ -126,8 +126,8 @@ TEST_F(CrywolfContractTest, TheDefenseNeedsTheStageAndTheMap)
     }
 }
 
-// 0x435b00: solo con la etapa 3 o 4 en el 34 y sin la salida pedida. Con otro mensaje que 0x38, el texto 1950 + n y la
-// ventana 2 (la 1 con 0x39); el renglón 0 vacía el 1 y el valor queda en 0x723be0.
+// 0x435b00: only with stage 3 or 4 in 34 and without the requested exit. With a message other than 0x38, text
+// 1950 + n and window 2 (1 with 0x39); line 0 empties line 1 and the value stays in 0x723be0.
 TEST_F(CrywolfContractTest, TheMessageNeedsTheDefenseInCrywolf)
 {
     for (const std::int32_t map : {0, 2, CrywolfMap})
@@ -152,8 +152,8 @@ TEST_F(CrywolfContractTest, TheMessageNeedsTheDefenseInCrywolf)
     EXPECT_EQ(Ui().byte723a44, 0);
 }
 
-// 0x435b33..0x435b5f: 0x38 da wsprintfA con 2006 y el nibble bajo del altar, y la ventana 1 sin pasar por la 2; 0x39
-// copia 2007 en el renglón 1 y deja la ventana en 1. strcpy deja detrás lo que había.
+// 0x435b33..0x435b5f: 0x38 gives wsprintfA with 2006 and the altar's low nibble, and window 1 without going through
+// 2; 0x39 copies 2007 into line 1 and leaves the window at 1. strcpy leaves behind what was there.
 TEST_F(CrywolfContractTest, TheOfferFormatsTheContractsLeft)
 {
     Enter(CrywolfMap, 4);
@@ -172,8 +172,8 @@ TEST_F(CrywolfContractTest, TheOfferFormatsTheContractsLeft)
     EXPECT_EQ(Ui().dwords723bdc[1], 0x13f);
 }
 
-// strcpy y wsprintfA no tienen tope: un texto de 200 bytes o más pisaría lo que sigue, y corta. También un renglón o un
-// altar fuera de sus tablas.
+// strcpy and wsprintfA have no bound: a text of 200 bytes or more would overwrite what follows, and it stops. So does a
+// line or an altar outside its tables.
 TEST_F(CrywolfContractTest, WhatDoesNotFitIsCut)
 {
     Enter(CrywolfMap, 3);
@@ -195,8 +195,8 @@ TEST_F(CrywolfContractTest, WhatDoesNotFitIsCut)
     EXPECT_NE(missing.Error().find("2008"), std::string::npos) << missing.Error();
 }
 
-// 0x435ad0: el byte del altar con la etapa 3 o 4 en el 34, sin mirar la salida; fuera de 0..4, dentro de la guarda, no
-// escribe y da false (el original escribe en la .data de al lado, Q-C1347).
+// 0x435ad0: the altar's byte with stage 3 or 4 in 34, ignoring the exit; outside 0..4, inside the guard, it does not
+// write and gives false (the original writes into the neighbouring .data, Q-C1347).
 TEST_F(CrywolfContractTest, TheAltarIsSetOnlyInTheDefense)
 {
     for (const std::int32_t map : {0, 2, CrywolfMap})
@@ -218,8 +218,8 @@ TEST_F(CrywolfContractTest, TheAltarIsSetOnlyInTheDefense)
     EXPECT_TRUE(Client::Events::Crywolf::SetTheAltar(Runtime(), -1, 1));
 }
 
-// 0x435c6b..0x435cb4 y 0x4361b4: el No deja 0x723bdc en 1 y pasa a la ventana 2 con 1952; la ventana 1 se queda con
-// cualquier clic, pero sin el botón no hace nada.
+// 0x435c6b..0x435cb4 and 0x4361b4: the No leaves 0x723bdc at 1 and goes to window 2 with 1952; window 1 keeps any
+// click, but without the button it does nothing.
 TEST_F(CrywolfContractTest, TheQuestionTakesEveryClick)
 {
     for (const auto& [x, y, refused] :
@@ -247,8 +247,9 @@ TEST_F(CrywolfContractTest, TheQuestionTakesEveryClick)
     EXPECT_EQ(Ui().dwords723bdc[0], 0);
 }
 
-// 0x435cf2..0x4361a2: el Sí manda el C1 06 BD 03 con la clave de 0x723be0 y deja 0x723bdc en 2; con la mascota 0x1c14,
-// 0x1c15 o 0x1c37, 1956 en la ventana 2 y nada sale. El mouse en el Sí sin el botón no apaga el flanco.
+// 0x435cf2..0x4361a2: the Yes sends C1 06 BD 03 with the key of 0x723be0 and leaves 0x723bdc at 2; with pet 0x1c14,
+// 0x1c15 or 0x1c37, 1956 in window 2 and nothing goes out. The mouse on the Yes without the button does not clear the
+// edge.
 TEST_F(CrywolfContractTest, TheAcceptSendsTheAltarKey)
 {
     Enter(CrywolfMap, 4);
@@ -285,7 +286,7 @@ TEST_F(CrywolfContractTest, TheAcceptSendsTheAltarKey)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x4361dc..0x436216: la ventana 2 solo toma el clic del OK, que deja 0x723bdc en 3.
+// 0x4361dc..0x436216: window 2 only takes the OK's click, which leaves 0x723bdc at 3.
 TEST_F(CrywolfContractTest, TheNoticeOnlyTakesTheOk)
 {
     for (const auto& [x, y, confirmed] : {std::tuple{0x123, 0xfb, true}, std::tuple{0x157, 0x117, true},
@@ -304,12 +305,12 @@ TEST_F(CrywolfContractTest, TheNoticeOnlyTakesTheOk)
     }
 }
 
-// 0x567b00..0x567c23: fuera de la defensa en el 34 o con otro tipo, no es un altar; sin una elfa, el C1 30 de
-// 0x5650c0; con una elfa, 0x34 con el altar contratado, 0x35 sin contratos y 0x38 + 0x39 con la clave con signo.
+// 0x567b00..0x567c23: outside the defense in 34 or with another type, it is not an altar; without an elf, the C1 30 of
+// 0x5650c0; with an elf, 0x34 with the altar contracted, 0x35 with no contracts and 0x38 + 0x39 with the signed key.
 TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
 {
     ActorState hero;
-    hero.characterClass = 0x12; // la elfa de la segunda clase: & 7 da 2.
+    hero.characterClass = 0x12; // the second-class elf: & 7 gives 2.
     ActorState altar;
     altar.type = 0x206;
     altar.key = 0x013e;
@@ -358,7 +359,7 @@ TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
     EXPECT_EQ(Ui().byte723a44, 1);
     EXPECT_EQ(Ui().dwords723bdc[1], -0x7ec0);
 
-    // Con la salida pedida, 0x435b00 no hace nada pero el clic sigue en 0x569573.
+    // With the requested exit, 0x435b00 does nothing but the click goes on at 0x569573.
     Enter(CrywolfMap, 4);
     Runtime().ui.logoutRequested = true;
     EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(),
@@ -366,8 +367,8 @@ TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
     EXPECT_EQ(Ui().byte723a44, 0);
 }
 
-// 0x4eac0a..0x4eac41: la bandera del A* con la etapa 3 o 4 en el 34 y un altar (0x204..0x208, el word +2 con signo) en
-// 0x6c8e54, vivo o no. En Lorencia, Devias, con otra etapa, otro tipo o sin NPC elegido (Q-C1350), sin bandera.
+// 0x4eac0a..0x4eac41: the A* flag with stage 3 or 4 in 34 and an altar (0x204..0x208, the signed word +2) in 0x6c8e54,
+// alive or not. In Lorencia, Devias, with another stage, another type or with no chosen NPC (Q-C1350), no flag.
 TEST_F(CrywolfContractTest, TheAltarGoalNeedsTheDefenseInCrywolfAndAChosenAltar)
 {
     constexpr std::size_t AltarSlot = 9;
@@ -395,7 +396,7 @@ TEST_F(CrywolfContractTest, TheAltarGoalNeedsTheDefenseInCrywolfAndAChosenAltar)
     for (const std::uint16_t type : {std::uint16_t{0x203}, std::uint16_t{0x209}, std::uint16_t{0x8204}})
         EXPECT_FALSE(goal(CrywolfMap, 4, slot, type)) << type;
     EXPECT_FALSE(goal(CrywolfMap, 4, -1, 0x205));
-    // Otro registro en 0x6c8e54: mira el elegido, no el altar.
+    // Another record in 0x6c8e54: it looks at the chosen one, not at the altar.
     EXPECT_FALSE(goal(CrywolfMap, 4, slot + 1, 0x205));
 }
 } // namespace

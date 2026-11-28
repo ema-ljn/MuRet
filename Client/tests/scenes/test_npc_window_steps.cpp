@@ -52,10 +52,10 @@
 #include <utility>
 #include <vector>
 
-// Los pasos de las ventanas de los NPC (CL9 hito 6, fase 2; 04 § Las ventanas de los NPC): comprar, vender, reparar,
-// guardar y sacar del almacén, el zen del almacén, la mezcla y los diálogos de sí y no, byte a byte y con los rand()
-// del paso. La esquina de la ventana del NPC (0x78aba28) la pone su dibujo (Scenes/NpcWindowDrawing), que no corre en
-// estos tests: la dejan en (0x104, 0), donde la pone el original. Los ítems y los textos son inventados.
+// The steps of the NPC windows (CL9 milestone 6, phase 2; 04 § Las ventanas de los NPC): buy, sell, repair, store and
+// take from the warehouse, the warehouse zen, the mix and the yes/no dialogs, byte by byte and with the step's rand().
+// The NPC window's corner (0x78aba28) is set by its drawing (Npc/NpcWindowDrawing), which does not run in these tests:
+// they leave it at (0x104, 0), where the original puts it. The items and the texts are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -72,38 +72,39 @@ using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
-// Los del paso con el inventario abierto y nada bajo el mouse (test_game_inventory_step.cpp): los del inventario y
-// sus hermanas, antes de 0x5d8d50, y los de la barra de skills, la cadena de Q, W y E y la cola IsOpen(0), después.
+// Those of the step with the inventory open and nothing under the mouse (test_game_inventory_step.cpp): the
+// inventory's and its siblings', before 0x5d8d50, and the skill bar's, the Q, W and E chain and the IsOpen(0) tail,
+// after.
 constexpr int InventoryWindowRandoms = 8 + 13 * Own;
 constexpr int QuietStepRandoms = InventoryWindowRandoms + Own + 2 + 2;
-// Con el almacén abierto, la cadena de Q, W y E (0x5a343e) y IsOpen(0) (0x5a5511) paran en 0x40, antes del
-// IsOpen(0x10000): uno menos cada una.
+// With the warehouse open, the Q, W and E chain (0x5a343e) and IsOpen(0) (0x5a5511) stop at 0x40, before the
+// IsOpen(0x10000): one less each.
 constexpr int WarehouseStepRandoms = QuietStepRandoms - 2;
-// 0x5c3d20 con el mouse arriba de la grilla del inventario.
+// 0x5c3d20 with the mouse above the inventory grid.
 constexpr int EquipmentStepRandoms = 12 * Own;
-// El rand() del relleno y el del número de serie de un C3.
+// The rand() of the padding and of the serial number of a C3.
 constexpr int C3 = 2;
-// 0x5d8d50 con un ítem en el cursor: IsOpen(0x20) de soltarlo en el comercio.
+// 0x5d8d50 with an item in the cursor: IsOpen(0x20) for dropping it in the trade.
 constexpr int CursorTradeQuery = 1;
-// 0x5c5361 al levantar y 0x6264a6 en el OK del 0x73: IsOpen(0x20).
+// 0x5c5361 on picking up and 0x6264a6 in the OK of the 0x73: IsOpen(0x20).
 constexpr int TradeQuery = 1;
-// 0x5cb3af y 0x5e7aa0: veinte cambios de dos teclas.
+// 0x5cb3af and 0x5e7aa0: twenty swaps of two keys.
 constexpr int KeypadRandoms = 40;
-// Con la caja del caos abierta, IsOpen(0) (0x5a5511) para en 0x100, antes del IsOpen(0x10000): uno menos. La cadena
-// de Q, W y E pasa por el 0x10000 antes del 0x100 y saca los mismos.
+// With the chaos box open, IsOpen(0) (0x5a5511) stops at 0x100, before the IsOpen(0x10000): one less. The Q, W and E
+// chain goes through the 0x10000 before the 0x100 and draws the same.
 constexpr int ChaosBoxStepRandoms = QuietStepRandoms - 1;
 constexpr std::int32_t InventoryX = 0x1c2;
 constexpr std::int32_t NpcX = 0x104;
 constexpr std::int32_t NpcGridLeft = NpcX + 0xf;
 constexpr std::int32_t NpcGridTop = 0x32;
-// El botón de mezclar (0x5fe690, de 0x2c × 0x20 en la esquina más (0x4b, 300)) y el precio del 3 que deja 0x5febf0.
+// The mix button (0x5fe690, 0x2c × 0x20 at the corner plus (0x4b, 300)) and the price of the 3 that 0x5febf0 leaves.
 constexpr std::int32_t MixButtonX = NpcX + 0x4b + 5;
 constexpr std::int32_t MixButtonY = 300 + 5;
 constexpr std::uint32_t UpgradePrice = 2'000'000;
 
-// Un arma de 1 por 3 y un escudo de 2 por 2 con precio fijo (+0x40) y durabilidad (+0x2d), una joya de 1 por 1 y la
-// fruta. Para la caja del caos, la joya de Soul, la del caos y el ojo y la llave del Devil Square, de 1 por 1 (los dos
-// últimos con precio fijo).
+// A 1 by 3 weapon and a 2 by 2 shield with a fixed price (+0x40) and durability (+0x2d), a 1 by 1 jewel and the fruit.
+// For the chaos box, the jewel of Soul, the chaos one and the Devil Square eye and key, 1 by 1 (the last two with a
+// fixed price).
 constexpr std::uint16_t Sword = 0x0001;
 constexpr std::uint16_t Shield = 0x0c00;
 constexpr std::uint16_t Jewel = 0x1c0d;
@@ -162,8 +163,8 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// `item` en la grilla `cells` de 8 columnas desde (column, row), con la copia en toda su huella y +0x3c solo en la
-// esquina, como lo deja 0x5bc740.
+// `item` in the 8-column grid `cells` from (column, row), with the copy over its whole footprint and +0x3c only in the
+// corner, as 0x5bc740 leaves it.
 void Place(std::span<ItemState> cells, ItemState item, std::int32_t column, std::int32_t row, std::int32_t width,
            std::int32_t height)
 {
@@ -180,7 +181,7 @@ void Place(std::span<ItemState> cells, ItemState item, std::int32_t column, std:
     }
 }
 
-// Mide como el rasterizador falso: 6 columnas por letra y 13 filas.
+// Measures like the fake rasterizer: 6 columns per letter and 13 rows.
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
 public:
@@ -202,8 +203,8 @@ protected:
         runtime.panels.inventory = 1;
         runtime.hud.inventoryX = InventoryX;
         runtime.ui.npcWindowX = NpcX;
-        // El registro del chat donde lo deja el paso anterior (0x636f04, fuera de su ventana): en (0xba, 0x1a4), la
-        // del primer paso, tapa la ventana del NPC y se queda con el mouse (0x5ee15a).
+        // The chat log where the previous step leaves it (0x636f04, outside its window): at (0xba, 0x1a4), the first
+        // step's one, it covers the NPC window and takes the mouse (0x5ee15a).
         runtime.hud.chatFrame.x = -10;
         runtime.hud.chatFrame.y = 0x65;
         for (ItemState& cell : runtime.npcWindows.grid)
@@ -256,7 +257,7 @@ protected:
         Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
     }
 
-    // El C1 del paquete `index` sin el XOR32, para compararlo byte a byte.
+    // The C1 of packet `index` without the XOR32, to compare it byte by byte.
     [[nodiscard]] Client::Network::Packet Plain(std::size_t index) const
     {
         return Xor32Decode(sent.at(index).packet);
@@ -267,20 +268,20 @@ protected:
         return world.Runtime().npcWindows;
     }
 
-    // 0x78abb14 y 0x6c932e, el aviso del ítem del cursor y su respuesta.
+    // 0x78abb14 and 0x6c932e, the cursor item's warning and its answer.
     [[nodiscard]] Client::Social::TradeState& Trade()
     {
         return world.Runtime().social.trade;
     }
 
-    // 0x5d8dee..0x5dc798: las respuestas de los avisos, sin el ítem del cursor. Falso: el paso termina ahí.
+    // 0x5d8dee..0x5dc798: the answers to the warnings, without the cursor item. False: the step ends there.
     [[nodiscard]] Client::Core::Expected<bool, std::string> AnswerTheWarnings()
     {
         return Client::PersonalShop::StepTheWarningAnswers(
             Context(0, 0), Client::Items::InventoryMoveContext{.world = world, .random = random, .services = services});
     }
 
-    // Lo que avisó 0x555190 con el tipo 2, en orden.
+    // What 0x555190 warned with type 2, in order.
     [[nodiscard]] std::vector<std::string> Errors() const
     {
         std::vector<std::string> errors;
@@ -292,7 +293,7 @@ protected:
         return errors;
     }
 
-    // La caja del 3: una espada +9 con suerte (0x54), una joya de Bless, una de Soul y una del caos.
+    // The box of the 3: a +9 sword with luck (0x54), a jewel of Bless, one of Soul and a chaos one.
     void FillTheUpgrade()
     {
         ItemState sword{.id = Sword, .scalar1Low = 9u << 3, .optionCount = 1};
@@ -332,10 +333,10 @@ protected:
     std::vector<std::size_t> messages;
 };
 
-// 0x5c4b64..0x5c510f, en Lorencia, Devias y Noria: el clic sobre la tercera casilla de un arma de la tienda la compra
-// desde su esquina: el C1 04 32 con el lugar 82 (fila 10, columna 2), con el XOR32 y en C3, y el precio de 0x54d0f0
-// en el modo 0 en 0x5767950. Con la compra esperando, el clic se gasta sin mandar nada. Las marcas, el ítem del
-// cartel (0x78aba27 en 1) y 0x78abb28 en 6 con la casilla sin el 12.
+// 0x5c4b64..0x5c510f, in Lorencia, Devias and Noria: the click on the third cell of a shop weapon buys it from its
+// corner: the C1 04 32 with slot 82 (row 10, column 2), with the XOR32 and in C3, and the price of 0x54d0f0 in mode 0
+// at 0x5767950. With the purchase pending, the click is spent without sending anything. The marks, the banner's item
+// (0x78aba27 at 1) and 0x78abb28 at 6 with the cell without the 12.
 TEST_F(NpcWindowStepsTest, TheShopBuysTheItemUnderTheMouseByteByByte)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -378,8 +379,8 @@ TEST_F(NpcWindowStepsTest, TheShopBuysTheItemUnderTheMouseByteByByte)
     }
 }
 
-// 0x5dee7f..0x5df416: el clic con un escudo en el cursor sobre la grilla de la tienda lo vende, C1 04 33 con su lugar
-// (0x78a6758), con el XOR32 y en C3, después del IsOpen(0x10000) de 0x5decc1. En Lorencia, Devias y Noria.
+// 0x5dee7f..0x5df416: the click with a shield in the cursor over the shop's grid sells it, C1 04 33 with its slot
+// (0x78a6758), with the XOR32 and in C3, after the IsOpen(0x10000) of 0x5decc1. In Lorencia, Devias and Noria.
 TEST_F(NpcWindowStepsTest, SellingAPlainItemSendsItsPlace)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -409,9 +410,9 @@ TEST_F(NpcWindowStepsTest, SellingAPlainItemSendsItsPlace)
     }
 }
 
-// 0x5df417: una joya pide confirmar con el 0x98 (los textos 0x218 a 0x21a) y 0x78abb14 en 1. El sí del 0x98
-// (0x62a779, el botón de (0x15, 0x5a) corrido a (0xd5, 0x64)) deja 1 en 0x6c932e y, en el paso siguiente, 0x5d8d50
-// manda el C1 04 33 y vuelve todo a 0 y 0xff. Con Esc es el no: la joya vuelve a su lugar.
+// 0x5df417: a jewel asks for confirmation with the 0x98 (texts 0x218 to 0x21a) and 0x78abb14 at 1. The yes of the 0x98
+// (0x62a779, the button at (0x15, 0x5a) shifted to (0xd5, 0x64)) leaves 1 at 0x6c932e and, on the next step, 0x5d8d50
+// sends the C1 04 33 and sets everything back to 0 and 0xff. With Esc it is the no: the jewel goes back to its slot.
 TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
 {
     auto& runtime = world.Runtime();
@@ -447,7 +448,7 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_EQ(Trade().warningKind, 0);
     EXPECT_EQ(Trade().warningByte, 0xff);
 
-    // El no, con Esc.
+    // The no, with Esc.
     Click();
     ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
     ASSERT_EQ(runtime.dialogs.current, 0x98);
@@ -461,9 +462,9 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_EQ(Trade().warningKind, 0);
 }
 
-// 0x5ed960 con 0x78abb09: el botón de reparar todo manda C1 05 34 FF 00 en C3 sin gastar el clic; 0x5b1570 suma, con
-// el registro propio abierto, lo de reparar el arma del equipo y el escudo del inventario gastados (0x5b13e0 sobre
-// 0x54d0f0 en el modo 2). El botón de x + 0x19 prende el cursor de reparar.
+// 0x5ed960 with 0x78abb09: the repair-all button sends C1 05 34 FF 00 in C3 without spending the click; 0x5b1570 adds
+// up, with the own record open, the cost of repairing the worn equipment weapon and inventory shield (0x5b13e0 over
+// 0x54d0f0 in mode 2). The button at x + 0x19 turns on the repair cursor.
 TEST_F(NpcWindowStepsTest, RepairingEverythingSendsFfAndPricesTheWornItems)
 {
     auto& runtime = world.Runtime();
@@ -501,8 +502,8 @@ TEST_F(NpcWindowStepsTest, RepairingEverythingSendsFfAndPricesTheWornItems)
     EXPECT_FALSE(runtime.mouse.pendingClick);
 }
 
-// 0x5c2dd5..0x5c3594: con el modo de reparar, el clic sobre el arma del lugar 0 del equipo manda C1 05 34 00 y
-// 0x78abb10, en C3 y con el registro de 0x5bec50 abierto.
+// 0x5c2dd5..0x5c3594: with repair mode, the click on the weapon at equipment slot 0 sends C1 05 34 00 and 0x78abb10,
+// in C3 and with the record of 0x5bec50 open.
 TEST_F(NpcWindowStepsTest, RepairModeRepairsAnEquipmentPlace)
 {
     auto& runtime = world.Runtime();
@@ -520,9 +521,9 @@ TEST_F(NpcWindowStepsTest, RepairModeRepairsAnEquipmentPlace)
     EXPECT_EQ(world.OwnCharacter().equipment[0].id, Sword);
 }
 
-// Guardar (0x5ca250 con el tipo 2): el arma levantada del inventario (el lugar 12) sobre la fila 8 y la columna 3 del
-// almacén manda 0x449d80(0, 12, 2, 67), el C1 0E 24 en C3 con los siete bytes del ítem, y prende la traba del 24. En
-// Lorencia, Devias y Noria, con los rand() del almacén abierto.
+// Store (0x5ca250 with type 2): the weapon picked up from the inventory (slot 12) over row 8 and column 3 of the
+// warehouse sends 0x449d80(0, 12, 2, 67), the C1 0E 24 in C3 with the item's seven bytes, and turns on the 24's lock.
+// In Lorencia, Devias and Noria, with the rand() of the open warehouse.
 TEST_F(NpcWindowStepsTest, StoringAnItemInTheWarehouseSendsTheMove)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -558,7 +559,8 @@ TEST_F(NpcWindowStepsTest, StoringAnItemInTheWarehouseSendsTheMove)
     }
 }
 
-// 0x5c8e8f → 0x5ca250 en la misma vuelta: el derecho busca la última huella libre y el 24 sale sin clic izquierdo.
+// 0x5c8e8f → 0x5ca250 in the same pass: the right click finds the last free footprint and the 24 goes out without a
+// left click.
 TEST_F(NpcWindowStepsTest, TheWarehouseRightClickMovesThroughTheWholeUiStep)
 {
     auto& runtime = world.Runtime();
@@ -578,10 +580,10 @@ TEST_F(NpcWindowStepsTest, TheWarehouseRightClickMovesThroughTheWholeUiStep)
     EXPECT_EQ(runtime.itemMoveTarget, 103);
 }
 
-// Sacar: el clic sobre el arma del almacén la levanta desde su esquina (el lugar 73, sin el 12) con el IsOpen(0x20)
-// de 0x5c5361, y soltarla en la columna 4 y la fila 2 del inventario manda 0x449d80(2, 73, 0, 32). Con la traba del
-// almacén (0x6c932f) y sin 0x78abb1c, en cambio, lo deja esperando la contraseña ({2, 73, 0, 32}), baraja el
-// teclado y prende 0x78abb20 en 1 (0x5cb3af..0x5cb455), sin mandar nada.
+// Take out: the click on the warehouse weapon picks it up from its corner (slot 73, without the 12) with the
+// IsOpen(0x20) of 0x5c5361, and dropping it at column 4 and row 2 of the inventory sends 0x449d80(2, 73, 0, 32). With
+// the warehouse lock (0x6c932f) and without 0x78abb1c, instead, it leaves it waiting for the password ({2, 73, 0, 32}),
+// shuffles the keypad and sets 0x78abb20 to 1 (0x5cb3af..0x5cb455), without sending anything.
 TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThePassword)
 {
     for (const bool locked : {false, true})
@@ -633,8 +635,8 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
         EXPECT_EQ(Npc().pendingMove.second, 73);
         EXPECT_EQ(Npc().pendingMove.third, 0);
         EXPECT_EQ(Npc().pendingMove.fourth, 32);
-        // 0x5e7bf0: la caja de la contraseña se queda con el clic (0x5ee140 no sigue): la tecla de abajo a la
-        // izquierda (0x5e7b50) agrega su cifra y el almacén no ve el clic.
+        // 0x5e7bf0: the password box keeps the click (0x5ee140 does not go on): the bottom left key (0x5e7b50) adds its
+        // digit and the warehouse does not see the click.
         Click();
         const auto keypadStep = Step(0xdf + 5, 0x96 + 5);
         ASSERT_TRUE(keypadStep.HasValue()) << keypadStep.Error();
@@ -647,10 +649,10 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
     }
 }
 
-// La caja del entrenador con 0x724580 en 3 y el inventario abierto: el mouse sobre la joya (0x44ad10, 0x5c4110 en
-// (0x113, 0x6e)) la anota como el ítem bajo el mouse con la ayuda en el lugar 4 (0x5aed40 con 0x449c30); el clic la
-// levanta (el lugar 17, sin el 12) y soltarla en la columna 4 y la fila 3 del inventario manda 0x449d80(5, 17, 0, 40).
-// Los rand() de cada movimiento están en test_cursor_item.cpp. En Lorencia y Devias.
+// The trainer's box with 0x724580 at 3 and the inventory open: the mouse over the jewel (0x44ad10, 0x5c4110 at (0x113,
+// 0x6e)) notes it as the item under the mouse with the help at slot 4 (0x5aed40 with 0x449c30); the click picks it up
+// (slot 17, without the 12) and dropping it at column 4 and row 3 of the inventory sends 0x449d80(5, 17, 0, 40). The
+// rand() of each move are in test_cursor_item.cpp. In Lorencia and Devias.
 TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
 {
     constexpr std::int32_t TrainerLeft = 0x113;
@@ -695,10 +697,10 @@ TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
     }
 }
 
-// Q-C921, en Lorencia, Devias y Noria: después de una mezcla (0x7d2dc80 en 2, 0x4da2d1), el ítem que dejó en la caja
-// del caos se levanta y va al inventario. Con el ítem en el cursor, 0x5ca250 con la caja del caos pone [ebp − 0x2d] en
-// 0 (0x5ca333) cada frame: sobre la caja, la huella queda marcada como rechazada (el clic ahí sigue hacia el piso,
-// 0x5deca7, del hito 5), y el clic en el inventario manda 0x449d80(3, 0, 0, 32).
+// Q-C921, in Lorencia, Devias and Noria: after a mix (0x7d2dc80 at 2, 0x4da2d1), the item it left in the chaos box is
+// picked up and goes to the inventory. With the item in the cursor, 0x5ca250 with the chaos box sets [ebp − 0x2d] to 0
+// (0x5ca333) each frame: over the box, the footprint stays marked as refused (the click there goes on to the floor,
+// 0x5deca7, of milestone 5), and the click in the inventory sends 0x449d80(3, 0, 0, 32).
 TEST_F(NpcWindowStepsTest, TheMixResultLeavesTheChaosBoxForTheInventory)
 {
     constexpr std::int32_t ChaosBoxTop = 0x6e;
@@ -724,7 +726,7 @@ TEST_F(NpcWindowStepsTest, TheMixResultLeavesTheChaosBoxForTheInventory)
         for (const std::size_t cell : {0u, 8u, 16u})
             EXPECT_EQ(Npc().chaosBox[cell].id, EmptyOwnItemId) << cell;
 
-        // Sobre la caja y sin el clic: la huella queda rechazada (0x5ca385..0x5ca453), sin el 24.
+        // Over the box and without the click: the footprint stays refused (0x5ca385..0x5ca453), without the 24.
         const auto refused = Step(NpcGridLeft + 2 * 20 + 10, ChaosBoxTop + 30);
         ASSERT_TRUE(refused.HasValue()) << refused.Error();
         EXPECT_TRUE(sent.empty());
@@ -745,9 +747,9 @@ TEST_F(NpcWindowStepsTest, TheMixResultLeavesTheChaosBoxForTheInventory)
     }
 }
 
-// 0x5ea060: meter (el botón de x + 0x1a) abre el 0x73 con la entrada numérica; su OK con Enter (0x6270ed) manda
-// C1 08 81 00 y el zen, con el XOR32 y en claro, con el registro propio abierto. Más zen que el del inventario abre
-// el 0x74; más de 100.000.000, el 0x75.
+// 0x5ea060: deposit (the button at x + 0x1a) opens the 0x73 with the number input; its OK with Enter (0x6270ed) sends
+// C1 08 81 00 and the zen, with the XOR32 and in clear, with the own record open. More zen than the inventory's opens
+// the 0x74; more than 100000000, the 0x75.
 TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
 {
     auto& runtime = world.Runtime();
@@ -794,7 +796,8 @@ TEST_F(NpcWindowStepsTest, DepositingZenSends81FromTheMoneyDialog)
     EXPECT_EQ(runtime.dialogs.current, 0x75);
 }
 
-// 0x5e74f0: no hay consulta protegida para 0x2000. Aceptar habilita el aviso, que continúa al teclado en modo 6.
+// 0x5e74f0: there is no protected query for 0x2000. Accepting enables the notice, which goes on to the keypad in mode
+// 6.
 TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
 {
     auto& runtime = world.Runtime();
@@ -824,7 +827,7 @@ TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
     EXPECT_EQ(runtime.ui.field78abb20, 6);
 }
 
-// 0x5ee1f1: el paso principal debe llegar al panel 2000 con los servicios prestados a su propio registro.
+// 0x5ee1f1: the main step must reach panel 2000 with the services lent to its own record.
 TEST_F(NpcWindowStepsTest, TheMainUiStepUsesThePanel2000Checkbox)
 {
     auto& runtime = world.Runtime();
@@ -839,7 +842,8 @@ TEST_F(NpcWindowStepsTest, TheMainUiStepUsesThePanel2000Checkbox)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x5e7678..0x5e7840 y 0x5e78a2..0x5e7a79: salir manda C1 03 31 y cierra todo; sólo la cruz borra 0x78abb00.
+// 0x5e7678..0x5e7840 and 0x5e78a2..0x5e7a79: exit sends C1 03 31 and closes everything; only the cross clears
+// 0x78abb00.
 TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
 {
     for (const bool cross : {false, true})
@@ -867,9 +871,9 @@ TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
     }
 }
 
-// Sacar (el botón de x + 0x4c): C1 08 81 01 y el zen. Con la traba del almacén espera la contraseña: {−1, 1, zen,
-// 0x77f3cc8} y 0x5e7aa0(1), que baraja el teclado con el registro todavía abierto (los 40 rand() antes de los 3.848
-// del cierre). Más que el zen del almacén abre el 0x74.
+// Withdraw (the button at x + 0x4c): C1 08 81 01 and the zen. With the warehouse lock it waits for the password: {−1,
+// 1, zen, 0x77f3cc8} and 0x5e7aa0(1), which shuffles the keypad with the record still open (the 40 rand() before the
+// close's 3848). More than the warehouse zen opens the 0x74.
 TEST_F(NpcWindowStepsTest, WithdrawingZenSends81OrWaitsForThePassword)
 {
     auto& runtime = world.Runtime();
@@ -913,8 +917,8 @@ TEST_F(NpcWindowStepsTest, WithdrawingZenSends81OrWaitsForThePassword)
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 
-// El botón 2 del almacén (0x5ea1aa) abre el teclado en 4, o en 3 con la traba; el 3 (0x5ea24d) cierra el almacén con
-// el C1 03 82 en claro (0x658567). El OK del 0x8f (0x628276) abre el teclado en 6.
+// The warehouse's button 2 (0x5ea1aa) opens the keypad in 4, or in 3 with the lock; button 3 (0x5ea24d) closes the
+// warehouse with the C1 03 82 in clear (0x658567). The OK of the 0x8f (0x628276) opens the keypad in 6.
 TEST_F(NpcWindowStepsTest, TheWarehouseButtonsOpenTheKeypadAndClose)
 {
     auto& runtime = world.Runtime();
@@ -945,8 +949,8 @@ TEST_F(NpcWindowStepsTest, TheWarehouseButtonsOpenTheKeypadAndClose)
     EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
 }
 
-// 0x5d934f..0x5d9633: con 0x78abb14 en 2 y el sí, la mezcla pedida (0x7d2dc80 en 1) y el C1 04 86 con el tipo, con
-// el XOR32 y en claro, sin rand(); con el no, nada.
+// 0x5d934f..0x5d9633: with 0x78abb14 at 2 and the yes, the mix requested (0x7d2dc80 at 1) and the C1 04 86 with the
+// type, with the XOR32 and in clear, without rand(); with the no, nothing.
 TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
 {
     auto& runtime = world.Runtime();
@@ -973,9 +977,9 @@ TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 
-// 0x5d9b82..0x5d9c6b, en Lorencia, Devias y Noria: con 0x78abb14 en 4 (el panel 0x2000) y el sí, el teclado del
-// almacén vuelve a 0..9 y se baraja con veinte pares de rand() % 10 (los 40 rand()), lo tecleado queda en 0 y
-// 0x78abb20 en 6; con el no, 0x78abb08 en 0 y sin rand(); sin respuesta, nada.
+// 0x5d9b82..0x5d9c6b, in Lorencia, Devias and Noria: with 0x78abb14 at 4 (panel 0x2000) and the yes, the warehouse
+// keypad goes back to 0..9 and is shuffled with twenty pairs of rand() % 10 (the 40 rand()), what was typed goes to 0
+// and 0x78abb20 to 6; with the no, 0x78abb08 at 0 and no rand(); with no answer, nothing.
 TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -1026,11 +1030,12 @@ TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
     }
 }
 
-// 0x5d8db6..0x5d8dda y 0x5fe690..0x5fea82, en Lorencia, Devias y Noria (la del duende del caos): con la caja abierta,
-// cada paso cuenta lo que vale (0x5fd120: 15.000 de la espada y los fijos de las joyas) y el tipo (0x5fd4f0): la
-// espada +9 con suerte, Bless, Soul y la joya del caos son el 3, con la suerte. El clic en el botón de mezclar, con más
-// zen que el precio del dibujo, abre y cierra el registro propio, pone 0x78abb14 en 2 y abre el 0x98 con el texto
-// 0x21b, y suena. El sí y el paso siguiente mandan el C1 04 86 03 en claro, y la mezcla pedida apaga el botón.
+// 0x5d8db6..0x5d8dda and 0x5fe690..0x5fea82, in Lorencia, Devias and Noria (the chaos goblin's): with the box open,
+// each step counts what it is worth (0x5fd120: 15000 for the sword and the jewels' fixed ones) and the type
+// (0x5fd4f0): the +9 sword with luck, Bless, Soul and the chaos jewel are the 3, with luck. The click on the mix
+// button, with more zen than the drawing's price, opens and closes the own record, sets 0x78abb14 to 2 and opens the
+// 0x98 with text 0x21b, and sounds. The yes and the next step send the C1 04 86 03 in clear, and the requested mix
+// turns the button off.
 TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -1059,7 +1064,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         EXPECT_EQ(Npc().mixWidth, 1);
         EXPECT_EQ(Npc().mixHeight, 3);
 
-        // El precio que deja el dibujo del 3 (0x5feec8).
+        // The price the drawing of the 3 leaves (0x5feec8).
         Npc().mixPrice = UpgradePrice;
         const CrtRandom asked = Advanced(random, ChaosBoxStepRandoms + Own);
         Click();
@@ -1086,7 +1091,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x86, 0x03})));
         EXPECT_EQ(Npc().chaosMixState, 1);
 
-        // Con la mezcla pedida, el botón no hace nada y el clic queda.
+        // With the mix requested, the button does nothing and the click stays.
         Click();
         ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
         EXPECT_EQ(sent.size(), 1u);
@@ -1095,10 +1100,10 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
     }
 }
 
-// 0x5fe982..0x5feb0e: los avisos del botón de mezclar (0x555190 con el tipo 2). Con el zen igual al precio, el 596 y
-// sin sonido; con el ojo y la llave de niveles distintos (el −2), el 600; sin nada en la caja (el 0), el 580 con el
-// 591; con el −0x18, el 1171 con 10 (el wsprintfA de 0x5feab6); con el inventario lleno, el 581. Cada uno gasta el
-// clic y saca los 3.848 rand() del registro propio.
+// 0x5fe982..0x5feb0e: the mix button's warnings (0x555190 with type 2). With the zen equal to the price, the 596 and no
+// sound; with the eye and the key of different levels (the −2), the 600; with nothing in the box (the 0), the 580 with
+// the 591; with the −0x18, the 1171 with 10 (the wsprintfA of 0x5feab6); with the inventory full, the 581. Each one
+// spends the click and draws the 3848 rand() of the own record.
 TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
 {
     auto& runtime = world.Runtime();
@@ -1118,7 +1123,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
     EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.dialogs.current, 0);
 
-    // El ojo +1 y la llave +2 con la joya del caos.
+    // The +1 eye and the +2 key with the chaos jewel.
     for (ItemState& cell : Npc().chaosBox)
         cell = ItemState{.id = EmptyOwnItemId};
     Place(Npc().chaosBox, ItemState{.id = Eye, .scalar1Low = 1u << 3}, 0, 0, 1, 1);
@@ -1140,15 +1145,15 @@ TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
     ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
     EXPECT_EQ(Errors().back(), "no hay mezcla");
 
-    // El −0x18 lo deja 0x5fd4f0 con las alas y la pluma +1 sin el nivel 10. El botón (0x5ee1b1) corre antes que
-    // 0x5d8d50 (0x5ee1de) y lee el tipo del paso anterior.
+    // The −0x18 is left by 0x5fd4f0 with the wings and the +1 feather without level 10. The button (0x5ee1b1) runs
+    // before 0x5d8d50 (0x5ee1de) and reads the previous step's type.
     Npc().mixKind = -0x18;
     Click();
     ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
     EXPECT_EQ(Errors().back(), "desde el nivel 10");
     EXPECT_EQ(Npc().mixKind, 0);
 
-    // El 0xf (solo Bless) pide 1 × 1, y el inventario está lleno.
+    // The 0xf (Bless only) asks for 1 × 1, and the inventory is full.
     for (ItemState& cell : world.Inventory().cells)
         cell = ItemState{.id = Jewel};
     Place(Npc().chaosBox, ItemState{.id = Jewel}, 0, 0, 1, 1);
@@ -1161,8 +1166,8 @@ TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x633644..0x633739: el 0x96 nombra la fruta de nivel 2 (el texto 167) en "( %s )" y el sí (0x628b2d) abre el 0xa8
-// con "( %s%s )" y el 1901, el texto 0x76e debajo y sus tres botones. Otro ítem va sin nombre.
+// 0x633644..0x633739: the 0x96 names the level 2 fruit (text 167) in "( %s )" and the yes (0x628b2d) opens the 0xa8
+// with "( %s%s )" and the 1901, text 0x76e below and its three buttons. Another item goes without a name.
 TEST_F(NpcWindowStepsTest, TheFruitDialogsNameTheItem)
 {
     auto& runtime = world.Runtime();
@@ -1196,8 +1201,9 @@ TEST_F(NpcWindowStepsTest, TheFruitDialogsNameTheItem)
     EXPECT_NE(unnamed.Error().find("0x63330f"), std::string::npos);
 }
 
-// 0x62a779: el sí del 0x94 deja 1 en 0x6c932e; el mouse fuera de los botones no elige nada y el clic se gasta igual.
-// 0x629c41: el no del 0xa9 suelta la joya y la vuelve a su lugar; el sí con el almacén abierto avisa con el 474.
+// 0x62a779: the yes of the 0x94 leaves 1 at 0x6c932e; the mouse outside the buttons chooses nothing and the click is
+// spent anyway. 0x629c41: the no of the 0xa9 releases the jewel and puts it back in its slot; the yes with the
+// warehouse open warns with the 474.
 TEST_F(NpcWindowStepsTest, TheYesNoDialogsLeaveTheirAnswer)
 {
     auto& runtime = world.Runtime();

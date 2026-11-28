@@ -103,9 +103,9 @@ public:
     int reads = 0;
 };
 
-// Un triángulo del hueso 0 con vértices que redondean y `bones` huesos sin giro: la raíz en `root` y los demás,
-// hijos de la raíz, en su origen. Con los ángulos del efecto en 0, la pose de 0x4eb860 sin trasladar da la
-// identidad con esa traslación, sin la escala ni el origen del efecto.
+// A triangle of bone 0 with vertices that round and `bones` bones without rotation: the root at `root` and the
+// others, children of the root, at their origin. With the effect's angles at 0, the pose of 0x4eb860 without
+// translating gives the identity with that translation, without the effect's scale or origin.
 class PosedItemModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -753,13 +753,12 @@ TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToThe
     EXPECT_EQ(effect.type, 0xfa);
 }
 
-// Q-C411: 0x52d52b posa el ítem del 0xfa en el buffer global con Translate en 0 (`push 0` en 0x52d4f1 y
-// 0x52d4ff): el hueso queda sin la escala (0,8, 0x607beb) ni el origen del efecto. 0x60cf70 los pone en el
-// modelo y 0x4ebc80 traslada cada vértice (Translate en 1, 0x52d53a): el hueso a float, por la escala a float y
-// más el origen a float (0x4ebdf8..0x4ebf02). El 0x2246 suelta su 0x5c6 de 0x4ec110 sin trasladar en (0, 0, 15)
-// del hueso 0 más la posición del efecto, a float (0x60be27..0x60be93). Los bits salen de un cálculo aparte en
-// Python con el redondeo PC53 del ASM; con los huesos trasladados de antes, el sprite caía en (2010,44; 3995,24;
-// 614,68).
+// Q-C411: 0x52d52b poses the 0xfa's item in the global buffer with Translate at 0 (`push 0` at 0x52d4f1 and
+// 0x52d4ff): the bone stays without the scale (0.8, 0x607beb) or the effect's origin. 0x60cf70 puts them on the
+// model and 0x4ebc80 translates each vertex (Translate at 1, 0x52d53a): the bone to float, times the scale to float
+// and plus the origin to float (0x4ebdf8..0x4ebf02). The 0x2246 drops its 0x5c6 from 0x4ec110 untranslated at
+// (0, 0, 15) of bone 0 plus the effect's position, to float (0x60be27..0x60be93). The bits come from a separate
+// Python computation with the ASM's PC53 rounding.
 TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsReadersTranslateThem)
 {
     const glm::vec3 root{12.3f, -7.7f, 3.1f};
@@ -801,11 +800,10 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     EXPECT_EQ(glow->position, Bits(0x447d2666u, 0x44f92000u, 0x439f199au));
 }
 
-// Q-C411: 0x52d35b posa el ítem del 0xf4 sin trasladar (`push 0` en 0x52d33f y 0x52d341), con la raíz girada
-// por (0, 90, 30): ningún hueso lleva el origen (100; 200; 400) ni la escala 0,8. El 0x1e24 suelta los dos 0x5c6
-// de 0x4ec110 sin trasladar en el (0, 0, 0) de los huesos 1 y 2 (0x60c09e y 0x60c12c), que la pose deja en el
-// origen del modelo, más la posición del efecto con los 100 que 0x52d2cf le suma a la z: los dos en
-// (100; 200; 400).
+// Q-C411: 0x52d35b poses the 0xf4's item untranslated (`push 0` at 0x52d33f and 0x52d341), with the root rotated by
+// (0, 90, 30): no bone carries the origin (100, 200, 400) or the 0.8 scale. The 0x1e24 drops the two 0x5c6 of
+// 0x4ec110 untranslated at the (0, 0, 0) of bones 1 and 2 (0x60c09e and 0x60c12c), which the pose leaves at the
+// model's origin, plus the effect's position with the 100 that 0x52d2cf adds to z: both at (100, 200, 400).
 TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndItsGlowAddsThePosition)
 {
     PosedItemModels models(3, glm::vec3(0));
@@ -855,10 +853,10 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndIt
     EXPECT_EQ(effect.transform.position, (glm::vec3{100, 200, 300}));
 }
 
-// Q-C411: 0x52d7f8 posa el 0x10f de Blood Castle sin trasladar (`push 0` en 0x52d7d2 y 0x52d7d7) y 0x60cf70 lo
-// dibuja con Translate en 1 (0x52d82f): los vértices, con la escala del efecto (1,3) y su origen, a float en
-// cada paso como en 0x4ebc80. 0x60b3d0 no tiene un caso del 0x10f: no suelta sprites. Los bits salen del mismo
-// cálculo aparte en Python.
+// Q-C411: 0x52d7f8 poses Blood Castle's 0x10f untranslated (`push 0` at 0x52d7d2 and 0x52d7d7) and 0x60cf70 draws
+// it with Translate at 1 (0x52d82f): the vertices, with the effect's scale (1.3) and its origin, to float at each
+// step as in 0x4ebc80. 0x60b3d0 has no 0x10f case: it drops no sprites. The bits come from the same separate Python
+// computation.
 TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAndTranslatesItsVertices)
 {
     const glm::vec3 root{12.3f, -7.7f, 3.1f};

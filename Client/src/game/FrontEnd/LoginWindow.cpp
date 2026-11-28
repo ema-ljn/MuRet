@@ -26,8 +26,8 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x6415c0: el fondo (login_back, slot 0x13), los campos (login_me, 0x14) y los botones de 0x61ccb0
-// (message_ok_b_all, 0x724, y loding_cancel_b_all, 0x725), de tres cuadros.
+// 0x6415c0: the background (login_back, slot 0x13), the fields (login_me, 0x14) and the buttons of 0x61ccb0
+// (message_ok_b_all, 0x724, and loding_cancel_b_all, 0x725), of three frames.
 constexpr Render::TextureSlot BackgroundSlot{0x13};
 constexpr Render::TextureSlot FieldSlot{0x14};
 constexpr Render::TextureSlot OkSlot{0x724};
@@ -45,8 +45,8 @@ constexpr int CancelLeft = 211;
 constexpr int ButtonWidth = 54;
 constexpr int ButtonHeight = 30;
 
-// 0x641990: lo de cada campo en (+6, +6); los rótulos 450 y 451 en (+30, +113) y (+30, +139); el
-// título en (+111, +80).
+// 0x641990: each field's content at (+6, +6); labels 450 and 451 at (+30, +113) and (+30, +139); the
+// title at (+111, +80).
 constexpr int FieldTextInset = 6;
 constexpr std::size_t AccountLabelText = 450;
 constexpr std::size_t PasswordLabelText = 451;
@@ -56,9 +56,9 @@ constexpr int PasswordLabelTop = 139;
 constexpr int TitleLeft = 111;
 constexpr int TitleTop = 80;
 
-// 0x641a7a..0x641a91: los rótulos con DAT_05763560, en blanco y sin fondo. FieldStyle conserva
-// la presentación previa de MuRet: sus colores y fuente efectivos aún deben contrastarse con la
-// configuración del EDIT activo, 0x468320 (06 § La cuenta y la clave).
+// 0x641a7a..0x641a91: the labels with DAT_05763560, in white and without a background. FieldStyle keeps
+// MuRet's previous presentation: its effective colors and font still have to be checked against the
+// configuration of the active EDIT, 0x468320 (06 § La cuenta y la clave).
 constexpr Render::Text::TextStyle LabelStyle{Render::Text::FontKind::OtherFace12,
                                              Render::Text::TextColors{0xffffffff, 0}};
 constexpr Render::Text::TextStyle FieldStyle{Render::Text::FontKind::Normal, Render::Text::TextColors{0xffd2e6ff, 0}};
@@ -163,8 +163,8 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Co
     {
         return Cancel();
     }
-    // 0x6418b0: Enter y Esc, si el byte +0x31 del mouse (0x640850) está en 0. Solo lo escribe su
-    // init, en 0 (0x640926): valen también con un botón del mouse abajo.
+    // 0x6418b0: Enter and Esc, if the mouse's byte +0x31 (0x640850) is 0. Only its init writes it, at 0
+    // (0x640926): they also work with a mouse button down.
     if (input.TakePress(Input::Key::Enter))
     {
         return Send();
@@ -243,8 +243,8 @@ void LoginWindow::Place(Core::PixelSize screen)
 
 LoginRequest LoginWindow::Send()
 {
-    // 0x641bf0: cierra la ventana de arriba y mira los campos, sin tocarlos: con la cuenta vacía,
-    // la clave queda para cuando el aviso abra otra vez la cuenta.
+    // 0x641bf0: closes the top window and checks the fields, without touching them: with the account empty,
+    // the password stays for when the notice opens the account again.
     m_open = false;
     if (m_account.Size() == 0)
     {
@@ -263,7 +263,7 @@ LoginRequest LoginWindow::Send()
 
 LoginRequest LoginWindow::Cancel()
 {
-    // Close vacía la clave.
+    // Close empties the password.
     Close();
     return LoginRequest{.kind = LoginRequest::Kind::Cancel, .credentials = {}};
 }

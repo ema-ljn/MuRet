@@ -40,8 +40,8 @@
 #include <string>
 #include <utility>
 
-// 0x63e460: la cámara de 0x6338a0 precede los stores de ElfX+4,8 (0x63e5b7) y MGZ+1,8
-// (0x63e5f7). La ventana cerrada no dibuja la vista previa y no debe recuperar esos dibujos al abrir.
+// 0x63e460: 0x6338a0's camera precedes the stores of ElfX+4.8 (0x63e5b7) and MGZ+1.8 (0x63e5f7). The closed window
+// does not draw the preview and must not recover those draws on opening.
 namespace
 {
 using Client::Models::OriginalFrameTime;
@@ -141,7 +141,7 @@ protected:
         const Client::Tests::FrameEvent* preview = LastPreviewPass();
         ASSERT_NE(preview, nullptr);
         ASSERT_FALSE(preview->modelVertices.empty());
-        // El origen del ojo es la posición anterior del actor + (10,-500,48), no la posición dibujada.
+        // The eye's origin is the actor's previous position + (10, -500, 48), not the drawn position.
         const glm::vec4 eye = preview->pass->view * glm::vec4(position + glm::vec3{10.0f, -500.0f, 48.0f}, 1.0f);
         EXPECT_NEAR(eye.x, 0.0f, 0.001f);
         EXPECT_NEAR(eye.y, 0.0f, 0.001f);

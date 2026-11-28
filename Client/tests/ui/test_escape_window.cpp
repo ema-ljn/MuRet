@@ -17,8 +17,8 @@
 #include <cstddef>
 #include <optional>
 
-// Client::FrontEnd::EscapeWindow: la ventana de Esc del login y de la selección (+0x3d0: 0x6478c0, 0x647c00,
-// 0x647cd0, 0x647d40 y 0x647ed0; CL8, hito 8). Todo en píxeles.
+// Client::FrontEnd::EscapeWindow: the Esc window of the login and the selection (+0x3d0: 0x6478c0, 0x647c00,
+// 0x647cd0, 0x647d40 and 0x647ed0; CL8, milestone 8). All in pixels.
 namespace
 {
 using Client::Core::PixelSize;
@@ -33,14 +33,14 @@ using Client::Ui::NewUiTurn;
 using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
-// Un paso de la lógica: 40 ms (Kernel::LogicStep).
+// One logic step: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
 constexpr std::size_t ExitButton = 0;
 constexpr std::size_t ServerButton = 1;
 constexpr std::size_t OptionsButton = 2;
 constexpr std::size_t CloseButton = 3;
 
-// Los buffers del laboratorio: op1_back3 de 5 × 8 sube en 8 × 8.
+// The lab's buffers: op1_back3, 5 × 8, is uploaded in 8 × 8.
 Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x72a, {128, 128}},
@@ -56,7 +56,7 @@ EscapeWindow OpenWindow(NewUiMode mode)
     EscapeWindow window(LabSizes(), nullptr);
     window.Arm(mode);
     window.Open();
-    // Un paso sin nada la ubica (0x647c00).
+    // A step with nothing places it (0x647c00).
     const InputState nothing;
     static_cast<void>(window.Step(nothing, Screen640, 0.0));
     return window;
@@ -76,9 +76,9 @@ std::optional<EscapeWindowEvent> ClickOn(EscapeWindow& window, InputState& input
     return StepOnce(window, input);
 }
 
-// 0x647c00 con 6 líneas de 8 (el login): el marco de 213 × 155 al centro, los botones a (213 − 108) / 2 del
-// borde, el primero a 33 de arriba, el segundo 34 más abajo, el último a 52 del borde de abajo y el de las
-// opciones 34 más arriba.
+// 0x647c00 with 6 lines of 8 (the login): the 213 × 155 frame in the center, the buttons at (213 − 108) / 2 from the
+// edge, the first 33 from the top, the second 34 lower, the last 52 from the bottom edge and the options one 34
+// higher.
 TEST(EscapeWindowTest, TheLoginFrameHasSixLines)
 {
     const EscapeWindowLayout layout = LayoutEscapeWindow(Screen640, 6, 8);
@@ -100,8 +100,8 @@ TEST(EscapeWindowTest, TheSelectionFrameHasTen)
     EXPECT_EQ(layout.buttons[CloseButton], (Rect{265, 281, 108, 30}));
 }
 
-// 0x66a960: la piedra 3 adentro, los bordes de 64 y 43, y los lados de 5 con las líneas en el medio. La
-// piedra y los lados repiten su textura (0x647370).
+// 0x66a960: stone 3 inside, the edges of 64 and 43, and the sides of 5 with the lines in the middle. The stone and
+// the sides repeat their texture (0x647370).
 TEST(EscapeWindowTest, TheFrameIsFiveImages)
 {
     const auto images = Client::FrontEnd::EscapeFrameImages(Rect{213, 162, 213, 155}, LabSizes());
@@ -128,8 +128,8 @@ TEST(EscapeWindowTest, TheFrameIsFiveImages)
     EXPECT_EQ(images[4].width, 5);
 }
 
-// 0x6478c0: elegir otro servidor solo en la selección. En el login, el de las opciones le tapa casi todo
-// el lugar (de 231 a 260): el clic va en las dos filas de arriba.
+// 0x6478c0: choosing another server only in the selection. In the login, the options one covers almost all its place
+// (from 231 to 260): the click goes in the top two rows.
 TEST(EscapeWindowTest, OnlyTheSelectionCanJoinAnotherServer)
 {
     EscapeWindow login = OpenWindow(NewUiMode::Login);
@@ -160,7 +160,7 @@ TEST(EscapeWindowTest, TheOptionsAndTheCloseButtonsClose)
     EXPECT_FALSE(close.IsOpen());
 }
 
-// Esc con 0x8001 la cierra y se lleva el apretón: el paso de la escena ya no lo ve (Q-C45).
+// Esc with 0x8001 closes it and takes the press: the scene's step no longer sees it (Q-C45).
 TEST(EscapeWindowTest, EscapeClosesItAndTakesThePress)
 {
     EscapeWindow window = OpenWindow(NewUiMode::Selection);
@@ -172,7 +172,7 @@ TEST(EscapeWindowTest, EscapeClosesItAndTakesThePress)
     EXPECT_FALSE(input.TakePress(Key::Escape));
 }
 
-// Sin el foco, 0x669f40 no corre 0x647d40: ni Esc ni clics.
+// Without the focus, 0x669f40 does not run 0x647d40: neither Esc nor clicks.
 TEST(EscapeWindowTest, WithoutTheFocusNothingHappens)
 {
     EscapeWindow window = OpenWindow(NewUiMode::Selection);
@@ -184,9 +184,9 @@ TEST(EscapeWindowTest, WithoutTheFocusNothingHappens)
     EXPECT_TRUE(input.TakePress(Key::Escape));
 }
 
-// 0x647d40: salir arranca la cuenta en 5 (con el 380), y cada vez que el acumulador pasa de 1.000 ms baja
-// uno y lo vuelve a 0. A 40 ms, 25 pasos suman 1.000 justo, que no pasa: baja en el 26. Con la cuenta, Esc
-// no la cierra. En 0, WM_CLOSE.
+// 0x647d40: leaving starts the count at 5 (with the 380), and each time the accumulator passes 1000 ms it goes down
+// one and resets it to 0. At 40 ms, 25 steps add up to exactly 1000, which does not pass: it goes down on the 26th.
+// With the count, Esc does not close it. At 0, WM_CLOSE.
 TEST(EscapeWindowTest, LeavingCountsFiveSeconds)
 {
     EscapeWindow window = OpenWindow(NewUiMode::Login);
@@ -212,9 +212,9 @@ TEST(EscapeWindowTest, LeavingCountsFiveSeconds)
     EXPECT_EQ(window.Countdown(), 0);
 }
 
-// 0x66a050 y 0x647ed0: la base negra, las cinco del marco y los botones; en el login el 1, deshabilitado y
-// con −1 de cuadro deshabilitado, no se dibuja (0x63c710). Los rótulos, con el texto de cada uno (el que
-// los graba suma un quad por rótulo).
+// 0x66a050 and 0x647ed0: the black base, the frame's five and the buttons; in the login button 1, disabled and with a
+// disabled frame of −1, is not drawn (0x63c710). The labels, with each one's text (the recorder adds a quad per
+// label).
 TEST(EscapeWindowTest, TheLoginDoesNotDrawTheServerButton)
 {
     const auto texts = Client::Tests::MakeTextTable({{381, "Uno"}, {382, "Dos"}, {385, "Tres"}, {388, "Cuatro"}});

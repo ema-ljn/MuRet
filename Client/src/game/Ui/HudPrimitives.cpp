@@ -18,7 +18,7 @@ namespace Client::Ui
 {
 namespace
 {
-// Las constantes de 0x6218f0: 0,5 (0x6b882c), 0,7 en float (0x6b8a5c) y 1/16 (0x6b8850).
+// 0x6218f0's constants: 0.5 (0x6b882c), 0.7 as float (0x6b8a5c) and 1/16 (0x6b8850).
 constexpr double Half = Math::HalfAsDouble;
 constexpr float DigitAdvance = 0.7f;
 constexpr float DigitU = 0.0625f;
@@ -26,12 +26,12 @@ constexpr float DigitV = 0.5f;
 
 using Math::F32;
 
-// glColor3f de las barras chicas: los bytes de 0x5a6af0 (0x3e4ccccd, 0x3e48c8c9, 0x3d20a0a1 y 0x3f48c8c9).
+// The small gauges' glColor3f: the bytes of 0x5a6af0 (0x3e4ccccd, 0x3e48c8c9, 0x3d20a0a1 and 0x3f48c8c9).
 constexpr float Tenth2 = 0.2f;
 constexpr float Of255_10 = 10.0f / 255.0f;
 constexpr float Of255_50 = 50.0f / 255.0f;
 constexpr float Of255_200 = 200.0f / 255.0f;
-// El borde de la pantalla para la barra acotada: 640 y 433 (0x6b8cb0, 0x6b8a04), con el 4 y el 5 del marco.
+// The screen edge for the clamped gauge: 640 and 433 (0x6b8cb0, 0x6b8a04), with the frame's 4 and 5.
 constexpr float GaugeRight = 640.0f;
 constexpr float GaugeBottom = 433.0f;
 constexpr float FrameGrowth = 4.0f;
@@ -42,13 +42,13 @@ float DrawNumber(Render::SpriteBatch& sprites, float x, float y, int number, flo
 {
     const std::string digits = std::to_string(number);
     const auto length = static_cast<int>(digits.size());
-    // 0x62191e..0x62192f: fild len, fmul w, fmul 0,5, fsubr x y fstp.
+    // 0x62191e..0x62192f: fild len, fmul w, fmul 0.5, fsubr x and fstp.
     float at = F32(static_cast<double>(x) - static_cast<double>(length) * static_cast<double>(width) * Half);
     if (length <= 0)
     {
         return at;
     }
-    // 0x621934..0x621941: w · 0,7 en float, una vez.
+    // 0x621934..0x621941: w · 0.7 as float, once.
     const float advance = F32(static_cast<double>(width) * static_cast<double>(DigitAdvance));
     for (const char digit : digits)
     {
@@ -110,7 +110,7 @@ void DrawGauge(Render::SpriteBatch& sprites, float x, float y, float width, floa
 
 void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, int x, int y, std::string_view help)
 {
-    // 0x554346..0x55437a: SelectObject con la fuente normal y GetTextExtentPoint32 del texto.
+    // 0x554346..0x55437a: SelectObject with the normal font and GetTextExtentPoint32 of the text.
     const Render::Text::TextExtent extent = text.Measure(Render::Text::FontKind::Normal, help);
     const double textWidth =
         static_cast<double>(extent.width) / static_cast<double>(Render::ScaleX(1.0f, sprites.Screen()));
@@ -120,7 +120,7 @@ void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, in
 
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{0.0f, 0.0f, 0.0f, 1.0f});
-    // 0x5543a3..0x5543c7: fy − 3 y fx − 2 (0x6b86b8 y 0x6b8818), guardadas en float.
+    // 0x5543a3..0x5543c7: fy − 3 and fx − 2 (0x6b86b8 and 0x6b8818), stored as float.
     const auto fx = static_cast<float>(x);
     const auto fy = static_cast<float>(y);
     const float top = F32(static_cast<double>(fy) - 3.0);
@@ -138,11 +138,11 @@ void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, in
 
     sprites.SetColor(Render::Color{});
     sprites.EnableTexture();
-    // 0x55450f..0x554523: el fondo en 0 y el texto en blanco, y 0x465950(x, y, texto, 0, 0, 1, 0, 0x280).
+    // 0x55450f..0x554523: background 0 and white text, and 0x465950(x, y, text, 0, 0, 1, 0, 0x280).
     text.Draw(x, y, help,
               Render::Text::TextStyle{.font = Render::Text::FontKind::Normal,
                                       .colors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0}});
-    // 0x55452d..0x554576: la de antes, por su número (0x620980 con 0, 0x620a00(1) con 2 y 0x620a90 con 3).
+    // 0x55452d..0x554576: the previous blend, by its number (0x620980 with 0, 0x620a00(1) with 2 and 0x620a90 with 3).
     sprites.SetBlend(before);
 }
 } // namespace Client::Ui

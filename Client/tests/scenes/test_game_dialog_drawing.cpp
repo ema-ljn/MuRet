@@ -46,9 +46,9 @@
 
 #include <gtest/gtest.h>
 
-// Los diálogos del juego en el dibujo (0x62db60, CL8 hito 6): el menú de Esc, las opciones con la barra del volumen y
-// el brillo, las cajas con sus botones, sus renglones y las flechas del 0x8c, el OK genérico y los cortes. En 640 ×
-// 480, con textos inventados y el mundo en Lorencia (0) y en Devias (2).
+// The game's dialogs in the drawing (0x62db60, CL8 milestone 6): the Esc menu, the options with the volume bar and the
+// glow, the boxes with their buttons, their lines and the arrows of 0x8c, the generic OK and the stops. In 640 × 480,
+// with made-up texts and the world in Lorencia (0) and in Devias (2).
 namespace
 {
 using Client::Hud::GameHudContext;
@@ -61,10 +61,10 @@ constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
 constexpr std::int32_t Noria = 3;
-// RecordingTextDrawer: 6 columnas por letra.
+// RecordingTextDrawer: 6 columns per letter.
 constexpr int LetterWidth = Client::Tests::RecordingTextDrawer::LetterWidth;
 
-// Un quad del lote: la textura, la mezcla, el color y la esquina de arriba a la izquierda en 640 × 480.
+// A batch quad: the texture, the blending, the color and the top left corner in 640 × 480.
 struct DrawnQuad
 {
     std::optional<std::uint16_t> slot;
@@ -103,7 +103,7 @@ template <std::size_t Size> void Name(std::array<std::byte, Size>& name, std::st
         name[at] = static_cast<std::byte>(text[at]);
 }
 
-// x = 0x140 − (cx / 2) de un texto centrado en 640 × 480.
+// x = 0x140 − (cx / 2) of a text centered in 640 × 480.
 int CenteredX(const std::string& text)
 {
     return 0x140 - static_cast<int>(text.size()) * LetterWidth / 2;
@@ -204,7 +204,7 @@ public:
     });
 };
 
-// 0x62db60 sin diálogo: sin mezcla y en blanco, los colores del texto y la fuente, y la mezcla normal al final.
+// 0x62db60 with no dialog: no blending and white, the text colors and the font, and normal blending at the end.
 TEST(GameDialogDrawingTest, WithoutADialogItOnlyLeavesTheState)
 {
     DrawingDialogs tested(Lorencia);
@@ -219,7 +219,7 @@ TEST(GameDialogDrawingTest, WithoutADialogItOnlyLeavesTheState)
     EXPECT_EQ(tested.world.Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
 }
 
-// 0x62dbcf: los 5 botones, el del mouse otra vez en aditiva con (0,8; 0,6; 0,4), y los textos centrados.
+// 0x62dbcf: the 5 buttons, the mouse's one again in additive with (0.8, 0.6, 0.4), and the centered texts.
 TEST(GameDialogDrawingTest, TheEscapeMenuDrawsItsButtonsAndItsTexts)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -249,13 +249,13 @@ TEST(GameDialogDrawingTest, TheEscapeMenuDrawsItsButtonsAndItsTexts)
         EXPECT_EQ(texts[3].x, CenteredX("opciones"));
         EXPECT_EQ(texts[3].y, 0x9b);
         EXPECT_EQ(texts[4].y, 0xb9);
-        // 0x554180 deja el tamaño del último texto.
+        // 0x554180 leaves the size of the last text.
         EXPECT_EQ(tested.world.Runtime().hud.arrowsTextWidth, 6 * LetterWidth);
         EXPECT_EQ(tested.sprites.Blend(), BlendMode::Alpha);
     }
 }
 
-// 0x62df3f: las filas, las llaves con dos espacios, la barra del volumen con su esquina para el paso y el brillo.
+// 0x62df3f: the rows, the keys with two spaces, the volume bar with its corner for the step, and the glow.
 TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -273,7 +273,7 @@ TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
         const std::vector<std::string> expected{"opciones",     "ataque  On", "aviso  Off", "volumen",
                                                 "carteles  On", "brillo",     "listo"};
         EXPECT_EQ(tested.Texts(), expected);
-        // El volumen en x = 0x140 − (42 + 0x36) / 2 y la barra en x + 0x144 + 42.
+        // The volume at x = 0x140 − (42 + 0x36) / 2 and the bar at x + 0x144 + 42.
         const int volumeX = -((7 * LetterWidth + 0x36) / 2);
         EXPECT_EQ(tested.text.texts[3].x, volumeX + 0x140);
         EXPECT_EQ(tested.text.texts[3].y, 0x7d);
@@ -281,14 +281,14 @@ TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
         EXPECT_EQ(runtime.ui.volumeBarY, 0x7f);
 
         const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
-        // 7 filas, 3 de la barra, 2 del marco del brillo, 5 casillas y las cifras 5, 7, 9, 1 1 y 1 3.
+        // 7 rows, 3 of the bar, 2 of the glow's frame, 5 boxes and the digits 5, 7, 9, 1 1 and 1 3.
         ASSERT_EQ(quads.size(), 7u + 3u + 2u + 5u + 7u);
         EXPECT_FLOAT_EQ(quads[5].y, 180.0f);
         EXPECT_FLOAT_EQ(quads[6].y, 232.0f);
         const DrawnQuad& fill = quads[9];
         EXPECT_FALSE(fill.slot.has_value());
         EXPECT_FLOAT_EQ(fill.x, static_cast<float>(runtime.ui.volumeBarX + 1));
-        // Las casillas hasta la 1 prendidas; las cifras de las apagadas, de color.
+        // The boxes up to 1 lit; the digits of the unlit ones, in color.
         EXPECT_FLOAT_EQ(quads[12].color.red, 0.8f);
         EXPECT_FLOAT_EQ(quads[13].color.red, 0.8f);
         EXPECT_FLOAT_EQ(quads[14].color.red, 0.0f);
@@ -298,7 +298,6 @@ TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
     }
 }
 
-// Un dibujo intermedio de MuRet no escribe la esquina de la barra.
 TEST(GameDialogDrawingTest, AnIntermediateDrawDoesNotMoveTheVolumeBar)
 {
     DrawingDialogs tested(Devias);
@@ -309,7 +308,7 @@ TEST(GameDialogDrawingTest, AnIntermediateDrawDoesNotMoveTheVolumeBar)
     EXPECT_EQ(runtime.ui.volumeBarY, 0);
 }
 
-// 0x630e14: el marco corto del 0x8a, el botón con su estado y los renglones centrados desde y = ((7 − 2) · 0x12) / 2
+// 0x630e14: the short frame of 0x8a, the button with its state and the lines centered from y = ((7 − 2) · 0x12) / 2
 // + 0x4c.
 TEST(GameDialogDrawingTest, TheMessageBoxDrawsItsFrameButtonAndRows)
 {
@@ -340,8 +339,8 @@ TEST(GameDialogDrawingTest, TheMessageBoxDrawsItsFrameButtonAndRows)
     }
 }
 
-// 0x631297: las flechas del 0x8c, gris la del tope; la del mouse con el clic lo gasta (Q-C553), salvo en un dibujo
-// intermedio.
+// 0x631297: the arrows of 0x8c, the one at the limit gray; the mouse's one spends the click (Q-C553), except in an
+// intermediate drawing.
 TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
 {
     DrawingDialogs tested(Lorencia);
@@ -358,21 +357,21 @@ TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
     EXPECT_FALSE(runtime.mouse.pendingClick);
 
     const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
-    // El marco (6) y las dos flechas, dos veces.
+    // The frame (6) and the two arrows, twice.
     ASSERT_EQ(quads.size(), 16u);
     EXPECT_EQ(quads[14].slot, 9);
     EXPECT_FLOAT_EQ(quads[14].color.red, 0.2f);
     EXPECT_EQ(quads[15].slot, 9);
     EXPECT_FLOAT_EQ(quads[15].color.red, 0.5f);
 
-    // Sin el clic, la flecha con el mouse en 0,7.
+    // Without the click, the arrow with the mouse at 0.7.
     tested.sprites.Begin(Screen640);
     ASSERT_TRUE(tested.Draw().HasValue());
     EXPECT_FLOAT_EQ(QuadsOf(tested.sprites).back().color.red, 0.7f);
 }
 
-// 0x632a2b: las cajas 0x8b, 0x97 y 0x9b sin el objeto del evento no tienen texto; con él, el de su método +0x10 por
-// el tipo del objeto y no por la caja (test_event_drawing mira cada uno), en Lorencia y en Devias.
+// 0x632a2b: boxes 0x8b, 0x97 and 0x9b without the event object have no text; with it, the one of its method +0x10 by
+// the object's type and not by the box (test_event_drawing checks each one), in Lorencia and in Devias.
 TEST(GameDialogDrawingTest, TheEventBoxesDrawTheTextOfTheEventObject)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -394,7 +393,7 @@ TEST(GameDialogDrawingTest, TheEventBoxesDrawTheTextOfTheEventObject)
     }
 }
 
-// 0x630c51: el OK genérico, con su botón (0xf2 con el mouse) y sus textos de uno o dos renglones.
+// 0x630c51: the generic OK, with its button (0xf2 with the mouse) and its texts of one or two lines.
 TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -427,8 +426,8 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
     }
 }
 
-// 0x632290 y 0x6322c1: el 0x87 y el 0x88 de la caja de la contraseña del almacén (0x5e7bf0) son del OK genérico, con
-// el 442 y el 445 en un renglón.
+// 0x632290 and 0x6322c1: the 0x87 and the 0x88 of the warehouse password box (0x5e7bf0) are generic OKs, with the 442
+// and the 445 on one line.
 TEST(GameDialogDrawingTest, TheKeypadDialogsAreGenericOks)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -451,9 +450,9 @@ TEST(GameDialogDrawingTest, TheKeypadDialogsAreGenericOks)
     }
 }
 
-// 0x630818 y 0x63093e con la cola de 0x63140b: el 0x74 (sin zen, 0x631dc5) y el 0x75 (el tope del comercio,
-// 0x631df7), el 0x85 y el 0x86 (la contraseña del almacén, 0x63222e y 0x63225f) y el 0x89 (0x6322f2) son del OK
-// genérico, con el 423, el 424, el 440, el 441 y el 401 en un renglón, centrado en y = [EBP − 0x20] + 0xf (0x4b).
+// 0x630818 and 0x63093e with the tail of 0x63140b: the 0x74 (no zen, 0x631dc5) and the 0x75 (the trade limit,
+// 0x631df7), the 0x85 and the 0x86 (the warehouse password, 0x63222e and 0x63225f) and the 0x89 (0x6322f2) are generic
+// OKs, with the 423, 424, 440, 441 and 401 on one line, centered at y = [EBP − 0x20] + 0xf (0x4b).
 TEST(GameDialogDrawingTest, TheMoneyAndWarehouseNoticesAreGenericOks)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -482,8 +481,9 @@ TEST(GameDialogDrawingTest, TheMoneyAndWarehouseNoticesAreGenericOks)
     }
 }
 
-// 0x632441: el 0x90 (el 99 con 1, 0x4e4a40) es del OK genérico como el 0x8f, pero su renglón no sale de Text.bmd: es la
-// cadena de la .data 0x6d6320, en coreano (EUC-KR), "서버 이전시 오류 발생 : 문의 바람", con sus bytes tal cual.
+// 0x632441: the 0x90 (the 99 with 1, 0x4e4a40) is a generic OK like the 0x8f, but its line does not come from
+// Text.bmd: it is the .data string 0x6d6320, in Korean (EUC-KR), "서버 이전시 오류 발생 : 문의 바람", with its bytes as
+// is.
 TEST(GameDialogDrawingTest, TheServerMoveErrorDrawsTheStringOfTheData)
 {
     DrawingDialogs tested(Lorencia);
@@ -501,8 +501,9 @@ TEST(GameDialogDrawingTest, TheServerMoveErrorDrawsTheStringOfTheData)
     EXPECT_EQ(tested.text.texts[0].y, 0x4b);
 }
 
-// Los avisos del alta del gremio (CL9 hito 8): el marco y el OK del genérico (0x630818 y 0x63093e) y sus textos, el
-// 0x72 en dos renglones (392 y 393 en 75 − 6 y 75 + 6) y el 0x79, el 0x7a y el 0x7e en uno (390, 391 y 426 en 75).
+// The guild creation notices (CL9 milestone 8): the generic one's frame and OK (0x630818 and 0x63093e) and their
+// texts, the 0x72 on two lines (392 and 393 at 75 − 6 and 75 + 6) and the 0x79, 0x7a and 0x7e on one (390, 391 and
+// 426 at 75).
 TEST(GameDialogDrawingTest, TheGuildCreationNoticesDrawLikeTheGenericOk)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -540,9 +541,9 @@ TEST(GameDialogDrawingTest, TheGuildCreationNoticesDrawLikeTheGenericOk)
     }
 }
 
-// 0x77 (CL9 hito 7, fase 2): el marco del OK genérico, el sí y el no (0x6309d4), y en la fuente del DC "de %s" con el
-// nombre del primero vivo de los 400 con la clave de 0x78aba4c (0x5110d0, con MOVSX) en 75 − 6 y la pregunta en 75 + 6.
-// Sin nadie con la clave, el 400 (sin nombre).
+// 0x77 (CL9 milestone 7, phase 2): the generic OK's frame, the yes and the no (0x6309d4), and in the DC's font "de %s"
+// with the name of the first one alive of the 400 with the key of 0x78aba4c (0x5110d0, with MOVSX) at 75 − 6 and the
+// question at 75 + 6. With nobody holding the key, the 400 (no name).
 TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -581,7 +582,7 @@ TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
         EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xffffffffu);
         EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
 
-        // La clave del 40 sin signo (0x8456) no es la de nadie: el 400, sin nombre.
+        // The unsigned key of the 40 (0x8456) is nobody's: the 400, no name.
         runtime.social.party.requestKey = 0x8456;
         tested->sprites.Begin(Screen640);
         tested->text.texts.clear();
@@ -593,8 +594,8 @@ TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
     }
 }
 
-// 0x78: "de %s" con el otro del comercio (0x78aba1c) en la negrita grande en 75 − 11 y la pregunta en la normal en
-// 75 + 11; el no con el mouse en [0x14e, 0x194) × [0x62, 0x77).
+// 0x78: "de %s" with the other one of the trade (0x78aba1c) in the big bold at 75 − 11 and the question in the normal
+// at 75 + 11; the no with the mouse in [0x14e, 0x194) × [0x62, 0x77).
 TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -623,9 +624,9 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
     }
 }
 
-// 0x7f (CL9 hito 8): el marco del OK genérico, el sí y el no (0x6309d4) como el 0x77, y en la fuente del DC (0x63212a)
-// "guerra de %s" con el rival de 0x5767804 (hasta su cero) en 75 − 6 y el 431 en 75 + 6; con el tipo de guerra
-// (0x576796d), el 432. Sin rand().
+// 0x7f (CL9 milestone 8): the generic OK's frame, the yes and the no (0x6309d4) like the 0x77, and in the DC's font
+// (0x63212a) "guerra de %s" with the rival of 0x5767804 (up to its zero) at 75 − 6 and the 431 at 75 + 6; with the war
+// type (0x576796d), the 432. No rand().
 TEST(GameDialogDrawingTest, TheWarRequestNamesTheRivalAndAsksByWarType)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -668,12 +669,12 @@ TEST(GameDialogDrawingTest, TheWarRequestNamesTheRivalAndAsksByWarType)
     }
 }
 
-// 0x630818 y 0x630af0..0x630cb8 (el 0x7d, CL9 hito 8): el marco del OK genérico; el EDIT del número ([0x5763508]) a la
-// vista con +0x4c en 9, el fondo en 0, el tope 7, de 0x46 × 0xe en (0xf3, 0x62) y con el foco (0x4682a0: 0x5762ec0 con
-// su id); en la mezcla normal, el cuadro negro de +0x4c, el bitmap y los '*' (el cursor, al final, recortado); en la
-// opaca, el sí (0xf1, o 0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en 323 y el no (0xf3, o 0xf4 en [0x175,
-// 0x19d)) en 373, de 40 × 21. En la cola (0x631f36), el 427 y el 428 centrados en 75 − 6 y 75 + 6, en rojo, que queda.
-// Sin rand().
+// 0x630818 and 0x630af0..0x630cb8 (the 0x7d, CL9 milestone 8): the generic OK's frame; the number EDIT ([0x5763508])
+// visible with +0x4c at 9, the background at 0, limit 7, 0x46 × 0xe at (0xf3, 0x62) and with the focus (0x4682a0:
+// 0x5762ec0 with its id); in normal blending, the black box of +0x4c, the bitmap and the '*' (the caret, at the end,
+// clipped); in opaque, the yes (0xf1, or 0xf2 with the mouse in [0x143, 0x16b) × [0x62, 0x77)) at 323 and the no
+// (0xf3, or 0xf4 in [0x175, 0x19d)) at 373, of 40 × 21. In the tail (0x631f36), the 427 and the 428 centered at 75 − 6
+// and 75 + 6, in red, which stays. No rand().
 TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -712,8 +713,8 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_EQ(quads[1].color, (Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
         EXPECT_FALSE(quads[2].slot.has_value());
         EXPECT_EQ(quads[2].color.alpha, 0.0f);
-        // El cursor va en la columna 3 + 12 + 1 de un bitmap de ftol(3 + 12) = 15: al final del texto queda recortado
-        // (el editor XP de Ui::OldDraw::DrawTheOldEdit, con el margen de 3 antes del texto).
+        // The caret goes in column 3 + 12 + 1 of a bitmap of ftol(3 + 12) = 15: at the end of the text it is clipped
+        // (the XP editor of Ui::OldDraw::DrawTheOldEdit, with the margin of 3 before the text).
         EXPECT_EQ(quads[3].slot, 0xf2);
         EXPECT_EQ(quads[3].x, 323.0f);
         EXPECT_EQ(quads[3].y, 98.0f);
@@ -731,13 +732,13 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_EQ(runtime.hud.textColors.text, 0xff0000ffu);
         EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
 
-        // El tope 7 (EM_LIMITTEXT) frena lo que se teclea desde ahora. Cada WM_CHAR pasa por la subclase (0x467b10),
-        // que pone +0x80 en 0 (0x467b9d) antes de dárselo al EDIT.
+        // Limit 7 (EM_LIMITTEXT) stops what is typed from now on. Each WM_CHAR goes through the subclass (0x467b10),
+        // which sets +0x80 to 0 (0x467b9d) before giving it to the EDIT.
         Client::Chat::TypeInTheChat(input, "345678");
         EXPECT_EQ(input.numberField.text.Value(), "1234567");
         EXPECT_EQ(input.numberField.draws, 0);
 
-        // Un dibujo intermedio no cuenta el parpadeo; fuera del sí (x 0x16b) y en el no, 0xf1 y 0xf4.
+        // An intermediate drawing does not count the blink; outside the yes (x 0x16b) and on the no, 0xf1 and 0xf4.
         tested->sprites.Begin(Screen640);
         tested->text.texts.clear();
         tested->mouse = {0x16b, 0x62};
@@ -753,8 +754,9 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
     }
 }
 
-// 0x467f30 (EM_LIMITTEXT por SendMessageA) en cada frame del 0x7d y del 0x73 pasa por la subclase 0x467b10: con una
-// flecha abajo, +0x80 en 0 antes de que 0x468320 mire el cursor, que se ve desde el primer frame (con 13, apagado).
+// 0x467f30 (EM_LIMITTEXT through SendMessageA) on each frame of the 0x7d and the 0x73 goes through the subclass
+// 0x467b10: with an arrow held down, +0x80 at 0 before 0x468320 looks at the caret, which shows from the first frame
+// (with 13, off).
 TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
 {
     for (const std::int32_t dialog : {0x7d, 0x73})
@@ -765,7 +767,7 @@ TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
         runtime.dialogs.current = dialog;
         Client::Chat::ChatInputState& input = runtime.chat.input;
         Client::Ui::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
-        // El cursor al principio: al final del texto quedaría fuera del bitmap.
+        // The caret at the start: at the end of the text it would be outside the bitmap.
         edit.text.Type("12");
         edit.text.SetCursor(0);
         edit.draws = 13;
@@ -786,10 +788,10 @@ TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
                                          { return text.columns == 1 && text.style.colors.background == 0xffc8c8c8u; }));
     }
 }
-// 0x6304e1 → 0x471ae0 (CL9 hito 7): la caja de confirmación 0x9c con dos renglones, de (12 + 2) de alto en 640: el
-// marco (0xfc en y 120, 0xfb desde 125 con h + 40 de alto y 0xfc en h + 165), el sí en (255, h + 140) con el mouse en
-// el borde de abajo y la x del borde derecho (0xf2), el no sin él (0xf3), y los renglones centrados desde 0x87 de 14 en
-// 14. Todo sin mezcla, y la normal al final.
+// 0x6304e1 → 0x471ae0 (CL9 milestone 7): the confirm box 0x9c with two lines, (12 + 2) high in 640: the frame (0xfc at
+// y 120, 0xfb from 125 with h + 40 of height and 0xfc at h + 165), the yes at (255, h + 140) with the mouse on the
+// bottom edge and the x of the right edge (0xf2), the no without it (0xf3), and the lines centered from 0x87 every 14.
+// All without blending, and normal blending at the end.
 TEST(GameDialogDrawingTest, TheConfirmBoxDrawsItsTwoButtonsAndItsRows)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -833,7 +835,7 @@ TEST(GameDialogDrawingTest, TheConfirmBoxDrawsItsTwoButtonsAndItsRows)
     }
 }
 
-// Los bordes del mouse: el no con la x de 0x17e y la y de h + 140; un píxel más abajo, ninguno.
+// The mouse edges: the no with the x of 0x17e and the y of h + 140; one pixel lower, none.
 TEST(GameDialogDrawingTest, TheConfirmBoxLightsTheButtonUnderTheMouse)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -861,7 +863,7 @@ TEST(GameDialogDrawingTest, TheConfirmBoxLightsTheButtonUnderTheMouse)
     }
 }
 
-// Con un botón, el sí en (295, h + 140), con el mouse de 0x127 a 0x15b; con otro tipo, ninguno.
+// With one button, the yes at (295, h + 140), with the mouse from 0x127 to 0x15b; with another type, none.
 TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -898,7 +900,7 @@ TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
     }
 }
 
-// Los quads sin textura de un lote: los rectángulos de color (el fondo del EDIT, ColorQuad).
+// The untextured quads of a batch: the color rectangles (the EDIT's background, ColorQuad).
 std::vector<DrawnQuad> ColorQuadsOf(const std::vector<DrawnQuad>& quads)
 {
     std::vector<DrawnQuad> colored;
@@ -906,10 +908,10 @@ std::vector<DrawnQuad> ColorQuadsOf(const std::vector<DrawnQuad>& quads)
     return colored;
 }
 
-// 0x73 (0x630818..0x6308c6): el marco del OK genérico, sin el botón, y el EDIT de [0x5763504] rearmado en el frame
-// (a la vista, +0x4c en 9, el tope de 8, 0x46 × 0xe en (0x11b, 0x5f)) con el foco y su dibujo: el negro del filtro 8
-// y el fondo. Después, en la cola (0x631c91), el texto por 0x78abacc: 420 con 0, 421 con 1 y 422 con otro, en y =
-// 0x4b.
+// 0x73 (0x630818..0x6308c6): the generic OK's frame, without the button, and the EDIT of [0x5763504] rebuilt in the
+// frame (visible, +0x4c at 9, limit 8, 0x46 × 0xe at (0x11b, 0x5f)) with the focus and its drawing: the black of filter
+// 8 and the background. Then, in the tail (0x631c91), the text by 0x78abacc: 420 with 0, 421 with 1 and 422 with
+// another, at y = 0x4b.
 TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -960,7 +962,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
             EXPECT_EQ(last.y, 0x4b);
             EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
 
-            // El tope de lo tecleado es 8 (la vtable + 0x3c).
+            // The typing limit is 8 (the vtable + 0x3c).
             edit.text.SetText({});
             Client::Ui::TypeInTheEdit(edit, "1234567890");
             EXPECT_EQ(edit.text.Value(), "12345678");
@@ -968,7 +970,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
     }
 }
 
-// En un dibujo intermedio de MuRet, el EDIT se arma y se dibuja sobre una copia: ni su estado ni el foco cambian.
+// In an intermediate MuRet drawing, the EDIT is built and drawn on a copy: neither its state nor the focus change.
 TEST(GameDialogDrawingTest, TheProjectingPassLeavesTheDialogEdit)
 {
     auto tested = std::make_unique<DrawingDialogs>(Lorencia);
@@ -983,10 +985,10 @@ TEST(GameDialogDrawingTest, TheProjectingPassLeavesTheDialogEdit)
     EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
 }
 
-// 0x91 (0x6304f2..0x630813): el marco (0xfc en (213, 100), 0xfb en 105 y 145, 0xfc en 185), el EDIT que armó
-// 0x5eba70 con el foco y su dibujo, y sin mezcla el OK (0xf2 con el mouse en el borde de abajo a la derecha,
-// (0x133, 0xb0)) en (255, 160) y el cancelar (0xf3) en (330, 160). El texto (0x631d2f): 1128 con el título y 1129 con
-// el precio, en y = 0x73; con otro modo, ninguno.
+// 0x91 (0x6304f2..0x630813): the frame (0xfc at (213, 100), 0xfb at 105 and 145, 0xfc at 185), the EDIT that 0x5eba70
+// built with the focus and its drawing, and without blending the OK (0xf2 with the mouse on the bottom right edge,
+// (0x133, 0xb0)) at (255, 160) and the cancel (0xf3) at (330, 160). The text (0x631d2f): 1128 with the title and 1129
+// with the price, at y = 0x73; with another mode, none.
 TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -1058,8 +1060,8 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
     }
 }
 
-// Los bordes del mouse del 0x91: el cancelar con (0x14a, 0xa0) es 0xf4 y el OK, 0xf1; un píxel a la izquierda del
-// cancelar o arriba, ninguno.
+// The mouse edges of the 0x91: the cancel with (0x14a, 0xa0) is 0xf4 and the OK, 0xf1; one pixel left of the cancel or
+// above, none.
 TEST(GameDialogDrawingTest, TheShopDialogLightsTheButtonUnderTheMouse)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -1085,7 +1087,7 @@ TEST(GameDialogDrawingTest, TheShopDialogLightsTheButtonUnderTheMouse)
     }
 }
 
-// Los colores de los textos dibujados, en su orden (los quads de marca de RecordingTextDrawer).
+// The colors of the drawn texts, in their order (RecordingTextDrawer's marker quads).
 std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
 {
     std::vector<Color> colors;
@@ -1100,10 +1102,10 @@ std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
     return colors;
 }
 
-// 0x632472..0x632636: el 0x8d dibuja su texto desde ((7 − 2 − 1) · 0x12) / 2 + 0x4c = 112 y debajo las respuestas, en
-// amarillo y en rojo la del mouse (a no más de 0x6a de x = 0x13f); una respuesta vacía no se dibuja ni baja la y. Al
-// final, el blanco (no se ve: nada se dibuja después). El marco lleva 4 filas de 0xfb (las de (3 · 0x12 + 0x31) / 40 =
-// 2, con 4 como mínimo).
+// 0x632472..0x632636: the 0x8d draws its text from ((7 − 2 − 1) · 0x12) / 2 + 0x4c = 112 and the answers below, in
+// yellow and the mouse's in red (no more than 0x6a from x = 0x13f); an empty answer is not drawn and does not lower the
+// y. At the end, white (unseen: nothing is drawn after). The frame has 4 rows of 0xfb (those of (3 · 0x12 + 0x31) / 40
+// = 2, with 4 as the minimum).
 TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
 {
     constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
@@ -1133,7 +1135,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
     EXPECT_EQ(tested->text.texts[2].x, CenteredX("2) chau"));
     EXPECT_EQ(TextColorsOf(tested->sprites), (std::vector<Color>{White, Yellow, Red}));
 
-    // Afuera de x, ninguna en rojo; la primera vacía no baja la y de la segunda.
+    // Outside x, none in red; the empty first one does not lower the y of the second.
     tested->sprites.Begin(Screen640);
     tested->text.texts.clear();
     tested->mouse = {0x13f + 0x6b, 150};
@@ -1144,8 +1146,8 @@ TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
     EXPECT_EQ(TextColorsOf(tested->sprites), (std::vector<Color>{White, Yellow}));
 }
 
-// 0x631150..0x631182 y 0x6324a3: con 7 renglones y 3 respuestas, (10 · 0x12 + 0x31) / 40 = 5 filas, y el texto no
-// arranca más arriba de 0x46 (sería ((7 − 3 − 7) · 0x12) / 2 + 0x4c = 49).
+// 0x631150..0x631182 and 0x6324a3: with 7 lines and 3 answers, (10 · 0x12 + 0x31) / 40 = 5 rows, and the text does not
+// start higher than 0x46 (it would be ((7 − 3 − 7) · 0x12) / 2 + 0x4c = 49).
 TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
 {
     const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
@@ -1162,7 +1164,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
     ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"arriba"}));
     EXPECT_EQ(tested->text.texts[0].y, 0x46);
 
-    // El 0x8a también baja con las respuestas que quedaron (0x632472 es el mismo tramo), sin el mínimo.
+    // The 0x8a also goes down with the answers left (0x632472 is the same stretch), without the minimum.
     tested->sprites.Begin(Screen640);
     tested->text.texts.clear();
     runtime.dialogs.current = Client::Ui::MessageBoxDialog;
@@ -1171,8 +1173,8 @@ TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
     EXPECT_EQ(tested->text.texts[0].y, 49);
 }
 
-// El tamaño de un quad del lote (sin los de los textos) en 640 × 480, con el error de dar vuelta la y (480 − y), y lo
-// más lejos que llega en la textura.
+// The size of a batch quad (without the text ones) in 640 × 480, with the error of flipping the y (480 − y), and the
+// farthest it reaches in the texture.
 constexpr float Pixel = 1.0e-3f;
 struct QuadExtent
 {
@@ -1208,7 +1210,7 @@ QuadExtent ExtentOf(const SpriteBatch& sprites, std::size_t index)
     return {};
 }
 
-// Los renglones de la caja, uno por cada 0x26 bytes de 0x7d36a98, y su cuenta.
+// The box's lines, one per 0x26 bytes of 0x7d36a98, and their count.
 void SetRows(Client::Ui::DialogBoxState& box, std::initializer_list<std::string_view> rows)
 {
     box.rows.fill('\0');
@@ -1218,7 +1220,8 @@ void SetRows(Client::Ui::DialogBoxState& box, std::initializer_list<std::string_
     box.lineCount = static_cast<std::int32_t>(rows.size());
 }
 
-// Un diálogo de sí y no como lo deja 0x633300 y su paso (0x6282dc): el sí con el mouse encima (2) y el no afuera (3).
+// A yes/no dialog as 0x633300 and its step (0x6282dc) leave it: the yes with the mouse over it (2) and the no outside
+// (3).
 void OpenYesNo(Client::Kernel::WorldRuntime& runtime, std::int32_t id)
 {
     runtime.dialogs.current = id;
@@ -1226,15 +1229,15 @@ void OpenYesNo(Client::Kernel::WorldRuntime& runtime, std::int32_t id)
     runtime.dialogBox.buttons[1] = {.state = 3, .x = 0x78, .y = 0x5a, .width = 0x46, .height = 0x15};
 }
 
-// x = centro − (cx / 2) de un texto en 640 × 480.
+// x = center − (cx / 2) of a text in 640 × 480.
 int CenteredXAt(int center, std::string_view text)
 {
     return center - static_cast<int>(text.size()) * LetterWidth / 2;
 }
 
-// 0x630cc4..0x630fbe: el marco de los de sí y no, 0xfc en y = 100, 3 filas de 0xfb desde 105 y 0xfc en 225, sin
-// mezcla; y los botones, 0xf0 + estado en (x + 213, y + 100) de 70 × 21 (sin el − 1 de las cajas) con las UV (70 /
-// 128, 21 / 32). Sin rand().
+// 0x630cc4..0x630fbe: the yes/no dialogs' frame, 0xfc at y = 100, 3 rows of 0xfb from 105 and 0xfc at 225, without
+// blending; and the buttons, 0xf0 + state at (x + 213, y + 100) of 70 × 21 (without the boxes' − 1) with the UVs (70 /
+// 128, 21 / 32). No rand().
 TEST(GameDialogDrawingTest, TheYesNoDialogsDrawTheirFrameAndButtons)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1281,7 +1284,7 @@ TEST(GameDialogDrawingTest, TheYesNoDialogsDrawTheirFrameAndButtons)
     }
 }
 
-// 0x630dfd..0x630e09: solo los botones con estado de 1 a 4.
+// 0x630dfd..0x630e09: only the buttons with a state from 1 to 4.
 TEST(GameDialogDrawingTest, TheYesNoButtonsGoFromOneToFour)
 {
     const auto tested = std::make_unique<DrawingDialogs>(Noria);
@@ -1300,8 +1303,8 @@ TEST(GameDialogDrawingTest, TheYesNoButtonsGoFromOneToFour)
     EXPECT_EQ(QuadsOf(tested->sprites).size(), 5u);
 }
 
-// 0x632637..0x632a2a: sin nada en 0x78abb14, los renglones en la fuente gruesa y en (1; 0,7; 0), centrados en x =
-// 0x15e desde y = 100 + 0x1e, de a 0x12, y así quedan.
+// 0x632637..0x632a2a: with nothing at 0x78abb14, the lines in the bold font and in (1, 0.7, 0), centered at x = 0x15e
+// from y = 100 + 0x1e, every 0x12, and so they stay.
 TEST(GameDialogDrawingTest, TheYesNoRowsAreBoldAndOrange)
 {
     constexpr Color Orange{1.0f, 0.7f, 0.0f, 1.0f};
@@ -1326,7 +1329,7 @@ TEST(GameDialogDrawingTest, TheYesNoRowsAreBoldAndOrange)
     }
 }
 
-// 0x632675..0x632902 y 0x632944..0x6329bf: lo que espera el ítem del cursor (0x78abb14) mueve y pinta los renglones.
+// 0x632675..0x632902 and 0x632944..0x6329bf: what the cursor item waits for (0x78abb14) moves and paints the lines.
 TEST(GameDialogDrawingTest, TheCursorChoiceMovesAndPaintsTheYesNoRows)
 {
     constexpr Color Orange{1.0f, 0.7f, 0.0f, 1.0f};
@@ -1345,35 +1348,35 @@ TEST(GameDialogDrawingTest, TheCursorChoiceMovesAndPaintsTheYesNoRows)
         std::vector<FontKind> fonts;
     };
     const std::vector<Case> cases{
-        // 1: el primero en rojo.
+        // 1: the first in red.
         {0x98,
          1,
          0x15e,
          130,
          {Red, Orange, Orange, Orange},
          {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
-        // 3: en 0x140 desde 100 + 0xf, y el cuarto en (1; 0,1; 0,1).
+        // 3: at 0x140 from 100 + 0xf, and the fourth in (1, 0.1, 0.1).
         {0x94,
          3,
          0x140,
          115,
          {Orange, Orange, Orange, RedFourth},
          {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
-        // 4: en 0x140 desde 100 + 0x2d.
+        // 4: at 0x140 from 100 + 0x2d.
         {0x99,
          4,
          0x140,
          145,
          {Orange, Orange, Orange, Orange},
          {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
-        // 6: el primero en rojo y los demás en la fuente normal y en blanco.
+        // 6: the first in red and the others in the normal font and in white.
         {0x98,
          6,
          0x15e,
          130,
          {Red, White, White, White},
          {FontKind::Bold, FontKind::Normal, FontKind::Normal, FontKind::Normal}},
-        // El 0x96 no se mueve, pero los colores siguen a 0x78abb14: con 2, (0,9; 0,9; 1) sin el título de la mezcla.
+        // The 0x96 does not move, but the colors follow 0x78abb14: with 2, (0.9, 0.9, 1) without the mix title.
         {0x96, 2, 0x15e, 130, {Mix, Mix, Mix, Mix}, {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
         {0x96,
          3,
@@ -1410,9 +1413,9 @@ TEST(GameDialogDrawingTest, TheCursorChoiceMovesAndPaintsTheYesNoRows)
     }
 }
 
-// 0x632683..0x6328e3: con 0x78abb14 en 2, el 0x94, el 0x98, el 0x99, el 0xa3 y el 0xa8 llevan antes el título de la
-// mezcla, en negrita y en (1, 1, 0), centrado en y = arriba + 0xf + 10; los renglones siguen en 0x140, 0x22 más abajo.
-// El texto sale del tipo (0x7d2dc98) por sprintf.
+// 0x632683..0x6328e3: with 0x78abb14 at 2, the 0x94, 0x98, 0x99, 0xa3 and 0xa8 carry the mix title first, in bold and
+// in (1, 1, 0), centered at y = top + 0xf + 10; the lines go on at 0x140, 0x22 lower. The text comes from the type
+// (0x7d2dc98) through sprintf.
 TEST(GameDialogDrawingTest, TheMixTitleGoesBeforeTheRows)
 {
     constexpr Color Yellow{1.0f, 1.0f, 0.0f, 1.0f};
@@ -1433,7 +1436,7 @@ TEST(GameDialogDrawingTest, TheMixTitleGoesBeforeTheRows)
     {
         for (const std::int32_t id : {0x94, 0x98, 0x99, 0xa3, 0xa8})
         {
-            // En Devias y en Noria, uno de arriba y el de abajo.
+            // In Devias and in Noria, one of the top ones and the bottom one.
             if (map != Lorencia && id != 0x98 && id != 0xa3)
                 continue;
             for (const Case& expected : cases)
@@ -1488,8 +1491,8 @@ TEST(GameDialogDrawingTest, TheMixTitleGoesBeforeTheRows)
     }
 }
 
-// 0x6327eb: el 0x1c con otra capa deja el buffer de la pila sin escribir; 0x632855: un título de 100 bytes o más pisa
-// la pila. Los dos cortan con el marco ya dibujado.
+// 0x6327eb: the 0x1c with another layer leaves the stack buffer unwritten; 0x632855: a title of 100 bytes or more
+// overwrites the stack. Both stop with the frame already drawn.
 TEST(GameDialogDrawingTest, TheMixTitleCutsWhatTheOriginalCannotWrite)
 {
     for (const auto& [kind, cape, address] : std::to_array<std::tuple<std::int32_t, std::int32_t, std::string>>(
@@ -1511,9 +1514,9 @@ TEST(GameDialogDrawingTest, TheMixTitleCutsWhatTheOriginalCannotWrite)
     }
 }
 
-// 0x630cc9..0x630cd3 y 0x632658..0x632667: el 0xa3 (la pregunta de la mezcla de joyas) va en y = 210 (0xfc, 3 filas
-// desde 215 y 0xfc en 335, los botones en y + 210) y sus renglones en x = 0x145 desde 210 + 0x1e; con 0x78abb14 en 3,
-// en 0x140 desde 210 + 0xf.
+// 0x630cc9..0x630cd3 and 0x632658..0x632667: the 0xa3 (the jewel mix question) goes at y = 210 (0xfc, 3 rows from 215
+// and 0xfc at 335, the buttons at y + 210) and its lines at x = 0x145 from 210 + 0x1e; with 0x78abb14 at 3, at 0x140
+// from 210 + 0xf.
 TEST(GameDialogDrawingTest, TheJewelMixQuestionGoesLower)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1544,8 +1547,8 @@ TEST(GameDialogDrawingTest, TheJewelMixQuestionGoesLower)
     }
 }
 
-// 0x630d20..0x630deb y 0x63263a..0x632653: el 0x9a lleva 4 filas (0xfc en 265), el sí en (1; 0,3; 0,3) sin el ítem
-// (0x78a59cc en 0xff) y el no en blanco, y sus renglones en x = 0x140 desde 130 sin mirar 0x78abb14.
+// 0x630d20..0x630deb and 0x63263a..0x632653: the 0x9a has 4 rows (0xfc at 265), the yes in (1, 0.3, 0.3) without the
+// item (0x78a59cc at 0xff) and the no in white, and its lines at x = 0x140 from 130 without looking at 0x78abb14.
 TEST(GameDialogDrawingTest, TheChaosCastleQuestionShowsTheMissingItem)
 {
     constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
@@ -1577,9 +1580,9 @@ TEST(GameDialogDrawingTest, TheChaosCastleQuestionShowsTheMissingItem)
     }
 }
 
-// 0x630e0f..0x630f53 y 0x630fcb..0x6310d5: los tres botones del 0xa8 en 0x646, con la mezcla normal, con el 1412, el
-// 1903 y el 229 en negro y en negrita en x + 0xed − cx / 2 e y + 104; el fondo del texto queda en 0xff y el color
-// vuelve.
+// 0x630e0f..0x630f53 and 0x630fcb..0x6310d5: the three buttons of the 0xa8 in 0x646, with normal blending, with the
+// 1412, the 1903 and the 229 in black and bold at x + 0xed − cx / 2 and y + 104; the text background stays at 0xff and
+// the color comes back.
 TEST(GameDialogDrawingTest, TheLuckQuestionDrawsItsThreeButtons)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1629,8 +1632,8 @@ TEST(GameDialogDrawingTest, TheLuckQuestionDrawsItsThreeButtons)
     }
 }
 
-// 0x6304cf y la tabla 0x632bf0: el 0xaa usa el marco de los de sí y no y sus renglones van como los de las cajas
-// (0x632472), centrados desde ((7 − 0 − 2) · 0x12) / 2 + 0x4c = 121, y al final el blanco.
+// 0x6304cf and the table 0x632bf0: the 0xaa uses the yes/no dialogs' frame and its lines go like the boxes' (0x632472),
+// centered from ((7 − 0 − 2) · 0x12) / 2 + 0x4c = 121, and white at the end.
 TEST(GameDialogDrawingTest, TheNoticeQuestionUsesTheBoxRows)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1651,8 +1654,8 @@ TEST(GameDialogDrawingTest, TheNoticeQuestionUsesTheBoxRows)
     }
 }
 
-// 0x632a45..0x632aeb: los renglones del 0xa9 en amarillo y en la fuente gruesa, centrados en 0x140 desde y = 100 + 0xf
-// + 0x1e, sin mirar 0x78abb14; al final, la fuente normal.
+// 0x632a45..0x632aeb: the lines of the 0xa9 in yellow and in the bold font, centered at 0x140 from y = 100 + 0xf +
+// 0x1e, without looking at 0x78abb14; at the end, the normal font.
 TEST(GameDialogDrawingTest, TheBlessRowsAreYellow)
 {
     constexpr Color Yellow{1.0f, 1.0f, 0.0f, 1.0f};
@@ -1676,7 +1679,7 @@ TEST(GameDialogDrawingTest, TheBlessRowsAreYellow)
     }
 }
 
-// Los diálogos sin dibujo todavía cortan con la ola de su paso.
+// The dialogs with no drawing yet stop with their step's wave.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
@@ -1693,9 +1696,9 @@ TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
     }
 }
 
-// 0x62e65c..0x62e929 y 0x632323, en Lorencia, Devias y Noria: el modo de la caja del caos. El marco (0xfc, 5 filas de
-// 0xfb y 0xfc desde y = 120), los dos botones en (245, 190) y (245, 275), en blanco el del mouse y en 0,7 el otro, sus
-// títulos en negrita centrados en y + 12, las explicaciones en x = 0xf8 y el título 734 al final, en y = 135 con
+// 0x62e65c..0x62e929 and 0x632323, in Lorencia, Devias and Noria: the chaos box's mode. The frame (0xfc, 5 rows of 0xfb
+// and 0xfc from y = 120), the two buttons at (245, 190) and (245, 275), the mouse's in white and the other at 0.7,
+// their titles in bold centered at y + 12, the explanations at x = 0xf8 and the title 734 at the end, at y = 135 with
 // 0xff0080ff.
 TEST(GameDialogDrawingTest, TheChaosMixModesDrawTheirButtonsAndNotes)
 {
@@ -1711,7 +1714,7 @@ TEST(GameDialogDrawingTest, TheChaosMixModesDrawTheirButtonsAndNotes)
                                                       {873, "caballo"},
                                                       {1923, "mas"}});
         tested->world.Runtime().dialogs.current = 0x8e;
-        // En el borde de abajo del segundo: y = 275 + 35.
+        // On the bottom edge of the second: y = 275 + 35.
         tested->mouse = {395, 310};
         ASSERT_TRUE(tested->Draw().HasValue());
         const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
@@ -1749,13 +1752,13 @@ TEST(GameDialogDrawingTest, TheChaosMixModesDrawTheirButtonsAndNotes)
     }
 }
 
-// La x de un texto centrado en `center` en 640 × 480.
+// The x of a text centered at `center` in 640 × 480.
 int CenteredAt(int center, const std::string& text)
 {
     return center - static_cast<int>(text.size()) * LetterWidth / 2;
 }
 
-// Los textos de la mezcla de joyas, inventados.
+// Made-up jewel mix texts.
 Client::Tables::TextTable JewelTexts()
 {
     return Client::Tests::MakeTextTable({{188, "ok"},
@@ -1777,10 +1780,11 @@ Client::Tables::TextTable JewelTexts()
                                          {1822, "paquetes"}});
 }
 
-// 0x62e92e..0x62ed05 y 0x632372, en Lorencia, Devias y Noria: el menú de la mezcla de joyas (0xa1). El marco desde
-// y = 120 con 6 filas; antes del primer botón el 1802 y el 1803 en x = 0xf8; los dos botones de 150 × 35 en (245, 190)
-// y (245, 255), el del mouse (en el borde) en blanco y el otro en 0,7, con el 1801 y el 1800 en negrita y 0xfffff0c8
-// en y + 12; el cancelar en (279, 320) en 0,8, con el 1002 centrado en 0x13f; y el título 1801 al final.
+// 0x62e92e..0x62ed05 and 0x632372, in Lorencia, Devias and Noria: the jewel mix menu (0xa1). The frame from y = 120
+// with 6 rows; before the first button the 1802 and the 1803 at x = 0xf8; the two buttons of 150 × 35 at (245, 190)
+// and (245, 255), the mouse's (on the edge) in white and the other at 0.7, with the 1801 and the 1800 in bold and
+// 0xfffff0c8 at y + 12; the cancel at (279, 320) at 0.8, with the 1002 centered at 0x13f; and the title 1801 at the
+// end.
 TEST(GameDialogDrawingTest, TheJewelMenuDrawsItsTwoButtonsAndTheCancel)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1830,9 +1834,10 @@ TEST(GameDialogDrawingTest, TheJewelMenuDrawsItsTwoButtonsAndTheCancel)
     }
 }
 
-// 0x62ed0a..0x62f36c, en los tres mapas: con la bendición elegida (0x6c62e0 en 0) su botón va en (1; 1; 0,2) y en
-// negrita, y el alma con el mouse en blanco, también en negrita y con 0xfffff0c8 porque nada los vuelve (Q-C950); los
-// tres paquetes en negrita con "10 · i" y "500.000 · i"; sin joya, en 0,5 y en la normal. El cancelar en (279, 365).
+// 0x62ed0a..0x62f36c, in the three maps: with the bless chosen (0x6c62e0 at 0) its button goes in (1, 1, 0.2) and in
+// bold, and the soul with the mouse in white, also bold and with 0xfffff0c8 because nothing resets them (Q-C950); the
+// three bundles in bold with "10 · i" and "500000 · i"; without a jewel, at 0.5 and in the normal one. The cancel at
+// (279, 365).
 TEST(GameDialogDrawingTest, TheJewelChoiceMarksTheChosenKindAndItsBundles)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1895,9 +1900,9 @@ TEST(GameDialogDrawingTest, TheJewelChoiceMarksTheChosenKindAndItsBundles)
     }
 }
 
-// 0x62f371..0x62fae6 y 0x6323c1, en los tres mapas: sin joya, 3 filas, las dos joyas en (235, 160) y (315, 160) con
-// su texto en y = 0xa8, el cancelar en (279,5; 200) (en blanco con el mouse en x = 280, sobre el borde de 279,5) y el
-// texto en blanco antes del título 1800.
+// 0x62f371..0x62fae6 and 0x6323c1, in the three maps: without a jewel, 3 rows, the two jewels at (235, 160) and (315,
+// 160) with their text at y = 0xa8, the cancel at (279.5, 200) (in white with the mouse at x = 280, over the edge of
+// 279.5) and the text in white before the title 1800.
 TEST(GameDialogDrawingTest, TheJewelUnmixWithoutAKindDrawsTheCancel)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -1934,11 +1939,11 @@ TEST(GameDialogDrawingTest, TheJewelUnmixWithoutAKindDrawsTheCancel)
     }
 }
 
-// 0x62f68f..0x62f9c1, en los tres mapas: con el alma elegida, 7 filas, el 1821 con las casillas vacías (0x402de0) y
-// el 1822 en x = 0xe4 con 0xc8c8c8c8; la lista de 0x6e5660 en (0xe4, 0x6d + 0xf0) con su marco, su barra, el velo del
-// elegido y sus filas; el OK (0xf0 de 80 × 25 en (234,5; 359), con la mezcla apagada que dejó la lista) con el 188 en
-// (1; 1; 0,2) y 0xfffff0c8, y el cancelar en blanco con el mouse encima, los dos en negrita en y = 367. Después la
-// normal, el texto en blanco y el blanco, con el que sale el título 1800 de la cola.
+// 0x62f68f..0x62f9c1, in the three maps: with the soul chosen, 7 rows, the 1821 with the empty cells (0x402de0) and the
+// 1822 at x = 0xe4 with 0xc8c8c8c8; the list of 0x6e5660 at (0xe4, 0x6d + 0xf0) with its frame, its bar, the chosen
+// one's veil and its rows; the OK (0xf0 of 80 × 25 at (234.5, 359), with the blending off that the list left) with the
+// 188 in (1, 1, 0.2) and 0xfffff0c8, and the cancel in white with the mouse over it, both in bold at y = 367. Then the
+// normal font, the text in white and the white, with which the tail's title 1800 comes out.
 TEST(GameDialogDrawingTest, TheJewelUnmixWithAKindDrawsTheListAndItsButtons)
 {
     constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
@@ -1998,9 +2003,9 @@ TEST(GameDialogDrawingTest, TheJewelUnmixWithAKindDrawsTheListAndItsButtons)
     }
 }
 
-// 0x62f78a..0x62f807 y 0x62f8ec, en los tres mapas: sin elegido, el 188 en 0,5 con el color de texto que había (el
-// 0xc8c8c8c8 de las notas), y el cancelar sin el mouse en 0,7. Sin filas, la lista solo dibuja su marco y la mezcla
-// queda prendida para el OK.
+// 0x62f78a..0x62f807 and 0x62f8ec, in the three maps: with no choice, the 188 at 0.5 with the text color that was there
+// (the notes' 0xc8c8c8c8), and the cancel without the mouse at 0.7. With no rows, the list only draws its frame and
+// blending stays on for the OK.
 TEST(GameDialogDrawingTest, TheJewelUnmixOkIsGreyWithoutAChoice)
 {
     constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
@@ -2027,9 +2032,9 @@ TEST(GameDialogDrawingTest, TheJewelUnmixOkIsGreyWithoutAChoice)
     }
 }
 
-// 0x62faeb..0x62fc1a y 0x62fc1f..0x62febe, en los tres mapas: la espera (0xa5) con el 471 centrado en 0x13f, sin
-// título; el resultado (0xa6) con "%s%s %s" del 1801 (0x6e5794 en 0) o del 1800, el 1816 y el 858 en negrita, el OK
-// de 65 × 25 en (287, 170) y el 228 con 0xfffff0c8. Ninguno tiene título en la cola.
+// 0x62faeb..0x62fc1a and 0x62fc1f..0x62febe, in the three maps: the wait (0xa5) with the 471 centered at 0x13f, without
+// title; the result (0xa6) with "%s%s %s" of the 1801 (0x6e5794 at 0) or of the 1800, the 1816 and the 858 in bold,
+// the OK of 65 × 25 at (287, 170) and the 228 with 0xfffff0c8. Neither has a title in the tail.
 TEST(GameDialogDrawingTest, TheJewelWaitAndResultDrawTheirTexts)
 {
     for (const std::int32_t map : {Lorencia, Devias, Noria})
@@ -2072,7 +2077,7 @@ TEST(GameDialogDrawingTest, TheJewelWaitAndResultDrawTheirTexts)
     }
 }
 
-// 0x62fd43: lo que no entra en los 256 bytes del 0xa6 pisa la pila y corta.
+// 0x62fd43: what does not fit in the 256 bytes of the 0xa6 overwrites the stack and stops.
 TEST(GameDialogDrawingTest, TheJewelResultCutsALongText)
 {
     auto tested = std::make_unique<DrawingDialogs>(Devias);
@@ -2084,16 +2089,16 @@ TEST(GameDialogDrawingTest, TheJewelResultCutsALongText)
     EXPECT_NE(drawn.Error().find("0x62fd43"), std::string::npos) << drawn.Error();
 }
 
-// Un renglón de 0x7d36a98, como lo copia 0x633300 (strcpy).
+// A line of 0x7d36a98, as 0x633300 copies it (strcpy).
 void PutRow(Client::Ui::DialogBoxState& box, std::size_t row, std::string_view text)
 {
     std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row * Client::Ui::DialogRowBytes));
     box.rows[row * Client::Ui::DialogRowBytes + text.size()] = '\0';
 }
 
-// 0x94 con el aviso 3 (0x630cbd y 0x632637): el marco desde y = 100 (0xfc, tres 0xfb y 0xfc en 225), los botones de
-// 0x7d368b8 en (x + 213, y + 100) con su estado (el primero con el mouse, 0xf2), sin mezcla; los cuatro renglones en la
-// negrita, centrados en 0x140 desde y = 0x73 de 0x12 en 0x12, en (1; 0,7; 0) y el cuarto en (1; 0,1; 0,1).
+// 0x94 with notice 3 (0x630cbd and 0x632637): the frame from y = 100 (0xfc, three 0xfb and 0xfc at 225), the buttons
+// of 0x7d368b8 at (x + 213, y + 100) with their state (the first with the mouse, 0xf2), without blending; the four
+// lines in bold, centered at 0x140 from y = 0x73 every 0x12, in (1, 0.7, 0) and the fourth in (1, 0.1, 0.1).
 TEST(GameDialogDrawingTest, TheTradeWarningDrawsItsBoxAndItsRows)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -2151,8 +2156,8 @@ TEST(GameDialogDrawingTest, TheTradeWarningDrawsItsBoxAndItsRows)
     }
 }
 
-// Con el aviso 5 (la compra, 0x633300(1, 1100, 0x94)), el renglón va centrado en 0x15e desde y = 100 + 0x1e; un
-// botón sin estado (0) o con más de 4 no se dibuja.
+// With notice 5 (the purchase, 0x633300(1, 1100, 0x94)), the line goes centered at 0x15e from y = 100 + 0x1e; a button
+// with no state (0) or with more than 4 is not drawn.
 TEST(GameDialogDrawingTest, TheBuyWarningCentersItsRowFurtherRight)
 {
     auto tested = std::make_unique<DrawingDialogs>(Lorencia);
@@ -2171,8 +2176,8 @@ TEST(GameDialogDrawingTest, TheBuyWarningCentersItsRowFurtherRight)
     EXPECT_EQ(tested->text.texts[0].y, 100 + 0x1e);
 }
 
-// El 0x99 del precio bajo (0x630cc4, el mismo marco desde y = 100) con el aviso 6 (0x5dc7e9): sus renglones centrados
-// en 0x15e desde y = 100 + 0x1e, el primero en (1, 0, 0) con la negrita y el otro en blanco con la normal.
+// The 0x99 of the low price (0x630cc4, the same frame from y = 100) with notice 6 (0x5dc7e9): its lines centered at
+// 0x15e from y = 100 + 0x1e, the first in (1, 0, 0) in bold and the other in white in the normal one.
 TEST(GameDialogDrawingTest, TheLowPriceWarningDrawsLikeTheWarning)
 {
     auto tested = std::make_unique<DrawingDialogs>(Devias);

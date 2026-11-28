@@ -97,7 +97,7 @@ TEST(WeatherApplierTest, StartsWithTheStaticTargetAndCounterAndTheDataLeafCount)
     EXPECT_EQ(runtime.leafWeather.phase, 0);
 }
 
-// 4e36c4/4e36ed escriben un solo DWORD; 4e36dd salta al default para los otros 224 bytes.
+// 0x4e36c4/0x4e36ed write a single DWORD; 0x4e36dd jumps to the default for the other 224 bytes.
 TEST(WeatherApplierTest, AllThreeBranchesChangeOnlyTheTarget)
 {
     const Client::Weather::LeafWeather before{

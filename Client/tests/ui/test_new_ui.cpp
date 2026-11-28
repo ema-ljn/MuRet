@@ -12,8 +12,8 @@
 #include <optional>
 #include <vector>
 
-// Client::Ui::NewUi: el administrador de la UI nueva (CL8, hito 8): el orden de 0x644b60, 0x65f610 y
-// 0x65f6c0, el foco y el mouse de 0x65fc30, el arrastre de 0x669f40 y el pegado de 0x65f720.
+// Client::Ui::NewUi: the new UI's manager (CL8, milestone 8): the order of 0x644b60, 0x65f610 and 0x65f6c0, the focus
+// and the mouse of 0x65fc30, the drag of 0x669f40 and the snapping of 0x65f720.
 namespace
 {
 using Client::Core::PixelSize;
@@ -28,8 +28,8 @@ using Client::Ui::WindowHit;
 
 constexpr PixelSize Screen640{640, 480};
 
-// Una ventana con su rectángulo; `draggable` contesta al título como 0x669df0, y las demás no,
-// como las del login y la selección.
+// A window with its rectangle; `draggable` answers to the title like 0x669df0, and the others do not, like the login
+// and selection ones.
 class FakeWindow final : public NewUiWindow
 {
 public:
@@ -73,7 +73,7 @@ struct Turn
     NewUiTurn turn;
 };
 
-// Un paso de 0x65fc30 que anota a quién atendió y con qué.
+// A 0x65fc30 step that records whom it handled and with what.
 std::vector<Turn> StepAndRecord(NewUi& ui, const InputState& input)
 {
     std::vector<Turn> turns;
@@ -117,7 +117,7 @@ TEST(NewUiTest, TheLastOneOpenedGoesOnTopWithTheFocus)
     EXPECT_EQ(ui.Order(), (std::vector<NewUiWindow*>{&b, &a, &c}));
     EXPECT_TRUE(ui.HasTheFocus(b));
     EXPECT_FALSE(ui.HasTheFocus(a));
-    // 0x65fe00: de la cola a la cabeza, la cabeza al final (arriba).
+    // 0x65fe00: from the tail to the head, the head last (on top).
     EXPECT_EQ(ui.DrawOrder(), (std::vector<NewUiWindow*>{&a, &b}));
 }
 
@@ -256,9 +256,9 @@ TEST(NewUiTest, AWindowThatClosesItselfLeavesTheFocusToTheNext)
     EXPECT_TRUE(ui.HasTheFocus(below));
 }
 
-// 0x65fccb: atiende una copia de la lista hecha antes del primer turno. La que otra abre en su turno y
-// estaba más abajo se atiende en el mismo paso, ya arriba y con el foco: el clic en crear de la barra de la
-// selección abre la ventana de crear, que corre su lógica en ese paso.
+// 0x65fccb: it handles a copy of the list made before the first turn. The one another opens in its turn and that was
+// lower is handled in the same step, already on top and with the focus: the click on create in the selection bar
+// opens the create window, which runs its logic in that step.
 TEST(NewUiTest, AWindowOpenedInAnotherOnesTurnIsSteppedInTheSameStep)
 {
     FakeWindow bar{Rect{0, 400, 640, 30}};
@@ -311,7 +311,7 @@ TEST(NewUiTest, TheTitleDragsAWindowWithoutItsButtons)
     Client::Tests::MoveMouse(input, 110, 105);
     Client::Tests::PressLeft(input);
 
-    // El paso en que se aprieta atiende los botones y empieza el arrastre.
+    // The step with the press handles the buttons and starts the drag.
     std::vector<Turn> turns = StepAndRecord(ui, input);
     ASSERT_EQ(turns.size(), 1U);
     EXPECT_TRUE(turns[0].turn.buttons);
@@ -349,7 +349,7 @@ TEST(NewUiTest, TheLoginWindowsDoNotDrag)
     EXPECT_FALSE(ui.IsDragged(window));
 }
 
-// Arrastra `window`, que está en (100, 100), con el título, hasta que su esquina quede en `to`.
+// Drags `window`, which is at (100, 100), by the title until its corner is at `to`.
 void DragTo(NewUi& ui, InputState& input, Point to)
 {
     Client::Tests::MoveMouse(input, 110, 105);
@@ -386,7 +386,7 @@ TEST(NewUiTest, NearACornerOfAnotherWindowItSticksToThatCorner)
     OpenAndRaise(ui, dragged);
     InputState input;
 
-    // La esquina de arriba a la izquierda, cerca de la de abajo a la derecha de la otra.
+    // The top-left corner, near the other one's bottom-right corner.
     DragTo(ui, input, Point{395, 397});
 
     EXPECT_EQ(dragged.Bounds(Screen640), (Rect{400, 400, 100, 100}));

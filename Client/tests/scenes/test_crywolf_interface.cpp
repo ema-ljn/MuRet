@@ -32,8 +32,8 @@
 #include <string_view>
 #include <vector>
 
-// CL9 hito 11, fase 3 (06 § La interfaz de Crywolf): 0x4365c0 y 0x430180 contra el ASM de c32bbd5f, sin traza de GL
-// (*estático*; lo que la VM tiene que confirmar está en 08, P-C298). GS 0.97 no tiene Crywolf. Text.bmd es inventado.
+// CL9 milestone 11, phase 3 (06 § La interfaz de Crywolf): 0x4365c0 and 0x430180 against the ASM of c32bbd5f, with no
+// GL trace (*static*; what the VM has to confirm is in 08, P-C298). GS 0.97 has no Crywolf. Text.bmd is made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -73,7 +73,7 @@ struct DrawnQuad
     SpriteVertex third{};
 };
 
-// Los quads del lote en orden, sin las marcas de los textos.
+// The batch's quads in order, without the text marks.
 std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -104,13 +104,13 @@ std::vector<std::uint16_t> SlotsOf(const std::vector<DrawnQuad>& quads)
     return slots;
 }
 
-// La esquina de arriba a la izquierda y el tamaño de un quad en 640 × 480, con la y hacia abajo.
+// The top left corner and the size of a quad in 640 × 480, with y going down.
 void ExpectQuad(const DrawnQuad& quad, std::uint16_t slot, float x, float y, float width, float height)
 {
     EXPECT_EQ(quad.slot, slot);
     EXPECT_FLOAT_EQ(quad.first.x, x);
     EXPECT_FLOAT_EQ(quad.first.y, 480.0f - y);
-    // Las esquinas sí son exactas; la resta de dos floats cerca de 300 pierde los últimos bits.
+    // The corners are exact; the subtraction of two floats near 300 loses the last bits.
     EXPECT_NEAR(quad.third.x - quad.first.x, width, 1e-4f);
     EXPECT_NEAR(quad.first.y - quad.third.y, height, 1e-4f);
 }
@@ -143,7 +143,7 @@ protected:
                               .mouse = mouse};
     }
 
-    // Un frame: el lote vacío, los textos borrados y 0x4365c0.
+    // A frame: the batch empty, the texts cleared and 0x4365c0.
     void Frame(CrywolfInterface* copy = nullptr)
     {
         text.texts.clear();
@@ -153,7 +153,7 @@ protected:
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     }
 
-    // La mezcla que queda: la de un rectángulo sin textura dibujado ahora.
+    // The blend left over: that of an untextured rectangle drawn now.
     BlendMode BlendNow()
     {
         sprites.ColorQuad(0.0f, 0.0f, 1.0f, 1.0f);
@@ -189,8 +189,8 @@ protected:
     Client::Ui::Point mouse{};
 };
 
-// Sin resultados, sin aviso y fuera de la defensa en el 34: solo 0x620a00(1), que queda (no llega a 0x620980). La
-// etapa 3 o 4 en Lorencia o en Devias tampoco dibuja el estado (0x4303c0).
+// Without results, without a notice and outside the defense in 34: only 0x620a00(1), which stays (it does not reach
+// 0x620980). Stage 3 or 4 in Lorencia or Devias does not draw the state either (0x4303c0).
 TEST_F(CrywolfInterfaceTest, OutsideItsStatesItOnlyLeavesTheNormalBlend)
 {
     for (const std::int32_t map : {0, 2, CrywolfMap})
@@ -212,9 +212,9 @@ TEST_F(CrywolfInterfaceTest, OutsideItsStatesItOnlyLeavesTheNormalBlend)
     }
 }
 
-// La etapa 4 en el 34: el marco, el adorno en 98, los cinco altares de la .data (2: 0x6be), 0x6bc sin 0x723bd8, la
-// barra de abajo, el 1948 en (57, 85) en 0xff1594ff con glColor (1; 0,6; 0,3), el reloj en blanco y la luz; termina
-// sin mezcla. Sin consejos (son de la etapa 3).
+// Stage 4 in 34: the frame, the decoration at 98, the five .data altars (2: 0x6be), 0x6bc without 0x723bd8, the bottom
+// bar, 1948 at (57, 85) in 0xff1594ff with glColor (1, 0.6, 0.3), the clock in white and the light; it ends with no
+// blend. No tips (they belong to stage 3).
 TEST_F(CrywolfInterfaceTest, TheWarningStageDrawsTheStateInCrywolf)
 {
     Enter(CrywolfMap, 4);
@@ -229,7 +229,7 @@ TEST_F(CrywolfInterfaceTest, TheWarningStageDrawsTheStateInCrywolf)
         ExpectQuad(quads[2 + altar], 0x6be, altars[altar][0], altars[altar][1], 13.0f, 13.0f);
     ExpectQuad(quads[7], 0x6bc, 4.0f, 81.0f, 15.0f, 15.0f);
     ExpectQuad(quads[8], 0x6c2, 240.0f, 396.0f, 156.0f, 36.0f);
-    // Los minutos y los segundos en 0: una cifra cada uno, en blanco.
+    // The minutes and the seconds at 0: one digit each, in white.
     EXPECT_EQ(quads[9].slot, DigitsSlot);
     EXPECT_EQ(quads[10].slot, DigitsSlot);
     EXPECT_FLOAT_EQ(quads[9].color.green, 1.0f);
@@ -247,8 +247,8 @@ TEST_F(CrywolfInterfaceTest, TheWarningStageDrawsTheStateInCrywolf)
     EXPECT_EQ(Ui().byte723bf8, 1);
 }
 
-// Los altares por su byte: 0x1? en el nibble alto da 0x6cd, 0x6ce o 0x6cf por el bajo; si no, 0x6bd con 1, 0x6be con
-// 2 y nada con otro. Con 0x723bd8, el ícono 0x6bb.
+// The altars by their byte: 0x1? in the high nibble gives 0x6cd, 0x6ce or 0x6cf by the low one; otherwise 0x6bd with
+// 1, 0x6be with 2 and nothing with another. With 0x723bd8, icon 0x6bb.
 TEST_F(CrywolfInterfaceTest, TheAltarsPickTheirSlotByTheirByte)
 {
     Enter(CrywolfMap, 3);
@@ -261,9 +261,9 @@ TEST_F(CrywolfInterfaceTest, TheAltarsPickTheirSlotByTheirByte)
               (std::vector<std::uint16_t>{0x6cd, 0x6ce, 0x6cf, 0x6bd, 0x6bb}));
 }
 
-// La barra de Balgass con 0x723a3d en 1: el adorno baja de a 1 (98 + 0x723a40) hasta 21; ya abajo, el fondo 0x6b6, el
-// ícono 0x6ba, el 1949 en (38, 101) y la barra 0x6b7 de 0x6c73d4 · 0,68f. Con 0x723a3d en 0 vuelve de a 1. El reloj
-// va en (1; 0,3; 0,3) con la barra.
+// The Balgass bar with 0x723a3d at 1: the decoration drops by 1 (98 + 0x723a40) down to 21; once down, background
+// 0x6b6, icon 0x6ba, 1949 at (38, 101) and bar 0x6b7 of 0x6c73d4 · 0.68f. With 0x723a3d at 0 it comes back by 1. The
+// clock goes in (1, 0.3, 0.3) with the bar.
 TEST_F(CrywolfInterfaceTest, TheBossBarSlidesDownAndBack)
 {
     Enter(CrywolfMap, 4);
@@ -296,9 +296,9 @@ TEST_F(CrywolfInterfaceTest, TheBossBarSlidesDownAndBack)
     EXPECT_FLOAT_EQ(Ui().float723a40, 20.0f);
 }
 
-// El reloj desde el GetTickCount del BD 04: los minutos con la división sin signo por 60.000 y los segundos que van,
-// uno por cada segundo nuevo de _ftol(ms · 1,6666667e-5f · 60f), de 0 a 59; un minuto nuevo los vuelve a 0. Con los
-// minutos pasados, + 60.
+// The clock from BD 04's GetTickCount: the minutes with the unsigned division by 60000 and the seconds gone, one per
+// new second of _ftol(ms · 1.6666667e-5f · 60f), from 0 to 59; a new minute resets them to 0. With the minutes past,
+// + 60.
 TEST_F(CrywolfInterfaceTest, TheClockCountsTheMinutesLeftAndTheSecondsGone)
 {
     Enter(CrywolfMap, 4);
@@ -313,7 +313,7 @@ TEST_F(CrywolfInterfaceTest, TheClockCountsTheMinutesLeftAndTheSecondsGone)
     Frame();
     EXPECT_EQ(Ui().dword723c00, 62);
     EXPECT_EQ(Ui().dword723bfc, 1);
-    // 60 − 1 = 59: dos cifras después de la del 9.
+    // 60 − 1 = 59: two digits after the 9's.
     const std::vector<DrawnQuad> quads = QuadsOf(sprites);
     EXPECT_EQ(quads[9].slot, DigitsSlot);
     EXPECT_EQ(quads[10].slot, DigitsSlot);
@@ -327,16 +327,14 @@ TEST_F(CrywolfInterfaceTest, TheClockCountsTheMinutesLeftAndTheSecondsGone)
     Frame();
     EXPECT_EQ(Ui().dword723bf4, 59);
     EXPECT_EQ(Ui().dword723bfc, 0);
-    // Sin minutos, 0.
     Ui().dwords723bdc[3] = 0;
     Frame();
     EXPECT_EQ(Ui().dword723bf4, 0);
 }
 
-// 0x430180 con la etapa 3: la fuente 0x5763558, los cuatro renglones de 1957 + 4 · consejo en (0xbe, 0x3f + 13 · i),
-// el primero en 0xffffc864 y los otros en 0xffff9664 sobre 0xaa000000. 0x63b0e3(10000) vence en la primera llamada
-// (el reloj en 0) y vuelve a vencer 10.000 ms después de la llamada que sigue; el consejo pasa de −1 a 0 y da la vuelta
-// en 4.
+// 0x430180 with stage 3: font 0x5763558, the four lines of 1957 + 4 · tip at (0xbe, 0x3f + 13 · i), the first in
+// 0xffffc864 and the others in 0xffff9664 over 0xaa000000. 0x63b0e3(10000) fires on the first call (the clock at 0)
+// and fires again 10000 ms after the following call; the tip goes from −1 to 0 and wraps around at 4.
 TEST_F(CrywolfInterfaceTest, TheDefenseStageRotatesTheTips)
 {
     Enter(CrywolfMap, 3);
@@ -370,9 +368,9 @@ TEST_F(CrywolfInterfaceTest, TheDefenseStageRotatesTheTips)
     EXPECT_EQ(Ui().dwords6c73e0[0], 0);
 }
 
-// El aviso en 1: la cuenta sube cada frame y el cartel 0x6c0 entra desde 15 · cuenta − 329 con el alfa de la ola
-// ((2 · cuenta) % 140); el rango (0x6d1) llega de a 15 desde 0x186 + 250 y, en 0, la letra 0x6d2 + 0x723bed, el rótulo
-// y las nueve cifras de la experiencia (0x6d7 + cifra, desde 409 de a 15 a la izquierda).
+// The notice at 1: the count rises every frame and banner 0x6c0 enters from 15 · count − 329 with the wave's alpha
+// ((2 · count) % 140); the rank (0x6d1) arrives in steps of 15 from 0x186 + 250 and, at 0, letter 0x6d2 + 0x723bed,
+// the label and the nine digits of the experience (0x6d7 + digit, from 409 in steps of 15 to the left).
 TEST_F(CrywolfInterfaceTest, TheNoticeBannerEntersAndTheRankArrives)
 {
     for (const std::int32_t map : {0, 2, CrywolfMap})
@@ -391,7 +389,7 @@ TEST_F(CrywolfInterfaceTest, TheNoticeBannerEntersAndTheRankArrives)
         ExpectQuad(quads[1], 0x6d0, 230.0f, 150.0f, 196.0f, 141.0f);
         ExpectQuad(quads[2], 0x6d1, static_cast<float>(0x186 - 15 + 250), 188.0f, 110.0f, 28.0f);
         EXPECT_EQ(Ui().dword6c73d8, 2);
-        // Hasta la cuenta 40: 2 · 40 % 140 = 80, el alfa baja.
+        // Up to count 40: 2 · 40 % 140 = 80, the alpha drops.
         for (int frame = 0; frame < 38; ++frame)
             Frame();
         quads = QuadsOf(sprites);
@@ -409,8 +407,8 @@ TEST_F(CrywolfInterfaceTest, TheNoticeBannerEntersAndTheRankArrives)
     }
 }
 
-// En 400 el aviso pasa a 0 y la cuenta a 0: el cartel sale desde 15 · cuenta + 150 y, pasado 479, el aviso queda en
-// −1, la cuenta en 0 y el rango vuelve a 0x186.
+// At 400 the notice goes to 0 and the count to 0: the banner leaves from 15 · count + 150 and, past 479, the notice
+// stays at −1, the count at 0 and the rank goes back to 0x186.
 TEST_F(CrywolfInterfaceTest, TheNoticeBannerLeavesAfterFourHundredFrames)
 {
     Enter(CrywolfMap, 5);
@@ -431,9 +429,9 @@ TEST_F(CrywolfInterfaceTest, TheNoticeBannerLeavesAfterFourHundredFrames)
     EXPECT_TRUE(QuadsOf(sprites).empty());
 }
 
-// Los resultados con 0x723bf9: el marco 0x6e2, los títulos en 0xff1594ff centrados en la y 0xa0, las filas en blanco
-// desde 0xaf de a 15 (la de −1 no se dibuja pero cuenta), la clase por sus bits (con 5 o más, el nombre otra vez) y el
-// texto del aviso en 0xffff00ff; el botón 0x6c9 sin el mouse.
+// The results with 0x723bf9: frame 0x6e2, the titles in 0xff1594ff centered at y 0xa0, the rows in white from 0xaf in
+// steps of 15 (the −1 one is not drawn but counts), the class by its bits (with 5 or more, the name again) and the
+// notice text in 0xffff00ff; button 0x6c9 without the mouse.
 TEST_F(CrywolfInterfaceTest, TheResultsListTheFivePlaces)
 {
     for (const std::int32_t map : {0, 2, CrywolfMap})
@@ -485,8 +483,9 @@ TEST_F(CrywolfInterfaceTest, TheResultsListTheFivePlaces)
     }
 }
 
-// El botón: con el mouse dentro de (300, 354) × (300, 330), 0x6ca; y con 0x723bdc en 5, 0x6cb y la ventana se cierra
-// (0x723a44, 0x723bdc y 0x723bf9 en 0). En el borde no está dentro. Con el aviso en 1, los textos 2000 y 2001.
+// The button: with the mouse inside (300, 354) × (300, 330), 0x6ca; and with 0x723bdc at 5, 0x6cb and the window
+// closes (0x723a44, 0x723bdc and 0x723bf9 at 0). On the edge it is not inside. With the notice at 1, texts 2000 and
+// 2001.
 TEST_F(CrywolfInterfaceTest, TheResultsButtonClosesWithTheUiMark)
 {
     Enter(CrywolfMap, 0);
@@ -510,7 +509,7 @@ TEST_F(CrywolfInterfaceTest, TheResultsButtonClosesWithTheUiMark)
     EXPECT_EQ(ui.dwords723bdc[0], 0);
 }
 
-// Un dibujo intermedio de MuRet escribe en su copia: la de WorldRuntime queda.
+// An intermediate MuRet drawing writes into its copy: WorldRuntime's stays.
 TEST_F(CrywolfInterfaceTest, AProjectionWritesItsCopy)
 {
     Enter(CrywolfMap, 3);
@@ -526,8 +525,8 @@ TEST_F(CrywolfInterfaceTest, AProjectionWritesItsCopy)
     EXPECT_EQ(Ui().byte723bf8, 0);
 }
 
-// 0x436240 (el hijo 26 del HUD): con la etapa 3 o 4 en el 34 deja 0xff1594ff sobre 0 para lo que sigue, sin dibujar;
-// en Lorencia, en Devias o con otra etapa no toca el color ni dibuja la ventana del contrato.
+// 0x436240 (HUD child 26): with stage 3 or 4 in 34 it leaves 0xff1594ff over 0 for what follows, without drawing; in
+// Lorencia, in Devias or with another stage it does not touch the color or draw the contract window.
 TEST_F(CrywolfInterfaceTest, TheContractStepOnlyLeavesTheTitleColorInTheDefense)
 {
     const Client::Render::Text::TextColors before{.text = 0xff102030u, .background = 0xff405060u};
@@ -560,9 +559,10 @@ TEST_F(CrywolfInterfaceTest, TheContractStepOnlyLeavesTheTitleColorInTheDefense)
     }
 }
 
-// 0x436274..0x43643b: la ventana 1, el fondo 0x6cc, el No (0x6c3..0x6c5) y el Sí (0x6c9..0x6cb) con el mouse dentro de
-// su caja sin los bordes, y los renglones centrados en 0x13d: el primero en 0xe3 con segundo (y en 0xef sin él) y el
-// segundo en 0xee. Con el mouse sobre el botón apretado (0x723bdc en 1 o 2) la ventana se cierra y el resto se dibuja.
+// 0x436274..0x43643b: window 1, background 0x6cc, the No (0x6c3..0x6c5) and the Yes (0x6c9..0x6cb) with the mouse
+// inside their box without the edges, and the lines centered at 0x13d: the first at 0xe3 with a second (and at 0xef
+// without) and the second at 0xee. With the mouse over the pressed button (0x723bdc at 1 or 2) the window closes and
+// the rest is drawn.
 TEST_F(CrywolfInterfaceTest, TheQuestionDrawsBothButtonsAndCloses)
 {
     const auto draw = [this]
@@ -623,8 +623,8 @@ TEST_F(CrywolfInterfaceTest, TheQuestionDrawsBothButtonsAndCloses)
     EXPECT_EQ(text.texts[0].y, 0xef);
 }
 
-// 0x43643e..0x43656c: la ventana 2, el fondo y el OK (0x6c6..0x6c8) en 290, que cierra con 0x723bdc en 3. Un dibujo
-// intermedio escribe en su copia.
+// 0x43643e..0x43656c: window 2, the background and the OK (0x6c6..0x6c8) at 290, which closes with 0x723bdc at 3. An
+// intermediate drawing writes into its copy.
 TEST_F(CrywolfInterfaceTest, TheNoticeDrawsTheOk)
 {
     Enter(CrywolfMap, 3);

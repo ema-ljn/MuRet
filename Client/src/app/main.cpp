@@ -68,46 +68,43 @@
 #include <utility>
 #include <vector>
 
-// Al final: en Windows define main como SDL_main, y así no alcanza a ningún otro header. Nada
-// de lo que trae se nombra, e include-cleaner lo daría por sobrante.
+// Last: on Windows it defines main as SDL_main, so it reaches no other header. Nothing it brings in is named, and
+// include-cleaner would flag it as unused.
 #include <SDL3/SDL_main.h> // IWYU pragma: keep
 
-// El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
-// como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime
-// en App/Platform/Windows/Winmain.cpp), y las de más de un paso tienen su función:
-//   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b80, en 0x4b9b97): si
-//      el cliente se cae, escribe MuError.dmp en la carpeta actual y, con el log ya abierto, su
-//      línea (Core/Crash/CrashHandler.h). Si no se puede instalar, un aviso y se sigue sin él.
+// The client's entry point: it builds the layers and starts, with no logic of its own. main goes in phases, like the
+// WinMain steps in MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime in
+// App/Platform/Windows/Winmain.cpp), and those of more than one step have their own function:
+//   0. The crash handler, before anything, like WinMain's first call (0x4b9b80, at 0x4b9b97): if the client
+//      crashes, it writes MuError.dmp in the current folder and, with the log already open, its line
+//      (Diagnostics/CrashHandler.h). If it cannot be installed, a warning and it goes on without it.
 //   1. The command line (App/CommandLine.h): the help and the version go to stdout with exit code 0, a usage
 //      error and the usage to stderr with exit code 2. Then ReadStartup, before SDL_Init: the executable's folder
 //      and the config, and, with a host (from the config or the command line), the connection keys and, with
 //      --auto-login, first the account and the password from the environment (ReadServerStartup). An error stops
 //      here, without opening the window, and goes only to stderr: the config names the log file.
-//   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
-//      referencias a sus salidas, que tienen que vivir más que ellos. Con una carpeta de datos
-//      (--data o [Data] Path), lo de WinMain antes de la escena 1 (ReadSceneStartup): Text.bmd y,
-//      con su texto 0 como cara, los archivos de las fuentes; un error corta sin abrir la ventana.
-//      Con un host, también la red del sistema (NetworkInit).
-//   3. SDL (SdlContext) y OpenWindow: la resolución de la config, que tiene que valer
-//      (CheckResolution), y la ventana con el contexto GL.
-//   4. Con la carpeta de datos, RunScenes: los dispositivos (la tabla de texturas, el frame de GL,
-//      el audio y, con un host, el socket) y App::GameClient, que arma la sesión y el SceneManager
-//      desde la carga (CL5.4), con el texto tecleado de SDL prendido mientras la escena lo pide. Sin ella, la escena de
-//      prueba de la CL3.2. Las dos con RunLoop, hasta que se cierre la ventana, se llegue a --frames, una escena no
-//      pueda entrar o el OK de un aviso cierre el juego (Q-C69).
-// El cierre es el orden de las declaraciones al revés: el bucle, el GameClient (la escena de ahora
-// suelta sus texturas y la sesión se cierra), el socket, el frame (con la caché del texto), la tabla
-// de texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y sus salidas, para que
-// lo que se cierra antes pueda escribir, y al final el manejador de caídas.
+//   2. The whole log, stderr and the file. It stays in main because the TeeSink and the Log keep references to
+//      their outputs, which must outlive them. With a data folder (--data or [Data] Path), what WinMain does
+//      before scene 1 (ReadSceneStartup): Text.bmd and, with its text 0 as the face, the font files; an error
+//      stops without opening the window. With a host, also the system network (NetworkInit).
+//   3. SDL (SdlContext) and OpenWindow: the config's resolution, which must be valid (CheckResolution), and the
+//      window with the GL context.
+//   4. With the data folder, RunScenes: the devices (the texture table, the GL frame, the audio and, with a host,
+//      the socket) and App::GameClient, which builds the session and the SceneManager from the load (CL5.4), with
+//      SDL's text input on while the scene asks for it. Without it, the CL3.2 test scene. Both with RunLoop,
+//      until the window closes, --frames is reached, a scene cannot enter or the OK of a notice closes the game
+//      (Q-C69).
+// The shutdown is the declaration order reversed: the loop, the GameClient (the current scene releases its textures
+// and the session closes), the socket, the frame (with the text cache), the texture table, the window, the SdlLog,
+// SDL_Quit (SdlContext), the network, the Log and its outputs, so that what closes earlier can write, and last the
+// crash handler.
 //
-// Con un host, la LoginScene empieza la sesión al entrar y muestra su UI (CL5.5): la lista cuando
-// llega, la cuenta con el saludo del GameServer y los avisos. El SceneManager consulta la sesión en
-// cada frame, antes que la escena, y con --auto-login, después de la sesión, el AutoLogin, que
-// elige y entra sin la UI. La sesión deja en el log cada estado, del connect al login aceptado, y
-// cada keepalive. Si falla, la escena muestra su aviso y no se reconecta sola; el OK del aviso
-// cierra el juego con EXIT_SUCCESS, como el WM_CLOSE del original. Un host exige la carpeta de
-// datos (las claves están ahí), así que la escena de prueba nunca tiene red: sin host no mira el
-// entorno ni las claves, no arma la red, y `Main --frames 60` corre igual sin un servidor ni datos.
+// With a host, the LoginScene starts the session on entering and shows its UI (CL5.5). The SceneManager polls the
+// session every frame, before the scene, and with --auto-login, after the session, the AutoLogin, which chooses and
+// enters without the UI. If the session fails, the scene shows its notice and does not reconnect by itself; the
+// notice's OK closes the game with EXIT_SUCCESS, like the original's WM_CLOSE. A host requires the data folder (the
+// keys are there), so the test scene never has network: without a host it reads neither the environment nor the
+// keys, sets up no network, and `Main --frames 60` runs the same without a server or data.
 namespace
 {
 namespace App = Client::App;
@@ -117,42 +114,40 @@ namespace Network = Client::Network;
 namespace Platform = Client::Platform;
 namespace Scenes = Client::Scenes;
 
-// El log, junto al ejecutable, si [Log] Path no dice otra cosa (CL3.4, fila "log" del contrato).
+// Next to the executable, unless [Log] Path says otherwise.
 constexpr std::string_view LogFileName = "muret-client.log";
 
-// La versión que muestra el login en el texto 456 (02 § Del launcher al juego): la del proyecto,
-// del CMake.
+// The version the login shows in text 456 (02 § Del launcher al juego): the project's, from CMake.
 #ifndef MU_VERSION
 #error "MU_VERSION la define el CMake de Main"
 #endif
 constexpr std::string_view Version = MU_VERSION;
 
-// Lo que necesita la sesión con los servidores (CL4.5), leído en la fase 1 si hay un host. Sin
-// operator<< ni log: la cuenta y la clave no se imprimen (pregunta 7), y las claves tampoco.
+// What the session with the servers needs (CL4.5), read in phase 1 if there is a host. No operator<< or log: the
+// account and the password are not printed (question 7), nor are the keys.
 struct ServerStartup
 {
     Client::Session::ServerAddress connectServer;
-    // Solo con --auto-login: sin él, las teclea el jugador en la ventana de la cuenta.
+    // Only with --auto-login: without it, the player types them in the account window.
     std::optional<App::Credentials> credentials;
     Network::ConnectionKeys keys;
-    // El ejecutable que suma la respuesta al 03 del GS (ServerSession::OnMainCheck).
+    // The executable that the reply to the GS's 03 sums (ServerSession::OnMainCheck).
     std::filesystem::path mainCheckFile;
 };
 
-// Lo que sale de la fase 1.
 struct Startup
 {
-    // La carpeta del ejecutable, o vacía (la actual) si SDL no la da.
+    // Empty (the current folder) if SDL does not give it.
     std::filesystem::path folder;
     App::CommandLine commandLine;
     App::ClientConfig config;
-    // Con un host: el servidor, las claves y, con --auto-login, la cuenta. Vacío sin host.
+    // Empty without a host.
     std::optional<ServerStartup> server;
 };
 
-// Fase 1, con un host: con --auto-login, primero la cuenta y la clave del entorno, y después las
-// claves de la carpeta de datos (el plan de la CL4, CL4.4). Cada error dice qué falta y cómo darlo,
-// sin un valor. Sin --auto-login el entorno no se mira.
+// Phase 1, with a host: with --auto-login, first the account and the password from the environment, then the keys
+// from the data folder (the CL4 plan, CL4.4). Each error says what is missing and how to give it, without a value.
+// Without --auto-login the environment is not read.
 std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, bool autoLogin, Core::Log& log)
 {
     std::optional<App::Credentials> credentials;
@@ -189,8 +184,8 @@ Core::Expected<App::CommandLine, App::CommandLineExit> ParseArguments(int argc, 
     return App::ParseCommandLine(arguments, Version);
 }
 
-// Fase 1. SDL_GetBasePath anda antes de SDL_Init: en la carpeta del ejecutable están la config y,
-// si no dice otra cosa, el log.
+// Phase 1. SDL_GetBasePath works before SDL_Init: the executable's folder holds the config and, unless it says
+// otherwise, the log.
 std::optional<Startup> ReadStartup(int argc, char* argv[], App::CommandLine commandLine, Core::Log& log)
 {
     const auto exeFolder = Platform::Sdl::ExecutableFolder();
@@ -200,9 +195,9 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], App::CommandLine comm
     }
     const std::filesystem::path folder = exeFolder.HasValue() ? exeFolder.Value() : std::filesystem::path();
 
-    // La línea de comandos que 0x4ad4a0 pide con GetCommandLineA para sumar su ejecutable: argv[0] y
-    // los argumentos separados por un espacio. 0x4ad270 corta el nombre en el primer espacio o
-    // comilla, así que las comillas que GetCommandLineA conserva no cambian el resultado.
+    // The command line that 0x4ad4a0 gets with GetCommandLineA to sum its executable: argv[0] and the arguments
+    // separated by a space. 0x4ad270 cuts the name at the first space or quote, so the quotes GetCommandLineA keeps do
+    // not change the result.
     std::string rawCommandLine;
     for (int i = 0; i < argc; ++i)
     {
@@ -242,8 +237,8 @@ void PrintGlInfo(const Platform::Sdl::GlFunctions& gl)
     std::fflush(stdout);
 }
 
-// Fase 2, con un servidor: la red del sistema, WSAStartup en Windows (Network/SocketApi.h). false
-// si no arranca, con el error en el log.
+// Phase 2, with a server: the system network, WSAStartup on Windows (Network/SocketApi.h). false if it does not
+// start, with the error in the log.
 bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core::Log& log)
 {
     network.emplace();
@@ -255,9 +250,9 @@ bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core:
     return true;
 }
 
-// Fase 3, antes de la ventana: [Video] Width y Height tienen que ser una de las cinco del original
-// o un modo del monitor (App/Resolution.h). Si SDL no da los modos, valen las cinco y lo avisa.
-// false si no vale, con las que valen en el log.
+// Phase 3, before the window: [Video] Width and Height must be one of the original's five or a monitor mode
+// (Platform/Resolution.h). If SDL gives no modes, the five are valid and it warns. false if invalid, with the valid
+// ones in the log.
 bool CheckResolution(const Platform::Sdl::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
 {
     std::vector<Platform::Resolution> monitorModes;
@@ -280,8 +275,8 @@ bool CheckResolution(const Platform::Sdl::SdlContext& sdl, const App::ClientConf
     return false;
 }
 
-// Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
-// lo avisa y sigue: la lógica va igual a 25 pasos por segundo y el dibujo, más rápido.
+// Phase 3: the window with the config's size and VSync. If the driver refuses the VSync asked for, it warns and goes
+// on: the logic still runs at 25 steps per second and the drawing, faster.
 std::optional<Platform::Sdl::Window> OpenWindow(const Platform::Sdl::SdlContext& sdl, const App::ClientConfig& config,
                                                 Core::Log& log)
 {
@@ -289,7 +284,7 @@ std::optional<Platform::Sdl::Window> OpenWindow(const Platform::Sdl::SdlContext&
     {
         return std::nullopt;
     }
-    // Resolve siempre deja puesto el VSync: On en el modo normal y Off en el fiel, si no se dio.
+    // Resolve always sets the VSync: On in normal mode and Off in faithful, if not given.
     const Platform::Sdl::WindowOptions options{
         .width = config.width, .height = config.height, .vsync = config.vsync.value_or(Platform::VSyncMode::On)};
     auto created = Platform::Sdl::Window::Create(sdl, options);
@@ -308,7 +303,7 @@ std::optional<Platform::Sdl::Window> OpenWindow(const Platform::Sdl::SdlContext&
     return window;
 }
 
-// El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (App::EffectiveMaxFps).
+// The FPS cap applies only when the VSync ended up off, as in MuMain (App::EffectiveMaxFps).
 int LoopMaxFps(const App::ClientConfig& config, const Platform::Sdl::Window& window, Core::Log& log)
 {
     const int maxFps = App::EffectiveMaxFps(config.maxFps, window.VSync());
@@ -320,7 +315,6 @@ int LoopMaxFps(const App::ClientConfig& config, const Platform::Sdl::Window& win
     return maxFps;
 }
 
-// Lo que la escena de prueba le pide a la ventana: el fondo de un color, y el swap.
 void Present(Platform::Sdl::Window& window, const Scenes::TestScene::Color& color)
 {
     const Platform::Sdl::GlFunctions& gl = window.Gl();
@@ -334,7 +328,7 @@ void SetViewport(const Platform::Sdl::GlFunctions& gl, Core::PixelSize size)
     gl.viewport(0, 0, size.width, size.height);
 }
 
-// El viewport sigue al área de dibujo, que cambia con PixelSizeChanged.
+// The drawing area changes with PixelSizeChanged.
 void FollowPixelSize(const Platform::Sdl::GlFunctions& gl, Core::PixelSize size, Core::PixelSize& viewport)
 {
     if (size.width != viewport.width || size.height != viewport.height)
@@ -344,7 +338,7 @@ void FollowPixelSize(const Platform::Sdl::GlFunctions& gl, Core::PixelSize size,
     }
 }
 
-// Un frame de GameLoop, con el aviso de la CL3.4 si se recortó (pasó de MaxFrameTime).
+// With the CL3.4 warning if it was clamped (over MaxFrameTime).
 void RunFrame(App::GameLoop& loop, const Platform::WindowState& state, Client::Input::InputState& input, Core::Log& log)
 {
     const std::uint64_t clampedBefore = loop.Stats().clampedFrames;
@@ -356,7 +350,6 @@ void RunFrame(App::GameLoop& loop, const Platform::WindowState& state, Client::I
     }
 }
 
-// --stats: los FPS y los pasos por segundo, cada StatsInterval.
 void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::FrameStats& stats)
 {
     if (const auto rates = meter.Update(now, stats))
@@ -366,8 +359,8 @@ void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::Frame
     }
 }
 
-// Fase 4: hasta que se cierre la ventana, se llegue a --frames o `stop` diga que no se sigue.
-// `afterFrame` corre después de cada frame, antes de `stop`.
+// Phase 4: until the window closes, --frames is reached or `stop` says not to go on. `afterFrame` runs after each
+// frame, before `stop`.
 App::FrameStats RunLoop(Platform::Sdl::Window& window, Core::IClock& clock, App::GameLoop& loop,
                         Client::Input::InputState& input, const App::CommandLine& commandLine, Core::Log& log,
                         const std::function<bool()>& stop = {}, const std::function<void()>& afterFrame = {})
@@ -383,7 +376,7 @@ App::FrameStats RunLoop(Platform::Sdl::Window& window, Core::IClock& clock, App:
     }
     while (!commandLine.maxFrames || loop.Stats().frames < *commandLine.maxFrames)
     {
-        // El mouse, en píxeles del framebuffer (CL5.5): la UI del login los usa.
+        // The mouse in framebuffer pixels (CL5.5): the login UI uses them.
         Platform::Sdl::PumpEvents(state, input, window.Id(), window.PixelDensity());
         if (!state.running)
         {
@@ -413,8 +406,8 @@ void PrintFrames(const App::FrameStats& stats)
                 static_cast<unsigned long long>(stats.steps));
 }
 
-// Las fuentes de `files` para cada ancho de pantalla (Scenes/SceneText.h). Si no abren, el error
-// de FontOpenError: sin [Video] FontFile, la ruta salió de la búsqueda y no va al log.
+// The fonts of `files` for each screen width (Render/Frame/SceneText.h). If they do not open, FontOpenError's error:
+// without [Video] FontFile, the path came from the search and does not go to the log.
 Client::Render::Frame::RasterizerFactory FontFactory(const App::ClientConfig& config, App::FontFiles files)
 {
     return [&config, files = std::move(files)](
@@ -429,16 +422,15 @@ Client::Render::Frame::RasterizerFactory FontFactory(const App::ClientConfig& co
     };
 }
 
-// Lo que lee la fase 2 con una carpeta de datos.
 struct SceneStartup
 {
     Client::Tables::GameData data;
     App::FontFiles fonts;
 };
 
-// Fase 2, con una carpeta de datos: lo de WinMain antes de la escena 1, Text.bmd (0x4b9b9f) y los
-// archivos de las fuentes, con su texto 0 como cara (App::ChooseFontFiles). Sin [Video] FontFile,
-// la cara se busca en las fuentes del sistema, que solo Windows tiene. Cada error, al log.
+// Phase 2, with a data folder: what WinMain does before scene 1, Text.bmd (0x4b9b9f) and the font files, with its
+// text 0 as the face (App::ChooseFontFiles). Without [Video] FontFile, the face is looked up in the system fonts,
+// which only Windows has. Each error goes to the log.
 std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Core::Log& log)
 {
     auto data = Client::Tables::LoadGameData(*config.dataPath);
@@ -447,15 +439,15 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
         log.Error("{}", data.Error());
         return std::nullopt;
     }
-    // La cara es un texto del juego: no va al log (App/FontFiles.h).
+    // The face is a game text: it does not go to the log (App/FontFiles.h).
     const Client::Tables::GameData& loaded = data.Value();
     if (loaded.items && !loaded.items->checksumMatches)
     {
         log.Warning("Item.bmd: el checksum no coincide; se continúa con la tabla cargada");
     }
     const std::string_view face = loaded.text ? loaded.text->Text(0).value_or("") : "";
-    // La búsqueda, solo donde hay una lista de fuentes del sistema: en otro, ninguna, y el error de
-    // ChooseFontFiles dice que el cliente no busca la cara.
+    // A search only where there is a system font list: elsewhere none, and ChooseFontFiles' error says the client does
+    // not look up the face.
     const App::SystemFontSearch search = Platform::Sdl::HasSystemFontList()
                                              ? App::SystemFontSearch(Platform::Sdl::FindSystemFontFile)
                                              : App::SystemFontSearch();
@@ -468,11 +460,11 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
     return SceneStartup{.data = std::move(data).Value(), .fonts = std::move(fonts).Value()};
 }
 
-// El texto tecleado de SDL, prendido solo mientras la escena lo pide (IScene::WantsTextInput): SDL3
-// pide prenderlo solo cuando se quiere texto, porque puede mostrar un IME o un teclado en pantalla
-// y saltear teclas (SDL_keyboard.h), y el original solo tiene un EDIT con foco mientras está la
-// cuenta. Follow prende o apaga cuando cambia el pedido; si SDL falla, una línea al log y no
-// insiste hasta el próximo cambio: sin el texto se puede elegir y cancelar, pero no teclear.
+// SDL's text input, on only while the scene asks for it (IScene::WantsTextInput): SDL3 asks to turn it on only when
+// text is wanted, because it can show an IME or an on-screen keyboard and skip keys (SDL_keyboard.h), and the
+// original only has a focused EDIT while the account is up. Follow turns it on or off when the request changes; if
+// SDL fails, one line to the log and no retry until the next change: without it you can choose and cancel, but not
+// type.
 class TextInputFollower
 {
 public:
@@ -503,16 +495,16 @@ private:
     bool m_on;
 };
 
-// Fase 4, con un host: el resolver y el socket del GameServer. Viven más que el GameClient, que guarda la sesión.
+// Phase 4, with a host. They outlive the GameClient, which holds the session.
 struct HostDevices
 {
     Network::SystemResolver resolver;
     Network::SystemSocket socket{resolver};
 };
 
-// Fase 4, con un host: lo que GameClient necesita para la sesión. El relleno de lo que cifra la conexión sale de
-// std::random_device: solo tiene que cambiar de una corrida a otra (Network/Connection.h). Las salas del chat con un
-// amigo abren un socket por sala con el mismo resolver y la ofuscación del build.
+// Phase 4, with a host: what GameClient needs for the session. The padding of what the connection encrypts comes
+// from std::random_device: it only has to change from one run to the next (Network/Connection.h). The chat rooms with
+// a friend open a socket per room with the same resolver and the build's obfuscation.
 App::GameClientServer ServerOf(const ServerStartup& server, HostDevices& host, const Network::IObfuscation& obfuscation)
 {
     return App::GameClientServer{
@@ -528,7 +520,7 @@ App::GameClientServer ServerOf(const ServerStartup& server, HostDevices& host, c
                                  .paddingSeed = std::random_device{}()}};
 }
 
-// Fase 4: el audio de SDL, o ninguno con el aviso en el log.
+// Phase 4: SDL's audio, or none with the warning in the log.
 std::unique_ptr<Audio::Sdl::SdlAudio> OpenAudio(const App::ClientConfig& config, Core::Log& log)
 {
     auto created = Audio::Sdl::SdlAudio::Create(*config.dataPath, Client::Sound::GameSoundCatalog(), config.soundOnOff,
@@ -546,7 +538,7 @@ std::unique_ptr<Audio::Sdl::SdlAudio> OpenAudio(const App::ClientConfig& config,
     return audio;
 }
 
-// Fase 4, después del bucle y con el cliente y la ventana vivos: el código de salida de lo que lo cortó.
+// Phase 4, after the loop, with the client and the window alive: the exit code of what stopped it.
 int ExitCodeOf(const std::optional<App::GameExit>& exit, Platform::Sdl::Window& window, Core::Log& log)
 {
     if (!exit)
@@ -557,7 +549,7 @@ int ExitCodeOf(const std::optional<App::GameExit>& exit, Platform::Sdl::Window& 
     {
     case App::GameExitKind::DataError:
     {
-        // Q-C180: primero MessageBox, después WM_DESTROY. Se cierra también si SDL no logró mostrarlo.
+        // Q-C180: MessageBox first, then WM_DESTROY. It closes even if SDL could not show it.
         const auto shown = window.ShowErrorMessage(exit->message);
         if (!shown.HasValue())
         {
@@ -566,7 +558,7 @@ int ExitCodeOf(const std::optional<App::GameExit>& exit, Platform::Sdl::Window& 
         return EXIT_FAILURE;
     }
     case App::GameExitKind::SceneFailure:
-        // El SceneManager ya registró el diagnóstico de Enter o de aplicación de la sesión.
+        // The SceneManager already logged the diagnostic of Enter or of applying the session.
         return EXIT_FAILURE;
     case App::GameExitKind::SelectionFailure:
         log.Error("no se puede construir la selección: {}", exit->message);
@@ -581,11 +573,11 @@ int ExitCodeOf(const std::optional<App::GameExit>& exit, Platform::Sdl::Window& 
     return EXIT_FAILURE;
 }
 
-// Fase 4 con una carpeta de datos: los dispositivos (la tabla de texturas, el frame de GL, el audio, el portapapeles,
-// la lectura de la pantalla y, con un host, el socket y la ofuscación), después el GameClient, y el bucle con el texto
-// tecleado mientras la escena lo pide. Un error antes del bucle, o una escena que no puede entrar, cierra con
-// EXIT_FAILURE y el error en el log; el OK de un aviso que cierra el juego (Q-C69) y la orden del GameServer (Q-C106),
-// con EXIT_SUCCESS, al final del frame en que llegan.
+// Phase 4 with a data folder: the devices (the texture table, the GL frame, the audio, the clipboard, the screen
+// reading and, with a host, the socket and the obfuscation), then the GameClient, and the loop with text input while
+// the scene asks for it. An error before the loop, or a scene that cannot enter, closes with EXIT_FAILURE and the
+// error in the log; the OK of a notice that closes the game (Q-C69) and the GameServer's order (Q-C106) close with
+// EXIT_SUCCESS, at the end of the frame they arrive in.
 int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl::Window& window, Core::IClock& clock,
               Core::Log& log)
 {
@@ -632,8 +624,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
                                .loginSeed = [] { return static_cast<std::uint32_t>(std::random_device{}()); },
                                .screenshotFolder = {}},
         std::move(server));
-    // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
-    // se ven los dos.
+    // The game draws the cursor: the system one is hidden over the window (0x4ba238). If SDL cannot hide it, both show.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
     {
         log.Warning("{}", hidden.Error());
@@ -647,21 +638,19 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
     const App::FrameStats stats = RunLoop(
         window, clock, loop, input, startup.commandLine, log, [&client] { return client.Exit().has_value(); },
         [&textInput, &client] { textInput.Follow(client.WantsTextInput()); });
-    // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla, el OK o la
-    // orden del GameServer.
+    // Off on every exit from the loop: the window, --frames, the failing scene, the OK or the GameServer's order.
     textInput.Follow(false);
     PrintFrames(stats);
     return ExitCodeOf(client.Exit(), window, log);
 }
 } // namespace
 
-// Con SDL_main.h, en Windows SDL pone el main de verdad y llama a este (que pasa a ser SDL_main)
-// con los argumentos en UTF-8: SDL_RunApp los arma con GetCommandLineW y CommandLineToArgvW. Sin
-// él, argv llega en la página ANSI y lo que no entra en ella llega cambiado por "?". En Linux no
-// cambia nada.
+// With SDL_main.h, on Windows SDL provides the real main and calls this one (which becomes SDL_main) with the
+// arguments in UTF-8: SDL_RunApp builds them with GetCommandLineW and CommandLineToArgvW. Without it, argv arrives
+// in the ANSI code page and what does not fit in it arrives replaced by "?". On Linux nothing changes.
 int main(int argc, char* argv[])
 {
-    // Fase 0. Se declara primero para morir último: cubre también el cierre.
+    // Phase 0. Declared first to die last: it also covers the shutdown.
     const auto crashHandler = Client::Diagnostics::CrashHandler::Install(Client::Diagnostics::CrashDumpFileName);
     Core::StderrSink errorOutput;
     Core::Log startupLog(errorOutput, Core::LogLevel::Info);
@@ -682,8 +671,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    // Fase 2: stderr y el archivo de [Log] Path (Resolve ya lo tomó desde la carpeta del
-    // ejecutable), o muret-client.log junto al ejecutable. Si no abre, solo stderr.
+    // Phase 2: stderr and the [Log] Path file (Resolve already took it from the executable's folder), or
+    // muret-client.log next to the executable. If it does not open, only stderr.
     const std::filesystem::path logPath = startup->config.logPath.value_or(startup->folder / LogFileName);
     const auto logFile = Core::FileSink::Open(logPath);
     std::optional<Core::TeeSink> tee;
@@ -696,7 +685,7 @@ int main(int argc, char* argv[])
     {
         log.Warning("{}: el log sigue solo en stderr", logFile.Error());
     }
-    // La línea de una caída va al mismo archivo, como la de 0x4b9b3e al MuError.log del original.
+    // A crash's line goes to the same file, like 0x4b9b3e's to the original's MuError.log.
     if (logFile.HasValue() && crashHandler.HasValue() && !crashHandler.Value()->SetLogFile(logPath))
     {
         log.Warning("la ruta del log es demasiado larga para el manejador de caídas");
@@ -712,7 +701,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    // Antes de SDL, así cierra después: todo socket tiene que morir antes que el NetworkInit.
+    // Before SDL, so it closes after it: every socket must die before the NetworkInit.
     std::optional<Network::SocketApi::NetworkInit> network;
     if (startup->server && !StartNetwork(network, log))
     {
@@ -725,8 +714,7 @@ int main(int argc, char* argv[])
         log.Error("{}", sdl.Error());
         return EXIT_FAILURE;
     }
-    // Después del SdlContext, así muere antes: SDL_Quit no devuelve la salida por defecto de SDL
-    // (Platform/SdlLog.h).
+    // After the SdlContext, so it dies first: SDL_Quit does not restore SDL's default output (Platform/Sdl/SdlLog.h).
     const Platform::Sdl::SdlLog sdlLog(log);
     std::optional<Platform::Sdl::Window> window = OpenWindow(*sdl.Value(), startup->config, log);
     if (!window)
@@ -739,7 +727,7 @@ int main(int argc, char* argv[])
     {
         return RunScenes(*startup, *scenes, *window, clock, log);
     }
-    // Sin datos (el CI): la escena de prueba, sin red, porque un host exige la carpeta de datos.
+    // Without data (the CI): the test scene, without network, because a host requires the data folder.
     Scenes::TestScene scene{[&window](const Scenes::TestScene::Color& color) { Present(*window, color); }};
     App::GameLoop loop{clock, scene, startup->config.pacing, LoopMaxFps(startup->config, *window, log)};
     Client::Input::InputState input;

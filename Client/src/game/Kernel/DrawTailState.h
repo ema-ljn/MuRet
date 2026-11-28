@@ -34,17 +34,17 @@ struct FloorItemState
     std::uint8_t ancient = 0;
     std::int16_t screenX = 0;
     std::int16_t screenY = 0;
-    std::int32_t effectCounter = 0; // +4;608780 usa el valor anterior, luego suma uno.
-    float dropSpeed = 0;            // +e4;608880 resta6 incluso después de tocar el suelo.
-    // CL9 hito 5: el tipo del ítem (+4 de la entrada de 0x220 bytes, el de 0x54b3a0; `type` es el modelo, +0x4e) y su
-    // durabilidad (+0x1e), que escribe 0x608350.
+    std::int32_t effectCounter = 0; // +4; 0x608780 uses the previous value, then adds one.
+    float dropSpeed = 0;            // +0xe4; 0x608880 subtracts 6 even after touching the ground.
+    // CL9 milestone 5: the item's type (+4 of the 0x220-byte entry, 0x54b3a0's; `type` is the model, +0x4e) and its
+    // durability (+0x1e), which 0x608350 writes.
     std::int16_t itemType = 0;
     std::uint8_t durability = 0;
-    // +0x124 y +0x130 del objeto: la caja de (−30, −30, −30) a (30, 30, 30) de 0x608350.
+    // +0x124 and +0x130 of the object: 0x608350's box from (−30, −30, −30) to (30, 30, 30).
     glm::vec3 boundingMin{};
     glm::vec3 boundingMax{};
-    // +0x13c: la caja que 0x60cf70 (0x4ebc80) arma en cada cuerpo dibujado con alpha > 0,01, desde la posición de ese
-    // dibujo; la lee el picking (0x59e2e0). Sin dibujo queda la anterior.
+    // +0x13c: the box 0x60cf70 (0x4ebc80) builds on each body drawn with alpha > 0.01, from that draw's position; the
+    // picking reads it (0x59e2e0). Without a draw the previous one stays.
     Models::Box pickBox{};
 };
 
@@ -52,24 +52,24 @@ struct JointState
 {
     bool alive = false;
     std::int32_t count = 0;
-    std::uint8_t drawEnabled = 0; // +11: bits1/2 eligen las dos caras del segmento
+    std::uint8_t drawEnabled = 0; // +11: bits 1/2 pick the segment's two faces
     std::uint8_t category = 0;
     std::uint8_t blend = 0;
     std::int32_t type = 0;
     std::int32_t subtype = 0;
     std::uint16_t texture = 0;
     glm::vec3 light{};
-    std::int32_t maximumCount = 0;                     // +6c, divisor de las UV
-    bool repeatedTexture = false;                      // +9f0
-    std::uint8_t orientation = 0;                      // +9f1
-    std::array<std::array<glm::vec3, 4>, 50> points{}; // +70, cuatro puntos por tramo
+    std::int32_t maximumCount = 0;                     // +0x6c, the UV divisor
+    bool repeatedTexture = false;                      // +0x9f0
+    std::uint8_t orientation = 0;                      // +0x9f1
+    std::array<std::array<glm::vec3, 4>, 50> points{}; // +0x70, four points per stretch
     float width = 0;
     glm::vec3 position{};
     glm::vec3 angles{};
-    glm::vec3 bendAngles{}; // +3c: giro propio del60f/0x17, separado de los ángulos del movimiento común.
+    glm::vec3 bendAngles{}; // +0x3c: 0x60f/0x17's own turn, separate from the common movement's angles.
     glm::vec3 targetPosition{};
     void* ownerContext = nullptr;
-    // Propio de MuRet: cómo leer ownerContext. 0x530860 lo escribe en cada alta.
+    // MuRet's own: how to read ownerContext. 0x530860 writes it on each creation.
     JointOwnerKind ownerKind = JointOwnerKind::ByType;
     std::int32_t life = 0;
     std::uint8_t field9d4 = 0;
@@ -78,19 +78,19 @@ struct JointState
     std::int16_t key = 0;
     std::uint8_t skill = 0;
     std::uint8_t skillSerial = 0;
-    // +0x9eb: la cuenta de la tanda (+0xf04 del registro propio) que el 0x613/0 y el /5 copian al nacer (0x53293b,
-    // 0x532e75) y mandan con sus blancos (0x517a20, 0x539ac5). 0x530860 no la escribe: en los demás queda la de antes.
+    // +0x9eb: the volley count (+0xf04 of the own record) that 0x613/0 and /5 copy at birth (0x53293b, 0x532e75) and
+    // send with their targets (0x517a20, 0x539ac5). 0x530860 does not write it: the others keep the previous one.
     std::uint8_t volley = 0;
     bool tailEnabled = false;
     std::int32_t field9ec = 0;
-    // D-C4: dos giros del último dibujo original; no forman parte del registro nativo.
+    // D-C4: two turns of the last original draw; not part of the native record.
     std::optional<std::array<float, 2>> icarusRotations{};
-    glm::vec3 pathIncrement{}; // +24;531851/5332fa guardan el delta de las cintas Helper07.
-    // +0x9f4..+0xa08: los lugares de los personajes que el 614/0xf encadena (0x531981, a lo sumo seis). El sexto pisa
-    // el DWORD de +0xa08, cuyo primer byte es skillSerial: el alta escribe los dos (ver CreateLightningJoint).
+    glm::vec3 pathIncrement{}; // +24; 0x531851/0x5332fa store the delta of the Helper07 ribbons.
+    // +0x9f4..+0xa08: the character slots that 0x614/0xf chains (0x531981, at most six). The sixth overwrites the DWORD
+    // at +0xa08, whose first byte is skillSerial: the creation writes both (see CreateLightningJoint).
     std::array<std::int32_t, 6> chainTargets{};
-    // +0xa0c: el lugar del personaje que el 0x10f/4 y el /9 miran en su paso (0x535d4f). Sólo lo escribe el alta de
-    // esos dos con un blanco ≠ −1 (0x53098d); si no, queda el del uso anterior (el BSS arranca en 0).
+    // +0xa0c: the character slot that 0x10f/4 and /9 look at in their step (0x535d4f). Only the creation of those two
+    // with a target ≠ −1 writes it (0x53098d); otherwise, the previous use's stays (the BSS starts at 0).
     std::int32_t target = 0;
 };
 
@@ -99,22 +99,22 @@ struct RibbonState
 {
     bool alive = false;
     std::int32_t type = 0;
-    // Lectura viva del +1d6 del dueño durable; nunca una vista temporal.
+    // A live read of the durable owner's +0x1d6; never a temporary view.
     const std::uint16_t* ownerEquipment = nullptr;
     std::int32_t count = 0;
     glm::vec3 light{};
     std::array<glm::vec3, RibbonPointCount> first{};
     std::array<glm::vec3, RibbonPointCount> second{};
-    const void* ownerContext = nullptr; // 52e470 compara el dueño antes de buscar un lugar libre.
-    std::int32_t key = 0;               // +2f0; sólo discrimina cuando el pedido trae key>0.
-    std::int32_t life = 0;              // +8; 30 o15 al crear, no se renueva al reutilizar.
+    const void* ownerContext = nullptr; // 0x52e470 compares the owner before looking for a free slot.
+    std::int32_t key = 0;               // +0x2f0; it only discriminates when the request brings key>0.
+    std::int32_t life = 0;              // +8; 30 or 15 on creation, not renewed on reuse.
 };
 
 struct DamageNumberState
 {
     bool alive = false;
     std::int32_t number = 0;
-    float scale = 0.0f; // +10, tamaño del atlas; speed*.4 es su alpha
+    float scale = 0.0f; // +10, the atlas size; speed*.4 is its alpha
     glm::vec3 position{};
     glm::vec3 light{};
     std::int32_t timer = 0;

@@ -68,7 +68,7 @@ Core::Expected<void, std::string> Close(const Hud::GameUiContext& context, Ui::P
     Hud::GamePanels panels(context.world, context.random);
     panels.LendTheSession(context.world, context.random, context.requests);
     panels.LendTheCastleWindowSteps(context);
-    // El botón llama al destructor lógico de la ventana, no al wrapper que cierra también sus compañeros.
+    // The button calls the window's logical destructor, not the wrapper that also closes its companions.
     auto closed = panels.Registry().CloseByMask(id);
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
@@ -452,7 +452,7 @@ Core::Expected<void, std::string> SeniorTaxes(const Hud::GameUiContext& context)
         if (!popup.HasValue())
             return Core::Unexpected(std::move(popup).Error());
         window.dialogId = popup.Value();
-        // Plumbing del EDIT compartido: la respuesta lo lee antes de que CloseThePanelDialog lo borre.
+        // Shared EDIT plumbing: the answer reads it before CloseThePanelDialog clears it.
         dialog.closeField = [&runtime]()
         {
             auto& input = runtime.chat.input;
@@ -460,7 +460,7 @@ Core::Expected<void, std::string> SeniorTaxes(const Hud::GameUiContext& context)
             input.dialogEdit.compositionText.clear();
             input.dialogEdit.compositionStart = 0;
             input.dialogEdit.compositionLength = 0;
-            // El helper compartido modela la pérdida de foco al ocultar el HWND; 0x660350 no llama SetFocusGame.
+            // The shared helper models the focus loss when hiding the HWND; 0x660350 does not call SetFocusGame.
             Chat::ShowTheDialogField(input, Ui::HiddenWindow);
             input.messageLength = 0;
             runtime.social.dialogFieldLimit = 10;
@@ -471,7 +471,7 @@ Core::Expected<void, std::string> SeniorTaxes(const Hud::GameUiContext& context)
 
 bool HasCraftSpace(const Kernel::WorldState& world)
 {
-    // 0x5fd200: el rectángulo 4×5 en 8×8; type==−1 define cada celda libre, no occupied.
+    // 0x5fd200: the 4×5 rectangle in 8×8; type==−1 defines each free cell, not occupied.
     const auto& cells = world.Inventory().cells;
     for (std::size_t row = 0; row <= 3; ++row)
     {

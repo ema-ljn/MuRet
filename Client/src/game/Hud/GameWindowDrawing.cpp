@@ -25,34 +25,33 @@ namespace
 {
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
-// Interface\Item_Back01.jpg, Item_Back02.jpg y exit_01.jpg (0x61ae60).
+// Interface\Item_Back01.jpg, Item_Back02.jpg and exit_01.jpg (0x61ae60).
 constexpr std::uint16_t WindowTopSlot = 0x104;
 constexpr std::uint16_t WindowBottomSlot = 0x105;
 constexpr std::uint16_t CloseSlot = 0x118;
-// 0x5ee220: 190 × 256 arriba (0x6b8840 la suma) y 190 × 177 abajo.
+// 0x5ee220: 190 × 256 on top (0x6b8840 the sum) and 190 × 177 below.
 constexpr float WindowWidth = 190.0f;
 constexpr float WindowTopHeight = 256.0f;
 constexpr float WindowBottomHeight = 177.0f;
 constexpr float WindowDu = 0.7421875f;
 constexpr float WindowBottomDv = 0.69140625f;
-// El botón de cerrar: 25 (0x6b8808) y 395 (0x6b8804) de la esquina, de 24 (0x6b8800) de lado, y la ayuda 13 más
-// arriba.
+// The close button: 25 (0x6b8808) and 395 (0x6b8804) from the corner, 24 (0x6b8800) a side, and the help 13 higher.
 constexpr double CloseLeft = 25.0;
 constexpr double CloseTop = 395.0;
 constexpr float CloseSize = 24.0f;
 constexpr float CloseUv = 0.75f;
 constexpr std::int32_t HelpAbove = 0xd;
-// 0x6c8e5c y 0x6c8e64 de la ayuda del botón de cerrar (0x5f1296, 0x40a861).
+// 0x6c8e5c and 0x6c8e64 of the close button's help (0x5f1296, 0x40a861).
 constexpr Render::Text::TextColors CloseHelpColors{.text = 0xffffffffu, .background = 0xff000000u};
-// 0x5f0cd6..0x5f0cef: el ancho de la caja del título, 120 · W / 640 sin signo.
+// 0x5f0cd6..0x5f0cef: the title box's width, 120 · W / 640 unsigned.
 constexpr std::uint32_t TitleBoxDesignWidth = 120;
 constexpr std::uint32_t DesignWidth = 640;
 
 using Math::F32;
 using Math::Truncate;
 
-// Lo que miden 0x554180 y 0x5542f0 después de dibujar: GetTextExtentPoint32 con la fuente del DC, el ancho
-// recortado a `limit` si es positivo y menor, y los dos pasados a 640 × 480 (fdiv por rx y ry y _ftol).
+// What 0x554180 and 0x5542f0 measure after drawing: GetTextExtentPoint32 with the DC's font, the width clipped to
+// `limit` if positive and smaller, and both scaled to 640 × 480 (fdiv by rx and ry and _ftol).
 void KeepTheMeasure(GameHudContext& context, std::string_view text, std::int32_t limit)
 {
     Kernel::HudState& hud = context.hud;
@@ -65,7 +64,7 @@ void KeepTheMeasure(GameHudContext& context, std::string_view text, std::int32_t
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, screen);
 }
 
-// fild del mouse contra la caja en float: izquierda ≤ x < izquierda + lado, con la suma en la x87.
+// fild of the mouse against the float box: left ≤ x < left + side, with the sum on the x87.
 bool MouseInSquare(const Ui::Point mouse, float left, float top, float size)
 {
     const auto x = static_cast<double>(mouse.x);
@@ -94,7 +93,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
 
 void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height, bool filled)
 {
-    // 0x471532..0x47155e: la caja de glColor4ub(0x92, 0x90, 0x8d, 0xc8) y 0x459ec0.
+    // 0x471532..0x47155e: the glColor4ub(0x92, 0x90, 0x8d, 0xc8) box and 0x459ec0.
     constexpr Render::Color FrameFill{
         .red = 146.0f / 255.0f, .green = 144.0f / 255.0f, .blue = 141.0f / 255.0f, .alpha = 200.0f / 255.0f};
     if (filled)
@@ -171,8 +170,9 @@ std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth)
 void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
     Kernel::HudState& hud = context.hud;
-    // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
-    // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
+    // 0x554180: 0x465950 with a text or with a box. 0x467060 in mode 2 (0x46711b..0x467132): the box of
+    // cx + 2 · ((box − cx) / 2) columns from _ftol(x · rx), with the whole background, and the text shifted (box − cx)
+    // / 2.
     if (!text.empty() || box != 0)
     {
         const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, hud.dcFont, text, box);
@@ -199,7 +199,7 @@ void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::s
     }
     else
     {
-        // El cx de GetTextExtentPoint32A en 0x467060: un texto vacío mide "0" (0x4670ba..0x4670d0).
+        // The cx of GetTextExtentPoint32A in 0x467060: an empty text measures "0" (0x4670ba..0x4670d0).
         const std::int32_t measured =
             context.text.Measure(hud.dcFont, text.empty() ? std::string_view("0") : text).width;
         context.text.DrawColumns(x, y, text, style, width < measured ? measured - width : 0, width);
@@ -236,7 +236,7 @@ void DrawTheCloseHelp(GameHudContext& context, std::int32_t x, std::int32_t y, s
     context.hud.textColors = CloseHelpColors;
     Ui::DrawHelp(context.sprites, context.text, Truncate(static_cast<double>(left)),
                  Truncate(static_cast<double>(top)) - HelpAbove, help);
-    // 0x554340 selecciona la normal, que queda en el DC, y deja el texto en blanco sobre un fondo transparente.
+    // 0x554340 selects the normal font, which stays in the DC, and leaves the text white on a transparent background.
     SelectFont(context, Render::Text::FontKind::Normal);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
 }

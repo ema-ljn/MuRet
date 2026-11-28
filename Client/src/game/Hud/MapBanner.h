@@ -8,13 +8,13 @@
 #include <optional>
 #include <string>
 
-// [0x5763534], el cartel con el nombre del mapa (vtable 0x6baad4): la imagen Interface\<mapa>.tga en el slot 0x66a
-// que entra, se queda y sale encima del mundo al llegar a un mapa. Lo arma WinMain (0x4bb9b8, 0x65cd70 → 0x65d080);
-// lo reinicia el primer paso de la escena 5 (0x63692b, 0x65dc00); lo disparan la entrada al mundo del F3 03
-// (0x4c4b28), la reaparición del F3 04 (0x4c504e) y el 1C con gate (0x4c831c), con 0x65dc30; y lo dibuja el 19 del
-// HUD (0x5a74ca, 0x65dd70), que corre el fundido (0x65dcd0). El resto de su tramo del .text son las plantillas del
-// std::map de +8 de MSVC6 (el árbol rojo-negro, sus nodos de 0x24, operator[] y los destructores), que cubre std::map,
-// y los destructores del cartel, que cubre el de MapBanner (triage de la referencia).
+// [0x5763534], the map name banner (vtable 0x6baad4): the image Interface\<map>.tga in slot 0x66a that comes in,
+// stays and goes out over the world on arriving at a map. WinMain builds it (0x4bb9b8, 0x65cd70 → 0x65d080); the first
+// step of scene 5 resets it (0x63692b, 0x65dc00); the world entry of the F3 03 (0x4c4b28), the respawn of the F3 04
+// (0x4c504e) and the 1C with a gate (0x4c831c) trigger it with 0x65dc30; and the HUD's 19th draws it (0x5a74ca,
+// 0x65dd70), which runs the fade (0x65dcd0). The rest of its .text stretch is MSVC6's std::map templates of +8 (the
+// red-black tree, its 0x24 nodes, operator[] and the destructors), which std::map covers, and the banner's
+// destructors, which MapBanner's covers (triage of the reference).
 namespace Client::Render
 {
 class ITextureStore;
@@ -22,7 +22,7 @@ class ITextureStore;
 
 namespace Client::Hud
 {
-// +0x18, un int en el original (de 0 a 3).
+// +0x18, an int in the original (0 to 3).
 enum class MapBannerState : std::uint8_t
 {
     Off = 0,
@@ -33,47 +33,47 @@ enum class MapBannerState : std::uint8_t
 
 struct MapBanner
 {
-    // +8: el mapa → la imagen, que llena 0x65d080. El operator[] del árbol mete vacío el que no está.
+    // +8: the map → the image, filled by 0x65d080. The tree's operator[] inserts an empty one for a missing one.
     std::map<std::int32_t, std::string> files;
-    // +0x14 (un word): el mapa de la imagen que está en el slot 0x66a; −1 desde 0x65dc00.
+    // +0x14 (a word): the map of the image in slot 0x66a; −1 from 0x65dc00.
     std::int16_t shownMap = -1;
     MapBannerState state = MapBannerState::Off;
-    // +0x1c: el timeGetTime() del último paso; +0x20: lo que lleva quieto, en ms.
+    // +0x1c: the last step's timeGetTime(); +0x20: how long it has been still, in ms.
     std::uint32_t last = 0;
     std::uint32_t elapsed = 0;
-    // +0x24: el alfa del glColor4f del dibujo.
+    // +0x24: the alpha of the draw's glColor4f.
     float alpha = 0.0f;
-    // MuRet: la imagen que 0x65dc30 carga en el slot 0x66a con 0x63bd00 (sin GPU en el paquete, la sube la escena
-    // antes del dibujo, UploadTheMapBanner). Vacía, un mapa sin imagen: "File not exist" y el cliente se cierra.
+    // MuRet: the image 0x65dc30 loads into slot 0x66a with 0x63bd00 (no GPU in the package, the scene uploads it before
+    // the draw, UploadTheMapBanner). Empty, a map with no image: "File not exist" and the client closes.
     std::optional<std::string> pendingImage;
 };
 
-// 0x63bd00(imagen, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1) con la imagen pendiente de 0x65dc30: el OZT de Data\ en el
-// slot 0x66a. Una que falta, o el nombre vacío de un mapa sin imagen (sin punto, Q-C74), arma "File not exist", un
-// MessageBox y WM_DESTROY con el sexto argumento en 1: corta (Q-C23). Una que está y no se lee no se sube y no avisa
-// (Q-C14): el slot queda con la de antes. Sin una pendiente, nada.
+// 0x63bd00(image, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1) with 0x65dc30's pending image: the OZT from Data\ into slot
+// 0x66a. A missing one, or the empty name of a map with no image (no dot, Q-C74), builds "File not exist", a
+// MessageBox and WM_DESTROY with the sixth argument at 1: it stops (Q-C23). One that exists and does not read is not
+// uploaded and gives no warning (Q-C14): the slot keeps the previous one. With none pending, nothing.
 [[nodiscard]] Core::Expected<void, std::string>
 UploadTheMapBanner(MapBanner& banner, const std::filesystem::path& dataRoot, Render::ITextureStore& textures);
 
-// 0x65cd70 → 0x65d080: la tabla, sin el estado (+0x14..+0x24 los deja sin escribir, y nadie los lee antes de
+// 0x65cd70 → 0x65d080: the table, without the state (+0x14..+0x24 it leaves unwritten, and nobody reads them before
 // 0x65dc00).
 [[nodiscard]] MapBanner MakeTheMapBanner();
 
-// 0x65dc00: apagado, +0x14 en −1, el reloj (`now`, timeGetTime), la cuenta en 0 y el alfa en 1.
+// 0x65dc00: off, +0x14 at −1, the clock (`now`, timeGetTime), the count at 0 and the alpha at 1.
 void ResetTheMapBanner(MapBanner& banner, std::uint32_t now);
 
-// 0x65dc30: entra (1) con el alfa en 0,2 (0x3e4ccccd) y la cuenta en 0. Con `map` (el mapa de 0x6c9dd0) distinto de
-// +0x14 (el word con signo contra el int), operator[] da su imagen (sin cadena, la vacía de 0x6b85ec), que va al slot
-// 0x66a con 0x63bd00(imagen, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1), y +0x14 queda con el mapa.
+// 0x65dc30: comes in (1) with the alpha at 0.2 (0x3e4ccccd) and the count at 0. With `map` (the map of 0x6c9dd0)
+// other than +0x14 (the signed word against the int), operator[] gives its image (with no string, the empty one at
+// 0x6b85ec), which goes to slot 0x66a with 0x63bd00(image, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1), and +0x14 keeps the map.
 void ShowTheMapBanner(MapBanner& banner, std::int32_t map);
 
-// 0x65dcd0, en cada dibujo de 0x65dd70: entra de a 0,015 (0x6b8a24) hasta que la suma de la x87 llega a 1 (0x6b87d4),
-// donde se queda (2) con el alfa en 1; se queda hasta pasar 5.000 ms de timeGetTime (sin signo) y sale (3) de a 0,015
-// hasta que la suma llega a 0 (0x6b86a0), donde se apaga con el alfa en 0. Guarda el reloj en cada paso.
+// 0x65dcd0, on each draw of 0x65dd70: comes in by 0.015 (0x6b8a24) until the x87 sum reaches 1 (0x6b87d4), where it
+// stays (2) with the alpha at 1; it stays until 5000 ms of timeGetTime (unsigned) pass and goes out (3) by 0.015 until
+// the sum reaches 0 (0x6b86a0), where it turns off with the alpha at 0. Saves the clock on each step.
 void StepTheMapBanner(MapBanner& banner, std::uint32_t now);
 
-// 0x65dd70: el cartel de 166 × 90 con las UV 0,6484375 × 0,703125 (0x621b60 sin escalar el tamaño ni la posición),
-// en x = (el ancho del mundo (0x5bb8d0) · rx − 166) · 0,5 e y = ry · 220, en píxeles de la pantalla.
+// 0x65dd70: the 166 × 90 banner with UVs 0.6484375 × 0.703125 (0x621b60 without scaling the size or the position), at
+// x = (the world's width (0x5bb8d0) · rx − 166) · 0.5 and y = ry · 220, in screen pixels.
 struct MapBannerQuad
 {
     float x = 0.0f;

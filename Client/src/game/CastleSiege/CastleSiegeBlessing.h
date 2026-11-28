@@ -17,7 +17,7 @@ struct ActorState;
 
 namespace Client::CastleSiege
 {
-// 42afe0→42ddb0: sólo el caller decide mapa, guerra y visibilidad. El helper conserva el radio y el frame.
+// 0x42afe0 → 0x42ddb0: only the caller decides map, war and visibility. The helper keeps the radius and the frame.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawTheCastleBlessing(const Kernel::ActorState& actor, std::uint16_t heroGuildIndex, float markX, float markY,
                       std::int32_t logicSteps, Particles::Particles& particles, Crt::CrtRandom& random);

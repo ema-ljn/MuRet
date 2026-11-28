@@ -21,7 +21,6 @@ struct CastleSiegeState;
 
 namespace Client::Chat
 {
-struct ChatLogFrame;
 struct ChatRuntime;
 } // namespace Client::Chat
 
@@ -79,6 +78,7 @@ struct TooltipLines;
 
 namespace Client::Ui
 {
+struct ChatLogFrame;
 struct DialogBoxState;
 struct DialogState;
 struct GameUiState;
@@ -125,7 +125,7 @@ public:
     Items::QuickSlots& quickSlots;
     // What the chat's drawings write (milestone 3): the log's frame (the step sets its corner), the widths and the
     // blinks of the old area and the notices.
-    Chat::ChatLogFrame& chatFrame;
+    Ui::ChatLogFrame& chatFrame;
     Ui::MessageFrameState& messageFrame;
     // [0x5763528]: Slide.bmd's banner (0x46aea0), which the 15 draws (0x46b090) and writes while drawing (the opacity,
     // the shift, the scrolling text and 0x5762ee4). The 0x3eb timer and the 0D fill it, and the UI step advances it.

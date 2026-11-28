@@ -32,7 +32,6 @@
 // its step (0x468d50) and Enter (0x467b10). The texts are made up.
 namespace
 {
-using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::DrawCommand;
@@ -44,6 +43,7 @@ using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
+using Client::Ui::ChatFocus;
 using Client::Ui::OldEdit;
 using Client::Ui::OldWindowDrawContext;
 using Client::Ui::OldWindowDrawView;

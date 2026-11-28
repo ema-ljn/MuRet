@@ -260,7 +260,7 @@ TEST_F(GameSceneOldWindowsTest, IntermediateDeleteDrawingsKeepTheRuntimeFocusIds
         EXPECT_EQ(runtime.oldWindows.modal, 0);
         EXPECT_EQ(runtime.oldWindows.focusedEdit, 0);
         EXPECT_EQ(runtime.ui.focusedList, focusedList);
-        EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
+        EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Game);
         EXPECT_EQ(runtime.ui.keyLatches[EnterKey], 0);
         ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
         EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::CommandMessage);
@@ -278,7 +278,7 @@ TEST_F(GameSceneOldWindowsTest, OrderedInputEventsEditTheFocusedOldWindowThrough
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     ASSERT_NE(manager.letter, 0);
     Client::Ui::OldEdit& edit = manager.windows.at(manager.letter).add.edit;
-    ASSERT_EQ(m_world->Runtime().chat.input.focus, Client::Chat::ChatFocus::OldWindow);
+    ASSERT_EQ(m_world->Runtime().chat.input.focus, Client::Ui::ChatFocus::OldWindow);
 
     m_input.Apply({.kind = Client::Input::InputEvent::Kind::Text, .text = "ac"});
     m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Left});

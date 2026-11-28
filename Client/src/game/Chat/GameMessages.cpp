@@ -35,7 +35,7 @@ Ui::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text:
                            .area = chat.area,
                            .modes = runtime.ui.chatModes,
                            .measure =
-                               Chat::ChatMeasure{.measure = measure, .dcFont = runtime.hud.dcFont, .screen = screen},
+                               Ui::ChatMeasure{.measure = measure, .dcFont = runtime.hud.dcFont, .screen = screen},
                            .noticeSound = chat.noticeSound};
 }
 

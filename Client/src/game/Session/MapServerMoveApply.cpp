@@ -37,7 +37,7 @@ Core::Expected<void, std::string> ApplyMapServerLeave(const WorldEntryResources&
         return Core::Unexpected(std::move(body).Error());
     // 0x412b6d guarda las macros y, al retornar, 0x412b77 espera antes de conectar.
     const auto saved =
-        Tables::WriteMacroFile(resources.dataRoot, Chat::WrittenMacros(resources.world.Runtime().chat.input.macros));
+        Tables::WriteMacroFile(resources.dataRoot, Tables::WrittenMacros(resources.world.Runtime().chat.input.macros));
     if (!saved.HasValue())
         resources.log.Warning("no se pudo guardar Macro.txt durante el cambio de servidor: {}", saved.Error());
     return {};

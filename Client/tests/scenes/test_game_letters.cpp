@@ -457,7 +457,7 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     // look at the focus but at the EDIT's +0xb4 (0x49455e), which only the closed chat sets.
     Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::RaisedMessage, 0, 0);
     ASSERT_TRUE(Step().HasValue());
-    EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::OldWindow);
+    EXPECT_EQ(Runtime().chat.input.focus, Client::Ui::ChatFocus::OldWindow);
     EXPECT_EQ(Manager().focusedEdit, chat->chat.edit.base.id);
     // 0x461f00 on Calandria's row (13 high, 3 above its y): the click chooses it and the double click is the 0xd to the
     // chat, which 0x4944d9 turns into the 10 with 2.

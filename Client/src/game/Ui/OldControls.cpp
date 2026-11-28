@@ -55,7 +55,7 @@ std::int32_t Truncate(double value)
 bool InRect(const OldListView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height,
             std::int32_t mode)
 {
-    return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
+    return Ui::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
 }
 
 // 0x459f70 on the same list.

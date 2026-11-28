@@ -209,7 +209,7 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
         auto text = TextOf(context.texts, Messenger::FriendsLevelText);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        if (Chat::SaidRecently(runtime.chat.log, text.Value(), 1))
+        if (Ui::SaidRecently(runtime.chat.log, text.Value(), 1))
             return {};
         return SystemMessage(runtime, context.measure, context.screen, text.Value(), "0x4912fd");
     }

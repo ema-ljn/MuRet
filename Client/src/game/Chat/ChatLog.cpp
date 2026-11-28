@@ -17,7 +17,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Chat
+namespace Client::Ui
 {
 namespace
 {
@@ -352,7 +352,7 @@ bool PassesTheChatFilter(const ChatLogState& log, std::string_view text)
     {
         if (word.empty())
             return false;
-        if (FrontEnd::ContainsLikeTheOriginal(CString(text), word))
+        if (Ui::ContainsLikeTheOriginal(CString(text), word))
             return true;
     }
     return false;
@@ -465,4 +465,4 @@ void CycleTheLogSize(ChatLogState& log, ChatModes& modes)
     }
     ScrollTheLog(log, modes, 0);
 }
-} // namespace Client::Chat
+} // namespace Client::Ui

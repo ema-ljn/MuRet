@@ -196,7 +196,7 @@ protected:
         return Runtime().guild;
     }
 
-    Client::Chat::ChatInputState& Input()
+    Client::Ui::ChatInputState& Input()
     {
         return Runtime().chat.input;
     }
@@ -524,10 +524,10 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     Runtime().ui.focusedList = 3;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::ShownWindow);
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Dialog);
     // 0x655232: the EDIT's id in 0x5762ec0, so the arrows no longer move another list.
-    EXPECT_EQ(Runtime().ui.focusedList, Client::Chat::DialogFieldId);
-    Client::Chat::TypeInTheChat(Input(), "Ceibo");
+    EXPECT_EQ(Runtime().ui.focusedList, Client::Ui::DialogFieldId);
+    Client::Ui::TypeInTheChat(Input(), "Ceibo");
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
@@ -599,7 +599,7 @@ TEST_P(SecondGuildWindowTest, TheNameChecksOpenTheirNotices)
         SCOPED_TRACE(name);
         ASSERT_TRUE(Draw().HasValue());
         Input().dialogEdit.text.SetText({});
-        Client::Chat::TypeInTheChat(Input(), name);
+        Client::Ui::TypeInTheChat(Input(), name);
         Runtime().dialogs.current = 0;
         Click(Client::Guild::SecondGuildNextButton);
         EXPECT_EQ(Runtime().dialogs.current, notice);
@@ -615,7 +615,7 @@ TEST_P(SecondGuildWindowTest, BackFromTheNameReturnsToTheQuestion)
     Guild().createKind = 1;
     Guild().createStep = 1;
     Hero().word1f2 = 1999;
-    Client::Chat::CopyIntoTheBuffer(Input().messageBuffer, "Molle");
+    Client::Ui::CopyIntoTheBuffer(Input().messageBuffer, "Molle");
     Input().messageLength = 5;
     ASSERT_TRUE(Draw().HasValue());
     Click(Client::Guild::SecondGuildBackButton);
@@ -716,7 +716,7 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     Click(Client::Guild::SecondGuildCreateButton);
     ASSERT_EQ(Guild().createStep, 1);
     ASSERT_EQ(m_sent.size(), 1u);
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Dialog);
 
     // The name page's frames: the EDIT counts its draws (0x468320) and the WM_CHAR resets them to 0 (0x467b9d).
     Frame();
@@ -742,7 +742,7 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(std::string_view(Guild().table[Creating].guildName.data()), "Ceibo");
-    EXPECT_EQ(Client::Chat::CStringOf(Input().messageBuffer), "Ceibo");
+    EXPECT_EQ(Client::Ui::CStringOf(Input().messageBuffer), "Ceibo");
     Click(Client::Guild::SecondGuildNextButton);
 
     ASSERT_EQ(m_sent.size(), 4u);

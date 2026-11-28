@@ -305,7 +305,7 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
             if (!body.HasValue())
                 return Client::Core::Unexpected(std::move(body).Error());
             options.push_back(Client::Protocol::Player::WriteOptionData(body.Value()));
-            macros = Client::Chat::WrittenMacros(runtime.chat.input.macros);
+            macros = Client::Tables::WrittenMacros(runtime.chat.input.macros);
             // 0x61c210 opens/closes inside 0x599ef0's access: the inner close does not consume 3848 rand().
             EXPECT_EQ(runtime.ownRecordDepth, 1);
             EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());

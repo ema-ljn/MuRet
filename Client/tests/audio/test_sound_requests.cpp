@@ -162,7 +162,7 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
     std::int32_t hovered = 0;
     std::int32_t capture = 0;
     std::int32_t pressedButton = 0;
-    Chat::ChatFocus keyboardFocus = Chat::ChatFocus::Game;
+    Ui::ChatFocus keyboardFocus = Ui::ChatFocus::Game;
     std::int32_t focusedList = 0;
     std::int32_t wheel = 0;
     bool rightClick = false;

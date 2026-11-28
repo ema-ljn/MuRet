@@ -92,7 +92,7 @@ void PressTheMoneyButton(const Ui::GameUiContext& context)
     SocialState& social = runtime.social;
     runtime.mouse.pendingClick = false;
     Ui::PushDialog(runtime.dialogs, MoneyDialog);
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chat.input, false);
     social.dialogFieldLimit = MoneyFieldLimit;
     runtime.chat.input.fieldCount = MoneyFieldCount;
     runtime.ui.chatOpen = false;

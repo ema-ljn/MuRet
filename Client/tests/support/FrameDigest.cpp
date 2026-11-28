@@ -317,7 +317,7 @@ std::uint64_t StateOf(const Kernel::WorldState& world)
         writer.Add(open);
     }
     writer.Add(static_cast<std::uint64_t>(runtime.chat.log.entries.size()));
-    for (const Chat::ChatEntry& entry : runtime.chat.log.entries)
+    for (const Ui::ChatEntry& entry : runtime.chat.log.entries)
     {
         writer.Add(std::string_view{entry.name});
         writer.Add(std::string_view{entry.text});

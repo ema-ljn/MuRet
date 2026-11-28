@@ -1022,21 +1022,21 @@ protected:
         auto& slot = runtime.guild.members[KickedSlot];
         std::ranges::copy(std::string_view("Tala"), slot.name.begin());
         runtime.guild.kickMember = KickedSlot;
-        Client::Chat::ChatInputState& input = runtime.chat.input;
-        Client::Chat::CopyIntoTheBuffer(input.messageBuffer, "hola que tal");
+        Client::Ui::ChatInputState& input = runtime.chat.input;
+        Client::Ui::CopyIntoTheBuffer(input.messageBuffer, "hola que tal");
         input.messageLength = 12;
-        Client::Chat::ShowTheNumberField(input, 0);
-        Client::Chat::FocusTheNumberField(input);
+        Client::Ui::ShowTheNumberField(input, 0);
+        Client::Ui::FocusTheNumberField(input);
         input.numberField.filter = 9;
         input.numberField.text.SetLimit(7);
-        Client::Chat::TypeInTheChat(input, "1234567");
+        Client::Ui::TypeInTheChat(input, "1234567");
     }
 
     Client::Kernel::WorldRuntime& Runtime()
     {
         return m_tested->world.Runtime();
     }
-    Client::Chat::ChatInputState& Input()
+    Client::Ui::ChatInputState& Input()
     {
         return Runtime().chat.input;
     }
@@ -1086,7 +1086,7 @@ TEST_P(LeaveNumberTest, YesSendsTheLeaveWithTheTypedNumber)
     EXPECT_EQ(Input().messageLength, 0);
     EXPECT_EQ(Input().numberField.text.Value(), "");
     EXPECT_EQ(Input().numberField.base.state, 0);
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::NumberField);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::NumberField);
 }
 
 // The master who disbands (0x64de93 leaves 0x6d5e2c at 0): the name of slot 0. Outside the 40 of the narrow yes,
@@ -1123,13 +1123,13 @@ TEST_P(LeaveNumberTest, NoClearsTheBufferButNotTheEdit)
     EXPECT_EQ(m_tested->random.State(), CrtRandom().State());
 
     Runtime().dialogs.current = LeaveDialog;
-    Client::Chat::CopyIntoTheBuffer(Input().messageBuffer, "otra");
+    Client::Ui::CopyIntoTheBuffer(Input().messageBuffer, "otra");
     m_tested->input.Apply(
         Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
     ASSERT_TRUE(m_tested->Dialogs(0, 0).HasValue());
     EXPECT_TRUE(m_tested->requests.requests.empty());
     EXPECT_EQ(Runtime().dialogs.current, 0);
-    EXPECT_EQ(Client::Chat::CStringOf(Input().messageBuffer), "");
+    EXPECT_EQ(Client::Ui::CStringOf(Input().messageBuffer), "");
 }
 
 // 0x62a91c: 0x6d5e2c at −1 (the .data one) reads before 0x787a5e8 (Q-C1296), and without a sender it stops.

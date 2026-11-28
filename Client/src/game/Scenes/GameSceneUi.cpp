@@ -527,7 +527,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     // (GetFocus() of 0x468320: the old windows' one, with ChatFocus::OldWindow) and where the chat record goes
     // (0x6c7a88).
     const Ui::OldWindowTexts friendTexts = Messenger::OldWindowTextsOf(m_texts);
-    const bool editFocused = runtime.chat.input.focus == Chat::ChatFocus::OldWindow;
+    const bool editFocused = runtime.chat.input.focus == Ui::ChatFocus::OldWindow;
     // 0x49a1d0 and 0x498800 → 0x497c10: the letters' portrait, with SceneContext::worldEntry's set, the models (the
     // character's and, for the helper, the world's) and the frame's things, or their copies in an intermediate draw.
     // Without the set or the models, the portrait in view stops.
@@ -597,10 +597,10 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     // An intermediate pass starts from the same state as its copy of the manager and publishes no network effects.
     Ui::GameUiState projectedUi = runtime.ui;
     Kernel::MouseState projectedMouse = runtime.mouse;
-    Chat::ChatFocus projectedFocus = runtime.chat.input.focus;
+    Ui::ChatFocus projectedFocus = runtime.chat.input.focus;
     Ui::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
     Kernel::MouseState& drawMouse = m_projectingFrame ? projectedMouse : runtime.mouse;
-    Chat::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
+    Ui::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
     const Ui::OldWindowGlobals drawGlobals{
         .leftHeld = drawMouse.leftHeld,
         .leftClick = drawMouse.pendingClick,

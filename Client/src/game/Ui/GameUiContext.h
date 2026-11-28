@@ -85,7 +85,7 @@ public:
     // CL9 milestone 9: what the friends window and its boxes send (Protocol::Messenger, through
     // Messenger::FriendPacketOf).
     virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
-    // 0x61c170("Data\\Macro.txt"): `content` (Chat::WrittenMacros) into the file.
+    // 0x61c170("Data\\Macro.txt"): `content` (Tables::WrittenMacros) into the file.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 on the original's log (0x57630f0).
     virtual void Log(std::string_view line) = 0;

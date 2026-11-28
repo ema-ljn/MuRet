@@ -161,7 +161,7 @@ struct Stage
     {
         return world->Runtime().social.trade;
     }
-    const Client::Chat::ChatEntry& LastMessage()
+    const Client::Ui::ChatEntry& LastMessage()
     {
         return world->Runtime().chat.log.entries.front();
     }

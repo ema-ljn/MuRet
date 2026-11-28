@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::FrontEnd
+namespace Client::Ui
 {
 namespace
 {
@@ -153,4 +153,4 @@ std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, std::string_v
     }
     return std::nullopt;
 }
-} // namespace Client::FrontEnd
+} // namespace Client::Ui

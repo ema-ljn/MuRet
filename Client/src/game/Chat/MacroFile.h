@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Chat/ChatInput.h"
 
 #include <array>
 #include <cstddef>
@@ -12,8 +11,10 @@
 // after Text.bmd (0x61ee30 → 0x61c1c0); it is written by the game's exit, the server change and the gate to maps 30
 // and 31 (0x61c170 from 0x412b6d, 0x59ad45, 0x624067, 0x624edf and 0x624f1d), which belong to other waves. What the
 // player stores in their macros does not go to the log. *Static*.
-namespace Client::Chat
+namespace Client::Tables
 {
+// 0x77f1db0..0x77f27b0: ten macros of 0x100, Alt + 1's first and Alt + 0's last.
+inline constexpr std::size_t MacroCount = 10;
 // 0x77f1db0: each macro in 0x100 bytes with its '\0'.
 inline constexpr std::size_t MacroSlotBytes = 0x100;
 
@@ -28,4 +29,4 @@ using Macros = std::array<std::string, MacroCount>;
 
 // 0x61c170: fopen("wt") and ten fprintf("%s\n"), with the text mode's "\r\n". It does not check whether it opened.
 [[nodiscard]] std::string WrittenMacros(const Macros& macros);
-} // namespace Client::Chat
+} // namespace Client::Tables

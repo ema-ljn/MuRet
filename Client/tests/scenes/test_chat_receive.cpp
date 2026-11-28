@@ -307,10 +307,10 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
     ActorState& hero = m_world->Hero();
     hero.guildStatus = 0x80;
     hero.word1f2 = 0xffff;
-    Client::Chat::ChatInputState& input = Runtime().chat.input;
+    Client::Ui::ChatInputState& input = Runtime().chat.input;
     Runtime().ui.chatOpen = true;
     input.fieldCount = 2;
-    Client::Chat::CopyIntoTheBuffer(input.messageBuffer, "algo");
+    Client::Ui::CopyIntoTheBuffer(input.messageBuffer, "algo");
     input.messageLength = 4;
     ASSERT_TRUE(Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
 

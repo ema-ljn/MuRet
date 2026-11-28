@@ -251,7 +251,7 @@ void Repeat(Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime, std::int3
 void PressTheBar(const Ui::GameUiContext& context, Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime)
 {
     const auto in = [&](std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
-    { return Chat::MouseInRect(context.mouseX, context.mouseY, x, y, width, height, TopLeftRect); };
+    { return Ui::MouseInRect(context.mouseX, context.mouseY, x, y, width, height, TopLeftRect); };
     const std::int32_t inset = list.barMode == 1 ? BarModeInset : 0;
     const std::int32_t margin = list.barMode != 1 ? BarModeInset : 0;
     const std::int32_t arrowX = list.x + inset - ArrowInset + list.width;
@@ -285,8 +285,8 @@ std::optional<Npc::JewelBundleList::Row> HoverTheRows(const Ui::GameUiContext& c
     auto at = static_cast<std::size_t>(list.scroll);
     for (std::int32_t row = 0; row < list.shownRows && at < list.rows.size(); ++row, ++at)
     {
-        if (!Chat::MouseInRect(context.mouseX, context.mouseY, list.x, RowY(list, row) - RowRise, width, RowHeight,
-                               TopLeftRect))
+        if (!Ui::MouseInRect(context.mouseX, context.mouseY, list.x, RowY(list, row) - RowRise, width, RowHeight,
+                             TopLeftRect))
             continue;
         if (click)
         {
@@ -345,13 +345,13 @@ void WhiteWithTexture(Render::SpriteBatch& sprites)
 void DrawTheFrame(Render::SpriteBatch& sprites, Npc::JewelBundleList& list, bool click, Ui::Point mouse)
 {
     const auto in = [&](std::int32_t x, std::int32_t y)
-    { return Chat::MouseInRect(mouse.x, mouse.y, x, y, ArrowSize, ArrowSize, TopLeftRect); };
+    { return Ui::MouseInRect(mouse.x, mouse.y, x, y, ArrowSize, ArrowSize, TopLeftRect); };
     sprites.SetBlend(Render::BlendMode::Alpha);
     Palette(sprites, FramePalette, FrameAlpha);
     sprites.ColorQuad(F32(list.x - 1), F32(list.y - list.height - 1), F32(list.width + 1), F32(list.height + 2));
     WhiteWithTexture(sprites);
-    const Chat::OldListBar bar =
-        Chat::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows, Count(list), list.scroll);
+    const Ui::OldListBar bar =
+        Ui::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows, Count(list), list.scroll);
     list.barTop = bar.barTop;
     list.barBottom = bar.barBottom;
     list.thumbY = bar.thumbY;
@@ -481,7 +481,7 @@ BundleListStep StepTheBundleList(const Ui::GameUiContext& context)
         HandleTheMessage(list, message);
     }
     const bool over =
-        Chat::MouseInRect(context.mouseX, context.mouseY, list.x, list.y, list.width, list.height, BottomLeftRect);
+        Ui::MouseInRect(context.mouseX, context.mouseY, list.x, list.y, list.width, list.height, BottomLeftRect);
     // 0x45aad0..0x45abb3: with the mouse grabbed by the list itself, the list always goes on. With the left button
     // down, 0x490aa0 over the manager (0x5763514) does not find it: it is not registered there (*inferred*, like the
     // chat log).

@@ -65,7 +65,7 @@ void RememberTheFriendRequest(Ui::OldWindowManager& manager, std::int32_t box, s
 
 // The old windows' EDIT with the focus (SetFocus of 0x4682a0): what the player types (WM_CHAR), delete and Enter,
 // which the subclass 0x467b10 sends to its parent as the 7 if the window list is not armed (+0x150).
-[[nodiscard]] bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Chat::ChatFocus focus);
+[[nodiscard]] bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Ui::ChatFocus focus);
 void TypeInTheOldEdit(Ui::OldWindowManager& manager, std::string_view typed);
 void BackspaceInTheOldEdit(Ui::OldWindowManager& manager);
 // With +0xc4 at 1, the arrows, Home, End, PgUp, PgDn, delete and paste are the multiline EDIT's (Ui/OldEditLines.h,

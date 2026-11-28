@@ -19,7 +19,7 @@
 // The selection's create-character window (+0x8498: 0x63d1a0 builds it, 0x63d4e0 places it,
 // 0x63d7c0 changes the class, 0x63d880 handles it and 0x63e0a0 draws it; 06 § La ventana de crear).
 // Modal, with the full-screen base: the five classes, the name, the class's attributes and
-// description, OK and cancel. The name checks belong to the sender (FrontEnd::NoticeOfNewName). It is
+// description, OK and cancel. The name checks belong to the sender (Ui::NoticeOfNewName). It is
 // handled in the step (Q-C81). *Static*, and the place *emulated* on four screens.
 namespace Client::FrontEnd
 {

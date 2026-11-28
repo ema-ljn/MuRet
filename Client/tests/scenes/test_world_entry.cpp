@@ -500,7 +500,7 @@ TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
     ASSERT_TRUE(banner.pendingImage.has_value());
     EXPECT_EQ(*banner.pendingImage, "Interface\\lorencia.tga");
     ASSERT_FALSE(runtime.chat.log.entries.empty());
-    const Client::Chat::ChatEntry& welcome = runtime.chat.log.entries.back();
+    const Client::Ui::ChatEntry& welcome = runtime.chat.log.entries.back();
     EXPECT_EQ(welcome.name, "");
     EXPECT_EQ(welcome.text, "<mapa 0> <bienvenida>");
     EXPECT_EQ(welcome.type, Client::Ui::SystemMessage);

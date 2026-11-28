@@ -8,7 +8,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Chat
+namespace Client::Ui
 {
 namespace
 {
@@ -400,4 +400,4 @@ ChatLogStepResult StepTheChatLog(ChatLogState& log, ChatLogFrame& frame, const C
     result.handled = StepTheLogMouse(log, frame, globals, view, result);
     return result;
 }
-} // namespace Client::Chat
+} // namespace Client::Ui

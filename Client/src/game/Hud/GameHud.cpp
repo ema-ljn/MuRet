@@ -595,7 +595,7 @@ void DrawTheChatInput(Frame& frame)
 {
     Ui::GameHudContext& context = frame.context;
     Kernel::HudState& hud = context.hud;
-    const Chat::ChatInputState& input = frame.runtime.chat.input;
+    const Ui::ChatInputState& input = frame.runtime.chat.input;
     context.sprites.SetColor(White);
     hud.dcFont = Render::Text::FontKind::Normal;
     if (!frame.runtime.ui.chatOpen && !input.otherInput)
@@ -610,17 +610,17 @@ void DrawTheChatInput(Frame& frame)
         Ui::OldEdit whisperCopy;
         Ui::OldEdit& message = context.projecting ? (messageCopy = input.message) : frame.runtime.chat.input.message;
         Ui::OldEdit& whisper = context.projecting ? (whisperCopy = input.whisper) : frame.runtime.chat.input.whisper;
-        DrawTheChatEdit(frame, message, input.focus == Chat::ChatFocus::Message);
-        DrawTheChatEdit(frame, whisper, input.focus == Chat::ChatFocus::Whisper);
+        DrawTheChatEdit(frame, message, input.focus == Ui::ChatFocus::Message);
+        DrawTheChatEdit(frame, whisper, input.focus == Ui::ChatFocus::Whisper);
     }
     hud.textColors = WhisperNamesColors;
-    if (input.field % 2 == Chat::WhisperField)
+    if (input.field % 2 == Ui::WhisperField)
     {
-        for (std::int32_t slot = 0; slot < static_cast<std::int32_t>(Chat::WhisperNameSlots); ++slot)
+        for (std::int32_t slot = 0; slot < static_cast<std::int32_t>(Ui::WhisperNameSlots); ++slot)
         {
             if (slot == input.whisperNameAt)
                 continue;
-            const std::string_view name = Chat::CStringOf(input.whisperNames[static_cast<std::size_t>(slot)]);
+            const std::string_view name = Ui::CStringOf(input.whisperNames[static_cast<std::size_t>(slot)]);
             if (!name.empty())
                 DrawHudText(frame, WhisperNamesLeft, (slot - input.whisperNameAt) * WhisperNamesStep + WhisperNamesTop,
                             name, false);

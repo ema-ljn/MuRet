@@ -758,7 +758,7 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
                 .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}});
         ASSERT_TRUE(box.HasValue()) << box.Error();
         runtime.oldWindows.focus = box.Value();
-        runtime.chat.input.focus = Client::Chat::ChatFocus::Message;
+        runtime.chat.input.focus = Client::Ui::ChatFocus::Message;
         const auto result =
             Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, pass.to, 133, 127, 0},
                                           Transition::PlayerKey, tested.Resources(), publisher);
@@ -772,7 +772,7 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         EXPECT_TRUE(runtime.oldWindows.hidden.empty());
         EXPECT_EQ(runtime.oldWindows.focus, crossesChaos ? 0 : box.Value());
         EXPECT_EQ(runtime.chat.input.focus,
-                  crossesChaos ? Client::Chat::ChatFocus::Game : Client::Chat::ChatFocus::Message);
+                  crossesChaos ? Client::Ui::ChatFocus::Game : Client::Ui::ChatFocus::Message);
         std::vector<std::string> expected;
         if (crossesChaos)
             expected.push_back("play-loop:158");

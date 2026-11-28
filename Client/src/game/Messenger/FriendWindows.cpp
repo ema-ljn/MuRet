@@ -732,7 +732,7 @@ void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGloba
 {
     manager.orphanedEdit.reset();
     manager.focusedEditIsOrphan = false;
-    globals.keyboardFocus = Chat::ChatFocus::OldWindow;
+    globals.keyboardFocus = Ui::ChatFocus::OldWindow;
     manager.focusedEdit = edit.base.id;
     globals.focusedList = edit.base.id;
 }
@@ -1221,9 +1221,9 @@ Ui::OldEdit* FocusedEdit(Ui::OldWindowManager& manager)
 }
 } // namespace
 
-bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Chat::ChatFocus focus)
+bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Ui::ChatFocus focus)
 {
-    if (focus != Chat::ChatFocus::OldWindow)
+    if (focus != Ui::ChatFocus::OldWindow)
         return false;
     if (manager.focusedEditIsOrphan)
         return manager.orphanedEdit.has_value();

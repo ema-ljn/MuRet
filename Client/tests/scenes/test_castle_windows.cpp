@@ -384,7 +384,7 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
                                    .texts = &m_texts};
     const auto drawn = Client::Guild::DrawThePanelDialog(hud, dialog);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
     EXPECT_EQ(runtime.chat.input.dialogEdit.base.x, 290);
     EXPECT_EQ(runtime.chat.input.dialogEdit.base.width, 70);
     EXPECT_EQ(runtime.chat.input.dialogEdit.filter, 1);
@@ -401,7 +401,7 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_TRUE(runtime.chat.input.dialogEdit.text.Value().empty());
     EXPECT_EQ(runtime.chat.input.dialogEdit.base.state, Client::Ui::HiddenWindow);
-    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Game);
     ExpectRandoms(0);
 }
 TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDurabilityAndWithoutMasterStatus)

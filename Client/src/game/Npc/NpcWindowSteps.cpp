@@ -505,7 +505,7 @@ Core::Expected<void, std::string> StepTheWarehouse(const Ui::GameUiContext& cont
     case WithdrawButton:
         // 0x5ea127..0x5ea1a5.
         Ui::PushDialog(runtime.dialogs, MoneyDialog);
-        Chat::ResetTheTextBuffers(runtime.chat.input, false);
+        Ui::ResetTheTextBuffers(runtime.chat.input, false);
         runtime.ui.chatOpen = false;
         social.typedMoney = 0;
         social.trade.field78abacc = *pressed;

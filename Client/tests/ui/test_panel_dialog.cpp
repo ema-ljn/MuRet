@@ -91,7 +91,7 @@ protected:
     std::int32_t m_hovered = 0;
     std::int32_t m_capture = 0;
     std::int32_t m_pressedButton = 0;
-    Client::Chat::ChatFocus m_focus{};
+    Client::Ui::ChatFocus m_focus{};
     std::optional<Client::Audio::SoundId> m_sound;
     std::int32_t m_focusedList = 0;
     std::int32_t m_wheel = 0;

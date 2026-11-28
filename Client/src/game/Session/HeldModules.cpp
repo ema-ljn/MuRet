@@ -49,7 +49,7 @@ namespace Client::Session
 struct HudStates
 {
     Items::QuickSlots quickSlots{};
-    Chat::ChatLogFrame chatFrame{};
+    Ui::ChatLogFrame chatFrame{};
     Ui::MessageFrameState messageFrame{};
     Ui::SlideBanner slides{};
     Hud::MapBanner mapBanner = Hud::MakeTheMapBanner();

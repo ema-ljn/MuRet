@@ -410,7 +410,7 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
     runtime.social.personalShop.dialogMode = mode;
     runtime.ui.chatOpen = false;
     runtime.social.moneyField = mode == ShopPriceMode ? 1 : 0;
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.social.dialogFieldLimit = mode == ShopPriceMode ? PriceFieldLimit : TitleFieldLimit;
     // With 0x6c7b8c at 1: the vtable + 4 with 0 (in view), +0x4c, the + 0x44 with (0, 0, 0, 0) (the background), the
     // cap, the size and the position. The focus and the drawing belong to the 0x91's draw (0x6305c9).
@@ -429,7 +429,7 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
 Core::Expected<void, std::string> StepTheShopDialog(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chat.input;
     Social::PersonalShopState& shops = runtime.social.personalShop;
     Social::SocialState& social = runtime.social;
     bool& click = runtime.mouse.pendingClick;
@@ -446,14 +446,14 @@ Core::Expected<void, std::string> StepTheShopDialog(const Ui::GameUiContext& con
     {
         pressed = 1;
         click = false;
-        Chat::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
-        input.messageLength = static_cast<std::int32_t>(Chat::CStringOf(input.messageBuffer).size());
-        const std::string_view typed = Chat::CStringOf(input.messageBuffer);
+        Ui::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
+        input.messageLength = static_cast<std::int32_t>(Ui::CStringOf(input.messageBuffer).size());
+        const std::string_view typed = Ui::CStringOf(input.messageBuffer);
         if (shops.dialogMode == ShopTitleMode)
         {
             const std::span<const std::string> filter =
                 context.chat != nullptr ? context.chat->filter : std::span<const std::string>{};
-            if (FrontEnd::IsAShopTitle(typed, filter))
+            if (Ui::IsAShopTitle(typed, filter))
                 shops.ownTitle = std::string(typed);
             else
             {
@@ -496,9 +496,9 @@ Core::Expected<void, std::string> StepTheShopDialog(const Ui::GameUiContext& con
         trade.warningByte = static_cast<std::uint8_t>(Yes);
     // 0x62629a..0x6262d0: the text fields emptied (0x553570(0), with the EDIT), the chat field closed, the focus to the
     // game's window and the pending dialog open.
-    Chat::ResetTheTextBuffers(input, false);
+    Ui::ResetTheTextBuffers(input, false);
     runtime.ui.chatOpen = false;
-    input.focus = Chat::ChatFocus::Game;
+    input.focus = Ui::ChatFocus::Game;
     runtime.dialogs.current = runtime.dialogs.pending;
     runtime.dialogs.pending = 0;
     return {};

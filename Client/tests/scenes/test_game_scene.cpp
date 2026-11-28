@@ -372,7 +372,7 @@ TEST(GameSceneTest, TheFirstStepEmptiesTheChat)
     Harness tested(log);
     WorldRuntime& runtime = tested.Runtime();
     runtime.ui.chatOpen = true;
-    runtime.chat.log.entries.push_back(Client::Chat::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
+    runtime.chat.log.entries.push_back(Client::Ui::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
     runtime.chat.log.filter[0] = "dragon";
     runtime.chat.area.rows[0].text = "viejo";
     runtime.chat.area.count = 1;
@@ -387,7 +387,7 @@ TEST(GameSceneTest, TheFirstStepEmptiesTheChat)
     EXPECT_EQ(runtime.chat.area.rows[0].text, "");
     EXPECT_EQ(runtime.chat.area.count, static_cast<std::int32_t>(Client::Ui::MessageAreaRows));
 
-    runtime.chat.log.entries.push_back(Client::Chat::ChatEntry{.name = "Beto", .text = "chau", .type = 0});
+    runtime.chat.log.entries.push_back(Client::Ui::ChatEntry{.name = "Beto", .text = "chau", .type = 0});
     tested.scene.Step(tested.input);
     EXPECT_EQ(runtime.chat.log.entries.size(), 1u);
 }

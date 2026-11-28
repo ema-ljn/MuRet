@@ -1259,15 +1259,15 @@ game/FrontEnd/CharacterBalloons.cpp	271	game/FrontEnd	game/FrontEnd	medium	login
 game/FrontEnd/CharacterBalloons.h	103	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/Chat/ChatCommands.cpp	355	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatCommands.h	162	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatInput.cpp	356	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatInput.h	271	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLog.cpp	468	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLog.h	204	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/ChatInput.cpp	356	game/Chat	game/Ui	high	the old windows' text fields every window types into (the chat's, the dialog's and the number's), below their users
+game/Chat/ChatInput.h	271	game/Chat	game/Ui	high	the old windows' text fields every window types into (the chat's, the dialog's and the number's), below their users
+game/Chat/ChatLog.cpp	468	game/Chat	game/Ui	high	the chat log and its filter, which the old windows and the UI state draw and keep, below their users
+game/Chat/ChatLog.h	204	game/Chat	game/Ui	high	the chat log and its filter, which the old windows and the UI state draw and keep, below their users
 game/Chat/ChatRuntime.h	43	game/Chat	game/Chat	high	the chat's state the runtime holds: the log, the input, the bubbles and the whisper senders
 game/Chat/ChatLogDraw.cpp	479	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatLogDraw.h	69	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLogWindow.cpp	402	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/ChatLogWindow.h	99	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/ChatLogWindow.cpp	402	game/Chat	game/Ui	high	the chat log's window step and the list bar the old windows share, below their users
+game/Chat/ChatLogWindow.h	99	game/Chat	game/Ui	high	the chat log's window step and the list bar the old windows share, below their users
 game/FrontEnd/CreateCharacterWindow.cpp	427	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/FrontEnd/CreateCharacterWindow.h	120	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/FrontEnd/CreditsWindow.cpp	500	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
@@ -1305,16 +1305,16 @@ game/Messenger/LetterWindowsDraw.cpp	674	game/Messenger	game/Messenger	medium	fr
 game/Messenger/LetterWindowsDraw.h	66	game/Messenger	game/Messenger	medium	friends and letters (2026-11-21 review)
 game/FrontEnd/LoginWindow.cpp	281	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
 game/FrontEnd/LoginWindow.h	123	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
-game/Chat/MacroFile.cpp	62	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
-game/Chat/MacroFile.h	31	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/MacroFile.cpp	62	game/Chat	game/Tables	high	Data\Macro.txt, read with the other data files
+game/Chat/MacroFile.h	31	game/Chat	game/Tables	high	Data\Macro.txt, read with the other data files
 game/Ui/MenuBar.cpp	137	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MenuBar.h	73	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageArea.cpp	288	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageArea.h	168	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageLog.cpp	33	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/MessageLog.h	35	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
-game/FrontEnd/NameChecks.cpp	156	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
-game/FrontEnd/NameChecks.h	59	game/FrontEnd	game/FrontEnd	medium	login, server list and character selection, out of Scenes (2026-11-21 review)
+game/FrontEnd/NameChecks.cpp	156	game/FrontEnd	game/Ui	high	the text filters (Filter.bmd, FilterName.bmd) the chat, the windows and the names check, below their users
+game/FrontEnd/NameChecks.h	59	game/FrontEnd	game/Ui	high	the text filters (Filter.bmd, FilterName.bmd) the chat, the windows and the names check, below their users
 game/Ui/NewUi.cpp	461	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/NewUi.h	162	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 game/Ui/NoticeWindow.cpp	328	game/Ui	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont

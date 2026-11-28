@@ -768,7 +768,7 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
 // field open, the box without blending (0xf8 and 0xf9) and, with the F3 mode, its indicator (0xef).
 TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
 {
-    world.Runtime().hud.macroTime = Client::Chat::MacroLockSteps;
+    world.Runtime().hud.macroTime = Client::Ui::MacroLockSteps;
     world.Runtime().ui.chatOpen = true;
 
     ASSERT_TRUE(Hud().HasValue());

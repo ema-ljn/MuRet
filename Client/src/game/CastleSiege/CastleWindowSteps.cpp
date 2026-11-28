@@ -47,7 +47,7 @@ constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
 
 bool Hit(const Ui::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
 {
-    return Chat::MouseInRect(context.mouseX, context.mouseY, x, y, w, h, 1);
+    return Ui::MouseInRect(context.mouseX, context.mouseY, x, y, w, h, 1);
 }
 
 void Cover(const Ui::GameUiContext& context, std::int32_t x, std::int32_t y)
@@ -464,7 +464,7 @@ Core::Expected<void, std::string> SeniorTaxes(const Ui::GameUiContext& context)
             input.dialogEdit.compositionStart = 0;
             input.dialogEdit.compositionLength = 0;
             // The shared helper models the focus loss when hiding the HWND; 0x660350 does not call SetFocusGame.
-            Chat::ShowTheDialogField(input, Ui::HiddenWindow);
+            Ui::ShowTheDialogField(input, Ui::HiddenWindow);
             input.messageLength = 0;
             runtime.social.dialogFieldLimit = 10;
         };

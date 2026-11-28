@@ -121,7 +121,7 @@ struct GameChatContext
 // 0x5a119f..0x5a2b47: with Alt (and the brake 0x77f3b74 at 0, outside Chaos Castle, which the caller checks), each
 // macro of the pressed key from 1 to 9 and 0, in that order: the commands (0x56c440 from a macro), the emotes, the
 // filter and the same as Enter's chat, without the history and always with the C1 00. Each one that gets past the
-// commands leaves the brake at Chat::MacroLockSteps.
+// commands leaves the brake at Ui::MacroLockSteps.
 [[nodiscard]] Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
-                                                             const std::array<bool, Chat::MacroCount>& pressed);
+                                                             const std::array<bool, Tables::MacroCount>& pressed);
 } // namespace Client::Chat

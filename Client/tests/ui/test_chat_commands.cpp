@@ -32,8 +32,8 @@ namespace
 {
 using Client::Chat::ChatCommandContext;
 using Client::Chat::ChatCommandNotice;
-using Client::Chat::ChatLogState;
-using Client::Chat::MacroCount;
+using Client::Tables::MacroCount;
+using Client::Ui::ChatLogState;
 
 class Commands : public ::testing::Test
 {

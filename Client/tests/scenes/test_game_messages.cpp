@@ -90,7 +90,7 @@ TEST(GameMessagesTest, TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut)
 {
     WorldRuntime runtime;
     const LetterMeasure letters;
-    runtime.chat.log.entries.push_back(Client::Chat::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
+    runtime.chat.log.entries.push_back(Client::Ui::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
     runtime.chat.area.clock = 0;
     runtime.chat.area.noticeClock = 0;
 

@@ -424,10 +424,10 @@ Core::Expected<void, std::string> CommandAParty(const Ui::GameUiContext& context
 Core::Expected<void, std::string> CommandAWhisper(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                   std::size_t index)
 {
-    Chat::ChatInputState& input = context.world.Runtime().chat.input;
-    Chat::SetTheChatFields(input, std::nullopt, Actors::ChatNameOf(context.world.Actors()[index]));
-    input.field = Chat::MessageField;
-    Chat::FocusTheChatField(input, Chat::MessageField, &context.world.Runtime().ui.focusedList);
+    Ui::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::SetTheChatFields(input, std::nullopt, Actors::ChatNameOf(context.world.Actors()[index]));
+    input.field = Ui::MessageField;
+    Ui::FocusTheChatField(input, Ui::MessageField, &context.world.Runtime().ui.focusedList);
     return Chat::PressEnterInTheGame(chat);
 }
 

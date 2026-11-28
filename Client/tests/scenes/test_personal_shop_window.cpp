@@ -562,9 +562,9 @@ TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
 TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
-    Client::Chat::ChatInputState& chat = Runtime().chat.input;
+    Client::Ui::ChatInputState& chat = Runtime().chat.input;
     Client::Ui::TypeInTheEdit(chat.dialogEdit, "Mi puesto");
-    chat.focus = Client::Chat::ChatFocus::Dialog;
+    chat.focus = Client::Ui::ChatFocus::Dialog;
     const auto stepped = Dialogs(ShopOkRight, ShopButtonBottom, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), DialogStepRandoms);
@@ -573,7 +573,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
     EXPECT_EQ(Runtime().social.trade.warningByte, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
-    EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Game);
+    EXPECT_EQ(chat.focus, Client::Ui::ChatFocus::Game);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 }
@@ -653,7 +653,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
     EXPECT_EQ(Runtime().social.trade.warningByte, 2);
     const auto& entries = Runtime().chat.log.entries;
     EXPECT_TRUE(std::ranges::any_of(entries,
-                                    [](const Client::Chat::ChatEntry& entry) {
+                                    [](const Client::Ui::ChatEntry& entry) {
                                         return entry.text == "aviso titulo malo" &&
                                                entry.type == Client::Ui::SystemMessage && entry.name.empty();
                                     }));

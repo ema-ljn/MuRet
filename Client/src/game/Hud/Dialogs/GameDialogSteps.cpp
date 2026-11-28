@@ -301,7 +301,7 @@ Core::Expected<void, std::string> SaveTheOptions(const Ui::GameUiContext& contex
     if (!body.HasValue())
         return Core::Unexpected(std::move(body).Error());
     requests.Value()->SendOptionData(body.Value());
-    return requests.Value()->SaveMacros(Chat::WrittenMacros(context.world.Runtime().chat.input.macros));
+    return requests.Value()->SaveMacros(Tables::WrittenMacros(context.world.Runtime().chat.input.macros));
 }
 
 // 0x659290(0x100), without rand().
@@ -694,9 +694,9 @@ Core::Expected<void, std::string> StepTheMoneyOk(const Ui::GameUiContext& contex
         else if (auto moved = Npc::MoveTheWarehouseMoney(context); !moved.HasValue())
             return moved;
     }
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chat.input, false);
     social.dialogFieldLimit = ClosedDialogFieldLimit;
-    runtime.chat.input.fieldCount = Chat::ChatFieldCount;
+    runtime.chat.input.fieldCount = Ui::ChatFieldCount;
     social.moneyField = 0;
     runtime.ui.chatOpen = false;
     PressTheButton(runtime);
@@ -966,7 +966,7 @@ Core::Expected<void, std::string> Answer(const Ui::GameUiContext& context, std::
 }
 
 // 0x62b372 and 0x62c567: the ten bytes of 0x7798bf8 (two DWORDs and a WORD) and their length (0x7758590) at 0.
-void ClearTheTypedNumber(Chat::ChatInputState& input)
+void ClearTheTypedNumber(Ui::ChatInputState& input)
 {
     std::fill_n(input.messageBuffer.begin(), Protocol::Guild::LeaveNumberSize, '\0');
     input.messageLength = 0;
@@ -982,9 +982,9 @@ Core::Expected<void, std::string> SendTheLeave(const Ui::GameUiContext& context)
     if (!requests.HasValue())
         return Core::Unexpected(std::move(requests).Error());
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Chat::ChatInputState& input = runtime.chat.input;
-    Chat::ReadTheNumberField(input, input.messageBuffer);
-    Chat::ClearTheNumberField(input);
+    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ReadTheNumberField(input, input.messageBuffer);
+    Ui::ClearTheNumberField(input);
     // 0x62a91c: 0x6d5e2c is −1 in the .data and 0x64faa0 sets it (−1 without the name): outside the 80 slots, the
     // original reads other memory (Q-C1296).
     const std::int32_t member = runtime.guild.kickMember;

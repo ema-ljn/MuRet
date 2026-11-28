@@ -81,7 +81,7 @@ void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot);
 void ClearTheGuildMembers(GuildWindowState& window);
 
 // 0x651680(text), the guild notice of the 0D type 2 (0x4c665f): 0x459c70 cuts it into up to 5 rows 0x6e wide with the
-// DC's font (Chat::WrapByWidth), adds each non-empty row with the vtable + 0x94 of list +0x1c8 (0x46bca0: like
+// DC's font (Ui::WrapByWidth), adds each non-empty row with the vtable + 0x94 of list +0x1c8 (0x46bca0: like
 // 0x46c930, at the front, without the hero) and scrolls it by the count minus the rows (+0x34 with +0x38): the last
 // one in stays visible.
 [[nodiscard]] Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window,

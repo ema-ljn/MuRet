@@ -15,7 +15,7 @@ namespace Client::Ui
 Core::Expected<std::optional<Audio::SoundId>, std::string> AddMessage(const MessageSink& sink, std::string_view name,
                                                                       std::string_view text, std::int32_t type)
 {
-    auto sound = Chat::AddToTheLog(sink.log, sink.modes, sink.measure, name, text, type, 0, sink.noticeSound);
+    auto sound = Ui::AddToTheLog(sink.log, sink.modes, sink.measure, name, text, type, 0, sink.noticeSound);
     if (!sound.HasValue())
         return sound;
     AddToTheMessageArea(sink.area, sink.measure.measure, sink.measure.dcFont, name, text, type);

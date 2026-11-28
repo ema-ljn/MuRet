@@ -1455,7 +1455,7 @@ TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
     EXPECT_EQ(window.noticeList.scroll, 0);
 
     const std::string_view text = "uno dos tres cuatro cinco seis siete";
-    const auto wrapped = Client::Chat::WrapByWidth(text, m_text, Runtime().hud.dcFont, Screen640, 0x6e, 5, 0);
+    const auto wrapped = Client::Ui::WrapByWidth(text, m_text, Runtime().hud.dcFont, Screen640, 0x6e, 5, 0);
     ASSERT_TRUE(wrapped.HasValue());
     std::vector<std::string> lines;
     for (const std::string& line : wrapped.Value().lines)

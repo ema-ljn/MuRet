@@ -1,7 +1,6 @@
 #include "Chat/MacroFile.h"
 
 #include "Core/Expected.h"
-#include "Chat/ChatInput.h"
 
 #include <cstddef>
 #include <format>
@@ -9,7 +8,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Chat
+namespace Client::Tables
 {
 namespace
 {
@@ -59,4 +58,4 @@ std::string WrittenMacros(const Macros& macros)
     }
     return written;
 }
-} // namespace Client::Chat
+} // namespace Client::Tables

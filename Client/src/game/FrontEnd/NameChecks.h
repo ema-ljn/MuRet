@@ -9,7 +9,7 @@
 
 // The checks of a new character's name before F3 01 (0x63d990; Client/docs/research/06-render-escenas-y-ui.md,
 // "La ventana de crear"). *Static*, and *emulated* with the contract's names.
-namespace Client::FrontEnd
+namespace Client::Ui
 {
 // What 0x622c70 checks: the words of FilterName.bmd and Filter.bmd (Tables::LoadFilterWords)
 // and texts 457 and 458 of Text.bmd. They have to outlive the query.
@@ -57,4 +57,4 @@ struct NameFilters
                                                           const NameFilters& filters);
 // The same with the name alone, with nothing behind it.
 [[nodiscard]] std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters);
-} // namespace Client::FrontEnd
+} // namespace Client::Ui

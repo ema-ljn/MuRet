@@ -42,7 +42,6 @@
 // 360 × 156 and the body with the bottom edge at 237, of 240 × 120. The names and texts are made up.
 namespace
 {
-using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -56,6 +55,7 @@ using Client::Render::Text::TextColors;
 using Client::Render::Text::TextExtent;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
+using Client::Ui::ChatFocus;
 using Client::Ui::FriendSend;
 using Client::Ui::OldChatPart;
 using Client::Ui::OldPortraitPart;

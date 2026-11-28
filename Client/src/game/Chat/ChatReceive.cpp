@@ -160,10 +160,10 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
     panels.LendTheGuild(world, context.guildSend);
     if (auto opened = panels.Registry().Open(Ui::SecondGuildPanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chat.input;
     input.dialogFieldOn = true;
     runtime.ui.chatOpen = false;
-    Chat::ResetTheTextBuffers(input, false);
+    Ui::ResetTheTextBuffers(input, false);
     input.fieldCount = 0;
     Kernel::ActorState& hero = world.Hero();
     if (static_cast<std::int16_t>(hero.word1f2) == Guild::NoGuildIndex)

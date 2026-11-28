@@ -470,7 +470,7 @@ struct OldWindowGlobals
     std::int32_t& hovered;
     std::int32_t& capture;
     std::int32_t& pressedButton;
-    Chat::ChatFocus& keyboardFocus;
+    Ui::ChatFocus& keyboardFocus;
     std::optional<Audio::SoundId>& sound;
     // 0x5762ec0 (the list that takes the arrows), 0x7d366d8 (the wheel), 0x7d36880 (the right click) and 0x7d36849 (the
     // double click, fed by SDL like WM_LBUTTONDBLCLK: P-C182/P-C187).

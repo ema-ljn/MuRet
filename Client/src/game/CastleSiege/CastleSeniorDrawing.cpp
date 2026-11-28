@@ -220,7 +220,7 @@ Core::Expected<void, std::string> Npcs(Ui::GameHudContext& context, CastleSiege:
 void TaxArrow(Ui::GameHudContext& context, CastleSiege::CastleData& data, std::uint32_t address, std::int32_t x,
               std::int32_t y, bool increment, bool& released)
 {
-    const bool hit = Chat::MouseInRect(context.mouse.x, context.mouse.y, x, y, 13, 13, 1);
+    const bool hit = Ui::MouseInRect(context.mouse.x, context.mouse.y, x, y, 13, 13, 1);
     const bool pressed = context.world.Runtime().mouse.pendingClick && hit;
     Ui::OldDraw::Quad(context.sprites, 0x649, static_cast<float>(x), static_cast<float>(y), 13, 13,
                       pressed ? 0.8125f : 0, increment ? (pressed ? 0.90625f : 0.09375f) : 0.5f,

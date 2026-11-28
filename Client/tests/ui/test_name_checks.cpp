@@ -11,18 +11,18 @@
 #include <string_view>
 #include <vector>
 
-// Client::FrontEnd::NoticeOfNewName: the name checks of the create OK (0x63d990), with the lab's FilterName.bmd words
+// Client::Ui::NoticeOfNewName: the name checks of the create OK (0x63d990), with the lab's FilterName.bmd words
 // and texts 457 and 458 of its Text.bmd. The names are those of the contract's emulation, synthetic.
 namespace
 {
-using Client::FrontEnd::ContainsAFilteredWord;
-using Client::FrontEnd::ContainsLikeTheOriginal;
-using Client::FrontEnd::HasForbiddenSymbol;
-using Client::FrontEnd::IsAShopTitle;
-using Client::FrontEnd::IsFilteredName;
-using Client::FrontEnd::NameFilters;
-using Client::FrontEnd::NoticeOfNewName;
+using Client::Ui::ContainsAFilteredWord;
+using Client::Ui::ContainsLikeTheOriginal;
 using Client::Ui::ForbiddenNameNotice;
+using Client::Ui::HasForbiddenSymbol;
+using Client::Ui::IsAShopTitle;
+using Client::Ui::IsFilteredName;
+using Client::Ui::NameFilters;
+using Client::Ui::NoticeOfNewName;
 using Client::Ui::ShortNameNotice;
 using Client::Ui::SymbolNameNotice;
 

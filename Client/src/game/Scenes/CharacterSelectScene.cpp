@@ -757,7 +757,7 @@ void CharacterSelectScene::OnOptionsEvent(const FrontEnd::OptionsEvent& event)
 void CharacterSelectScene::SubmitTheCreation()
 {
     if (const std::optional<Ui::NoticeId> refused =
-            FrontEnd::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
+            Ui::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
     {
         // The name does not go to the log: only the notice. The window stays below, with the name.
         m_context.log.Info("el nombre del personaje nuevo no pasa: el aviso {:#04x}", static_cast<int>(*refused));

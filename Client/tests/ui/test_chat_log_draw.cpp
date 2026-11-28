@@ -22,12 +22,8 @@
 // buttons (0x45d420). The texts are invented.
 namespace
 {
-using Client::Chat::ChatEntry;
 using Client::Chat::ChatLogDrawContext;
 using Client::Chat::ChatLogDrawView;
-using Client::Chat::ChatLogFrame;
-using Client::Chat::ChatLogState;
-using Client::Chat::ChatModes;
 using Client::Core::PixelSize;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
@@ -36,6 +32,10 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
+using Client::Ui::ChatEntry;
+using Client::Ui::ChatLogFrame;
+using Client::Ui::ChatLogState;
+using Client::Ui::ChatModes;
 
 constexpr PixelSize Screen640{640, 480};
 
@@ -185,7 +185,7 @@ TEST_F(ChatLogDrawTest, InItsWindowTheFrameSizesToTheRowsWithATranslucentBackgro
 TEST_F(ChatLogDrawTest, TheFilterTitleIsDrawnInBold)
 {
     AtTheTopLeft();
-    const auto texts = Client::Tests::MakeTextTable({{Client::Chat::FilterTitleText, "Filtro"}});
+    const auto texts = Client::Tests::MakeTextTable({{Client::Ui::FilterTitleText, "Filtro"}});
     m_view.texts = &texts;
     m_log.filter[0] = "dragon";
     m_log.filter[1] = "alas";

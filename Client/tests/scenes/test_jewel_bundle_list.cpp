@@ -88,9 +88,9 @@ public:
     void PlaceTheBar()
     {
         JewelBundleList& list = List();
-        const Client::Chat::OldListBar bar =
-            Client::Chat::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows,
-                                          static_cast<std::int32_t>(list.rows.size()), list.scroll);
+        const Client::Ui::OldListBar bar =
+            Client::Ui::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows,
+                                        static_cast<std::int32_t>(list.rows.size()), list.scroll);
         list.barTop = bar.barTop;
         list.barBottom = bar.barBottom;
         list.thumbY = bar.thumbY;

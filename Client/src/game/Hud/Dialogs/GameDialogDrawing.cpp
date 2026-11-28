@@ -1542,14 +1542,14 @@ std::optional<JewelDrawing> JewelDrawingOf(std::int32_t id)
 // 0x5762ec0. An intermediate pass works on a copy and does not move the focus.
 template <typename Setup> void DrawTheDialogEdit(Frame& frame, Setup setup)
 {
-    Chat::ChatInputState& input = frame.runtime.chat.input;
+    Ui::ChatInputState& input = frame.runtime.chat.input;
     Ui::OldEdit copy = input.dialogEdit;
     Ui::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
     setup(edit);
     // 0x4682f1..0x4682f7: the focus also leaves the EDIT's id (7) in 0x5762ec0, the list that takes the arrows.
     if (!frame.context.projecting)
     {
-        input.focus = Chat::ChatFocus::Dialog;
+        input.focus = Ui::ChatFocus::Dialog;
         frame.runtime.ui.focusedList = edit.base.id;
     }
     const Ui::OldWindowDrawContext drawing{.sprites = frame.context.sprites,
@@ -1633,9 +1633,9 @@ void DrawTheYesNoBox(Frame& frame)
 void DrawTheNumberBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
-    Chat::ChatInputState& input = frame.runtime.chat.input;
+    Ui::ChatInputState& input = frame.runtime.chat.input;
     Ui::OldEdit& field = input.numberField;
-    Chat::ShowTheNumberField(input, ShownField);
+    Ui::ShowTheNumberField(input, ShownField);
     field.filter = NumberFieldFilter;
     field.backgroundColor = 0;
     Ui::LimitTheEdit(field, NumberFieldLimit, frame.context.arrowHeld);
@@ -1643,8 +1643,8 @@ void DrawTheNumberBox(Frame& frame)
     field.base.height = NumberFieldHeight;
     field.base.x = NumberFieldX;
     field.base.y = NumberFieldY;
-    Chat::FocusTheNumberField(input);
-    if (input.focus == Chat::ChatFocus::NumberField)
+    Ui::FocusTheNumberField(input);
+    if (input.focus == Ui::ChatFocus::NumberField)
         frame.runtime.ui.focusedList = field.base.id;
     Render::SpriteBatch& sprites = frame.context.sprites;
     sprites.SetBlend(BlendMode::Alpha);
@@ -1655,7 +1655,7 @@ void DrawTheNumberBox(Frame& frame)
                                                          .textColors = frame.context.hud.textColors,
                                                          .arrowHeld = frame.context.arrowHeld},
                                 frame.context.projecting ? projected : field,
-                                input.focus == Chat::ChatFocus::NumberField);
+                                input.focus == Ui::ChatFocus::NumberField);
     sprites.SetBlend(BlendMode::Opaque);
     const std::uint16_t yes = MouseIn(frame, NarrowYesLeft, OkTop, NarrowYesRight, OkBottom) ? OkHoverSlot : OkSlot;
     Quad(frame, yes, NarrowYesX, OkY, NarrowWidth, OkHeight, OkDu, OkDv);

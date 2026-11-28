@@ -28,11 +28,11 @@
 // The names and texts are made up.
 namespace
 {
-using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
+using Client::Ui::ChatFocus;
 using Client::Ui::FriendSend;
 using Client::Ui::FriendSendKind;
 using Client::Ui::OldWindow;

@@ -163,7 +163,7 @@ TEST(GameDataTest, ReadsTheMacros)
 
     const auto without = LoadGameData(folder.Path());
     ASSERT_TRUE(without.HasValue()) << without.Error();
-    EXPECT_EQ(without.Value().macros, Client::Chat::Macros{});
+    EXPECT_EQ(without.Value().macros, Client::Tables::Macros{});
 
     const std::string macros = "primera\r\nsegunda\r\n";
     WriteSceneFile(folder.Path(), "MACRO.TXT", std::as_bytes(std::span(macros)));
@@ -179,7 +179,7 @@ TEST(GameDataTest, AnOverflowingMacroIsNamed)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}});
-    const std::string macros(Client::Chat::MacroSlotBytes, 'x');
+    const std::string macros(Client::Tables::MacroSlotBytes, 'x');
     WriteSceneFile(folder.Path(), "Macro.txt", std::as_bytes(std::span(macros)));
 
     const auto data = LoadGameData(folder.Path());

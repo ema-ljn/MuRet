@@ -161,7 +161,7 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
         Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.guild.kickMember = 0;
         runtime.dialogs.current = KickDialogId;
-        Chat::ResetTheTextBuffers(runtime.chat.input, false);
+        Ui::ResetTheTextBuffers(runtime.chat.input, false);
         runtime.ui.chatOpen = false;
         runtime.chat.input.fieldCount = NumberDialogFields;
         return true;

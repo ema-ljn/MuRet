@@ -534,13 +534,13 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     const Client::Chat::ChatBubbleStepInput input{.mouseX = 210, .mouseY = 100, .screen = Screen640};
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
     EXPECT_TRUE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chat.input.whisperBuffer), "");
 
     ASSERT_TRUE(Draw().HasValue());
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
     EXPECT_FALSE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 

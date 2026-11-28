@@ -268,7 +268,7 @@ private:
     // The five slots' balloons (+0x8dc8 of the new UI, 06 § Los globos).
     FrontEnd::CharacterBalloons m_balloons;
     // The FilterName.bmd and Filter.bmd words from `data`, and texts 457 and 458.
-    FrontEnd::NameFilters m_nameFilters;
+    Ui::NameFilters m_nameFilters;
     FrontEnd::CreateCharacterWindow m_create;
     FrontEnd::EscapeWindow m_escape;
     // The options (+0x7e8), and what they keep when the scene has no world (the tests).

@@ -346,8 +346,8 @@ void TitleButtonGray(Render::SpriteBatch& sprites, const OldWindow& window, std:
 {
     const OldWindowBase& base = window.base;
     if (window.frame.hotButton == button &&
-        Chat::MouseInRect(view.mouseX, view.mouseY, base.x - TitleButtonsWidth + base.width, base.y + TitleTextY,
-                          TitleButtonsWidth, TitleButtonsHeight, TopLeftRect))
+        Ui::MouseInRect(view.mouseX, view.mouseY, base.x - TitleButtonsWidth + base.width, base.y + TitleTextY,
+                        TitleButtonsWidth, TitleButtonsHeight, TopLeftRect))
     {
         Gray(sprites, view.leftClick ? PressedGray : 1.0f);
         return;
@@ -494,8 +494,8 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         context.dcFont = Render::Text::FontKind::Bold;
         context.textColors = Render::Text::TextColors{.text = dim ? DimTitleColor : TitleColor, .background = 0};
         // 0x459c70(title, row, w − 0x32, 1, 0x100, 0, 0), with the DC's font.
-        auto wrapped = Chat::WrapByWidth(window.frame.title.value_or(std::string()), context.text, context.dcFont,
-                                         sprites.Screen(), base.width - TitleWrapCut, 1, 0);
+        auto wrapped = Ui::WrapByWidth(window.frame.title.value_or(std::string()), context.text, context.dcFont,
+                                       sprites.Screen(), base.width - TitleWrapCut, 1, 0);
         if (!wrapped.HasValue())
             return Core::Unexpected(std::move(wrapped).Error());
         const std::string title = wrapped.Value().lines.empty() ? std::string() : wrapped.Value().lines[0];
@@ -541,7 +541,7 @@ OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWin
     if (view.globals != nullptr)
     {
         current.focusedList = view.globals->focusedList;
-        current.focusedEdit = view.globals->keyboardFocus == Chat::ChatFocus::OldWindow ? manager.focusedEdit : 0;
+        current.focusedEdit = view.globals->keyboardFocus == Ui::ChatFocus::OldWindow ? manager.focusedEdit : 0;
     }
     return current;
 }
@@ -628,7 +628,7 @@ void DrawTheButton(const OldWindowDrawContext& context, const OldButton& button,
     const bool pressed = !disabled && button.pressed == 1;
     if (disabled)
         sprites.SetColor(Render::Color{.red = 1.0f, .green = DisabledGreen, .blue = DisabledGreen, .alpha = 1.0f});
-    else if (!Chat::MouseInRect(view.mouseX, view.mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
+    else if (!Ui::MouseInRect(view.mouseX, view.mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
         Gray(sprites, IdleGray);
     else
         Gray(sprites, pressed ? PressedGray : 1.0f);
@@ -660,7 +660,7 @@ void DrawTheButton(const OldWindowDrawContext& context, const OldButton& button,
 
 bool MouseIn(const OldWindowDrawView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
 {
-    return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
+    return Ui::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
 }
 
 void DrawTheTabHeaders(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y, std::int32_t width,

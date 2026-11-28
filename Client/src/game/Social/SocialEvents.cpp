@@ -649,9 +649,9 @@ Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Social::Trade
     if (runtime.dialogs.current == MoneyDialog)
     {
         Ui::PushDialog(runtime.dialogs, 0);
-        Chat::ResetTheTextBuffers(runtime.chat.input, false);
+        Ui::ResetTheTextBuffers(runtime.chat.input, false);
         runtime.social.dialogFieldLimit = ClosedDialogFieldLimit;
-        runtime.chat.input.fieldCount = Chat::ChatFieldCount;
+        runtime.chat.input.fieldCount = Ui::ChatFieldCount;
         runtime.social.moneyField = 0;
         runtime.ui.chatOpen = false;
     }

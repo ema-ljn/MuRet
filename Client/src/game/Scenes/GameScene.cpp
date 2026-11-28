@@ -333,20 +333,20 @@ void GameScene::StepEntry()
         if (m_context.world != nullptr)
         {
             Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-            Chat::ChatInputState& input = runtime.chat.input;
-            Chat::ResetTheTextBuffers(input, true);
+            Ui::ChatInputState& input = runtime.chat.input;
+            Ui::ResetTheTextBuffers(input, true);
             runtime.ui.chatOpen = false;
             input.otherInput = false;
-            input.fieldCount = Chat::ChatFieldCount;
+            input.fieldCount = Ui::ChatFieldCount;
             if (auto emptied = Chat::AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
             {
                 m_failure = emptied.Error();
                 return;
             }
-            Chat::ResetTheChatInput(input, &runtime.ui.focusedList);
-            input.focus = Chat::ChatFocus::Game;
-            Chat::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
-            Chat::ClearTheChatFilter(runtime.chat.log);
+            Ui::ResetTheChatInput(input, &runtime.ui.focusedList);
+            input.focus = Ui::ChatFocus::Game;
+            Ui::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
+            Ui::ClearTheChatFilter(runtime.chat.log);
             // 0x6368f9..0x636915: the old windows (0x48ea50), the friends (0x49bac0) and the letters (0x49f260: the
             // list and, with 0x4a0560, the copies of 0x4a03c0).
             Ui::ResetTheOldWindows(runtime.oldWindows, runtime.ui.pressedButton);
@@ -1390,9 +1390,9 @@ bool GameScene::WantsTextInput() const
     // [0x5763504] (milestone 11 and CL9 milestone 8) or that of [0x5763508] (CL9 milestone 8). The one with the Windows
     // focus receives the WM_CHAR.
     const Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    const Chat::ChatFocus focus = runtime.chat.input.focus;
-    return runtime.ui.chatOpen || focus == Chat::ChatFocus::OldWindow || focus == Chat::ChatFocus::Dialog ||
-           focus == Chat::ChatFocus::NumberField;
+    const Ui::ChatFocus focus = runtime.chat.input.focus;
+    return runtime.ui.chatOpen || focus == Ui::ChatFocus::OldWindow || focus == Ui::ChatFocus::Dialog ||
+           focus == Ui::ChatFocus::NumberField;
 }
 
 bool GameScene::HoldsTheLastFrame() const

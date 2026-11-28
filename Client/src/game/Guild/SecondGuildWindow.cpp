@@ -317,10 +317,10 @@ void Notice(Kernel::WorldRuntime& runtime, std::int32_t dialog)
 
 // 0x655087..0x6550b4 and 0x6550d8..0x655100: with the EDIT (0x6c7b8c at 1), SetText(0), 0x467360 (the IME mode, which
 // MuRet does not have) and hidden.
-void HideTheNameField(Chat::ChatInputState& input)
+void HideTheNameField(Ui::ChatInputState& input)
 {
     input.dialogEdit.text.SetText({});
-    Chat::ShowTheDialogField(input, HiddenField);
+    Ui::ShowTheDialogField(input, HiddenField);
 }
 
 // 0x655d70, page 0: Create (the window builds a guild: 0x7d536e4 and 0x7d536ec at 1, 0x77f3b68 at 1 and C1 04 54
@@ -362,8 +362,8 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
         window.dialog2a0 = opened.Value();
     }
     const Ui::OldWindowBase& base = window.base;
-    if (!runtime.mouse.pendingClick || !Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
-                                                          base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
+    if (!runtime.mouse.pendingClick || !Ui::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
+                                                        base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
         return {};
     runtime.mouse.pendingClick = false;
     runtime.mouse.updateTime = 0;
@@ -385,7 +385,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chat.input;
     const Ui::OldWindowBase& base = guild.secondWindow.base;
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
     if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
@@ -401,21 +401,21 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
                                                 typed.size()));
         std::ranges::copy(typed, name.begin());
         name[typed.size()] = '\0';
-        Chat::ReadTheDialogField(input, input.messageBuffer);
+        Ui::ReadTheDialogField(input, input.messageBuffer);
         auto operation = TextOf(context.texts, OperationText, "0x622c70");
         if (!operation.HasValue())
             return Core::Unexpected(std::move(operation).Error());
         auto server = TextOf(context.texts, ServerText, "0x622c70");
         if (!server.HasValue())
             return Core::Unexpected(std::move(server).Error());
-        const FrontEnd::NameFilters filters{.filterName = context.filterName,
-                                            .filter = context.filter,
-                                            .operation = operation.Value(),
-                                            .server = server.Value()};
-        const std::string_view message = Chat::CStringOf(input.messageBuffer);
-        if (FrontEnd::IsFilteredName(message, filters))
+        const Ui::NameFilters filters{.filterName = context.filterName,
+                                      .filter = context.filter,
+                                      .operation = operation.Value(),
+                                      .server = server.Value()};
+        const std::string_view message = Ui::CStringOf(input.messageBuffer);
+        if (Ui::IsFilteredName(message, filters))
             Notice(runtime, FilteredNameDialog);
-        else if (FrontEnd::HasForbiddenSymbol(std::string_view(input.messageBuffer.data(), input.messageBuffer.size())))
+        else if (Ui::HasForbiddenSymbol(std::string_view(input.messageBuffer.data(), input.messageBuffer.size())))
             Notice(runtime, ForbiddenSymbolDialog);
         else if (message.size() < ShortestName)
             Notice(runtime, ShortNameDialog);
@@ -684,9 +684,9 @@ Core::Expected<void, std::string> DrawTheName(Ui::GameHudContext& context, Guild
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawText(context, x + PageLeft, y + PageTop, name.Value());
-    Chat::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::ChatInputState& input = context.world.Runtime().chat.input;
     Ui::OldEdit& field = input.dialogEdit;
-    Chat::ShowTheDialogField(input, ShownField);
+    Ui::ShowTheDialogField(input, ShownField);
     field.filter = 0;
     field.backgroundColor = 0;
     Ui::LimitTheEdit(field, GuildNameLimit, context.arrowHeld);
@@ -696,7 +696,7 @@ Core::Expected<void, std::string> DrawTheName(Ui::GameHudContext& context, Guild
     field.base.y = y + PageTop;
     // 0x655232: the vtable + 0x30 (0x4682a0), the focus and the EDIT's id (7) in 0x5762ec0 (the list that takes the
     // arrows).
-    Chat::FocusTheDialogField(input);
+    Ui::FocusTheDialogField(input);
     context.world.Runtime().ui.focusedList = field.base.id;
     // 0x65523d: the EDIT's vtable + 0x14 (0x468320), with the cursor if it has the focus.
     Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = context.sprites,
@@ -704,7 +704,7 @@ Core::Expected<void, std::string> DrawTheName(Ui::GameHudContext& context, Guild
                                                          .dcFont = context.hud.dcFont,
                                                          .textColors = context.hud.textColors,
                                                          .arrowHeld = context.arrowHeld},
-                                field, input.focus == Chat::ChatFocus::Dialog);
+                                field, input.focus == Ui::ChatFocus::Dialog);
     if (auto uploaded = UploadTheNewMark(context, guild); !uploaded.HasValue())
         return uploaded;
     if (auto editor = DrawTheMarkEditor(context, guild, x, y); !editor.HasValue())
@@ -776,7 +776,7 @@ Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStep
     const Ui::OldWindowBase& base = guild.secondWindow.base;
     if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
         return {};
-    if (Chat::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
+    if (Ui::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
         runtime.ui.mouseOnUi = 1;
     const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
     switch (guild.createStep)

@@ -287,9 +287,9 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         if (window == 3)
         {
             // What the open entry leaves: a half-typed number, the focus on the EDIT and a stored whisper.
-            Client::Chat::ChatInputState& input = out.tested->world.Runtime().chat.input;
+            Client::Ui::ChatInputState& input = out.tested->world.Runtime().chat.input;
             input.dialogEdit.text.SetText("AB12");
-            input.focus = Client::Chat::ChatFocus::Dialog;
+            input.focus = Client::Ui::ChatFocus::Dialog;
             input.field = 1;
             input.messageBuffer[0] = 'm';
             input.messageLength = 1;
@@ -342,12 +342,12 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         EXPECT_EQ(serial.sent, (std::vector<std::string>{"D3", "97"}));
         EXPECT_EQ(runtime.panels.field78abb00, 0);
         EXPECT_TRUE(runtime.movement.cursorWarpRequest.has_value());
-        EXPECT_EQ(runtime.chat.input.field, Client::Chat::MessageField);
+        EXPECT_EQ(runtime.chat.input.field, Client::Ui::MessageField);
         EXPECT_EQ(runtime.chat.input.dialogEdit.text.Value(), "");
         EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'w');
         EXPECT_EQ(runtime.chat.input.messageBuffer[0], '\0');
         EXPECT_EQ(runtime.chat.input.messageLength, 0);
-        EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
+        EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
         EXPECT_FALSE(runtime.ui.chatOpen);
         EXPECT_FALSE(runtime.events.serialEntry);
     }
@@ -673,7 +673,7 @@ std::unique_ptr<MovingHero> AHeroRightClickingTheChosen(std::int32_t map)
     input.whisperBuffer.fill('x');
     auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
     slot.fill('y');
-    Client::Chat::CopyIntoTheBuffer(slot, "Viejo07");
+    Client::Ui::CopyIntoTheBuffer(slot, "Viejo07");
     return tested;
 }
 
@@ -692,11 +692,11 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
         const auto& input = runtime.chat.input;
         const auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
         EXPECT_FALSE(runtime.ui.rightClick);
-        EXPECT_EQ(Client::Chat::CStringOf(input.whisperBuffer), "Rival01");
+        EXPECT_EQ(Client::Ui::CStringOf(input.whisperBuffer), "Rival01");
         EXPECT_TRUE(
             std::all_of(input.whisperBuffer.begin() + 7, input.whisperBuffer.end(), [](char c) { return c == '\0'; }));
         EXPECT_EQ(input.whisperLength, 7);
-        EXPECT_EQ(Client::Chat::CStringOf(slot), "Rival01");
+        EXPECT_EQ(Client::Ui::CStringOf(slot), "Rival01");
         // strcpy: after the 0, the slot keeps what it had.
         EXPECT_EQ(slot[8], 'y');
         EXPECT_EQ(input.whisper.text.Value(), "Viejo07");
@@ -715,8 +715,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCa
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto& input = tested->world.Runtime().chat.input;
         EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
-        EXPECT_EQ(Client::Chat::CStringOf(input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)]),
-                  "Viejo07");
+        EXPECT_EQ(Client::Ui::CStringOf(input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)]), "Viejo07");
         EXPECT_EQ(input.whisperBuffer[0], 'x');
         EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
     }
@@ -778,7 +777,7 @@ TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxPutsTheChosenNameInItsEdi
     EXPECT_EQ(edit.text.Value(), "Rival01");
     EXPECT_EQ(edit.text.Cursor(), 7u);
     EXPECT_FALSE(edit.text.HasSelection());
-    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::OldWindow);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::OldWindow);
     EXPECT_EQ(runtime.oldWindows.focusedEdit, AddBoxEditId);
     EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'x');
 }

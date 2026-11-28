@@ -509,7 +509,7 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
         return {};
     // 0x4e4831..0x4e485d.
     Ui::PushDialog(runtime.dialogs, 0);
-    Chat::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.social.dialogFieldLimit = ClosedFieldLimit;
     runtime.chat.input.fieldCount = ClosedChatFieldCount;
     runtime.social.moneyField = 0;

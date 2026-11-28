@@ -63,6 +63,6 @@ struct ChatLogDrawView
 // 0x479080: the frame (and the bar, 0x47a230), from the first visible one up to `rows` lines or the end, and the
 // buttons. It writes in `frame` the height, the bar, the blink, the buttons' transparency and, in Crywolf with the
 // list at x = 0xba, the y (0x12f).
-void DrawTheChatLog(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
-                    const ChatLogDrawView& view);
+void DrawTheChatLog(const Ui::ChatLogState& log, Ui::ChatLogFrame& frame, Ui::ChatModes modes,
+                    const ChatLogDrawContext& context, const ChatLogDrawView& view);
 } // namespace Client::Chat

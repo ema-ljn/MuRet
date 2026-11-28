@@ -16,7 +16,7 @@ namespace Client::Chat
 // HudState.
 struct ChatRuntime
 {
-    ChatLogState log{};
+    Ui::ChatLogState log{};
     Ui::MessageAreaState area{};
     // 0x77f3b78 (.bss 0): the sound of the filter's notices. The F3 30 (0x4dd570) and the Esc menu (0x62567b) change
     // it.
@@ -37,6 +37,6 @@ struct ChatRuntime
     // 0x6c7a8c (.data 1): Slide.bmd's banners on. The F3 30's bit 0x10 turns it off (0x4dd7fa).
     bool slidesOn = true;
     // The chat input (the EDITs of [0x57634f8], their buffers, the throttle and the macros).
-    ChatInputState input{};
+    Ui::ChatInputState input{};
 };
 } // namespace Client::Chat

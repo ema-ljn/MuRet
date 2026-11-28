@@ -216,8 +216,8 @@ struct ChatEditPlace
     std::int32_t x, y, width, height;
 };
 constexpr std::array<ChatEditPlace, 2> ChatEdits{{
-    {Chat::MessageField, Chat::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
-    {Chat::WhisperField, Chat::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
+    {Ui::MessageField, Ui::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
+    {Ui::WhisperField, Ui::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
 }};
 // 0x5a33dc..0x5a343a: the F3 button, next to the whisper EDIT.
 constexpr std::int32_t WhisperModeLeft = 0x1b2;
@@ -239,11 +239,11 @@ bool KeyEdge(Ui::GameUiState& ui, const Input::InputState& input, GameKey key)
 // (P-C285), and its window is the game's.
 bool TextInputBusy(const Kernel::WorldRuntime& runtime)
 {
-    const Chat::ChatFocus focus = runtime.chat.input.focus;
+    const Ui::ChatFocus focus = runtime.chat.input.focus;
     const auto& panelDialog = runtime.panels.delegated.panelDialog;
     const bool panelField =
         Ui::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & Ui::PanelDialogTextField) != 0;
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != Chat::ChatFocus::Game;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != Ui::ChatFocus::Game;
 }
 
 // 0x636e51..0x636e5a: the chat log, 0x45aa80(0) through the vtable + 0x18 of 0x576350c.
@@ -253,30 +253,30 @@ Core::Expected<void, std::string> StepTheChat(const Ui::GameUiContext& context)
     Ui::GameUiState& ui = runtime.ui;
     Chat::ChatRuntime& chat = runtime.chat;
     const Kernel::ActorState& hero = context.world.Hero();
-    const Chat::ChatLogGlobals globals{.leftClick = runtime.mouse.pendingClick,
-                                       .rightDown = ui.rightDown,
-                                       .wheel = ui.wheel,
-                                       .capture = ui.capture,
-                                       .hovered = ui.hovered,
-                                       .focusedList = ui.focusedList,
-                                       .mouseOnUi = ui.mouseOnUi,
-                                       .modes = ui.chatModes};
+    const Ui::ChatLogGlobals globals{.leftClick = runtime.mouse.pendingClick,
+                                     .rightDown = ui.rightDown,
+                                     .wheel = ui.wheel,
+                                     .capture = ui.capture,
+                                     .hovered = ui.hovered,
+                                     .focusedList = ui.focusedList,
+                                     .mouseOnUi = ui.mouseOnUi,
+                                     .modes = ui.chatModes};
     // The focus on one of the chat EDITs: while the field is open it has it (0x636e80).
-    const Chat::ChatLogStepView view{.mouseX = context.mouseX,
-                                     .mouseY = context.mouseY,
-                                     .leftDown = runtime.mouse.leftHeld,
-                                     .chatOpen = ui.chatOpen,
-                                     .heroSafeZone = hero.safeZone != 0,
-                                     .heroName = Actors::HeroNameOf(hero),
-                                     .chatEditFocused = ui.chatOpen,
-                                     .measure = context.measure,
-                                     .dcFont = runtime.hud.dcFont};
-    const Chat::ChatLogStepResult result = Chat::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
+    const Ui::ChatLogStepView view{.mouseX = context.mouseX,
+                                   .mouseY = context.mouseY,
+                                   .leftDown = runtime.mouse.leftHeld,
+                                   .chatOpen = ui.chatOpen,
+                                   .heroSafeZone = hero.safeZone != 0,
+                                   .heroName = Actors::HeroNameOf(hero),
+                                   .chatEditFocused = ui.chatOpen,
+                                   .measure = context.measure,
+                                   .dcFont = runtime.hud.dcFont};
+    const Ui::ChatLogStepResult result = Ui::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
     for (const Audio::SoundId sound : result.sounds)
         runtime.RequestSound(sound);
     // 0x4694c0(0, 0, 1, name): the name to the whisper EDIT (SetText), without touching its buffer.
     if (result.whisperTo)
-        Chat::SetTheChatFields(chat.input, std::nullopt, *result.whisperTo);
+        Ui::SetTheChatFields(chat.input, std::nullopt, *result.whisperTo);
     return {};
 }
 
@@ -288,7 +288,7 @@ Core::Expected<void, std::string> StepTheChat(const Ui::GameUiContext& context)
 void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
 {
     Ui::GameUiState& ui = runtime.ui;
-    if (!runtime.mouse.leftHeld || (ui.hovered != 0 && ui.hovered != Chat::ChatLogId))
+    if (!runtime.mouse.leftHeld || (ui.hovered != 0 && ui.hovered != Ui::ChatLogId))
         return;
     runtime.oldWindows.focus = 0;
     if (ui.chatOpen || runtime.chat.input.otherInput || runtime.chat.input.dialogFieldOn ||
@@ -296,7 +296,7 @@ void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
         return;
     ui.focusedList = 0;
     Ui::HideTheWindowList(runtime.oldWindows.windowList);
-    runtime.chat.input.focus = Chat::ChatFocus::Game;
+    runtime.chat.input.focus = Ui::ChatFocus::Game;
 }
 
 // 0x435bd0: the Crywolf interface's step (06 § La interfaz de Crywolf), only on map 34 (0x4303c0). With the results
@@ -341,7 +341,7 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const Ui::GameUiContex
 // trade's and the NPC shop's take a rand().
 void PlaceTheChatLog(Kernel::WorldRuntime& runtime, Ui::PanelRegistry& panels)
 {
-    Chat::ChatLogFrame& frame = runtime.hud.chatFrame;
+    Ui::ChatLogFrame& frame = runtime.hud.chatFrame;
     if (runtime.ui.chatModes.placement != 1)
     {
         frame.x = -10;
@@ -1994,7 +1994,7 @@ void StepTheOldAreaRows(const Ui::GameUiContext& context)
         if (row.name == Actors::HeroNameOf(hero) || !ui.rightClick)
             continue;
         ui.rightClick = false;
-        Chat::PutTheWhisperName(runtime.chat.input, row.name);
+        Ui::PutTheWhisperName(runtime.chat.input, row.name);
         runtime.RequestSound(ButtonSound);
     }
 }
@@ -2004,14 +2004,14 @@ void StepTheOldAreaRows(const Ui::GameUiContext& context)
 void StepTheArrowKey(const Ui::GameUiContext& context, GameKey key, std::int32_t direction)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Chat::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chat.input;
     if (!KeyEdge(runtime.ui, context.input, key))
         return;
     bool sound = false;
-    if ((input.focus == Chat::ChatFocus::Message || input.focus == Chat::ChatFocus::Whisper) && input.field % 2 == 0)
-        sound = Chat::RecallFromTheHistory(input, direction);
+    if ((input.focus == Ui::ChatFocus::Message || input.focus == Ui::ChatFocus::Whisper) && input.field % 2 == 0)
+        sound = Ui::RecallFromTheHistory(input, direction);
     else
-        sound = Chat::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
+        sound = Ui::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
         runtime.RequestSound(ButtonSound);
 }
@@ -2042,7 +2042,7 @@ bool StepTheChatEdit(const Ui::GameUiContext& context, const ChatEditPlace& edit
     ui.mouseOnUi = 1;
     if (runtime.mouse.pendingClick)
     {
-        Chat::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
+        Ui::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
         runtime.mouse.updateTime = 0;
         runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     }
@@ -2077,11 +2077,11 @@ Core::Expected<void, std::string> StepTheMacros(const Ui::GameUiContext& context
     if (runtime.hud.macroTime != 0 || (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap) ||
         !context.input.IsDown(Key::Alt))
         return {};
-    std::array<bool, Chat::MacroCount> pressed{};
+    std::array<bool, Tables::MacroCount> pressed{};
     bool any = false;
-    for (std::size_t macro = 0; macro < Chat::MacroCount; ++macro)
+    for (std::size_t macro = 0; macro < Tables::MacroCount; ++macro)
     {
-        pressed[macro] = context.input.IsDown(Digit(static_cast<int>((macro + 1) % Chat::MacroCount)).key);
+        pressed[macro] = context.input.IsDown(Digit(static_cast<int>((macro + 1) % Tables::MacroCount)).key);
         any = any || pressed[macro];
     }
     if (!any)
@@ -2106,9 +2106,9 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const Ui::GameUiContext&
     // 0x5a00a1..0x5a0124: PgUp and PgDn scroll the chat log as many rows as it shows (the vtable + 0x38 gives them and
     // + 0x34 scrolls).
     if (KeyEdge(ui, input, PageUpKey))
-        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, -runtime.chat.log.rows);
+        Ui::ScrollTheLog(runtime.chat.log, ui.chatModes, -runtime.chat.log.rows);
     if (KeyEdge(ui, input, PageDownKey))
-        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, runtime.chat.log.rows);
+        Ui::ScrollTheLog(runtime.chat.log, ui.chatModes, runtime.chat.log.rows);
     StepTheArrowKey(context, UpKey, -1);
     StepTheArrowKey(context, DownKey, 1);
     // 0x5a03c3..0x5a05e5: the HUD buttons, each with its rectangle: closes it if open, otherwise opens it.
@@ -2141,7 +2141,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const Ui::GameUiContext&
     // 0x5a10e7..0x5a116f: the numbers choose the skill (0x59f810), without the 0x73 dialog (0x5a10f0, with 0x6c7b8c at
     // 1: it does not even check the focus), with the focus on the game, without text fields, without a skill charging
     // (0x5a1115, 0x7d368a4 at 0), without the raven's orders (0x420e30, Shift with 1 to 4) and without Alt.
-    if (runtime.dialogs.current != MoneyDialog && runtime.chat.input.focus == Chat::ChatFocus::Game && !ui.chatOpen &&
+    if (runtime.dialogs.current != MoneyDialog && runtime.chat.input.focus == Ui::ChatFocus::Game && !ui.chatOpen &&
         !runtime.chat.input.otherInput && ui.rightHoldFrames == 0)
     {
         if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
@@ -2323,7 +2323,7 @@ void LendTheGameHooks(Ui::OldWindowStepView& view, const Ui::GameUiContext& cont
     // CL9 milestone 10: the bad words filter of the letters and of the chat with a friend (0x622b40 with 0).
     if (const Chat::GameChatContext* chatContext = context.chat; chatContext != nullptr)
         view.badWord = [filter = chatContext->filter](std::string_view text)
-        { return FrontEnd::ContainsAFilteredWord(text, filter, false); };
+        { return Ui::ContainsAFilteredWord(text, filter, false); };
     view.heroName = std::string(Actors::HeroNameOf(world.Hero()));
     view.field78abaac = runtime.ui.field78abaac;
     if (!effects)
@@ -2337,7 +2337,7 @@ void LendTheGameHooks(Ui::OldWindowStepView& view, const Ui::GameUiContext& cont
     }
     // 0x4694c0(0, 0, 1, nombre).
     view.whisperTo = [&chat = runtime.chat.input](std::string_view name)
-    { Chat::SetTheChatFields(chat, std::nullopt, name); };
+    { Ui::SetTheChatFields(chat, std::nullopt, name); };
     // 0x4a11b0 with 10 and 2 on a saved letter: 0x4dcb70 with 0x4a03c0's copy.
     view.replayLetter = [&world, &random = context.random, measure = context.measure, screen = context.screen,
                          texts = context.texts, chosenSlot = context.chosenSlot, worldEntry = context.worldEntry](
@@ -2550,7 +2550,7 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const Ui::GameUiContext& c
     {
         ui.chatModes.showChat = !ui.chatModes.showChat;
         runtime.RequestSound(ButtonSound);
-        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
+        Ui::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
     }
     // 0x5aca86..0x5acad0: F3, the whisper mode (0x6c8dd0).
     if (KeyEdge(ui, input, F3Key))
@@ -2563,8 +2563,8 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const Ui::GameUiContext& c
     // in its order, up to the first open one), 0; outside it, (−10, 0x51).
     if (KeyEdge(ui, input, F4Key))
     {
-        Chat::CycleTheLogSize(runtime.chat.log, ui.chatModes);
-        Chat::ChatLogFrame& frame = runtime.hud.chatFrame;
+        Ui::CycleTheLogSize(runtime.chat.log, ui.chatModes);
+        Ui::ChatLogFrame& frame = runtime.hud.chatFrame;
         if (ui.chatModes.placement == 1)
         {
             GamePanels gamePanels(context.world, context.random);

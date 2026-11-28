@@ -173,7 +173,7 @@ protected:
         return Client::Chat::TypeInTheGameChat(Context(), typed);
     }
 
-    Client::Chat::ChatInputState& Input()
+    Client::Ui::ChatInputState& Input()
     {
         return world.Runtime().chat.input;
     }
@@ -189,7 +189,7 @@ protected:
         auto [window, inserted] = manager.windows.emplace(box.base.id, std::move(box));
         EXPECT_TRUE(inserted);
         manager.focusedEdit = window->second.add.edit.base.id;
-        Input().focus = Client::Chat::ChatFocus::OldWindow;
+        Input().focus = Client::Ui::ChatFocus::OldWindow;
         return window->second.add.edit;
     }
 
@@ -221,15 +221,15 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     ASSERT_TRUE(Type("abc\r").HasValue());
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(Input().shown);
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
-    EXPECT_EQ(world.Runtime().ui.focusedList, Client::Chat::ChatMessageEditId);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Message);
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::Ui::ChatMessageEditId);
     // What was there before opening was dropped by the game window.
     EXPECT_EQ(Input().message.text.Value(), "");
 
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_FALSE(Input().shown);
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Game);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Game);
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(random.State(), before);
 }
@@ -266,12 +266,12 @@ TEST_P(GameChatOnTheMaps, OpeningTheChatLeavesTheMoneyMode)
 TEST_P(GameChatOnTheMaps, TheMoneyDialogEmptiesItsEdit)
 {
     world.Runtime().dialogs.current = MoneyDialog;
-    Input().focus = Client::Chat::ChatFocus::Dialog;
+    Input().focus = Client::Ui::ChatFocus::Dialog;
     const auto before = random.State();
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_EQ(Input().dialogEdit.text.Value(), "");
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Game);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Game);
     EXPECT_EQ(world.Runtime().dialogs.current, MoneyDialog);
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(random.State(), before);
@@ -284,12 +284,12 @@ TEST_P(GameChatOnTheMaps, TheDialogEditIsReadWithTheFieldClosed)
     world.Runtime().social.moneyField = 1;
     Input().dialogEdit.text.SetText("250");
     Input().dialogEdit.base.state = Client::Ui::ShownWindow;
-    Input().focus = Client::Chat::ChatFocus::Dialog;
+    Input().focus = Client::Ui::ChatFocus::Dialog;
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_EQ(world.Runtime().social.typedMoney, 250);
     EXPECT_EQ(Input().dialogEdit.text.Value(), "");
     EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow);
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Game);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Game);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 }
@@ -302,8 +302,8 @@ TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
     for (const auto& [typed, money] : {std::pair<std::string_view, std::int32_t>{" 1234\r", 1234},
                                        std::pair<std::string_view, std::int32_t>{"-12zen\r", -12}})
     {
-        Client::Chat::ClearTheChatFields(Input());
-        Client::Chat::ResetTheTextBuffers(Input(), false);
+        Client::Ui::ClearTheChatFields(Input());
+        Client::Ui::ResetTheTextBuffers(Input(), false);
         world.Runtime().ui.chatOpen = false;
         ASSERT_TRUE(Type("\r").HasValue());
         world.Runtime().social.moneyField = 1;
@@ -337,7 +337,7 @@ TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
     EXPECT_EQ(shop.ownTitle, "Tienda inventada");
     const auto& entries = world.Runtime().chat.log.entries;
     EXPECT_TRUE(
-        std::ranges::any_of(entries, [](const Client::Chat::ChatEntry& entry)
+        std::ranges::any_of(entries, [](const Client::Ui::ChatEntry& entry)
                             { return entry.text == "aviso titulo" && entry.type == Client::Ui::SystemMessage; }));
     EXPECT_TRUE(sent.empty());
 }
@@ -352,7 +352,7 @@ TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
     EXPECT_EQ(shops.signsShown, 0);
     ASSERT_FALSE(entries.empty());
     EXPECT_TRUE(
-        std::ranges::any_of(entries, [](const Client::Chat::ChatEntry& entry)
+        std::ranges::any_of(entries, [](const Client::Ui::ChatEntry& entry)
                             { return entry.text == "aviso sin carteles" && entry.type == Client::Ui::ErrorMessage; }));
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).text, "/no ver puestos");
@@ -361,7 +361,7 @@ TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
     ASSERT_TRUE(Type("\r/ver puestos\r").HasValue());
     EXPECT_EQ(shops.signsShown, 1);
     EXPECT_TRUE(
-        std::ranges::any_of(entries, [](const Client::Chat::ChatEntry& entry)
+        std::ranges::any_of(entries, [](const Client::Ui::ChatEntry& entry)
                             { return entry.text == "aviso carteles" && entry.type == Client::Ui::SystemMessage; }));
 }
 
@@ -420,9 +420,9 @@ TEST_F(GameChat, MessageAndWhisperFieldsUseXpWindows1252BytesOnTheWire)
 TEST_F(GameChat, OrderedInputEventsMoveAndEditBothChatCarets)
 {
     ASSERT_TRUE(Type("\r").HasValue());
-    for (const auto field : {Client::Chat::MessageField, Client::Chat::WhisperField})
+    for (const auto field : {Client::Ui::MessageField, Client::Ui::WhisperField})
     {
-        Client::Chat::FocusTheChatField(Input(), field);
+        Client::Ui::FocusTheChatField(Input(), field);
         const std::array events{
             Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "abcd"},
             Client::Input::TextInputEvent{
@@ -434,7 +434,7 @@ TEST_F(GameChat, OrderedInputEventsMoveAndEditBothChatCarets)
 
         ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), events).HasValue());
 
-        const auto* edit = Client::Chat::ChatEditWithFocus(Input());
+        const auto* edit = Client::Ui::ChatEditWithFocus(Input());
         ASSERT_NE(edit, nullptr);
         EXPECT_EQ(edit->text.Value(), "axbcd");
         EXPECT_EQ(edit->text.Cursor(), 2u);
@@ -487,7 +487,7 @@ TEST_F(GameChat, TabKeepsBothChatTextsAndSelectsTheNewFieldBeforeWhispering)
     const std::array tab{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}}};
     ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), tab).HasValue());
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Message);
     EXPECT_EQ(Input().message.text.Selected(), "mensaje");
     EXPECT_EQ(Input().whisper.text.Value(), "Destino");
 
@@ -497,9 +497,9 @@ TEST_F(GameChat, TabKeepsBothChatTextsAndSelectsTheNewFieldBeforeWhispering)
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}},
     };
     ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), edited).HasValue());
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Whisper);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Whisper);
     EXPECT_EQ(Input().whisper.text.Selected(), "Destino");
-    EXPECT_EQ(world.Runtime().ui.focusedList, Client::Chat::ChatWhisperEditId);
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::Ui::ChatWhisperEditId);
     EXPECT_EQ(Input().message.text.Value(), "nuevo");
     ASSERT_TRUE(Type("\r").HasValue());
     ASSERT_EQ(sent.size(), 1u);
@@ -523,7 +523,7 @@ TEST_F(GameChat, ChatPreeditCannotSendOrChangeFocusBeforeCommittedText)
     };
     ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), preedit).HasValue());
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Message);
     EXPECT_EQ(Input().message.text.Value(), "ab");
     EXPECT_EQ(Input().message.compositionText, "preview");
     EXPECT_EQ(Input().message.compositionStart, 1);
@@ -1261,13 +1261,13 @@ TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
 {
     world.Runtime().panels.field78abb00 = 3;
     world.Runtime().events.serialEntry = true;
-    Input().focus = Client::Chat::ChatFocus::Dialog;
+    Input().focus = Client::Ui::ChatFocus::Dialog;
     Input().dialogEdit.filter = Client::Ui::UppercaseLettersAndDigitsEdit;
     Input().dialogEdit.text.SetLimit(12);
     ASSERT_TRUE(Type("ab-1 c\bz9\r\t").HasValue());
     EXPECT_EQ(Input().dialogEdit.text.Value(), "AB1Z9");
     EXPECT_EQ(Input().message.text.Value(), "");
-    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
+    EXPECT_EQ(Input().focus, Client::Ui::ChatFocus::Dialog);
     EXPECT_TRUE(world.Runtime().ui.enterPressed);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
@@ -1295,11 +1295,11 @@ TEST_F(GameChat, AStuckSerialEntrySwallowsEnter)
     ASSERT_TRUE(Type("\rhola").HasValue());
     ASSERT_TRUE(world.Runtime().ui.chatOpen);
     Input().field = 1;
-    Input().focus = Client::Chat::ChatFocus::Message;
+    Input().focus = Client::Ui::ChatFocus::Message;
     const auto before = random.State();
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(Input().field, Client::Chat::MessageField);
+    EXPECT_EQ(Input().field, Client::Ui::MessageField);
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_EQ(std::string_view(Input().messageBuffer.data()), "hola");
     EXPECT_EQ(Input().message.text.Value(), "hola");
@@ -1315,7 +1315,7 @@ TEST_F(GameChat, AHandledCommandOnlyClosesTheField)
     EXPECT_EQ(Input().macros[0], "hola");
     EXPECT_EQ(world.Runtime().chat.area.firstShown, 0);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
-    EXPECT_EQ(world.Runtime().lastSoundId, Client::Chat::ChatButtonSound);
+    EXPECT_EQ(world.Runtime().lastSoundId, Client::Ui::ChatButtonSound);
 }
 
 // 0x56c68b..0x56cdfc from the chat: /trade with the selected one next to it sends the C1 05 36 and the notice 475
@@ -1345,7 +1345,7 @@ TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
 {
     Input().macros[0] = "uno";
     Input().macros[9] = "diez";
-    std::array<bool, Client::Chat::MacroCount> pressed{};
+    std::array<bool, Client::Tables::MacroCount> pressed{};
     pressed[0] = true;
     pressed[9] = true;
     const auto before = random.State();
@@ -1353,7 +1353,7 @@ TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
     ASSERT_TRUE(said.HasValue()) << said.Error();
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).text, "uno");
-    EXPECT_EQ(world.Runtime().hud.macroTime, Client::Chat::MacroLockSteps);
+    EXPECT_EQ(world.Runtime().hud.macroTime, Client::Ui::MacroLockSteps);
     EXPECT_EQ(random.State(), before);
 }
 
@@ -1361,12 +1361,12 @@ TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
 TEST_F(GameChat, FromAMacroTheNumbersAreNotCommands)
 {
     Input().macros[0] = "/1x";
-    std::array<bool, Client::Chat::MacroCount> pressed{};
+    std::array<bool, Client::Tables::MacroCount> pressed{};
     pressed[0] = true;
     ASSERT_TRUE(Client::Chat::SayTheMacros(Context(), pressed).HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).text, "/1x");
     EXPECT_EQ(Input().macros[0], "/1x");
-    EXPECT_EQ(world.Runtime().hud.macroTime, Client::Chat::MacroLockSteps);
+    EXPECT_EQ(world.Runtime().hud.macroTime, Client::Ui::MacroLockSteps);
 }
 } // namespace

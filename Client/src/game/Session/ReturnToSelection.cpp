@@ -26,6 +26,7 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Music/MapMusic.h"
 #include "Chat/WhisperSenders.h"
 #include "Camera/GameCamera.h"
 #include "Audio/SoundId.h"
@@ -138,7 +139,7 @@ void StopAudioForSceneReturn(Kernel::WorldRuntime& runtime)
 {
     if (runtime.audio == nullptr)
         return;
-    runtime.music.StopWorld();
+    Music::StopTheWorldMusic(runtime.music);
     for (std::int32_t sound = 0; sound < 0x27e; ++sound)
         runtime.StopSound(Audio::SoundId{sound}, true);
 }

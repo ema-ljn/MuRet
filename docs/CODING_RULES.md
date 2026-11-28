@@ -69,7 +69,7 @@ namespace:
 
 ### The client's layers (2026-11-21)
 
-The client is split into 58 modules in three roots, `engine/`, `game/` and `app/`
+The client is split into 59 modules in three roots, `engine/`, `game/` and `app/`
 ([spec](superpowers/specs/2026-11-20-client-architecture-design.md),
 [ADR 0023](adr/0023-client-module-architecture.md)). A module uses only modules of a lower layer;
 inside a layer, only the ones its `may_use` names in [`Client/modules.tsv`](../Client/modules.tsv).
@@ -85,7 +85,7 @@ No cycles between modules.
 | 5 | `engine/Models`, `Render/Gl` | skeleton, pose, animation, skinning, cloth; the OpenGL backend | decide what the game draws |
 | 6 | `game/Protocol`, `Tables`, `Maps` | packet layouts and writers, MU's tables, map ids and their predicates | include each other or hold behavior |
 | 7 | `game/Kernel` | the `GameContext`, the shared state and the ports (send a packet, request a sound, an on-screen message) | hold feature logic |
-| 8 | `game/Assets`, `Terrain`, `Sound`, `Camera`, `Ui` | the game services and the widget kit | know actors or game modules |
+| 8 | `game/Assets`, `Terrain`, `Sound`, `Music`, `Camera`, `Ui` | the game services and the widget kit | know actors or game modules |
 | 9 | the game modules (`Actors` … `FrontEnd`) | one vertical slice per feature: state, handlers, actions, windows | include another module's internals or know the session |
 | 10 | `game/Session` | the connection, keepalive, the opcode table and routing | hold game logic |
 | 11 | `game/Scenes` | the frame scripts (login, selection, loading, game) and the `SceneManager` | do the work: they call the modules in the original's order |

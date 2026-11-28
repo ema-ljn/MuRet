@@ -9,6 +9,7 @@
 #include "Hud/Slides.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Music/MapMusic.h"
 #include "Audio/SoundId.h"
 
 #include <chrono>
@@ -37,8 +38,8 @@ void StepTheGameMusic(Kernel::WorldState& world, Crt::CrtRandom& random)
     Kernel::WorldRuntime& runtime = world.Runtime();
     StepWorldAmbience(runtime, random);
     Kernel::ActorState& hero = world.Hero();
-    runtime.music.StepWorld(runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
-                            [&hero, &random] { return InTheDeviasChurch(hero, random); });
+    Music::StepTheMapMusic(runtime.music, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
+                           [&hero, &random] { return InTheDeviasChurch(hero, random); });
     Events::Crywolf::StepTheCrywolfMusic(runtime);
 }
 } // namespace

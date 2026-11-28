@@ -256,7 +256,7 @@ Not part of the refactor tasks. Each needs its own yes.
 
 - **The order between groups.** Leaving Lorencia for the Dungeon stops `Pub` and `main_theme`, then plays `Dungeon`;
   the test of Task 5 pins `stop` before `play` (it exists today:
-  `MusicPlayerTest.FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon`).
+  `MapMusicTest.FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon`).
 - **The church test is lazy.** It runs only in Devias's safe zone, and each run draws `rand()`; a refactor that
   computes it before the call changes the CRT stream everywhere else. Task 5 pins how many times it is called per map.
 - **Map 0 outside the safe zone keeps its track.** The first group neither plays nor stops then.
@@ -446,16 +446,20 @@ void StopTheWorldMusic(Audio::MusicPlayer& player);
 - `MusicPlayer` keeps `Attach`, `Play`, `Stop`, `ReachedTheEnd`, `SetEnabled`, `SetBlocked` and `Current`.
 - No CMake target yet (AR4); the files join `ClientLib` by glob.
 
-- [ ] **Step 1:** commit a test that runs `MusicPlayer::StepWorld` and `Music::StepTheMapMusic` over every map 0..255,
+- [x] **Step 1:** commit a test that runs `MusicPlayer::StepWorld` and `Music::StepTheMapMusic` over every map 0..255,
   safe 0 and 1, cell layers 0..255 on map 0 and 0 and 4 on the others, and a church test that answers true or false
   and counts its calls, from every current track of the table and from none, and compares the event lists and the
   counts. CI passes it.
-- [ ] **Step 2:** `Music::StopTheWorldMusic` against `MusicPlayer::StopWorld` from each of the 22 tracks and from
+- [x] **Step 2:** `Music::StopTheWorldMusic` against `MusicPlayer::StopWorld` from each of the 22 tracks and from
   none, in the same commit.
-- [ ] **Step 3:** switch the two callers, delete the engine's copies and the comparison tests; the per-group tests
+- [x] **Step 3:** switch the two callers, delete the engine's copies and the comparison tests; the per-group tests
   move to `tests/music`, with `test_tracks.cpp` pinning the 22 paths in slot order.
-- [ ] **Step 4:** add the module row and its lists; `check_layers.py` prints `0 new`; `--clean-root engine` finds no
+- [x] **Step 4:** add the module row and its lists; `check_layers.py` prints `0 new`; `--clean-root engine` finds no
   music; the whole suite, the goldens and Task 2's audio files unchanged.
+
+After AR1.2 and AR4.1 the files are `Client/src/game/Music/` (namespace `Client::Music`), the player
+`Client/src/engine/Audio/MusicPlayer.{h,cpp}` and the sweep's caller `Client/src/game/Session/ReturnToSelection.cpp`.
+The comparison test ran in the PR's first commit and left with the engine's copies.
 
 ### Task 6: every track named from `game/Music`
 

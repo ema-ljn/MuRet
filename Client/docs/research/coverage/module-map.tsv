@@ -53,10 +53,13 @@ game/Assets/PlayerSkeleton.cpp	37	game/Assets	game/Assets	high	what 0x60dbe0 set
 game/Assets/PlayerSkeleton.h	14	game/Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 engine/Audio/ISoundCatalog.h	19	engine/Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
 engine/Audio/IMusicStream.h	16	engine/Audio	engine/Audio	high	the music stream the player asks for (play, stop and progress, as wzAudio.dll); the SDL audio implements it (music plan)
-engine/Audio/MusicPlayer.cpp	185	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
-engine/Audio/MusicPlayer.h	41	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
+engine/Audio/MusicPlayer.cpp	33	engine/Audio	engine/Audio	high	the music player (play, stop, end) over its stream; it knows paths, not MU's tracks (music plan)
+engine/Audio/MusicPlayer.h	44	engine/Audio	engine/Audio	high	the music player (play, stop, end) over its stream; it knows paths, not MU's tracks (music plan)
 engine/Audio/Playback.h	28	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/SoundId.h	11	engine/Audio	engine/Audio	high	the id of the sound catalog a sound request names, its own type (AR4.1)
+game/Music/MapMusic.cpp	76	game/Music	game/Music	high	MU's map music block (addr.) and the world sweep over the track table (music plan, Task 5)
+game/Music/MapMusic.h	17	game/Music	game/Music	high	MU's map music block (addr.) and the world sweep over the track table (music plan, Task 5)
+game/Music/Tracks.h	78	game/Music	game/Music	high	the 22 slots of MU's track table (addr.) and their paths (music plan, Task 5)
 game/Sound/SoundCatalog.cpp	657	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 game/Sound/SoundCatalog.h	22	game/Sound	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 game/Sound/SoundIds.h	26	game/Sound	game/Sound	high	the sounds of the catalog more than one module asks for, each named after its WAV (AR4.1)

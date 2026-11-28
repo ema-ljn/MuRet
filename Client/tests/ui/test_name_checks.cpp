@@ -1,6 +1,6 @@
-#include "UI/NameChecks.h"
+#include "FrontEnd/NameChecks.h"
 
-#include "UI/Notices.h"
+#include "Ui/Notices.h"
 
 #include "support/UiPrinters.h"
 

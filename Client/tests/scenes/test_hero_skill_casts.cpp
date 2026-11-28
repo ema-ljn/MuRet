@@ -7,7 +7,7 @@
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Skills/HeroSkills.h"
-#include "Scenes/InventoryMoves.h"
+#include "Items/InventoryMoves.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Audio/SoundId.h"

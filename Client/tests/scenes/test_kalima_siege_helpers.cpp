@@ -12,10 +12,10 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/KalimaWorld.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

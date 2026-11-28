@@ -17,10 +17,10 @@
 #include "Skills/HeroSkills.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Skills/Skill55cbc0.h"
-#include "Scenes/SocialState.h"
+#include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameUiState.h"
+#include "Ui/GameUiState.h"
 #include "Math/Ftol.h"
 #include "Terrain/WorldTerrain.h"
 

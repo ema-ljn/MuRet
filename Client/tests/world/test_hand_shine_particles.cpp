@@ -1,9 +1,9 @@
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "World/IParticleTrigonometry.h"
-#include "World/ParticleOwner.h"
+#include "Particles/IParticleTrigonometry.h"
+#include "Particles/ParticleOwner.h"
 
 #include "support/ParticleDrawRecorder.h"
 

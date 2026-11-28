@@ -1,0 +1,60 @@
+#include "Items/InventoryReply.h"
+#include "Kernel/HelperTable.h"
+
+#include "Core/Expected.h"
+#include "Protocol/Items/InventoryList.h"
+#include "Models/Cloth.h"
+#include "Models/LogicalAccess.h"
+#include "Pets/HelperTable.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/OwnInventory.h"
+#include "Items/OwnItemPlacement.h"
+#include "Session/WorldEntry.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+
+#include <cstddef>
+#include <format>
+#include <string>
+
+namespace Client::Scenes
+{
+void ClearForInventoryReply(const WorldEntryResources& resources)
+{
+    Kernel::WorldState& world = resources.world;
+    {
+        // 0x4c55c4..0x4c563c lo abre y 0x4c5661..0x4c56a3 lo cierra (0x40b4d0).
+        const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                           Models::OwnRecordCloseRandoms);
+        world.OwnCharacter().ClearEquipmentForInventory();
+    }
+    // 0x4c56a8..0x4c56e0, ya con el registro cerrado.
+    world.Inventory().ClearForInventoryReply();
+}
+
+Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol::Items::InventoryList& list,
+                                                                 const WorldEntryResources& resources)
+{
+    ClearForInventoryReply(resources);
+    // 0x4c5e4f..0x4c5e61: 0x443d40 apaga las entradas vivas de la tabla de 0x7d335d0 cuyo jinete (+0x108) es
+    // el héroe publicado, y 0x421d60 suelta su cuervo (+0x430), que MuRet no tiene en el mundo.
+    Kernel::TurnOffHelpersOf(resources.world.Helpers(), resources.world.Runtime().hero);
+    // 0x4c5e6c..0x4c5e9f: la cantidad de p+5, releída después de cada 0x5bc740, que no escribe el paquete.
+    InventoryReplyResult result;
+    for (std::size_t index = 0; index < list.items.size(); ++index)
+    {
+        const Protocol::Items::InventoryEntry& entry = list.items[index];
+        const auto placed = PlaceInventoryItem(entry.slot, entry.item, resources);
+        if (!placed.HasValue())
+        {
+            return Core::Unexpected(
+                std::format("el F3 10, la entrada {} (lugar {}): {}", index, entry.slot, placed.Error()));
+        }
+        if (placed.Value().sound)
+        {
+            result.sounds.push_back(*placed.Value().sound);
+        }
+    }
+    return result;
+}
+} // namespace Client::Scenes

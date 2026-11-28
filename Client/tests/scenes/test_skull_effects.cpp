@@ -1,16 +1,16 @@
-#include "Scenes/SkullEffects.h"
+#include "Effects/SkullEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/HighModelEffects.h"
+#include "Effects/HighModelEffects.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
-#include "World/GameModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/GameModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/CastleSiegeObjectServices.h"
+#include "MapScripts/CastleSiege/CastleSiegeObjectServices.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -16,14 +16,14 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/SphereFrustum.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/WorldObjects.h"
-#include "World/ModelEffects.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "WorldObjects/WorldObjects.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

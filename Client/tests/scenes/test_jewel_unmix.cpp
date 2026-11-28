@@ -1,4 +1,4 @@
-#include "Scenes/GameDialogSteps.h"
+#include "Hud/Dialogs/GameDialogSteps.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -8,13 +8,13 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Movement/GameMovementState.h"
-#include "Scenes/GameUi.h"
-#include "Scenes/NpcWindowState.h"
+#include "Hud/GameUi.h"
+#include "Npc/NpcWindowState.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameDialogs.h"
-#include "UI/MessageArea.h"
+#include "Ui/GameDialogs.h"
+#include "Ui/MessageArea.h"
 #include "Kernel/ItemState.h"
 
 #include "support/Bytes.h"

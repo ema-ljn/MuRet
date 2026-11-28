@@ -1,4 +1,4 @@
-#include "World/BlastModelEffects.h"
+#include "Effects/BlastModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -7,12 +7,12 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "World/GameModelEffects.h"
+#include "Effects/GameModelEffects.h"
 #include "Kernel/JointRequest.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 

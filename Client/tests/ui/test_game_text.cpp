@@ -1,4 +1,4 @@
-#include "UI/GameText.h"
+#include "Ui/GameText.h"
 
 #include <gtest/gtest.h>
 

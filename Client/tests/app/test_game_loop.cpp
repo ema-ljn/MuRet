@@ -1,6 +1,6 @@
 #include "App/GameLoop.h"
 
-#include "App/PacingMode.h"
+#include "Kernel/PacingMode.h"
 #include "Platform/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"

@@ -1,5 +1,5 @@
-#include "World/Birds.h"
-#include "World/IBirdStepServices.h"
+#include "Fauna/Birds.h"
+#include "Fauna/IBirdStepServices.h"
 
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>

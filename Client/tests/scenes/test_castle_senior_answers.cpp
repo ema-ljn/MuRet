@@ -1,10 +1,10 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/CastleSeniorAnswers.h"
+#include "CastleSiege/CastleSeniorAnswers.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Protocol/Outgoing.h"
-#include "UI/CastleSiegeState.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include "support/Bytes.h"
 #include "support/RecordingSink.h"

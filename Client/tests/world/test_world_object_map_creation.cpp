@@ -1,12 +1,12 @@
 #include "support/CheckedWorldObjectProjection.h"
 
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Maps/WorldFolder.h"
-#include "World/IWorldObjectCreationServices.h"
-#include "World/WorldObjectRegistrations.h"
+#include "WorldObjects/IWorldObjectCreationServices.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/GoldenDir.h"

@@ -1,4 +1,4 @@
-#include "UI/FriendModel.h"
+#include "Messenger/FriendModel.h"
 
 #include <gtest/gtest.h>
 

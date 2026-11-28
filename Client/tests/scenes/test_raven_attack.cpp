@@ -4,7 +4,7 @@
 #include "Kernel/ActorSpirit.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 

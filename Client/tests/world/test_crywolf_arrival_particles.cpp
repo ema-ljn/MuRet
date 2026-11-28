@@ -1,8 +1,8 @@
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/ParticleDrawing.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/ParticleDrawing.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"

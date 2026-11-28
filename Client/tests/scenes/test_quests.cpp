@@ -1,4 +1,4 @@
-#include "Scenes/Quests.h"
+#include "Quests/Quests.h"
 
 #include "Crt/CrtRandom.h"
 #include "Tables/QuestTable.h"
@@ -7,10 +7,10 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
-#include "Scenes/QuestState.h"
+#include "Quests/QuestState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameDialogs.h"
+#include "Ui/GameDialogs.h"
 #include "Kernel/ItemState.h"
 
 #include "support/PlayerActors.h"

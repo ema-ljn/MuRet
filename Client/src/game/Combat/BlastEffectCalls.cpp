@@ -5,15 +5,15 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Kernel/ModelEffectArguments.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Skills/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"
-#include "World/BlastModelEffects.h"
+#include "Effects/BlastModelEffects.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 #include "Audio/SoundId.h"
 
 #include <cstddef>

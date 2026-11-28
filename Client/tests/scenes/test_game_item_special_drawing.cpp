@@ -17,7 +17,7 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <array>

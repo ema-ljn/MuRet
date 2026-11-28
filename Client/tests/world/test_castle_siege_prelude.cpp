@@ -1,10 +1,10 @@
-#include "World/CastleSiegeObjectStep.h"
+#include "CastleSiege/CastleSiegeObjectStep.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
 #include "Models/LogicalAccess.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>

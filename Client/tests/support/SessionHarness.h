@@ -2,9 +2,9 @@
 
 #include "Session/Credentials.h"
 #include "Session/ISessionEventSink.h"
-#include "App/ServerAddress.h"
+#include "Session/ServerAddress.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"

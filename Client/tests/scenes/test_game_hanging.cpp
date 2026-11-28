@@ -1,7 +1,7 @@
 #include "Math/X87.h"
 #include "Models/IModelLibrary.h"
 #include "Actors/Drawing/GameHanging.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -15,12 +15,12 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/PoseBuffer.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Kernel/JointRequest.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 
 #include <gtest/gtest.h>
 

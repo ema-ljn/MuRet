@@ -1,9 +1,9 @@
-#include "UI/MenuBar.h"
+#include "Ui/MenuBar.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "support/UiInput.h"
 
 #include <gtest/gtest.h>

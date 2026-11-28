@@ -2,9 +2,9 @@
 
 #include "Crt/CrtRandom.h"
 #include "Models/Skeleton.h"
-#include "Scenes/FaunaMotion.h"
+#include "Fauna/FaunaMotion.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/FaunaObject.h"
+#include "Fauna/FaunaObject.h"
 
 #include <gtest/gtest.h>
 

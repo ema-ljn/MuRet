@@ -6,7 +6,7 @@
 #include "Models/Animation.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 
 #include "support/WorldObjectVectors.h"
 

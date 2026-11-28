@@ -11,7 +11,7 @@
 #include "Actors/ActorShock.h"
 #include "Kernel/ActorState.h"
 #include "Combat/DamageNumbers.h"
-#include "Scenes/HandShine.h"
+#include "Effects/HandShine.h"
 #include "Monsters/MonsterCreation.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Session/WorldEntry.h"

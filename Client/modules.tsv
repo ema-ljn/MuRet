@@ -69,4 +69,4 @@ game/Hud	game	9		*layer<9;game/Actors;game/FrontEnd;game/Hero;game/Player	the HU
 game/FrontEnd	game	9		*layer<9;game/Actors;game/ChaosMix;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Npc;game/Particles;game/Pets;game/Player;game/WorldObjects	login, server list, character selection and creation
 game/Session	game	10		*layer<10	connection to the servers, keepalive, the opcode table and routing
 game/Scenes	game	11		*layer<11	the frame scripts: Login, Selection, Loading, Game; SceneManager
-app	app	12	App/**;main.cpp	*layer<12	main.cpp and App: config, command line, loop, the composition root
+app	app	12	app/**	*layer<12	main.cpp and App: config, command line, loop, the composition root

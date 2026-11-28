@@ -1,7 +1,7 @@
 #include "Crt/CrtRandom.h"
-#include "World/ObjectModelStepState.h"
-#include "World/Particles.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/Particles.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

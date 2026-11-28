@@ -1,10 +1,10 @@
-#include "Scenes/GuildMarks.h"
+#include "Guild/GuildMarks.h"
 
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 
 #include "support/FakeTextureStore.h"
 

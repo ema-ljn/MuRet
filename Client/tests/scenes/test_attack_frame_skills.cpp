@@ -18,9 +18,9 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Particles.h"
-#include "World/ModelEffects.h"
-#include "World/WizardModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 

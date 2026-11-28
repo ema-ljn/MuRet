@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
@@ -10,9 +10,9 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Pets/HelperTable.h"
-#include "Scenes/JointKernels.h"
+#include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

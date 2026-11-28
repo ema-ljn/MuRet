@@ -16,7 +16,7 @@
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
 #include "Monsters/ModelBody.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

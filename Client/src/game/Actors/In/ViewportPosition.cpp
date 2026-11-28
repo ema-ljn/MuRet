@@ -9,7 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Protocol/Actors/Viewport.h"
-#include "World/ParticleBurst.h"
+#include "Particles/ParticleBurst.h"
 
 #include <cstdint>
 #include <format>

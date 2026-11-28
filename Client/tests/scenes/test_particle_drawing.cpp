@@ -1,6 +1,6 @@
 #include "Models/IModelLibrary.h"
-#include "World/ParticleDrawing.h"
-#include "Scenes/ParticleDrawServices.h"
+#include "Particles/ParticleDrawing.h"
+#include "Effects/ParticleDrawServices.h"
 #include "Models/TextureMetadata.h"
 #include "Render/IParticleDrawBackend.h"
 #include "Render/ParticleBillboardRequest.h"
@@ -14,7 +14,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
 #include "Core/Expected.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

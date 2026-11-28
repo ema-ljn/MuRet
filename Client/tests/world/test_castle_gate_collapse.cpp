@@ -1,7 +1,7 @@
 #include "Kernel/ModelEffectArguments.h"
-#include "World/CastleSiegeObjectStep.h"
+#include "CastleSiege/CastleSiegeObjectStep.h"
 #include "Core/Expected.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <string>

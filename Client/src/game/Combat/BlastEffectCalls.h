@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include <cstddef>
 #include <optional>

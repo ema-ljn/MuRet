@@ -10,7 +10,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Tables/PlayerBones.h"
 #include "Terrain/TerrainDefines.h"
 

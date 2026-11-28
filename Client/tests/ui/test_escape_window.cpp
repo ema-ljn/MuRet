@@ -1,12 +1,12 @@
-#include "UI/EscapeWindow.h"
+#include "FrontEnd/EscapeWindow.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
-#include "UI/NewUi.h"
-#include "UI/Widget.h"
+#include "Ui/NewUi.h"
+#include "Ui/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"

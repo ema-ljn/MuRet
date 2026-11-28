@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/GameUi.h"
+#include "Hud/GameUi.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -8,7 +8,7 @@
 #include "Input/Key.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Scenes/InventoryMoves.h"
+#include "Items/InventoryMoves.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "support/Bytes.h"

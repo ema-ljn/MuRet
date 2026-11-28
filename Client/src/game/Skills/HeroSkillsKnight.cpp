@@ -14,7 +14,7 @@
 #include "Actors/ActorName.h"
 #include "Kernel/ActorState.h"
 #include "Combat/CombatActionSpeeds.h"
-#include "Scenes/CrywolfContract.h"
+#include "Events/Crywolf/CrywolfContract.h"
 #include "Movement/GameMovementState.h"
 #include "Hero/HeroAttack.h"
 #include "Skills/HeroSkillCasts.h"

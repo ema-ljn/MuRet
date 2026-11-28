@@ -1,6 +1,6 @@
-#include "World/Fish.h"
+#include "Fauna/Fish.h"
 #include "Kernel/JointRequest.h"
-#include "World/IFishStepServices.h"
+#include "Fauna/IFishStepServices.h"
 #include "Core/Expected.h"
 #include "Math/OriginalRotation.h"
 

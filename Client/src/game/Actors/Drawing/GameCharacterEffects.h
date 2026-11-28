@@ -5,7 +5,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/SocialState.h"
+#include "Social/SocialState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

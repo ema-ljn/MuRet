@@ -1,4 +1,4 @@
-#include "Terrain/GroundEffectDrawing.h"
+#include "Effects/GroundEffectDrawing.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -6,7 +6,7 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include <gtest/gtest.h>
 

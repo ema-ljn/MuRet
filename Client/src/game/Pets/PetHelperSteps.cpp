@@ -13,8 +13,8 @@
 #include "Pets/HelperTable.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

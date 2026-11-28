@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/WizardEffects.h"
+#include "Effects/WizardEffects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -10,16 +10,16 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
-#include "World/Sprites.h"
-#include "World/WizardModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Sprites.h"
+#include "Effects/WizardModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 

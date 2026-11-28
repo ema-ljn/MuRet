@@ -1,11 +1,11 @@
-#include "UI/PanelDialog.h"
+#include "Ui/PanelDialog.h"
 
 #include "Core/Expected.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "UI/ChatInput.h"
-#include "UI/OldWindows.h"
-#include "UI/Widget.h"
+#include "Chat/ChatInput.h"
+#include "Ui/OldWindows.h"
+#include "Ui/Widget.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

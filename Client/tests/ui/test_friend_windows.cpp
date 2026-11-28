@@ -1,15 +1,15 @@
-#include "UI/FriendWindows.h"
+#include "Messenger/FriendWindows.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "UI/ChatInput.h"
-#include "UI/FriendModel.h"
-#include "UI/OldControls.h"
-#include "UI/OldWindowBase.h"
-#include "UI/OldWindowSteps.h"
-#include "UI/OldWindows.h"
+#include "Chat/ChatInput.h"
+#include "Messenger/FriendModel.h"
+#include "Ui/OldControls.h"
+#include "Ui/OldWindowBase.h"
+#include "Ui/OldWindowSteps.h"
+#include "Ui/OldWindows.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

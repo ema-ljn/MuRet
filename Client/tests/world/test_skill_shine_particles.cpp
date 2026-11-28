@@ -1,9 +1,9 @@
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/RoundedMath.h"
-#include "World/ParticleOwner.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 

@@ -1,6 +1,6 @@
 #include "App/GameClient.h"
 
-#include "App/ILoopClient.h"
+#include "Scenes/ILoopClient.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/LocalTime.h"

@@ -22,13 +22,13 @@
 #include "Kernel/PoseBuffer.h"
 #include "Actors/JointHooks.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
-#include "Scenes/GuildState.h"
-#include "World/ChaosCastle.h"
+#include "Guild/GuildState.h"
+#include "Events/ChaosCastle/ChaosCastle.h"
 #include "Kernel/JointRequest.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Actors/Drawing/ScepterGlow.h"
-#include "World/Sprites.h"
-#include "World/WeaponSparkKernels.h"
+#include "Particles/Sprites.h"
+#include "Particles/WeaponSparkKernels.h"
 
 #include <glm/ext/vector_float3.hpp>
 

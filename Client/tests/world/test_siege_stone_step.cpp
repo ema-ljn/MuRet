@@ -1,8 +1,8 @@
 #include "Crt/CrtRandom.h"
-#include "World/SiegeStoneEffects.h"
+#include "CastleSiege/SiegeStoneEffects.h"
 #include "Core/Expected.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 #include <gtest/gtest.h>

@@ -1,6 +1,6 @@
 #include "Session/ServerSession.h"
 
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Network/LinkState.h"
@@ -8,11 +8,11 @@
 #include "Network/ProtocolError.h"
 #include "Protocol/Weather/Weather.h"
 #include "Models/Cloth.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/LeafWeather.h"
+#include "Weather/LeafWeather.h"
 
 #include "support/BareWorld.h"
 #include "support/Bytes.h"

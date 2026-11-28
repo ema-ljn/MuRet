@@ -1,4 +1,4 @@
-#include "UI/OldWindows.h"
+#include "Ui/OldWindows.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -7,10 +7,10 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "UI/ChatInput.h"
-#include "UI/ChatLog.h"
-#include "UI/OldWindowBase.h"
-#include "UI/OldWindowDraw.h"
+#include "Chat/ChatInput.h"
+#include "Chat/ChatLog.h"
+#include "Ui/OldWindowBase.h"
+#include "Ui/OldWindowDraw.h"
 #include "Audio/SoundId.h"
 #include "support/RecordingTextDrawer.h"
 

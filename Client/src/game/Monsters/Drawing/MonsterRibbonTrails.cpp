@@ -10,7 +10,7 @@
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "Scenes/WorldModelPose.h"
+#include "WorldObjects/WorldModelPose.h"
 #include "Kernel/WorldState.h"
 
 #include <glm/ext/vector_float3.hpp>

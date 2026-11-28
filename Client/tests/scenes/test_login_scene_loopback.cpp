@@ -3,9 +3,9 @@
 #include "App/AutoLogin.h"
 #include "Session/Credentials.h"
 #include "App/LabXorRemapTables.h"
-#include "App/ServerAddress.h"
+#include "Session/ServerAddress.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"
@@ -33,7 +33,7 @@
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>

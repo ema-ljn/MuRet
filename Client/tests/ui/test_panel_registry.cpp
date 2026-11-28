@@ -1,8 +1,8 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Kernel/CharacterClass.h"
-#include "UI/Dialogs.h"
-#include "UI/PanelRegistry.h"
+#include "Ui/Dialogs.h"
+#include "Ui/PanelRegistry.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

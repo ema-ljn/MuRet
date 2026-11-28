@@ -1,10 +1,10 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 

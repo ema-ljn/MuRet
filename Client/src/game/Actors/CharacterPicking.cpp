@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Models/RayPicking.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/PartyActors.h"
+#include "Party/PartyActors.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainPickingSegment.h"

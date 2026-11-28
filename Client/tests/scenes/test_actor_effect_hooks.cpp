@@ -1,4 +1,4 @@
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 
 #include "Actors/EffectHooks.h"
 #include "Crt/CrtRandom.h"
@@ -7,17 +7,17 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
-#include "Scenes/GuildMarkEffects.h"
-#include "Scenes/HighModelEffects.h"
-#include "Scenes/SkullEffects.h"
-#include "Scenes/WizardEffects.h"
+#include "Effects/GuildMarkEffects.h"
+#include "Effects/HighModelEffects.h"
+#include "Effects/SkullEffects.h"
+#include "Effects/WizardEffects.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
-#include "World/BlastModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/SkinShellEffects.h"
-#include "World/WizardModelEffects.h"
+#include "Effects/BlastModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/SkinShellEffects.h"
+#include "Effects/WizardModelEffects.h"
 
 #include <gtest/gtest.h>
 

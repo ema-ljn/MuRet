@@ -10,7 +10,7 @@
 #include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 #include "Assets/GameModels.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"

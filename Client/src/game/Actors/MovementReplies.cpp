@@ -15,7 +15,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorWalk.h"
 #include "Combat/BlastEffectCalls.h"
-#include "Scenes/CrywolfContract.h"
+#include "Events/Crywolf/CrywolfContract.h"
 #include "Combat/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/ActionReply.h"

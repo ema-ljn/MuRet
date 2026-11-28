@@ -18,7 +18,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameUiState.h"
+#include "Ui/GameUiState.h"
 #include "Math/Ftol.h"
 #include "Kernel/ItemState.h"
 #include "Pathfinding/TerrainWalls.h"

@@ -1,10 +1,10 @@
 #include "App/AutoLogin.h"
 
 #include "Session/Credentials.h"
-#include "App/FaithfulPacer.h"
-#include "App/ServerAddress.h"
+#include "Kernel/FaithfulPacer.h"
+#include "Session/ServerAddress.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"

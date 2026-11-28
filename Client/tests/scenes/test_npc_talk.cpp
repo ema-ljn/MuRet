@@ -1,4 +1,4 @@
-#include "Scenes/NpcTalk.h"
+#include "Npc/NpcTalk.h"
 
 #include "Models/LogicalAccess.h"
 
@@ -24,8 +24,8 @@
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/MessageArea.h"
-#include "UI/PanelRegistry.h"
+#include "Ui/MessageArea.h"
+#include "Ui/PanelRegistry.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 

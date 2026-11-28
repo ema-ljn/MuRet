@@ -1,4 +1,4 @@
-#include "World/WorldObjectRegistrations.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
 
 #include <gtest/gtest.h>
 

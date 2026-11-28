@@ -22,7 +22,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/ScepterGlow.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 
 #include <gtest/gtest.h>
 

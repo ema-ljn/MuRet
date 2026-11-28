@@ -8,7 +8,7 @@
 #include "Actors/Drawing/GameCharacters.h"
 #include "Monsters/MonsterCreation.h"
 #include "Kernel/WorldRuntime.h"
-#include "Scenes/WorldTexts.h"
+#include "Hud/WorldTexts.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "support/SceneDataFiles.h"
 

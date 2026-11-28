@@ -1,4 +1,4 @@
-#include "UI/Dialogs.h"
+#include "Ui/Dialogs.h"
 
 #include <gtest/gtest.h>
 

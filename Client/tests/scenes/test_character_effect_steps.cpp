@@ -1,4 +1,4 @@
-#include "Scenes/CharacterEffectSteps.h"
+#include "Effects/CharacterEffectSteps.h"
 
 #include "Crt/CrtRandom.h"
 #include "Kernel/ActorState.h"
@@ -8,11 +8,11 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameParticles.h"
+#include "Effects/GameParticles.h"
 #include "Session/CharacterDrawHooks.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
 #include "support/ParticleDrawRecorder.h"
 
 #include <gtest/gtest.h>

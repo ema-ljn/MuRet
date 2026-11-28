@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Data/Terrain/TerrainObjects.h"
-#include "World/ModelEffects.h"
-#include "World/KalimaWorld.h"
-#include "World/WorldObjectRegistrations.h"
-#include "World/WorldObjects.h"
+#include "Effects/ModelEffects.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <cstdint>
 #include <memory>

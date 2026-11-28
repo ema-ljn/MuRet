@@ -1,4 +1,4 @@
-#include "Scenes/CastleFlagImage.h"
+#include "CastleSiege/CastleFlagImage.h"
 
 #include <gtest/gtest.h>
 

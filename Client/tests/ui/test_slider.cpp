@@ -1,8 +1,8 @@
-#include "UI/Slider.h"
+#include "Ui/Slider.h"
 
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "support/UiInput.h"
 
 #include <gtest/gtest.h>

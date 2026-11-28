@@ -1,4 +1,4 @@
-#include "Scenes/GameLeaves.h"
+#include "Weather/GameLeaves.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -6,10 +6,10 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Actors/MovementSpeed.h"
 #include "Kernel/ActorState.h"
-#include "World/ILeafWaveEvaluator.h"
-#include "World/LeafWeather.h"
-#include "World/Leaves.h"
-#include "World/Particles.h"
+#include "Weather/ILeafWaveEvaluator.h"
+#include "Weather/LeafWeather.h"
+#include "Weather/Leaves.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

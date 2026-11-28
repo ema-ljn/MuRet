@@ -8,10 +8,10 @@
 #include "Models/Animation.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/ChatBubbles.h"
+#include "Chat/ChatBubbles.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameText.h"
+#include "Ui/GameText.h"
 
 #include <array>
 #include <cstddef>

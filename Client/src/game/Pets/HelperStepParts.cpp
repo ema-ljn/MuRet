@@ -12,7 +12,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Terrain/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>

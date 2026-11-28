@@ -1,10 +1,10 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/CrywolfMissileDrawing.h"
+#include "Effects/CrywolfMissileDrawing.h"
 #include "Math/HalfLifeMath.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/ParticleOwner.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Sprites.h"
 #include "support/PlayerActors.h"
 #include <gtest/gtest.h>
 #include <cstddef>

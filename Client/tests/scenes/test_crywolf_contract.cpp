@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/CrywolfContract.h"
+#include "Events/Crywolf/CrywolfContract.h"
 
 #include "Core/Expected.h"
 #include "Tables/TextTable.h"

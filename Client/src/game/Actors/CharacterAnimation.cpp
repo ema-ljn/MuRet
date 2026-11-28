@@ -1,6 +1,6 @@
 #include "Actors/CharacterAnimation.h"
 
-#include "App/LoopTiming.h"
+#include "Kernel/LoopTiming.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/PlayerActions.h"
 #include "Kernel/CharacterAppearance.h"

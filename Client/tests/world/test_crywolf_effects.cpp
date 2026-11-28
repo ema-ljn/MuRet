@@ -1,8 +1,8 @@
-#include "World/GameModelEffects.h"
+#include "Effects/GameModelEffects.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 

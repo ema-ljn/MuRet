@@ -1,0 +1,32 @@
+#include "Particles/PortableParticleTrigonometry.h"
+
+#include "Core/Expected.h"
+#include "Math/OriginalRetainedMath.h"
+#include "Particles/Particles.h"
+
+#include <optional>
+
+namespace Client::World
+{
+Core::Expected<double, ParticleError> PortableParticleTrigonometry::SineProductPC53(double argument,
+                                                                                    float multiplier) const
+{
+    const std::optional<double> product = Math::Detail::SineProductPC53(argument, multiplier);
+    if (!product)
+    {
+        return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);
+    }
+    return *product;
+}
+
+Core::Expected<double, ParticleError> PortableParticleTrigonometry::CosineProductPC53(double argument,
+                                                                                      float multiplier) const
+{
+    const std::optional<double> product = Math::Detail::CosineProductPC53(argument, multiplier);
+    if (!product)
+    {
+        return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);
+    }
+    return *product;
+}
+} // namespace Client::World

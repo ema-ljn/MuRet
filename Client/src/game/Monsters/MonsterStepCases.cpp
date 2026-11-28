@@ -9,7 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Monsters/MonsterCreation.h"
 #include "Kernel/WorldRuntime.h"
-#include "Scenes/WorldTexts.h"
+#include "Hud/WorldTexts.h"
 #include "Crt/SprintfFormat.h"
 
 #include <glm/ext/vector_float3.hpp>

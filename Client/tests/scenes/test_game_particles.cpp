@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/GameParticles.h"
+#include "Effects/GameParticles.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -20,13 +20,13 @@
 #include "Kernel/PoseBuffer.h"
 #include "Models/TextureMetadata.h"
 #include "Models/ModelId.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainCulling.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <gtest/gtest.h>
 

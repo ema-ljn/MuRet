@@ -5,9 +5,9 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Terrain/GroundMarks.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>

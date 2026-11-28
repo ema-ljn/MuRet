@@ -11,17 +11,17 @@
 #include "Actors/ActionSend.h"
 #include "Actors/ViewportHooks.h"
 #include "Combat/ActorCombat.h"
-#include "Scenes/CastleSiegeReceive.h"
-#include "Scenes/ChatReceive.h"
-#include "Scenes/GuildReceive.h"
-#include "Scenes/SocialEvents.h"
+#include "CastleSiege/CastleSiegeReceive.h"
+#include "Chat/ChatReceive.h"
+#include "Guild/GuildReceive.h"
+#include "Social/SocialEvents.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Session/ServerSession.h"
 #include "Session/SessionPacketSender.h"
 #include "Session/ViewportHooks.h"
 #include "Session/WorldEntry.h"
-#include "World/LeafWeather.h"
+#include "Weather/LeafWeather.h"
 
 #include <algorithm>
 #include <array>

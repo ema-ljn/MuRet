@@ -1,6 +1,6 @@
 #include "Scenes/OriginalFramesOfTheSteps.h"
 
-#include "App/LoopTiming.h"
+#include "Kernel/LoopTiming.h"
 #include "Core/IClock.h"
 #include "Models/Animation.h"
 

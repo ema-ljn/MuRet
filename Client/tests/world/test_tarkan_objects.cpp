@@ -3,11 +3,11 @@
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skeleton.h"
-#include "World/ObjectModelStepState.h"
-#include "World/TarkanObjectStep.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "MapScripts/Tarkan/TarkanObjectStep.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 

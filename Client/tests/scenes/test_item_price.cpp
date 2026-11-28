@@ -1,4 +1,4 @@
-#include "Scenes/ItemPrice.h"
+#include "Items/ItemPrice.h"
 
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"

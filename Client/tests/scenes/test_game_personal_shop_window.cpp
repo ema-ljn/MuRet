@@ -1,4 +1,4 @@
-#include "Scenes/GameInventoryHud.h"
+#include "Hud/GameInventoryHud.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -11,13 +11,13 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameHud.h"
-#include "Scenes/GamePanels.h"
+#include "Hud/GameHud.h"
+#include "Hud/GamePanels.h"
 #include "Kernel/OwnInventory.h"
-#include "Scenes/SocialState.h"
+#include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "Kernel/ItemState.h"
 #include "Audio/SoundId.h"
 

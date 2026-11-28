@@ -23,10 +23,10 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameUiState.h"
+#include "Ui/GameUiState.h"
 #include "Kernel/ItemState.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 

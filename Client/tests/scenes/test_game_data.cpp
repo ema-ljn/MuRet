@@ -19,7 +19,7 @@
 #include "support/SkillFiles.h"
 #include "support/GoldenDir.h"
 #include "Tables/SkillTable.h"
-#include "UI/MacroFile.h"
+#include "Chat/MacroFile.h"
 
 #include <gtest/gtest.h>
 

@@ -1,4 +1,4 @@
-#include "World/Birds.h"
+#include "Fauna/Birds.h"
 
 #include <glm/ext/vector_float3.hpp>
 

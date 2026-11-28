@@ -1,5 +1,5 @@
 #include "test_game_t16_support.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Diagnostics/Crc32.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -7,7 +7,7 @@
 #include "Network/Packet.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldMap.h"
-#include "World/KalimaWorld.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
 
 #include <gtest/gtest.h>
 

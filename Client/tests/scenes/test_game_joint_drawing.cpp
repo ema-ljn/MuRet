@@ -1,11 +1,11 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Kernel/JointRequest.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaObject.h"
+#include "Fauna/FaunaObject.h"
 #include "Render/ModelBatch.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include <gtest/gtest.h>
 #include <array>
 #include <cstdint>

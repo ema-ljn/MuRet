@@ -1,8 +1,8 @@
-#include "UI/ChatLogWindow.h"
+#include "Chat/ChatLogWindow.h"
 
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "UI/ChatLog.h"
+#include "Chat/ChatLog.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

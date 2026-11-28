@@ -9,9 +9,9 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Math/HalfLifeMath.h"
 #include "support/PlayerActors.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Assets/FaunaModels.h"
 #include "Audio/SoundId.h"
 #include <gtest/gtest.h>

@@ -8,17 +8,17 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Combat/BlastEffectCalls.h"
-#include "Scenes/CastleBattleReceive.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "CastleSiege/CastleBattleReceive.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Pets/HelperTable.h"
 #include "Monsters/MonsterCreation.h"
-#include "Scenes/PersonalShopTitles.h"
-#include "Scenes/SiegeBattleUi.h"
-#include "Scenes/SocialState.h"
+#include "PersonalShop/PersonalShopTitles.h"
+#include "CastleSiege/SiegeBattleUi.h"
+#include "Social/SocialState.h"
 #include "Session/WorldEntry.h"
 #include "Session/WorldTransitionSupport.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 

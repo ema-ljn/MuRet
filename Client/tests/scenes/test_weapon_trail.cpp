@@ -11,7 +11,7 @@
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "support/PlayerActors.h"
 
 #include <glm/ext/vector_float3.hpp>

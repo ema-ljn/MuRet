@@ -2,8 +2,8 @@
 #include "Kernel/WorldRuntime.h"
 #include "Audio/Playback.h"
 #include "Scenes/WinMainLoop.h"
-#include "UI/ChatInput.h"
-#include "UI/OldWindows.h"
+#include "Chat/ChatInput.h"
+#include "Ui/OldWindows.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundRequests.h"
 

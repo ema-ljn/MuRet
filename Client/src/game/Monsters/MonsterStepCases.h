@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/WorldTexts.h"
+#include "Hud/WorldTexts.h"
 
 #include <cstdint>
 #include <functional>

@@ -12,7 +12,7 @@
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkillSupport.h"
 #include "Skills/HeroSkills.h"
-#include "Scenes/InventoryMoves.h"
+#include "Items/InventoryMoves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Skills/Skill4f5290.h"
 #include "Kernel/WorldRuntime.h"

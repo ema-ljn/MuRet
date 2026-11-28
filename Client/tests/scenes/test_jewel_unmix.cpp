@@ -8,6 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Tables/TextTable.h"
 #include "Hud/GameUi.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/OwnInventory.h"

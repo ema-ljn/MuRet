@@ -22,6 +22,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Platform/IClipboard.h"
 #include "Ui/MessageArea.h"

@@ -1,5 +1,7 @@
 #include "Ui/OldEditFocus.h"
 
+#include "Chat/ChatInput.h"
+#include "Ui/OldControls.h"
 #include "Ui/OldEditInput.h"
 #include "Ui/OldEditLines.h"
 #include "Ui/OldWindowBase.h"

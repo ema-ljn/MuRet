@@ -28,6 +28,7 @@
 #include "Kernel/WorldState.h"
 #include "Chat/ChatCommands.h"
 #include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Chat/Emotes.h"
 #include "Ui/OldEditFocus.h"

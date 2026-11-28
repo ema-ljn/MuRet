@@ -61,6 +61,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Chat/ChatLogWindow.h"
 #include "Ui/Dialogs.h"

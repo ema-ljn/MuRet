@@ -4,7 +4,7 @@
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Tables/TextTable.h"
-#include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 
 #include <array>

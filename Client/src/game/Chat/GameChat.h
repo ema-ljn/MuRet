@@ -7,7 +7,7 @@
 #include "Tables/TextTable.h"
 #include "Input/TextInputEvent.h"
 #include "Protocol/Outgoing.h"
-#include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 
 #include <array>
 #include <cstdint>

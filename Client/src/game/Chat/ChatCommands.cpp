@@ -6,6 +6,7 @@
 #include "Tables/TextTable.h"
 #include "Maps/MapId.h"
 #include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Ui/MessageArea.h"
 #include "FrontEnd/NameChecks.h"

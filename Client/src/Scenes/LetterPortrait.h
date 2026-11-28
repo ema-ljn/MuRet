@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/HelperTable.h"
 #include "Core/PixelSize.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Math/HalfLifeMath.h"
@@ -49,7 +50,7 @@ struct LetterPortrait
     Kernel::ActorState actor{};
     // +0x4b4: un lugar de 0x1d4 bytes como los de la tabla de los ayudantes (0x7d335d0), fuera de ella. El jinete
     // (+0x108) es el personaje de arriba: en MuRet, `rider` en ActorPoolSize.
-    HelperState helper{};
+    Kernel::HelperState helper{};
     // +0x688: la escala del ayudante, por la del personaje (0x497810 y la cola de 0x496530) y el zoom (0x495760); el
     // dibujo (0x445260 con su segundo argumento en 1) la pisa con 0x3f3ae148 (Q-C1010).
     float helperScale = 0.0f;

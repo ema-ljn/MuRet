@@ -14,6 +14,7 @@
 namespace Client::Kernel
 {
 struct ActorState;
+struct HelperState;
 class WorldState;
 } // namespace Client::Kernel
 
@@ -22,7 +23,6 @@ class WorldState;
 // Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro" y "Las mascotas".
 namespace Client::Scenes
 {
-struct HelperState;
 struct HelperStepContext;
 
 // 0x444174..0x444182, 0x444a04..0x444a12 y 0x444c5a..0x444c6b: la luz del polvo.
@@ -56,7 +56,7 @@ InTheRidersSafeCell(const HelperStepContext& context, const Kernel::ActorState& 
 // en x y en y y (rand() & 31) − 16 en z, cada eje en la x87 hasta su fstp, y la 5f2 en el mapa 2, ninguna en el 10
 // o la 5f3 en los demás, con la luz del polvo y los ángulos del ayudante.
 [[nodiscard]] Core::Expected<void, std::string>
-ScatterTheDust(const HelperState& helper, const HelperStepContext& context, std::string_view address);
+ScatterTheDust(const Kernel::HelperState& helper, const HelperStepContext& context, std::string_view address);
 
 // Las 5f2 del galope en Icarus (0x444325..0x4443d1 y 0x444d68..0x444e16) desde `base`: la guarda saca un
 // rand() % 5 + 5, siempre positivo, y después van de a una mientras su cuenta no llega a un rand() % 5 + 5 nuevo en
@@ -67,5 +67,5 @@ ScatterTheDust(const HelperState& helper, const HelperStepContext& context, std:
 
 // 0x44480b..0x44484a y 0x444b3b..0x444b7a: con +0x80 del jinete en 1 o en 2 el alpha baja 0,1f, con la resta en
 // la x87 guardada en float y comparada sin redondear: por debajo de 0, 0. Con otro, 1.
-void FadeWithTheRider(HelperState& helper, const Kernel::ActorState& rider);
+void FadeWithTheRider(Kernel::HelperState& helper, const Kernel::ActorState& rider);
 } // namespace Client::Scenes

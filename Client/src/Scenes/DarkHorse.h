@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Assets/ModelIds.h"
+#include "Kernel/HelperTable.h"
 #include "Models/Animation.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
@@ -16,24 +18,10 @@
 // vértice usa).
 namespace Client::Scenes
 {
-inline constexpr std::uint16_t DarkHorseModel = 0xbf;
+inline constexpr std::uint16_t DarkHorseModel = Assets::DarkHorseModel;
 // La escala que le pone 0x445260 con el jinete en el login (la escena 2). En la selección (la 4) y en el
 // juego (la 5), 1.
 inline constexpr float DarkHorseLoginScale = 1.6f;
-
-struct DarkHorse
-{
-    // +0x111 la acción, +0x112 la anterior, +0x114 el frame y +0x118 la key anterior.
-    Models::AnimationState animation;
-    // +0xd8: 0,5 de 0x443d70, hasta que el primer paso le pone la de su acción.
-    float speed = 0.5f;
-    // +0x174: 0 al crearlo (0x443d70).
-    float alpha = 0.0f;
-    // +0x8e: la cuenta del terremoto de la acción 3 (0x4453e0 la sube en cada paso con esa acción). La pone en 0 la
-    // rama de las otras acciones del jinete (0x44452e); 0x443d70 no la escribe, así que un lugar que se vuelve a usar
-    // se queda con la del ayudante de antes, y la .bss deja la 0 al primero.
-    std::uint8_t effectCount = 0;
-};
 
 // La acción del caballo por la del jinete (+0x111), con su velocidad (0x444010 con el 0xbf).
 struct DarkHorseGait
@@ -47,31 +35,33 @@ struct DarkHorseGait
 
 // 0x4e9980 con +0x16d en 0 (0x443d70): el alpha sube hacia +0x170 (1, de 0x443d70) un décimo de lo
 // que le falta, con un solo redondeo a float. Corre al empezar el paso, también en la celda segura.
-void FadeInDarkHorse(DarkHorse& horse);
+void FadeInDarkHorse(Kernel::DarkHorse& horse);
 
 // 0x444145..0x444535: la acción que le da la del jinete (0x4ea030) y su velocidad en +0xd8; con una acción del
 // jinete que no es ninguna de las del caballo, también la cuenta del terremoto (+0x8e) en 0 (0x44452e).
-void TakeTheRidersGait(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction);
+void TakeTheRidersGait(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction);
 
 // 0x445006..0x445039: el avance de su acción a +0xd8 (0x4ec200), el final del paso, también el de los otros
 // ayudantes. En la escena 4 (`scene`) decide el final con el frame + 2 (Q-C21).
-void AdvanceDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton,
+void AdvanceDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton,
                       Models::AnimationScene scene = Models::AnimationScene::Other);
 
 // Un paso de 0x444010 con el 0xbf, sin lo que saca efectos: el alpha sube (FadeInDarkHorse) y, en la
 // celda segura del jinete (0x4440b8..0x4440f8), vuelve a 0 y el caballo avanza con la velocidad que
 // tenía, sin mirar la acción del jinete; si no, toma la acción y la velocidad que le da la del jinete
 // y avanza con ellas.
-void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction, bool riderInSafeCell);
+void StepDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction,
+                   bool riderInSafeCell);
 
 // El paso del login (la escena 2): el mundo 56 no tiene ninguna celda con el bit 0 del atributo (06, "El
 // caballo oscuro"), así que la celda del jinete nunca lo oculta.
-void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction);
+void StepDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction);
 
 // Lo que se dibuja del caballo entre dos pasos (`stepAlpha` de un paso más), en `place` (el lugar y los
 // ángulos del jinete en el login, los suyos en el juego) y con la escala que le pone 0x445260: blanco, con
 // la luz por vértice y su alpha (DrawDarkHorse).
-[[nodiscard]] Actors::Drawing::DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Models::Skeleton* skeleton,
+[[nodiscard]] Actors::Drawing::DrawnObject DrawnDarkHorse(const Kernel::DarkHorse& horse,
+                                                          const Models::Skeleton* skeleton,
                                                           const Models::ObjectTransform& place, float scale,
                                                           float stepAlpha);
 } // namespace Client::Scenes

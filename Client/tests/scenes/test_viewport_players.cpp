@@ -1266,8 +1266,8 @@ private:
     mutable std::vector<std::string> m_calls;
 };
 
-// 0x4c8860 on a player of state 1 just arrived in Kalima: 0x53d930, effect 0x61f, joint 0x610/8 and the siege's panel,
-// in that order.
+// 0x4c8860 on a player of state 1 just arrived in Kalima: 0x53d930, effect 0x61f, joint 0x610/8, the 0x443d40 of its
+// set (0x5139f0) and the siege's panel, in that order.
 TEST_F(ViewportPlayersTest, TheEnteringPlayerAsksItsSlotsInTheOriginalsOrder)
 {
     Load(0);
@@ -1279,8 +1279,9 @@ TEST_F(ViewportPlayersTest, TheEnteringPlayerAsksItsSlotsInTheOriginalsOrder)
     const RecordingViewportHooks hooks(resources);
     const auto applied = Client::Actors::In::ApplyViewportPlayers(Read(records), resources, hooks);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(hooks.Calls(), (std::vector<std::string>{"StartTheTeleportAction", "CreateTheArrivalEffect",
-                                                       "CreateTheKalimaBeam", "RefreshTheSiegePanel"}));
+    EXPECT_EQ(hooks.Calls(),
+              (std::vector<std::string>{"StartTheTeleportAction", "CreateTheArrivalEffect", "CreateTheKalimaBeam",
+                                        "TurnOffTheHelpersOf", "RefreshTheSiegePanel"}));
 }
 
 // 0x4c92a0 on a transformed one just arrived: the hero's class before the creation, 0x5141e0, circle 0xec and 0x512a30

@@ -1,4 +1,5 @@
 #include "Scenes/DarkSpirit.h"
+#include "Actors/Drawing/GameCharacterEffects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -498,16 +499,16 @@ TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
 {
     DarkSpirit spirit;
     spirit.position = {50.0f, 50.0f, 750.0f};
-    EXPECT_TRUE(Client::Scenes::DarkSpiritSeen(spirit, Client::Terrain::TerrainPolygon{.everything = true}));
+    EXPECT_TRUE(Client::Actors::Drawing::DarkSpiritSeen(spirit, Client::Terrain::TerrainPolygon{.everything = true}));
     const auto far =
         Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
-    EXPECT_FALSE(Client::Scenes::DarkSpiritSeen(spirit, far));
+    EXPECT_FALSE(Client::Actors::Drawing::DarkSpiritSeen(spirit, far));
     spirit.state = 1;
-    Client::Scenes::MissTheView(spirit);
+    Client::Actors::Drawing::MissTheView(spirit);
     EXPECT_EQ(spirit.speed, 3.0f);
     EXPECT_EQ(spirit.state, 0);
     spirit.state = 4;
-    Client::Scenes::MissTheView(spirit);
+    Client::Actors::Drawing::MissTheView(spirit);
     EXPECT_EQ(spirit.state, 4);
 }
 

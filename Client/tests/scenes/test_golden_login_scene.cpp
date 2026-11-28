@@ -1,4 +1,5 @@
 #include "support/CheckedWorldObjectProjection.h"
+#include "Kernel/HelperTable.h"
 
 #include "Crt/CrtRandom.h"
 #include "Scenes/LoginScene.h"
@@ -1323,7 +1324,7 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
         m_models.SkeletonOf(Client::Models::ModelId{Client::Scenes::DarkHorseModel});
     ASSERT_NE(horseSkeleton, nullptr);
     const glm::dvec3 rise{0.0, 0.0, 0.2};
-    Client::Scenes::DarkHorse horse;
+    Client::Kernel::DarkHorse horse;
     std::size_t breaths = 0;
     std::size_t matched = 0;
     std::size_t previous = 0;
@@ -1416,7 +1417,7 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     const Client::Models::Skeleton* horseSkeleton =
         m_models.SkeletonOf(Client::Models::ModelId{Client::Scenes::DarkHorseModel});
     ASSERT_NE(horseSkeleton, nullptr);
-    Client::Scenes::DarkHorse horse;
+    Client::Kernel::DarkHorse horse;
 
     Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,

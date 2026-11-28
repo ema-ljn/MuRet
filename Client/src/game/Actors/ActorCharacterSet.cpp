@@ -1,13 +1,12 @@
 #include "Actors/ActorCharacterSet.h"
 
 #include "Core/Expected.h"
-#include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Actors/ActorEquipment.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkHorse.h"
-#include "Scenes/HelperTable.h"
+#include "Actors/HelperHooks.h"
+#include "Assets/ModelIds.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
@@ -62,17 +61,17 @@ PetAndHelper BasePet(Kernel::Equipment equipment)
     }
 }
 
-// Where the pets' helpers go: with `own` as nullptr, to the pool with 0x443fa0 and the character's slot; otherwise,
-// to that own helper with 0x443d70 (the object of 0x5139f0, 0x513b7b..0x513ce5).
+// The character the pets go to, and where their helpers go: the pool's table with 0x443fa0 and the character's slot,
+// or its own helper with 0x443d70 (the object of 0x5139f0, 0x513b7b..0x513ce5).
 struct PetTarget
 {
     Kernel::WorldState& world;
     Kernel::ActorState& actor;
     std::size_t slot = 0;
-    Scenes::HelperState* own = nullptr;
+    const IHelperHooks& helpers;
 };
 
-Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelper pet, Crt::CrtRandom& random)
+Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelper pet)
 {
     Kernel::ActorState& actor = target.actor;
     actor.pet.model = pet.pet;
@@ -86,14 +85,7 @@ Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelpe
     {
         return {};
     }
-    if (target.own != nullptr)
-    {
-        auto built = Scenes::ConstructHelper(*target.own, pet.helper, actor.position, actor, Kernel::ActorPoolSize,
-                                             target.world.Runtime().map, &random);
-        return built.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(built.Error());
-    }
-    auto created = Scenes::CreateHelper(target.world, pet.helper, actor.position, target.slot, &random);
-    return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
+    return target.helpers.CreateTheHelper(pet.helper, actor.position, target.slot);
 }
 
 // 0x513a12..0x513b27: the hands and the wings.
@@ -150,10 +142,9 @@ void PutTheBody(Kernel::ActorState& actor, const Kernel::CharacterAppearance& ap
     actor.byte358 = BitOf(ancient, 0);
 }
 
-Core::Expected<void, std::string> CreatePets(const PetTarget& target, Kernel::Equipment equipment,
-                                             Crt::CrtRandom& random)
+Core::Expected<void, std::string> CreatePets(const PetTarget& target, Kernel::Equipment equipment)
 {
-    if (auto base = CreatePet(target, BasePet(equipment), random); !base.HasValue())
+    if (auto base = CreatePet(target, BasePet(equipment)); !base.HasValue())
     {
         return base;
     }
@@ -161,7 +152,7 @@ Core::Expected<void, std::string> CreatePets(const PetTarget& target, Kernel::Eq
     constexpr std::uint16_t DarkHorse = 0x1c16;
     if ((flags & 1) != 0)
     {
-        if (auto horse = CreatePet(target, {DarkHorse, Scenes::DarkHorseModel}, random); !horse.HasValue())
+        if (auto horse = CreatePet(target, {DarkHorse, Assets::DarkHorseModel}); !horse.HasValue())
         {
             return horse;
         }
@@ -175,7 +166,7 @@ Core::Expected<void, std::string> CreatePets(const PetTarget& target, Kernel::Eq
         constexpr std::uint16_t BlueFenrir = 0x14c;
         constexpr std::uint16_t OtherFenrir = 0x14b;
         const auto helper = part.flags1b == 1 ? RedFenrir : part.flags1b == 2 ? BlueFenrir : OtherFenrir;
-        return CreatePet(target, {Fenrir, helper}, random);
+        return CreatePet(target, {Fenrir, helper});
     }
     return {};
 }
@@ -193,11 +184,8 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, Kernel::E
     if (auto carried = PutHandsAndWings(actor, appearance, resources); !carried.HasValue())
         return carried;
     // 0x513b27..0x513b39: with the fourth argument at 0, 0x443d40; with a helper, its live byte at 0.
-    if (target.own != nullptr)
-        target.own->alive = false;
-    else
-        Scenes::TurnOffHelpersOf(world.Helpers(), target.slot);
-    if (auto pets = CreatePets(target, equipment, resources.cloth.random); !pets.HasValue())
+    target.helpers.TurnOffTheHelpersOf(target.slot);
+    if (auto pets = CreatePets(target, equipment); !pets.HasValue())
         return pets;
     // 0x513cee.
     Kernel::ReleaseTheLayer(actor);
@@ -223,23 +211,25 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, Kernel::E
 } // namespace
 
 Core::Expected<void, std::string> CreateCharacterSetPets(Kernel::WorldState& world, std::size_t slot,
-                                                         Kernel::Equipment equipment, Crt::CrtRandom& random)
+                                                         Kernel::Equipment equipment, const IHelperHooks& helpers)
 {
-    return CreatePets({.world = world, .actor = world.Actors()[slot], .slot = slot}, equipment, random);
+    return CreatePets({.world = world, .actor = world.Actors()[slot], .slot = slot, .helpers = helpers}, equipment);
 }
 
 Core::Expected<void, std::string> ApplyCharacterSet(std::size_t index, Kernel::Equipment equipment,
-                                                    const Scenes::WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources,
+                                                    const IHelperHooks& helpers)
 {
     Kernel::WorldState& world = resources.world;
-    return ApplyTheSet({.world = world, .actor = world.Actors()[index], .slot = index}, equipment, resources);
+    return ApplyTheSet({.world = world, .actor = world.Actors()[index], .slot = index, .helpers = helpers}, equipment,
+                       resources);
 }
 
-Core::Expected<void, std::string> ApplyCharacterSetTo(Kernel::ActorState& actor, Scenes::HelperState& helper,
+Core::Expected<void, std::string> ApplyCharacterSetTo(Kernel::ActorState& actor, const IHelperHooks& helper,
                                                       Kernel::Equipment equipment,
                                                       const Scenes::WorldEntryResources& resources)
 {
-    return ApplyTheSet({.world = resources.world, .actor = actor, .slot = Kernel::ActorPoolSize, .own = &helper},
+    return ApplyTheSet({.world = resources.world, .actor = actor, .slot = Kernel::ActorPoolSize, .helpers = helper},
                        equipment, resources);
 }
 } // namespace Client::Actors

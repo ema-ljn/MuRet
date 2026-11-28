@@ -1,15 +1,15 @@
 #pragma once
 
+#include "Actors/HelperHooks.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/DarkHorse.h"
+#include "Kernel/HelperTable.h"
 #include "Scenes/SceneId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -62,40 +62,6 @@ class WorldState;
 namespace Client::Scenes
 {
 
-inline constexpr std::size_t HelperCount = 10;
-
-// Un lugar: una proyección con lo que MuRet lee, no el layout. Arranca en cero, como la .bss.
-// 0x443d70 escribe además +4 (el quinto argumento, 0), la malla oculta (+0x58) en −1, la luz del blendMesh
-// (+0x68) en 1, la meta del alpha (+0x170) en 1, la luz por vértice (+0xe8) en 1, +0xf0, +0x16d y +0x11c en
-// 0 y +0x60 en 30: MuRet los lleva fijos (DarkHorse, DrawDarkHorse y el dibujo de los demás en
-// Scenes/HelperTable.cpp) o no los lee nadie de lo portado. +0x74 no lo escribe nadie: en 0, el 0x6004aa de
-// 0x6002e0 no toma su camino del 0x80.
-struct HelperState
-{
-    bool alive = false;     // +0
-    std::uint16_t type = 0; // +2, el modelo
-    float scale = 0.0f;     // +0xc, 1 para el 0xbf (0x443e82) y 1 en el dibujo de la escena 5 (0x445309)
-    glm::vec3 position{};   // +0x10
-    glm::vec3 angles{};     // +0x1c
-    // +0xcc..+0xd4: el vuelo del 0x1c12 (0x445052..0x445221). 0x443d70 no la escribe: un lugar que se vuelve a
-    // usar se queda con la del ayudante de antes (Q-C420).
-    glm::vec3 velocity{};
-    // +0xf4..+0xfc, la luz propia: 3 desde 0x443d70 (0x443e2f..0x443e45), y 1 en el dibujo del retrato de las cartas
-    // (0x495987..0x495993). La leen el 60f/0 que el caballo suelta con +8 del jinete en 1 (0x444740 → 0x53429b) y el
-    // dibujo, que la suma a la del terreno (0x5ffce0, 0x5ffd6a..0x5ffd8b); el aliento (0x4445b5) la lleva fija en el 3
-    // (HorseLight en Scenes/HelperTable.cpp).
-    glm::vec3 light{};
-    // +0x64: −1 de 0x443d70, y 1 con el 0x1c12 (0x443f1a), que dibuja su malla 1 como blendMesh.
-    std::int16_t blendMesh = -1;
-    std::size_t rider = 0; // +0x108, el jinete: un puntero al pool en el original, el lugar del pool en MuRet
-    bool seen = false;     // +0x16c, del dibujo (0x5fba90)
-    // +0x111..+0x118 la animación, +0xd8 la velocidad y +0x174 el alpha: los del caballo, que son los mismos campos
-    // en todos los ayudantes.
-    DarkHorse horse{};
-};
-
-using HelperTable = std::array<HelperState, HelperCount>;
-
 // 0x443fa0(tipo, posición, jinete, 0, 0), como la llaman 0x5bc740 y los otros armados del juego: en los
 // mapas 18 a 23, o con un jinete que no es un jugador (0x20a) y un tipo que no es 0x1c12, nada. Si no,
 // 0x443d70 en el primer lugar sin el byte vivo: vivo, el tipo, el jinete, la posición que recibe, los
@@ -112,13 +78,10 @@ CreateHelper(Kernel::WorldState& world, std::uint16_t type, const glm::vec3& pos
 // (false). Si no, lo arma como dice CreateHelper, con el jinete `rider` (su lugar en el pool, `riderSlot`, o
 // ActorPoolSize para un objeto fuera del pool, como el retrato de las cartas) y devuelve true. Los tipos sin portar
 // cortan antes de tocarlo.
-[[nodiscard]] Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type,
+[[nodiscard]] Core::Expected<bool, std::string> ConstructHelper(Kernel::HelperState& helper, std::uint16_t type,
                                                                 const glm::vec3& position,
                                                                 const Kernel::ActorState& rider, std::size_t riderSlot,
                                                                 std::int32_t map, Crt::CrtRandom* random);
-
-// 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
-void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);
 
 // Lo que el paso de los ayudantes lee fuera del mundo. Del mundo usa además las partículas (0x743a198), los
 // efectos (0x7491fd8) y el buffer global de la pose del dibujo anterior (0x68b181c, WorldState::PoseCarry).
@@ -172,7 +135,7 @@ struct HelperStepContext
 // (0x495796, que lo llama siempre). Sin el byte vivo, nada (0x444021); si no, lo de StepHelpers con un lugar, con
 // `rider` de jinete y sin que la celda segura lo esconda.
 [[nodiscard]] Core::Expected<void, std::string>
-StepTheHelperOutsideTheTable(HelperState& helper, Kernel::ActorState& rider, const HelperStepContext& context);
+StepTheHelperOutsideTheTable(Kernel::HelperState& helper, Kernel::ActorState& rider, const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.
 struct HelperDrawContext
@@ -233,6 +196,42 @@ struct HelperDrawContext
 // (0x4959cc). Sin el byte vivo, nada (0x44526b); si no, lo de DrawHelpers con un lugar, con `rider` de jinete, visto
 // sin el trapecio (0x4452a4) y con la escala en 0x3f3ae148 (0x4452d2, Q-C1010), en un frame del original o entre
 // frames según `context` (sin la copia de DrawHelpers: el caller dibuja una copia entre frames).
-[[nodiscard]] Core::Expected<void, std::string>
-DrawTheHelperOutsideTheTable(HelperState& helper, const Kernel::ActorState& rider, const HelperDrawContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(Kernel::HelperState& helper,
+                                                                             const Kernel::ActorState& rider,
+                                                                             const HelperDrawContext& context);
+
+// The helpers' table of `world` as a character's pets reach it: 0x443d40 and 0x443fa0 with `random` (CreateHelper).
+class TableHelpers final : public Actors::IHelperHooks
+{
+public:
+    TableHelpers(Kernel::WorldState& world, Crt::CrtRandom* random);
+
+    void TurnOffTheHelpersOf(std::size_t rider) const override;
+    [[nodiscard]] Core::Expected<void, std::string> CreateTheHelper(std::uint16_t type, const glm::vec3& position,
+                                                                    std::size_t rider) const override;
+
+private:
+    Kernel::WorldState& m_world;
+    Crt::CrtRandom* m_random;
+};
+
+// The one helper of `rider`, a character outside the pool (0x5139f0 with its fourth argument, the letters' portrait):
+// its live byte at 0 instead of 0x443d40 (0x513b39), and 0x443d70 on it instead of 0x443fa0 (ConstructHelper), on the
+// map of `world`.
+class OwnHelper final : public Actors::IHelperHooks
+{
+public:
+    OwnHelper(Kernel::HelperState& helper, const Kernel::ActorState& rider, const Kernel::WorldState& world,
+              Crt::CrtRandom* random);
+
+    void TurnOffTheHelpersOf(std::size_t rider) const override;
+    [[nodiscard]] Core::Expected<void, std::string> CreateTheHelper(std::uint16_t type, const glm::vec3& position,
+                                                                    std::size_t rider) const override;
+
+private:
+    Kernel::HelperState& m_helper;
+    const Kernel::ActorState& m_rider;
+    const Kernel::WorldState& m_world;
+    Crt::CrtRandom* m_random;
+};
 } // namespace Client::Scenes

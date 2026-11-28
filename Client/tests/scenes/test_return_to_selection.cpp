@@ -1,4 +1,5 @@
 #include "Session/ReturnToSelection.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -555,8 +556,8 @@ TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
     actors[2].key = SurvivingKey;
     actors[3].key = SurvivingKey;
     auto& helpers = tested.world.Helpers();
-    helpers[0] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 1};
-    helpers[1] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 2};
+    helpers[0] = Client::Kernel::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 1};
+    helpers[1] = Client::Kernel::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 2};
 
     ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
 

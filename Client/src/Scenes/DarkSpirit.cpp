@@ -10,9 +10,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "World/Particles.h"
-#include "Terrain/TerrainCulling.h"
 #include "Tables/PlayerBones.h"
 #include "Terrain/TerrainDefines.h"
 
@@ -81,11 +79,6 @@ constexpr int ShoutCounter = 60;
 constexpr double Below = 200.0;
 constexpr int FarSteps = 90;
 constexpr double JumpHeight = 250.0;
-// 0x418301: el trapecio con su lugar por 0,01f (0x6b88d4) y −20 (0xc1a00000); sin pasarlo, la velocidad
-// en 3 (0x40400000) salvo en el estado 4.
-constexpr double CellsPerUnit = static_cast<double>(0.01f);
-constexpr double ViewMargin = -20.0;
-constexpr float UnseenSpeed = 3.0f;
 constexpr std::uint8_t FastState = 0;
 constexpr std::uint8_t SlowState = 1;
 constexpr std::uint8_t PerchedState = 3;
@@ -387,42 +380,6 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtR
                   F32(static_cast<double>(F32(groundHeight)) + BirthHeight));
     spirit.previousPosition = spirit.position;
     return spirit;
-}
-
-bool DarkSpiritSeen(const DarkSpirit& spirit, const Terrain::TerrainPolygon& polygon)
-{
-    const auto cells = [](float coordinate)
-    { return static_cast<double>(F32(static_cast<double>(coordinate) * CellsPerUnit)); };
-    return Terrain::PolygonContains(polygon, cells(spirit.position.x), cells(spirit.position.y), ViewMargin);
-}
-
-void MissTheView(DarkSpirit& spirit)
-{
-    spirit.speed = UnseenSpeed;
-    if (spirit.state != LandingState)
-    {
-        spirit.state = 0;
-    }
-}
-
-Actors::Drawing::DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton,
-                                             const glm::vec3& terrainLight, float stepAlpha)
-{
-    Actors::Drawing::DrawnObject drawn;
-    drawn.model = DarkSpiritModel;
-    drawn.animation = spirit.animation;
-    if (skeleton != nullptr && spirit.animation.action < skeleton->actions.size())
-    {
-        drawn.animation =
-            Models::Interpolated(spirit.animation, skeleton->actions[spirit.animation.action], FrameStep, stepAlpha);
-    }
-    drawn.transform.position = spirit.position + ((spirit.position - spirit.previousPosition) * stepAlpha);
-    drawn.transform.angles = spirit.angles;
-    drawn.transform.scale = spirit.scale;
-    drawn.color = terrainLight + spirit.light;
-    drawn.alpha = spirit.alpha;
-    drawn.vertexLight = true;
-    return drawn;
 }
 
 DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& skeleton, const DarkSpiritOwner& owner,

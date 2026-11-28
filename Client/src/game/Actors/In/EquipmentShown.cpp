@@ -9,7 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Protocol/Actors/Viewport.h"
-#include "Scenes/DarkHorse.h"
+#include "Assets/ModelIds.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Tables/PlayerModels.h"
 
@@ -120,7 +120,7 @@ Core::Expected<void, std::string> ShowThePet(Kernel::WorldState& world, std::siz
         helper = DinorantHelper;
         break;
     case 4:
-        helper = Scenes::DarkHorseModel;
+        helper = Assets::DarkHorseModel;
         break;
     case 0x25:
     {

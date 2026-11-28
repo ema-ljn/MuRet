@@ -13,6 +13,8 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/PersonalShop/PersonalShop.h"
 #include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
+#include "Models/ModelId.h"
 #include "Models/LogicalAccess.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"

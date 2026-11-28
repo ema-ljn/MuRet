@@ -139,10 +139,6 @@ Scenes/CrywolfInterfaceDrawing.cpp	Scenes/HudText.h	game/Events/Crywolf	game/Hud
 Scenes/CrywolfObjectServices.cpp	Scenes/WorldObjectsDrawing.h	game/MapScripts/Crywolf	game/WorldObjects
 Scenes/CrywolfObjectServices.cpp	World/WorldObjects.h	game/MapScripts/Crywolf	game/WorldObjects
 Scenes/DamageNumbers.cpp	Scenes/GameDrawTail.h	game/Combat	game/Scenes
-Scenes/DarkHorse.cpp	game/Actors/Drawing/CharacterDrawing.h	game/Pets	game/Actors
-Scenes/DarkHorse.h	game/Actors/Drawing/CharacterDrawing.h	game/Pets	game/Actors
-Scenes/DarkSpirit.cpp	game/Actors/Drawing/CharacterDrawing.h	game/Pets	game/Actors
-Scenes/DarkSpirit.h	game/Actors/Drawing/CharacterDrawing.h	game/Pets	game/Actors
 Scenes/DropJoints.cpp	Scenes/GameDrawTail.h	game/Joints	game/Scenes
 Scenes/DropJoints.cpp	World/IFishStepServices.h	game/Joints	game/Fauna
 Scenes/EventChipWindow.cpp	Scenes/GameHud.h	game/Events	game/Hud
@@ -413,9 +409,6 @@ Scenes/HelixJoints.cpp	World/ModelEffects.h	game/Joints	game/Effects
 Scenes/HelperTable.cpp	Scenes/FaunaJointCreation.h	game/Pets	game/Joints
 Scenes/HelperTable.cpp	Scenes/GameDrawTail.h	game/Pets	game/Scenes
 Scenes/HelperTable.cpp	Scenes/SceneId.h	game/Pets	game/Scenes
-Scenes/HelperTable.cpp	game/Actors/CharacterStep.h	game/Pets	game/Actors
-Scenes/HelperTable.cpp	game/Actors/Drawing/CharacterDrawing.h	game/Pets	game/Actors
-Scenes/HelperTable.cpp	game/Actors/Drawing/GameRibbonCreation.h	game/Pets	game/Actors
 Scenes/HelperTable.h	Scenes/SceneId.h	game/Pets	game/Scenes
 Scenes/HeroAttack.cpp	Scenes/ActorCombat.h	game/Hero	game/Combat
 Scenes/HeroAttack.cpp	Scenes/GameMovementState.h	game/Hero	game/Movement
@@ -863,11 +856,8 @@ game/Actors/ActionReply.cpp	Scenes/SceneId.h	game/Actors	game/Scenes
 game/Actors/ActionReply.cpp	game/Session/WorldEntry.h	game/Actors	game/Session
 game/Actors/ActorActions.cpp	Scenes/SceneId.h	game/Actors	game/Scenes
 game/Actors/ActorActions.h	Scenes/SceneId.h	game/Actors	game/Scenes
-game/Actors/ActorCharacterSet.cpp	Scenes/DarkHorse.h	game/Actors	game/Pets
-game/Actors/ActorCharacterSet.cpp	Scenes/HelperTable.h	game/Actors	game/Pets
 game/Actors/ActorCharacterSet.cpp	game/Session/WorldEntry.h	game/Actors	game/Session
 game/Actors/ActorCharacterSet.cpp	game/Session/WorldTransitionSupport.h	game/Actors	game/Session
-game/Actors/ActorCreation.cpp	Scenes/HelperTable.h	game/Actors	game/Pets
 game/Actors/ActorDying.cpp	Scenes/SceneId.h	game/Actors	game/Scenes
 game/Actors/ActorDying.h	Scenes/SceneId.h	game/Actors	game/Scenes
 game/Actors/ActorEffectFlags.cpp	Scenes/FaunaJointCreation.h	game/Actors	game/Joints
@@ -899,7 +889,6 @@ game/Actors/Drawing/CharacterDrawing.cpp	Scenes/CrywolfAltarDrawing.h	game/Actor
 game/Actors/Drawing/CharacterDrawing.cpp	World/ModelEffects.h	game/Actors	game/Effects
 game/Actors/Drawing/CharacterDrawing.cpp	World/ObjectModelStepState.h	game/Actors	game/WorldObjects
 game/Actors/Drawing/CharacterDrawing.cpp	World/ScepterGlow.h	game/Actors	game/Effects
-game/Actors/Drawing/GameCharacterEffects.cpp	Scenes/DarkSpirit.h	game/Actors	game/Pets
 game/Actors/Drawing/GameCharacterEffects.cpp	Scenes/FaunaDrawing.h	game/Actors	game/Fauna
 game/Actors/Drawing/GameCharacterEffects.cpp	Scenes/FaunaJointCreation.h	game/Actors	game/Joints
 game/Actors/Drawing/GameCharacterEffects.cpp	Scenes/GameDrawTail.h	game/Actors	game/Scenes
@@ -948,7 +937,6 @@ game/Actors/Drawing/VertexEffects.cpp	World/SkinShellEffects.h	game/Actors	game/
 game/Actors/Drawing/WeaponTrail.cpp	Scenes/FaunaDrawing.h	game/Actors	game/Fauna
 game/Actors/Drawing/WeaponTrail.cpp	Scenes/GameDrawTail.h	game/Actors	game/Scenes
 game/Actors/Drawing/WeaponTrail.cpp	Scenes/WorldModelPose.h	game/Actors	game/WorldObjects
-game/Actors/In/EquipmentShown.cpp	Scenes/DarkHorse.h	game/Actors	game/Pets
 game/Actors/In/EquipmentShown.cpp	Scenes/OwnItemPlacement.h	game/Actors	game/Items
 game/Actors/In/Transformed.cpp	game/Session/WorldEntry.h	game/Actors	game/Session
 game/Actors/In/ViewportPlayers.cpp	game/Session/WorldEntry.h	game/Actors	game/Session
@@ -1003,7 +991,6 @@ game/Kernel/WorldRuntime.h	game/Sound/MonsterSounds.h	game/Kernel	game/Sound
 game/Kernel/WorldState.cpp	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.cpp	Scenes/FaunaState.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.cpp	Scenes/GameDrawTail.h	game/Kernel	game/Scenes
-game/Kernel/WorldState.cpp	Scenes/HelperTable.h	game/Kernel	game/Pets
 game/Kernel/WorldState.cpp	World/Leaves.h	game/Kernel	game/Weather
 game/Kernel/WorldState.cpp	World/Particles.h	game/Kernel	game/Particles
 game/Kernel/WorldState.cpp	game/Actors/Drawing/CharacterCloth.h	game/Kernel	game/Actors
@@ -1012,7 +999,6 @@ game/Kernel/WorldState.cpp	game/Player/ItemSetState.h	game/Kernel	game/Player
 game/Kernel/WorldState.h	Scenes/FaunaDrawing.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.h	Scenes/FaunaState.h	game/Kernel	game/Fauna
 game/Kernel/WorldState.h	Scenes/GameDrawTail.h	game/Kernel	game/Scenes
-game/Kernel/WorldState.h	Scenes/HelperTable.h	game/Kernel	game/Pets
 game/Kernel/WorldState.h	World/Leaves.h	game/Kernel	game/Weather
 game/Kernel/WorldState.h	World/Particles.h	game/Kernel	game/Particles
 game/Kernel/WorldState.h	game/Actors/Drawing/CharacterCloth.h	game/Kernel	game/Actors

@@ -1,4 +1,5 @@
 #include "Scenes/DarkHorse.h"
+#include "Kernel/HelperTable.h"
 
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
@@ -16,12 +17,12 @@
 // (Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro").
 namespace
 {
+using Client::Kernel::DarkHorse;
 using Client::Models::ActionInfo;
 using Client::Models::BoneKey;
 using Client::Models::ObjectTransform;
 using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
-using Client::Scenes::DarkHorse;
 using Client::Scenes::DarkHorseGait;
 using Client::Scenes::DarkHorseGaitOf;
 using Client::Scenes::DarkHorseLoginScale;

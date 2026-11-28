@@ -1,3 +1,4 @@
+#include "Kernel/ModelEffectArguments.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -29,7 +30,7 @@ bool HasRoom(const World::ModelEffects& effects)
 }
 } // namespace
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateCrywolfDeathSpirit(const World::ModelEffectArguments& args, World::ModelEffects& effects,
+CreateCrywolfDeathSpirit(const Kernel::ModelEffectArguments& args, World::ModelEffects& effects,
                          World::Particles* particles, Crt::CrtRandom& random, float clock)
 {
     const auto slot = effects.Begin(args);

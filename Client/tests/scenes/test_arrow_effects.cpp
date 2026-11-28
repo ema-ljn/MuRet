@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Kernel/JointRequest.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skills/Skill.h"
 #include "Math/HalfLifeMath.h"
@@ -620,7 +621,7 @@ TEST(ArrowEffectsTest, TheViperAndTheTwentiethArrowsAreBornWithTheirTrail)
 TEST(ArrowEffectsTest, TheTwentiethArrowTurnsAtRandomBeforeItsTrail)
 {
     ArrowWorld tested(0);
-    const Client::World::ModelEffectArguments arguments{
+    const Client::Kernel::ModelEffectArguments arguments{
         .type = 0x11c, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 0};
     const auto made = Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random);
     ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
@@ -861,7 +862,7 @@ TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
     // los de 0x51a1b0.
     auto alone = std::make_unique<ArrowWorld>(0);
     glm::vec3 angles{15.0f, 25.0f, 35.0f};
-    const Client::World::ModelEffectArguments args{
+    const Client::Kernel::ModelEffectArguments args{
         .type = 0xf8, .position = {10.0f, 20.0f, 30.0f}, .angles = angles, .light = {1.0f, 1.0f, 1.0f}, .subtype = 0};
     const auto made = Client::Scenes::CreateTheArrowEffect(args, alone->world, alone->random, &angles);
     ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
@@ -1327,7 +1328,7 @@ TEST(ArrowEffectsTest, TheSiegeArrowsAreBornFromTheirRandoms)
             ArrowWorld tested(map);
             tested.world.OwnCharacter().bytef04 = 9;
             const glm::vec3 from{2000.0f, 3000.0f, 400.0f};
-            const Client::World::ModelEffectArguments arguments{
+            const Client::Kernel::ModelEffectArguments arguments{
                 .type = 0xdb, .position = from, .light = glm::vec3(1.0f), .subtype = subtype};
 
             const auto created = Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random);
@@ -1392,10 +1393,10 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
                 ++heights;
                 return probe.height;
             };
-            const Client::World::ModelEffectArguments arguments{.type = 0xdb,
-                                                                .position = {2000.0f, 3000.0f, 400.0f},
-                                                                .light = glm::vec3(1.0f),
-                                                                .subtype = probe.subtype};
+            const Client::Kernel::ModelEffectArguments arguments{.type = 0xdb,
+                                                                 .position = {2000.0f, 3000.0f, 400.0f},
+                                                                 .light = glm::vec3(1.0f),
+                                                                 .subtype = probe.subtype};
             ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
             ModelEffect& arrow = *tested.Arrows().front();
             arrow.transform.angles.x = probe.subtype == 3 ? 48.0f : 60.0f;
@@ -1450,7 +1451,7 @@ TEST(ArrowEffectsTest, TheFortressArrowSparklesOnEvenLives)
         {
             SCOPED_TRACE(::testing::Message() << "mapa " << map << ", vida " << life);
             ArrowWorld tested(map);
-            const Client::World::ModelEffectArguments arguments{
+            const Client::Kernel::ModelEffectArguments arguments{
                 .type = 0xe1, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 1};
             ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
             EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
@@ -2007,11 +2008,11 @@ TEST(ArrowEffectsTest, FullJointsPreserveTheArrowConstructorTails)
         for (auto& joint : tested.world.DrawTail().joints)
             joint.alive = true;
         const std::int32_t subtype = type == 0xe1 ? 1 : 2;
-        const Client::World::ModelEffectArguments args{.type = static_cast<std::int16_t>(type),
-                                                       .position = {100.0f, 200.0f, 300.0f},
-                                                       .angles = {},
-                                                       .light = {1.0f, 1.0f, 1.0f},
-                                                       .subtype = subtype};
+        const Client::Kernel::ModelEffectArguments args{.type = static_cast<std::int16_t>(type),
+                                                        .position = {100.0f, 200.0f, 300.0f},
+                                                        .angles = {},
+                                                        .light = {1.0f, 1.0f, 1.0f},
+                                                        .subtype = subtype};
         const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
         ASSERT_TRUE(made.HasValue()) << made.Error();
         const auto& arrow = tested.world.Map().effects.Effects().front();
@@ -2108,11 +2109,11 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
             for (auto& joint : tested.world.DrawTail().joints)
                 joint.alive = true;
         glm::vec3 angles{15.0f, 25.0f, 35.0f};
-        const Client::World::ModelEffectArguments args{.type = 0xf8,
-                                                       .position = {10.0f, 20.0f, 30.0f},
-                                                       .angles = angles,
-                                                       .light = {1.0f, 1.0f, 1.0f},
-                                                       .subtype = 1};
+        const Client::Kernel::ModelEffectArguments args{.type = 0xf8,
+                                                        .position = {10.0f, 20.0f, 30.0f},
+                                                        .angles = angles,
+                                                        .light = {1.0f, 1.0f, 1.0f},
+                                                        .subtype = 1};
         const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random, &angles);
         const auto& effect = tested.world.Map().effects.Effects().front();
         EXPECT_EQ(angles, (glm::vec3{0.0f, 0.0f, 35.0f}));
@@ -2187,7 +2188,7 @@ TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)
     auto& arrow = tested.world.Map().effects.Effects().front();
     arrow.alive = false;
     tested.world.OwnCharacter().bytef04 = 11;
-    const Client::World::ModelEffectArguments args{
+    const Client::Kernel::ModelEffectArguments args{
         .type = 0x10e, .position = {10.0f, 20.0f, 30.0f}, .angles = {}, .light = {1.0f, 1.0f, 1.0f}, .subtype = 2};
     const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
     ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
@@ -2207,12 +2208,12 @@ TEST(ArrowEffectsTest, TheTourProjectileCreatesAndStepsWithoutAttackingActors)
         auto tested = std::make_unique<ArrowWorld>(34);
         tested->world.Runtime().ownRecordDepth = depth;
         tested->world.OwnCharacter().bytef04 = 9;
-        const Client::World::ModelEffectArguments arguments{.type = 0xed,
-                                                            .position = {1000, 1000, 0},
-                                                            .angles = {},
-                                                            .light = {2, 3, 4},
-                                                            .subtype = 1,
-                                                            .owner = &tested->Hero()};
+        const Client::Kernel::ModelEffectArguments arguments{.type = 0xed,
+                                                             .position = {1000, 1000, 0},
+                                                             .angles = {},
+                                                             .light = {2, 3, 4},
+                                                             .subtype = 1,
+                                                             .owner = &tested->Hero()};
         const auto created = Client::Scenes::CreateTheArrowEffect(arguments, tested->world, tested->random);
         ASSERT_TRUE(created.HasValue()) << ErrorOf(created);
         auto& effect = tested->world.Map().effects.Effects()[0];
@@ -2330,7 +2331,7 @@ TEST(ArrowEffectsTest, CelestialArrowStaysPutWhileItsStartTravelsForThirtySteps)
     ArrowWorld tested(34);
     for (auto& joint : tested.world.DrawTail().joints)
         joint.alive = true;
-    const Client::World::ModelEffectArguments args{
+    const Client::Kernel::ModelEffectArguments args{
         .type = 0xf8, .position = {1000, 3000, 0}, .angles = {}, .light = {1, 1, 1}, .subtype = 1};
     const auto created = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
     ASSERT_TRUE(created.HasValue()) << ErrorOf(created);

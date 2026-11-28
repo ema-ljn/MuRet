@@ -27,6 +27,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Pass3D.h"
 #include "Kernel/ActorState.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/DarkHorse.h"
 #include "Actors/Drawing/GameCharacters.h"
@@ -721,6 +722,7 @@ public:
         draw.characters.sprites = &frameSprites;
         draw.characters.particles = &m_game.world.Particles();
         draw.characters.effects = &m_game.world.Map().effects;
+        draw.characters.effectHooks = &effectHooks;
         draw.helperModels = &m_game.drawn;
         draw.originalFrame = originalFrame;
         return draw;
@@ -734,6 +736,7 @@ public:
     Client::Render::ModelBatch models;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites frameSprites;
+    Client::Scenes::ActorEffectHooks effectHooks;
     std::vector<std::pair<std::string, std::size_t>> flushes;
 
 private:

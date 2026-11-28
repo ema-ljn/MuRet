@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
@@ -162,11 +163,11 @@ Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, c
 {
     if (!GuildMarkIsDue(actor, worldClock))
         return {};
-    const World::ModelEffectArguments arguments{.type = GuildMarkEffect,
-                                                .position = actor.position,
-                                                .angles = actor.angles,
-                                                .light = actor.light,
-                                                .owner = &actor};
+    const Kernel::ModelEffectArguments arguments{.type = GuildMarkEffect,
+                                                 .position = actor.position,
+                                                 .angles = actor.angles,
+                                                 .light = actor.light,
+                                                 .owner = &actor};
     if (const auto slot = effects.Begin(arguments); slot.has_value())
         if (auto begun =
                 BeginTheGuildMark(effects.Effects()[*slot], *slot, actor, bonePoint, particles, random, worldClock);

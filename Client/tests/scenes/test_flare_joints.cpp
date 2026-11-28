@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "Scenes/BlastEffectCalls.h"
@@ -260,7 +261,7 @@ TEST(FlareJointsTest, TheComboReleasesSixtyFlares)
                 joint.alive = true;
         CrtRandom random{Seed};
         const Client::Actors::CharacterStepContext context{.world = *world, .random = random, .joints = joints};
-        const Client::World::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
+        const Client::Kernel::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
 
         const auto made = Client::Scenes::CreateBlastEffect(arguments, nullptr, context);
 

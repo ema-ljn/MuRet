@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Models/Cloth.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
 #include "Kernel/WorldState.h"
@@ -62,6 +63,7 @@ struct BareWorld
     std::unique_ptr<Tables::ItemSetTables> itemSets;
     RecordingSink sink;
     Core::Log log{sink, Core::LogLevel::Debug};
+    Scenes::ActorEffectHooks effectHooks;
     Scenes::WorldEntryResources resources{.world = world,
                                           .selection = selection,
                                           .dataRoot = {},
@@ -71,6 +73,7 @@ struct BareWorld
                                           .models = models,
                                           .log = log,
                                           .textMeasure = &measure,
-                                          .states = &states};
+                                          .states = &states,
+                                          .effectHooks = &effectHooks};
 };
 } // namespace Client::Tests

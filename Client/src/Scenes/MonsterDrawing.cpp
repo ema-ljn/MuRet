@@ -428,6 +428,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
                           .originalFrame = frame.originalFrame,
                           .cameraShake = frame.pass.cameraShake,
                           .effects = frame.pass.effects,
+                          .effectHooks = frame.pass.effectHooks,
                           .particles = frame.pass.particles,
                           .terrainHeight = BodyTerrainHeight(frame.pass),
                           .joints = frame.originalFrame ? frame.world.DrawTail().joints : frame.pass.joints};
@@ -1355,7 +1356,8 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                     return Core::Unexpected(std::string("0x4ee770: el cuerpo no tiene pose para sus vértices"));
                 const PosedBody posed = PosedBodyOf(frame);
                 return Actors::Drawing::EmitVertexEffects(frame.fauna, posed.object, posed.meshes, 0, type, subtype,
-                                                          frame.world.Map().effects, frame.random);
+                                                          frame.world.Map().effects, frame.pass.effectHooks,
+                                                          frame.random);
             };
             if (auto helpers = DrawTheMonsterHelpers(helperPass); !helpers.HasValue())
                 return helpers;

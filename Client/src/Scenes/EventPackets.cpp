@@ -4,6 +4,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/DialogTable.h"
 #include "Tables/TextTable.h"
@@ -1468,7 +1469,7 @@ private:
         position.z =
             static_cast<float>(Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, position.x, position.y));
         static_cast<void>(m_world.Map().effects.CreateFireworkEmitter(
-            World::ModelEffectArguments{.type = 0x60e, .position = position, .angles = {}, .light = glm::vec3(1)}));
+            Kernel::ModelEffectArguments{.type = 0x60e, .position = position, .angles = {}, .light = glm::vec3(1)}));
         return {};
     }
 

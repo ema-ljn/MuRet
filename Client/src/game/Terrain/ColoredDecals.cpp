@@ -1,6 +1,7 @@
 #include "Terrain/ColoredDecals.h"
 
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/X87.h"
 #include "World/ModelEffects.h"
@@ -66,7 +67,7 @@ void BeginColoredDecal(World::ModelEffect& effect, Crt::CrtRandom& random)
 }
 
 std::optional<std::size_t> CreateColoredDecal(std::span<World::ModelEffect> table,
-                                              const World::ModelEffectArguments& arguments, Crt::CrtRandom& random)
+                                              const Kernel::ModelEffectArguments& arguments, Crt::CrtRandom& random)
 {
     const auto slot = World::BeginModelEffect(table, arguments);
     if (slot.has_value())

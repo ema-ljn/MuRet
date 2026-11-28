@@ -18,6 +18,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Kernel/WorldState.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "World/ModelEffects.h"
 #include "World/SkinShellEffects.h"
 
@@ -83,8 +84,9 @@ Core::Expected<void, std::string> ShedTheSkinShells(Kernel::ActorState& owner, s
     // 0x53c215..0x53c246: 0x4ee770 con el /0 (0x53c227) o el /1 (0x53c241); el joint sólo llega acá con esos dos.
     Actors::Drawing::DrawnObject shadow;
     shadow.model = Shadow;
+    const ActorEffectHooks hooks;
     return Actors::Drawing::EmitVertexEffects(models, shadow, meshes, 0, World::SkinShellEffect, subtype, effects,
-                                              random);
+                                              &hooks, random);
 }
 
 Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,

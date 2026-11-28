@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "World/GameModelEffects.h"
@@ -32,9 +33,9 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::JointRequest;
+using Client::Kernel::ModelEffectArguments;
 using Client::World::BlastEffectServices;
 using Client::World::ModelEffect;
-using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;
 
 constexpr int OwnRecordCloseRandoms = 0xf08;

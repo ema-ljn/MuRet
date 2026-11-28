@@ -12,6 +12,11 @@
 #include <span>
 #include <string>
 
+namespace Client::Kernel
+{
+struct ModelEffectArguments;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -30,7 +35,6 @@ struct TerrainLighting;
 namespace Client::World
 {
 class ModelEffects;
-struct ModelEffectArguments;
 struct ModelEffect;
 class Particles;
 struct WorldObject;
@@ -65,6 +69,6 @@ inline constexpr std::int16_t SiegeIceStoneEffect = 0x12c;
 [[nodiscard]] bool IsSiegeStoneEffect(std::int16_t type);
 // 0x51cfa4 y0x51d1f0, después del prefijo518cf0. Lleno es éxito siníndice y sinCRT.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateSiegeStone(const ModelEffectArguments& arguments, ModelEffects& effects, const glm::vec3& heroPosition,
+CreateSiegeStone(const Kernel::ModelEffectArguments& arguments, ModelEffects& effects, const glm::vec3& heroPosition,
                  Crt::CrtRandom& random);
 } // namespace Client::World

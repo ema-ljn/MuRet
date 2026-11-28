@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Models/Animation.h"
 #include "Math/OriginalRotation.h"
@@ -58,7 +59,7 @@ Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeSto
 {
     if (services.effects == nullptr)
         return Core::Unexpected(std::string("0x52817d: falta el pool del cráter de impacto"));
-    const ModelEffectArguments crater{
+    const Kernel::ModelEffectArguments crater{
         .type = 0x636, .position = effect.transform.position, .angles = effect.transform.angles, .light = effect.light};
     static_cast<void>(services.effects->CreateCraterEffect(crater));
     Sound(services, Audio::SoundId{0x1eb}, effect.transform.position);
@@ -74,11 +75,11 @@ Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeSto
         return AreaAction(services, effect, 350, false);
     if (effect.subtype != 99 && !(effect.subtype == 88 && effect.ownerContext != nullptr))
         return {};
-    const ModelEffectArguments wave{.type = ShockWaveEffect,
-                                    .position = effect.transform.position,
-                                    .angles = effect.transform.angles,
-                                    .light = {1, .3f, .1f},
-                                    .subtype = 7};
+    const Kernel::ModelEffectArguments wave{.type = ShockWaveEffect,
+                                            .position = effect.transform.position,
+                                            .angles = effect.transform.angles,
+                                            .light = {1, .3f, .1f},
+                                            .subtype = 7};
     static_cast<void>(services.effects->CreateCastleShockWave(wave, random));
     return {};
 }

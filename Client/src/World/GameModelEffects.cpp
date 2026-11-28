@@ -7,6 +7,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "World/BlastModelEffects.h"
@@ -276,7 +277,7 @@ void StepSpiritTrail(ModelEffect& effect)
 
 } // namespace
 
-std::optional<std::size_t> CreateSpiritTrail(const ModelEffectArguments& args, ModelEffects& effects)
+std::optional<std::size_t> CreateSpiritTrail(const Kernel::ModelEffectArguments& args, ModelEffects& effects)
 {
     const auto slot = effects.Begin(args);
     if (!slot)
@@ -938,10 +939,10 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
         if (services.effects == nullptr)
             return Core::Unexpected(std::string("0x52b2ac: el emisor60e sin la tabla de efectos"));
         const auto created =
-            services.effects->CreateFireworkFlare(ModelEffectArguments{.type = 0x60d,
-                                                                       .position = effect.transform.position,
-                                                                       .angles = effect.transform.angles,
-                                                                       .light = effect.light},
+            services.effects->CreateFireworkFlare(Kernel::ModelEffectArguments{.type = 0x60d,
+                                                                               .position = effect.transform.position,
+                                                                               .angles = effect.transform.angles,
+                                                                               .light = effect.light},
                                                   random);
         if (created)
         {
@@ -1022,11 +1023,11 @@ Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Crt::CrtRan
         {
             if (services.effects == nullptr)
                 return Core::Unexpected(std::string("0x52c710: falta el pool para la onda6eb/5"));
-            const ModelEffectArguments child{.type = ShockWaveEffect,
-                                             .position = effect.transform.position,
-                                             .angles = effect.transform.angles,
-                                             .light = effect.light,
-                                             .subtype = 5};
+            const Kernel::ModelEffectArguments child{.type = ShockWaveEffect,
+                                                     .position = effect.transform.position,
+                                                     .angles = effect.transform.angles,
+                                                     .light = effect.light,
+                                                     .subtype = 5};
             static_cast<void>(services.effects->CreateCastleShockWave(child, random));
         }
         return {};

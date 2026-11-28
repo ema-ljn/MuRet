@@ -13,6 +13,7 @@
 #include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 #include "App/ServerAddress.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Session/CharacterStepHooks.h"
 #include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
@@ -735,13 +736,13 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     if (m_world && m_world->map == DragonMap)
     {
         // 0x606953..0x60697a: el dueño durable y la clave -1, después de la última realocación.
-        (void)CharacterWorld().Map().effects.Create(World::ModelEffectArguments{.type = World::DragonEffect,
-                                                                                .position = DragonOwnerPosition,
-                                                                                .angles = glm::vec3(0.0f),
-                                                                                .light = glm::vec3(1.0f),
-                                                                                .owner = &m_objects.front(),
-                                                                                .key = 0xffff,
-                                                                                .scale = World::DragonScale});
+        (void)CharacterWorld().Map().effects.Create(Kernel::ModelEffectArguments{.type = World::DragonEffect,
+                                                                                 .position = DragonOwnerPosition,
+                                                                                 .angles = glm::vec3(0.0f),
+                                                                                 .light = glm::vec3(1.0f),
+                                                                                 .owner = &m_objects.front(),
+                                                                                 .key = 0xffff,
+                                                                                 .scale = World::DragonScale});
     }
     m_routes = {};
     m_horse = {};
@@ -1978,7 +1979,8 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
                                                       .particles = &world.Particles(),
                                                       .effects = &world.Map().effects,
                                                       .itemContext = &itemContext,
-                                                      .hooks = &m_characterDrawHooks};
+                                                      .hooks = &m_characterDrawHooks,
+                                                      .effectHooks = &m_effectHooks};
         if (auto drawn = Actors::Drawing::DrawCharacterTail(batch, m_models, world, actor, LoginActorSlot, character,
                                                             pass, scan, originalFrame);
             !drawn.HasValue())

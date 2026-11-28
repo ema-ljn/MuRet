@@ -7,18 +7,15 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
-{
-struct ModelEffectArguments;
-}
 namespace Client::Kernel
 {
+struct ModelEffectArguments;
 struct ActorState;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-using CastleAttackEmitter = std::function<Core::Expected<void, std::string>(const World::ModelEffectArguments&)>;
+using CastleAttackEmitter = std::function<Core::Expected<void, std::string>(const Kernel::ModelEffectArguments&)>;
 // 42ea00: caller sobre el blanco del ataque; el caller exterior sólo lo invoca enmapa30.
 [[nodiscard]] Core::Expected<void, std::string> EmitTheCastleAttackHit(const Kernel::ActorState& target,
                                                                        std::uint32_t heroFlags, Crt::CrtRandom& random,

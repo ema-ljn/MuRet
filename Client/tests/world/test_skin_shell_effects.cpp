@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -35,7 +36,7 @@ float Bits(std::uint32_t value)
 }
 
 // Lo que pide 0x4ee770 (0x4eee6b): la esquina, los ángulos en 0, la luz (1, 1, 1) y el subtipo del joint.
-Client::World::ModelEffectArguments ShellArguments(std::int32_t subtype)
+Client::Kernel::ModelEffectArguments ShellArguments(std::int32_t subtype)
 {
     return {.type = Client::World::SkinShellEffect,
             .position = {1000.0f, 2000.0f, 300.0f},

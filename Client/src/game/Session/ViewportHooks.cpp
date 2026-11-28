@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/JointRequest.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Scenes/BlastEffectCalls.h"
@@ -43,13 +44,13 @@ Core::Expected<void, std::string> ViewportHooks::StartTheTeleportAction(Kernel::
 
 void ViewportHooks::CreateTheArrivalEffect(Kernel::ActorState& actor) const
 {
-    static_cast<void>(m_resources.world.Map().effects.Create(World::ModelEffectArguments{.type = World::ArrivalEffect,
-                                                                                         .position = actor.position,
-                                                                                         .angles = actor.angles,
-                                                                                         .light = actor.light,
-                                                                                         .owner = &actor,
-                                                                                         .key = NoEffectKey,
-                                                                                         .scale = 0.0f}));
+    static_cast<void>(m_resources.world.Map().effects.Create(Kernel::ModelEffectArguments{.type = World::ArrivalEffect,
+                                                                                          .position = actor.position,
+                                                                                          .angles = actor.angles,
+                                                                                          .light = actor.light,
+                                                                                          .owner = &actor,
+                                                                                          .key = NoEffectKey,
+                                                                                          .scale = 0.0f}));
 }
 
 // 0x530860(0x610, position, position, angles, 8, player, 20, −1, 0, 0, −1).

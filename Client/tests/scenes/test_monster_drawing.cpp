@@ -45,6 +45,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
@@ -230,7 +231,8 @@ protected:
                 .terrain = &m_terrain,
                 .faunaModels = &m_faunaModels,
                 .drawBuffers = &m_buffers,
-                .hooks = &m_drawHooks};
+                .hooks = &m_drawHooks,
+                .effectHooks = &m_effectHooks};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -254,6 +256,7 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Scenes::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
@@ -1785,7 +1788,8 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
         m_world->Map().effects.Clear();
         m_world->Runtime().lastSoundId.reset();
 
-        Client::Scenes::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources);
+        ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources)
+                        .HasValue());
 
         EXPECT_EQ(glow.byte110, strike);
         EXPECT_EQ(glow.flags78, 0u);

@@ -7,6 +7,11 @@
 #include <optional>
 #include <string>
 
+namespace Client::Kernel
+{
+struct ModelEffectArguments;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -15,7 +20,6 @@ namespace Client::World
 {
 class ModelEffects;
 struct ModelEffect;
-struct ModelEffectArguments;
 struct ModelEffectStepServices;
 
 // Skill\skinshell (0x61672d): las cáscaras que 0x4ee770 suelta de los vértices del 0x20b (Player\Shadow01) cuando el
@@ -27,8 +31,8 @@ inline constexpr std::int16_t SkinShellEffect = 0x137;
 // 0,5, la z de los ángulos en rand() % 360 y la velocidad (+0xcc), el empuje girado por los ángulos; la caída (+0xe4)
 // rand() % 5 + 2 más rand() % 5, y los tres ángulos rand() % 360. La luz: (0,5; 0,5; 0,5) el /0 y (0,1f; 0,6f; 1) el
 // /1; con otro subtipo queda la del pedido. Nueve rand(). Con la tabla llena, nada (ni rand()).
-[[nodiscard]] std::optional<std::size_t> CreateSkinShell(const ModelEffectArguments& arguments, ModelEffects& effects,
-                                                         Crt::CrtRandom& random);
+[[nodiscard]] std::optional<std::size_t> CreateSkinShell(const Kernel::ModelEffectArguments& arguments,
+                                                         ModelEffects& effects, Crt::CrtRandom& random);
 
 // 0x529926..0x529a4a, el cuerpo del paso (el caller corre el prólogo y el epílogo comunes de 0x5208a0): avanza la
 // velocidad, la frena por 0,9f, cae +0xe4, la acelera por 1,1f y la caída baja 3. Con el terreno (0x5f93c0, sin

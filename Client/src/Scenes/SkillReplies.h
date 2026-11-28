@@ -43,7 +43,8 @@ struct WorldEntryResources;
 
 // 0x4cbe90: el fin de una skill con duración: la bandera que le toca (0x4e6910), con 0x439d40 antes en las 0xc9 y
 // 0xca. Sobre el 400 si la clave no está.
-void ApplyMagicCancel(const Protocol::Skills::MagicCancel& cancel, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyMagicCancel(const Protocol::Skills::MagicCancel& cancel,
+                                                                 const WorldEntryResources& resources);
 
 // 0x4cbe00: con el tipo 1 y la máscara sin prender del todo en +0x78, 0x4e6380 (hito 1, corta); con el tipo 1 y la
 // máscara prendida, +0x7c queda en 0x200000 si la tenía y en 0 si no; con otro tipo y la máscara prendida, 0x4e6910.

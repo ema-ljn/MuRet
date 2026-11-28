@@ -53,6 +53,7 @@ class Particles;
 namespace Client::Actors
 {
 struct FullSetScan;
+class IEffectHooks;
 } // namespace Client::Actors
 
 namespace Client::Kernel
@@ -129,6 +130,9 @@ struct GameCharacterPass
     // What the draw asks of other modules (Session::CharacterDrawHooks). nullptr: a monster or an NPC stops, and so
     // does a joint of what hangs, of the full set or of the raven.
     const ICharacterDrawHooks* hooks = nullptr;
+    // Who creates the model effects (0x518cf0) of the full set, the actions, the guild mark and the raven
+    // (Scenes::ActorEffectHooks). nullptr: those stop.
+    const IEffectHooks* effectHooks = nullptr;
 };
 
 // The ordinary player's body, its terrain light and the hero's override, reusing DrawCharacter, then what hangs with

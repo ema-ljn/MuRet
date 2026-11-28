@@ -8,15 +8,12 @@
 #include "Actors/ActorFlags.h"
 #include "Kernel/ActorState.h"
 #include "Camera/GameCamera.h"
+#include "Actors/EffectHooks.h"
 #include "Actors/JointHooks.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
-#include "World/WizardModelEffects.h"
 #include "Tables/TextTable.h"
 #include "Kernel/IOnScreenMessages.h"
-#include "Scenes/SkullEffects.h"
-#include "Scenes/WizardEffects.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -92,6 +89,11 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const Scenes::WorldEntry
 }
 
 constexpr std::int32_t AuraJoint = 0x10f;
+// The model effects the flags create (0x518cf0): the wizard's ice and Icarus' 0x5ac/1 and /2 of the skills.
+constexpr std::int16_t IceEffect = 0xc1;
+constexpr std::int16_t IcarusFlareEffect = 0x5ac;
+constexpr std::int32_t SwellFlareSubtype = 1;
+constexpr std::int32_t GuardFlareSubtype = 2;
 
 // 0x530860(0x10f, from, from, angles, subtype, the character, width, −1, 0, 0, −1) (AuraJoints.cpp). With the pool
 // full, nothing.
@@ -131,23 +133,26 @@ Core::Expected<void, std::string> WrapInIce(Kernel::ActorState& actor, const Sce
     constexpr std::int32_t SecondIce = 2;
     constexpr double HalfTurn = Math::HalfTurnAsDouble; // 0x6b86bc
     Kernel::WorldState& world = resources.world;
-    static_cast<void>(KillModelEffectsOf(world.Map().effects, World::IceEffect, &actor, FirstIce));
-    const World::WizardEffectServices services =
-        Scenes::WizardEffectServicesOf(world, resources.cloth.random,
-                                       Scenes::WizardSceneParts{.particles = &world.Particles(),
-                                                                .terrain = &Scenes::TerrainOf(resources),
-                                                                .fixedHeight = resources.camera.fixedHeight,
-                                                                .dynamicLighting = Scenes::DynamicLightingOf(resources),
-                                                                .faunaModels = Scenes::FaunaModelsOf(resources)});
+    if (resources.effectHooks == nullptr)
+        return Core::Unexpected(std::format("{:#x}: no effect hooks for the ice", calls.first));
+    static_cast<void>(resources.effectHooks->KillTheEffectsOf(world.Map().effects, IceEffect, &actor, FirstIce));
+    const WizardEffectScene scene{.terrain = &Scenes::TerrainOf(resources),
+                                  .fixedHeight = resources.camera.fixedHeight,
+                                  .dynamicLighting = Scenes::DynamicLightingOf(resources),
+                                  .faunaModels = Scenes::FaunaModelsOf(resources)};
     glm::vec3 angles = actor.angles;
     for (const std::int32_t subtype : {FirstIce, SecondIce})
     {
         if (subtype == SecondIce)
             angles.z = static_cast<float>(static_cast<double>(angles.z) + HalfTurn);
-        const auto created = World::CreateWizardModelEffect(
-            world.Map().effects,
-            Scenes::WizardArguments(World::IceEffect, actor.position, angles, actor.light, subtype, &actor),
-            resources.cloth.random, services, &actor.light);
+        const auto created = resources.effectHooks->CreateTheWizardEffect(world, resources.cloth.random, scene,
+                                                                          {.type = IceEffect,
+                                                                           .position = actor.position,
+                                                                           .angles = angles,
+                                                                           .light = actor.light,
+                                                                           .subtype = subtype,
+                                                                           .owner = &actor},
+                                                                          &actor.light);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{:#x}: el 0xc1/{} del hielo: {}",
                                                 subtype == FirstIce ? calls.first : calls.second, subtype,
@@ -263,13 +268,16 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
     // 0x5ac/2 (or /1) and creates another with it as owner (0x518ac0 and 0x518cf0, like skills 0x35 and 0x30 of
     // SkillReplies, without the 0x619/9 joints of 0x35); with the table full, none. Then it sets the bit and goes on.
     // The step of /1 stops at 0x52a866.
-    for (const auto& [bit, subtype] :
-         {std::pair{0x400u, World::GuardFlareSubtype}, std::pair{0x10u, World::SwellFlareSubtype}})
+    for (const auto& [bit, subtype] : {std::pair{0x400u, GuardFlareSubtype}, std::pair{0x10u, SwellFlareSubtype}})
     {
         if (!Has(flags, bit))
             continue;
-        KillModelEffectsOf(effects, World::IcarusFlareEffect, &actor, subtype);
-        static_cast<void>(effects.CreateSkillFlare(actor.position, actor.angles, actor.light, subtype, &actor));
+        if (resources.effectHooks == nullptr)
+            return Core::Unexpected(
+                std::format("0x4e670f: no effect hooks for the 0x5ac/{} of flag {:#x}", subtype, bit));
+        static_cast<void>(resources.effectHooks->KillTheEffectsOf(effects, IcarusFlareEffect, &actor, subtype));
+        static_cast<void>(resources.effectHooks->CreateTheSkillFlare(effects, actor.position, actor.angles, actor.light,
+                                                                     subtype, &actor));
         actor.flags78 |= bit;
     }
     // 0x4e67a6..0x4e6833: with the bit already set in +0x78, it only sets it again.
@@ -292,7 +300,10 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
         {
             // 0x4e6842..0x4e6899: the skull 0x628/0 over the character (the previous one, off) and sound 0x85 on it.
             constexpr Audio::SoundId SkullSound{0x85};
-            if (auto skull = Scenes::PutTheSkullOn(actor, resources.world, resources.cloth.random, 0x4e688c);
+            if (resources.effectHooks == nullptr)
+                return Cut("0x4e688c: no effect hooks for the skull of flag 0x40");
+            if (auto skull =
+                    resources.effectHooks->PutTheSkullOn(actor, resources.world, resources.cloth.random, 0x4e688c);
                 !skull.HasValue())
                 return skull;
             resources.world.Runtime().RequestSound(SkullSound, actor.position);

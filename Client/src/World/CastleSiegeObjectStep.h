@@ -9,6 +9,11 @@
 #include <functional>
 #include <string>
 
+namespace Client::Kernel
+{
+struct ModelEffectArguments;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -20,7 +25,6 @@ namespace Client::World
 {
 struct ObjectStepGlobals;
 struct WorldObject;
-struct ModelEffectArguments;
 
 // 0x63741d..0x637466, al principio del dibujo del mundo en el 30: el héroe en x de 16.100 a 19.000 y en y de
 // 18.900 a 21.700 (0x6ba704, 0x6ba700, 0x6ba6fc y 0x6ba6f8, con los bordes y sin NaN) prende la niebla negra
@@ -40,7 +44,7 @@ struct CastleSiegePrelude
     glm::vec3 heroPosition{};
     // Cada llamada abre y cierra el +0x420 protegido; dos lecturas nativas conservan dos cierres.
     std::function<std::int32_t()> heroY{};
-    std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> emit{};
+    std::function<Core::Expected<void, std::string>(const Kernel::ModelEffectArguments&)> emit{};
     std::function<void(bool)> updateMusic{};
 };
 
@@ -72,7 +76,7 @@ struct CastleSiegePrelude
 // desubtipo1, pide el sonido1ec y oculta la malla0. Después, siempre,42b480(ApplyCastleSiegeObjectState).
 struct CastleGateCollapseServices
 {
-    std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> emit{};
+    std::function<Core::Expected<void, std::string>(const Kernel::ModelEffectArguments&)> emit{};
     std::function<void(Audio::SoundId)> sound{};
 };
 [[nodiscard]] Core::Expected<void, std::string>

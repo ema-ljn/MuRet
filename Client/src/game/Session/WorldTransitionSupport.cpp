@@ -3,6 +3,7 @@
 #include "Actors/ActionReply.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
 #include "Maps/MapId.h"
@@ -186,13 +187,13 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
 }
 void CreateTransitionArrival(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
-    static_cast<void>(resources.world.Map().effects.Create(World::ModelEffectArguments{.type = World::ArrivalEffect,
-                                                                                       .position = actor.position,
-                                                                                       .angles = actor.angles,
-                                                                                       .light = actor.light,
-                                                                                       .owner = &actor,
-                                                                                       .key = 0xffff,
-                                                                                       .scale = 0.0f}));
+    static_cast<void>(resources.world.Map().effects.Create(Kernel::ModelEffectArguments{.type = World::ArrivalEffect,
+                                                                                        .position = actor.position,
+                                                                                        .angles = actor.angles,
+                                                                                        .light = actor.light,
+                                                                                        .owner = &actor,
+                                                                                        .key = 0xffff,
+                                                                                        .scale = 0.0f}));
 }
 Core::Expected<void, std::string> StartTheTeleportAction(Kernel::ActorState& actor,
                                                          const WorldEntryResources& resources)

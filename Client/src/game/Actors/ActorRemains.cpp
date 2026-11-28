@@ -7,7 +7,7 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Terrain/GroundMarks.h"
-#include "World/ModelEffects.h"
+#include "Actors/EffectHooks.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -71,9 +71,11 @@ Core::Expected<void, std::string> LeaveTheRemains(Kernel::ActorState& actor, con
     if (actor.type == IceMonsterModel)
     {
         actor.alive = false;
+        if (context.effectHooks == nullptr)
+            return Core::Unexpected(std::string("0x52e841: no effect hooks for the ice shards"));
         for (int shard = 0; shard < IceShards; ++shard)
-            static_cast<void>(
-                context.effects.CreateIceShard(actor.position, actor.angles, actor.light, context.random));
+            static_cast<void>(context.effectHooks->CreateTheIceShard(context.effects, actor.position, actor.angles,
+                                                                     actor.light, context.random));
         return {};
     }
     if (IsClean(actor.type))

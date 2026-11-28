@@ -497,7 +497,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (auto acted = Act(source, MountedAction(source, 0x87), resources); !acted.HasValue())
             return acted;
         if (succeeded)
-            Actors::RemoveActorFlag(0x1000, target, world);
+            if (auto removed = Actors::RemoveActorFlag(0x1000, target, world, resources.effectHooks);
+                !removed.HasValue())
+                return removed;
         return Settle(cast);
     }
     case 0x46:
@@ -513,7 +515,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (auto acted = Act(source, MountedAction(source, 0x87), resources); !acted.HasValue())
             return acted;
         if (succeeded)
-            Actors::RemoveActorFlag(0x4000, target, world);
+            if (auto removed = Actors::RemoveActorFlag(0x4000, target, world, resources.effectHooks);
+                !removed.HasValue())
+                return removed;
         return Settle(cast);
     }
     // 0x4cdad7..0x4cdb7a: con la skill salida, 0x2000 en la fuente y 0x518cf0(0x138, su posición, sus ángulos, su
@@ -537,7 +541,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (succeeded)
         {
             for (const std::uint32_t mask : {0x4u, 0x8u, 0x10u, 0x100u, 0x800u, 0x2000u})
-                Actors::RemoveActorFlag(mask, target, world);
+                if (auto removed = Actors::RemoveActorFlag(mask, target, world, resources.effectHooks);
+                    !removed.HasValue())
+                    return removed;
         }
         return ActAndSettle(cast, MountedAction(source, 0x3f));
     // 0x4cdc37..0x4cdc9c: sin 0x400 en el blanco, apaga su 0x5ac/2 y sus joints 0x619/9 y crea otro 0x5ac/2 con él de
@@ -545,8 +551,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x35:
         if ((target.flags78 & 0x400u) != 0x400u)
         {
-            Actors::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target,
-                                       World::GuardFlareSubtype);
+            World::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::GuardFlareSubtype);
             Actors::KillJointsOf(world.DrawTail().joints, 0x619, &target, 9);
             static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
                                                                    World::GuardFlareSubtype, &target));
@@ -576,8 +581,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x30:
         if ((target.flags78 & 0x10u) != 0x10u)
         {
-            Actors::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target,
-                                       World::SwellFlareSubtype);
+            World::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::SwellFlareSubtype);
             static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
                                                                    World::SwellFlareSubtype, &target));
         }
@@ -785,7 +789,7 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
     return {};
 }
 
-void ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, cancel.key)];
@@ -846,9 +850,9 @@ void ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& reso
         mask = 0x100;
         break;
     default:
-        return;
+        return {};
     }
-    Actors::RemoveActorFlag(mask, actor, world);
+    return Actors::RemoveActorFlag(mask, actor, world, resources.effectHooks);
 }
 
 Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorState& state,
@@ -868,7 +872,7 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorS
         return {};
     }
     if (lit)
-        Actors::RemoveActorFlag(state.mask, actor, world);
+        return Actors::RemoveActorFlag(state.mask, actor, world, resources.effectHooks);
     return {};
 }
 

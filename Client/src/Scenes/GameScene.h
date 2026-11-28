@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scenes/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Session/ServerSession.h"
 #include "Models/SkinningBuffers.h"
@@ -288,6 +289,7 @@ private:
     Kernel::PoseBuffer* m_framePoseCarry = nullptr;
     Models::SkinningBuffers m_characterBuffers;
     Session::CharacterDrawHooks m_characterDrawHooks;
+    ActorEffectHooks m_effectHooks;
     Terrain::SphereFrustum m_frustum;
     Render::Camera3D m_drawnCamera;
     Terrain::TerrainPickingState m_picking;

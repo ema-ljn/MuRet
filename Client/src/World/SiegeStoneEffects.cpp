@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainDefines.h"
@@ -19,7 +20,7 @@ namespace
 {
 using Math::F32;
 
-void ChooseTheTarget(ModelEffect& effect, const ModelEffectArguments& arguments, const glm::vec3& hero,
+void ChooseTheTarget(ModelEffect& effect, const Kernel::ModelEffectArguments& arguments, const glm::vec3& hero,
                      Crt::CrtRandom& random)
 {
     if (effect.disturbanceState == 1)
@@ -41,7 +42,7 @@ void ChooseTheTarget(ModelEffect& effect, const ModelEffectArguments& arguments,
     effect.siegeTarget.z = 100.0f;
 }
 
-void BeginTheFlight(ModelEffect& effect, const ModelEffectArguments& arguments, const glm::vec3& hero,
+void BeginTheFlight(ModelEffect& effect, const Kernel::ModelEffectArguments& arguments, const glm::vec3& hero,
                     Crt::CrtRandom& random)
 {
     constexpr double SpeedStep = static_cast<double>(0.01f);
@@ -80,7 +81,7 @@ bool IsSiegeStoneEffect(std::int16_t type)
     return type == SiegeStoneEffect || type == SiegeIceStoneEffect;
 }
 
-Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const ModelEffectArguments& arguments,
+Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const Kernel::ModelEffectArguments& arguments,
                                                                          ModelEffects& effects,
                                                                          const glm::vec3& heroPosition,
                                                                          Crt::CrtRandom& random)

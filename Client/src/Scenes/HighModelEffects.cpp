@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -13,7 +14,6 @@
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/CharacterStep.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -159,7 +159,7 @@ void BeginTheSiegeSpearman(World::ModelEffect& effect, const HighEffectContext& 
 // la partida en la posición. El /0, entre el sorteo y la partida, el joint 0x61c/3 en la posición (0x51f1c5). Otro
 // subtipo sale por 0x51db73 con lo del prefijo.
 Core::Expected<void, std::string> BeginTheSiegePulse(World::ModelEffect& effect,
-                                                     const World::ModelEffectArguments& arguments,
+                                                     const Kernel::ModelEffectArguments& arguments,
                                                      const HighEffectContext& context)
 {
     constexpr std::int32_t PulseLife = 20;
@@ -355,7 +355,7 @@ void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& co
 // 20 menos, la velocidad (0, −40, 0), +0x28..+0x30 en los ángulos y los ángulos en (0, 0, z). Otro subtipo, sólo el
 // prefijo. Sin rand() (los de la llama, sí).
 Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
-                                                   const World::ModelEffectArguments& arguments,
+                                                   const Kernel::ModelEffectArguments& arguments,
                                                    const HighEffectContext& context)
 {
     constexpr std::int32_t PartLife = 20;
@@ -495,7 +495,7 @@ void BeginTheEmitter(World::ModelEffect& effect)
 
 // 0x51efa5..0x51efe9, el 0x621 salvo el /0: vida 10; el /1 y el /2, vida 20 y la partida (+0x17c) en la posición que
 // recibió. Sin rand().
-void BeginThePiercingGlow(World::ModelEffect& effect, const World::ModelEffectArguments& arguments)
+void BeginThePiercingGlow(World::ModelEffect& effect, const Kernel::ModelEffectArguments& arguments)
 {
     constexpr std::int32_t GlowLife = 10, HeldLife = 20;
     effect.life = GlowLife;
@@ -617,11 +617,11 @@ Core::Expected<void, std::string> StepTheSiegeSpearman(World::ModelEffect& effec
         point.x = F32(static_cast<double>(context.random.Next() % SideSpan) - SideCenter + D(point.x));
         point.y = F32(D(point.y) - (static_cast<double>(context.random.Next() % FallSpan) + FallBase));
         constexpr std::int32_t FragmentSubtype = 2;
-        const World::ModelEffectArguments arguments{.type = World::SiegeStoneEffect,
-                                                    .position = point,
-                                                    .angles = effect.transform.angles,
-                                                    .light = effect.light,
-                                                    .subtype = FragmentSubtype};
+        const Kernel::ModelEffectArguments arguments{.type = World::SiegeStoneEffect,
+                                                     .position = point,
+                                                     .angles = effect.transform.angles,
+                                                     .light = effect.light,
+                                                     .subtype = FragmentSubtype};
         const auto& hero = context.world.Hero();
         if (auto made = World::CreateSiegeStone(arguments, context.world.Map().effects, hero.position, context.random);
             !made.HasValue())
@@ -693,12 +693,12 @@ Core::Expected<void, std::string> StepTheSiegeFlare(World::ModelEffect& effect, 
         constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3f666666u)); // 0x6b8a1c, 0,9f
         effect.transform.scale = F32(D(effect.transform.scale) + Growth);
         effect.velocity.y = F32(D(effect.velocity.y) - Fall);
-        const World::ModelEffectArguments spark{.type = SiegeFlareEffect,
-                                                .position = effect.transform.position,
-                                                .angles = effect.transform.angles,
-                                                .light = effect.light,
-                                                .subtype = 1,
-                                                .owner = &effect};
+        const Kernel::ModelEffectArguments spark{.type = SiegeFlareEffect,
+                                                 .position = effect.transform.position,
+                                                 .angles = effect.transform.angles,
+                                                 .light = effect.light,
+                                                 .subtype = 1,
+                                                 .owner = &effect};
         if (auto made = CreateHighModelEffect(
                 spark, {.world = context.world, .random = context.random, .worldClock = context.worldClock});
             !made.HasValue())
@@ -1250,7 +1250,7 @@ bool IsHighModelEffect(std::int16_t type)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEffectContext& context)
+CreateHighModelEffect(const Kernel::ModelEffectArguments& arguments, const HighEffectContext& context)
 {
     if (!IsHighModelEffect(arguments.type))
         return Core::Unexpected(std::format("0x518cf0: el alta del efecto {:#x} no es de este lote", arguments.type));

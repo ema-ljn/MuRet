@@ -39,7 +39,6 @@ struct JointRequest;
 namespace Client::World
 {
 class FrameSprites;
-struct ModelEffect;
 class ScepterGlowCarry;
 struct ObjectModelStepState;
 } // namespace Client::World
@@ -259,6 +258,13 @@ SkinObjectMeshesInto(Models::SkinnedMeshes& buffers, const Models::IModelLibrary
 [[nodiscard]] std::vector<Models::SkinnedMesh> WorldScratchOf(const Models::IModelLibrary& models,
                                                               const DrawnObject& object);
 
+// The meshes 0x5ffdf0 left: the scratch the pose published or, without it, all the model's meshes posed as DrawObject
+// poses them (WorldScratchOf, kept in `skinned`), also those without texture (a bare 0x4ecc30 and 0x4eff40 do not look
+// at the script). Without the model, the skeleton or the pose, none.
+[[nodiscard]] std::span<const Models::SkinnedMesh> PosedMeshesOf(const Models::IModelLibrary& models,
+                                                                 const DrawnObject& object,
+                                                                 std::vector<Models::SkinnedMesh>& skinned);
+
 // A pass of 0x60cd60: the scale 0x4ebc80 reads from 0x6c881c and the model's color (+0x48..+0x50).
 struct ObjectOutlinePass
 {
@@ -449,13 +455,6 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const Models::IModelLibrar
                            float groundHeight, Core::Duration frameClock);
 
 // What 0x42cc10 (the chain of 0x6002e0 on map 30, after 0x438fe0) reads from the object and from outside.
-using VertexEffectEmitter = std::function<Core::Expected<void, std::string>(std::int32_t, const DrawnObject&,
-                                                                            std::span<const Models::SkinnedMesh>)>;
-// 0x601c62..0x60236f: bodies 0x12b/0x12c, fragments 0x12d..0x133 and 0x10a/0x10b, chrome and 0x4ee770 on impact.
-[[nodiscard]] Core::Expected<void, std::string>
-DrawCastleWeaponBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
-                     const DrawnObject& object, Core::Duration frameClock, const VertexEffectEmitter& emit = {});
-
 struct CastleSiegeBodyPass
 {
     // +0x2: the object's type.

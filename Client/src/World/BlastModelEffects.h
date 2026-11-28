@@ -24,13 +24,13 @@ struct Skeleton;
 // queda afuera (las partículas y los joints que MuRet todavía no crea) corta en la llamada que lo pide.
 namespace Client::Kernel
 {
+struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 struct ModelEffectOwner;
 struct ModelEffectStepServices;
 class ModelEffects;
@@ -60,8 +60,8 @@ struct BlastEffectServices
 // su subtipo; 0x5192ed el 0xf5; 0x5198cd el 0xf6; …). Devuelve el lugar del efecto pedido (el del 0x106, no el de su
 // 0x105), o nada con la tabla llena, sin rand(). Otro tipo, o lo que el caso pide y MuRet no tiene, corta.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, const ModelEffectOwner& owner,
-                       Crt::CrtRandom& random, const BlastEffectServices& services);
+CreateBlastModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
+                       const ModelEffectOwner& owner, Crt::CrtRandom& random, const BlastEffectServices& services);
 
 // Los efectos cuyo paso da StepBlastModelEffect: los de IsBlastModelEffect, con el 0x105 sólo en el subtipo 1.
 [[nodiscard]] bool StepsAsBlastModelEffect(const ModelEffect& effect);

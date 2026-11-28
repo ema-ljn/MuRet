@@ -38,13 +38,13 @@ struct TerrainLighting;
 // 0x4e6380 (Scenes/ActorEffectFlags) y la muerte (0x4f5660, Scenes/ActorCombat). 06, "Los efectos de los magos".
 namespace Client::Kernel
 {
+struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 class ModelEffects;
 class Particles;
 class FrameSprites;
@@ -123,7 +123,7 @@ struct WizardEffectServices
     std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
     // 0x518cf0 con un tipo de otro lote: el 0xf6/2 que suelta el 0xc2/6..8 al caer (0x524d38), con el meteoro de
     // dueño (+0x108). Scenes::WizardEffectServicesOf lo da con World::CreateBlastModelEffect.
-    std::function<Core::Expected<void, std::string>(const ModelEffectArguments&)> otherEffect{};
+    std::function<Core::Expected<void, std::string>(const Kernel::ModelEffectArguments&)> otherEffect{};
     // 0x524a8d..0x524b21: el 0xc2/4 que toca el suelo en (x, y) empuja a los 400 personajes del pool (de a 0x438) que
     // están vivos, vistos (+0x16c), no son el héroe, no se mueren (+0x389 en 0) y quedan a 200 o menos (la raíz de
     // dy² + dx² en x87, con dx y dy guardados en float; `fcomp` y `test ah,0x41`): el 0x20a con Fenrir (+0x318 en
@@ -141,7 +141,7 @@ struct WizardEffectServices
 // caso sale por 0x51db73 con el prefijo y lo que el caso escribió antes de mirarlo. Otro tipo, o una rama que pide
 // algo que MuRet no tiene (CL11 de otro lote), corta con su dirección.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, Crt::CrtRandom& random,
+CreateWizardModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments& arguments, Crt::CrtRandom& random,
                         const WizardEffectServices& services, glm::vec3* callerLight = nullptr);
 
 // 0x5208a0 sobre un efecto del lote: el primer rand() de la luz local (0x5208c5), el caso del tipo y la cola común

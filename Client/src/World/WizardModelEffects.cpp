@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -342,7 +343,7 @@ Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom&
     return {};
 }
 
-Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const ModelEffectArguments& arguments,
+Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const Kernel::ModelEffectArguments& arguments,
                                              CrtRandom& random, const WizardEffectServices& services)
 {
     constexpr std::int32_t FireLife = 40;
@@ -463,7 +464,7 @@ Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const ModelEff
     }
 }
 
-Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const ModelEffectArguments& arguments,
+Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::ModelEffectArguments& arguments,
                                              CrtRandom& random, const WizardEffectServices& services,
                                              glm::vec3* callerLight)
 {
@@ -761,13 +762,14 @@ Core::Expected<void, std::string> HitTheOwner(ModelEffect& effect, CrtRandom& ra
         return Core::Unexpected(std::string("0x518c5a: falta la tabla de efectos (0x518cf0)"));
     for (int stone = 0; stone < 2; ++stone)
     {
-        const ModelEffectArguments child{.type = static_cast<std::int16_t>(FirstSnowStoneEffect + (random.Next() & 1)),
-                                         .position = at,
-                                         .angles = angles,
-                                         .light = light,
-                                         .subtype = 0,
-                                         .owner = nullptr,
-                                         .key = NoKey};
+        const Kernel::ModelEffectArguments child{
+            .type = static_cast<std::int16_t>(FirstSnowStoneEffect + (random.Next() & 1)),
+            .position = at,
+            .angles = angles,
+            .light = light,
+            .subtype = 0,
+            .owner = nullptr,
+            .key = NoKey};
         if (auto created = CreateWizardModelEffect(*services.effects, child, random, services); !created.HasValue())
             return Core::Unexpected(created.Error());
         if (auto smoke = Emit(services, random, "0x518c70", BreathParticle, at, angles, light, 0, 1.0f);
@@ -943,13 +945,13 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
     {
         // 0x524cf3..0x524d38: el 0xf6/2 (World/BlastModelEffects, por otherEffect) con el 0xc2 de dueño, la clave 30,
         // los ángulos en 0 y la luz (0; 0,5; 0); no saca rand().
-        const ModelEffectArguments burst{.type = MeteorBurst,
-                                         .position = at,
-                                         .angles = {},
-                                         .light = {0.0f, 0.5f, 0.0f},
-                                         .subtype = 2,
-                                         .owner = &effect,
-                                         .key = 30};
+        const Kernel::ModelEffectArguments burst{.type = MeteorBurst,
+                                                 .position = at,
+                                                 .angles = {},
+                                                 .light = {0.0f, 0.5f, 0.0f},
+                                                 .subtype = 2,
+                                                 .owner = &effect,
+                                                 .key = 30};
         if (!services.otherEffect)
             return Core::Unexpected(std::string("0x524d38: falta el alta del 0xf6/2 que suelta el meteoro (0x518cf0)"));
         if (auto created = services.otherEffect(burst); !created.HasValue())
@@ -1600,7 +1602,7 @@ bool IsWizardModelEffect(std::int16_t type)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, Crt::CrtRandom& random,
+CreateWizardModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments& arguments, Crt::CrtRandom& random,
                         const WizardEffectServices& services, glm::vec3* callerLight)
 {
     if (!IsWizardModelEffect(arguments.type))

@@ -570,7 +570,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                     .terrain = &MapTerrain(),
                     .faunaModels = &LoadedFaunaModels(),
                     .drawBuffers = &m_characterBuffers,
-                    .hooks = &m_characterDrawHooks},
+                    .hooks = &m_characterDrawHooks,
+                    .effectHooks = &m_effectHooks},
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const Actors::Drawing::DrawnObject& object)
             { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); },

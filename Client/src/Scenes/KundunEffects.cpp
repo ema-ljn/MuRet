@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
@@ -65,7 +66,7 @@ void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunCall(World::ModelEffects& effects, const World::ModelEffectArguments& arguments)
+CreateTheKundunCall(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments)
 {
     if (arguments.type != KundunCallEffect)
         return Core::Unexpected(std::format("0x518cf0: el alta de Kundun recibe el tipo {:#x}", arguments.type));

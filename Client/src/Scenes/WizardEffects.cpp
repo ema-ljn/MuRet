@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/PlayerActions.h"
 #include "Models/Animation.h"
@@ -107,7 +108,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
             world.PlaceModel(type, placement);
         },
         .otherEffect = [&world, &random, sound = parts.sound](
-                           const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+                           const Kernel::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
         {
             // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que tiene
             // que ser un efecto de la tabla. Su paso (0x521324) no lo lee: sólo le suma 0,04f a la escala (+0xc).
@@ -191,22 +192,22 @@ World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepCo
                                                    .faunaModels = context.faunaModels});
 }
 
-World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                            const glm::vec3& light, std::int32_t subtype, void* owner,
-                                            std::uint16_t key)
+Kernel::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                             const glm::vec3& light, std::int32_t subtype, void* owner,
+                                             std::uint16_t key)
 {
-    return World::ModelEffectArguments{.type = type,
-                                       .position = position,
-                                       .angles = angles,
-                                       .light = light,
-                                       .subtype = subtype,
-                                       .owner = owner,
-                                       .key = key};
+    return Kernel::ModelEffectArguments{.type = type,
+                                        .position = position,
+                                        .angles = angles,
+                                        .light = light,
+                                        .subtype = subtype,
+                                        .owner = owner,
+                                        .key = key};
 }
 
-Core::Expected<std::optional<std::size_t>, std::string> CreateWizardEffect(const Actors::CharacterStepContext& context,
-                                                                           const World::ModelEffectArguments& arguments,
-                                                                           glm::vec3* callerLight)
+Core::Expected<std::optional<std::size_t>, std::string>
+CreateWizardEffect(const Actors::CharacterStepContext& context, const Kernel::ModelEffectArguments& arguments,
+                   glm::vec3* callerLight)
 {
     return World::CreateWizardModelEffect(context.world.Map().effects, arguments, context.random,
                                           WizardEffectServicesOf(context), callerLight);

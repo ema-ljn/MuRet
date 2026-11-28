@@ -1,6 +1,7 @@
 #include "Scenes/AttackFrameSkills.h"
 
 #include "Core/Expected.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/PlayerActions.h"
 #include "Math/Angles.h"
@@ -51,7 +52,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso, con la dirección del llamador delante del error.
-Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments,
+Core::Expected<void, std::string> CreateHighEffect(const Kernel::ModelEffectArguments& arguments,
                                                    const Actors::CharacterStepContext& context, std::uint32_t address)
 {
     if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
@@ -421,12 +422,12 @@ Core::Expected<void, std::string> StepTheSkill2f(Kernel::ActorState& actor, std:
             const int offset = context.random.Next() % Scatter - ScatterCentre;
             point[axis] = static_cast<float>(static_cast<double>(offset) + static_cast<double>(point[axis]));
         }
-        const World::ModelEffectArguments arguments{.type = RockEffect,
-                                                    .position = point,
-                                                    .angles = actor.angles,
-                                                    .light = RockLight,
-                                                    .subtype = subtype,
-                                                    .owner = &actor};
+        const Kernel::ModelEffectArguments arguments{.type = RockEffect,
+                                                     .position = point,
+                                                     .angles = actor.angles,
+                                                     .light = RockLight,
+                                                     .subtype = subtype,
+                                                     .owner = &actor};
         if (auto made = CreateBlastEffect(arguments, &actor, context); !made.HasValue())
             return Core::Unexpected(made.Error());
     }

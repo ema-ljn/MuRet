@@ -13,6 +13,11 @@
 // en 0x518cf0 como el 0x127 (0x518f51) con él de dueño. Las altas (0x51e234 y 0x51cf6d) y los pasos (0x52a17b y
 // 0x5277ae). Su dibujo es el camino común (0x52da92 → 0x602e90): 0x6002e0 no tiene caso propio para ellos. 06, "Los
 // efectos con modelo de los tipos altos".
+namespace Client::Kernel
+{
+struct ModelEffectArguments;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -21,7 +26,6 @@ class CrtRandom;
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 class ModelEffects;
 } // namespace Client::World
 
@@ -51,8 +55,8 @@ using KundunTerrainHeight = std::function<double(float, float)>;
 // 0x518cf0(pedazo, ...) sobre `effects`, como lo pide la caída de Kundun: el prefijo (World::ModelEffects::Begin) y
 // BeginTheKundunPiece. Con la tabla llena, nada y sin rand(). Devuelve el lugar.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunPiece(World::ModelEffects& effects, const World::ModelEffectArguments& arguments, Crt::CrtRandom& random,
-                     const KundunTerrainHeight& terrainHeight);
+CreateTheKundunPiece(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
+                     Crt::CrtRandom& random, const KundunTerrainHeight& terrainHeight);
 
 // 0x51cf6d..0x51cf91 y 0x51d9ff, el 0x127 de cualquier subtipo: +0xd8 en 0,08f, vida 200, +0x64 en −2, escala 1,8f y
 // la luz en 0,5. Sin rand().

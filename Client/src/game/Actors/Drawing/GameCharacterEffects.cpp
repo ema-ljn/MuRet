@@ -17,24 +17,22 @@
 #include "Assets/ModelIds.h"
 #include "Models/Animation.h"
 #include "Models/Skeleton.h"
+#include "Tables/PlayerBones.h"
 #include "Terrain/TerrainCulling.h"
 #include "Actors/Drawing/PosePublishing.h"
+#include "Actors/EffectHooks.h"
 #include "Actors/JointHooks.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GuildMarkEffects.h"
-#include "Scenes/HighModelEffects.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
-#include "World/BlastModelEffects.h"
 #include "World/ChaosCastle.h"
 #include "Math/Ftol.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -147,33 +145,6 @@ constexpr std::int32_t TrailType = 0x610, TrailSubtype = 7, TrailKey = 0x28;
 constexpr std::int32_t NoKey = -1, NoTarget = -1;
 constexpr std::int32_t FirstSkill = 0, SecondSkill = 1;
 
-// 0x52a9ad: the 0x5ac/3 every 15 steps, 50 from the owner and 20 higher, with joint 0x619/9 of width 10.
-constexpr std::int32_t FlarePeriod = 15;
-constexpr float FlareRadius = 50.0f;
-constexpr std::int32_t EnergyType = 0x619, EnergySubtype = 9;
-constexpr float EnergyWidth = 10.0f;
-
-// 0x52a7b7 and 0x52a8a7: the 0x5ac/1 and /2 of the incoming skills live 10 more steps while the owner is alive with its
-// +0x78 flag; with 0x4000 on the owner they do nothing. The /1 drops two 0x5ac/4 of light (1, 0.5f, 0.1f) with the bone
-// indices 0x6c8c38 + rand() % 7 and 0x6c8c3e − that; the /2, every 50 of +0xd8, turns 50, moves 80 from the owner and
-// 50 higher, and drops joint 0x619/9 of width 15.
-constexpr std::int32_t SkillFlareLife = 10;
-constexpr std::uint32_t SwellFlag = 0x10, GuardFlag = 0x400, QuietOwnerFlag = 0x4000;
-constexpr std::array<float, 7> SwellBones{25, 26, 27, 20, 34, 35, 36};
-constexpr std::int32_t GuardPeriod = 50;
-constexpr double GuardTurn = 50.0;   // 0x6b86b0
-constexpr float GuardRadius = 80.0f; // 0x6b9ffc
-constexpr double GuardRise = 50.0;   // 0x6b86b0
-constexpr float GuardWidth = 15.0f;  // 0x41700000
-
-// 0x518900: the three 0x619 joints of width 5 the pet's decal 0x61e/1 drops on each step, 200 farther ([ebp−0x20]) and
-// 120 higher (0x6b86c8), with the decal's subtype. Subtype 5 would pass as 0xb, but MuRet only creates /1 and /3.
-constexpr int SummonJoints = 3;
-constexpr float SummonWidth = 5.0f;
-constexpr float SummonReach = 200.0f;
-constexpr double SummonLift = 120.0;
-constexpr int SummonPitchSpan = 90, SummonTurnSpan = 360;
-
 // 0x50ff5e..0x510002: the light of each boot from 0x182f to 0x1833.
 constexpr std::array<glm::vec3, 5> BootsLights{{
     {std::bit_cast<float>(0x3f266666u), std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3dcccccdu)},
@@ -187,6 +158,8 @@ constexpr std::array<glm::vec3, 5> BootsLights{{
 constexpr std::int32_t FirstBloodCastle = 11;
 constexpr std::int32_t LastBloodCastle = 17;
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
+// 0x51e121: the guild mark follows the owner's head (+0x120 + 0x3c0).
+constexpr std::size_t GuildMarkBone = static_cast<std::size_t>(Tables::PlayerHeadBone);
 
 // 0x5ffdf0: below 0.01f (0x6b88d4) it neither poses nor draws.
 constexpr float DrawnAlpha = std::bit_cast<float>(0x3c23d70au);
@@ -343,16 +316,17 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
         constexpr Audio::SoundId GlowSound{0x1cc}; // 0x50f9bc
         if (tail.pass.world == nullptr)
             return Core::Unexpected(std::format("0x50f9b3: falta el mundo para el 0x621/2 de la acción {:#x}", action));
-        const auto made = Scenes::CreateHighModelEffect({.type = GlowEffect,
-                                                         .position = actor.position,
-                                                         .angles = actor.angles,
-                                                         .light = actor.light,
-                                                         .subtype = HeldSubtype,
-                                                         .owner = &tail.actor,
-                                                         .key = 0xffff},
-                                                        Scenes::HighEffectContext{.world = *tail.pass.world,
-                                                                                  .random = tail.pass.random,
-                                                                                  .worldClock = tail.pass.worldClock});
+        if (tail.pass.effectHooks == nullptr)
+            return Core::Unexpected(std::format("0x50f9b3: no effect hooks for the 0x621/2 of action {:#x}", action));
+        const auto made =
+            tail.pass.effectHooks->CreateTheHighEffect({.type = GlowEffect,
+                                                        .position = actor.position,
+                                                        .angles = actor.angles,
+                                                        .light = actor.light,
+                                                        .subtype = HeldSubtype,
+                                                        .owner = &tail.actor,
+                                                        .key = 0xffff},
+                                                       *tail.pass.world, tail.pass.random, tail.pass.worldClock);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x50f9b3: {}", made.Error()));
         tail.pass.world->Runtime().RequestSound(GlowSound);
@@ -413,6 +387,8 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
         if (tail.pass.world == nullptr)
             return Core::Unexpected(
                 std::format("0x50fb64: falta el mundo para los 0x117/2 de la acción {:#x}", action));
+        if (tail.pass.effectHooks == nullptr)
+            return Core::Unexpected(std::format("0x50fb64: no effect hooks for the 0x117/2 of action {:#x}", action));
         const auto point = tail.BodyPoint(actor.hands[0].bone, "0x50fb16");
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
@@ -420,16 +396,15 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
             {{FirstAngles, "0x50fb64"}, {glm::vec3{0.0f, 0.0f, actor.angles.z}, "0x50fb9c"}}};
         for (const auto& [angles, call] : skills)
         {
-            const auto made = Scenes::CreateHighModelEffect(
-                {.type = DarkLordSkill,
-                 .position = point.Value(),
-                 .angles = angles,
-                 .light = SkillLight,
-                 .subtype = WideSubtype,
-                 .owner = nullptr,
-                 .key = 0xffff},
-                Scenes::HighEffectContext{
-                    .world = *tail.pass.world, .random = tail.pass.random, .worldClock = tail.pass.worldClock});
+            const auto made =
+                tail.pass.effectHooks->CreateTheHighEffect({.type = DarkLordSkill,
+                                                            .position = point.Value(),
+                                                            .angles = angles,
+                                                            .light = SkillLight,
+                                                            .subtype = WideSubtype,
+                                                            .owner = nullptr,
+                                                            .key = 0xffff},
+                                                           *tail.pass.world, tail.pass.random, tail.pass.worldClock);
             if (!made.HasValue())
                 return Core::Unexpected(std::format("{}: {}", call, made.Error()));
         }
@@ -511,8 +486,10 @@ Result Counter(const Tail& tail)
         {
             if (tail.pass.effects == nullptr)
                 return Core::Unexpected<std::string>("0x50fdc3: falta la tabla de efectos con modelo del frame");
-            static_cast<void>(
-                tail.pass.effects->CreateFullSetFlare(actor.position, actor.angles, CounterFlareLight, &actor));
+            if (tail.pass.effectHooks == nullptr)
+                return Core::Unexpected<std::string>("0x50fdc3: no effect hooks for the counter's 0x5ac/3");
+            static_cast<void>(tail.pass.effectHooks->CreateTheFullSetFlare(*tail.pass.effects, actor.position,
+                                                                           actor.angles, CounterFlareLight, &actor));
         }
         actor.counter35c = 0;
     }
@@ -733,41 +710,26 @@ Result GuildMark(const Tail& tail)
     if (!tail.pass.gameScene || actor.byte88 != 1 || (map >= FirstBloodCastle && map <= LastBloodCastle) ||
         Maps::IsChaosCastle(map) || map == CastleMap)
         return {};
-    if (!tail.pass.originalFrame || !Scenes::GuildMarkIsDue(actor, tail.pass.worldClock))
+    if (!tail.pass.originalFrame)
+        return {};
+    if (tail.pass.effectHooks == nullptr)
+        return Core::Unexpected<std::string>("0x510f00: no effect hooks for the guild mark");
+    if (!tail.pass.effectHooks->IsTheGuildMarkDue(actor, tail.pass.worldClock))
         return {};
     if (tail.pass.effects == nullptr || tail.pass.particles == nullptr)
         return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 pide la tabla de efectos y las partículas");
     // 0x51e121: 0x4ec110 with bone 20 of the own bones (+0x120) and the scale and position 0x6001b0 copied to the model
     // (before the shadow's floor), without the offset of [ebp−0x50] (that of 0x518cf0 is its own, at 0).
-    if (Scenes::GuildMarkBone >= tail.pass.body.size())
-        return Core::Unexpected(std::format("0x51e121: el hueso {} del cuerpo no existe", Scenes::GuildMarkBone));
-    const glm::vec3 point =
-        Math::OriginalTransformPosition(Math::OriginalMatrixOf(tail.pass.body[Scenes::GuildMarkBone]), glm::vec3(0.0f),
-                                        actor.scale, tail.ModelOrigin());
-    if (auto raised = Scenes::RaiseTheGuildMark(actor, point, *tail.pass.effects, *tail.pass.particles,
-                                                tail.pass.random, tail.pass.worldClock);
+    if (GuildMarkBone >= tail.pass.body.size())
+        return Core::Unexpected(std::format("0x51e121: el hueso {} del cuerpo no existe", GuildMarkBone));
+    const glm::vec3 point = Math::OriginalTransformPosition(Math::OriginalMatrixOf(tail.pass.body[GuildMarkBone]),
+                                                            glm::vec3(0.0f), actor.scale, tail.ModelOrigin());
+    if (auto raised = tail.pass.effectHooks->RaiseTheGuildMark(actor, point, *tail.pass.effects, *tail.pass.particles,
+                                                               tail.pass.random, tail.pass.worldClock);
         !raised.HasValue())
         return Core::Unexpected(std::format("0x510f4d: {}", raised.Error()));
     return {};
 }
-Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffect& effect, World::Particles* particles,
-                                                         World::ParticleOwner owner, Crt::CrtRandom& random)
-{
-    // 0x52a82b..0x52a89a: the selector runs even with the particle table full.
-    const std::size_t bone = static_cast<std::size_t>(random.Next()) % SwellBones.size();
-    if (particles == nullptr)
-        return Core::Unexpected<std::string>("0x52a866: faltan las partículas de Swell Life");
-    for (const std::size_t index : std::array{bone, SwellBones.size() - 1 - bone})
-    {
-        const auto made = particles->CreateOwnedChecked(World::SwellLifeParticle, effect.transform.position,
-                                                        glm::vec3(0), {1, 0.5f, 0.1f}, World::SwellLifeParticleSubtype,
-                                                        SwellBones[index], 0, random, 0, owner);
-        if (!made.HasValue())
-            return Core::Unexpected<std::string>("0x52a866/0x52a89a: no se pudo crear la luz de Swell Life");
-    }
-    return {};
-}
-
 // 0x418301: the trapezoid with the raven's place times 0.01f (0x6b88d4) and −20 (0xc1a00000); without passing it,
 // the speed at 3 (0x40400000) except in state 4. The raven's animation goes at 0.4 (DrawDarkSpirit).
 constexpr double RavenCellsPerUnit = static_cast<double>(0.01f);
@@ -804,173 +766,6 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(Kernel::ActorState& a
     return GuildMark(tail);
 }
 
-Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints,
-                                                   const IJointHooks* jointHooks, Crt::CrtRandom& random)
-{
-    if (!effect.alive)
-        return {};
-    if (effect.type != World::IcarusFlareEffect || effect.subtype != World::FullSetFlareSubtype)
-        return Core::Unexpected(
-            std::format("0x52a9ad: el efecto {:#x}/{} no es el 0x5ac/3", effect.type, effect.subtype));
-    // 0x5208c5: the first rand() runs for every live effect, even if the 0x5ac/3 does not use the light.
-    static_cast<void>(random.Next());
-    constexpr double Step = 1.0;                        // 0x6b87d4
-    constexpr double HalfTurn = Math::HalfTurnAsDouble; // 0x6b86bc
-    constexpr double Rise = 20.0;                       // 0x6b86d0
-    effect.speed = F32(D(effect.speed) + Step);
-    if (effect.life % FlarePeriod == 0 && effect.ownerContext != nullptr)
-    {
-        const auto& owner = *static_cast<const Kernel::ActorState*>(effect.ownerContext);
-        glm::vec3& angles = effect.transform.angles;
-        glm::vec3& position = effect.transform.position;
-        // 0x52a9fe: fst; the sine comes from the unrounded sum and the cosine loads the float again (Q-C380).
-        const double turned = D(angles.z) + HalfTurn;
-        angles.z = F32(turned);
-        const auto sine = Math::Detail::SineProductPC53(turned * D(Tenth), FlareRadius);
-        const auto cosine = Math::Detail::CosineProductPC53(D(angles.z) * D(Tenth), FlareRadius);
-        if (!sine || !cosine)
-            return Core::Unexpected<std::string>("0x52aa0d: el giro del 0x5ac/3 excede el perfil matemático");
-        position.x = F32(*sine + D(owner.position.x));
-        position.y = F32(*cosine + D(owner.position.y));
-        position.z = F32(D(owner.position.z) + Rise);
-        if (joints.empty() || jointHooks == nullptr)
-            return Core::Unexpected<std::string>("0x52aa5d: faltan los joints del paso (0x530860)");
-        const auto created = jointHooks->CreateTheJoint(joints,
-                                                        {EnergyType, position, position, angles, EnergySubtype,
-                                                         effect.ownerContext, EnergyWidth, NoKey, 0, 0, NoTarget},
-                                                        random, Kernel::JointOwnerKind::ByType);
-        if (!created.HasValue())
-            return Core::Unexpected(std::format("0x52aa5d: {}", created.Error()));
-    }
-    // 0x52cb98: 0x5ac does not advance an animation; the speed (0) turned and one life less.
-    World::StepModelEffect(effect, nullptr);
-    return {};
-}
-
-Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints,
-                                                 const IJointHooks* jointHooks, Crt::CrtRandom& random,
-                                                 World::Particles* particles, World::ParticleOwner particleOwner)
-{
-    if (!effect.alive)
-        return {};
-    if (effect.type != World::IcarusFlareEffect ||
-        (effect.subtype != World::SwellFlareSubtype && effect.subtype != World::GuardFlareSubtype))
-        return Core::Unexpected(
-            std::format("0x52a7b7: el efecto {:#x}/{} no es el 0x5ac/1 ni el /2", effect.type, effect.subtype));
-    // 0x5208c5: the first rand() runs for every live effect, even if the 0x5ac/1 and the /2 do not use the light.
-    static_cast<void>(random.Next());
-    const bool swell = effect.subtype == World::SwellFlareSubtype;
-    // 0x52a7e6 and 0x52a8dc: the owner's +0x78 is read even with +0x108 at 0; MuRet always creates them with the
-    // target.
-    if (effect.ownerContext == nullptr)
-    {
-        effect.life = 0; // 0x52a7e3/0x52a8d9, before reading the null owner's +0x78.
-        return Core::Unexpected(
-            std::format("{}: el 0x5ac/{} sin dueño lee +0x78 de 0", swell ? "0x52a7ec" : "0x52a8e2", effect.subtype));
-    }
-    const auto& owner = *static_cast<const Kernel::ActorState*>(effect.ownerContext);
-    const std::uint32_t flag = swell ? SwellFlag : GuardFlag;
-    effect.life = owner.alive && (owner.flags78 & flag) == flag ? SkillFlareLife : 0;
-    if ((owner.flags78 & QuietOwnerFlag) != QuietOwnerFlag)
-    {
-        if (swell)
-        {
-            const auto raised = RaiseSwellLifeChildren(effect, particles, particleOwner, random);
-            if (!raised.HasValue())
-                return raised;
-        }
-        else
-        {
-            constexpr double Step = 1.0; // 0x6b87d4
-            // 0x52a8f7..0x52a91e: fst leaves the sum on the stack for the ftol (0x69fd3c).
-            const double counted = D(effect.speed) + Step;
-            effect.speed = F32(counted);
-            if (Math::FtolLow(counted) % GuardPeriod == 0)
-            {
-                glm::vec3& angles = effect.transform.angles;
-                glm::vec3& position = effect.transform.position;
-                // 0x52a92a: fst; the sine comes from the unrounded sum and the cosine loads the float again (Q-C380).
-                const double turned = D(angles.z) + GuardTurn;
-                angles.z = F32(turned);
-                const auto sine = Math::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
-                const auto cosine = Math::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
-                if (!sine || !cosine)
-                    return Core::Unexpected<std::string>("0x52a950: el giro del 0x5ac/2 excede el perfil matemático");
-                position.x = F32(*sine + D(owner.position.x));
-                position.y = F32(*cosine + D(owner.position.y));
-                position.z = F32(D(owner.position.z) + GuardRise);
-                if (joints.empty() || jointHooks == nullptr)
-                    return Core::Unexpected<std::string>("0x52a9a0: faltan los joints del paso (0x530860)");
-                const auto created =
-                    jointHooks->CreateTheJoint(joints,
-                                               {EnergyType, position, position, angles, EnergySubtype,
-                                                effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
-                                               random, Kernel::JointOwnerKind::ByType);
-                if (!created.HasValue())
-                    return Core::Unexpected(std::format("0x52a9a0: {}", created.Error()));
-            }
-        }
-    }
-    // 0x52cb98: 0x5ac does not advance an animation; the speed (0) turned and one life less.
-    World::StepModelEffect(effect, nullptr);
-    return {};
-}
-
-bool StepsAsPetSummon(const World::ModelEffect& effect)
-{
-    // 0x52b984..0x52b9a5: /4 and /6 to /0xa jump to 0x52b9b8; the others from 1 on, to 0x518900.
-    constexpr std::int32_t PulsingSubtype = 4, FirstBindingSubtype = 6, LastOwnSubtype = 0xa;
-    return effect.type == World::ColoredDecalEffect && effect.subtype != PulsingSubtype &&
-           (effect.subtype < FirstBindingSubtype || effect.subtype > LastOwnSubtype);
-}
-
-Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<Scenes::JointState> joints,
-                                                const IJointHooks* jointHooks, Crt::CrtRandom& random)
-{
-    if (!effect.alive)
-        return {};
-    if (!StepsAsPetSummon(effect))
-        return Core::Unexpected(
-            std::format("0x52b9a6: el efecto {:#x}/{} no va a 0x518900", effect.type, effect.subtype));
-    // 0x52b984 → 0x52b9b8 → 0x52bb29: /0 (and a negative subtype) does not enter 0x518900 or look up joints or an
-    // owner.
-    if (effect.subtype < World::PetSummonSubtype)
-    {
-        static_cast<void>(random.Next());
-        World::StepModelEffect(effect, nullptr);
-        return {};
-    }
-    if (joints.empty() || jointHooks == nullptr)
-        return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
-    // 0x5208c5: the first rand() runs for every live effect, even if 0x61e does not use the light.
-    static_cast<void>(random.Next());
-    glm::vec3& position = effect.transform.position;
-    // 0x51898b..0x5189bd: /5 asks for 0x619/0xb; the others, the one of their subtype.
-    constexpr std::int32_t SwappedSubtype = 5, SwappedJointSubtype = 0xb;
-    const std::int32_t jointSubtype = effect.subtype == SwappedSubtype ? SwappedJointSubtype : effect.subtype;
-    for (int made = 0; made < SummonJoints; ++made)
-    {
-        glm::vec3 angles{static_cast<float>(random.Next() % SummonPitchSpan), 0.0f,
-                         static_cast<float>(random.Next() % SummonTurnSpan)};
-        const glm::vec3 reach =
-            Math::OriginalVectorRotate(glm::vec3(0.0f, -SummonReach, 0.0f), Math::OriginalAngleMatrix(angles));
-        // 0x51897a..0x5189b4: each subtraction is stored; z adds 120 before it is stored.
-        glm::vec3 start{F32(D(position.x) - D(reach.x)), F32(D(position.y) - D(reach.y)),
-                        F32(D(position.z) - D(reach.z) + SummonLift)};
-        const auto created = jointHooks->CreateTheJoint(
-            joints,
-            {EnergyType, start, position, angles, jointSubtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
-             NoTarget},
-            random,
-            effect.owner.effect != nullptr ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
-        if (!created.HasValue())
-            return Core::Unexpected(std::format("0x5189cc: {}", created.Error()));
-    }
-    // 0x52cb98: 0x61e is not a BMD and does not advance an animation; the speed (0) turned and one life less.
-    World::StepModelEffect(effect, nullptr);
-    return {};
-}
-
 // 0x418920(CHARACTER, CHARACTER), from 0x41835a after 0x602e90, with the raven in the trapezoid: in states 5 and 6, the
 // attack's effects. In 5, with +0x38d up to 2, ten 0x5ac/1 joints from the raven and, with 1, the 0x117/3; odd from 4
 // on and high, the beak's 0x113/0, in the tables of `world`. The shout of 6 releases the 0x5ac/6 particles (0x418a26).
@@ -979,7 +774,8 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit, const Kernel::ActorState& owner,
                                                      const Models::Skeleton* skeleton, Crt::CrtRandom& random,
                                                      World::Particles* particles, float worldClock,
-                                                     Kernel::WorldState* world, const IJointHooks* jointHooks)
+                                                     Kernel::WorldState* world, const IJointHooks* jointHooks,
+                                                     const IEffectHooks* effectHooks)
 {
     if (spirit.state == FirstOrderState)
     {
@@ -1027,15 +823,16 @@ Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit,
                                                std::bit_cast<float>(0x3f19999au)}; // 0x418b42..0x418b50
                 const auto turn = static_cast<std::int32_t>(random.Next() % TurnSpan);
                 const glm::vec3 angles{Pitch, F32(static_cast<double>(turn) - QuarterTurn), 0.0f};
-                const auto made = Scenes::CreateHighModelEffect(
-                    {.type = DarkLordSkill,
-                     .position = spirit.position,
-                     .angles = angles,
-                     .light = SkillLight,
-                     .subtype = SkillSubtype,
-                     .owner = nullptr,
-                     .key = 0xffff},
-                    Scenes::HighEffectContext{.world = *world, .random = random, .worldClock = worldClock});
+                if (effectHooks == nullptr)
+                    return Core::Unexpected(std::string("0x418b71: no effect hooks for the raven's 0x117/3"));
+                const auto made = effectHooks->CreateTheHighEffect({.type = DarkLordSkill,
+                                                                    .position = spirit.position,
+                                                                    .angles = angles,
+                                                                    .light = SkillLight,
+                                                                    .subtype = SkillSubtype,
+                                                                    .owner = nullptr,
+                                                                    .key = 0xffff},
+                                                                   *world, random, worldClock);
                 if (!made.HasValue())
                     return Core::Unexpected(std::format("0x418b71: {}", made.Error()));
             }
@@ -1055,17 +852,18 @@ Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit,
             if (world == nullptr)
                 return Core::Unexpected(std::string("0x418c0a: falta la tabla de efectos (0x518cf0) para el ataque "
                                                     "del cuervo"));
+            if (effectHooks == nullptr)
+                return Core::Unexpected(std::string("0x418c0a: no effect hooks for the raven's 0x113"));
             const glm::vec3 point = Math::OriginalVectorTransform(BeakOffset, spirit.pose[BeakBone]);
-            const auto made =
-                World::CreateBlastModelEffect(world->Map().effects,
-                                              {.type = AirForce,
-                                               .position = point,
-                                               .angles = spirit.angles,
-                                               .light = spirit.light,
-                                               .subtype = 0,
-                                               .owner = &spirit,
-                                               .key = 0xffff},
-                                              World::ModelEffectOwner{}, random, World::BlastEffectServices{});
+            const auto made = effectHooks->CreateTheBlastEffect(world->Map().effects,
+                                                                {.type = AirForce,
+                                                                 .position = point,
+                                                                 .angles = spirit.angles,
+                                                                 .light = spirit.light,
+                                                                 .subtype = 0,
+                                                                 .owner = &spirit,
+                                                                 .key = 0xffff},
+                                                                random);
             if (!made.HasValue())
                 return Core::Unexpected(std::format("0x418c0a: {}", made.Error()));
         }
@@ -1260,7 +1058,8 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
             return EndTheShout(spirit, scratch, ravenPosed, pass);
         }
         return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(Models::ModelId{Assets::DarkSpiritModel}),
-                                  *pass.random, pass.particles, pass.worldClock, pass.world, pass.jointHooks);
+                                  *pass.random, pass.particles, pass.worldClock, pass.world, pass.jointHooks,
+                                  pass.effectHooks);
     }
     return {};
 }

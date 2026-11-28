@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Maps/MapId.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -1220,7 +1221,7 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         flag = 0;
         const glm::vec3 point = BonePoint(actor, 27, NoOffset);
         auto& effects = pass.world.Map().effects;
-        const World::ModelEffectArguments crater{
+        const Kernel::ModelEffectArguments crater{
             .type = 0x636, .position = point, .angles = actor.angles, .light = actor.light, .subtype = 2};
         static_cast<void>(effects.CreateCraterEffect(crater));
         const glm::vec3 red{1, 0.2f, 0.2f};
@@ -1230,11 +1231,11 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
                 return particle;
         }
         for (int index = 0; index < 5; ++index)
-            static_cast<void>(effects.CreateCastleShockWave(World::ModelEffectArguments{.type = World::ShockWaveEffect,
-                                                                                        .position = point,
-                                                                                        .angles = actor.angles,
-                                                                                        .light = red,
-                                                                                        .subtype = 8},
+            static_cast<void>(effects.CreateCastleShockWave(Kernel::ModelEffectArguments{.type = World::ShockWaveEffect,
+                                                                                         .position = point,
+                                                                                         .angles = actor.angles,
+                                                                                         .light = red,
+                                                                                         .subtype = 8},
                                                             pass.random));
         return {};
     }
@@ -1324,13 +1325,13 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
             actor.animation.frame >= 5.0f)
         {
             auto created =
-                CreateTheArrowEffect(World::ModelEffectArguments{.type = 0xed,
-                                                                 .position = actor.position,
-                                                                 .angles = actor.angles,
-                                                                 .light = actor.light,
-                                                                 .subtype = 1,
-                                                                 .owner = &actor,
-                                                                 .key = static_cast<std::uint16_t>(actor.word8a)},
+                CreateTheArrowEffect(Kernel::ModelEffectArguments{.type = 0xed,
+                                                                  .position = actor.position,
+                                                                  .angles = actor.angles,
+                                                                  .light = actor.light,
+                                                                  .subtype = 1,
+                                                                  .owner = &actor,
+                                                                  .key = static_cast<std::uint16_t>(actor.word8a)},
                                      pass.world, pass.random);
             if (!created.HasValue())
                 return created;

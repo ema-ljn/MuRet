@@ -27,6 +27,7 @@
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -126,7 +127,8 @@ struct Game
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log,
-                .states = &states};
+                .states = &states,
+                .effectHooks = &effectHooks};
     }
     // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
@@ -148,6 +150,7 @@ struct Game
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Scenes::ActorEffectHooks effectHooks;
 };
 
 struct Cell

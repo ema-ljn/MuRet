@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
@@ -215,17 +216,17 @@ Core::Expected<void, std::string> BeginTheDeathStab(ModelEffects& effects, Model
             Cut("0x518f05", std::format("el 0x105/{} del 0x106 no es de este lote", effect.subtype)));
     // 0x518eb3..0x518eee: la posición y los ángulos de este efecto, su luz (+0xf4, en [EBP + 0x30]), su subtipo, él
     // de dueño, +0x8a en −1, los bytes en 0 y la escala 0.
-    const ModelEffectArguments child{.type = PiercingTrailEffect,
-                                     .position = effect.transform.position,
-                                     .angles = effect.transform.angles,
-                                     .light = effect.light,
-                                     .subtype = effect.subtype,
-                                     .owner = &effect,
-                                     .key = 0xffff,
-                                     .byte89 = 0,
-                                     .byte88 = 0,
-                                     .byte1bd = 0,
-                                     .scale = 0.0f};
+    const Kernel::ModelEffectArguments child{.type = PiercingTrailEffect,
+                                             .position = effect.transform.position,
+                                             .angles = effect.transform.angles,
+                                             .light = effect.light,
+                                             .subtype = effect.subtype,
+                                             .owner = &effect,
+                                             .key = 0xffff,
+                                             .byte89 = 0,
+                                             .byte88 = 0,
+                                             .byte1bd = 0,
+                                             .scale = 0.0f};
     const auto slot = effects.Begin(child);
     if (!slot)
         return {};
@@ -417,7 +418,7 @@ void BeginTheGateDebris(ModelEffect& effect, CrtRandom& random)
 }
 
 Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffect& effect,
-                                               const ModelEffectArguments& arguments, CrtRandom& random,
+                                               const Kernel::ModelEffectArguments& arguments, CrtRandom& random,
                                                const BlastEffectServices& services)
 {
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
@@ -1234,17 +1235,17 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
         return table;
     if (shard)
         static_cast<void>(services.effects->CreateIceShard(point, angles, effect.light, random));
-    const ModelEffectArguments shatter{.type = BlizzardEffect,
-                                       .position = point,
-                                       .angles = angles,
-                                       .light = effect.light,
-                                       .subtype = 1,
-                                       .owner = nullptr,
-                                       .key = effect.disturbanceState,
-                                       .byte89 = 0,
-                                       .byte88 = 0,
-                                       .byte1bd = 0,
-                                       .scale = 0.0f};
+    const Kernel::ModelEffectArguments shatter{.type = BlizzardEffect,
+                                               .position = point,
+                                               .angles = angles,
+                                               .light = effect.light,
+                                               .subtype = 1,
+                                               .owner = nullptr,
+                                               .key = effect.disturbanceState,
+                                               .byte89 = 0,
+                                               .byte88 = 0,
+                                               .byte1bd = 0,
+                                               .scale = 0.0f};
     if (auto made = CreateBlastModelEffect(*services.effects, shatter, {}, random, {}); !made.HasValue())
         return Core::Unexpected(made.Error());
     effect.alive = false;
@@ -1321,8 +1322,8 @@ bool StepsAsBlastModelEffect(const ModelEffect& effect)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, const ModelEffectOwner& owner,
-                       CrtRandom& random, const BlastEffectServices& services)
+CreateBlastModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
+                       const ModelEffectOwner& owner, CrtRandom& random, const BlastEffectServices& services)
 {
     if (!IsBlastModelEffect(arguments.type, arguments.subtype))
         return Core::Unexpected(Cut("0x518e3c", std::format("el alta del efecto {:#x}/{} no es de este lote",
@@ -1400,17 +1401,17 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
         stepped = NeedTheEffects(services, "0x521861");
         if (stepped.HasValue())
         {
-            const ModelEffectArguments spin{.type = SpinningItemEffect,
-                                            .position = effect.transform.position,
-                                            .angles = effect.transform.angles,
-                                            .light = effect.light,
-                                            .subtype = 4 - effect.life,
-                                            .owner = effect.ownerContext,
-                                            .key = effect.disturbanceState,
-                                            .byte89 = effect.byte89,
-                                            .byte88 = effect.state,
-                                            .byte1bd = 0,
-                                            .scale = 0.0f};
+            const Kernel::ModelEffectArguments spin{.type = SpinningItemEffect,
+                                                    .position = effect.transform.position,
+                                                    .angles = effect.transform.angles,
+                                                    .light = effect.light,
+                                                    .subtype = 4 - effect.life,
+                                                    .owner = effect.ownerContext,
+                                                    .key = effect.disturbanceState,
+                                                    .byte89 = effect.byte89,
+                                                    .byte88 = effect.state,
+                                                    .byte1bd = 0,
+                                                    .scale = 0.0f};
             const BlastEffectServices record{.ownRecordDepth = services.ownRecordDepth,
                                              .ownRecordCount = services.ownRecordCount};
             const auto made = CreateBlastModelEffect(*services.effects, spin, effect.owner, random, record);

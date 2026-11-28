@@ -20,6 +20,7 @@ struct CharacterStepContext;
 namespace Client::Kernel
 {
 struct ActorState;
+struct ModelEffectArguments;
 class WorldState;
 } // namespace Client::Kernel
 
@@ -37,13 +38,13 @@ namespace Client::Scenes
 // 0x517a20 (Scenes/SkillHits, con context.send), los joints (context.joints, con el efecto de dueño cuando el alta se
 // pone de dueño) y el sonido. El lugar del efecto, o nada con la tabla llena; lo que el alta no tiene, corta.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastEffect(const World::ModelEffectArguments& arguments, Kernel::ActorState* owner,
+CreateBlastEffect(const Kernel::ModelEffectArguments& arguments, Kernel::ActorState* owner,
                   const Actors::CharacterStepContext& context);
 
 // 0x518cf0 fuera del paso de los personajes (los paquetes del viewport, como el 0xec del transformado que llega en
 // 0x4c965c, y las respuestas de skill, como el 0x112 de la 0x3b en 0x4cddf5): el mismo dueño y los joints de la tabla
 // global (WorldState::DrawTail), sin el registro propio, los blancos ni el sonido; si el alta los pide, corta.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, Kernel::ActorState* owner,
+CreateBlastEffectOutsideTheStep(const Kernel::ModelEffectArguments& arguments, Kernel::ActorState* owner,
                                 Kernel::WorldState& world, Crt::CrtRandom& random);
 } // namespace Client::Scenes

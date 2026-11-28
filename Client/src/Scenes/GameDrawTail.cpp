@@ -16,6 +16,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Scenes/CastleWeaponBodies.h"
 #include "Tables/PlayerModels.h"
 #include "Render/Billboard.h"
 #include "Render/ModelBatch.h"
@@ -625,7 +626,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
         }
-        const auto body = Actors::Drawing::DrawCastleWeaponBody(
+        const auto body = DrawCastleWeaponBody(
             batch, models, effect, object, frameClock,
             [&](std::int32_t type, const Actors::Drawing::DrawnObject& owner,
                 std::span<const Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
@@ -633,7 +634,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
                 if (resources == nullptr || resources->effects == nullptr || resources->random == nullptr)
                     return Core::Unexpected(std::string("0x601c90: falta pool o CRT del impacto por vértices"));
                 return Actors::Drawing::EmitVertexEffects(models, owner, meshes, 0, type, 0, *resources->effects,
-                                                          *resources->random);
+                                                          nullptr, *resources->random);
             });
         if (!body.HasValue())
             return body;
@@ -672,7 +673,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
                     if (resources->effects == nullptr || resources->random == nullptr)
                         return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT del fragmento de puerta"));
                     return Actors::Drawing::EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *resources->effects,
-                                                              *resources->random);
+                                                              nullptr, *resources->random);
                 }},
             frameClock);
         if (!drawn.HasValue())

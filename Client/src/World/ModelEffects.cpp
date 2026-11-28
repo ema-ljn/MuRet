@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -201,12 +202,12 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
 
 } // namespace
 
-std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::Begin(const Kernel::ModelEffectArguments& arguments)
 {
     return BeginModelEffect(m_effects, arguments);
 }
 
-std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table, const ModelEffectArguments& arguments)
+std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table, const Kernel::ModelEffectArguments& arguments)
 {
     for (std::size_t slot = 0; slot < table.size(); ++slot)
     {
@@ -690,7 +691,7 @@ std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& positio
     return std::nullopt;
 }
 
-std::optional<std::size_t> ModelEffects::CreateFlameColumn(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreateFlameColumn(const Kernel::ModelEffectArguments& arguments)
 {
     constexpr std::int32_t FlameColumnLife = 15; // 0xf, 0x51ecb0
     if (arguments.type != FlameJetEffect || arguments.subtype != FlameColumnSubtype)
@@ -702,7 +703,7 @@ std::optional<std::size_t> ModelEffects::CreateFlameColumn(const ModelEffectArgu
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectArguments& arguments,
+std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const Kernel::ModelEffectArguments& arguments,
                                                              std::uint8_t& ownRecordDepth, std::uint8_t ownRecordCount,
                                                              Crt::CrtRandom& random)
 {
@@ -1110,11 +1111,11 @@ std::optional<std::size_t> ModelEffects::CreateLightningDecal(const glm::vec3& p
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, float scale)
 {
-    return Create(
-        ModelEffectArguments{.type = type, .position = position, .angles = angles, .light = light, .scale = scale});
+    return Create(Kernel::ModelEffectArguments{
+        .type = type, .position = position, .angles = angles, .light = light, .scale = scale});
 }
 
-std::optional<std::size_t> ModelEffects::Create(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::Create(const Kernel::ModelEffectArguments& arguments)
 {
     if (arguments.subtype != 0 ||
         (arguments.type != DragonEffect && arguments.type != ArrivalEffect && arguments.type != TeleportEffect))
@@ -1135,7 +1136,7 @@ std::optional<std::size_t> ModelEffects::Create(const ModelEffectArguments& argu
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const Kernel::ModelEffectArguments& arguments)
 {
     if (arguments.type != 0x145 || arguments.subtype != 2)
         return std::nullopt;
@@ -1150,7 +1151,7 @@ std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffe
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreateWaveEffect(const Kernel::ModelEffectArguments& arguments)
 {
     constexpr std::int32_t FirstWave = 2, LastSlowWave = 4, LastWave = 6;
     if (arguments.type != 0x114 || arguments.subtype < FirstWave || arguments.subtype > LastWave)
@@ -1176,7 +1177,7 @@ std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArgum
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreatePiercingShot(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreatePiercingShot(const Kernel::ModelEffectArguments& arguments)
 {
     constexpr std::int32_t GlowLife = 10;
     constexpr glm::vec3 Offset{0, -100, 0};
@@ -1195,7 +1196,7 @@ std::optional<std::size_t> ModelEffects::CreatePiercingShot(const ModelEffectArg
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const Kernel::ModelEffectArguments& arguments)
 {
     if (arguments.type != 0x115)
         return std::nullopt;
@@ -1214,7 +1215,7 @@ std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectA
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateCrywolfMissile(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreateCrywolfMissile(const Kernel::ModelEffectArguments& arguments)
 {
     const auto slot = Begin(arguments);
     if (!slot)
@@ -1233,7 +1234,7 @@ std::optional<std::size_t> ModelEffects::CreateCrywolfMissile(const ModelEffectA
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const Kernel::ModelEffectArguments& arguments)
 {
     const auto slot = Begin(arguments);
     if (!slot)
@@ -1245,7 +1246,7 @@ std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const ModelEffect
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateFireworkFlare(const ModelEffectArguments& arguments,
+std::optional<std::size_t> ModelEffects::CreateFireworkFlare(const Kernel::ModelEffectArguments& arguments,
                                                              Crt::CrtRandom& random)
 {
     const auto slot = Begin(arguments);
@@ -1260,7 +1261,7 @@ std::optional<std::size_t> ModelEffects::CreateFireworkFlare(const ModelEffectAr
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateCraterEffect(const ModelEffectArguments& arguments)
+std::optional<std::size_t> ModelEffects::CreateCraterEffect(const Kernel::ModelEffectArguments& arguments)
 {
     const auto slot = Begin(arguments);
     if (!slot)
@@ -1279,7 +1280,7 @@ std::optional<std::size_t> ModelEffects::CreateCraterEffect(const ModelEffectArg
     return slot;
 }
 
-std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffectArguments& arguments,
+std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const Kernel::ModelEffectArguments& arguments,
                                                                Crt::CrtRandom& random)
 {
     const auto slot = Begin(arguments);
@@ -1377,6 +1378,24 @@ std::span<ModelEffect> ModelEffects::Effects()
 std::span<const ModelEffect> ModelEffects::Effects() const
 {
     return m_effects;
+}
+
+bool KillModelEffectsOf(ModelEffects& effects, std::int16_t type, const void* owner, std::int32_t subtype)
+{
+    constexpr std::int32_t AnySubtype = -1;
+    bool killed = false;
+    for (ModelEffect& effect : effects.Effects())
+    {
+        if (!effect.alive || effect.type != type)
+            continue;
+        if (subtype != AnySubtype && subtype != effect.subtype)
+            continue;
+        if (effect.ownerContext != owner)
+            continue;
+        effect.alive = false;
+        killed = true;
+    }
+    return killed;
 }
 
 void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton)

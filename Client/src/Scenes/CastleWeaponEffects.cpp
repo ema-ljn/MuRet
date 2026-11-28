@@ -1,3 +1,4 @@
+#include "Kernel/ModelEffectArguments.h"
 #include "Scenes/CastleWeaponEffects.h"
 #include "Actors/ActionReply.h"
 #include "Kernel/ActorSearch.h"
@@ -39,16 +40,16 @@ Result Fire(std::uint8_t kind, const glm::vec3& origin, const glm::vec3& target,
     if (kind != 1 && kind != 2)
         return {};
     auto& hero = resources.world.Hero();
-    const World::ModelEffectArguments arguments{.type =
-                                                    kind == 1 ? World::SiegeStoneEffect : World::SiegeIceStoneEffect,
-                                                .position = origin,
-                                                .angles = target,
-                                                .light = light,
-                                                .subtype = subtype,
-                                                .owner = &hero,
-                                                .key = 1,
-                                                .byte89 = lo,
-                                                .byte88 = hi};
+    const Kernel::ModelEffectArguments arguments{.type =
+                                                     kind == 1 ? World::SiegeStoneEffect : World::SiegeIceStoneEffect,
+                                                 .position = origin,
+                                                 .angles = target,
+                                                 .light = light,
+                                                 .subtype = subtype,
+                                                 .owner = &hero,
+                                                 .key = 1,
+                                                 .byte89 = lo,
+                                                 .byte88 = hi};
     const auto created =
         World::CreateSiegeStone(arguments, resources.world.Map().effects, hero.position, resources.cloth.random);
     if (!created.HasValue())
@@ -122,11 +123,11 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, s
         !fired.HasValue())
         return fired;
     auto& hero = resources.world.Hero();
-    const World::ModelEffectArguments wave{.type = World::ShockWaveEffect,
-                                           .position = target,
-                                           .angles = hero.angles,
-                                           .light = {1, .3f, .1f},
-                                           .subtype = 6};
+    const Kernel::ModelEffectArguments wave{.type = World::ShockWaveEffect,
+                                            .position = target,
+                                            .angles = hero.angles,
+                                            .light = {1, .3f, .1f},
+                                            .subtype = 6};
     static_cast<void>(resources.world.Map().effects.CreateCastleShockWave(wave, resources.cloth.random));
     resources.world.Runtime().RequestSound(Audio::SoundId{0x1ea});
     return {};

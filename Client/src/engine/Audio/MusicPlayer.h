@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Audio/Playback.h"
+#include "Audio/IMusicStream.h"
 #include "EngineApi.h"
 
 #include <functional>
@@ -9,12 +9,21 @@
 
 namespace Client::Audio
 {
-class ENGINE_API Music
+class ENGINE_API MusicPlayer
 {
 public:
-    void Play(IPlayback* playback, std::string_view relativePath, bool force = false);
-    void Stop(IPlayback* playback, std::string_view relativePath, bool force = false);
-    void StopWorld(IPlayback* playback);
+    // Without a stream, Play and Stop change nothing and the track never reaches its end.
+    void Attach(IMusicStream* stream)
+    {
+        m_stream = stream;
+    }
+    // 0x4acfd0
+    void Play(std::string_view relativePath);
+    // 0x4acf60
+    void Stop(std::string_view relativePath);
+    // 0x4ad060
+    [[nodiscard]] bool ReachedTheEnd() const;
+    void StopWorld();
     void SetEnabled(bool enabled)
     {
         m_enabled = enabled;
@@ -29,10 +38,10 @@ public:
     }
 
     // Native ordered track-group policy. The Devias callback is evaluated only for safe map 2.
-    void StepWorld(IPlayback* playback, int map, bool safe, int heroCellLayer,
-                   const std::function<bool()>& inDeviasChurch);
+    void StepWorld(int map, bool safe, int heroCellLayer, const std::function<bool()>& inDeviasChurch);
 
 private:
+    IMusicStream* m_stream = nullptr;
     bool m_enabled = true;
     bool m_blocked = false;
     std::string m_current{};

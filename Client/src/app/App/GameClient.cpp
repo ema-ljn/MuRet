@@ -144,6 +144,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
 {
     Kernel::WorldRuntime& runtime = m_world.Runtime();
     runtime.music.SetEnabled(m_options.music);
+    runtime.music.Attach(m_devices.music);
     if (m_devices.playback != nullptr)
     {
         runtime.audio = m_devices.playback;

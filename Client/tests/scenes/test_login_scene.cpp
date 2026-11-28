@@ -1,4 +1,5 @@
 #include "Scenes/LoginScene.h"
+#include "Audio/IMusicStream.h"
 #include "Audio/Playback.h"
 #include "Render/Pass3D.h"
 #include "Camera/SceneCameras.h"
@@ -285,17 +286,20 @@ struct Harness
     InputState input;
 };
 
-class RecordingPlayback final : public Client::Audio::IPlayback
+class RecordingPlayback final : public Client::Audio::IPlayback, public Client::Audio::IMusicStream
 {
 public:
     void PlaySound(std::int32_t, std::optional<glm::vec3>, bool) override {}
     void StopSound(std::int32_t, bool) override {}
-    void PlayMusic(std::string_view path, bool loop) override
+    void Play(std::string_view path) override
     {
         music.emplace_back(path);
-        loops.push_back(loop);
     }
-    void StopMusic() override {}
+    void Stop() override {}
+    [[nodiscard]] int ProgressPercent() const override
+    {
+        return 0;
+    }
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
     void ReleaseWorldSounds() override
@@ -304,7 +308,6 @@ public:
     }
 
     std::vector<std::string> music;
-    std::vector<bool> loops;
     int worldSoundReleases = 0;
 };
 
@@ -561,12 +564,13 @@ TEST(LoginSceneTest, StartsTheSessionOnEnter)
     EXPECT_FALSE(scene.WantsTextInput());
 }
 
-TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnceWithoutLooping)
+TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnce)
 {
     Harness tested;
     Client::Kernel::WorldState world;
     RecordingPlayback playback;
     world.Runtime().audio = &playback;
+    world.Runtime().music.Attach(&playback);
     LoginScene& scene = tested.MakeWithWorld(world);
 
     const auto first = scene.Enter();
@@ -576,8 +580,6 @@ TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnceWithoutLooping)
 
     ASSERT_EQ(playback.music.size(), 1u);
     EXPECT_EQ(playback.music.front(), "Music\\main_theme.mp3");
-    ASSERT_EQ(playback.loops.size(), 1u);
-    EXPECT_FALSE(playback.loops.front());
     EXPECT_EQ(playback.worldSoundReleases, 2);
 }
 

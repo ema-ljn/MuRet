@@ -533,7 +533,7 @@ Core::Expected<void, std::string> LoginScene::Enter()
     if (m_context.world != nullptr)
     {
         auto& runtime = m_context.world->Runtime();
-        runtime.music.Play(runtime.audio, "Music\\main_theme.mp3");
+        runtime.music.Play("Music\\main_theme.mp3");
     }
     return {};
 }
@@ -1352,8 +1352,8 @@ void LoginScene::OpenTheCredits()
     if (m_context.world != nullptr)
     {
         auto& runtime = m_context.world->Runtime();
-        runtime.music.Stop(runtime.audio, "Music\\main_theme.mp3");
-        runtime.music.Play(runtime.audio, "Music\\Mutheme.mp3");
+        runtime.music.Stop("Music\\main_theme.mp3");
+        runtime.music.Play("Music\\Mutheme.mp3");
     }
     m_ui.Raise(m_credits);
 }
@@ -1385,8 +1385,8 @@ void LoginScene::FollowTheCredits(const FrontEnd::CreditsStep& step)
         if (m_context.world != nullptr)
         {
             auto& runtime = m_context.world->Runtime();
-            runtime.music.Stop(runtime.audio, "Music\\Mutheme.mp3");
-            runtime.music.Play(runtime.audio, "Music\\main_theme.mp3");
+            runtime.music.Stop("Music\\Mutheme.mp3");
+            runtime.music.Play("Music\\main_theme.mp3");
         }
     }
 }

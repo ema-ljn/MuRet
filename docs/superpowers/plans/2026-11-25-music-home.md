@@ -256,7 +256,7 @@ Not part of the refactor tasks. Each needs its own yes.
 
 - **The order between groups.** Leaving Lorencia for the Dungeon stops `Pub` and `main_theme`, then plays `Dungeon`;
   the test of Task 5 pins `stop` before `play` (it exists today:
-  `MusicTest.FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon`).
+  `MusicPlayerTest.FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon`).
 - **The church test is lazy.** It runs only in Devias's safe zone, and each run draws `rand()`; a refactor that
   computes it before the call changes the CRT stream everywhere else. Task 5 pins how many times it is called per map.
 - **Map 0 outside the safe zone keeps its track.** The first group neither plays nor stops then.
@@ -394,11 +394,12 @@ public:
 - With no stream, `Play` and `Stop` change nothing and `ReachedTheEnd()` is false, as today with a null playback.
 - If thin-main Task 3 (`App::GameClient`) lands first, the attach goes where it composes the audio.
 
-- [ ] **Step 1:** write the failing tests: the player with a recording stream (the cases of today's test, without
+- [x] **Step 1:** write the failing tests: the player with a recording stream (the cases of today's test, without
   `force`), `ReachedTheEnd()` true only at 100, nothing recorded with no stream.
-- [ ] **Step 2:** extract the port, rename the class, drop `force` and `loop`; move each caller.
-- [ ] **Step 3:** the 7 effect-only doubles lose their empty music methods; the 3 music doubles implement the stream.
-- [ ] **Step 4:** the whole suite and the four goldens, and Task 2's audio files, unchanged.
+- [x] **Step 2:** extract the port, rename the class, drop `force` and `loop`; move each caller.
+- [x] **Step 3:** the 7 effect-only doubles lose their empty music methods; the 3 music doubles and the golden's
+  recorder (Task 2) implement the stream.
+- [x] **Step 4:** the five goldens and Task 2's audio files unchanged; CI runs the whole suite.
 
 ### Task 5: MU's music leaves the engine
 

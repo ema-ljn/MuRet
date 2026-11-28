@@ -1,11 +1,8 @@
+#include "Audio/IMusicStream.h"
 #include "Audio/MusicPlayer.h"
-#include "Audio/Playback.h"
 
-#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
-#include <cstdint>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,119 +11,155 @@ namespace Client::Audio
 {
 namespace
 {
-class Playback final : public IPlayback
+class RecordingStream final : public IMusicStream
 {
 public:
-    void PlaySound(std::int32_t, std::optional<glm::vec3>, bool) override {}
-    void StopSound(std::int32_t, bool) override {}
-    void PlayMusic(std::string_view path, bool loop) override
+    void Play(std::string_view path) override
     {
         played.emplace_back(path);
-        loops.push_back(loop);
         events.emplace_back("play:" + std::string(path));
     }
-    void StopMusic() override
+    void Stop() override
     {
         ++stops;
         events.emplace_back("stop");
     }
-    void SetEffectsVolume(std::uint8_t) override {}
-    void SetListener(glm::vec3) override {}
+    [[nodiscard]] int ProgressPercent() const override
+    {
+        return progress;
+    }
 
     std::vector<std::string> played;
     std::vector<std::string> events;
-    std::vector<bool> loops;
     int stops = 0;
+    int progress = 0;
 };
 
-TEST(MusicTest, PlaysTrackOnlyWhenItChangesAndStopsOnlyExactCurrentTrack)
+struct Attached
 {
-    Music music;
-    Playback playback;
-    music.Play(&playback, "Music\\Noria.mp3");
-    music.Play(&playback, "Music\\Noria.mp3");
-    music.Stop(&playback, "Music\\noria.mp3");
-    EXPECT_EQ(playback.played, (std::vector<std::string>{"Music\\Noria.mp3"}));
-    ASSERT_EQ(playback.loops.size(), 1u);
-    EXPECT_FALSE(playback.loops.front());
-    EXPECT_EQ(playback.stops, 0);
-    music.Stop(&playback, "Music\\Noria.mp3");
-    EXPECT_EQ(playback.stops, 1);
+    Attached()
+    {
+        music.Attach(&stream);
+    }
+
+    RecordingStream stream;
+    MusicPlayer music;
+};
+
+TEST(MusicPlayerTest, PlaysTrackOnlyWhenItChangesAndStopsOnlyExactCurrentTrack)
+{
+    Attached player;
+    player.music.Play("Music\\Noria.mp3");
+    player.music.Play("Music\\Noria.mp3");
+    player.music.Stop("Music\\noria.mp3");
+    EXPECT_EQ(player.stream.played, (std::vector<std::string>{"Music\\Noria.mp3"}));
+    EXPECT_EQ(player.stream.stops, 0);
+    player.music.Stop("Music\\Noria.mp3");
+    EXPECT_EQ(player.stream.stops, 1);
+    EXPECT_TRUE(player.music.Current().empty());
+}
+
+TEST(MusicPlayerTest, DisabledPlaysAndStopsNothing)
+{
+    Attached player;
+    player.music.SetEnabled(false);
+    player.music.Play("Music\\Noria.mp3");
+    EXPECT_TRUE(player.stream.played.empty());
+
+    player.music.SetEnabled(true);
+    player.music.Play("Music\\Noria.mp3");
+    player.music.SetEnabled(false);
+    player.music.Stop("Music\\Noria.mp3");
+    EXPECT_EQ(player.stream.stops, 0);
+    EXPECT_EQ(player.music.Current(), "Music\\Noria.mp3");
+}
+
+TEST(MusicPlayerTest, BlockedPlaysNothingButStillStops)
+{
+    Attached player;
+    player.music.Play("Music\\Noria.mp3");
+    player.music.SetBlocked(true);
+    player.music.Play("Music\\Devias.mp3");
+    EXPECT_EQ(player.stream.played, (std::vector<std::string>{"Music\\Noria.mp3"}));
+    player.music.Stop("Music\\Noria.mp3");
+    EXPECT_EQ(player.stream.stops, 1);
+}
+
+TEST(MusicPlayerTest, ReachesTheEndOnlyAtOneHundredPercent)
+{
+    Attached player;
+    for (const int progress : {0, 99, 101})
+    {
+        player.stream.progress = progress;
+        EXPECT_FALSE(player.music.ReachedTheEnd()) << progress;
+    }
+    player.stream.progress = 100;
+    EXPECT_TRUE(player.music.ReachedTheEnd());
+}
+
+TEST(MusicPlayerTest, WithoutAStreamNothingPlaysAndNoTrackEnds)
+{
+    MusicPlayer music;
+    music.Play("Music\\Noria.mp3");
     EXPECT_TRUE(music.Current().empty());
+    EXPECT_FALSE(music.ReachedTheEnd());
 }
 
-TEST(MusicTest, ForceBypassesDisabledButBlockedAlwaysPreventsPlay)
+TEST(MusicPlayerTest, ResolvesSafeWorldTracksAndKeepsMapZeroMusicWhileUnsafe)
 {
-    Music music;
-    Playback playback;
-    music.SetEnabled(false);
-    music.Play(&playback, "Music\\Noria.mp3");
-    music.Play(&playback, "Music\\Noria.mp3", true);
-    music.SetBlocked(true);
-    music.Play(&playback, "Music\\Devias.mp3", true);
-    EXPECT_EQ(playback.played.size(), 1u);
-    EXPECT_EQ(music.Current(), "Music\\Noria.mp3");
-}
-
-TEST(MusicTest, ResolvesSafeWorldTracksAndKeepsMapZeroMusicWhileUnsafe)
-{
-    Music music;
-    Playback playback;
-    music.StepWorld(&playback, 0, true, 4, {});
-    EXPECT_EQ(music.Current(), "Music\\Pub.mp3");
-    music.StepWorld(&playback, 0, false, 0, {});
-    EXPECT_EQ(playback.played.size(), 1u);
+    Attached player;
+    player.music.StepWorld(0, true, 4, {});
+    EXPECT_EQ(player.music.Current(), "Music\\Pub.mp3");
+    player.music.StepWorld(0, false, 0, {});
+    EXPECT_EQ(player.stream.played.size(), 1u);
     int deviasReads = 0;
-    music.StepWorld(&playback, 2, true, 0,
-                    [&deviasReads]
-                    {
-                        ++deviasReads;
-                        return true;
-                    });
-    EXPECT_EQ(music.Current(), "Music\\Church.mp3");
+    player.music.StepWorld(2, true, 0,
+                           [&deviasReads]
+                           {
+                               ++deviasReads;
+                               return true;
+                           });
+    EXPECT_EQ(player.music.Current(), "Music\\Church.mp3");
     EXPECT_EQ(deviasReads, 1);
-    music.StepWorld(&playback, 3, true, 0, {});
-    EXPECT_EQ(music.Current(), "Music\\Noria.mp3");
+    player.music.StepWorld(3, true, 0, {});
+    EXPECT_EQ(player.music.Current(), "Music\\Noria.mp3");
 }
 
-TEST(MusicTest, DoesNotReadDeviasPositionOutsideSafeMapTwo)
+TEST(MusicPlayerTest, DoesNotReadDeviasPositionOutsideSafeMapTwo)
 {
-    Music music;
-    Playback playback;
+    Attached player;
     int reads = 0;
-    music.StepWorld(&playback, 2, false, 0,
-                    [&reads]
-                    {
-                        ++reads;
-                        return true;
-                    });
+    player.music.StepWorld(2, false, 0,
+                           [&reads]
+                           {
+                               ++reads;
+                               return true;
+                           });
     EXPECT_EQ(reads, 0);
-    EXPECT_TRUE(music.Current().empty());
+    EXPECT_TRUE(player.music.Current().empty());
 }
 
-TEST(MusicTest, FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon)
+TEST(MusicPlayerTest, FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon)
 {
-    Music music;
-    Playback playback;
-    music.Play(&playback, "Music\\Pub.mp3");
-    playback.events.clear();
+    Attached player;
+    player.music.Play("Music\\Pub.mp3");
+    player.stream.events.clear();
 
-    music.StepWorld(&playback, 1, false, 0, {});
-    EXPECT_EQ(playback.events, (std::vector<std::string>{"stop", "play:Music\\Dungeon.mp3"}));
-    playback.events.clear();
+    player.music.StepWorld(1, false, 0, {});
+    EXPECT_EQ(player.stream.events, (std::vector<std::string>{"stop", "play:Music\\Dungeon.mp3"}));
+    player.stream.events.clear();
 
-    music.StepWorld(&playback, 0, true, 4, {});
-    EXPECT_EQ(playback.events, (std::vector<std::string>{"play:Music\\Pub.mp3"}));
+    player.music.StepWorld(0, true, 4, {});
+    EXPECT_EQ(player.stream.events, (std::vector<std::string>{"play:Music\\Pub.mp3"}));
 }
 
-TEST(MusicTest, StopsAnyKnownWorldTrackOnWorldReturn)
+TEST(MusicPlayerTest, StopsAnyKnownWorldTrackOnWorldReturn)
 {
-    Music music;
-    Playback playback;
-    music.Play(&playback, "Music\\Mutheme.mp3");
-    music.StopWorld(&playback);
-    EXPECT_EQ(playback.stops, 1);
-    EXPECT_TRUE(music.Current().empty());
+    Attached player;
+    player.music.Play("Music\\Mutheme.mp3");
+    player.music.StopWorld();
+    EXPECT_EQ(player.stream.stops, 1);
+    EXPECT_TRUE(player.music.Current().empty());
 }
 } // namespace
 } // namespace Client::Audio

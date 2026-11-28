@@ -623,6 +623,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
                                .screen = [&window] { return window.PixelSize(); },
                                .localTime = Platform::Sdl::ReadLocalTime,
                                .playback = audio.get(),
+                               .music = audio.get(),
                                .clipboard = &clipboard},
         App::GameClientOptions{.dataRoot = *startup.config.dataPath,
                                .version = std::string(Version),

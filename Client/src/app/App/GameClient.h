@@ -48,6 +48,7 @@
 
 namespace Client::Audio
 {
+class IMusicStream;
 class IPlayback;
 } // namespace Client::Audio
 
@@ -78,6 +79,7 @@ struct GameClientDevices
     std::function<Core::PixelSize()> screen{};
     std::function<Core::Expected<Core::LocalTime, std::string>()> localTime{};
     Audio::IPlayback* playback = nullptr;
+    Audio::IMusicStream* music = nullptr;
     Platform::IClipboard* clipboard = nullptr;
 };
 

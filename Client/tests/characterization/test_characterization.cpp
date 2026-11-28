@@ -4,6 +4,7 @@
 #include "App/GameClient.h"
 #include "Scenes/ILoopClient.h"
 #include "Session/ServerAddress.h"
+#include "Audio/IMusicStream.h"
 #include "Audio/Playback.h"
 #include "Session/ServerSession.h"
 #include "Core/Environment.h"
@@ -253,8 +254,8 @@ std::string PositionOf(glm::vec3 position)
     return std::format("{} {} {}", position.x, position.y, position.z);
 }
 
-// The audio device of the harness: one row per call, with the frame that made it ("start" before the first frame).
-class RecordingPlayback final : public Audio::IPlayback
+// The audio devices of the harness: one row per call, with the frame that made it ("start" before the first frame).
+class RecordingPlayback final : public Audio::IPlayback, public Audio::IMusicStream
 {
 public:
     void PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override
@@ -266,13 +267,17 @@ public:
     {
         Note("stop-sound", std::format("{:#04x}{}", id, rewind ? " rewind" : ""));
     }
-    void PlayMusic(std::string_view relativePath, bool loop) override
+    void Play(std::string_view relativePath) override
     {
-        Note("play-music", std::format("{}{}", relativePath, loop ? " loop" : ""));
+        Note("play-music", relativePath);
     }
-    void StopMusic() override
+    void Stop() override
     {
         Note("stop-music", "");
+    }
+    [[nodiscard]] int ProgressPercent() const override
+    {
+        return 0;
     }
     void SetEffectsVolume(std::uint8_t level) override
     {
@@ -329,7 +334,8 @@ public:
                                           .screen = [] { return Screen; },
                                           .localTime = []() -> Core::Expected<Core::LocalTime, std::string>
                                           { return FixedLocalTime; },
-                                          .playback = &m_audio},
+                                          .playback = &m_audio,
+                                          .music = &m_audio},
                    App::GameClientOptions{.dataRoot = dataRoot,
                                           .version = std::string(Version),
                                           .crtSeed = CrtSeed,

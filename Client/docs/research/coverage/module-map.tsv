@@ -52,6 +52,7 @@ game/Assets/ModelIds.h	25	game/Assets	game/Assets	high	the model slots the fauna
 game/Assets/PlayerSkeleton.cpp	37	game/Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 game/Assets/PlayerSkeleton.h	14	game/Assets	game/Assets	high	what 0x60dbe0 sets on Player.bmd's skeleton, out of the engine (item vocabulary)
 engine/Audio/ISoundCatalog.h	19	engine/Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
+engine/Audio/IMusicStream.h	16	engine/Audio	engine/Audio	high	the music stream the player asks for (play, stop and progress, as wzAudio.dll); the SDL audio implements it (music plan)
 engine/Audio/MusicPlayer.cpp	185	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/MusicPlayer.h	41	engine/Audio	engine/Audio	high	engine or protocol layer, no game state
 engine/Audio/Playback.h	28	engine/Audio	engine/Audio	high	engine or protocol layer, no game state

@@ -602,8 +602,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                 auto& runtime = world.Runtime();
                 constexpr std::string_view castle = "Music\\castle.mp3";
                 constexpr std::string_view charge = "Music\\charge.mp3";
-                runtime.music.Stop(runtime.audio, siegeActive ? castle : charge);
-                runtime.music.Play(runtime.audio, siegeActive ? charge : castle);
+                runtime.music.Stop(siegeActive ? castle : charge);
+                runtime.music.Play(siegeActive ? charge : castle);
             }};
         if (m_context.clock != nullptr)
             prelude.systemTime = [clock = m_context.clock]() {

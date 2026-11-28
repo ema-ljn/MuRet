@@ -55,12 +55,12 @@ because the view moves; and the client takes some packets only encrypted (`0x16`
 
 ## The audio
 
-`golden/<scene>.audio.tsv` has one row per call to `Audio::IPlayback`, with the columns `frame` (`start` before the
-first frame: the volume the client sets when it is built), `event` and `value`:
+`golden/<scene>.audio.tsv` has one row per call to `Audio::IPlayback` and `Audio::IMusicStream`, with the columns
+`frame` (`start` before the first frame: the volume the client sets when it is built), `event` and `value`:
 
 | Event | Value |
 | --- | --- |
-| `play-music` | the track's path (`Music\main_theme.mp3`), and `loop` if asked |
+| `play-music` | the track's path (`Music\main_theme.mp3`) |
 | `stop-music` | nothing |
 | `play-sound` | the sound id in hex, `loop` if asked, and `at x y z` if it has an origin |
 | `stop-sound` | the sound id in hex, and `rewind` if asked |
@@ -83,5 +83,6 @@ presses Print Screen in the login scene and expects one read of the screen and t
   `--auto-login`: it chooses the first server and sends the account.
 - A fake clock, the recording frame target instead of GL, a fake texture store, a 6 × 13 text measure instead of
   FreeType and a screen reader of black pixels that counts its reads.
-- A recording audio device instead of SDL3_mixer (`RecordingPlayback`), which only writes down each call.
+- A recording audio device instead of SDL3_mixer (`RecordingPlayback`, both the effects and the music stream), which
+  only writes down each call.
 - No clipboard or friend chat rooms. SDL's typed-text switch stays in `main.cpp`.

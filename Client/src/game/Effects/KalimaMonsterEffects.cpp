@@ -19,7 +19,7 @@
 
 // Cotejado con el PE c32bbd5f: 0x51c884 (el alta del 0x11a), 0x5266ea (su paso), 0x51ed79 (el alta del 0x615) y
 // 0x52b4a7 (su paso).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -27,7 +27,7 @@ using Math::D;
 using Math::F32;
 } // namespace
 
-void BeginTheSeaman(World::ModelEffect& effect)
+void BeginTheSeaman(Effects::ModelEffect& effect)
 {
     constexpr std::int16_t HiddenBlend = -2;                       // 0x51c884
     constexpr float MeshLight = std::bit_cast<float>(0x3e4ccccdu); // 0x51c88b, 0,2f
@@ -46,7 +46,7 @@ void BeginTheSeaman(World::ModelEffect& effect)
     effect.start = effect.transform.position;
 }
 
-Core::Expected<void, std::string> StepTheSeaman(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepTheSeaman(Effects::ModelEffect& effect, float luminosity,
                                                 const HighEffectStepContext& context)
 {
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0,02f
@@ -76,10 +76,11 @@ Core::Expected<void, std::string> StepTheSeaman(World::ModelEffect& effect, floa
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }
-    return World::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius, "0x5267ba");
+    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius,
+                                         "0x5267ba");
 }
 
-void BeginTheThunder(World::ModelEffect& effect)
+void BeginTheThunder(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t Life = 10;                 // 0x51ed79
     constexpr glm::vec3 Offset{-25.0f, -80.0f, 0.0f}; // 0x51eda2..0x51edb0
@@ -92,7 +93,7 @@ void BeginTheThunder(World::ModelEffect& effect)
     position = {F32(D(step.x) + D(position.x)), F32(D(step.y) + D(position.y)), F32(D(step.z) + D(position.z))};
 }
 
-Core::Expected<void, std::string> StepTheThunder(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheThunder(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr std::int32_t BoltLife = 5; // edi, 0x5208df
     constexpr int Spread = 64;
@@ -109,4 +110,4 @@ Core::Expected<void, std::string> StepTheThunder(World::ModelEffect& effect, con
     return CreateHighJoint(context.world, context.random, Bolt, point, point, effect.transform.angles, BoltSubtype,
                            nullptr, scale, 0x52b560);
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

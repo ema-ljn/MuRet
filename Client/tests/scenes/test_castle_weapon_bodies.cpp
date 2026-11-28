@@ -30,11 +30,11 @@ namespace
 using Client::Actors::Drawing::DrawnObject;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Effects::DrawCastleWeaponBody;
 using Client::Models::IModelLibrary;
 using Client::Models::Skeleton;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::Scenes::DrawCastleWeaponBody;
 
 // A skeleton of one bone at the origin, with an action of one key.
 Skeleton OneBone()
@@ -103,7 +103,7 @@ DrawnObject WeaponObject()
 TEST(CastleWeaponBodiesTest, TheStoneHasItsWhiteBaseAndRedDefaultChrome)
 {
     const WeaponModels models(1);
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.type = 0x12b;
     effect.subtype = 1;
     DrawnObject object = WeaponObject();
@@ -124,7 +124,7 @@ TEST(CastleWeaponBodiesTest, TheImpactHidesBeforeEmittingItsNativeVertexFamilyAn
     const WeaponModels models(1);
     for (const std::int16_t type : std::array<std::int16_t, 2>{0x12b, 0x12c})
     {
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.type = type;
         effect.seen = true;
         effect.objectState.hiddenMesh = 99;
@@ -157,7 +157,7 @@ TEST(CastleWeaponBodiesTest, InvisibleAndUnorderedAlphaDoNotConsumeTheImpact)
     const WeaponModels models(1);
     for (const float alpha : {0.0f, std::numeric_limits<float>::quiet_NaN()})
     {
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.type = 0x12b;
         effect.seen = true;
         effect.alpha = alpha;
@@ -189,7 +189,7 @@ TEST(CastleWeaponBodiesTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRes
         Case{0xee, 0, 9, {1, 1, 1}},        Case{0xe1, 1, 6, {.2f, .4f, .6f}}};
     for (const auto& item : cases)
     {
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.type = item.type;
         effect.subtype = item.subtype;
         effect.flags78 = 2;
@@ -209,7 +209,7 @@ TEST(CastleWeaponBodiesTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRes
 TEST(CastleWeaponBodiesTest, TheImpactStopsWithoutTheVertexEmitter)
 {
     const WeaponModels models(1);
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.type = 0x12b;
     effect.seen = true;
     effect.objectState.hiddenMesh = 99;

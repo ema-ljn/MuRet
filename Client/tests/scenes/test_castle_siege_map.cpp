@@ -30,11 +30,11 @@ TEST(CastleSiegeMapTest, OtherMapsKeepTheirMusicAndOnlyRememberBothSiegeStates)
         runtime.castleSiege.siegeActive = false;
         runtime.castleSiege.previousSiegeActive = true;
         runtime.castleSiege.siegeMusicTime = 123.0f;
-        ASSERT_TRUE(Client::Scenes::SetTheSiegeActive(255, *world, nullptr, {}).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::SetTheSiegeActive(255, *world, nullptr, {}).HasValue());
         EXPECT_TRUE(runtime.castleSiege.siegeActive);
         EXPECT_FALSE(runtime.castleSiege.previousSiegeActive);
         EXPECT_EQ(runtime.castleSiege.siegeMusicTime, 123.0f);
-        ASSERT_TRUE(Client::Scenes::SetTheSiegeActive(0, *world, nullptr, {}).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::SetTheSiegeActive(0, *world, nullptr, {}).HasValue());
         EXPECT_FALSE(runtime.castleSiege.siegeActive);
         EXPECT_TRUE(runtime.castleSiege.previousSiegeActive);
         EXPECT_FALSE(runtime.fatalDataMessage.has_value());
@@ -48,7 +48,7 @@ TEST(CastleSiegeMapTest, TheSiegeMapWithoutATerrainStopsAfterRememberingTheState
     runtime.map = 30;
     runtime.castleSiege.siegeActive = false;
 
-    const auto changed = Client::Scenes::SetTheSiegeActive(255, *world, nullptr, {});
+    const auto changed = Client::CastleSiege::SetTheSiegeActive(255, *world, nullptr, {});
 
     ASSERT_FALSE(changed.HasValue());
     EXPECT_NE(changed.Error().find("0x4294c0"), std::string::npos) << changed.Error();
@@ -73,7 +73,7 @@ TEST_F(CastleSiegeMapFilesTest, RepeatedWarPacketsReloadTheFilesAndPeaceRestores
     {
         terrain.attributes->cells[0] = 0xabcd;
         world->Runtime().castleSiege.siegeMusicTime = 999.0f;
-        const auto changed = Client::Scenes::SetTheSiegeActive(value, *world, &terrain, m_dataRoot);
+        const auto changed = Client::CastleSiege::SetTheSiegeActive(value, *world, &terrain, m_dataRoot);
         ASSERT_TRUE(changed.HasValue()) << changed.Error();
         const auto number = value == 0 ? "31" : "312";
         const auto bytes =

@@ -52,7 +52,7 @@ namespace
 {
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-class Requests final : public Client::Scenes::IGameUiRequests
+class Requests final : public Client::Hud::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody&) override {}
@@ -99,7 +99,7 @@ Client::Tables::TextTable Texts()
 class CastleWindowsTest : public ::testing::Test
 {
 protected:
-    Client::Scenes::GameUiContext Context(std::int32_t x = 0, std::int32_t y = 0)
+    Client::Hud::GameUiContext Context(std::int32_t x = 0, std::int32_t y = 0)
     {
         return {.world = *m_world,
                 .random = m_random,
@@ -111,7 +111,7 @@ protected:
                 .requests = &m_requests,
                 .systemTime = 1234};
     }
-    void Release(Client::UI::OldButton& button)
+    void Release(Client::Ui::OldButton& button)
     {
         button.base.x = 10;
         button.base.y = 10;
@@ -130,18 +130,18 @@ protected:
         auto& runtime = m_world->Runtime();
         auto& hero = m_world->Hero();
         m_sprites.Begin(screen);
-        Client::Scenes::GameHudContext context{.world = *m_world,
-                                               .random = m_random,
-                                               .ownRecordDepth = runtime.ownRecordDepth,
-                                               .cellXDepth = hero.cellXAccesses,
-                                               .cellYDepth = hero.cellYAccesses,
-                                               .hud = runtime.hud,
-                                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                               .sound = runtime.lastSoundId,
-                                               .sprites = m_sprites,
-                                               .text = m_text,
-                                               .texts = &m_texts};
-        return Client::Scenes::DrawTheCastleWindows(context);
+        Client::Hud::GameHudContext context{.world = *m_world,
+                                            .random = m_random,
+                                            .ownRecordDepth = runtime.ownRecordDepth,
+                                            .cellXDepth = hero.cellXAccesses,
+                                            .cellYDepth = hero.cellYAccesses,
+                                            .hud = runtime.hud,
+                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                            .sound = runtime.lastSoundId,
+                                            .sprites = m_sprites,
+                                            .text = m_text,
+                                            .texts = &m_texts};
+        return Client::CastleSiege::DrawTheCastleWindows(context);
     }
     const Client::Render::DrawCommand* QuadAt(float x, float y) const
     {
@@ -204,7 +204,7 @@ TEST_F(CastleWindowsTest, RegistrationTabTwoRequestsOnlyTheNativeStates)
         window.state = state;
         m_requests.sent.clear();
         m_world->Runtime().movement.leftHeld = true;
-        const auto stepped = Client::Scenes::StepTheCastleWindow(Context(580, 95), Client::UI::CastleSiegePanel);
+        const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(580, 95), Client::Ui::CastleSiegePanel);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(window.tab, 2);
         EXPECT_TRUE(m_world->Runtime().movement.leftHeld);
@@ -214,7 +214,7 @@ TEST_F(CastleWindowsTest, RegistrationTabTwoRequestsOnlyTheNativeStates)
         {
             EXPECT_TRUE(SameBytes(m_requests.sent[0].packet.Bytes(), Bytes({0xc1, 3, state < 4 ? 0xb4 : 0xb5})));
         }
-        const auto repeated = Client::Scenes::StepTheCastleWindow(Context(580, 95), Client::UI::CastleSiegePanel);
+        const auto repeated = Client::CastleSiege::StepTheCastleWindow(Context(580, 95), Client::Ui::CastleSiegePanel);
         ASSERT_TRUE(repeated.HasValue()) << repeated.Error();
         EXPECT_EQ(m_requests.sent.size(), request ? 1u : 0u);
     }
@@ -230,14 +230,14 @@ TEST_F(CastleWindowsTest, HuntEntryWithExactlyTheFeeIsDeniedButOneMoreIsAccepted
     m_world->Runtime().panels.delegated.secondCastleSiege = 1;
     m_world->OwnCharacter().zen = 100;
     Release(window.enter);
-    auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::SecondCastleSiegePanel);
+    auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::SecondCastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(m_requests.sent.empty());
     EXPECT_EQ(m_world->Runtime().panels.delegated.panelDialog.lineCount, 2);
     EXPECT_EQ(m_world->Runtime().panels.delegated.secondCastleSiege, 1);
     m_world->OwnCharacter().zen = 101;
     Release(window.enter);
-    stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::SecondCastleSiegePanel);
+    stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::SecondCastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
@@ -253,7 +253,7 @@ TEST_F(CastleWindowsTest, TheOtherHuntModeEntersBeforeClosingWithoutReadingMoney
     window.fee = 0x01020304;
     m_world->Runtime().panels.delegated.secondCastleSiege = 1;
     Release(window.enter);
-    const auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::SecondCastleSiegePanel);
+    const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::SecondCastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 2u);
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
@@ -271,13 +271,13 @@ TEST_F(CastleWindowsTest, RegistrationChecksTheUnsignedLevelInsideItsLogicalAcce
     m_world->Actors()[0].guildStatus = 0x80;
     m_world->OwnCharacter().level = 199;
     Release(window.button);
-    auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegePanel);
+    auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(m_requests.sent.empty());
     EXPECT_EQ(m_world->Runtime().panels.delegated.panelDialog.lineCount, 2);
     m_world->OwnCharacter().level = 200;
     Release(window.button);
-    stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegePanel);
+    stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(), Bytes({0xc1, 4, 0xb2, 1})));
@@ -291,7 +291,7 @@ TEST_F(CastleWindowsTest, SeniorModalBlocksTabsAndCloseAfterMarkingHover)
     runtime.panels.delegated.panelDialog.opened = 5;
     runtime.castleSiege.senior.x = 450;
     runtime.movement.leftHeld = true;
-    const auto stepped = Client::Scenes::StepTheCastleWindow(Context(590, 55), Client::UI::CastleSiegeListPanel);
+    const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(590, 55), Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.panels.delegated.castleSiegeListMode, 0);
     EXPECT_EQ(runtime.ui.mouseOnUi, 1);
@@ -328,29 +328,29 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.panels.delegated.castleSiegeListMode = 2;
     runtime.movement.pendingClick = true;
-    runtime.castleSiege.data.SetU32(Client::UI::ChaosTaxAt, 2);
+    runtime.castleSiege.data.SetU32(Client::CastleSiege::ChaosTaxAt, 2);
     // Draw usa su propio mouse, igual al de GameScene. Esta prueba pasa la posición en el contexto de abajo.
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
-    Client::Scenes::GameHudContext context{.world = *m_world,
-                                           .random = m_random,
-                                           .ownRecordDepth = runtime.ownRecordDepth,
-                                           .cellXDepth = hero.cellXAccesses,
-                                           .cellYDepth = hero.cellYAccesses,
-                                           .hud = runtime.hud,
-                                           .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                           .sound = runtime.lastSoundId,
-                                           .sprites = m_sprites,
-                                           .text = m_text,
-                                           .texts = &m_texts,
-                                           .mouse = {608, 88}};
-    auto drawn = Client::Scenes::DrawTheCastleWindows(context);
+    Client::Hud::GameHudContext context{.world = *m_world,
+                                        .random = m_random,
+                                        .ownRecordDepth = runtime.ownRecordDepth,
+                                        .cellXDepth = hero.cellXAccesses,
+                                        .cellYDepth = hero.cellYAccesses,
+                                        .hud = runtime.hud,
+                                        .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                        .sound = runtime.lastSoundId,
+                                        .sprites = m_sprites,
+                                        .text = m_text,
+                                        .texts = &m_texts,
+                                        .mouse = {608, 88}};
+    auto drawn = Client::CastleSiege::DrawTheCastleWindows(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(runtime.castleSiege.data.U32(Client::UI::ChaosTaxAt), 2u);
+    EXPECT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::ChaosTaxAt), 2u);
     runtime.movement.releasedClick = true;
-    drawn = Client::Scenes::DrawTheCastleWindows(context);
+    drawn = Client::CastleSiege::DrawTheCastleWindows(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(runtime.castleSiege.data.U32(Client::UI::ChaosTaxAt), 3u);
+    EXPECT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::ChaosTaxAt), 3u);
     EXPECT_FALSE(runtime.movement.releasedClick);
     ExpectRandoms(0);
 }
@@ -361,45 +361,45 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.panels.delegated.castleSiegeListMode = 2;
     Release(runtime.castleSiege.senior.buttons[5]);
-    const auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegeListPanel);
+    const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     auto& dialog = runtime.panels.delegated.panelDialog;
-    ASSERT_EQ(dialog.owner, Client::UI::PanelDialogOwner::CastleMoney);
+    ASSERT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::CastleMoney);
     ASSERT_EQ(dialog.flags, 0x12u);
     ASSERT_EQ(dialog.opened, 1234u);
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
-    Client::Scenes::GameHudContext hud{.world = *m_world,
-                                       .random = m_random,
-                                       .ownRecordDepth = runtime.ownRecordDepth,
-                                       .cellXDepth = hero.cellXAccesses,
-                                       .cellYDepth = hero.cellYAccesses,
-                                       .hud = runtime.hud,
-                                       .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                       .sound = runtime.lastSoundId,
-                                       .sprites = m_sprites,
-                                       .text = m_text,
-                                       .texts = &m_texts};
-    const auto drawn = Client::Scenes::DrawThePanelDialog(hud, dialog);
+    Client::Hud::GameHudContext hud{.world = *m_world,
+                                    .random = m_random,
+                                    .ownRecordDepth = runtime.ownRecordDepth,
+                                    .cellXDepth = hero.cellXAccesses,
+                                    .cellYDepth = hero.cellYAccesses,
+                                    .hud = runtime.hud,
+                                    .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                    .sound = runtime.lastSoundId,
+                                    .sprites = m_sprites,
+                                    .text = m_text,
+                                    .texts = &m_texts};
+    const auto drawn = Client::Guild::DrawThePanelDialog(hud, dialog);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
     EXPECT_EQ(runtime.chat.input.dialogEdit.base.x, 290);
     EXPECT_EQ(runtime.chat.input.dialogEdit.base.width, 70);
     EXPECT_EQ(runtime.chat.input.dialogEdit.filter, 1);
     runtime.chat.input.dialogEdit.text.SetText("16909060");
-    const Client::Scenes::GameChatContext chat{
+    const Client::Chat::GameChatContext chat{
         .world = *m_world, .random = m_random, .send = [this](Client::Protocol::Outgoing packet) {
             m_requests.sent.push_back(std::move(packet));
         }};
-    const auto entered = Client::Scenes::PressEnterInTheGame(chat);
+    const auto entered = Client::Chat::PressEnterInTheGame(chat);
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
                           Bytes({0xc1, 8, 0xb2, 0x10, 4, 3, 2, 1})));
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_TRUE(runtime.chat.input.dialogEdit.text.Value().empty());
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.state, Client::UI::HiddenWindow);
-    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(runtime.chat.input.dialogEdit.base.state, Client::Ui::HiddenWindow);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
     ExpectRandoms(0);
 }
 TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDurabilityAndWithoutMasterStatus)
@@ -415,7 +415,7 @@ TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDu
     mark.durability = 0;
     m_world->Actors()[0].guildStatus = 0;
     Release(window.button);
-    const auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegePanel);
+    const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
     EXPECT_TRUE(
@@ -442,14 +442,14 @@ TEST_F(CastleWindowsTest, SeniorCraftFindsTheLastFourByFiveRectangleUsingTypeIns
             cell.occupied = 1;
         }
     Release(runtime.castleSiege.senior.buttons[6]);
-    auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegeListPanel);
+    auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
     EXPECT_TRUE(
         SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(), Bytes({0xc1, 4, 0x86, 0x12})));
     m_world->Inventory().cells[63].id = 0;
     Release(runtime.castleSiege.senior.buttons[6]);
-    stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegeListPanel);
+    stepped = Client::CastleSiege::StepTheCastleWindow(Context(11, 11), Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_requests.sent.size(), 1u);
     EXPECT_FALSE(runtime.chat.log.entries.empty());
@@ -462,7 +462,7 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     runtime.panels.delegated.castleSiege = 1;
     m_world->Actors()[0].word1f2 = 0xffff;
     // Q-C1281: la alianza de la entrada −1 coincide con el nombre del miembro74, no se rechaza el índice.
-    runtime.guild.members[Client::Scenes::MemberBeforeTheTable].name = {'H', 'E', 'R', 'O'};
+    runtime.guild.members[Client::Guild::MemberBeforeTheTable].name = {'H', 'E', 'R', 'O'};
     auto& window = runtime.castleSiege.registration;
     window.tab = 2;
     window.state = 3;
@@ -476,7 +476,7 @@ TEST_F(CastleWindowsTest, SiegeListDrawFiltersGuildsButTheMouseTogglesTheUnfilte
     ASSERT_NE(hero, m_text.texts.end());
     EXPECT_EQ(hero->y, 141);
     runtime.movement.pendingClick = true;
-    const auto stepped = Client::Scenes::StepTheCastleWindow(Context(480, 139), Client::UI::CastleSiegePanel);
+    const auto stepped = Client::CastleSiege::StepTheCastleWindow(Context(480, 139), Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(window.siegeGuilds[0].toggled, 1);
     EXPECT_EQ(window.siegeGuilds[1].toggled, 0);
@@ -493,7 +493,7 @@ TEST_F(CastleWindowsTest, SiegeGuildColumnsEndAtTheNativeAnchorsAtBothScreenWidt
     auto& runtime = m_world->Runtime();
     runtime.panels.delegated.castleSiege = 1;
     m_world->Actors()[0].word1f2 = 0xffff;
-    runtime.guild.members[Client::Scenes::MemberBeforeTheTable].name = {'G', 'U', 'I', 'L', 'D'};
+    runtime.guild.members[Client::Guild::MemberBeforeTheTable].name = {'G', 'U', 'I', 'L', 'D'};
     auto& window = runtime.castleSiege.registration;
     window.tab = 2;
     window.state = 3;
@@ -608,19 +608,19 @@ TEST_F(CastleWindowsTest, TheStatueRecoveryGainKeepsTheTypeOfTheGateRecordReceiv
         for (std::size_t i = 0; i < 4; ++i)
             record[at + i] = static_cast<std::byte>(value >> (i * 8));
     };
-    put(Client::UI::RecordType, Client::UI::GateType);
-    put(Client::UI::RecordIndex, 0xfffffffdu);
-    put(Client::UI::RecordMaxLife, 500000);
-    put(Client::UI::RecordLife, 9);
-    record[Client::UI::RecordAlive] = std::byte{1};
+    put(Client::CastleSiege::RecordType, Client::CastleSiege::GateType);
+    put(Client::CastleSiege::RecordIndex, 0xfffffffdu);
+    put(Client::CastleSiege::RecordMaxLife, 500000);
+    put(Client::CastleSiege::RecordLife, 9);
+    record[Client::CastleSiege::RecordAlive] = std::byte{1};
     Client::Core::StderrSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Warning);
-    const Client::Scenes::CastleReceiveContext receive{.world = *m_world, .random = m_random, .log = log};
+    const Client::CastleSiege::CastleReceiveContext receive{.world = *m_world, .random = m_random, .log = log};
     const auto applied =
-        Client::Scenes::ApplyCastleSiegePacket(Castle::NpcList{.result = 1, .records = {record}}, receive);
+        Client::CastleSiege::ApplyCastleSiegePacket(Castle::NpcList{.result = 1, .records = {record}}, receive);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     auto& runtime = m_world->Runtime();
-    ASSERT_EQ(runtime.castleSiege.data.U32(Client::UI::FirstStatueAt), Client::UI::GateType);
+    ASSERT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::FirstStatueAt), Client::CastleSiege::GateType);
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.panels.delegated.castleSiegeListMode = 1;
     const auto drawn = Draw();

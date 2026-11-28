@@ -23,7 +23,7 @@
 // 0x4a8720 0x4a8b30 0x4a8ba0 0x4aa0d0 0x4aa110 0x4aadf0 0x4aae20 0x4ab320); las marcadas de la pestaña (0x4a11b0:
 // 0x4a98c0 0x4a9bc0 0x4aace0 0x4ab0d0 0x4ab3c0); y los destructores de los dos objetos al salir (0x4aeda0 desde
 // WinMain, 0x4bec50 0x4bed30 0x4bfce0 0x4bfdd0 0x4bfe00 0x4bfef0), que son los de C++.
-namespace Client::UI
+namespace Client::Messenger
 {
 // 0x49f870: por el tipo (0), el que la manda (1), la fecha y la hora (2) o el asunto (3); −1, el que estaba.
 inline constexpr std::int32_t ByTypeLetters = 0;
@@ -128,7 +128,7 @@ struct ChatRooms
     std::map<std::uint32_t, ChatRoom> rooms;
     // Lo que las ventanas le mandan a la conexión de su sala (el mensaje de 0x4944c0 con el 7, la salida de 0x493a70
     // con el cierre de 0x49dfd0 y el de 0x4a6550), en orden: UI no ve la sesión, y Scenes lo saca
-    // (Scenes::FlushTheChatRoomOrders).
+    // (Messenger::FlushTheChatRoomOrders).
     std::deque<ChatRoomOrder> orders;
 };
 
@@ -143,4 +143,4 @@ struct ChatRooms
 void DropTheChatRoom(ChatRooms& rooms, std::uint32_t room);
 // 0x49de50 con el connect que falla: la sala no se anota y el lugar que tomó 0x49e280 queda tomado (Q-C1005).
 void ForgetTheChatRoom(ChatRooms& rooms, std::uint32_t room);
-} // namespace Client::UI
+} // namespace Client::Messenger

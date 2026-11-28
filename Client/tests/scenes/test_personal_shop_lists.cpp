@@ -117,7 +117,7 @@ protected:
     PersonalShopListsTest()
     {
         WorldState& world = *m_world;
-        Client::Scenes::ClearSelectionInventory(world, m_cloth.random);
+        Client::FrontEnd::ClearSelectionInventory(world, m_cloth.random);
         world.Runtime().map = GetParam();
         world.Runtime().hero = Hero;
         Place(Hero, HeroKey, "Tejon");
@@ -164,28 +164,28 @@ protected:
                 .texts = &m_texts};
     }
 
-    Client::Scenes::GamePacketSender Sender()
+    Client::Social::GamePacketSender Sender()
     {
         return [this](Client::Protocol::Outgoing outgoing) { m_sent.push_back(std::move(outgoing)); };
     }
 
-    Client::Scenes::PersonalShopState& Shops()
+    Client::Social::PersonalShopState& Shops()
     {
         return m_world->Runtime().social.personalShop;
     }
 
     // Open o Close de un panel como lo llama el original (0x6599a0 y 0x65cae0), con el cable.
-    void OpenPanel(Client::UI::PanelId id)
+    void OpenPanel(Client::Ui::PanelId id)
     {
-        Client::Scenes::GamePanels panels(*m_world, m_cloth.random);
+        Client::Hud::GamePanels panels(*m_world, m_cloth.random);
         panels.LendThePersonalShops(*m_world, m_cloth.random, Sender());
         const auto opened = panels.Registry().Open(id);
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         EXPECT_TRUE(opened.Value());
     }
-    void ClosePanel(Client::UI::PanelId id)
+    void ClosePanel(Client::Ui::PanelId id)
     {
-        Client::Scenes::GamePanels panels(*m_world, m_cloth.random);
+        Client::Hud::GamePanels panels(*m_world, m_cloth.random);
         panels.LendThePersonalShops(*m_world, m_cloth.random, Sender());
         const auto closed = panels.Registry().Close(id);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
@@ -200,11 +200,11 @@ protected:
     }
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
-    Client::Scenes::SelectionState m_selection{*m_world};
+    Client::FrontEnd::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
-    Client::Scenes::SingleModelLibrary m_models;
+    Client::FrontEnd::SingleModelLibrary m_models;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     Client::Tables::ItemTable m_items = Client::Tests::ItemTableOf({{TallType, 1, 2, 0}, {SmallType, 1, 1, 0}});
@@ -221,20 +221,20 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
 {
     WorldState& world = *m_world;
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
-    Client::Scenes::PersonalShopState& shops = Shops();
+    Client::Social::PersonalShopState& shops = Shops();
     // Un ítem propio en la primera casilla de la tienda (el lugar 0x4c) y el cartel del héroe (3F 02).
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(FirstShopSlot, ItemBytes(SmallType), Resources()).HasValue());
-    shops.titles[Hero] = Client::Scenes::ShopTitle{.key = HeroKey, .name = "Tejon", .title = "Mi puesto"};
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(FirstShopSlot, ItemBytes(SmallType), Resources()).HasValue());
+    shops.titles[Hero] = Client::Social::ShopTitle{.key = HeroKey, .name = "Tejon", .title = "Mi puesto"};
 
     // 0x6599a0(0x800): CanOpen consulta 0x10000 y 0x20 (0x6598a0) y CloseByMask, con todo menos la tienda, el
     // inventario y los amigos, los consulta otra vez (0x657ab0). Open(0x4000000) ya está abierto. 0x6c931c en −1: sin
     // el F3 10.
     CrtRandom before = m_cloth.random;
-    OpenPanel(Client::UI::PersonalShopPanel);
+    OpenPanel(Client::Ui::PersonalShopPanel);
     ExpectDraws(before, 4);
     EXPECT_EQ(runtime.panels.personalShop, 1);
     EXPECT_EQ(runtime.panels.inventory, 1);
-    EXPECT_EQ(shops.mode, Client::Scenes::OwnShopView);
+    EXPECT_EQ(shops.mode, Client::Social::OwnShopView);
     EXPECT_TRUE(shops.pricesBuilt);
     EXPECT_TRUE(m_sent.empty());
 
@@ -242,10 +242,10 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     shops.ownPrices[FirstShopSlot] = 500;
     before = m_cloth.random;
     ASSERT_TRUE(
-        Client::Scenes::ApplyPriceResult({.result = 1, .slot = FirstShopSlot}, Resources(), Sender()).HasValue());
+        Client::PersonalShop::ApplyPriceResult({.result = 1, .slot = FirstShopSlot}, Resources(), Sender()).HasValue());
     EXPECT_EQ(shops.ownPrices.size(), 1u);
     ASSERT_TRUE(
-        Client::Scenes::ApplyPriceResult({.result = 0, .slot = FirstShopSlot}, Resources(), Sender()).HasValue());
+        Client::PersonalShop::ApplyPriceResult({.result = 0, .slot = FirstShopSlot}, Resources(), Sender()).HasValue());
     ExpectDraws(before, C3Randoms);
     EXPECT_TRUE(shops.ownPrices.empty());
     ASSERT_EQ(m_sent.size(), 1u);
@@ -254,10 +254,10 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
 
     // 0x65cae0(0x800): 0x5eb020 con 0x6c931c en 1 solo lo vuelve a −1; sin rand().
     before = m_cloth.random;
-    ClosePanel(Client::UI::PersonalShopPanel);
+    ClosePanel(Client::Ui::PersonalShopPanel);
     ExpectDraws(before, 0);
     EXPECT_EQ(runtime.panels.personalShop, 0);
-    EXPECT_EQ(shops.mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(shops.mode, Client::Social::NoShopView);
     EXPECT_EQ(runtime.panels.inventory, 1);
 
     // 0x4db890 (3F 05) del vendedor, con dos ítems. Close(0x4000000): sus compañeros (0x657ab0 con 0x11d9e0, que
@@ -270,13 +270,13 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     list.entries = {{.slot = FirstShopSlot + 9, .item = ItemBytes(TallType, 2), .price = 1500},
                     {.slot = FirstShopSlot + 3, .item = ItemBytes(SmallType), .price = 200}};
     before = m_cloth.random;
-    const auto viewed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    const auto viewed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(viewed.HasValue()) << viewed.Error();
     ExpectDraws(before, 10);
     EXPECT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(runtime.panels.personalShop, 1);
     EXPECT_EQ(runtime.panels.inventory, 1);
-    EXPECT_EQ(shops.mode, Client::Scenes::OtherShopView);
+    EXPECT_EQ(shops.mode, Client::Social::OtherShopView);
     EXPECT_EQ(shops.ownTitle, "Cosas baratas");
     EXPECT_EQ(shops.ownGridBackup[0].id, SmallType);
     EXPECT_EQ(shops.ownGridBackup[0].occupied, 1u);
@@ -297,8 +297,8 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     // va a su lugar del inventario (12 + 5).
     runtime.slot78a6758 = FirstShopSlot + 3;
     before = m_cloth.random;
-    const auto bought = Client::Scenes::ApplyShopPurchase({.result = 1, .item = ItemBytes(SmallType), .slot = 12 + 5},
-                                                          Resources(), Sender());
+    const auto bought = Client::PersonalShop::ApplyShopPurchase(
+        {.result = 1, .item = ItemBytes(SmallType), .slot = 12 + 5}, Resources(), Sender());
     ASSERT_TRUE(bought.HasValue()) << bought.Error();
     ExpectDraws(before, 0);
     EXPECT_EQ(grid[3].id, Client::Kernel::EmptyOwnItemId);
@@ -308,7 +308,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     // 0x4dbb40 (3F 0x13): la grilla y el mapa de nuevo, sin mirar el precio.
     const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
                                     .entries = {{.slot = FirstShopSlot + 1, .item = ItemBytes(SmallType), .price = 0}}};
-    ASSERT_TRUE(Client::Scenes::ApplyShopRefresh(refresh, Resources()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopRefresh(refresh, Resources()).HasValue());
     EXPECT_EQ(grid[9].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(grid[1].id, SmallType);
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 1, 0}}));
@@ -316,10 +316,10 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     // 0x65cae0(0x20000): 0x5eb020 con 0x6c931c en 2 devuelve la grilla propia y el título del cartel del héroe, y manda
     // el 3F 07 con la clave y el nombre del dueño en C3.
     before = m_cloth.random;
-    ClosePanel(Client::UI::OtherShopPanel);
+    ClosePanel(Client::Ui::OtherShopPanel);
     ExpectDraws(before, C3Randoms);
     EXPECT_EQ(runtime.panels.personalShop, 0);
-    EXPECT_EQ(shops.mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(shops.mode, Client::Social::NoShopView);
     EXPECT_EQ(grid[0].id, SmallType);
     EXPECT_EQ(grid[1].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(shops.ownTitle, "Mi puesto");
@@ -334,14 +334,14 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
 TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
 {
     // Un ítem propio en la casilla 5 de la tienda: 0x5eb020 devuelve la grilla de la copia al cerrar.
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(FirstShopSlot + 5, ItemBytes(SmallType), Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(FirstShopSlot + 5, ItemBytes(SmallType), Resources()).HasValue());
     Shop::ShopItemList list{};
     list.result = Shop::ListedResult;
     list.key = SellerKey;
     list.entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 100},
                     {.slot = FirstShopSlot + 2, .item = ItemBytes(SmallType), .price = 0},
                     {.slot = FirstShopSlot + 4, .item = ItemBytes(SmallType), .price = 300}};
-    const auto closed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    const auto closed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     // Lo puesto antes del precio en 0 se va con la grilla de la copia.
     const auto& grid = m_world->Inventory().secondCells;
@@ -349,16 +349,16 @@ TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
     EXPECT_EQ(grid[5].id, SmallType);
     EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot, 100}}));
     EXPECT_EQ(m_world->Runtime().panels.personalShop, 0);
-    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
     // El dueño nunca se copió: 0x5eb020 no manda el 3F 07.
     EXPECT_TRUE(m_sent.empty());
 
     list.result = 3;
-    ASSERT_TRUE(Client::Scenes::ApplyShopItemList(list, Resources(), Sender()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender()).HasValue());
     const auto& entries = m_world->Runtime().chat.log.entries;
     ASSERT_FALSE(entries.empty());
     EXPECT_EQ(entries.front().text, "la tienda no se puede ver");
-    EXPECT_EQ(entries.front().type, Client::UI::ErrorMessage);
+    EXPECT_EQ(entries.front().type, Client::Ui::ErrorMessage);
 }
 
 // 07 Q-C962: strncpy(0x78aba64, pkt + 0x12, 0x24) no termina un título de 36 bytes sin un 0, y el original lo sigue
@@ -370,7 +370,7 @@ TEST_P(PersonalShopListsTest, AFullTitleKeepsItsThirtySixBytes)
     list.key = SellerKey;
     list.title.fill(std::byte{'x'});
     list.entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 100}};
-    const auto viewed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    const auto viewed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(viewed.HasValue()) << viewed.Error();
     EXPECT_EQ(Shops().ownTitle, std::string(Shop::TitleSize, 'x'));
 }
@@ -379,16 +379,16 @@ TEST_P(PersonalShopListsTest, AFullTitleKeepsItsThirtySixBytes)
 TEST_P(PersonalShopListsTest, TheFailedPurchasesSayWhy)
 {
     const auto& entries = m_world->Runtime().chat.log.entries;
-    ASSERT_TRUE(Client::Scenes::ApplyShopPurchase({.result = 7}, Resources(), Sender()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopPurchase({.result = 7}, Resources(), Sender()).HasValue());
     EXPECT_EQ(entries.front().text, "no hay lugar");
-    ASSERT_TRUE(Client::Scenes::ApplyShopPurchase({.result = 8}, Resources(), Sender()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopPurchase({.result = 8}, Resources(), Sender()).HasValue());
     EXPECT_EQ(entries.front().text, "no alcanza el zen");
     const std::size_t said = entries.size();
-    ASSERT_TRUE(Client::Scenes::ApplyShopPurchase({.result = 2}, Resources(), Sender()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopPurchase({.result = 2}, Resources(), Sender()).HasValue());
     EXPECT_EQ(entries.size(), said);
-    ASSERT_TRUE(Client::Scenes::ApplyShopPurchase({.result = 6}, Resources(), Sender()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopPurchase({.result = 6}, Resources(), Sender()).HasValue());
     EXPECT_EQ(entries.front().text, "la tienda ya no esta");
-    EXPECT_EQ(entries.front().type, Client::UI::ErrorMessage);
+    EXPECT_EQ(entries.front().type, Client::Ui::ErrorMessage);
 }
 
 // 0x4dbb40 fuera de 0x6c931c en 2 y 0x4db120 fuera de 1 no tocan nada; antes del primer Open, los mapas no existen y
@@ -397,9 +397,10 @@ TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
 {
     const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
                                     .entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 50}}};
-    ASSERT_TRUE(Client::Scenes::ApplyShopRefresh(refresh, Resources()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopRefresh(refresh, Resources()).HasValue());
     EXPECT_EQ(m_world->Inventory().secondCells[0].id, Client::Kernel::EmptyOwnItemId);
-    ASSERT_TRUE(Client::Scenes::ApplyPriceResult({.result = 0, .slot = FirstShopSlot}, Resources(), {}).HasValue());
+    ASSERT_TRUE(
+        Client::PersonalShop::ApplyPriceResult({.result = 0, .slot = FirstShopSlot}, Resources(), {}).HasValue());
 
     m_world->Runtime().panels.trade = 1;
     Shop::ShopItemList list{};
@@ -408,12 +409,12 @@ TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
     list.entries = {{.slot = FirstShopSlot + 6, .item = ItemBytes(SmallType), .price = 70}};
     // Con el comercio abierto (y el inventario cerrado), CanOpen no deja abrir 0x20000.
     m_world->Runtime().panels.inventory = 0;
-    const auto listed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    const auto listed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(listed.HasValue()) << listed.Error();
     EXPECT_EQ(m_world->Inventory().secondCells[6].id, SmallType);
     EXPECT_FALSE(Shops().pricesBuilt);
     EXPECT_TRUE(Shops().otherPrices.empty());
-    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
     EXPECT_EQ(Shops().ownerKey, SellerKey);
 }
 
@@ -423,29 +424,29 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
 {
     WorldState& world = *m_world;
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
-    Client::Scenes::PersonalShopState& shops = Shops();
+    Client::Social::PersonalShopState& shops = Shops();
     shops.ownGridBackup[10].id = TallType;
     shops.ownGridBackup[10].gridColumn = 2;
     shops.ownGridBackup[10].gridRow = 1;
     shops.ownGridBackup[18] = shops.ownGridBackup[10];
-    shops.mode = Client::Scenes::OtherShopView;
+    shops.mode = Client::Social::OtherShopView;
     namespace Inventory = Client::Protocol::Items;
-    ASSERT_TRUE(Client::Scenes::ApplyItemDelete(Inventory::ItemDelete{.slot = FirstShopSlot + 10, .endsTheWait = 0},
-                                                Resources())
-                    .HasValue());
+    ASSERT_TRUE(
+        Client::Items::ApplyItemDelete(Inventory::ItemDelete{.slot = FirstShopSlot + 10, .endsTheWait = 0}, Resources())
+            .HasValue());
     EXPECT_EQ(shops.ownGridBackup[10].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(shops.ownGridBackup[18].id, Client::Kernel::EmptyOwnItemId);
 
     // Levantado de la casilla 4 de la tienda: vuelve (0x5be3eb) y el 28 la vacía.
-    shops.mode = Client::Scenes::NoShopView;
+    shops.mode = Client::Social::NoShopView;
     runtime.cursorItem.id = SmallType;
     runtime.cursorItem.gridColumn = 4;
     runtime.cursorItem.gridRow = 0;
     runtime.cursorItemCount = 1;
     runtime.cursorGrid = Client::Kernel::CursorGrid::PersonalShop;
     runtime.slot78a6758 = FirstShopSlot + 4;
-    const auto deleted = Client::Scenes::ApplyItemDelete(
-        Inventory::ItemDelete{.slot = FirstShopSlot + 4, .endsTheWait = 1}, Resources());
+    const auto deleted =
+        Client::Items::ApplyItemDelete(Inventory::ItemDelete{.slot = FirstShopSlot + 4, .endsTheWait = 1}, Resources());
     ASSERT_TRUE(deleted.HasValue()) << deleted.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(world.Inventory().secondCells[4].id, Client::Kernel::EmptyOwnItemId);
@@ -459,21 +460,21 @@ TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
     // Los servicios guardan referencias a los recursos: que vivan toda la prueba.
     const Client::Scenes::WorldEntryResources resources = Resources();
-    const auto services = Client::Scenes::InventoryServicesOf(resources);
-    const Client::Scenes::InventoryMoveContext context{.world = world, .random = m_cloth.random, .services = services};
+    const auto services = Client::Items::InventoryServicesOf(resources);
+    const Client::Items::InventoryMoveContext context{.world = world, .random = m_cloth.random, .services = services};
     runtime.cursorItem.id = TallType;
     runtime.cursorItem.gridColumn = 5;
     runtime.cursorItem.gridRow = 2;
     runtime.cursorItemCount = 1;
     runtime.cursorGrid = Client::Kernel::CursorGrid::PersonalShop;
     runtime.slot78a6758 = FirstShopSlot + 21;
-    ASSERT_TRUE(Client::Scenes::ReturnTheCursorItem(context).HasValue());
+    ASSERT_TRUE(Client::Items::ReturnTheCursorItem(context).HasValue());
     EXPECT_EQ(world.Inventory().secondCells[21].id, TallType);
     EXPECT_EQ(world.Inventory().secondCells[21].occupied, 1u);
     EXPECT_EQ(world.Inventory().secondCells[29].occupied, 0u);
     EXPECT_EQ(runtime.cursorItemCount, 0);
 
-    Client::Scenes::TradeState& trade = runtime.social.trade;
+    Client::Social::TradeState& trade = runtime.social.trade;
     for (ItemState& cell : trade.ownGrid)
         cell.id = Client::Kernel::EmptyOwnItemId;
     runtime.cursorItem.gridColumn = 1;
@@ -481,7 +482,7 @@ TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
     runtime.cursorItemCount = 1;
     runtime.cursorGrid = Client::Kernel::CursorGrid::OwnTrade;
     runtime.slot78a6758 = 1;
-    ASSERT_TRUE(Client::Scenes::ReturnTheCursorItem(context).HasValue());
+    ASSERT_TRUE(Client::Items::ReturnTheCursorItem(context).HasValue());
     EXPECT_EQ(trade.ownGrid[1].id, TallType);
     EXPECT_EQ(trade.ownGrid[1].occupied, 1u);
     EXPECT_EQ(trade.ownGrid[9].id, TallType);
@@ -502,12 +503,12 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     list.entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 100},
                     {.slot = FirstShopSlot + 28, .item = ItemBytes(TallType), .price = 100}};
     CrtRandom before = m_cloth.random;
-    const auto listed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    const auto listed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(listed.HasValue()) << listed.Error();
     ExpectDraws(before, 0);
     EXPECT_EQ(world.Runtime().panels.personalShop, 0);
     EXPECT_EQ(world.Runtime().panels.inventory, 1);
-    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
     EXPECT_TRUE(Shops().ownTitle.empty());
     EXPECT_EQ(world.Inventory().secondCells[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_TRUE(m_sent.empty());
@@ -521,17 +522,17 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     std::size_t warnings = m_sink.lines.size();
     list.entries[0].price = 0;
     before = m_cloth.random;
-    ASSERT_TRUE(Client::Scenes::ApplyShopItemList(list, Resources(), Sender()).HasValue());
+    ASSERT_TRUE(Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender()).HasValue());
     EXPECT_EQ(m_sink.lines.size(), warnings);
     EXPECT_NE(m_cloth.random.State(), before.State());
-    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
 
     // 3F 06 a la casilla 60 del inventario (el lugar 72): la 68 pasa las 64. Ni el mapa se vacía.
     Shops().pricesBuilt = true;
     Shops().otherPrices = {{FirstShopSlot + 3, 5}};
     before = m_cloth.random;
-    const auto bought = Client::Scenes::ApplyShopPurchase({.result = 1, .item = ItemBytes(TallType), .slot = 12 + 60},
-                                                          Resources(), Sender());
+    const auto bought = Client::PersonalShop::ApplyShopPurchase(
+        {.result = 1, .item = ItemBytes(TallType), .slot = 12 + 60}, Resources(), Sender());
     ASSERT_TRUE(bought.HasValue()) << bought.Error();
     ExpectDraws(before, 0);
     EXPECT_EQ(world.Inventory().cells[60].id, Client::Kernel::EmptyOwnItemId);
@@ -540,7 +541,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     EXPECT_NE(m_sink.lines.back().find("0x78a9bb0"), std::string::npos) << m_sink.lines.back();
 
     // 3F 0x13 con la de otro a la vista: ni la grilla ni el mapa se vacían.
-    Shops().mode = Client::Scenes::OtherShopView;
+    Shops().mode = Client::Social::OtherShopView;
     world.Inventory().secondCells[1].id = SmallType;
     for (const std::uint8_t slot : {static_cast<std::uint8_t>(FirstShopSlot + 31), std::uint8_t{116}})
     {
@@ -548,7 +549,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
         const std::uint16_t type = slot == 116 ? SmallType : TallType;
         const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
                                         .entries = {{.slot = slot, .item = ItemBytes(type), .price = 9}}};
-        ASSERT_TRUE(Client::Scenes::ApplyShopRefresh(refresh, Resources()).HasValue());
+        ASSERT_TRUE(Client::PersonalShop::ApplyShopRefresh(refresh, Resources()).HasValue());
         EXPECT_EQ(world.Inventory().secondCells[1].id, SmallType);
         EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 3, 5}}));
         ASSERT_EQ(m_sink.lines.size(), warnings + 1);

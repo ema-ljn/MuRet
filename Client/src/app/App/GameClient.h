@@ -97,7 +97,7 @@ struct GameClientOptions
 {
     std::filesystem::path dataRoot{};
     std::string version{};
-    PacingMode pacing = PacingMode::Decoupled;
+    Kernel::PacingMode pacing = Kernel::PacingMode::Decoupled;
     bool music = true;
     // 0x4bad9a: srand(time(NULL)).
     std::uint32_t crtSeed = 0;
@@ -139,7 +139,7 @@ public:
 
     // 0x63945d: the first loop turn, then the first scene.
     [[nodiscard]] Core::Expected<void, std::string> Start();
-    [[nodiscard]] ILoopClient& Loop();
+    [[nodiscard]] Scenes::ILoopClient& Loop();
     [[nodiscard]] std::optional<Scenes::SceneId> CurrentScene() const;
     [[nodiscard]] bool WantsTextInput() const;
     [[nodiscard]] std::optional<GameExit> Exit() const;
@@ -177,13 +177,13 @@ private:
     Kernel::WorldState m_world;
     Session::ModuleStates m_states;
     Camera::GameCameraInput m_cameraInput;
-    Scenes::SelectionState m_selection;
+    FrontEnd::SelectionState m_selection;
     // 0x61ccb0: the loading scene reads them.
     Assets::GameModels m_models;
     Session::CharacterStepHooks m_characterStepHooks;
     Session::CharacterDrawHooks m_characterDrawHooks;
-    Scenes::ActorEffectHooks m_effectHooks;
-    Scenes::ChatMessages m_onScreenMessages;
+    Effects::ActorEffectHooks m_effectHooks;
+    Chat::ChatMessages m_onScreenMessages;
     Scenes::WorldEntryResources m_worldEntry;
     Scenes::SessionEventApplier m_eventApplier;
     std::unique_ptr<Online> m_online;

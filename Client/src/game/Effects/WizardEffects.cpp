@@ -34,10 +34,10 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
-World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                   const WizardSceneParts& parts)
+Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,
+                                                     const WizardSceneParts& parts)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     std::function<double(float, float)> terrainHeight;
@@ -45,7 +45,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
     if (terrain != nullptr && terrain->heights && terrain->attributes)
         terrainHeight = [terrain, fixed = parts.fixedHeight](float x, float y)
         { return Terrain::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, fixed); };
-    return World::WizardEffectServices{
+    return Effects::WizardEffectServices{
         .particles = parts.particles,
         .worldClock = parts.worldClock,
         .sprites = parts.sprites,
@@ -60,40 +60,41 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
         .joint = [&world, &random,
                   joints = parts.joints](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
-            const auto created = CreateFaunaJoint(
-                joints.empty() ? std::span<JointState>(world.DrawTail().joints) : joints, request, random);
+            const auto created = Joints::CreateFaunaJoint(
+                joints.empty() ? std::span<Scenes::JointState>(world.DrawTail().joints) : joints, request, random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return {};
         },
-        .ownerOf = [&world](const void* owner) -> std::optional<World::WizardOwnerView>
+        .ownerOf = [&world](const void* owner) -> std::optional<Effects::WizardOwnerView>
         {
             for (const Kernel::ActorState& actor : world.Actors())
             {
                 if (&actor != owner)
                     continue;
-                return World::WizardOwnerView{.alive = actor.alive,
-                                              .type = actor.type,
-                                              .position = actor.position,
-                                              .flags78 = actor.flags78,
-                                              .action = actor.animation.action,
-                                              .seen = actor.seen,
-                                              .byte1bc = actor.byte1bc};
+                return Effects::WizardOwnerView{.alive = actor.alive,
+                                                .type = actor.type,
+                                                .position = actor.position,
+                                                .flags78 = actor.flags78,
+                                                .action = actor.animation.action,
+                                                .seen = actor.seen,
+                                                .byte1bc = actor.byte1bc};
             }
             return std::nullopt;
         },
         .hero = &world.Hero(),
-        .skillHits = [&world, &random, terrain, send = parts.send](const World::ModelEffect& effect,
+        .skillHits = [&world, &random, terrain, send = parts.send](const Effects::ModelEffect& effect,
                                                                    float radius) -> Core::Expected<void, std::string>
         {
             // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0).
-            const SkillHitsRequest request{.skillIndex = effect.byte89,
-                                           .point = effect.transform.position,
-                                           .radius = radius,
-                                           .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
-                                           .key = effect.disturbanceState,
-                                           .extra = 0};
-            const auto hit = HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(terrain), random, send);
+            const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+                                                   .point = effect.transform.position,
+                                                   .radius = radius,
+                                                   .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
+                                                   .key = effect.disturbanceState,
+                                                   .extra = 0};
+            const auto hit =
+                Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(terrain), random, send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
@@ -112,20 +113,20 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
         {
             // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que tiene
             // que ser un efecto de la tabla. Su paso (0x521324) no lo lee: sólo le suma 0,04f a la escala (+0xc).
-            const std::span<World::ModelEffect> table = world.Map().effects.Effects();
-            const auto owner = std::ranges::find_if(table, [&arguments](const World::ModelEffect& effect)
+            const std::span<Effects::ModelEffect> table = world.Map().effects.Effects();
+            const auto owner = std::ranges::find_if(table, [&arguments](const Effects::ModelEffect& effect)
                                                     { return &effect == arguments.owner; });
             if (owner == table.end())
                 return Core::Unexpected(
                     std::format("0x518cf0: el dueño del efecto {:#x}/{} no es un efecto de la tabla", arguments.type,
                                 arguments.subtype));
             Kernel::WorldRuntime& state = world.Runtime();
-            const World::BlastEffectServices services{.ownRecordDepth = &state.ownRecordDepth,
-                                                      .ownRecordCount = &world.OwnCharacter().bytef04,
-                                                      .hero = &world.Hero(),
-                                                      .sound = sound};
-            const auto created = World::CreateBlastModelEffect(
-                world.Map().effects, arguments, World::ModelEffectOwner{.effect = &*owner}, random, services);
+            const Effects::BlastEffectServices services{.ownRecordDepth = &state.ownRecordDepth,
+                                                        .ownRecordCount = &world.OwnCharacter().bytef04,
+                                                        .hero = &world.Hero(),
+                                                        .sound = sound};
+            const auto created = Effects::CreateBlastModelEffect(
+                world.Map().effects, arguments, Effects::ModelEffectOwner{.effect = &*owner}, random, services);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return {};
@@ -175,7 +176,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
         }};
 }
 
-World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context)
+Effects::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context)
 {
     return WizardEffectServicesOf(context.world, context.random,
                                   WizardSceneParts{.particles = context.particles,
@@ -209,7 +210,7 @@ Core::Expected<std::optional<std::size_t>, std::string>
 CreateWizardEffect(const Actors::CharacterStepContext& context, const Kernel::ModelEffectArguments& arguments,
                    glm::vec3* callerLight)
 {
-    return World::CreateWizardModelEffect(context.world.Map().effects, arguments, context.random,
-                                          WizardEffectServicesOf(context), callerLight);
+    return Effects::CreateWizardModelEffect(context.world.Map().effects, arguments, context.random,
+                                            WizardEffectServicesOf(context), callerLight);
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

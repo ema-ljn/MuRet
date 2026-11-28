@@ -17,7 +17,7 @@ struct ActorState;
 } // namespace Client::Kernel
 
 // A character's emote (06 § El chat, "El emote"): 0x576a60 and what each case of 0x576eb0 does with what
-// UI::FindTheEmote found. Neither draws a rand(), and a C1 does not either. *Static*.
+// Chat::FindTheEmote found. Neither draws a rand(), and a C1 does not either. *Static*.
 namespace Client::Actors
 {
 

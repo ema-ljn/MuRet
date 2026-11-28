@@ -32,7 +32,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -42,27 +42,27 @@ constexpr std::size_t BusySeniorText = (0x77354e8 - 0x76bd1dc) / 300;
 
 Core::Expected<void, std::string> Warn(Kernel::WorldRuntime& runtime, CastleWindowServices services, std::size_t id)
 {
-    const auto text = UI::TextAt(services.texts, id);
+    const auto text = Ui::TextAt(services.texts, id);
     if (!text || services.measure == nullptr)
         return Core::Unexpected(std::string("0x555190: el aviso del castillo sin Text.bmd o medidor"));
-    return AddGameMessage(runtime, *services.measure, services.screen, {}, *text, 2);
+    return Chat::AddGameMessage(runtime, *services.measure, services.screen, {}, *text, 2);
 }
 
 Core::Expected<void, std::string> CancelOwnedDialog(Kernel::WorldState& world, const CastleSender& send,
                                                     std::uint32_t& owned)
 {
     auto& dialog = world.Runtime().panels.delegated.panelDialog;
-    if (UI::PanelDialogHandle(dialog) != owned)
+    if (Ui::PanelDialogHandle(dialog) != owned)
         return {};
-    auto cancelled = UI::CancelThePanelDialog(dialog, [&world, &send](UI::PanelDialogOwner owner, std::uint32_t reason)
-                                              { return AnswerThePanelDialog(world, send, owner, reason); });
+    auto cancelled = Ui::CancelThePanelDialog(dialog, [&world, &send](Ui::PanelDialogOwner owner, std::uint32_t reason)
+                                              { return Guild::AnswerThePanelDialog(world, send, owner, reason); });
     if (!cancelled.HasValue())
         return cancelled;
     owned = 0;
     return {};
 }
 
-Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, Kernel::WorldState& world,
+Core::Expected<bool, std::string> CloseSenior(Ui::PanelContext& panels, Kernel::WorldState& world,
                                               const CastleSender& send, CastleWindowServices services)
 {
     auto& runtime = world.Runtime();
@@ -79,10 +79,10 @@ Core::Expected<bool, std::string> CloseSenior(UI::PanelContext& panels, Kernel::
         return Core::Unexpected(std::string("0x661bc0: cerrar Senior sin el cable"));
     // 0x661bc0: apagar Senior antes de cerrar su auxiliar; el modo de la pestaña no se reinicia.
     delegated.castleSiegeList = 0;
-    UI::PanelRegistry registry(runtime.panels, panels);
-    if (registry.IsOpen(UI::InventoryPanel))
+    Ui::PanelRegistry registry(runtime.panels, panels);
+    if (registry.IsOpen(Ui::InventoryPanel))
     {
-        if (auto inventory = registry.Close(UI::InventoryPanel); !inventory.HasValue())
+        if (auto inventory = registry.Close(Ui::InventoryPanel); !inventory.HasValue())
             return Core::Unexpected(std::move(inventory).Error());
     }
     auto& window = runtime.castleSiege.senior;
@@ -121,13 +121,13 @@ bool HeroCanCraftAtTheCastle(const Kernel::WorldState& world)
     return static_cast<std::int16_t>(hero.word1f2) >= 0 && hero.guildStatus == GuildMaster;
 }
 
-void LendTheCastleLifecycleTo(UI::PanelContext& panels, Kernel::WorldState& world, Crt::CrtRandom& /*random*/,
+void LendTheCastleLifecycleTo(Ui::PanelContext& panels, Kernel::WorldState& world, Crt::CrtRandom& /*random*/,
                               const CastleSender& send, CastleWindowServices services)
 {
-    panels.castleWindowOpened = [&world, send](UI::PanelId id) -> Core::Expected<void, std::string>
+    panels.castleWindowOpened = [&world, send](Ui::PanelId id) -> Core::Expected<void, std::string>
     {
         auto& delegated = world.Runtime().panels.delegated;
-        if (id == UI::SecondCastleSiegePanel)
+        if (id == Ui::SecondCastleSiegePanel)
         {
             delegated.secondCastleSiege = 1; // 0x6487c0: sin consulta ni reinicio del modo.
             return {};
@@ -144,13 +144,13 @@ void LendTheCastleLifecycleTo(UI::PanelContext& panels, Kernel::WorldState& worl
         send(Protocol::CastleSiege::WriteTaxInfoRequest());
         return {};
     };
-    panels.castleWindowClosing = [&panels, &world, send, services](UI::PanelId id)
-    { return id == UI::SecondCastleSiegePanel ? CloseHunt(world, send) : CloseSenior(panels, world, send, services); };
+    panels.castleWindowClosing = [&panels, &world, send, services](Ui::PanelId id)
+    { return id == Ui::SecondCastleSiegePanel ? CloseHunt(world, send) : CloseSenior(panels, world, send, services); };
     panels.castleSeniorBlocked = [&world, services]() { return Warn(world.Runtime(), services, BusySeniorText); };
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
-                                const CastleSender& send, const WorldEntryResources* entryResources,
+void LendTheCastlePanelServices(Hud::GamePanels& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
+                                const CastleSender& send, const Scenes::WorldEntryResources* entryResources,
                                 CastleWindowServices services)
 {
     panels.LendTheSession(world, random, send, {});
@@ -159,45 +159,46 @@ void LendTheCastlePanelServices(GamePanels& panels, Kernel::WorldState& world, C
     panels.LendTheCastleRequests(world, send, services);
     if (entryResources == nullptr)
         return;
-    NpcWindowSender sender = [send](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
+    Npc::NpcWindowSender sender = [send](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
     {
         if (!send)
             return Core::Unexpected(std::string("la ventana del NPC se cierra sin el cable"));
         send(std::move(packet));
         return {};
     };
-    panels.LendTheNpcWindows(world, random, InventoryServicesOf(*entryResources), std::move(sender));
+    panels.LendTheNpcWindows(world, random, Items::InventoryServicesOf(*entryResources), std::move(sender));
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context)
+void LendTheCastlePanelServices(Hud::GamePanels& panels, const CastleReceiveContext& context)
 {
     LendTheCastlePanelServices(
         panels, context.world, context.random, context.send, context.entryResources,
         {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.tick});
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& resources, const CastleSender& send)
+void LendTheCastlePanelServices(Hud::GamePanels& panels, const Scenes::WorldEntryResources& resources,
+                                const CastleSender& send)
 {
     LendTheCastlePanelServices(panels, resources.world, resources.cloth.random, send ? send : resources.sendGamePacket,
                                &resources,
                                {.measure = resources.textMeasure,
                                 .texts = resources.texts,
                                 .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
-                                .now = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u});
+                                .now = resources.clock != nullptr ? Kernel::TickCountMs(resources.clock->Now()) : 0u});
     // La sesión puede prestar estos dos canales por separado; el de NPC conserva su Expected si send falla.
     if (resources.sendNpcWindowPacket)
-        LendTheNpcWindows(panels, resources);
+        Npc::LendTheNpcWindows(panels, resources);
     if (resources.sendWindowClose)
         panels.LendTheWindowClose(resources.sendWindowClose);
 }
 
-void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context)
+void LendTheCastleWindowStepsTo(Ui::PanelContext& panels, const Hud::GameUiContext& context)
 {
     if (context.requests != nullptr)
         LendTheCastleLifecycleTo(
             panels, context.world, context.random,
             [requests = context.requests](Protocol::Outgoing packet) { requests->SendGamePacket(std::move(packet)); },
             {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.systemTime});
-    panels.castleWindowStep = [context](UI::PanelId id) { return StepTheCastleWindow(context, id); };
+    panels.castleWindowStep = [context](Ui::PanelId id) { return StepTheCastleWindow(context, id); };
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

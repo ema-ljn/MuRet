@@ -40,11 +40,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::ModelEffect;
+using Client::Effects::ModelEffects;
+using Client::Effects::WizardEffectServices;
+using Client::Effects::WizardOwnerView;
 using Client::Kernel::ModelEffectArguments;
-using Client::World::ModelEffect;
-using Client::World::ModelEffects;
-using Client::World::WizardEffectServices;
-using Client::World::WizardOwnerView;
 
 constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 
@@ -67,11 +67,11 @@ struct RecordedJoint
 struct Harness
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     std::vector<RecordedJoint> joints;
     std::vector<std::int32_t> sounds;
     std::vector<float> hits;
@@ -165,7 +165,7 @@ std::size_t Create(Harness& world, const ModelEffectArguments& arguments, CrtRan
                    glm::vec3* callerLight = nullptr)
 {
     const auto created =
-        Client::World::CreateWizardModelEffect(*world.effects, arguments, random, world.Services(), callerLight);
+        Client::Effects::CreateWizardModelEffect(*world.effects, arguments, random, world.Services(), callerLight);
     EXPECT_TRUE(created.HasValue()) << (created.HasValue() ? "" : created.Error());
     EXPECT_TRUE(created.HasValue() && created.Value().has_value());
     return created.HasValue() && created.Value() ? *created.Value() : 0;
@@ -175,9 +175,9 @@ TEST(WizardModelEffectsTest, TheLotHasTheWizardTypesAndTheirStones)
 {
     for (const int type :
          {0xbd, 0xc1, 0xc2, 0xc3, 0xc5, 0xc7, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xd0, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9})
-        EXPECT_TRUE(Client::World::IsWizardModelEffect(static_cast<std::int16_t>(type))) << type;
+        EXPECT_TRUE(Client::Effects::IsWizardModelEffect(static_cast<std::int16_t>(type))) << type;
     for (const int type : {0xc0, 0xc4, 0xc8, 0xca, 0xd1, 0xda, 0xf6})
-        EXPECT_FALSE(Client::World::IsWizardModelEffect(static_cast<std::int16_t>(type))) << type;
+        EXPECT_FALSE(Client::Effects::IsWizardModelEffect(static_cast<std::int16_t>(type))) << type;
 }
 
 TEST(WizardModelEffectsTest, AFullTableCreatesNothingAndDrawsNoRandom)
@@ -187,7 +187,7 @@ TEST(WizardModelEffectsTest, AFullTableCreatesNothingAndDrawsNoRandom)
         effect.alive = true;
     CrtRandom random(5);
     const auto created =
-        Client::World::CreateWizardModelEffect(*world.effects, Arguments(0xc2, 0), random, world.Services());
+        Client::Effects::CreateWizardModelEffect(*world.effects, Arguments(0xc2, 0), random, world.Services());
     ASSERT_TRUE(created.HasValue());
     EXPECT_FALSE(created.Value().has_value());
     EXPECT_EQ(random.State(), CrtRandom(5).State());
@@ -373,21 +373,21 @@ TEST(WizardModelEffectsTest, TheShadowRainDropsAFallingShineNearItsOwner)
     arguments.owner = &owner;
     ModelEffect& rain = world.At(Create(world, arguments, random));
     CrtRandom oracle = random;
-    const auto stepped = Client::World::StepWizardModelEffect(rain, nullptr, random, world.Services());
+    const auto stepped = Client::Effects::StepWizardModelEffect(rain, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(world.ParticlesOf(0x5fc, 2), 1U);
     static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
     const int spread = (oracle.Next() & 127) - 64;
     const float scale = F32(static_cast<double>(oracle.Next() % 30 + 50) * std::bit_cast<float>(0x3c23d70au));
     const glm::vec3 point{static_cast<float>(spread - 50) + 500.0f, static_cast<float>(spread + 50) + 600.0f, 430.0f};
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     ASSERT_TRUE(
         twin->CreateChecked(0x5fc, point, rain.transform.angles, rain.light, 2, scale, 1000.0f, oracle).HasValue());
     EXPECT_EQ(random.State(), oracle.State());
     const auto shine =
-        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::Particles::Particle& particle)
                              { return particle.alive && particle.type == 0x5fc; });
-    const Client::World::Particle& reference = twin->All()[0];
+    const Client::Particles::Particle& reference = twin->All()[0];
     EXPECT_EQ(shine->start, point);
     EXPECT_EQ(shine->scale, scale);
     EXPECT_EQ(shine->light, rain.light);
@@ -403,7 +403,7 @@ TEST(WizardModelEffectsTest, TheSawTurnsAndMovesWithoutRotatingItsVelocity)
     ModelEffect& saw = world.At(slot);
     const glm::vec3 velocity = saw.velocity;
     const glm::vec3 start = saw.transform.position;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(saw, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(saw, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(saw.transform.angles.z, 60.0f);
     EXPECT_EQ(saw.transform.position.x, F32(static_cast<double>(velocity.x) + static_cast<double>(start.x)));
     EXPECT_EQ(saw.transform.position.y, F32(static_cast<double>(velocity.y) + static_cast<double>(start.y)));
@@ -418,7 +418,7 @@ TEST(WizardModelEffectsTest, ThePoisonFadesWithItsLife)
     CrtRandom random(6);
     const std::size_t slot = Create(world, Arguments(0xc3, 0), random);
     ModelEffect& poison = world.At(slot);
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(poison, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(poison, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(poison.alpha, F32(40.0 * Tenth));
     EXPECT_EQ(poison.objectState.light, F32(40.0 * Tenth));
     EXPECT_EQ(poison.life, 39);
@@ -437,15 +437,15 @@ TEST(WizardModelEffectsTest, TheFollowingMagicAndTheHellGateStayOnTheirOwner)
     gate.owner = &owner;
     ModelEffect& hell = world.At(Create(world, gate, random));
     EXPECT_EQ(hell.objectState.blendMesh, -4);
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(magic, nullptr, random, world.Services()).HasValue());
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(hell, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(magic, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(hell, nullptr, random, world.Services()).HasValue());
     // La cola mueve con la velocidad (cero) girada: se quedan donde los puso el caso.
     EXPECT_EQ(magic.transform.position, glm::vec3(50.0f, 60.0f, 170.0f));
     EXPECT_EQ(magic.transform.angles.y, 20.0f);
     EXPECT_EQ(magic.objectState.light, F32(20.0 * Tenth));
     EXPECT_EQ(hell.transform.position, glm::vec3(50.0f, 60.0f, 70.0f));
     world.owner.reset();
-    const auto cut = Client::World::StepWizardModelEffect(hell, nullptr, random, world.Services());
+    const auto cut = Client::Effects::StepWizardModelEffect(hell, nullptr, random, world.Services());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5251b6"), std::string::npos);
 }
@@ -461,7 +461,7 @@ TEST(WizardModelEffectsTest, TheSnowballBreaksOnItsTargetIntoTwoStones)
     arguments.angles = {};
     ModelEffect& snow = world.At(Create(world, arguments, random));
     snow.transform.position = {1030.0f, 2040.0f, 100.0f};
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(snow, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(snow, nullptr, random, world.Services()).HasValue());
     EXPECT_FALSE(snow.alive);
     EXPECT_EQ(world.AliveOf(0xd8) + world.AliveOf(0xd9), 2U);
     EXPECT_EQ(world.ParticlesOf(0x5f2, 0), 2U);
@@ -478,7 +478,7 @@ TEST(WizardModelEffectsTest, TheFireballBreaksOnItsTargetIntoTwoChips)
     auto arguments = Arguments(0xc2, 1);
     arguments.owner = &target;
     ModelEffect& fire = world.At(Create(world, arguments, random));
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(fire, nullptr, random, world.Services()).HasValue());
     EXPECT_FALSE(fire.alive);
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), 2U);
     EXPECT_EQ(world.ParticlesOf(0x5d9, 5), 1U);
@@ -490,7 +490,7 @@ TEST(WizardModelEffectsTest, TheMeteorExplodesOnTheGround)
     world.ground = 1000.0;
     CrtRandom random(10);
     ModelEffect& meteor = world.At(Create(world, Arguments(0xc2, 0), random));
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(meteor, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(meteor, nullptr, random, world.Services()).HasValue());
     EXPECT_FALSE(meteor.alive);
     EXPECT_EQ(meteor.transform.position.z, 1000.0f);
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), 6U);
@@ -507,7 +507,7 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
     CrtRandom random(14);
     const std::size_t slot = Create(world, Arguments(0xc2, 9), random);
     ModelEffect& meteor = world.At(slot);
-    const auto stepped = Client::World::StepWizardModelEffect(meteor, nullptr, random, world.Services());
+    const auto stepped = Client::Effects::StepWizardModelEffect(meteor, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(meteor.alive);
     EXPECT_EQ(world.ParticlesOf(0x5f2, 0x24), 1U);
@@ -517,7 +517,7 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
         if (!particle.alive || particle.type != 0x5f2 || particle.subtype != 0x24)
             continue;
         EXPECT_EQ(particle.typedOwner,
-                  (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, slot}));
+                  (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::ModelEffect, slot}));
     }
 
     // Fuera de la tabla no hay de dónde sacar el dueño: corta en la primera.
@@ -525,7 +525,7 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
     other.ground = -1000.0;
     CrtRandom again(14);
     ModelEffect loose = world.At(slot);
-    const auto cut = Client::World::StepWizardModelEffect(loose, nullptr, again, other.Services());
+    const auto cut = Client::Effects::StepWizardModelEffect(loose, nullptr, again, other.Services());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52497d"), std::string::npos) << cut.Error();
 }
@@ -549,7 +549,7 @@ TEST(WizardModelEffectsTest, TheGreenMeteorDropsItsBurstWhenItLands)
         const std::size_t slot = Create(world, Arguments(0xc2, tested.subtype), random);
         ModelEffect& meteor = world.At(slot);
         world.ground = static_cast<double>(meteor.transform.position.z) + 5000.0;
-        const auto stepped = Client::World::StepWizardModelEffect(meteor, nullptr, random, world.Services());
+        const auto stepped = Client::Effects::StepWizardModelEffect(meteor, nullptr, random, world.Services());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_FALSE(meteor.alive);
         ASSERT_EQ(world.others.size(), 1U);
@@ -584,7 +584,7 @@ TEST(WizardModelEffectsTest, TheFallingFirePushesAndLands)
             world.pushFailure = "0x524afc: prueba";
         CrtRandom random(16);
         ModelEffect& fire = world.At(Create(world, Arguments(0xc2, 4), random));
-        const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
+        const auto stepped = Client::Effects::StepWizardModelEffect(fire, nullptr, random, world.Services());
         ASSERT_EQ(world.pushes.size(), 1U);
         EXPECT_EQ(world.pushes[0].first, fire.transform.position.x);
         EXPECT_EQ(world.pushes[0].second, fire.transform.position.y);
@@ -621,7 +621,7 @@ TEST(WizardModelEffectsTest, TheBouncingFireDropsItsEmber)
         CrtRandom oracle = random;
         static_cast<void>(oracle.Next());
         ASSERT_NE(oracle.Next() % 5, 0);
-        const auto stepped = Client::World::StepWizardModelEffect(fire, nullptr, random, world.Services());
+        const auto stepped = Client::Effects::StepWizardModelEffect(fire, nullptr, random, world.Services());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(fire.objectState.hiddenMesh, 0);
         EXPECT_EQ(fire.transform.position.z, 300.0f + 5.0f);
@@ -633,14 +633,14 @@ TEST(WizardModelEffectsTest, TheBouncingFireDropsItsEmber)
         }
         ASSERT_EQ(world.ParticlesOf(0x6ad, 0), 1U);
         const auto it =
-            std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+            std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::Particles::Particle& particle)
                                  { return particle.alive && particle.type == 0x6ad; });
-        const Client::World::Particle& ember = *it;
-        Client::World::Particles twin;
+        const Client::Particles::Particle& ember = *it;
+        Client::Particles::Particles twin;
         const auto made =
             twin.CreateChecked(0x6ad, ember.start, fire.transform.angles, glm::vec3(1.0f), 0, 1.0f, 1000.0f, oracle);
         ASSERT_TRUE(made.HasValue() && made.Value().has_value());
-        const Client::World::Particle& expected = twin.All()[0];
+        const Client::Particles::Particle& expected = twin.All()[0];
         EXPECT_EQ(random.State(), oracle.State());
         EXPECT_EQ(ember.angles, fire.transform.angles);
         EXPECT_EQ(ember.life, 24);
@@ -658,17 +658,17 @@ TEST(WizardModelEffectsTest, TheStormAndTheMagicLeaveTheirSmoke)
 {
     const auto smokes = [](Harness& world)
     {
-        return std::ranges::count_if(world.particles->All(), [](const Client::World::Particle& particle)
+        return std::ranges::count_if(world.particles->All(), [](const Client::Particles::Particle& particle)
                                      { return particle.alive && particle.type == 0x5f2 && particle.subtype == 3; });
     };
     Harness world;
     CrtRandom random(12);
     ModelEffect& storm = world.At(Create(world, Arguments(0xcf, 0), random));
-    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    const auto stepped = Client::Effects::StepWizardModelEffect(storm, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(smokes(world), 1);
     ModelEffect& magic = world.At(Create(world, Arguments(0xce, 0), random));
-    const auto smoked = Client::World::StepWizardModelEffect(magic, nullptr, random, world.Services());
+    const auto smoked = Client::Effects::StepWizardModelEffect(magic, nullptr, random, world.Services());
     ASSERT_TRUE(smoked.HasValue()) << smoked.Error();
     EXPECT_EQ(smokes(world), 1 + 4);
 }
@@ -684,7 +684,7 @@ TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
     for (auto& particle : world.particles->All())
         particle.alive = true;
     const glm::vec3 light = storm.light;
-    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    const auto stepped = Client::Effects::StepWizardModelEffect(storm, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto reference = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::Terrain::AddTerrainLight(*reference, storm.transform.position.x, storm.transform.position.y,
@@ -707,13 +707,13 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
     const glm::vec3 at = storm.transform.position;
     const glm::vec3 point{at.x, at.y, F32(static_cast<double>(at.z) + 100.0)};
     CrtRandom oracle = random;
-    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    const auto stepped = Client::Effects::StepWizardModelEffect(storm, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(world.ParticlesOf(0x5f2, 3), 1U);
     ASSERT_EQ(world.ParticlesOf(0x607, 3), 1U);
     static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
     static_cast<void>(oracle.Next()); // rand() % 30 del giro.
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     ASSERT_TRUE(
         twin->CreateChecked(0x5f2, point, storm.transform.angles, storm.light, 3, 1.0f, 1000.0f, oracle).HasValue());
     ASSERT_TRUE(twin->CreateChecked(0x607, point, storm.transform.angles, storm.light, 3,
@@ -721,9 +721,9 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
                     .HasValue());
     EXPECT_EQ(random.State(), oracle.State());
     const auto drop =
-        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::Particles::Particle& particle)
                              { return particle.alive && particle.type == 0x607; });
-    const Client::World::Particle& reference = twin->All()[1];
+    const Client::Particles::Particle& reference = twin->All()[1];
     EXPECT_EQ(drop->start, point);
     EXPECT_EQ(drop->angles, storm.transform.angles);
     EXPECT_EQ(drop->light, glm::vec3(1.0f));
@@ -748,7 +748,7 @@ TEST(WizardModelEffectsTest, TheStormChipIsBornWithItsFiveDrawsByHand)
         auto effects = std::make_unique<ModelEffects>();
         CrtRandom random(298);
         const auto slot = effects->CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, {0.5f, 0.6f, 0.7f},
-                                                   random, Client::World::SpinningStoneChipSubtype);
+                                                   random, Client::Effects::SpinningStoneChipSubtype);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& chip = effects->Effects()[0];
         EXPECT_EQ(chip.type, type);
@@ -789,13 +789,13 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                 CrtRandom oracle = random;
                 static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
                 const float shake = F32(static_cast<double>((oracle.Next() & 7) - 4) * Tenth);
-                auto twin = std::make_unique<Client::World::Particles>();
+                auto twin = std::make_unique<Client::Particles::Particles>();
                 if (full)
                     for (auto& particle : twin->All())
                         particle.alive = true;
-                Client::World::PortableParticleTrigonometry trigonometry;
+                Client::Particles::PortableParticleTrigonometry trigonometry;
                 const float clock = 1000.0f;
-                const Client::World::ParticleTerrainHeight ground = [](float, float) { return 123.25; };
+                const Client::Particles::ParticleTerrainHeight ground = [](float, float) { return 123.25; };
                 for (const std::int32_t mist : {28, 29, 30})
                     ASSERT_TRUE(twin->CreateOnGroundChecked(0x5f2, at, angles, light, mist, 1.0f, std::cref(clock),
                                                             oracle, trigonometry, ground)
@@ -810,7 +810,7 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                     twinChip = twinEffects->CreateStoneChip(type, at, angles, light, oracle, 2);
                     ASSERT_TRUE(twinChip.has_value());
                 }
-                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+                const auto stepped = Client::Effects::StepWizardModelEffect(storm, nullptr, random, world.Services());
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
                 EXPECT_EQ(world.shake, shake);
                 const auto chips =
@@ -844,11 +844,11 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                 {
                     ASSERT_EQ(world.ParticlesOf(0x5f2, mist), 1U) << mist;
                     const auto found = std::ranges::find_if(
-                        std::as_const(*world.particles).All(), [mist](const Client::World::Particle& particle)
+                        std::as_const(*world.particles).All(), [mist](const Client::Particles::Particle& particle)
                         { return particle.alive && particle.type == 0x5f2 && particle.subtype == mist; });
-                    const auto reference =
-                        std::ranges::find_if(std::as_const(*twin).All(), [mist](const Client::World::Particle& particle)
-                                             { return particle.alive && particle.subtype == mist; });
+                    const auto reference = std::ranges::find_if(std::as_const(*twin).All(),
+                                                                [mist](const Client::Particles::Particle& particle)
+                                                                { return particle.alive && particle.subtype == mist; });
                     EXPECT_EQ(found->start, at);
                     EXPECT_EQ(found->angles, angles);
                     EXPECT_EQ(found->position, reference->position);
@@ -889,7 +889,7 @@ TEST(WizardModelEffectsTest, TheHiddenCircleFansItsRays)
         circle.life = tested.life;
         CrtRandom oracle = random;
         static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
-        const auto stepped = Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services());
+        const auto stepped = Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(world.joints.size(), tested.second ? 72U : 36U);
         const glm::vec3 point{1000.0f, 2000.0f, 400.0f};
@@ -931,7 +931,7 @@ TEST(WizardModelEffectsTest, TheHiddenCircleFansItsRays)
     circle.life = 41;
     CrtRandom quiet = random;
     static_cast<void>(quiet.Next());
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
     EXPECT_TRUE(world.joints.empty());
     EXPECT_EQ(random.State(), quiet.State());
 }
@@ -945,7 +945,7 @@ TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)
     static_cast<void>(oracle.Next());
     const float shake = F32(static_cast<double>(oracle.Next() % 6 - 6) * Tenth);
     const bool chip = (oracle.Next() & 3) == 0;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(world.shake, shake);
     EXPECT_EQ(circle.objectState.light, 0.0f);
     EXPECT_EQ(circle.objectState.uv.x, F32(40.0 * static_cast<double>(std::bit_cast<float>(0xbc23d70au))));
@@ -987,7 +987,7 @@ TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
             CrtRandom random(expected.seed);
             ModelEffect& circle = world.At(Create(world, Arguments(0xcc, expected.subtype), random));
             circle.life = 100;
-            ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+            ASSERT_TRUE(Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
             EXPECT_EQ(random.State(), full ? expected.fullState : expected.state);
             const glm::vec3 point{std::bit_cast<float>(expected.point[0]), std::bit_cast<float>(expected.point[1]),
                                   300.0f};
@@ -1005,7 +1005,7 @@ TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
                 continue;
             }
             EXPECT_EQ(world.ParticlesOf(0x62b, 0), 1U);
-            const Client::World::Particle& flare = world.particles->All()[0];
+            const Client::Particles::Particle& flare = world.particles->All()[0];
             EXPECT_EQ(flare.position, point);
             EXPECT_EQ(flare.angles, (glm::vec3{0.0f, 0.0f, 90.0f}));
             EXPECT_EQ(flare.light, glm::vec3(1.0f));
@@ -1021,10 +1021,10 @@ TEST(WizardModelEffectsTest, TheLightningCircleBrightensAndDims)
     Harness world;
     CrtRandom random(13);
     ModelEffect& circle = world.At(Create(world, Arguments(0xcb, 2), random));
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(circle.objectState.light, F32(0.0 * Tenth));
     circle.life = 100;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(circle.objectState.light, F32(100.0 * Tenth));
 }
 
@@ -1035,7 +1035,7 @@ TEST(WizardModelEffectsTest, TheIceFadesAfterItsFifthFrame)
     ModelEffect& ice = world.At(Create(world, Arguments(0xc1, 0), random));
     ice.animation.action = 0xff;
     ice.animation.frame = 5.0f;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(ice.speed, 0.0f);
     EXPECT_EQ(ice.alpha, F32(1.0 - static_cast<double>(std::bit_cast<float>(0x3d4ccccdu))));
     EXPECT_EQ(ice.life, 49);
@@ -1053,15 +1053,15 @@ TEST(WizardModelEffectsTest, TheIceOnAFrozenPlayerHoldsItsFrame)
     ModelEffect& ice = world.At(Create(world, arguments, random));
     ice.animation.action = 0xff;
     ice.animation.frame = 3.0f;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(ice.animation.frame, 0.0f);
     EXPECT_EQ(ice.objectState.hiddenMesh, -2);
     EXPECT_EQ(ice.life, 9);
     world.owner->action = 0x30;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(ice.objectState.hiddenMesh, -1);
     world.owner->flags78 = 0;
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(ice, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(ice.alpha, F32(1.0 - static_cast<double>(std::bit_cast<float>(0x3d4ccccdu))));
 }
 
@@ -1073,7 +1073,7 @@ TEST(WizardModelEffectsTest, TheBoneChipFallsAndDrawsItsTenWithoutFire)
     ModelEffect& bone = world.At(Create(world, Arguments(0xd5, 0), random));
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(15, 5).State());
     EXPECT_EQ(bone.transform.position.z, 450.0f);
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(bone, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(bone, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(15, 7).State());
     EXPECT_FALSE(world.particles->Any());
 }
@@ -1122,7 +1122,7 @@ TEST(WizardModelEffectsTest, TheStonesOfSubtypesTenElevenAndTwelveAreBorn)
         }
         EXPECT_EQ(random.State(), oracle.State());
         const float alpha = stone.alpha;
-        ASSERT_TRUE(Client::World::StepWizardModelEffect(stone, nullptr, random, world.Services()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepWizardModelEffect(stone, nullptr, random, world.Services()).HasValue());
         static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
         if (subtype == 0xc)
             static_cast<void>(oracle.Next()); // 0x523adb, el % 10 sin fuego.
@@ -1140,7 +1140,7 @@ TEST(WizardModelEffectsTest, TheLaserAcceleratesBackwards)
     Harness world;
     CrtRandom random(15);
     ModelEffect& laser = world.At(Create(world, Arguments(0xd0, 2), random));
-    ASSERT_TRUE(Client::World::StepWizardModelEffect(laser, nullptr, random, world.Services()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepWizardModelEffect(laser, nullptr, random, world.Services()).HasValue());
     EXPECT_EQ(laser.velocity.y, -2.0f);
     EXPECT_EQ(laser.speed, 2.0f);
 }

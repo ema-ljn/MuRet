@@ -40,7 +40,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -132,10 +132,10 @@ std::string NameOf(std::span<const std::byte, Tables::ItemSetOptionRecordSize> r
     return name;
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -202,8 +202,8 @@ Render::Text::TextColors LineColors(std::int32_t color)
 // borde izquierdo; el 2 (0x46711b..0x467132), en la columna (caja − cx) / 2, con la caja de
 // Render::Text::CenterInBox; el 3 (0x467134..0x467144), en la columna caja − cx de una caja de `boxPixels` justas:
 // contra su borde derecho. Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
-double DrawLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t boxPixels,
-                std::int32_t mode)
+double DrawLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                std::int32_t boxPixels, std::int32_t mode)
 {
     const Core::PixelSize screen = context.sprites.Screen();
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
@@ -242,7 +242,7 @@ void WriteSetTitle(TooltipLines& lines, std::size_t& next, std::string_view name
 
 // 0x40e850(x, y), un thiscall sobre [0x6eed3c]: con +0x9304 y alguna opción en la lista, los conjuntos puestos con sus
 // opciones, y +0x9304 de vuelta en 0.
-Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheSetWindow(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Player::ItemSetState& sets = context.world.ItemSets();
     if (sets.byte9304 == 0)
@@ -315,43 +315,43 @@ Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std:
 // o el lugar del equipo.
 Kernel::ItemState* HoveredItemOf(Kernel::WorldState& world)
 {
-    const UI::HoveredItem& hovered = world.Runtime().ui.hoveredItem;
+    const Ui::HoveredItem& hovered = world.Runtime().ui.hoveredItem;
     switch (hovered.place)
     {
-    case UI::HoveredItem::Place::InventoryCell:
+    case Ui::HoveredItem::Place::InventoryCell:
         return hovered.index < world.Inventory().cells.size() ? &world.Inventory().cells[hovered.index] : nullptr;
-    case UI::HoveredItem::Place::Equipment:
+    case Ui::HoveredItem::Place::Equipment:
         return hovered.index < world.OwnCharacter().equipment.size() ? &world.OwnCharacter().equipment[hovered.index]
                                                                      : nullptr;
-    case UI::HoveredItem::Place::OwnTradeCell:
-    case UI::HoveredItem::Place::OtherTradeCell:
+    case Ui::HoveredItem::Place::OwnTradeCell:
+    case Ui::HoveredItem::Place::OtherTradeCell:
     {
-        TradeState& trade = world.Runtime().social.trade;
-        auto& cells = hovered.place == UI::HoveredItem::Place::OwnTradeCell ? trade.ownGrid : trade.otherGrid;
+        Social::TradeState& trade = world.Runtime().social.trade;
+        auto& cells = hovered.place == Ui::HoveredItem::Place::OwnTradeCell ? trade.ownGrid : trade.otherGrid;
         return hovered.index < cells.size() ? &cells[hovered.index] : nullptr;
     }
-    case UI::HoveredItem::Place::ShopCell:
+    case Ui::HoveredItem::Place::ShopCell:
         return hovered.index < world.Inventory().secondCells.size() ? &world.Inventory().secondCells[hovered.index]
                                                                     : nullptr;
-    case UI::HoveredItem::Place::NpcGridCell:
+    case Ui::HoveredItem::Place::NpcGridCell:
         return hovered.index < world.Runtime().npcWindows.grid.size() ? &world.Runtime().npcWindows.grid[hovered.index]
                                                                       : nullptr;
-    case UI::HoveredItem::Place::ChaosBoxCell:
+    case Ui::HoveredItem::Place::ChaosBoxCell:
         return hovered.index < world.Runtime().npcWindows.chaosBox.size()
                    ? &world.Runtime().npcWindows.chaosBox[hovered.index]
                    : nullptr;
-    case UI::HoveredItem::Place::TrainerBoxCell:
+    case Ui::HoveredItem::Place::TrainerBoxCell:
         return hovered.index < world.Runtime().npcWindows.trainerBox.size()
                    ? &world.Runtime().npcWindows.trainerBox[hovered.index]
                    : nullptr;
-    case UI::HoveredItem::Place::None:
+    case Ui::HoveredItem::Place::None:
         return nullptr;
     }
     return nullptr;
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheTooltipBox(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                     std::int32_t count, std::int32_t widthOverride,
                                                     std::int32_t textMode, std::int32_t frame)
 {
@@ -469,18 +469,18 @@ Core::Expected<void, std::string> WriteTheSetOption(const Tables::TextTable* tex
         index = ThirdOptionBase + option;
     else
         return {};
-    const std::optional<std::string_view> format = UI::TextAt(texts, index);
+    const std::optional<std::string_view> format = Ui::TextAt(texts, index);
     if (!format)
         return Core::Unexpected(std::format("0x40d530: sin el texto {} de Text.bmd", index));
     line = Crt::Sprintf(*format, static_cast<std::int32_t>(value));
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheTooltips(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const UI::GameUiState& ui = runtime.ui;
+    const Ui::GameUiState& ui = runtime.ui;
     context.sprites.SetBlend(BlendMode::Opaque);
     context.hud.durabilityWarning = 0;
     std::int32_t repairMode = runtime.panels.repairMode;
@@ -512,13 +512,13 @@ Core::Expected<void, std::string> DrawTheTooltips(GameHudContext& context)
             !drawn.HasValue())
             return drawn;
     }
-    GamePanels panels(world, context.random);
-    if (!panels.Registry().IsOpen(UI::InventoryPanel))
+    Hud::GamePanels panels(world, context.random);
+    if (!panels.Registry().IsOpen(Ui::InventoryPanel))
         return {};
     return DrawTheSetWindow(context, context.hud.inventoryX, context.hud.inventoryY);
 }
 
-Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheSetLabel(Hud::GameHudContext& context)
 {
     Player::ItemSetState& sets = context.world.ItemSets();
     if (sets.byte9305 == 0)
@@ -608,4 +608,4 @@ Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context)
     lines.text[next++] = "\n";
     return DrawTheTooltipBox(context, 0, 0, static_cast<std::int32_t>(next), 0, CenteredMode, 1);
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

@@ -15,7 +15,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::World
+namespace Client::MapScripts::Atlans
 {
 namespace
 {
@@ -33,7 +33,7 @@ std::optional<double> Wave(float worldClock, double rate, float factor)
     return Math::Detail::SineProductPC53(static_cast<double>(worldClock) * rate, factor);
 }
 
-Core::Expected<void, std::string> SetSwingLight(WorldObject& object, float worldClock, double rate,
+Core::Expected<void, std::string> SetSwingLight(WorldObjects::WorldObject& object, float worldClock, double rate,
                                                 std::string_view address)
 {
     const std::optional<double> wave = Wave(worldClock, rate, Swing);
@@ -45,14 +45,14 @@ Core::Expected<void, std::string> SetSwingLight(WorldObject& object, float world
 
 // 0x60556e..0x6055c8: la fase sube 0,1f (0x6b87b8) con fst, la suma sin redondear se compara con 10
 // (0x6b87a8) y la fase guardada con 5 (0x6b87f8); test ah, 0x41 deja pasar sólo el mayor ordenado.
-Core::Expected<void, std::string> StepBubbles(WorldObject& object, Crt::CrtRandom& random,
-                                              const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepBubbles(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
+                                              const WorldObjects::ObjectStepGlobals& globals)
 {
     constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
     constexpr double Ceiling = 10.0;
     constexpr float Threshold = 5.0f;
     const double phase = static_cast<double>(object.field84) + Rise;
-    object.state.hiddenMesh = HiddenObject;
+    object.state.hiddenMesh = WorldObjects::HiddenObject;
     object.field84 = F32(phase);
     if (phase > Ceiling)
         object.field84 = 0.0f; // EDX, todavía en 0 desde 0x604d50.
@@ -62,8 +62,8 @@ Core::Expected<void, std::string> StepBubbles(WorldObject& object, Crt::CrtRando
         return Core::Unexpected(std::string("0x6055c8: la burbuja 0x607 del 0x16 pide el pool de partículas "
                                             "0x743a198"));
     const auto created =
-        globals.particles->CreateChecked(DropParticle, object.transform.position, object.transform.angles, object.light,
-                                         0, 1.0f, globals.worldClock, random, 0);
+        globals.particles->CreateChecked(Particles::DropParticle, object.transform.position, object.transform.angles,
+                                         object.light, 0, 1.0f, globals.worldClock, random, 0);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x6055c8: la burbuja 0x607/0 del 0x16 falla con error {}",
                                             static_cast<unsigned>(created.Error())));
@@ -71,8 +71,8 @@ Core::Expected<void, std::string> StepBubbles(WorldObject& object, Crt::CrtRando
 }
 } // namespace
 
-Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Crt::CrtRandom& random,
-                                                   const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepAtlansObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
+                                                   const WorldObjects::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -108,4 +108,4 @@ Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Crt::Crt
         return {};
     }
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Atlans

@@ -48,7 +48,7 @@ class IHelperHooks;
                                                                   const IHelperHooks& helpers);
 
 // 0x5139f0(0, equipment, object, helper), as the letters' portrait calls it (0x497810): the same on a character
-// outside the pool with its own helper (`helper`, Scenes::OwnHelper). Instead of 0x443d40 it turns that helper off
+// outside the pool with its own helper (`helper`, Pets::OwnHelper). Instead of 0x443d40 it turns that helper off
 // (0x513b39), and each pet goes straight to 0x443d70 on it (0x513b7b..0x513ce5), without the conditions of 0x443fa0
 // (on maps 18 to 23 0x443d70 builds nothing): the first one that builds it leaves it alive and the later ones do not
 // touch it (Q-C1026). The raven (0x420cf0) goes to the character as in the pool.

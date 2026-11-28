@@ -22,11 +22,11 @@ namespace
 {
 using Client::App::CommandLine;
 using Client::App::OptionTexts;
-using Client::App::PacingMode;
-using Client::App::ServerAddress;
 using Client::App::ServerTexts;
 using Client::Core::Unexpected;
+using Client::Kernel::PacingMode;
 using Client::Platform::VSyncMode;
+using Client::Session::ServerAddress;
 namespace OptionNames = Client::App::OptionNames;
 
 // A positive integer, with no sign and nothing after it: from_chars already rejects "-1", "+5" and the overflow.
@@ -49,8 +49,8 @@ std::optional<int> ParseMaxFps(std::string_view text)
     const char* const last = text.data() + text.size();
     const auto [end, error] = std::from_chars(text.data(), last, value);
     // More than MaxFpsLimit stops before the cast: it need not fit in an int.
-    if (error != std::errc() || end != last || value > static_cast<unsigned>(Client::App::MaxFpsLimit) ||
-        !Client::App::IsValidMaxFps(static_cast<int>(value)))
+    if (error != std::errc() || end != last || value > static_cast<unsigned>(Client::Kernel::MaxFpsLimit) ||
+        !Client::Kernel::IsValidMaxFps(static_cast<int>(value)))
     {
         return std::nullopt;
     }
@@ -122,7 +122,7 @@ std::optional<std::string> ReadTiming(const OptionTexts& texts, CommandLine& com
         return error;
     }
     const std::string maxFps =
-        std::format("0 or a number from {} to {}", Client::App::MinFpsLimit, Client::App::MaxFpsLimit);
+        std::format("0 or a number from {} to {}", Client::Kernel::MinFpsLimit, Client::Kernel::MaxFpsLimit);
     return ReadValue(OptionNames::MaxFps, texts.maxFps, ParseMaxFps, maxFps, commandLine.maxFps);
 }
 
@@ -165,12 +165,12 @@ Client::Core::Expected<ServerAddress, std::string> ReadServer(const ServerTexts&
     {
         return Unexpected(std::format("{} needs {}", texts.portName, texts.hostName));
     }
-    auto host = Client::App::ParseHost(*texts.host);
+    auto host = Client::Session::ParseHost(*texts.host);
     if (!host.HasValue())
     {
         return Unexpected(std::format("{}: {}", texts.hostName, host.Error()));
     }
-    const auto port = Client::App::ParsePort(*texts.port);
+    const auto port = Client::Session::ParsePort(*texts.port);
     if (!port.HasValue())
     {
         return Unexpected(std::format("{}: {}", texts.portName, port.Error()));

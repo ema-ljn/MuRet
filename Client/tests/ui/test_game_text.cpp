@@ -7,14 +7,14 @@
 #include <string_view>
 #include <vector>
 
-// Client::UI::PlaceArguments: un texto de Text.bmd con sus "%s" y "%d" cambiados por los
+// Client::Ui::PlaceArguments: un texto de Text.bmd con sus "%s" y "%d" cambiados por los
 // argumentos, sin usarlo como formato (Q-C61, como PlaceVersion de la CL5.4). Lo usa el título de
-// la cuenta (los textos 460 y 461, con el grupo y el número; CL5.5). Y Client::UI::SplitIntoLines,
+// la cuenta (los textos 460 y 461, con el grupo y el número; CL5.5). Y Client::Ui::SplitIntoLines,
 // los renglones de 0x632c90: la descripción de la lista, en dos de 83 bytes.
 namespace
 {
-using Client::UI::PlaceArguments;
-using Client::UI::SplitIntoLines;
+using Client::Ui::PlaceArguments;
+using Client::Ui::SplitIntoLines;
 using Lines = std::vector<std::string>;
 
 TEST(GameTextTest, PlacesEachMarkInOrder)

@@ -20,14 +20,14 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::World
+namespace Client::CastleSiege
 {
 namespace
 {
 using Math::F32;
 using Result = Core::Expected<void, std::string>;
-Result ParticleAt(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random, std::int32_t type,
-                  std::int32_t subtype, float scale, const glm::vec3& light)
+Result ParticleAt(Effects::ModelEffect& effect, Particles::Particles& particles, Crt::CrtRandom& random,
+                  std::int32_t type, std::int32_t subtype, float scale, const glm::vec3& light)
 {
     const auto created = particles.CreateChecked(type, effect.transform.position, effect.transform.angles, light,
                                                  subtype, scale, 0.0f, random);
@@ -40,14 +40,14 @@ void Sound(const SiegeStoneStepServices& services, Audio::SoundId id, const glm:
     if (services.sound)
         services.sound(id, position);
 }
-Result Camera(ModelEffect& effect, const SiegeStoneStepServices& services)
+Result Camera(Effects::ModelEffect& effect, const SiegeStoneStepServices& services)
 {
     if (services.cameraTarget == nullptr)
         return Core::Unexpected(std::string("0x44dc40: falta el destino de cámara del arma"));
     *services.cameraTarget = effect.transform.position;
     return {};
 }
-Result AreaAction(const SiegeStoneStepServices& services, ModelEffect& effect, float radius, bool all)
+Result AreaAction(const SiegeStoneStepServices& services, Effects::ModelEffect& effect, float radius, bool all)
 {
     const auto& action = all ? services.actorsAction : services.heroAction;
     if (!action)
@@ -55,7 +55,7 @@ Result AreaAction(const SiegeStoneStepServices& services, ModelEffect& effect, f
                                                 : "0x4295f0: falta la acción del héroe alrededor del impacto"));
     return action(effect.transform.position, radius);
 }
-Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStepServices& services)
+Result ImpactVisuals(Effects::ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStepServices& services)
 {
     if (services.effects == nullptr)
         return Core::Unexpected(std::string("0x52817d: falta el pool del cráter de impacto"));
@@ -75,7 +75,7 @@ Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeSto
         return AreaAction(services, effect, 350, false);
     if (effect.subtype != 99 && !(effect.subtype == 88 && effect.ownerContext != nullptr))
         return {};
-    const Kernel::ModelEffectArguments wave{.type = ShockWaveEffect,
+    const Kernel::ModelEffectArguments wave{.type = Effects::ShockWaveEffect,
                                             .position = effect.transform.position,
                                             .angles = effect.transform.angles,
                                             .light = {1, .3f, .1f},
@@ -83,7 +83,7 @@ Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeSto
     static_cast<void>(services.effects->CreateCastleShockWave(wave, random));
     return {};
 }
-Result Contact(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStepServices& services)
+Result Contact(Effects::ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStepServices& services)
 {
     if (!services.terrainHeight)
         return Core::Unexpected(std::string("0x527f44: falta la altura del terreno del arma"));
@@ -150,7 +150,7 @@ Result Contact(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStep
     }
     return {};
 }
-Result Flight(ModelEffect& effect, float brightness, Particles& particles, Crt::CrtRandom& random,
+Result Flight(Effects::ModelEffect& effect, float brightness, Particles::Particles& particles, Crt::CrtRandom& random,
               const SiegeStoneStepServices& services)
 {
     auto& p = effect.transform.position;
@@ -165,12 +165,13 @@ Result Flight(ModelEffect& effect, float brightness, Particles& particles, Crt::
         {
             const glm::vec3 light{brightness, F32(static_cast<double>(brightness) * .5),
                                   F32(static_cast<double>(brightness) * static_cast<double>(.1f))};
-            if (auto emitted = ParticleAt(effect, particles, random, FireParticle, 5, 2, light); !emitted.HasValue())
+            if (auto emitted = ParticleAt(effect, particles, random, Particles::FireParticle, 5, 2, light);
+                !emitted.HasValue())
                 return emitted;
         }
         else if (random.Next() % 2 == 0)
         {
-            if (auto emitted = ParticleAt(effect, particles, random, TorchFlameParticle, 1, 2, glm::vec3(1));
+            if (auto emitted = ParticleAt(effect, particles, random, Particles::TorchFlameParticle, 1, 2, glm::vec3(1));
                 !emitted.HasValue())
                 return emitted;
         }
@@ -197,7 +198,7 @@ Result Flight(ModelEffect& effect, float brightness, Particles& particles, Crt::
     }
     return Contact(effect, random, services);
 }
-Result PersistentImpact(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random,
+Result PersistentImpact(Effects::ModelEffect& effect, Particles::Particles& particles, Crt::CrtRandom& random,
                         const SiegeStoneStepServices& services)
 {
     if (effect.subtype == 99 && effect.ownerContext == services.hero && services.hero != nullptr)
@@ -208,11 +209,13 @@ Result PersistentImpact(ModelEffect& effect, Particles& particles, Crt::CrtRando
     if (effect.life <= effect.byte90)
         return {};
     const glm::vec3 light = effect.type == SiegeStoneEffect ? glm::vec3{1, .6f, .2f} : effect.light;
-    if (auto emitted = ParticleAt(effect, particles, random, TorchFlameParticle, 0, 1, light); !emitted.HasValue())
+    if (auto emitted = ParticleAt(effect, particles, random, Particles::TorchFlameParticle, 0, 1, light);
+        !emitted.HasValue())
         return emitted;
     if (effect.type == SiegeStoneEffect)
     {
-        if (auto emitted = ParticleAt(effect, particles, random, FireParticle, 2, 2, light); !emitted.HasValue())
+        if (auto emitted = ParticleAt(effect, particles, random, Particles::FireParticle, 2, 2, light);
+            !emitted.HasValue())
             return emitted;
     }
     if (effect.subtype == 88 && effect.ownerContext != nullptr)
@@ -221,7 +224,7 @@ Result PersistentImpact(ModelEffect& effect, Particles& particles, Crt::CrtRando
         return AreaAction(services, effect, static_cast<float>((40 - effect.life) * 7 + 350), true);
     return {};
 }
-Result Fragment(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random,
+Result Fragment(Effects::ModelEffect& effect, Particles::Particles& particles, Crt::CrtRandom& random,
                 const SiegeStoneStepServices& services)
 {
     auto& p = effect.transform.position;
@@ -249,10 +252,10 @@ Result Fragment(ModelEffect& effect, Particles& particles, Crt::CrtRandom& rando
     if (effect.life < 10)
         effect.alpha = F32(static_cast<double>(effect.alpha) * static_cast<double>(.666666687f));
     if (effect.life % 3 == 0)
-        return ParticleAt(effect, particles, random, TorchFlameParticle, 1, .2f, {1, .6f, .2f});
+        return ParticleAt(effect, particles, random, Particles::TorchFlameParticle, 1, .2f, {1, .6f, .2f});
     return {};
 }
-void Epilogue(ModelEffect& effect, const Models::Skeleton* skeleton)
+void Epilogue(Effects::ModelEffect& effect, const Models::Skeleton* skeleton)
 {
     constexpr std::uint8_t NoAction = 255;
     if (effect.animation.action != NoAction && skeleton != nullptr &&
@@ -270,13 +273,13 @@ void Epilogue(ModelEffect& effect, const Models::Skeleton* skeleton)
         effect.alive = false;
 }
 } // namespace
-Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Models::Skeleton* skeleton,
-                                                 Particles& particles, Crt::CrtRandom& random,
+Core::Expected<void, std::string> StepSiegeStone(Effects::ModelEffect& effect, const Models::Skeleton* skeleton,
+                                                 Particles::Particles& particles, Crt::CrtRandom& random,
                                                  const SiegeStoneStepServices& services)
 {
     if (!effect.alive)
         return {};
-    const float brightness = StepLuminosity(random.Next(), effect.life);
+    const float brightness = Effects::StepLuminosity(random.Next(), effect.life);
     const auto before = effect.transform.position;
     if (effect.type == SiegeStoneEffect && effect.subtype == 2)
     {
@@ -298,4 +301,4 @@ Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Mode
     effect.previousPosition = before;
     return {};
 }
-} // namespace Client::World
+} // namespace Client::CastleSiege

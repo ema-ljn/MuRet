@@ -51,8 +51,8 @@ using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::PetStats;
 using Client::Models::OwnRecordCloseRandoms;
+using Client::Pets::DarkSpirit;
 using Client::Protocol::Pets::PetInfoReply;
-using Client::Scenes::DarkSpirit;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr std::size_t HeroIndex = 6;
@@ -132,7 +132,7 @@ struct Pets
     }
     Client::Core::Expected<void, std::string> Reply(const PetInfoReply& reply)
     {
-        return Client::Scenes::ApplyPetInfo(reply, Resources());
+        return Client::Pets::ApplyPetInfo(reply, Resources());
     }
     DarkSpirit& Raven()
     {
@@ -169,11 +169,11 @@ struct Pets
     }
 
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     const Client::Tables::ItemTable items = EmptyItems();
     const Client::Tables::ItemSetTables setTables = EmptySets();
     const Client::Tables::ItemSetTables* sets = &setTables;
@@ -428,7 +428,7 @@ TEST(PetStatsTest, ResettingThePetsZeroesTheTableTheTabAndTheWindow)
     runtime.panels.delegated.pet = 2;
     runtime.pets[2].experience = 5;
     runtime.pets[0].word12 = 9;
-    Client::Scenes::ResetThePets(runtime);
+    Client::Pets::ResetThePets(runtime);
     EXPECT_EQ(runtime.petTab, 0);
     EXPECT_EQ(runtime.panels.delegated.pet, 0);
     EXPECT_EQ(runtime.pets[2].experience, 0u);

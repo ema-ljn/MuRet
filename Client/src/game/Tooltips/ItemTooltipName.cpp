@@ -21,7 +21,7 @@
 
 // 0x5b371b..0x5b45f4, el nombre del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"). Los textos son los de
 // Text.bmd (la dirección − 0x76bd1dc, sobre 300).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -180,7 +180,7 @@ Core::Expected<bool, std::string> WriteALeveledName(Frame& frame, std::int32_t t
     if (type == EventTicket && level == EventTicketTableLevel)
     {
         const std::uint32_t index = frame.item.durability;
-        const std::optional<std::string_view> prize = EventTicketPrizeOf(index);
+        const std::optional<std::string_view> prize = Items::EventTicketPrizeOf(index);
         if (!prize)
             return Core::Unexpected(std::format("0x5b3835: el premio {} del boleto (su durabilidad) lee 0x6c9350 + {} "
                                                 "· 100, en la .data que sigue a los diez premios, que MuRet no tiene",
@@ -299,13 +299,13 @@ Core::Expected<void, std::string> WriteTheGenericName(Frame& frame, std::string_
 // salta a 0x5b459d sin escribir el renglón.
 Core::Expected<void, std::string> WriteTheTransformationRingName(Frame& frame)
 {
-    const std::optional<std::uint32_t> monster = TransformationMonsterOf(frame.level);
+    const std::optional<std::uint32_t> monster = Items::TransformationMonsterOf(frame.level);
     if (!monster)
         return Core::Unexpected(std::format("0x5b41dc: el nivel {} del anillo de transformación lee 0x6c9338 fuera de "
                                             "lo que MuRet tiene de la .data",
                                             frame.level));
     const std::optional<std::string> name =
-        NpcNameOf(frame.context.world.Runtime().npcNames, static_cast<std::int32_t>(*monster));
+        Monsters::NpcNameOf(frame.context.world.Runtime().npcNames, static_cast<std::int32_t>(*monster));
     if (!name)
         return {};
     TooltipWriter& lines = frame.lines;
@@ -348,7 +348,7 @@ Core::Expected<void, std::string> WriteTheNameLine(Frame& frame, std::string_vie
 Core::Expected<void, std::string> WriteTheItemName(ItemTooltipFrame& frame)
 {
     frame.lines.At("0x5b371b");
-    const std::string record = ItemRecordName(frame.record);
+    const std::string record = Items::ItemRecordName(frame.record);
     if (auto written = WriteTheNameLine(frame, record); !written.HasValue())
         return written;
     // 0x5b459d..0x5b45ef.
@@ -360,4 +360,4 @@ Core::Expected<void, std::string> WriteTheItemName(ItemTooltipFrame& frame)
     lines.NewLine();
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

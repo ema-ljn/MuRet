@@ -11,21 +11,21 @@
 #include <string_view>
 #include <vector>
 
-// Client::UI::NoticeOfNewName: los chequeos del nombre del OK de crear (0x63d990), con las palabras
+// Client::FrontEnd::NoticeOfNewName: los chequeos del nombre del OK de crear (0x63d990), con las palabras
 // de FilterName.bmd del laboratorio y los textos 457 y 458 de su Text.bmd. Los nombres son los de la
 // emulación del contrato, sintéticos.
 namespace
 {
-using Client::UI::ContainsAFilteredWord;
-using Client::UI::ContainsLikeTheOriginal;
-using Client::UI::ForbiddenNameNotice;
-using Client::UI::HasForbiddenSymbol;
-using Client::UI::IsAShopTitle;
-using Client::UI::IsFilteredName;
-using Client::UI::NameFilters;
-using Client::UI::NoticeOfNewName;
-using Client::UI::ShortNameNotice;
-using Client::UI::SymbolNameNotice;
+using Client::FrontEnd::ContainsAFilteredWord;
+using Client::FrontEnd::ContainsLikeTheOriginal;
+using Client::FrontEnd::HasForbiddenSymbol;
+using Client::FrontEnd::IsAShopTitle;
+using Client::FrontEnd::IsFilteredName;
+using Client::FrontEnd::NameFilters;
+using Client::FrontEnd::NoticeOfNewName;
+using Client::Ui::ForbiddenNameNotice;
+using Client::Ui::ShortNameNotice;
+using Client::Ui::SymbolNameNotice;
 
 const std::vector<std::string> LabFilterName{"ADMIN", "admin", "GM", "gm", "Gm", "gM"};
 

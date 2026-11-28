@@ -28,18 +28,18 @@ namespace
 using Client::App::ClientConfig;
 using Client::App::CommandLine;
 using Client::App::ConfigError;
-using Client::App::DefaultConnectPort;
 using Client::App::EffectiveMaxFps;
 using Client::App::HasServerHost;
-using Client::App::MaxFpsLimit;
-using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
-using Client::App::MinFpsLimit;
-using Client::App::PacingMode;
 using Client::App::ParseConfig;
 using Client::App::Resolve;
-using Client::App::ServerAddress;
+using Client::Kernel::MaxFpsLimit;
+using Client::Kernel::MinFpsLimit;
+using Client::Kernel::PacingMode;
 using Client::Platform::VSyncMode;
+using Client::Session::DefaultConnectPort;
+using Client::Session::MaxHostBytes;
+using Client::Session::ServerAddress;
 
 ConfigError ErrorOf(std::string_view text)
 {

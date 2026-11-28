@@ -23,16 +23,21 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Npc
 {
 struct NpcWindowState;
+} // namespace Client::Npc
+
+namespace Client::ChaosMix
+{
 
 // 0x5fd120(grilla, columnas, filas): la suma de lo que vale cada ítem con tipo y +0x3c (0x54d0f0 en el modo 0, con
 // los precios fijos de las joyas: 100.000 la de Bless 0x1c0d, 70.000 la de Soul 0x1c0e, 40.000 la del caos 0x180f y
 // 450.000 la de la vida 0x1c10 y la de la creación 0x1c16), en el int que da la vuelta. Sin una joya del caos, 0.
 // `pets` son los niveles de las mascotas que lee 0x54d0f0 con el 0x1a04 y el 0x1a05.
-[[nodiscard]] Core::Expected<std::int32_t, std::string>
-ChaosBoxValue(std::span<const Kernel::ItemState> grid, const Tables::ItemTable* items, const PetPriceLevels& pets);
+[[nodiscard]] Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const Kernel::ItemState> grid,
+                                                                      const Tables::ItemTable* items,
+                                                                      const Items::PetPriceLevels& pets);
 
 // 0x5fd4f0(0x7d2d380, 8, 4): cuenta lo que hay en la caja y devuelve el tipo de la mezcla (0 sin ninguna; negativo
 // el error que avisa el botón de mezclar). Deja en `npc` los anchos y altos más grandes (0x6c9da0, 0x6c9da4), el
@@ -64,7 +69,7 @@ struct MixRoom
     std::int32_t width = 0;
     std::int32_t height = 0;
 };
-[[nodiscard]] MixRoom MixRoomFor(const NpcWindowState& npc, std::int32_t kind);
+[[nodiscard]] MixRoom MixRoomFor(const Npc::NpcWindowState& npc, std::int32_t kind);
 
 // Lo que el botón de mezclar hace con el tipo `kind` (0x5fe9a2..0x5fe9b6, la tabla de 0x5feb88).
 enum class MixButtonAction
@@ -97,7 +102,7 @@ struct MixQuoteData
     std::int32_t collapseCounter = -1;
     float collapseDelay = -1.0f;
 };
-[[nodiscard]] Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc,
+[[nodiscard]] Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc,
                                                                const MixQuoteData& data = {});
 
 // 0x5b1130(n, buffer): n sin signo con los miles separados por comas ("%d,%03d" y sus hermanos).
@@ -106,4 +111,4 @@ struct MixQuoteData
 // 0x5b12f0(precio, buffer): el precio más el impuesto del castillo (0x78aba34 · precio / 100, en 64 bits con signo),
 // con los miles separados por comas.
 [[nodiscard]] std::string TaxedPriceText(std::uint32_t price, std::int32_t taxRate);
-} // namespace Client::Scenes
+} // namespace Client::ChaosMix

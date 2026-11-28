@@ -117,7 +117,7 @@ Core::Expected<void, std::string> CreateShockDust(const Kernel::ActorState& acto
         const float z = static_cast<float>(
             (static_cast<double>(actor.position.z) + static_cast<double>(random.Next() % VerticalSpan)) + Rise);
         const auto created = resources.world.Particles().CreateChecked(
-            World::DustParticle, {x, actor.position.y, z}, actor.angles, actor.light, 0, 1.0f, 0.0f, random);
+            Particles::DustParticle, {x, actor.position.y, z}, actor.angles, actor.light, 0, 1.0f, 0.0f, random);
         if (!created.HasValue())
             return Core::Unexpected(
                 std::format("0x4f5635: falla el alta de 0x5f3/0 con error {}", static_cast<unsigned>(created.Error())));

@@ -19,10 +19,10 @@ using Client::Core::PixelSize;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Render::TextureSlot;
-using Client::UI::MouseInPixels;
-using Client::UI::PixelImage;
-using Client::UI::Point;
-using Client::UI::Rect;
+using Client::Ui::MouseInPixels;
+using Client::Ui::PixelImage;
+using Client::Ui::Point;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 

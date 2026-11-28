@@ -55,14 +55,14 @@ using Client::Tests::RecordingFrameTarget;
 using Client::Tests::TemporaryFolder;
 
 constexpr std::size_t ScreenshotText = 459;
-// El texto del grupo 0, el de los códigos 0 a 19 (UI::GroupNameText).
+// El texto del grupo 0, el de los códigos 0 a 19 (FrontEnd::GroupNameText).
 constexpr std::size_t FirstGroupText = 540;
 constexpr std::uint16_t ServerOfTheFirstGroup = 3;
 // La captura de un lienzo chico; el chat mide con la pantalla de 640 × 480, la de sus cortes.
 constexpr Client::Core::PixelSize SmallScreen{.width = 8, .height = 6};
 constexpr Client::Core::PixelSize ChatScreen{.width = 640, .height = 480};
 
-// Tres píxeles por letra: los mensajes de los tests entran en un renglón del registro (UI::ChatWrapWidth).
+// Tres píxeles por letra: los mensajes de los tests entran en un renglón del registro (Chat::ChatWrapWidth).
 class LetterMeasure final : public ITextMeasure
 {
 public:
@@ -165,7 +165,7 @@ public:
     std::optional<std::uint16_t> chosenServer = ServerOfTheFirstGroup;
     RecordingFrameTarget target{SmallScreen};
     FakeScreenReader reader{world, &target};
-    Client::UI::GameUiState ui;
+    Client::Ui::GameUiState ui;
     Client::Input::InputState input;
 };
 

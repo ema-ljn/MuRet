@@ -20,8 +20,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t Spark = 0x5c6;
 constexpr std::int32_t MapSpark = 9;
 
@@ -74,7 +74,7 @@ TEST(MapSparkParticlesTest, StepMovesWithTheOldVelocityThenDeceleratesAndShrinks
                         .moves = true,
                         .velocity = {12, 5, -2}};
     CrtRandom random(7);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(particle.position, glm::vec3(112, 205, 298));
     EXPECT_EQ(Bits(particle.velocity.x), 0x412ccccdu);
     EXPECT_EQ(particle.velocity.y, 5);
@@ -92,7 +92,7 @@ TEST(MapSparkParticlesTest, ExpiryStillRunsBothVelocityStoresAndTheScaleStore)
     particle =
         Particle{.alive = true, .type = Spark, .subtype = MapSpark, .scale = 1.4f, .life = 1, .velocity = {12, 5, -2}};
     CrtRandom random(7);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(Bits(particle.velocity.x), 0x412ccccdu);
@@ -118,7 +118,7 @@ TEST(MapSparkParticlesTest, TheRetainedScaleComparisonKillsUnorderedAndBelowButK
         Particle& particle = particles.All()[0];
         particle = Particle{.alive = true, .type = Spark, .subtype = MapSpark, .scale = value.scale, .life = 30};
         CrtRandom random(7);
-        Client::World::StepParticles(particles, random);
+        Client::Particles::StepParticles(particles, random);
         EXPECT_EQ(particle.alive, value.alive) << value.scale;
         EXPECT_EQ(random.State(), 0xc40e66b9u);
     }

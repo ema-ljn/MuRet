@@ -22,7 +22,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Chat
 {
 namespace
 {
@@ -272,7 +272,7 @@ void DrawTheFrame(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes,
     if (!joined.empty())
     {
         // sprintf("%s: %s", Text.bmd 754, las palabras).
-        const std::string title = std::string(TextAt(view.texts, FilterTitleText).value_or("")) + ": " + joined;
+        const std::string title = std::string(Ui::TextAt(view.texts, FilterTitleText).value_or("")) + ": " + joined;
         context.textColors =
             Render::Text::TextColors{.text = 0xffc8dce6u, .background = modes.placement != 1 ? 0x96000000u : 0u};
         context.dcFont = Render::Text::FontKind::Bold;
@@ -445,10 +445,10 @@ void DrawTheButtons(const ChatLogState& log, ChatLogFrame& frame, ChatModes mode
     {
         const std::array<float, 3> xs{ButtonsX, second, third};
         const auto index = static_cast<std::size_t>(hover - 1);
-        const std::string_view help = TextAt(view.texts, ChatButtonHelpTexts[index]).value_or("");
+        const std::string_view help = Ui::TextAt(view.texts, ChatButtonHelpTexts[index]).value_or("");
         // 0x554340 deja el texto en blanco sobre un fondo transparente.
-        DrawHelp(sprites, context.text, Truncate(static_cast<double>(xs[index]) - static_cast<double>(HelpLeft)),
-                 Truncate(static_cast<double>(ButtonsY) - static_cast<double>(HelpRise)), help);
+        Ui::DrawHelp(sprites, context.text, Truncate(static_cast<double>(xs[index]) - static_cast<double>(HelpLeft)),
+                     Truncate(static_cast<double>(ButtonsY) - static_cast<double>(HelpRise)), help);
         context.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
     }
     sprites.SetColor(Render::Color{});
@@ -476,4 +476,4 @@ void DrawTheChatLog(const ChatLogState& log, ChatLogFrame& frame, ChatModes mode
     }
     DrawTheButtons(log, frame, modes, context, view);
 }
-} // namespace Client::UI
+} // namespace Client::Chat

@@ -11,7 +11,7 @@
 
 namespace
 {
-using Client::World::FinishOrdinaryBirdMotion;
+using Client::Fauna::FinishOrdinaryBirdMotion;
 
 TEST(BirdMotionTailTest, WaterTurnSubtractsOnceAndDeathStillDecrementsTheResetTimer)
 {

@@ -260,7 +260,7 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
-    Client::Scenes::ActorEffectHooks m_effectHooks;
+    Client::Effects::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     UnarmedModels m_models;
     Client::Models::ClothWorld m_cloth;
@@ -295,12 +295,12 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
 {
     m_models.GrowTo(27);
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::GuildMarkTextures marks(store);
-    Client::Scenes::GuildState& guild = m_world->Runtime().guild;
+    Client::Guild::GuildMarkTextures marks(store);
+    Client::Guild::GuildState& guild = m_world->Runtime().guild;
     guild.tableCount = 4;
     guild.table[3].key = 77;
     guild.table[3].mark.fill(4);
-    const Client::Render::TextureSlot slot = Client::Scenes::GuildMarkTextures::SlotOf(3, true);
+    const Client::Render::TextureSlot slot = Client::Guild::GuildMarkTextures::SlotOf(3, true);
     const auto draw = [&](std::int32_t map, Client::Render::TextureSlot drawn)
     {
         m_world->Runtime().map = map;
@@ -369,12 +369,12 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
     // Entry 10 is past the count (4): 0x447b00 does not find its key.
     Actor().word1f2 = 10;
     guild.table[10].key = 99;
-    const Client::Render::TextureSlot tenth = Client::Scenes::GuildMarkTextures::SlotOf(10, true);
+    const Client::Render::TextureSlot tenth = Client::Guild::GuildMarkTextures::SlotOf(10, true);
     EXPECT_TRUE(draw(2, tenth).empty());
     EXPECT_FALSE(store.Find(tenth).has_value());
     Actor().word1f2 = 1999;
     guild.table[1999].mark.fill(2);
-    EXPECT_EQ(draw(2, Client::Scenes::GuildMarkTextures::SlotOf(1999, true)).size(), 6u);
+    EXPECT_EQ(draw(2, Client::Guild::GuildMarkTextures::SlotOf(1999, true)).size(), 6u);
 }
 
 // 0x50e298 opens +0x38e; 0x50e503 reads; 0x50e68a closes with a rand; 0x50e746 tests NoItem afterwards. The loop
@@ -413,7 +413,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     const auto& blessing = m_world->Particles().All().front();
     ASSERT_TRUE(blessing.alive);
-    EXPECT_EQ(blessing.type, Client::World::SiegeBlessingParticle);
+    EXPECT_EQ(blessing.type, Client::Particles::SiegeBlessingParticle);
     EXPECT_EQ(blessing.life, 20);
     EXPECT_EQ(blessing.position, (glm::vec3{8195.0f, 13014.0f, 250.0f}));
     EXPECT_EQ(blessing.light, Actor().light);
@@ -769,13 +769,13 @@ TEST_F(UnarmedGameCharacterTest, TheTailOfTheDyingOfBloodCastleHangsFromWhereThe
     actor.byte1a1 = 1;
     actor.dying = 1;
     actor.position = {150.0f, 150.0f, 10.0f};
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     auto pass = Pass();
     pass.sprites = &sprites;
     const auto sparksAt = [&sprites]()
     {
         std::vector<glm::vec3> found;
-        for (const Client::World::Sprite& sprite : sprites.Sprites())
+        for (const Client::Particles::Sprite& sprite : sprites.Sprites())
         {
             if (sprite.alive)
                 found.push_back(sprite.position);

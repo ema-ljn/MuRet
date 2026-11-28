@@ -24,7 +24,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Social
 {
 namespace
 {
@@ -63,17 +63,19 @@ constexpr std::int32_t DuelButtonBottom = 0x10f;
 // El relleno y el serial de un C3 (rand() en 0x5ed19a o 0x5ec1e4, y 0x40b3f0 al cerrar la entrada del serial).
 constexpr std::uint32_t C3Randoms = 2;
 
-bool InRange(const GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top, std::int32_t bottom)
+bool InRange(const Hud::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
+             std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
-bool OnTheButton(const GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t left)
+bool OnTheButton(const Hud::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t left)
 {
     return InRange(context, x + left, x + left + ButtonSize, y + ButtonTop, y + ButtonTop + ButtonSize);
 }
 
-Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protocol::Outgoing outgoing, const char* where)
+Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing outgoing,
+                                           const char* where)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string(where) + ": el paquete sin el cable");
@@ -83,13 +85,13 @@ Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protoco
 }
 
 // 0x5ece4c..0x5eceae.
-void PressTheMoneyButton(const GameUiContext& context)
+void PressTheMoneyButton(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     SocialState& social = runtime.social;
     runtime.movement.pendingClick = false;
-    UI::PushDialog(runtime.dialogs, MoneyDialog);
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::PushDialog(runtime.dialogs, MoneyDialog);
+    Chat::ResetTheTextBuffers(runtime.chat.input, false);
     social.dialogFieldLimit = MoneyFieldLimit;
     runtime.chat.input.fieldCount = MoneyFieldCount;
     runtime.ui.chatOpen = false;
@@ -100,7 +102,7 @@ void PressTheMoneyButton(const GameUiContext& context)
 }
 
 // 0x5ecf2d..0x5ed476.
-Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
+Core::Expected<void, std::string> PressTheOkButton(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
@@ -112,7 +114,7 @@ Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
     {
         trade.warningKind = ChangedWarningKind;
         trade.warningByte = ChangedWarningByte;
-        return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, ChangedWarningLines,
+        return Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, ChangedWarningLines,
                                   ChangedWarningText, ChangedWarningDialog);
     }
     trade.ownOk = trade.ownOk != 0 ? 0 : 1;
@@ -121,7 +123,7 @@ Core::Expected<void, std::string> PressTheOkButton(const GameUiContext& context)
 }
 
 // 0x5ed4cc..0x5ed936.
-Core::Expected<void, std::string> PressTheCancelButton(const GameUiContext& context)
+Core::Expected<void, std::string> PressTheCancelButton(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.movement.pendingClick = false;
@@ -144,9 +146,9 @@ Protocol::FrontEnd::NameBytes RivalName(const DuelState& duel)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheTradeWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTradeWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::TradePanel))
+    if (!panels.IsOpen(Ui::TradePanel))
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     TradeState& trade = runtime.social.trade;
@@ -167,7 +169,7 @@ Core::Expected<void, std::string> StepTheTradeWindow(const GameUiContext& contex
     return {};
 }
 
-Core::Expected<void, std::string> StepTheDuelRequest(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheDuelRequest(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abad9 == 0)
@@ -193,4 +195,4 @@ Core::Expected<void, std::string> StepTheDuelRequest(const GameUiContext& contex
         return answer(0, "0x5ec55d");
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Social

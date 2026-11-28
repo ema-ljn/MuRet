@@ -15,7 +15,7 @@ namespace Client::Kernel
 struct HudState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 
 // 0x554180(x, y, texto, 0, 0, …): el texto en (x, y) de 640 × 480 si no está vacío (0x465950 con el modo 1), y su
@@ -27,4 +27,4 @@ void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kerne
 // (Render::Text::CenteredAt).
 void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                      std::string_view line);
-} // namespace Client::Scenes
+} // namespace Client::Hud

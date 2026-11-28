@@ -14,14 +14,14 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState& world, const CastleSender& send,
-                                                              UI::PanelDialogOwner owner, std::uint32_t reason)
+                                                              Ui::PanelDialogOwner owner, std::uint32_t reason)
 {
-    if (owner == UI::PanelDialogOwner::CastleGiveUp)
+    if (owner == Ui::PanelDialogOwner::CastleGiveUp)
     {
-        if (reason == UI::PanelAnswerConfirm)
+        if (reason == Ui::PanelAnswerConfirm)
         {
             if (!send)
                 return Core::Unexpected(std::string("0x64ccd0: renunciar al asedio sin el cable"));
@@ -33,36 +33,36 @@ Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState
     Answer answer = nullptr;
     switch (owner)
     {
-    case UI::PanelDialogOwner::CastleGate:
+    case Ui::PanelDialogOwner::CastleGate:
         answer = AnswerTheGateDialog;
         break;
-    case UI::PanelDialogOwner::CastleGateLife:
+    case Ui::PanelDialogOwner::CastleGateLife:
         answer = AnswerTheGateLifeDialog;
         break;
-    case UI::PanelDialogOwner::CastleGateDefense:
+    case Ui::PanelDialogOwner::CastleGateDefense:
         answer = AnswerTheGateDefenseDialog;
         break;
-    case UI::PanelDialogOwner::CastleStatue:
+    case Ui::PanelDialogOwner::CastleStatue:
         answer = AnswerTheStatueDialog;
         break;
-    case UI::PanelDialogOwner::CastleStatueLife:
+    case Ui::PanelDialogOwner::CastleStatueLife:
         answer = AnswerTheStatueLifeDialog;
         break;
-    case UI::PanelDialogOwner::CastleStatueDefense:
+    case Ui::PanelDialogOwner::CastleStatueDefense:
         answer = AnswerTheStatueDefenseDialog;
         break;
-    case UI::PanelDialogOwner::CastleStatueRecovery:
+    case Ui::PanelDialogOwner::CastleStatueRecovery:
         answer = AnswerTheStatueRecoveryDialog;
         break;
-    case UI::PanelDialogOwner::CastleTaxes:
+    case Ui::PanelDialogOwner::CastleTaxes:
         answer = AnswerTheTaxDialog;
         break;
-    case UI::PanelDialogOwner::CastleMoney:
+    case Ui::PanelDialogOwner::CastleMoney:
         break;
     default:
         return Core::Unexpected(std::string("0x6600d0: el diálogo no tiene dueño del castillo"));
     }
-    const auto wanted = owner == UI::PanelDialogOwner::CastleMoney ? UI::PanelAnswerOk : UI::PanelAnswerConfirm;
+    const auto wanted = owner == Ui::PanelDialogOwner::CastleMoney ? Ui::PanelAnswerOk : Ui::PanelAnswerConfirm;
     if (reason != wanted)
         return true;
     if (!send)
@@ -70,11 +70,11 @@ Core::Expected<bool, std::string> AnswerTheCastleWindowDialog(Kernel::WorldState
     Core::StderrSink sink;
     Core::Log log(sink, Core::LogLevel::Warning);
     const CastleAnswerContext context{.data = world.Runtime().castleSiege.data, .log = log, .send = send};
-    if (owner == UI::PanelDialogOwner::CastleMoney)
+    if (owner == Ui::PanelDialogOwner::CastleMoney)
         AnswerTheMoneyDialog(static_cast<std::int32_t>(reason), world.Runtime().chat.input.dialogEdit.text.Value(),
                              context);
     else
         answer(static_cast<std::int32_t>(reason), context);
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

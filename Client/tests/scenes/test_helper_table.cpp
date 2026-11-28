@@ -83,22 +83,22 @@ using Client::Models::BoneKey;
 using Client::Models::IModelLibrary;
 using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
+using Client::Pets::ConstructHelper;
+using Client::Pets::CreateHelper;
+using Client::Pets::DarkHorseModel;
+using Client::Pets::DinorantModel;
+using Client::Pets::DrawHelpers;
+using Client::Pets::DrawTheHelperOutsideTheTable;
+using Client::Pets::GuardianAngelModel;
+using Client::Pets::HelperDrawContext;
+using Client::Pets::HelperStepContext;
+using Client::Pets::StepHelpers;
+using Client::Pets::StepTheHelperOutsideTheTable;
+using Client::Pets::UniriaModel;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::Scenes::ConstructHelper;
-using Client::Scenes::CreateHelper;
-using Client::Scenes::DarkHorseModel;
-using Client::Scenes::DinorantModel;
-using Client::Scenes::DrawHelpers;
-using Client::Scenes::DrawTheHelperOutsideTheTable;
-using Client::Scenes::GuardianAngelModel;
-using Client::Scenes::HelperDrawContext;
-using Client::Scenes::HelperStepContext;
 using Client::Scenes::JointState;
 using Client::Scenes::SceneId;
-using Client::Scenes::StepHelpers;
-using Client::Scenes::StepTheHelperOutsideTheTable;
-using Client::Scenes::UniriaModel;
 using Client::Terrain::TerrainPolygon;
 
 // Las semillas del rand() de la CRT, por su primer rand(): con QuietSeed, % 3 da 2 y % 2 da 1 (ni aliento
@@ -370,10 +370,10 @@ public:
     }
 
     // Los sprites vivos de la tabla del frame.
-    std::vector<Client::World::Sprite> LiveSprites()
+    std::vector<Client::Particles::Sprite> LiveSprites()
     {
-        std::vector<Client::World::Sprite> live;
-        for (const Client::World::Sprite& sprite : sprites.Sprites())
+        std::vector<Client::Particles::Sprite> live;
+        for (const Client::Particles::Sprite& sprite : sprites.Sprites())
         {
             if (sprite.alive)
             {
@@ -391,7 +391,7 @@ public:
     HorseModels models;
     // La luz del terreno (0x5ffce0), (0,25; 0,5; 0,75) en cada celda, y los sprites del frame (0x5491e0).
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = UniformLighting();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     // The global trapezoid that 0x5fba90 reads (Camera::CameraState::trapezoid).
     TerrainPolygon trapezoid{};
 
@@ -762,9 +762,9 @@ TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
     const auto stepped = tested.Step();
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    const Client::Particles::Particle& breath = tested.world.Particles().All()[0];
     EXPECT_TRUE(breath.alive);
-    EXPECT_EQ(breath.type, Client::World::BreathParticle);
+    EXPECT_EQ(breath.type, Client::Particles::BreathParticle);
     EXPECT_EQ(breath.subtype, 0);
     EXPECT_EQ(breath.position, (glm::vec3{10077.0f, 10123.0f, 197.0f}));
     EXPECT_EQ(breath.light, glm::vec3(3.0f));
@@ -779,8 +779,8 @@ TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
     ASSERT_NO_FATAL_FAILURE(atlans.Mount());
     atlans.PoseTheGlobalBones();
     ASSERT_TRUE(atlans.Step().HasValue());
-    const Client::World::Particle& drop = atlans.world.Particles().All()[0];
-    EXPECT_EQ(drop.type, Client::World::DropParticle);
+    const Client::Particles::Particle& drop = atlans.world.Particles().All()[0];
+    EXPECT_EQ(drop.type, Client::Particles::DropParticle);
     EXPECT_EQ(drop.position, (glm::vec3{10077.0f, 10123.0f, 197.0f}));
     EXPECT_EQ(drop.light, glm::vec3(1.0f));
     EXPECT_EQ(drop.life, 36);
@@ -800,9 +800,9 @@ TEST(HelperTableTest, TheBreathWithoutItsBoneLeavesFromTheOrigin)
     const auto stepped = tested.Step();
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    const Client::Particles::Particle& breath = tested.world.Particles().All()[0];
     EXPECT_TRUE(breath.alive);
-    EXPECT_EQ(breath.type, Client::World::BreathParticle);
+    EXPECT_EQ(breath.type, Client::Particles::BreathParticle);
     EXPECT_EQ(breath.position, glm::vec3(0.0f));
     EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 3).State());
 
@@ -840,7 +840,7 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
 
     ASSERT_TRUE(tested.Step().HasValue());
 
-    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    const Client::Particles::Particle& breath = tested.world.Particles().All()[0];
     EXPECT_TRUE(breath.alive);
     EXPECT_EQ(breath.position, expected);
     EXPECT_NE(breath.position, glm::vec3(0.0f));
@@ -870,9 +870,9 @@ TEST(HelperTableTest, TheGallopRaisesTheDustOfItsMap)
     lorencia.Rider().animation.action = GallopingRider;
     const auto inLorencia = lorencia.Step();
     ASSERT_TRUE(inLorencia.HasValue()) << inLorencia.Error();
-    const Client::World::Particle& dust = lorencia.world.Particles().All()[0];
+    const Client::Particles::Particle& dust = lorencia.world.Particles().All()[0];
     EXPECT_TRUE(dust.alive);
-    EXPECT_EQ(dust.type, Client::World::DustParticle);
+    EXPECT_EQ(dust.type, Client::Particles::DustParticle);
     EXPECT_EQ(dust.subtype, 0);
     EXPECT_EQ(dust.position, (glm::vec3{10045.0f, 10033.0f, 157.0f}));
     EXPECT_EQ(dust.light, glm::vec3(1.0f));
@@ -889,8 +889,8 @@ TEST(HelperTableTest, TheGallopRaisesTheDustOfItsMap)
     devias.Rider().animation.action = GallopingRider;
     const auto inDevias = devias.Step();
     ASSERT_TRUE(inDevias.HasValue()) << inDevias.Error();
-    const Client::World::Particle& smoke = devias.world.Particles().All()[0];
-    EXPECT_EQ(smoke.type, Client::World::BreathParticle);
+    const Client::Particles::Particle& smoke = devias.world.Particles().All()[0];
+    EXPECT_EQ(smoke.type, Client::Particles::BreathParticle);
     EXPECT_EQ(smoke.subtype, 0);
     EXPECT_EQ(smoke.position, (glm::vec3{10046.0f, 10032.0f, 157.0f}));
     EXPECT_EQ(smoke.light, glm::vec3(1.0f));
@@ -955,9 +955,9 @@ TEST(HelperTableTest, InIcarusTheGallopRaisesAWaveAndPuffsFromTheGlobalPose)
         const auto stepped = tested.Step();
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+        const Client::Effects::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
         EXPECT_TRUE(wave.alive);
-        EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+        EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
         EXPECT_EQ(wave.subtype, 1);
         EXPECT_EQ(wave.life, 20);
         EXPECT_EQ(wave.transform.position, (glm::vec3{10140.0f, 10131.0f, 204.0f}));
@@ -968,9 +968,9 @@ TEST(HelperTableTest, InIcarusTheGallopRaisesAWaveAndPuffsFromTheGlobalPose)
         for (std::size_t index = 0; index < Puffs.size(); ++index)
         {
             SCOPED_TRACE(index);
-            const Client::World::Particle& puff = tested.world.Particles().All()[index];
+            const Client::Particles::Particle& puff = tested.world.Particles().All()[index];
             EXPECT_TRUE(puff.alive);
-            EXPECT_EQ(puff.type, Client::World::BreathParticle);
+            EXPECT_EQ(puff.type, Client::Particles::BreathParticle);
             EXPECT_EQ(puff.subtype, 0);
             EXPECT_EQ(puff.position, Puffs[index].position);
             EXPECT_EQ(puff.light, glm::vec3(1.0f));
@@ -1005,7 +1005,7 @@ TEST(HelperTableTest, TheIcarusDustPicksItsBoneByTheFrame)
 
         ASSERT_TRUE(tested.Step().HasValue());
 
-        const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+        const Client::Effects::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
         if (probe.bone)
         {
             ASSERT_TRUE(wave.alive);
@@ -1039,7 +1039,7 @@ TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_TRUE(zeroedStep.HasValue()) << zeroedStep.Error();
-    const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+    const Client::Effects::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
     ASSERT_TRUE(wave.alive);
     EXPECT_EQ(wave.transform.position.x, -5.0f);
     EXPECT_EQ(wave.transform.position, zeroed.world.Map().effects.Effects()[0].transform.position);
@@ -1117,8 +1117,8 @@ TEST(HelperTableTest, EveryTenLogicStepsTheRearingStompsAShockWave)
         ASSERT_TRUE(stomp.StepCounting(steps, &shake).HasValue()) << steps;
         ASSERT_EQ(LiveEffects(stomp), 1u) << steps;
         const auto& wave = stomp.world.Map().effects.Effects()[0];
-        EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
-        EXPECT_EQ(wave.subtype, Client::World::StompShockWaveSubtype);
+        EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
+        EXPECT_EQ(wave.subtype, Client::Effects::StompShockWaveSubtype);
         EXPECT_EQ(wave.transform.position, CellCentre(100, 100));
         EXPECT_EQ(wave.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
         EXPECT_EQ(wave.light, glm::vec3(3.0f, 3.0f, 3.0f));
@@ -1262,14 +1262,14 @@ TEST(HelperTableTest, AtCount0x13OutsideItsWindowTheQuakeCracksTheEarth)
     ASSERT_EQ(LiveEffects(quake), 1u);
     const auto& earthquake = quake.world.Map().effects.Effects()[0];
     CrtRandom expected = RandomAfter(QuietSeed, 1);
-    EXPECT_EQ(earthquake.type, Client::World::EarthquakeEffect);
+    EXPECT_EQ(earthquake.type, Client::Effects::EarthquakeEffect);
     EXPECT_EQ(earthquake.subtype, expected.Next() % 100);
     EXPECT_EQ(earthquake.state, 2);
     EXPECT_EQ(earthquake.start, CellCentre(100, 100));
     EXPECT_EQ(earthquake.light, glm::vec3(3.0f, 3.0f, 3.0f));
     EXPECT_EQ(earthquake.owner.type, &quake.Horse().type);
     EXPECT_EQ(earthquake.owner.angles, &quake.Horse().angles);
-    EXPECT_EQ(Client::World::OwnerTypeOf(earthquake.owner), std::optional<std::uint16_t>(DarkHorseModel));
+    EXPECT_EQ(Client::Effects::OwnerTypeOf(earthquake.owner), std::optional<std::uint16_t>(DarkHorseModel));
     EXPECT_EQ(quake.world.OwnCharacter().bytef04, 1u);
     EXPECT_EQ(quake.world.Runtime().ownRecordDepth, 0u);
     for (int draw = 0; draw < Client::Models::OwnRecordCloseRandoms; ++draw)
@@ -1468,7 +1468,7 @@ TEST(HelperTableTest, TheOrbitsTurnWithoutReadingTheHorse)
     std::vector<JointState> expected(joints.begin(), joints.begin() + 12);
     const std::uint32_t state = tested.random.State();
 
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, tested.random).HasValue());
 
     for (std::size_t index = 0; index < expected.size(); ++index)
     {
@@ -1824,9 +1824,9 @@ TEST(HelperTableTest, TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop)
     EXPECT_EQ(uniria.horse.speed, std::bit_cast<float>(0x3eae147bu));
     EXPECT_EQ(uniria.horse.animation.frame, std::bit_cast<float>(0x3eae147bu));
     EXPECT_EQ(uniria.horse.alpha, 1.0f);
-    const Client::World::Particle& dust = tested.world.Particles().All()[0];
+    const Client::Particles::Particle& dust = tested.world.Particles().All()[0];
     EXPECT_TRUE(dust.alive);
-    EXPECT_EQ(dust.type, Client::World::DustParticle);
+    EXPECT_EQ(dust.type, Client::Particles::DustParticle);
     EXPECT_EQ(dust.subtype, 0);
     EXPECT_EQ(dust.position, (glm::vec3{10045.0f, 10033.0f, 157.0f}));
     EXPECT_EQ(dust.light, glm::vec3(1.0f));
@@ -2130,9 +2130,9 @@ TEST(HelperTableTest, TheRunningFenrirRaisesTheDustOfItsMap)
     devias.Rider().animation.action = 0x7a;
     const auto inDevias = devias.Step(SceneId::CharacterSelect);
     ASSERT_TRUE(inDevias.HasValue()) << inDevias.Error();
-    const Client::World::Particle& smoke = devias.world.Particles().All()[0];
+    const Client::Particles::Particle& smoke = devias.world.Particles().All()[0];
     EXPECT_TRUE(smoke.alive);
-    EXPECT_EQ(smoke.type, Client::World::BreathParticle);
+    EXPECT_EQ(smoke.type, Client::Particles::BreathParticle);
     EXPECT_EQ(smoke.subtype, 0);
     EXPECT_EQ(smoke.position, (glm::vec3{10050.0f, 10024.0f, 157.0f}));
     EXPECT_EQ(smoke.light, glm::vec3(1.0f));
@@ -2144,7 +2144,7 @@ TEST(HelperTableTest, TheRunningFenrirRaisesTheDustOfItsMap)
     lorencia.Rider().alive = false;
     ASSERT_TRUE(lorencia.Step(SceneId::CharacterSelect).HasValue());
     EXPECT_TRUE(lorencia.Horse().alive);
-    EXPECT_EQ(lorencia.world.Particles().All()[0].type, Client::World::DustParticle);
+    EXPECT_EQ(lorencia.world.Particles().All()[0].type, Client::Particles::DustParticle);
     EXPECT_EQ(lorencia.random.State(), RandomAfter(BreathSeed, 8).State());
 
     for (const auto& [map, flags] : {std::pair{24, 0u}, std::pair{36, 0u}, std::pair{0, 0x4000u}})
@@ -2194,7 +2194,7 @@ TEST(HelperTableTest, InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones)
         const auto stepped = tested.Step();
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+        const Client::Effects::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
         if (!probe.base)
         {
             EXPECT_FALSE(wave.alive);
@@ -2203,15 +2203,15 @@ TEST(HelperTableTest, InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones)
             continue;
         }
         EXPECT_TRUE(wave.alive);
-        EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+        EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
         EXPECT_EQ(wave.subtype, 1);
         EXPECT_EQ(wave.transform.position, *probe.base);
         EXPECT_EQ(wave.transform.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
         EXPECT_EQ(wave.transform.scale, std::bit_cast<float>(0x3f8ccccdu));
-        const Client::World::Particle& first = tested.world.Particles().All()[0];
-        EXPECT_EQ(first.type, Client::World::BreathParticle);
+        const Client::Particles::Particle& first = tested.world.Particles().All()[0];
+        EXPECT_EQ(first.type, Client::Particles::BreathParticle);
         EXPECT_EQ(first.position, *probe.base + glm::vec3(9.0f, -25.0f, -17.0f));
-        const Client::World::Particle& last = tested.world.Particles().All()[7];
+        const Client::Particles::Particle& last = tested.world.Particles().All()[7];
         EXPECT_TRUE(last.alive);
         EXPECT_EQ(last.position, *probe.base + glm::vec3(-2.0f, -11.0f, -13.0f));
         EXPECT_FALSE(tested.world.Particles().All()[8].alive);
@@ -2247,9 +2247,9 @@ TEST(HelperTableTest, TheGuardianAngelSparklesAndFliesWithItsVelocity)
     for (std::size_t index = 0; index < Sparks.size(); ++index)
     {
         SCOPED_TRACE(index);
-        const Client::World::Particle& spark = tested.world.Particles().All()[index];
+        const Client::Particles::Particle& spark = tested.world.Particles().All()[index];
         EXPECT_TRUE(spark.alive);
-        EXPECT_EQ(spark.type, Client::World::FairySparkParticle);
+        EXPECT_EQ(spark.type, Client::Particles::FairySparkParticle);
         EXPECT_EQ(spark.subtype, 1);
         EXPECT_EQ(spark.position, Sparks[index]);
         EXPECT_EQ(spark.light, glm::vec3(std::bit_cast<float>(0x3ecccccdu)));
@@ -2485,7 +2485,7 @@ TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
             EXPECT_FALSE(batch.Commands().empty());
         }
         EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 4).State());
-        const std::vector<Client::World::Sprite> glow = tested.LiveSprites();
+        const std::vector<Client::Particles::Sprite> glow = tested.LiveSprites();
         ASSERT_EQ(glow.size(), 1u);
         EXPECT_EQ(glow[0].texture, 0x5ac);
         EXPECT_EQ(glow[0].position, glm::vec3(9835.0f, 9829.0f, 360.0f));
@@ -2581,13 +2581,13 @@ TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
         const int z = (draws.Next() % 40) - 20;
         const glm::vec3 sparkAt =
             HelperWorld::PosedBone(14) + glm::vec3(static_cast<float>(x * 0.5), 0.0f, static_cast<float>(z * 0.5));
-        Client::World::Particles sparks;
+        Client::Particles::Particles sparks;
         const float sparkScale = static_cast<float>(pulse * static_cast<double>(0.05f) + static_cast<double>(0.7f));
         ASSERT_TRUE(sparks
                         .CreateChecked(0x5c6, sparkAt, fenrir.angles, glm::vec3(1.0f, 0.0f, 0.0f), 15, sparkScale,
                                        tested.clock, draws)
                         .HasValue());
-        const Client::World::Particle& spark = tested.world.Particles().All()[0];
+        const Client::Particles::Particle& spark = tested.world.Particles().All()[0];
         ASSERT_TRUE(spark.alive);
         EXPECT_EQ(spark.subtype, 15);
         EXPECT_EQ(spark.position, sparkAt);
@@ -2595,8 +2595,8 @@ TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
         EXPECT_EQ(spark.life, sparks.All()[0].life);
         EXPECT_EQ(spark.velocity, sparks.All()[0].velocity);
 
-        Client::World::ModelEffects bolts;
-        Client::World::FrameSprites boltFlares;
+        Client::Effects::ModelEffects bolts;
+        Client::Particles::FrameSprites boltFlares;
         const auto bonePoint = [](std::size_t bone) { return HelperWorld::PosedBone(bone); };
         for (int bolt = 0; bolt < 2; ++bolt)
             ASSERT_TRUE(bolts
@@ -2608,8 +2608,8 @@ TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
         EXPECT_EQ(tested.random.State(), draws.State());
         for (std::size_t slot = 0; slot < 2; ++slot)
         {
-            const Client::World::ModelEffect& made = tested.world.Map().effects.Effects()[slot];
-            const Client::World::ModelEffect& expected = bolts.Effects()[slot];
+            const Client::Effects::ModelEffect& made = tested.world.Map().effects.Effects()[slot];
+            const Client::Effects::ModelEffect& expected = bolts.Effects()[slot];
             EXPECT_EQ(made.alive, expected.alive);
             EXPECT_EQ(made.type, expected.type);
             EXPECT_EQ(made.transform.position, expected.transform.position);
@@ -2691,16 +2691,16 @@ TEST(HelperTableTest, TheFenrirLeavesItsDecalsInTheWindowsOfItsStrikes)
                               : glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu),
                                           std::bit_cast<float>(0x3f4ccccdu));
             std::vector<glm::vec3> decals;
-            for (const Client::World::ModelEffect& effect : world.world.Map().effects.Effects())
+            for (const Client::Effects::ModelEffect& effect : world.world.Map().effects.Effects())
             {
                 if (!effect.alive)
                     continue;
-                if (effect.type == Client::World::LightningEffect)
+                if (effect.type == Client::Effects::LightningEffect)
                 {
                     EXPECT_EQ(effect.light, boltLight);
                     continue;
                 }
-                ASSERT_EQ(effect.type, Client::World::LightningDecalEffect);
+                ASSERT_EQ(effect.type, Client::Effects::LightningDecalEffect);
                 EXPECT_EQ(effect.subtype, type == 0x14a ? 3 : 2);
                 EXPECT_EQ(effect.light, glm::vec3(1.0f));
                 EXPECT_EQ(effect.textureTime, HelperWorld::FenrirHour);
@@ -2724,7 +2724,7 @@ TEST(HelperTableTest, TheTablesPortTurnsOffAndCreatesInTheWorldsTable)
     auto& helpers = tested.world.Helpers();
     helpers[1] = HelperState{.alive = true, .type = DarkHorseModel, .rider = HeroSlot};
     helpers[2] = HelperState{.alive = true, .type = DarkHorseModel, .rider = OtherSlot};
-    const Client::Scenes::TableHelpers port(tested.world, &tested.random);
+    const Client::Pets::TableHelpers port(tested.world, &tested.random);
 
     port.TurnOffTheHelpersOf(HeroSlot);
 
@@ -2756,7 +2756,7 @@ TEST(HelperTableTest, TheOwnHelpersPortTurnsOffAndBuildsOnlyItsHelper)
         const ActorState rider = tested.Rider();
         HelperState helper{.alive = true, .type = UniriaModel};
         tested.world.Helpers()[0] = HelperState{.alive = true, .type = UniriaModel, .rider = ActorPoolSize};
-        const Client::Scenes::OwnHelper port(helper, rider, tested.world, &tested.random);
+        const Client::Pets::OwnHelper port(helper, rider, tested.world, &tested.random);
 
         port.TurnOffTheHelpersOf(ActorPoolSize);
 

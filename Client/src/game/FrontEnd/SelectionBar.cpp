@@ -24,7 +24,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -72,9 +72,9 @@ constexpr Render::Text::TextStyle BlockedStyle{Render::Text::FontKind::OtherFace
 constexpr float HeightFactor = -0.945f;
 static_assert(std::bit_cast<std::uint32_t>(HeightFactor) == 0xbf71eb85U, "el float de 0x6baae0");
 
-Rect ButtonAt(int x, int y)
+Ui::Rect ButtonAt(int x, int y)
 {
-    return Rect{.x = x, .y = y, .width = ButtonWidth, .height = ButtonHeight};
+    return Ui::Rect{.x = x, .y = y, .width = ButtonWidth, .height = ButtonHeight};
 }
 } // namespace
 
@@ -84,9 +84,9 @@ SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen)
     const int y = -static_cast<int>(static_cast<double>(screen.height) * static_cast<double>(HeightFactor)) - BarHeight;
     const int width = screen.width - 2 * BarLeft;
     SelectionBarLayout layout{};
-    layout.bar = Rect{.x = BarLeft, .y = y, .width = width, .height = BarHeight};
-    layout.deco = Rect{.x = screen.width - DecoWidth, .y = y - DecoAbove, .width = DecoWidth, .height = DecoHeight};
-    layout.strip = Rect{.x = BarLeft, .y = y + StripTop, .width = width, .height = StripHeight};
+    layout.bar = Ui::Rect{.x = BarLeft, .y = y, .width = width, .height = BarHeight};
+    layout.deco = Ui::Rect{.x = screen.width - DecoWidth, .y = y - DecoAbove, .width = DecoWidth, .height = DecoHeight};
+    layout.strip = Ui::Rect{.x = BarLeft, .y = y + StripTop, .width = width, .height = StripHeight};
     layout.create = ButtonAt(BarLeft, y);
     layout.menu = ButtonAt(BarLeft + ButtonWidth + 1, y);
     layout.connect = ButtonAt(BarLeft + width - 2 * ButtonWidth - 1, y);
@@ -94,7 +94,7 @@ SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen)
     return layout;
 }
 
-SelectionBar::SelectionBar(TextureSizes sizes, const Tables::TextTable* texts)
+SelectionBar::SelectionBar(Ui::TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts),
       m_create(CreateSlot, ButtonWidth, ButtonHeight, std::nullopt, DisabledFrame),
       m_menu(MenuSlot, ButtonWidth, ButtonHeight),
@@ -130,20 +130,20 @@ bool SelectionBar::IsOpen() const
     return m_open;
 }
 
-Rect SelectionBar::Bounds(Core::PixelSize screen) const
+Ui::Rect SelectionBar::Bounds(Core::PixelSize screen) const
 {
     return LayoutSelectionBar(screen).bar;
 }
 
 std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& input, Core::PixelSize screen,
-                                                    NewUiTurn turn)
+                                                    Ui::NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    const std::optional<Ui::Point> mouse = Ui::MouseOfTheTurn(turn, input, screen);
     const bool create = m_create.Step(input, mouse, turn.buttonClicked);
     const bool menu = m_menu.Step(input, mouse, turn.buttonClicked);
     const bool connect = m_connect.Step(input, mouse, turn.buttonClicked);
@@ -180,7 +180,7 @@ void SelectionBar::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
     }
     Place(screen);
     sprites.SetBlend(Render::BlendMode::Alpha);
-    sprites.Image(PixelImage(DecoSlot, m_layout.deco, m_sizes(DecoSlot)));
+    sprites.Image(Ui::PixelImage(DecoSlot, m_layout.deco, m_sizes(DecoSlot)));
     sprites.Image(
         Render::UiImage{.slot = std::nullopt,
                         .x = m_layout.strip.x,
@@ -196,7 +196,7 @@ void SelectionBar::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
         text.Draw(Render::Text::DesignX(m_layout.bar.x + NoticeLeft, screen),
                   Render::Text::DesignY(m_layout.bar.y + TextTop, screen), serverNotice, NoticeStyle);
     }
-    if (const std::optional<std::string_view> right = TextAt(m_texts, RightText); right && !right->empty())
+    if (const std::optional<std::string_view> right = Ui::TextAt(m_texts, RightText); right && !right->empty())
     {
         text.Draw(Render::Text::DesignX(screen.width - RightTextFromRight, screen),
                   Render::Text::DesignY(m_layout.bar.y + TextTop, screen), *right, RightStyle);
@@ -206,7 +206,7 @@ void SelectionBar::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
         for (const auto& [number, top] :
              {std::pair{BlockedText, BlockedTop}, std::pair{BlockedSiteText, BlockedSiteTop}})
         {
-            if (const std::optional<std::string_view> line = TextAt(m_texts, number); line && !line->empty())
+            if (const std::optional<std::string_view> line = Ui::TextAt(m_texts, number); line && !line->empty())
             {
                 const Render::Text::TextExtent extent = text.Measure(BlockedStyle.font, *line);
                 text.Draw(Render::Text::CenteredAt(BlockedCenter, extent, screen), top, *line, BlockedStyle);
@@ -219,17 +219,17 @@ void SelectionBar::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
     sprites.Image(m_delete.Image(m_sizes));
 }
 
-const Button& SelectionBar::CreateButton() const
+const Ui::Button& SelectionBar::CreateButton() const
 {
     return m_create;
 }
 
-const Button& SelectionBar::ConnectButton() const
+const Ui::Button& SelectionBar::ConnectButton() const
 {
     return m_connect;
 }
 
-const Button& SelectionBar::DeleteButton() const
+const Ui::Button& SelectionBar::DeleteButton() const
 {
     return m_delete;
 }
@@ -237,9 +237,9 @@ const Button& SelectionBar::DeleteButton() const
 void SelectionBar::Place(Core::PixelSize screen)
 {
     m_layout = LayoutSelectionBar(screen);
-    m_create.MoveTo(Point{m_layout.create.x, m_layout.create.y});
-    m_menu.MoveTo(Point{m_layout.menu.x, m_layout.menu.y});
-    m_connect.MoveTo(Point{m_layout.connect.x, m_layout.connect.y});
-    m_delete.MoveTo(Point{m_layout.remove.x, m_layout.remove.y});
+    m_create.MoveTo(Ui::Point{m_layout.create.x, m_layout.create.y});
+    m_menu.MoveTo(Ui::Point{m_layout.menu.x, m_layout.menu.y});
+    m_connect.MoveTo(Ui::Point{m_layout.connect.x, m_layout.connect.y});
+    m_delete.MoveTo(Ui::Point{m_layout.remove.x, m_layout.remove.y});
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

@@ -51,7 +51,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
         }
         return;
     }
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(Step());
     HideTheSiegePanel();

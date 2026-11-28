@@ -12,7 +12,7 @@ struct ActorState;
 
 // CL9 hito 4, fase 2c: la skill del arma sobre su blanco al alcance (0x55cbc0). La llaman la rama del Wizard de
 // 0x57cfc0 (0x58eecc, con el héroe dos veces) y la llegada de 0x5650c0 (0x5663b2, hito 3).
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // 0x55cbc0(p1, p2): la skill del lugar de la skill del arma (0x7758584, en el registro propio abierto y cerrado). Con
@@ -28,4 +28,4 @@ namespace Client::Scenes
 // - Las demás, nada.
 [[nodiscard]] Core::Expected<void, std::string>
 UseTheSkillOnItsTarget(Kernel::ActorState& user, Kernel::ActorState& turned, const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -6,7 +6,7 @@
 // El objeto de evento de 0x447d70 (DAT_00723c60, operator new(0x134)): Devil Square, Blood Castle o Chaos
 // Castle. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los objetos de Devil Square y de Blood
 // Castle".
-namespace Client::Scenes
+namespace Client::Events
 {
 // La clase, por la vtable que 0x447d70 (o 0x404d60) escribe en +0x00. Sus métodos los llaman el HUD
 // (0x5a7320, CL8) y los paquetes (0x4e2b10, 0x4da730, 0x4da750, 0x4dac70, 0x4e7360, CL9.5).
@@ -33,4 +33,4 @@ struct EventMapObject
     // +0x2c..+0x133: rep stos de 0x42 dwords en 0.
     std::array<std::int32_t, 0x42> field2c{};
 };
-} // namespace Client::Scenes
+} // namespace Client::Events

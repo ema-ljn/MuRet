@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -203,8 +203,8 @@ Core::Expected<void, std::string> DropTheChunk(SlideQueue& queue, const Render::
 // son con la suma en la x87; la velocidad se guarda en float.
 void Scroll(SlideQueue& queue, const SlideDrawContext& context)
 {
-    const bool hovered = MouseInRect(context.mouseX, context.mouseY, 0, queue.y - HoverAbove,
-                                     context.sprites.Screen().width, queue.lineHeight + HoverExtra, HoverMode);
+    const bool hovered = Chat::MouseInRect(context.mouseX, context.mouseY, 0, queue.y - HoverAbove,
+                                           context.sprites.Screen().width, queue.lineHeight + HoverExtra, HoverMode);
     queue.push = hovered ? -1.0f : 1.0f;
     const double sum = static_cast<double>(queue.velocity) + static_cast<double>(queue.push);
     if (sum >= static_cast<double>(queue.maxSpeed))
@@ -385,4 +385,4 @@ Core::Expected<void, std::string> DrawTheSlides(SlideBanner& banner, const Slide
         return {};
     return DrawTheQueue(banner, banner.bold, false, context);
 }
-} // namespace Client::UI
+} // namespace Client::Ui

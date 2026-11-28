@@ -135,14 +135,15 @@ std::optional<CapturedLists> ReadCapturedLists(const std::filesystem::path& path
     return lists;
 }
 
-// Las listas de MuRet: cada objeto en la de su sector, en el orden en que los recorre World::DrawOrder.
-ObjectLists ListsOf(std::span<const Client::World::WorldObject> objects)
+// Las listas de MuRet: cada objeto en la de su sector, en el orden en que los recorre WorldObjects::DrawOrder.
+ObjectLists ListsOf(std::span<const Client::WorldObjects::WorldObject> objects)
 {
     ObjectLists lists;
-    for (const std::size_t index : Client::World::DrawOrder(objects))
+    for (const std::size_t index : Client::WorldObjects::DrawOrder(objects))
     {
-        const Client::World::WorldObject& object = objects[index];
-        const int list = (Client::World::SectorX(object) * SectorsPerSide) + Client::World::SectorY(object);
+        const Client::WorldObjects::WorldObject& object = objects[index];
+        const int list =
+            (Client::WorldObjects::SectorX(object) * SectorsPerSide) + Client::WorldObjects::SectorY(object);
         lists.at(static_cast<std::size_t>(list)).push_back(index);
     }
     return lists;
@@ -166,9 +167,10 @@ TEST_F(GoldenDeviasWorldObjects, EveryListEqualsTheOriginalsMemory)
     const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, Devias);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), DeviasRecords);
-    Client::World::WorldObjectRegistrations registrations;
-    Client::World::WorldObjectCreationContext context{Devias, Client::World::ObjectScene::Other, registrations};
-    const auto created = Client::World::CreateWorldObjects(records.Value(), context);
+    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::WorldObjects::WorldObjectCreationContext context{Devias, Client::WorldObjects::ObjectScene::Other,
+                                                             registrations};
+    const auto created = Client::WorldObjects::CreateWorldObjects(records.Value(), context);
     ASSERT_FALSE(created.failure.has_value());
     ASSERT_EQ(created.objects.size(), DeviasRecords) << "uno por registro: el índice del objeto es el del registro";
 

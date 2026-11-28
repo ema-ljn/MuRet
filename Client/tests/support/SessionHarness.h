@@ -32,7 +32,8 @@ struct LoggedInSession
 {
     explicit LoggedInSession(App::ISessionEventSink* eventSinkOverride = nullptr)
         : log(sink, Core::LogLevel::Debug), connection(socket, Network::IdentityObfuscation::Shared(), clock, log, 1),
-          session(connection, clock, log, GameClientKeys(), App::SessionSettings{App::ServerAddress{"10.0.0.1", 44405}},
+          session(connection, clock, log, GameClientKeys(),
+                  App::SessionSettings{Session::ServerAddress{"10.0.0.1", 44405}},
                   eventSinkOverride != nullptr ? *eventSinkOverride : eventSink)
     {
     }
@@ -55,7 +56,7 @@ struct LoggedInSession
         session.SubmitCredentials(App::Credentials{"user0001", "pass0002"});
         socket.reads = {LoginResult(1)};
         static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), App::SessionState::LoggedIn);
+        ASSERT_EQ(session.State(), Session::SessionState::LoggedIn);
     }
 
     // La lista de personajes del GS, en claro.

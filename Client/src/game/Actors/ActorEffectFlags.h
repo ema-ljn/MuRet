@@ -27,7 +27,7 @@ namespace Client::Actors
 // instead of setting their bit. 0x400 and 0x10 turn off the 0x5ac/2 or /1 of `actor` in `effects` (0x518ac0) and
 // create another with it as owner (0x518cf0, `CreateSkillFlare`; with the table full, none), always, and set their
 // bit. 0x20 without its bit turns off the character's 0xc1/1 (0x518ac0) and creates 0xc1/1 and /2 with it as owner
-// (World::CreateWizardModelEffect, which overwrites its +0xf4 light). 0x40 without its bit turns off the 0x628/0 of
+// (Effects::CreateWizardModelEffect, which overwrites its +0xf4 light). 0x40 without its bit turns off the 0x628/0 of
 // `actor`, creates another with it as owner (PutTheSkullOn) and requests sound 0x85 on it. 0x100 on a 0x20a without
 // the bit (sound 0x84 stays in `lastSound`) turns off its 0x10f/0 (0x534f90) and creates the five 0x10f joints that
 // turn around it; 0x1000 sets its bit and creates the three 0x10f/8 (both, 0x530860 of AuraJoints).
@@ -45,7 +45,7 @@ struct IceCalls
 };
 
 // A character's ice: 0x518ac0(0xc1, character, 1) and 0xc1/1 and /2 (z + 180) with it as owner, its position, its
-// angles and its +0xf4 light, which each creation overwrites (World::CreateWizardModelEffect). Flag 0x20 (0x4e67bc)
+// angles and its +0xf4 light, which each creation overwrites (Effects::CreateWizardModelEffect). Flag 0x20 (0x4e67bc)
 // and the reply of 0x33 (0x4cd6bc) use it. With the table full, nothing and no rand().
 [[nodiscard]] Core::Expected<void, std::string>
 WrapInIce(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources, const IceCalls& calls);

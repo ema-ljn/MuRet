@@ -9,8 +9,8 @@
 // en int (FILD). La llaman las ramas de las clases de 0x57cfc0 (0x580a1a, 0x58657c, 0x587b2c, 0x58891c, 0x58dd70 y
 // 0x59409f) con la posición del héroe y el _ftol de su +0x3a8/+0x3ac. Vacío si un _ftol no tiene un resultado
 // portable (Math::OriginalFtolLow).
-namespace Client::Scenes
+namespace Client::Skills
 {
 [[nodiscard]] std::optional<std::uint8_t> RelativeTargetCell(float x, float y, std::int32_t targetX,
                                                              std::int32_t targetY);
-} // namespace Client::Scenes
+} // namespace Client::Skills

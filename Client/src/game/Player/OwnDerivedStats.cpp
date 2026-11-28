@@ -262,8 +262,8 @@ Core::Expected<void, std::string> AddCapeOfLordOptions(Kernel::OwnCharacterRecor
                                             wings.optionCount));
     }
     std::array<std::byte, 2> word36 = LittleEndianWord(own.word36);
-    Scenes::AddOwnItemOptionValues(word36, Word36OptionSelector,
-                                   {wings.id, wings.durability, wings.optionCount, wings.optionBytes});
+    Items::AddOwnItemOptionValues(word36, Word36OptionSelector,
+                                  {wings.id, wings.durability, wings.optionCount, wings.optionBytes});
     own.word36 = FromLittleEndian(word36);
     return {};
 }

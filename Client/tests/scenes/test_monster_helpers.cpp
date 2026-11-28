@@ -54,7 +54,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::MonsterHelperPass;
+using Client::Monsters::Drawing::MonsterHelperPass;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
 
@@ -157,9 +157,9 @@ protected:
                 .originalFrame = originalFrame};
     }
 
-    std::vector<Client::World::Sprite> LiveSprites()
+    std::vector<Client::Particles::Sprite> LiveSprites()
     {
-        std::vector<Client::World::Sprite> live;
+        std::vector<Client::Particles::Sprite> live;
         for (const auto& sprite : m_sprites.Sprites())
         {
             if (sprite.alive)
@@ -200,9 +200,9 @@ protected:
             particle = {};
     }
 
-    static std::vector<Client::World::Particle> Live(std::span<const Client::World::Particle> all)
+    static std::vector<Client::Particles::Particle> Live(std::span<const Client::Particles::Particle> all)
     {
-        std::vector<Client::World::Particle> live;
+        std::vector<Client::Particles::Particle> live;
         for (const auto& particle : all)
         {
             if (particle.alive)
@@ -211,7 +211,7 @@ protected:
         return live;
     }
 
-    std::vector<Client::World::Particle> LiveParticles() const
+    std::vector<Client::Particles::Particle> LiveParticles() const
     {
         return Live(std::as_const(*m_particles).All());
     }
@@ -248,9 +248,9 @@ protected:
     SwingModels m_models;
     Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
-    Client::World::FrameSprites m_sprites;
-    std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::Particles> m_reference = std::make_unique<Client::World::Particles>();
+    Client::Particles::FrameSprites m_sprites;
+    std::unique_ptr<Client::Particles::Particles> m_particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::Particles> m_reference = std::make_unique<Client::Particles::Particles>();
 };
 
 // FLD T; FMUL tasa; FSIN; FMUL factor con un solo R53 (ADR0014), como el original.
@@ -291,7 +291,7 @@ TEST_F(MonsterHelpersTest, OtherTypesAndMapsDoNothing)
         actor.subtype = 1;
         CrtRandom random(1);
         MonsterHelperPass pass = Pass(map, random);
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(actor.subtype, 1);
         EXPECT_EQ(random.State(), 1u);
@@ -310,7 +310,7 @@ TEST_F(MonsterHelpersTest, The1a3LightsItsEyesAndGrowlsWhenIdle)
     CrtRandom random(seed);
     MonsterHelperPass pass = Pass(Lorencia, random);
 
-    const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(drawn.Value());
@@ -338,25 +338,25 @@ TEST_F(MonsterHelpersTest, The1a3AttackSoundsOnceUntilItRests)
     ActorState& actor = Monster(0x1a3, 3);
     CrtRandom random(5);
     MonsterHelperPass pass = Pass(Devias, random);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass).HasValue());
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1f7 + (CrtRandom(5).Next() & 1)});
     EXPECT_EQ(random.State(), AfterDraws(5, 1).State());
 
     m_world->Runtime().lastSoundId.reset();
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass).HasValue());
     EXPECT_FALSE(Sound().has_value());
     EXPECT_EQ(random.State(), AfterDraws(5, 1).State());
 
     actor.animation.action = 6;
     actor.subtype = 0;
     MonsterHelperPass between = Pass(Devias, random, false);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(between).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(between).HasValue());
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_FALSE(Sound().has_value());
 
     actor.animation.action = 0;
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass).HasValue());
     EXPECT_EQ(actor.subtype, 0);
 }
 
@@ -367,7 +367,7 @@ TEST_F(MonsterHelpersTest, AMissingNamedBoneCutsAtItsCall)
     Monster(0x1a3, 0);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Lorencia, random);
-    const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
     EXPECT_TRUE(CutAt(drawn, "0x441552")) << drawn.Error();
     EXPECT_EQ(LiveSprites().size(), 1u);
 }
@@ -406,7 +406,7 @@ TEST_F(MonsterHelpersTest, The1a4AndThe1a6DieInStones)
                 asked.emplace_back(type, subtype);
                 return {};
             };
-            const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+            const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             EXPECT_FALSE(actor.alive);
             EXPECT_EQ(random.State(), AfterDraws(calm, death.draws).State());
@@ -426,7 +426,7 @@ TEST_F(MonsterHelpersTest, The1a4AndThe1a6DieInStones)
     Monster(0x1a6, 6);
     CrtRandom random(calm);
     MonsterHelperPass bare = Pass(Lorencia, random);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(bare), "0x442165"));
+    EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(bare), "0x442165"));
 }
 
 // Lo que los monstruos sueltan en sus huesos: el tipo, el subtipo, la escala, el punto, la luz, si la partícula lleva
@@ -444,11 +444,11 @@ struct BoneParticle
 
 // Las partículas de `made` en los primeros lugares de `particles`, contra un pool gemelo con el mismo rand() desde
 // `expected`; devuelve el rand() de después.
-CrtRandom ExpectTheBoneParticles(const Client::World::Particles& particles, std::span<const BoneParticle> made,
+CrtRandom ExpectTheBoneParticles(const Client::Particles::Particles& particles, std::span<const BoneParticle> made,
                                  const glm::vec3& angles, CrtRandom expected)
 {
-    auto twin = std::make_unique<Client::World::Particles>();
-    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, Slot};
+    auto twin = std::make_unique<Client::Particles::Particles>();
+    const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::Actor, Slot};
     for (std::size_t index = 0; index < made.size(); ++index)
     {
         SCOPED_TRACE(index);
@@ -459,8 +459,8 @@ CrtRandom ExpectTheBoneParticles(const Client::World::Particles& particles, std:
                                          : twin->CreateChecked(bone.type, bone.point, turned, bone.light, bone.subtype,
                                                                bone.scale, 0.0f, expected);
         EXPECT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
-        const Client::World::Particle& particle = particles.All()[index];
-        const Client::World::Particle& reference = twin->All()[index];
+        const Client::Particles::Particle& particle = particles.All()[index];
+        const Client::Particles::Particle& reference = twin->All()[index];
         EXPECT_TRUE(particle.alive);
         EXPECT_EQ(particle.type, bone.type);
         EXPECT_EQ(particle.subtype, bone.subtype);
@@ -470,7 +470,7 @@ CrtRandom ExpectTheBoneParticles(const Client::World::Particles& particles, std:
         EXPECT_EQ(particle.life, reference.life);
         EXPECT_EQ(particle.velocity, reference.velocity);
         EXPECT_EQ(particle.light, reference.light);
-        EXPECT_EQ(particle.typedOwner, bone.owned ? owner : Client::World::ParticleOwner{});
+        EXPECT_EQ(particle.typedOwner, bone.owned ? owner : Client::Particles::ParticleOwner{});
     }
     EXPECT_FALSE(particles.All()[made.size()].alive);
     return expected;
@@ -490,9 +490,9 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
     Monster(0x1a4, 6);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Lorencia, random);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x441696"));
+    EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass), "0x441696"));
     const ActorState& walking = Monster(0x1a4, 0);
-    const auto walked = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto walked = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(walked.HasValue()) << walked.Error();
     const float small = std::bit_cast<float>(0x3f4ccccdu);
     const float hand = std::bit_cast<float>(0x4059999au);
@@ -518,7 +518,7 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
         Monster(0x1a4, 2);
         CrtRandom full(growl);
         MonsterHelperPass crowded = Pass(map, full);
-        const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded);
+        const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(crowded);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom expected(growl);
         static_cast<void>(expected.Next());
@@ -530,7 +530,7 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
     actor.subtype = 0;
     CrtRandom attack(quiet);
     MonsterHelperPass attacking = Pass(Devias, attack);
-    const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(attacking);
+    const auto struck = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(attacking);
     ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x207});
@@ -589,7 +589,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         CrtRandom attack(quiet);
         MonsterHelperPass attacking = Pass(map, attack);
 
-        const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(attacking);
+        const auto struck = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(attacking);
 
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
         EXPECT_EQ(actor.subtype, 1);
@@ -602,7 +602,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         {
             glm::vec3 point = at;
             glm::vec3 angles = down;
-            ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+            ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twin,
                                                          {.type = 0x61c,
                                                           .firstPosition = point,
                                                           .secondPosition = point,
@@ -625,7 +625,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         for (std::size_t strike = 0; strike < points.size(); ++strike)
         {
             SCOPED_TRACE(strike);
-            const Client::World::ModelEffect& crater = effects[2 * strike];
+            const Client::Effects::ModelEffect& crater = effects[2 * strike];
             ASSERT_TRUE(crater.alive);
             EXPECT_EQ(crater.type, 0x636);
             EXPECT_EQ(crater.subtype, 2);
@@ -633,7 +633,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
             EXPECT_EQ(crater.transform.angles, down);
             EXPECT_EQ(crater.light, glm::vec3(1.0f));
             EXPECT_EQ(crater.ownerContext, nullptr);
-            const Client::World::ModelEffect& column = effects[(2 * strike) + 1];
+            const Client::Effects::ModelEffect& column = effects[(2 * strike) + 1];
             ASSERT_TRUE(column.alive);
             EXPECT_EQ(column.type, 0x5de);
             EXPECT_EQ(column.subtype, 3);
@@ -674,7 +674,7 @@ TEST_F(MonsterHelpersTest, The1a4AttackBurstKeepsItsRandomsAndSoundWithThePartic
         m_world->Runtime().lastSoundId.reset();
         CrtRandom random(quiet);
         MonsterHelperPass pass = Pass(Lorencia, random);
-        const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const bool bursts = frame >= 5.0f && frame <= 5.7f;
         EXPECT_EQ(actor.subtype, bursts ? 1 : 0);
@@ -682,7 +682,7 @@ TEST_F(MonsterHelpersTest, The1a4AttackBurstKeepsItsRandomsAndSoundWithThePartic
         EXPECT_EQ(random.State(), AfterDraws(quiet, bursts ? 41 : 1).State());
         if (bursts)
         {
-            const auto again = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+            const auto again = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
             ASSERT_TRUE(again.HasValue()) << again.Error();
             CrtRandom expected = AfterDraws(quiet, 41);
             if (expected.Next() % 20 == 0)
@@ -712,7 +712,7 @@ TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
         CrtRandom random(77);
         MonsterHelperPass pass = Pass(map, random);
 
-        const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom expected(77);
@@ -755,7 +755,7 @@ TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
     Monster(0x1a5, 4).subtype = 0;
     CrtRandom full(77);
     MonsterHelperPass crowded = Pass(Devias, full);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
     EXPECT_EQ(full.State(), AfterDraws(77, 40).State());
     EXPECT_EQ(LiveSprites().size(), 26u);
 }
@@ -778,7 +778,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     const std::uint32_t odd = FirstSeedWhere([](CrtRandom& random) { return (random.Next() & 1) != 0; });
     CrtRandom first(odd);
     MonsterHelperPass pass = Pass(Lorencia, first);
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheEffectsOf1a3To1a9(pass), "0x442397"));
+    EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass), "0x442397"));
     EXPECT_EQ(first.State(), AfterDraws(odd, 1).State());
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1fe});
     EXPECT_EQ(actor.subtype, 1);
@@ -787,7 +787,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     const std::uint32_t even = FirstSeedWhere([](CrtRandom& random) { return (random.Next() & 1) == 0; });
     CrtRandom second(even);
     MonsterHelperPass poisoned = Pass(Lorencia, second);
-    const auto thrown = Client::Scenes::DrawTheEffectsOf1a3To1a9(poisoned);
+    const auto thrown = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(poisoned);
     CrtRandom expected(even);
     static_cast<void>(expected.Next());
     const std::uint32_t side = expected.Next() % 2 == 0 ? 53 : 54;
@@ -843,7 +843,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
             });
         CrtRandom third(dry);
         MonsterHelperPass attack = Pass(map, third);
-        const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(attack);
+        const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(attack);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom hands(dry);
         EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1fc + (hands.Next() & 1)});
@@ -868,7 +868,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
                        { return random.Next() % 10 != 0 && random.Next() % 10 != 0 && random.Next() % 10 != 0; });
     CrtRandom resting(calm);
     MonsterHelperPass rest = Pass(Lorencia, resting);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(rest).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(rest).HasValue());
     EXPECT_EQ(resting.State(), AfterDraws(calm, 3).State());
     EXPECT_EQ(actor.subtype, 0);
 
@@ -887,7 +887,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     ClearParticles();
     CrtRandom dripping(right);
     MonsterHelperPass drip = Pass(Lorencia, dripping);
-    const auto dripped = Client::Scenes::DrawTheEffectsOf1a3To1a9(drip);
+    const auto dripped = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(drip);
     ASSERT_TRUE(dripped.HasValue()) << dripped.Error();
     CrtRandom drops(right);
     static_cast<void>(drops.Next());
@@ -916,7 +916,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     ClearParticles();
     CrtRandom pouring(all);
     MonsterHelperPass pour = Pass(Devias, pouring);
-    const auto poured = Client::Scenes::DrawTheEffectsOf1a3To1a9(pour);
+    const auto poured = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pour);
     ASSERT_TRUE(poured.HasValue()) << poured.Error();
     CrtRandom streams(all);
     for (const std::uint32_t bone : {52u, 53u, 54u})
@@ -933,7 +933,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     FillParticles();
     CrtRandom crowded(all);
     MonsterHelperPass full = Pass(Devias, crowded);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(full).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(full).HasValue());
     EXPECT_EQ(crowded.State(), AfterDraws(all, 3).State());
 }
 
@@ -954,7 +954,7 @@ TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
         actor.angles = {0.0f, 0.0f, 30.0f};
         CrtRandom random(seed);
         MonsterHelperPass pass = Pass(map, random);
-        const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const auto sprites = LiveSprites();
         ASSERT_EQ(sprites.size(), 2u);
@@ -972,7 +972,7 @@ TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
     Monster(0x1a7, 10);
     CrtRandom full(seed);
     MonsterHelperPass crowded = Pass(Devias, full);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
     CrtRandom expected(seed);
     static_cast<void>(expected.Next());
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x1f0 + (expected.Next() & 1)});
@@ -992,7 +992,7 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     actor.angles = {0.0f, 0.0f, 45.0f};
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Lorencia, random);
-    const auto first = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto first = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x20d});
@@ -1016,7 +1016,7 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     // La segunda vez, con +4 en 1, ni el efecto ni el sonido; las mismas dos partículas.
     m_world->Runtime().lastSoundId.reset();
     random = CrtRandom(1);
-    const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(Sound().has_value());
     EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
@@ -1027,7 +1027,7 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     // Con la tabla llena, la 0x6ec/3 y la 0x5f2/21 no crean nada.
     FillParticles();
     MonsterHelperPass crowded = Pass(Devias, random);
-    ASSERT_TRUE(Client::Scenes::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
     EXPECT_EQ(random.State(), 1u);
 }
 
@@ -1041,7 +1041,7 @@ TEST_F(MonsterHelpersTest, The1a9CallsItsMeteorOnlyInAnOriginalFrame)
     ActorState& actor = Monster(0x1a9, 4);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Lorencia, random, false);
-    const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_FALSE(Sound().has_value());
@@ -1059,7 +1059,7 @@ TEST_F(MonsterHelpersTest, The1a9FullEffectPoolStillPlaysItsAttackSound)
     FillParticles();
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Lorencia, random);
-    const auto drawn = Client::Scenes::DrawTheEffectsOf1a3To1a9(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x20d});
@@ -1073,7 +1073,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     ActorState& actor = Monster(0x1ab, 8);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Crywolf, random);
-    const auto first = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass);
+    const auto first = Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_FALSE(first.Value());
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x233});
@@ -1083,7 +1083,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     const std::uint32_t seed = FirstSeedWhere([](CrtRandom& draw) { return draw.Next() % 15 == 0; });
     CrtRandom idle(seed);
     MonsterHelperPass idling = Pass(Crywolf, idle);
-    const auto second = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(idling);
+    const auto second = Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(idling);
     ASSERT_TRUE(second.HasValue()) << second.Error();
     EXPECT_TRUE(second.Value());
     CrtRandom expected(seed);
@@ -1095,11 +1095,11 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     actor.animation.action = 4;
     actor.subtype = 0;
     m_world->Runtime().lastSoundId.reset();
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x241});
     EXPECT_EQ(actor.subtype, 0);
     actor.animation.action = 3;
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
     EXPECT_EQ(actor.subtype, 1);
     EXPECT_EQ(random.State(), 1u);
 }
@@ -1202,7 +1202,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfAltarsWithTheirOwnBitDrawTwoMarksAndTwoLigh
         pass.batch = &batch;
         pass.heights = heights.get();
 
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(actor.light, own);
@@ -1250,7 +1250,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfAltarsSkipTheMarksThatReadTheStack)
         pass.batch = &batch;
         pass.heights = heights.get();
 
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const glm::vec3 light = value.pale ? glm::vec3{0.15f, 0.15f, b} : glm::vec3{b, 0.1f, 0.1f};
@@ -1272,7 +1272,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfAltarsSkipTheMarksThatReadTheStack)
     MonsterHelperPass pass = Pass(Crywolf, random);
     pass.batch = &batch;
     pass.heights = heights.get();
-    const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_TRUE(batch.Vertices().empty());
     ASSERT_TRUE(batch.State().texture.has_value());
@@ -1284,7 +1284,7 @@ TEST_F(MonsterHelpersTest, TheCrywolfAltarsSkipTheMarksThatReadTheStack)
     // Sin el lote o las alturas, corta en la llamada.
     actor.flags7c = 0x100000;
     pass.heights = nullptr;
-    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x43436c"));
+    EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass), "0x43436c"));
     EXPECT_EQ(random.State(), 1u);
 }
 
@@ -1304,7 +1304,7 @@ TEST_F(MonsterHelpersTest, OutsideCrywolfTheAltarsDrawNothing)
         MonsterHelperPass pass = Pass(map, random);
         pass.batch = &batch;
         pass.heights = heights.get();
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(batch.Vertices().empty());
         EXPECT_EQ(random.State(), 1u);
@@ -1329,7 +1329,7 @@ TEST_F(MonsterHelpersTest, The1afGlowsAfterItsSounds)
     CrtRandom random(seed);
     MonsterHelperPass pass = Pass(Crywolf, random);
 
-    const auto drawn = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_TRUE(drawn.Value());
@@ -1371,7 +1371,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
         });
     CrtRandom random(seed);
     MonsterHelperPass pass = Pass(Crywolf, random);
-    const auto dusty = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass);
+    const auto dusty = Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass);
     ASSERT_TRUE(dusty.HasValue()) << dusty.Error();
     EXPECT_TRUE(dusty.Value());
     ASSERT_EQ(LiveSprites().size(), 1u);
@@ -1389,7 +1389,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     m_sprites.Clear();
     CrtRandom crowded(seed);
     MonsterHelperPass full = Pass(Crywolf, crowded);
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(full).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(full).HasValue());
     CrtRandom sorted(seed);
     static_cast<void>(sorted.Next());
     if (sorted.Next() % 15 == 0)
@@ -1398,7 +1398,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
 
     actor.animation.action = 6;
     m_sprites.Clear();
-    const auto died = Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass);
+    const auto died = Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass);
     ASSERT_TRUE(died.HasValue()) << died.Error();
     EXPECT_TRUE(LiveSprites().empty());
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x214});
@@ -1412,7 +1412,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     CrtRandom spinning(3);
     MonsterHelperPass glow = Pass(Crywolf, spinning);
     glow.worldClock = 1000.0f;
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(glow).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(glow).HasValue());
     const auto spin = static_cast<float>(CrtRandom(3).Next() % 360);
     const float lum = static_cast<float>(ClockSine(1000.0f, 0.0012f, 0.8f) + static_cast<double>(1.3f));
     const auto sprites = LiveSprites();
@@ -1477,7 +1477,7 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
         striker.subtype = 0;
         CrtRandom attack(quiet);
         MonsterHelperPass striking = Pass(Devias, attack, original);
-        const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(striking);
+        const auto struck = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(striking);
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
         EXPECT_EQ(born(), expected(original, {Born{false, 0x636, 2}, Born{false, 0x5de, 3}, Born{true, 0x61c, 6}}));
 
@@ -1485,7 +1485,7 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
         Monster(0x1b3, 4, 6.0f);
         CrtRandom piercing(1);
         MonsterHelperPass crywolf = Pass(Crywolf, piercing, original);
-        ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(crywolf).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(crywolf).HasValue());
         EXPECT_EQ(born(), expected(original, {Born{false, 0x115, 1}}));
 
         clear();
@@ -1494,7 +1494,7 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
         m_world->Actors()[0x18f].position = {500.0f, 600.0f, 70.0f};
         CrtRandom beam(21);
         MonsterHelperPass lorencia = Pass(Lorencia, beam, original);
-        const auto beamed = Client::Scenes::DrawTheMonsterHelpers(lorencia);
+        const auto beamed = Client::Monsters::Drawing::DrawTheMonsterHelpers(lorencia);
         ASSERT_TRUE(beamed.HasValue()) << beamed.Error();
         EXPECT_EQ(born(), expected(original, {Born{true, 0x618, 0x10}}));
     }
@@ -1506,7 +1506,7 @@ TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSoundi
     ActorState& actor = Monster(0x1b3, 4, 6.0f);
     CrtRandom random(1);
     MonsterHelperPass pass = Pass(Crywolf, random);
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
     const auto& effect = m_world->Map().effects.Effects()[0];
     EXPECT_EQ(effect.type, 0x115);
     EXPECT_EQ(effect.life, 6);
@@ -1515,7 +1515,7 @@ TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSoundi
     EXPECT_EQ(effect.light, (glm::vec3{1, 0, 0.5f}));
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x21d});
     actor.animation.frame = 6.5f;
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheCrywolfEffectsOf1abTo208(pass).HasValue());
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x21d});
 }
 
@@ -1535,7 +1535,7 @@ TEST_F(MonsterHelpersTest, The1b6GlowsAndSparksAtItsFootAndTarget)
     Monster(0x1b6, 2);
     CrtRandom random(11);
     MonsterHelperPass pass = Pass(Devias, random);
-    const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+    const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     const double v =
         static_cast<double>(CrtRandom(11).Next() % 30) * static_cast<double>(0.01f) + static_cast<double>(0.6f);
@@ -1573,7 +1573,7 @@ TEST_F(MonsterHelpersTest, The1b6GlowsAndSparksAtItsFootAndTarget)
         actor.attackTarget = 3;
         CrtRandom attacking(11);
         MonsterHelperPass hit = Pass(Devias, attacking);
-        const auto sparked = Client::Scenes::DrawTheMonsterHelpers(hit);
+        const auto sparked = Client::Monsters::Drawing::DrawTheMonsterHelpers(hit);
         ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
         std::vector<BoneParticle> made{{0x5ad, 4, 4.0f, At(0, {0, 0, -65}), footLight, false},
                                        {0x5f2, 0x1b, 2.0f, At(0, {70, 0, 0}), dust, false},
@@ -1619,7 +1619,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         ActorState& victim = m_world->Actors()[3];
         victim.position = {300.0f, 400.0f, 50.0f};
         actor.angles = {1.0f, 2.0f, 3.0f};
-        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass).HasValue());
         EXPECT_EQ(Sound(), Client::Audio::SoundId{0x263});
         EXPECT_EQ(actor.subtype, 1);
         CrtRandom expected = AfterDraws(11, 2);
@@ -1646,21 +1646,21 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
             actor.attackTarget = target;
             CrtRandom untargeted(11);
             MonsterHelperPass free = Pass(map, untargeted);
-            ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(free).HasValue());
+            ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(free).HasValue());
             EXPECT_EQ(untargeted.State(), AfterDraws(11, 1).State());
         }
         actor.attackTarget = 3;
         actor.animation.frame = 5.9f;
         CrtRandom early(11);
         MonsterHelperPass before = Pass(map, early);
-        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(before).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(before).HasValue());
         actor.animation.action = 3;
         actor.animation.frame = 8.0f;
         actor.subtype = 0;
         m_world->Runtime().lastSoundId.reset();
         CrtRandom swing(11);
         MonsterHelperPass third = Pass(map, swing);
-        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(third).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(third).HasValue());
         EXPECT_EQ(Sound(), Client::Audio::SoundId{0x264});
         EXPECT_EQ(swing.State(), AfterDraws(11, 1).State());
         m_sprites.Clear();
@@ -1676,11 +1676,11 @@ TEST_F(MonsterHelpersTest, The1b9OnlySounds)
         actor.subtype = 0;
         CrtRandom random(1);
         MonsterHelperPass pass = Pass(map, random);
-        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass).HasValue());
         EXPECT_EQ(Sound(), Client::Audio::SoundId{0x258});
         EXPECT_EQ(actor.subtype, 1);
         actor.animation.action = 1;
-        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass).HasValue());
         EXPECT_EQ(actor.subtype, 0);
         EXPECT_EQ(random.State(), 1u);
     }
@@ -1722,7 +1722,7 @@ TEST_F(MonsterHelpersTest, The1b7MistsItsArmsAndHeadAndWavesItsArm)
         actor.attackTarget = 0x190;
         CrtRandom random(21);
         MonsterHelperPass pass = Pass(Lorencia, random);
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const CrtRandom expected =
             ExpectTheBoneParticles(*m_particles, std::span(all).first(value.made), {}, CrtRandom(21));
@@ -1748,7 +1748,7 @@ TEST_F(MonsterHelpersTest, The1b8SparksGreenAtItsHead)
         actor.subtype = 0;
         CrtRandom random(21);
         MonsterHelperPass pass = Pass(map, random);
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom expected(21);
         const float green = static_cast<float>(static_cast<double>(expected.Next() % 10) * static_cast<double>(0.01f) +
@@ -1787,7 +1787,7 @@ TEST_F(MonsterHelpersTest, The1baSparksAtItsHornsAndSmokesAtItsFoot)
         actor.angles = {0.0f, 0.0f, 45.0f};
         CrtRandom random(21);
         MonsterHelperPass pass = Pass(Devias, random);
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         CrtRandom expected(21);
         for (std::uint32_t horn = 0; horn < 6; ++horn)
@@ -1841,7 +1841,7 @@ TEST_F(MonsterHelpersTest, The1bbLightsAFantaInEachHand)
         Monster(0x1bb, value.action, value.frame).subtype = 0;
         CrtRandom random(21);
         MonsterHelperPass pass = Pass(Lorencia, random);
-        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
         if (value.address)
             EXPECT_TRUE(CutAt(drawn, *value.address)) << (drawn.HasValue() ? "" : drawn.Error());
         else
@@ -1911,7 +1911,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
             actor.attackTarget = 0x18f;
             CrtRandom random(21);
             MonsterHelperPass pass = Pass(map, random);
-            const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+            const auto drawn = Client::Monsters::Drawing::DrawTheMonsterHelpers(pass);
             if (value.address)
             {
                 EXPECT_TRUE(CutAt(drawn, *value.address)) << (drawn.HasValue() ? "" : drawn.Error());
@@ -1949,7 +1949,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
         target.angles = {0.0f, 0.0f, 45.0f};
         CrtRandom random(21);
         MonsterHelperPass pass = Pass(Lorencia, random);
-        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
+        ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass).HasValue());
         const auto& joint = joints[0];
         ASSERT_TRUE(joint.alive);
         EXPECT_EQ(joint.type, 0x618);
@@ -1969,7 +1969,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
     Monster(0x1ba, 0);
     CrtRandom random(21);
     MonsterHelperPass pass = Pass(Devias, random);
-    ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass).HasValue());
     CrtRandom expected(21);
     const auto sprites = LiveSprites();
     ASSERT_EQ(sprites.size(), 6u);
@@ -2003,7 +2003,7 @@ TEST_F(MonsterHelpersTest, The1baAnd1bbAskForTheirPointsWithAFullTable)
         Monster(type, action).subtype = 0;
         CrtRandom random(21);
         MonsterHelperPass pass = Pass(Lorencia, random);
-        EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), address));
+        EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass), address));
     }
 }
 
@@ -2016,8 +2016,8 @@ TEST_F(MonsterHelpersTest, TheSwingStepDrawsItsRandomWithAnyType)
         SCOPED_TRACE(type);
         ActorState& actor = Monster(type, 3, 4.0f);
         CrtRandom random(1);
-        const auto stepped = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                     m_particles.get(), 0.0f);
+        const auto stepped = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                                random, m_particles.get(), 0.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), AfterDraws(1, 1).State());
     }
@@ -2036,8 +2036,8 @@ TEST_F(MonsterHelpersTest, The1b0SwingPosesTenTimes)
         ActorState& actor = Monster(0x1b0, 4, frame);
         actor.angles = {0.0f, 0.0f, 90.0f};
         CrtRandom random(1);
-        const auto stepped = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                     m_particles.get(), 0.0f);
+        const auto stepped = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                                random, m_particles.get(), 0.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), AfterDraws(1, 21).State());
         EXPECT_EQ(actor.angles, glm::vec3(0.0f, 0.0f, 90.0f));
@@ -2068,8 +2068,8 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
         ActorState& actor = Monster(0x1b0, 4, 6.0f);
         actor.angles = {0.0f, 0.0f, 90.0f};
         CrtRandom random(1);
-        const auto stepped = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                     m_particles.get(), 0.0f);
+        const auto stepped = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                                random, m_particles.get(), 0.0f);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(actor.angles, glm::vec3(0.0f, 0.0f, 90.0f));
         const auto sparks = LiveParticles();
@@ -2097,8 +2097,8 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
     FillParticles();
     Monster(0x1b0, 4, 6.0f);
     CrtRandom full(1);
-    const auto stepped = Client::Scenes::StepTheSwingsOf1abTo1b4(m_world->Actors()[Slot], Slot, *m_world,
-                                                                 &m_faunaModels, full, m_particles.get(), 0.0f);
+    const auto stepped = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(
+        m_world->Actors()[Slot], Slot, *m_world, &m_faunaModels, full, m_particles.get(), 0.0f);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(full.State(), AfterDraws(1, 21).State());
 }
@@ -2142,8 +2142,8 @@ TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepPoolLimits)
             m_models.SetBoneActionPosition(7, value.action, {0.0f, 0.0f, 7.0f});
         m_world->PlaceModel(actor);
         CrtRandom random(1);
-        const auto stepped = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                     m_particles.get(), 0.0f);
+        const auto stepped = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                                random, m_particles.get(), 0.0f);
         if (value.address.empty())
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         else
@@ -2261,8 +2261,8 @@ TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
     ActorState& actor = Monster(0x1b1, 4, 3.0f);
     m_world->DrawTail().ribbons.fill(Client::Scenes::RibbonState{.alive = true, .ownerContext = m_world.get()});
     CrtRandom full(1);
-    const auto fullPoolStep =
-        Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, full, m_particles.get(), 0.0f);
+    const auto fullPoolStep = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                                 full, m_particles.get(), 0.0f);
     ASSERT_TRUE(fullPoolStep.HasValue()) << fullPoolStep.Error();
     EXPECT_EQ(full.State(), AfterDraws(1, 1).State());
     EXPECT_EQ(m_world->PoseCarry().models.at(actor.type).position, Origin);
@@ -2273,12 +2273,12 @@ TEST_F(MonsterHelpersTest, SwingRibbonPoolFullStillPosesAndMatchingOwnersAppend)
 
     m_world->DrawTail().ribbons = {};
     CrtRandom append(1);
-    ASSERT_TRUE(
-        Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, append, m_particles.get(), 0.0f)
-            .HasValue());
-    ASSERT_TRUE(
-        Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, append, m_particles.get(), 0.0f)
-            .HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, append,
+                                                                   m_particles.get(), 0.0f)
+                    .HasValue());
+    ASSERT_TRUE(Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, append,
+                                                                   m_particles.get(), 0.0f)
+                    .HasValue());
     EXPECT_EQ(append.State(), AfterDraws(1, 2).State());
     std::vector<const Client::Scenes::RibbonState*> own;
     for (const auto& ribbon : m_world->DrawTail().ribbons)
@@ -2299,8 +2299,8 @@ TEST_F(MonsterHelpersTest, SwingEffectsContinueWithFreeOrFullModelEffectPools)
     ActorState& type1af = Monster(0x1af, 4, 4.7f);
     FillParticles();
     CrtRandom firstRandom(1);
-    const auto effectAfterRibbon = Client::Scenes::StepTheSwingsOf1abTo1b4(type1af, Slot, *m_world, &m_faunaModels,
-                                                                           firstRandom, m_particles.get(), 0.0f);
+    const auto effectAfterRibbon = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(
+        type1af, Slot, *m_world, &m_faunaModels, firstRandom, m_particles.get(), 0.0f);
     ASSERT_TRUE(effectAfterRibbon.HasValue()) << effectAfterRibbon.Error();
     EXPECT_EQ(firstRandom.State(), AfterDraws(1, 1).State());
     ASSERT_EQ(m_world->DrawTail().ribbons[0].count, 10);
@@ -2310,8 +2310,8 @@ TEST_F(MonsterHelpersTest, SwingEffectsContinueWithFreeOrFullModelEffectPools)
     m_world->PoseCarry() = {};
     FillModelEffects();
     CrtRandom fullEffectsRandom(1);
-    const auto fullEffects = Client::Scenes::StepTheSwingsOf1abTo1b4(type1af, Slot, *m_world, &m_faunaModels,
-                                                                     fullEffectsRandom, m_particles.get(), 0.0f);
+    const auto fullEffects = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(
+        type1af, Slot, *m_world, &m_faunaModels, fullEffectsRandom, m_particles.get(), 0.0f);
     ASSERT_TRUE(fullEffects.HasValue()) << fullEffects.Error();
     EXPECT_EQ(fullEffectsRandom.State(), AfterDraws(1, 1).State());
     ASSERT_EQ(m_world->DrawTail().ribbons[0].count, 10);
@@ -2320,8 +2320,8 @@ TEST_F(MonsterHelpersTest, SwingEffectsContinueWithFreeOrFullModelEffectPools)
     m_world->DrawTail().ribbons = {};
     m_world->PoseCarry() = {};
     ActorState& type1ae = Monster(0x1ae, 4, 4.7f);
-    const auto beforePose = Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, &m_faunaModels,
-                                                                    fullEffectsRandom, m_particles.get(), 0.0f);
+    const auto beforePose = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(
+        type1ae, Slot, *m_world, &m_faunaModels, fullEffectsRandom, m_particles.get(), 0.0f);
     ASSERT_TRUE(beforePose.HasValue()) << beforePose.Error();
     const auto& tide = m_world->Map().effects.Effects()[0];
     EXPECT_TRUE(tide.alive);
@@ -2337,8 +2337,8 @@ TEST_F(MonsterHelpersTest, SwingEffectsContinueWithFreeOrFullModelEffectPools)
     m_world->DrawTail().ribbons = {};
     m_world->PoseCarry() = {};
     CrtRandom noEffect(1);
-    const auto fullEffectPool = Client::Scenes::StepTheSwingsOf1abTo1b4(type1ae, Slot, *m_world, &m_faunaModels,
-                                                                        noEffect, m_particles.get(), 0.0f);
+    const auto fullEffectPool = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(
+        type1ae, Slot, *m_world, &m_faunaModels, noEffect, m_particles.get(), 0.0f);
     ASSERT_TRUE(fullEffectPool.HasValue()) << fullEffectPool.Error();
     EXPECT_EQ(noEffect.State(), AfterDraws(1, 1).State());
     EXPECT_TRUE(m_world->DrawTail().ribbons[0].alive);
@@ -2364,8 +2364,8 @@ TEST_F(MonsterHelpersTest, DeathSpiritSwingReadsItsTargetBeforeFourOrderedReserv
         for (std::size_t i = 0; i < capacity; ++i)
             m_world->Map().effects.Effects()[i].alive = false;
         CrtRandom random(7);
-        const auto result = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                    m_particles.get(), 0);
+        const auto result = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                               random, m_particles.get(), 0);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(random.State(), AfterDraws(7, static_cast<int>(1 + 3 * (capacity / 2))).State());
         EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
@@ -2393,8 +2393,8 @@ TEST_F(MonsterHelpersTest, DeathSpiritSwingReadsItsTargetBeforeFourOrderedReserv
         actor.attackTarget = 0xffff;
         m_world->DrawTail().ribbons = {};
         CrtRandom random(7);
-        const auto result = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                    m_particles.get(), 0);
+        const auto result = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels,
+                                                                               random, m_particles.get(), 0);
         EXPECT_TRUE(CutAt(result, "0x4335f6"));
         EXPECT_EQ(random.State(), AfterDraws(7, 1).State());
         EXPECT_EQ(m_world->DrawTail().ribbons[0].count, 10);
@@ -2413,8 +2413,8 @@ TEST_F(MonsterHelpersTest, DeathSpiritSwingUsesBothAttackActionsAndStrictFrameEn
             ActorState& actor = Monster(0x1af, action, frame);
             actor.attackTarget = 2;
             CrtRandom random(7);
-            const auto result = Client::Scenes::StepTheSwingsOf1abTo1b4(actor, Slot, *m_world, &m_faunaModels, random,
-                                                                        m_particles.get(), 0);
+            const auto result = Client::Monsters::Drawing::StepTheSwingsOf1abTo1b4(
+                actor, Slot, *m_world, &m_faunaModels, random, m_particles.get(), 0);
             ASSERT_TRUE(result.HasValue()) << result.Error();
             const std::size_t expected = action != 2 && frame > 4.5f && frame < 5 ? 4u : 0u;
             EXPECT_EQ(static_cast<std::size_t>(std::ranges::count_if(m_world->Map().effects.Effects(),

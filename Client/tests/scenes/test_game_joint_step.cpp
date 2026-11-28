@@ -45,7 +45,7 @@ TEST(GameJointStepTest, Skill39BoltsConstructAndAdvanceWithoutRandomDraws)
     glm::vec3 angles{10, 20, 30};
     Client::Crt::CrtRandom random(1);
     const Client::Kernel::JointRequest request{0x60f, position, target, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
-    const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
     const auto& joint = joints[0];
@@ -59,7 +59,7 @@ TEST(GameJointStepTest, Skill39BoltsConstructAndAdvanceWithoutRandomDraws)
     EXPECT_FALSE(joint.tailEnabled);
     EXPECT_EQ(joint.width, 40);
     EXPECT_EQ(joint.life, 24);
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    const auto stepped = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joint.life, 23);
     EXPECT_EQ(random.State(), 1u);
@@ -81,7 +81,7 @@ TEST(GameJointStepTest, Skill39ConstructionPreservesTheRetainedQuadAndSeparatesI
         int opaqueOwner = 7;
         Client::Crt::CrtRandom random(1);
         const Client::Kernel::JointRequest request{0x60f, point, target, angles, 0x17, &opaqueOwner, 40, key, 0, 0, -1};
-        const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(joint.points[0][0], (glm::vec3{96, 200, 300}));
         EXPECT_EQ(joint.points[0][3], (glm::vec3{100, 200, 304}));
@@ -117,19 +117,19 @@ TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
         glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
         Client::Crt::CrtRandom random(1);
         const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, key, 0, 0, -1};
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
         auto& joint = joints[0];
         const auto anchor = joint.pathIncrement;
         while (joint.life >= 20)
         {
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             EXPECT_EQ(joint.count, -1);
             EXPECT_EQ(joint.position, anchor);
             EXPECT_EQ(joint.speed, 0);
         }
         for (const int count : {0, 5, 14})
         {
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             EXPECT_EQ(joint.count, count);
         }
         EXPECT_EQ(joint.velocity.z, 13);
@@ -144,7 +144,7 @@ TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
         {
             const auto light = joint.light;
             const int life = joint.life;
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             EXPECT_EQ(joint.count, 14);
             const auto factor = std::bit_cast<float>(0x3f44ec4fu);
             for (int axis = 0; axis < 3; ++axis)
@@ -163,11 +163,11 @@ TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotio
     glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
     Client::Crt::CrtRandom random(1);
     const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 5, 0, 0, -1};
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     for (const int count : {0, 5, 14})
     {
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         EXPECT_EQ(joint.count, count);
         EXPECT_EQ(joint.speed, 200);
     }
@@ -177,7 +177,7 @@ TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotio
     const glm::vec3 moved{static_cast<float>(static_cast<double>(before.x) + offset.x),
                           static_cast<float>(static_cast<double>(before.y) + offset.y),
                           static_cast<float>(static_cast<double>(before.z) + offset.z)};
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_EQ(joint.position, moved);
     const auto cross =
         Client::Math::OriginalVectorRotate({0, 0, -20}, Client::Math::OriginalAngleMatrix(joint.bendAngles));
@@ -196,7 +196,7 @@ TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotio
 
 TEST(GameJointStepTest, PiercingTrailJointsRetainTheirModelOwnerAndAdvanceWithoutRandomness)
 {
-    Client::World::ModelEffect owner;
+    Client::Effects::ModelEffect owner;
     owner.alive = true;
     owner.start = {100, 200, 300};
     owner.transform.position = {130, 260, 390};
@@ -208,7 +208,7 @@ TEST(GameJointStepTest, PiercingTrailJointsRetainTheirModelOwnerAndAdvanceWithou
     {
         const Client::Kernel::JointRequest request{0x610, first, target, angles, subtype, &owner, 12, 30, 0, 0, -1};
         const auto created =
-            Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
+            Client::Joints::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_EQ(created.Value(), static_cast<std::size_t>(subtype));
         const auto& joint = joints[static_cast<std::size_t>(subtype)];
@@ -221,7 +221,7 @@ TEST(GameJointStepTest, PiercingTrailJointsRetainTheirModelOwnerAndAdvanceWithou
         EXPECT_EQ(joint.velocity, (glm::vec3{18, 0, 0}));
         EXPECT_EQ(joint.targetPosition, target);
     }
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    const auto stepped = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     for (const auto& joint : joints)
     {
@@ -237,7 +237,7 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
     {
         SCOPED_TRACE(subtype);
         std::array<Client::Scenes::JointState, 1> joints{};
-        Client::World::ModelEffect owner;
+        Client::Effects::ModelEffect owner;
         owner.alive = true;
         owner.start = {100, 200, 300};
         owner.transform.position = {130, 260, 390};
@@ -246,12 +246,12 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
         Client::Crt::CrtRandom random(1);
         const Client::Kernel::JointRequest request{0x610, point, point, angles, subtype, &owner, 12, 30, 0, 0, -1};
         ASSERT_TRUE(
-            Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect)
+            Client::Joints::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect)
                 .HasValue());
         auto& joint = joints[0];
         const float phase = subtype == 0 ? 0.0f : subtype == 1 ? 90.0f : subtype == 2 ? 180.0f : 240.0f;
         EXPECT_EQ(joint.speed, phase);
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         glm::vec3 finalAngles = owner.copiedAngles;
         finalAngles.y = phase + 20.0f;
         const auto offset =
@@ -265,12 +265,12 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
         EXPECT_EQ(joint.angles, angles);
         joint.life = 14;
         owner.transform.position = {160, 290, 420};
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         EXPECT_EQ(joint.targetPosition, owner.transform.position);
         EXPECT_EQ(joint.light, glm::vec3(std::bit_cast<float>(0x3eaaaaabu)));
         owner.alive = false;
         const auto target = joint.targetPosition;
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         EXPECT_EQ(joint.position, target + glm::vec3(0, 0, 50));
         EXPECT_EQ(joint.life, -2);
         EXPECT_FALSE(joint.alive);
@@ -304,13 +304,13 @@ TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutR
     std::array<Client::Scenes::JointState, 1> joints{};
     auto& joint = joints[0];
     joint.width = 8;
-    Client::World::ModelEffect owner;
+    Client::Effects::ModelEffect owner;
     owner.alive = false;
     glm::vec3 point{100, 200, 300}, angles{0, 0, 33.25f};
     Client::Crt::CrtRandom random(1);
     const Client::Kernel::JointRequest request{0x60f, point, point, angles, 6, &owner, 30, -1, 0, 0, -1};
     const auto created =
-        Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
+        Client::Joints::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
     EXPECT_EQ(joint.life, 20);
@@ -330,7 +330,7 @@ TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutR
     {
         ASSERT_TRUE(joint.alive);
         ASSERT_EQ(joint.life, life);
-        const auto stepped = Client::Scenes::StepJoints(joints, random);
+        const auto stepped = Client::Joints::StepJoints(joints, random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         for (const auto& fixture : fixtures)
         {
@@ -354,7 +354,7 @@ TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutR
 
 TEST(GameJointStepTest, MissingCounterFailsAfterTheOwnerTargetWasCopied)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.position = {100, 200, 300};
     Client::Scenes::JointState joint;
@@ -363,7 +363,7 @@ TEST(GameJointStepTest, MissingCounterFailsAfterTheOwnerTargetWasCopied)
     joint.subtype = 1;
     joint.ownerContext = &owner;
     joint.life = 50;
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1));
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1));
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x536187"), std::string::npos);
     EXPECT_EQ(joint.targetPosition, (glm::vec3{100, 200, 310}));
@@ -390,7 +390,7 @@ TEST(GameJointStepTest, CounterPhaseWrapAndHalfFrequenciesMatchIndependentFixtur
     for (const auto& vector : vectors)
     {
         joints->fill({});
-        Client::Scenes::FaunaObject owner;
+        Client::Fauna::FaunaObject owner;
         owner.active = 1;
         owner.position = {100, 200, 300};
         auto& joint = (*joints)[vector.index];
@@ -401,7 +401,7 @@ TEST(GameJointStepTest, CounterPhaseWrapAndHalfFrequenciesMatchIndependentFixtur
         joint.life = 50;
         Client::Models::ClothWorld cloth;
         cloth.logicSteps = vector.steps;
-        ASSERT_TRUE(Client::Scenes::StepJoints(*joints, cloth.random, &cloth).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(*joints, cloth.random, &cloth).HasValue());
         for (int axis = 0; axis < 3; ++axis)
             EXPECT_EQ(std::bit_cast<std::uint32_t>(joint.position[axis]),
                       vector.position[static_cast<std::size_t>(axis)]);
@@ -414,7 +414,7 @@ TEST(GameJointStepTest, CounterPhaseWrapAndHalfFrequenciesMatchIndependentFixtur
 
 TEST(GameJointStepTest, OpenCounterAccessAvoidsFourDrawsAndDeadOwnerNeverOpensIt)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     std::array<Client::Scenes::JointState, 1> joints{};
     auto& joint = joints[0];
@@ -425,17 +425,17 @@ TEST(GameJointStepTest, OpenCounterAccessAvoidsFourDrawsAndDeadOwnerNeverOpensIt
     joint.life = 100;
     Client::Models::ClothWorld cloth;
     Client::Crt::CrtRandom expected;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, cloth.random, &cloth).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, cloth.random, &cloth).HasValue());
     for (int i = 0; i < 4; ++i)
         static_cast<void>(expected.Next());
     EXPECT_EQ(cloth.random.State(), expected.State());
     cloth.openCounterAccesses = 1;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, cloth.random, &cloth).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, cloth.random, &cloth).HasValue());
     EXPECT_EQ(cloth.random.State(), expected.State());
     owner.active = 0;
     joint.tailEnabled = true;
     joint.maximumCount = 5;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, cloth.random, &cloth).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, cloth.random, &cloth).HasValue());
     EXPECT_EQ(cloth.random.State(), expected.State());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, -1);
@@ -457,7 +457,7 @@ TEST(GameJointStepTest, HelperBeamsPrebuildNineSegmentsWithoutReadingTheirOpaque
                                              -1,   0,     0,      -1};
         Client::Crt::CrtRandom random(19);
         Client::Crt::CrtRandom expected(19);
-        const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
         ASSERT_TRUE(created.HasValue());
         ASSERT_TRUE(created.Value().has_value());
         const auto& joint = joints[0];
@@ -470,13 +470,13 @@ TEST(GameJointStepTest, HelperBeamsPrebuildNineSegmentsWithoutReadingTheirOpaque
         EXPECT_EQ(random.State(), expected.State());
         if (type == 0x613)
         {
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             EXPECT_FALSE(joints[0].alive);
             EXPECT_EQ(joints[0].life, -1);
         }
         else
         {
-            const auto stepped = Client::Scenes::StepJoints(joints, random);
+            const auto stepped = Client::Joints::StepJoints(joints, random);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(joints[0].position, (glm::vec3{900, 750, 700}));
             EXPECT_EQ(joints[0].life, -1);
@@ -497,7 +497,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
     bones.fill(Client::Math::BoneTransform(1));
     std::array<Client::Scenes::JointState, 20> joints{};
     Client::Crt::CrtRandom random(19);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
     Client::Actors::Drawing::ItemDrawContext context;
@@ -506,7 +506,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
     context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
     context.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
-        auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
         if (!created.HasValue())
             return Client::Core::Unexpected(created.Error());
         return {};
@@ -519,7 +519,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
         EXPECT_EQ(joint.ownerContext, &owner);
         EXPECT_EQ(joint.count, 9);
     }
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    const auto stepped = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     for (const auto& joint : joints)
     {
@@ -547,16 +547,16 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     for (auto& joint : tail->joints)
         joint.targetPosition = {900, 800, 700};
     Client::Crt::CrtRandom random(19);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
     Client::Actors::Drawing::ItemDrawContext context;
     context.special = &special;
-    context.ownerContext = Client::Scenes::UiItemLocalObject();
+    context.ownerContext = Client::Items::UiItemLocalObject();
     context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
     context.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
-        auto created = Client::Scenes::CreateFaunaJoint(tail->joints, request, random);
+        auto created = Client::Joints::CreateFaunaJoint(tail->joints, request, random);
         if (!created.HasValue())
             return Client::Core::Unexpected(created.Error());
         return {};
@@ -569,20 +569,20 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     for (std::size_t index = 0; index < 20; ++index)
     {
         const Client::Scenes::JointState& joint = tail->joints[index];
-        EXPECT_EQ(joint.ownerContext, Client::Scenes::UiItemLocalObject());
+        EXPECT_EQ(joint.ownerContext, Client::Items::UiItemLocalObject());
         EXPECT_EQ(joint.targetPosition, glm::vec3(900, 800, 700));
         EXPECT_EQ(joint.position, glm::vec3(900, 800, 700));
     }
 
     // El dibujo intermedio no las ve; la tabla de verdad las guarda para el paso.
     auto copy = std::make_unique<Client::Scenes::GameDrawTailState>(*tail);
-    Client::Scenes::HideUiItemJoints(*copy);
+    Client::Items::HideUiItemJoints(*copy);
     EXPECT_EQ(std::ranges::count_if(copy->joints, [](const auto& joint) { return joint.alive; }), 0);
     EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 20);
 
     Client::Crt::CrtRandom expected = random;
     expected.Discard(20);
-    const auto stepped = Client::Scenes::StepJoints(tail->joints, random);
+    const auto stepped = Client::Joints::StepJoints(tail->joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 0);
@@ -600,8 +600,8 @@ TEST(GameJointStepTest, ReachedBeamEmitsThunderWithTwoCreationDrawsThenStepsItsR
     joint.speed = 50;
     joint.light = {0.3f, 0.3f, 1};
     Client::Crt::CrtRandom random(1), expected(1);
-    Client::World::Particles particles;
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random, nullptr, &particles);
+    Client::Particles::Particles particles;
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1), random, nullptr, &particles);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     static_cast<void>(expected.Next());
     static_cast<void>(expected.Next());
@@ -620,11 +620,11 @@ TEST(GameJointStepTest, ReachedBeamEmitsThunderWithTwoCreationDrawsThenStepsItsR
     EXPECT_EQ(particle.light, joint.light);
     EXPECT_EQ(joint.life, -1);
     EXPECT_EQ(joint.count, 2);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_EQ(particle.life, 1);
     EXPECT_FLOAT_EQ(particle.rotation, rotation + 20);
     EXPECT_EQ(particle.position, (glm::vec3{0, -50, 0}));
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_FALSE(particle.alive);
     EXPECT_FLOAT_EQ(particle.rotation, rotation + 40);
 }
@@ -642,7 +642,7 @@ TEST(GameJointStepTest, MissingParticlePoolKeepsSteeringJitterAndInnerTailBefore
     joint.life = 9;
     joints[1] = joint;
     Client::Crt::CrtRandom random(19), expected(19);
-    auto result = Client::Scenes::StepJoints(joints, random);
+    auto result = Client::Joints::StepJoints(joints, random);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x536eb9"), std::string::npos);
     EXPECT_EQ(joint.position, (glm::vec3{0, -50, 0}));
@@ -658,16 +658,16 @@ TEST(GameJointStepTest, MissingParticlePoolKeepsSteeringJitterAndInnerTailBefore
 
 namespace
 {
-class ThunderDrawing final : public Client::World::IParticleDrawingServices
+class ThunderDrawing final : public Client::Particles::IParticleDrawingServices
 {
 public:
-    Client::Core::Expected<glm::vec2, Client::World::ParticleError> Dimensions(std::int32_t image) override
+    Client::Core::Expected<glm::vec2, Client::Particles::ParticleError> Dimensions(std::int32_t image) override
     {
         events.push_back("dimensions");
         EXPECT_EQ(image, 0x5ca);
         return glm::vec2(64, 32);
     }
-    Client::Core::Expected<std::uint8_t, Client::World::ParticleError> MaterialFlag(std::int32_t type) override
+    Client::Core::Expected<std::uint8_t, Client::Particles::ParticleError> MaterialFlag(std::int32_t type) override
     {
         events.push_back("flag");
         EXPECT_EQ(type, 0x5ca);
@@ -719,7 +719,7 @@ public:
 } // namespace
 TEST(GameJointStepTest, ThunderDrawingUsesTheCommonBillboardAfterMaterial)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     auto& particle = particles.All()[0];
     particle.alive = true;
     particle.type = particle.texture = 0x5ca;
@@ -728,7 +728,7 @@ TEST(GameJointStepTest, ThunderDrawingUsesTheCommonBillboardAfterMaterial)
     particle.subtype = INT32_MIN;
     float clock = 0;
     ThunderDrawing services;
-    const auto result = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), services);
+    const auto result = Client::Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(services.calls, 1);
     EXPECT_EQ(services.events, (std::vector<std::string>{"dimensions", "flag", "material", "billboard"}));
@@ -754,7 +754,7 @@ TEST(GameJointStepTest, BeamMovementJitterAndBothTailMatricesMatchIndependentVec
     joint.maximumCount = 2;
     joint.tailEnabled = true;
     Client::Crt::CrtRandom random(1);
-    auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random);
+    auto result = Client::Joints::StepJoints(std::span(&joint, 1), random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const std::array<std::uint32_t, 3> position{0x42bbae84u, 0xc1d4ec56u, 0x42ad7ad8u};
     const std::array<std::uint32_t, 3> head{0x42a8f6e0u, 0xc2001314u, 0x42b558a9u};
@@ -781,14 +781,14 @@ TEST(GameJointStepTest, FullParticlePoolConsumesOnlyJointJitterAndTheSmokeDecisi
     joint.maximumCount = 10;
     joint.width = 50;
     joint.speed = 50;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     for (auto& particle : particles.All())
         particle.alive = true;
     Client::Crt::CrtRandom random(1), expected(1);
     static_cast<void>(expected.Next());
     static_cast<void>(expected.Next());
     ASSERT_NE(expected.Next() % 8, 0);
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random, nullptr, &particles);
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1), random, nullptr, &particles);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(joint.life, -1);
@@ -805,9 +805,9 @@ TEST(GameJointStepTest, SmokeUsesTheBeamPositionAfterThreeDiscardedScratchDraws)
     joint.maximumCount = 10;
     joint.width = 50;
     joint.speed = 50;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(19), expected(19);
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random, nullptr, &particles, 123.5f);
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1), random, nullptr, &particles, 123.5f);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     for (int draw = 0; draw < 10; ++draw)
         static_cast<void>(expected.Next());
@@ -831,7 +831,7 @@ TEST(GameJointStepTest, MissingRandomStopsAfterBothSteeringStoresWithoutTailOrLi
     joint.targetPosition = {100, 0, 100};
     joint.velocity = {1, 7, 3};
     joint.life = 8;
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1));
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1));
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x536cb3"), std::string::npos);
     EXPECT_EQ(joint.angles, (glm::vec3{335, 0, 25}));
@@ -849,7 +849,7 @@ TEST(GameJointStepTest, FullJointPoolLeavesThePublisherArgumentsAndRandomUntouch
     std::uint32_t opaqueOwner = 0;
     Client::Kernel::JointRequest request{0x614, first, second, angles, 14, &opaqueOwner, 23, -1, 0, 0, -1};
     Client::Crt::CrtRandom random(1);
-    const auto result = Client::Scenes::CreateFaunaJoint(std::span(&joint, 1), request, random);
+    const auto result = Client::Joints::CreateFaunaJoint(std::span(&joint, 1), request, random);
     ASSERT_TRUE(result.HasValue());
     EXPECT_FALSE(result.Value().has_value());
     EXPECT_EQ(joint.type, 123);
@@ -873,7 +873,7 @@ TEST(GameJointStepTest, TailCapacityFailureKeepsTheReachedRandomPrefixAndLaterSl
     joint.points[0][0] = {123, 456, 789};
     joints[1] = joint;
     Client::Crt::CrtRandom random(1), expected(1);
-    const auto result = Client::Scenes::StepJoints(joints, random);
+    const auto result = Client::Joints::StepJoints(joints, random);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x53553f"), std::string::npos);
     static_cast<void>(expected.Next());
@@ -897,7 +897,7 @@ TEST(GameJointStepTest, EqualReachDistanceStillMovesAndZeroIterationsNeedNoRando
     joint.targetPosition = {0, 25, 0}; // después del movimiento común quedan75, exactamente1.5*50.
     joint.maximumCount = 1;
     Client::Crt::CrtRandom random(1), expected(1);
-    auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random);
+    auto result = Client::Joints::StepJoints(std::span(&joint, 1), random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_NE(joint.position, (glm::vec3{0, -50, 0}));
     static_cast<void>(expected.Next());
@@ -908,7 +908,7 @@ TEST(GameJointStepTest, EqualReachDistanceStillMovesAndZeroIterationsNeedNoRando
     joint.type = 0x614;
     joint.subtype = 14;
     joint.life = 1;
-    result = Client::Scenes::StepJoints(std::span(&joint, 1));
+    result = Client::Joints::StepJoints(std::span(&joint, 1));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(joint.life, 0);
     EXPECT_TRUE(joint.alive);
@@ -935,7 +935,7 @@ TEST(GameJointStepTest, UnsaturatedSteeringKeepsTheNativeAngleProductForBothAxes
         joint.width = 23;
         joint.maximumCount = 1;
         Client::Crt::CrtRandom random(1);
-        const auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random);
+        const auto result = Client::Joints::StepJoints(std::span(&joint, 1), random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(std::bit_cast<std::uint32_t>(joint.angles[vector.axis]), 0x42340001u);
         EXPECT_EQ(joint.count, 0);
@@ -954,7 +954,7 @@ TEST(GameJointStepTest, DistanceSpillRoundsUpToTheReachThresholdBeforeComparing)
     // Tras el movimiento común, distancia retenida<3, pero su spillF32 es3 exactamente.
     joint.targetPosition = {1, -2, std::bit_cast<float>(0x403504f3u)};
     Client::Crt::CrtRandom random(1);
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1), random);
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1), random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_NE(joint.position, (glm::vec3{0, -2, 0}));
     EXPECT_EQ(joint.count, 0);

@@ -79,11 +79,11 @@ struct Stage
     }
 
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(0x1357)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf({});
     Client::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
         std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
@@ -92,7 +92,7 @@ struct Stage
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::Scenes::ChatMessages messages{world.Runtime(), text, [] { return Client::Core::PixelSize{640, 480}; }};
+    Client::Chat::ChatMessages messages{world.Runtime(), text, [] { return Client::Core::PixelSize{640, 480}; }};
     // Made-up texts 487 to 491 (0x76e0c90, 0x76e0dbc, 0x76e0ee8, 0x76e1014 and 0x76e1140).
     Client::Tables::TextTable texts =
         Client::Tests::MakeTextTable({{487, "heroe"}, {488, "civil"}, {489, "cuidado"}, {490, "asesino"}, {491, "!"}});
@@ -111,12 +111,12 @@ TEST(PkLevelReplyTest, EachLevelKeepsItsStateAndNamesItInTheChat)
         std::int32_t type = 0;
     };
     const std::array<Case, 8> cases{{{0, 0, "", -1},
-                                     {1, 0, "heroe", Client::UI::SystemMessage},
-                                     {2, 0, "heroe", Client::UI::SystemMessage},
-                                     {3, 0, "civil", Client::UI::SystemMessage},
-                                     {4, 0, "cuidado", Client::UI::ErrorMessage},
-                                     {5, 0, "asesino 1!", Client::UI::ErrorMessage},
-                                     {6, 1, "asesino 2!", Client::UI::ErrorMessage},
+                                     {1, 0, "heroe", Client::Ui::SystemMessage},
+                                     {2, 0, "heroe", Client::Ui::SystemMessage},
+                                     {3, 0, "civil", Client::Ui::SystemMessage},
+                                     {4, 0, "cuidado", Client::Ui::ErrorMessage},
+                                     {5, 0, "asesino 1!", Client::Ui::ErrorMessage},
+                                     {6, 1, "asesino 2!", Client::Ui::ErrorMessage},
                                      {7, 1, "", -1}}};
     for (const Case& tested : cases)
     {

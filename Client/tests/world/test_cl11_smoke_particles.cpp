@@ -30,14 +30,14 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Blend = Client::Tests::RecordedParticleDraw::Blend;
+using Client::Particles::Particle;
+using Client::Particles::ParticleError;
+using Client::Particles::ParticleOwner;
+using Client::Particles::ParticleOwnerKind;
+using Client::Particles::ParticleOwnerState;
+using Client::Particles::Particles;
+using Client::Particles::PortableParticleTrigonometry;
 using Client::Tests::AfterDraws;
-using Client::World::Particle;
-using Client::World::ParticleError;
-using Client::World::ParticleOwner;
-using Client::World::ParticleOwnerKind;
-using Client::World::ParticleOwnerState;
-using Client::World::Particles;
-using Client::World::PortableParticleTrigonometry;
 
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::int32_t Smoke = 0x5f2;
@@ -67,13 +67,13 @@ Particle& Only(Particles& particles, std::size_t index)
 
 // 0x5446e0 con el reloj, la trigonometría y los dueños; los dos primeros rand() son el viento.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random,
-                                                 const Client::World::ParticleOwnerStates& owners = {})
+                                                 const Client::Particles::ParticleOwnerStates& owners = {})
 {
     PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
-    return Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {}, {}, {},
-                                               nullptr, {}, {}, {}, owners);
+    return Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {}, {},
+                                                   {}, nullptr, {}, {}, {}, owners);
 }
 
 Particle& Create(Particles& particles, CrtRandom& random, std::int32_t subtype, const glm::vec3& light, float scale,
@@ -448,7 +448,7 @@ TEST(Cl11SmokeParticles, TheStormMistsAreBornOnTheGround)
         PortableParticleTrigonometry trigonometry;
         const float clock = 1000.0f;
         std::vector<glm::vec2> asked;
-        const Client::World::ParticleTerrainHeight ground = [&asked](float x, float y)
+        const Client::Particles::ParticleTerrainHeight ground = [&asked](float x, float y)
         {
             asked.emplace_back(x, y);
             return 123.25;
@@ -477,7 +477,7 @@ TEST(Cl11SmokeParticles, TheStormMistsAreBornOnTheGround)
         {
             auto fine = std::make_unique<Particles>();
             CrtRandom fineRandom(Seed);
-            const Client::World::ParticleTerrainHeight retained = [](float, float)
+            const Client::Particles::ParticleTerrainHeight retained = [](float, float)
             { return std::bit_cast<double>(0x405ed00023333333ULL); };
             const auto made = fine->CreateOnGroundChecked(Smoke, position, glm::vec3(1.0f, 2.0f, 3.0f), glm::vec3(0.5f),
                                                           expected.subtype, 0.75f, std::cref(clock), fineRandom,

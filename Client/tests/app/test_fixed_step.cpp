@@ -71,7 +71,7 @@ TEST(FixedStepTest, ANegativeFrameCountsZero)
 
 TEST(FixedStepTest, TheCapIsOneSecond)
 {
-    static_assert(Client::App::MaxFrameTime == 1s);
+    static_assert(Client::Kernel::MaxFrameTime == 1s);
     FixedStep fixedStep;
 
     EXPECT_EQ(fixedStep.Advance(1s), 25);

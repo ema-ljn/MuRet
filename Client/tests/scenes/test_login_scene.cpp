@@ -75,10 +75,8 @@
 // test_login_scene_session.cpp. Los textos son inventados: los de Text.bmd no van a los tests.
 namespace
 {
-using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionSettings;
-using Client::App::SessionState;
 using Client::Assets::LoginTextureSet;
 using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
@@ -109,6 +107,8 @@ using Client::Scenes::PlaceVersion;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::WorldOf;
+using Client::Session::ServerAddress;
+using Client::Session::SessionState;
 using Client::Tables::GameData;
 using Client::Tables::LoadGameData;
 using Client::Tests::FakeClock;
@@ -124,8 +124,8 @@ using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TemporaryFolder;
 using Client::Tests::WriteTextTable;
 using Client::Tests::WriteTextureSet;
-using Client::UI::CursorQuad;
-using Client::UI::Point;
+using Client::Ui::CursorQuad;
+using Client::Ui::Point;
 
 using Kind = FrameEvent::Kind;
 
@@ -280,7 +280,7 @@ struct Harness
     Log log;
     RecordingFrameTarget target;
     GameData data;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     std::optional<LoginScene> scene;
     InputState input;
 };

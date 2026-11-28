@@ -93,18 +93,18 @@ public:
     [[nodiscard]] HelperTable& Helpers();
     [[nodiscard]] const HelperTable& Helpers() const;
     // 0x743a198 and its wind: one pool for the login, the selection and the game, on the heap because of its size.
-    [[nodiscard]] World::Particles& Particles();
-    [[nodiscard]] const World::Particles& Particles() const;
+    [[nodiscard]] Particles::Particles& Particles();
+    [[nodiscard]] const Particles::Particles& Particles() const;
     [[nodiscard]] Actors::PlayerActionSpeeds& ActionSpeeds();
     [[nodiscard]] const Actors::PlayerActionSpeeds& ActionSpeeds() const;
-    [[nodiscard]] Scenes::FaunaState& Fauna();
-    [[nodiscard]] const Scenes::FaunaState& Fauna() const;
+    [[nodiscard]] Fauna::FaunaState& Fauna();
+    [[nodiscard]] const Fauna::FaunaState& Fauna() const;
     [[nodiscard]] PoseBuffer& PoseCarry();
     [[nodiscard]] const PoseBuffer& PoseCarry() const;
     [[nodiscard]] Scenes::GameDrawTailState& DrawTail();
     [[nodiscard]] const Scenes::GameDrawTailState& DrawTail() const;
-    [[nodiscard]] World::Leaves& Leaves();
-    [[nodiscard]] const World::Leaves& Leaves() const;
+    [[nodiscard]] Weather::Leaves& Leaves();
+    [[nodiscard]] const Weather::Leaves& Leaves() const;
     // Player.bmd (0x20a), shared by all players: each one's step (0x505ec6) and its body's pose (0x6001b0, with alpha
     // from 0.01) copy it, in the game, the login and the selection. The raven reads it in the safe zone (0x4178d2 and
     // 0x4179a5), before its owner's 0x505ec6 (Q-C412). It starts at zero: before the first copy, MuRet adds nothing.
@@ -140,12 +140,12 @@ private:
         std::make_unique<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>>();
     Player::ItemSetState m_itemSets;
     HelperTable m_helpers{};
-    std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
+    std::unique_ptr<Particles::Particles> m_particles = std::make_unique<Particles::Particles>();
     Actors::PlayerActionSpeeds m_actionSpeeds;
-    Scenes::FaunaState m_fauna;
+    Fauna::FaunaState m_fauna;
     PoseBuffer m_poseCarry;
     std::unique_ptr<Scenes::GameDrawTailState> m_drawTail = std::make_unique<Scenes::GameDrawTailState>();
-    std::unique_ptr<World::Leaves> m_leaves = std::make_unique<World::Leaves>();
+    std::unique_ptr<Weather::Leaves> m_leaves = std::make_unique<Weather::Leaves>();
     SharedModelPlacement m_playerModel;
     std::map<std::uint16_t, SharedModelPlacement> m_modelPlacements;
 };

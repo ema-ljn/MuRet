@@ -57,12 +57,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::CreateHighModelEffect;
+using Client::Effects::HighEffectContext;
+using Client::Effects::HighEffectStepContext;
+using Client::Effects::ModelEffect;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::CreateHighModelEffect;
-using Client::Scenes::HighEffectContext;
-using Client::Scenes::HighEffectStepContext;
-using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 
@@ -124,25 +124,25 @@ struct FamilyWorld
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
     float clock = 1234.5f;
-    Client::World::ModelEffectStepServices services{.effects = &world->Map().effects, .lighting = lighting.get()};
+    Client::Effects::ModelEffectStepServices services{.effects = &world->Map().effects, .lighting = lighting.get()};
     Client::Assets::FaunaModels faunaModels;
 };
 
 // Los rand() de una partícula: la crea en un pool aparte con `replay`, que avanza como el original.
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale)
 {
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     const auto made =
         twin->CreateChecked(type, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), subtype, scale, 0.0f, replay);
     ASSERT_TRUE(made.HasValue());
 }
 
 // La partícula que pide un paso, repetida en un pool gemelo con `replay` (el mismo CrtRandom del original).
-Client::World::Particle TwinParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype,
-                                     const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                                     float scale)
+Client::Particles::Particle TwinParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype,
+                                         const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                                         float scale)
 {
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     const auto made = twin->CreateChecked(type, position, angles, light, subtype, scale, 0.0f, replay);
     EXPECT_TRUE(made.HasValue() && made.Value().has_value());
     return twin->All()[0];
@@ -150,7 +150,7 @@ Client::World::Particle TwinParticle(CrtRandom& replay, std::int32_t type, std::
 
 std::ptrdiff_t AliveParticles(WorldState& world, std::int32_t type, std::int32_t subtype)
 {
-    return std::ranges::count_if(world.Particles().All(), [type, subtype](const Client::World::Particle& particle)
+    return std::ranges::count_if(world.Particles().All(), [type, subtype](const Client::Particles::Particle& particle)
                                  { return particle.alive && particle.type == type && particle.subtype == subtype; });
 }
 
@@ -281,7 +281,7 @@ TEST(HighEffectFamiliesTest, TheRingFollowsItsOwnerAndDivesFromHigh)
                         .HasValue());
         ModelEffect& ring = tested.Effect(0);
         ring.life = 20;
-        const auto stepped = Client::Scenes::StepHighModelEffect(ring, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(ring, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         CrtRandom replay(Seed);
         static_cast<void>(replay.Next());
@@ -318,7 +318,7 @@ TEST(HighEffectFamiliesTest, TheRingAsksForTheGroundOnlyWhileItIsYoung)
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x11b, .subtype = 1, .owner = &owner}, tested.Context()).HasValue());
         ModelEffect& ring = tested.Effect(0);
         ring.life = life;
-        const auto stepped = Client::Scenes::StepHighModelEffect(ring, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(ring, nullptr, tested.StepContext());
         EXPECT_EQ(tested.Draws(), 3);
         if (life == 10)
         {
@@ -367,7 +367,7 @@ TEST(HighEffectFamiliesTest, TheMeteorCallRainsSixteenDropsAtLifeEight)
         ModelEffect& call = tested.Effect(0);
         EXPECT_EQ(call.life, 20);
         call.life = 8;
-        const auto stepped = Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         FamilyWorld twin;
         static_cast<void>(twin.random.Next()); // la luz local (0x5208c5)
@@ -381,8 +381,8 @@ TEST(HighEffectFamiliesTest, TheMeteorCallRainsSixteenDropsAtLifeEight)
             const glm::vec3 angles{-10.0f, 0.0f, static_cast<float>(drop * 10.0)};
             if (full)
                 continue;
-            ASSERT_TRUE(Client::Scenes::CreateHighJoint(*twin.world, twin.random, 0x60f, point, point, angles, 0x18,
-                                                        nullptr, 90.0f, 0)
+            ASSERT_TRUE(Client::Effects::CreateHighJoint(*twin.world, twin.random, 0x60f, point, point, angles, 0x18,
+                                                         nullptr, 90.0f, 0)
                             .HasValue());
             const auto& rain = joints[static_cast<std::size_t>(drop)];
             ASSERT_TRUE(rain.alive);
@@ -414,7 +414,7 @@ TEST(HighEffectFamiliesTest, TheMeteorCallLeavesTheRockAndItsShellAtLifeTwo)
             tested.FillTheEffects();
         ModelEffect& call = tested.Effect(0);
         call.life = 2;
-        const auto stepped = Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         CrtRandom replay(Seed);
         static_cast<void>(replay.Next());
@@ -474,7 +474,7 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
                         .HasValue());
         ModelEffect& rock = tested.Effect(0);
         rock.life = 40;
-        const auto stepped = Client::Scenes::StepHighModelEffect(rock, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(rock, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         CrtRandom replay(seed);
         static_cast<void>(replay.Next());
@@ -492,7 +492,7 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
             const glm::vec3 point{static_cast<float>(static_cast<double>(offset.x) + origin.x),
                                   static_cast<float>(static_cast<double>(offset.y) + origin.y),
                                   static_cast<float>(static_cast<double>(offset.z) + origin.z)};
-            auto twin = std::make_unique<Client::World::ModelEffects>();
+            auto twin = std::make_unique<Client::Effects::ModelEffects>();
             ASSERT_TRUE(twin->CreateStoneChip(type, point, angles, light, replay).has_value());
             const ModelEffect& stone = tested.Effect(1);
             ASSERT_TRUE(stone.alive);
@@ -509,7 +509,7 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
         const glm::vec3 color{static_cast<float>(*wave), static_cast<float>(*wave),
                               static_cast<float>(*wave + 0.10000000149011612)};
         auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), origin, color, 10, "prueba").HasValue());
+        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(lit.get(), origin, color, 10, "prueba").HasValue());
         EXPECT_TRUE(lit->cells == tested.lighting->cells);
         EXPECT_EQ(rock.life, 39);
     }
@@ -525,7 +525,7 @@ TEST(HighEffectFamiliesTest, TheMeteorAsksForTheLightAndTheShake)
         if (!lit)
             tested.services.lighting = nullptr;
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d}, tested.Context()).HasValue());
-        const auto stepped = Client::Scenes::StepHighModelEffect(tested.Effect(0), nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(tested.Effect(0), nullptr, tested.StepContext());
         EXPECT_TRUE(HasError(stepped, lit ? "0x526126" : "0x5260fe"));
         EXPECT_EQ(tested.Draws(), lit ? 2 : 1);
     }
@@ -567,13 +567,13 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
         tested.services.cameraShake = &shake;
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d, .position = {12800.0f, 12800.0f, 0.0f}}, tested.Context())
                         .HasValue());
-        const auto sparked = Client::Scenes::StepHighModelEffect(tested.Effect(0), &skeleton, tested.StepContext());
+        const auto sparked = Client::Effects::StepHighModelEffect(tested.Effect(0), &skeleton, tested.StepContext());
         ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
         // Los rand() de las dos partículas por cada hueso que sale, en un pool aparte.
         CrtRandom replay(hit);
         ReplayTheMeteorPrefix(replay);
-        auto twin = std::make_unique<Client::World::Particles>();
-        const Client::World::ParticleOwner rockOwner{Client::World::ParticleOwnerKind::ModelEffect, 0};
+        auto twin = std::make_unique<Client::Particles::Particles>();
+        const Client::Particles::ParticleOwner rockOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 0};
         std::ptrdiff_t sparks = 0;
         for (const auto& bone : skeleton.bones)
         {
@@ -592,14 +592,14 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
         EXPECT_EQ(AliveParticles(*tested.world, 0x6ec, 3), sparks);
         EXPECT_EQ(AliveParticles(*tested.world, 0x5f2, 0x15), sparks);
         const auto all = tested.world->Particles().All();
-        const auto shard = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+        const auto shard = std::ranges::find_if(all, [](const Client::Particles::Particle& particle)
                                                 { return particle.alive && particle.type == 0x6ec; });
-        const auto spark = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+        const auto spark = std::ranges::find_if(all, [](const Client::Particles::Particle& particle)
                                                 { return particle.alive && particle.type == 0x5f2; });
         ASSERT_NE(shard, all.end());
         ASSERT_NE(spark, all.end());
         EXPECT_EQ(shard->typedOwner, rockOwner);
-        EXPECT_EQ(spark->typedOwner.kind, Client::World::ParticleOwnerKind::None);
+        EXPECT_EQ(spark->typedOwner.kind, Client::Particles::ParticleOwnerKind::None);
         EXPECT_EQ(shard->position, spark->position);
     }
     FamilyWorld tested;
@@ -613,7 +613,7 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
                     .HasValue());
     ModelEffect& rock = tested.Effect(0);
     rock.animation.frame = 1.5f;
-    const auto stepped = Client::Scenes::StepHighModelEffect(rock, &skeleton, tested.StepContext());
+    const auto stepped = Client::Effects::StepHighModelEffect(rock, &skeleton, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     CrtRandom replay(Seed);
     ReplayTheMeteorPrefix(replay);
@@ -683,7 +683,8 @@ TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
         EXPECT_EQ(std::bit_cast<std::uint32_t>(first.position.x), 0x44778b75u);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(first.position.y), 0x44f8261bu);
         EXPECT_EQ(first.position.z, 180.0f);
-        EXPECT_EQ(first.typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 0}));
+        EXPECT_EQ(first.typedOwner,
+                  (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 0}));
     }
     FamilyWorld ownerless;
     EXPECT_TRUE(HasError(CreateHighModelEffect({.type = 0x140}, ownerless.Context()), "0x51e0d8"));
@@ -701,7 +702,7 @@ TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
     mark.life = 100;
     mark.transform.position.z = 0.0f;
     const auto before = tested.Draws();
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws(), before + 1);
     EXPECT_EQ(mark.alpha, static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3ecccccdu))));
     EXPECT_EQ(mark.transform.angles.z, 45.0f);
@@ -710,13 +711,13 @@ TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
 
     mark.alpha = 1.0f;
     mark.life = 70;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(mark.alpha, 1.0f);
     EXPECT_EQ(mark.transform.angles.z, 50.0f);
     EXPECT_EQ(mark.transform.position.z, static_cast<float>((180.0 - 90.0) * 0.5 + 90.0));
 
     mark.ownerContext = nullptr;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(mark, nullptr, tested.StepContext()).HasValue());
     EXPECT_FALSE(mark.alive);
     EXPECT_EQ(mark.life, -1);
 }
@@ -748,11 +749,11 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
             // Las 0x5c5/6 nacen donde estaba el 0x140 (0x529f5b, antes de seguir al hueso); la 0x5c5/5, después.
             const glm::vec3 before = mark.transform.position;
             CrtRandom replay = tested.random;
-            const auto stepped = Client::Scenes::StepHighModelEffect(mark, nullptr, tested.StepContext());
+            const auto stepped = Client::Effects::StepHighModelEffect(mark, nullptr, tested.StepContext());
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             static_cast<void>(replay.Next()); // 0x5208c5, la luz del paso.
-            const Client::World::ParticleOwner markOwner{Client::World::ParticleOwnerKind::ModelEffect, 0};
-            auto twin = std::make_unique<Client::World::Particles>();
+            const Client::Particles::ParticleOwner markOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 0};
+            auto twin = std::make_unique<Client::Particles::Particles>();
             if (full)
                 for (auto& particle : twin->All())
                     particle.alive = true;
@@ -785,14 +786,14 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
                 EXPECT_EQ(std::bit_cast<std::uint32_t>(point.x), 0x44897935u);
                 EXPECT_EQ(std::bit_cast<std::uint32_t>(point.y), 0x45039fddu);
                 EXPECT_EQ(std::bit_cast<std::uint32_t>(point.z), 0x43380000u);
-                Client::World::PortableParticleTrigonometry trigonometry;
+                Client::Particles::PortableParticleTrigonometry trigonometry;
                 ASSERT_TRUE(twin->CreateTowardChecked(0x5c5, point, mark.transform.angles, mark.light, 5, 2.0f,
                                                       std::cref(tested.clock), replay, trigonometry, markOwner, at)
                                 .HasValue());
             }
             EXPECT_EQ(tested.random.State(), replay.State());
             const int subtype = life == 122 ? 6 : 5;
-            const auto resolved = Client::Scenes::ParticleOwnerStatesOf(*tested.world)(markOwner);
+            const auto resolved = Client::Effects::ParticleOwnerStatesOf(*tested.world)(markOwner);
             ASSERT_TRUE(resolved.has_value());
             EXPECT_EQ(resolved->position, at);
             EXPECT_EQ(AliveParticles(*tested.world, 0x5c5, subtype), full ? 0 : (life == 122 ? 5 : 1));
@@ -899,7 +900,7 @@ TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
         const glm::vec3 born = joints[0].position;
         CrtRandom replay = tested.random;
         const auto stepped =
-            Client::Scenes::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr);
+            Client::Joints::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(spirit.alpha, life > 5 ? 1.0f : 0.0f);
         EXPECT_EQ(spirit.transform.position, joints[0].position);
@@ -958,7 +959,7 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
     tested.random = CrtRandom(seed);
 
     const auto stepped =
-        Client::Scenes::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr);
+        Client::Joints::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joints[0].key, 30);
@@ -979,7 +980,7 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
     // Con la vida del 0x126 en 5, el alpha no cambia.
     phoenix.life = 5;
     phoenix.alpha = 0.25f;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr)
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr)
                     .HasValue());
     EXPECT_EQ(phoenix.alpha, 0.25f);
 }
@@ -1005,7 +1006,7 @@ TEST(HighEffectFamiliesTest, TheKundunSpiritFansOutBetweenThreeAndSixHundred)
         ModelEffect& spirit = tested.Effect(0);
         spirit.transform.position = {1000.0f, 2000.0f, height};
         const float yaw = spirit.transform.angles.z;
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(spirit, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(spirit, nullptr, tested.StepContext()).HasValue());
         EXPECT_EQ(spirit.transform.angles.z, static_cast<float>(19.0 + static_cast<double>(yaw)));
         const auto& fan = tested.world->DrawTail().joints[0];
         if (height != 450.0f)
@@ -1090,15 +1091,15 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
     // El alta de 0x43d051 y 0x43d0fd, sin el mundo: la misma; con la tabla llena, nada.
     FamilyWorld tested;
     auto& effects = tested.world->Map().effects;
-    const auto made = Client::Scenes::CreateTheKundunCall(effects, {.type = 0x128, .subtype = 1});
+    const auto made = Client::Effects::CreateTheKundunCall(effects, {.type = 0x128, .subtype = 1});
     ASSERT_TRUE(made.HasValue()) << made.Error();
     EXPECT_EQ(made.Value(), std::optional<std::size_t>{std::size_t{0}});
     EXPECT_EQ(tested.Effect(0).life, 30);
     tested.FillTheEffects();
-    const auto full = Client::Scenes::CreateTheKundunCall(effects, {.type = 0x128});
+    const auto full = Client::Effects::CreateTheKundunCall(effects, {.type = 0x128});
     ASSERT_TRUE(full.HasValue()) << full.Error();
     EXPECT_FALSE(full.Value().has_value());
-    EXPECT_FALSE(Client::Scenes::CreateTheKundunCall(effects, {.type = 0x125}).HasValue());
+    EXPECT_FALSE(Client::Effects::CreateTheKundunCall(effects, {.type = 0x125}).HasValue());
 }
 
 // 0x527ad6..0x527b4a: el paso del 0x128/0 con la vida en 30 suelta diez 0x126 (i = 0, 8, …, 72) en su posición, de
@@ -1121,7 +1122,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
                                           tested.Context())
                         .HasValue());
         ModelEffect& call = tested.Effect(0);
-        const auto stepped = Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         if (!full)
         {
@@ -1166,7 +1167,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
             EXPECT_EQ(made.animation.frame, static_cast<float>(replay.Next() % 5));
         }
         EXPECT_FALSE(tested.Effect(11).alive);
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext()).HasValue());
         EXPECT_EQ(tested.Draws(), 12);
         EXPECT_FALSE(tested.Effect(11).alive);
     }
@@ -1187,7 +1188,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
         return std::ranges::count_if(tested.world->Map().effects.Effects(),
                                      [](const ModelEffect& effect) { return effect.alive && effect.type == 0x125; });
     };
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(spirits(), 20);
     EXPECT_EQ(tested.Draws(), 1 + 20 * 3);
     EXPECT_EQ(call.disturbanceState, 0);
@@ -1196,7 +1197,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
     for (int step = 2; step <= 30; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext()).HasValue());
         const bool extra = step >= 8 && step <= 11;
         draws += extra ? 4 : 1;
         EXPECT_EQ(tested.Draws(), draws);
@@ -1207,7 +1208,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
     // Con los joints libres, cada 0x125 deja su 0x6ee/0x12 con él de dueño (0x51ce91), sin rand() de más.
     FamilyWorld free;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x128, .subtype = 1}, free.Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(free.Effect(0), nullptr, free.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(free.Effect(0), nullptr, free.StepContext()).HasValue());
     EXPECT_EQ(free.Draws(), 1 + 20 * 3);
     for (std::size_t spirit = 0; spirit < 20; ++spirit)
     {
@@ -1232,7 +1233,7 @@ TEST(HighEffectFamiliesTest, TheKundunEchoRaisesItsKeyBelowLifeTen)
         ModelEffect& echo = tested.Effect(0);
         ASSERT_EQ(echo.disturbanceState, 0);
         echo.life = life;
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
         EXPECT_EQ(echo.disturbanceState, life < 10 ? 1 : 0);
         EXPECT_EQ(tested.Draws(), 1);
     }
@@ -1247,18 +1248,18 @@ TEST(HighEffectFamiliesTest, ThePhoenixFadesInItsLastFourSteps)
     EXPECT_EQ(tested.Draws(), 1);
     ModelEffect& phoenix = tested.Effect(0);
     phoenix.life = 5;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(phoenix, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(phoenix, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(phoenix.alpha, 0.0f);
     EXPECT_EQ(phoenix.life, 4);
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(phoenix, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(phoenix, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(phoenix.alpha, static_cast<float>(4.0 * static_cast<double>(std::bit_cast<float>(0x3e4ccccdu))));
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(phoenix, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(phoenix, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(phoenix.alpha, static_cast<float>(3.0 * static_cast<double>(std::bit_cast<float>(0x3e4ccccdu))));
     EXPECT_EQ(tested.Draws(), 4);
 }
 
 // Las partículas del mundo `made` y las del pool gemelo `expected`, campo por campo.
-void ExpectSameParticle(const Client::World::Particle& made, const Client::World::Particle& expected)
+void ExpectSameParticle(const Client::Particles::Particle& made, const Client::Particles::Particle& expected)
 {
     EXPECT_TRUE(made.alive);
     EXPECT_EQ(made.type, expected.type);
@@ -1279,7 +1280,7 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     FamilyWorld tested;
     ActorState& caster = tested.world->Actors()[3];
     const glm::vec3 origin{100.0f, 200.0f, 300.0f};
-    const auto made = CreateHighModelEffect({.type = Client::Scenes::SweepEmitterEffect,
+    const auto made = CreateHighModelEffect({.type = Client::Effects::SweepEmitterEffect,
                                              .position = origin,
                                              .angles = {1.0f, 2.0f, std::bit_cast<float>(0x4174cccdu)},
                                              .owner = &caster,
@@ -1296,14 +1297,14 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     EXPECT_EQ(sweep.start, origin);
     EXPECT_EQ(tested.Draws(), 0);
 
-    const auto stepped = Client::Scenes::StepHighModelEffect(sweep, nullptr, tested.StepContext());
+    const auto stepped = Client::Effects::StepHighModelEffect(sweep, nullptr, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     CrtRandom replay(Seed);
     static_cast<void>(replay.Next());
     glm::vec3 point{100.0f, 200.0f, 400.0f};
     glm::vec3 angles{0.0f, 0.0f, std::bit_cast<float>(0x42713333u)};
     std::vector<Client::Scenes::JointState> twin(tested.world->DrawTail().joints.size());
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twin,
                                                  {.type = 0x61c,
                                                   .firstPosition = point,
                                                   .secondPosition = point,
@@ -1333,7 +1334,7 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     EXPECT_FALSE(tested.world->DrawTail().joints[1].alive);
     EXPECT_EQ(sweep.life, 29);
 
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(sweep, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(sweep, nullptr, tested.StepContext()).HasValue());
     static_cast<void>(replay.Next());
     EXPECT_EQ(tested.random.State(), replay.State());
     EXPECT_FALSE(tested.world->DrawTail().joints[1].alive);
@@ -1355,7 +1356,7 @@ TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
         victim.seen = true;
         victim.position = {near ? 1060.0f : 1061.0f, 1920.0f, 0.0f};
         const glm::vec3 angles{0.0f, 0.0f, 30.0f};
-        const auto made = CreateHighModelEffect({.type = Client::Scenes::EnergyBallEffect,
+        const auto made = CreateHighModelEffect({.type = Client::Effects::EnergyBallEffect,
                                                  .position = {1000.0f, 2000.0f, 50.0f},
                                                  .angles = angles,
                                                  .owner = &victim},
@@ -1368,7 +1369,7 @@ TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
         EXPECT_EQ(ball.transform.position, point);
         EXPECT_EQ(tested.Draws(), 0);
         ball.life = 17;
-        const auto stepped = Client::Scenes::StepHighModelEffect(ball, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(ball, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
         CrtRandom replay(Seed);
@@ -1383,10 +1384,10 @@ TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
         EXPECT_EQ(tested.random.State(), replay.State());
         auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
-            Client::World::AddDynamicLight(expected.get(), point,
-                                           {std::bit_cast<float>(0x3f2e147bu), std::bit_cast<float>(0x3fae147bu),
-                                            std::bit_cast<float>(0x4059999au)},
-                                           2, "test")
+            Client::WorldObjects::AddDynamicLight(expected.get(), point,
+                                                  {std::bit_cast<float>(0x3f2e147bu), std::bit_cast<float>(0x3fae147bu),
+                                                   std::bit_cast<float>(0x4059999au)},
+                                                  2, "test")
                 .HasValue());
         EXPECT_EQ(tested.lighting->cells, expected->cells);
         EXPECT_EQ(ball.life, near ? 0 : 16);
@@ -1400,12 +1401,12 @@ TEST(HighEffectFamiliesTest, TheOrangeEnergyBallAndTheOwnerOutsideTheWorld)
 {
     FamilyWorld tested;
     ActorState stranger;
-    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Scenes::EnergyBallEffect, .subtype = 1, .owner = &stranger},
+    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Effects::EnergyBallEffect, .subtype = 1, .owner = &stranger},
                                       tested.Context())
                     .HasValue());
     ModelEffect& ball = tested.Effect(0);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(ball.transform.scale), 0x3fc00000u);
-    const auto stepped = Client::Scenes::StepHighModelEffect(ball, nullptr, tested.StepContext());
+    const auto stepped = Client::Effects::StepHighModelEffect(ball, nullptr, tested.StepContext());
     EXPECT_TRUE(HasError(stepped, "0x518b7a"));
     const glm::vec3 orange{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3e4ccccdu)};
     EXPECT_EQ(tested.world->Particles().All()[0].light, orange);
@@ -1423,7 +1424,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
                                                                   {0x3f666667u, 0x3f0a3d71u, 0x3e8a3d71u},
                                                                   {0x3f800000u, 0x3f19999au, 0x3e99999au}}};
     FamilyWorld tested;
-    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Scenes::FlameBurstEffect, .position = {100.0f, 200.0f, 300.0f}},
+    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Effects::FlameBurstEffect, .position = {100.0f, 200.0f, 300.0f}},
                                       tested.Context())
                     .HasValue());
     ModelEffect& burst = tested.Effect(0);
@@ -1431,7 +1432,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
     const glm::vec3 point{100.0f, 140.0f, 430.0f};
     EXPECT_EQ(burst.transform.position, point);
     EXPECT_EQ(tested.Draws(), 0);
-    const auto stepped = Client::Scenes::StepHighModelEffect(burst, nullptr, tested.StepContext());
+    const auto stepped = Client::Effects::StepHighModelEffect(burst, nullptr, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     CrtRandom replay(Seed);
     const auto& light = Lights[replay.Next() & 3];
@@ -1439,7 +1440,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
                        TwinParticle(replay, 0x5da, 1, point, glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));
     EXPECT_EQ(tested.random.State(), replay.State());
     auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
-    ASSERT_TRUE(Client::World::AddDynamicLight(
+    ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(
                     expected.get(), point,
                     {std::bit_cast<float>(light[0]), std::bit_cast<float>(light[1]), std::bit_cast<float>(light[2])}, 2,
                     "test")
@@ -1449,7 +1450,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
     // Con la z de los ángulos en 45 (0x5fc8f0: sen y cos de 45 · 0,0174533f en la x87, guardados en float), (0, −60, 0)
     // girado da (60 · sen, −60 · cos, 0): la posición en (142,4264…; 157,5735…; 430), bits calculados aparte.
     FamilyWorld turned;
-    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Scenes::FlameBurstEffect,
+    ASSERT_TRUE(CreateHighModelEffect({.type = Client::Effects::FlameBurstEffect,
                                        .position = {100.0f, 200.0f, 300.0f},
                                        .angles = {0.0f, 0.0f, 45.0f}},
                                       turned.Context())
@@ -1465,7 +1466,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
 ModelEffect& ArrowBlast(FamilyWorld& tested, void* target, std::int32_t subtype, std::int32_t life)
 {
     const auto slot = tested.world->Map().effects.Begin(
-        {.type = Client::Scenes::ArrowBlastEffect, .subtype = subtype, .owner = target});
+        {.type = Client::Effects::ArrowBlastEffect, .subtype = subtype, .owner = target});
     EXPECT_EQ(slot, std::optional<std::size_t>(0));
     ModelEffect& blast = tested.Effect(0);
     blast.life = life;
@@ -1483,7 +1484,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
     {
         FamilyWorld tested;
         ModelEffect& blast = ArrowBlast(tested, nullptr, 0, 5);
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(blast, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(blast, nullptr, tested.StepContext()).HasValue());
         EXPECT_EQ(blast.transform.angles.x, -35.0f);
         EXPECT_EQ(blast.velocity.y, -38.0f);
         EXPECT_EQ(blast.subtype, 0);
@@ -1500,7 +1501,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         ActorState& target = tested.world->Actors()[2];
         target.position = {500.0f, 600.0f, 70.0f};
         ModelEffect& blast = ArrowBlast(tested, &target, 0, 1);
-        const auto stepped = Client::Scenes::StepHighModelEffect(blast, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(blast, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(blast.transform.angles.x, 90.0f);
         EXPECT_EQ(blast.subtype, 1);
@@ -1523,7 +1524,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         for (const std::int32_t subtype : {2, 3})
         {
             glm::vec3 first = point, second = point, angles{90.0f, 0.0f, 0.0f};
-            ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+            ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twin,
                                                          {.type = 0x632,
                                                           .firstPosition = first,
                                                           .secondPosition = second,
@@ -1563,7 +1564,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         FamilyWorld tested;
         ActorState stranger;
         ModelEffect& blast = ArrowBlast(tested, &stranger, 0, 1);
-        EXPECT_TRUE(HasError(Client::Scenes::StepHighModelEffect(blast, nullptr, tested.StepContext()), "0x529e3e"));
+        EXPECT_TRUE(HasError(Client::Effects::StepHighModelEffect(blast, nullptr, tested.StepContext()), "0x529e3e"));
         EXPECT_EQ(tested.Draws(), 1);
         // 0x529e31 y 0x529e37 escriben antes de leer al dueño en 0x529e3e.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(blast.transform.angles.x), 0x42b40000u);
@@ -1572,7 +1573,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
     {
         FamilyWorld tested;
         ModelEffect& blast = ArrowBlast(tested, nullptr, 1, 10);
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(blast, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(blast, nullptr, tested.StepContext()).HasValue());
         EXPECT_FALSE(blast.alive);
         EXPECT_EQ(blast.life, 9);
     }
@@ -1596,7 +1597,7 @@ TEST(HighEffectFamiliesTest, TheKundunPiecesSettleByTheirSubtype)
         FamilyWorld tested;
         const std::int16_t key = subtype == 4 ? -10 : -130;
         const glm::vec3 origin{1000.0f, 2000.0f, 900.0f};
-        const auto made = Client::Scenes::CreateTheKundunPiece(
+        const auto made = Client::Effects::CreateTheKundunPiece(
             tested.world->Map().effects,
             {.type = 0x11f, .position = origin, .subtype = subtype, .key = std::bit_cast<std::uint16_t>(key)},
             tested.random, FlatGround);
@@ -1635,15 +1636,15 @@ TEST(HighEffectFamiliesTest, TheKundunPiecesSettleByTheirSubtype)
     EXPECT_TRUE(HasError(CreateHighModelEffect({.type = 0x11f, .subtype = 2}, ungrounded.Context()), "0x51e26e"));
     EXPECT_TRUE(HasError(CreateHighModelEffect({.type = 0x122, .subtype = 4}, ungrounded.Context()), "0x51e2ee"));
     EXPECT_TRUE(CreateHighModelEffect({.type = 0x123, .subtype = 5}, ungrounded.Context()).HasValue());
-    EXPECT_TRUE(HasError(Client::Scenes::CreateTheKundunPiece(ungrounded.world->Map().effects, {.type = 0x125},
-                                                              ungrounded.random, FlatGround),
+    EXPECT_TRUE(HasError(Client::Effects::CreateTheKundunPiece(ungrounded.world->Map().effects, {.type = 0x125},
+                                                               ungrounded.random, FlatGround),
                          "0x518cf0"));
 }
 
 // Un pedazo de Kundun en la tabla, sin rand(): la caída lo crea con la altura del terreno.
 ModelEffect& KundunPiece(FamilyWorld& tested, std::int32_t subtype, std::int32_t life)
 {
-    const auto made = Client::Scenes::CreateTheKundunPiece(
+    const auto made = Client::Effects::CreateTheKundunPiece(
         tested.world->Map().effects, {.type = 0x120, .position = {1000.0f, 2000.0f, 300.0f}, .subtype = 5},
         tested.random, FlatGround);
     EXPECT_TRUE(made.HasValue());
@@ -1660,7 +1661,7 @@ TEST(HighEffectFamiliesTest, TheKundunShardsFadeAndSink)
 {
     const auto step = [](FamilyWorld& tested, ModelEffect& piece)
     {
-        ASSERT_TRUE(Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
+        ASSERT_TRUE(Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
         EXPECT_EQ(tested.Draws(), 1);
     };
     {
@@ -1734,7 +1735,7 @@ TEST(HighEffectFamiliesTest, TheShakingKundunPieceSpitsDustAndSmoke)
         }
         ModelEffect& piece = KundunPiece(tested, 3, 460);
         piece.byte89 = 4;
-        const auto stepped = Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext());
+        const auto stepped = Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         CrtRandom replay(seed);
         static_cast<void>(replay.Next());
@@ -1747,7 +1748,7 @@ TEST(HighEffectFamiliesTest, TheShakingKundunPieceSpitsDustAndSmoke)
             for (auto& joint : twin->DrawTail().joints)
                 joint.alive = true;
         ASSERT_TRUE(
-            Client::Scenes::CreateHighJoint(*twin, replay, 0x6ee, point, point, angles, 8, nullptr, 50.0f, 0x52a57b, 0)
+            Client::Effects::CreateHighJoint(*twin, replay, 0x6ee, point, point, angles, 8, nullptr, 50.0f, 0x52a57b, 0)
                 .HasValue());
         static_cast<void>(replay.Next());
         const auto scale =
@@ -1775,7 +1776,7 @@ TEST(HighEffectFamiliesTest, TheShakingKundunPieceSpitsDustAndSmoke)
     rock.random = CrtRandom(seed);
     ModelEffect& still = KundunPiece(rock, 2, 460);
     still.byte89 = 4;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(still, nullptr, rock.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(still, nullptr, rock.StepContext()).HasValue());
     EXPECT_EQ(DrawsSince(seed, rock.random), 1);
 }
 
@@ -1787,7 +1788,7 @@ TEST(HighEffectFamiliesTest, TheFallingKundunPieceDrifts)
     ModelEffect& piece = KundunPiece(tested, 3, 300);
     piece.byte89 = 4;
     piece.transform.position.z = 500.0f;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
     CrtRandom replay(Seed);
     static_cast<void>(replay.Next());
     const auto x = static_cast<float>((replay.Next() % 2) * 2 - 2);
@@ -1795,7 +1796,7 @@ TEST(HighEffectFamiliesTest, TheFallingKundunPieceDrifts)
     EXPECT_EQ(tested.random.State(), replay.State());
     EXPECT_EQ(piece.velocity, (glm::vec3{x, y, -6.0f}));
     piece.velocity.z = -12.0f;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws(), 4);
     EXPECT_EQ(piece.velocity, (glm::vec3{x, y, -18.0f}));
 }
@@ -1816,7 +1817,7 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
         piece.transform.angles = {0.0f, 0.0f, 12.5f};
         piece.copiedAngles.x = 0.0f;
         ASSERT_EQ(piece.transform.position, (glm::vec3{1000.0f, 2000.0f, 300.0f}));
-        const auto struck = Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext());
+        const auto struck = Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext());
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
         // La luz local, cien de cinco, los cuatro de la 0x607/4 y el balanceo: 506.
         EXPECT_EQ(tested.random.State(), 0xafd45dbbu);
@@ -1879,7 +1880,7 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     piece.byte89 = 4;
     piece.transform.angles = {0.0f, 0.0f, 12.5f};
     piece.copiedAngles.x = 0.0f;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
     // 1 + 300 + 2 y el balanceo (kundun.py).
     EXPECT_EQ(tested.random.State(), 0x6076eb51u);
     EXPECT_EQ(tested.Draws(), 1 + 300 + 2 + 1);
@@ -1891,7 +1892,7 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     piece.copiedAngles.x = 1.0f;
     piece.transform.angles.x = 30.0f;
     const int before = tested.Draws();
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws(), before + 3);
     EXPECT_EQ(piece.copiedAngles.x, 0.0f);
     EXPECT_EQ(piece.transform.angles.x, 30.0f);
@@ -1909,9 +1910,9 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     rock.light = {0.5f, 0.25f, 1.0f};
     rock.copiedAngles.x = 0.0f;
     ASSERT_EQ(landed.Draws(), 0);
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(rock, nullptr, landed.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(rock, nullptr, landed.StepContext()).HasValue());
     EXPECT_EQ(landed.random.State(), 0x5b015a17u);
-    const Client::World::Particle& made = landed.world->Particles().All()[0];
+    const Client::Particles::Particle& made = landed.world->Particles().All()[0];
     ASSERT_TRUE(made.alive);
     EXPECT_EQ(made.type, 0x607);
     EXPECT_EQ(made.subtype, 4);
@@ -1933,14 +1934,14 @@ TEST(HighEffectFamiliesTest, TheKundunEchoWaitsForItsCall)
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x128, .subtype = 2}, tested.Context()).HasValue());
     ModelEffect& call = tested.Effect(0);
     ModelEffect& echo = tested.Effect(1);
-    ASSERT_EQ(echo.type, Client::Scenes::KundunEchoEffect);
+    ASSERT_EQ(echo.type, Client::Effects::KundunEchoEffect);
     echo.animation.frame = 4.0f;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(echo.animation.frame, 0.0f);
     EXPECT_EQ(echo.ownerContext, &call);
     call.disturbanceState = 1;
     echo.animation.frame = 4.0f;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(echo.animation.frame, 4.0f);
     EXPECT_EQ(echo.ownerContext, nullptr);
     EXPECT_FALSE(echo.hasOwner);
@@ -1953,10 +1954,10 @@ TEST(HighEffectFamiliesTest, TheKundunEchoWaitsForItsCall)
 ModelEffect& LooseEcho(FamilyWorld& tested, const glm::vec3& position, float frame)
 {
     const auto slot = tested.world->Map().effects.Begin(
-        {.type = Client::Scenes::KundunEchoEffect, .position = position, .angles = {0.0f, 0.0f, 0.0f}});
+        {.type = Client::Effects::KundunEchoEffect, .position = position, .angles = {0.0f, 0.0f, 0.0f}});
     EXPECT_EQ(slot, std::optional<std::size_t>(0));
     ModelEffect& echo = tested.Effect(0);
-    Client::Scenes::BeginTheKundunEcho(echo);
+    Client::Effects::BeginTheKundunEcho(echo);
     echo.animation.frame = frame;
     return echo;
 }
@@ -1969,7 +1970,7 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoRisesInSmoke)
     FamilyWorld tested;
     ModelEffect& echo = LooseEcho(tested, {1000.0f, 2000.0f, 100.0f}, 7.0f);
     echo.disturbanceState = 4;
-    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
+    ASSERT_TRUE(Client::Effects::StepHighModelEffect(echo, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(echo.disturbanceState, 5);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(echo.transform.position.z), 0x42d00000u);
     CrtRandom replay(Seed);
@@ -2000,7 +2001,7 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoCallsFireAroundTheHero)
     ModelEffect& echo = LooseEcho(tested, {1200.0f, 1600.0f, 100.0f}, 6.0f);
     echo.byte89 = 9;
     echo.transform.angles.z = std::bit_cast<float>(0x4233999au);
-    const auto stepped = Client::Scenes::StepHighModelEffect(echo, nullptr, tested.StepContext());
+    const auto stepped = Client::Effects::StepHighModelEffect(echo, nullptr, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(echo.byte89, 10);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(echo.transform.angles.z), 0x4233999au);
@@ -2016,10 +2017,10 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoCallsFireAroundTheHero)
     const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(replay.Next() % 10 * 20)};
     auto twin = std::make_unique<WorldState>();
     const Client::Terrain::WorldTerrain twinTerrain;
-    const auto fire = Client::World::CreateWizardModelEffect(
-        twin->Map().effects, Client::Scenes::WizardArguments(0xc2, point, angles, glm::vec3(1.0f), 0, nullptr, 0),
+    const auto fire = Client::Effects::CreateWizardModelEffect(
+        twin->Map().effects, Client::Effects::WizardArguments(0xc2, point, angles, glm::vec3(1.0f), 0, nullptr, 0),
         replay,
-        Client::Scenes::WizardEffectServicesOf(
+        Client::Effects::WizardEffectServicesOf(
             *twin, replay, {.particles = &twin->Particles(), .worldClock = tested.clock, .terrain = &twinTerrain}));
     ASSERT_TRUE(fire.HasValue()) << fire.Error();
     EXPECT_EQ(std::bit_cast<std::uint32_t>(shake), Shakes[static_cast<std::size_t>(replay.Next() % 8)]);
@@ -2036,10 +2037,10 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoCallsFireAroundTheHero)
 
     FamilyWorld shakeless;
     ModelEffect& calm = LooseEcho(shakeless, {}, 0.0f);
-    EXPECT_TRUE(HasError(Client::Scenes::StepHighModelEffect(calm, nullptr, shakeless.StepContext()), "0x527acb"));
+    EXPECT_TRUE(HasError(Client::Effects::StepHighModelEffect(calm, nullptr, shakeless.StepContext()), "0x527acb"));
     FamilyWorld heroless;
     heroless.world->Runtime().hero = heroless.world->Actors().size();
     ModelEffect& lost = LooseEcho(heroless, {}, 0.0f);
-    EXPECT_TRUE(HasError(Client::Scenes::StepHighModelEffect(lost, nullptr, heroless.StepContext()), "0x527919"));
+    EXPECT_TRUE(HasError(Client::Effects::StepHighModelEffect(lost, nullptr, heroless.StepContext()), "0x527919"));
 }
 } // namespace

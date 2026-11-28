@@ -27,7 +27,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -88,18 +88,18 @@ bool IsSkillItem(std::int32_t type)
 // 0x632e30 con el texto `index` de Text.bmd, sin sprintf.
 Core::Expected<void, std::string> Notice(const InventoryMoveContext& context, std::size_t index, std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.services.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.services.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: falta el texto {} de Text.bmd", where, index));
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *text);
+    Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *text);
     return {};
 }
 
 // 0x5c8fb9..0x5c991b. El CMP AX, 0x1e12 de 0x5c8fb9 no lo lee nadie: salta a 0x5c8fd4, que pisa las banderas antes
 // de mirarlas. 0x5c8fd4..0x5c909c abre el registro propio y 0x5c991b lo cierra, también desde los avisos y las
 // salidas: con la cuenta en 0, los 3.848 rand() van después de los del envío.
-Core::Expected<void, std::string> UseTheSkillItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> UseTheSkillItem(const InventoryMoveContext& context, Ui::PanelRegistry& panels,
                                                   const ItemState& hovered, std::int32_t cell)
 {
     Kernel::WorldState& world = context.world;
@@ -161,8 +161,8 @@ Core::Expected<void, std::string> UseTheFruit(const InventoryMoveContext& contex
     if (hovered.scalar1Low == CommandFruitBits && heroClass != CommandFruitClass)
         return Notice(context, FruitClassText, "0x5c83be");
     // 0x5c83e7..0x5c83f3: el diálogo 0x96 nombra el ítem copiado de 0x78a59c8.
-    return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, FruitDialogLines,
-                              FruitDialogText, UI::ItemNameDialog, &runtime.dialogItem);
+    return Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, FruitDialogLines,
+                              FruitDialogText, Ui::ItemNameDialog, &runtime.dialogItem);
 }
 
 // 0x5c9e10: conserva el destino del mouse temporal hasta que 0x5ca250 lo consume.
@@ -199,7 +199,7 @@ Core::Expected<void, std::string> AimTheAutomaticMove(const InventoryMoveContext
 // 0x5c8e37..0x5c8fb8: la copia de la casilla `cell` de la grilla al cursor y la grilla en 0x78ab9b8. Desde el
 // inventario (0x5c8e58), 0x78abb28 en 1 y, con el almacén abierto, 0x5c9e10 en su grilla (0x5c8e8f); desde otra
 // (0x5c8ef8, la propia del comercio), sin 0x78abb28 y, con el almacén abierto, 0x5c9e10 en el inventario (0x5c8f09).
-Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& context, Ui::PanelRegistry& panels,
                                                     UsedGrid grid, std::int32_t cell)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -208,7 +208,7 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
     const bool inventory = grid.grid == Kernel::CursorGrid::Inventory;
     if (inventory)
         runtime.ui.field78abb28 = 1;
-    if (panels.IsOpen(UI::WarehousePanel))
+    if (panels.IsOpen(Ui::WarehousePanel))
     {
         if (auto aimed = AimTheAutomaticMove(context, inventory); !aimed.HasValue())
             return aimed;
@@ -240,7 +240,7 @@ bool IsAnEventTicket(std::int32_t type)
     return type == EventTicket1a1d || type == EventTicket1c13 || type == EventTicket1a12;
 }
 
-Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& context, Ui::PanelRegistry& panels,
                                                     UsedGrid grid, std::size_t index)
 {
     if (index >= grid.cells.size())
@@ -250,8 +250,8 @@ Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& 
     if (type == EventTicket1a1d)
     {
         // 0x5c67f3..0x5c685f: PUSH 0x10000, 0x40, 0x20, 0x1000 y 0x4000, cada uno con su JNZ a 0x5c9b0b.
-        for (const UI::PanelId panel :
-             {UI::NpcShopPanel, UI::WarehousePanel, UI::TradePanel, UI::EventNpcPanel, UI::SecondEventNpcPanel})
+        for (const Ui::PanelId panel :
+             {Ui::NpcShopPanel, Ui::WarehousePanel, Ui::TradePanel, Ui::EventNpcPanel, Ui::SecondEventNpcPanel})
         {
             if (panels.IsOpen(panel))
                 return {};
@@ -273,7 +273,7 @@ Core::Expected<void, std::string> UseTheEventTicket(const InventoryMoveContext& 
     return {};
 }
 
-Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context, Ui::PanelRegistry& panels,
                                                       UsedGrid grid, std::size_t index)
 {
     Kernel::WorldState& world = context.world;
@@ -305,4 +305,4 @@ Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext
     }
     return CopyIntoTheCursor(context, panels, grid, cell);
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

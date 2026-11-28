@@ -26,7 +26,7 @@ struct WorldRuntime;
 // Las funciones del objeto de las misiones [0x710148] (QuestState) que no dibujan: el estado que llega en el A0, el
 // A1 y el A2, las condiciones de quest.bmd, los ítems pedidos y la apertura de la ventana. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Las misiones", y Q-C840 a Q-C845 en 07.
-namespace Client::Scenes
+namespace Client::Quests
 {
 
 // Lo que leen las funciones que abren el registro propio o muestran un diálogo.
@@ -118,4 +118,4 @@ void SetTheQuestState(Kernel::WorldState& world, std::uint8_t index, std::uint8_
 // 0x4c2480 (0x4c268a..0x4c26d2), la vuelta a la selección: +4 en 0xff (el A0 se vuelve a pedir, Q-C215), +0x21381,
 // +0x21384, la ventana, +0x21382, +0x2137e y +0x2137f en 0, los 50 bytes de estado y +6..+8 en 0 (+9 queda).
 void ResetTheQuests(QuestState& quest, std::uint8_t& window);
-} // namespace Client::Scenes
+} // namespace Client::Quests

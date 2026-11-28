@@ -24,27 +24,27 @@
 #include <utility>
 #include <vector>
 
-// Client::UI::CreateCharacterWindow: la ventana de crear de la selección (+0x8498: 0x63d1a0,
+// Client::FrontEnd::CreateCharacterWindow: la ventana de crear de la selección (+0x8498: 0x63d1a0,
 // 0x63d4e0, 0x63d7c0, 0x63d880 y 0x63e0a0), sin la vista previa. Los nombres son sintéticos.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::CreateCharacterWindow;
+using Client::FrontEnd::CreateWindowEvent;
+using Client::FrontEnd::CreateWindowLayout;
+using Client::FrontEnd::LayoutCreateWindow;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::ClickAt;
 using Client::Tests::TapKey;
 using Client::Tests::TypeText;
-using Client::UI::CreateCharacterWindow;
-using Client::UI::CreateWindowEvent;
-using Client::UI::CreateWindowLayout;
-using Client::UI::LayoutCreateWindow;
-using Client::UI::NewUiTurn;
-using Client::UI::Point;
-using Client::UI::Rect;
+using Client::Ui::NewUiTurn;
+using Client::Ui::Point;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes(
         {{0xc, {512, 64}}, {0xd, {128, 128}}, {0x724, {64, 128}}, {0x725, {64, 128}}});
@@ -336,7 +336,7 @@ TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteChe
     EXPECT_TRUE(window.Name() == std::string("a\x80"
                                              "bc",
                                              4));
-    EXPECT_FALSE(Client::UI::HasForbiddenSymbol(window.Name()));
+    EXPECT_FALSE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
 
     window.Open();
     InputState evenByte;
@@ -346,7 +346,7 @@ TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteChe
     EXPECT_TRUE(window.Name() == std::string("\x80"
                                              "abc",
                                              4));
-    EXPECT_TRUE(Client::UI::HasForbiddenSymbol(window.Name()));
+    EXPECT_TRUE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
 
     window.Open();
     InputState unsupported;
@@ -354,7 +354,7 @@ TEST(CreateCharacterWindowTest, TheNameUsesXpWindows1252BeforeTheExistingByteChe
     static_cast<void>(StepOnce(window, unsupported));
 
     EXPECT_TRUE(window.Name() == "a?b");
-    EXPECT_FALSE(Client::UI::HasForbiddenSymbol(window.Name()));
+    EXPECT_FALSE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
 }
 
 TEST(CreateCharacterWindowTest, EnterIsNotInsertedIntoTheNameBeforeSubmission)
@@ -378,7 +378,7 @@ TEST(CreateCharacterWindowTest, EnterIsNotInsertedIntoTheNameBeforeSubmission)
 
         ASSERT_EQ(StepOnce(window, input), std::optional{CreateWindowEvent::Submitted});
         EXPECT_TRUE(window.Name() == expectedName);
-        EXPECT_FALSE(Client::UI::HasForbiddenSymbol(window.Name()));
+        EXPECT_FALSE(Client::FrontEnd::HasForbiddenSymbol(window.Name()));
 
         const std::string expectedBuffer = expectedName + '\0';
         EXPECT_TRUE(window.Buffer().substr(0, expectedBuffer.size()) == expectedBuffer);

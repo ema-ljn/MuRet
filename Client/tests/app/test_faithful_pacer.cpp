@@ -18,16 +18,16 @@
 #include <numeric>
 #include <vector>
 
-// Client::App::FaithfulPacer y el modo Faithful de GameLoop: el ritmo de 0x637700 con el reloj de
+// Client::Kernel::FaithfulPacer y el modo Faithful de GameLoop: el ritmo de 0x637700 con el reloj de
 // 64 ticks por segundo. Los números son los del modelo del lab (labs/cl3.0-bucle/jefe).
 namespace
 {
 using namespace std::chrono_literals;
-using Client::App::FaithfulTick;
-using Client::App::FaithfulWaitMs;
 using Client::App::GameLoop;
-using Client::App::PacingMode;
-using Client::App::TickCountMs;
+using Client::Kernel::FaithfulTick;
+using Client::Kernel::FaithfulWaitMs;
+using Client::Kernel::PacingMode;
+using Client::Kernel::TickCountMs;
 using Client::Platform::WindowState;
 using Client::Tests::FakeClock;
 using Client::Tests::LoopCall;

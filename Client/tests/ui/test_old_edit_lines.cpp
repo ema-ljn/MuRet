@@ -32,6 +32,7 @@
 // 0x468970), su paso (0x468d50) y Enter (0x467b10). Los textos son inventados.
 namespace
 {
+using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::DrawCommand;
@@ -43,14 +44,13 @@ using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
-using Client::UI::ChatFocus;
-using Client::UI::OldEdit;
-using Client::UI::OldWindowDrawContext;
-using Client::UI::OldWindowDrawView;
-using Client::UI::OldWindowGlobals;
-using Client::UI::OldWindowManager;
-using Client::UI::OldWindowMeasure;
-using Client::UI::OldWindowStepView;
+using Client::Ui::OldEdit;
+using Client::Ui::OldWindowDrawContext;
+using Client::Ui::OldWindowDrawView;
+using Client::Ui::OldWindowGlobals;
+using Client::Ui::OldWindowManager;
+using Client::Ui::OldWindowMeasure;
+using Client::Ui::OldWindowStepView;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen800{800, 600};
@@ -75,9 +75,9 @@ OldEdit TheBody(PixelSize screen, std::size_t limit = 1000)
     edit.base.y = 100;
     edit.base.width = 0xee;
     edit.base.height = 0x87;
-    edit.text = Client::UI::TextField(limit, false, Client::UI::TextField::Charset::Latin1);
+    edit.text = Client::Ui::TextField(limit, false, Client::Ui::TextField::Charset::Latin1);
     const LetterMeasure measure;
-    Client::UI::MakeTheEditMultiline(edit, measure, FontKind::Normal, screen);
+    Client::Ui::MakeTheEditMultiline(edit, measure, FontKind::Normal, screen);
     return edit;
 }
 
@@ -85,7 +85,7 @@ std::vector<std::string> LinesOf(const OldEdit& edit)
 {
     const LetterMeasure measure;
     std::vector<std::string> lines;
-    for (const std::string_view line : Client::UI::EditLines(edit, measure))
+    for (const std::string_view line : Client::Ui::EditLines(edit, measure))
         lines.emplace_back(line);
     return lines;
 }
@@ -131,33 +131,33 @@ TEST(OldEditLinesTest, LinesBreakAtCrLfAndWrapAtTheLastSpace)
 TEST(OldEditLinesTest, TheScrollStaysBetweenTheFirstAndTheLastPage)
 {
     OldEdit edit = TheBody(Screen640);
-    Client::UI::ScrollTheEdit(edit, 25, Client::UI::EditLineDown);
+    Client::Ui::ScrollTheEdit(edit, 25, Client::Ui::EditLineDown);
     EXPECT_EQ(edit.firstLine, 1);
-    Client::UI::ScrollTheEdit(edit, 25, Client::UI::EditPageDown);
+    Client::Ui::ScrollTheEdit(edit, 25, Client::Ui::EditPageDown);
     EXPECT_EQ(edit.firstLine, 11);
-    Client::UI::ScrollTheEdit(edit, 25, Client::UI::EditPageDown);
+    Client::Ui::ScrollTheEdit(edit, 25, Client::Ui::EditPageDown);
     EXPECT_EQ(edit.firstLine, 15);
-    Client::UI::ScrollTheEdit(edit, 25, Client::UI::EditPageUp);
+    Client::Ui::ScrollTheEdit(edit, 25, Client::Ui::EditPageUp);
     EXPECT_EQ(edit.firstLine, 5);
-    Client::UI::ScrollTheEditLines(edit, 25, -10000);
+    Client::Ui::ScrollTheEditLines(edit, 25, -10000);
     EXPECT_EQ(edit.firstLine, 0);
-    Client::UI::ScrollTheEdit(edit, 6, Client::UI::EditLineDown);
+    Client::Ui::ScrollTheEdit(edit, 6, Client::Ui::EditLineDown);
     EXPECT_EQ(edit.firstLine, 0);
 
     for (int line = 0; line < 14; ++line)
     {
-        Client::UI::TypeInTheEdit(edit, "x");
-        Client::UI::BreakTheEditLine(edit);
+        Client::Ui::TypeInTheEdit(edit, "x");
+        Client::Ui::BreakTheEditLine(edit);
     }
-    Client::UI::FollowTheEditCaret(edit, 15);
+    Client::Ui::FollowTheEditCaret(edit, 15);
     EXPECT_EQ(edit.firstLine, 5);
     EXPECT_FALSE(edit.followCaret);
-    Client::UI::ScrollTheEditLines(edit, 15, -10000);
-    Client::UI::FollowTheEditCaret(edit, 15);
+    Client::Ui::ScrollTheEditLines(edit, 15, -10000);
+    Client::Ui::FollowTheEditCaret(edit, 15);
     EXPECT_EQ(edit.firstLine, 0);
 
     OldEdit single;
-    Client::UI::ScrollTheEdit(single, 1, Client::UI::EditLineDown);
+    Client::Ui::ScrollTheEdit(single, 1, Client::Ui::EditLineDown);
     EXPECT_EQ(single.firstLine, 0);
 }
 
@@ -167,22 +167,22 @@ TEST(OldEditLinesTest, EnterBreaksTheLineOnlyInTheMultilineEdit)
 {
     OldEdit edit = TheBody(Screen640, 5);
     edit.draws = 9;
-    Client::UI::TypeInTheEdit(edit, "abc");
+    Client::Ui::TypeInTheEdit(edit, "abc");
     EXPECT_EQ(edit.draws, 0);
     edit.draws = 9;
-    Client::UI::BreakTheEditLine(edit);
+    Client::Ui::BreakTheEditLine(edit);
     EXPECT_EQ(edit.draws, 0);
     EXPECT_EQ(edit.text.Value(), "abc\r\n");
-    Client::UI::BreakTheEditLine(edit);
+    Client::Ui::BreakTheEditLine(edit);
     EXPECT_EQ(edit.text.Value(), "abc\r\n");
-    Client::UI::BackspaceInTheEdit(edit);
+    Client::Ui::BackspaceInTheEdit(edit);
     EXPECT_EQ(edit.text.Value(), "abc");
-    Client::UI::BackspaceInTheEdit(edit);
+    Client::Ui::BackspaceInTheEdit(edit);
     EXPECT_EQ(edit.text.Value(), "ab");
 
     OldEdit single;
     single.text.Type("ab");
-    Client::UI::BreakTheEditLine(single);
+    Client::Ui::BreakTheEditLine(single);
     EXPECT_EQ(single.text.Value(), "ab");
 }
 
@@ -192,33 +192,33 @@ TEST(OldEditLinesTest, EnterBreaksTheLineOnlyInTheMultilineEdit)
 TEST(OldEditLinesTest, TheCaretMovesByLinesAndSkipsTheWholeBreak)
 {
     const LetterMeasure measure;
-    using Client::UI::EditCaretKey;
+    using Client::Ui::EditCaretKey;
     OldEdit edit = TheBody(Screen640);
     edit.text.SetText("ab\r\ncd");
     edit.text.SetCursor(2);
-    Client::UI::DeleteInTheEdit(edit);
+    Client::Ui::DeleteInTheEdit(edit);
     EXPECT_EQ(edit.text.Value(), "abcd");
     EXPECT_TRUE(edit.followCaret);
 
     edit.text.SetText("abcdef\r\nxy\r\nlarguisimo");
     edit.text.SetCursor(8);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Left, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Left, false);
     EXPECT_EQ(edit.text.Cursor(), 6u);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Right, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Right, false);
     EXPECT_EQ(edit.text.Cursor(), 8u);
     edit.text.SetCursor(4);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Down, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Down, false);
     EXPECT_EQ(edit.text.Cursor(), 10u);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Down, true);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Down, true);
     EXPECT_EQ(edit.text.Cursor(), 14u);
     EXPECT_EQ(edit.text.SelectionBegin(), 10u);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::End, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::End, false);
     EXPECT_EQ(edit.text.Cursor(), edit.text.Size());
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Home, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Home, false);
     EXPECT_EQ(edit.text.Cursor(), 12u);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::Up, false);
     EXPECT_EQ(edit.text.Cursor(), 0u);
 
     std::string many;
@@ -227,10 +227,10 @@ TEST(OldEditLinesTest, TheCaretMovesByLinesAndSkipsTheWholeBreak)
     edit.text.SetText(many + "x");
     edit.text.SetCursor(0);
     edit.firstLine = 0;
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::PageDown, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::PageDown, false);
     EXPECT_EQ(edit.text.Cursor(), 30u);
     EXPECT_EQ(edit.firstLine, 10);
-    Client::UI::MoveTheEditCaret(edit, measure, EditCaretKey::PageUp, false);
+    Client::Ui::MoveTheEditCaret(edit, measure, EditCaretKey::PageUp, false);
     EXPECT_EQ(edit.text.Cursor(), 0u);
     EXPECT_EQ(edit.firstLine, 0);
 }
@@ -240,18 +240,18 @@ TEST(OldEditLinesTest, TheCaretMovesByLinesAndSkipsTheWholeBreak)
 TEST(OldEditLinesTest, PastingKeepsTheLinesUpToTheLimit)
 {
     OldEdit edit = TheBody(Screen640);
-    Client::UI::PasteInTheEdit(edit, "uno\ndos\r\ntres\rcuatro");
+    Client::Ui::PasteInTheEdit(edit, "uno\ndos\r\ntres\rcuatro");
     EXPECT_EQ(edit.text.Value(), "uno\r\ndos\r\ntres\r\ncuatro");
     EXPECT_TRUE(edit.followCaret);
     OldEdit tight = TheBody(Screen640, 3);
-    Client::UI::PasteInTheEdit(tight, "ab\ncd");
+    Client::Ui::PasteInTheEdit(tight, "ab\ncd");
     EXPECT_EQ(tight.text.Value(), "ab");
 
     OldEdit single;
-    Client::UI::PasteInTheEdit(single, "ab\ncd");
+    Client::Ui::PasteInTheEdit(single, "ab\ncd");
     EXPECT_EQ(single.text.Value(), "ab\ncd");
     OldEdit cut;
-    Client::UI::PasteInTheEdit(cut, "ab\rcd");
+    Client::Ui::PasteInTheEdit(cut, "ab\rcd");
     EXPECT_EQ(cut.text.Value(), "ab");
 }
 
@@ -286,7 +286,7 @@ protected:
 
     void Step(OldEdit& edit, std::int32_t x, std::int32_t y)
     {
-        Client::UI::Steps::StepTheEditMouse(m_manager, edit, Globals(), StepView(x, y));
+        Client::Ui::Steps::StepTheEditMouse(m_manager, edit, Globals(), StepView(x, y));
     }
 
     OldWindowDrawContext Context()
@@ -298,7 +298,7 @@ protected:
     {
         m_sprites.Begin(screen);
         m_text.texts.clear();
-        Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, focused,
+        Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, focused,
                                             OldWindowDrawView{.mouseX = x, .mouseY = y, .leftClick = m_leftClick});
     }
 
@@ -386,7 +386,7 @@ TEST_F(OldEditTest, AMultilineEditDrawsItsLinesItsCaretAndItsBar)
     EXPECT_EQ(commands[3].blend, BlendMode::Alpha);
     ExpectQuadAt(3, 0, 283.0f, 109.0f, 284.0f, 226.0f);
     ExpectQuadAt(3, 1, 295.0f, 109.0f, 296.0f, 226.0f);
-    EXPECT_EQ(VertexOf(3).color, *Client::UI::OldWindowPalette(2, 1.0f));
+    EXPECT_EQ(VertexOf(3).color, *Client::Ui::OldWindowPalette(2, 1.0f));
     // El cursor de la barra, de 11 de ancho en x + w − 14, con sus puntas.
     EXPECT_EQ(commands[4].blend, BlendMode::Opaque);
     EXPECT_EQ(commands[4].vertexCount, 18u);

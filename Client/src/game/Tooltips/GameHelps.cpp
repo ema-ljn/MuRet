@@ -16,7 +16,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -40,11 +40,11 @@ constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t TitleColor = 1;
 } // namespace
 
-Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, std::int32_t mode)
+Core::Expected<void, std::string> DrawTheFunctionHelp(Hud::GameHudContext& context, std::int32_t mode)
 {
     if (context.texts == nullptr)
         return Core::Unexpected(std::format("0x5b0590: la ayuda {} de F1 sin Text.bmd", mode));
-    const FunctionHelpTexts& help = mode == UI::FirstHelpMode ? FirstHelpTexts : SecondHelpTexts;
+    const FunctionHelpTexts& help = mode == Ui::FirstHelpMode ? FirstHelpTexts : SecondHelpTexts;
     // 0x5b056c y 0x5b0571..0x5b0581: sin mezcla y el renglón que sigue (0x78abb30) en 0.
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     TooltipLines& lines = context.hud.tooltip;
@@ -79,4 +79,4 @@ Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, s
     context.hud.durabilityWarning = 1;
     return DrawTheTooltipBox(context, HelpCorner, HelpCorner, lines.next, 0, CenteredMode, 1);
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

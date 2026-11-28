@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace Client::World
+namespace Client::Effects
 {
 namespace
 {
@@ -68,4 +68,4 @@ void StepObjectAlpha(const float& target, float& current, float& ceiling, std::u
         ceiling = current;
     }
 }
-} // namespace Client::World
+} // namespace Client::Effects

@@ -14,10 +14,10 @@
 #include <format>
 #include <string>
 
-namespace Client::World
+namespace Client::MapScripts::Noria
 {
-Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Crt::CrtRandom& random,
-                                                  const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepNoriaObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
+                                                  const WorldObjects::ObjectStepGlobals& globals)
 {
     constexpr float HalfThousandth = std::bit_cast<float>(0x3a03126fu);
     using Math::Thousandth;
@@ -45,9 +45,9 @@ Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Crt::CrtR
                                  static_cast<float>(static_cast<double>(object.transform.position.z) + 350.0));
         if (globals.particles == nullptr)
             return Core::Unexpected(std::string("0x60536e: falta el pool para5c6/9 de Noria"));
-        const auto emitted =
-            globals.particles->CreateChecked(SparkParticle, position, object.transform.angles, glm::vec3(0.5f),
-                                             MapSparkSubtype, 1.4f, globals.worldClock, random);
+        const auto emitted = globals.particles->CreateChecked(
+            Particles::SparkParticle, position, object.transform.angles, glm::vec3(0.5f), Particles::MapSparkSubtype,
+            1.4f, globals.worldClock, random);
         if (!emitted.HasValue())
             return Core::Unexpected(std::format("0x60536e:5c6/9 rechazado({})", static_cast<int>(emitted.Error())));
     }
@@ -63,4 +63,4 @@ Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Crt::CrtR
         object.state.uv.y = static_cast<float>(static_cast<double>(*clock % 1000) * Thousandth);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Noria

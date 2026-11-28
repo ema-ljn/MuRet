@@ -177,9 +177,9 @@ Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
     }
     int maxFps = 0;
     const auto result = std::from_chars(value.data(), value.data() + value.size(), maxFps);
-    if (result.ec != std::errc{} || !IsValidMaxFps(maxFps))
+    if (result.ec != std::errc{} || !Kernel::IsValidMaxFps(maxFps))
     {
-        return Unexpected(std::format("va de {} a {}, o 0 (sin tope)", MinFpsLimit, MaxFpsLimit));
+        return Unexpected(std::format("va de {} a {}, o 0 (sin tope)", Kernel::MinFpsLimit, Kernel::MaxFpsLimit));
     }
     return maxFps;
 }
@@ -214,15 +214,15 @@ Core::Expected<Platform::VSyncMode, std::string> ParseVSync(std::string_view val
     return Unexpected(std::string("tiene que ser on, adaptive u off"));
 }
 
-Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
+Core::Expected<Kernel::PacingMode, std::string> ParsePacing(std::string_view value)
 {
     if (EqualsIgnoringAsciiCase(value, "decoupled"))
     {
-        return PacingMode::Decoupled;
+        return Kernel::PacingMode::Decoupled;
     }
     if (EqualsIgnoringAsciiCase(value, "faithful"))
     {
-        return PacingMode::Faithful;
+        return Kernel::PacingMode::Faithful;
     }
     return Unexpected(std::string("tiene que ser decoupled o faithful"));
 }
@@ -286,7 +286,7 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
     case Key::ServerHost:
     {
         // ParseHost acepta solo ASCII, así que acá no hace falta mirar el UTF-8.
-        const auto host = ParseHost(WithoutQuotes(value));
+        const auto host = Session::ParseHost(WithoutQuotes(value));
         if (!host.HasValue())
         {
             return host.Error();
@@ -300,7 +300,7 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
     }
     case Key::ServerPort:
     {
-        const auto port = ParsePort(value);
+        const auto port = Session::ParsePort(value);
         if (!port.HasValue())
         {
             return port.Error();
@@ -568,7 +568,7 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
         config.maxFps = *commandLine.maxFps;
     }
     // 4. Las combinaciones: en el modo fiel VSync va apagado, como el original (CL3.2).
-    if (config.pacing == PacingMode::Faithful)
+    if (config.pacing == Kernel::PacingMode::Faithful)
     {
         if (config.vsync && *config.vsync != Platform::VSyncMode::Off)
         {

@@ -27,17 +27,17 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Messenger
 {
 namespace
 {
-using OldDraw::DrawText;
-using OldDraw::DrawTheButton;
-using OldDraw::RatioX;
-using OldDraw::SetThePalette;
-using OldDraw::ToFloat;
-using OldDraw::Truncate;
-using OldDraw::WhiteWithTexture;
+using Ui::OldDraw::DrawText;
+using Ui::OldDraw::DrawTheButton;
+using Ui::OldDraw::RatioX;
+using Ui::OldDraw::SetThePalette;
+using Ui::OldDraw::ToFloat;
+using Ui::OldDraw::Truncate;
+using Ui::OldDraw::WhiteWithTexture;
 
 // Los índices de 0x491960.
 constexpr std::int32_t EdgeIndex = 1;
@@ -208,8 +208,8 @@ void ChatTextColors(std::int32_t kind, Render::Text::TextColors& colors)
 // 0x460550, la vtable + 0x80 de los renglones del chat (0x45f240, vtable 0x6b9030) con 0x5763510 + 8 en 0: con la
 // mezcla normal, el nombre con ": " (sprintf "%s: ", 0x6c7aa8) y su ancho en 640 × 480 (GetTextExtentPointA con el
 // DC, ftol(cx / rx)), y el texto (sprintf "%s") después, con 0x465950 directo. Da 1.
-std::int32_t DrawTheChatRow(const OldWindowDrawContext& context, const OldList& list, const ChatLine& line,
-                            std::int32_t row, const OldWindowDrawView& view)
+std::int32_t DrawTheChatRow(const Ui::OldWindowDrawContext& context, const Ui::OldList& list, const Ui::ChatLine& line,
+                            std::int32_t row, const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -235,16 +235,16 @@ std::int32_t DrawTheChatRow(const OldWindowDrawContext& context, const OldList& 
 // (0x45fac0, igual a 0x461890) y los renglones. Con +0xc8 en 1 (0x45f240) la lista muestra su segundo deque (+0xcc),
 // que 0x460130 llena con push_front: el primero es el último pedazo del renglón más nuevo, partido en el ancho de la
 // lista menos 0x1e (0x459c70). El iterador corre hasta el final de ese deque (+0xe8, 0x45f9fd).
-void DrawTheChatLines(const OldWindowDrawContext& context, OldChatPart& chat, const OldWindowDrawView& view)
+void DrawTheChatLines(const Ui::OldWindowDrawContext& context, Ui::OldChatPart& chat, const Ui::OldWindowDrawView& view)
 {
-    OldList& list = chat.lines;
+    Ui::OldList& list = chat.lines;
     const std::size_t size = chat.wrappedRows.size();
-    OldDraw::DrawTheOldList(
+    Ui::OldDraw::DrawTheOldList(
         context, list, size,
-        OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
-                                .row = [&](std::int32_t row, std::size_t at)
-                                { return DrawTheChatRow(context, list, chat.wrappedRows[at], row, view); },
-                                .tail = {}});
+        Ui::OldDraw::OldListDrawing{.head = [&] { Ui::OldDraw::DrawTheListBar(context.sprites, list, size, view); },
+                                    .row = [&](std::int32_t row, std::size_t at)
+                                    { return DrawTheChatRow(context, list, chat.wrappedRows[at], row, view); },
+                                    .tail = {}});
 }
 
 // 0x491ba0(x, y, h): la raya entre dos listas, sin cambiar la mezcla: los filos del 2 y el medio del 1.
@@ -258,31 +258,31 @@ void DrawTheListSeparator(Render::SpriteBatch& sprites, float x, float y, float 
 }
 
 // La raya a `fromRight` del borde derecho del área de adentro: FILD de x + w − fromRight y de y, y h − 16 en float.
-void DrawTheMembersSeparator(Render::SpriteBatch& sprites, const OldWindow& chat, std::int32_t fromRight)
+void DrawTheMembersSeparator(Render::SpriteBatch& sprites, const Ui::OldWindow& chat, std::int32_t fromRight)
 {
-    DrawTheListSeparator(sprites, ToFloat(Steps::ClientX(chat, 0) + Steps::ClientWidth(chat) - fromRight),
-                         ToFloat(Steps::ClientY(chat, 0)),
-                         F32(static_cast<double>(Steps::ClientHeight(chat)) - SeparatorCut));
+    DrawTheListSeparator(sprites, ToFloat(Ui::Steps::ClientX(chat, 0) + Ui::Steps::ClientWidth(chat) - fromRight),
+                         ToFloat(Ui::Steps::ClientY(chat, 0)),
+                         F32(static_cast<double>(Ui::Steps::ClientHeight(chat)) - SeparatorCut));
 }
 
 // La y de un quad desde el borde de abajo: FILD h, FADD de y en float y FSUB.
-float FromTheBottom(const OldWindow& window, double rise)
+float FromTheBottom(const Ui::OldWindow& window, double rise)
 {
-    return F32(static_cast<double>(Steps::ClientHeight(window)) +
-               static_cast<double>(ToFloat(Steps::ClientY(window, 0))) - rise);
+    return F32(static_cast<double>(Ui::Steps::ClientHeight(window)) +
+               static_cast<double>(ToFloat(Ui::Steps::ClientY(window, 0))) - rise);
 }
 
-std::string TextAt(const OldWindowDrawView& view, std::size_t index)
+std::string TextAt(const Ui::OldWindowDrawView& view, std::size_t index)
 {
     return view.texts != nullptr ? view.texts->At(index) : std::string();
 }
 
 // La ventana `id` de la lista minimizada (0x490a00 y 0x45a9c0 con 5). Una que no está, que el original no ve (lee la
 // de 0), no.
-bool IsMinimized(OldWindowManager& manager, std::int32_t id)
+bool IsMinimized(Ui::OldWindowManager& manager, std::int32_t id)
 {
-    const OldWindow* window = FindTheOldWindow(manager, id);
-    return window != nullptr && window->base.state == MinimizedWindow;
+    const Ui::OldWindow* window = Ui::FindTheOldWindow(manager, id);
+    return window != nullptr && window->base.state == Ui::MinimizedWindow;
 }
 
 // 0x4a5943..0x4a5a68: el texto del renglón de un chat, del título de su ventana (+0x98, strncpy de 0x100): strtok(","),
@@ -290,9 +290,9 @@ bool IsMinimized(OldWindowManager& manager, std::int32_t id)
 // con él) cortado por 0x459c70 en w − 8 y un renglón (de 0x40 bytes: los títulos de MuRet no llegan); si no, el 995.
 // Sin pedazo (un título de comas, que el original no ve: strlen de NULL) o pasando el final del pedazo, MuRet no lee
 // nada (*inferido*).
-Core::Expected<std::string, std::string> TextOfTheChatRow(const OldWindow* chat, const OldWindow& window,
-                                                          const OldWindowDrawContext& context,
-                                                          const OldWindowDrawView& view)
+Core::Expected<std::string, std::string> TextOfTheChatRow(const Ui::OldWindow* chat, const Ui::OldWindow& window,
+                                                          const Ui::OldWindowDrawContext& context,
+                                                          const Ui::OldWindowDrawView& view)
 {
     std::string title = chat != nullptr ? chat->frame.title.value_or(std::string()) : std::string();
     title = title.substr(0, std::min(title.find('\0'), ChatTitleCopy));
@@ -303,8 +303,8 @@ Core::Expected<std::string, std::string> TextOfTheChatRow(const OldWindow* chat,
     if (token.size() <= chatting.size())
         return closed;
     const std::size_t skip = token.starts_with(closed) ? closed.size() + chatting.size() : chatting.size();
-    auto wrapped = WrapByWidth(token.substr(std::min(skip, token.size())), context.text, context.dcFont,
-                               context.sprites.Screen(), window.base.width - ChatTextCut, 1, 0);
+    auto wrapped = Chat::WrapByWidth(token.substr(std::min(skip, token.size())), context.text, context.dcFont,
+                                     context.sprites.Screen(), window.base.width - ChatTextCut, 1, 0);
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
     return wrapped.Value().lines.empty() ? std::string() : wrapped.Value().lines.front();
@@ -312,13 +312,13 @@ Core::Expected<std::string, std::string> TextOfTheChatRow(const OldWindow* chat,
 
 // 0x4a5750, desde 0x4a5490 con el blanco con textura: los renglones de los chats de abajo hacia arriba, el n de
 // (renglón + 4) · n sobre +0x104 (uno minimizado no cuenta).
-Core::Expected<void, std::string> DrawTheChatRowsOfTheList(OldWindowManager& manager, const OldWindow& window,
-                                                           const OldWindowDrawContext& context,
-                                                           const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheChatRowsOfTheList(Ui::OldWindowManager& manager, const Ui::OldWindow& window,
+                                                           const Ui::OldWindowDrawContext& context,
+                                                           const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    const OldWindowListPart& list = window.list;
-    const OldWindowBase& base = window.base;
+    const Ui::OldWindowListPart& list = window.list;
+    const Ui::OldWindowBase& base = window.base;
     const double step = static_cast<double>(list.rowHeight) + ChatRowMargin;
     const double bottom = static_cast<double>(list.bottom);
     std::int32_t row = 1;
@@ -350,7 +350,7 @@ Core::Expected<void, std::string> DrawTheChatRowsOfTheList(OldWindowManager& man
             color = alpha << AlphaShift;
         }
         context.textColors = Render::Text::TextColors{.text = color, .background = 0};
-        const OldWindow* chat = FindTheOldWindow(manager, id);
+        const Ui::OldWindow* chat = Ui::FindTheOldWindow(manager, id);
         auto text = TextOfTheChatRow(chat, window, context, view);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
@@ -358,11 +358,11 @@ Core::Expected<void, std::string> DrawTheChatRowsOfTheList(OldWindowManager& man
         static_cast<void>(DrawText(
             context, base.x + ChatTextX,
             Truncate(bottom - step * static_cast<double>(static_cast<float>(row)) + ChatTextDrop), text.Value()));
-        if (chat == nullptr || ListCount(chat->chat.users, chat->chat.members.size()) <= ManyMembers)
+        if (chat == nullptr || Ui::ListCount(chat->chat.users, chat->chat.members.size()) <= ManyMembers)
             continue;
         sprites.SetColor(Render::Color{.red = FullColor, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f});
-        OldDraw::Quad(sprites, MarkSlot, F32(static_cast<double>(base.width + base.x) - MarkInset),
-                      F32(bottom - step * rows + MarkDrop), MarkWidth, MarkHeight, 0.0f, 0.0f, MarkDu, MarkDv);
+        Ui::OldDraw::Quad(sprites, MarkSlot, F32(static_cast<double>(base.width + base.x) - MarkInset),
+                          F32(bottom - step * rows + MarkDrop), MarkWidth, MarkHeight, 0.0f, 0.0f, MarkDu, MarkDv);
         sprites.SetColor(Render::Color{.red = FullColor, .green = FullColor, .blue = FullColor, .alpha = 1.0f});
     }
     return {};
@@ -371,7 +371,7 @@ Core::Expected<void, std::string> DrawTheChatRowsOfTheList(OldWindowManager& man
 // 0x5542f0(x, y, texto, caja, 3, 0) → 0x465950 → 0x467060 con el modo 3 (0x467134..0x467144): TextOutA pone el texto
 // en la columna caja − cx del DIB, que tiene la caja de ancho: alineado a la derecha de la caja, cortado a la izquierda
 // si es más ancho. Sin texto y sin caja no dibuja nada (0x5542f8..0x55430f); vacío y con caja, el fondo solo.
-void DrawRightAligned(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+void DrawRightAligned(const Ui::OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                       std::int32_t box)
 {
     if (text.empty() && box == 0)
@@ -384,13 +384,13 @@ void DrawRightAligned(const OldWindowDrawContext& context, std::int32_t x, std::
 // 0x465770, la vtable + 0x80 de la lista del cuerpo (0x464620, vtable 0x6b93d4): con la mezcla normal, el renglón
 // (sprintf "%s", 0x6c7084) en x + 10 y en su y (0x465710, igual a 0x461c70), con 0x465950 directo. Con 0x6c7a88 en 1
 // vuelve a poner el fondo en 0, que ya está en 0 (0x4657a5..0x4657be). Da 1.
-std::int32_t DrawTheBodyRow(const OldWindowDrawContext& context, const OldList& list, std::size_t size,
+std::int32_t DrawTheBodyRow(const Ui::OldWindowDrawContext& context, const Ui::OldList& list, std::size_t size,
                             const std::string& line, std::int32_t row)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     context.textColors = Render::Text::TextColors{.text = BodyTextColor, .background = 0};
-    static_cast<void>(DrawText(context, list.base.x + BodyTextX, ListRowY(list, size, row), line));
+    static_cast<void>(DrawText(context, list.base.x + BodyTextX, Ui::ListRowY(list, size, row), line));
     sprites.SetBlend(Render::BlendMode::Opaque);
     return 1;
 }
@@ -398,36 +398,38 @@ std::int32_t DrawTheBodyRow(const OldWindowDrawContext& context, const OldList& 
 // 0x464d90, la vtable + 0x14 del cuerpo (0x47a810 con los elementos de 0x3f0): la barra (0x464e90, igual a 0x461890) y
 // los renglones. Como la de los renglones del chat, muestra su segundo deque, que 0x465450 llena con push_front y
 // partido.
-void DrawTheBodyLines(const OldWindowDrawContext& context, OldLetterPart& letter, const OldWindowDrawView& view)
+void DrawTheBodyLines(const Ui::OldWindowDrawContext& context, Ui::OldLetterPart& letter,
+                      const Ui::OldWindowDrawView& view)
 {
-    OldList& list = letter.lines;
+    Ui::OldList& list = letter.lines;
     const std::size_t size = letter.wrappedRows.size();
-    OldDraw::DrawTheOldList(
+    Ui::OldDraw::DrawTheOldList(
         context, list, size,
-        OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
-                                .row = [&](std::int32_t row, std::size_t at)
-                                { return DrawTheBodyRow(context, list, size, letter.wrappedRows[at], row); },
-                                .tail = {}});
+        Ui::OldDraw::OldListDrawing{.head = [&] { Ui::OldDraw::DrawTheListBar(context.sprites, list, size, view); },
+                                    .row = [&](std::int32_t row, std::size_t at)
+                                    { return DrawTheBodyRow(context, list, size, letter.wrappedRows[at], row); },
+                                    .tail = {}});
 }
 
 // Lo que mide el 9 de los renglones al volver a partirlos durante el dibujo: GetTextExtentPointA sobre el DC, con la
 // fuente que tenga en ese momento.
-OldWindowMeasure MeasureOfTheDraw(const OldWindowDrawContext& context)
+Ui::OldWindowMeasure MeasureOfTheDraw(const Ui::OldWindowDrawContext& context)
 {
-    return OldWindowMeasure{.measure = context.text, .dcFont = context.dcFont, .screen = context.sprites.Screen()};
+    return Ui::OldWindowMeasure{.measure = context.text, .dcFont = context.dcFont, .screen = context.sprites.Screen()};
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat,
-                                                    const OldWindowDrawContext& context, const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheChatWindow(Ui::OldWindowManager& manager, Ui::OldWindow& chat,
+                                                    const Ui::OldWindowDrawContext& context,
+                                                    const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     if (auto settled = SettleTheLetterKindsForTheDraw(manager, chat, MeasureOfTheDraw(context)); !settled.HasValue())
         return settled;
-    OldChatPart& part = chat.chat;
+    Ui::OldChatPart& part = chat.chat;
     DrawTheChatLines(context, part, view);
-    if (ListCount(part.users, part.members.size()) > MembersShown || part.mode >= WithInvites)
+    if (Ui::ListCount(part.users, part.members.size()) > MembersShown || part.mode >= WithInvites)
     {
         DrawTheFriendList(context, part.users, part.members, view);
         if (part.mode >= WithInvites)
@@ -437,41 +439,42 @@ Core::Expected<void, std::string> DrawTheChatWindow(OldWindowManager& manager, O
             DrawTheMembersSeparator(sprites, chat, InvitesSeparatorX);
         }
     }
-    if (ListCount(part.users, part.members.size()) > MembersShown || part.mode >= WithInvites)
+    if (Ui::ListCount(part.users, part.members.size()) > MembersShown || part.mode >= WithInvites)
         DrawTheMembersSeparator(sprites, chat, MembersSeparatorX);
     sprites.SetBlend(Render::BlendMode::Alpha);
-    const float left = ToFloat(Steps::ClientX(chat, 0));
-    const float width = ToFloat(Steps::ClientWidth(chat));
+    const float left = ToFloat(Ui::Steps::ClientX(chat, 0));
+    const float width = ToFloat(Ui::Steps::ClientWidth(chat));
     SetThePalette(sprites, LineIndex, 1.0f);
     sprites.ColorQuad(left, FromTheBottom(chat, BottomLineRise), width, 1.0f);
     SetThePalette(sprites, BlackIndex, 1.0f);
     sprites.ColorQuad(left, FromTheBottom(chat, BottomBarRise), width, BottomBarHeight);
     WhiteWithTexture(sprites);
     DrawTheButton(context, part.inviteButton, view);
-    OldEdit& edit = part.edit;
-    OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view);
+    Ui::OldEdit& edit = part.edit;
+    Ui::OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view);
     if (part.mode >= WithInvites)
         DrawTheButton(context, part.sendButton, view);
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheReadWindow(OldWindowManager& manager, OldWindow& read,
-                                                    const OldWindowDrawContext& context, const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheReadWindow(Ui::OldWindowManager& manager, Ui::OldWindow& read,
+                                                    const Ui::OldWindowDrawContext& context,
+                                                    const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     if (auto settled = SettleTheLetterKindsForTheDraw(manager, read, MeasureOfTheDraw(context)); !settled.HasValue())
         return settled;
-    OldLetterPart& letter = read.letter;
+    Ui::OldLetterPart& letter = read.letter;
     DrawTheBodyLines(context, letter, view);
-    const float left = ToFloat(Steps::ClientX(read, 0));
-    const std::int32_t width = Steps::ClientWidth(read);
+    const float left = ToFloat(Ui::Steps::ClientX(read, 0));
+    const std::int32_t width = Ui::Steps::ClientWidth(read);
     if (letter.portraitMode >= ReadPortraitShown)
     {
         const float toThePortrait = F32(static_cast<double>(width) - PortraitWidth);
         SetThePalette(sprites, LineIndex, 1.0f);
-        sprites.ColorQuad(ToFloat(Steps::ClientX(read, 0) + width - PortraitX), FromTheBottom(read, ButtonsBarRise),
+        sprites.ColorQuad(ToFloat(Ui::Steps::ClientX(read, 0) + width - PortraitX), FromTheBottom(read, ButtonsBarRise),
                           1.0f, PortraitLineHeight);
         sprites.ColorQuad(left, FromTheBottom(read, ButtonsLineRise), toThePortrait, 1.0f);
         SetThePalette(sprites, BlackIndex, 1.0f);
@@ -485,35 +488,36 @@ Core::Expected<void, std::string> DrawTheReadWindow(OldWindowManager& manager, O
         sprites.ColorQuad(left, FromTheBottom(read, ButtonsBarRise), ToFloat(width), ButtonsBarHeight);
     }
     SetThePalette(sprites, LineIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(read, HeaderLineY)), ToFloat(width), 1.0f);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(read, HeaderLineY)), ToFloat(width), 1.0f);
     SetThePalette(sprites, BlackIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(read, 0)), ToFloat(width), HeaderBarHeight);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(read, 0)), ToFloat(width), HeaderBarHeight);
     WhiteWithTexture(sprites);
     // sprintf(1014, +0x780, +0x88b, +0x89b) con los colores que haya: los del último renglón del cuerpo.
     const LetterEntry& entry = letter.entry;
-    static_cast<void>(DrawText(context, Steps::ClientX(read, ReadHeaderX), Steps::ClientY(read, ReadHeaderY),
+    static_cast<void>(DrawText(context, Ui::Steps::ClientX(read, ReadHeaderX), Ui::Steps::ClientY(read, ReadHeaderY),
                                Crt::Sprintf(TextAt(view, ReadHeaderText), entry.name, entry.date, entry.time)));
-    for (const OldButton& button : letter.buttons)
+    for (const Ui::OldButton& button : letter.buttons)
         DrawTheButton(context, button, view);
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write,
-                                                     const OldWindowDrawContext& context, const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheWriteWindow(Ui::OldWindowManager& manager, Ui::OldWindow& write,
+                                                     const Ui::OldWindowDrawContext& context,
+                                                     const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     if (auto settled = SettleTheLetterKindsForTheDraw(manager, write, MeasureOfTheDraw(context)); !settled.HasValue())
         return settled;
-    OldLetterPart& letter = write.letter;
-    const float left = ToFloat(Steps::ClientX(write, 0));
-    const float width = ToFloat(Steps::ClientWidth(write));
+    Ui::OldLetterPart& letter = write.letter;
+    const float left = ToFloat(Ui::Steps::ClientX(write, 0));
+    const float width = ToFloat(Ui::Steps::ClientWidth(write));
     SetThePalette(sprites, BlackIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(write, 0)), width, WriteHeaderHeight);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(write, 0)), width, WriteHeaderHeight);
     SetThePalette(sprites, LineIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(write, WriteToLineY)), width, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(write, WriteSubjectLineY)), width, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(write, WriteToLineY)), width, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(write, WriteSubjectLineY)), width, 1.0f);
     SetThePalette(sprites, BlackIndex, 1.0f);
     sprites.ColorQuad(left, FromTheBottom(write, WriteBottomRise), width, WriteBottomHeight);
     SetThePalette(sprites, LineIndex, 1.0f);
@@ -524,12 +528,12 @@ Core::Expected<void, std::string> DrawTheWriteWindow(OldWindowManager& manager, 
     // GetTextExtentPointA del 1000 con el DC (0x498702..0x49871b): la caja de los dos.
     const std::string to = TextAt(view, ToText);
     const std::int32_t box = context.text.Measure(context.dcFont, to).width;
-    DrawRightAligned(context, Steps::ClientX(write, WriteLabelX), Steps::ClientY(write, ToLabelY), to, box);
-    DrawRightAligned(context, Steps::ClientX(write, WriteLabelX), Steps::ClientY(write, SubjectLabelY),
+    DrawRightAligned(context, Ui::Steps::ClientX(write, WriteLabelX), Ui::Steps::ClientY(write, ToLabelY), to, box);
+    DrawRightAligned(context, Ui::Steps::ClientX(write, WriteLabelX), Ui::Steps::ClientY(write, SubjectLabelY),
                      TextAt(view, SubjectText), box);
     // 0x498772..0x4987a1: la vtable + 0x14 (0x468320) del nombre, del asunto y del cuerpo, con la mezcla normal.
-    const auto drawTheEdit = [&](OldEdit& edit)
-    { OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view); };
+    const auto drawTheEdit = [&](Ui::OldEdit& edit)
+    { Ui::OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view); };
     drawTheEdit(letter.to);
     drawTheEdit(letter.subject);
     drawTheEdit(letter.text);
@@ -545,10 +549,10 @@ Core::Expected<void, std::string> DrawTheWriteWindow(OldWindowManager& manager, 
     return {};
 }
 
-void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprites)
+void DrawTheFriendBarIcons(Ui::OldWindowManager& manager, Render::SpriteBatch& sprites)
 {
-    OldWindow& windowList = manager.windowList;
-    OldWindowListPart& list = windowList.list;
+    Ui::OldWindow& windowList = manager.windowList;
+    Ui::OldWindowListPart& list = windowList.list;
     // 0x4a512f..0x4a5146: IDIV con signo y SETL.
     const bool lit = list.barBlink % BarBlinkPeriod < BarBlinkLit;
     // El += de +0x148 en todas las salidas; en 32 bits, como el original.
@@ -564,23 +568,23 @@ void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprit
     };
     std::int32_t letterX = 0;
     std::int32_t letterY = 0;
-    if (FindTheOldWindow(manager, manager.friends) != nullptr)
+    if (Ui::FindTheOldWindow(manager, manager.friends) != nullptr)
     {
         // FILD y FMUL de los float: w / 64 y h / 32, exactos.
         const float width = ToFloat(windowList.base.width);
         const float height = ToFloat(list.rowStep);
-        OldDraw::Quad(sprites, PushSlot, ToFloat(x), ToFloat(y), width, height, 0.0f, 0.0f, width * PushDu,
-                      height * PushDv);
+        Ui::OldDraw::Quad(sprites, PushSlot, ToFloat(x), ToFloat(y), width, height, 0.0f, 0.0f, width * PushDu,
+                          height * PushDv);
         if (waiting && lit)
-            OldDraw::Quad(sprites, ManSlot, ToFloat(x + 7), ToFloat(y + 3), ManWidth, ManHeight, 0.0f, ManDv, ManDu,
-                          ManDv);
+            Ui::OldDraw::Quad(sprites, ManSlot, ToFloat(x + 7), ToFloat(y + 3), ManWidth, ManHeight, 0.0f, ManDv, ManDu,
+                              ManDv);
         letterX = x + 0x24;
         letterY = y + 7;
         if (list.newLetter == 0)
         {
             if (unread())
-                OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f,
-                              0.0f, LetterDu, LetterDv);
+                Ui::OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight,
+                                  0.0f, 0.0f, LetterDu, LetterDv);
             nextDraw();
             return;
         }
@@ -591,15 +595,15 @@ void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprit
     else
     {
         if (waiting && lit)
-            OldDraw::Quad(sprites, ManSlot, ToFloat(x + 4), ToFloat(y + 2), ManWidth, ManHeight, 0.0f, 0.0f, ManDu,
-                          ManDv);
+            Ui::OldDraw::Quad(sprites, ManSlot, ToFloat(x + 4), ToFloat(y + 2), ManWidth, ManHeight, 0.0f, 0.0f, ManDu,
+                              ManDv);
         letterX = x + 0x21;
         letterY = y + 5;
         if (list.newLetter == 0)
         {
             if (unread())
-                OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f,
-                              0.0f, LetterDu, LetterDv);
+                Ui::OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight,
+                                  0.0f, 0.0f, LetterDu, LetterDv);
             nextDraw();
             return;
         }
@@ -609,8 +613,8 @@ void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprit
         nextDraw();
         return;
     }
-    OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f, 0.0f,
-                  LetterDu, LetterDv);
+    Ui::OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f, 0.0f,
+                      LetterDu, LetterDv);
     if (list.barBlink % BarBlinkPeriod == LetterBlinkStep)
         ++list.letterBlinks;
     if (list.letterBlinks > LetterBlinks)
@@ -621,12 +625,12 @@ void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprit
     nextDraw();
 }
 
-Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manager, const OldWindow& window,
-                                                        const OldWindowDrawContext& context,
-                                                        const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheChatsInTheList(Ui::OldWindowManager& manager, const Ui::OldWindow& window,
+                                                        const Ui::OldWindowDrawContext& context,
+                                                        const Ui::OldWindowDrawView& view)
 {
-    const OldWindowListPart& list = window.list;
-    if (list.chats.empty() || window.base.state != ShownWindow)
+    const Ui::OldWindowListPart& list = window.list;
+    if (list.chats.empty() || window.base.state != Ui::ShownWindow)
         return {};
     std::int32_t count = 0;
     for (const std::int32_t id : list.chats)
@@ -639,7 +643,7 @@ Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manage
     const std::int32_t height =
         Truncate((static_cast<double>(list.rowHeight) + ChatRowMargin) * static_cast<double>(count));
     const float tall = ToFloat(height);
-    const OldWindowBase& base = window.base;
+    const Ui::OldWindowBase& base = window.base;
     const float x = ToFloat(base.x);
     const float top = ToFloat(list.bottom - height);
     const float width = ToFloat(base.width);
@@ -654,12 +658,12 @@ Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manage
     return DrawTheChatRowsOfTheList(manager, window, context, view);
 }
 
-Core::Expected<void, std::string> DrawTheLetterPortrait(OldWindow& window, const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheLetterPortrait(Ui::OldWindow& window, const Ui::OldWindowDrawView& view)
 {
     std::string_view where;
-    if (window.kind == OldWindowKind::LetterReadWindow && window.letter.portraitMode >= ReadPortraitShown)
+    if (window.kind == Ui::OldWindowKind::LetterReadWindow && window.letter.portraitMode >= ReadPortraitShown)
         where = "0x49a1d0";
-    else if (window.kind == OldWindowKind::LetterWriteWindow && window.letter.withPortrait == 1)
+    else if (window.kind == Ui::OldWindowKind::LetterWriteWindow && window.letter.withPortrait == 1)
         where = "0x498800";
     else
         return {};
@@ -669,4 +673,4 @@ Core::Expected<void, std::string> DrawTheLetterPortrait(OldWindow& window, const
                                             where));
     return view.portrait(window.letter.portrait);
 }
-} // namespace Client::UI
+} // namespace Client::Messenger

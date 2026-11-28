@@ -19,13 +19,13 @@
 #include <vector>
 namespace
 {
-struct Trigonometry final : Client::World::IParticleTrigonometry
+struct Trigonometry final : Client::Particles::IParticleTrigonometry
 {
-    Client::Core::Expected<double, Client::World::ParticleError> SineProductPC53(double, float) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> SineProductPC53(double, float) const override
     {
         return 2.0;
     }
-    Client::Core::Expected<double, Client::World::ParticleError> CosineProductPC53(double, float) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> CosineProductPC53(double, float) const override
     {
         return 3.0;
     }
@@ -33,12 +33,12 @@ struct Trigonometry final : Client::World::IParticleTrigonometry
 TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyLifeAndColor)
 {
     std::vector<Client::Scenes::JointState> joints(1);
-    Client::World::ModelEffect owner;
+    Client::Effects::ModelEffect owner;
     owner.alive = true;
     Client::Crt::CrtRandom random(7);
     glm::vec3 position{100, 200, 300}, target{400, 500, 600}, angles{};
     const auto result =
-        Client::Scenes::CreateFaunaJoint(joints, {0x610, position, target, angles, 13, &owner, 20, 40, 0, 0, -1},
+        Client::Joints::CreateFaunaJoint(joints, {0x610, position, target, angles, 13, &owner, 20, 40, 0, 0, -1},
                                          random, Client::Kernel::JointOwnerKind::ModelEffect);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_TRUE(result.Value());
@@ -62,7 +62,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
             SCOPED_TRACE(subtype);
             std::vector<Client::Scenes::JointState> joints(1);
             auto& joint = joints[0];
-            Client::World::ModelEffect owner;
+            Client::Effects::ModelEffect owner;
             owner.alive = alive;
             joint.alive = true;
             joint.type = 0x610;
@@ -81,7 +81,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
             Client::Crt::CrtRandom random(7), expected(7);
             expected.Discard(1);
             const auto result =
-                Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, nullptr, lighting.get());
+                Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0, nullptr, lighting.get());
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(joint.alive, alive);
             EXPECT_EQ(joint.life, 9);
@@ -101,7 +101,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
 }
 TEST(CrywolfArrowDependenciesTest, TheFallingOrbitUsesFourDrawsAndDrawsAtLifeForty)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7), expected(7);
     const int rise = expected.Next() % 100, phase = expected.Next() % 300 - 150, scale = expected.Next() % 6,
               rotation = expected.Next() % 360;
@@ -127,7 +127,7 @@ TEST(CrywolfArrowDependenciesTest, TheFallingOrbitUsesFourDrawsAndDrawsAtLifeFor
 }
 TEST(CrywolfArrowDependenciesTest, TheFallingOrbitDescendsAndMovesOnlyItsAnchorX)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     auto& p = particles->All()[0];
     p.alive = true;
     p.type = 0x60f;
@@ -143,7 +143,7 @@ TEST(CrywolfArrowDependenciesTest, TheFallingOrbitDescendsAndMovesOnlyItsAnchorX
     Trigonometry trig;
     const float clock = 0;
     const std::int32_t map = 34;
-    ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random, std::cref(clock), &map, trig).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random, std::cref(clock), &map, trig).HasValue());
     EXPECT_EQ(p.life, 20);
     EXPECT_EQ(p.position, (glm::vec3{102, 197, 297}));
     EXPECT_EQ(p.start, (glm::vec3{102.5f, 200, 300}));
@@ -157,11 +157,11 @@ TEST(CrywolfArrowDependenciesTest, TheFullPoolsDoNotReadTheOwnerOrAdvanceTheCons
     Client::Crt::CrtRandom random(7);
     glm::vec3 empty{};
     const auto joint =
-        Client::Scenes::CreateFaunaJoint(joints, {0x610, empty, empty, empty, 13, nullptr, 20, 40, 0, 0, -1}, random,
+        Client::Joints::CreateFaunaJoint(joints, {0x610, empty, empty, empty, 13, nullptr, 20, 40, 0, 0, -1}, random,
                                          Client::Kernel::JointOwnerKind::ModelEffect);
     ASSERT_TRUE(joint.HasValue());
     EXPECT_FALSE(joint.Value());
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     for (auto& p : particles->All())
         p.alive = true;
     Trigonometry trig;

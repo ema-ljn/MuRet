@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Particles/IParticleTrigonometry.h"
 
-namespace Client::World
+namespace Client::Particles
 {
 // Perfil fijo limitado (ADR0014): sin/cos con la aritmética binaria propia de OriginalRetainedMath
 // (error < 2^-250) → retenido64 RN → producto PC53 exacto en double.
@@ -19,4 +19,4 @@ public:
     [[nodiscard]] Core::Expected<double, ParticleError> CosineProductPC53(double argument,
                                                                           float multiplier) const override;
 };
-} // namespace Client::World
+} // namespace Client::Particles

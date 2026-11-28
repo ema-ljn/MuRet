@@ -55,23 +55,23 @@ struct Trail
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        made = Client::Scenes::CreateFaunaJoint(joints, request, random, JointOwnerKind::ModelEffect).HasValue();
+        made = Client::Joints::CreateFaunaJoint(joints, request, random, JointOwnerKind::ModelEffect).HasValue();
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, &cloth, particles.get(), 0.0f, &sprites, lighting.get());
+        return Client::Joints::StepJoints(joints, random, &cloth, particles.get(), 0.0f, &sprites, lighting.get());
     }
 
     glm::vec3 from{100.0f, 200.0f, 300.0f};
     glm::vec3 angles{};
-    Client::World::ModelEffect owner;
+    Client::Effects::ModelEffect owner;
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
     bool made = false;
     Client::Models::ClothWorld cloth{.random = CrtRandom{1}};
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    Client::World::FrameSprites sprites;
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    Client::Particles::FrameSprites sprites;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
@@ -135,7 +135,7 @@ TEST(ArrowTrailJointsTest, TheViperTrailLeavesItsSparksWhileAlive)
     EXPECT_FALSE(viper.sprites.Sprites()[1].alive);
 
     CrtRandom replay(Seed);
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     const glm::vec3 red{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3e99999au),
                         std::bit_cast<float>(0x3e99999au)};
     struct Expected
@@ -154,8 +154,8 @@ TEST(ArrowTrailJointsTest, TheViperTrailLeavesItsSparksWhileAlive)
         const auto replayed =
             twin->CreateChecked(want.type, moved, joint.angles, want.light, want.subtype, want.scale, 0.0f, replay);
         ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
-        const Client::World::Particle& made = viper.particles->All()[index];
-        const Client::World::Particle& reference = twin->All()[index];
+        const Client::Particles::Particle& made = viper.particles->All()[index];
+        const Client::Particles::Particle& reference = twin->All()[index];
         ASSERT_TRUE(made.alive);
         EXPECT_EQ(made.type, want.type);
         EXPECT_EQ(made.subtype, want.subtype);
@@ -212,14 +212,14 @@ TEST(ArrowTrailJointsTest, TheViperTrailFadesAndStopsWithItsArrow)
 // rand() % 360) pero quieta (0x5435bb), y en su paso, como la /35, la luz por 0,9615385f y la escala + 0,06f.
 TEST(ArrowTrailJointsTest, TheViperSmokeIsTheStillTwinOfTheExplosionSmoke)
 {
-    auto still = std::make_unique<Client::World::Particles>();
-    auto falling = std::make_unique<Client::World::Particles>();
+    auto still = std::make_unique<Client::Particles::Particles>();
+    auto falling = std::make_unique<Client::Particles::Particles>();
     CrtRandom first(Seed), second(Seed);
     const glm::vec3 at{100.0f, 200.0f, 300.0f};
     ASSERT_TRUE(still->CreateChecked(0x5f2, at, {}, glm::vec3(1.0f), 34, 1.0f, 0.0f, first).HasValue());
     ASSERT_TRUE(falling->CreateChecked(0x5f2, at, {}, glm::vec3(1.0f), 35, 1.0f, 0.0f, second).HasValue());
-    const Client::World::Particle& smoke = still->All()[0];
-    const Client::World::Particle& twin = falling->All()[0];
+    const Client::Particles::Particle& smoke = still->All()[0];
+    const Client::Particles::Particle& twin = falling->All()[0];
     ASSERT_TRUE(smoke.alive);
     EXPECT_EQ(smoke.life, 30);
     EXPECT_EQ(smoke.light, (glm::vec3{1.0f, 0.2f, 0.2f}));
@@ -228,8 +228,8 @@ TEST(ArrowTrailJointsTest, TheViperSmokeIsTheStillTwinOfTheExplosionSmoke)
     EXPECT_EQ(smoke.rotation, twin.rotation);
     EXPECT_EQ(first.State(), second.State());
 
-    ASSERT_TRUE(Client::World::StepParticlesChecked(*still, first).HasValue());
-    ASSERT_TRUE(Client::World::StepParticlesChecked(*falling, second).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(*still, first).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(*falling, second).HasValue());
     EXPECT_EQ(smoke.light, twin.light);
     EXPECT_EQ(Bits(smoke.light.x), Bits(F32(1.0 * D(std::bit_cast<float>(0x3f762763u)))));
     EXPECT_EQ(smoke.scale, twin.scale);

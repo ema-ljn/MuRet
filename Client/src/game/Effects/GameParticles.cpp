@@ -41,7 +41,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -65,9 +65,9 @@ struct WaterspoutDrop
 constexpr std::array<WaterspoutDrop, 2> Drops{
     {{1, -20.0f, "0x6030a5", "0x6030c7"}, {4, -80.0f, "0x603121", "0x60313a"}}};
 
-Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const World::WorldObject& object,
-                                           World::Particles& particles, Crt::CrtRandom& random, const float& worldClock,
-                                           const WaterspoutBonePoint& bonePoint)
+Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const WorldObjects::WorldObject& object,
+                                           Particles::Particles& particles, Crt::CrtRandom& random,
+                                           const float& worldClock, const WaterspoutBonePoint& bonePoint)
 {
     const int x = (random.Next() % DropSpread) - DropCenter;
     const int z = (random.Next() % DropSpread) - DropCenter;
@@ -82,7 +82,7 @@ Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Wor
     {
         return Core::Unexpected(std::format("{}: {}", drop.poseAddress, position.Error()));
     }
-    const auto created = particles.CreateChecked(World::BreathParticle, position.Value(), object.transform.angles,
+    const auto created = particles.CreateChecked(Particles::BreathParticle, position.Value(), object.transform.angles,
                                                  object.light, DropSubtype, DropScale, worldClock, random);
     if (!created.HasValue())
     {
@@ -121,9 +121,9 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
 }
 } // namespace
 
-Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
-                                                          Crt::CrtRandom& random, const float& worldClock,
-                                                          const WaterspoutBonePoint& bonePoint)
+Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObject& object,
+                                                          Particles::Particles& particles, Crt::CrtRandom& random,
+                                                          const float& worldClock, const WaterspoutBonePoint& bonePoint)
 {
     object.state.light = 1.0f; // 0x603011, incluso cuando el ftol siguiente falla.
     const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(worldClock));
@@ -149,9 +149,9 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
     return {};
 }
 
-Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
-                                                          Crt::CrtRandom& random, const float& worldClock,
-                                                          const Models::IModelLibrary& models,
+Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObject& object,
+                                                          Particles::Particles& particles, Crt::CrtRandom& random,
+                                                          const float& worldClock, const Models::IModelLibrary& models,
                                                           const Actors::Drawing::DrawnObject& drawn,
                                                           const Kernel::PoseBuffer* retainedPose)
 {
@@ -161,19 +161,19 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 }
 
 Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
+StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-                  const std::function<World::WorldObject*(std::uint64_t)>& owners,
+                  const std::function<WorldObjects::WorldObject*(std::uint64_t)>& owners,
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight,
                   Terrain::TerrainLighting* lighting,
                   const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
-                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones)
+                  const std::function<std::optional<glm::vec3>(const Particles::Particle&)>& ownerBones)
 {
-    World::PortableParticleTrigonometry trigonometry;
+    Particles::PortableParticleTrigonometry trigonometry;
     const auto stepped =
-        World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight, owners,
-                                    actorActions, textureHeight, lighting, actorHands, ownerBones);
+        Particles::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight,
+                                        owners, actorActions, textureHeight, lighting, actorHands, ownerBones);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -183,21 +183,21 @@ StepGameParticles(World::Particles& particles, Crt::CrtRandom& random, const std
 }
 
 Core::Expected<void, std::string> StepGameParticles(
-    World::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
+    Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-    const std::function<World::WorldObject*(std::uint64_t)>& owners,
+    const std::function<WorldObjects::WorldObject*(std::uint64_t)>& owners,
     const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
     const std::function<std::optional<float>(std::int32_t)>& textureHeight, Terrain::TerrainLighting* lighting,
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
-    const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones,
+    const std::function<std::optional<glm::vec3>(const Particles::Particle&)>& ownerBones,
     const std::function<void(Audio::SoundId)>& sound,
-    const std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>& ownerStates,
-    World::FrameSprites* sprites)
+    const std::function<std::optional<Particles::ParticleOwnerState>(const Particles::ParticleOwner&)>& ownerStates,
+    Particles::FrameSprites* sprites)
 {
-    World::PortableParticleTrigonometry trigonometry;
-    const auto stepped = World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
-                                                     terrainHeight, owners, actorActions, textureHeight, lighting,
-                                                     actorHands, ownerBones, sound, ownerStates, sprites);
+    Particles::PortableParticleTrigonometry trigonometry;
+    const auto stepped = Particles::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
+                                                         terrainHeight, owners, actorActions, textureHeight, lighting,
+                                                         actorHands, ownerBones, sound, ownerStates, sprites);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -215,11 +215,12 @@ std::function<std::optional<float>(std::int32_t)> ParticleTextureHeightsOf(const
     };
 }
 
-std::function<World::WorldObject*(std::uint64_t)> ParticleOwnersAmong(std::span<World::WorldObject> objects)
+std::function<WorldObjects::WorldObject*(std::uint64_t)>
+ParticleOwnersAmong(std::span<WorldObjects::WorldObject> objects)
 {
-    return [objects](std::uint64_t identity) -> World::WorldObject*
+    return [objects](std::uint64_t identity) -> WorldObjects::WorldObject*
     {
-        for (World::WorldObject& object : objects)
+        for (WorldObjects::WorldObject& object : objects)
         {
             if (object.identity == identity)
                 return &object;
@@ -239,22 +240,22 @@ ParticleActorActionsAmong(std::span<const Kernel::ActorState> actors)
     };
 }
 
-std::function<std::optional<World::ParticleOwnerState>(const World::ParticleOwner&)>
+std::function<std::optional<Particles::ParticleOwnerState>(const Particles::ParticleOwner&)>
 ParticleOwnerStatesOf(Kernel::WorldState& world)
 {
-    return [&world](const World::ParticleOwner& owner) -> std::optional<World::ParticleOwnerState>
+    return [&world](const Particles::ParticleOwner& owner) -> std::optional<Particles::ParticleOwnerState>
     {
-        if (owner.kind == World::ParticleOwnerKind::ModelEffect)
+        if (owner.kind == Particles::ParticleOwnerKind::ModelEffect)
         {
             const auto effects = world.Map().effects.Effects();
             if (owner.identity >= effects.size())
                 return std::nullopt;
             const auto& effect = effects[static_cast<std::size_t>(owner.identity)];
-            return World::ParticleOwnerState{effect.alive, effect.transform.position, effect.start,
-                                             effect.animation.action};
+            return Particles::ParticleOwnerState{effect.alive, effect.transform.position, effect.start,
+                                                 effect.animation.action};
         }
         const auto actors = world.Actors();
-        if (owner.kind != World::ParticleOwnerKind::Actor || owner.identity >= actors.size())
+        if (owner.kind != Particles::ParticleOwnerKind::Actor || owner.identity >= actors.size())
             return std::nullopt;
         const auto slot = static_cast<std::size_t>(owner.identity);
         const Kernel::ActorState& actor = actors[slot];
@@ -272,17 +273,17 @@ ParticleOwnerStatesOf(Kernel::WorldState& world)
                 found->bone < named.bodyPose.size() ? named.bodyPose[found->bone] : Math::BoneTransform(0.0f);
             return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), {}, named.scale, named.position);
         };
-        return World::ParticleOwnerState{actor.alive, actor.position, std::nullopt, actor.animation.action,
-                                         std::move(namedBone)};
+        return Particles::ParticleOwnerState{actor.alive, actor.position, std::nullopt, actor.animation.action,
+                                             std::move(namedBone)};
     };
 }
 
-std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World::Particle& particle)
+std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const Particles::Particle& particle)
 {
     constexpr std::int32_t ShineOwnerType = 0x62d;
     constexpr glm::vec3 ShineOffset{0.0f, -120.0f, 0.0f}; // 0x53fdfd: 0xc2f00000
-    if (particle.type == World::SparkParticle && particle.subtype == World::PiercingSparkSubtype &&
-        particle.typedOwner.kind == World::ParticleOwnerKind::ModelEffect)
+    if (particle.type == Particles::SparkParticle && particle.subtype == Particles::PiercingSparkSubtype &&
+        particle.typedOwner.kind == Particles::ParticleOwnerKind::ModelEffect)
     {
         const auto effects = world.Map().effects.Effects();
         if (particle.typedOwner.identity >= effects.size())
@@ -291,10 +292,11 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World
         return owner.alive ? std::optional(owner.transform.position) : std::nullopt;
     }
     const auto actors = world.Actors();
-    if (particle.typedOwner.kind != World::ParticleOwnerKind::Actor || particle.typedOwner.identity >= actors.size())
+    if (particle.typedOwner.kind != Particles::ParticleOwnerKind::Actor ||
+        particle.typedOwner.identity >= actors.size())
         return std::nullopt;
     const Kernel::ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
-    if (particle.type == World::SwellLifeParticle && particle.subtype == World::SwellLifeParticleSubtype)
+    if (particle.type == Particles::SwellLifeParticle && particle.subtype == Particles::SwellLifeParticleSubtype)
     {
         // 0x544a9d..0x544b09: dirección retenida, sin leer alive ni flags. No usa la escala del modelo ni 53fdb0.
         constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
@@ -326,8 +328,9 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World
         bone = hero.body.back().bone;
         break;
     }
-    const glm::vec3 offset =
-        particle.type == World::SkillShineParticle || particle.type == ShineOwnerType ? ShineOffset : glm::vec3(0.0f);
+    const glm::vec3 offset = particle.type == Particles::SkillShineParticle || particle.type == ShineOwnerType
+                                 ? ShineOffset
+                                 : glm::vec3(0.0f);
     // 0x53fe0b..0x53fe1a: el origen del modelo.
     Kernel::SharedModelPlacement model = world.ModelPlacement(owner.type);
     model.origin = owner.position;
@@ -336,20 +339,20 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const World
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, model.scale, model.origin);
 }
 
-std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(Kernel::WorldState& world)
+std::function<std::optional<glm::vec3>(const Particles::Particle&)> ParticleOwnerBonesOf(Kernel::WorldState& world)
 {
-    return [&world](const World::Particle& particle) { return OwnerBonePointOf(world, particle); };
+    return [&world](const Particles::Particle& particle) { return OwnerBonePointOf(world, particle); };
 }
 
-Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,
+Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, Particles::Particles& particles,
                                                     const Models::IModelLibrary& textures,
                                                     const Math::OriginalMatrix& view, float worldClock,
                                                     std::uint8_t mode)
 {
-    const auto drawn = DrawParticles(batch, particles, textures, view, worldClock, mode);
+    const auto drawn = WorldObjects::DrawParticles(batch, particles, textures, view, worldClock, mode);
     if (!drawn.HasValue())
     {
-        const World::ParticleDrawingFailure& failure = drawn.Error();
+        const Particles::ParticleDrawingFailure& failure = drawn.Error();
         return Core::Unexpected(
             std::format("0x637558 → 0x548550: el dibujo se corta en el lugar {}: error {}, fase {}{}", failure.slot,
                         static_cast<unsigned>(failure.error.reason), static_cast<unsigned>(failure.error.phase),
@@ -357,4 +360,4 @@ Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, W
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

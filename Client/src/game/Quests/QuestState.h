@@ -8,8 +8,8 @@
 
 // El objeto de las misiones del original, [0x710148] (un global estático que arma 0x41cb60 desde 0x418ce0; vtable
 // 0x6b89a0). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las misiones". El estado de la ventana,
-// +0x21383, vive en UI::DelegatedPanels::quest, porque el registro de los paneles lo consulta como el panel 8.
-namespace Client::Scenes
+// +0x21383, vive en Ui::DelegatedPanels::quest, porque el registro de los paneles lo consulta como el panel 8.
+namespace Client::Quests
 {
 // +0x2134c: los bytes de estado que copia el A0 (0x418e20 pone en 0 doce dwords y un word).
 inline constexpr std::size_t QuestStateBytes = 50;
@@ -63,4 +63,4 @@ struct QuestState
     std::int32_t x = 0x1c2;
     std::int32_t y = 0;
 };
-} // namespace Client::Scenes
+} // namespace Client::Quests

@@ -22,7 +22,7 @@ class SpriteBatch;
 // elegido, y el EDIT. Las usan UI/OldWindowDraw.cpp (el marco, la caja y la lista de ventanas) y
 // UI/FriendWindowsDraw.cpp (la ventana de amigos), y son para las ventanas del chat con un amigo y de las cartas
 // (hito 10). Todo en 640 × 480.
-namespace Client::UI::OldDraw
+namespace Client::Ui::OldDraw
 {
 // Los mensajes de recolocación pueden crear un EDIT y cambiar el foco dentro de la misma pasada de dibujo.
 [[nodiscard]] OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWindowDrawView& view);
@@ -122,4 +122,4 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
 // dos filos de la pista (el 2 de la paleta); y sin mezcla, el cursor en tres quads.
 void DrawTheEditBar(const OldWindowDrawContext& context, OldEdit& edit, std::int32_t lineCount,
                     const OldWindowDrawView& view);
-} // namespace Client::UI::OldDraw
+} // namespace Client::Ui::OldDraw

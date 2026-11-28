@@ -29,19 +29,19 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
 using Result = Core::Expected<void, std::string>;
 Result Fire(std::uint8_t kind, const glm::vec3& origin, const glm::vec3& target, const glm::vec3& light,
-            std::int32_t subtype, std::uint8_t hi, std::uint8_t lo, const WorldEntryResources& resources)
+            std::int32_t subtype, std::uint8_t hi, std::uint8_t lo, const Scenes::WorldEntryResources& resources)
 {
     if (kind != 1 && kind != 2)
         return {};
     auto& hero = resources.world.Hero();
-    const Kernel::ModelEffectArguments arguments{.type =
-                                                     kind == 1 ? World::SiegeStoneEffect : World::SiegeIceStoneEffect,
+    const Kernel::ModelEffectArguments arguments{.type = kind == 1 ? CastleSiege::SiegeStoneEffect
+                                                                   : CastleSiege::SiegeIceStoneEffect,
                                                  .position = origin,
                                                  .angles = target,
                                                  .light = light,
@@ -51,7 +51,7 @@ Result Fire(std::uint8_t kind, const glm::vec3& origin, const glm::vec3& target,
                                                  .byte89 = lo,
                                                  .byte88 = hi};
     const auto created =
-        World::CreateSiegeStone(arguments, resources.world.Map().effects, hero.position, resources.cloth.random);
+        CastleSiege::CreateSiegeStone(arguments, resources.world.Map().effects, hero.position, resources.cloth.random);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     return {};
@@ -61,7 +61,7 @@ bool InRange(const glm::vec3& a, const glm::vec3& b, float radius)
     const double dx = static_cast<double>(a.x) - b.x, dy = static_cast<double>(a.y) - b.y;
     return !(std::sqrt(dx * dx + dy * dy) > radius);
 }
-Result KnockDownTheHero(const glm::vec3& point, float radius, const WorldEntryResources& resources)
+Result KnockDownTheHero(const glm::vec3& point, float radius, const Scenes::WorldEntryResources& resources)
 {
     auto& hero = resources.world.Hero();
     constexpr std::uint8_t Knockdown = 137;
@@ -80,7 +80,7 @@ Result KnockDownTheHero(const glm::vec3& point, float radius, const WorldEntryRe
         resources.sendGamePacket(Protocol::Movement::WriteAction(*direction, fenrir ? 0x5d : Knockdown));
     return {};
 }
-Result KnockDownTheActors(const glm::vec3& point, float radius, const WorldEntryResources& resources)
+Result KnockDownTheActors(const glm::vec3& point, float radius, const Scenes::WorldEntryResources& resources)
 {
     auto actors = resources.world.Actors();
     for (std::size_t slot = 0; slot < 400; ++slot)
@@ -97,7 +97,7 @@ Result KnockDownTheActors(const glm::vec3& point, float radius, const WorldEntry
 } // namespace
 Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std::uint8_t kind, std::uint8_t mode,
                                                           std::uint8_t x, std::uint8_t y,
-                                                          const WorldEntryResources& resources)
+                                                          const Scenes::WorldEntryResources& resources)
 {
     const auto slot = Kernel::ActorWithKey(resources.world, key);
     // WorldState retiene el lugar400sentinela que5110d0 devuelve; no se fabricaactor0.
@@ -115,7 +115,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std
     return {};
 }
 Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, std::uint8_t x, std::uint8_t y,
-                                                            const WorldEntryResources& resources)
+                                                            const Scenes::WorldEntryResources& resources)
 {
     const glm::vec3 target{static_cast<float>(x * 100), static_cast<float>(y * 100), 100};
     if (auto fired = Fire(kind, kind == 1 ? glm::vec3{9200, 3000, 500} : glm::vec3{9400, 19000, 500}, target,
@@ -123,7 +123,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, s
         !fired.HasValue())
         return fired;
     auto& hero = resources.world.Hero();
-    const Kernel::ModelEffectArguments wave{.type = World::ShockWaveEffect,
+    const Kernel::ModelEffectArguments wave{.type = Effects::ShockWaveEffect,
                                             .position = target,
                                             .angles = hero.angles,
                                             .light = {1, .3f, .1f},
@@ -132,17 +132,17 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, s
     resources.world.Runtime().RequestSound(Audio::SoundId{0x1ea});
     return {};
 }
-World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& resources)
+CastleSiege::SiegeStoneStepServices SiegeStoneServicesOf(const Scenes::WorldEntryResources& resources)
 {
     auto& world = resources.world;
-    World::SiegeStoneStepServices services{
+    CastleSiege::SiegeStoneStepServices services{
         .effects = &world.Map().effects,
-        .lighting = DynamicLightingOf(resources),
+        .lighting = Scenes::DynamicLightingOf(resources),
         .hero = &world.Hero(),
         .cameraTarget = &resources.cameraInput.effectTarget,
         .cameraShake = &resources.cameraInput.shake,
-        .collide = [&world](World::ModelEffect& projectile, float radius, float height, bool mark)
-        { return World::CollideTheSiegeObject(projectile, world.Map().objects, radius, height, mark); },
+        .collide = [&world](Effects::ModelEffect& projectile, float radius, float height, bool mark)
+        { return CastleSiege::CollideTheSiegeObject(projectile, world.Map().objects, radius, height, mark); },
         .heroAction = [&resources](const glm::vec3& point, float radius)
         { return KnockDownTheHero(point, radius, resources); },
         .actorsAction = [&resources](const glm::vec3& point, float radius)
@@ -156,8 +156,8 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
                         .PutU8(hi)
                         .PutU8(lo)));
         },
-        .deform = [terrain = WritableTerrainOf(resources)](float x, float y, std::int32_t tx,
-                                                           std::int32_t ty) -> Core::Expected<void, std::string>
+        .deform = [terrain = Scenes::WritableTerrainOf(resources)](float x, float y, std::int32_t tx,
+                                                                   std::int32_t ty) -> Core::Expected<void, std::string>
         {
             if (terrain == nullptr)
                 return Core::Unexpected(std::string("0x5283df: no hay terreno que hundir"));
@@ -165,10 +165,10 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
         },
         .sound = [&world](Audio::SoundId sound, const glm::vec3& position)
         { world.Runtime().RequestSound(sound, position, false); }};
-    const auto& terrain = TerrainOf(resources);
+    const auto& terrain = Scenes::TerrainOf(resources);
     if (terrain.heights && terrain.attributes)
         services.terrainHeight = [&terrain, &resources](float x, float y)
         { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, resources.camera.fixedHeight); };
     return services;
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

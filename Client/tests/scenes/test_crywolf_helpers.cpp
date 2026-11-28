@@ -46,19 +46,19 @@ TEST(CrywolfHelpersTest, TheThreeAttackWindowsContinueWhenTheRealPoolsAreFull)
         Client::Models::Skeleton skeleton;
         skeleton.bones.assign(50, {.dummy = true, .parent = -1, .actions = {}});
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         Client::Crt::CrtRandom random(7);
         Client::Assets::FaunaModels faunaModels;
-        Client::Scenes::ModelEffectsPass pass{.actor = *actor,
-                                              .slot = 3,
-                                              .world = *world,
-                                              .random = random,
-                                              .skeleton = skeleton,
-                                              .particles = &world->Particles(),
-                                              .sprites = &sprites,
-                                              .map = 34,
-                                              .faunaModels = &faunaModels};
-        const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+        Client::Monsters::ModelEffectsPass pass{.actor = *actor,
+                                                .slot = 3,
+                                                .world = *world,
+                                                .random = random,
+                                                .skeleton = skeleton,
+                                                .particles = &world->Particles(),
+                                                .sprites = &sprites,
+                                                .map = 34,
+                                                .faunaModels = &faunaModels};
+        const auto stepped = Client::Monsters::StepTheModelEffects(pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), 0x003d7aaeu);
     }
@@ -92,19 +92,19 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
             Client::Models::Skeleton skeleton;
             skeleton.bones.assign(50, {.dummy = true, .parent = -1, .actions = {}});
             skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
-            Client::World::FrameSprites sprites;
+            Client::Particles::FrameSprites sprites;
             Client::Crt::CrtRandom random(7);
             Client::Assets::FaunaModels faunaModels;
-            Client::Scenes::ModelEffectsPass pass{.actor = *actor,
-                                                  .slot = 3,
-                                                  .world = *world,
-                                                  .random = random,
-                                                  .skeleton = skeleton,
-                                                  .particles = &world->Particles(),
-                                                  .sprites = &sprites,
-                                                  .map = 34,
-                                                  .faunaModels = &faunaModels};
-            const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+            Client::Monsters::ModelEffectsPass pass{.actor = *actor,
+                                                    .slot = 3,
+                                                    .world = *world,
+                                                    .random = random,
+                                                    .skeleton = skeleton,
+                                                    .particles = &world->Particles(),
+                                                    .sprites = &sprites,
+                                                    .map = 34,
+                                                    .faunaModels = &faunaModels};
+            const auto stepped = Client::Monsters::StepTheModelEffects(pass);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             const bool inside = edge == 0;
             EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, inside ? hit.draws : 1).State());
@@ -138,16 +138,16 @@ TEST(CrywolfHelpersTest, TheNamedSpritesReadTheRegisteredActorBonesAndKeepBothRo
         actor->bodyPose[2][3] = {70, 80, 90};
         world->Runtime().namedBones = {{3, "Monster96_Center", 0}, {3, "Monster96_Top", 1}, {3, "Monster96_Bottom", 2}};
         Client::Models::Skeleton skeleton;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         Client::Crt::CrtRandom random(7);
-        Client::Scenes::ModelEffectsPass pass{.actor = *actor,
-                                              .slot = 3,
-                                              .world = *world,
-                                              .random = random,
-                                              .skeleton = skeleton,
-                                              .sprites = &sprites,
-                                              .map = map};
-        const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+        Client::Monsters::ModelEffectsPass pass{.actor = *actor,
+                                                .slot = 3,
+                                                .world = *world,
+                                                .random = random,
+                                                .skeleton = skeleton,
+                                                .sprites = &sprites,
+                                                .map = map};
+        const auto stepped = Client::Monsters::StepTheModelEffects(pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, map == 35 ? 3 : 2).State());
         const auto out = sprites.Sprites();
@@ -180,9 +180,9 @@ TEST(CrywolfHelpersTest, ThePiercingKeepsBothInclusiveFrameEdgesAndBothHelpersIn
             actor->position = {100, 200, 300};
             Client::Models::Skeleton skeleton;
             Client::Crt::CrtRandom random(7);
-            Client::Scenes::ModelEffectsPass pass{
+            Client::Monsters::ModelEffectsPass pass{
                 .actor = *actor, .slot = 3, .world = *world, .random = random, .skeleton = skeleton, .map = map};
-            const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+            const auto stepped = Client::Monsters::StepTheModelEffects(pass);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             const int expected = frame >= 4 && frame <= 6 ? map == 35 ? 2 : 1 : 0;
             EXPECT_EQ(std::ranges::count_if(world->Map().effects.Effects(), [](const auto& e) { return e.alive; }),
@@ -207,16 +207,16 @@ TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThre
         world->Runtime().ownRecordDepth = 1;
         Client::Models::Skeleton skeleton;
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         Client::Crt::CrtRandom random(7);
-        Client::Scenes::ModelEffectsPass pass{.actor = *actor,
-                                              .slot = 3,
-                                              .world = *world,
-                                              .random = random,
-                                              .skeleton = skeleton,
-                                              .sprites = &sprites,
-                                              .map = 34};
-        const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+        Client::Monsters::ModelEffectsPass pass{.actor = *actor,
+                                                .slot = 3,
+                                                .world = *world,
+                                                .random = random,
+                                                .skeleton = skeleton,
+                                                .sprites = &sprites,
+                                                .map = 34};
+        const auto stepped = Client::Monsters::StepTheModelEffects(pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(sprites.Sprites()[0].texture, 0x5ac);
         const bool quake = scale > 1.25f;
@@ -257,9 +257,9 @@ TEST(CrywolfHelpersTest, TheBalgassAppliesBothRandomGateOutcomesBeforeItsFrameGa
             Client::Models::Skeleton skeleton;
             skeleton.actions.resize(4);
             Client::Crt::CrtRandom random(seed);
-            Client::Scenes::ModelEffectsPass pass{
+            Client::Monsters::ModelEffectsPass pass{
                 .actor = *actor, .slot = 3, .world = *world, .random = random, .skeleton = skeleton, .map = 34};
-            const auto stepped = Client::Scenes::StepTheModelEffects(pass);
+            const auto stepped = Client::Monsters::StepTheModelEffects(pass);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(world->Map().effects.Effects()[0].alive, initialAction == 3);
             EXPECT_EQ(actor->animation.frame, called && initialAction == 0 ? 0 : 5);

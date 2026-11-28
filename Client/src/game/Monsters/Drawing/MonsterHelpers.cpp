@@ -55,7 +55,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -72,7 +72,7 @@ constexpr std::uint16_t Shine = 0x5fd;
 constexpr std::uint16_t Spark = 0x5ad;
 constexpr std::uint16_t CrywolfMark = 0x69b;
 using Maps::CrywolfMap;
-// Los tipos de 0x53fe70 que World::Particles crea: el rayo 0x5ca/0, el aliento 0x5f2/11 (el polvo de piedra), el
+// Los tipos de 0x53fe70 que Particles::Particles crea: el rayo 0x5ca/0, el aliento 0x5f2/11 (el polvo de piedra), el
 // polvo 0x5f3/0, el fuego 0x5d9/0 y la luz que persigue 0x729/0 y /1.
 constexpr std::int32_t Thunder = 0x5ca;
 constexpr std::int32_t Breath = 0x5f2;
@@ -174,9 +174,9 @@ Core::Unexpected<std::string> NoParticles(const Kernel::ActorState& actor, std::
         std::format("{:#x}: faltan las partículas del frame (0x53fe70) para el tipo {:#x}", call, actor.type));
 }
 
-// 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en `call`, con un tipo que World::Particles crea: con la
-// tabla llena no crea nada ni saca rand(); con lugar, los rand() de su alta.
-Result CreateParticle(World::Particles* particles, const Kernel::ActorState& actor, std::int32_t type,
+// 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en `call`, con un tipo que Particles::Particles crea: con
+// la tabla llena no crea nada ni saca rand(); con lugar, los rand() de su alta.
+Result CreateParticle(Particles::Particles* particles, const Kernel::ActorState& actor, std::int32_t type,
                       std::int32_t subtype, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       float scale, float worldClock, Crt::CrtRandom& random, std::uint32_t call)
 {
@@ -203,7 +203,7 @@ Result OwnedParticle(const MonsterHelperPass& pass, std::int32_t type, std::int3
 {
     if (pass.particles == nullptr)
         return NoParticles(pass.actor, call);
-    const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, pass.slot};
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::Actor, pass.slot};
     const auto created = pass.particles->CreateOwnedChecked(type, position, angles, light, subtype, scale,
                                                             pass.worldClock, pass.random, 0, owner);
     if (!created.HasValue())
@@ -214,7 +214,7 @@ Result OwnedParticle(const MonsterHelperPass& pass, std::int32_t type, std::int3
 }
 
 // 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
-Result EmitDeathSpiritSwing(Kernel::WorldState& world, Kernel::ActorState& actor, World::Particles* particles,
+Result EmitDeathSpiritSwing(Kernel::WorldState& world, Kernel::ActorState& actor, Particles::Particles* particles,
                             Crt::CrtRandom& random, float clock)
 {
     const auto targetSlot = static_cast<std::int16_t>(actor.attackTarget);
@@ -229,13 +229,13 @@ Result EmitDeathSpiritSwing(Kernel::WorldState& world, Kernel::ActorState& actor
     for (const float yaw : {90.0f, -90.0f})
         for (const std::int32_t subtype : {0, 1})
         {
-            const auto created = CreateCrywolfDeathSpirit({.type = 0x147,
-                                                           .position = point,
-                                                           .angles = {0, 0, F32(D(actor.angles.z) + D(yaw))},
-                                                           .light = light,
-                                                           .subtype = subtype,
-                                                           .owner = &target},
-                                                          world.Map().effects, particles, random, clock);
+            const auto created = Effects::CreateCrywolfDeathSpirit({.type = 0x147,
+                                                                    .position = point,
+                                                                    .angles = {0, 0, F32(D(actor.angles.z) + D(yaw))},
+                                                                    .light = light,
+                                                                    .subtype = subtype,
+                                                                    .owner = &target},
+                                                                   world.Map().effects, particles, random, clock);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
         }
@@ -381,8 +381,8 @@ Result SmokeTheHandsEyeAndBackOf1a4(MonsterHelperPass& pass)
     return Particle(pass, Smoke, SmokeSubtype, back.Value(), angles, White, Small, 0x441a02);
 }
 
-// 0x441b33..0x441b7c y 0x441c0c..0x441c4c: el cráter 0x636/2 (World::ModelEffects::CreateCraterEffect), el joint
-// 0x61c/6 sin dueño (ancho 200, clave −1) y la columna 0x5de/3 (World::ModelEffects::CreateFlameColumn), sin dueño y
+// 0x441b33..0x441b7c y 0x441c0c..0x441c4c: el cráter 0x636/2 (Effects::ModelEffects::CreateCraterEffect), el joint
+// 0x61c/6 sin dueño (ancho 200, clave −1) y la columna 0x5de/3 (Effects::ModelEffects::CreateFlameColumn), sin dueño y
 // con la clave en −1. Con la tabla llena, cada uno nada. Solo en un frame del original: entre frames el personaje es
 // una copia y las tablas, las del mundo.
 Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, const glm::vec3& columnAngles,
@@ -406,13 +406,13 @@ Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, cons
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = -1};
-    if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+    if (auto made = Joints::CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", joint, made.Error()));
-    static_cast<void>(pass.world.Map().effects.CreateFlameColumn({.type = World::FlameJetEffect,
+    static_cast<void>(pass.world.Map().effects.CreateFlameColumn({.type = Effects::FlameJetEffect,
                                                                   .position = point,
                                                                   .angles = columnAngles,
                                                                   .light = columnLight,
-                                                                  .subtype = World::FlameColumnSubtype}));
+                                                                  .subtype = Effects::FlameColumnSubtype}));
     return {};
 }
 
@@ -492,7 +492,7 @@ Result DrawThe1a4(MonsterHelperPass& pass)
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
         const auto burst =
-            World::CreateParticleBurst(*pass.particles, point.Value(), pass.random, true, pass.worldClock);
+            Particles::CreateParticleBurst(*pass.particles, point.Value(), pass.random, true, pass.worldClock);
         if (!burst.HasValue())
             return Core::Unexpected(std::format("0x441d7d: falla la ráfaga del tipo 0x1a4 con el error {}",
                                                 static_cast<unsigned>(burst.Error())));
@@ -611,12 +611,12 @@ Result DrawThe1a6(MonsterHelperPass& pass)
         constexpr std::int16_t ThrownStone = 0x12e;
         constexpr std::int32_t ThrownSubtype = 3;
         if (pass.originalFrame)
-            static_cast<void>(World::CreateSiegeVertexEffect({.type = ThrownStone,
-                                                              .position = *stonePoint,
-                                                              .angles = stoneAngles,
-                                                              .light = PoisonLight,
-                                                              .subtype = ThrownSubtype},
-                                                             pass.world.Map().effects, pass.random));
+            static_cast<void>(CastleSiege::CreateSiegeVertexEffect({.type = ThrownStone,
+                                                                    .position = *stonePoint,
+                                                                    .angles = stoneAngles,
+                                                                    .light = PoisonLight,
+                                                                    .subtype = ThrownSubtype},
+                                                                   pass.world.Map().effects, pass.random));
     }
     // 0x44239f..0x4425b8: en la 4 con el frame de 3,5 a 4,2 (0x6b8bcc), con +4 en 0, +4 = 1 y 0x1fc más rand() % 2;
     // después, en cada mano, el punto con la z del objeto (0x44249d y 0x442579) y rand() % 32 + 50 por 0,05f (0x6b8a48)
@@ -646,8 +646,8 @@ Result DrawThe1a6(MonsterHelperPass& pass)
                 return made;
         }
     }
-    // 0x4425bb..0x442817: tres rand() % 10, cada uno en 0 con su veneno 0x5f2/23 (World::WarmBreathSubtype) en el punto
-    // del hueso, con los ángulos del objeto (+0x1c), la luz de 0x442107, escala 1 y sin dueño.
+    // 0x4425bb..0x442817: tres rand() % 10, cada uno en 0 con su veneno 0x5f2/23 (Particles::WarmBreathSubtype) en el
+    // punto del hueso, con los ángulos del objeto (+0x1c), la luz de 0x442107, escala 1 y sin dueño.
     struct Poison
     {
         std::string_view bone;
@@ -664,8 +664,8 @@ Result DrawThe1a6(MonsterHelperPass& pass)
         const auto point = PointOf(pass, poison.bone, poison.call);
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
-        if (auto made = Particle(pass, Breath, World::WarmBreathSubtype, point.Value(), actor.angles, PoisonLight, 1.0f,
-                                 poison.particle);
+        if (auto made = Particle(pass, Breath, Particles::WarmBreathSubtype, point.Value(), actor.angles, PoisonLight,
+                                 1.0f, poison.particle);
             !made.HasValue())
             return made;
     }
@@ -739,13 +739,13 @@ Result DrawThe1a9(MonsterHelperPass& pass)
         // es una copia y la tabla de efectos, la del mundo.
         if (pass.originalFrame)
         {
-            if (auto made =
-                    CreateHighModelEffect({.type = MeteorCallEffect,
-                                           .position = actor.position,
-                                           .angles = actor.angles,
-                                           .light = actor.light,
-                                           .owner = &actor},
-                                          {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
+            if (auto made = Effects::CreateHighModelEffect(
+                    {.type = Effects::MeteorCallEffect,
+                     .position = actor.position,
+                     .angles = actor.angles,
+                     .light = actor.light,
+                     .owner = &actor},
+                    {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
                 !made.HasValue())
                 return Core::Unexpected(std::format("0x442cb9: {}", made.Error()));
         }
@@ -1152,7 +1152,7 @@ Result DrawThe1b6(MonsterHelperPass& pass)
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+        if (auto made = Joints::CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
             return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
     }
     return {};
@@ -1182,7 +1182,7 @@ Result DrawThe1b7(MonsterHelperPass& pass)
         const auto point = PointOf(pass, mist.bone, mist.point);
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
-        if (auto made = Particle(pass, World::KalimaWaterfallMist, 1, point.Value(), {}, White, 1.0f, mist.call);
+        if (auto made = Particle(pass, Particles::KalimaWaterfallMist, 1, point.Value(), {}, White, 1.0f, mist.call);
             !made.HasValue())
             return made;
     }
@@ -1199,8 +1199,8 @@ Result DrawThe1b7(MonsterHelperPass& pass)
         const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427e4e, ArmOffset);
         if (!arm.HasValue())
             return Core::Unexpected(arm.Error());
-        if (auto made = Particle(pass, World::BreathParticle, World::CrywolfTideSmokeSubtype, arm.Value(), Tilt, White,
-                                 1.0f, 0x427eaf);
+        if (auto made = Particle(pass, Particles::BreathParticle, Particles::CrywolfTideSmokeSubtype, arm.Value(), Tilt,
+                                 White, 1.0f, 0x427eaf);
             !made.HasValue())
             return made;
         if (frame >= 5.0f && frame <= 5.5f)
@@ -1208,7 +1208,7 @@ Result DrawThe1b7(MonsterHelperPass& pass)
             const auto wave = PointOf(pass, "Monster101_L_Arm", 0x427f4c, ArmOffset);
             if (!wave.HasValue())
                 return Core::Unexpected(wave.Error());
-            if (auto made = Particle(pass, World::ShockWaveParticle, 3, wave.Value(), Tilt, Bright, Wave, 0x427fad);
+            if (auto made = Particle(pass, Particles::ShockWaveParticle, 3, wave.Value(), Tilt, Bright, Wave, 0x427fad);
                 !made.HasValue())
                 return made;
         }
@@ -1221,7 +1221,7 @@ Result DrawThe1b7(MonsterHelperPass& pass)
         glm::vec3 to = pass.actor.position;
         constexpr std::int32_t BeamSubtype = 0x10;
         constexpr float Width = 20.0f; // 0x41a00000
-        const Kernel::JointRequest request{.type = JointFamilies::BeamJoint,
+        const Kernel::JointRequest request{.type = Joints::JointFamilies::BeamJoint,
                                            .firstPosition = from,
                                            .secondPosition = to,
                                            .angles = target.angles,
@@ -1232,7 +1232,7 @@ Result DrawThe1b7(MonsterHelperPass& pass)
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+        if (auto made = Joints::CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
             return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
     }
     return {};
@@ -1251,8 +1251,8 @@ Result DrawThe1b8(MonsterHelperPass& pass)
         return Core::Unexpected(head.Error());
     const glm::vec3 light{0.0f, green, 0.0f};
     Sprite(pass, Spark, head.Value(), 3.0f, light);
-    if (auto made =
-            Particle(pass, World::SparkParticle, World::GreenSparkSubtype, head.Value(), {}, light, 1.0f, 0x428164);
+    if (auto made = Particle(pass, Particles::SparkParticle, Particles::GreenSparkSubtype, head.Value(), {}, light,
+                             1.0f, 0x428164);
         !made.HasValue())
         return made;
     constexpr std::array<ActionSound, 3> Sounds{{{3, 0x24e}, {4, 0x24f}, {6, 0x250}}};
@@ -1281,8 +1281,8 @@ Result DrawThe1ba(MonsterHelperPass& pass)
             return Core::Unexpected(point.Error());
         const glm::vec3 light{0.4f, green, 0.5f};
         Sprite(pass, Spark, point.Value(), 0.4f, light);
-        if (auto made =
-                Particle(pass, World::SparkParticle, World::RareSparkSubtype, point.Value(), {}, light, 1.0f, 0x42849c);
+        if (auto made = Particle(pass, Particles::SparkParticle, Particles::RareSparkSubtype, point.Value(), {}, light,
+                                 1.0f, 0x42849c);
             !made.HasValue())
             return made;
     }
@@ -1293,7 +1293,7 @@ Result DrawThe1ba(MonsterHelperPass& pass)
     const auto foot = PointOf(pass, "Monster104_Footsteps", 0x428540, {0.0f, -100.0f, 20.0f});
     if (!foot.HasValue())
         return Core::Unexpected(foot.Error());
-    return Particle(pass, Breath, World::FadingSmokeSubtype, foot.Value(), pass.actor.angles, FootLight, 1.0f,
+    return Particle(pass, Breath, Particles::FadingSmokeSubtype, foot.Value(), pass.actor.angles, FootLight, 1.0f,
                     0x4285a4);
 }
 
@@ -1337,7 +1337,7 @@ Result DrawThe1bb(MonsterHelperPass& pass)
     const auto left = PointOf(pass, "Monster105_L_Hand", attacking ? 0x428a78 : 0x428bee);
     if (!left.HasValue())
         return Core::Unexpected(left.Error());
-    if (auto made = Particle(pass, World::CrywolfFanta, World::LongFantaSubtype, left.Value(), {}, light,
+    if (auto made = Particle(pass, Particles::CrywolfFanta, Particles::LongFantaSubtype, left.Value(), {}, light,
                              attacking ? AttackScale : LeftScale, attacking ? 0x428adc : 0x428c52);
         !made.HasValue())
         return made;
@@ -1345,7 +1345,7 @@ Result DrawThe1bb(MonsterHelperPass& pass)
                                  : PointOf(pass, "Monster105_R_Hand", 0x428cf8, {0.0f, 0.0f, -10.0f});
     if (!right.HasValue())
         return Core::Unexpected(right.Error());
-    if (auto made = Particle(pass, World::CrywolfFanta, World::LongFantaSubtype, right.Value(), {}, light,
+    if (auto made = Particle(pass, Particles::CrywolfFanta, Particles::LongFantaSubtype, right.Value(), {}, light,
                              attacking ? AttackScale : RightScale, 0x428d56);
         !made.HasValue())
         return made;
@@ -1358,12 +1358,12 @@ Result DrawThe1bb(MonsterHelperPass& pass)
         constexpr std::int16_t WhiteRay = 0x5e8;
         constexpr std::int32_t WhiteRaySubtype = 1;
         const auto made =
-            CreateHighModelEffect({.type = WhiteRay,
-                                   .position = right.Value(),
-                                   .angles = actor.angles,
-                                   .light = light,
-                                   .subtype = WhiteRaySubtype},
-                                  {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
+            Effects::CreateHighModelEffect({.type = WhiteRay,
+                                            .position = right.Value(),
+                                            .angles = actor.angles,
+                                            .light = light,
+                                            .subtype = WhiteRaySubtype},
+                                           {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -1401,7 +1401,7 @@ Core::Expected<Swing, std::string> SwingOf(const Assets::FaunaModels* faunaModel
 Result PoseTheSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
                     const Swing& swing, float frame, const glm::vec3& angles)
 {
-    return PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, angles);
+    return WorldObjects::PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, angles);
 }
 
 struct SwingLeg
@@ -1415,7 +1415,7 @@ struct SwingLeg
 };
 
 Result EmitSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
-                 const Swing& swing, World::Particles* particles, std::span<const SwingLeg> legs,
+                 const Swing& swing, Particles::Particles* particles, std::span<const SwingLeg> legs,
                  Crt::CrtRandom& random, float worldClock, bool weaponBone = false, bool particle640 = false)
 {
     const std::uint8_t bone = weaponBone ? actor.hands[0].bone : 0;
@@ -1423,7 +1423,7 @@ Result EmitSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, co
     glm::vec3 particleLight(1.0f);
     for (int sample = 0; sample < SwingSampleCount; ++sample)
     {
-        if (auto posed = PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, actor.angles);
+        if (auto posed = WorldObjects::PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, actor.angles);
             !posed.HasValue())
             return posed;
         const auto& bones = world.PoseCarry().bones;
@@ -1437,8 +1437,8 @@ Result EmitSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, co
             const glm::vec3 second = Math::OriginalVectorTransform(leg.second, Math::OriginalMatrixOf(secondMatrix));
             if (particle640 && actor.animation.frame > 3.5f && actor.animation.frame < 4.5f)
             {
-                if (auto made = CreateParticle(particles, actor, World::PoundingBallParticle, 0, second, actor.angles,
-                                               particleLight, 1, worldClock, random, 0x433056);
+                if (auto made = CreateParticle(particles, actor, Particles::PoundingBallParticle, 0, second,
+                                               actor.angles, particleLight, 1, worldClock, random, 0x433056);
                     !made.HasValue())
                     return made;
             }
@@ -1466,7 +1466,7 @@ Result EmitSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, co
 // frame del objeto en (5, 7), con esos ángulos, luz blanca y escala 1 (0x432d07), el punto (0, −150, 0) girado
 // (0x5fc8f0 y 0x5fcbd0), que no lee nadie, y dos rand() (0x432d6f y 0x432d74).
 Result SwingThe1b0(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
-                   Crt::CrtRandom& random, World::Particles* particles, float worldClock)
+                   Crt::CrtRandom& random, Particles::Particles* particles, float worldClock)
 {
     const auto swing = SwingOf(faunaModels, actor, 4);
     if (!swing.HasValue())
@@ -1604,7 +1604,7 @@ Core::Expected<void, std::string> DrawTheMonsterHelpers(MonsterHelperPass& pass)
 
 Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
                                                           Kernel::WorldState& world, Assets::FaunaModels* faunaModels,
-                                                          Crt::CrtRandom& random, World::Particles* particles,
+                                                          Crt::CrtRandom& random, Particles::Particles* particles,
                                                           float worldClock)
 {
     // 0x432bf1: antes de mirar el tipo.
@@ -1634,12 +1634,12 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& ac
             if (!hand.HasValue())
                 return Core::Unexpected(hand.Error());
             if (auto mist =
-                    CreateParticle(particles, actor, World::BreathParticle, World::CrywolfSwingSmokeSubtype,
+                    CreateParticle(particles, actor, Particles::BreathParticle, Particles::CrywolfSwingSmokeSubtype,
                                    hand.Value(), actor.angles, {0.2f, 0.2f, 0.7f}, 1, worldClock, random, 0x433248);
                 !mist.HasValue())
                 return mist;
             for (const float scale : {0.8f, 0.6f})
-                if (auto spark = CreateParticle(particles, actor, World::MagicSparkParticle, 2, hand.Value(),
+                if (auto spark = CreateParticle(particles, actor, Particles::MagicSparkParticle, 2, hand.Value(),
                                                 actor.angles, {0.3f, 0.3f, 0.4f}, scale, worldClock, random, 0x43328d);
                     !spark.HasValue())
                     return spark;
@@ -1720,4 +1720,4 @@ Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& ac
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

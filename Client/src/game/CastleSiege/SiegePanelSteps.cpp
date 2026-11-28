@@ -14,7 +14,7 @@
 #include <bit>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -34,23 +34,23 @@ void ConsumeLeft(Kernel::WorldRuntime& runtime)
     runtime.movement.pendingClick = false;
     runtime.movement.leftHeld = false;
 }
-Core::Expected<void, std::string> SendCommand(const GameUiContext& context)
+Core::Expected<void, std::string> SendCommand(const Hud::GameUiContext& context)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string("0x4108a7: sin cable para la orden del minimapa"));
-    const UI::SiegePanelState& panel = context.world.Runtime().castleSiege.siegePanel;
+    const CastleSiege::SiegePanelState& panel = context.world.Runtime().castleSiege.siegePanel;
     context.requests->SendGamePacket(
         Protocol::CastleSiege::WriteCommand(panel.selected, panel.targetX, panel.targetY, panel.command));
     return {};
 }
 
 // 0x40f6d0: el mismo prefijo de las tres vtables.
-bool StepBase(const GameUiContext& context)
+bool StepBase(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::SiegePanelState& panel = runtime.castleSiege.siegePanel;
+    CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
     // 0x40f6df..0x40f6f6: primero 0x6578e0, sólo sin campo/foco ajeno consulta y consume Tab.
-    if (!GameTextInputBusy(runtime) && OldWindowKeyEdge(runtime.ui, context.input, 9))
+    if (!Hud::GameTextInputBusy(runtime) && Hud::OldWindowKeyEdge(runtime.ui, context.input, 9))
         panel.visible ^= 1;
     if (panel.visible == 0)
         return false;
@@ -85,10 +85,10 @@ bool StepBase(const GameUiContext& context)
 }
 
 // 0x41066f..0x4107df: elegir una fila y una de sus tres órdenes. El derecho sobre una fila vuelve sin consumirlo.
-bool ChooseCommand(const GameUiContext& context)
+bool ChooseCommand(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::SiegePanelState& panel = runtime.castleSiege.siegePanel;
+    CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
     const std::int32_t x = context.mouseX;
     const std::int32_t y = context.mouseY;
     for (std::uint8_t row = 0; row < 7; ++row)
@@ -123,10 +123,10 @@ bool ChooseCommand(const GameUiContext& context)
     return true;
 }
 
-Core::Expected<void, std::string> PlaceCommand(const GameUiContext& context)
+Core::Expected<void, std::string> PlaceCommand(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::SiegePanelState& panel = runtime.castleSiege.siegePanel;
+    CastleSiege::SiegePanelState& panel = runtime.castleSiege.siegePanel;
     if (!Inside(context.mouseX, context.mouseY, panel.x + MapInsetX, panel.y + MapInsetY, MapSize, MapSize) ||
         panel.selected == 0 || panel.selected >= 8 || panel.command == NoCommand)
         return {};
@@ -160,7 +160,7 @@ Core::Expected<void, std::string> PlaceCommand(const GameUiContext& context)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheBattlePanel(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheBattlePanel(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.castleSiege.siegePanelKind || !StepBase(context))
@@ -171,4 +171,4 @@ Core::Expected<void, std::string> StepTheBattlePanel(const GameUiContext& contex
         return {};
     return PlaceCommand(context);
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

@@ -33,7 +33,7 @@
 #include <utility>
 #include <variant>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -41,7 +41,7 @@ namespace Battle = Protocol::CastleSiege;
 
 Core::Expected<std::string, std::string> Text(const CastleReceiveContext& context, std::size_t index)
 {
-    const auto text = UI::TextAt(context.texts, index);
+    const auto text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected("falta el texto " + std::to_string(index) + " de Text.bmd para la batalla");
     return std::string(text->substr(0, text->find('\0')));
@@ -59,22 +59,23 @@ Core::Expected<std::string, std::string> Formatted(const CastleReceiveContext& c
 
 Core::Expected<void, std::string> CancelPopup(const CastleReceiveContext& context)
 {
-    return UI::CancelThePanelDialog(context.world.Runtime().panels.delegated.panelDialog,
-                                    [&context](UI::PanelDialogOwner owner, std::uint32_t reason)
-                                    { return AnswerThePanelDialog(context.world, context.send, owner, reason); });
+    return Ui::CancelThePanelDialog(context.world.Runtime().panels.delegated.panelDialog,
+                                    [&context](Ui::PanelDialogOwner owner, std::uint32_t reason) {
+                                        return Guild::AnswerThePanelDialog(context.world, context.send, owner, reason);
+                                    });
 }
 
 Core::Expected<void, std::string> Popup(const CastleReceiveContext& context, std::span<const std::string> lines,
                                         std::uint32_t duration, std::int32_t placed = 1,
-                                        UI::PanelDialogOwner owner = UI::PanelDialogOwner::None)
+                                        Ui::PanelDialogOwner owner = Ui::PanelDialogOwner::None)
 {
     auto& runtime = context.world.Runtime();
     runtime.panels.delegated.panelDialog.timerMs = duration;
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x6600d0: falta el medidor del diálogo de la batalla"));
-    auto opened =
-        PopUpThePanelDialog(runtime, {.lines = lines, .flags = UI::PanelDialogTimed, .owner = owner, .placed = placed},
-                            *context.measure, context.screen, context.tick);
+    auto opened = Guild::PopUpThePanelDialog(
+        runtime, {.lines = lines, .flags = Ui::PanelDialogTimed, .owner = owner, .placed = placed}, *context.measure,
+        context.screen, context.tick);
     if (!opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     return {};
@@ -138,7 +139,7 @@ Core::Expected<void, std::string> CrownRegistration(const Battle::CrownRegistrat
         return Core::Unexpected(std::move(line).Error());
     const std::array<std::string, 1> lines{std::move(line).Value()};
     return Popup(context, lines, duration, crown.result == 0 ? 0 : 1,
-                 crown.result == 0 ? UI::PanelDialogOwner::CastleCrownRegistration : UI::PanelDialogOwner::None);
+                 crown.result == 0 ? Ui::PanelDialogOwner::CastleCrownRegistration : Ui::PanelDialogOwner::None);
 }
 
 Core::Expected<void, std::string> CrownState(const Battle::CrownState& state, const CastleReceiveContext& context)
@@ -184,7 +185,7 @@ Core::Expected<void, std::string> CastleOwner(const Battle::CastleOwner& owner, 
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x554610: falta el medidor del anuncio del castillo"));
     auto& runtime = context.world.Runtime();
-    UI::AddNotice(runtime.chat.area, *context.measure, runtime.hud.dcFont, message.Value(), 1);
+    Ui::AddNotice(runtime.chat.area, *context.measure, runtime.hud.dcFont, message.Value(), 1);
     return {};
 }
 
@@ -196,8 +197,8 @@ Core::Expected<void, std::string> WeaponFailure(const CastleReceiveContext& cont
         "\xb0\xf8\xbc\xba\xb9\xab\xb1\xe2 \xb9\xdf\xbb\xe7 \xbd\xc7\xc6\xd0\xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9.";
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x555190: falta el medidor del error del arma del castillo"));
-    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {},
-                          firing ? FireFailed : OpenFailed, UI::SystemMessage);
+    return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {},
+                                firing ? FireFailed : OpenFailed, Ui::SystemMessage);
 }
 
 void SiegeSide(const Battle::SiegeSide& side, Kernel::WorldRuntime& runtime, Kernel::ActorState& hero)
@@ -237,9 +238,9 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
             {
                 if (received.result != 1)
                     return {};
-                GamePanels panels(world, context.random);
+                Hud::GamePanels panels(world, context.random);
                 LendTheCastlePanelServices(panels, context);
-                auto opened = panels.Registry().Open(UI::SiegeGatePanel, received.key);
+                auto opened = panels.Registry().Open(Ui::SiegeGatePanel, received.key);
                 if (!opened.HasValue())
                     return Core::Unexpected(std::move(opened).Error());
                 return {};
@@ -318,4 +319,4 @@ Core::Expected<void, std::string> ApplyCastleBattleCommand(const Battle::CastleB
         },
         packet);
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

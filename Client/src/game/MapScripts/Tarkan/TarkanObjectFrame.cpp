@@ -24,7 +24,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::Tarkan
 {
 namespace
 {
@@ -53,11 +53,12 @@ double Pulse(double phase)
     return (Math::RoundedSin(phase * PulseRate) * PulseAmplitude) + PulseBase;
 }
 
-Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::uint16_t texture, std::size_t bone,
-                                         float scale, const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> Sprite(const WorldObjects::GameObjectPass& pass, std::uint16_t texture,
+                                         std::size_t bone, float scale, const glm::vec3& light,
+                                         std::string_view address)
 {
     // 0x4ec110(hueso, local_38, salida, 0) con local_38 en cero desde 0x602fce.
-    const auto point = ObjectBonePoint(pass, bone, glm::vec3(0.0f));
+    const auto point = WorldObjects::ObjectBonePoint(pass, bone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     if (pass.sprites == nullptr)
@@ -68,26 +69,27 @@ Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::uint16
 }
 
 // 0x53fe70(0x5f2, punto, ángulos, luz del objeto, subtipo, escala, 0) con el reloj del mundo prestado.
-Core::Expected<void, std::string> Smoke(const GameObjectPass& pass, const World::WorldObject& object,
-                                        const glm::vec3& position, std::int32_t subtype, float scale,
-                                        std::string_view address)
+Core::Expected<void, std::string> Smoke(const WorldObjects::GameObjectPass& pass,
+                                        const WorldObjects::WorldObject& object, const glm::vec3& position,
+                                        std::int32_t subtype, float scale, std::string_view address)
 {
     if (pass.particles == nullptr)
         return Core::Unexpected(std::format("{}: falta el pool de partículas (0x53fe70)", address));
-    World::PortableParticleTrigonometry trigonometry;
+    Particles::PortableParticleTrigonometry trigonometry;
     const auto created =
-        pass.particles->CreateChecked(World::BreathParticle, position, object.transform.angles, object.light, subtype,
-                                      scale, std::cref(pass.worldClock), *pass.random, 0, trigonometry);
+        pass.particles->CreateChecked(Particles::BreathParticle, position, object.transform.angles, object.light,
+                                      subtype, scale, std::cref(pass.worldClock), *pass.random, 0, trigonometry);
     if (!created.HasValue())
         return Core::Unexpected(
             std::format("{}: el 5f2/{} falla con error {}", address, subtype, static_cast<int>(created.Error())));
     return {};
 }
 
-Core::Expected<void, std::string> SmokeAndStone(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> SmokeAndStone(WorldObjects::WorldObject& object,
+                                                const WorldObjects::GameObjectPass& pass)
 {
     // 0x603c9d..0x603cda: +0x58 antes de los dos ftol; el del ángulo primero, por 10 en 32 bits.
-    object.state.hiddenMesh = World::HiddenObject;
+    object.state.hiddenMesh = WorldObjects::HiddenObject;
     const std::optional<std::int32_t> angle = Math::OriginalFtolLow(D(object.transform.angles.z));
     if (!angle)
         return Core::Unexpected(std::string("0x603ca7: ftol del ángulo z fuera de lo acreditado"));
@@ -120,7 +122,7 @@ Core::Expected<void, std::string> SmokeAndStone(World::WorldObject& object, cons
         !smoked.HasValue())
         return smoked;
     // 0x603db1..0x603dc8: el rand() del tipo antes de 0x518cf0(200 o 201, …, 0, 0, −1, 0, 0, 0, 0).
-    constexpr std::int16_t FirstChip = World::FirstStoneChipEffect;
+    constexpr std::int16_t FirstChip = Effects::FirstStoneChipEffect;
     const auto chip = static_cast<std::int16_t>(FirstChip + (pass.random->Next() & 1));
     if (pass.effects == nullptr)
         return Core::Unexpected(std::string("0x603dc8: la piedrita del 0x53 pide la tabla de efectos (0x518cf0)"));
@@ -130,7 +132,8 @@ Core::Expected<void, std::string> SmokeAndStone(World::WorldObject& object, cons
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObject& object,
+                                                        const WorldObjects::GameObjectPass& pass)
 {
     const double clock = D(pass.worldClock);
     switch (object.type)
@@ -146,7 +149,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& obje
     case 0x3c:
     {
         // 0x603acc: veinte humos la primera vez, con la posición, los ángulos, la luz y la escala del objeto.
-        if (object.state.hiddenMesh != World::HiddenObject)
+        if (object.state.hiddenMesh != WorldObjects::HiddenObject)
         {
             constexpr int Smokes = 20;
             for (int smoke = 0; smoke < Smokes; ++smoke)
@@ -156,7 +159,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& obje
                     return smoked;
             }
         }
-        object.state.hiddenMesh = World::HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     }
     case 0x3f:
@@ -175,7 +178,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& obje
     case 0x46:
     {
         // 0x603c06: +0x58 antes del rand().
-        object.state.hiddenMesh = World::HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         constexpr int SmokeChance = 5;
         if (pass.random->Next() % SmokeChance != 0)
             return {};
@@ -184,7 +187,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& obje
     case 0x4c:
     {
         // 0x603c4c: +0x58 antes del ftol; el resto firmado contra 4.500.
-        object.state.hiddenMesh = World::HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         const std::optional<std::int32_t> low = Math::OriginalFtolLow(clock);
         if (!low)
             return Core::Unexpected(std::string("0x603c59: ftol del reloj del mundo fuera de lo acreditado"));
@@ -200,4 +203,4 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& obje
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Tarkan

@@ -21,10 +21,18 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Events
 {
 struct CameraTour;
+} // namespace Client::Events
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Events::Crywolf
+{
 
 // Lo que pide el paso del recorrido (0x403590) afuera del objeto.
 struct CameraTourContext
@@ -34,7 +42,7 @@ struct CameraTourContext
     // timeGetTime, de 0x4033f0 y 0x404c90.
     std::uint32_t now = 0;
     // 0x5141e0 y 0x4ea030: el alta de los personajes del guion y sus acciones. nullptr corta en el primer alta.
-    const WorldEntryResources* resources = nullptr;
+    const Scenes::WorldEntryResources* resources = nullptr;
     // 0x508a80 desde 0x403760: la altura del terreno (0x5f93c0). Vacía, el primer personaje que camina corta.
     std::function<double(float, float)> height{};
     // 0x403390, en cada paso con el recorrido andando: 0x5be150 (el ítem del cursor vuelve a su lugar) y
@@ -57,4 +65,4 @@ void RemoveTheCameraTourActors(Kernel::WorldState& world, const CameraTour& tour
 // 0x4033d0 lo leen también el clic (0x59ae24), la UI (0x59ff3f), Esc (0x623ec8), la cámara (0x635ead) y el centro del
 // mundo (0x637324): los dos últimos, con 0x4034b0, en Camera::GameCameraInput::tour (GameScene::CameraOfTheFrame).
 [[nodiscard]] Core::Expected<void, std::string> StepTheCameraTour(const CameraTourContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Events::Crywolf

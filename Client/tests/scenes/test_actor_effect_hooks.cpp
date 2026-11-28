@@ -28,17 +28,17 @@
 #include <cstdint>
 #include <memory>
 
-// Scenes::ActorEffectHooks: each slot does what the function it names does, in the same table and with the same rand()
+// Effects::ActorEffectHooks: each slot does what the function it names does, in the same table and with the same rand()
 // calls.
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::ModelEffects;
 using Client::Kernel::ActorState;
 using Client::Kernel::ModelEffectArguments;
 using Client::Kernel::WorldState;
-using Client::World::ModelEffects;
 
-const Client::Scenes::ActorEffectHooks Hooks;
+const Client::Effects::ActorEffectHooks Hooks;
 constexpr std::uint32_t Seed = 0x2468aceu;
 constexpr glm::vec3 Position{1200.0f, 3400.0f, 150.0f};
 constexpr glm::vec3 Angles{0.0f, 0.0f, 45.0f};
@@ -70,7 +70,7 @@ void ExpectTheSameEffects(const ModelEffects& made, const ModelEffects& wanted, 
     }
 }
 
-std::size_t LiveParticles(const Client::World::Particles& particles)
+std::size_t LiveParticles(const Client::Particles::Particles& particles)
 {
     std::size_t live = 0;
     for (const auto& particle : particles.All())
@@ -131,13 +131,13 @@ TEST(ActorEffectHooksTest, TheShellAndTheBlastAreTheirModulesOwn)
     CrtRandom random{Seed};
     CrtRandom twin{Seed};
     const ModelEffectArguments shell{
-        .type = Client::World::SkinShellEffect, .position = Position, .angles = Angles, .light = Light, .subtype = 1};
-    EXPECT_EQ(Hooks.CreateTheSkinShell(*made, shell, random), Client::World::CreateSkinShell(shell, *wanted, twin));
+        .type = Client::Effects::SkinShellEffect, .position = Position, .angles = Angles, .light = Light, .subtype = 1};
+    EXPECT_EQ(Hooks.CreateTheSkinShell(*made, shell, random), Client::Effects::CreateSkinShell(shell, *wanted, twin));
     const ModelEffectArguments gateStone{
         .type = 0x10c, .position = Position, .angles = Angles, .light = Light, .subtype = 2};
     const auto blasted = Hooks.CreateTheBlastEffect(*made, gateStone, random);
-    const auto expected = Client::World::CreateBlastModelEffect(*wanted, gateStone, Client::World::ModelEffectOwner{},
-                                                                twin, Client::World::BlastEffectServices{});
+    const auto expected = Client::Effects::CreateBlastModelEffect(
+        *wanted, gateStone, Client::Effects::ModelEffectOwner{}, twin, Client::Effects::BlastEffectServices{});
     ASSERT_TRUE(blasted.HasValue()) << blasted.Error();
     ASSERT_TRUE(expected.HasValue()) << expected.Error();
     EXPECT_EQ(blasted.Value(), expected.Value());
@@ -157,8 +157,8 @@ TEST(ActorEffectHooksTest, TheHighAndTheWizardEffectsGoToTheWorldsTable)
     const ModelEffectArguments skill{
         .type = 0x117, .position = Position, .angles = Angles, .light = Light, .subtype = 2};
     const auto high = Hooks.CreateTheHighEffect(skill, *world, random, 1000.0f);
-    const auto wantedHigh = Client::Scenes::CreateHighModelEffect(
-        skill, Client::Scenes::HighEffectContext{.world = *twinWorld, .random = twin, .worldClock = 1000.0f});
+    const auto wantedHigh = Client::Effects::CreateHighModelEffect(
+        skill, Client::Effects::HighEffectContext{.world = *twinWorld, .random = twin, .worldClock = 1000.0f});
     ASSERT_TRUE(high.HasValue()) << high.Error();
     ASSERT_TRUE(wantedHigh.HasValue()) << wantedHigh.Error();
     EXPECT_EQ(high.Value(), wantedHigh.Value());
@@ -167,7 +167,7 @@ TEST(ActorEffectHooksTest, TheHighAndTheWizardEffectsGoToTheWorldsTable)
     ActorState owner;
     glm::vec3 light = Light;
     glm::vec3 twinLight = Light;
-    const ModelEffectArguments ice{.type = Client::World::IceEffect,
+    const ModelEffectArguments ice{.type = Client::Effects::IceEffect,
                                    .position = Position,
                                    .angles = Angles,
                                    .light = Light,
@@ -180,13 +180,13 @@ TEST(ActorEffectHooksTest, TheHighAndTheWizardEffectsGoToTheWorldsTable)
                                     Client::Actors::WizardEffectScene{.terrain = &Client::Terrain::EmptyTerrain(),
                                                                       .dynamicLighting = lighting.get()},
                                     ice, &light);
-    const auto services = Client::Scenes::WizardEffectServicesOf(
+    const auto services = Client::Effects::WizardEffectServicesOf(
         *twinWorld, twin,
-        Client::Scenes::WizardSceneParts{.particles = &twinWorld->Particles(),
-                                         .terrain = &Client::Terrain::EmptyTerrain(),
-                                         .dynamicLighting = twinLighting.get()});
+        Client::Effects::WizardSceneParts{.particles = &twinWorld->Particles(),
+                                          .terrain = &Client::Terrain::EmptyTerrain(),
+                                          .dynamicLighting = twinLighting.get()});
     const auto wantedIce =
-        Client::World::CreateWizardModelEffect(twinWorld->Map().effects, ice, twin, services, &twinLight);
+        Client::Effects::CreateWizardModelEffect(twinWorld->Map().effects, ice, twin, services, &twinLight);
     ASSERT_TRUE(iced.HasValue()) << iced.Error();
     ASSERT_TRUE(wantedIce.HasValue()) << wantedIce.Error();
     EXPECT_EQ(iced.Value(), wantedIce.Value());
@@ -218,16 +218,16 @@ TEST(ActorEffectHooksTest, TheSkullAndTheGuildMarkAreTheirModulesOwn)
     CrtRandom random{Seed};
     CrtRandom twin{Seed};
     ASSERT_TRUE(Hooks.PutTheSkullOn(actor, *world, random, 0x4e688c).HasValue());
-    ASSERT_TRUE(Client::Scenes::PutTheSkullOn(twinActor, *twinWorld, twin, 0x4e688c).HasValue());
+    ASSERT_TRUE(Client::Effects::PutTheSkullOn(twinActor, *twinWorld, twin, 0x4e688c).HasValue());
 
     constexpr float Clock = 6000.0f;
     EXPECT_TRUE(Hooks.IsTheGuildMarkDue(actor, Clock));
-    EXPECT_EQ(Hooks.IsTheGuildMarkDue(actor, Clock), Client::Scenes::GuildMarkIsDue(twinActor, Clock));
+    EXPECT_EQ(Hooks.IsTheGuildMarkDue(actor, Clock), Client::Effects::GuildMarkIsDue(twinActor, Clock));
     const glm::vec3 bone{1210.0f, 3390.0f, 260.0f};
     ASSERT_TRUE(
         Hooks.RaiseTheGuildMark(actor, bone, world->Map().effects, world->Particles(), random, Clock).HasValue());
-    ASSERT_TRUE(Client::Scenes::RaiseTheGuildMark(twinActor, bone, twinWorld->Map().effects, twinWorld->Particles(),
-                                                  twin, Clock)
+    ASSERT_TRUE(Client::Effects::RaiseTheGuildMark(twinActor, bone, twinWorld->Map().effects, twinWorld->Particles(),
+                                                   twin, Clock)
                     .HasValue());
     EXPECT_FALSE(Hooks.IsTheGuildMarkDue(actor, Clock));
     EXPECT_EQ(actor.dword36c, twinActor.dword36c);

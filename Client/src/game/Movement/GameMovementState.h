@@ -4,7 +4,7 @@
 #include <optional>
 
 // Globales durables de MoveHero y 1C: research06, Caminar y Los cambios de mapa.
-namespace Client::Scenes
+namespace Client::Movement
 {
 // 0x7758580, 0x7758584 y 0x7758588 (.bss 0): lo que 0x57cfc0 deja antes de la skill del arma de cada mano (0x57d5ed..
 // 0x57d61b): 1, el lugar de la skill del héroe (+0x425) y el elegido (0x6c8e30) si 0x558bb0 dice que se ataca, o −1.
@@ -76,4 +76,4 @@ struct GameMovementState
     std::int32_t chosenNpcType = 0;
     std::uint32_t chosenNpcAngle = 0;
 };
-} // namespace Client::Scenes
+} // namespace Client::Movement

@@ -27,12 +27,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::CreateHighModelEffect;
+using Client::Effects::HighEffectStepContext;
+using Client::Effects::ModelEffect;
+using Client::Effects::StepHighModelEffect;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::CreateHighModelEffect;
-using Client::Scenes::HighEffectStepContext;
-using Client::Scenes::StepHighModelEffect;
-using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t OwnerSlot = 7;
@@ -92,8 +92,8 @@ struct SkullWorld
     }
 
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    Client::World::ModelEffectStepServices services{};
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    Client::Effects::ModelEffectStepServices services{};
     CrtRandom random{Seed};
     float clock = 98765.5f;
 };
@@ -213,7 +213,7 @@ TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
         static_cast<void>(replay.Next());
         for (int turn = 0; turn < 3; ++turn)
         {
-            auto twin = std::make_unique<Client::World::Particles>();
+            auto twin = std::make_unique<Client::Particles::Particles>();
             ASSERT_TRUE(twin->CreateChecked(0x5de, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 5,
                                             std::bit_cast<float>(0x3ecccccdu), 0.0f, replay)
                             .HasValue());
@@ -285,7 +285,7 @@ TEST(SkullEffectsTest, TheStackedSkullPointsMatchTheHandMadeOnes)
     for (int turn = 0; turn < 3; ++turn)
     {
         SCOPED_TRACE(turn);
-        const auto point = Client::Scenes::SkullStackPoint(turn, 1000, tested.clock, tested.Owner());
+        const auto point = Client::Effects::SkullStackPoint(turn, 1000, tested.clock, tested.Owner());
         ASSERT_TRUE(point.HasValue()) << point.Error();
         EXPECT_EQ(std::bit_cast<std::uint32_t>(point.Value().x), Points[turn][0]);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(point.Value().y), Points[turn][1]);
@@ -334,9 +334,9 @@ TEST(SkullEffectsTest, TheStackedSkullAndTheOthers)
     for (int turn = 0; turn < 3; ++turn)
     {
         SCOPED_TRACE(turn);
-        const auto point = Client::Scenes::SkullStackPoint(turn, 1000, roomy.clock, roomy.Owner());
+        const auto point = Client::Effects::SkullStackPoint(turn, 1000, roomy.clock, roomy.Owner());
         ASSERT_TRUE(point.HasValue());
-        const Client::World::Particle& flare = roomy.world->Particles().All()[static_cast<std::size_t>(turn)];
+        const Client::Particles::Particle& flare = roomy.world->Particles().All()[static_cast<std::size_t>(turn)];
         EXPECT_TRUE(flare.alive);
         EXPECT_EQ(flare.type, 0x5ac);
         EXPECT_EQ(flare.subtype, 5);
@@ -364,7 +364,7 @@ TEST(SkullEffectsTest, PuttingASkullReplacesOnlyTheOwnersPlainOne)
     ModelEffect& stacked = tested.Create(5);
     ActorState& owner = tested.Owner();
     owner.angles = {0, 0, 60};
-    ASSERT_TRUE(Client::Scenes::PutTheSkullOn(owner, *tested.world, tested.random, 0x4cd664).HasValue());
+    ASSERT_TRUE(Client::Effects::PutTheSkullOn(owner, *tested.world, tested.random, 0x4cd664).HasValue());
     EXPECT_TRUE(stacked.alive);
     EXPECT_TRUE(old.alive); // el lugar 0 otra vez, con el nuevo
     EXPECT_EQ(old.life, 1000);
@@ -377,6 +377,6 @@ TEST(SkullEffectsTest, PuttingASkullReplacesOnlyTheOwnersPlainOne)
     for (auto& effect : tested.world->Map().effects.Effects())
         effect.alive = true;
     old.type = 0;
-    ASSERT_TRUE(Client::Scenes::PutTheSkullOn(owner, *tested.world, tested.random, 0x4cd664).HasValue());
+    ASSERT_TRUE(Client::Effects::PutTheSkullOn(owner, *tested.world, tested.random, 0x4cd664).HasValue());
 }
 } // namespace

@@ -49,8 +49,8 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
-using Client::Scenes::HeroMovementContext;
-using Client::Scenes::StepHeroMovement;
+using Client::Movement::HeroMovementContext;
+using Client::Movement::StepHeroMovement;
 
 constexpr std::uint16_t TransformedModel = 0x154;
 
@@ -278,9 +278,9 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         if (window == 3)
         {
             // Lo que deja abierta la entrada: un número a medio escribir, el foco en el EDIT y un susurro guardado.
-            Client::UI::ChatInputState& input = out.tested->world.Runtime().chat.input;
+            Client::Chat::ChatInputState& input = out.tested->world.Runtime().chat.input;
             input.dialogEdit.text.SetText("AB12");
-            input.focus = Client::UI::ChatFocus::Dialog;
+            input.focus = Client::Chat::ChatFocus::Dialog;
             input.field = 1;
             input.messageBuffer[0] = 'm';
             input.messageLength = 1;
@@ -316,7 +316,7 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
             Walk left;
             const auto result = walk(map, window, left);
             ASSERT_TRUE(result.HasValue()) << result.Error();
-            const Client::Scenes::GameMovementState& movement = left.tested->world.Runtime().movement;
+            const Client::Movement::GameMovementState& movement = left.tested->world.Runtime().movement;
             EXPECT_EQ(left.sent, (std::vector<std::string>{"D3", "97"}));
             ASSERT_TRUE(movement.cursorWarpRequest.has_value());
             EXPECT_EQ(*movement.cursorWarpRequest, (std::array<std::int32_t, 2>{400, 300}));
@@ -332,12 +332,12 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         EXPECT_EQ(serial.sent, (std::vector<std::string>{"D3", "97"}));
         EXPECT_EQ(runtime.panels.field78abb00, 0);
         EXPECT_TRUE(runtime.movement.cursorWarpRequest.has_value());
-        EXPECT_EQ(runtime.chat.input.field, Client::UI::MessageField);
+        EXPECT_EQ(runtime.chat.input.field, Client::Chat::MessageField);
         EXPECT_EQ(runtime.chat.input.dialogEdit.text.Value(), "");
         EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'w');
         EXPECT_EQ(runtime.chat.input.messageBuffer[0], '\0');
         EXPECT_EQ(runtime.chat.input.messageLength, 0);
-        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+        EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
         EXPECT_FALSE(runtime.ui.chatOpen);
         EXPECT_FALSE(runtime.events.serialEntry);
     }
@@ -429,7 +429,7 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
 // Devias.
 TEST(GameMovementTest, AWalkWithAnNpcWindowOpenClosesItAfterTheD3)
 {
-    using Client::UI::PanelState;
+    using Client::Ui::PanelState;
     struct NpcWindowCase
     {
         std::uint8_t PanelState::*open;
@@ -666,7 +666,7 @@ std::unique_ptr<MovingHero> AHeroRightClickingTheChosen(std::int32_t map)
     input.whisperBuffer.fill('x');
     auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
     slot.fill('y');
-    Client::UI::CopyIntoTheBuffer(slot, "Viejo07");
+    Client::Chat::CopyIntoTheBuffer(slot, "Viejo07");
     return tested;
 }
 
@@ -684,11 +684,11 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
         const auto& input = runtime.chat.input;
         const auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
         EXPECT_FALSE(runtime.ui.rightClick);
-        EXPECT_EQ(Client::UI::CStringOf(input.whisperBuffer), "Rival01");
+        EXPECT_EQ(Client::Chat::CStringOf(input.whisperBuffer), "Rival01");
         EXPECT_TRUE(
             std::all_of(input.whisperBuffer.begin() + 7, input.whisperBuffer.end(), [](char c) { return c == '\0'; }));
         EXPECT_EQ(input.whisperLength, 7);
-        EXPECT_EQ(Client::UI::CStringOf(slot), "Rival01");
+        EXPECT_EQ(Client::Chat::CStringOf(slot), "Rival01");
         // strcpy: después del 0, el lugar conserva lo que tenía.
         EXPECT_EQ(slot[8], 'y');
         EXPECT_EQ(input.whisper.text.Value(), "Viejo07");
@@ -706,7 +706,8 @@ TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCa
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto& input = tested->world.Runtime().chat.input;
         EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
-        EXPECT_EQ(Client::UI::CStringOf(input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)]), "Viejo07");
+        EXPECT_EQ(Client::Chat::CStringOf(input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)]),
+                  "Viejo07");
         EXPECT_EQ(input.whisperBuffer[0], 'x');
         EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
     }
@@ -740,9 +741,9 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
 constexpr std::int32_t AddBoxId = 0x77;
 constexpr std::int32_t AddBoxEditId = 0x78;
 
-void OpenTheAddFriendBox(Client::Kernel::WorldRuntime& runtime, Client::UI::OldWindowKind kind)
+void OpenTheAddFriendBox(Client::Kernel::WorldRuntime& runtime, Client::Ui::OldWindowKind kind)
 {
-    Client::UI::OldWindow box;
+    Client::Ui::OldWindow box;
     box.kind = kind;
     box.base.id = AddBoxId;
     box.add.edit.base.id = AddBoxEditId;
@@ -759,16 +760,16 @@ TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxPutsTheChosenNameInItsEdi
     const auto tested = AHeroRightClickingTheChosen(0);
     auto& runtime = tested->world.Runtime();
     runtime.ui.chatOpen = false;
-    OpenTheAddFriendBox(runtime, Client::UI::OldWindowKind::AddFriendBox);
+    OpenTheAddFriendBox(runtime, Client::Ui::OldWindowKind::AddFriendBox);
 
     const auto result = StepHeroMovement(tested->Context());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    const Client::UI::OldEdit& edit = runtime.oldWindows.windows.at(AddBoxId).add.edit;
+    const Client::Ui::OldEdit& edit = runtime.oldWindows.windows.at(AddBoxId).add.edit;
     EXPECT_EQ(edit.text.Value(), "Rival01");
     EXPECT_EQ(edit.text.Cursor(), 7u);
     EXPECT_FALSE(edit.text.HasSelection());
-    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::OldWindow);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::OldWindow);
     EXPECT_EQ(runtime.oldWindows.focusedEdit, AddBoxEditId);
     EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'x');
 }
@@ -779,7 +780,7 @@ TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxAndNoChosenIsCut)
 {
     const auto tested = AHeroRightClickingTheChosen(0);
     auto& runtime = tested->world.Runtime();
-    OpenTheAddFriendBox(runtime, Client::UI::OldWindowKind::AddFriendBox);
+    OpenTheAddFriendBox(runtime, Client::Ui::OldWindowKind::AddFriendBox);
     runtime.selectedTargets[2] = -1;
 
     const auto result = StepHeroMovement(tested->Context());
@@ -1037,7 +1038,7 @@ TEST(GameMovementTest, ABowWithoutArrowsLeavesMoveHero)
     tested->world.OwnCharacter().equipment[0].id = 0xffff;
     tested->world.OwnCharacter().equipment[1].id = 0x800;
     std::vector<std::size_t> texts;
-    const Client::Scenes::InventoryServices inventory{
+    const Client::Items::InventoryServices inventory{
         .systemMessage = [&](std::size_t index, std::int32_t type) -> Client::Core::Expected<void, std::string>
         {
             texts.push_back(index);
@@ -1336,7 +1337,7 @@ struct HandsClick
 };
 
 HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32_t cursorItemCount = 0,
-                             const Client::Scenes::InventoryServices* inventory = nullptr)
+                             const Client::Items::InventoryServices* inventory = nullptr)
 {
     MovingHero tested;
     tested.world.OwnCharacter().equipment[0].id = right;
@@ -1374,7 +1375,7 @@ TEST(GameMovementTest, AWeaponInTheRightHandWithTheLeftEmptyWalks)
 }
 
 // 0x59bd3e..0x59bf56: con la derecha vacía y un arma de los grupos 0 a 2 o del 5 en la izquierda, el original la pasa
-// al cursor, viste al héroe y manda el C1 0E 24 del lugar 1 al 0 (Scenes::MoveTheLeftWeaponToTheRight); después sigue
+// al cursor, viste al héroe y manda el C1 0E 24 del lugar 1 al 0 (Items::MoveTheLeftWeaponToTheRight); después sigue
 // con el clic (0x59cd23). Sin quien vista al héroe corta en 0x59bf23, con el registro ya cerrado.
 TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
 {
@@ -1389,21 +1390,21 @@ TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
 
         int dressed = 0;
         std::vector<Client::Protocol::Items::ItemMove> sent;
-        const Client::Scenes::InventoryServices inventory{.items = nullptr,
-                                                          .dressTheHero =
-                                                              [&dressed]
-                                                          {
-                                                              ++dressed;
-                                                              return Client::Core::Expected<void, std::string>{};
-                                                          },
-                                                          .replaceTheRaven = {},
-                                                          .systemMessage = {},
-                                                          .sendItemMove =
-                                                              [&sent](const Client::Protocol::Items::ItemMove& move)
-                                                          {
-                                                              sent.push_back(move);
-                                                              return Client::Core::Expected<void, std::string>{};
-                                                          }};
+        const Client::Items::InventoryServices inventory{.items = nullptr,
+                                                         .dressTheHero =
+                                                             [&dressed]
+                                                         {
+                                                             ++dressed;
+                                                             return Client::Core::Expected<void, std::string>{};
+                                                         },
+                                                         .replaceTheRaven = {},
+                                                         .systemMessage = {},
+                                                         .sendItemMove =
+                                                             [&sent](const Client::Protocol::Items::ItemMove& move)
+                                                         {
+                                                             sent.push_back(move);
+                                                             return Client::Core::Expected<void, std::string>{};
+                                                         }};
         const auto click = ClickWithTheHands(EmptyHand, left, 0, &inventory);
         ASSERT_TRUE(click.result.HasValue()) << click.result.Error();
         EXPECT_EQ(dressed, 1);

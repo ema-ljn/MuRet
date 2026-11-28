@@ -18,27 +18,32 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
+{
+class Particles;
+class FrameSprites;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 class ModelEffects;
 struct ModelEffect;
-class Particles;
-class FrameSprites;
-} // namespace Client::World
+} // namespace Client::Effects
 namespace Client::Models
 {
 struct Skeleton;
 }
-namespace Client::Scenes
+namespace Client::Fauna
 {
 // 518cf0(c2,pos,rot0,light1,3,null,-1,0,0,0,0), sin RNG.
-[[nodiscard]] std::optional<std::size_t> CreateFaunaLightning(World::ModelEffects& effects, const glm::vec3& position);
+[[nodiscard]] std::optional<std::size_t> CreateFaunaLightning(Effects::ModelEffects& effects,
+                                                              const glm::vec3& position);
 [[nodiscard]] Core::Expected<void, std::string>
-StepFaunaLightning(World::ModelEffect& effect, std::size_t physicalIndex, const Models::Skeleton* skeleton,
-                   World::Particles& particles, World::FrameSprites& sprites, Terrain::TerrainLighting& lighting,
-                   Models::ClothWorld& cloth);
+StepFaunaLightning(Effects::ModelEffect& effect, std::size_t physicalIndex, const Models::Skeleton* skeleton,
+                   Particles::Particles& particles, Particles::FrameSprites& sprites,
+                   Terrain::TerrainLighting& lighting, Models::ClothWorld& cloth);
 // Préstamos durables; load contiene referencias válidas hasta terminar el paso.
 [[nodiscard]] FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
-                                                    std::span<JointState> joints, World::ModelEffects& effects,
-                                                    Crt::CrtRandom& random);
-} // namespace Client::Scenes
+                                                    std::span<Scenes::JointState> joints,
+                                                    Effects::ModelEffects& effects, Crt::CrtRandom& random);
+} // namespace Client::Fauna

@@ -22,9 +22,9 @@
 #include <string>
 #include <span>
 #include <system_error>
-namespace Client::Scenes
+namespace Client::Fauna
 {
-std::optional<std::size_t> CreateFaunaLightning(World::ModelEffects& effects, const glm::vec3& position)
+std::optional<std::size_t> CreateFaunaLightning(Effects::ModelEffects& effects, const glm::vec3& position)
 {
     auto pool = effects.Effects();
     for (std::size_t i = 0; i < pool.size(); ++i)
@@ -57,10 +57,10 @@ std::optional<std::size_t> CreateFaunaLightning(World::ModelEffects& effects, co
     }
     return std::nullopt;
 }
-Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect, std::size_t physicalIndex,
-                                                     const Models::Skeleton* skeleton, World::Particles& particles,
-                                                     World::FrameSprites& sprites, Terrain::TerrainLighting& lighting,
-                                                     Models::ClothWorld& cloth)
+Core::Expected<void, std::string> StepFaunaLightning(Effects::ModelEffect& effect, std::size_t physicalIndex,
+                                                     const Models::Skeleton* skeleton, Particles::Particles& particles,
+                                                     Particles::FrameSprites& sprites,
+                                                     Terrain::TerrainLighting& lighting, Models::ClothWorld& cloth)
 {
     if (!effect.alive)
         return {};
@@ -92,25 +92,25 @@ Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect,
     }
     const glm::vec3 white{1, 1, 1};
     const auto created =
-        particles.CreateChecked(World::FireParticle, position, {}, white, 8,
+        particles.CreateChecked(Particles::FireParticle, position, {}, white, 8,
                                 f32(static_cast<double>(effect.transform.scale) * 2.5f), 0, cloth.random);
     if (!created.HasValue())
         return Core::Unexpected(std::string("525102: no se pudo crear fuego 5d9/8"));
     const float rotation = static_cast<float>(cloth.random.Next() % 360);
     static_cast<void>(
         sprites.Create(0x5fd, position, f32(static_cast<double>(effect.transform.scale) * 3), white, rotation, 0));
-    World::StepModelEffect(effect, skeleton);
+    Effects::StepModelEffect(effect, skeleton);
     return {};
 }
 FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
-                                      std::span<JointState> joints, World::ModelEffects& effects,
+                                      std::span<Scenes::JointState> joints, Effects::ModelEffects& effects,
                                       Crt::CrtRandom& random)
 {
     FaunaStepEffects result;
     result.effect = [joints, &random, &log = load.log](
                         const Kernel::JointRequest& request) -> Core::Expected<std::uint32_t, std::error_code>
     {
-        const auto created = CreateFaunaJoint(joints, request, random);
+        const auto created = Joints::CreateFaunaJoint(joints, request, random);
         if (!created.HasValue())
         {
             log.Warning("{}", created.Error());
@@ -135,4 +135,4 @@ FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::Fauna
     };
     return result;
 }
-} // namespace Client::Scenes
+} // namespace Client::Fauna

@@ -23,13 +23,13 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
 class ModelEffects;
-} // namespace Client::World
+} // namespace Client::Effects
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 struct HighEffectStepContext;
 
@@ -49,23 +49,23 @@ using KundunTerrainHeight = std::function<double(float, float)>;
 //   vida 170 y escala 2.
 // - /5: la acción en 0, vida 170 y escala 2.
 // Todos, la clave en 0xffff al final. Sin la altura del terreno, el /2, el /3 y el /4 cortan (0x51e26e, 0x51e2ee).
-[[nodiscard]] Core::Expected<void, std::string> BeginTheKundunPiece(World::ModelEffect& effect, Crt::CrtRandom& random,
-                                                                    const KundunTerrainHeight& terrainHeight);
+[[nodiscard]] Core::Expected<void, std::string>
+BeginTheKundunPiece(Effects::ModelEffect& effect, Crt::CrtRandom& random, const KundunTerrainHeight& terrainHeight);
 
-// 0x518cf0(pedazo, ...) sobre `effects`, como lo pide la caída de Kundun: el prefijo (World::ModelEffects::Begin) y
+// 0x518cf0(pedazo, ...) sobre `effects`, como lo pide la caída de Kundun: el prefijo (Effects::ModelEffects::Begin) y
 // BeginTheKundunPiece. Con la tabla llena, nada y sin rand(). Devuelve el lugar.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunPiece(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
+CreateTheKundunPiece(Effects::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
                      Crt::CrtRandom& random, const KundunTerrainHeight& terrainHeight);
 
 // 0x51cf6d..0x51cf91 y 0x51d9ff, el 0x127 de cualquier subtipo: +0xd8 en 0,08f, vida 200, +0x64 en −2, escala 1,8f y
 // la luz en 0,5. Sin rand().
-void BeginTheKundunEcho(World::ModelEffect& effect);
+void BeginTheKundunEcho(Effects::ModelEffect& effect);
 
 // 0x518f51..0x518f90: el 0x128/2 del lugar `call` vuelve a entrar en 0x518cf0 como el 0x127/0 con su posición, sus
 // ángulos y su luz, él de dueño (+0x108), la clave en −1, la escala 0 (0,9f del prefijo) y BeginTheKundunEcho. Con la
 // tabla llena, nada.
-std::optional<std::size_t> CreateTheKundunEcho(World::ModelEffects& effects, std::size_t call);
+std::optional<std::size_t> CreateTheKundunEcho(Effects::ModelEffects& effects, std::size_t call);
 
 // 0x52a17b..0x52a683, el paso de un pedazo por su subtipo (la tabla de 0x52d0fc):
 // - /1: el alpha 0,01f menos.
@@ -82,7 +82,7 @@ std::optional<std::size_t> CreateTheKundunEcho(World::ModelEffects& effects, std
 //   ángulos rand() % 180 más; siempre, la partícula 0x607/4 a ±20 en x e y y 50 más abajo, la velocidad en
 //   (0, 0, −3), el balanceo de la x de los ángulos entre −30 y 30 de a rand() % 3 + 1 y, con menos de 100 de vida, el
 //   alpha 0,1f menos.
-[[nodiscard]] Core::Expected<void, std::string> StepTheKundunPiece(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheKundunPiece(Effects::ModelEffect& effect,
                                                                    const HighEffectStepContext& context);
 
 // 0x5277ae..0x527ad1, el paso del 0x127:
@@ -93,6 +93,6 @@ std::optional<std::size_t> CreateTheKundunEcho(World::ModelEffects& effects, std
 //   héroe ([0x743a170]) más 300 en x y menos 300 en y de a +0x89 · 0,2f; el 0xc2/0 (0x527a97, clave 0) a ±600 en x e
 //   y con los ángulos (0, 0, (rand() % 10) · 20) y la luz en blanco; la escala 0,02f más y el temblor de la cámara
 //   (0x7d325c8) en (rand() % 8 − 8) · 0,1f.
-[[nodiscard]] Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheKundunEcho(Effects::ModelEffect& effect,
                                                                   const HighEffectStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Effects

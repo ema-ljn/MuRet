@@ -14,7 +14,7 @@ struct ActorState;
 // CL9 hito 4, fase 2c: la rama de 0x57cfc0 de las clases 1, 3 y 4 (Dark Knight, Magic Gladiator y Dark Lord: +0x1d4 & 7
 // del héroe, 0x58187c..0x58188e), 0x581894..0x5897a7. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las
 // skills del caballero".
-namespace Client::Scenes
+namespace Client::Skills
 {
 struct HeroSkillContext;
 
@@ -31,4 +31,4 @@ struct HeroSkillContext;
 [[nodiscard]] Core::Expected<void, std::string> UseTheKnightSkill(Kernel::ActorState& hero,
                                                                   Kernel::CharacterClass heroClass, std::uint8_t skill,
                                                                   const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -37,7 +37,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Social
 {
 namespace
 {
@@ -70,14 +70,14 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& r
 // 0x451d10 y 0x451810: el personaje tiene un cartel de tienda personal en el mapa de 0x7245c8.
 bool HasAPersonalShop(const Kernel::WorldState& world, std::size_t index)
 {
-    return HasShopTitle(world.Runtime().social.personalShop, index);
+    return PersonalShop::HasShopTitle(world.Runtime().social.personalShop, index);
 }
 
 // 0x5af560: ni la tienda personal propia (0x800) ni la ajena (0x20000) abiertas, sin rand().
 bool NoShopOpen(const SocialRequestContext& context)
 {
-    GamePanels panels(context.world, context.random);
-    return !panels.Registry().IsOpen(UI::PersonalShopPanel) && !panels.Registry().IsOpen(UI::OtherShopPanel);
+    Hud::GamePanels panels(context.world, context.random);
+    return !panels.Registry().IsOpen(Ui::PersonalShopPanel) && !panels.Registry().IsOpen(Ui::OtherShopPanel);
 }
 
 // 0x5110d0 con el MOVSX de una clave: el primero de los 400 vivo con la misma (los dos con MOVSX), o el 400.
@@ -112,19 +112,19 @@ bool CanBeAskedFromTheFront(const SocialRequestContext& context, std::size_t ind
 }
 
 // 0x69fd9b(buffer, texto, nombre) y 0x555190 con el 1: el aviso con el nombre del primero vivo con la clave.
-Core::Expected<UI::ChatCommandNotice, std::string> NamedNotice(const SocialRequestContext& context, std::size_t text,
-                                                               std::uint16_t key, std::string_view where)
+Core::Expected<Chat::ChatCommandNotice, std::string> NamedNotice(const SocialRequestContext& context, std::size_t text,
+                                                                 std::uint16_t key, std::string_view where)
 {
-    const auto format = UI::TextAt(&context.texts, text);
+    const auto format = Ui::TextAt(&context.texts, text);
     if (!format)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, text));
     const std::string name = Actors::ChatNameOf(context.world.Actors()[ActorWithTheSameKey(context.world, key)]);
-    return UI::ChatCommandNotice{.text = text, .type = UI::SystemMessage, .formatted = Crt::Sprintf(*format, name)};
+    return Chat::ChatCommandNotice{.text = text, .type = Ui::SystemMessage, .formatted = Crt::Sprintf(*format, name)};
 }
 
-UI::ChatCommandOutcome Handled(std::vector<UI::ChatCommandNotice> notices = {})
+Chat::ChatCommandOutcome Handled(std::vector<Chat::ChatCommandNotice> notices = {})
 {
-    return UI::ChatCommandOutcome{.handled = true, .notices = std::move(notices)};
+    return Chat::ChatCommandOutcome{.handled = true, .notices = std::move(notices)};
 }
 
 // 0x574ceb..0x57538b, 0x575570..0x575d96 y 0x575e90..0x576696: el C1 10 3F 05 con la clave (+0x1f4) y los diez bytes
@@ -154,8 +154,8 @@ Core::Expected<void, std::string> SendInC3(const SocialRequestContext& context, 
     return {};
 }
 
-Core::Expected<UI::ChatCommandOutcome, std::string> SendATradeRequest(const SocialRequestContext& context,
-                                                                      std::size_t index, std::string_view where)
+Core::Expected<Chat::ChatCommandOutcome, std::string> SendATradeRequest(const SocialRequestContext& context,
+                                                                        std::size_t index, std::string_view where)
 {
     if (!NoShopOpen(context) || !context.world.Runtime().drawingEnabled)
         return Handled();
@@ -168,8 +168,8 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendATradeRequest(const Soci
     return Handled({std::move(notice).Value()});
 }
 
-Core::Expected<UI::ChatCommandOutcome, std::string> SendAPartyRequest(const SocialRequestContext& context,
-                                                                      std::size_t index, std::string_view where)
+Core::Expected<Chat::ChatCommandOutcome, std::string> SendAPartyRequest(const SocialRequestContext& context,
+                                                                        std::size_t index, std::string_view where)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.drawingEnabled)
@@ -184,7 +184,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendAPartyRequest(const Soci
     return Handled({std::move(notice).Value()});
 }
 
-Core::Expected<UI::ChatCommandNotice, std::string>
+Core::Expected<Chat::ChatCommandNotice, std::string>
 NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::uint16_t key, std::string_view where)
 {
     return NamedNotice(context, text, key, where);
@@ -262,7 +262,7 @@ Core::Expected<bool, std::string> FacesTheHero(const Kernel::WorldState& world, 
     return std::abs(static_cast<std::int32_t>(*other) - static_cast<std::int32_t>(*hero)) == Opposite;
 }
 
-Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context)
+Core::Expected<Chat::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context)
 {
     auto chosen = TheChosen(context.world, "0x56c68b");
     if (!chosen.HasValue())
@@ -272,7 +272,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRe
         if (!CanBeAsked(context.world, *index) || !NextToTheHero(context.world, context.random, *index))
             return Handled();
         if (HasAPersonalShop(context.world, *index))
-            return Handled({UI::ChatCommandNotice{.text = PersonalShopText, .type = UI::ErrorMessage}});
+            return Handled({Chat::ChatCommandNotice{.text = PersonalShopText, .type = Ui::ErrorMessage}});
         return SendATradeRequest(context, *index, "0x56c7e2");
     }
     // 0x56ce17..0x56cfc6: el primero de los 400 al lado y enfrente.
@@ -281,7 +281,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRe
         if (!CanBeAskedFromTheFront(context, index))
             continue;
         if (HasAPersonalShop(context.world, index))
-            return Handled({UI::ChatCommandNotice{.text = PersonalShopText, .type = UI::ErrorMessage}});
+            return Handled({Chat::ChatCommandNotice{.text = PersonalShopText, .type = Ui::ErrorMessage}});
         auto faces = FacesTheHero(context.world, index);
         if (!faces.HasValue())
             return Core::Unexpected(faces.Error());
@@ -330,14 +330,14 @@ Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& conte
     return SendInC3(context, Protocol::Social::WriteDuelStart(actor.key, actor.name), "0x56d9b8");
 }
 
-Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context)
+Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ActorState& hero = context.world.Hero();
     // 0x56f13f..0x56f1b0.
     // strcmp: el nombre del héroe sigue en +0x1e3 si llena los diez bytes.
     if (runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != Actors::ChatNameOf(hero))
-        return Handled({UI::ChatCommandNotice{.text = NotTheLeaderText, .type = UI::SystemMessage}});
+        return Handled({Chat::ChatCommandNotice{.text = NotTheLeaderText, .type = Ui::SystemMessage}});
     auto chosen = TheChosen(context.world, "0x56f1b1");
     if (!chosen.HasValue())
         return Core::Unexpected(chosen.Error());
@@ -360,16 +360,16 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRe
     }
     return Handled();
 }
-Core::Expected<UI::ChatCommandOutcome, std::string> RequestTheShopItems(const SocialRequestContext& context,
-                                                                        std::optional<std::string_view> name)
+Core::Expected<Chat::ChatCommandOutcome, std::string> RequestTheShopItems(const SocialRequestContext& context,
+                                                                          std::optional<std::string_view> name)
 {
     // 0x574c0c..0x574c78.
-    GamePanels panels(context.world, context.random);
-    UI::PanelRegistry& registry = panels.Registry();
-    if (registry.IsOpen(UI::NpcShopPanel) || registry.IsOpen(UI::WarehousePanel) || registry.IsOpen(UI::TradePanel) ||
-        registry.IsOpen(UI::ChaosBoxPanel) || registry.IsOpen(UI::TrainerPanel))
-        return UI::ChatCommandOutcome{.handled = false,
-                                      .notices = {{.text = UI::ShopTrainerText, .type = UI::SystemMessage}}};
+    Hud::GamePanels panels(context.world, context.random);
+    Ui::PanelRegistry& registry = panels.Registry();
+    if (registry.IsOpen(Ui::NpcShopPanel) || registry.IsOpen(Ui::WarehousePanel) || registry.IsOpen(Ui::TradePanel) ||
+        registry.IsOpen(Ui::ChaosBoxPanel) || registry.IsOpen(Ui::TrainerPanel))
+        return Chat::ChatCommandOutcome{.handled = false,
+                                        .notices = {{.text = Chat::ShopTrainerText, .type = Ui::SystemMessage}}};
     // 0x574c97..0x574ce5: el elegido, sin mirar si está vivo ni al lado.
     auto chosen = TheChosen(context.world, "0x574c97");
     if (!chosen.HasValue())
@@ -414,4 +414,4 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestTheShopItems(const So
     }
     return Handled();
 }
-} // namespace Client::Scenes
+} // namespace Client::Social

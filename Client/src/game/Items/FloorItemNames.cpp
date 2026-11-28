@@ -29,7 +29,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -86,14 +86,14 @@ using Name = Core::Expected<std::string, std::string>;
 
 struct NameFrame
 {
-    GameHudContext& context;
-    const FloorItemState& item;
+    Hud::GameHudContext& context;
+    const Scenes::FloorItemState& item;
     std::int32_t level = 0;
 };
 
 Core::Expected<std::string_view, std::string> TextOf(const NameFrame& frame, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(frame.context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(frame.context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("0x5ba790: falta el texto {} de Text.bmd", index));
     return *text;
@@ -181,8 +181,8 @@ Color GenericColor(const NameFrame& frame)
 Name GenericName(const NameFrame& frame)
 {
     Paint(frame, GenericColor(frame));
-    const auto set =
-        ItemSetNameOf(frame.context, static_cast<std::uint16_t>(frame.item.type - ModelBase), frame.item.ancient);
+    const auto set = Tooltips::ItemSetNameOf(frame.context, static_cast<std::uint16_t>(frame.item.type - ModelBase),
+                                             frame.item.ancient);
     if (!set.HasValue())
         return Core::Unexpected(set.Error());
     const auto record = ModelName(frame);
@@ -235,8 +235,8 @@ Name ScrollName(const NameFrame& frame)
     const auto text = TextOf(frame, 102);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
-    const auto skill =
-        ReadTheSkillEntry(frame.context, FirstScrollSkill + static_cast<std::uint32_t>(frame.level), "0x5bae38");
+    const auto skill = Tooltips::ReadTheSkillEntry(
+        frame.context, FirstScrollSkill + static_cast<std::uint32_t>(frame.level), "0x5bae38");
     if (!skill.HasValue())
         return Core::Unexpected(skill.Error());
     return Crt::Sprintf("%s %s", std::string_view(skill.Value().name), text.Value());
@@ -262,7 +262,7 @@ Name TransformationRingName(const NameFrame& frame)
                                             "lo que MuRet tiene de la .data",
                                             frame.level));
     const std::optional<std::string> name =
-        NpcNameOf(frame.context.world.Runtime().npcNames, static_cast<std::int32_t>(*monster));
+        Monsters::NpcNameOf(frame.context.world.Runtime().npcNames, static_cast<std::int32_t>(*monster));
     if (!name)
         return Unwritten(frame, 0x5bb30f);
     constexpr std::size_t TransformationRingText = 103;
@@ -435,7 +435,7 @@ Name ComposeTheName(const NameFrame& frame)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheFloorItemName(GameHudContext& context, const FloorItemState& item,
+Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& context, const Scenes::FloorItemState& item,
                                                        bool atTheItem)
 {
     // 0x5ba7a7..0x5ba7c7: SelectObject con la fuente normal (0x5763554) y los colores.
@@ -455,9 +455,9 @@ Core::Expected<void, std::string> DrawTheFloorItemName(GameHudContext& context, 
     std::uint32_t half = 0;
     if (screen.width > 0)
         half = static_cast<std::uint32_t>(extent.width / 2) * DesignWidth / static_cast<std::uint32_t>(screen.width);
-    DrawHudLine(context.text, screen, hud, static_cast<std::int32_t>(static_cast<std::uint32_t>(x) - half),
-                y - NameRise, name.Value());
+    Hud::DrawHudLine(context.text, screen, hud, static_cast<std::int32_t>(static_cast<std::uint32_t>(x) - half),
+                     y - NameRise, name.Value());
     hud.textColors = EndColors;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

@@ -43,19 +43,19 @@ namespace
 {
 using Client::App::AutoLogin;
 using Client::App::Credentials;
-using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionSettings;
-using Client::App::SessionState;
-using Client::App::TickCountMs;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Kernel::TickCountMs;
 using Client::Network::Connection;
 using Client::Network::IdentityObfuscation;
 using Client::Network::PacketSerials;
 using Client::Protocol::Session::ClientVersion;
 using Client::Protocol::Session::LoginRequest;
 using Client::Protocol::Session::WriteLoginRequest;
+using Client::Session::ServerAddress;
+using Client::Session::SessionState;
 using Client::Tests::AddressReply;
 using Client::Tests::BusyReply;
 using Client::Tests::Bytes;

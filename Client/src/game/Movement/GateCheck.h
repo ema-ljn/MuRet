@@ -7,7 +7,7 @@
 
 // La decisión pura de 0x599ef0 (06 § Los cambios de mapa). El caller toma el estado y aplica
 // mensajes, espera y envío; los accesos protegidos y su RNG quedan fuera de esta función.
-namespace Client::GameLogic
+namespace Client::Movement
 {
 struct GateCheckState;
 struct GateDecision;
@@ -18,4 +18,4 @@ struct GateDecision;
 // La misma decisión para un registro: el integrador intercala accesos lógicos y sus efectos
 // entre gates sin copiar las reglas de equipo, nivel o mensajes de 0x599ef0.
 [[nodiscard]] GateDecision CheckGate(std::size_t index, const Tables::GateRecord& gate, const GateCheckState& state);
-} // namespace Client::GameLogic
+} // namespace Client::Movement

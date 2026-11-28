@@ -69,7 +69,7 @@ protected:
         Client::Tests::WriteTextureSet(m_folder.Path(), Client::Assets::WindowTextureSet);
     }
 
-    Client::Scenes::SceneContext Context(Client::App::PacingMode pacing = Client::App::PacingMode::Decoupled)
+    Client::Scenes::SceneContext Context(Client::Kernel::PacingMode pacing = Client::Kernel::PacingMode::Decoupled)
     {
         return {.dataRoot = m_folder.Path(),
                 .textures = m_store,
@@ -94,7 +94,7 @@ protected:
         return *models->pass;
     }
 
-    Client::Scenes::SceneContext SelectionContext(Client::Scenes::SelectionState& state)
+    Client::Scenes::SceneContext SelectionContext(Client::FrontEnd::SelectionState& state)
     {
         auto terrain = Client::Terrain::LoadWorldTerrain(Client::Tests::RepoDataDir(), 55);
         EXPECT_TRUE(terrain.HasValue());
@@ -114,7 +114,7 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     Client::Tests::RecordingFrameTarget m_target;
     Client::Session::ModuleStates m_states;
-    Client::Scenes::SingleModelLibrary m_models;
+    Client::FrontEnd::SingleModelLibrary m_models;
     Client::Tables::GameData m_data;
     GameCamera m_camera;
     GameCameraInput m_cameraInput;
@@ -197,7 +197,7 @@ TEST_F(SharedGameCameraTest, FaithfulDrawsAdvanceEvenAtTheSameClockAndReentryKee
 {
     m_camera.zoom = 210.0f;
     m_camera.fixedHeight = 1201.0f;
-    Client::Scenes::LoginScene login(Context(Client::App::PacingMode::Faithful), m_data, m_models, nullptr, "1.0",
+    Client::Scenes::LoginScene login(Context(Client::Kernel::PacingMode::Faithful), m_data, m_models, nullptr, "1.0",
                                      Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());
     static_cast<void>(Frame(login, 0ns));
@@ -210,7 +210,7 @@ TEST_F(SharedGameCameraTest, FaithfulDrawsAdvanceEvenAtTheSameClockAndReentryKee
     EXPECT_EQ(m_camera.zoom, 180.0f);
     EXPECT_EQ(m_camera.fixedHeight, 1201.0f);
     login.Leave();
-    Client::Scenes::CharacterSelectScene selection(Context(Client::App::PacingMode::Faithful), m_data, m_models,
+    Client::Scenes::CharacterSelectScene selection(Context(Client::Kernel::PacingMode::Faithful), m_data, m_models,
                                                    nullptr);
     ASSERT_TRUE(selection.Enter().HasValue());
     static_cast<void>(Frame(selection, 0ns));
@@ -270,7 +270,7 @@ TEST_F(SharedGameCameraTest, SelectionWaitsForTheListThenDrawsEvenWhenTheReceive
     EXPECT_EQ(Frame(selection, 2s).farPlane, 3000.0f);
     EXPECT_EQ(m_camera.zoom, 200.0f);
     EXPECT_NE(m_camera.distance, 3200.0f);
-    EXPECT_EQ(m_cameraInput.hero, (glm::vec3{17500.0f, 20000.0f, Client::Scenes::CharacterSlotHeight}));
+    EXPECT_EQ(m_cameraInput.hero, (glm::vec3{17500.0f, 20000.0f, Client::FrontEnd::CharacterSlotHeight}));
     selection.Leave();
 }
 
@@ -280,15 +280,15 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     m_cameraInput.hero = {17500.0f, 20000.0f, 165.0f};
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState state(world);
+    Client::FrontEnd::SelectionState state(world);
     Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
     ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     // 0x5172c4/0x5172ca: las escrituras de 0x517270 al slot0, al que apunta Hero.
-    EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
-    EXPECT_EQ(m_cameraInput.hero.y, Client::Scenes::CharacterSlots[0].position.y);
+    EXPECT_EQ(m_cameraInput.hero.x, Client::FrontEnd::CharacterSlots[0].position.x);
+    EXPECT_EQ(m_cameraInput.hero.y, Client::FrontEnd::CharacterSlots[0].position.y);
     EXPECT_EQ(Frame(selection, 0ns).farPlane, Client::Camera::SelectionCamera().farPlane);
     selection.Leave();
 }
@@ -305,7 +305,7 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         Client::Tests::LoggedInSession online;
         ASSERT_NO_FATAL_FAILURE(online.LogIn());
         Client::Kernel::WorldState world;
-        Client::Scenes::SelectionState state(world);
+        Client::FrontEnd::SelectionState state(world);
         Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
         ASSERT_TRUE(selection.Enter().HasValue());
         online.ReceiveTheList({{0, "char0001"}});
@@ -326,7 +326,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState state(world);
+    Client::FrontEnd::SelectionState state(world);
     const auto context = SelectionContext(state);
     Client::Scenes::CharacterSelectScene selection(context, m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
@@ -351,8 +351,8 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     EXPECT_TRUE(selection.HoldsTheLastFrame());
     selection.Step(Client::Input::InputState{});
     EXPECT_FALSE(selection.HoldsTheLastFrame());
-    EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
-    EXPECT_EQ(m_cameraInput.hero.y, Client::Scenes::CharacterSlots[0].position.y);
+    EXPECT_EQ(m_cameraInput.hero.x, Client::FrontEnd::CharacterSlots[0].position.x);
+    EXPECT_EQ(m_cameraInput.hero.y, Client::FrontEnd::CharacterSlots[0].position.y);
     selection.Leave();
 }
 
@@ -441,19 +441,19 @@ TEST_F(SharedGameCameraTest, TheEmbersUseTheCurrentSharedGroundHeight)
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     attributes->cells.fill(0x40);
-    Client::World::Leaves leaves;
+    Client::Weather::Leaves leaves;
     for (auto& leaf : leaves.All())
     {
         leaf.alive = true;
         leaf.position = {100.0f, 100.0f, 1200.5f};
         leaf.light = {1.0f, 1.0f, 1.0f};
     }
-    Client::World::EmberWorld world;
+    Client::Weather::EmberWorld world;
     world.heights = heights.get();
     world.attributes = attributes.get();
     world.fixedHeight = 1201.0f;
     Client::Crt::CrtRandom random{1};
-    Client::World::StepLoginEmbers(leaves, world, random);
+    Client::Weather::StepLoginEmbers(leaves, world, random);
     EXPECT_EQ(leaves.All()[0].position.z, 1201.0f);
     EXPECT_EQ(leaves.All()[0].light.x, 0.95f);
 }

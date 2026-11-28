@@ -27,11 +27,11 @@ namespace Client::Render
 class ModelBatch;
 } // namespace Client::Render
 
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Kernel
 {
@@ -43,15 +43,15 @@ class WorldState;
 // paso desde el frame 3 (0x432bd0, de 0x4fcee0), CL9 hito 2, fase 6d. Contrato: 06 § El dibujo del juego, "Los
 // helpers de los monstruos".
 //
-// Todo lo que es estado, sonido o rand() está portado, y las partículas (0x53fe70) que World::Particles crea (0x5ca/0,
-// 0x5f2/11, 0x5f3/0, 0x5d9/0 y 0x729/0 y /1) se crean con sus rand(). Las que MuRet no tiene cortan con la dirección
-// de la llamada solo si su tabla tiene lugar: llena, el original no crea nada, no saca rand() y sigue, y MuRet sigue
-// con él. Los efectos (0x518cf0), los joints (0x530860), las estelas (0x52e470) y 0x51fe10 que siguen sin portar son
-// de la CL11 y cortan con la dirección de la llamada, sin mirar si su tabla está llena (el pase no la lleva, P-C336);
-// las muertes del 0x1a4 y el 0x1a6 (0x4ee770) y la piedra 0x12e/3 del 0x1a6 (0x442397) ya están. Un hueso con
+// Todo lo que es estado, sonido o rand() está portado, y las partículas (0x53fe70) que Particles::Particles crea
+// (0x5ca/0, 0x5f2/11, 0x5f3/0, 0x5d9/0 y 0x729/0 y /1) se crean con sus rand(). Las que MuRet no tiene cortan con la
+// dirección de la llamada solo si su tabla tiene lugar: llena, el original no crea nada, no saca rand() y sigue, y
+// MuRet sigue con él. Los efectos (0x518cf0), los joints (0x530860), las estelas (0x52e470) y 0x51fe10 que siguen sin
+// portar son de la CL11 y cortan con la dirección de la llamada, sin mirar si su tabla está llena (el pase no la lleva,
+// P-C336); las muertes del 0x1a4 y el 0x1a6 (0x4ee770) y la piedra 0x12e/3 del 0x1a6 (0x442397) ya están. Un hueso con
 // nombre (0x4010b0 y 0x4010d0 → 0x4016c0) que el alta del monstruo no registró en WorldRuntime::namedBones también
 // corta: el original dejaría el punto sin escribir, con lo que hubiera en la pila.
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 
 // Lo que leen los helpers del dibujo: el personaje (el registro o su copia entre frames del original), su lugar en el
@@ -65,8 +65,8 @@ struct MonsterHelperPass
     std::size_t slot = 0;
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    World::FrameSprites* sprites = nullptr;
-    World::Particles* particles = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
+    Particles::Particles* particles = nullptr;
     float worldClock = 0.0f;
     std::int32_t map = 0;
     bool originalFrame = true;
@@ -106,9 +106,8 @@ struct MonsterHelperPass
 // reales; el 0x1ab suma 640/0 antes de cada muestra en (3.5,4.5), y el 0x1ae en 8 no posa: crea 5f2/27 y dos 5ad/2.
 // Las reservas de145/2 y147/0/1 respetan el orden y los límites de sus tablas. La acción, la escala y la posición del
 // modelo (+0xa0, +0x68 y +0x6c, de su último 0x5ffdf0) son las del personaje (Q-C1102, *inferido*).
-[[nodiscard]] Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
-                                                                        Kernel::WorldState& world,
-                                                                        Assets::FaunaModels* faunaModels,
-                                                                        Crt::CrtRandom& random,
-                                                                        World::Particles* particles, float worldClock);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string>
+StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot, Kernel::WorldState& world,
+                        Assets::FaunaModels* faunaModels, Crt::CrtRandom& random, Particles::Particles* particles,
+                        float worldClock);
+} // namespace Client::Monsters::Drawing

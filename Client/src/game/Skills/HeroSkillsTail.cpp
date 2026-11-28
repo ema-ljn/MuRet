@@ -30,7 +30,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -140,7 +140,7 @@ private:
     const HeroSkillContext& m_context;
     Kernel::WorldState& m_world;
     Kernel::WorldRuntime& m_runtime;
-    GameMovementState& m_state;
+    Movement::GameMovementState& m_state;
 };
 
 Core::Expected<void, std::string> SharedTail::Use()
@@ -227,7 +227,7 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosen =
-            ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
+            Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
         key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(chosen.Value()) & 0xffffu);
@@ -257,7 +257,7 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
                                                              .magicKey = NoMagicKey}));
     }
     // 0x594de9: las velocidades, con el registro propio todavía abierto.
-    RefreshCombatActionSpeeds(m_world, m_context.random);
+    Combat::RefreshCombatActionSpeeds(m_world, m_context.random);
     return {};
 }
 
@@ -315,4 +315,4 @@ Core::Expected<void, std::string> UseTheSharedTail(Kernel::ActorState& hero, std
         return {};
     return SharedTail(hero, skill, context).Use();
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

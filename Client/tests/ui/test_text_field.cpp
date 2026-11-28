@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <string>
 
-// Client::UI::TextField: el campo de la cuenta y el de la clave (CL5.5, el paso 2 del plan, la
+// Client::Ui::TextField: el campo de la cuenta y el de la clave (CL5.5, el paso 2 del plan, la
 // tabla del TODO(human)). El original usa dos EDIT de Windows con EM_LIMITTEXT 10, la clave con
 // ES_PASSWORD; MuRet guarda bytes de ASCII imprimible, hasta 10, porque es lo que entra en el
 // paquete del login (Q-C43). La tabla:
@@ -22,7 +22,7 @@
 // | la clave, con lo que tenga  | se muestra un asterisco por byte                            |
 namespace
 {
-using Client::UI::TextField;
+using Client::Ui::TextField;
 
 constexpr std::size_t Ten = 10;
 

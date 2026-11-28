@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -42,7 +42,7 @@ constexpr float VisibleAlpha = 0.01f;               // 0x6b88d4, el de 0x5ffdf0
 
 Core::Expected<void, std::string> ShedTheSkinShells(Kernel::ActorState& owner, std::int32_t subtype,
                                                     const Models::IModelLibrary& models, Kernel::WorldState& world,
-                                                    World::ModelEffects& effects, Crt::CrtRandom& random)
+                                                    Effects::ModelEffects& effects, Crt::CrtRandom& random)
 {
     constexpr std::uint16_t Shadow = Tables::PlayerShadowModel;
     const Data::Models::Model* model = models.Find(Models::ModelId{Shadow});
@@ -85,12 +85,12 @@ Core::Expected<void, std::string> ShedTheSkinShells(Kernel::ActorState& owner, s
     Actors::Drawing::DrawnObject shadow;
     shadow.model = Shadow;
     const ActorEffectHooks hooks;
-    return Actors::Drawing::EmitVertexEffects(models, shadow, meshes, 0, World::SkinShellEffect, subtype, effects,
+    return Actors::Drawing::EmitVertexEffects(models, shadow, meshes, 0, Effects::SkinShellEffect, subtype, effects,
                                               &hooks, random);
 }
 
 Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       const World::ModelEffect& effect,
+                                                       const Effects::ModelEffect& effect,
                                                        Actors::Drawing::DrawnObject& object, Core::Duration frameClock)
 {
     if (effect.subtype == 0)
@@ -123,4 +123,4 @@ Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch
         return Core::Unexpected("0x6005cb: " + drawn.Error());
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

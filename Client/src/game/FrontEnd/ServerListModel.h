@@ -21,7 +21,7 @@
 // primero vacío (Q-C62); los grupos sin botón (21 a 24) y los códigos de 500 o más, que el
 // original escribe fuera de su arreglo, se ignoran y se cuentan; y un grupo guarda hasta 20
 // servidores, donde el original sigue escribiendo sobre el grupo que sigue (Q-C63).
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // Los grupos que caben en la tabla de 0x4c1860: los códigos de 0 a 499.
 inline constexpr std::uint16_t ServerGroupCount = 25;
@@ -86,4 +86,4 @@ inline constexpr std::string_view NonPvpMark = "(Non-PVP)";
 // un grupo (0x6d6724) y "%s-%d%s %s" con más (0x6d672c), con la marca o nada.
 [[nodiscard]] std::string SingleServerLabel(std::string_view group, bool nonPvp, std::string_view load);
 [[nodiscard]] std::string ServerLabel(std::string_view group, int number, bool nonPvp, std::string_view load);
-} // namespace Client::UI
+} // namespace Client::FrontEnd

@@ -24,14 +24,14 @@
 #include <string>
 #include <vector>
 
-// Client::World::CreateScepterGlow contra el caso 0x620 de 0x509340 del código real del main.exe, en 300
+// Client::Actors::Drawing::CreateScepterGlow contra el caso 0x620 de 0x509340 del código real del main.exe, en 300
 // casos al azar (tests/vectors/world55/scepter.txt, make_scepter_vectors.py): con 0x4ec110 y 0x5491e0
 // reales, los cinco sprites que deja y el rand() al final, bit a bit.
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::FrameSprites;
-using Client::World::Sprite;
+using Client::Particles::FrameSprites;
+using Client::Particles::Sprite;
 
 using Client::Math::Bits;
 
@@ -77,8 +77,8 @@ TEST(ScepterGlowTest, ThreeHundredCasesMatchTheBinary)
         const glm::vec3 origin{next(), next(), next()};
 
         FrameSprites sprites;
-        Client::World::CreateScepterGlow(sprites, bone, scale, origin, random);
-        for (std::size_t k = 0; k < Client::World::ScepterSpriteCount; ++k)
+        Client::Actors::Drawing::CreateScepterGlow(sprites, bone, scale, origin, random);
+        for (std::size_t k = 0; k < Client::Actors::Drawing::ScepterSpriteCount; ++k)
         {
             ASSERT_TRUE(std::getline(file, line));
             std::istringstream row(line);
@@ -109,7 +109,7 @@ TEST(ScepterGlowTest, ThreeHundredCasesMatchTheBinary)
             EXPECT_EQ(Bits(sprite.rotation), value()) << where << ": la rotación";
             EXPECT_EQ(Bits(sprite.alpha), value()) << where << ": el alpha";
         }
-        EXPECT_FALSE(sprites.Sprites()[Client::World::ScepterSpriteCount].alive) << "no hay un sexto";
+        EXPECT_FALSE(sprites.Sprites()[Client::Actors::Drawing::ScepterSpriteCount].alive) << "no hay un sexto";
         ASSERT_TRUE(std::getline(file, line));
         std::istringstream after(line);
         after >> word >> word;
@@ -127,7 +127,7 @@ TEST(ScepterGlowTest, ThreeHundredCasesMatchTheBinary)
 TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
 {
     FrameSprites sprites;
-    for (std::size_t k = 0; k < Client::World::SpriteCount; ++k)
+    for (std::size_t k = 0; k < Client::Particles::SpriteCount; ++k)
     {
         ASSERT_TRUE(sprites.Create(0x5ac, glm::vec3(0.0f), 1.0f, glm::vec3(1.0f), 0.0f, 0));
     }
@@ -137,8 +137,8 @@ TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
     {
         (void)expected.Next();
     }
-    Client::World::CreateScepterGlow(sprites, Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f)), 1.0f,
-                                     glm::vec3(0.0f), random);
+    Client::Actors::Drawing::CreateScepterGlow(
+        sprites, Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f)), 1.0f, glm::vec3(0.0f), random);
     EXPECT_EQ(random.State(), expected.State());
 }
 
@@ -186,7 +186,7 @@ void ExpectSameGlow(const std::vector<Sprite>& actual, const std::vector<Sprite>
 TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
 {
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
-    Client::World::ScepterGlowCarry carry;
+    Client::Actors::Drawing::ScepterGlowCarry carry;
     CrtRandom random(5);
 
     FrameSprites first;
@@ -194,7 +194,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
     EXPECT_EQ(random.State(), After(5, 1).State());
     FrameSprites expected;
     CrtRandom sorted(5);
-    Client::World::CreateScepterGlow(expected, bone, 1.0f, glm::vec3(0.0f), sorted);
+    Client::Actors::Drawing::CreateScepterGlow(expected, bone, 1.0f, glm::vec3(0.0f), sorted);
     ExpectSameGlow(GlowOf(first), GlowOf(expected));
 
     FrameSprites repeated;
@@ -208,7 +208,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
     EXPECT_EQ(random.State(), After(5, 2).State());
     FrameSprites expectedNext;
     CrtRandom sortedNext = After(5, 1);
-    Client::World::CreateScepterGlow(expectedNext, bone, 1.0f, glm::vec3(0.0f), sortedNext);
+    Client::Actors::Drawing::CreateScepterGlow(expectedNext, bone, 1.0f, glm::vec3(0.0f), sortedNext);
     ExpectSameGlow(GlowOf(next), GlowOf(expectedNext));
 
     // Tres de golpe: los dos primeros solo sacan sus rand(), y el último se dibuja.
@@ -217,7 +217,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
     EXPECT_EQ(random.State(), After(5, 5).State());
     FrameSprites expectedLate;
     CrtRandom sortedLate = After(5, 4);
-    Client::World::CreateScepterGlow(expectedLate, bone, 1.0f, glm::vec3(0.0f), sortedLate);
+    Client::Actors::Drawing::CreateScepterGlow(expectedLate, bone, 1.0f, glm::vec3(0.0f), sortedLate);
     ExpectSameGlow(GlowOf(late), GlowOf(expectedLate));
 }
 
@@ -225,7 +225,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
 TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
 {
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
-    Client::World::ScepterGlowCarry carry;
+    Client::Actors::Drawing::ScepterGlowCarry carry;
     CrtRandom random(9);
     FrameSprites first;
     carry.Create(first, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::milliseconds{500});
@@ -244,7 +244,7 @@ TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
     using namespace std::chrono_literals;
     using Client::Models::OriginalFrameTime;
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
-    Client::World::ScepterGlowCarry carry;
+    Client::Actors::Drawing::ScepterGlowCarry carry;
     CrtRandom random(5);
     const std::array<Client::Core::Duration, 4> clocks{(3 * OriginalFrameTime) + 300us, (4 * OriginalFrameTime) + 100us,
                                                        (5 * OriginalFrameTime) + 300us,
@@ -265,7 +265,7 @@ TEST(ScepterGlowTest, AfterARestartTheNextDrawSortsOnce)
     using namespace std::chrono_literals;
     using Client::Models::OriginalFrameTime;
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
-    Client::World::ScepterGlowCarry carry;
+    Client::Actors::Drawing::ScepterGlowCarry carry;
     CrtRandom random(5);
     FrameSprites first;
     carry.Create(first, bone, 1.0f, glm::vec3(0.0f), random, 1s);
@@ -277,7 +277,7 @@ TEST(ScepterGlowTest, AfterARestartTheNextDrawSortsOnce)
     EXPECT_EQ(random.State(), After(5, 2).State()) << "un sorteo, no 64";
     FrameSprites expected;
     CrtRandom sorted = After(5, 1);
-    Client::World::CreateScepterGlow(expected, bone, 1.0f, glm::vec3(0.0f), sorted);
+    Client::Actors::Drawing::CreateScepterGlow(expected, bone, 1.0f, glm::vec3(0.0f), sorted);
     ExpectSameGlow(GlowOf(held), GlowOf(expected));
 
     FrameSprites next;

@@ -237,7 +237,7 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom random(1);
     const Client::Kernel::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
-    const auto created = Client::Scenes::CreateTheArrowEffect(arguments, *world, random);
+    const auto created = Client::Effects::CreateTheArrowEffect(arguments, *world, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     const auto& arrow = world->Map().effects.Effects().front();
     ASSERT_TRUE(arrow.alive);
@@ -446,7 +446,7 @@ TEST_F(GoldenGameModels, SelectionReplacesAndReleasesTheTemporaryStartupTexture)
     EXPECT_EQ(startup->sampling.filter, Client::Data::Textures::Filter::Linear);
     EXPECT_EQ(startup->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
 
-    Client::Scenes::SelectionModels selection;
+    Client::FrontEnd::SelectionModels selection;
     ASSERT_TRUE(
         selection.Load(m_dataRoot, textures, log, &models.TextureSlots(), models.TakeStartupSelectionTexture(textures))
             .HasValue());
@@ -497,7 +497,7 @@ TEST_F(GoldenGameModels, SelectionReleasesTheTemporaryStartupSlotWithoutAReplace
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
     const Client::Tests::TemporaryFolder noPreviewModels("selection-without-preview-models");
-    Client::Scenes::SelectionModels selection;
+    Client::FrontEnd::SelectionModels selection;
     ASSERT_TRUE(selection
                     .Load(noPreviewModels.Path(), textures, log, &models.TextureSlots(),
                           models.TakeStartupSelectionTexture(textures))
@@ -865,11 +865,11 @@ TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
     FakeTextureStore textures;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    Client::Scenes::SelectionModels selection;
+    Client::FrontEnd::SelectionModels selection;
 
     ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, nullptr).HasValue());
 
-    EXPECT_NE(selection.Find(Client::Models::ModelId{Client::Scenes::SelectionLogoModel}), nullptr);
+    EXPECT_NE(selection.Find(Client::Models::ModelId{Client::FrontEnd::SelectionLogoModel}), nullptr);
     for (std::uint16_t model = 0xa8; model <= 0xac; ++model)
     {
         const auto* skeleton = selection.SkeletonOf(Client::Models::ModelId{model});
@@ -880,7 +880,7 @@ TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
         EXPECT_FALSE(selection.MeshTextures(Client::Models::ModelId{model}).empty()) << std::hex << model;
     }
     ASSERT_NE(selection.TextureSlots(), nullptr);
-    EXPECT_EQ(selection.MeshTextures(Client::Models::ModelId{Client::Scenes::SelectionLogoModel}).front(),
+    EXPECT_EQ(selection.MeshTextures(Client::Models::ModelId{Client::FrontEnd::SelectionLogoModel}).front(),
               TextureSlot{0x6f8});
     // Those of 0xa4 with GL_LINEAR (0x2601) and those of the NewFace with GL_NEAREST (0x2600), repeating.
     const auto logo = textures.Find(TextureSlot{0x6f8});
@@ -1037,7 +1037,7 @@ TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
     Log log(sink, LogLevel::Debug);
     GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
-    Client::Scenes::SelectionModels selection;
+    Client::FrontEnd::SelectionModels selection;
 
     ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, &models.TextureSlots()).HasValue());
 

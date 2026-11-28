@@ -45,7 +45,7 @@ class GameLoop
 public:
     // maxFps: el tope de FPS del modo normal; 0 o menos es sin tope. Main pasa 0 o un valor de
     // MinFpsLimit a MaxFpsLimit (Resolve y EffectiveMaxFps).
-    GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, int maxFps = 0);
+    GameLoop(Core::IClock& clock, Scenes::ILoopClient& client, Kernel::PacingMode mode, int maxFps = 0);
     // Un frame: un Poll, los pasos que tocan y el dibujo si `state.minimized` es falso y el
     // cliente no retiene el último frame (ILoopClient::HoldsTheLastFrame). El Poll corre siempre,
     // también minimizada y en un frame sin pasos. Sin dibujo, en Decoupled duerme hasta el próximo
@@ -65,15 +65,15 @@ private:
     void SleepRestOfFrame(Core::Duration frameStart);
 
     Core::IClock& m_clock;
-    ILoopClient& m_client;
-    PacingMode m_mode;
+    Scenes::ILoopClient& m_client;
+    Kernel::PacingMode m_mode;
     // 1 s / maxFps, o 0 sin tope.
     Core::Duration m_minFrameTime{};
     // Desde dónde cuenta la meta del próximo frame: hasta dónde durmió el último, o dónde terminó si
     // se pasó. Vacía antes del primero, al minimizar y si el reloj volvió durante el frame.
     std::optional<Core::Duration> m_frameDeadline;
     FixedStep m_fixedStep;
-    FaithfulPacer m_pacer;
+    Kernel::FaithfulPacer m_pacer;
     // El Now() del frame anterior; vacío antes del primero.
     std::optional<Core::Duration> m_lastNow;
     FrameStats m_stats;

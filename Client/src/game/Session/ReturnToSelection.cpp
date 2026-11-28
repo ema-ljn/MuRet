@@ -67,7 +67,7 @@ void ResetTheInterface(Kernel::WorldRuntime& runtime)
 {
     // Los globales de la interfaz de Crywolf a su valor inicial, el estado (0x42fe32), la etapa (0x723c05) y
     // 0x723c08 en 0 y el NPC elegido de la llegada (0x6c8e54, 0x42fdf8) en −1 (CL9 hito 11).
-    ResetTheCrywolfInterface(runtime);
+    Events::ResetTheCrywolfInterface(runtime);
 }
 
 // 0x4c2480: los callbacks de red observan el estado en sus dos sitios nativos.
@@ -75,8 +75,8 @@ Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& re
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    ResetSiegeClock(runtime);             // 0x4c2480..0x4c249c: conserva hora, minuto y tick.
-    runtime.events.soccer.active = false; // 0x4c24e1.
+    CastleSiege::ResetSiegeClock(runtime); // 0x4c2480..0x4c249c: conserva hora, minuto y tick.
+    runtime.events.soccer.active = false;  // 0x4c24e1.
     runtime.ui.field5767954 = 0;
     runtime.floor.pendingPickUp = -1;
     resources.camera.level = 0;
@@ -100,28 +100,28 @@ Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& re
         own.word42 = 0;
     }
     runtime.chat.noticeSound = false;
-    UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
-    ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
+    Chat::ClearTheWhisperSenders(runtime.chat.whisperSenders);
+    Quests::ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
     // 0x657670: reset silencioso de660090, sin callback ni cleanup del EDIT.
-    UI::ResetThePanelDialog(runtime.panels.delegated.panelDialog);
-    ClearTheGuildNotice(runtime.guild.window);
-    const InventoryServices services = InventoryServicesOf(resources);
+    Ui::ResetThePanelDialog(runtime.panels.delegated.panelDialog);
+    Guild::ClearTheGuildNotice(runtime.guild.window);
+    const Items::InventoryServices services = Items::InventoryServicesOf(resources);
     // 0x4499b0 sólo manda el segundo31 si la caja está vacía. Con socket cerrado se intenta sin salida.
-    const NpcWindowSender send = [&resources](Protocol::Outgoing) -> Core::Expected<void, std::string>
+    const Npc::NpcWindowSender send = [&resources](Protocol::Outgoing) -> Core::Expected<void, std::string>
     {
         if (resources.sendWindowClose)
             resources.sendWindowClose();
         return {};
     };
-    const auto trainer = CloseTheTrainer(world, &services, send);
+    const auto trainer = PetTrainer::CloseTheTrainer(world, &services, send);
     if (!trainer.HasValue())
         return Core::Unexpected(trainer.Error());
     // Un false por caja ocupada conserva al entrenador, pero NO impide la cola.
-    ResetThePets(runtime);
-    ResetThePersonalShops(runtime.social.personalShop);
+    Pets::ResetThePets(runtime);
+    PersonalShop::ResetThePersonalShops(runtime.social.personalShop);
     // 0x4c26ec..0x4c26fd: el recorrido de la cámara, 0x403300 y después 0x403d60 (que con +0x14c recién en 10000 no
     // borra a nadie).
-    ResetTheCameraTour(runtime.events.cameraTour);
+    Events::Crywolf::ResetTheCameraTour(runtime.events.cameraTour);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Hero().position;
     return {};
@@ -129,8 +129,9 @@ Core::Expected<void, std::string> ResetAfterLogout(const WorldEntryResources& re
 
 Core::Expected<void, std::string> RestoreTheCursor(const WorldEntryResources& resources)
 {
-    const InventoryServices services = InventoryServicesOf(resources);
-    return ReturnTheCursorItem({.world = resources.world, .random = resources.cloth.random, .services = services});
+    const Items::InventoryServices services = Items::InventoryServicesOf(resources);
+    return Items::ReturnTheCursorItem(
+        {.world = resources.world, .random = resources.cloth.random, .services = services});
 }
 
 void StopAudioForSceneReturn(Kernel::WorldRuntime& runtime)

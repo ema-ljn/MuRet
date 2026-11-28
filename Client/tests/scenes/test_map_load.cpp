@@ -51,11 +51,11 @@ namespace
 using Client::Actors::Drawing::CharacterCloth;
 using Client::Actors::Drawing::ClothWearer;
 using Client::Crt::CrtRandom;
+using Client::Events::EventMapKind;
+using Client::Events::EventMapObject;
 using Client::Kernel::WorldRuntime;
 using Client::Kernel::WorldState;
 using Client::Scenes::ArmEventMapObject;
-using Client::Scenes::EventMapKind;
-using Client::Scenes::EventMapObject;
 using Client::Scenes::LoadMap;
 using Client::Scenes::MapLoadContext;
 using Client::Scenes::SceneId;
@@ -114,12 +114,12 @@ TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
     auto& registrations = loaded.registrations;
     for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
     {
-        registrations.entries[slot] =
-            Client::World::WorldObjectRegistration{.active = 0x80,
-                                                   .metadata = {1, 2, 3, 4, 5, 6, 7},
-                                                   .object = static_cast<Client::World::WorldObjectIdentity>(slot + 1)};
+        registrations.entries[slot] = Client::WorldObjects::WorldObjectRegistration{
+            .active = 0x80,
+            .metadata = {1, 2, 3, 4, 5, 6, 7},
+            .object = static_cast<Client::WorldObjects::WorldObjectIdentity>(slot + 1)};
     }
-    constexpr Client::World::WorldObjectIdentity NewObject = 999;
+    constexpr Client::WorldObjects::WorldObjectIdentity NewObject = 999;
     registrations.nextIdentity = NewObject;
     const auto before = registrations.entries;
 
@@ -134,7 +134,7 @@ TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
     }
     EXPECT_EQ(registrations.nextIdentity, NewObject);
 
-    Client::World::RegisterWorldObject(registrations, NewObject);
+    Client::WorldObjects::RegisterWorldObject(registrations, NewObject);
 
     EXPECT_EQ(registrations.entries.front().active, 1);
     EXPECT_EQ(registrations.entries.front().object, NewObject);
@@ -378,7 +378,7 @@ TEST_F(MapLoadTest, KillsTheActorsOfAnotherKeyOutsideTheSelection)
     for (std::size_t index = 0; index < riders.size(); ++index)
     {
         helpers[index] =
-            Client::Kernel::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = riders[index]};
+            Client::Kernel::HelperState{.alive = true, .type = Client::Pets::DarkHorseModel, .rider = riders[index]};
     }
 
     ASSERT_TRUE(Load(0).HasValue());

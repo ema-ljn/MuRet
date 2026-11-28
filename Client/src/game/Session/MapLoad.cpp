@@ -98,15 +98,15 @@ void ForgetThePreviousTerrain(Kernel::WorldMap& loaded, Terrain::WorldTerrain& c
     current = std::move(terrain);
 }
 
-std::string DescribeCreationError(World::WorldObjectCreationError error)
+std::string DescribeCreationError(WorldObjects::WorldObjectCreationError error)
 {
     switch (error)
     {
-    case World::WorldObjectCreationError::UnsupportedEffect:
+    case WorldObjects::WorldObjectCreationError::UnsupportedEffect:
         return "un efecto que MuRet no crea";
-    case World::WorldObjectCreationError::UnsupportedMapHandler:
+    case WorldObjects::WorldObjectCreationError::UnsupportedMapHandler:
         return "un caso del mapa sin su estado (el asedio o el rand())";
-    case World::WorldObjectCreationError::InvalidAngle:
+    case WorldObjects::WorldObjectCreationError::InvalidAngle:
         return "un ángulo fuera de lo que porta ftol";
     }
     return "un caso desconocido";
@@ -114,16 +114,16 @@ std::string DescribeCreationError(World::WorldObjectCreationError error)
 
 // 0x606660 sobre cada registro, en orden; se detiene en el primero que MuRet no crea.
 // DAT_006d5dc8 al crear (0x60685e): el farol y el dueño del dragón solo corren en el login y la selección.
-World::ObjectScene ObjectSceneOf(SceneId scene)
+WorldObjects::ObjectScene ObjectSceneOf(SceneId scene)
 {
     switch (scene)
     {
     case SceneId::Login:
-        return World::ObjectScene::Login;
+        return WorldObjects::ObjectScene::Login;
     case SceneId::CharacterSelect:
-        return World::ObjectScene::CharacterSelect;
+        return WorldObjects::ObjectScene::CharacterSelect;
     default:
-        return World::ObjectScene::Other;
+        return WorldObjects::ObjectScene::Other;
     }
 }
 
@@ -132,17 +132,17 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
                                                    const MapLoadContext& context)
 {
     Crt::CrtRandom& random = context.random;
-    MapModelEffectServices services(loaded.effects, random);
+    WorldObjects::MapModelEffectServices services(loaded.effects, random);
     // 0x4294b0 lee el byte 0x7239ec en cada objeto del 30 (0x42b480); ningún paquete corre durante la carga.
     const std::uint8_t siegeState = context.world.Runtime().castleSiege.siegeActive ? 1 : 0;
-    World::WorldObjectCreationContext creation{.map = map,
-                                               .scene = ObjectSceneOf(context.scene),
-                                               .registrations = loaded.registrations,
-                                               .services = &services,
-                                               .random = &random,
-                                               .state7239Ec = &siegeState};
-    World::WorldObjectCreationResult created = World::CreateWorldObjects(records, creation);
-    for (World::WorldObject& object : created.objects)
+    WorldObjects::WorldObjectCreationContext creation{.map = map,
+                                                      .scene = ObjectSceneOf(context.scene),
+                                                      .registrations = loaded.registrations,
+                                                      .services = &services,
+                                                      .random = &random,
+                                                      .state7239Ec = &siegeState};
+    WorldObjects::WorldObjectCreationResult created = WorldObjects::CreateWorldObjects(records, creation);
+    for (WorldObjects::WorldObject& object : created.objects)
     {
         loaded.objects.push_back(std::move(object));
     }
@@ -253,7 +253,7 @@ void ReleaseTheMapObjects(Kernel::WorldMap& loaded)
     loaded.objects.clear();
     loaded.objectRecords.clear();
     // 0x60719c..0x6071ac: solo el byte vivo de los 200 registros; los demás campos sobreviven.
-    for (World::WorldObjectRegistration& entry : loaded.registrations.entries)
+    for (WorldObjects::WorldObjectRegistration& entry : loaded.registrations.entries)
     {
         entry.active = 0;
     }
@@ -301,7 +301,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         KillOtherActors(context.world, static_cast<std::int32_t>(context.playerKey));
     }
     // 0x61a5b5..0x61a5bc, también en la selección: 0x451590 deja solo el cartel de la tienda del héroe.
-    KeepTheHeroShopTitle(context.world);
+    PersonalShop::KeepTheHeroShopTitle(context.world);
     if (map == LoginMap)
     {
         return Core::Unexpected(std::string("0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos"));
@@ -354,7 +354,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     {
         try
         {
-            loaded.kalima = std::make_unique<World::KalimaWorld>(map);
+            loaded.kalima = std::make_unique<MapScripts::Kalima::KalimaWorld>(map);
         }
         catch (const std::bad_alloc&)
         {
@@ -369,18 +369,18 @@ void ArmEventMapObject(std::int32_t map, Kernel::WorldRuntime& runtime)
     // 0x447d84..0x447de2: el argumento entre 11 y 17, la vtable 0x6b8c30.
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)
     {
-        runtime.eventObject = EventMapObject{.kind = EventMapKind::BloodCastle};
+        runtime.eventObject = Events::EventMapObject{.kind = Events::EventMapKind::BloodCastle};
         return;
     }
     // 0x447de7..0x447e1b: el mundo en curso (no el argumento) entre 18 y 23; 0x404d60 pone 0x6c634c en 0xff.
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
     {
-        runtime.eventObject = EventMapObject{.kind = EventMapKind::ChaosCastle};
+        runtime.eventObject = Events::EventMapObject{.kind = Events::EventMapKind::ChaosCastle};
         runtime.chaosCastleArea = ChaosCastleAreaReset;
         return;
     }
     // 0x447e47..0x447e8d: el argumento en 9, la vtable 0x6b8c1c.
     if (map == DevilSquareMap)
-        runtime.eventObject = EventMapObject{.kind = EventMapKind::DevilSquare};
+        runtime.eventObject = Events::EventMapObject{.kind = Events::EventMapKind::DevilSquare};
 }
 } // namespace Client::Scenes

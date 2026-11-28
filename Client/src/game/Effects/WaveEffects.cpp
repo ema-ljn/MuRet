@@ -16,7 +16,7 @@
 #include <string>
 
 // Cotejado con el PE c32bbd5f: 0x51c129..0x51c2b2 (el alta del 0x114 con el subtipo 0 o 1, y lo común).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -32,7 +32,7 @@ float JointScale(Crt::CrtRandom& random)
 }
 
 // 0x51c186..0x51c1c1: sesenta 0x530860(0x5ac, posición, posición, ángulos, 0, 0, escala, −1, 0, 0, −1).
-Core::Expected<void, std::string> ScatterTheFlares(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> ScatterTheFlares(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr int Flares = 60;
     constexpr std::int32_t FlareJoint = 0x5ac;
@@ -49,7 +49,7 @@ Core::Expected<void, std::string> ScatterTheFlares(World::ModelEffect& effect, c
 }
 
 // 0x51c1d3..0x51c2ab, la /1.
-Core::Expected<void, std::string> RaiseTheSwirl(World::ModelEffect& effect,
+Core::Expected<void, std::string> RaiseTheSwirl(Effects::ModelEffect& effect,
                                                 const Kernel::ModelEffectArguments& arguments,
                                                 const HighEffectContext& context)
 {
@@ -88,7 +88,7 @@ Core::Expected<void, std::string> RaiseTheSwirl(World::ModelEffect& effect,
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheWave(World::ModelEffect& effect,
+Core::Expected<void, std::string> BeginTheWave(Effects::ModelEffect& effect,
                                                const Kernel::ModelEffectArguments& arguments,
                                                const HighEffectContext& context)
 {
@@ -108,4 +108,4 @@ Core::Expected<void, std::string> BeginTheWave(World::ModelEffect& effect,
         return RaiseTheSwirl(effect, arguments, context);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

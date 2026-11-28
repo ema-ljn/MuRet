@@ -10,7 +10,7 @@
 // Los chequeos del nombre de un personaje nuevo antes del F3 01 (0x63d990; Client/docs/research/06-
 // render-escenas-y-ui.md, "La ventana de crear"). *Estático*, y *emulado* con los nombres del
 // contrato.
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // Lo que mira 0x622c70: las palabras de FilterName.bmd y de Filter.bmd (Tables::LoadFilterWords)
 // y los textos 457 y 458 de Text.bmd. Tienen que vivir lo que la consulta.
@@ -52,8 +52,8 @@ struct NameFilters
 // En el orden de 0x63d990: menos de 4 bytes, el aviso 0x79; filtrado, el 0x72; con un byte malo en
 // `buffer` (0x7798bf8, donde está el nombre y lo que quedó detrás: Q-C118), el 0x7a; si no, nada: se
 // manda.
-[[nodiscard]] std::optional<NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer,
-                                                      const NameFilters& filters);
+[[nodiscard]] std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer,
+                                                          const NameFilters& filters);
 // Lo mismo con el nombre solo, sin nada detrás.
-[[nodiscard]] std::optional<NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters);
-} // namespace Client::UI
+[[nodiscard]] std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters);
+} // namespace Client::FrontEnd

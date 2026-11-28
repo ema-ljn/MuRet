@@ -671,7 +671,7 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
     tested.trapezoid = Everything;
     Skeleton raven;
     raven.actions.resize(4);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
 
     const auto stepped = StepCharacters({.world = tested.world,
                                          .random = tested.random,
@@ -714,7 +714,7 @@ TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
     owner.darkSpirit->state = 3;
     Skeleton raven;
     raven.actions.resize(4);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     tested.trapezoid = Everything;
 
     const auto stepped = StepCharacters({.world = tested.world,
@@ -761,7 +761,7 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
                 actor.darkSpirit->target3b0 = 7;
                 Skeleton raven;
                 raven.actions.resize(4);
-                Client::World::Particles particles;
+                Client::Particles::Particles particles;
                 tested.trapezoid = Everything;
                 std::vector<Client::Protocol::Outgoing> sent;
                 const auto stepped = StepCharacters(
@@ -809,7 +809,7 @@ TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
     actor.darkSpirit->target3b0 = 400;
     Skeleton raven;
     raven.actions.resize(4);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     tested.trapezoid = Everything;
     std::vector<Client::Protocol::Outgoing> sent;
     const auto stepped =
@@ -1390,7 +1390,7 @@ TEST(CharacterStepTest, TheLordInThePartySlowsItsActionsToAnEighth)
         const std::string_view name = "Lord";
         for (std::size_t at = 0; at < name.size(); ++at)
             hero.name[at] = static_cast<std::byte>(name[at]);
-        Client::Scenes::PartyState& party = tested.world.Runtime().social.party;
+        Client::Social::PartyState& party = tested.world.Runtime().social.party;
         const std::string_view member = "Lordes";
         for (std::size_t at = 0; at < member.size(); ++at)
             party.slots[1].name[at] = static_cast<std::byte>(member[at]);
@@ -2354,10 +2354,10 @@ struct SceneCharacters
     // Los cinco lugares de 0x4c20a0, con la z de 0x634680.
     void PlaceTheFiveSlots()
     {
-        for (std::size_t slot = 0; slot < Client::Scenes::CharacterSlots.size(); ++slot)
+        for (std::size_t slot = 0; slot < Client::FrontEnd::CharacterSlots.size(); ++slot)
         {
-            const glm::vec2 xy = Client::Scenes::CharacterSlots[slot].position;
-            Place(slot, glm::vec3(xy.x, xy.y, Client::Scenes::CharacterSlotHeight));
+            const glm::vec2 xy = Client::FrontEnd::CharacterSlots[slot].position;
+            Place(slot, glm::vec3(xy.x, xy.y, Client::FrontEnd::CharacterSlotHeight));
         }
     }
 
@@ -2406,7 +2406,7 @@ TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
     tested.PlaceTheFiveSlots();
     tested.trapezoid = SelectionPolygon();
     CrtRandom expected(Seed);
-    std::array<CharacterHead, Client::Scenes::CharacterSlots.size()> heads{};
+    std::array<CharacterHead, Client::FrontEnd::CharacterSlots.size()> heads{};
     int sorted = 0;
     for (int step = 1; step <= Steps; ++step)
     {
@@ -2459,7 +2459,7 @@ TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
     tested.PlaceTheFiveSlots();
     tested.trapezoid = SelectionPolygon();
     CrtRandom expected(Seed);
-    std::array<CharacterHead, Client::Scenes::CharacterSlots.size()> heads{};
+    std::array<CharacterHead, Client::FrontEnd::CharacterSlots.size()> heads{};
     int sorted = 0;
     for (int step = 1; step <= Steps; ++step)
     {
@@ -2493,10 +2493,10 @@ TEST_F(GoldenCharacterStep, TheLoginStepsItsCharacter)
 {
     constexpr int Steps = 200;
     SceneCharacters tested(m_dataRoot, LoginMap, 0);
-    ActorState& login = tested.Place(2, Client::Scenes::LoginCharacterTransform().position);
+    ActorState& login = tested.Place(2, Client::FrontEnd::LoginCharacterTransform().position);
     login.hands[0].model = LoginScepter;
-    login.hands[1].model = Client::Scenes::LoginRavenItem;
-    login.animation.action = Client::Scenes::LoginCharacterStandingAction;
+    login.hands[1].model = Client::FrontEnd::LoginRavenItem;
+    login.animation.action = Client::FrontEnd::LoginCharacterStandingAction;
     CrtRandom expected(Seed);
     CharacterHead head;
     int sorted = 0;
@@ -2582,7 +2582,7 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
             head[3] = glm::vec3(5.0f, 6.0f, 7.0f);
         }
         tested.trapezoid = Everything;
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
 
         const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
                                                                  .random = tested.random,
@@ -2597,12 +2597,12 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
                                                                  .hooks = &StepHooks});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        const Client::World::Particle& bubble = particles.All()[0];
+        const Client::Particles::Particle& bubble = particles.All()[0];
         EXPECT_EQ(bubble.alive, probe.blows);
         EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + (probe.blows ? 2 : 0)).State());
         if (!probe.blows)
             continue;
-        EXPECT_EQ(bubble.type, Client::World::DropParticle);
+        EXPECT_EQ(bubble.type, Client::Particles::DropParticle);
         EXPECT_EQ(bubble.subtype, 0);
         const glm::vec3 local = probe.drawn ? glm::vec3(10.0f, 52.0f, -6.0f) : glm::vec3(0.0f);
         EXPECT_EQ(bubble.position, hero.position + local);
@@ -2642,7 +2642,7 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
             hero.bodyPose[35] = Client::Math::BoneTransform(1.0f);
             hero.bodyPose[35][3] = glm::vec3(1.0f, 2.0f, 3.0f);
             tested.trapezoid = Everything;
-            Client::World::Particles particles;
+            Client::Particles::Particles particles;
 
             const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
                                                                      .random = tested.random,
@@ -2657,7 +2657,7 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
 
             CrtRandom oracle(seed);
             Skip(oracle, SeenHeroDraws);
-            Client::World::Particles expected;
+            Client::Particles::Particles expected;
             std::string_view cut;
             int drops = 0;
             for (const Drop& drop : Drops)
@@ -2686,8 +2686,8 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
                 ++rained[static_cast<std::size_t>(drops)];
             for (std::size_t index = 0; index < 2; ++index)
             {
-                const Client::World::Particle& made = particles.All()[index];
-                const Client::World::Particle& wanted = expected.All()[index];
+                const Client::Particles::Particle& made = particles.All()[index];
+                const Client::Particles::Particle& wanted = expected.All()[index];
                 EXPECT_EQ(made.alive, wanted.alive);
                 if (!wanted.alive)
                     continue;
@@ -2737,7 +2737,7 @@ TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
     GameWorld tested(24);
     tested.Hero().animation.action = 0x15;
     tested.trapezoid = Everything;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     const auto stepped = StepCharacters({.world = tested.world,
                                          .random = tested.random,
                                          .playerSkeleton = tested.player,
@@ -2781,7 +2781,7 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
     owner.darkSpirit->state = 3;
     Skeleton raven;
     raven.actions.resize(4);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     tested.trapezoid = Everything;
 
     const auto stepped = StepCharacters({.world = tested.world,

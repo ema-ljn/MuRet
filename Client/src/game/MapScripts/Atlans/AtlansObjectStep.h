@@ -9,12 +9,16 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-// Los casos de 0x604ab0 de Atlans (mapa 7, la tabla 0x605c94 por el tipo − 0x16), después del alpha y la
-// animación comunes. Contrato: 06 § Los objetos de Atlans.
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct ObjectStepGlobals;
 struct WorldObject;
+} // namespace Client::WorldObjects
+
+// Los casos de 0x604ab0 de Atlans (mapa 7, la tabla 0x605c94 por el tipo − 0x16), después del alpha y la
+// animación comunes. Contrato: 06 § Los objetos de Atlans.
+namespace Client::MapScripts::Atlans
+{
 
 // El mapa 7, con el reloj del mundo T y el seno en la x87:
 // - el 0x16: +0x58 = −2 y la fase (+0x84) más 0,1f, guardada en float; si la suma sin redondear pasa de 10,
@@ -26,6 +30,7 @@ struct WorldObject;
 // - el 0x28: blendMesh 0, la velocidad de la animación (+0xd8) en 0,05f y la luz en sin(T · 0,004f) · 0,3f + 0,5.
 // Sin el pool de partículas, o con un seno fuera del perfil PC53, corta con su dirección después de lo que ya
 // escribió.
-[[nodiscard]] Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Crt::CrtRandom& random,
-                                                                 const ObjectStepGlobals& globals);
-} // namespace Client::World
+[[nodiscard]] Core::Expected<void, std::string> StepAtlansObject(WorldObjects::WorldObject& object,
+                                                                 Crt::CrtRandom& random,
+                                                                 const WorldObjects::ObjectStepGlobals& globals);
+} // namespace Client::MapScripts::Atlans

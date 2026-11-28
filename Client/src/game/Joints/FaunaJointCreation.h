@@ -29,12 +29,16 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::Particles
 {
 class FrameSprites;
-class ModelEffects;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 // 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
 // 610/4 de lo que cuelga de un jugador, el 60f/0, el 60f/0x12 y el 610/7 del conjunto completo, el 60f/0 y el 60f/0xa
@@ -44,7 +48,7 @@ class Particles;
 // y 0x418400), sólo para el 60f/0 y el 60f/0x12: lee su luz (+0xf4) al nacer y su acción (+0x111) en el paso; con otro
 // tipo corta antes de escribir (0x530860). ModelEffect identifica al dueño durable de619/1 y610/13, sin
 // aliasActorState. Pool lleno no lee los argumentos ni RNG.
-namespace Client::Scenes
+namespace Client::Joints
 {
 
 // El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como
@@ -53,7 +57,7 @@ namespace Client::Scenes
 inline constexpr std::int32_t KillBeamJoint = 0x618;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateFaunaJoint(std::span<JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
+CreateFaunaJoint(std::span<Scenes::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
                  Kernel::JointOwnerKind ownerKind = Kernel::JointOwnerKind::ByType,
                  const JointKernels::CreationServices* services = nullptr);
 // 535840: 697 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
@@ -69,7 +73,7 @@ CreateFaunaJoint(std::span<JointState> joints, const Kernel::JointRequest& reque
 // El overload sin RNG conserva la frontera535f18 tras movimiento y comprobación del dueño. El 615/2 de Chaos
 // Castle pide los sprites del frame (0x5491e0) y las partículas. El615/7 de la llegada comparte geometría sin esas
 // emisiones. Los618/2y/3 siguen los dos puntos del dueño y emiten5d5/0 con el seno del reloj.
-[[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<JointState> joints);
+[[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<Scenes::JointState> joints);
 // El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar; el
 // 613/0 y el /5, la altura del terreno (`terrainHeight`, 0x5f93c0); el 0x10f/4 y el /9, los 400 personajes
 // (`actors`, 0x743a16c); el 0x60f/0xb y el /0x19 con skill 1, el choque de la flecha dueña (`effectHit`, 0x520170);
@@ -90,12 +94,12 @@ CreateFaunaJoint(std::span<JointState> joints, const Kernel::JointRequest& reque
 // al suelo, posan el 0x20b de `models` con el modelo compartido de `world` y sueltan las cáscaras 0x137 de sus vértices
 // en la tabla de efectos (0x53c1c6).
 [[nodiscard]] Core::Expected<void, std::string>
-StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth = nullptr,
-           World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
+StepJoints(std::span<Scenes::JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth = nullptr,
+           Particles::Particles* particles = nullptr, float worldClock = 0, Particles::FrameSprites* sprites = nullptr,
            Terrain::TerrainLighting* lighting = nullptr, const std::function<void(Audio::SoundId)>& soundRequest = {},
            const std::function<double(float, float)>& terrainHeight = {},
            std::span<const Kernel::ActorState> actors = {}, const JointKernels::EffectHit& effectHit = {},
-           World::ModelEffects* effects = nullptr, const Kernel::ActorState* hero = nullptr,
+           Effects::ModelEffects* effects = nullptr, const Kernel::ActorState* hero = nullptr,
            Kernel::WorldState* world = nullptr, const JointKernels::VolleyServices* volley = nullptr,
            const Models::IModelLibrary* models = nullptr);
-} // namespace Client::Scenes
+} // namespace Client::Joints

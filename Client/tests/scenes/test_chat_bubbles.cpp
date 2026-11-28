@@ -29,13 +29,13 @@
 // inventados.
 namespace
 {
+using Client::Chat::ChatBubbleMeasure;
+using Client::Chat::ChatBubbleMode;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ChatBubbleMeasure;
-using Client::Scenes::ChatBubbleMode;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -65,7 +65,7 @@ protected:
         return actor;
     }
 
-    [[nodiscard]] Client::Scenes::ChatBubbleTable& Bubbles()
+    [[nodiscard]] Client::Chat::ChatBubbleTable& Bubbles()
     {
         return m_world->Runtime().chat.bubbles;
     }
@@ -83,8 +83,8 @@ protected:
 TEST_F(ChatBubblesTest, TheSameSpeakerKeepsItsEntryAndMovesTheLineUp)
 {
     Speaker(4, "Tordo");
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "uno", 4, ChatBubbleMode::Chat).HasValue());
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "dos", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "uno", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "dos", 4, ChatBubbleMode::Chat).HasValue());
 
     EXPECT_EQ(Bubbles()[0].line1, "dos");
     EXPECT_EQ(Bubbles()[0].line2, "uno");
@@ -98,7 +98,7 @@ TEST_F(ChatBubblesTest, ALongTextGoesInTwoLines)
 {
     Speaker(4, "Tordo");
     const std::string text = "una frase muy bien larga";
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", text, 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", text, 4, ChatBubbleMode::Chat).HasValue());
 
     EXPECT_EQ(Bubbles()[0].line2 + Bubbles()[0].line1, text);
     EXPECT_EQ(Bubbles()[0].line1.front(), ' ');
@@ -110,10 +110,10 @@ TEST_F(ChatBubblesTest, ALongTextGoesInTwoLines)
 TEST_F(ChatBubblesTest, AnEmptyTextOnlyShowsTheName)
 {
     Speaker(4, "Tordo");
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "", 4, ChatBubbleMode::Chat).HasValue());
     EXPECT_EQ(Bubbles()[0].nameTime, 100);
     EXPECT_EQ(Bubbles()[0].time1, 0);
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "", 4, ChatBubbleMode::Chat).HasValue());
     EXPECT_EQ(Bubbles()[0].nameTime, 10);
 }
 
@@ -121,13 +121,12 @@ TEST_F(ChatBubblesTest, AnEmptyTextOnlyShowsTheName)
 TEST_F(ChatBubblesTest, OnlyLivingSeenSpeakersGetABubble)
 {
     Speaker(4, "Tordo").seen = false;
-    ASSERT_TRUE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
     EXPECT_FALSE(Bubbles()[0].owner.has_value());
 
     Speaker(5, "Guardia", 4);
     ASSERT_TRUE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Guardia", "alto", 5, ChatBubbleMode::Chat).HasValue());
+        Client::Chat::AddChatBubble(*m_world, Measure(), "Guardia", "alto", 5, ChatBubbleMode::Chat).HasValue());
     EXPECT_EQ(Bubbles()[0].color, 0);
 }
 
@@ -137,7 +136,7 @@ TEST_F(ChatBubblesTest, ByNamePrefersPlayers)
     Speaker(2, "Gemelo", 2);
     Speaker(9, "Gemelo", 1);
     ASSERT_TRUE(
-        Client::Scenes::AddChatBubbleByName(*m_world, Measure(), "Gemelo", "hola", ChatBubbleMode::Chat).HasValue());
+        Client::Chat::AddChatBubbleByName(*m_world, Measure(), "Gemelo", "hola", ChatBubbleMode::Chat).HasValue());
     EXPECT_EQ(Bubbles()[0].owner, std::optional<std::size_t>(9));
 }
 
@@ -154,7 +153,7 @@ Client::Tables::TextTable GuildPosts()
 
 void NameTheGuild(WorldState& world, std::size_t index, std::string_view unionName, std::string_view guildName)
 {
-    Client::Scenes::GuildTableEntry& entry = world.Runtime().guild.table[index];
+    Client::Guild::GuildTableEntry& entry = world.Runtime().guild.table[index];
     entry.unionName.fill('\0');
     entry.guildName.fill('\0');
     std::copy(unionName.begin(), unionName.end(), entry.unionName.begin());
@@ -195,7 +194,7 @@ TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
         ChatBubbleMeasure measure = Measure();
         measure.texts = &texts;
         ASSERT_TRUE(
-            Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+            Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
         EXPECT_EQ(Bubbles()[0].guild, c.guild);
         EXPECT_EQ(Bubbles()[0].guildPost, c.post);
         EXPECT_EQ(Bubbles()[0].guildByte, 2);
@@ -213,13 +212,13 @@ TEST_F(ChatBubblesTest, WithoutAUnionOrAGuildTheLinesAreEmpty)
     speaker.byte374 = 1;
     ChatBubbleMeasure measure = Measure();
     measure.texts = &texts;
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "uno", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "uno", 4, ChatBubbleMode::Chat).HasValue());
     EXPECT_EQ(Bubbles()[0].guild, "");
     EXPECT_EQ(Bubbles()[0].guildPost, "[Teros] socio");
     EXPECT_EQ(Bubbles()[0].guildByte, 1);
 
     speaker.word1f2 = 0xffff;
-    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "dos", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "dos", 4, ChatBubbleMode::Chat).HasValue());
     EXPECT_EQ(Bubbles()[0].guild, "");
     EXPECT_EQ(Bubbles()[0].guildPost, "");
     EXPECT_EQ(Bubbles()[0].guildByte, 0);
@@ -233,21 +232,20 @@ TEST_F(ChatBubblesTest, AGuildLineWithoutItsTextOrPastTheColorIsCut)
     ActorState& speaker = Speaker(4, "Tordo");
     speaker.word1f2 = 3;
     speaker.guildStatus = 0x80;
-    EXPECT_FALSE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    EXPECT_FALSE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
 
     const auto longPost = Client::Tables::LoadTextTable(
         Client::Tests::TextTableBytes({{1300, "un puesto tan largo que llega al color"}}));
     ASSERT_TRUE(longPost.HasValue());
     ChatBubbleMeasure measure = Measure();
     measure.texts = &longPost.Value();
-    const auto cut = Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
+    const auto cut = Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("Q-C1283"), std::string::npos);
     EXPECT_NE(cut.Error().find("0x557024"), std::string::npos);
 
     speaker.word1f2 = 2000;
-    EXPECT_FALSE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    EXPECT_FALSE(Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
 }
 
 // 0x557024 (Q-C1283): "[%s] %s" va a +0x36 sin tope. Con 8 letras y un puesto de 19 bytes (el 1300 de Text.bmd,
@@ -264,7 +262,7 @@ TEST_F(ChatBubblesTest, ALongGuildLineSpillsIntoTheShopTitle)
         m_world->Runtime().map = map;
         NameTheGuild(*m_world, 3, "", "Horneros");
         m_world->Runtime().social.personalShop.titles[4] =
-            Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tordo", .title = "Vendo"};
+            Client::Social::ShopTitle{.key = 0x0444, .name = "Tordo", .title = "Vendo"};
         ActorState& speaker = Speaker(4, "Tordo");
         speaker.word1f2 = 3;
         ChatBubbleMeasure measure = Measure();
@@ -272,22 +270,21 @@ TEST_F(ChatBubblesTest, ALongGuildLineSpillsIntoTheShopTitle)
         const auto said = [&](std::uint8_t status)
         {
             speaker.guildStatus = status;
-            const auto added =
-                Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
+            const auto added = Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
             EXPECT_TRUE(added.HasValue()) << added.Error();
             return Bubbles()[0];
         };
 
-        const Client::Scenes::ChatBubble member = said(0);
+        const Client::Chat::ChatBubble member = said(0);
         EXPECT_EQ(member.guildPost, "[Horneros] socio");
         EXPECT_EQ(member.shopTitle, "Vendo");
 
-        const Client::Scenes::ChatBubble master = said(0x80);
+        const Client::Chat::ChatBubble master = said(0x80);
         EXPECT_EQ(master.guildPost, "[Horneros] Maestro del gremio ");
         EXPECT_EQ(master.guildPost.size(), 30u);
         EXPECT_EQ(master.shopTitle, "");
 
-        const Client::Scenes::ChatBubble assistant = said(0x40);
+        const Client::Chat::ChatBubble assistant = said(0x40);
         EXPECT_EQ(assistant.guildPost, "[Horneros] Asistente del maestro del gremio");
         EXPECT_EQ(assistant.shopTitle, "ro del gremio");
     }
@@ -298,14 +295,12 @@ TEST_F(ChatBubblesTest, TheStepAgesTheBubblesAndForgetsTheDead)
 {
     Speaker(4, "Tordo");
     Speaker(6, "Zorzal");
-    ASSERT_TRUE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
-    ASSERT_TRUE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Zorzal", "chau", 6, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Zorzal", "chau", 6, ChatBubbleMode::Chat).HasValue());
     m_world->Actors()[6].alive = false;
 
-    const Client::Scenes::ChatBubbleStepInput input{.mouseX = 0, .mouseY = 0, .screen = {640, 480}};
-    ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
+    const Client::Chat::ChatBubbleStepInput input{.mouseX = 0, .mouseY = 0, .screen = {640, 480}};
+    ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
     EXPECT_EQ(Bubbles()[0].time1, 2 * 4 + 0xa0 - 1);
     EXPECT_EQ(Bubbles()[1].time1, 0);
@@ -317,8 +312,7 @@ TEST_F(ChatBubblesTest, TheStepAgesTheBubblesAndForgetsTheDead)
 TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
 {
     Speaker(4, "Tordo").word376 = 0xff;
-    ASSERT_TRUE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
     Bubbles()[0].x = 100;
     Bubbles()[0].y = 50;
     Bubbles()[0].width = 40;
@@ -328,10 +322,10 @@ TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
     runtime.ui.chatOpen = true;
     runtime.ui.rightClick = true;
 
-    const Client::Scenes::ChatBubbleStepInput input{.mouseX = 110, .mouseY = 60, .screen = {640, 480}};
-    ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
+    const Client::Chat::ChatBubbleStepInput input{.mouseX = 110, .mouseY = 60, .screen = {640, 480}};
+    ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
-    EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tordo");
+    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "Tordo");
     EXPECT_EQ(runtime.chat.input.whisperLength, 5);
     EXPECT_EQ(runtime.chat.input.whisper.text.Value(), "Tordo");
     EXPECT_FALSE(runtime.ui.rightClick);
@@ -344,8 +338,7 @@ TEST_F(ChatBubblesTest, AFullTableTakesNoNewSpeaker)
     for (auto& bubble : Bubbles())
         bubble.time1 = 1;
     Speaker(4, "Tordo");
-    ASSERT_TRUE(
-        Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    ASSERT_TRUE(Client::Chat::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
     for (const auto& bubble : Bubbles())
         EXPECT_FALSE(bubble.owner.has_value());
 }

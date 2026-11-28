@@ -365,10 +365,10 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
     Client::Assets::FaunaModels models;
     Client::Assets::FaunaModelLoadContext context{m_dataRoot, load->store, load->log, load->slots};
     std::set<std::int32_t> numbers;
-    const auto collect = [&numbers](const Client::Scenes::MonsterKind& kind)
+    const auto collect = [&numbers](const Client::Monsters::MonsterKind& kind)
     {
-        for (const Client::Scenes::MonsterStep& step : kind.steps)
-            if (step.kind == Client::Scenes::MonsterStepKind::LoadMonster)
+        for (const Client::Monsters::MonsterStep& step : kind.steps)
+            if (step.kind == Client::Monsters::MonsterStepKind::LoadMonster)
             {
                 numbers.insert(static_cast<std::int32_t>(step.value));
                 // 0x51443f adds rand() % 2.
@@ -376,10 +376,10 @@ TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)
                     numbers.insert(static_cast<std::int32_t>(step.value) + 1);
             }
     };
-    for (const auto& kind : Client::Scenes::MainMonsterKinds())
+    for (const auto& kind : Client::Monsters::MainMonsterKinds())
         collect(kind);
-    collect(Client::Scenes::DefaultMonsterKind());
-    for (const auto& event : Client::Scenes::EventMonsterKinds())
+    collect(Client::Monsters::DefaultMonsterKind());
+    for (const auto& event : Client::Monsters::EventMonsterKinds())
         collect(event.kind);
     ASSERT_FALSE(numbers.empty());
     for (const std::int32_t number : numbers)

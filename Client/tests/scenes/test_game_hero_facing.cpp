@@ -17,12 +17,12 @@ namespace
 struct IdleHero
 {
     Client::Kernel::ActorState hero;
-    Client::Scenes::GameMovementState movement;
+    Client::Movement::GameMovementState movement;
     bool secondGuildOpen = false;
     std::uint8_t mouseOnUi = 0;
     std::vector<std::uint8_t> directions;
 
-    Client::Scenes::HeroFacingContext Context()
+    Client::Movement::HeroFacingContext Context()
     {
         return {.hero = hero,
                 .movement = movement,
@@ -42,7 +42,7 @@ TEST(GameHeroFacingTest, TheFortiethIdleStepTurnsAndPublishesTheNewSector)
 {
     IdleHero tested;
     tested.movement.movementTarget = 38;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 39);
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 0.0f);
     EXPECT_TRUE(tested.directions.empty());
@@ -55,7 +55,7 @@ TEST(GameHeroFacingTest, TheFortiethIdleStepTurnsAndPublishesTheNewSector)
         tested.directions.push_back(direction);
         return {};
     };
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(context).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(context).HasValue());
     EXPECT_EQ(tested.directions, (std::vector<std::uint8_t>{4}));
 }
 
@@ -64,7 +64,7 @@ TEST(GameHeroFacingTest, EqualSectorsStillResetTheCounterAndPublishTheTargetYaw)
     IdleHero tested;
     tested.movement.movementTarget = 39;
     tested.hero.angles.z = 140.0f;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 0);
     EXPECT_EQ(tested.movement.arrivalYaw, 135);
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 140.0f);
@@ -76,7 +76,7 @@ TEST(GameHeroFacingTest, Action39PublishesWithoutTurningTheBody)
     IdleHero tested;
     tested.movement.movementTarget = 39;
     tested.hero.animation.action = 0x39;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 0.0f);
     EXPECT_EQ(tested.directions, (std::vector<std::uint8_t>{4}));
 }
@@ -86,11 +86,11 @@ TEST(GameHeroFacingTest, WalkingAndInputInhibitionDoNotAdvanceTheIdleCounter)
     IdleHero tested;
     tested.movement.movementTarget = 39;
     tested.hero.movement = 1;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 39);
     tested.hero.movement = 0;
     tested.movement.inputBlocked = true;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 39);
     EXPECT_TRUE(tested.directions.empty());
 }
@@ -102,7 +102,7 @@ TEST(GameHeroFacingTest, ExcludedActionsAndHeadGuardPreserveTheIncrementedCounte
         IdleHero tested;
         tested.movement.movementTarget = 39;
         tested.hero.animation.action = static_cast<std::uint8_t>(action);
-        ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+        ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
         EXPECT_EQ(tested.movement.movementTarget, 40);
         EXPECT_TRUE(tested.directions.empty());
     }
@@ -110,7 +110,7 @@ TEST(GameHeroFacingTest, ExcludedActionsAndHeadGuardPreserveTheIncrementedCounte
     tested.movement.movementTarget = 39;
     auto context = tested.Context();
     context.headTurningAllowed = false;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(context).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(context).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 40);
     EXPECT_TRUE(tested.directions.empty());
 }
@@ -128,7 +128,7 @@ TEST(GameHeroFacingTest, InhibitorsAdvanceButDoNotConsumeTheFacingAttempt)
             tested.mouseOnUi = 1;
         if (guard == 3)
             tested.movement.facingMode = 1;
-        ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+        ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
         EXPECT_EQ(tested.movement.movementTarget, 40);
         EXPECT_TRUE(tested.directions.empty());
     }
@@ -140,7 +140,7 @@ TEST(GameHeroFacingTest, Window40000AllowsFacingEvenWithModeOne)
     tested.movement.movementTarget = 39;
     tested.movement.facingMode = 1;
     tested.secondGuildOpen = true;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 0);
     EXPECT_EQ(tested.directions, (std::vector<std::uint8_t>{4}));
 }
@@ -149,7 +149,7 @@ TEST(GameHeroFacingTest, TheCounterWrapsLikeTheNativeDword)
 {
     IdleHero tested;
     tested.movement.movementTarget = std::numeric_limits<std::int32_t>::max();
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, std::numeric_limits<std::int32_t>::min());
     EXPECT_TRUE(tested.directions.empty());
 }
@@ -160,7 +160,7 @@ TEST(GameHeroFacingTest, MissingOrFailedPublicationPreservesTheAlreadyWrittenOri
     tested.movement.movementTarget = 39;
     auto context = tested.Context();
     context.sendFacing = {};
-    const auto missing = Client::Scenes::StepHeroFacing(context);
+    const auto missing = Client::Movement::StepHeroFacing(context);
     EXPECT_FALSE(missing.HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 0);
     EXPECT_EQ(tested.movement.arrivalYaw, 135);
@@ -169,7 +169,7 @@ TEST(GameHeroFacingTest, MissingOrFailedPublicationPreservesTheAlreadyWrittenOri
     tested.movement.movementTarget = 39;
     context.sendFacing = [](std::uint8_t) -> Client::Core::Expected<void, std::string>
     { return Client::Core::Unexpected(std::string("wire failed")); };
-    const auto failed = Client::Scenes::StepHeroFacing(context);
+    const auto failed = Client::Movement::StepHeroFacing(context);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_EQ(failed.Error(), "wire failed");
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 135.0f);
@@ -182,7 +182,7 @@ TEST(GameHeroFacingTest, TheMouseCenterComesFromThePublishedWorldViewport)
     auto context = tested.Context();
     context.centerX = 420;
     context.mouseY = 80;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(context).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(context).HasValue());
     EXPECT_EQ(tested.movement.arrivalYaw, 225);
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 225.0f);
     EXPECT_EQ(tested.directions, (std::vector<std::uint8_t>{6}));
@@ -193,12 +193,12 @@ TEST(GameHeroFacingTest, TheSectorBoundaryKeepsTheRetainedReciprocal)
     IdleHero tested;
     tested.movement.movementTarget = 39;
     tested.hero.angles.z = 112.5f;
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_TRUE(tested.directions.empty());
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 112.5f);
     tested.movement.movementTarget = 39;
     tested.hero.angles.z = std::nextafter(112.5f, 0.0f);
-    ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
+    ASSERT_TRUE(Client::Movement::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.directions, (std::vector<std::uint8_t>{4}));
     EXPECT_FLOAT_EQ(tested.hero.angles.z, 135.0f);
 }
@@ -208,7 +208,7 @@ TEST(GameHeroFacingTest, InvalidBodyYawPreservesTheAlreadyPublishedTargetBeforeT
     IdleHero tested;
     tested.movement.movementTarget = 39;
     tested.hero.angles.z = std::numeric_limits<float>::infinity();
-    const auto result = Client::Scenes::StepHeroFacing(tested.Context());
+    const auto result = Client::Movement::StepHeroFacing(tested.Context());
     EXPECT_FALSE(result.HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 0);
     EXPECT_EQ(tested.movement.arrivalYaw, 135);

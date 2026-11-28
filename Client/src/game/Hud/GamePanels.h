@@ -31,7 +31,7 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 class IGameUiRequests;
 struct GameUiContext;
@@ -62,14 +62,14 @@ public:
     GamePanels& operator=(GamePanels&&) = delete;
     ~GamePanels() = default;
 
-    [[nodiscard]] UI::PanelRegistry& Registry()
+    [[nodiscard]] Ui::PanelRegistry& Registry()
     {
         return m_registry;
     }
 
     // 0x64ae10: el B2 03 de la apertura del registro del castillo, por el mismo cable del mundo.
     void LendTheCastleRequests(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send,
-                               CastleWindowServices services = {});
+                               CastleSiege::CastleWindowServices services = {});
     void LendTheCastleWindowSteps(const GameUiContext& context);
     // Los controles de arma y puerta del asedio.
     void LendTheSiegeControls(Kernel::WorldState& world, std::function<void(Protocol::Outgoing)> send);
@@ -81,27 +81,27 @@ public:
     // los pedidos del cuervo y del caballo (C1 06 A9 00 00 01 y A9 01 00 08, Protocol::Pets::WritePetInfoRequest). Lo
     // presta el paso de la UI y LendTheSession; sin él, abrirlos corta.
     void LendThePetRequests(std::function<void(Protocol::Outgoing)> send);
-    // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la
-    // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
+    // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Messenger::OpenTheFriends), con lo que lee del paso
+    // (la vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
     void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
-    // Los cables de las ventanas de los NPC (UI::PanelContext::npcWindowOpened y npcWindowClosing): Scenes/NpcWindows.h
+    // Los cables de las ventanas de los NPC (Ui::PanelContext::npcWindowOpened y npcWindowClosing): Scenes/NpcWindows.h
     // con el mundo, el rand(), los servicios del inventario y el envío.
-    void LendTheNpcWindows(Kernel::WorldState& world, Crt::CrtRandom& random, InventoryServices services,
-                           NpcWindowSender send);
+    void LendTheNpcWindows(Kernel::WorldState& world, Crt::CrtRandom& random, Items::InventoryServices services,
+                           Npc::NpcWindowSender send);
 
     // CL9 hito 8: abrir el gremio pide la lista (C1 03 52), cerrar sus dos ventanas (0x6522f0 y 0x6570b0) y responder
     // al diálogo de los paneles (0x4d6b60 y 0x653c00), con `send`. Sin él, lo que lo usa corta.
-    void LendTheGuild(Kernel::WorldState& world, const GuildSender& send);
+    void LendTheGuild(Kernel::WorldState& world, const Guild::GuildSender& send);
 
     // 0x6605b0 en el paso de la UI, con el mouse en 640 × 480 y el reloj del paso; lo que manda la ventana de los
     // cargos va por `send`.
-    void LendThePanelDialogStep(Kernel::WorldState& world, const GuildSender& send, std::int32_t mouseX,
+    void LendThePanelDialogStep(Kernel::WorldState& world, const Guild::GuildSender& send, std::int32_t mouseX,
                                 std::int32_t mouseY, std::uint32_t now);
 
     // 0x657959: el paso de la ventana 2 del gremio ([0x7d536f4]) con el mouse, el reloj, Text.bmd y los filtros.
-    void LendTheSecondGuildStep(const SecondGuildStepContext& context);
-    // 0x657977: el paso de la ventana del gremio (Scenes::LendTheGuildWindowStepTo).
-    void LendTheGuildWindowStep(const GuildWindowStepContext& context);
+    void LendTheSecondGuildStep(const Guild::SecondGuildStepContext& context);
+    // 0x657977: el paso de la ventana del gremio (Guild::LendTheGuildWindowStepTo).
+    void LendTheGuildWindowStep(const Guild::GuildWindowStepContext& context);
 
     // 0x419900: cerrar las misiones manda el C1 03 31 con `send`, y también 0x658a18 y 0x658c0e al cerrar un NPC de
     // evento (0x1000 o 0x4000, CL9 hito 11). Lo prestan el paso de la UI, los handlers del A1 y del A2 (0x657a90) y los
@@ -111,8 +111,8 @@ public:
     void LendTheWindowClose(IGameUiRequests* requests);
 
     // 0x65ac87, 0x65b359 y 0x5eb17f: el C1 04 F3 10 al abrir una tienda con 0x6c931c distinto de −1 y el 3F 07 al
-    // cerrar la de otro con su dueño (Scenes::OpenThePersonalShop y CloseThePersonalShop), por `send`. Sin él, esos
-    // envíos cortan; lo demás de abrir y cerrar las tiendas no lo necesita.
+    // cerrar la de otro con su dueño (PersonalShop::OpenThePersonalShop y CloseThePersonalShop), por `send`. Sin él,
+    // esos envíos cortan; lo demás de abrir y cerrar las tiendas no lo necesita.
     void LendThePersonalShops(Kernel::WorldState& world, Crt::CrtRandom& random,
                               std::function<void(Protocol::Outgoing)> send);
 
@@ -129,7 +129,7 @@ public:
     void LendTheSession(Kernel::WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests);
 
 private:
-    UI::PanelContext m_context;
-    UI::PanelRegistry m_registry;
+    Ui::PanelContext m_context;
+    Ui::PanelRegistry m_registry;
 };
-} // namespace Client::Scenes
+} // namespace Client::Hud

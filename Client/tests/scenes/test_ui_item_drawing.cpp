@@ -44,9 +44,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::UiItemBox;
-using Client::Scenes::UiItemCall;
-using Client::Scenes::UiItemPlacement;
+using Client::Items::UiItemBox;
+using Client::Items::UiItemCall;
+using Client::Items::UiItemPlacement;
 using Client::Scenes::UnprojectedPoint;
 
 float Bits(std::uint32_t bits)
@@ -89,8 +89,8 @@ Client::Core::Expected<UiItemPlacement, std::string> Place(std::int32_t model, s
                                                            float clock = 0.0f,
                                                            const Client::Tables::ItemTable* items = &PlainItems())
 {
-    return Client::Scenes::PlaceUiItem(UiItemCall{.model = model, .level = level}, Anchor640(), hovered, always, clock,
-                                       items, angles);
+    return Client::Items::PlaceUiItem(UiItemCall{.model = model, .level = level}, Anchor640(), hovered, always, clock,
+                                      items, angles);
 }
 } // namespace
 
@@ -107,9 +107,9 @@ TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
     for (const Case& probe : {Case{{640, 480}, 0x38188357u, 0x38188356u}, Case{{1024, 768}, 0x37bea42cu, 0x37bea42cu}})
     {
         SCOPED_TRACE(probe.screen.width);
-        const auto made = Client::Scenes::MakeUiItemPass(probe.screen);
+        const auto made = Client::Items::MakeUiItemPass(probe.screen);
         ASSERT_TRUE(made.HasValue()) << made.Error();
-        const Client::Scenes::UiItemPass& pass = made.Value();
+        const Client::Items::UiItemPass& pass = made.Value();
         EXPECT_EQ(pass.pass.viewport, glm::ivec4(0, 0, probe.screen.width, probe.screen.height));
         EXPECT_EQ(pass.pass.view, glm::mat4(1.0f));
         EXPECT_FLOAT_EQ(pass.pass.farPlane, 2000.0f);
@@ -144,7 +144,7 @@ TEST(UiItemDrawingTest, TheUnprojectedPointFollowsThePixelsOfEachResolution)
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(testing::Message() << probe.screen.width << " " << probe.pixel.x << "," << probe.pixel.y);
-        const auto pass = Client::Scenes::MakeUiItemPass(probe.screen);
+        const auto pass = Client::Items::MakeUiItemPass(probe.screen);
         ASSERT_TRUE(pass.HasValue()) << pass.Error();
         const UnprojectedPoint point =
             Client::Scenes::UnprojectGamePoint(pass.Value().projection, probe.pixel.x, probe.pixel.y);
@@ -184,11 +184,11 @@ TEST(UiItemDrawingTest, TheAnchorTakesTheFactorsOfTheTypeInTheX87)
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(testing::Message() << std::hex << probe.type << " " << probe.level);
-        const auto anchor = Client::Scenes::UiItemAnchor(probe.type, probe.level, probe.box);
+        const auto anchor = Client::Items::UiItemAnchor(probe.type, probe.level, probe.box);
         ASSERT_TRUE(anchor.HasValue()) << anchor.Error();
         EXPECT_EQ(anchor.Value(), probe.expected);
     }
-    const auto far = Client::Scenes::UiItemAnchor(0x0000, 0, UiItemBox{1.0e20f, 0.0f, 20.0f, 20.0f});
+    const auto far = Client::Items::UiItemAnchor(0x0000, 0, UiItemBox{1.0e20f, 0.0f, 20.0f, 20.0f});
     ASSERT_FALSE(far.HasValue());
     EXPECT_NE(far.Error().find("0x5e1d58"), std::string::npos) << far.Error();
 }
@@ -197,13 +197,13 @@ TEST(UiItemDrawingTest, TheAnchorTakesTheFactorsOfTheTypeInTheX87)
 TEST(UiItemDrawingTest, TheHoverIsHalfOpenAndWaitsForAnEmptyCursor)
 {
     const UiItemBox box{100.0f, 100.0f, 20.0f, 40.0f};
-    EXPECT_TRUE(Client::Scenes::UiItemHovered(box, {100, 100}, 0, false));
-    EXPECT_TRUE(Client::Scenes::UiItemHovered(box, {119, 139}, 0, false));
-    EXPECT_FALSE(Client::Scenes::UiItemHovered(box, {120, 100}, 0, false));
-    EXPECT_FALSE(Client::Scenes::UiItemHovered(box, {100, 140}, 0, false));
-    EXPECT_FALSE(Client::Scenes::UiItemHovered(box, {99, 120}, 0, false));
-    EXPECT_FALSE(Client::Scenes::UiItemHovered(box, {110, 120}, 1, false));
-    EXPECT_TRUE(Client::Scenes::UiItemHovered(box, {110, 120}, 1, true));
+    EXPECT_TRUE(Client::Items::UiItemHovered(box, {100, 100}, 0, false));
+    EXPECT_TRUE(Client::Items::UiItemHovered(box, {119, 139}, 0, false));
+    EXPECT_FALSE(Client::Items::UiItemHovered(box, {120, 100}, 0, false));
+    EXPECT_FALSE(Client::Items::UiItemHovered(box, {100, 140}, 0, false));
+    EXPECT_FALSE(Client::Items::UiItemHovered(box, {99, 120}, 0, false));
+    EXPECT_FALSE(Client::Items::UiItemHovered(box, {110, 120}, 1, false));
+    EXPECT_TRUE(Client::Items::UiItemHovered(box, {110, 120}, 1, true));
 }
 
 // 0x5e1d6c..0x5e2267: el modelo y el nivel que 0x5e1480 le pasa a 0x5e0720.
@@ -229,7 +229,7 @@ TEST(UiItemDrawingTest, TheCallTakesTheModelAndTheLevelOfTheType)
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(testing::Message() << std::hex << probe.type << " " << probe.level);
-        const std::optional<UiItemCall> call = Client::Scenes::UiItemCallOf(probe.type, probe.level);
+        const std::optional<UiItemCall> call = Client::Items::UiItemCallOf(probe.type, probe.level);
         ASSERT_EQ(call.has_value(), probe.expected.has_value());
         if (!call)
             continue;
@@ -423,17 +423,17 @@ struct UiDrawing
         context.special = &special;
         context.selections = &selections;
     }
-    Client::Scenes::UiItemResources Resources(Client::Core::PixelSize screen)
+    Client::Items::UiItemResources Resources(Client::Core::PixelSize screen)
     {
-        auto pass = Client::Scenes::MakeUiItemPass(screen);
+        auto pass = Client::Items::MakeUiItemPass(screen);
         EXPECT_TRUE(pass.HasValue());
-        return Client::Scenes::UiItemResources{.batch = batch,
-                                               .models = models,
-                                               .poseCarry = carry,
-                                               .itemContext = context,
-                                               .flushSprites = [this] { events.emplace_back("2d"); },
-                                               .flushModels = [this] { events.emplace_back("3d"); },
-                                               .pass = pass.HasValue() ? pass.Value() : Client::Scenes::UiItemPass{}};
+        return Client::Items::UiItemResources{.batch = batch,
+                                              .models = models,
+                                              .poseCarry = carry,
+                                              .itemContext = context,
+                                              .flushSprites = [this] { events.emplace_back("2d"); },
+                                              .flushModels = [this] { events.emplace_back("3d"); },
+                                              .pass = pass.HasValue() ? pass.Value() : Client::Items::UiItemPass{}};
     }
     UiModels models;
     Client::Render::ModelBatch batch;
@@ -454,8 +454,8 @@ TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
     {
         SCOPED_TRACE(screen.width);
         UiDrawing drawing;
-        Client::Scenes::UiItemResources resources = drawing.Resources(screen);
-        Client::Scenes::CloseUiItemPass(resources);
+        Client::Items::UiItemResources resources = drawing.Resources(screen);
+        Client::Items::CloseUiItemPass(resources);
         EXPECT_TRUE(drawing.events.empty());
 
         glm::vec3 angles{};
@@ -463,9 +463,9 @@ TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
         ASSERT_TRUE(placed.HasValue()) << placed.Error();
         CrtRandom expected = drawing.random;
         static_cast<void>(expected.Next());
-        const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
+        const auto drawn = Client::Items::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-        const auto again = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
+        const auto again = Client::Items::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
         ASSERT_TRUE(again.HasValue()) << again.Error();
         static_cast<void>(expected.Next());
         EXPECT_EQ(drawing.random.State(), expected.State());
@@ -475,8 +475,8 @@ TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
         ASSERT_EQ(drawing.batch.Vertices().size(), 6u);
         EXPECT_EQ(drawing.batch.Vertices()[0].position, placed.Value().position);
 
-        Client::Scenes::CloseUiItemPass(resources);
-        Client::Scenes::CloseUiItemPass(resources);
+        Client::Items::CloseUiItemPass(resources);
+        Client::Items::CloseUiItemPass(resources);
         EXPECT_EQ(drawing.events, (std::vector<std::string>{"2d", "3d"}));
     }
 }
@@ -491,7 +491,7 @@ TEST(UiItemDrawingTest, TheSetRandomWaitsForTheUnroundedPulse)
         SCOPED_TRACE(nanoseconds);
         UiDrawing drawing;
         drawing.special.worldClock.reset();
-        Client::Scenes::UiItemResources resources = drawing.Resources({640, 480});
+        Client::Items::UiItemResources resources = drawing.Resources({640, 480});
         resources.frameClock = std::chrono::nanoseconds{nanoseconds};
         glm::vec3 angles{};
         const auto placed = Place(0x220, 0, angles);
@@ -501,7 +501,7 @@ TEST(UiItemDrawingTest, TheSetRandomWaitsForTheUnroundedPulse)
         const bool off = nanoseconds == 4036258300;
         const auto selection = off ? expected.Next() % 100 : 0;
 
-        const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 1);
+        const auto drawn = Client::Items::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 1);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(drawing.random.State(), expected.State());
@@ -522,12 +522,12 @@ TEST(UiItemDrawingTest, TheGlowDetailOfTheOptionsTrimsTheLevel)
         SCOPED_TRACE(static_cast<int>(detail));
         UiDrawing drawing;
         drawing.context.glowDetail = detail;
-        Client::Scenes::UiItemResources resources = drawing.Resources({640, 480});
+        Client::Items::UiItemResources resources = drawing.Resources({640, 480});
         glm::vec3 angles{};
         const auto placed = Place(0xa12, 13 << 3, angles);
         ASSERT_TRUE(placed.HasValue()) << placed.Error();
 
-        const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
+        const auto drawn = Client::Items::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(drawing.batch.Vertices().size(), detail == 4 ? 12u : 6u);
@@ -539,12 +539,12 @@ TEST(UiItemDrawingTest, AMissingModelStopsWithItsAddress)
 {
     UiDrawing drawing;
     drawing.models.missing.insert(0x20a);
-    Client::Scenes::UiItemResources resources = drawing.Resources({640, 480});
+    Client::Items::UiItemResources resources = drawing.Resources({640, 480});
     glm::vec3 angles{};
     const auto placed = Place(0x1012, 0, angles);
     ASSERT_TRUE(placed.HasValue()) << placed.Error();
 
-    const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
+    const auto drawn = Client::Items::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5e13d9"), std::string::npos) << drawn.Error();

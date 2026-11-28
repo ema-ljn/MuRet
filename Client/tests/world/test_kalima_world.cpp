@@ -30,10 +30,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::MapScripts::Kalima::KalimaFrameContext;
+using Client::MapScripts::Kalima::KalimaWorld;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::World::KalimaFrameContext;
-using Client::World::KalimaWorld;
 
 TEST(KalimaWorldTest, MapMembershipDoesNotCreateAnOwner)
 {
@@ -61,10 +61,10 @@ TEST(KalimaWorldTest, TogglesBeforeTheRealWaveKernelAndConsumesNoRandomOutsideTh
     KalimaWorld world(24);
     CrtRandom random(17);
     ASSERT_TRUE(world.Disturb(64, 64, 4, 1000000, random).HasValue());
-    auto expected = std::make_unique<Client::World::KalimaWaveState>(world.Waves());
+    auto expected = std::make_unique<Client::MapScripts::Kalima::KalimaWaveState>(world.Waves());
     EXPECT_NE(expected->planes[0][128 * 256 + 128], 0u);
     expected->selected = true;
-    Client::World::UpdateKalimaWaves(*expected);
+    Client::MapScripts::Kalima::UpdateKalimaWaves(*expected);
     const auto state = random.State();
     ASSERT_TRUE(world.Update(KalimaFrameContext{1, 0, 64, 64, random}).HasValue());
     EXPECT_EQ(random.State(), state);
@@ -146,10 +146,10 @@ TEST(KalimaWorldTest, PerturbationKeepsTheSignedShiftStrictDiskAndInteriorBorder
     EXPECT_EQ(plane[128 * 256 + 131], 0u); // distancia² == radio² queda afuera.
     EXPECT_EQ(random.State(), initialRandom);
     ASSERT_TRUE(world.Disturb(0, 0, 20, 1000000000, random).HasValue());
-    for (std::size_t index = 0; index < Client::World::KalimaWaveSide; ++index)
+    for (std::size_t index = 0; index < Client::MapScripts::Kalima::KalimaWaveSide; ++index)
     {
         EXPECT_EQ(plane[index], 0u);
-        EXPECT_EQ(plane[index * Client::World::KalimaWaveSide], 0u);
+        EXPECT_EQ(plane[index * Client::MapScripts::Kalima::KalimaWaveSide], 0u);
     }
     EXPECT_NE(plane[257], 0u);
 }
@@ -317,9 +317,9 @@ TEST(KalimaWorldTest, AFailedPeriodicReadKeepsTheAlreadyToggledAndUpdatedWaveKer
     KalimaWorld world(24);
     CrtRandom random(1);
     ASSERT_TRUE(world.Disturb(64, 64, 3, 1000000, random).HasValue());
-    auto expected = std::make_unique<Client::World::KalimaWaveState>(world.Waves());
+    auto expected = std::make_unique<Client::MapScripts::Kalima::KalimaWaveState>(world.Waves());
     expected->selected = true;
-    Client::World::UpdateKalimaWaves(*expected);
+    Client::MapScripts::Kalima::UpdateKalimaWaves(*expected);
     KalimaFrameContext context{1, 1000, 64, 64, random};
     context.readHeroX = []() -> Client::Core::Expected<std::int32_t, std::string>
     { return Client::Core::Unexpected(std::string("X periódico no disponible")); };
@@ -346,7 +346,7 @@ TEST(KalimaResourcesTest, LoadsTheRealObject25FilesIntoNativeSlotsAndSampling)
     EXPECT_EQ(set[1].slot, 0x24);
     EXPECT_EQ(set[1].sampling.filter, Client::Data::Textures::Filter::Nearest);
     EXPECT_EQ(set[1].sampling.wrap, Client::Data::Textures::Wrap::Clamp);
-    const auto loaded = Client::World::LoadKalimaTextures(Client::Tests::RepoDataDir());
+    const auto loaded = Client::MapScripts::Kalima::LoadKalimaTextures(Client::Tests::RepoDataDir());
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_EQ(loaded.Value().size(), 2u);
     EXPECT_EQ(loaded.Value()[0].texture.format, Client::Data::Textures::PixelFormat::Rgba);
@@ -357,6 +357,6 @@ TEST(KalimaResourcesTest, LoadsTheRealObject25FilesIntoNativeSlotsAndSampling)
 TEST(KalimaResourcesTest, MissingFilesAreAnErrorBeforeAnyUpload)
 {
     Client::Tests::TemporaryFolder empty("kalima-empty");
-    EXPECT_FALSE(Client::World::LoadKalimaTextures(empty.Path()).HasValue());
+    EXPECT_FALSE(Client::MapScripts::Kalima::LoadKalimaTextures(empty.Path()).HasValue());
 }
 } // namespace

@@ -40,12 +40,16 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
+namespace Client::Items
+{
+struct InventoryServices;
+} // namespace Client::Items
+
 // CL9 hito 4, fase 2b: usar una skill desde el juego (0x57cfc0). Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Usar una skill". MoveHero la llama al final del clic (0x59e255),
 // salvo cuando el clic de ataque sale sin flechas (MoveHeroEnd::Leave, 0x59d666).
-namespace Client::Scenes
+namespace Client::Skills
 {
-struct InventoryServices;
 
 struct HeroSkillContext
 {
@@ -64,7 +68,7 @@ struct HeroSkillContext
     // envío que lo mira corta.
     std::function<std::uint32_t()> tickCount{};
     // Lo que 0x561c50 (CheckTheArrows) pide para equipar las flechas del inventario. nullptr: sin servicios.
-    const InventoryServices* inventory = nullptr;
+    const Items::InventoryServices* inventory = nullptr;
     // [0x5767b88], el reloj del mundo en ms.
     float worldTime = 0.0f;
     // GetAsyncKeyState(0x11), que 0x558bb0 mira para atacar a otro jugador.
@@ -99,4 +103,4 @@ struct HeroSkillContext
 // cola de las skills 0x43..0x48 (0x5808da), de todas las clases, es UseTheSharedTail (HeroSkillsTail.h).
 [[nodiscard]] Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero,
                                                                 const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

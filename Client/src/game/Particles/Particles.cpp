@@ -33,7 +33,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -297,7 +297,7 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
         return {};
     const double glow = static_cast<double>(particle.life) * ExplosionGlow;
     const glm::vec3 color{F32(glow * ExplosionRed), F32(glow * ExplosionGreen), F32(glow * ExplosionBlue)};
-    if (!AddDynamicLight(lighting, particle.position, color, ExplosionLightRadius, "0x545cd6").HasValue())
+    if (!WorldObjects::AddDynamicLight(lighting, particle.position, color, ExplosionLightRadius, "0x545cd6").HasValue())
         return Core::Unexpected(ParticleError::MissingDynamicLight);
     return {};
 }
@@ -805,7 +805,7 @@ Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const f
     const double glow = static_cast<double>(particle.life) * Tenth;
     const float green = F32(glow);
     const glm::vec3 color{F32(glow * Half), green, F32(static_cast<double>(green) * Blue)};
-    if (!AddDynamicLight(lighting, particle.position, color, LightningLightRadius, "0x54547b").HasValue())
+    if (!WorldObjects::AddDynamicLight(lighting, particle.position, color, LightningLightRadius, "0x54547b").HasValue())
         return Core::Unexpected(ParticleError::MissingDynamicLight);
     if (particle.subtype != LightningFollowSubtype)
         return {};
@@ -3052,4 +3052,4 @@ std::optional<ParticleError> StepParticles(Particles& particles, Crt::CrtRandom&
     const auto stepped = StepParticlesChecked(particles, random);
     return stepped.HasValue() ? std::nullopt : std::optional(stepped.Error());
 }
-} // namespace Client::World
+} // namespace Client::Particles

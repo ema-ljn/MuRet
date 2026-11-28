@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -221,4 +221,4 @@ NoticeFollowUp FollowUpOf(NoticeId notice)
         return NoticeFollowUp::Close;
     }
 }
-} // namespace Client::UI
+} // namespace Client::Ui

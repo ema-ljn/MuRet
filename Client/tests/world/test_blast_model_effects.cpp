@@ -32,11 +32,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::BlastEffectServices;
+using Client::Effects::ModelEffect;
+using Client::Effects::ModelEffects;
 using Client::Kernel::JointRequest;
 using Client::Kernel::ModelEffectArguments;
-using Client::World::BlastEffectServices;
-using Client::World::ModelEffect;
-using Client::World::ModelEffects;
 
 constexpr int OwnRecordCloseRandoms = 0xf08;
 
@@ -108,15 +108,15 @@ void Skip(CrtRandom& random, int count)
 // Los rand() del alta de una partícula: la misma alta en un pool aparte, con el mismo generador.
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale = 1.0f)
 {
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     const auto made =
         twin->CreateChecked(type, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), subtype, scale, 0.0f, replay);
     ASSERT_TRUE(made.HasValue());
 }
 
-std::ptrdiff_t AliveParticles(Client::World::Particles& particles, std::int32_t type, std::int32_t subtype)
+std::ptrdiff_t AliveParticles(Client::Particles::Particles& particles, std::int32_t type, std::int32_t subtype)
 {
-    return std::ranges::count_if(particles.All(), [type, subtype](const Client::World::Particle& particle)
+    return std::ranges::count_if(particles.All(), [type, subtype](const Client::Particles::Particle& particle)
                                  { return particle.alive && particle.type == type && particle.subtype == subtype; });
 }
 
@@ -132,7 +132,7 @@ TEST(BlastModelEffectsTest, TheBlastFallsFromAboveWithItsJointAndCopiesTheOwnCou
     CrtRandom random(11);
     CrtRandom replay(11);
     const auto made =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf5, 0), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0xf5, 0), {}, random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     ASSERT_TRUE(made.Value().has_value());
     const ModelEffect& blast = harness.effects->Effects()[*made.Value()];
@@ -165,8 +165,8 @@ TEST(BlastModelEffectsTest, AFullPoolCreatesNothingAndDrawsNothing)
     for (const int kind : {0xf5, 0xf6, 0x106, 0x108, 0x10c, 0xe7})
     {
         const auto type = static_cast<std::int16_t>(kind);
-        const auto made =
-            Client::World::CreateBlastModelEffect(*harness.effects, Arguments(type, 1), {}, random, harness.Services());
+        const auto made = Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(type, 1), {}, random,
+                                                                  harness.Services());
         ASSERT_TRUE(made.HasValue()) << made.Error();
         EXPECT_FALSE(made.Value().has_value());
     }
@@ -180,7 +180,7 @@ TEST(BlastModelEffectsTest, TheDeathStabMovesAheadAndCreatesItsPiercingChild)
     CrtRandom random(3);
     const auto before = random.State();
     const auto made =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0x106, 1), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0x106, 1), {}, random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     ASSERT_EQ(*made.Value(), 0u);
     const ModelEffect& stab = harness.effects->Effects()[0];
@@ -218,8 +218,8 @@ TEST(BlastModelEffectsTest, TheHeroInfernoCopiesTheCountAndHitsAtFourHundred)
     Harness harness;
     CrtRandom random(9);
     CrtRandom replay(9);
-    const auto made = Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf6, 0, &harness.hero), {},
-                                                            random, harness.Services());
+    const auto made = Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0xf6, 0, &harness.hero), {},
+                                                              random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     const ModelEffect& inferno = harness.effects->Effects()[*made.Value()];
     EXPECT_EQ(inferno.life, 15);
@@ -234,7 +234,8 @@ TEST(BlastModelEffectsTest, TheHeroInfernoCopiesTheCountAndHitsAtFourHundred)
     auto keyed = Arguments(0xf6, 2, &harness.hero);
     keyed.key = 150;
     keyed.byte89 = 3;
-    const auto second = Client::World::CreateBlastModelEffect(*harness.effects, keyed, {}, random, harness.Services());
+    const auto second =
+        Client::Effects::CreateBlastModelEffect(*harness.effects, keyed, {}, random, harness.Services());
     ASSERT_TRUE(second.HasValue()) << second.Error();
     const ModelEffect& ring = harness.effects->Effects()[*second.Value()];
     EXPECT_EQ(ring.life, 12);
@@ -258,8 +259,8 @@ TEST(BlastModelEffectsTest, TheInfernoOnlyAsksForTheHeroBelowTheSecondSubtype)
         BlastEffectServices services = harness.Services();
         services.hero = nullptr;
         CrtRandom random(9);
-        const auto made = Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf6, subtype, &harness),
-                                                                {}, random, services);
+        const auto made = Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0xf6, subtype, &harness),
+                                                                  {}, random, services);
         if (subtype < 2)
         {
             ASSERT_FALSE(made.HasValue());
@@ -280,7 +281,7 @@ TEST(BlastModelEffectsTest, TheBlizzardDrawsItsFallAndTheSecondIceJointHalfTheTi
     CrtRandom random(21);
     CrtRandom replay(21);
     const auto made =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0x108, 2), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0x108, 2), {}, random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     const ModelEffect& blizzard = harness.effects->Effects()[*made.Value()];
     EXPECT_EQ(blizzard.life, replay.Next() % 15 + 15);
@@ -312,8 +313,8 @@ TEST(BlastModelEffectsTest, GateDebrisDrawsNineRandomsForTheFirstGateAndEightFor
         const auto type = static_cast<std::int16_t>(kind);
         CrtRandom random(31);
         CrtRandom replay(31);
-        const auto made =
-            Client::World::CreateBlastModelEffect(*harness.effects, Arguments(type, 0), {}, random, harness.Services());
+        const auto made = Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(type, 0), {}, random,
+                                                                  harness.Services());
         ASSERT_TRUE(made.HasValue()) << made.Error();
         const ModelEffect& debris = harness.effects->Effects()[*made.Value()];
         EXPECT_EQ(debris.transform.position.z, 350.0f);
@@ -328,7 +329,7 @@ TEST(BlastModelEffectsTest, TheRidingSpearTakesItsVelocityFromTheYaw)
     Harness harness;
     CrtRandom random(1);
     const auto made =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0x10f, 0), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0x10f, 0), {}, random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     const ModelEffect& spear = harness.effects->Effects()[*made.Value()];
     // Calculados aparte para el rumbo 90: FSIN · 5 y FCOS · −5 en double, guardados en float.
@@ -344,12 +345,12 @@ TEST(BlastModelEffectsTest, TheSwordTrailRaisesTheOwnCountAndTheSpinningItemCopi
     CrtRandom random(1);
     CrtRandom replay(1);
     const auto trail =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf3, 0), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0xf3, 0), {}, random, harness.Services());
     ASSERT_TRUE(trail.HasValue()) << trail.Error();
     EXPECT_EQ(harness.count, 8);
     EXPECT_EQ(harness.effects->Effects()[*trail.Value()].life, 5);
     const auto item =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf4, 2), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0xf4, 2), {}, random, harness.Services());
     ASSERT_TRUE(item.HasValue()) << item.Error();
     EXPECT_EQ(harness.effects->Effects()[*item.Value()].word8c, 8);
     EXPECT_EQ(harness.effects->Effects()[*item.Value()].life, 25);
@@ -361,12 +362,12 @@ TEST(BlastModelEffectsTest, OtherTypesAreNotOfThisBatch)
 {
     Harness harness;
     CrtRandom random(1);
-    EXPECT_FALSE(Client::World::IsBlastModelEffect(0xf8, 0));
-    EXPECT_FALSE(Client::World::IsBlastModelEffect(0x105, 3));
-    EXPECT_FALSE(Client::World::IsBlastModelEffect(0x5de, 0));
-    EXPECT_TRUE(Client::World::IsBlastModelEffect(0x5de, 2));
+    EXPECT_FALSE(Client::Effects::IsBlastModelEffect(0xf8, 0));
+    EXPECT_FALSE(Client::Effects::IsBlastModelEffect(0x105, 3));
+    EXPECT_FALSE(Client::Effects::IsBlastModelEffect(0x5de, 0));
+    EXPECT_TRUE(Client::Effects::IsBlastModelEffect(0x5de, 2));
     const auto made =
-        Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0xf8, 0), {}, random, harness.Services());
+        Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0xf8, 0), {}, random, harness.Services());
     EXPECT_FALSE(made.HasValue());
 }
 
@@ -374,9 +375,9 @@ TEST(BlastModelEffectsTest, OtherTypesAreNotOfThisBatch)
 struct StepHarness
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     std::int32_t map = 0;
@@ -388,7 +389,7 @@ struct StepHarness
     std::vector<std::int32_t> sounds;
     std::vector<std::int32_t> joints;
 
-    Client::World::ModelEffectStepServices Services()
+    Client::Effects::ModelEffectStepServices Services()
     {
         return {.terrainHeight = [this](float, float) { return static_cast<double>(ground); },
                 .sprites = sprites.get(),
@@ -409,7 +410,7 @@ struct StepHarness
 
     Client::Core::Expected<void, std::string> Step(ModelEffect& effect, CrtRandom& random)
     {
-        return Client::World::StepGameModelEffect(effect, nullptr, *particles, 0.0f, random, nullptr, Services());
+        return Client::Effects::StepGameModelEffect(effect, nullptr, *particles, 0.0f, random, nullptr, Services());
     }
 };
 
@@ -447,15 +448,15 @@ TEST(BlastModelEffectsTest, TheBlastOnTheGroundDropsSixChipsARingAndAnExplosion)
     EXPECT_EQ(chips, 6);
     const auto born = [&](std::int32_t type)
     {
-        return std::ranges::count_if(harness.particles->All(), [type](const Client::World::Particle& particle)
+        return std::ranges::count_if(harness.particles->All(), [type](const Client::Particles::Particle& particle)
                                      { return particle.alive && particle.type == type && particle.subtype == 0; });
     };
     EXPECT_EQ(born(0x600), 1);
-    EXPECT_EQ(born(Client::World::ExplosionParticle), 1);
+    EXPECT_EQ(born(Client::Particles::ExplosionParticle), 1);
     // La luz, por piedrita el rand() % 2 del tipo (0x52115e) y los cinco del alta (0x51b72b), y las dos altas.
     Skip(replay, 1 + 6 * (1 + 5));
     ReplayParticle(replay, 0x600, 0);
-    ReplayParticle(replay, Client::World::ExplosionParticle, 0);
+    ReplayParticle(replay, Client::Particles::ExplosionParticle, 0);
     EXPECT_EQ(random.State(), replay.State());
 }
 
@@ -558,14 +559,14 @@ TEST(BlastModelEffectsTest, TheFlameRingLightsEighteenFlames)
     ModelEffect& ring = Alive(*harness.effects, 0, 0x5de, 1, 10);
     const auto stepped = harness.Step(ring, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const auto flames = std::ranges::count_if(harness.particles->All(), [](const Client::World::Particle& particle)
+    const auto flames = std::ranges::count_if(harness.particles->All(), [](const Client::Particles::Particle& particle)
                                               { return particle.alive && particle.type == 0x5de; });
     EXPECT_EQ(flames, 18);
     EXPECT_EQ(ring.life, 9);
     // La luz (1) y, por llama, los dos corrimientos (& 63) − 32 (36 en total) antes del alta de la 5de/0 (0x54150e),
     // que saca cinco o seis más.
     Skip(replay, 1);
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     for (int flame = 0; flame < 18; ++flame)
     {
         Skip(replay, 2);
@@ -700,8 +701,8 @@ TEST(BlastModelEffectsTest, TheIceRockLandsShakingTheCameraAndDropsFiveShards)
         Skip(replay, 3);
     }
     EXPECT_FALSE(harness.effects->Effects()[Shards].alive);
-    EXPECT_EQ(AliveParticles(*harness.particles, Client::World::BreathParticle, 3), 1);
-    ReplayParticle(replay, Client::World::BreathParticle, 3);
+    EXPECT_EQ(AliveParticles(*harness.particles, Client::Particles::BreathParticle, 3), 1);
+    ReplayParticle(replay, Client::Particles::BreathParticle, 3);
     EXPECT_EQ(random.State(), replay.State());
 
     // Sin el temblor, el corte de 0x52163e llega después del rand() de 0x521619.
@@ -763,9 +764,9 @@ TEST(BlastModelEffectsTest, TheIceRockKeepsFallingInTheAirOrOverAnOpenCell)
         EXPECT_EQ(rock.transform.angles.x, 5.0f);
         EXPECT_EQ(harness.shake, 0.0f);
         EXPECT_FALSE(harness.effects->Effects()[1].alive);
-        EXPECT_EQ(AliveParticles(*harness.particles, Client::World::BreathParticle, 3), 1);
+        EXPECT_EQ(AliveParticles(*harness.particles, Client::Particles::BreathParticle, 3), 1);
         Skip(replay, 1);
-        ReplayParticle(replay, Client::World::BreathParticle, 3);
+        ReplayParticle(replay, Client::Particles::BreathParticle, 3);
         EXPECT_EQ(random.State(), replay.State());
     }
 }
@@ -790,11 +791,11 @@ TEST(BlastModelEffectsTest, TheSpinningItemStaysBehindItsOwnerWithItsDustAndSpar
     EXPECT_EQ(item.transform.position, glm::vec3(500, 420, 70));
     EXPECT_EQ(item.transform.angles.z, -18.0f);
     EXPECT_EQ(item.life, 24);
-    EXPECT_EQ(AliveParticles(*harness.particles, Client::World::BreathParticle, 3), 1);
+    EXPECT_EQ(AliveParticles(*harness.particles, Client::Particles::BreathParticle, 3), 1);
     EXPECT_EQ(AliveParticles(*harness.particles, 0x5c5, 0), 1);
     EXPECT_EQ(harness.joints, (std::vector<std::int32_t>{0x617, 0x617, 0x617, 0x617}));
     Skip(replay, 1);
-    ReplayParticle(replay, Client::World::BreathParticle, 3);
+    ReplayParticle(replay, Client::Particles::BreathParticle, 3);
     Skip(replay, 4);
     ReplayParticle(replay, 0x5c5, 0);
     Skip(replay, 3 * 4);
@@ -821,15 +822,15 @@ TEST(BlastModelEffectsTest, TheSpinningItemDropsOneKalimaFallInKalima)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_TRUE(harness.joints.empty());
         EXPECT_EQ(AliveParticles(*harness.particles, 0x5c5, 0), 0);
-        ASSERT_EQ(AliveParticles(*harness.particles, Client::World::KalimaWaterfallLast, 3), 1);
+        ASSERT_EQ(AliveParticles(*harness.particles, Client::Particles::KalimaWaterfallLast, 3), 1);
         const auto fall = std::ranges::find_if(harness.particles->All(), [](const auto& particle)
                                                { return particle.alive && particle.type == 0x6f4; });
         EXPECT_EQ(fall->light, glm::vec3(0.5f));
         EXPECT_EQ(fall->position.z, 190.0f);
         Skip(replay, 1);
-        ReplayParticle(replay, Client::World::BreathParticle, 3);
+        ReplayParticle(replay, Client::Particles::BreathParticle, 3);
         Skip(replay, 4);
-        ReplayParticle(replay, Client::World::KalimaWaterfallLast, 3);
+        ReplayParticle(replay, Client::Particles::KalimaWaterfallLast, 3);
         EXPECT_EQ(random.State(), replay.State());
         const auto& sprite = harness.sprites->Sprites()[0];
         ASSERT_TRUE(sprite.alive);
@@ -847,7 +848,7 @@ TEST(BlastModelEffectsTest, TheIceStormSwaysBreathesAndDropsItsIceOrItsFire)
     {
         CrtRandom probe(seed);
         Skip(probe, 4);
-        ReplayParticle(probe, Client::World::BreathParticle, 0, 1.5f);
+        ReplayParticle(probe, Client::Particles::BreathParticle, 0, 1.5f);
         return probe.Next() % 2 == 0;
     };
     for (const bool icy : {true, false})
@@ -869,17 +870,18 @@ TEST(BlastModelEffectsTest, TheIceStormSwaysBreathesAndDropsItsIceOrItsFire)
         EXPECT_EQ(storm.start.x, 990.0f);
         EXPECT_EQ(storm.transform.position.z, 300.0f);
         EXPECT_EQ(storm.light, glm::vec3(F32(1.0 + static_cast<double>(0.1f))));
-        ReplayParticle(replay, Client::World::BreathParticle, 0, 1.5f);
+        ReplayParticle(replay, Client::Particles::BreathParticle, 0, 1.5f);
         Skip(replay, 1);
         if (icy)
             ReplayParticle(replay, 0x5ca, 1, 0.5f);
         else
-            ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 7);
+            ReplayParticle(replay, Client::Particles::DeathSpiritFireParticle, 7);
         Skip(replay, 3);
         EXPECT_EQ(random.State(), replay.State());
-        EXPECT_EQ(AliveParticles(*harness.particles, Client::World::BreathParticle, 0), 1);
-        EXPECT_EQ(AliveParticles(*harness.particles, icy ? 0x5ca : Client::World::DeathSpiritFireParticle, icy ? 1 : 7),
-                  1);
+        EXPECT_EQ(AliveParticles(*harness.particles, Client::Particles::BreathParticle, 0), 1);
+        EXPECT_EQ(
+            AliveParticles(*harness.particles, icy ? 0x5ca : Client::Particles::DeathSpiritFireParticle, icy ? 1 : 7),
+            1);
     }
 }
 
@@ -918,9 +920,10 @@ TEST(BlastModelEffectsTest, TheFallingIceStormOnlyBrightensInTheAir)
         EXPECT_EQ(storm.life, 19);
         Skip(replay, 5);
         if (parity == 0)
-            ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 7);
+            ReplayParticle(replay, Client::Particles::DeathSpiritFireParticle, 7);
         Skip(replay, 3);
-        EXPECT_EQ(AliveParticles(*harness.particles, Client::World::DeathSpiritFireParticle, 7), parity == 0 ? 1 : 0);
+        EXPECT_EQ(AliveParticles(*harness.particles, Client::Particles::DeathSpiritFireParticle, 7),
+                  parity == 0 ? 1 : 0);
         EXPECT_EQ(random.State(), replay.State());
     }
 }
@@ -935,7 +938,7 @@ TEST(BlastModelEffectsTest, TheGateDebrisBouncesOnTheGround)
         SCOPED_TRACE(kind);
         StepHarness harness;
         harness.ground = 400.0f;
-        for (Client::World::Particle& particle : harness.particles->All())
+        for (Client::Particles::Particle& particle : harness.particles->All())
             particle.alive = true;
         CrtRandom random(7);
         CrtRandom replay(7);
@@ -1056,7 +1059,7 @@ TEST(BlastModelEffectsTest, TheDeathStabBreathesHalfTheTimeAndLightsTwoFires)
         EXPECT_EQ(stab.life, 29);
         const glm::vec3 white(1.0f);
         const glm::vec3 at{1000, 2000, 300};
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         Skip(replay, 2);
         if (parity == 0)
         {
@@ -1067,8 +1070,8 @@ TEST(BlastModelEffectsTest, TheDeathStabBreathesHalfTheTimeAndLightsTwoFires)
             ASSERT_TRUE(twin->CreateChecked(0x5d9, at, {}, white, 5, 1.0f, 0.0f, replay).HasValue());
         }
         EXPECT_EQ(random.State(), replay.State());
-        const auto made = std::ranges::count_if(harness.particles->All(),
-                                                [](const Client::World::Particle& particle) { return particle.alive; });
+        const auto made = std::ranges::count_if(
+            harness.particles->All(), [](const Client::Particles::Particle& particle) { return particle.alive; });
         EXPECT_EQ(made, parity == 0 ? 3 : 2);
     }
 }

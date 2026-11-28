@@ -10,9 +10,9 @@
 // El 0x5f2 (alta 0x531229..0x53128f y 0x532073, paso 0x5366bd..0x5366ee): la estela de fuego que los meteoros 0xc2/6 y
 // /8 de los magos (0x51b098 y 0x51b268) sueltan con ellos de dueño. El dibujo (la /0 sin el tramo 0 y con la luz por
 // la vida · 0,1f) está en GameJointDrawing.cpp.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
-void CreateFireTrailJoint(JointState& joint, const Kernel::JointRequest& request)
+void CreateFireTrailJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x531229..0x531231: el ancho. 0x531238..0x531260: la /0, velocidad 0, 20 puntos, vida 20 y la textura del 0x60f.
     // 0x531265..0x53128f: la /1, velocidad 0, 15 puntos y vida 15. 0x532073: las demás sólo la luz, con los puntos y la
@@ -41,7 +41,7 @@ void CreateFireTrailJoint(JointState& joint, const Kernel::JointRequest& request
         joint.maximumCount = MostPoints;
 }
 
-Core::Expected<void, std::string> StepFireTrailJoint(JointState& joint)
+Core::Expected<void, std::string> StepFireTrailJoint(Scenes::JointState& joint)
 {
     // 0x5366bd..0x5366ee: con dueño (+0x54) vivo (+0) y de tipo 0xc2 (+0x2), la posición es la suya (+0x10); si no,
     // queda donde la dejó el movimiento común. Sigue la cola común (0x53c393).
@@ -50,9 +50,9 @@ Core::Expected<void, std::string> StepFireTrailJoint(JointState& joint)
     if (joint.ownerKind != Kernel::JointOwnerKind::ByType && joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         return Core::Unexpected(std::string("0x5366c8: el dueño del joint 0x5f2 no es un efecto con modelo"));
     constexpr std::int16_t MeteorEffect = 0xc2;
-    const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
+    const auto& owner = *static_cast<const Effects::ModelEffect*>(joint.ownerContext);
     if (owner.alive && owner.type == MeteorEffect)
         joint.position = owner.transform.position;
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

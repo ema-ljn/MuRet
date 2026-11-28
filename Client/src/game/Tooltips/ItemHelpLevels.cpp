@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -138,7 +138,7 @@ std::int32_t UsableBy(const Kernel::OwnCharacterRecord& own, const ItemHelpRow& 
 }
 } // namespace
 
-void FillTheItemHelpLevels(GameHudContext& context, std::int32_t item, Record record)
+void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item, Record record)
 {
     ItemHelpLevels& levels = context.hud.itemHelp;
     // 0x5afc09..0x5afc1d: con el ítem de la tabla, nada.
@@ -154,4 +154,4 @@ void FillTheItemHelpLevels(GameHudContext& context, std::int32_t item, Record re
         row[ItemHelpUsable] = UsableBy(context.world.OwnCharacter(), row);
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

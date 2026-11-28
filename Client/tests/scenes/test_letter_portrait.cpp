@@ -92,7 +92,7 @@ using Client::Kernel::ActorState;
 using Client::Kernel::BodyPart;
 using Client::Kernel::ClassPartModel;
 using Client::Kernel::NoItemModel;
-using Client::Scenes::LetterPortrait;
+using Client::Messenger::LetterPortrait;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 
@@ -163,7 +163,7 @@ public:
 
     [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        const bool drawn = model.Value() == Client::Scenes::DarkHorseModel ||
+        const bool drawn = model.Value() == Client::Pets::DarkHorseModel ||
                            model.Value() == Client::Tables::PlayerShadowModel ||
                            model.Value() == ClassPartModel(BodyPart::Armor, DarkKnight);
         return drawn ? &m_triangle : nullptr;
@@ -172,7 +172,7 @@ public:
     {
         if (model.Value() == PlayerSkeletonModel)
             return &m_player;
-        return model.Value() == Client::Scenes::DarkHorseModel ? &m_horse : nullptr;
+        return model.Value() == Client::Pets::DarkHorseModel ? &m_horse : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot>
     MeshTextures(Client::Models::ModelId /*model*/) const override
@@ -229,11 +229,11 @@ struct Game
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     Client::Session::CharacterStepHooks stepHooks;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     // Con `drawable`, los modelos de lo que dibuja el retrato en vez de los de arriba.
     bool drawable = false;
     PortraitModels drawn;
@@ -265,7 +265,7 @@ protected:
     {
         auto game = Load(map);
         const auto resources = game->Resources();
-        const auto built = Client::Scenes::BuildThePortrait(game->portrait, resources);
+        const auto built = Client::Messenger::BuildThePortrait(game->portrait, resources);
         EXPECT_TRUE(built.HasValue()) << built.Error();
         return game;
     }
@@ -277,11 +277,11 @@ protected:
         auto game = Load(map);
         game->drawable = true;
         const auto resources = game->Resources();
-        const auto built = Client::Scenes::BuildThePortrait(game->portrait, resources);
+        const auto built = Client::Messenger::BuildThePortrait(game->portrait, resources);
         EXPECT_TRUE(built.HasValue()) << built.Error();
         game->Hero().pet.model = 0x1c16;
         std::int32_t action = 0;
-        const auto copied = Client::Scenes::CopyTheHeroToThePortrait(game->portrait, action, resources);
+        const auto copied = Client::Messenger::CopyTheHeroToThePortrait(game->portrait, action, resources);
         EXPECT_TRUE(copied.HasValue()) << copied.Error();
         EXPECT_TRUE(game->portrait.helper.alive);
         return game;
@@ -299,7 +299,7 @@ TEST_F(LetterPortraitTest, BuildingDrawsFortyFourAndHidesTheCharacter)
         game->portrait.helper.alive = true;
         game->portrait.actor.characterClass = 3;
         const auto resources = game->Resources();
-        const auto built = Client::Scenes::BuildThePortrait(game->portrait, resources);
+        const auto built = Client::Messenger::BuildThePortrait(game->portrait, resources);
         ASSERT_TRUE(built.HasValue()) << built.Error();
         const ActorState& actor = game->portrait.actor;
         EXPECT_FALSE(game->portrait.helper.alive);
@@ -338,7 +338,7 @@ TEST_F(LetterPortraitTest, TheClassPartsReadTheWordOfTheNextPart)
         actor.body[3].model = 0x0400;
         const CrtRandom before = game->cloth.random;
         const auto resources = game->Resources();
-        const auto set = Client::Scenes::SetThePortraitClass(game->portrait, DarkKnight, resources);
+        const auto set = Client::Messenger::SetThePortraitClass(game->portrait, DarkKnight, resources);
         ASSERT_TRUE(set.HasValue()) << set.Error();
         EXPECT_EQ(actor.characterClass, DarkKnight);
         EXPECT_EQ(actor.body[0].model, ClassPartModel(BodyPart::Helm, DarkKnight));
@@ -366,7 +366,7 @@ TEST_F(LetterPortraitTest, DressingKeepsTheFirstHelperOnly)
         equipment[4] = std::byte{0xfe};
         equipment[11] = std::byte{0xf1};
         const auto resources = game->Resources();
-        const auto dressed = Client::Scenes::DressThePortrait(game->portrait, equipment, 0x7a, resources);
+        const auto dressed = Client::Messenger::DressThePortrait(game->portrait, equipment, 0x7a, resources);
         ASSERT_TRUE(dressed.HasValue()) << dressed.Error();
         const LetterPortrait& portrait = game->portrait;
         EXPECT_TRUE(portrait.helper.alive);
@@ -389,10 +389,10 @@ TEST_F(LetterPortraitTest, DressingWithWingsAndAFlyingActionMarksTheSafeZone)
     // Las alas 0x1a12 (b[4] con los bits 2 y 3 en 0) y sin mascota (b[4] & 3 en 3).
     equipment[4] = std::byte{0xf3};
     const auto resources = game->Resources();
-    ASSERT_TRUE(Client::Scenes::DressThePortrait(game->portrait, equipment, 0x83, resources).HasValue());
+    ASSERT_TRUE(Client::Messenger::DressThePortrait(game->portrait, equipment, 0x83, resources).HasValue());
     EXPECT_EQ(game->portrait.actor.wings.model, 0x1a12);
     EXPECT_EQ(game->portrait.actor.safeZone, 1);
-    ASSERT_TRUE(Client::Scenes::DressThePortrait(game->portrait, equipment, 0x82, resources).HasValue());
+    ASSERT_TRUE(Client::Messenger::DressThePortrait(game->portrait, equipment, 0x82, resources).HasValue());
     EXPECT_EQ(game->portrait.actor.safeZone, 0);
 }
 
@@ -412,7 +412,7 @@ TEST_F(LetterPortraitTest, CopyingTheHeroTakesTheBodyAsItIs)
         twin->Hero() = hero;
         std::int32_t action = 0x83;
         const auto resources = game->Resources();
-        const auto copied = Client::Scenes::CopyTheHeroToThePortrait(game->portrait, action, resources);
+        const auto copied = Client::Messenger::CopyTheHeroToThePortrait(game->portrait, action, resources);
         ASSERT_TRUE(copied.HasValue()) << copied.Error();
         EXPECT_TRUE(copied.Value());
         const ActorState& actor = game->portrait.actor;
@@ -424,14 +424,14 @@ TEST_F(LetterPortraitTest, CopyingTheHeroTakesTheBodyAsItIs)
         EXPECT_EQ(action, 0x83);
         // El gemelo hace lo mismo a mano: la clase con 0x4977d0, la copia y 0x495a20(0x7a, 0).
         const auto twinResources = twin->Resources();
-        ASSERT_TRUE(Client::Scenes::SetThePortraitClass(twin->portrait, DarkKnight, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::SetThePortraitClass(twin->portrait, DarkKnight, twinResources).HasValue());
         twin->portrait.actor.head = hero.head;
         twin->portrait.actor.body = hero.body;
-        ASSERT_TRUE(Client::Scenes::ShowThePortraitAction(twin->portrait, 0, 0, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::ShowThePortraitAction(twin->portrait, 0, 0, twinResources).HasValue());
         EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
 
         const CrtRandom before = game->cloth.random;
-        const auto again = Client::Scenes::CopyTheHeroToThePortrait(game->portrait, action, resources);
+        const auto again = Client::Messenger::CopyTheHeroToThePortrait(game->portrait, action, resources);
         ASSERT_TRUE(again.HasValue()) << again.Error();
         EXPECT_FALSE(again.Value());
         EXPECT_EQ(game->cloth.random.State(), before.State());
@@ -452,7 +452,7 @@ TEST_F(LetterPortraitTest, CopyingATransformedHeroReadsTheOwnRecord)
             world->Hero().byte3e3 = 1;
             // El cuerpo como el de la clase: la cabeza y las cinco partes ya coinciden.
             ASSERT_TRUE(
-                Client::Scenes::SetThePortraitClass(world->portrait, DarkKnight, world->Resources()).HasValue());
+                Client::Messenger::SetThePortraitClass(world->portrait, DarkKnight, world->Resources()).HasValue());
             for (std::size_t part = 0; part < world->portrait.actor.body.size(); ++part)
                 world->portrait.actor.body[part] = {.model = ClassPartModel(static_cast<BodyPart>(part), DarkKnight)};
             auto& wings = world->world.OwnCharacter().equipment[7];
@@ -462,7 +462,7 @@ TEST_F(LetterPortraitTest, CopyingATransformedHeroReadsTheOwnRecord)
         const CrtRandom start = game->cloth.random;
         std::int32_t action = 0x7a;
         const auto resources = game->Resources();
-        const auto copied = Client::Scenes::CopyTheHeroToThePortrait(game->portrait, action, resources);
+        const auto copied = Client::Messenger::CopyTheHeroToThePortrait(game->portrait, action, resources);
         ASSERT_TRUE(copied.HasValue()) << copied.Error();
         EXPECT_TRUE(copied.Value());
         EXPECT_EQ(game->portrait.actor.wings.model, 0x1802 + 0x212);
@@ -471,7 +471,7 @@ TEST_F(LetterPortraitTest, CopyingATransformedHeroReadsTheOwnRecord)
         twin->cloth.random.Discard(2 * OwnRecordDraws);
         twin->portrait.actor.wings = game->portrait.actor.wings;
         const auto twinResources = twin->Resources();
-        ASSERT_TRUE(Client::Scenes::ShowThePortraitAction(twin->portrait, 0, 0, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::ShowThePortraitAction(twin->portrait, 0, 0, twinResources).HasValue());
         EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
         EXPECT_GE(DrawsBetween(start, game->cloth.random), 2 * OwnRecordDraws);
     }
@@ -488,7 +488,7 @@ TEST_F(LetterPortraitTest, ANewPetRebuildsTheHelper)
         game->Hero().pet.model = 0x1c16;
         std::int32_t action = 0x83;
         const auto resources = game->Resources();
-        const auto copied = Client::Scenes::CopyTheHeroToThePortrait(game->portrait, action, resources);
+        const auto copied = Client::Messenger::CopyTheHeroToThePortrait(game->portrait, action, resources);
         ASSERT_TRUE(copied.HasValue()) << copied.Error();
         const LetterPortrait& portrait = game->portrait;
         EXPECT_EQ(action, 0x7a);
@@ -511,14 +511,14 @@ TEST_F(LetterPortraitTest, TurningWalksTheGestureList)
         SCOPED_TRACE(map);
         auto game = Built(map);
         const auto resources = game->Resources();
-        const auto next = Client::Scenes::ShowThePortraitAction(game->portrait, 0x7a, 1, resources);
+        const auto next = Client::Messenger::ShowThePortraitAction(game->portrait, 0x7a, 1, resources);
         ASSERT_TRUE(next.HasValue()) << next.Error();
         EXPECT_EQ(next.Value(), 0x83);
         EXPECT_EQ(game->portrait.shownAction, 0x83);
         EXPECT_EQ(game->portrait.actor.animation.action, 0x99);
         EXPECT_EQ(game->world.Runtime().map, map);
         game->portrait.actor.animation.frame = 3.0f;
-        const auto previous = Client::Scenes::ShowThePortraitAction(game->portrait, 0x7a, -1, resources);
+        const auto previous = Client::Messenger::ShowThePortraitAction(game->portrait, 0x7a, -1, resources);
         ASSERT_TRUE(previous.HasValue()) << previous.Error();
         EXPECT_EQ(previous.Value(), 0x78);
         EXPECT_EQ(game->portrait.shownAction, 0x78);
@@ -537,11 +537,11 @@ TEST_F(LetterPortraitTest, ARiddenHelperUsesTheShortList)
     game->portrait.helper.alive = true;
     game->portrait.helper.type = 0xc6;
     const auto resources = game->Resources();
-    const auto next = Client::Scenes::ShowThePortraitAction(game->portrait, 0x7a, 1, resources);
+    const auto next = Client::Messenger::ShowThePortraitAction(game->portrait, 0x7a, 1, resources);
     ASSERT_TRUE(next.HasValue()) << next.Error();
     EXPECT_EQ(next.Value(), 0x7c);
     game->portrait.helper.alive = false;
-    const auto walking = Client::Scenes::ShowThePortraitAction(game->portrait, 0x7c, 1, resources);
+    const auto walking = Client::Messenger::ShowThePortraitAction(game->portrait, 0x7c, 1, resources);
     ASSERT_TRUE(walking.HasValue()) << walking.Error();
     EXPECT_EQ(walking.Value(), 0x94);
 }
@@ -550,7 +550,7 @@ TEST_F(LetterPortraitTest, ARiddenHelperUsesTheShortList)
 TEST_F(LetterPortraitTest, TurningThePortraitSetsItsAngles)
 {
     auto game = Built(0);
-    Client::Scenes::TurnThePortrait(game->portrait);
+    Client::Messenger::TurnThePortrait(game->portrait);
     EXPECT_EQ(game->portrait.actor.angles.x, -20.0f);
     EXPECT_EQ(game->portrait.actor.angles.y, 5.0f);
     EXPECT_EQ(game->portrait.actor.angles.z, 60.0f);
@@ -561,15 +561,15 @@ TEST_F(LetterPortraitTest, TurningThePortraitSetsItsAngles)
 TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
 {
     auto game = Built(0);
-    Client::UI::OldWindowBase base;
+    Client::Ui::OldWindowBase base;
     base.x = 100;
     base.y = 50;
     base.width = 0x77;
     ActorState& actor = game->portrait.actor;
     actor.position = {1234.0f, 5678.0f, 90.0f};
-    const auto small = Client::Scenes::PortraitPass({640, 480}, base, actor);
+    const auto small = Client::Messenger::PortraitPass({640, 480}, base, actor);
     EXPECT_EQ(small.viewport, glm::ivec4(100, 480 - 50 - 141, 0x77, 141));
-    const auto large = Client::Scenes::PortraitPass({1280, 960}, base, actor);
+    const auto large = Client::Messenger::PortraitPass({1280, 960}, base, actor);
     EXPECT_EQ(large.viewport, glm::ivec4(200, 960 - 100 - 282, 0x77 * 2, 282));
     // El personaje, 75 por encima de sus pies, cae en el centro de la imagen.
     const glm::vec4 eye = small.view * glm::vec4(actor.position.x, actor.position.y, actor.position.z + 75.0f, 1.0f);
@@ -579,7 +579,7 @@ TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
     EXPECT_LT(eye.z, -9999.0f);
     // Con el caballo oscuro, 50 más abajo.
     actor.pet.model = 0x1c16;
-    const auto riding = Client::Scenes::PortraitPass({640, 480}, base, actor);
+    const auto riding = Client::Messenger::PortraitPass({640, 480}, base, actor);
     const glm::vec4 lifted =
         riding.view * glm::vec4(actor.position.x, actor.position.y, actor.position.z + 125.0f, 1.0f);
     EXPECT_NEAR(lifted.y, eye.y, 1e-3f);
@@ -594,7 +594,7 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
         SCOPED_TRACE(map);
         auto game = Built(map);
         LetterPortrait& portrait = game->portrait;
-        Client::UI::OldPortraitPart part;
+        Client::Ui::OldPortraitPart part;
         part.action = 0x83;
         part.angle = 45.0f;
         part.zoom = 0.9f;
@@ -602,7 +602,7 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
         portrait.frameMark = 5;
         portrait.actor.animation.frame = 2.0f;
         const auto resources = game->Resources();
-        const auto pass = Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources);
+        const auto pass = Client::Messenger::PrepareThePortraitDraw(portrait, part, {640, 480}, resources);
         ASSERT_TRUE(pass.HasValue()) << pass.Error();
         EXPECT_EQ(portrait.idle, 0);
         EXPECT_EQ(portrait.shownAction, 0x7a);
@@ -617,7 +617,7 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
 
         // Sin pasar la marca, +0x6a8 sigue al frame.
         portrait.actor.animation.frame = 7.5f;
-        ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources).HasValue());
+        ASSERT_TRUE(Client::Messenger::PrepareThePortraitDraw(portrait, part, {640, 480}, resources).HasValue());
         EXPECT_EQ(portrait.frameMark, 7);
     }
 }
@@ -641,30 +641,31 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
                 static_cast<std::uint8_t>(static_cast<std::int32_t>(position.y * 0.01f)));
             each->states.terrain.current.attributes->cells[cell] |= 1;
         }
-        Client::UI::OldPortraitPart part;
+        Client::Ui::OldPortraitPart part;
         part.action = 0x7a;
         part.zoom = 1.0f;
         game->portrait.actor.animation.frame = 1.0f;
         twin->portrait.actor.animation.frame = 1.0f;
 
         const auto resources = game->Resources();
-        ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(game->portrait, part, {640, 480}, resources).HasValue());
+        ASSERT_TRUE(Client::Messenger::PrepareThePortraitDraw(game->portrait, part, {640, 480}, resources).HasValue());
 
         const auto twinResources = twin->Resources();
         twin->portrait.helper.alive = false;
-        ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(twin->portrait, part, {640, 480}, twinResources).HasValue());
+        ASSERT_TRUE(
+            Client::Messenger::PrepareThePortraitDraw(twin->portrait, part, {640, 480}, twinResources).HasValue());
         twin->portrait.helper.alive = true;
         twin->world.Runtime().map = 0;
-        const auto stepped = Client::Scenes::StepTheHelperOutsideTheTable(
+        const auto stepped = Client::Pets::StepTheHelperOutsideTheTable(
             twin->portrait.helper, twin->portrait.actor,
-            Client::Scenes::HelperStepContext{.world = twin->world,
-                                              .models = &twin->drawn,
-                                              .random = twin->cloth.random,
-                                              .worldClock = 0.0f,
-                                              .scene = Client::Scenes::SceneId::Game,
-                                              .terrain = &twin->states.terrain.current,
-                                              .logicSteps = twin->cloth.logicSteps,
-                                              .cameraShake = &twin->input.shake});
+            Client::Pets::HelperStepContext{.world = twin->world,
+                                            .models = &twin->drawn,
+                                            .random = twin->cloth.random,
+                                            .worldClock = 0.0f,
+                                            .scene = Client::Scenes::SceneId::Game,
+                                            .terrain = &twin->states.terrain.current,
+                                            .logicSteps = twin->cloth.logicSteps,
+                                            .cameraShake = &twin->input.shake});
         twin->world.Runtime().map = map;
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
@@ -699,22 +700,22 @@ public:
     ~PortraitDrawing() = default;
 
     // Con `cloth` de rand() del frame: el del juego o, entre frames, su copia.
-    Client::Scenes::LetterPortraitDraw Draw(Client::Models::ClothWorld& cloth, bool originalFrame)
+    Client::Messenger::LetterPortraitDraw Draw(Client::Models::ClothWorld& cloth, bool originalFrame)
     {
         Client::Kernel::WorldRuntime& runtime = m_game.world.Runtime();
         ActorState& hero = m_game.Hero();
-        m_hud.emplace(Client::Scenes::GameHudContext{.world = m_game.world,
-                                                     .random = cloth.random,
-                                                     .ownRecordDepth = runtime.ownRecordDepth,
-                                                     .cellXDepth = hero.cellXAccesses,
-                                                     .cellYDepth = hero.cellYAccesses,
-                                                     .hud = runtime.hud,
-                                                     .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                                     .sound = sound,
-                                                     .sprites = sprites,
-                                                     .text = text,
-                                                     .texts = &texts});
-        Client::Scenes::LetterPortraitDraw draw{.hud = *m_hud, .batch = models};
+        m_hud.emplace(Client::Hud::GameHudContext{.world = m_game.world,
+                                                  .random = cloth.random,
+                                                  .ownRecordDepth = runtime.ownRecordDepth,
+                                                  .cellXDepth = hero.cellXAccesses,
+                                                  .cellYDepth = hero.cellYAccesses,
+                                                  .hud = runtime.hud,
+                                                  .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                                  .sound = sound,
+                                                  .sprites = sprites,
+                                                  .text = text,
+                                                  .texts = &texts});
+        Client::Messenger::LetterPortraitDraw draw{.hud = *m_hud, .batch = models};
         draw.flushSprites = [this]() { flushes.emplace_back("2d", models.Vertices().size()); };
         draw.flushModels = [this]() { flushes.emplace_back("3d", models.Vertices().size()); };
         draw.characters.dynamicLighting = lighting.get();
@@ -735,13 +736,13 @@ public:
     std::optional<Client::Audio::SoundId> sound;
     Client::Render::ModelBatch models;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    Client::World::FrameSprites frameSprites;
-    Client::Scenes::ActorEffectHooks effectHooks;
+    Client::Particles::FrameSprites frameSprites;
+    Client::Effects::ActorEffectHooks effectHooks;
     std::vector<std::pair<std::string, std::size_t>> flushes;
 
 private:
     Game& m_game;
-    std::optional<Client::Scenes::GameHudContext> m_hud;
+    std::optional<Client::Hud::GameHudContext> m_hud;
 };
 
 struct SpriteQuad
@@ -792,7 +793,7 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
         auto game = Riding(map);
         auto twin = Riding(map);
         ASSERT_FALSE(HasFatalFailure());
-        Client::UI::OldPortraitPart part;
+        Client::Ui::OldPortraitPart part;
         part.base.x = 100;
         part.base.y = 50;
         part.base.width = 0x77;
@@ -800,16 +801,17 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
         part.angle = 30.0f;
         part.zoom = 1.0f;
         const auto resources = game->Resources();
-        const auto pass = Client::Scenes::PrepareThePortraitDraw(game->portrait, part, {640, 480}, resources);
+        const auto pass = Client::Messenger::PrepareThePortraitDraw(game->portrait, part, {640, 480}, resources);
         ASSERT_TRUE(pass.HasValue()) << pass.Error();
         const auto twinResources = twin->Resources();
-        const auto twinPass = Client::Scenes::PrepareThePortraitDraw(twin->portrait, part, {640, 480}, twinResources);
+        const auto twinPass =
+            Client::Messenger::PrepareThePortraitDraw(twin->portrait, part, {640, 480}, twinResources);
         ASSERT_TRUE(twinPass.HasValue()) << twinPass.Error();
         ASSERT_EQ(game->cloth.random.State(), twin->cloth.random.State());
 
         PortraitDrawing drawing(*game);
-        const auto drawn = Client::Scenes::DrawThePortraitModel(game->portrait, pass.Value(),
-                                                                drawing.Draw(game->cloth, true), resources);
+        const auto drawn = Client::Messenger::DrawThePortraitModel(game->portrait, pass.Value(),
+                                                                   drawing.Draw(game->cloth, true), resources);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         ASSERT_EQ(drawing.flushes.size(), 2u);
         EXPECT_EQ(drawing.flushes[0], std::make_pair(std::string("2d"), std::size_t{0}));
@@ -822,17 +824,17 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
 
         // A mano: 0x445260(ayudante, 1) saca uno; 0x50ba30, los suyos.
         PortraitDrawing manual(*twin);
-        const Client::Scenes::LetterPortraitDraw draw = manual.Draw(twin->cloth, true);
+        const Client::Messenger::LetterPortraitDraw draw = manual.Draw(twin->cloth, true);
         manual.models.Begin(pass.Value());
         const CrtRandom beforeHelper = twin->cloth.random;
-        ASSERT_TRUE(Client::Scenes::DrawTheHelperOutsideTheTable(
+        ASSERT_TRUE(Client::Pets::DrawTheHelperOutsideTheTable(
                         twin->portrait.helper, twin->portrait.actor,
-                        Client::Scenes::HelperDrawContext{.batch = manual.models,
-                                                          .models = twin->drawn,
-                                                          .world = twin->world,
-                                                          .random = twin->cloth.random,
-                                                          .lighting = manual.lighting.get(),
-                                                          .sprites = &manual.frameSprites})
+                        Client::Pets::HelperDrawContext{.batch = manual.models,
+                                                        .models = twin->drawn,
+                                                        .world = twin->world,
+                                                        .random = twin->cloth.random,
+                                                        .lighting = manual.lighting.get(),
+                                                        .sprites = &manual.frameSprites})
                         .HasValue());
         EXPECT_EQ(DrawsBetween(beforeHelper, twin->cloth.random), 1);
         ASSERT_TRUE(Client::Actors::Drawing::DrawCharacterOutsideThePool(manual.models, twin->drawn, twin->world,
@@ -849,14 +851,14 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
 TEST_F(LetterPortraitTest, ABlankPortraitIsABlackBoxWithTheLogo)
 {
     auto game = Load(0);
-    Client::UI::OldPortraitPart part;
+    Client::Ui::OldPortraitPart part;
     part.base.x = 100;
     part.base.y = 50;
     part.blank = 1;
     PortraitDrawing drawing(*game);
     const CrtRandom before = game->cloth.random;
     const auto resources = game->Resources();
-    ASSERT_TRUE(Client::Scenes::DrawTheLetterPortrait(part, drawing.Draw(game->cloth, true), resources).HasValue());
+    ASSERT_TRUE(Client::Messenger::DrawTheLetterPortrait(part, drawing.Draw(game->cloth, true), resources).HasValue());
     const std::vector<SpriteQuad> black = QuadsOf(drawing.sprites, std::nullopt);
     ASSERT_EQ(black.size(), 1u);
     EXPECT_EQ(black[0].color, (Client::Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
@@ -890,7 +892,7 @@ TEST_F(LetterPortraitTest, TheWholePortraitDrawsTheModelAndThenItsHelp)
             SCOPED_TRACE(testing::Message() << static_cast<int>(map) << " " << help);
             auto game = Riding(map);
             ASSERT_FALSE(HasFatalFailure());
-            auto part = std::make_unique<Client::UI::OldPortraitPart>();
+            auto part = std::make_unique<Client::Ui::OldPortraitPart>();
             part->base.x = 100;
             part->base.y = 50;
             part->base.width = 0x77;
@@ -902,7 +904,8 @@ TEST_F(LetterPortraitTest, TheWholePortraitDrawsTheModelAndThenItsHelp)
             part->actor = std::shared_ptr<void>(&game->portrait, [](void*) {});
             PortraitDrawing drawing(*game);
             const auto resources = game->Resources();
-            const auto drawn = Client::Scenes::DrawTheLetterPortrait(*part, drawing.Draw(game->cloth, true), resources);
+            const auto drawn =
+                Client::Messenger::DrawTheLetterPortrait(*part, drawing.Draw(game->cloth, true), resources);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             ASSERT_EQ(drawing.flushes.size(), 2u);
             EXPECT_GT(drawing.models.Vertices().size(), 0u);
@@ -952,7 +955,7 @@ TEST_F(LetterPortraitTest, AnIntermediateDrawLeavesThePortraitAsTheLastFrameLeft
         SCOPED_TRACE(map);
         auto game = Riding(map);
         ASSERT_FALSE(HasFatalFailure());
-        Client::UI::OldPortraitPart part;
+        Client::Ui::OldPortraitPart part;
         part.action = 0x7a;
         part.zoom = 1.0f;
         part.actor = std::shared_ptr<void>(&game->portrait, [](void*) {});
@@ -962,7 +965,8 @@ TEST_F(LetterPortraitTest, AnIntermediateDrawLeavesThePortraitAsTheLastFrameLeft
         Client::Models::ClothWorld projected = game->cloth;
         PortraitDrawing drawing(*game);
         const auto resources = game->Resources();
-        ASSERT_TRUE(Client::Scenes::DrawTheLetterPortrait(part, drawing.Draw(projected, false), resources).HasValue());
+        ASSERT_TRUE(
+            Client::Messenger::DrawTheLetterPortrait(part, drawing.Draw(projected, false), resources).HasValue());
         EXPECT_GT(drawing.models.Vertices().size(), 0u);
         EXPECT_EQ(game->cloth.random.State(), random.State());
         EXPECT_EQ(game->portrait.frameMark, before.frameMark);
@@ -996,24 +1000,24 @@ std::map<std::size_t, std::string> LetterTexts()
 class LetterPortraitWindowsTest : public LetterPortraitTest
 {
 protected:
-    [[nodiscard]] Client::UI::OldWindowStepView View(Game& game, const Client::Scenes::WorldEntryResources& resources)
+    [[nodiscard]] Client::Ui::OldWindowStepView View(Game& game, const Client::Scenes::WorldEntryResources& resources)
     {
-        Client::UI::OldWindowStepView view{.texts = &m_oldTexts, .measure = &m_oldMeasure};
-        view.portrait = Client::Scenes::LetterPortraitHook(resources);
+        Client::Ui::OldWindowStepView view{.texts = &m_oldTexts, .measure = &m_oldMeasure};
+        view.portrait = Client::Messenger::LetterPortraitHook(resources);
         view.field78abaac = game.world.Runtime().ui.field78abaac;
         view.heroName = "Benteveo";
         return view;
     }
 
     // 0x48ee60(7) en (100, 100): la de escribir con su retrato (0x497f50).
-    Client::UI::OldWindow* OpenTheWriteWindow(Game& game, const Client::Scenes::WorldEntryResources& resources)
+    Client::Ui::OldWindow* OpenTheWriteWindow(Game& game, const Client::Scenes::WorldEntryResources& resources)
     {
         auto view = View(game, resources);
-        auto globals = Client::Scenes::OldWindowGlobalsOf(game.world.Runtime());
-        auto created = Client::UI::CreateTheOldWindow(
+        auto globals = Client::Hud::OldWindowGlobalsOf(game.world.Runtime());
+        auto created = Client::Ui::CreateTheOldWindow(
             game.world.Runtime().oldWindows,
-            Client::UI::OldWindowRequest{
-                .kind = Client::UI::LetterWriteCase, .x = 100, .y = 100, .data = "Carta", .aux = 0, .flags = 0},
+            Client::Ui::OldWindowRequest{
+                .kind = Client::Ui::LetterWriteCase, .x = 100, .y = 100, .data = "Carta", .aux = 0, .flags = 0},
             m_oldTexts, m_oldMeasure, &globals, &view);
         EXPECT_TRUE(created.HasValue()) << created.Error();
         if (!created.HasValue())
@@ -1021,15 +1025,15 @@ protected:
         return &game.world.Runtime().oldWindows.windows.at(created.Value());
     }
 
-    static LetterPortrait& PortraitOf(Client::UI::OldWindow& window)
+    static LetterPortrait& PortraitOf(Client::Ui::OldWindow& window)
     {
         return *std::static_pointer_cast<LetterPortrait>(window.letter.portrait.actor);
     }
 
     LetterMeasure m_letters;
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(LetterTexts());
-    Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
-    Client::UI::OldWindowMeasure m_oldMeasure{.measure = m_letters,
+    Client::Ui::OldWindowTexts m_oldTexts = Client::Messenger::OldWindowTextsOf(&m_texts);
+    Client::Ui::OldWindowMeasure m_oldMeasure{.measure = m_letters,
                                               .dcFont = Client::Render::Text::FontKind::Normal,
                                               .screen = Client::Core::PixelSize{640, 480}};
 };
@@ -1045,9 +1049,9 @@ TEST_F(LetterPortraitWindowsTest, OpeningTheWriteWindowCopiesTheHero)
         auto game = Load(map);
         auto twin = Load(map);
         const auto resources = game->Resources();
-        Client::UI::OldWindow* write = OpenTheWriteWindow(*game, resources);
+        Client::Ui::OldWindow* write = OpenTheWriteWindow(*game, resources);
         ASSERT_NE(write, nullptr);
-        const Client::UI::OldPortraitPart& part = write->letter.portrait;
+        const Client::Ui::OldPortraitPart& part = write->letter.portrait;
         EXPECT_EQ(part.built, 1);
         EXPECT_EQ(part.follow, 1);
         EXPECT_EQ(part.action, 0x7a);
@@ -1062,9 +1066,9 @@ TEST_F(LetterPortraitWindowsTest, OpeningTheWriteWindowCopiesTheHero)
         const auto twinResources = twin->Resources();
         LetterPortrait& expected = twin->portrait;
         std::int32_t action = 0;
-        ASSERT_TRUE(Client::Scenes::BuildThePortrait(expected, twinResources).HasValue());
-        ASSERT_TRUE(Client::Scenes::CopyTheHeroToThePortrait(expected, action, twinResources).HasValue());
-        ASSERT_TRUE(Client::Scenes::ShowThePortraitAction(expected, 0x7a, 0, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::BuildThePortrait(expected, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::CopyTheHeroToThePortrait(expected, action, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::ShowThePortraitAction(expected, 0x7a, 0, twinResources).HasValue());
         EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
         EXPECT_GT(DrawsBetween(CrtRandom(Seed), game->cloth.random), BuildDraws);
     }
@@ -1081,8 +1085,8 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
         auto game = Load(map);
         auto twin = Load(map);
         const auto resources = game->Resources();
-        Client::UI::OldWindowManager& manager = game->world.Runtime().oldWindows;
-        Client::UI::AddALetter(manager.letterModel, 7, "Tordo", "Saludos", "2026/11/13", "10:20", 0);
+        Client::Ui::OldWindowManager& manager = game->world.Runtime().oldWindows;
+        Client::Messenger::AddALetter(manager.letterModel, 7, "Tordo", "Saludos", "2026/11/13", "10:20", 0);
         Equipment equipment = NothingWorn();
         equipment[4] = std::byte{0xfe};
         const Client::Protocol::Messenger::LetterRead read{.index = 7,
@@ -1093,21 +1097,21 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
                                                            .action = 2,
                                                            .body = "Hola che",
                                                            .copy = {}};
-        const Client::Scenes::ChatReceiveContext context{.world = game->world,
-                                                         .random = game->cloth.random,
-                                                         .measure = &m_letters,
-                                                         .screen = Client::Core::PixelSize{640, 480},
-                                                         .scene = Client::Scenes::SceneId::Game,
-                                                         .texts = &m_texts,
-                                                         .worldEntry = &resources};
-        const auto shown = Client::Scenes::ApplyLetterRead(read, context);
+        const Client::Chat::ChatReceiveContext context{.world = game->world,
+                                                       .random = game->cloth.random,
+                                                       .measure = &m_letters,
+                                                       .screen = Client::Core::PixelSize{640, 480},
+                                                       .scene = Client::Scenes::SceneId::Game,
+                                                       .texts = &m_texts,
+                                                       .worldEntry = &resources};
+        const auto shown = Client::Messenger::ApplyLetterRead(read, context);
         ASSERT_TRUE(shown.HasValue()) << shown.Error();
-        Client::UI::OldWindow* window = nullptr;
+        Client::Ui::OldWindow* window = nullptr;
         for (auto& [id, candidate] : manager.windows)
-            if (candidate.kind == Client::UI::OldWindowKind::LetterReadWindow)
+            if (candidate.kind == Client::Ui::OldWindowKind::LetterReadWindow)
                 window = &candidate;
         ASSERT_NE(window, nullptr);
-        const Client::UI::OldPortraitPart& part = window->letter.portrait;
+        const Client::Ui::OldPortraitPart& part = window->letter.portrait;
         EXPECT_EQ(part.built, 1);
         EXPECT_EQ(part.portraitClass, 1);
         EXPECT_EQ(part.action, 0x7a);
@@ -1122,10 +1126,10 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
 
         const auto twinResources = twin->Resources();
         LetterPortrait& expected = twin->portrait;
-        ASSERT_TRUE(Client::Scenes::BuildThePortrait(expected, twinResources).HasValue());
-        ASSERT_TRUE(Client::Scenes::SetThePortraitClass(expected, 1, twinResources).HasValue());
-        ASSERT_TRUE(Client::Scenes::DressThePortrait(expected, equipment, 0x7a, twinResources).HasValue());
-        ASSERT_TRUE(Client::Scenes::ShowThePortraitAction(expected, 0x7a, 0, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::BuildThePortrait(expected, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::SetThePortraitClass(expected, 1, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::DressThePortrait(expected, equipment, 0x7a, twinResources).HasValue());
+        ASSERT_TRUE(Client::Messenger::ShowThePortraitAction(expected, 0x7a, 0, twinResources).HasValue());
         EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
     }
 }
@@ -1137,40 +1141,40 @@ TEST_F(LetterPortraitWindowsTest, TheStepFollowsZoomsAndTurns)
 {
     auto game = Load(2);
     const auto resources = game->Resources();
-    Client::UI::OldWindow* write = OpenTheWriteWindow(*game, resources);
+    Client::Ui::OldWindow* write = OpenTheWriteWindow(*game, resources);
     ASSERT_NE(write, nullptr);
-    Client::UI::OldPortraitPart& part = write->letter.portrait;
-    Client::UI::OldWindowManager& manager = game->world.Runtime().oldWindows;
+    Client::Ui::OldPortraitPart& part = write->letter.portrait;
+    Client::Ui::OldWindowManager& manager = game->world.Runtime().oldWindows;
     game->Hero().byte360 = 4;
     game->world.Runtime().ui.field78abaac = 1;
-    const auto globals = Client::Scenes::OldWindowGlobalsOf(game->world.Runtime());
+    const auto globals = Client::Hud::OldWindowGlobalsOf(game->world.Runtime());
     auto view = View(*game, resources);
     view.mouseX = part.base.x + part.base.width / 2;
     view.mouseY = part.base.y + part.base.height / 3;
     const CrtRandom before = game->cloth.random;
     globals.wheel = 20;
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(manager, globals, view).HasValue());
     EXPECT_EQ(PortraitOf(*write).actor.byte360, 4);
     EXPECT_EQ(part.zoom, 1.1f);
     EXPECT_EQ(globals.wheel, 0);
     EXPECT_EQ(game->cloth.random.State(), before.State());
 
     globals.leftClick = true;
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(manager, globals, view).HasValue());
     EXPECT_EQ(part.base.state, 2);
     EXPECT_EQ(globals.capture, part.base.id);
     view.mouseX += 7;
     globals.leftClick = true;
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(manager, globals, view).HasValue());
     EXPECT_EQ(part.angle, 97.0f);
     globals.leftClick = false;
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
-    EXPECT_EQ(part.base.state, Client::UI::ShownWindow);
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(manager, globals, view).HasValue());
+    EXPECT_EQ(part.base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(globals.capture, 0);
 
     // El clic derecho vuelve al ángulo y al zoom de partida.
     globals.rightClick = true;
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(manager, globals, view).HasValue());
     EXPECT_EQ(part.angle, 90.0f);
     EXPECT_EQ(part.zoom, 1.0f);
 }

@@ -18,7 +18,7 @@ struct ActorState;
 
 // CL9 hito 4, fase 6a: los casos de habilidad de 0x4f97b0, los frames del ataque (P-C258). 06, "Las habilidades de
 // los frames del ataque".
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // 0x4f9899..0x4fab5c: el switch de 0x4f97b0 por la habilidad − 0x28 (la tabla de 0x4fb10c), con `skill` ya leída de
@@ -31,4 +31,4 @@ namespace Client::Scenes
 [[nodiscard]] Core::Expected<bool, std::string> StepTheFrameSkill(Kernel::ActorState& actor, std::uint8_t skill,
                                                                   std::size_t slot,
                                                                   const Actors::CharacterStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

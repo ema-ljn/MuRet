@@ -16,7 +16,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -27,7 +27,7 @@ bool Between(std::int16_t type, std::int16_t first, std::int16_t end)
 } // namespace
 
 // 607fb0..608348: ninguna rama consume RNG ni pone la velocidad en cero.
-void SettleFloorItem(FloorItemState& item)
+void SettleFloorItem(Scenes::FloorItemState& item)
 {
     const auto type = item.type;
     item.angles = {0, 0, -45};
@@ -118,7 +118,7 @@ void SettleFloorItem(FloorItemState& item)
 
 namespace
 {
-Core::Expected<void, std::string> Spark(FloorItemState& item, const FloorItemStepContext& context)
+Core::Expected<void, std::string> Spark(Scenes::FloorItemState& item, const FloorItemStepContext& context)
 {
     constexpr std::int32_t Interval = 48;
     const auto old = item.effectCounter;
@@ -143,7 +143,8 @@ Core::Expected<void, std::string> Spark(FloorItemState& item, const FloorItemSte
 }
 } // namespace
 
-Core::Expected<void, std::string> StepFloorItems(std::span<FloorItemState> items, const FloorItemStepContext& context)
+Core::Expected<void, std::string> StepFloorItems(std::span<Scenes::FloorItemState> items,
+                                                 const FloorItemStepContext& context)
 {
     for (auto& item : items)
     {
@@ -171,4 +172,4 @@ Core::Expected<void, std::string> StepFloorItems(std::span<FloorItemState> items
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

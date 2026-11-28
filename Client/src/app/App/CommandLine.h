@@ -33,12 +33,12 @@ namespace Client::App
 struct CommandLine
 {
     std::optional<std::uint64_t> maxFrames;
-    std::optional<PacingMode> pacing;
+    std::optional<Kernel::PacingMode> pacing;
     std::optional<Platform::VSyncMode> vsync;
     std::optional<int> maxFps;
     bool stats = false;
     bool autoLogin = false;
-    std::optional<ServerAddress> connect;
+    std::optional<Session::ServerAddress> connect;
     // Relative to the current folder: they belong to whoever starts the client.
     std::optional<std::filesystem::path> configPath;
     std::optional<std::filesystem::path> dataPath;

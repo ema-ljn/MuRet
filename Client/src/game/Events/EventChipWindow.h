@@ -11,7 +11,7 @@
 // del número del Muto (el C1 04 98 01); el botón de cerrar manda el C1 03 97. Todo *estático*: el GS 0.97 atiende el
 // 95, el 97 y el 98, pero no el 9D, que sale del ASM. MuRet tiene 0x6c7b8c (.data) en 1: lo que el original hace con
 // él en 0 (la entrada sin EDIT, 0x553ae0) no se alcanza.
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
@@ -21,10 +21,14 @@ namespace Client::Kernel
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
 struct GameUiContext;
+} // namespace Client::Hud
+
+namespace Client::Events
+{
 
 // 0x78abb00: lo que abre el 94 con el tipo + 1.
 inline constexpr std::int32_t RenaChipWindow = 1;
@@ -52,8 +56,8 @@ void CloseTheSerialEntry(Kernel::WorldRuntime& runtime);
 // cerrado (0x65cae0, con sus rand()), 0x553570(0), el chat cerrado, el modo del zen, el zen escrito, 0x78abacc y
 // 0x77f3b6b en 0 y el foco a la ventana del juego. Al final apaga el soltado. Los paquetes salen con el send() del paso
 // (context.chat).
-[[nodiscard]] Core::Expected<void, std::string> StepTheEventChipWindow(const GameUiContext& context,
-                                                                       UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContext& context,
+                                                                       Ui::PanelRegistry& panels);
 
 // 0x5f6550, desde 0x5f75d0 después de los NPC de evento: la esquina del inventario en (0x1c2, 0), el fondo, el título
 // (el nombre del NPC 236 de NpcName(%s).txt, 0x54ebb0), el botón de su tipo (el 4 en y 220 con 903; los otros, salvo
@@ -65,10 +69,10 @@ void CloseTheSerialEntry(Kernel::WorldRuntime& runtime);
 // en negrita, que titila con el reloj; 900, 706, 901 y 902), y salvo con 3, los rótulos (245 o 819 y 246 u 820) con
 // "x%d" de la cuenta de ítems y de 0x78abb04 en la fuente grande. No saca rand(). Un dibujo intermedio no escribe el
 // foco, el EDIT ni el clic.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipWindow(GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& context);
 
 // 0x5f70a0, desde el 3D de la UI (0x5ac1da) con 0x78abb00 en otro valor que 0 y 3: el modelo del 0x1c15 (de nivel 0, o
 // 0xf en +4 con 2 y 4; con 5, el tipo 0) del tamaño de Item.bmd, en (540, 298) salvo con 4 y en (540, 333), con los
 // rand() de 0x5e1480. Después 0x5ac120 no dibuja las grillas, el ítem del cursor ni las ranuras rápidas.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipItems(GameHudContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipItems(Hud::GameHudContext& context);
+} // namespace Client::Events

@@ -26,7 +26,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -104,7 +104,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const WeaponSkillRequest& request = runtime.movement.weaponSkill;
+    const Movement::WeaponSkillRequest& request = runtime.movement.weaponSkill;
     // 0x55cbe4..0x55cc9a: la skill del lugar, con el registro propio abierto y cerrado.
     std::uint8_t skill = 0;
     {
@@ -130,7 +130,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
     user.attackPosition = target.position;
     turned.angles.z = static_cast<float>(
         Math::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));
-    const ActorCombatContext combat = CombatContextOf(context);
+    const Combat::ActorCombatContext combat = CombatContextOf(context);
     switch (CaseOf(skill))
     {
     case ReachedCase::Strike:
@@ -147,14 +147,14 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
             return struck;
         if (auto acted = SetTheActorAction(turned, ThrustAction, combat); !acted.HasValue())
             return acted;
-        RefreshCombatActionSpeeds(world, context.random);
+        Combat::RefreshCombatActionSpeeds(world, context.random);
         return TurnThePublishedHero(context, "0x55e40e");
     }
     case ReachedCase::Duration:
     {
         // 0x55e67e..0x55e699: la clave por 0x558eb0(p1, blanco), sin rand(). Con el blanco en −1 el original deja
         // 0xffff, pero ese −1 ya cortó en 0x55ccd2 (Q-C1239): acá el blanco siempre está en el pool.
-        const auto chosen = ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
+        const auto chosen = Hero::ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
         const auto key = static_cast<std::uint16_t>(chosen.Value());
@@ -180,4 +180,4 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

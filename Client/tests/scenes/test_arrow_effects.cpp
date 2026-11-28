@@ -50,18 +50,18 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::FireTheArrow y StepArrow: 0x53e2b0, 0x53d9a0, los casos de flecha de 0x518cf0 y de 0x5208a0, 0x520170
-// y 0x517850, por el paso del ataque (0x50377d y 0x504060). 06, "La flecha".
+// Client::Effects::FireTheArrow y StepArrow: 0x53e2b0, 0x53d9a0, los casos de flecha de 0x518cf0 y de 0x5208a0,
+// 0x520170 y 0x517850, por el paso del ataque (0x50377d y 0x504060). 06, "La flecha".
 namespace
 {
 using Client::Actors::CharacterStepContext;
+using Client::Combat::StepTheAttack;
 using Client::Crt::CrtRandom;
+using Client::Effects::ArrowStepContext;
+using Client::Effects::ModelEffect;
+using Client::Effects::StepArrow;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::ArrowStepContext;
-using Client::Scenes::StepArrow;
-using Client::Scenes::StepTheAttack;
-using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;
@@ -121,9 +121,9 @@ std::string ErrorOf(const Client::Core::Expected<void, std::string>& stepped)
 // Los rand() del fuego 0x5d9/0 de la flecha 0xdb (0x53fe70), medidos en un pool aparte.
 int FireDraws()
 {
-    Client::World::Particles scratch;
+    Client::Particles::Particles scratch;
     CrtRandom random(Seed);
-    static_cast<void>(scratch.CreateChecked(Client::World::FireParticle, glm::vec3(0.0f), glm::vec3(0.0f),
+    static_cast<void>(scratch.CreateChecked(Client::Particles::FireParticle, glm::vec3(0.0f), glm::vec3(0.0f),
                                             glm::vec3(1.0f), 0, 1.0f, 0.0f, random));
     return DrawsSince(Seed, random);
 }
@@ -246,10 +246,10 @@ struct ArrowWorld
     void FillTheParticles()
     {
         CrtRandom scratch(Seed);
-        for (std::size_t made = 0; made <= Client::World::ParticleCount; ++made)
+        for (std::size_t made = 0; made <= Client::Particles::ParticleCount; ++made)
         {
-            const auto created = particles.CreateChecked(Client::World::FireParticle, glm::vec3(0.0f), glm::vec3(0.0f),
-                                                         glm::vec3(1.0f), 0, 1.0f, 0.0f, scratch);
+            const auto created = particles.CreateChecked(Client::Particles::FireParticle, glm::vec3(0.0f),
+                                                         glm::vec3(0.0f), glm::vec3(1.0f), 0, 1.0f, 0.0f, scratch);
             if (!created.HasValue() || !created.Value().has_value())
                 return;
         }
@@ -260,7 +260,7 @@ struct ArrowWorld
         std::vector<ModelEffect*> found;
         for (ModelEffect& effect : world.Map().effects.Effects())
         {
-            if (effect.alive && Client::Scenes::IsArrowEffect(effect.type))
+            if (effect.alive && Client::Effects::IsArrowEffect(effect.type))
                 found.push_back(&effect);
         }
         return found;
@@ -286,8 +286,8 @@ struct ArrowWorld
     Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::World::Particles particles;
-    Client::World::FrameSprites sprites;
+    Client::Particles::Particles particles;
+    Client::Particles::FrameSprites sprites;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> soundOrigins;
@@ -351,8 +351,8 @@ TEST(ArrowEffectsTest, TheElfShootsAMonsterAndAPlayer)
                 EXPECT_FALSE(arrow.alive);
                 const int perStep = 1 + (weapon.arrow == 0xdb ? fireDraws : 0);
                 EXPECT_EQ(DrawsSince(before.State(), tested.random), 5 * perStep + OwnRecord);
-                EXPECT_EQ(std::ranges::count(tested.particles.All(), Client::World::FireParticle,
-                                             &Client::World::Particle::type),
+                EXPECT_EQ(std::ranges::count(tested.particles.All(), Client::Particles::FireParticle,
+                                             &Client::Particles::Particle::type),
                           weapon.arrow == 0xdb ? 5 : 0);
             }
         }
@@ -524,7 +524,7 @@ TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
         {
             // La luz y los cuatro del punto y del tipo de cada flor: 17.
             EXPECT_EQ(tested.random.State(), 0x0e390577u);
-            EXPECT_TRUE(std::ranges::none_of(tested.particles.All(), [](const Client::World::Particle& particle)
+            EXPECT_TRUE(std::ranges::none_of(tested.particles.All(), [](const Client::Particles::Particle& particle)
                                              { return particle.type >= 0x608 && particle.type <= 0x60a; }));
             continue;
         }
@@ -533,7 +533,7 @@ TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
         {
             SCOPED_TRACE(index);
             const Flower& expected = Flowers[index];
-            const Client::World::Particle& flower = tested.particles.All()[index];
+            const Client::Particles::Particle& flower = tested.particles.All()[index];
             ASSERT_TRUE(flower.alive);
             EXPECT_EQ(flower.type, expected.type);
             EXPECT_EQ(flower.subtype, 0);
@@ -623,7 +623,7 @@ TEST(ArrowEffectsTest, TheTwentiethArrowTurnsAtRandomBeforeItsTrail)
     ArrowWorld tested(0);
     const Client::Kernel::ModelEffectArguments arguments{
         .type = 0x11c, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 0};
-    const auto made = Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random);
+    const auto made = Client::Effects::CreateTheArrowEffect(arguments, tested.world, tested.random);
     ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
     const auto arrows = tested.Arrows();
     ASSERT_EQ(arrows.size(), 1u);
@@ -660,7 +660,7 @@ TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         CrtRandom expected(Seed);
         static_cast<void>(expected.Next());
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         const glm::vec3 violet{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e4ccccdu), 1.0f};
         const std::size_t shines = life % 2 == 0 ? 3 : 0;
         for (std::size_t index = 0; index < shines; ++index)
@@ -670,14 +670,14 @@ TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
                             static_cast<float>((expected.Next() & 63) - 32),
                             static_cast<float>((expected.Next() & 31) - 16)};
             point += glm::vec3{1000.0f, 1000.0f, 300.0f};
-            Client::World::PortableParticleTrigonometry trigonometry;
+            Client::Particles::PortableParticleTrigonometry trigonometry;
             const float clock = 0.0f;
             const auto replayed =
                 twin->CreateChecked(0x60f, point, {0.0f, 75.0f, 0.0f}, violet, 5, std::bit_cast<float>(0x3e4ccccdu),
                                     std::cref(clock), expected, 0, trigonometry);
             ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
-            const Client::World::Particle& shine = tested.particles.All()[index];
-            const Client::World::Particle& reference = twin->All()[index];
+            const Client::Particles::Particle& shine = tested.particles.All()[index];
+            const Client::Particles::Particle& reference = twin->All()[index];
             ASSERT_TRUE(shine.alive);
             EXPECT_EQ(shine.type, 0x60f);
             EXPECT_EQ(shine.subtype, 5);
@@ -721,18 +721,18 @@ TEST(ArrowEffectsTest, TheWaterArrowsLeaveFourBubbles)
         const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         CrtRandom expected = before;
         static_cast<void>(expected.Next());
         for (std::size_t index = 0; index < 4; ++index)
         {
             SCOPED_TRACE(index);
             expected.Discard(3);
-            const Client::World::Particle& bubble = tested.particles.All()[index];
+            const Client::Particles::Particle& bubble = tested.particles.All()[index];
             const auto replayed =
                 twin->CreateChecked(0x607, bubble.start, angles, glm::vec3(0.25f), 1, 1.0f, 0.0f, expected);
             ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
-            const Client::World::Particle& reference = twin->All()[index];
+            const Client::Particles::Particle& reference = twin->All()[index];
             EXPECT_TRUE(bubble.alive);
             EXPECT_EQ(bubble.type, 0x607);
             EXPECT_EQ(bubble.subtype, 1);
@@ -752,7 +752,7 @@ TEST(ArrowEffectsTest, TheWaterArrowsLeaveFourBubbles)
             EXPECT_EQ(tested.random.State(), expected.State());
             continue;
         }
-        const Client::World::Particle& smoke = tested.particles.All()[4];
+        const Client::Particles::Particle& smoke = tested.particles.All()[4];
         EXPECT_TRUE(smoke.alive);
         EXPECT_EQ(smoke.type, 0x5f2);
         EXPECT_EQ(smoke.subtype, 0);
@@ -803,13 +803,13 @@ TEST(ArrowEffectsTest, TheAdvancedArrowsLeaveTheirBeam)
         EXPECT_EQ(beam->light, glm::vec3(0.5f, std::bit_cast<float>(0x3dcccccdu), 1.0f));
 
         arrow.point40 = {1.0f, 2.0f, 3.0f};
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, tested.random).HasValue());
         EXPECT_EQ(beam->position, glm::vec3(1.0f, 2.0f, 3.0f));
         EXPECT_EQ(beam->life, 999999998);
         EXPECT_EQ(beam->count, 1);
 
         arrow.alive = false;
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, tested.random).HasValue());
         EXPECT_FALSE(beam->alive);
         EXPECT_EQ(beam->life, 999999998);
         EXPECT_EQ(beam->count, 1);
@@ -864,7 +864,7 @@ TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
     glm::vec3 angles{15.0f, 25.0f, 35.0f};
     const Client::Kernel::ModelEffectArguments args{
         .type = 0xf8, .position = {10.0f, 20.0f, 30.0f}, .angles = angles, .light = {1.0f, 1.0f, 1.0f}, .subtype = 0};
-    const auto made = Client::Scenes::CreateTheArrowEffect(args, alone->world, alone->random, &angles);
+    const auto made = Client::Effects::CreateTheArrowEffect(args, alone->world, alone->random, &angles);
     ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
     EXPECT_EQ(DrawsSince(Seed, alone->random), 4 + OwnRecord);
     CrtRandom expected(Seed);
@@ -1122,7 +1122,7 @@ TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
             for (std::size_t slot = 0; slot < joints.size(); ++slot)
                 joints[slot].alive = slot >= freeJoints;
 
-            const auto fired = Client::Scenes::FireTheArrow(hero, nullptr, HeroSlot, 3, 0, 0x34, tested.Context());
+            const auto fired = Client::Effects::FireTheArrow(hero, nullptr, HeroSlot, 3, 0, 0x34, tested.Context());
 
             ASSERT_TRUE(fired.HasValue()) << ErrorOf(fired);
             EXPECT_EQ(DrawsSince(Seed, tested.random), 3 * OwnRecord);
@@ -1198,7 +1198,7 @@ TEST(ArrowEffectsTest, ThePiercingArrowHitsAndWaitsWithOrWithoutATrailSlot)
         }
         ActorState& hero = tested.Archer(ShortBow, ShortBow.action, NoTarget);
 
-        const auto fired = Client::Scenes::FireTheArrow(hero, nullptr, HeroSlot, 3, 0, 0x34, tested.Context());
+        const auto fired = Client::Effects::FireTheArrow(hero, nullptr, HeroSlot, 3, 0, 0x34, tested.Context());
 
         ASSERT_TRUE(fired.HasValue()) << fired.Error();
         EXPECT_EQ(DrawsSince(Seed, tested.random), 3 * OwnRecord);
@@ -1331,7 +1331,7 @@ TEST(ArrowEffectsTest, TheSiegeArrowsAreBornFromTheirRandoms)
             const Client::Kernel::ModelEffectArguments arguments{
                 .type = 0xdb, .position = from, .light = glm::vec3(1.0f), .subtype = subtype};
 
-            const auto created = Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random);
+            const auto created = Client::Effects::CreateTheArrowEffect(arguments, tested.world, tested.random);
 
             ASSERT_TRUE(created.HasValue()) << created.Error();
             EXPECT_EQ(DrawsSince(Seed, tested.random), (subtype == 3 ? 3 : 2) + OwnRecord);
@@ -1397,7 +1397,7 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
                                                                  .position = {2000.0f, 3000.0f, 400.0f},
                                                                  .light = glm::vec3(1.0f),
                                                                  .subtype = probe.subtype};
-            ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
+            ASSERT_TRUE(Client::Effects::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
             ModelEffect& arrow = *tested.Arrows().front();
             arrow.transform.angles.x = probe.subtype == 3 ? 48.0f : 60.0f;
             arrow.turnDirection = 5.0f;
@@ -1424,7 +1424,7 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
             ASSERT_EQ(
                 std::ranges::count_if(tested.particles.All(), [](const auto& particle) { return particle.alive; }), 1);
             const auto& fire = tested.particles.All()[0];
-            EXPECT_EQ(fire.type, Client::World::FireParticle);
+            EXPECT_EQ(fire.type, Client::Particles::FireParticle);
             EXPECT_EQ(fire.subtype, 5);
             EXPECT_EQ(fire.position, emittedAt);
             EXPECT_EQ(fire.angles, arrow.transform.angles);
@@ -1453,7 +1453,7 @@ TEST(ArrowEffectsTest, TheFortressArrowSparklesOnEvenLives)
             ArrowWorld tested(map);
             const Client::Kernel::ModelEffectArguments arguments{
                 .type = 0xe1, .position = {2000.0f, 3000.0f, 400.0f}, .light = glm::vec3(1.0f), .subtype = 1};
-            ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
+            ASSERT_TRUE(Client::Effects::CreateTheArrowEffect(arguments, tested.world, tested.random).HasValue());
             EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
             const auto beforeStep = tested.random.State();
             const auto arrows = tested.Arrows();
@@ -1483,8 +1483,8 @@ TEST(ArrowEffectsTest, TheCrywolfArrowKeepsCallerDrawsWhenParticleCapacityIsPart
     for (int room = 0; room <= 2; ++room)
     {
         ArrowWorld tested(34);
-        ASSERT_TRUE(Client::Scenes::CreateTheArrowEffect({.type = 0xe1, .position = {2000, 3000, 400}, .subtype = 1},
-                                                         tested.world, tested.random)
+        ASSERT_TRUE(Client::Effects::CreateTheArrowEffect({.type = 0xe1, .position = {2000, 3000, 400}, .subtype = 1},
+                                                          tested.world, tested.random)
                         .HasValue());
         auto arrows = tested.Arrows();
         ASSERT_EQ(arrows.size(), 1u);
@@ -1562,13 +1562,14 @@ TEST(ArrowEffectsTest, TheFifthSubtypeBurnsBlue)
         ModelEffect& arrow = *arrows.front();
         arrow.subtype = 5;
         CrtRandom probe = tested.random;
-        const float luminosity = Client::World::StepLuminosity(probe.Next(), arrow.life);
+        const float luminosity = Client::Effects::StepLuminosity(probe.Next(), arrow.life);
 
         const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const auto particles = tested.particles.All();
-        const auto fire = std::ranges::find(particles, Client::World::FireParticle, &Client::World::Particle::type);
+        const auto fire =
+            std::ranges::find(particles, Client::Particles::FireParticle, &Client::Particles::Particle::type);
         ASSERT_NE(fire, particles.end());
         const auto times = [luminosity](float factor)
         { return static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(factor)); };
@@ -1849,7 +1850,7 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
             for (ModelEffect& effect : tested->world.Map().effects.Effects())
                 effect.alive = true;
             if (particlesFull)
-                for (Client::World::Particle& particle : tested->particles.All())
+                for (Client::Particles::Particle& particle : tested->particles.All())
                     particle.alive = true;
             std::vector<Client::Scenes::JointState> joints(100);
             if (jointsFull)
@@ -1870,7 +1871,7 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
                 if (!particlesFull)
                     expected.Discard(5);
             }
-            const auto shot = Client::Scenes::FireTheArrow(actor, nullptr, OtherSlot, 0, 0, 0, context);
+            const auto shot = Client::Effects::FireTheArrow(actor, nullptr, OtherSlot, 0, 0, 0, context);
             ASSERT_TRUE(shot.HasValue()) << shot.Error();
             EXPECT_EQ(tested->random.State(), expected.State());
             if (!particlesFull)
@@ -1881,7 +1882,7 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
                     if (!particle.alive)
                         continue;
                     ++created;
-                    EXPECT_EQ(particle.type, Client::World::FairySparkParticle);
+                    EXPECT_EQ(particle.type, Client::Particles::FairySparkParticle);
                     EXPECT_EQ(particle.subtype, 0);
                     EXPECT_EQ(particle.position, glm::vec3(106.0f, 228.0f, 50.0f));
                 }
@@ -2013,7 +2014,7 @@ TEST(ArrowEffectsTest, FullJointsPreserveTheArrowConstructorTails)
                                                         .angles = {},
                                                         .light = {1.0f, 1.0f, 1.0f},
                                                         .subtype = subtype};
-        const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
+        const auto made = Client::Effects::CreateTheArrowEffect(args, tested.world, tested.random);
         ASSERT_TRUE(made.HasValue()) << made.Error();
         const auto& arrow = tested.world.Map().effects.Effects().front();
         EXPECT_EQ(arrow.life, 30);
@@ -2068,7 +2069,7 @@ TEST(ArrowEffectsTest, TheReignArrowLeavesThreeEmbers)
     const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(arrow.transform.angles.y, 45.0f);
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     CrtRandom expected(Seed);
     static_cast<void>(expected.Next());
     for (std::size_t index = 0; index < 3; ++index)
@@ -2077,8 +2078,8 @@ TEST(ArrowEffectsTest, TheReignArrowLeavesThreeEmbers)
         const auto replayed = twin->CreateChecked(0x5f2, {1000.0f, 1000.0f, 1000.0f}, {0.0f, 45.0f, 0.0f},
                                                   glm::vec3(1.0f), 13, 1.0f, 0.0f, expected);
         ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{index});
-        const Client::World::Particle& ember = tested.particles.All()[index];
-        const Client::World::Particle& reference = twin->All()[index];
+        const Client::Particles::Particle& ember = tested.particles.All()[index];
+        const Client::Particles::Particle& reference = twin->All()[index];
         EXPECT_TRUE(ember.alive);
         EXPECT_EQ(ember.type, 0x5f2);
         EXPECT_EQ(ember.subtype, 13);
@@ -2114,7 +2115,7 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
                                                         .angles = angles,
                                                         .light = {1.0f, 1.0f, 1.0f},
                                                         .subtype = 1};
-        const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random, &angles);
+        const auto made = Client::Effects::CreateTheArrowEffect(args, tested.world, tested.random, &angles);
         const auto& effect = tested.world.Map().effects.Effects().front();
         EXPECT_EQ(angles, (glm::vec3{0.0f, 0.0f, 35.0f}));
         EXPECT_EQ(effect.transform.angles, (glm::vec3{15.0f, 25.0f, 35.0f}));
@@ -2190,7 +2191,7 @@ TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)
     tested.world.OwnCharacter().bytef04 = 11;
     const Client::Kernel::ModelEffectArguments args{
         .type = 0x10e, .position = {10.0f, 20.0f, 30.0f}, .angles = {}, .light = {1.0f, 1.0f, 1.0f}, .subtype = 2};
-    const auto made = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
+    const auto made = Client::Effects::CreateTheArrowEffect(args, tested.world, tested.random);
     ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
     EXPECT_EQ(arrow.point40, (glm::vec3{10.0f, 20.0f, 160.0f}));
     EXPECT_EQ(arrow.state, 1);
@@ -2214,7 +2215,7 @@ TEST(ArrowEffectsTest, TheTourProjectileCreatesAndStepsWithoutAttackingActors)
                                                              .light = {2, 3, 4},
                                                              .subtype = 1,
                                                              .owner = &tested->Hero()};
-        const auto created = Client::Scenes::CreateTheArrowEffect(arguments, tested->world, tested->random);
+        const auto created = Client::Effects::CreateTheArrowEffect(arguments, tested->world, tested->random);
         ASSERT_TRUE(created.HasValue()) << ErrorOf(created);
         auto& effect = tested->world.Map().effects.Effects()[0];
         EXPECT_TRUE(effect.alive);
@@ -2333,7 +2334,7 @@ TEST(ArrowEffectsTest, CelestialArrowStaysPutWhileItsStartTravelsForThirtySteps)
         joint.alive = true;
     const Client::Kernel::ModelEffectArguments args{
         .type = 0xf8, .position = {1000, 3000, 0}, .angles = {}, .light = {1, 1, 1}, .subtype = 1};
-    const auto created = Client::Scenes::CreateTheArrowEffect(args, tested.world, tested.random);
+    const auto created = Client::Effects::CreateTheArrowEffect(args, tested.world, tested.random);
     ASSERT_TRUE(created.HasValue()) << ErrorOf(created);
     auto& arrow = tested.world.Map().effects.Effects().front();
     EXPECT_EQ(arrow.start, (glm::vec3{990, 2900, 145}));

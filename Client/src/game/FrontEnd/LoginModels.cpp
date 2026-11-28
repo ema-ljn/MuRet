@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -160,9 +160,9 @@ Models::ObjectTransform LoginCharacterTransform()
     return Models::ObjectTransform{{10603.0f, 14112.0f, 580.0f}, {0.0f, 0.0f, 188.0f}, 1.6f, 0.0f};
 }
 
-DarkSpiritOwner LoginRavenOwner()
+Pets::DarkSpiritOwner LoginRavenOwner()
 {
-    return DarkSpiritOwner{.position = LoginCharacterTransform().position, .flags = 0};
+    return Pets::DarkSpiritOwner{.position = LoginCharacterTransform().position, .flags = 0};
 }
 
 namespace
@@ -208,4 +208,4 @@ std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Cr
     }
     return ActionOfRand(random.Next());
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

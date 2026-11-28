@@ -18,7 +18,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -56,16 +56,16 @@ Core::Expected<void, std::string> SendTheTurn(std::uint8_t x, std::uint8_t y, fl
     return {};
 }
 
-ActorCombatContext CombatContextOf(const HeroSkillContext& context)
+Combat::ActorCombatContext CombatContextOf(const HeroSkillContext& context)
 {
-    return ActorCombatContext{.world = context.world,
-                              .random = context.random,
-                              .playerSkeleton = context.playerSkeleton,
-                              .models = context.models,
-                              .items = context.items,
-                              .terrain = context.terrain,
-                              .dynamicLighting = context.dynamicLighting,
-                              .faunaModels = context.faunaModels};
+    return Combat::ActorCombatContext{.world = context.world,
+                                      .random = context.random,
+                                      .playerSkeleton = context.playerSkeleton,
+                                      .models = context.models,
+                                      .items = context.items,
+                                      .terrain = context.terrain,
+                                      .dynamicLighting = context.dynamicLighting,
+                                      .faunaModels = context.faunaModels};
 }
 
 std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& actor)
@@ -84,4 +84,4 @@ std::uint8_t ReadTheSkillCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRa
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

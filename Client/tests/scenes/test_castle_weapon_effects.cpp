@@ -60,7 +60,7 @@ class CastleWeaponEffectsTest : public testing::Test
 {
 protected:
     std::unique_ptr<Client::Kernel::WorldState> world = std::make_unique<Client::Kernel::WorldState>();
-    Client::Scenes::SelectionState selection{*world};
+    Client::FrontEnd::SelectionState selection{*world};
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{}};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
@@ -91,9 +91,9 @@ TEST_F(CastleWeaponEffectsTest, ARemoteWeaponStillGivesItsProjectileToHeroAndCon
     source.key = 0x0101;
     source.type = 0x19c;
     source.position = {100, 200, 300};
-    ASSERT_TRUE(Client::Scenes::ApplyTheSiegeWeaponFire(0x0101, 1, 1, 20, 30, Resources()).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::ApplyTheSiegeWeaponFire(0x0101, 1, 1, 20, 30, Resources()).HasValue());
     const auto& effect = world->Map().effects.Effects()[0];
-    EXPECT_EQ(effect.type, Client::World::SiegeStoneEffect);
+    EXPECT_EQ(effect.type, Client::CastleSiege::SiegeStoneEffect);
     EXPECT_EQ(effect.subtype, 1);
     EXPECT_EQ(effect.ownerContext, &world->Actors()[42]);
     EXPECT_EQ(effect.transform.position, (glm::vec3{100, 200, 500}));
@@ -110,7 +110,7 @@ TEST_F(CastleWeaponEffectsTest, AFullPoolStillPlaysTheFiringSoundWithoutConstruc
 {
     for (auto& effect : world->Map().effects.Effects())
         effect.alive = true;
-    ASSERT_TRUE(Client::Scenes::ApplyTheSiegeWeaponFire(0, 2, 0, 0, 0, Resources()).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::ApplyTheSiegeWeaponFire(0, 2, 0, 0, 0, Resources()).HasValue());
     EXPECT_EQ(world->Runtime().lastSoundId, Client::Audio::SoundId{0x1ea});
     EXPECT_EQ(cloth.random.State(), 1u);
 }
@@ -125,13 +125,13 @@ TEST_F(CastleWeaponEffectsTest, ThePacketAimsTheIceProjectileAndKeepsBothKeyByte
     const auto read = Client::Protocol::CastleSiege::ReadCastleBattlePacket(wire);
     ASSERT_TRUE(read.HasValue());
     const auto resources = Resources();
-    const auto applied = Client::Scenes::ApplyCastleBattlePacket(
+    const auto applied = Client::CastleSiege::ApplyCastleBattlePacket(
         read.Value(), {.world = *world, .random = cloth.random, .log = log, .entryResources = &resources});
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
     const auto& projectile = world->Map().effects.Effects()[0];
     ASSERT_TRUE(projectile.alive);
-    EXPECT_EQ(projectile.type, Client::World::SiegeIceStoneEffect);
+    EXPECT_EQ(projectile.type, Client::CastleSiege::SiegeIceStoneEffect);
     EXPECT_EQ(projectile.subtype, 1);
     EXPECT_EQ(projectile.state, 0x12);
     EXPECT_EQ(projectile.byte89, 0x34);
@@ -141,9 +141,9 @@ TEST_F(CastleWeaponEffectsTest, ThePacketAimsTheIceProjectileAndKeepsBothKeyByte
 }
 TEST_F(CastleWeaponEffectsTest, AnUnknownImpactKindStillCreatesItsWaveBeforeTheSound)
 {
-    ASSERT_TRUE(Client::Scenes::ApplyTheSiegeWeaponImpact(7, 20, 30, Resources()).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::ApplyTheSiegeWeaponImpact(7, 20, 30, Resources()).HasValue());
     const auto& effect = world->Map().effects.Effects()[0];
-    EXPECT_EQ(effect.type, Client::World::ShockWaveEffect);
+    EXPECT_EQ(effect.type, Client::Effects::ShockWaveEffect);
     EXPECT_EQ(effect.subtype, 6);
     EXPECT_EQ(effect.life, 50);
     EXPECT_EQ(effect.transform.position, (glm::vec3{2000, 3000, 100}));
@@ -162,7 +162,7 @@ TEST_F(CastleWeaponEffectsTest, FenrirChoosesItsHandActionButSendsNativeAction5d
     hero.hands[1].model = 0xffff;
     hero.position = {100, 100, 0};
     hero.angles.z = 0;
-    const auto services = Client::Scenes::SiegeStoneServicesOf(resources);
+    const auto services = Client::CastleSiege::SiegeStoneServicesOf(resources);
     ASSERT_TRUE(services.heroAction(hero.position, 350).HasValue());
     EXPECT_EQ(hero.animation.action, 0x66);
     ASSERT_EQ(sent.size(), 1u);

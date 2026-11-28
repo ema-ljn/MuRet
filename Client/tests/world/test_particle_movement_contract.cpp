@@ -17,16 +17,16 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 
 TEST(ParticleMovementContractTest, TheRotatedTemporaryIsAddedToTheThreePositionComponents)
 {
     Particles particles;
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true,
-                        .type = Client::World::SparkParticle,
-                        .subtype = Client::World::RavenSparkSubtype,
+                        .type = Client::Particles::SparkParticle,
+                        .subtype = Client::Particles::RavenSparkSubtype,
                         .scale = 1,
                         .position = {100, 200, 300},
                         .angles = {0, 90, 0},
@@ -42,7 +42,7 @@ TEST(ParticleMovementContractTest, TheRotatedTemporaryIsAddedToTheThreePositionC
                         .field64 = {31, 32},
                         .start = {7, 8, 9}};
     CrtRandom random(7);
-    const auto step = Client::World::StepParticlesChecked(particles, random);
+    const auto step = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(step.HasValue());
     // Matriz de 90° acreditada en rotation.txt: sinY=1, cosY=bits32510b46.
     // R=(3,2,-0.99999994), y cada suma independiente se almacena como float.
@@ -65,14 +65,14 @@ TEST(ParticleMovementContractTest, AZeroMovementFlagSkipsTheHelperEvenWithUnorde
     Particles particles;
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true,
-                        .type = Client::World::SparkParticle,
-                        .subtype = Client::World::RavenSparkSubtype,
+                        .type = Client::Particles::SparkParticle,
+                        .subtype = Client::Particles::RavenSparkSubtype,
                         .position = {100, 200, 300},
                         .angles = glm::vec3(std::numeric_limits<float>::quiet_NaN()),
                         .life = 10,
                         .velocity = {1, 2, 3}};
     CrtRandom random(7);
-    const auto step = Client::World::StepParticlesChecked(particles, random);
+    const auto step = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(step.HasValue());
     EXPECT_EQ(particle.position, glm::vec3(100, 200, 300));
     EXPECT_EQ(random.State(), 0xc40e66b9u);
@@ -83,14 +83,14 @@ TEST(ParticleMovementContractTest, ThePositionAdditionDoesNotIntroduceAFiniteVal
     Particles particles;
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true,
-                        .type = Client::World::SparkParticle,
-                        .subtype = Client::World::RavenSparkSubtype,
+                        .type = Client::Particles::SparkParticle,
+                        .subtype = Client::Particles::RavenSparkSubtype,
                         .position = {std::numeric_limits<float>::quiet_NaN(), 20, 30},
                         .life = 10,
                         .moves = true,
                         .velocity = {1, 2, 3}};
     CrtRandom random(7);
-    const auto step = Client::World::StepParticlesChecked(particles, random);
+    const auto step = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(step.HasValue());
     EXPECT_TRUE(std::isnan(particle.position.x));
     EXPECT_EQ(particle.position.y, 22);

@@ -16,7 +16,7 @@
 
 // Las cajas viejas del juego (06 § HUD y ventanas, "Los diálogos del juego", CL8 hito 6): el texto y los dos botones
 // que arman 0x632e30 y 0x633300, los que pasa 0x623e70 (0x62d756) y dibuja 0x62db60. Todos globales de la .bss.
-namespace Client::UI
+namespace Client::Ui
 {
 // 0x632e30 y 0x633300 parten en a lo sumo 7 renglones (0x632c90(texto, 0x7d36a98, 7, 0x26)).
 inline constexpr std::size_t DialogRowCount = 7;
@@ -128,7 +128,7 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
                                                                const DialogTextArguments* arguments = nullptr);
 
 // 0x633300(renglones, primerTexto, 0x99) (CL9 hito 7): el primer renglón es el sprintf del texto `firstText` con
-// `zen`, lo que 0x5b1130 escribe del zen tipeado (0x77f3b6c; quien llama lo arma con Scenes::FormatZen), y los que
+// `zen`, lo que 0x5b1130 escribe del zen tipeado (0x77f3b6c; quien llama lo arma con Ui::FormatZen), y los que
 // siguen, los textos `firstText + 1` .. `firstText + lineCount − 1` con el mismo sprintf sin argumentos (un "%%" sale
 // como "%"); la cuenta queda en `lineCount`. Los botones y el id, como OpenTextDialog.
 [[nodiscard]] Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, DialogState& dialogs,
@@ -181,4 +181,4 @@ inline constexpr std::int32_t AnswersHalfWidth = 0x6a;
 // ((7 − [0x7d3a0fc] − renglones) · 0x12) / 2 + 0x4c (la división con signo, hacia el cero); con el 0x8d, no menos de
 // 0x46. Las respuestas del 0x8d siguen debajo del texto, en esa y + renglones · 0x12.
 [[nodiscard]] std::int32_t DialogTextTop(const DialogBoxState& box, std::int32_t id);
-} // namespace Client::UI
+} // namespace Client::Ui

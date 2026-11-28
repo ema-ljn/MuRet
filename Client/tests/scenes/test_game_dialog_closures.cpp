@@ -43,15 +43,15 @@ TEST_P(GameDialogClosuresTest, EscapeClosesTheNpcThroughTheTransportBorrowedByTh
     Client::Crt::CrtRandom random(4242);
     Client::Input::InputState input;
     input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
-    const Client::Scenes::InventoryServices inventory;
+    const Client::Items::InventoryServices inventory;
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Scenes::GameUiContext context{.world = *world, .random = random, .input = input, .inventory = &inventory};
+    Client::Hud::GameUiContext context{.world = *world, .random = random, .input = input, .inventory = &inventory};
     context.sendNpcWindow = [&](Client::Protocol::Outgoing packet)
     {
         sent.push_back(std::move(packet));
         return Client::Core::Expected<void, std::string>{};
     };
-    const auto stepped = Client::Scenes::StepTheGameDialogs(context);
+    const auto stepped = Client::Hud::StepTheGameDialogs(context);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(sent.size(), 1u);
     const std::uint8_t opcode = kind == 0 ? 0x82 : kind == 1 ? 0x87 : 0x31;

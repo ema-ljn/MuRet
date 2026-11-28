@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Events::Crywolf
 {
 namespace
 {
@@ -79,4 +79,4 @@ void StepTheCrywolfMusic(Kernel::WorldRuntime& runtime)
         runtime.music.Stop(runtime.audio, MapTrack);
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Events::Crywolf

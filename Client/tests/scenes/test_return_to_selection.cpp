@@ -121,11 +121,11 @@ struct Returning
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
@@ -296,12 +296,12 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
 TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesThePersonalShops)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::PersonalShopState& shops = tested->world.Runtime().social.personalShop;
+    Client::Social::PersonalShopState& shops = tested->world.Runtime().social.personalShop;
     shops.ownOpen = 1;
-    shops.mode = Client::Scenes::OtherShopView;
+    shops.mode = Client::Social::OtherShopView;
     shops.dialogMode = 2;
     shops.ownTitle = "Tienda";
-    shops.titles[3] = Client::Scenes::ShopTitle{};
+    shops.titles[3] = Client::Social::ShopTitle{};
     shops.ownPrices[4] = 100;
     shops.otherPrices[5] = 200;
     shops.pricesBuilt = true;
@@ -313,7 +313,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesThePersonalShops)
     ASSERT_TRUE(returned.HasValue()) << returned.Error();
 
     EXPECT_EQ(shops.ownOpen, 0);
-    EXPECT_EQ(shops.mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(shops.mode, Client::Social::NoShopView);
     EXPECT_EQ(shops.dialogMode, 0);
     EXPECT_TRUE(shops.ownTitle.empty());
     EXPECT_TRUE(shops.titles.empty());
@@ -333,11 +333,11 @@ TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
     runtime.quest.characterClass = 1;
     runtime.quest.current = 2;
     runtime.quest.states[0] = 0xaa;
-    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
+    runtime.panels.delegated.quest = Client::Quests::QuestListWindow;
 
     ASSERT_TRUE(ApplyReturnToSelection(tested->Resources()).HasValue());
 
-    EXPECT_EQ(runtime.quest.characterClass, Client::Scenes::QuestClassUnknown);
+    EXPECT_EQ(runtime.quest.characterClass, Client::Quests::QuestClassUnknown);
     EXPECT_EQ(runtime.quest.current, 0);
     EXPECT_EQ(runtime.quest.states[0], 0);
     EXPECT_EQ(runtime.panels.delegated.quest, 0);
@@ -347,7 +347,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
 TEST(ReturnToSelectionWithoutDataTest, TheQuestResetLeavesTheEvolutionTheRecordsAndTheZen)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::QuestState& quest = tested->world.Runtime().quest;
+    Client::Quests::QuestState& quest = tested->world.Runtime().quest;
     quest.evolution = 1;
     quest.flags = {1, 2, 3, 4};
     quest.reached = 5;
@@ -379,7 +379,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheQuestResetLeavesTheEvolutionTheRecords
 TEST(ReturnToSelectionWithoutDataTest, TheReturnEmptiesOnlyTheGuildNotice)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::GuildState& guild = tested->world.Runtime().guild;
+    Client::Guild::GuildState& guild = tested->world.Runtime().guild;
     guild.tableCount = 1;
     guild.memberCount = 2;
     guild.score = 3;
@@ -482,7 +482,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnRestartsTheSiegeClockAndKeepsThe
 TEST(ReturnToSelectionWithoutDataTest, TheReturnKeepsTheTradeThePartyAndTheDuel)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::SocialState& social = tested->world.Runtime().social;
+    Client::Social::SocialState& social = tested->world.Runtime().social;
     social.trade.otherLevel = 1;
     social.trade.ownMoney = 2;
     social.trade.ownOk = 1;
@@ -514,7 +514,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnKeepsTheTradeThePartyAndTheDuel)
 TEST(ReturnToSelectionWithoutDataTest, TheReturnKeepsTheNpcWindows)
 {
     const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
-    Client::Scenes::NpcWindowState& npc = tested->world.Runtime().npcWindows;
+    Client::Npc::NpcWindowState& npc = tested->world.Runtime().npcWindows;
     npc.chaosRates[0] = 1;
     npc.chaosMixState = 2;
     npc.field7d2dc9d = 3;
@@ -556,8 +556,8 @@ TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
     actors[2].key = SurvivingKey;
     actors[3].key = SurvivingKey;
     auto& helpers = tested.world.Helpers();
-    helpers[0] = Client::Kernel::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 1};
-    helpers[1] = Client::Kernel::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 2};
+    helpers[0] = Client::Kernel::HelperState{.alive = true, .type = Client::Pets::DarkHorseModel, .rider = 1};
+    helpers[1] = Client::Kernel::HelperState{.alive = true, .type = Client::Pets::DarkHorseModel, .rider = 2};
 
     ASSERT_TRUE(ApplyReturnToSelection(tested.Resources()).HasValue());
 
@@ -596,13 +596,13 @@ TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetChe
     runtime.map = 30;
     runtime.movement.followTarget = 17;
     runtime.quest.current = 2;
-    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
+    runtime.panels.delegated.quest = Client::Quests::QuestListWindow;
     runtime.panels.delegated.trainer = 3;
     runtime.panels.delegated.field724584 = 9;
     runtime.pets[1].level = 30;
     auto& dialog = runtime.panels.delegated.panelDialog;
     dialog.opened = 77;
-    dialog.owner = Client::UI::PanelDialogOwner::GuildJoin;
+    dialog.owner = Client::Ui::PanelDialogOwner::GuildJoin;
     dialog.timerMs = 777;
     runtime.chat.input.dialogFieldOn = true;
     tested->world.OwnCharacter().word3e = 55;

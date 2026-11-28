@@ -7,7 +7,7 @@
 #include <span>
 #include <string>
 
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
@@ -25,7 +25,7 @@ enum class CursorGrid : std::uint8_t;
 // El clic derecho sobre un ítem de la grilla del inventario desde 0x5c7bc6 (CL9 hito 5, fase 2; 06 § Los ítems del
 // piso, "Usar desde la grilla"): lo que 0x5c4110 hace después de las pociones, el pergamino del portal, la caja de la
 // suerte y las entradas a los eventos.
-namespace Client::Scenes
+namespace Client::Items
 {
 struct InventoryMoveContext;
 
@@ -56,7 +56,7 @@ struct UsedGrid
 //   0x5ca250; sin lugar, o con 0x7d368a1 en 0, el cursor vuelve a quedar en ceros.
 // Con la grilla del comercio, todo lo que llega a UseInventoryItem da el aviso 474: el comercio está abierto.
 [[nodiscard]] Core::Expected<void, std::string>
-UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels, UsedGrid grid, std::size_t index);
+UseTheLaterGridItem(const InventoryMoveContext& context, Ui::PanelRegistry& panels, UsedGrid grid, std::size_t index);
 
 // Las entradas a los eventos, antes de las pociones (0x5c67e9, 0x5c6c36 y 0x5c7010): el 0x1a1d, el 0x1c13 y el 0x1a12.
 [[nodiscard]] bool IsAnEventTicket(std::int32_t type);
@@ -65,5 +65,5 @@ UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& pane
 // la primera abierta, con el rand() de la tienda y del comercio; con una abierta no hace nada (0x5c9b0b). Si no, y con
 // los otros dos, envía C1 04 91 con clase4/1/2; sólo 1a1d conserva la casilla+12 y la copia del ítem.
 [[nodiscard]] Core::Expected<void, std::string>
-UseTheEventTicket(const InventoryMoveContext& context, UI::PanelRegistry& panels, UsedGrid grid, std::size_t index);
-} // namespace Client::Scenes
+UseTheEventTicket(const InventoryMoveContext& context, Ui::PanelRegistry& panels, UsedGrid grid, std::size_t index);
+} // namespace Client::Items

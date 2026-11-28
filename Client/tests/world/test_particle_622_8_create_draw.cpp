@@ -16,10 +16,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
-using Client::World::Particle;
-using Client::World::Particles;
 constexpr std::int32_t CloudType = 0x622;
 constexpr std::int32_t CloudSubtype = 8;
 

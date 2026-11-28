@@ -22,12 +22,16 @@ namespace Client::Models
 class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Models
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::Particles
 {
 class FrameSprites;
-class ModelEffects;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 namespace Client::Kernel
 {
 struct ActorState;
@@ -64,10 +68,10 @@ struct VertexEffectCall
 // the one the type asks for is needed; without it, it stops at its address.
 struct VertexEffectTables
 {
-    World::ModelEffects* effects = nullptr;
-    World::Particles* particles = nullptr;
+    Effects::ModelEffects* effects = nullptr;
+    Particles::Particles* particles = nullptr;
     float worldClock = 0.0f;
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     std::span<Scenes::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
     const IEffectHooks* effectHooks = nullptr;
@@ -103,6 +107,6 @@ EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale, std::spa
 [[nodiscard]] Core::Expected<void, std::string>
 EmitVertexEffects(const Models::IModelLibrary& models, const DrawnObject& object,
                   std::span<const Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
-                  std::int32_t subtype, World::ModelEffects& effects, const IEffectHooks* effectHooks,
+                  std::int32_t subtype, Effects::ModelEffects& effects, const IEffectHooks* effectHooks,
                   Crt::CrtRandom& random);
 } // namespace Client::Actors::Drawing

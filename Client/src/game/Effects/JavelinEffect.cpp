@@ -20,7 +20,7 @@
 #include <string>
 
 // Cotejado con el PE c32bbd5f: 0x51dacb (el alta del 0x139) y 0x529b86 (su paso).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -30,7 +30,7 @@ using Math::F32;
 constexpr double Lift = 150.0; // 0x6b87ac
 
 // 0x529c8e..0x529cc5 y 0x529d2b..0x529d62: la velocidad girada por los ángulos de +0x28, sumada a la posición.
-void Advance(World::ModelEffect& effect)
+void Advance(Effects::ModelEffect& effect)
 {
     const glm::vec3 step = Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.copiedAngles));
     glm::vec3& position = effect.transform.position;
@@ -38,7 +38,7 @@ void Advance(World::ModelEffect& effect)
 }
 
 // 0x529bc9..0x529d06, por debajo de 25 de vida.
-Core::Expected<void, std::string> Hunt(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> Hunt(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr std::int32_t HuntLife = 20;
     constexpr double Near = 100.0;                                                   // 0x6b86b4
@@ -81,7 +81,7 @@ Core::Expected<void, std::string> Hunt(World::ModelEffect& effect, const HighEff
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheJavelin(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> BeginTheJavelin(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr std::int32_t Life = 35;                          // 0x51dacb
     constexpr float Spin = 2.0f;                               // 0x51dad2, +0xe4
@@ -106,7 +106,7 @@ Core::Expected<void, std::string> BeginTheJavelin(World::ModelEffect& effect, co
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJavelin(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheJavelin(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3c75c28fu)); // 0x6b8a24, 0,015f
     constexpr std::int32_t RiseLife = 25;
@@ -140,6 +140,7 @@ Core::Expected<void, std::string> StepTheJavelin(World::ModelEffect& effect, con
         effect.transform.position.z =
             effect.subtype == RisingSubtype ? F32(*wave + D(effect.start.z)) : F32(D(effect.start.z) - *wave);
     }
-    return World::AddDynamicLight(context.services.lighting, effect.transform.position, Glow, GlowRadius, "0x529de1");
+    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, Glow, GlowRadius,
+                                         "0x529de1");
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

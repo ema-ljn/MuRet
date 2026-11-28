@@ -338,7 +338,7 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
     ASSERT_TRUE(models.Load(m_dataRoot, Login, store, log, &table).HasValue());
 
     ASSERT_NE(models.TextureSlots(), nullptr);
-    EXPECT_EQ(models.TextureSlots()->Next(), Client::Scenes::LoginLogoFirstSlot);
+    EXPECT_EQ(models.TextureSlots()->Next(), Client::FrontEnd::LoginLogoFirstSlot);
     for (std::uint16_t slot = 0x41c; slot < 0x455; ++slot)
     {
         const auto texture = store.Find(TextureSlot{slot});

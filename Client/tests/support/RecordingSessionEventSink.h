@@ -81,8 +81,8 @@ public:
     std::vector<App::CharacterEvent> characters;
     std::vector<App::WorldEvent> world;
     std::vector<std::vector<std::byte>> packetCopies;
-    std::vector<App::SessionState> characterStates;
-    std::vector<App::SessionState> worldStates;
+    std::vector<Session::SessionState> characterStates;
+    std::vector<Session::SessionState> worldStates;
     std::vector<std::string> trace;
     std::function<Core::Expected<void, std::string>(const App::CharacterEvent&, const App::ServerSession&)> onCharacter;
     std::function<Core::Expected<void, std::string>(const App::WorldEvent&, App::ServerSession&)> onWorld;

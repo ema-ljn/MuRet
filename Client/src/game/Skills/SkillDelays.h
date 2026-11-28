@@ -19,7 +19,7 @@ class WorldState;
 // La espera de las skills (+0x76c del registro propio, por el lugar de la barra), CL9 hito 4. Contrato: 06, "La
 // espera de las skills". Cada acceso al registro propio gasta sus 3.848 rand() al cerrarlo en 0, y cada uno a una
 // entrada de Skill.bmd, 60 (0x40f600), en el orden del original.
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 struct SkillDelayContext
@@ -47,4 +47,4 @@ struct SkillDelayContext
 // empezar cada frame del original).
 [[nodiscard]] Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed,
                                                                      const SkillDelayContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

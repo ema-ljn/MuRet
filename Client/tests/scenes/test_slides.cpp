@@ -32,7 +32,7 @@ protected:
         table.periodSeconds = 60;
         table.speed = 2.5f;
         table.groups[0] = {.maxLevel = 15, .count = 1, .texts = {"un consejo inventado"}};
-        Client::UI::LoadTheSlides(m_world->Runtime().hud.slides, table);
+        Client::Ui::LoadTheSlides(m_world->Runtime().hud.slides, table);
         m_world->OwnCharacter().level = 3;
     }
 
@@ -43,7 +43,7 @@ protected:
         return expected.State();
     }
 
-    [[nodiscard]] Client::UI::SlideBanner& Banner()
+    [[nodiscard]] Client::Ui::SlideBanner& Banner()
     {
         return m_world->Runtime().hud.slides;
     }
@@ -55,7 +55,7 @@ protected:
 // 0x46b010: las colas, el timer de 60 s y 0x46b0e0: el cierre del registro propio y el rand() del sorteo.
 TEST_F(SlidesTest, TheFirstGameStepArmsTheTimerAndQueuesOne)
 {
-    Client::Scenes::StartTheSlides(*m_world, m_random, 5000);
+    Client::Hud::StartTheSlides(*m_world, m_random, 5000);
 
     EXPECT_EQ(Banner().timerDue, std::optional<std::uint32_t>(65000));
     EXPECT_EQ(m_random.State(), After(OwnRecordCloseRandoms + 1));
@@ -72,7 +72,7 @@ TEST_F(SlidesTest, ALevelOutOfTheGroupsDrawsNoPick)
 {
     m_world->OwnCharacter().level = 99;
 
-    Client::Scenes::StartTheSlides(*m_world, m_random, 0);
+    Client::Hud::StartTheSlides(*m_world, m_random, 0);
 
     EXPECT_EQ(m_random.State(), After(OwnRecordCloseRandoms));
     EXPECT_TRUE(Banner().normal.entries.empty());
@@ -82,45 +82,45 @@ TEST_F(SlidesTest, ALevelOutOfTheGroupsDrawsNoPick)
 // a contar desde ahí.
 TEST_F(SlidesTest, TheTimerRunsOnceWhenDue)
 {
-    Client::Scenes::StartTheSlides(*m_world, m_random, 0);
+    Client::Hud::StartTheSlides(*m_world, m_random, 0);
     Banner().normal.entries.clear();
     const std::uint32_t afterStart = m_random.State();
 
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 59999, true);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 59999, true);
     EXPECT_EQ(m_random.State(), afterStart);
 
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 61000, true);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 61000, true);
     EXPECT_EQ(m_random.State(), After(2 * (OwnRecordCloseRandoms + 1) + 2));
     EXPECT_EQ(Banner().timerDue, std::optional<std::uint32_t>(121000));
     EXPECT_EQ(Banner().normal.entries.size(), 1U);
 
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 61001, true);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 61001, true);
     EXPECT_EQ(m_random.State(), After(2 * (OwnRecordCloseRandoms + 1) + 2));
 }
 
 // Fuera del juego, o con la cola normal todavía prendida, el timer saca solo los dos del foco.
 TEST_F(SlidesTest, OutsideTheGameOnlyTheFocusIsRead)
 {
-    Client::Scenes::StartTheSlides(*m_world, m_random, 0);
+    Client::Hud::StartTheSlides(*m_world, m_random, 0);
     const std::uint32_t start = OwnRecordCloseRandoms + 1;
 
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 60000, false);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 60000, false);
     EXPECT_EQ(m_random.State(), After(start + 2));
 
     Banner().normal.alpha = 30;
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 120000, true);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 120000, true);
     EXPECT_EQ(m_random.State(), After(start + 4));
 
     Banner().normal.alpha = 0;
     m_world->Runtime().chat.slidesOn = false;
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 180000, true);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 180000, true);
     EXPECT_EQ(m_random.State(), After(start + 6));
 }
 
 // Sin el primer paso del juego no hay timer.
 TEST_F(SlidesTest, WithoutTheFirstGameStepThereIsNoTimer)
 {
-    Client::Scenes::RunTheSlideTimer(*m_world, m_random, 600000, true);
+    Client::Hud::RunTheSlideTimer(*m_world, m_random, 600000, true);
 
     EXPECT_EQ(m_random.State(), After(0));
 }

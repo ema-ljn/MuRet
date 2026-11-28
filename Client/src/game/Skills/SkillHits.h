@@ -27,7 +27,7 @@ struct WorldTerrain;
 // CL9 hito 4: 0x517a20, los blancos de una skill alrededor de un punto y el C1 10 que los manda (FoxAnti: 1D). Lo llama
 // el choque de las flechas de skill (0x520170 en 0x520497, Scenes/ArrowEffects); la matriz lo pone en la CL11 (06,
 // "La flecha").
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // Los seis argumentos de 0x517a20.
@@ -56,4 +56,4 @@ struct SkillHitsRequest
 [[nodiscard]] Core::Expected<bool, std::string>
 HitTheTargetsAround(const SkillHitsRequest& request, Kernel::WorldState& world, const Terrain::WorldTerrain& terrain,
                     Crt::CrtRandom& random, const std::function<void(Protocol::Outgoing)>& send);
-} // namespace Client::Scenes
+} // namespace Client::Skills

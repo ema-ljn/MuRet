@@ -339,7 +339,7 @@ public:
                        .socket = m_socket,
                        .obfuscation = Network::IdentityObfuscation::Shared(),
                        .keys = GameClientKeys(),
-                       .settings = App::SessionSettings{.connectServer = App::ServerAddress{"10.0.0.1", 44405}},
+                       .settings = App::SessionSettings{.connectServer = Session::ServerAddress{"10.0.0.1", 44405}},
                        .autoLogin = App::Credentials{"user0001", "pass0002"},
                        .paddingSeed = PaddingSeed})
     {
@@ -421,7 +421,7 @@ public:
         m_audioBefore = m_audio.Rows().size();
         const std::size_t sentBefore = m_socket.sent.size();
         m_target.frames.clear();
-        App::ILoopClient& loop = m_client.Loop();
+        Scenes::ILoopClient& loop = m_client.Loop();
         loop.Poll();
         loop.Step(m_input);
         m_input.ConsumeEdges();
@@ -493,7 +493,7 @@ private:
         const Kernel::WorldState& world = m_client.World();
         const Kernel::WorldRuntime& runtime = world.Runtime();
         const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
-        const UI::PanelState& panels = runtime.panels;
+        const Ui::PanelState& panels = runtime.panels;
         std::string trace =
             std::format("\n  map {} life {} mana {} zen {} panels inventory {} npc shop {} event {}", runtime.map,
                         own.life, own.mana, own.zen, panels.inventory, panels.npcShop, panels.eventNpc);
@@ -511,7 +511,7 @@ private:
         }
         if (!runtime.chat.log.entries.empty())
         {
-            const UI::ChatEntry& newest = runtime.chat.log.entries.front();
+            const Chat::ChatEntry& newest = runtime.chat.log.entries.front();
             trace += std::format("\n  chat {} lines, the newest {}: {} ({})", runtime.chat.log.entries.size(),
                                  newest.name, newest.text, newest.type);
         }

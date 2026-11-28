@@ -19,8 +19,8 @@ bool ActorNameContains(const Kernel::ActorState& actor, std::string_view word)
         name[index] = static_cast<char>(actor.name[index]);
     name[actor.name.size()] = static_cast<char>(actor.byte1e3);
     const auto end = std::ranges::find(name, '\0');
-    return UI::ContainsLikeTheOriginal(std::string_view(name.data(), static_cast<std::size_t>(end - name.begin())),
-                                       word);
+    return FrontEnd::ContainsLikeTheOriginal(
+        std::string_view(name.data(), static_cast<std::size_t>(end - name.begin())), word);
 }
 
 std::string_view HeroNameOf(const Kernel::ActorState& hero)

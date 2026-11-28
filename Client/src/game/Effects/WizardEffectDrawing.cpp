@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -85,18 +85,18 @@ Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch,
 
 Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& batch,
                                                           const Models::IModelLibrary& models,
-                                                          const World::ModelEffect& effect,
+                                                          const Effects::ModelEffect& effect,
                                                           Actors::Drawing::DrawnObject& object,
                                                           Core::Duration frameClock)
 {
-    if (effect.renderFlags == World::CrackRenderFlags)
+    if (effect.renderFlags == Effects::CrackRenderFlags)
         return DrawTheDarkBody(batch, models, object, frameClock);
-    if (effect.type == World::OuterCircleEffect && (effect.subtype == 3 || effect.subtype == 4))
+    if (effect.type == Effects::OuterCircleEffect && (effect.subtype == 3 || effect.subtype == 4))
     {
         object.color = DeepBlue;
         return false;
     }
-    if (effect.type == World::InnerCircleEffect && (effect.subtype == 2 || effect.subtype == 3))
+    if (effect.type == Effects::InnerCircleEffect && (effect.subtype == 2 || effect.subtype == 3))
     {
         object.color = PaleBlue;
         Actors::Drawing::DrawObjectWithTexture(batch, models, object, frameClock, MagicTexture);
@@ -110,4 +110,4 @@ Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& ba
     }
     return false;
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

@@ -59,18 +59,18 @@ struct PlasmaWorld
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random);
+        return Client::Joints::CreateFaunaJoint(joints, request, random);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr, lighting.get());
+        return Client::Joints::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr, lighting.get());
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 300.0f};
     glm::vec3 second{1000.0f, 1500.0f, 220.0f};
     std::vector<JointState> joints = std::vector<JointState>(2);
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
 };
@@ -95,7 +95,7 @@ bool Turn(JointState& joint, CrtRandom& replay, Client::Terrain::TerrainLighting
     if (lighting != nullptr)
     {
         const glm::vec3 glow(std::bit_cast<float>(GlowBits[shade]));
-        EXPECT_TRUE(Client::World::AddDynamicLight(lighting, joint.position, glow, 2, "prueba").HasValue());
+        EXPECT_TRUE(Client::WorldObjects::AddDynamicLight(lighting, joint.position, glow, 2, "prueba").HasValue());
     }
     const auto moved =
         Client::Math::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, Client::Math::OriginalAngleMatrix(shaken));
@@ -183,7 +183,7 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     EXPECT_EQ(joint.count, turns + 2);
     EXPECT_EQ(joint.life, 19);
     EXPECT_EQ(std::ranges::count_if(tested.particles->All(),
-                                    [](const Client::World::Particle& particle) { return particle.alive; }),
+                                    [](const Client::Particles::Particle& particle) { return particle.alive; }),
               0);
 }
 
@@ -208,7 +208,7 @@ TEST(PlasmaJointsTest, TheFiftyWidePlasmaSparksWhenItArrives)
         for (int axis = 0; axis < 3; ++axis)
             expected.position[axis] = F32(D(expected.position[axis]) + D(first[axis]));
         ASSERT_TRUE(Turn(expected, replay));
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         ASSERT_TRUE(
             twin->CreateChecked(0x5ca, expected.position, expected.angles, expected.light, 0, 1.0f, 0.0f, replay)
                 .HasValue());
@@ -227,7 +227,7 @@ TEST(PlasmaJointsTest, TheFiftyWidePlasmaSparksWhenItArrives)
         EXPECT_EQ(tested.joints[0].position, expected.position);
         const auto count = [&tested](std::int32_t type)
         {
-            return std::ranges::count_if(tested.particles->All(), [type](const Client::World::Particle& particle)
+            return std::ranges::count_if(tested.particles->All(), [type](const Client::Particles::Particle& particle)
                                          { return particle.alive && particle.type == type; });
         };
         EXPECT_EQ(count(0x5ca), 1);

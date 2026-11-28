@@ -19,7 +19,7 @@
 #include <optional>
 #include <string_view>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -583,4 +583,4 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Crt::CrtRand
         StepWaterfall(p, random);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Particles

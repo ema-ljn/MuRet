@@ -24,7 +24,7 @@
 // 0x5b79bd..0x5b801a del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): las clases (0x5af590), lo que
 // suma cada tipo, el stat del conjunto (0x40dd80), las opciones (0x5b2320), las cajas y las opciones del conjunto
 // (0x40eee0). Los textos son los de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -186,7 +186,7 @@ std::uint8_t ClassByte(std::span<const std::byte, Tables::ItemRecordSize> record
 
 // 0x5af590(registro), de los dos que la llaman (ItemTooltipParts.h). `other` es el color de lo que el héroe no cumple:
 // 2 si su clase lo usa (Item.bmd+0x45 + clase distinto de 0) y 5 si no.
-void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
+void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& lines,
                          std::span<const std::byte, Tables::ItemRecordSize> record)
 {
     lines.At("0x5af590");
@@ -265,7 +265,7 @@ void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
     }
 }
 
-Core::Expected<void, std::string> WriteAnOption(GameHudContext& context, TooltipWriter& lines, std::int32_t type,
+Core::Expected<void, std::string> WriteAnOption(Hud::GameHudContext& context, TooltipWriter& lines, std::int32_t type,
                                                 std::uint8_t tag, std::uint8_t value)
 {
     const auto found = std::ranges::find(OptionTexts, tag, &OptionText::tag);
@@ -471,7 +471,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     lines.At("0x40eee0");
     if (lines.Failed())
         return Core::Unexpected(lines.Error());
-    GameHudContext& context = frame.context;
+    Hud::GameHudContext& context = frame.context;
     const Kernel::ItemState& item = frame.item;
     Player::ItemSetState& sets = context.world.ItemSets();
     if (context.setTypes == nullptr || context.setOptions == nullptr)
@@ -616,4 +616,4 @@ Core::Expected<void, std::string> WriteTheOptions(ItemTooltipFrame& frame)
         return written;
     return WriteTheSetOptions(frame);
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

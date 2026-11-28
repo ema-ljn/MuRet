@@ -51,24 +51,24 @@ std::int32_t Masked(CrtRandom& random, std::int32_t modulus)
 }
 
 // 0x518cf0(type, point, angles, light, subtype, 0, −1, 0, 0, 0, 0) of the stones 0x10a and 0x10b (0x51bafb).
-void Debris(const IEffectHooks& hooks, World::ModelEffects& effects, std::int16_t type, const glm::vec3& position,
+void Debris(const IEffectHooks& hooks, Effects::ModelEffects& effects, std::int16_t type, const glm::vec3& position,
             const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     static_cast<void>(hooks.CreateTheDebris(effects, type, position, angles, light, random, subtype));
 }
 
 // The same with the siege fragments and the stones of 0x13c (0x51d2a9, 0x51d5b8).
-void Siege(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+void Siege(Effects::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
            const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
-    static_cast<void>(World::CreateSiegeVertexEffect(
+    static_cast<void>(CastleSiege::CreateSiegeVertexEffect(
         {.type = type, .position = position, .angles = angles, .light = light, .subtype = subtype}, effects, random));
 }
 
 // The same with the gates' stones 0x10c and 0x10d (0x51b99f).
-Result GateDebris(const IEffectHooks& hooks, World::ModelEffects& effects, std::int16_t type, const glm::vec3& position,
-                  const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype, CrtRandom& random,
-                  std::uint32_t address)
+Result GateDebris(const IEffectHooks& hooks, Effects::ModelEffects& effects, std::int16_t type,
+                  const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
+                  CrtRandom& random, std::uint32_t address)
 {
     const auto made = hooks.CreateTheBlastEffect(
         effects, {.type = type, .position = position, .angles = angles, .light = light, .subtype = subtype}, random);
@@ -78,7 +78,7 @@ Result GateDebris(const IEffectHooks& hooks, World::ModelEffects& effects, std::
 }
 
 // 0x4ee835..0x4ee9d3: 0x10a.
-void ScatterStones(const IEffectHooks& hooks, World::ModelEffects& effects, const glm::vec3& position,
+void ScatterStones(const IEffectHooks& hooks, Effects::ModelEffects& effects, const glm::vec3& position,
                    const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     constexpr std::int32_t Falling = 0, Blue = 1, Green = 2, Mixed = 3;
@@ -109,7 +109,7 @@ void ScatterStones(const IEffectHooks& hooks, World::ModelEffects& effects, cons
 }
 
 // 0x4ee9d8..0x4eeb4e: 0x10c, with the light at 0.2f.
-Result ScatterGateStones(const IEffectHooks& hooks, World::ModelEffects& effects, const glm::vec3& position,
+Result ScatterGateStones(const IEffectHooks& hooks, Effects::ModelEffects& effects, const glm::vec3& position,
                          const glm::vec3& angles, glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     constexpr std::int32_t Wide = 0, Narrow = 1, NarrowChildren = 2;
@@ -145,8 +145,8 @@ Result ScatterGateStones(const IEffectHooks& hooks, World::ModelEffects& effects
 }
 
 // 0x4eeb53..0x4eec6b: 0x12d, 0x12e and 0x12f; the second rand() & 1 chooses between the base type and the next.
-void ScatterShower(World::ModelEffects& effects, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                   const glm::vec3& light, CrtRandom& random)
+void ScatterShower(Effects::ModelEffects& effects, std::int16_t type, const glm::vec3& position,
+                   const glm::vec3& angles, const glm::vec3& light, CrtRandom& random)
 {
     constexpr int Chance = 3, Pair = 2;
     constexpr std::int32_t ShowerSubtype = 1;
@@ -158,7 +158,7 @@ void ScatterShower(World::ModelEffects& effects, std::int16_t type, const glm::v
 }
 
 // 0x4eec70..0x4eed6a: 0x131, with the light at 0.2f; each addition before the next rand().
-void ScatterSiegeShards(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
+void ScatterSiegeShards(Effects::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                         glm::vec3& light, CrtRandom& random)
 {
     constexpr int DustChance = 12, ShardChance = 40, SparkChance = 40;
@@ -174,7 +174,7 @@ void ScatterSiegeShards(World::ModelEffects& effects, const glm::vec3& position,
 // 0x4eed94..0x4eee66, 0x13c: one rand() % 45 per corner; with 0 and fewer than 20 already counted ([ebp+8], which does
 // not go back to 0 between polygons), /0 creates the 0x13c/0 and /1 the 0x12d/2 and the 0x12e/2, without an owner; with
 // any subtype, one more in the count (even if the table is full).
-void ScatterGolemStones(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
+void ScatterGolemStones(Effects::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                         const glm::vec3& light, std::int32_t subtype, int& counted, CrtRandom& random)
 {
     constexpr int Chance = 45, Most = 20;
@@ -194,8 +194,8 @@ void ScatterGolemStones(World::ModelEffects& effects, const glm::vec3& position,
 }
 
 // 0x4eee6b..0x4eeec1: 0x137, rand() & 7 and with 0, 0x518cf0(0x137, point, angles, light, subtype, 0, −1, 0, 0, 0, 0):
-// the shell of World::CreateSkinShell (with the table full, nothing, and without its rand() calls).
-void ScatterSkinShells(const IEffectHooks& hooks, World::ModelEffects& effects, const glm::vec3& position,
+// the shell of Effects::CreateSkinShell (with the table full, nothing, and without its rand() calls).
+void ScatterSkinShells(const IEffectHooks& hooks, Effects::ModelEffects& effects, const glm::vec3& position,
                        const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype, CrtRandom& random)
 {
     constexpr int Chance = 8;
@@ -250,7 +250,7 @@ Result PullTheRavenJoints(const glm::vec3& position, std::int32_t triangle, glm:
 Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angles, glm::vec3& light, int& counted,
               float modelScale, const VertexEffectCall& call, const VertexEffectTables& tables, CrtRandom& random)
 {
-    const auto effects = [&]() -> Core::Expected<World::ModelEffects*, std::string>
+    const auto effects = [&]() -> Core::Expected<Effects::ModelEffects*, std::string>
     {
         if (tables.effects == nullptr)
             return Core::Unexpected(
@@ -271,7 +271,7 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
         const auto table = effects();
         if (!table.HasValue())
             return Core::Unexpected(table.Error());
-        World::ModelEffects& pool = *table.Value();
+        Effects::ModelEffects& pool = *table.Value();
         const bool hooked = call.type == StoneEffect || call.type == GateStone || call.type == SkinShell;
         if (hooked && tables.effectHooks == nullptr)
             return Core::Unexpected(std::format("0x518cf0: no effect hooks for the {:#x} of 0x4ee770", call.type));
@@ -384,7 +384,7 @@ Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model&
 Core::Expected<void, std::string> EmitVertexEffects(const Models::IModelLibrary& models, const DrawnObject& object,
                                                     std::span<const Models::SkinnedMesh> meshes, std::int32_t mesh,
                                                     std::int32_t type, std::int32_t subtype,
-                                                    World::ModelEffects& effects, const IEffectHooks* effectHooks,
+                                                    Effects::ModelEffects& effects, const IEffectHooks* effectHooks,
                                                     Crt::CrtRandom& random)
 {
     const auto* model = models.Find(Models::ModelId{object.model});

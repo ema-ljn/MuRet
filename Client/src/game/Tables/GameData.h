@@ -59,7 +59,7 @@ struct GameData
 {
     // The font's face is text 0.
     std::optional<TextTable> text;
-    // The words a new character's name cannot have (UI::NameFilters).
+    // The words a new character's name cannot have (FrontEnd::NameFilters).
     std::vector<std::string> filterName;
     std::vector<std::string> filter;
     std::optional<GateTable> gates;
@@ -74,7 +74,7 @@ struct GameData
     // (P-C78).
     std::vector<CreditEntry> credits;
     // Data\Macro.txt (0x61c1c0): main.cpp copies them to ChatInputState::macros when it builds the world.
-    UI::Macros macros{};
+    Chat::Macros macros{};
     // [0x5763528]'s banner period, speed and texts. Empty if missing.
     std::optional<SlideTable> slides;
     // main.cpp copies them to WorldRuntime::moves (0x723c68's list). Empty if missing, like when fopen fails in
@@ -111,8 +111,8 @@ struct GameData
 // 1 MiB, or what the original would not load without overwriting something, Tables::LoadNpcNames, is an error).
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 
-// 0x61c170: fopen("wt") of Data\Macro.txt, which creates or empties it, and `content` (UI::WrittenMacros). The macros'
-// content does not go to the log. Leaving the game (GameSceneUi) and changing server (0x412b6d) share it.
+// 0x61c170: fopen("wt") of Data\Macro.txt, which creates or empties it, and `content` (Chat::WrittenMacros). The
+// macros' content does not go to the log. Leaving the game (GameSceneUi) and changing server (0x412b6d) share it.
 [[nodiscard]] Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& dataRoot,
                                                                std::string_view content);
 } // namespace Client::Tables

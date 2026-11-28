@@ -12,11 +12,11 @@
 
 namespace
 {
+using Client::CastleSiege::SiegeIceStoneEffect;
+using Client::CastleSiege::SiegeStoneEffect;
 using Client::Crt::CrtRandom;
+using Client::Effects::ModelEffects;
 using Client::Kernel::ModelEffectArguments;
-using Client::World::ModelEffects;
-using Client::World::SiegeIceStoneEffect;
-using Client::World::SiegeStoneEffect;
 
 TEST(SiegeStoneEffectsTest, AFixedTargetStillConsumesItsDiscardedSpeedDraw)
 {
@@ -29,7 +29,7 @@ TEST(SiegeStoneEffectsTest, AFixedTargetStillConsumesItsDiscardedSpeedDraw)
                                          .key = 1,
                                          .byte89 = 0x23,
                                          .byte88 = 0x81};
-    const auto created = Client::World::CreateSiegeStone(arguments, *effects, {}, random);
+    const auto created = Client::CastleSiege::CreateSiegeStone(arguments, *effects, {}, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_TRUE(created.Value().has_value());
     const auto& effect = effects->Effects()[*created.Value()];
@@ -53,8 +53,8 @@ TEST(SiegeStoneEffectsTest, AnAutomaticTargetReadsHeroXAndSelectsItsNativeRow)
     {
         auto effects = std::make_unique<ModelEffects>();
         CrtRandom random(1);
-        const auto created = Client::World::CreateSiegeStone({.type = type, .position = {100, 200, 500}}, *effects,
-                                                             {10000, 0, 0}, random);
+        const auto created = Client::CastleSiege::CreateSiegeStone({.type = type, .position = {100, 200, 500}},
+                                                                   *effects, {10000, 0, 0}, random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_TRUE(created.Value().has_value());
         const auto& effect = effects->Effects()[*created.Value()];
@@ -71,7 +71,7 @@ TEST(SiegeStoneEffectsTest, AFullModelPoolDoesNotConstructOrConsumeRandom)
     for (auto& effect : effects->Effects())
         effect.alive = true;
     CrtRandom random(19);
-    const auto created = Client::World::CreateSiegeStone({.type = SiegeStoneEffect}, *effects, {}, random);
+    const auto created = Client::CastleSiege::CreateSiegeStone({.type = SiegeStoneEffect}, *effects, {}, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_FALSE(created.Value().has_value());
     EXPECT_EQ(random.State(), 19u);

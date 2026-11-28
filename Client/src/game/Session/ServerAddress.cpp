@@ -10,7 +10,7 @@
 #include <string_view>
 #include <system_error>
 
-namespace Client::App
+namespace Client::Session
 {
 using Core::Unexpected;
 
@@ -71,4 +71,4 @@ Core::Expected<std::string, std::string> ParseHost(std::string_view text)
     }
     return std::string(text);
 }
-} // namespace Client::App
+} // namespace Client::Session

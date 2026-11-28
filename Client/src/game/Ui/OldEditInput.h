@@ -14,7 +14,7 @@ namespace Client::Platform
 {
 class IClipboard;
 } // namespace Client::Platform
-namespace Client::UI
+namespace Client::Ui
 {
 struct OldEdit;
 
@@ -42,4 +42,4 @@ void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Pla
                        const Render::Text::ITextMeasure* measure = nullptr,
                        const std::function<void(std::int32_t)>& focusNext = {});
 void SetTheEditComposition(OldEdit& edit, std::string_view text, std::int32_t start, std::int32_t length);
-} // namespace Client::UI
+} // namespace Client::Ui

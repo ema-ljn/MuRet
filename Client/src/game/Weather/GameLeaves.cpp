@@ -25,7 +25,7 @@
 #include <string>
 #include <system_error>
 
-namespace Client::Scenes
+namespace Client::Weather
 {
 namespace
 {
@@ -86,13 +86,13 @@ constexpr double MaximumTravelSquared = 200000.0;
 constexpr float SplashHeight = 10;
 
 // Adapta el perfil retenido ya usado por el kernel de clima (ADR0014).
-class RetainedWaveEvaluator final : public World::ILeafWaveEvaluator
+class RetainedWaveEvaluator final : public Weather::ILeafWaveEvaluator
 {
 public:
-    Core::Expected<void, std::error_code> Evaluate(World::LeafWave wave, float time) override
+    Core::Expected<void, std::error_code> Evaluate(Weather::LeafWave wave, float time) override
     {
         m_value =
-            wave == World::LeafWave::First ? Math::Detail::FirstLeafSine(time) : Math::Detail::SecondLeafSine(time);
+            wave == Weather::LeafWave::First ? Math::Detail::FirstLeafSine(time) : Math::Detail::SecondLeafSine(time);
         return {};
     }
 
@@ -144,7 +144,7 @@ bool CallerRunsLeaves(const GameLeafContext& context)
            context.map == FirstExternalEffectMap || context.map == CrywolfMap || context.map == SecondExternalEffectMap;
 }
 
-World::EmberWorld FallingWorld(const GameLeafContext& context)
+Weather::EmberWorld FallingWorld(const GameLeafContext& context)
 {
     return {.hero = context.hero,
             .cameraY = context.cameraY,
@@ -153,19 +153,19 @@ World::EmberWorld FallingWorld(const GameLeafContext& context)
             .fixedHeight = context.fixedHeight};
 }
 
-void BirthPosition(World::Leaf& leaf, GameLeafContext& context, int heightSpan, int heightBase)
+void BirthPosition(Weather::Leaf& leaf, GameLeafContext& context, int heightSpan, int heightBase)
 {
     leaf.position.x = F32(static_cast<double>(context.random.Next() % BirthXSpan - BirthXCenter) + context.hero.x);
     leaf.position.y = F32(static_cast<double>(context.random.Next() % BirthYSpan - BirthYCenter) + context.hero.y);
     leaf.position.z = F32(static_cast<double>(context.random.Next() % heightSpan + heightBase) + context.hero.z);
 }
 
-void FallingVelocity(World::Leaf& leaf, float speed)
+void FallingVelocity(Weather::Leaf& leaf, float speed)
 {
     leaf.velocity = Math::OriginalVectorRotate({0, 0, -speed}, Math::OriginalAngleMatrix(leaf.angles));
 }
 
-void SpawnSnow(World::Leaf& leaf, GameLeafContext& context)
+void SpawnSnow(Weather::Leaf& leaf, GameLeafContext& context)
 {
     constexpr int SnowTexture = 100;
     constexpr int LargeSnowTexture = 101;
@@ -183,7 +183,7 @@ void SpawnSnow(World::Leaf& leaf, GameLeafContext& context)
     FallingVelocity(leaf, static_cast<float>(context.random.Next() % SnowSpeedSpan + SnowSpeedBase));
 }
 
-void SpawnRain(World::Leaf& leaf, GameLeafContext& context, bool eventRain)
+void SpawnRain(Weather::Leaf& leaf, GameLeafContext& context, bool eventRain)
 {
     leaf.type = RainTexture;
     if (eventRain)
@@ -205,7 +205,7 @@ void SpawnRain(World::Leaf& leaf, GameLeafContext& context, bool eventRain)
     FallingVelocity(leaf, static_cast<float>(std::bit_cast<std::int32_t>(speedBits)));
 }
 
-void SpawnIcarusRain(World::Leaf& leaf, GameLeafContext& context)
+void SpawnIcarusRain(Weather::Leaf& leaf, GameLeafContext& context)
 {
     leaf.type = RainTexture;
     BirthPosition(leaf, context, BirthHeightSpan, SnowHeightBase);
@@ -213,14 +213,14 @@ void SpawnIcarusRain(World::Leaf& leaf, GameLeafContext& context)
     FallingVelocity(leaf, static_cast<float>(context.random.Next() % IcarusSpeedSpan + IcarusSpeedBase));
 }
 
-Core::Expected<void, std::string> Spawn(World::Leaf& leaf, GameLeafContext& context, std::size_t slot)
+Core::Expected<void, std::string> Spawn(Weather::Leaf& leaf, GameLeafContext& context, std::size_t slot)
 {
     if (context.map == RainMap || (context.map == CrywolfMap && *context.crywolfState == CrywolfRainState))
         SpawnRain(leaf, context, false);
     else if (EventRain(context.map))
         SpawnRain(leaf, context, true);
     else if (context.map == LorenciaMap || context.map == NoriaMap || context.map == AtlansMap)
-        World::SpawnDriftingLeaf(leaf, FallingWorld(context), context.random);
+        Weather::SpawnDriftingLeaf(leaf, FallingWorld(context), context.random);
     else if (context.map == IcarusMap)
     {
         // 52fc25: multiplicación 32 bits por 200 y división signed por 100.
@@ -240,7 +240,7 @@ Core::Expected<void, std::string> Spawn(World::Leaf& leaf, GameLeafContext& cont
     return {};
 }
 
-void Flutter(World::Leaf& leaf, GameLeafContext& context)
+void Flutter(Weather::Leaf& leaf, GameLeafContext& context)
 {
     leaf.velocity.x =
         F32(static_cast<double>(context.random.Next() % FlutterSpan - FlutterCenter) * FlutterStep + leaf.velocity.x);
@@ -270,12 +270,12 @@ void Flutter(World::Leaf& leaf, GameLeafContext& context)
         leaf.alive = false;
 }
 
-Core::Expected<void, std::string> Splash(World::Leaf& leaf, GameLeafContext& context, bool eventRain, bool heavyRain)
+Core::Expected<void, std::string> Splash(Weather::Leaf& leaf, GameLeafContext& context, bool eventRain, bool heavyRain)
 {
     const bool randomType = eventRain || heavyRain;
     const int type =
-        randomType && context.random.Next() % SplashChoiceSpan != 0 ? World::Particle68 : World::Particle67;
-    const bool alternate = type == World::Particle68;
+        randomType && context.random.Next() % SplashChoiceSpan != 0 ? Particles::Particle68 : Particles::Particle67;
+    const bool alternate = type == Particles::Particle68;
     const char* address = eventRain   ? (alternate ? "530187" : "53016c")
                           : heavyRain ? (alternate ? "530098" : "53007d")
                                       : "530231";
@@ -288,7 +288,8 @@ Core::Expected<void, std::string> Splash(World::Leaf& leaf, GameLeafContext& con
     return {};
 }
 
-Core::Expected<void, std::string> StepRain(World::Leaf& leaf, GameLeafContext& context, bool eventRain, bool heavyRain)
+Core::Expected<void, std::string> StepRain(Weather::Leaf& leaf, GameLeafContext& context, bool eventRain,
+                                           bool heavyRain)
 {
     for (glm::vec3::length_type axis = 0; axis < 3; ++axis)
         leaf.position[axis] = F32(static_cast<double>(leaf.velocity[axis]) + leaf.position[axis]);
@@ -317,7 +318,7 @@ Core::Expected<void, std::string> StepRain(World::Leaf& leaf, GameLeafContext& c
     return Splash(leaf, context, eventRain, heavyRain);
 }
 
-Core::Expected<void, std::string> Step(World::Leaf& leaf, GameLeafContext& context)
+Core::Expected<void, std::string> Step(Weather::Leaf& leaf, GameLeafContext& context)
 {
     if (context.map == RainMap || (context.map == CrywolfMap && *context.crywolfState == CrywolfRainState))
         return StepRain(leaf, context, false, true);
@@ -330,7 +331,7 @@ Core::Expected<void, std::string> Step(World::Leaf& leaf, GameLeafContext& conte
         Flutter(leaf, context);
         return {};
     }
-    World::StepFallingLeaf(leaf, FallingWorld(context), context.random);
+    Weather::StepFallingLeaf(leaf, FallingWorld(context), context.random);
     return {};
 }
 } // namespace
@@ -339,7 +340,7 @@ Core::Expected<void, std::string> StepGameLeaves(GameLeafContext& context)
 {
     if (!CallerRunsLeaves(context))
         return {};
-    std::size_t count = context.map == RainMap ? World::LeafCount : StandardLeafCount;
+    std::size_t count = context.map == RainMap ? Weather::LeafCount : StandardLeafCount;
     if (context.map == IcarusMap || EventRain(context.map))
         context.weather.target = RainTarget;
     else if (context.map == ReducedLeafMap)
@@ -359,7 +360,7 @@ Core::Expected<void, std::string> StepGameLeaves(GameLeafContext& context)
         ++context.weather.current;
     RetainedWaveEvaluator retained;
     auto* evaluator = context.waveEvaluator != nullptr ? context.waveEvaluator : &retained;
-    const auto waves = World::StepLeafWeatherWaves(context.weather, context.worldClock, evaluator);
+    const auto waves = Weather::StepLeafWeatherWaves(context.weather, context.worldClock, evaluator);
     if (!waves.HasValue())
         return Core::Unexpected(std::string("53052b: ") + waves.Error().message());
     for (std::size_t slot = 0; slot < count; ++slot)
@@ -379,4 +380,4 @@ Core::Expected<void, std::string> StepGameLeaves(GameLeafContext& context)
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Weather

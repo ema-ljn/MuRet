@@ -24,17 +24,17 @@
 #include <utility>
 #include <vector>
 
-// Client::UI::CharacterBalloons: los globos de la selección (+0x8dc8 de la UI nueva: 0x63ce70, 0x63cfb0 → 0x63cc60 y
-// 0x63cf80 → 0x63ca20). Los textos son inventados: solo importan sus índices y largos.
+// Client::FrontEnd::CharacterBalloons: los globos de la selección (+0x8dc8 de la UI nueva: 0x63ce70, 0x63cfb0 →
+// 0x63cc60 y 0x63cf80 → 0x63ca20). Los textos son inventados: solo importan sus índices y largos.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::BalloonCount;
+using Client::FrontEnd::BalloonHead;
+using Client::FrontEnd::BalloonRecord;
+using Client::FrontEnd::CharacterBalloons;
 using Client::Render::Text::FontKind;
-using Client::UI::BalloonCount;
-using Client::UI::BalloonHead;
-using Client::UI::BalloonRecord;
-using Client::UI::CharacterBalloons;
-using Client::UI::Point;
+using Client::Ui::Point;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr std::uint16_t BalloonSlot = 0x13;
@@ -44,7 +44,7 @@ using Records = std::array<BalloonRecord, BalloonCount>;
 using Heads = std::array<std::optional<BalloonHead>, BalloonCount>;
 
 // character_ex.tga, de 118 × 54, en un buffer de 128 × 64.
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{BalloonSlot, {128, 64}}});
 }

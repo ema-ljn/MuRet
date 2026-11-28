@@ -66,11 +66,11 @@ Core::Expected<void, std::string> GameScene::DrawTheBirds(Render::Frame::SceneCa
                                                           const Terrain::TerrainPolygon& polygon, int frames)
 {
     Kernel::WorldState& world = *m_context.world;
-    FaunaDrawContext context{
+    Fauna::FaunaDrawContext context{
         world.Fauna(),     LoadedFaunaModels(),   MapTerrain(),     FrameLighting(),           polygon,
         FrameCloth(),      FrameSpritesForDraw(), FramePoseCarry(), world.Runtime().map,       world.Runtime().storm,
         canvas.frameClock, &FrameParticles(),     frames > 0,       CameraState().fixedHeight, true};
-    return DrawGameBirds(canvas.models, context);
+    return Fauna::DrawGameBirds(canvas.models, context);
 }
 
 void GameScene::FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special,
@@ -136,46 +136,46 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
         if (auto result = DrawFloorItems(tail.floorItems, floor); !result.HasValue())
             return result;
     }
-    FaunaDrawContext fauna{world.Fauna(),
-                           LoadedFaunaModels(),
-                           MapTerrain(),
-                           FrameLighting(),
-                           polygon,
-                           FrameCloth(),
-                           FrameSpritesForDraw(),
-                           FramePoseCarry(),
-                           runtime.map,
-                           runtime.storm,
-                           canvas.frameClock,
-                           &FrameParticles(),
-                           frames > 0,
-                           CameraState().fixedHeight,
-                           true};
-    if (auto result = DrawGameFish(canvas.models, fauna); !result.HasValue())
+    Fauna::FaunaDrawContext fauna{world.Fauna(),
+                                  LoadedFaunaModels(),
+                                  MapTerrain(),
+                                  FrameLighting(),
+                                  polygon,
+                                  FrameCloth(),
+                                  FrameSpritesForDraw(),
+                                  FramePoseCarry(),
+                                  runtime.map,
+                                  runtime.storm,
+                                  canvas.frameClock,
+                                  &FrameParticles(),
+                                  frames > 0,
+                                  CameraState().fixedHeight,
+                                  true};
+    if (auto result = Fauna::DrawGameFish(canvas.models, fauna); !result.HasValue())
         return result;
-    if (auto result =
-            DrawHelpers({canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
-                         [&](const Actors::Drawing::DrawnObject& object)
-                         { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); }, true,
-                         [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, SceneId::Game,
-                         &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
-                         // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
-                         [systemTime = static_cast<std::uint32_t>(
-                              std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
-                         { return systemTime; },
-                         [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
-                         &m_context.states->camera.trapezoid});
+    if (auto result = Pets::DrawHelpers(
+            {canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
+             [&](const Actors::Drawing::DrawnObject& object)
+             { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); }, true,
+             [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, SceneId::Game,
+             &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
+             // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+             [systemTime = static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
+             { return systemTime; },
+             [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
+             &m_context.states->camera.trapezoid});
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);
     const JointDrawResources jointResources{FrameCloth().random, FrameSpritesForDraw(), frames > 0, clock};
     TailAttributeQuery attributes(*MapTerrain().attributes);
-    const GameObjectPass kalimaPass{.map = static_cast<std::uint8_t>(runtime.map),
-                                    .originalFrame = false,
-                                    .worldClock = clock,
-                                    .retainedPose = &FramePoseCarry(),
-                                    .waterTextureFrame = FrameCloth().waterTextureFrame,
-                                    .kalima = FrameKalima()};
+    const WorldObjects::GameObjectPass kalimaPass{.map = static_cast<std::uint8_t>(runtime.map),
+                                                  .originalFrame = false,
+                                                  .worldClock = clock,
+                                                  .retainedPose = &FramePoseCarry(),
+                                                  .waterTextureFrame = FrameCloth().waterTextureFrame,
+                                                  .kalima = FrameKalima()};
     ModelEffectDrawResources effectResources{*MapTerrain().heights, clock};
     effectResources.onPose = [&](const Actors::Drawing::DrawnObject& object)
     { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); };
@@ -233,10 +233,10 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
                 BeginGameTailPass(canvas.models, pass, stage == GameTailStage::BeginEye, canvas.flushModels);
                 return {};
             case GameTailStage::Sprites:
-                DrawFrameSprites(canvas.models, FrameSpritesForDraw(), m_worldModels, view, mode);
+                WorldObjects::DrawFrameSprites(canvas.models, FrameSpritesForDraw(), m_worldModels, view, mode);
                 return {};
             case GameTailStage::Particles:
-                return DrawGameParticles(canvas.models, FrameParticles(), m_worldModels, view, clock, mode);
+                return Effects::DrawGameParticles(canvas.models, FrameParticles(), m_worldModels, view, clock, mode);
             case GameTailStage::Damage:
                 return DrawDamage(canvas.models, tail.damage, mode, view);
             case GameTailStage::KalimaWater:
@@ -253,7 +253,7 @@ Core::Expected<void, std::string> GameScene::DrawKalimaWater(Render::Frame::Scen
     if (kalima == nullptr)
         return {}; // 4378a0, dueño ausente: el wrapper no entra en41cca0/41cf00.
     const float time = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-    World::KalimaFrameContext context{FrameCloth().logicSteps, time, 0, 0, FrameCloth().random};
+    MapScripts::Kalima::KalimaFrameContext context{FrameCloth().logicSteps, time, 0, 0, FrameCloth().random};
     context.readHeroX = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(true); };
     context.readHeroY = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(false); };
     if (auto updated = kalima->Update(context); !updated.HasValue())

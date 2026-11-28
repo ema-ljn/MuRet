@@ -9,7 +9,7 @@
 
 #include <ostream>
 
-// Cómo imprime GoogleTest los tipos de Client::App en un mensaje, como NetworkPrinters.h. Las
+// Cómo imprime GoogleTest los tipos de Client::App y Client::Session en un mensaje, como NetworkPrinters.h. Las
 // Credentials salen con el largo de cada campo y nunca con el texto (pregunta 7 del plan de la
 // CL4): sin este PrintTo, GoogleTest vuelca los bytes del struct, y con SSO la clave va ahí.
 namespace Client::App
@@ -19,7 +19,10 @@ inline void PrintTo(const Credentials& credentials, std::ostream* out)
     *out << "Credentials{cuenta de " << credentials.account.size() << " bytes, clave de " << credentials.password.size()
          << " bytes}";
 }
+} // namespace Client::App
 
+namespace Client::Session
+{
 inline void PrintTo(SessionState state, std::ostream* out)
 {
     switch (state)
@@ -116,7 +119,7 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
     }
     *out << "SessionFailure fuera del enum";
 }
-} // namespace Client::App
+} // namespace Client::Session
 
 namespace Client::Platform
 {

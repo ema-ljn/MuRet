@@ -66,7 +66,7 @@ std::vector<SpriteVertex> ExpectedGauges(const std::vector<QueuedHealthBar>& bar
         EXPECT_TRUE(point.HasValue());
         if (!point.HasValue())
             continue;
-        Client::UI::DrawGauge(sprites, static_cast<float>(point.Value().x - 25),
+        Client::Ui::DrawGauge(sprites, static_cast<float>(point.Value().x - 25),
                               static_cast<float>(point.Value().y + 12), 50.0f, 2.0f, static_cast<float>(bar.fill * 10),
                               false, true);
     }
@@ -79,12 +79,12 @@ std::vector<SpriteVertex> ExpectedGauges(const std::vector<QueuedHealthBar>& bar
 TEST(HealthBarsTest, OnlyTheLifeStoneUnderFiveIsQueued)
 {
     std::deque<QueuedHealthBar> queue;
-    Client::Scenes::QueueTheHealthBar(Stone(4), queue);
-    Client::Scenes::QueueTheHealthBar(Stone(0), queue);
-    Client::Scenes::QueueTheHealthBar(Stone(5), queue);
+    Client::Hud::QueueTheHealthBar(Stone(4), queue);
+    Client::Hud::QueueTheHealthBar(Stone(0), queue);
+    Client::Hud::QueueTheHealthBar(Stone(5), queue);
     ActorState other = Stone(1);
     other.type = 0x1a7;
-    Client::Scenes::QueueTheHealthBar(other, queue);
+    Client::Hud::QueueTheHealthBar(other, queue);
 
     ASSERT_EQ(queue.size(), 2u);
     const float top = static_cast<float>(static_cast<double>(0.1f) + static_cast<double>(70.3f) + 100.0);
@@ -113,7 +113,7 @@ TEST(HealthBarsTest, EachFrameDrawsTheFirstHalfRoundedUp)
         SpriteBatch sprites;
         sprites.Begin(Screen640);
 
-        const auto drawn = Client::Scenes::DrawTheHealthBars(queue, &flat, sprites);
+        const auto drawn = Client::Hud::DrawTheHealthBars(queue, &flat, sprites);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const std::size_t shown = (queued + 1) / 2;
@@ -143,11 +143,11 @@ TEST(HealthBarsTest, TheBarHangsUnderThePoint)
     SpriteBatch sprites;
     sprites.Begin(Screen640);
 
-    ASSERT_TRUE(Client::Scenes::DrawTheHealthBars(queue, &flat, sprites).HasValue());
+    ASSERT_TRUE(Client::Hud::DrawTheHealthBars(queue, &flat, sprites).HasValue());
 
     SpriteBatch expected;
     expected.Begin(Screen640);
-    Client::UI::DrawGauge(expected, 315.0f, 282.0f, 50.0f, 2.0f, 20.0f, false, true);
+    Client::Ui::DrawGauge(expected, 315.0f, 282.0f, 50.0f, 2.0f, 20.0f, false, true);
     ASSERT_EQ(sprites.Vertices().size(), expected.Vertices().size());
     for (std::size_t v = 0; v < expected.Vertices().size(); ++v)
     {
@@ -163,10 +163,10 @@ TEST(HealthBarsTest, WithoutTheProjectionAQueuedBarStops)
     SpriteBatch sprites;
     sprites.Begin(Screen640);
     std::deque<QueuedHealthBar> empty;
-    EXPECT_TRUE(Client::Scenes::DrawTheHealthBars(empty, nullptr, sprites).HasValue());
+    EXPECT_TRUE(Client::Hud::DrawTheHealthBars(empty, nullptr, sprites).HasValue());
 
     std::deque<QueuedHealthBar> queue{QueuedHealthBar{}, QueuedHealthBar{}};
-    const auto drawn = Client::Scenes::DrawTheHealthBars(queue, nullptr, sprites);
+    const auto drawn = Client::Hud::DrawTheHealthBars(queue, nullptr, sprites);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x42a529"), std::string::npos) << drawn.Error();
     EXPECT_EQ(queue.size(), 2u);

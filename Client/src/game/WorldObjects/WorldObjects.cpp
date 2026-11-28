@@ -39,7 +39,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 namespace
 {
@@ -492,7 +492,7 @@ namespace
 // `skeleton`, si tiene. Devuelve si sigue.
 bool AdvanceTheObject(WorldObject& object, const Models::Skeleton* skeleton, float speed)
 {
-    StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
+    Effects::StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
     if (object.alpha < MinimumAlpha)
     {
         return false;
@@ -784,7 +784,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     // 0x604ac0..0x604ba0: el 9 saca sus rand() y pide su sonido antes de todo.
     if (map == DevilSquareMap)
     {
-        if (auto prelude = StepDevilSquarePrelude(random, globals); !prelude.HasValue())
+        if (auto prelude = Events::StepDevilSquarePrelude(random, globals); !prelude.HasValue())
             return prelude;
     }
     if (const std::optional<float> target = RoofTargetAlpha(object.type, map, globals.heroCellLayer))
@@ -792,7 +792,8 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         object.targetAlpha = *target;
     }
     // 0x604c67..0x604c8e: la velocidad sale de +0xd8 a una copia, que el 8 de Tarkan multiplica.
-    const float speed = map == TarkanMap ? TarkanAnimationSpeed(object.type, object.speed) : object.speed;
+    const float speed =
+        map == TarkanMap ? MapScripts::Tarkan::TarkanAnimationSpeed(object.type, object.speed) : object.speed;
     if (!AdvanceTheObject(object, skeleton, speed))
     {
         return {};
@@ -816,7 +817,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     }
     if (map == CastleSiegeMap)
     {
-        return StepCastleSiegeObject(object, random, globals);
+        return CastleSiege::StepCastleSiegeObject(object, random, globals);
     }
     if (map == CrywolfMap)
     {
@@ -824,7 +825,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     }
     if (bloodCastle)
     {
-        StepBloodCastleObject(object);
+        Events::StepBloodCastleObject(object);
         return {};
     }
     // 0x605a62: ningún eslabón de la cadena mira los mapas 18 a 23; queda la parte común.
@@ -837,17 +838,17 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     case DeviasMap:
         return StepDeviasCases(object, random, globals);
     case NoriaMap:
-        return StepNoriaObject(object, random, globals);
+        return MapScripts::Noria::StepNoriaObject(object, random, globals);
     case DungeonMap:
-        return StepDungeonObject(object, random, globals);
+        return MapScripts::Dungeon::StepDungeonObject(object, random, globals);
     case LostTowerMap:
-        return StepLostTowerObject(object, random, globals);
+        return MapScripts::Dungeon::StepLostTowerObject(object, random, globals);
     case ArenaMap:
-        return StepArenaObject(object, globals);
+        return MapScripts::Dungeon::StepArenaObject(object, globals);
     case AtlansMap:
-        return StepAtlansObject(object, random, globals);
+        return MapScripts::Atlans::StepAtlansObject(object, random, globals);
     case TarkanMap:
-        return StepTarkanObject(object, globals);
+        return MapScripts::Tarkan::StepTarkanObject(object, globals);
     case IcarusMap:
         // 0x605ab4 por 0x605ae8: el 10 no tiene casos; 0x6063d0 va aparte (Scenes/IcarusObjectStep.h).
         return {};
@@ -968,4 +969,4 @@ std::vector<std::size_t> DrawOrder(std::span<const WorldObject> objects)
                      });
     return order;
 }
-} // namespace Client::World
+} // namespace Client::WorldObjects

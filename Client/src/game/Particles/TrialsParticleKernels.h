@@ -8,7 +8,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 struct Particle;
 enum class ParticleError : std::uint8_t;
@@ -31,4 +31,4 @@ void CreateTrialsParticle(Particle& particle, Crt::CrtRandom& random);
 // escala +0,04f. Sin el reloj del mundo (0x5767b88), o con un seno fuera del dominio portado, el 5f2/22
 // corta antes de tocar la x.
 [[nodiscard]] Core::Expected<void, ParticleError> StepTrialsParticle(Particle& particle, const float* clock);
-} // namespace Client::World
+} // namespace Client::Particles

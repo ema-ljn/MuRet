@@ -21,7 +21,7 @@
 // ilustraciones que se funden (0x63fe20), el adorno, el logo, tres renglones de texto de credit.bmd que
 // tres barras negras tapan y destapan (0x6400b0, 0x63ffe0) y el botón de cerrar. La ilustración y las
 // barras van en el espacio de 800 × 600 (W / 800 y H / 600 en float); el adorno y el botón, en píxeles.
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // Lo que pasó al abrirlos o en un paso: cada cierre (0x63f9a0) y la ilustración que se cargó (0x63fc50).
 struct CreditsStep
@@ -45,18 +45,18 @@ struct CreditsLayout
     float scaleX = 1.0f;
     float scaleY = 1.0f;
     // 0x63f3a0: (W − 189, _ftol(H · 0,878333f) − 103), con el float de 0x6ba888.
-    Rect deco;
+    Ui::Rect deco;
     // A (122, 63) del adorno.
-    Rect close;
+    Ui::Rect close;
 };
 
 [[nodiscard]] CreditsLayout LayoutCredits(Core::PixelSize screen);
 
-class CreditsWindow final : public NewUiWindow
+class CreditsWindow final : public Ui::NewUiWindow
 {
 public:
     // `credits`: la tabla de credit.bmd (GameData), que tiene que vivir más que la ventana.
-    CreditsWindow(TextureSizes sizes, std::span<const Tables::CreditEntry> credits);
+    CreditsWindow(Ui::TextureSizes sizes, std::span<const Tables::CreditEntry> credits);
 
     // 0x63f020: las barras opacas (0x647050 con alfa 0xff) y el botón; cerrada. No toca los índices de
     // los renglones: en el original son de la ventana, que vive en la .bss del administrador.
@@ -68,14 +68,14 @@ public:
     // 0x63f5a0 con 0: cerrada y la ilustración quieta (+0x5b8 en 0).
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
-    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
+    [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
 
     // El botón (0x63c490) y, con el foco, 0x63f630 con los `elapsedMs` del paso.
-    CreditsStep Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs, NewUiTurn turn = {});
+    CreditsStep Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs, Ui::NewUiTurn turn = {});
     // 0x66a050 y 0x63f6b0.
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
-    [[nodiscard]] const Button& CloseButton() const;
+    [[nodiscard]] const Ui::Button& CloseButton() const;
     // +0x5b8, +0x5c8 y el alfa de las dos ilustraciones (+0xa0 y +0x148).
     [[nodiscard]] int IllustrationState() const;
     [[nodiscard]] std::uint8_t Illustration() const;
@@ -102,9 +102,9 @@ private:
     [[nodiscard]] std::uint8_t KindAt(std::size_t index) const;
     void DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const;
 
-    TextureSizes m_sizes;
+    Ui::TextureSizes m_sizes;
     std::span<const Tables::CreditEntry> m_credits;
-    Button m_close;
+    Ui::Button m_close;
     CreditsLayout m_layout;
     bool m_open = false;
     int m_illustrationState = 0;
@@ -120,4 +120,4 @@ private:
     std::array<std::size_t, 4> m_names{};
     std::size_t m_nameCount = 0;
 };
-} // namespace Client::UI
+} // namespace Client::FrontEnd

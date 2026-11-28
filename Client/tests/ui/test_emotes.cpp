@@ -15,13 +15,13 @@
 #include <string_view>
 #include <vector>
 
-// UI::FindTheEmote: la búsqueda de 0x576eb0 (06 § El chat, "El emote"). La tabla esperada sale del ASM
+// Chat::FindTheEmote: la búsqueda de 0x576eb0 (06 § El chat, "El emote"). La tabla esperada sale del ASM
 // (0x576ede..0x577f88, los 22 casos por su bloque); los textos de Text.bmd son los inventados de ChatTexts ("#e270" y
 // así), que no se contienen entre ellos.
 namespace
 {
 using Client::Actors::EmoteCase;
-using Client::UI::FindTheEmote;
+using Client::Chat::FindTheEmote;
 
 const Client::Tables::TextTable& Texts()
 {
@@ -106,7 +106,7 @@ INSTANTIATE_TEST_SUITE_P(OriginalOrder, EveryTrigger, ::testing::ValuesIn(Origin
 
 TEST(EmotesTest, TheTableHasTheNinetyFiveTriggers)
 {
-    EXPECT_EQ(OriginalOrder().size(), Client::UI::EmoteTriggerCount);
+    EXPECT_EQ(OriginalOrder().size(), Client::Chat::EmoteTriggerCount);
 }
 
 // El primero en el orden gana, aunque esté más adelante en lo dicho o tenga un índice mayor.

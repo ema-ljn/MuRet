@@ -35,7 +35,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Quests
 {
 namespace
 {
@@ -144,10 +144,10 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -167,27 +167,27 @@ Core::Expected<const Tables::QuestRecord*, std::string> RecordOf(const QuestStat
 // 0x5ee220(x, y, 1): el fondo y la línea de 190 × 10 en y + 225 (0x6ba640).
 void DrawTheWindowBackWithTheLine(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y)
 {
-    WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     Quad(sprites, LineSlot, static_cast<float>(x), F32(static_cast<double>(y) + 225.0), 190.0f, 10.0f, 0.0f, 0.0f,
          0.7421875f, 0.625f);
 }
 
 // 0x554340 con la fuente normal y los colores −1 y 0xff000000 que le ponen antes; la deja con la normal, en blanco y
 // sin fondo.
-void DrawTheHelp(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
+void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = HelpColors;
-    UI::DrawHelp(context.sprites, context.text, x, y, help);
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::DrawHelp(context.sprites, context.text, x, y, help);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = AfterHelpColors;
 }
 
-// 0x5b1c70(tipo, nivel, buffer) desde 0x41b924 (Scenes::ItemNameOf, la del hito 5), con el buffer de la pila
+// 0x5b1c70(tipo, nivel, buffer) desde 0x41b924 (Items::ItemNameOf, la del hito 5), con el buffer de la pila
 // ([EBP − 0x7c]) sin iniciar: si 0x5b1c70 no escribe nada (el 0x1c17 o el 0x1c18 con un nivel distinto de 0 y 1, y los
 // demás niveles sin nombre), "%s x %d" lo lee igual y MuRet corta (Q-C874). El tipo, grupo · 0x200 + índice, pasa los
 // 0xffff con un grupo de 128 o más y lee fuera de Item.bmd.
-Core::Expected<std::string, std::string> QuestItemNameOf(const GameHudContext& context, std::int32_t type,
+Core::Expected<std::string, std::string> QuestItemNameOf(const Hud::GameHudContext& context, std::int32_t type,
                                                          std::int32_t level)
 {
     constexpr std::int32_t FirstQuestItem = 0x1c17;
@@ -196,22 +196,22 @@ Core::Expected<std::string, std::string> QuestItemNameOf(const GameHudContext& c
     if (type < 0 || type > LastType)
         return Core::Unexpected(std::format("0x5b1c76: el tipo {:#x} lee fuera de Item.bmd", type));
     const auto item = static_cast<std::uint16_t>(type);
-    const NpcNameTable* names = &context.world.Runtime().npcNames;
-    if (!ItemNameIsWritten(item, level, names))
+    const Monsters::NpcNameTable* names = &context.world.Runtime().npcNames;
+    if (!Items::ItemNameIsWritten(item, level, names))
     {
         const char* where = type == FirstQuestItem ? "0x5b1cb1" : type == SecondQuestItem ? "0x5b1cf3" : "0x41b924";
         return Core::Unexpected(std::format("{}: con el nivel {}, 0x5b1c70 no escribe el nombre del {:#x} y 0x41b810 "
                                             "lo lee de la pila sin iniciar (Q-C874)",
                                             where, level, type));
     }
-    return ItemNameOf(context.items, context.texts, names, item, level);
+    return Items::ItemNameOf(context.items, context.texts, names, item, level);
 }
 
 // 0x41b810(estado, conNombres): los ítems pedidos a la clase en la misión en curso, desde y = 235 (o 240 con los
 // nombres) cada 25. Con los nombres, en negrita y sin fondo, "%s x %d" en (0x1fe, y) en color por si faltan
 // (0x558410); sin ellos, el ítem en la caja (480, y) de 20 × 20 (0x5e1480 con el nivel << 3). Falso si la ventana está
 // cerrada, si el estado no es `state` o si falta alguno.
-Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std::uint8_t state, bool withNames)
+Core::Expected<bool, std::string> DrawTheAskedItems(Hud::GameHudContext& context, std::uint8_t state, bool withNames)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
@@ -222,7 +222,7 @@ Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std
     if (withNames)
     {
         y = NamedItemsTop;
-        WindowDrawing::SelectFont(context, FontKind::Bold);
+        Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
         context.hud.textColors.background = 0;
     }
     const auto read = RecordOf(quest, quest.current, "0x41b88e");
@@ -254,13 +254,13 @@ Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std
             if (!name.HasValue())
                 return Core::Unexpected(std::move(name).Error());
             // 0x6c64c0, "%s x %d".
-            WindowDrawing::DrawText(context, ItemNameLeft, Truncate(static_cast<double>(y)),
-                                    std::format("{} x {}", name.Value(), count));
+            Hud::WindowDrawing::DrawText(context, ItemNameLeft, Truncate(static_cast<double>(y)),
+                                         std::format("{} x {}", name.Value(), count));
         }
         else
         {
-            const UiItemBox box{.x = ItemLeft, .y = y, .width = ItemSize, .height = ItemSize};
-            if (auto drawn = DrawUiItem(context, box, type, static_cast<std::uint32_t>(level) << 3u, 0, 0, false);
+            const Items::UiItemBox box{.x = ItemLeft, .y = y, .width = ItemSize, .height = ItemSize};
+            if (auto drawn = Hud::DrawUiItem(context, box, type, static_cast<std::uint32_t>(level) << 3u, 0, 0, false);
                 !drawn.HasValue())
                 return Core::Unexpected(drawn.Error());
         }
@@ -272,47 +272,47 @@ Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std
 // 0x41b680(conRespuestas): los renglones del diálogo centrados en x + 0x64 desde ((7 − respuestas − renglones) · 0x12)
 // / 2 + 0x42, con la fuente que haya; con las respuestas, en negrita, cada una que no está vacía en su renglón, en rojo
 // la del mouse a no más de 0x6a de x + 0x6a (Q-C871).
-void DrawTheQuestText(GameHudContext& context, bool withAnswers)
+void DrawTheQuestText(Hud::GameHudContext& context, bool withAnswers)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
-    const UI::DialogBoxState& box = runtime.dialogBox;
+    const Ui::DialogBoxState& box = runtime.dialogBox;
     Render::SpriteBatch& sprites = context.sprites;
     context.hud.textColors = TextColors{.text = BodyText, .background = 0};
     sprites.SetBlend(BlendMode::Alpha);
     const std::int32_t left = quest.x + TextCenter;
     std::int32_t top =
-        ((static_cast<std::int32_t>(UI::DialogRowCount) - box.answerCount - box.lineCount) * UI::DialogLineStep) / 2 +
+        ((static_cast<std::int32_t>(Ui::DialogRowCount) - box.answerCount - box.lineCount) * Ui::DialogLineStep) / 2 +
         TextTop;
     for (std::int32_t row = 0; row < box.lineCount; ++row)
     {
-        WindowDrawing::DrawCenteredText(context, left, top, UI::DialogRow(box, static_cast<std::size_t>(row)));
-        top += UI::DialogLineStep;
+        Hud::WindowDrawing::DrawCenteredText(context, left, top, Ui::DialogRow(box, static_cast<std::size_t>(row)));
+        top += Ui::DialogLineStep;
     }
     if (withAnswers)
     {
         if (quest.currentState != QuestInProgress && runtime.panels.delegated.quest == QuestDialogWindow)
             top = TextTopWithoutTheQuest;
         // 0x41b72e..0x41b74c: la división con signo, que trunca hacia el 0.
-        const std::int32_t hovered = (context.mouse.y - top) / UI::DialogLineStep;
-        WindowDrawing::SelectFont(context, FontKind::Bold);
+        const std::int32_t hovered = (context.mouse.y - top) / Ui::DialogLineStep;
+        Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
         const std::int64_t distance = static_cast<std::int64_t>(quest.x) + AnswerHalfWidth - context.mouse.x;
         const bool overTheAnswers = (distance < 0 ? -distance : distance) <= AnswerHalfWidth;
         for (std::int32_t answer = 0; answer < box.answerCount; ++answer)
         {
             context.hud.textColors.text = hovered == answer && overTheAnswers ? HoveredAnswerText : AnswerText;
-            const std::string_view text = UI::DialogAnswer(box, static_cast<std::size_t>(answer));
+            const std::string_view text = Ui::DialogAnswer(box, static_cast<std::size_t>(answer));
             if (text.empty())
                 continue;
-            WindowDrawing::DrawCenteredText(context, left, top, text);
-            top += UI::DialogLineStep;
+            Hud::WindowDrawing::DrawCenteredText(context, left, top, text);
+            top += Ui::DialogLineStep;
         }
     }
     sprites.SetColor(White);
 }
 
 // 0x41ba20.
-Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
@@ -340,7 +340,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
         const float button = F32(static_cast<double>(left) + 35.0);
         const auto mouseX = static_cast<double>(context.mouse.x);
         const auto mouseY = static_cast<double>(context.mouse.y);
-        GameMovementState& movement = runtime.movement;
+        Movement::GameMovementState& movement = runtime.movement;
         if (mouseX >= static_cast<double>(button) && mouseX < static_cast<double>(button) + 120.0 && mouseY >= 355.0 &&
             mouseY < 379.0 && movement.pendingClick)
         {
@@ -351,12 +351,13 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
                 movement.leftHeld = false;
             }
         }
-        WindowDrawing::SelectFont(context, FontKind::Normal);
+        Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
         Quad(sprites, FinishSlot, button, 355.0f, 120.0f, 24.0f, 0.0f, 0.0f, 0.83203125f, 1.0f);
         auto finish = TextOf(context, FinishText, "0x41bbd5");
         if (!finish.HasValue())
             return Core::Unexpected(std::move(finish).Error());
-        WindowDrawing::DrawCenteredText(context, Truncate(static_cast<double>(button) + 60.0), 0x168, finish.Value());
+        Hud::WindowDrawing::DrawCenteredText(context, Truncate(static_cast<double>(button) + 60.0), 0x168,
+                                             finish.Value());
         sprites.SetColor(White);
     }
     else if (quest.currentState == QuestAvailable)
@@ -371,19 +372,19 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
         auto label = TextOf(context, ZenLabelText, "0x41bc88");
         if (!label.HasValue())
             return Core::Unexpected(std::move(label).Error());
-        WindowDrawing::DrawText(context, textX - 30, textY, label.Value());
-        hud.textColors.text = ZenColor(quest.zen);
-        WindowDrawing::DrawText(context, textX + 10, textY, FormatZen(quest.zen));
+        Hud::WindowDrawing::DrawText(context, textX - 30, textY, label.Value());
+        hud.textColors.text = Ui::ZenColor(quest.zen);
+        Hud::WindowDrawing::DrawText(context, textX + 10, textY, Ui::FormatZen(quest.zen));
     }
     // 0x41bcd8..0x41bdbe: el botón de cerrar sin glColor antes; el color ya es el blanco.
-    if (WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto help = TextOf(context, DialogCloseHelpText, "0x41bd9f");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
+        Hud::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     }
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     hud.textColors = TextColors{.text = NpcNameText, .background = 0};
     // 0x41bde0..0x41be04: la clase entera del héroe (+0x1d4), sin el & 7.
     const std::uint8_t heroClass = context.world.Hero().characterClass;
@@ -392,19 +393,19 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
     if (!npcRecord.HasValue())
         return Core::Unexpected(npcRecord.Error());
     // 0x41be9e: 0x554180 con el NULL de 0x54ebb0 no dibuja y mide lstrlen(NULL), 0 caracteres.
-    const std::optional<std::string> npc = NpcNameOf(runtime.npcNames, npcRecord.Value()->npcType);
+    const std::optional<std::string> npc = Monsters::NpcNameOf(runtime.npcNames, npcRecord.Value()->npcType);
     if (npc)
-        WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, *npc);
+        Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, *npc);
     else
-        WindowDrawing::DrawText(context, x + TitleLeft, y + TitleTop, {});
+        Hud::WindowDrawing::DrawText(context, x + TitleLeft, y + TitleTop, {});
     hud.textColors.text = QuestNameText;
     if (!special)
     {
         const auto current = RecordOf(quest, quest.current, "0x41bf04");
         if (!current.HasValue())
             return Core::Unexpected(current.Error());
-        WindowDrawing::DrawInBox(context, x + QuestNameOffset, y + QuestNameOffset, Tables::NameOf(*current.Value()),
-                                 QuestNameBox);
+        Hud::WindowDrawing::DrawInBox(context, x + QuestNameOffset, y + QuestNameOffset,
+                                      Tables::NameOf(*current.Value()), QuestNameBox);
     }
     DrawTheQuestText(context, true);
     sprites.SetColor(White);
@@ -412,22 +413,22 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
 }
 
 // 0x41c2a0, la pestaña 0.
-Core::Expected<void, std::string> DrawTheFirstTab(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheFirstTab(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
     Kernel::HudState& hud = context.hud;
     hud.textColors = TabTitleColors;
-    WindowDrawing::SelectFont(context, FontKind::Bold);
-    WindowDrawing::DrawTitle(context, quest.x + TitleLeft, quest.y + TitleTop, QuestTitle);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::DrawTitle(context, quest.x + TitleLeft, quest.y + TitleTop, QuestTitle);
     hud.textColors.text = QuestNameText;
     const auto reached = RecordOf(quest, quest.reached, "0x41c349");
     if (!reached.HasValue())
         return Core::Unexpected(reached.Error());
-    WindowDrawing::DrawInBox(context, quest.x + QuestNameOffset, quest.y + QuestNameOffset,
-                             Tables::NameOf(*reached.Value()), QuestNameBox);
+    Hud::WindowDrawing::DrawInBox(context, quest.x + QuestNameOffset, quest.y + QuestNameOffset,
+                                  Tables::NameOf(*reached.Value()), QuestNameBox);
     DrawTheQuestText(context, false);
-    WindowDrawing::SelectFont(context, FontKind::BigBold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::BigBold);
     hud.textColors = TextColors{.text = AnswerText, .background = 0};
     std::size_t state = 0;
     switch (quest.currentState)
@@ -449,26 +450,27 @@ Core::Expected<void, std::string> DrawTheFirstTab(GameHudContext& context)
     auto text = TextOf(context, state, "0x41c3b8");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + StateTop, text.Value());
+    Hud::WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + StateTop, text.Value());
     return {};
 }
 
 // 0x41c420 y el principio de 0x41c4a0: el título de la pestaña en negrita.
-Core::Expected<void, std::string> DrawTheTabTitle(GameHudContext& context, std::size_t title, std::string_view where)
+Core::Expected<void, std::string> DrawTheTabTitle(Hud::GameHudContext& context, std::size_t title,
+                                                  std::string_view where)
 {
     const QuestState& quest = context.world.Runtime().quest;
     context.hud.textColors = TabTitleColors;
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     auto text = TextOf(context, title, where);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    WindowDrawing::DrawTitle(context, quest.x + TitleLeft, quest.y + TitleTop, text.Value());
+    Hud::WindowDrawing::DrawTitle(context, quest.x + TitleLeft, quest.y + TitleTop, text.Value());
     return {};
 }
 
 // 0x41c4a0, la pestaña 2: el encabezado (el 869 con 3 y los textos 1146 y 1140), dos renglones (877 y 878) y la cuenta
 // de +6 + pestaña (el 868), del 9F.
-Core::Expected<void, std::string> DrawTheThirdTab(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheThirdTab(Hud::GameHudContext& context)
 {
     const QuestState& quest = context.world.Runtime().quest;
     Kernel::HudState& hud = context.hud;
@@ -486,25 +488,25 @@ Core::Expected<void, std::string> DrawTheThirdTab(GameHudContext& context)
         texts[i] = text.Value();
     }
     const std::array<std::string_view, 3> header{"3", texts[1], texts[2]};
-    WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + 0x50,
-                                    UI::PlaceArguments(texts[0], header));
+    Hud::WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + 0x50,
+                                         Ui::PlaceArguments(texts[0], header));
     hud.textColors.text = BodyText;
-    WindowDrawing::DrawCenteredText(context, quest.x + 0x55, quest.y + 0x64, texts[3]);
-    WindowDrawing::DrawCenteredText(context, quest.x + 0x69, quest.y + 0x78, texts[4]);
-    WindowDrawing::SelectFont(context, FontKind::BigBold);
+    Hud::WindowDrawing::DrawCenteredText(context, quest.x + 0x55, quest.y + 0x64, texts[3]);
+    Hud::WindowDrawing::DrawCenteredText(context, quest.x + 0x69, quest.y + 0x78, texts[4]);
+    Hud::WindowDrawing::SelectFont(context, FontKind::BigBold);
     auto format = TextOf(context, ThirdTabCountText, "0x41c5c7");
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
     // 0x41c5c2: el byte +6 + pestaña, con la pestaña en 2.
     const std::string count = std::to_string(quest.flags[quest.tab]);
     const std::array<std::string_view, 1> arguments{count};
-    WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + StateTop,
-                                    UI::PlaceArguments(format.Value(), arguments));
+    Hud::WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + StateTop,
+                                         Ui::PlaceArguments(format.Value(), arguments));
     return {};
 }
 
 // 0x41c600.
-Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheQuestList(Hud::GameHudContext& context)
 {
     const QuestState& quest = context.world.Runtime().quest;
     Kernel::HudState& hud = context.hud;
@@ -515,7 +517,7 @@ Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
     sprites.SetBlend(BlendMode::Alpha);
     DrawTheWindowBackWithTheLine(sprites, x, y);
     hud.textColors = TextColors{.text = BodyText, .background = 0};
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     // 0x41c670..0x41c7af: la línea de y + 250 (0x6b8920) y el marco de la lista, en y absolutas.
     Quad(sprites, LineSlot, static_cast<float>(x), F32(static_cast<double>(y) + 250.0), 190.0f, 10.0f, 0.0f, 0.0f,
          0.7421875f, 0.625f);
@@ -527,7 +529,7 @@ Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
          0.00390625f, 0.48828125f);
     // 0x41c7b4..0x41c8d1: las tres pestañas, de 49 cada 51 desde x + 20.
     const float tabsLeft = F32(static_cast<double>(x) + 20.0);
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     hud.textColors.background = 0;
     for (std::int32_t tab = 0; tab < 3; ++tab)
     {
@@ -546,18 +548,18 @@ Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
         auto text = TextOf(context, FirstTabText + static_cast<std::size_t>(tab), "0x41c897");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        WindowDrawing::DrawCenteredText(
+        Hud::WindowDrawing::DrawCenteredText(
             context, Truncate(static_cast<double>(tab * 0x33) + static_cast<double>(tabsLeft) + 24.0),
             Truncate(static_cast<double>(top) + 5.0), text.Value());
     }
     // 0x41c8dd..0x41c9e3: el blanco, el botón de cerrar y la ayuda, el texto 927 con "T".
-    if (WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto format = TextOf(context, ListCloseHelpText, "0x41c9ab");
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
         const std::array<std::string_view, 1> key{QuestKey};
-        WindowDrawing::DrawTheCloseHelp(context, x, y, UI::PlaceArguments(format.Value(), key));
+        Hud::WindowDrawing::DrawTheCloseHelp(context, x, y, Ui::PlaceArguments(format.Value(), key));
     }
     Core::Expected<void, std::string> tab{};
     switch (quest.tab)
@@ -582,7 +584,7 @@ Core::Expected<void, std::string> DrawTheQuestList(GameHudContext& context)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheQuestWindow(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheQuestWindow(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
@@ -597,13 +599,13 @@ Core::Expected<void, std::string> DrawTheQuestWindow(GameHudContext& context, UI
         if (auto list = DrawTheQuestList(context); !list.HasValue())
             return list;
     }
-    if (!panels.IsOpen(UI::CharacterPanel))
+    if (!panels.IsOpen(Ui::CharacterPanel))
         return {};
     // 0x41ca7e..0x41cacd: con el color y la mezcla que haya.
     const std::int32_t top = quest.y + QuestButtonTop;
     Quad(context.sprites, window != 0 ? QuestButtonOpenSlot : QuestButtonClosedSlot, QuestButtonX,
          static_cast<float>(top), 24.0f, 24.0f, 0.0f, 0.0f, 0.75f, 0.75f);
-    const UI::Point mouse = context.mouse;
+    const Ui::Point mouse = context.mouse;
     if (mouse.x < QuestButtonLeft || mouse.x >= QuestButtonRight || mouse.y < top || mouse.y >= top + QuestButtonSize)
         return {};
     auto name = TextOf(context, FirstTabText, "0x41cb10");
@@ -614,7 +616,7 @@ Core::Expected<void, std::string> DrawTheQuestWindow(GameHudContext& context, UI
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheQuestItems(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheQuestItems(Hud::GameHudContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
@@ -634,4 +636,4 @@ Core::Expected<void, std::string> DrawTheQuestItems(GameHudContext& context)
         return Core::Unexpected(drawn.Error());
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Quests

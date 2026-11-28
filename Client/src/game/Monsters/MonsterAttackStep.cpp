@@ -48,7 +48,7 @@
 
 // 0x4f5b70 con sus ayudantes 0x43a7a0, 0x4436f0, 0x42dcf0, 0x429110, 0x42fce0 y 0x4324c0, cotejados con el PE c32bbd5f:
 // 06, "Los casos de los monstruos (0x4f5b70)".
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -81,8 +81,8 @@ constexpr Audio::SoundId RoarSound{0x75};
 constexpr Audio::SoundId HowlSound{0x50};
 constexpr Audio::SoundId HitSound = Sound::MeteoriteSound;
 constexpr Audio::SoundId AngryRoarSound{0x77};
-constexpr std::int32_t TailFireParticle = World::FireParticle;
-constexpr std::int32_t TailThunderParticle = World::ThunderParticle;
+constexpr std::int32_t TailFireParticle = Particles::FireParticle;
+constexpr std::int32_t TailThunderParticle = Particles::ThunderParticle;
 constexpr float TailParticleScale = 1.0f;
 constexpr glm::vec3 InitialTailLight(1.0f);
 constexpr glm::vec3 TrailAttackLight(1.0f, 0.5f, 0.0f);
@@ -184,13 +184,13 @@ void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId
 bool HasFreeModelEffect(const Actors::CharacterStepContext& context)
 {
     const auto effects = context.world.Map().effects.Effects();
-    return std::ranges::any_of(effects, [](const World::ModelEffect& effect) { return !effect.alive; });
+    return std::ranges::any_of(effects, [](const Effects::ModelEffect& effect) { return !effect.alive; });
 }
 
 bool IsJointPoolFull(const Actors::CharacterStepContext& context)
 {
     return !context.joints.empty() &&
-           std::ranges::none_of(context.joints, [](const JointState& joint) { return !joint.alive; });
+           std::ranges::none_of(context.joints, [](const Scenes::JointState& joint) { return !joint.alive; });
 }
 
 std::optional<std::size_t> CreateKalimaEarthquake(Kernel::ActorState& actor, std::uint8_t state,
@@ -198,7 +198,7 @@ std::optional<std::size_t> CreateKalimaEarthquake(Kernel::ActorState& actor, std
 {
     const auto created = context.world.Map().effects.CreateEarthquake(
         actor.position, actor.angles, actor.light, state,
-        World::ModelEffectOwner{.type = &actor.type, .effect = nullptr, .angles = &actor.angles},
+        Effects::ModelEffectOwner{.type = &actor.type, .effect = nullptr, .angles = &actor.angles},
         context.world.Runtime().ownRecordDepth, context.world.OwnCharacter().bytef04, context.random);
     if (created)
     {
@@ -228,7 +228,7 @@ Core::Expected<void, std::string> CreateTheBlastEffect(std::int16_t type, std::i
                                                  .byte88 = 0,
                                                  .byte1bd = 0,
                                                  .scale = 0.0f};
-    const auto made = CreateBlastEffect(arguments, owner, context);
+    const auto made = Combat::CreateBlastEffect(arguments, owner, context);
     if (!made.HasValue())
         return Core::Unexpected(made.Error());
     return {};
@@ -255,13 +255,13 @@ Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what
 // La luz (0,8f; 0,5; 0,1f) de los fuegos 0xc2/6, /7 y /8 (0x439c1f, 0x43b172 y 0x4f8272).
 constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bit_cast<float>(0x3dcccccdu)};
 
-// El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
+// El alta de un efecto de los magos (Effects::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
 // efecto pide y MuRet no tiene corta con la dirección de la llamada.
 Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Kernel::ModelEffectArguments& arguments,
                                                const Kernel::ActorState& actor, std::size_t slot,
                                                const Actors::CharacterStepContext& context)
 {
-    const auto created = CreateWizardEffect(context, arguments);
+    const auto created = Effects::CreateWizardEffect(context, arguments);
     if (!created.HasValue())
     {
         return Core::Unexpected(std::format("{:#x}: el efecto {:#x}/{} del lugar {} (tipo {:#x}, +0x376 en {:#x}): {}",
@@ -292,7 +292,7 @@ glm::vec3 MatrixPoint(const Kernel::ActorState& actor, const Math::BoneTransform
 }
 
 // Lo que el alta de un joint le pide al paso: el hueso 33 del jugador, el sonido de la CL10 y el registro propio.
-JointKernels::CreationServices JointServices(const Actors::CharacterStepContext& context)
+Joints::JointKernels::CreationServices JointServices(const Actors::CharacterStepContext& context)
 {
     return {.playerBonePoint =
                 [&context](const Kernel::ActorState& bones, std::size_t bone, const glm::vec3& offset)
@@ -325,8 +325,8 @@ Core::Expected<void, std::string> ThrowTheSpirit(const Kernel::ActorState& actor
                     static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
-    const JointKernels::CreationServices services = JointServices(context);
-    const Kernel::JointRequest request{.type = JointFamilies::SpiritJoint,
+    const Joints::JointKernels::CreationServices services = JointServices(context);
+    const Kernel::JointRequest request{.type = Joints::JointFamilies::SpiritJoint,
                                        .firstPosition = point,
                                        .secondPosition = point,
                                        .angles = angles,
@@ -338,7 +338,7 @@ Core::Expected<void, std::string> ThrowTheSpirit(const Kernel::ActorState& actor
                                        .skillSerial = 0,
                                        .target = -1};
     const auto created =
-        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::ByType, &services);
+        Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::ByType, &services);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
@@ -354,7 +354,7 @@ Core::Expected<void, std::string> CreateTheJoint(Kernel::ActorState& owner, cons
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
-    const JointKernels::CreationServices services = JointServices(context);
+    const Joints::JointKernels::CreationServices services = JointServices(context);
     const Kernel::JointRequest request{.type = type,
                                        .firstPosition = from,
                                        .secondPosition = to,
@@ -367,7 +367,7 @@ Core::Expected<void, std::string> CreateTheJoint(Kernel::ActorState& owner, cons
                                        .skillSerial = 0,
                                        .target = -1};
     const auto created =
-        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor, &services);
+        Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor, &services);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
@@ -583,10 +583,10 @@ Core::Expected<void, std::string> ThrowTheFireRing(const Kernel::ActorState& act
         for (int axis = 0; axis < 3; ++axis)
             point[axis] =
                 static_cast<float>(static_cast<double>(reach[axis]) + static_cast<double>(actor.position[axis]));
-        if (auto created = CreateWizard(
-                0x439ca6,
-                WizardArguments(World::FireEffect, point, actor.angles, MeteorLight, FireSubtype, nullptr, FireKey),
-                actor, slot, context);
+        if (auto created = CreateWizard(0x439ca6,
+                                        Effects::WizardArguments(Effects::FireEffect, point, actor.angles, MeteorLight,
+                                                                 FireSubtype, nullptr, FireKey),
+                                        actor, slot, context);
             !created.HasValue())
             return created;
     }
@@ -611,13 +611,13 @@ Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::
     {
         const glm::vec3 angles{0.0f, 0.0f,
                                static_cast<float>(static_cast<double>(ring) * static_cast<double>(RingTurn))};
-        if (auto created = CreateHighModelEffect({.type = RingEffect,
-                                                  .position = point,
-                                                  .angles = angles,
-                                                  .light = glm::vec3(0.0f),
-                                                  .subtype = RingSubtype,
-                                                  .owner = &actor},
-                                                 HighContextOf(context));
+        if (auto created = Effects::CreateHighModelEffect({.type = Effects::RingEffect,
+                                                           .position = point,
+                                                           .angles = angles,
+                                                           .light = glm::vec3(0.0f),
+                                                           .subtype = RingSubtype,
+                                                           .owner = &actor},
+                                                          Effects::HighContextOf(context));
             !created.HasValue())
             return Core::Unexpected(std::format("{} (0x439ba5, el lugar {})", created.Error(), slot));
     }
@@ -666,15 +666,16 @@ Core::Expected<void, std::string> StepTheKalimaSkill(Kernel::ActorState& actor, 
     {
         // 0x439cd0(c, +0x381, 13): 0x518cf0(0xcb, c+0x10, c+0x1c, c+0xf4, 3, c, −1, …) y (0xcc, …, 4, sin dueño, −1,
         // …), sin sonido.
-        if (auto inner = CreateWizard(
-                0x439d09,
-                WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 3, &actor), actor,
-                slot, context);
+        if (auto inner = CreateWizard(0x439d09,
+                                      Effects::WizardArguments(Effects::InnerCircleEffect, actor.position, actor.angles,
+                                                               actor.light, 3, &actor),
+                                      actor, slot, context);
             !inner.HasValue())
             return inner;
-        return CreateWizard(0x439d24,
-                            WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 4),
-                            actor, slot, context);
+        return CreateWizard(
+            0x439d24,
+            Effects::WizardArguments(Effects::OuterCircleEffect, actor.position, actor.angles, actor.light, 4), actor,
+            slot, context);
     }
     case WardSkill:
     case GuardSkill:
@@ -737,13 +738,13 @@ Core::Expected<Helped, std::string> StepKalima(Kernel::ActorState& actor, const 
         if (found.address == 0x43a872 && action == SecondAttack && actor.byte381 == FourteenthStep)
         {
             static_cast<void>(CreateKalimaEarthquake(actor, 1, context));
-            if (auto created = CreateHighModelEffect({.type = ThunderEffect,
-                                                      .position = actor.position,
-                                                      .angles = actor.angles,
-                                                      .light = actor.light,
-                                                      .owner = &actor,
-                                                      .byte88 = 1},
-                                                     HighContextOf(context));
+            if (auto created = Effects::CreateHighModelEffect({.type = Effects::ThunderEffect,
+                                                               .position = actor.position,
+                                                               .angles = actor.angles,
+                                                               .light = actor.light,
+                                                               .owner = &actor,
+                                                               .byte88 = 1},
+                                                              Effects::HighContextOf(context));
                 !created.HasValue())
                 return Core::Unexpected(std::format("0x43ab5f: {}", created.Error()));
             actor.byte381 = FifteenthStep;
@@ -763,7 +764,7 @@ Core::Expected<Helped, std::string> StepKalima(Kernel::ActorState& actor, const 
                 // 0x43b5ac y 0x43b5cc, con c de dueño.
                 if (auto made = CreateOnTheActor(0xf6, 0, actor, &actor, context); !made.HasValue())
                     return Core::Unexpected(made.Error());
-                if (auto made = CreateOnTheActor(World::FlameJetEffect, 1, actor, &actor, context); !made.HasValue())
+                if (auto made = CreateOnTheActor(Effects::FlameJetEffect, 1, actor, &actor, context); !made.HasValue())
                     return Core::Unexpected(made.Error());
                 actor.byte381 = FifteenthStep;
             }
@@ -775,9 +776,11 @@ Core::Expected<Helped, std::string> StepKalima(Kernel::ActorState& actor, const 
         // el seamanFX sobre c (Scenes::KalimaMonsterEffects; su alta pisa la luz). Con la tabla llena, nada.
         if (action == SecondAttack && actor.byte381 == FourteenthStep)
         {
-            if (auto created = CreateHighModelEffect(
-                    {.type = SeamanEffect, .position = actor.position, .angles = actor.angles, .light = actor.light},
-                    HighContextOf(context));
+            if (auto created = Effects::CreateHighModelEffect({.type = Effects::SeamanEffect,
+                                                               .position = actor.position,
+                                                               .angles = actor.angles,
+                                                               .light = actor.light},
+                                                              Effects::HighContextOf(context));
                 !created.HasValue())
                 return Core::Unexpected(std::format("0x43ac29: {}", created.Error()));
         }
@@ -815,8 +818,8 @@ Core::Expected<Helped, std::string> StepKalima(Kernel::ActorState& actor, const 
                 point.y = around(hero.position.y);
                 point.z = hero.position.z;
                 if (auto created = CreateWizard(0x43b1f4,
-                                                WizardArguments(World::FireEffect, point, actor.angles, MeteorLight,
-                                                                FireSubtype, nullptr, FireKey),
+                                                Effects::WizardArguments(Effects::FireEffect, point, actor.angles,
+                                                                         MeteorLight, FireSubtype, nullptr, FireKey),
                                                 actor, slot, context);
                     !created.HasValue())
                     return Core::Unexpected(created.Error());
@@ -857,7 +860,7 @@ Core::Expected<Helped, std::string> StepKalima(Kernel::ActorState& actor, const 
             // 0x43b241 y 0x43b25e, con c de dueño.
             if (auto made = CreateOnTheActor(0xf6, 5, actor, &actor, context); !made.HasValue())
                 return Core::Unexpected(made.Error());
-            if (auto made = CreateOnTheActor(World::FlameJetEffect, 2, actor, &actor, context); !made.HasValue())
+            if (auto made = CreateOnTheActor(Effects::FlameJetEffect, 2, actor, &actor, context); !made.HasValue())
                 return Core::Unexpected(made.Error());
             actor.byte381 = FifteenthStep;
         }
@@ -888,7 +891,7 @@ Core::Expected<Helped, std::string> StepTheSiege(const Kernel::ActorState& actor
         constexpr double SpearmanLift = 500.0;
         arguments.position.z = static_cast<float>(static_cast<double>(arguments.position.z) + SpearmanLift);
     }
-    if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
+    if (auto created = Effects::CreateHighModelEffect(arguments, Effects::HighContextOf(context)); !created.HasValue())
         return Core::Unexpected(created.Error());
     return Helped::Exit;
 }
@@ -911,10 +914,11 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const Kernel::ActorState
             constexpr std::int32_t FirstTwister = 3;
             for (int twister = 0; twister < Twisters; ++twister)
             {
-                if (auto created = CreateWizard(0x42919a,
-                                                WizardArguments(World::StormEffect, actor.position, actor.angles,
-                                                                glm::vec3(1.0f), FirstTwister + twister),
-                                                actor, slot, context);
+                if (auto created =
+                        CreateWizard(0x42919a,
+                                     Effects::WizardArguments(Effects::StormEffect, actor.position, actor.angles,
+                                                              glm::vec3(1.0f), FirstTwister + twister),
+                                     actor, slot, context);
                     !created.HasValue())
                     return Core::Unexpected(created.Error());
             }
@@ -932,7 +936,8 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const Kernel::ActorState
                                                          .angles = actor.angles,
                                                          .light = glm::vec3(1.0f),
                                                          .subtype = flash ? 0 : 1};
-            if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
+            if (auto created = Effects::CreateHighModelEffect(arguments, Effects::HighContextOf(context));
+                !created.HasValue())
                 return Core::Unexpected(std::format("{} (lugar {})", created.Error(), slot));
         }
         return Helped::Exit;
@@ -948,14 +953,14 @@ Core::Expected<Helped, std::string> LaunchTheCrywolfArrow(Kernel::ActorState& ac
 {
     constexpr std::int16_t CelestialArrow = 0xf8;
     constexpr std::int32_t CelestialSubtype = 1;
-    const auto created = CreateTheArrowEffect({.type = CelestialArrow,
-                                               .position = actor.position,
-                                               .angles = actor.angles,
-                                               .light = actor.light,
-                                               .subtype = CelestialSubtype,
-                                               .owner = &actor,
-                                               .key = static_cast<std::uint16_t>(actor.word8a)},
-                                              context.world, context.random, &actor.angles);
+    const auto created = Effects::CreateTheArrowEffect({.type = CelestialArrow,
+                                                        .position = actor.position,
+                                                        .angles = actor.angles,
+                                                        .light = actor.light,
+                                                        .subtype = CelestialSubtype,
+                                                        .owner = &actor,
+                                                        .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                       context.world, context.random, &actor.angles);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     return Helped::Exit;
@@ -976,7 +981,8 @@ Core::Expected<void, std::string> LaunchTheRadialVolley(const Kernel::ActorState
             static_cast<float>(static_cast<double>(shard) * DegreesPerShard + static_cast<double>(actor.angles.z));
         const Kernel::ModelEffectArguments arguments{
             .type = ShardEffect, .position = actor.position, .angles = angles, .light = actor.light};
-        if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
+        if (auto created = Effects::CreateHighModelEffect(arguments, Effects::HighContextOf(context));
+            !created.HasValue())
             return Core::Unexpected(created.Error());
     }
     return {};
@@ -991,14 +997,14 @@ Core::Expected<Helped, std::string> StepCrywolf(Kernel::ActorState& actor, const
     case 0x4324fb:
         if (actor.byte381 == FourteenthStep)
         {
-            const auto created = CreateTheArrowEffect({.type = 0xe1,
-                                                       .position = actor.position,
-                                                       .angles = actor.angles,
-                                                       .light = actor.light,
-                                                       .subtype = 1,
-                                                       .owner = &actor,
-                                                       .key = static_cast<std::uint16_t>(actor.word8a)},
-                                                      context.world, context.random);
+            const auto created = Effects::CreateTheArrowEffect({.type = 0xe1,
+                                                                .position = actor.position,
+                                                                .angles = actor.angles,
+                                                                .light = actor.light,
+                                                                .subtype = 1,
+                                                                .owner = &actor,
+                                                                .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                               context.world, context.random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return Helped::Exit;
@@ -1040,7 +1046,7 @@ Core::Expected<Helped, std::string> StepCrywolf(Kernel::ActorState& actor, const
         // 0x432acc: el punto sólo sale del marco si 0x53fe70 encuentra lugar. Lleno, quedan los cuatro sorteos de yaw.
         if (context.particles != nullptr &&
             std::ranges::all_of(context.particles->All(),
-                                [](const World::Particle& particle) { return particle.alive; }))
+                                [](const Particles::Particle& particle) { return particle.alive; }))
         {
             constexpr int SuppressedFlames = 4;
             for (int flame = 0; flame < SuppressedFlames; ++flame)
@@ -1056,14 +1062,14 @@ Core::Expected<Helped, std::string> StepCrywolf(Kernel::ActorState& actor, const
         if (actor.byte381 == FifteenthStep)
         {
             // 432b30..432b63: el intento sale con AL1, incluso si518cf0 encuentra el pool lleno.
-            const auto created = CreateTheArrowEffect({.type = 0xed,
-                                                       .position = actor.position,
-                                                       .angles = actor.angles,
-                                                       .light = actor.light,
-                                                       .subtype = 1,
-                                                       .owner = &actor,
-                                                       .key = static_cast<std::uint16_t>(actor.word8a)},
-                                                      context.world, context.random);
+            const auto created = Effects::CreateTheArrowEffect({.type = 0xed,
+                                                                .position = actor.position,
+                                                                .angles = actor.angles,
+                                                                .light = actor.light,
+                                                                .subtype = 1,
+                                                                .owner = &actor,
+                                                                .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                               context.world, context.random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return Helped::Exit;
@@ -1107,14 +1113,14 @@ Core::Expected<Helped, std::string> StepTheMapHelpers(Kernel::ActorState& actor,
             if (found->address == 0x42fd04)
             {
                 // 42fd04..42fd37: mismos once argumentos que el E1/1 de43252d; ningún CRT propio.
-                const auto created = CreateTheArrowEffect({.type = 0xe1,
-                                                           .position = actor.position,
-                                                           .angles = actor.angles,
-                                                           .light = actor.light,
-                                                           .subtype = 1,
-                                                           .owner = &actor,
-                                                           .key = static_cast<std::uint16_t>(actor.word8a)},
-                                                          context.world, context.random);
+                const auto created = Effects::CreateTheArrowEffect({.type = 0xe1,
+                                                                    .position = actor.position,
+                                                                    .angles = actor.angles,
+                                                                    .light = actor.light,
+                                                                    .subtype = 1,
+                                                                    .owner = &actor,
+                                                                    .key = static_cast<std::uint16_t>(actor.word8a)},
+                                                                   context.world, context.random);
                 if (!created.HasValue())
                     return Core::Unexpected(created.Error());
                 return Helped::Exit;
@@ -1148,8 +1154,8 @@ Core::Expected<void, std::string> ScatterTheFire(std::uint32_t address, const Ke
     point.x = around(actor.position.x);
     point.y = around(actor.position.y);
     point.z = actor.position.z;
-    return CreateWizard(address, WizardArguments(World::FireEffect, point, actor.angles, actor.light, 0), actor, slot,
-                        context);
+    return CreateWizard(address, Effects::WizardArguments(Effects::FireEffect, point, actor.angles, actor.light, 0),
+                        actor, slot, context);
 }
 
 // 0x4f6e51..0x4f6f40: el punto del hueso 11 (0x4ec110 con (0, 0, 0)) y tres 0x518cf0(0xc2, punto, ángulos, c+0xf4, 2,
@@ -1171,9 +1177,9 @@ Core::Expected<void, std::string> SpreadTheFires(const Kernel::ActorState& actor
         std::pair{0x4f6f40u, glm::vec3(shifted(angles.x, -Tilt), angles.y, shifted(angles.z, Steep))}};
     for (const auto& [address, turned] : fires)
     {
-        if (auto created =
-                CreateWizard(address, WizardArguments(World::FireEffect, point, turned, actor.light, FallingSubtype),
-                             actor, slot, context);
+        if (auto created = CreateWizard(
+                address, Effects::WizardArguments(Effects::FireEffect, point, turned, actor.light, FallingSubtype),
+                actor, slot, context);
             !created.HasValue())
             return created;
     }
@@ -1184,7 +1190,7 @@ Core::Expected<void, std::string> SpreadTheFires(const Kernel::ActorState& actor
 Core::Expected<void, std::string> ScatterTheBurst(const Kernel::ActorState& actor, std::size_t slot,
                                                   const Actors::CharacterStepContext& context)
 {
-    const auto burst = ScatterCombatBurstAt(actor.position, context);
+    const auto burst = Effects::ScatterCombatBurstAt(actor.position, context);
     if (!burst.HasValue())
         return Core::Unexpected(std::format("{} (lugar {})", burst.Error(), slot));
     return {};
@@ -1209,7 +1215,7 @@ Core::Expected<void, std::string> DripTheBlood(const Kernel::ActorState& actor, 
         const float z = offset();
         const glm::vec3 point = BonePoint(actor, DripBone, glm::vec3(x, y, z), context);
         for (const auto& [type, address] :
-             {std::pair{World::DropParticle, 0x4f71ed}, std::pair{World::BloodParticle, 0x4f7209}})
+             {std::pair{Particles::DropParticle, 0x4f71ed}, std::pair{Particles::BloodParticle, 0x4f7209}})
         {
             if (context.particles == nullptr)
             {
@@ -1252,9 +1258,9 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
         constexpr std::int16_t FallingStar = 0x625;
         for (int star = 0; star < FallingStars; ++star)
         {
-            if (auto created = CreateHighModelEffect(
+            if (auto created = Effects::CreateHighModelEffect(
                     {.type = FallingStar, .position = victim.position, .angles = victim.angles, .light = localLight},
-                    HighContextOf(context));
+                    Effects::HighContextOf(context));
                 !created.HasValue())
                 return Core::Unexpected("0x4f5d13: " + created.Error());
         }
@@ -1322,11 +1328,12 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
         constexpr std::int16_t OrangeRay = 0x5e9, BlueRay = 0x5e8;
         if (step % Period == FirstStep)
         {
-            if (auto made = CreateHighModelEffect({.type = OrangeRay,
-                                                   .position = BonePoint(actor, RayBone, glm::vec3(0.0f), context),
-                                                   .angles = actor.angles,
-                                                   .light = actor.light},
-                                                  HighContextOf(context));
+            if (auto made =
+                    Effects::CreateHighModelEffect({.type = OrangeRay,
+                                                    .position = BonePoint(actor, RayBone, glm::vec3(0.0f), context),
+                                                    .angles = actor.angles,
+                                                    .light = actor.light},
+                                                   Effects::HighContextOf(context));
                 !made.HasValue())
                 return Core::Unexpected(std::format("{} (lugar {})", made.Error(), slot));
         }
@@ -1342,9 +1349,9 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
             for (int ray = 0; ray < Rays; ++ray)
             {
                 angles.z = static_cast<float>(static_cast<double>(angles.z) + RaySpread);
-                if (auto made = CreateHighModelEffect(
+                if (auto made = Effects::CreateHighModelEffect(
                         {.type = BlueRay, .position = point, .angles = angles, .light = localLight},
-                        HighContextOf(context));
+                        Effects::HighContextOf(context));
                     !made.HasValue())
                     return Core::Unexpected(std::format("{} (lugar {})", made.Error(), slot));
             }
@@ -1377,8 +1384,9 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
         {
             const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(static_cast<double>(fire) * FireTurn)};
             if (auto created = CreateWizard(
-                    0x4f7050, WizardArguments(World::FireEffect, actor.position, angles, actor.light, 1, &actor), actor,
-                    slot, context);
+                    0x4f7050,
+                    Effects::WizardArguments(Effects::FireEffect, actor.position, angles, actor.light, 1, &actor),
+                    actor, slot, context);
                 !created.HasValue())
                 return created;
         }
@@ -1393,12 +1401,14 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
         if (actor.byte381 == FirstStep)
         {
             if (auto inner = CreateWizard(
-                    0x4f70b8, WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 0),
+                    0x4f70b8,
+                    Effects::WizardArguments(Effects::InnerCircleEffect, actor.position, actor.angles, actor.light, 0),
                     actor, slot, context);
                 !inner.HasValue())
                 return inner;
             if (auto outer = CreateWizard(
-                    0x4f70d6, WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 0),
+                    0x4f70d6,
+                    Effects::WizardArguments(Effects::OuterCircleEffect, actor.position, actor.angles, actor.light, 0),
                     actor, slot, context);
                 !outer.HasValue())
                 return outer;
@@ -1516,7 +1526,8 @@ Core::Expected<void, std::string> StepTheKindCase(Kernel::ActorState& actor, con
             }
             for (std::size_t arrow = 0; arrow < arrowCount; ++arrow)
             {
-                if (auto created = CreateAquagoldArrow(actor, arrowAngles[arrow], context); !created.HasValue())
+                if (auto created = Effects::CreateAquagoldArrow(actor, arrowAngles[arrow], context);
+                    !created.HasValue())
                     return created;
             }
             return {};
@@ -1554,7 +1565,7 @@ Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Ke
         if (actor.hands[0].model == MonsterBow)
         {
             if (step == EighthStep)
-                return FireTheArrow(actor, &actor, slot, 0, 0, 0, context);
+                return Effects::FireTheArrow(actor, &actor, slot, 0, 0, 0, context);
             return {};
         }
         // En la 3 y en 15, 0x4f5b10 (el punto (−20, −90, 100) de c) y 0x518cf0(0x5e8, punto, c+0x1c, la luz local, 0,
@@ -1564,12 +1575,12 @@ Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Ke
             if (step == FifteenthStep)
             {
                 constexpr glm::vec3 RayOffset{-20.0f, -90.0f, 100.0f};
-                if (auto made = CreateHighModelEffect({.type = 0x5e8,
-                                                       .position = PointAround(actor, RayOffset),
-                                                       .angles = actor.angles,
-                                                       .light = localLight,
-                                                       .owner = &actor},
-                                                      HighContextOf(context));
+                if (auto made = Effects::CreateHighModelEffect({.type = 0x5e8,
+                                                                .position = Effects::PointAround(actor, RayOffset),
+                                                                .angles = actor.angles,
+                                                                .light = localLight,
+                                                                .owner = &actor},
+                                                               Effects::HighContextOf(context));
                     !made.HasValue())
                     return Core::Unexpected(std::format("{} (lugar {})", made.Error(), slot));
             }
@@ -1598,10 +1609,10 @@ Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Ke
             const Kernel::ActorState& victim = context.world.Actors()[targetSlot];
             for (const std::uint32_t address : {0x4f8287u, 0x4f82a5u})
             {
-                if (auto created = CreateWizard(
-                        address,
-                        WizardArguments(World::FireEffect, victim.position, actor.angles, MeteorLight, MeteorSubtype),
-                        actor, slot, context);
+                if (auto created = CreateWizard(address,
+                                                Effects::WizardArguments(Effects::FireEffect, victim.position,
+                                                                         actor.angles, MeteorLight, MeteorSubtype),
+                                                actor, slot, context);
                     !created.HasValue())
                     return created;
             }
@@ -1632,8 +1643,9 @@ Core::Expected<void, std::string> StepTheKindSkill(Kernel::ActorState& actor, Ke
         if (step != ThirteenthStep)
             return {};
         return CreateWizard(0x4f83e5,
-                            WizardArguments(World::FireEffect, BonePoint(actor, FireBone, FireOffset, context),
-                                            actor.angles, actor.light, BouncingSubtype),
+                            Effects::WizardArguments(Effects::FireEffect,
+                                                     BonePoint(actor, FireBone, FireOffset, context), actor.angles,
+                                                     actor.light, BouncingSubtype),
                             actor, slot, context);
     }
     case 0x4f83f4:
@@ -1845,4 +1857,4 @@ Core::Expected<void, std::string> StepTheAttackCases(Kernel::ActorState& actor, 
     }
     return StepTheTail(actor, slot, context, localLight);
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

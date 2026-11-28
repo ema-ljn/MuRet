@@ -11,9 +11,9 @@
 
 namespace
 {
-using Client::Scenes::AddOwnItemOptionValues;
-using Client::Scenes::ApplyOwnItemOptionPercent;
-using Client::Scenes::OwnItemOptionsView;
+using Client::Items::AddOwnItemOptionValues;
+using Client::Items::ApplyOwnItemOptionPercent;
+using Client::Items::OwnItemOptionsView;
 
 OwnItemOptionsView Options(const Client::Kernel::ItemState& item)
 {

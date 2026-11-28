@@ -58,18 +58,26 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
+namespace Client::MapScripts::Kalima
+{
+class KalimaWorld;
+} // namespace Client::MapScripts::Kalima
+
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
 // La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
 // Las poses son globales entre escenas; los cuadros intermedios usan scratch y sprites proyectados.
 // Los servicios o familias aún no portados devuelven su frontera después de conservar el prefijo.
 // Contrato: research06, «La entrada al mundo», «El paso del juego» y «El dibujo del juego».
-namespace Client::World
+namespace Client::WorldObjects
 {
-class KalimaWorld;
-class Particles;
 struct ObjectModelStepState;
 struct WorldObject;
-} // namespace Client::World
+} // namespace Client::WorldObjects
 
 namespace Client::Models
 {
@@ -84,9 +92,23 @@ struct ItemDrawContext;
 struct ItemSpecialDrawContext;
 } // namespace Client::Actors::Drawing
 
-namespace Client::Scenes
+namespace Client::Chat
+{
+struct GameChatContext;
+} // namespace Client::Chat
+
+namespace Client::Effects
 {
 struct ArrowStepContext;
+} // namespace Client::Effects
+
+namespace Client::Items
+{
+struct InventoryServices;
+} // namespace Client::Items
+
+namespace Client::Scenes
+{
 struct GameProjection;
 struct GameSceneFrameProjection;
 struct GameDrawTailState;
@@ -107,8 +129,6 @@ struct GameChatTables
     // el paso de la UI. nullptr si no se cargaron: 0x550d10 corta en 0x40e1b0.
     const Tables::ItemSetTables* itemSetTables = nullptr;
 };
-struct GameChatContext;
-struct InventoryServices;
 
 class GameScene final : public IScene
 {
@@ -164,14 +184,14 @@ private:
     // 0x636ded..0x63705b: el bloque de la UI del paso.
     [[nodiscard]] Core::Expected<void, std::string> StepTheUi(const Input::InputState& input);
     // Lo que la entrada del chat lee y por dónde manda (App::ServerSession::SendChat).
-    [[nodiscard]] GameChatContext ChatContext();
+    [[nodiscard]] Chat::GameChatContext ChatContext();
     // Lo que levantar, soltar y equipar piden afuera: los de SceneContext::worldEntry y el envío del 24
     // (App::ServerSession::SendItemMove).
-    [[nodiscard]] InventoryServices InventoryContext();
+    [[nodiscard]] Items::InventoryServices InventoryContext();
     // 0x5fc260(1) y 0x5fac90 con el rayo del mouse (MoveHero y el C1 23): la celda del terreno bajo el mouse o nada.
     [[nodiscard]] Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GroundUnderTheMouse();
     // El envío de las ventanas de los NPC por la sesión (App::ServerSession::SendNpcWindowPacket); sin ella, vacío.
-    [[nodiscard]] static NpcWindowSender NpcWindowSenderOf(App::ServerSession* session);
+    [[nodiscard]] static Npc::NpcWindowSender NpcWindowSenderOf(App::ServerSession* session);
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
@@ -182,8 +202,8 @@ private:
     StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheEffects(float worldClock);
     // Lo que el paso y el choque de una flecha (0x5208a0, 0x520170) leen del frame.
-    [[nodiscard]] ArrowStepContext ArrowContext(float worldClock,
-                                                const std::function<double(float, float)>& terrainHeight);
+    [[nodiscard]] Effects::ArrowStepContext ArrowContext(float worldClock,
+                                                         const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheHero(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFauna();
     [[nodiscard]] Core::Expected<void, std::string> StepTheLeaves();
@@ -233,18 +253,18 @@ private:
     void FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special, Actors::Drawing::ItemDrawContext& item,
                              Core::Duration frameClock, int frames);
     [[nodiscard]] Kernel::PoseBuffer& FramePoseCarry();
-    [[nodiscard]] World::FrameSprites& FrameSpritesForDraw();
+    [[nodiscard]] Particles::FrameSprites& FrameSpritesForDraw();
     void PrepareDrawProjection(int frames);
     void ObserveMapLoad();
     [[nodiscard]] GameDrawTailState& FrameTail();
     [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
     [[nodiscard]] Models::ClothWorld& FrameCloth();
-    [[nodiscard]] World::ObjectModelStepState& FrameModelState();
+    [[nodiscard]] WorldObjects::ObjectModelStepState& FrameModelState();
     [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
-    [[nodiscard]] World::ModelEffects& FrameEffects();
-    [[nodiscard]] World::Particles& FrameParticles();
-    [[nodiscard]] std::span<World::WorldObject> FrameObjects();
-    [[nodiscard]] World::KalimaWorld* FrameKalima();
+    [[nodiscard]] Effects::ModelEffects& FrameEffects();
+    [[nodiscard]] Particles::Particles& FrameParticles();
+    [[nodiscard]] std::span<WorldObjects::WorldObject> FrameObjects();
+    [[nodiscard]] MapScripts::Kalima::KalimaWorld* FrameKalima();
     [[nodiscard]] std::uint8_t ReadFrameHeroCell(bool x);
     [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(Render::Frame::SceneCanvas& canvas);
 
@@ -264,7 +284,7 @@ private:
     Assets::SceneTextures m_windowTextures;
     Assets::SceneTextures m_sandTextures;
     // Las marcas de los gremios (0x5f16a0), cada una en su slot de la tabla de la escena.
-    GuildMarkTextures m_guildMarks;
+    Guild::GuildMarkTextures m_guildMarks;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;
@@ -277,19 +297,19 @@ private:
     // anterior, para la espera de las skills (CL9 hito 4).
     bool m_frameStarts = true;
     std::optional<std::uint32_t> m_lastFrameStart;
-    GroundEffectFrame m_groundEffects;
-    World::FrameSprites m_sprites;
-    World::FrameSprites m_spriteReplay;
+    Effects::GroundEffectFrame m_groundEffects;
+    Particles::FrameSprites m_sprites;
+    Particles::FrameSprites m_spriteReplay;
     bool m_spriteReplayValid = false;
-    World::FrameSprites m_projectedSprites;
-    World::FrameSprites* m_frameSprites = nullptr;
+    Particles::FrameSprites m_projectedSprites;
+    Particles::FrameSprites* m_frameSprites = nullptr;
     std::unique_ptr<GameSceneFrameProjection> m_projection;
     bool m_projectingFrame = false;
     Kernel::PoseBuffer m_projectedPoseCarry;
     Kernel::PoseBuffer* m_framePoseCarry = nullptr;
     Models::SkinningBuffers m_characterBuffers;
     Session::CharacterDrawHooks m_characterDrawHooks;
-    ActorEffectHooks m_effectHooks;
+    Effects::ActorEffectHooks m_effectHooks;
     Terrain::SphereFrustum m_frustum;
     Render::Camera3D m_drawnCamera;
     Terrain::TerrainPickingState m_picking;

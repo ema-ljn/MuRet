@@ -13,8 +13,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t EffectType = 0x68;
 constexpr std::uint32_t MapBlue = 0x3f333333u;
 
@@ -27,7 +27,7 @@ TEST(Particle68StepTest, Map34SetsBlueFirstAndThenRedAndGreenAfterScaleGrowth)
     const std::int32_t map = 34;
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
 
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_TRUE(particle.alive);
@@ -54,7 +54,7 @@ TEST(Particle68StepTest, OtherRawMapsSubtractEachColorWithoutClamping)
                             .moves = false};
         CrtRandom random(7);
 
-        const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
 
         ASSERT_TRUE(stepped.HasValue()) << map;
         EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.light.x), 0xbd4ccccdu) << map;
@@ -80,7 +80,7 @@ TEST(Particle68StepTest, ExpirationStillMovesGrowsQueriesAndChangesColor)
     const std::int32_t map = 34;
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
 
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_FALSE(particle.alive);
@@ -98,10 +98,10 @@ TEST(Particle68StepTest, MissingMapReportsAfterLifeAndScaleStores)
         .alive = true, .type = EffectType, .subtype = 0, .scale = 1.0f, .light = {2, 3, 4}, .life = 1, .moves = false};
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
 
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_EQ(stepped.Error(), Client::World::ParticleError::MissingMap);
+    EXPECT_EQ(stepped.Error(), Client::Particles::ParticleError::MissingMap);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.scale), 0x3f83d70au);
@@ -123,7 +123,7 @@ TEST(Particle68StepTest, APostHelperSubtypeOneUsesTheStoredAccumulator)
     const std::int32_t map = 34;
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
 
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particle.scale, 1.25f);

@@ -21,7 +21,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes::CastleDraw
+namespace Client::CastleSiege::CastleDraw
 {
 namespace
 {
@@ -29,48 +29,49 @@ constexpr std::int32_t Left = 450;
 constexpr std::uint32_t SufficientMoney = 0xff64ffffu;
 constexpr std::uint32_t InsufficientMoney = 0xff3264ffu;
 
-Core::Expected<void, std::string> MoneyText(GameHudContext& context, std::int32_t x, std::int32_t y, std::uint32_t text,
-                                            std::uint32_t value)
+Core::Expected<void, std::string> MoneyText(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
+                                            std::uint32_t text, std::uint32_t value)
 {
-    return Formatted(context, x, y, text, std::string_view(FormatZen(value)));
+    return Formatted(context, x, y, text, std::string_view(Ui::FormatZen(value)));
 }
 
-Core::Expected<void, std::string> Admin(GameHudContext& context, UI::HuntZoneWindow& window)
+Core::Expected<void, std::string> Admin(Hud::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
 {
     if (auto line = Text(context, Left, 55, 0x7732158); !line.HasValue())
         return line;
-    WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     constexpr std::array<std::uint32_t, 3> Lines{0x77340fc, 0x7734228, 0x7734354};
     for (std::size_t i = 0; i < Lines.size(); ++i)
         if (auto line = Text(context, Left, 75 + static_cast<std::int32_t>(i) * 10, Lines[i]); !line.HasValue())
             return line;
-    UI::OldDraw::DrawTheCheckbox(context.sprites, 485, 115, window.allowed != 0);
+    Ui::OldDraw::DrawTheCheckbox(context.sprites, 485, 115, window.allowed != 0);
     auto label = CastleUi::Text(context.texts, 0x7732284);
     if (!label.HasValue())
         return Core::Unexpected(std::move(label).Error());
-    WindowDrawing::DrawText(context, 505, 115, label.Value());
+    Hud::WindowDrawing::DrawText(context, 505, 115, label.Value());
     auto fee = CastleUi::Text(context.texts, 0x7732734);
     if (!fee.HasValue())
         return Core::Unexpected(std::move(fee).Error());
-    WindowDrawing::DrawText(context, 485, 133, Crt::Sprintf(fee.Value(), std::string_view(FormatZen(window.fee))));
+    Hud::WindowDrawing::DrawText(context, 485, 133,
+                                 Crt::Sprintf(fee.Value(), std::string_view(Ui::FormatZen(window.fee))));
     context.sprites.SetColor({0, 0, 0, 0.3f});
     context.sprites.ColorQuad(470, 185, 90, 30);
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, después del fondo sin textura.
     context.sprites.SetColor({1, 1, 1, 1});
-    WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto line = Text(context, Left, 163, 0x77323b0); !line.HasValue())
         return line;
-    WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
     // 0x5542f0(..., 0, 4, 0), alineado a la derecha en x=540 y x=550.
-    const auto edited = FormatZen(static_cast<std::uint32_t>(window.editedFee));
-    WindowDrawing::DrawText(
+    const auto edited = Ui::FormatZen(static_cast<std::uint32_t>(window.editedFee));
+    Hud::WindowDrawing::DrawText(
         context,
         Render::Text::EndingAt(540, context.text.Measure(context.hud.dcFont, edited), context.sprites.Screen()), 195,
         edited);
     auto zen = CastleUi::Text(context.texts, 0x76cd85c);
     if (!zen.HasValue())
         return Core::Unexpected(std::move(zen).Error());
-    WindowDrawing::DrawText(
+    Hud::WindowDrawing::DrawText(
         context,
         Render::Text::EndingAt(550, context.text.Measure(context.hud.dcFont, zen.Value()), context.sprites.Screen()),
         195, zen.Value());
@@ -79,8 +80,8 @@ Core::Expected<void, std::string> Admin(GameHudContext& context, UI::HuntZoneWin
     if (auto minus = Button(context, window.minus, 570, 203, 0, window.minus.base.state); !minus.HasValue())
         return minus;
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a3b4, después del botón menos.
-    UI::OldDraw::Quad(context.sprites, 9, 570, 185, 16, 10, 0, 0.99f, 1, -0.96875f);
-    UI::OldDraw::Quad(context.sprites, 9, 570, 206, 16, 10, 0, 0, 1, 1);
+    Ui::OldDraw::Quad(context.sprites, 9, 570, 185, 16, 10, 0, 0.99f, 1, -0.96875f);
+    Ui::OldDraw::Quad(context.sprites, 9, 570, 206, 16, 10, 0, 0, 1, 1);
     if (auto commit = Button(context, window.commit, 520, 228, 0x7733b20, window.commit.base.state); !commit.HasValue())
         return commit;
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a43a, después de aplicar el precio.
@@ -94,7 +95,7 @@ Core::Expected<void, std::string> Admin(GameHudContext& context, UI::HuntZoneWin
     return Button(context, window.enter, 520, 329, 0x7731ca8, window.enter.base.state);
 }
 
-Core::Expected<void, std::string> Visitor(GameHudContext& context, UI::HuntZoneWindow& window)
+Core::Expected<void, std::string> Visitor(Hud::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
 {
     if (window.allowed == 0)
     {
@@ -106,7 +107,7 @@ Core::Expected<void, std::string> Visitor(GameHudContext& context, UI::HuntZoneW
         window.enter.base.state = 0; // El dibujo sólo apaga el botón mientras lo pinta.
         return button;
     }
-    const auto amount = FormatZen(window.fee);
+    const auto amount = Ui::FormatZen(window.fee);
     {
         const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         context.hud.textColors.text =
@@ -125,7 +126,7 @@ Core::Expected<void, std::string> Visitor(GameHudContext& context, UI::HuntZoneW
 }
 } // namespace
 
-Core::Expected<void, std::string> Hunt(GameHudContext& context, UI::HuntZoneWindow& window)
+Core::Expected<void, std::string> Hunt(Hud::GameHudContext& context, CastleSiege::HuntZoneWindow& window)
 {
     if (window.mode == 0)
         return {};
@@ -150,4 +151,4 @@ Core::Expected<void, std::string> Hunt(GameHudContext& context, UI::HuntZoneWind
         return body;
     return Close(context, Left);
 }
-} // namespace Client::Scenes::CastleDraw
+} // namespace Client::CastleSiege::CastleDraw

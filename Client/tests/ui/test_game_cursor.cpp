@@ -26,10 +26,10 @@ using Client::Render::Color;
 using Client::Render::OriginalQuad;
 using Client::Render::SpriteBatch;
 using Client::Render::TextureSlot;
-using Client::UI::CursorQuad;
-using Client::UI::DrawGameCursor;
-using Client::UI::MouseIn640x480;
-using Client::UI::Point;
+using Client::Ui::CursorQuad;
+using Client::Ui::DrawGameCursor;
+using Client::Ui::MouseIn640x480;
+using Client::Ui::Point;
 
 constexpr PixelSize Screen1024{1024, 768};
 

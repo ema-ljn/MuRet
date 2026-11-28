@@ -53,9 +53,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Events::CameraTour;
+using Client::Events::Crywolf::CameraTourContext;
 using Client::Kernel::ActorState;
-using Client::Scenes::CameraTour;
-using Client::Scenes::CameraTourContext;
 
 constexpr std::uint32_t Seed = 0x7015;
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 34};
@@ -123,7 +123,7 @@ struct Tour
     [[nodiscard]] Client::Core::Expected<void, std::string> Step(std::uint32_t now = 0)
     {
         resources.emplace(Resources());
-        return Client::Scenes::StepTheCameraTour(
+        return Client::Events::Crywolf::StepTheCameraTour(
             CameraTourContext{.world = world,
                               .random = cloth.random,
                               .now = now,
@@ -142,11 +142,11 @@ struct Tour
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     std::optional<Client::Scenes::WorldEntryResources> resources;
@@ -171,12 +171,12 @@ TEST(CameraTourTest, TheSecondStageStartsTheTourFiveSecondsLater)
         EXPECT_TRUE(tour.waiting);
         ASSERT_TRUE(tested->Step(5999).HasValue());
         EXPECT_TRUE(tour.waiting);
-        EXPECT_FALSE(Client::Scenes::CameraTourRunning(tour));
+        EXPECT_FALSE(Client::Events::Crywolf::CameraTourRunning(tour));
         EXPECT_EQ(tested->released, 0);
         ASSERT_TRUE(tested->Step(6000).HasValue());
         EXPECT_FALSE(tour.waiting);
         EXPECT_TRUE(tour.timerRestart);
-        EXPECT_TRUE(Client::Scenes::CameraTourRunning(tour));
+        EXPECT_TRUE(Client::Events::Crywolf::CameraTourRunning(tour));
         EXPECT_EQ(tested->released, 1);
         EXPECT_EQ(tour.scriptStage, 0);
         EXPECT_EQ(tour.step, 0);
@@ -232,7 +232,7 @@ TEST(CameraTourTest, OtherStagesDoNotStartItAndTheThirdUndoesIt)
     EXPECT_EQ(tour.speed, 100.0f);
     tested->Running(4);
     CameraTourContext bare{.world = tested->world, .random = tested->cloth.random};
-    const auto cut = Client::Scenes::StepTheCameraTour(bare);
+    const auto cut = Client::Events::Crywolf::StepTheCameraTour(bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x4035d3"), std::string::npos) << cut.Error();
 }
@@ -325,7 +325,7 @@ TEST(CameraTourTest, EachStageHeadsToTheNextCellWhenItsScriptEnds)
     EXPECT_FALSE(tested->world.Actors()[9].alive);
     EXPECT_TRUE(tested->State().skipped);
     EXPECT_EQ(tested->State().scriptStage, 5);
-    EXPECT_FALSE(Client::Scenes::CameraTourRunning(tested->State()));
+    EXPECT_FALSE(Client::Events::Crywolf::CameraTourRunning(tested->State()));
 }
 
 // 0x404c90 en el guion: la etapa 4 espera 3.000 ms y la 1, en el paso 7, 0x294; al vencer, +0x140 uno más.
@@ -466,8 +466,8 @@ TEST_F(CameraTourActorsTest, TheAltarsComeFromTheMonsterCreation)
         for (std::size_t index = 0; index < Spawns.size(); ++index)
         {
             const auto created =
-                Client::Scenes::CreateMonster(Spawns[index].type, Spawns[index].x, Spawns[index].y,
-                                              static_cast<std::int32_t>(10000 + index), twin->Resources());
+                Client::Monsters::CreateMonster(Spawns[index].type, Spawns[index].x, Spawns[index].y,
+                                                static_cast<std::int32_t>(10000 + index), twin->Resources());
             ASSERT_TRUE(created.HasValue()) << created.Error();
         }
         auto tested = Load(map);
@@ -510,7 +510,7 @@ TEST_F(CameraTourActorsTest, TheGuardsCompleteTheirArrivalInCrywolf)
             EXPECT_EQ(barrier->State().step, 1);
         }
         auto twin = Load(map);
-        ASSERT_TRUE(Client::Scenes::CreateMonster(0x154, 0x71, 0xee, 10000, twin->Resources()).HasValue());
+        ASSERT_TRUE(Client::Monsters::CreateMonster(0x154, 0x71, 0xee, 10000, twin->Resources()).HasValue());
         auto tested = Load(map);
         tested->Running(1, true, 1);
         const auto cut = tested->Step();
@@ -555,7 +555,7 @@ TEST_F(CameraTourActorsTest, TheBarrierArrivalContinuesAcrossPartialAndFullPools
         auto tested = Load(34);
         auto twin = Load(34);
         // La creación del personaje tiene sus propios accesos/RNG; este doble real fija sólo ese prefijo.
-        const auto base = Client::Scenes::CreateMonster(0x15d, 0x72, 0xee, 10000, twin->Resources());
+        const auto base = Client::Monsters::CreateMonster(0x15d, 0x72, 0xee, 10000, twin->Resources());
         ASSERT_TRUE(base.HasValue()) << base.Error();
         CrtRandom expected(twin->cloth.random.State());
         for (int draw = 0; draw < capacity.draws; ++draw)

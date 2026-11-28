@@ -23,7 +23,7 @@
 // tiene una captura para toda la UI; acá cada botón tiene la suya, y "encima" es encima y con el
 // botón del mouse arriba: con el mouse apretado afuera de todo y arrastrado encima, el original
 // muestra el cuadro 1 y MuRet el 0. Se atiende en el paso, no en el frame (Q-C81).
-namespace Client::UI
+namespace Client::Ui
 {
 // Los colores del rótulo por estado (la tabla de +0xd0, 0xAABBGGRR): [0] a [3] sin marcar (normal,
 // apretado, encima y deshabilitado) y [4] a [7] marcado.
@@ -105,4 +105,4 @@ private:
     std::string m_label;
     ButtonColors m_colors;
 };
-} // namespace Client::UI
+} // namespace Client::Ui

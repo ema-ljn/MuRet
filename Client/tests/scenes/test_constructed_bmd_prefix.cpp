@@ -34,13 +34,13 @@ TEST(ConstructedBmdPrefixTest, EveryPositiveNativeOffsetProvesTheConstructorActi
         const auto* model = prefix.BorrowForSetAction();
         ASSERT_NE(model, nullptr);
         EXPECT_TRUE(model->actions.empty());
-        Client::Scenes::FaunaObject fish;
+        Client::Fauna::FaunaObject fish;
         fish.model = -1;
         fish.action = 2;
         fish.previousAction = 7;
         fish.frame = 9.25f;
         fish.previousFrame = 8.5f;
-        Client::Scenes::SetFaunaAction(fish, *model, 1);
+        Client::Fauna::SetFaunaAction(fish, *model, 1);
         EXPECT_EQ(fish.action, 2);
         EXPECT_EQ(fish.previousAction, 7);
         EXPECT_EQ(fish.frame, 9.25f);

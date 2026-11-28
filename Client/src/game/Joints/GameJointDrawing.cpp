@@ -138,10 +138,10 @@ Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const JointState&
     const glm::vec3* ownerPosition = nullptr;
     if (joint.ownerKind == Kernel::JointOwnerKind::Actor)
     {
-        if (const auto* actor = JointKernels::ActorOwner(joint))
+        if (const auto* actor = Joints::JointKernels::ActorOwner(joint))
             ownerPosition = &actor->position;
     }
-    else if (const auto* owner = static_cast<const FaunaObject*>(joint.ownerContext))
+    else if (const auto* owner = static_cast<const Fauna::FaunaObject*>(joint.ownerContext))
         ownerPosition = &owner->position;
     segmentLight = glm::vec3(1);
     if (ownerPosition != nullptr)

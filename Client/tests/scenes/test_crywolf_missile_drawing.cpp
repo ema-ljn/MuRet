@@ -19,9 +19,9 @@ TEST(CrywolfMissileDrawingTest, TheTailEmitsFourParticlesAndTenSpritesFromTheGlo
 {
     for (const int type : {0xed, 0xee})
     {
-        auto particles = std::make_unique<Client::World::Particles>();
-        Client::World::FrameSprites sprites;
-        Client::World::ModelEffect effect;
+        auto particles = std::make_unique<Client::Particles::Particles>();
+        Client::Particles::FrameSprites sprites;
+        Client::Effects::ModelEffect effect;
         effect.type = static_cast<std::int16_t>(type);
         effect.transform.position = {1000, 2000, 300};
         effect.transform.scale = 1;
@@ -29,7 +29,7 @@ TEST(CrywolfMissileDrawingTest, TheTailEmitsFourParticlesAndTenSpritesFromTheGlo
                                                         Client::Math::BoneTransform(1.0f)};
         pose[1][3] = {100, 200, 300};
         Client::Crt::CrtRandom random(7);
-        const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 19, *particles, sprites, random, pose, 0);
+        const auto drawn = Client::Effects::DrawCrywolfMissileTail(effect, 19, *particles, sprites, random, pose, 0);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 16).State());
         const auto out = particles->All();
@@ -42,7 +42,8 @@ TEST(CrywolfMissileDrawingTest, TheTailEmitsFourParticlesAndTenSpritesFromTheGlo
         EXPECT_EQ(out[3].type, 0x5da);
         EXPECT_EQ(out[3].subtype, 9);
         EXPECT_EQ(out[3].light, (glm::vec3{1, 0.4f, 0}));
-        EXPECT_EQ(out[2].typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 19}));
+        EXPECT_EQ(out[2].typedOwner,
+                  (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 19}));
         const auto glows = sprites.Sprites();
         EXPECT_EQ(glows[0].texture, 0x5c6);
         EXPECT_EQ(glows[0].position, (glm::vec3{100, 201.5f, 300}));
@@ -59,15 +60,15 @@ TEST(CrywolfMissileDrawingTest, TheTailEmitsFourParticlesAndTenSpritesFromTheGlo
 
 TEST(CrywolfMissileDrawingTest, TheFullParticlePoolStillRunsTheSpritesAndTheEmptyScratchIsNativeBss)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     for (auto& p : particles->All())
         p.alive = true;
-    Client::World::FrameSprites sprites;
-    Client::World::ModelEffect effect;
+    Client::Particles::FrameSprites sprites;
+    Client::Effects::ModelEffect effect;
     effect.type = 0xee;
     effect.transform.scale = 1;
     Client::Crt::CrtRandom random(7);
-    const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 0, *particles, sprites, random, {}, 0);
+    const auto drawn = Client::Effects::DrawCrywolfMissileTail(effect, 0, *particles, sprites, random, {}, 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), 7u);
     EXPECT_EQ(sprites.Sprites()[0].position, glm::vec3(0));
@@ -80,19 +81,19 @@ TEST(CrywolfMissileDrawingTest, PartialParticleCapacityDoesNotChangeTheCallerOrT
     constexpr std::array<int, 5> draws{0, 6, 12, 13, 16};
     for (std::size_t room = 0; room < draws.size(); ++room)
     {
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         for (auto& p : particles->All())
             p.alive = true;
         for (std::size_t i = 0; i < room; ++i)
             particles->All()[i].alive = false;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         for (auto& sprite : sprites.Sprites())
             sprite.alive = true;
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.type = 0xed;
         effect.transform.scale = 1;
         Client::Crt::CrtRandom random(7);
-        const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 7, *particles, sprites, random, {}, 0);
+        const auto drawn = Client::Effects::DrawCrywolfMissileTail(effect, 7, *particles, sprites, random, {}, 0);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, draws[room]).State());
         EXPECT_EQ(std::bit_cast<std::uint32_t>(effect.light.r), 0x3dcccccbU);

@@ -10,7 +10,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::Particles
 {
 class IParticleTrigonometry;
 
@@ -39,4 +39,4 @@ void CreateMissileFire(Particle& particle, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, ParticleError> StepMissileFire(Particle& particle,
                                                                   IParticleTrigonometry* trigonometry);
 
-} // namespace Client::World
+} // namespace Client::Particles

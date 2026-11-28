@@ -9,24 +9,24 @@
 #include <optional>
 #include <vector>
 
-// Client::UI::GroupServers y lo que muestra cada botón de la lista (CL5.5; 06 § La lista de
+// Client::FrontEnd::GroupServers y lo que muestra cada botón de la lista (CL5.5; 06 § La lista de
 // servidores; Q-C62 y Q-C63). 0x4c1860 reparte cada servidor en el grupo `código / 20`, y el
 // grupo va a un lugar de la pantalla por una tabla de 25: del lugar 4 al 24 hay un botón, en el
 // orden 20, 16, 15, 14, 13, 11, 19, 18, 17, 10, 9, ..., 0 y 12.
 namespace
 {
+using Client::FrontEnd::GroupNameText;
+using Client::FrontEnd::GroupOf;
+using Client::FrontEnd::GroupServers;
+using Client::FrontEnd::GroupSlot;
+using Client::FrontEnd::IsNonPvp;
+using Client::FrontEnd::LoadText;
+using Client::FrontEnd::LoginTitleText;
+using Client::FrontEnd::ServerGroups;
+using Client::FrontEnd::ServerLabel;
+using Client::FrontEnd::ServerNumber;
+using Client::FrontEnd::SingleServerLabel;
 using Client::Protocol::Session::ServerEntry;
-using Client::UI::GroupNameText;
-using Client::UI::GroupOf;
-using Client::UI::GroupServers;
-using Client::UI::GroupSlot;
-using Client::UI::IsNonPvp;
-using Client::UI::LoadText;
-using Client::UI::LoginTitleText;
-using Client::UI::ServerGroups;
-using Client::UI::ServerLabel;
-using Client::UI::ServerNumber;
-using Client::UI::SingleServerLabel;
 
 // Los grupos de la lista, en el orden en que salen.
 std::vector<std::uint16_t> GroupsOf(const ServerGroups& grouped)

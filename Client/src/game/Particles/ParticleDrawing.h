@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <system_error>
-namespace Client::World
+namespace Client::Particles
 {
 class IParticleDrawingServices;
 enum class ParticleDrawingPhase
@@ -56,4 +56,4 @@ struct ParticleDrawingFailure
 [[nodiscard]] Core::Expected<void, ParticleDrawingFailure>
 DrawParticlesChecked(Particles& particles, std::uint8_t mode, std::reference_wrapper<const float> clock,
                      IParticleDrawingServices& services);
-} // namespace Client::World
+} // namespace Client::Particles

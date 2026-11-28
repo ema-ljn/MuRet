@@ -16,10 +16,10 @@
 namespace
 {
 using Client::Tests::MakeTextTable;
-using Client::UI::DialogBoxState;
-using Client::UI::DialogRow;
-using Client::UI::DialogState;
-using Client::UI::Point;
+using Client::Ui::DialogBoxState;
+using Client::Ui::DialogRow;
+using Client::Ui::DialogState;
+using Client::Ui::Point;
 
 // 0x632e30: el texto partido en renglones de menos de 0x26, un botón y el 0x8a, abierto o esperando.
 TEST(GameDialogsTest, TheMessageBoxSplitsItsTextAndOpensTheFriendlyDialog)
@@ -27,7 +27,7 @@ TEST(GameDialogsTest, TheMessageBoxSplitsItsTextAndOpensTheFriendlyDialog)
     DialogBoxState box;
     box.buttons[1].state = 2;
     DialogState dialogs;
-    Client::UI::OpenMessageBox(box, dialogs, "una caja con un texto bastante largo para dos renglones");
+    Client::Ui::OpenMessageBox(box, dialogs, "una caja con un texto bastante largo para dos renglones");
 
     EXPECT_EQ(box.lineCount, 2);
     EXPECT_EQ(DialogRow(box, 0), "una caja con un texto bastante largo ");
@@ -40,9 +40,9 @@ TEST(GameDialogsTest, TheMessageBoxSplitsItsTextAndOpensTheFriendlyDialog)
     EXPECT_EQ(box.buttons[1].state, 0);
     EXPECT_EQ(dialogs.current, 0x8a);
 
-    dialogs.current = Client::UI::EscapeMenuDialog;
-    Client::UI::OpenMessageBox(box, dialogs, "otra");
-    EXPECT_EQ(dialogs.current, Client::UI::EscapeMenuDialog);
+    dialogs.current = Client::Ui::EscapeMenuDialog;
+    Client::Ui::OpenMessageBox(box, dialogs, "otra");
+    EXPECT_EQ(dialogs.current, Client::Ui::EscapeMenuDialog);
     EXPECT_EQ(dialogs.pending, 0x8a);
 }
 
@@ -54,7 +54,7 @@ TEST(GameDialogsTest, TheTextDialogCopiesEachTextIntoItsRow)
         {{40, "primer renglon"}, {41, "un renglon que no entra en los treinta y ocho bytes"}, {42, "tercero"}});
     DialogBoxState box;
     DialogState dialogs;
-    const auto opened = Client::UI::OpenTextDialog(box, dialogs, &texts, 3, 40, 0x8b);
+    const auto opened = Client::Ui::OpenTextDialog(box, dialogs, &texts, 3, 40, 0x8b);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
 
     EXPECT_EQ(box.lineCount, 3);
@@ -77,7 +77,7 @@ TEST(GameDialogsTest, TheChaosCastleDialogSplitsItsTextsOneAfterTheOther)
     const auto texts = MakeTextTable({{50, "una linea"}, {51, "otra linea que pasa de los treinta y ocho bytes"}});
     DialogBoxState box;
     DialogState dialogs;
-    ASSERT_TRUE(Client::UI::OpenTextDialog(box, dialogs, &texts, 2, 50, Client::UI::ChaosCastleDialog).HasValue());
+    ASSERT_TRUE(Client::Ui::OpenTextDialog(box, dialogs, &texts, 2, 50, Client::Ui::ChaosCastleDialog).HasValue());
 
     EXPECT_EQ(box.lineCount, 3);
     EXPECT_EQ(DialogRow(box, 0), "una linea");
@@ -85,10 +85,10 @@ TEST(GameDialogsTest, TheChaosCastleDialogSplitsItsTextsOneAfterTheOther)
     EXPECT_EQ(DialogRow(box, 2), "ocho bytes");
     EXPECT_EQ(box.buttons[0].y, 0x78);
     EXPECT_EQ(box.buttons[1].y, 0x78);
-    EXPECT_EQ(dialogs.current, Client::UI::ChaosCastleDialog);
+    EXPECT_EQ(dialogs.current, Client::Ui::ChaosCastleDialog);
 
-    ASSERT_TRUE(Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 50, Client::UI::IgnoredOverChaosCastle).HasValue());
-    EXPECT_EQ(dialogs.current, Client::UI::ChaosCastleDialog);
+    ASSERT_TRUE(Client::Ui::OpenTextDialog(box, dialogs, &texts, 1, 50, Client::Ui::IgnoredOverChaosCastle).HasValue());
+    EXPECT_EQ(dialogs.current, Client::Ui::ChaosCastleDialog);
     EXPECT_EQ(dialogs.pending, 0);
 }
 
@@ -103,14 +103,14 @@ TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
     for (const auto& [id, address] :
          {std::pair<std::int32_t, std::string>{0x96, "0x63330f"}, {0xa8, "0x63330f"}, {0xa3, "0x63340d"}})
     {
-        const auto opened = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, id);
+        const auto opened = Client::Ui::OpenTextDialog(box, dialogs, &texts, 1, 60, id);
         ASSERT_FALSE(opened.HasValue());
         EXPECT_NE(opened.Error().find(address), std::string::npos) << opened.Error();
     }
-    const auto money = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, Client::UI::MoneyTextDialog);
+    const auto money = Client::Ui::OpenTextDialog(box, dialogs, &texts, 1, 60, Client::Ui::MoneyTextDialog);
     ASSERT_FALSE(money.HasValue());
     EXPECT_NE(money.Error().find("OpenTheMoneyTextDialog"), std::string::npos) << money.Error();
-    const auto tooMany = Client::UI::OpenTextDialog(box, dialogs, &texts, 8, 60, 0x8b);
+    const auto tooMany = Client::Ui::OpenTextDialog(box, dialogs, &texts, 8, 60, 0x8b);
     ASSERT_FALSE(tooMany.HasValue());
     EXPECT_NE(tooMany.Error().find("0x633612"), std::string::npos) << tooMany.Error();
     EXPECT_EQ(dialogs.current, 0);
@@ -125,7 +125,7 @@ TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
     const auto texts = MakeTextTable({{70, "venta : %s zen, un renglon largo"}, {71, "seguro? 100%%"}});
     DialogBoxState box;
     DialogState dialogs;
-    ASSERT_TRUE(Client::UI::OpenTheMoneyTextDialog(box, dialogs, &texts, 2, 70, "1,234,567").HasValue());
+    ASSERT_TRUE(Client::Ui::OpenTheMoneyTextDialog(box, dialogs, &texts, 2, 70, "1,234,567").HasValue());
     EXPECT_EQ(box.lineCount, 2);
     // Sin '\0' en sus 0x26 bytes, el primero se lee hasta el que dejó el segundo.
     EXPECT_EQ(DialogRow(box, 0), "venta : 1,234,567 zen, un renglon largseguro? 100%");
@@ -136,23 +136,23 @@ TEST(GameDialogsTest, TheMoneyDialogFormatsItsFirstRow)
     EXPECT_EQ(box.buttons[1].state, 3);
     EXPECT_EQ(box.buttons[1].x, 0x78);
     EXPECT_EQ(box.buttons[1].y, 0x5a);
-    EXPECT_EQ(dialogs.current, Client::UI::MoneyTextDialog);
+    EXPECT_EQ(dialogs.current, Client::Ui::MoneyTextDialog);
 
     DialogBoxState single;
     DialogState closed;
-    ASSERT_TRUE(Client::UI::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, "9").HasValue());
+    ASSERT_TRUE(Client::Ui::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, "9").HasValue());
     EXPECT_EQ(single.lineCount, 1);
     EXPECT_EQ(DialogRow(single, 0), "venta : 9 zen, un renglon largo");
     EXPECT_EQ(DialogRow(single, 1), "");
 
     const std::string wide(7 * 0x26, '9');
-    const auto overflow = Client::UI::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, wide);
+    const auto overflow = Client::Ui::OpenTheMoneyTextDialog(single, closed, &texts, 1, 70, wide);
     ASSERT_FALSE(overflow.HasValue());
     EXPECT_NE(overflow.Error().find("0x633367"), std::string::npos) << overflow.Error();
-    const auto missing = Client::UI::OpenTheMoneyTextDialog(single, closed, nullptr, 2, 70, "9");
+    const auto missing = Client::Ui::OpenTheMoneyTextDialog(single, closed, nullptr, 2, 70, "9");
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x633367"), std::string::npos) << missing.Error();
-    EXPECT_EQ(closed.current, Client::UI::MoneyTextDialog);
+    EXPECT_EQ(closed.current, Client::Ui::MoneyTextDialog);
 }
 
 // 0x633419..0x633525: la pregunta de la mezcla de joyas partida en dos renglones de 0x1e y el precio debajo; al
@@ -167,23 +167,23 @@ TEST(GameDialogsTest, TheJewelMixQuestionSplitsInTwoRowsAndAddsThePrice)
                                       {1814, "Deshacer cuesta %d"}});
     DialogBoxState box;
     DialogState dialogs;
-    const Client::UI::DialogTextArguments mix{
+    const Client::Ui::DialogTextArguments mix{
         .jewelMode = 0, .jewelKind = 1, .jewelCount = 20, .jewelLevel = -1, .jewelPrice = 1000000};
     ASSERT_TRUE(
-        Client::UI::OpenTextDialog(box, dialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &mix).HasValue());
+        Client::Ui::OpenTextDialog(box, dialogs, &texts, 0, 0, Client::Ui::ServerTimeDialog, nullptr, &mix).HasValue());
     EXPECT_EQ(box.lineCount, 3);
     EXPECT_EQ(DialogRow(box, 0), "Juntar de verdad Joya Dos en ");
     EXPECT_EQ(DialogRow(box, 1), "una cantidad de 20?");
     EXPECT_EQ(DialogRow(box, 2), "Cuesta 1000000");
     EXPECT_EQ(box.buttons[0].y, 0x5a);
-    EXPECT_EQ(dialogs.current, Client::UI::ServerTimeDialog);
+    EXPECT_EQ(dialogs.current, Client::Ui::ServerTimeDialog);
 
     DialogBoxState unmixBox;
     DialogState unmixDialogs;
-    const Client::UI::DialogTextArguments unmix{
+    const Client::Ui::DialogTextArguments unmix{
         .jewelMode = 1, .jewelKind = 0, .jewelCount = 1, .jewelLevel = 2, .jewelPrice = 1000000};
     ASSERT_TRUE(
-        Client::UI::OpenTextDialog(unmixBox, unmixDialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &unmix)
+        Client::Ui::OpenTextDialog(unmixBox, unmixDialogs, &texts, 0, 0, Client::Ui::ServerTimeDialog, nullptr, &unmix)
             .HasValue());
     EXPECT_EQ(unmixBox.lineCount, 2);
     EXPECT_EQ(DialogRow(unmixBox, 0), "Deshacer Joya Uno 3?");
@@ -195,20 +195,20 @@ TEST(GameDialogsTest, TheButtonsLightUpAndTakeTheClick)
 {
     DialogBoxState box;
     DialogState dialogs;
-    Client::UI::OpenMessageBox(box, dialogs, "aviso");
+    Client::Ui::OpenMessageBox(box, dialogs, "aviso");
     bool click = false;
     bool held = true;
 
-    EXPECT_EQ(Client::UI::StepTheDialogButtons(box, Point{0x47 + 0xd5 + 0x46, 0x8c + 0x3c + 0x15}, click, held), -1);
+    EXPECT_EQ(Client::Ui::StepTheDialogButtons(box, Point{0x47 + 0xd5 + 0x46, 0x8c + 0x3c + 0x15}, click, held), -1);
     EXPECT_EQ(box.buttons[0].state, 2);
     EXPECT_EQ(box.buttons[1].state, 0);
     EXPECT_TRUE(held);
 
-    EXPECT_EQ(Client::UI::StepTheDialogButtons(box, Point{0x47 + 0xd5 - 1, 0x8c + 0x3c}, click, held), -1);
+    EXPECT_EQ(Client::Ui::StepTheDialogButtons(box, Point{0x47 + 0xd5 - 1, 0x8c + 0x3c}, click, held), -1);
     EXPECT_EQ(box.buttons[0].state, 1);
 
     click = true;
-    EXPECT_EQ(Client::UI::StepTheDialogButtons(box, Point{0x47 + 0xd5, 0x8c + 0x3c}, click, held), 0);
+    EXPECT_EQ(Client::Ui::StepTheDialogButtons(box, Point{0x47 + 0xd5, 0x8c + 0x3c}, click, held), 0);
     EXPECT_FALSE(click);
     EXPECT_FALSE(held);
 }
@@ -222,24 +222,24 @@ TEST(GameDialogsTest, TheArrowsTurnThePagesWithinTheirBounds)
     box.page = 1;
     box.lastPage = 2;
 
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0x179, 0xca}, true).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x179, 0xca}, true).HasValue());
     EXPECT_EQ(box.page, 2);
     EXPECT_EQ(DialogRow(box, 0), "pagina dos");
     EXPECT_EQ(box.lineCount, 1);
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0x188, 0xde}, true).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x188, 0xde}, true).HasValue());
     EXPECT_EQ(box.page, 2);
 
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0x108, 0xde}, true).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x108, 0xde}, true).HasValue());
     EXPECT_EQ(box.page, 1);
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0xf9, 0xca}, true).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0xf9, 0xca}, true).HasValue());
     EXPECT_EQ(box.page, 0);
     EXPECT_EQ(DialogRow(box, 0), "pagina cero");
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0xf9, 0xca}, true).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0xf9, 0xca}, true).HasValue());
     EXPECT_EQ(box.page, 0);
 
     // Sin el clic, o fuera de las flechas, nada.
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0x179, 0xca}, false).HasValue());
-    ASSERT_TRUE(Client::UI::StepTheDialogPages(box, &texts, Point{0x179, 0xdf}, true).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x179, 0xca}, false).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheDialogPages(box, &texts, Point{0x179, 0xdf}, true).HasValue());
     EXPECT_EQ(box.page, 0);
 }
 } // namespace

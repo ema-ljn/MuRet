@@ -36,7 +36,7 @@
 // partirlo): están en UI/LetterWindows, sobre los dos std::deque de la ventana (OldLetterPart). Los dibujos (+ 0x14
 // 0x464d90, + 0x7c..+ 0x80 0x464e90 y 0x465770, + 0x9c 0x464190 y 0x465710) están en UI/LetterWindowsDraw y
 // UI/FriendWindowsDraw (P-C213); 0x47bf90 no lo llama nadie.
-namespace Client::UI
+namespace Client::Ui
 {
 // La lista (0x45e2e0 y sus derivadas), sobre la ventana base: el rectángulo cuelga de su borde de abajo (+0x78 en 2,
 // 0x47bb80).
@@ -260,4 +260,4 @@ void TypeInTheEdit(OldEdit& edit, std::string_view typed);
 // 0x73 en 0x6308c6, la ventana 2 del gremio en 0x655130 y el número de serie en 0x5f696d) lo hacen antes de que
 // 0x468320 mire el cursor: con la flecha, el cursor se ve desde el primer frame.
 void LimitTheEdit(OldEdit& edit, std::size_t limit, bool arrowHeld);
-} // namespace Client::UI
+} // namespace Client::Ui

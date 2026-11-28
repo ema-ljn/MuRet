@@ -57,18 +57,18 @@ struct Helix
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random,
+        return Client::Joints::CreateFaunaJoint(joints, request, random,
                                                 owned ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr);
+        return Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
-    Client::World::ModelEffect owner{};
+    Client::Effects::ModelEffect owner{};
     glm::vec3 start{1000.0f, 2000.0f, 300.0f};
     glm::vec3 target{1100.0f, 2100.0f, 320.0f};
     float facing = 30.0f;

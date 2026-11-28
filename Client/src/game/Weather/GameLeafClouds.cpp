@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Weather
 {
 namespace
 {
@@ -68,16 +68,16 @@ Core::Expected<void, std::string> CompensateMovingHero(glm::vec3& position, Game
         return Core::Unexpected(std::string(crywolf ? "43586c" : "443c27") + ": falta el estado de velocidad");
     auto& actor = *context.cloudHero;
     const auto matrix = Math::OriginalAngleMatrix(actor.angles);
-    const GameLogic::MovementSpeedInput input{.type = actor.type,
-                                              .baseSpeed = actor.baseMovementSpeed,
-                                              .item = actor.pet.model,
-                                              .wings = actor.wings.model,
-                                              .movementMode = actor.byte88,
-                                              .itemVariant = actor.pet.flags1b,
-                                              .safeZone = actor.safeZone,
-                                              .flags = actor.flags78,
-                                              .map = context.map};
-    const float speed = GameLogic::UpdateMovementSpeed(actor.run, *context.movementSpeed, input);
+    const Actors::MovementSpeedInput input{.type = actor.type,
+                                           .baseSpeed = actor.baseMovementSpeed,
+                                           .item = actor.pet.model,
+                                           .wings = actor.wings.model,
+                                           .movementMode = actor.byte88,
+                                           .itemVariant = actor.pet.flags1b,
+                                           .safeZone = actor.safeZone,
+                                           .flags = actor.flags78,
+                                           .map = context.map};
+    const float speed = Actors::UpdateMovementSpeed(actor.run, *context.movementSpeed, input);
     const auto offset = Math::OriginalVectorRotate(
         {0, static_cast<float>(static_cast<double>(speed) * MovementCompensation), 0}, matrix);
     for (glm::vec3::length_type axis = 0; axis < 3; ++axis)
@@ -98,7 +98,7 @@ Core::Expected<void, std::string> CreateCloud(glm::vec3 position, GameLeafContex
     if (context.particles == nullptr)
         return Core::Unexpected(std::string(address) + ": falta el pool de partículas de las nubes");
     const glm::vec3 light = crywolf ? glm::vec3(0.07f) : glm::vec3(0.05f, 0.05f, 0.1f);
-    const auto created = context.particles->CreateChecked(World::CloudParticle, position, glm::vec3(0), light,
+    const auto created = context.particles->CreateChecked(Particles::CloudParticle, position, glm::vec3(0), light,
                                                           CloudSubtype, CloudScale, context.worldClock, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::string(address) + ": falló la creación de la nube 622/8");
@@ -106,7 +106,7 @@ Core::Expected<void, std::string> CreateCloud(glm::vec3 position, GameLeafContex
 }
 } // namespace
 
-Core::Expected<void, std::string> SpawnGameLeafCloud(World::Leaf& leaf, GameLeafContext& context, bool crywolf)
+Core::Expected<void, std::string> SpawnGameLeafCloud(Weather::Leaf& leaf, GameLeafContext& context, bool crywolf)
 {
     if (!crywolf && !InsideMap31CloudArea(context.hero))
         return {};
@@ -131,4 +131,4 @@ Core::Expected<void, std::string> SpawnGameLeafCloud(World::Leaf& leaf, GameLeaf
     leaf.alive = false;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Weather

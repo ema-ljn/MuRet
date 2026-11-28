@@ -17,12 +17,20 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::WorldObjects
+{
+struct ObjectModelStepState;
+} // namespace Client::WorldObjects
+
+namespace Client::Particles
 {
 class FrameSprites;
-class ModelEffects;
-struct ObjectModelStepState;
-} // namespace Client::World
+} // namespace Client::Particles
 
 // What 0x60b3d0 and 0x609640 read from the globals to draw an item, in any scene that draws a player with 0x50ba30: the
 // clock, the glow's pulse (0x7d36ba8, which 0x639482 writes before each frame), that of 0x6c9de4/0x6c9de8, each BMD's
@@ -41,11 +49,11 @@ struct ItemDrawResources
     Core::Duration frameClock{};
     Crt::CrtRandom& random;
     GameItemRenderState& itemRender;
-    World::FrameSprites& sprites;
+    Particles::FrameSprites& sprites;
     Kernel::PoseBuffer& poseCarry;
-    World::ObjectModelStepState& modelState;
+    WorldObjects::ObjectModelStepState& modelState;
     std::span<Scenes::JointState> joints;
-    World::ModelEffects& effects;
+    Effects::ModelEffects& effects;
     std::int32_t map = 0;
     bool originalFrame = true;
     std::uint8_t glowDetail = Models::DefaultGlowDetail;

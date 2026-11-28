@@ -16,7 +16,7 @@
 
 #include <optional>
 
-// Client::UI::NoticeWindow: el aviso de la UI nueva del tipo 2, con un OK (0x6429b0, 0x642bf0,
+// Client::Ui::NoticeWindow: el aviso de la UI nueva del tipo 2, con un OK (0x6429b0, 0x642bf0,
 // 0x642f00 y 0x642e30, en el paso; CL5.5). Oscurece la pantalla, muestra su caja con el texto por
 // índice y se cierra con OK, Enter o Esc. El nombre no es MessageBox: <windows.h> define una macro
 // con ese nombre.
@@ -27,15 +27,15 @@ using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::ClickAt;
 using Client::Tests::TapKey;
-using Client::UI::LayoutNotice;
-using Client::UI::NoticeId;
-using Client::UI::NoticeLayout;
-using Client::UI::NoticeWindow;
-using Client::UI::Rect;
+using Client::Ui::LayoutNotice;
+using Client::Ui::NoticeId;
+using Client::Ui::NoticeLayout;
+using Client::Ui::NoticeWindow;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes(
         {{0x727, {512, 128}}, {0x724, {64, 128}}, {0x725, {64, 128}}, {0x728, {256, 32}}});

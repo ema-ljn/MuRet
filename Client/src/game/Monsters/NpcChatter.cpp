@@ -21,7 +21,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -84,14 +84,15 @@ constexpr std::array<TurnedChoice, 5> TurnedChoices{{{80, 904, 2, RestingAction,
 Core::Expected<void, std::string> Say(const Kernel::ActorState& actor, std::size_t slot, std::size_t index,
                                       const Actors::CharacterStepContext& context, std::uintptr_t address)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(
             std::format("{:#x}: el Text {} del globo del lugar {} no está en Text.bmd", address, index, slot));
     if (context.textMeasure == nullptr)
         return Core::Unexpected(std::format("{:#x}: el globo del lugar {} no tiene medidor", address, slot));
-    return AddChatBubble(context.world, ChatBubbleMeasure{.measure = *context.textMeasure, .screen = context.screen},
-                         Actors::ChatNameOf(actor), *text, slot, ChatBubbleMode::Chat);
+    return Chat::AddChatBubble(context.world,
+                               Chat::ChatBubbleMeasure{.measure = *context.textMeasure, .screen = context.screen},
+                               Actors::ChatNameOf(actor), *text, slot, Chat::ChatBubbleMode::Chat);
 }
 } // namespace
 
@@ -192,4 +193,4 @@ Core::Expected<void, std::string> FinishTheTurnedNpc(Kernel::ActorState& actor, 
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

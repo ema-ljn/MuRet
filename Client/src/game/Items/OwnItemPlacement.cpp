@@ -37,7 +37,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -102,7 +102,7 @@ std::uint32_t Byte(InventoryItemBytes bytes, std::size_t index)
 }
 
 Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
-ItemRecordOf(std::uint16_t type, const WorldEntryResources& resources, std::string_view where)
+ItemRecordOf(std::uint16_t type, const Scenes::WorldEntryResources& resources, std::string_view where)
 {
     if (resources.items == nullptr)
     {
@@ -128,7 +128,7 @@ std::uint8_t DarkHorseOptionPlace(const ItemState& item)
     return item.optionCount;
 }
 
-void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+void AddTheDarkHorseOption(ItemState& item, const Scenes::WorldEntryResources& resources)
 {
     AddTheDarkHorseOption(item, resources.world, resources.world.Runtime().ownRecordDepth, resources.cloth.random);
 }
@@ -165,7 +165,8 @@ namespace
 // propio, que solo vale con el registro abierto: cerrado, el último cierre dejó rand() & 0xff en cada byte
 // (Q-C125), y MuRet no lo tiene (Q-C202).
 Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, Kernel::ItemInitializationScalars scalars,
-                                                          const WorldEntryResources& resources, std::string_view where)
+                                                          const Scenes::WorldEntryResources& resources,
+                                                          std::string_view where)
 {
     const auto record = ItemRecordOf(item.id, resources, std::format("{}, 0x54bf40", where));
     if (!record.HasValue())
@@ -207,7 +208,7 @@ std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
     case HornOfDinorant:
         return DinorantHelper;
     case DarkHorse:
-        return DarkHorseModel;
+        return Pets::DarkHorseModel;
     case HornOfDoom:
         if (item.flags1b == FenrirFirstKind)
         {
@@ -221,7 +222,7 @@ std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
 
 // 0x5bc88b..0x5bcaa7, con el héroe que relee de 0x743a170: lo que crea o suelta después de vestirlo.
 Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item,
-                                                   const WorldEntryResources& resources)
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     const Kernel::WorldRuntime& runtime = world.Runtime();
@@ -242,7 +243,7 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
         }
         // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0), con el rand() compartido: el 0x1c12 saca tres para su lugar
         // (0x443f21..0x443f8c), entre la cola de 0x512a30 y el cierre del registro de 0x5bcaae.
-        if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero, &resources.cloth.random);
+        if (auto created = Pets::CreateHelper(world, *helper, hero.position, runtime.hero, &resources.cloth.random);
             !created.HasValue())
         {
             return Core::Unexpected(std::format("0x5bc740 (0x5bc8cc), 0x443fa0: {}", created.Error()));
@@ -259,7 +260,7 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
     if (slot == LeftHandSlot && type == DarkRaven)
     {
         // 0x5bca62: 0x420cf0 suelta el cuervo de +0x430 (0x421d60) y, fuera de los mapas 18 a 23, lo crea de nuevo.
-        if (auto raven = ReplaceTheRaven(hero, resources); !raven.HasValue())
+        if (auto raven = Scenes::ReplaceTheRaven(hero, resources); !raven.HasValue())
         {
             return Core::Unexpected(std::format("0x5bc740 (0x5bca62), {}", raven.Error()));
         }
@@ -279,8 +280,9 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
 
 // 0x5bc77f..0x5bcc0c: un lugar del equipo, con el registro abierto en línea durante todo el camino y el
 // cierre en línea de 0x5bcaae (el lazo de 0x40b4d0, con su rand() en 0x5bcbd5).
-Core::Expected<Actors::ActorStopResult, std::string>
-PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes, const WorldEntryResources& resources)
+Core::Expected<Actors::ActorStopResult, std::string> PlaceInEquipment(std::uint8_t slot, std::uint16_t type,
+                                                                      InventoryItemBytes bytes,
+                                                                      const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -312,14 +314,14 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
         .publishedHero = hero,
         .fullSetScan = runtime.fullSetScan,
         .stop =
-            Actors::ActorStopContext{.runtime = runtime,
-                                     .scene = SceneId::Game,
-                                     .playerSkeleton = *playerSkeleton,
-                                     .items = resources.items,
-                                     .random = resources.cloth.random,
-                                     .actorSkeleton = actorSkeleton,
-                                     .modelSounds =
-                                         Assets::FaunaModelsOrEmpty(FaunaModelsOf(resources)).SoundActions(hero.type)},
+            Actors::ActorStopContext{
+                .runtime = runtime,
+                .scene = Scenes::SceneId::Game,
+                .playerSkeleton = *playerSkeleton,
+                .items = resources.items,
+                .random = resources.cloth.random,
+                .actorSkeleton = actorSkeleton,
+                .modelSounds = Assets::FaunaModelsOrEmpty(Scenes::FaunaModelsOf(resources)).SoundActions(hero.type)},
         .itemSetTables = resources.itemSetTables,
         .itemSets = &world.ItemSets(),
         .held = Player::HeldItemOf(runtime)};
@@ -373,7 +375,7 @@ Kernel::ItemInitializationScalars ScalarsOf(GridScalars kind, std::int32_t rowBa
 // (Q-C200).
 Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::int32_t columns, std::int32_t origin,
                                               std::uint16_t type, InventoryItemBytes bytes, GridScalars kind,
-                                              const WorldEntryResources& resources, std::string_view where)
+                                              const Scenes::WorldEntryResources& resources, std::string_view where)
 {
     const auto record = ItemRecordOf(type, resources, where);
     if (!record.HasValue())
@@ -419,7 +421,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
 // 0x5bcd0b..0x5bcf94 y 0x5bd08b..0x5bd302: con [0x78a6758] en menos de 12, abre el registro propio en línea,
 // llama a 0x54fe10 una vez por cada WORD, +0x3e y +0x42, que no sea 0 (0x5bcdd9 y 0x5bcdf0), y lo cierra
 // con 0x40b4d0 (0x5bcf8f). 0x54fe10 lee el ítem del cursor con sus globales (HeldItemOf).
-Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryResources& resources)
+Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (runtime.slot78a6758 >= static_cast<std::int32_t>(FirstInventoryGridSlot))
@@ -447,7 +449,8 @@ Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryRe
 
 Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cells, std::int32_t columns,
                                                        std::int32_t origin, InventoryItemBytes bytes,
-                                                       const WorldEntryResources& resources, std::string_view where)
+                                                       const Scenes::WorldEntryResources& resources,
+                                                       std::string_view where)
 {
     const std::uint16_t type = InventoryItemType(bytes);
     if (type == NoInventoryItem)
@@ -494,7 +497,7 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
 
 Core::Expected<std::optional<std::int32_t>, std::string>
 FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
-                     const WorldEntryResources& resources, std::string_view where)
+                     const Scenes::WorldEntryResources& resources, std::string_view where)
 {
     const std::uint16_t type = InventoryItemType(bytes);
     if (type == NoInventoryItem)
@@ -517,7 +520,7 @@ FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origi
 }
 
 Core::Expected<std::optional<std::string>, std::string>
-InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources)
+InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const Scenes::WorldEntryResources& resources)
 {
     if (slot < FirstInventoryGridSlot)
         return std::optional<std::string>{};
@@ -546,7 +549,7 @@ std::uint16_t InventoryItemType(InventoryItemBytes bytes)
 }
 
 Core::Expected<Actors::ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes,
-                                                                        const WorldEntryResources& resources)
+                                                                        const Scenes::WorldEntryResources& resources)
 {
     const std::uint16_t type = InventoryItemType(bytes);
     if (type == NoInventoryItem)
@@ -577,7 +580,8 @@ Core::Expected<Actors::ActorStopResult, std::string> PlaceInventoryItem(std::uin
 }
 
 Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<Kernel::ItemState> cells, std::uint8_t slot,
-                                                    InventoryItemBytes bytes, const WorldEntryResources& resources)
+                                                    InventoryItemBytes bytes,
+                                                    const Scenes::WorldEntryResources& resources)
 {
     const std::uint16_t type = InventoryItemType(bytes);
     if (type == NoInventoryItem)
@@ -586,7 +590,7 @@ Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<Kernel::ItemState>
                        GridScalars::NpcGrid, resources, "0x5bc150, la grilla de 0x78a7070");
 }
 bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
-                         const WorldEntryResources& resources, std::string_view where)
+                         const Scenes::WorldEntryResources& resources, std::string_view where)
 {
     const auto past = FirstCellPastTheGrid(cells, columns, origin, bytes, resources, where);
     if (!past.HasValue() || !past.Value())
@@ -596,7 +600,7 @@ bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t o
     return true;
 }
 
-bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources)
+bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes, const Scenes::WorldEntryResources& resources)
 {
     const auto past = InventoryPlacementPastTheGrid(slot, bytes, resources);
     if (!past.HasValue() || !past.Value())
@@ -604,4 +608,4 @@ bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes, const
     resources.log.Warning("Q-C200: se descarta el paquete de inventario: {}", *past.Value());
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

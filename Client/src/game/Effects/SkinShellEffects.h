@@ -16,7 +16,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Effects
 {
 class ModelEffects;
 struct ModelEffect;
@@ -40,4 +40,4 @@ inline constexpr std::int16_t SkinShellEffect = 0x137;
 // menos la escala · 128; si no (también con NaN), menos la escala · 16. El alpha, la vida · 0,1f. Sin rand().
 [[nodiscard]] Core::Expected<void, std::string> StepSkinShell(ModelEffect& effect,
                                                               const ModelEffectStepServices& services);
-} // namespace Client::World
+} // namespace Client::Effects

@@ -26,7 +26,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -36,11 +36,11 @@ constexpr std::int16_t Money = 0x1e21;
 constexpr std::uint16_t Player = Tables::PlayerSkeletonModel;
 constexpr float VisibleAlpha = 0.01f;
 using Math::F32;
-std::uint8_t Level(const FloorItemState& item)
+std::uint8_t Level(const Scenes::FloorItemState& item)
 {
     return static_cast<std::uint8_t>((item.value >> 3) & 15);
 }
-std::uint16_t Model(const FloorItemState& item)
+std::uint16_t Model(const Scenes::FloorItemState& item)
 {
     if (item.type == 0x1e1e && Level(item) == 0)
         return 0x223a;
@@ -48,7 +48,7 @@ std::uint16_t Model(const FloorItemState& item)
         return 0x223b;
     return static_cast<std::uint16_t>(item.type);
 }
-Actors::Drawing::DrawnObject Object(const FloorItemState& item, const FloorItemDrawContext& context)
+Actors::Drawing::DrawnObject Object(const Scenes::FloorItemState& item, const Scenes::FloorItemDrawContext& context)
 {
     Actors::Drawing::DrawnObject object;
     object.model = Model(item);
@@ -63,8 +63,8 @@ Actors::Drawing::DrawnObject Object(const FloorItemState& item, const FloorItemD
         object.color[component] = F32(static_cast<double>(terrain[component]) + item.light[component]);
     return object;
 }
-Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const FloorItemState& item,
-                                       const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
+Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const Scenes::FloorItemState& item,
+                                       const Scenes::FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (item.type >= FirstArmor && item.type < EndArmor)
         object.model = Player;
@@ -78,8 +78,9 @@ Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const FloorIte
         return context.onPose(object);
     return Actors::Drawing::PublishFloorPose(local, context.models, object);
 }
-Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, FloorItemState& item,
-                                             const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object,
+Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, Scenes::FloorItemState& item,
+                                             const Scenes::FloorItemDrawContext& context,
+                                             Actors::Drawing::DrawnObject object,
                                              std::span<const Models::SkinnedMesh> meshes)
 {
     auto resources = context.itemContext ? *context.itemContext : Actors::Drawing::ItemDrawContext{};
@@ -100,8 +101,8 @@ Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, FloorIte
     item.alpha = object.alpha;
     return result;
 }
-Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, FloorItemState& item,
-                                       const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
+Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, Scenes::FloorItemState& item,
+                                       const Scenes::FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (!(item.alpha > VisibleAlpha))
         return {};
@@ -131,7 +132,7 @@ Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, FloorItemState
     return RenderItem(local, item, context, object, meshes);
 }
 
-Core::Expected<void, std::string> Project(FloorItemState& item, const FloorItemDrawContext& context)
+Core::Expected<void, std::string> Project(Scenes::FloorItemState& item, const Scenes::FloorItemDrawContext& context)
 {
     if (!context.project)
         return Core::Unexpected(std::string("0x608da5: falta la proyección del ítem del piso"));
@@ -145,9 +146,9 @@ Core::Expected<void, std::string> Project(FloorItemState& item, const FloorItemD
     item.screenY = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(projected.Value().y));
     return {};
 }
-Core::Expected<void, std::string> Coins(Kernel::PoseBuffer& local, FloorItemState& item,
-                                        const FloorItemDrawContext& context, const Actors::Drawing::DrawnObject& object,
-                                        std::size_t slot)
+Core::Expected<void, std::string> Coins(Kernel::PoseBuffer& local, Scenes::FloorItemState& item,
+                                        const Scenes::FloorItemDrawContext& context,
+                                        const Actors::Drawing::DrawnObject& object, std::size_t slot)
 {
     if (item.type != Money)
         return {};
@@ -177,8 +178,8 @@ Core::Expected<void, std::string> Coins(Kernel::PoseBuffer& local, FloorItemStat
     item.position = position;
     return {};
 }
-Core::Expected<void, std::string> Water(Actors::Drawing::DrawnObject& object, const FloorItemDrawContext& context,
-                                        std::size_t slot)
+Core::Expected<void, std::string> Water(Actors::Drawing::DrawnObject& object,
+                                        const Scenes::FloorItemDrawContext& context, std::size_t slot)
 {
     if (context.map == 10)
     {
@@ -220,8 +221,8 @@ float BodyPartRootHeight(std::int16_t model)
     return 0;
 }
 
-Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<FloorItemState> items,
-                                                       const FloorItemDrawContext& context)
+Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<Scenes::FloorItemState> items,
+                                                       const Scenes::FloorItemDrawContext& context)
 {
     Kernel::PoseBuffer local;
     constexpr float Radius = 400;
@@ -250,4 +251,4 @@ Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<FloorItemState>
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

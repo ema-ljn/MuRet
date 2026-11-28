@@ -42,12 +42,12 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
+using Client::Items::InventoryMoveContext;
+using Client::Items::InventoryServices;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Items::UseItem;
-using Client::Scenes::InventoryMoveContext;
-using Client::Scenes::InventoryServices;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 namespace Scenes = Client::Scenes;
@@ -132,7 +132,7 @@ protected:
     // El ítem `type` desde la casilla (column, row), como lo deja 0x5bc740: la copia en cada casilla, con el origen.
     void Put(std::uint16_t type, std::uint8_t column, std::uint8_t row, std::uint32_t scalar1Low = 0)
     {
-        const auto footprint = Scenes::ItemFootprintOf(&items, type, "Put");
+        const auto footprint = Client::Items::ItemFootprintOf(&items, type, "Put");
         ASSERT_TRUE(footprint.HasValue()) << footprint.Error();
         for (std::int32_t y = 0; y < footprint.Value().height; ++y)
         {
@@ -156,9 +156,9 @@ protected:
                                           static_cast<std::size_t>(column));
     }
 
-    Scenes::UsedGrid InventoryGrid()
+    Client::Items::UsedGrid InventoryGrid()
     {
-        return Scenes::UsedGrid{.cells = world.Inventory().cells, .grid = Client::Kernel::CursorGrid::Inventory};
+        return Client::Items::UsedGrid{.cells = world.Inventory().cells, .grid = Client::Kernel::CursorGrid::Inventory};
     }
 
     static std::size_t Index(std::int32_t column, std::int32_t row)
@@ -168,8 +168,8 @@ protected:
 
     Expected<void, std::string> RightClick(std::int32_t column, std::int32_t row)
     {
-        Scenes::GamePanels panels(world, random);
-        return Scenes::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), Index(column, row));
+        Client::Hud::GamePanels panels(world, random);
+        return Client::Items::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), Index(column, row));
     }
 
     // El C1 06 26 que salió, descifrado.
@@ -314,8 +314,8 @@ TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyWithoutTheWarehouse)
         world.Runtime().cursorGrid = Client::Kernel::CursorGrid::None;
         world.Runtime().ui.field78abb28 = 0;
         const CrtRandom expected = random;
-        Scenes::GamePanels panels(world, random);
-        const auto used = Scenes::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), index);
+        Client::Hud::GamePanels panels(world, random);
+        const auto used = Client::Items::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), index);
         ASSERT_TRUE(used.HasValue()) << used.Error();
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(world.Runtime().cursorItem.id, 0);
@@ -357,7 +357,7 @@ TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWi
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(random.State(), before.State());
     EXPECT_FALSE(runtime.movement.pendingClick);
-    const auto dropped = Scenes::DropOnOtherGrid(
+    const auto dropped = Client::Items::DropOnOtherGrid(
         Moves(), {.mouseX = 100, .mouseY = 100, .left = 275, .top = 50, .grid = Client::Kernel::CursorGrid::NpcGrid});
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
     EXPECT_TRUE(dropped.Value());
@@ -414,13 +414,13 @@ TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPasswor
         runtime.npcWindows.typedNumber[0] = '9';
         moves.clear();
         const auto before = random;
-        Scenes::GamePanels panels(world, random);
-        const auto used = Scenes::UseTheLaterGridItem(
+        Client::Hud::GamePanels panels(world, random);
+        const auto used = Client::Items::UseTheLaterGridItem(
             Moves(), panels.Registry(), {.cells = runtime.npcWindows.grid, .grid = Client::Kernel::CursorGrid::NpcGrid},
             17);
         ASSERT_TRUE(used.HasValue()) << used.Error();
         EXPECT_EQ(runtime.npcWindows.grid[9].id, Client::Kernel::EmptyOwnItemId);
-        const auto dropped = Scenes::DropOnTheInventoryGrid(
+        const auto dropped = Client::Items::DropOnTheInventoryGrid(
             Moves(), {.mouseX = 0, .mouseY = 0, .left = 465, .top = 200, .inventoryOpen = true});
         ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
         EXPECT_TRUE(dropped.Value());
@@ -458,8 +458,8 @@ TEST_F(GridItemUseTest, TheFruitAsksTheLevelAndThenTheEmptyEquipment)
     CrtRandom expected = Advanced(random, Own);
     ASSERT_TRUE(RightClick(6, 3).HasValue());
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "desde el nivel diez");
-    EXPECT_EQ(world.Runtime().dialogs.current, Client::UI::MessageBoxDialog);
+    EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), "desde el nivel diez");
+    EXPECT_EQ(world.Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
     EXPECT_EQ(world.Runtime().dialogItem.id, 0);
 
     world.Runtime().dialogs.current = 0;
@@ -468,7 +468,7 @@ TEST_F(GridItemUseTest, TheFruitAsksTheLevelAndThenTheEmptyEquipment)
     expected = Advanced(random, 2 * Own);
     ASSERT_TRUE(RightClick(6, 3).HasValue());
     EXPECT_EQ(random.State(), expected.State());
-    EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "sin equipo");
+    EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), "sin equipo");
     EXPECT_EQ(world.Runtime().dialogItem.id, Fruit);
     EXPECT_EQ(world.Runtime().dialogItem.occupied, 1u);
     EXPECT_EQ(world.Runtime().dialogItemCell, 3 * 8 + 6);
@@ -485,7 +485,7 @@ TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogReceivesIts
     world.OwnCharacter().characterClass = 1;
     Put(Fruit, 0, 7, 4u << 3);
     ASSERT_TRUE(RightClick(0, 7).HasValue());
-    EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
+    EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
 
     const auto dialog = [this](std::uint32_t scalar1Low, std::uint8_t heroClass, std::string_view name)
     {
@@ -496,7 +496,7 @@ TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogReceivesIts
         const auto opened = RightClick(0, 7);
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         EXPECT_EQ(world.Runtime().dialogs.current, 0x96);
-        EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), name);
+        EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), name);
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     };
@@ -513,7 +513,7 @@ TEST_F(GridItemUseTest, TheFourthFruitComparesTheWholeClassByte)
     world.OwnCharacter().characterClass = 4 | 8;
     Put(Fruit, 0, 7, 4u << 3);
     ASSERT_TRUE(RightClick(0, 7).HasValue());
-    EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
+    EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
 }
 
 // 0x5c8448..0x5c8473: el 0x1a0b de nivel 0 se usa; el de nivel 1 no con el héroe maestro del gremio (+0x368 en 0x80);
@@ -548,16 +548,16 @@ TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)
 // el 91 corta (hito 11).
 TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
 {
-    Scenes::GamePanels panels(world, random);
+    Client::Hud::GamePanels panels(world, random);
     Cell(0, 0).id = 0x1a1d;
     std::vector<Client::Protocol::Outgoing> requests;
     services.sendGamePacket = [&requests](Client::Protocol::Outgoing packet) { requests.push_back(std::move(packet)); };
-    Client::UI::PanelState& state = world.Runtime().panels;
+    Client::Ui::PanelState& state = world.Runtime().panels;
     const auto look = [&](std::uint8_t& open, int randoms)
     {
         open = 1;
         const CrtRandom expected = Advanced(random, randoms);
-        const auto used = Scenes::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
+        const auto used = Client::Items::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
         ASSERT_TRUE(used.HasValue()) << used.Error();
         EXPECT_EQ(random.State(), expected.State());
         open = 0;
@@ -575,7 +575,7 @@ TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
         look(state.trade, 2);
     }
     const CrtRandom expected = Advanced(random, 2);
-    const auto used = Scenes::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
+    const auto used = Client::Items::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
     ASSERT_TRUE(used.HasValue()) << used.Error();
     ASSERT_EQ(requests.size(), 1u);
     EXPECT_TRUE(SameBytes(Xor32Decode(requests.back().packet).Bytes(), Bytes({0xc1, 4, 0x91, 4})));
@@ -587,14 +587,14 @@ TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
     {
         const CrtRandom unchanged = random;
         Cell(0, 0).id = static_cast<std::uint16_t>(type);
-        const auto other = Scenes::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
+        const auto other = Client::Items::UseTheEventTicket(Moves(), panels.Registry(), InventoryGrid(), 0);
         ASSERT_TRUE(other.HasValue()) << other.Error();
         EXPECT_TRUE(SameBytes(Xor32Decode(requests.back().packet).Bytes(),
                               Bytes({0xc1, 4, 0x91, static_cast<std::uint8_t>(kind)})));
         EXPECT_EQ(random.State(), unchanged.State());
-        EXPECT_TRUE(Scenes::IsAnEventTicket(type));
+        EXPECT_TRUE(Client::Items::IsAnEventTicket(type));
     }
-    EXPECT_FALSE(Scenes::IsAnEventTicket(0x1a1e));
+    EXPECT_FALSE(Client::Items::IsAnEventTicket(0x1a1e));
 }
 
 // 0x5a3296..0x5a32c9 y 0x5d8c9a: el sonido lee la casilla lugar − 12 después del envío. Con un lugar del equipo o más
@@ -607,10 +607,10 @@ TEST_F(GridItemUseTest, AUseFromOutsideTheGridSendsWithoutTheSound)
         sent.clear();
         world.Runtime().ui.field5767954 = 0;
         world.Runtime().lastSoundId.reset();
-        Scenes::GamePanels panels(world, random);
+        Client::Hud::GamePanels panels(world, random);
         const CrtRandom expected = Advanced(random, 1 + SendRandoms);
-        const auto used = Scenes::UseInventoryItemOn(Moves(), panels.Registry(),
-                                                     Scenes::InventoryUse{.slot = slot, .target = 20, .where = "test"});
+        const auto used = Client::Items::UseInventoryItemOn(
+            Moves(), panels.Registry(), Client::Items::InventoryUse{.slot = slot, .target = 20, .where = "test"});
         ASSERT_TRUE(used.HasValue()) << used.Error();
         EXPECT_EQ(random.State(), expected.State());
         ASSERT_EQ(sent.size(), 1u);
@@ -640,13 +640,13 @@ protected:
         world.Runtime().movement.pendingClick = true;
         world.Runtime().ui.field5767954 = 0;
         sent.clear();
-        Scenes::GamePanels panels(world, random);
-        return Scenes::DropOnTheInventoryGrid(Moves(), Scenes::GridDrop{.mouseX = Left + column * 20 + 10,
-                                                                        .mouseY = Top + row * 20 + 10,
-                                                                        .left = Left,
-                                                                        .top = Top,
-                                                                        .inventoryOpen = inventoryOpen,
-                                                                        .panels = &panels.Registry()});
+        Client::Hud::GamePanels panels(world, random);
+        return Client::Items::DropOnTheInventoryGrid(Moves(), Client::Items::GridDrop{.mouseX = Left + column * 20 + 10,
+                                                                                      .mouseY = Top + row * 20 + 10,
+                                                                                      .left = Left,
+                                                                                      .top = Top,
+                                                                                      .inventoryOpen = inventoryOpen,
+                                                                                      .panels = &panels.Registry()});
     }
 
     static constexpr std::int32_t JewelCell = 5;
@@ -712,7 +712,7 @@ TEST_F(JewelTest, TheBlessOnThe1a25OpensItsDialog)
     EXPECT_TRUE(dropped.Value());
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(world.Runtime().dialogs.current, 0xa9);
-    EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "joya sobre el cuerno");
+    EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), "joya sobre el cuerno");
     EXPECT_EQ(world.Runtime().dialogBox.jewelCell, JewelCell);
     EXPECT_EQ(world.Runtime().dialogBox.jewelTarget, 6 * 8 + 6 + 12);
 

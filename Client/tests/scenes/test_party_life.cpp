@@ -113,11 +113,11 @@ struct Game
     }
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tables::ItemSetTables sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
@@ -247,21 +247,21 @@ protected:
             Name(member.name, name);
             list.members.push_back(member);
         }
-        Client::Scenes::ApplyPartyList(list, game->world, game->log);
+        Client::Social::ApplyPartyList(list, game->world, game->log);
         const Client::Protocol::Party::PartyLife life{.entries = {0x07, 0x1a, 0x2a}};
-        Client::Scenes::ApplyPartyLife(life, game->world, game->log);
+        Client::Social::ApplyPartyLife(life, game->world, game->log);
     }
 
     // 0x59ec80 antes del primer dibujo: sin segmento.
     void Pick()
     {
         auto& runtime = game->world.Runtime();
-        const auto picked = Client::Scenes::PickInTheFrame({.world = game->world,
-                                                            .random = m_random,
-                                                            .ownRecordDepth = runtime.ownRecordDepth,
-                                                            .targets = runtime.selectedTargets,
-                                                            .mouse = m_mouse,
-                                                            .terrain = &game->states.terrain.current});
+        const auto picked = Client::Hud::PickInTheFrame({.world = game->world,
+                                                         .random = m_random,
+                                                         .ownRecordDepth = runtime.ownRecordDepth,
+                                                         .targets = runtime.selectedTargets,
+                                                         .mouse = m_mouse,
+                                                         .terrain = &game->states.terrain.current});
         ASSERT_TRUE(picked.HasValue()) << picked.Error();
     }
 
@@ -269,19 +269,19 @@ protected:
     {
         auto& runtime = game->world.Runtime();
         ActorState& hero = game->world.Hero();
-        Client::Scenes::GameHudContext context{.world = game->world,
-                                               .random = m_random,
-                                               .ownRecordDepth = runtime.ownRecordDepth,
-                                               .cellXDepth = hero.cellXAccesses,
-                                               .cellYDepth = hero.cellYAccesses,
-                                               .hud = runtime.hud,
-                                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                               .sound = m_sound,
-                                               .projection = m_projection ? &*m_projection : nullptr,
-                                               .sprites = m_sprites,
-                                               .text = m_text,
-                                               .mouse = m_mouse};
-        return Client::Scenes::DrawThePartyLife(context);
+        Client::Hud::GameHudContext context{.world = game->world,
+                                            .random = m_random,
+                                            .ownRecordDepth = runtime.ownRecordDepth,
+                                            .cellXDepth = hero.cellXAccesses,
+                                            .cellYDepth = hero.cellYAccesses,
+                                            .hud = runtime.hud,
+                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                            .sound = m_sound,
+                                            .projection = m_projection ? &*m_projection : nullptr,
+                                            .sprites = m_sprites,
+                                            .text = m_text,
+                                            .mouse = m_mouse};
+        return Client::Party::DrawThePartyLife(context);
     }
 
     std::unique_ptr<Game> game;
@@ -290,7 +290,7 @@ protected:
     std::optional<Client::Scenes::GameProjection> m_projection = TestProjection();
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text{m_sprites};
-    Client::UI::Point m_mouse{};
+    Client::Ui::Point m_mouse{};
 };
 
 // Los dos del 0x12 encuentran su lugar en el picking (el héroe también, que se ve) y cada uno con personaje tiene su

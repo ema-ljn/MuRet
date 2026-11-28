@@ -26,7 +26,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -72,7 +72,8 @@ bool InMap(float x, float y, float left, float top)
 }
 
 // 0x40f850: los accesos de cada actor ocurren aunque su punto termine fuera del rectángulo.
-Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t kind)
+Core::Expected<void, std::string> DrawBase(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel,
+                                           std::uint8_t kind)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
@@ -130,12 +131,12 @@ Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePan
     const auto percentage = Math::OriginalFtolLow(static_cast<double>(panel.alpha) * PercentScale);
     if (!percentage)
         return Core::Unexpected(std::string("0x410274: el porcentaje del minimapa excede el contrato medido de _ftol"));
-    UI::DrawNumber(sprites, static_cast<float>(panel.x + 25), static_cast<float>(panel.y + 32), *percentage, 8.0f,
+    Ui::DrawNumber(sprites, static_cast<float>(panel.x + 25), static_cast<float>(panel.y + 32), *percentage, 8.0f,
                    8.0f);
     return {};
 }
 
-Core::Expected<void, std::string> DrawStatus(GameHudContext& context, UI::SiegePanelState& panel,
+Core::Expected<void, std::string> DrawStatus(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel,
                                              float* lastWidth = nullptr, float* lastHeight = nullptr)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -175,7 +176,7 @@ Core::Expected<void, std::string> DrawStatus(GameHudContext& context, UI::SiegeP
             --status[4];
         }
         sprites.SetColor({1.0f, flash, flash, 1.0f});
-        UI::DrawNumber(sprites, x - 10.0f, y - 6.0f, status[0], 8.0f, 8.0f);
+        Ui::DrawNumber(sprites, x - 10.0f, y - 6.0f, status[0], 8.0f, 8.0f);
         if (!metrics)
             return Core::Unexpected(std::string("0x410330/0x411600: la primera marca sin caso usa métricas del stack "
                                                 "sin inicializar; falta el estado original para reconstruirlas"));
@@ -190,7 +191,7 @@ bool Inside(float x, float y, float left, float top, float width, float height)
     return left <= x && x <= left + width && top <= y && y <= top + height;
 }
 
-void DrawMemberPoints(GameHudContext& context, const UI::SiegePanelState& panel)
+void DrawMemberPoints(Hud::GameHudContext& context, const CastleSiege::SiegePanelState& panel)
 {
     if (panel.membersHidden != 0)
         return;
@@ -211,7 +212,7 @@ void DrawMemberPoints(GameHudContext& context, const UI::SiegePanelState& panel)
     }
 }
 
-Core::Expected<void, std::string> DrawCommands(GameHudContext& context, UI::SiegePanelState& panel)
+Core::Expected<void, std::string> DrawCommands(Hud::GameHudContext& context, CastleSiege::SiegePanelState& panel)
 {
     Render::SpriteBatch& sprites = context.sprites;
     float iconWidth = 19.0f;
@@ -241,7 +242,7 @@ Core::Expected<void, std::string> DrawCommands(GameHudContext& context, UI::Sieg
             iconWidth = 11.0f;
             iconHeight = 12.0f;
         }
-        UI::DrawNumber(sprites, static_cast<float>(mouse.x - 10), static_cast<float>(mouse.y - 6), panel.selected, 8.0f,
+        Ui::DrawNumber(sprites, static_cast<float>(mouse.x - 10), static_cast<float>(mouse.y - 6), panel.selected, 8.0f,
                        10.0f);
         Quad(sprites, static_cast<std::uint16_t>(FirstCommandSlot + panel.command), static_cast<float>(mouse.x - 8),
              static_cast<float>(mouse.y - 8), iconWidth, iconHeight, 0.0f, 0.0f, (iconWidth - 1.0f) / atlasWidth,
@@ -284,23 +285,23 @@ Core::Expected<void, std::string> DrawCommands(GameHudContext& context, UI::Sieg
         }
         else
             sprites.SetColor({1.0f, 0.6f, 0.3f, panel.alpha});
-        UI::DrawNumber(sprites, left + 12.0f, rowY, row, 8.0f, 8.0f);
+        Ui::DrawNumber(sprites, left + 12.0f, rowY, row, 8.0f, 8.0f);
         rowY += 17.0f;
     }
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheBattlePanel(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GamePanels panels(context.world, context.random);
-    if (panels.Registry().IsOpen(UI::AnyPanel) || !runtime.castleSiege.siegePanelKind ||
+    Hud::GamePanels panels(context.world, context.random);
+    if (panels.Registry().IsOpen(Ui::AnyPanel) || !runtime.castleSiege.siegePanelKind ||
         runtime.castleSiege.siegePanel.visible == 0)
         return {};
     // Los cambios que hace el original al dibujar duran hasta el frame siguiente; un frame proyectado usa su copia.
-    UI::SiegePanelState copy;
-    UI::SiegePanelState& panel =
+    CastleSiege::SiegePanelState copy;
+    CastleSiege::SiegePanelState& panel =
         context.projecting ? (copy = runtime.castleSiege.siegePanel) : runtime.castleSiege.siegePanel;
     if (panel.page <= 0)
         return Core::Unexpected(std::string("0x40fba8: la escala del minimapa dividiría por cero o sería negativa"));
@@ -316,4 +317,4 @@ Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context)
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

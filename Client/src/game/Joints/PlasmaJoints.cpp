@@ -25,14 +25,14 @@
 // 0x4f2230(o), y 0x5026ed y 0x502841 de ancho 80 (0x42a00000) con ese subtipo + 3. Como el 0x614 (LightningJoints.cpp),
 // da una vuelta por punto: gira hacia el dueño 80 más arriba (0x4e9810, de a 50), se sacude, agrega un tramo y avanza,
 // hasta llegar. El subtipo sale de 0x4f2230 (el +0x31b, pet.flags1b, el excelente de Fenrir).
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
 using Math::D;
 using Math::F32;
 
-Core::Expected<void, std::string> Particle(const JointState& joint, std::int32_t type,
+Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, std::int32_t type,
                                            const JointKernels::StepServices& services, std::string_view address)
 {
     if (services.particles == nullptr)
@@ -47,23 +47,23 @@ Core::Expected<void, std::string> Particle(const JointState& joint, std::int32_t
 
 // 0x535cdf..0x535d4a: al llegar, sólo con el ancho en 50 justo (el inmediato 0x42480000), la partícula 0x5ca; después,
 // con rand() % 8 en 0, tres rand() sin usar y la 0x5f2/0.
-Core::Expected<void, std::string> Arrive(const JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Arrive(const Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr std::uint32_t ArrivalWidthBits = 0x42480000u;
     if (std::bit_cast<std::uint32_t>(joint.width) != ArrivalWidthBits)
         return {};
-    if (auto made = Particle(joint, World::ThunderParticle, services, "0x535d03"); !made.HasValue())
+    if (auto made = Particle(joint, Particles::ThunderParticle, services, "0x535d03"); !made.HasValue())
         return made;
     if (services.random->Next() % 8 != 0)
         return {};
     for (int unused = 0; unused < 3; ++unused)
         static_cast<void>(services.random->Next());
-    return Particle(joint, World::BreathParticle, services, "0x535d45");
+    return Particle(joint, Particles::BreathParticle, services, "0x535d45");
 }
 
 // 0x535c26..0x535c77: con el ancho de 50 o más, la luz dinámica de radio 2 con ((rand() & 3) + 4) · 0,04f · 0,4f en
 // los tres canales.
-Core::Expected<void, std::string> Glow(const JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr float BrightWidth = 50; // 0x6b86b0
     if (!(joint.width >= BrightWidth))
@@ -72,11 +72,11 @@ Core::Expected<void, std::string> Glow(const JointState& joint, const JointKerne
     constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4, 0,4f
     const std::int32_t shade = (services.random->Next() & 3) + 4;
     const float value = F32(static_cast<double>(shade) * Step * Dim);
-    return World::AddDynamicLight(services.lighting, joint.position, glm::vec3(value), 2, "0x535c77");
+    return WorldObjects::AddDynamicLight(services.lighting, joint.position, glm::vec3(value), 2, "0x535c77");
 }
 } // namespace
 
-void CreatePlasmaJoint(JointState& joint, const Kernel::JointRequest& request)
+void CreatePlasmaJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x530ddd..0x530e0a: velocidad 50, la textura repetida (+0x9f0), el ancho, 50 puntos y vida 20. Por subtipo, la
     // textura y la luz: /0..2 la 0x614 con (0,7f; 1; 0,7f), (1; 0,6f; 0,6f) y (0,7f; 0,7f; 1); /3..5 la 0x632 con
@@ -123,7 +123,7 @@ void CreatePlasmaJoint(JointState& joint, const Kernel::JointRequest& request)
     }
 }
 
-Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepPlasmaJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     // 0x535b37..0x535cd4: después del movimiento común, una vuelta por punto.
     for (std::int32_t point = 0; point < joint.maximumCount; ++point)
@@ -167,4 +167,4 @@ Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint, const Joint
     }
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -132,25 +132,25 @@ bool HasForbiddenSymbol(std::string_view name)
     }
 }
 
-std::optional<NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters)
+std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters)
 {
     return NoticeOfNewName(name, name, filters);
 }
 
-std::optional<NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer, const NameFilters& filters)
+std::optional<Ui::NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer, const NameFilters& filters)
 {
     if (name.size() < ShortestName)
     {
-        return ShortNameNotice;
+        return Ui::ShortNameNotice;
     }
     if (IsFilteredName(name, filters))
     {
-        return ForbiddenNameNotice;
+        return Ui::ForbiddenNameNotice;
     }
     if (HasForbiddenSymbol(buffer))
     {
-        return SymbolNameNotice;
+        return Ui::SymbolNameNotice;
     }
     return std::nullopt;
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

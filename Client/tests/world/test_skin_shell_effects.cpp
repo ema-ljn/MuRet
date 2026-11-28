@@ -24,8 +24,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::ModelEffect;
-using Client::World::ModelEffects;
+using Client::Effects::ModelEffect;
+using Client::Effects::ModelEffects;
 
 // La semilla con la que el cuarto rand() da 0 en % 360: la velocidad del alta queda sin girar.
 constexpr std::uint32_t StraightSeed = 298;
@@ -38,7 +38,7 @@ float Bits(std::uint32_t value)
 // Lo que pide 0x4ee770 (0x4eee6b): la esquina, los ángulos en 0, la luz (1, 1, 1) y el subtipo del joint.
 Client::Kernel::ModelEffectArguments ShellArguments(std::int32_t subtype)
 {
-    return {.type = Client::World::SkinShellEffect,
+    return {.type = Client::Effects::SkinShellEffect,
             .position = {1000.0f, 2000.0f, 300.0f},
             .angles = glm::vec3(0.0f),
             .light = glm::vec3(1.0f),
@@ -50,7 +50,7 @@ ModelEffect PlacedShell()
 {
     ModelEffect shell{};
     shell.alive = true;
-    shell.type = Client::World::SkinShellEffect;
+    shell.type = Client::Effects::SkinShellEffect;
     shell.transform.position = {1000.0f, 2000.0f, 300.0f};
     shell.velocity = {10.0f, 20.0f, 0.0f};
     shell.turnDirection = 6.0f;
@@ -74,12 +74,12 @@ TEST(SkinShellEffectsTest, TheShellIsBornWithNineRandoms)
         auto effects = std::make_unique<ModelEffects>();
         CrtRandom random(StraightSeed);
 
-        const auto created = Client::World::CreateSkinShell(ShellArguments(subtype), *effects, random);
+        const auto created = Client::Effects::CreateSkinShell(ShellArguments(subtype), *effects, random);
 
         ASSERT_EQ(created, std::optional<std::size_t>(0));
         const ModelEffect& shell = effects->Effects()[0];
         EXPECT_TRUE(shell.alive);
-        EXPECT_EQ(shell.type, Client::World::SkinShellEffect);
+        EXPECT_EQ(shell.type, Client::Effects::SkinShellEffect);
         EXPECT_EQ(shell.subtype, subtype);
         EXPECT_EQ(shell.transform.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
         EXPECT_EQ(shell.previousPosition, shell.transform.position);
@@ -108,7 +108,7 @@ TEST(SkinShellEffectsTest, ThePushTurnsWithTheFirstYaw)
 {
     auto effects = std::make_unique<ModelEffects>();
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::CreateSkinShell(ShellArguments(0), *effects, random).has_value());
+    ASSERT_TRUE(Client::Effects::CreateSkinShell(ShellArguments(0), *effects, random).has_value());
 
     const ModelEffect& shell = effects->Effects()[0];
     EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.velocity.x), 0x404b9205u);
@@ -131,7 +131,7 @@ TEST(SkinShellEffectsTest, TheFullTableSkipsTheShellWithoutRandoms)
     for (ModelEffect& effect : effects->Effects())
         effect.alive = true;
     CrtRandom random(StraightSeed);
-    EXPECT_EQ(Client::World::CreateSkinShell(ShellArguments(0), *effects, random), std::nullopt);
+    EXPECT_EQ(Client::Effects::CreateSkinShell(ShellArguments(0), *effects, random), std::nullopt);
     EXPECT_EQ(random.State(), CrtRandom(StraightSeed).State());
 }
 
@@ -156,10 +156,10 @@ TEST(SkinShellEffectsTest, TheShellFallsAndBouncesOnTheGround)
     {
         SCOPED_TRACE(probe.ground);
         ModelEffect shell = PlacedShell();
-        Client::World::ModelEffectStepServices services;
+        Client::Effects::ModelEffectStepServices services;
         services.terrainHeight = [&probe](float, float) { return probe.ground; };
 
-        ASSERT_TRUE(Client::World::StepSkinShell(shell, services).HasValue());
+        ASSERT_TRUE(Client::Effects::StepSkinShell(shell, services).HasValue());
 
         EXPECT_EQ(shell.transform.position, (glm::vec3{1010.0f, 2020.0f, Bits(probe.z)}));
         EXPECT_EQ(shell.velocity, (glm::vec3{Bits(0x411e6667u), Bits(0x419e6667u), 0.0f}));
@@ -169,7 +169,7 @@ TEST(SkinShellEffectsTest, TheShellFallsAndBouncesOnTheGround)
         EXPECT_EQ(shell.alpha, probe.alpha);
     }
     ModelEffect blind = PlacedShell();
-    const auto cut = Client::World::StepSkinShell(blind, {});
+    const auto cut = Client::Effects::StepSkinShell(blind, {});
     ASSERT_FALSE(cut.HasValue());
     EXPECT_TRUE(cut.Error().starts_with("0x5299dc")) << cut.Error();
 }
@@ -183,13 +183,13 @@ TEST(SkinShellEffectsTest, TheShellFallsAndBouncesOnTheGround)
 TEST(SkinShellEffectsTest, TheGameStepAddsTheCommonMove)
 {
     ModelEffect shell = PlacedShell();
-    Client::World::ModelEffectStepServices services;
+    Client::Effects::ModelEffectStepServices services;
     services.terrainHeight = [](float, float) { return -1000.0; };
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     CrtRandom random(5);
 
     const auto stepped =
-        Client::World::StepGameModelEffect(shell, nullptr, *particles, 0.0f, random, nullptr, services);
+        Client::Effects::StepGameModelEffect(shell, nullptr, *particles, 0.0f, random, nullptr, services);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(std::bit_cast<std::uint32_t>(shell.transform.position.x), 0x447ef99au);

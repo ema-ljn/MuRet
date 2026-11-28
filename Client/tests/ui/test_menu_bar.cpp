@@ -12,24 +12,24 @@
 #include <optional>
 #include <vector>
 
-// Client::UI::MenuBar: la barra de abajo del login (+0xe40: 0x641000, 0x65f300, 0x6410c0, 0x641440
+// Client::Ui::MenuBar: la barra de abajo del login (+0xe40: 0x641000, 0x65f300, 0x6410c0, 0x641440
 // y 0x6411b0). Dos botones de 54 × 30 con tres cuadros, el menú a la izquierda y los créditos a la
 // derecha, adentro del adorno de deco.tga. Todo en píxeles.
 namespace
 {
 using Client::Core::PixelSize;
 using Client::Input::InputState;
-using Client::UI::LayoutMenuBar;
-using Client::UI::MenuBar;
-using Client::UI::MenuBarClick;
-using Client::UI::MenuBarLayout;
-using Client::UI::Rect;
+using Client::Ui::LayoutMenuBar;
+using Client::Ui::MenuBar;
+using Client::Ui::MenuBarClick;
+using Client::Ui::MenuBarLayout;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 
 // Las texturas del laboratorio: server_menu_b_all y server_credit_b_all miden 54 × 90 (tres cuadros
 // de 30), en buffers de 64 × 128, y deco.tga, 189 × 103, en uno de 256 × 128.
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x10, {64, 128}}, {0x11, {64, 128}}, {0x12, {256, 128}}});
 }

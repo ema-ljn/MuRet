@@ -14,7 +14,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -30,7 +30,7 @@ bool Riding(const Kernel::ActorState& actor, std::uint16_t mount)
 } // namespace
 
 Core::Expected<void, std::string> SetTheActorAction(Kernel::ActorState& actor, std::uint8_t action,
-                                                    const ActorCombatContext& context)
+                                                    const Combat::ActorCombatContext& context)
 {
     const Models::Skeleton* skeleton = nullptr;
     if (actor.type == Tables::PlayerSkeletonModel)
@@ -43,7 +43,7 @@ Core::Expected<void, std::string> SetTheActorAction(Kernel::ActorState& actor, s
     return {};
 }
 
-Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, const Combat::ActorCombatContext& context)
 {
     if (actor.type != Tables::PlayerSkeletonModel)
     {
@@ -54,7 +54,7 @@ Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, con
         ++actor.attackCount;
         return {};
     }
-    RefreshCombatActionSpeeds(context.world, context.random);
+    Combat::RefreshCombatActionSpeeds(context.world, context.random);
     if (Riding(actor, UniriaModel) || Riding(actor, DinorantModel))
         return SetTheActorAction(actor, 0x97, context);
     if (Riding(actor, FenrirModel))
@@ -65,4 +65,4 @@ Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, con
     const int bit = context.random.Next() & 1;
     return SetTheActorAction(actor, static_cast<std::uint8_t>(0x8e + bit), context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

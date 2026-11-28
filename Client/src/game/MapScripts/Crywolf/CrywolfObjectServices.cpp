@@ -23,7 +23,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::Crywolf
 {
 namespace
 {
@@ -43,9 +43,10 @@ constexpr glm::vec3 White(1.0f);
 
 using Math::F32;
 
-Core::Expected<void, std::string> EmitAt(const GameObjectPass& pass, const World::WorldObject& object,
-                                         const glm::vec3& position, std::int32_t type, std::int32_t subtype,
-                                         const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> EmitAt(const WorldObjects::GameObjectPass& pass,
+                                         const WorldObjects::WorldObject& object, const glm::vec3& position,
+                                         std::int32_t type, std::int32_t subtype, const glm::vec3& light,
+                                         std::string_view address)
 {
     if (pass.particles == nullptr)
     {
@@ -64,15 +65,17 @@ Core::Expected<void, std::string> EmitAt(const GameObjectPass& pass, const World
     return {};
 }
 
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
-                                       std::int32_t subtype, const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
+                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
+                                       const glm::vec3& light, std::string_view address)
 {
     return EmitAt(pass, object, object.transform.position, type, subtype, light, address);
 }
 
 // 0x4308ca..0x430932: el humo 5f2/33 50 (0x6b86b0) más arriba, con la luz de otro rand(): L = ((rand() & 3) + 3) ·
 // 0,1f en la x87, fst del rojo, y el verde y el azul por 0,6f (0x6b8a20) y 0,2f (0x6b8854) desde L sin redondear.
-Core::Expected<void, std::string> RisingSmoke(const World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> RisingSmoke(const WorldObjects::WorldObject& object,
+                                              const WorldObjects::GameObjectPass& pass)
 {
     constexpr double Lift = 50.0;
     constexpr int LevelMask = 3, LevelBase = 3;
@@ -83,12 +86,13 @@ Core::Expected<void, std::string> RisingSmoke(const World::WorldObject& object, 
     const glm::vec3 above(position.x, position.y, F32(static_cast<double>(position.z) + Lift));
     const double level = static_cast<double>((pass.random->Next() & LevelMask) + LevelBase) * Tenth;
     const glm::vec3 light(F32(level), F32(level * Green), F32(level * Blue));
-    return EmitAt(pass, object, above, World::BreathParticle, World::CrywolfRisingSmokeSubtype, light, "0x430932");
+    return EmitAt(pass, object, above, Particles::BreathParticle, Particles::CrywolfRisingSmokeSubtype, light,
+                  "0x430932");
 }
 
 // 0x4305db..0x43068c.
-Core::Expected<void, std::string> Glow(const World::WorldObject& object, const GameObjectPass& pass,
-                                       Kernel::CrywolfGlobals& crywolf)
+Core::Expected<void, std::string> Glow(const WorldObjects::WorldObject& object,
+                                       const WorldObjects::GameObjectPass& pass, Kernel::CrywolfGlobals& crywolf)
 {
     // fst guarda el giro en float y fcomp compara con 360 la suma que quedó en la x87; NaN no vuelve a 0.
     const double turned = static_cast<double>(crywolf.glowRotation) + GlowStep;
@@ -129,7 +133,8 @@ Core::Expected<glm::vec3, std::string> AltarLight(float worldClock, std::int32_t
 }
 } // namespace
 
-Core::Expected<void, std::string> StepCrywolfObjectFrame(const World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepCrywolfObjectFrame(const WorldObjects::WorldObject& object,
+                                                         const WorldObjects::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
         return Core::Unexpected(std::string("0x430510: falta el rand() de la CRT"));
@@ -149,13 +154,14 @@ Core::Expected<void, std::string> StepCrywolfObjectFrame(const World::WorldObjec
     {
         if (pass.random->Next() % EmitChance != 0 || crywolf.state != Protocol::Events::CrywolfOccupiedState)
             return {};
-        return Emit(pass, object, World::BreathParticle, World::CrywolfSmokeSubtype, White, "0x4305cc");
+        return Emit(pass, object, Particles::BreathParticle, Particles::CrywolfSmokeSubtype, White, "0x4305cc");
     }
     return {};
 }
 
-Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& object, World::ObjectDraw& draw,
-                                                    const GameObjectPass& pass)
+Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObject& object,
+                                                    WorldObjects::ObjectDraw& draw,
+                                                    const WorldObjects::GameObjectPass& pass)
 {
     if (pass.crywolf == nullptr)
         return Core::Unexpected(std::string("0x4306a0: faltan los globales de Crywolf (0x723c04 y 0x5763358)"));
@@ -187,48 +193,48 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
         // 0x518cf0(0x61d, posición, ángulos, luz, 3, objeto, 4, 0, 0, 0, 0); llena, no crea ninguno.
         constexpr std::uint16_t DecalDisturbance = 4;
         static_cast<void>(pass.effects->CreateFadingDecal(object.transform.position, object.transform.angles,
-                                                          glm::vec3(level), World::CrywolfDecalSubtype,
+                                                          glm::vec3(level), Effects::CrywolfDecalSubtype,
                                                           DecalDisturbance));
         return {};
     }
     case 0x39:
     case 0x47:
     {
-        draw.kind = World::ObjectDrawKind::Hidden;
+        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
         if (!frame || pass.random->Next() % EmitChance != 0)
             return {};
         const bool smoke = object.type == 0x39;
-        if (auto spark = Emit(pass, object, World::CrywolfFanta, World::ShortFantaSubtype, White,
+        if (auto spark = Emit(pass, object, Particles::CrywolfFanta, Particles::ShortFantaSubtype, White,
                               smoke ? "0x430820" : "0x43088b");
             !spark.HasValue())
             return spark;
         if (!smoke)
             return {};
-        return Emit(pass, object, World::BreathParticle, World::CrywolfSmokeSubtype, White, "0x430852");
+        return Emit(pass, object, Particles::BreathParticle, Particles::CrywolfSmokeSubtype, White, "0x430852");
     }
     case 0x48:
     {
-        draw.kind = World::ObjectDrawKind::Hidden;
+        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
         constexpr int SmokeChance = 10;
         if (!frame || pass.random->Next() % SmokeChance != 0)
             return {};
         return RisingSmoke(object, pass);
     }
     case 0x49:
-        draw.kind = World::ObjectDrawKind::Hidden;
+        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
         // 0x430942: con el clima en 0, la arena del HUD en 1, en cada 0x6002e0 del original.
         if (frame && crywolf.weather == 0)
             pass.crywolf->sandOverlay = 1;
         return {};
     case 0x4a:
-        draw.kind = World::ObjectDrawKind::Hidden;
+        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
         if (!frame || pass.random->Next() % EmitChance != 0 || crywolf.state != Protocol::Events::CrywolfOccupiedState)
             return {};
-        return Emit(pass, object, World::BreathParticle, World::CrywolfSmokeSubtype, White, "0x430993");
+        return Emit(pass, object, Particles::BreathParticle, Particles::CrywolfSmokeSubtype, White, "0x430993");
     case 0x4d:
     case 0x4e:
     {
-        draw.kind = World::ObjectDrawKind::Hidden;
+        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
         constexpr int CloudChance = 6;
         if (!frame || pass.random->Next() % CloudChance != 0)
             return {};
@@ -238,10 +244,10 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
                                                 std::bit_cast<float>(0x3ca3d70au))
                                     : glm::vec3(std::bit_cast<float>(0x3cf5c28fu), std::bit_cast<float>(0x3d75c28fu),
                                                 std::bit_cast<float>(0x3d4ccccdu));
-        return Emit(pass, object, World::CloudParticle, World::CrywolfCloudSubtype, light, "0x430a23");
+        return Emit(pass, object, Particles::CloudParticle, Particles::CrywolfCloudSubtype, light, "0x430a23");
     }
     case 0x51:
-        draw.kind = World::ObjectDrawKind::Hidden;
+        draw.kind = WorldObjects::ObjectDrawKind::Hidden;
         // 0x430a33: el caller ejecuta los dos RenderMesh directos, sin el RenderBody genérico.
         if (crywolf.state == Protocol::Events::CrywolfWarState)
         {
@@ -265,4 +271,4 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
             std::format("0x4339d0: el caso del {:#x} en el 34 no está portado", static_cast<int>(object.type)));
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Crywolf

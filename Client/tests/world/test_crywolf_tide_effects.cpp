@@ -16,7 +16,7 @@ namespace
 {
 TEST(CrywolfTideEffectsTest, TheConstructorPreservesThePrefixOwnerAndTheUntouchedStartVector)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     effects->Effects()[0].start = {7, 8, 9};
     int owner = 0;
     const auto made = effects->CreateCrywolfTideEffect({.type = 0x145,
@@ -44,12 +44,12 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
     for (const bool full : {false, true})
         for (const float scale : {0.0f, 0.8f})
         {
-            auto particles = std::make_unique<Client::World::Particles>();
+            auto particles = std::make_unique<Client::Particles::Particles>();
             if (full)
                 for (auto& p : particles->All())
                     p.alive = true;
             auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-            Client::World::ModelEffect effect;
+            Client::Effects::ModelEffect effect;
             effect.alive = true;
             effect.type = 0x145;
             effect.subtype = 2;
@@ -60,8 +60,8 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
             effect.velocity = {0, -40, 0};
             effect.light = {0.1f, 0.2f, 0.3f};
             Client::Crt::CrtRandom random(7);
-            const auto stepped = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
-                                                                    {.lighting = lighting.get()});
+            const auto stepped = Client::Effects::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
+                                                                      {.lighting = lighting.get()});
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, full ? 1 : 19).State());
             EXPECT_EQ(effect.life, 29);
@@ -94,7 +94,7 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
 }
 TEST(CrywolfTideEffectsTest, TheTideSmokeKeepsThreeConstructorRollsAndItsGrayGrowth)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5f2, {100, 200, 300}, {}, {1, 2, 3}, 25, 1, 0, random);
     ASSERT_TRUE(made.HasValue());
@@ -106,7 +106,7 @@ TEST(CrywolfTideEffectsTest, TheTideSmokeKeepsThreeConstructorRollsAndItsGrayGro
     EXPECT_EQ(p.rotation, 142);
     EXPECT_EQ(p.verticalSpeed, 7.5f);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 3).State());
-    ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random).HasValue());
     EXPECT_EQ(p.life, 24);
     EXPECT_FLOAT_EQ(p.scale, 1.34f);
     EXPECT_EQ(p.light, glm::vec3(1.2f));

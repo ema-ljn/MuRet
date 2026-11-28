@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -121,7 +121,7 @@ std::optional<NameCase> FixedCase(std::uint16_t type, std::int32_t level)
 
 Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(texts, index);
     if (!text)
         return Core::Unexpected(std::format("0x5b1c70: falta el texto {} de Text.bmd", index));
     return *text;
@@ -155,13 +155,14 @@ constexpr std::int32_t EventTicketTableLevel = 2;
 constexpr std::size_t EventTicketPrizeOffset = 0x2d;
 
 // 0x5b21b6..0x5b21e9: los registros de 0x7681eb8 con el tipo del monstruo, sin cortar en el primero.
-bool HasTheMonster(const NpcNameTable& table, std::uint32_t monster)
+bool HasTheMonster(const Monsters::NpcNameTable& table, std::uint32_t monster)
 {
-    return std::ranges::any_of(table, [monster](const NpcName& entry) { return std::uint32_t{entry.type} == monster; });
+    return std::ranges::any_of(table, [monster](const Monsters::NpcName& entry)
+                               { return std::uint32_t{entry.type} == monster; });
 }
 
-Core::Expected<std::string, std::string> TransformationRingName(const Tables::TextTable* texts,
-                                                                const NpcNameTable* npcNames, std::int32_t level)
+Core::Expected<std::string, std::string>
+TransformationRingName(const Tables::TextTable* texts, const Monsters::NpcNameTable* npcNames, std::int32_t level)
 {
     if (npcNames == nullptr)
         return Core::Unexpected(std::string("0x5b21a6: el nombre del anillo de transformación lee los monstruos de "
@@ -182,7 +183,7 @@ Core::Expected<std::string, std::string> TransformationRingName(const Tables::Te
         const auto text = TextOf(texts, TransformationRingText);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        name = Crt::Sprintf("%s %s", std::string_view(NpcNameAt(*npcNames, index)), text.Value());
+        name = Crt::Sprintf("%s %s", std::string_view(Monsters::NpcNameAt(*npcNames, index)), text.Value());
     }
     return name;
 }
@@ -203,7 +204,7 @@ std::optional<std::uint32_t> TransformationMonsterOf(std::int32_t level)
 }
 
 Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* items, const Tables::TextTable* texts,
-                                                    const NpcNameTable* npcNames, std::uint16_t type,
+                                                    const Monsters::NpcNameTable* npcNames, std::uint16_t type,
                                                     std::int32_t level)
 {
     if (type == TransformationRing)
@@ -292,7 +293,7 @@ Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* ite
     return Crt::Sprintf("%s +%d", std::string_view(name.Value()), level);
 }
 
-bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const NpcNameTable* npcNames)
+bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const Monsters::NpcNameTable* npcNames)
 {
     if (type == TransformationRing && npcNames != nullptr)
     {
@@ -306,4 +307,4 @@ bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const NpcNameTabl
     const std::optional<NameCase> fixed = FixedCase(type, level);
     return !fixed || fixed->kind != NameKind::None;
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

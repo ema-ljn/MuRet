@@ -21,7 +21,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::World
+namespace Client::MapScripts::Tarkan
 {
 namespace
 {
@@ -79,8 +79,8 @@ Core::Unexpected<std::string> SineOutOfDomain(std::string_view address)
     return Core::Unexpected(std::format("{}: el seno del reloj no cabe en el perfil PC53", address));
 }
 
-Core::Expected<void, std::string> ScrollV(WorldObject& object, float worldClock, std::int32_t period, double factor,
-                                          std::string_view address)
+Core::Expected<void, std::string> ScrollV(WorldObjects::WorldObject& object, float worldClock, std::int32_t period,
+                                          double factor, std::string_view address)
 {
     const std::optional<float> v = Scroll(worldClock, period, factor);
     if (!v)
@@ -90,7 +90,7 @@ Core::Expected<void, std::string> ScrollV(WorldObject& object, float worldClock,
 }
 } // namespace
 
-void SeedTarkanModelState(std::uint8_t map, ObjectModelStepState& state)
+void SeedTarkanModelState(std::uint8_t map, WorldObjects::ObjectModelStepState& state)
 {
     constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     if (map != TarkanMap)
@@ -108,7 +108,8 @@ float TarkanAnimationSpeed(std::int16_t type, float speed)
     return type == FastObject ? speed * Quadruple : speed;
 }
 
-Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& object,
+                                                   const WorldObjects::ObjectStepGlobals& globals)
 {
     constexpr std::int32_t ShortPeriod = 1000;
     constexpr std::int32_t LongPeriod = 10000;
@@ -137,8 +138,8 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
         if (auto scrolled = ScrollV(object, clock, LongPeriod, TenThousandth, "0x6056df"); !scrolled.HasValue())
             return scrolled;
         const float light = F32(*pulse);
-        return AddDynamicLight(globals.dynamicLighting, object.transform.position, glm::vec3(light), WideLight,
-                               "0x605718");
+        return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, glm::vec3(light),
+                                             WideLight, "0x605718");
     }
     case 7:
     {
@@ -148,8 +149,8 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
         if (!pulse)
             return SineOutOfDomain("0x605755");
         object.state.light = F32(*pulse);
-        return AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse), WideLight,
-                               "0x60577d");
+        return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse),
+                                             WideLight, "0x60577d");
     }
     case 0xb:
         return ScrollV(object, clock, LongPeriod, TwoTenThousandths, "0x605792");
@@ -177,12 +178,12 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
         const std::optional<double> pulse = Pulse(D(clock));
         if (!pulse)
             return SineOutOfDomain("0x605893");
-        return AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse), NarrowLight,
-                               "0x605718");
+        return WorldObjects::AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse),
+                                             NarrowLight, "0x605718");
     }
     case 0x3f:
     case 0x40:
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     case 0x48:
         object.state.blendMesh = 0;
@@ -202,4 +203,4 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
         return {};
     }
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Tarkan

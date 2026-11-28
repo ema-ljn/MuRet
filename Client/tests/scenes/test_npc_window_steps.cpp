@@ -58,6 +58,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
@@ -66,7 +67,6 @@ using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Scenes::GameUiContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -242,17 +242,17 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheGameUi(Context(x, y));
+        return Client::Hud::StepTheGameUi(Context(x, y));
     }
 
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheGameDialogs(Context(x, y));
+        return Client::Hud::StepTheGameDialogs(Context(x, y));
     }
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
     }
 
     // El C1 del paquete `index` sin el XOR32, para compararlo byte a byte.
@@ -261,13 +261,13 @@ protected:
         return Xor32Decode(sent.at(index).packet);
     }
 
-    [[nodiscard]] Client::Scenes::NpcWindowState& Npc()
+    [[nodiscard]] Client::Npc::NpcWindowState& Npc()
     {
         return world.Runtime().npcWindows;
     }
 
     // 0x78abb14 y 0x6c932e, el aviso del ítem del cursor y su respuesta.
-    [[nodiscard]] Client::Scenes::TradeState& Trade()
+    [[nodiscard]] Client::Social::TradeState& Trade()
     {
         return world.Runtime().social.trade;
     }
@@ -275,16 +275,15 @@ protected:
     // 0x5d8dee..0x5dc798: las respuestas de los avisos, sin el ítem del cursor. Falso: el paso termina ahí.
     [[nodiscard]] Client::Core::Expected<bool, std::string> AnswerTheWarnings()
     {
-        return Client::Scenes::StepTheWarningAnswers(
-            Context(0, 0),
-            Client::Scenes::InventoryMoveContext{.world = world, .random = random, .services = services});
+        return Client::PersonalShop::StepTheWarningAnswers(
+            Context(0, 0), Client::Items::InventoryMoveContext{.world = world, .random = random, .services = services});
     }
 
     // Lo que avisó 0x555190 con el tipo 2, en orden.
     [[nodiscard]] std::vector<std::string> Errors() const
     {
         std::vector<std::string> errors;
-        for (const Client::UI::MessageAreaRow& row : world.Runtime().chat.area.rows)
+        for (const Client::Ui::MessageAreaRow& row : world.Runtime().chat.area.rows)
         {
             if (row.type == 2 && !row.text.empty())
                 errors.push_back(row.text);
@@ -327,7 +326,7 @@ protected:
                                                                     {1901, " y suerte"},
                                                                     {0x76e, "elegir"}});
     LetterMeasure measure;
-    Client::Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
     std::vector<Client::Protocol::Outgoing> sent;
     std::vector<std::size_t> messages;
 };
@@ -362,7 +361,7 @@ TEST_F(NpcWindowStepsTest, TheShopBuysTheItemUnderTheMouseByteByByte)
         for (const std::size_t cell : {82u, 90u, 98u})
             EXPECT_EQ(Npc().grid[cell].warning, 2) << cell;
         const auto& ui = world.Runtime().ui;
-        EXPECT_EQ(ui.hoveredItem.place, Client::UI::HoveredItem::Place::NpcGridCell);
+        EXPECT_EQ(ui.hoveredItem.place, Client::Ui::HoveredItem::Place::NpcGridCell);
         EXPECT_EQ(ui.hoveredItem.index, 90u);
         EXPECT_EQ(ui.field78aba27, 1);
         EXPECT_EQ(ui.field78abb28, 6);
@@ -427,7 +426,7 @@ TEST_F(NpcWindowStepsTest, AValuableItemIsSoldAfterTheConfirmation)
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(runtime.dialogs.current, 0x98);
     EXPECT_EQ(Trade().warningKind, 1);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "vender esto");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "vender esto");
     EXPECT_EQ(runtime.dialogBox.lineCount, 3);
 
     Click();
@@ -475,10 +474,10 @@ TEST_F(NpcWindowStepsTest, RepairingEverythingSendsFfAndPricesTheWornItems)
     Place(world.Inventory().cells, ItemState{.id = Shield, .durability = 5}, 4, 1, 2, 2);
     const auto priceOf = [this](const ItemState& item, std::uint8_t durability)
     {
-        const std::uint16_t maximum = Client::Scenes::MaxDurability(item, *items.Record(item.id), 0);
+        const std::uint16_t maximum = Client::Items::MaxDurability(item, *items.Record(item.id), 0);
         EXPECT_EQ(maximum, durability);
-        const auto price = Client::Scenes::ItemPrice(item, items, Client::Scenes::RepairPriceMode, std::nullopt);
-        return Client::Scenes::RepairPriceOf(price.Value(), item.durability, maximum, 0).gold;
+        const auto price = Client::Items::ItemPrice(item, items, Client::Items::RepairPriceMode, std::nullopt);
+        return Client::Items::RepairPriceOf(price.Value(), item.durability, maximum, 0).gold;
     };
     const std::int32_t total = priceOf(sword, SwordDurability) + priceOf(world.Inventory().cells[12], ShieldDurability);
     ASSERT_GT(total, 0);
@@ -610,8 +609,8 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
 
         const CrtRandom beforeTheDrop = random;
         CrtRandom keys = Advanced(random, InventoryWindowRandoms);
-        std::array<std::uint16_t, Client::Scenes::WarehouseKeyCount> keypad{};
-        Client::Scenes::ShuffleTheKeypad(keys, keypad);
+        std::array<std::uint16_t, Client::Npc::WarehouseKeyCount> keypad{};
+        Client::Items::ShuffleTheKeypad(keys, keypad);
         Click();
         const auto dropped = Step(InventoryX + 15 + 4 * 20 + 5, 200 + 3 * 20 + 5);
         ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
@@ -665,13 +664,13 @@ TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
         runtime.ui.field78abb39 = 0;
         runtime.cursorItemCount = 0;
         runtime.panels.delegated.trainer = 3;
-        Npc().trainerBox = Client::Scenes::EmptyTrainerBox();
+        Npc().trainerBox = Client::Npc::EmptyTrainerBox();
         Place(Npc().trainerBox, ItemState{.id = Jewel, .durability = 7}, 1, 2, 1, 1);
         const std::int32_t x = TrainerLeft + 20 + 5;
         const std::int32_t y = TrainerTop + 2 * 20 + 5;
         const auto hovered = Step(x, y);
         ASSERT_TRUE(hovered.HasValue()) << hovered.Error();
-        EXPECT_EQ(runtime.ui.hoveredItem.place, Client::UI::HoveredItem::Place::TrainerBoxCell);
+        EXPECT_EQ(runtime.ui.hoveredItem.place, Client::Ui::HoveredItem::Place::TrainerBoxCell);
         EXPECT_EQ(runtime.ui.hoveredItem.index, 17u);
         EXPECT_EQ(runtime.ui.field78abb28, 4);
         EXPECT_EQ(runtime.ui.field78abb2c, 17);
@@ -800,11 +799,11 @@ TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
     auto& runtime = world.Runtime();
     runtime.panels.panel2000 = 1;
     runtime.hud.inventoryX = 450;
-    Client::Scenes::GamePanels ownedPanels(world, random);
+    Client::Hud::GamePanels ownedPanels(world, random);
     auto& panels = ownedPanels.Registry();
     Click();
     auto context = Context(475, 240);
-    auto stepped = Client::Scenes::StepThePanel2000(context, panels);
+    auto stepped = Client::Npc::StepThePanel2000(context, panels);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.panels.field78abb08, 1);
     EXPECT_FALSE(runtime.movement.pendingClick);
@@ -813,14 +812,14 @@ TEST_F(NpcWindowStepsTest, ThePanel2000CheckboxAndConfirmationReachTheKeypad)
     Click();
     context.mouseX = 485;
     context.mouseY = 320;
-    stepped = Client::Scenes::StepThePanel2000(context, panels);
+    stepped = Client::Npc::StepThePanel2000(context, panels);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.social.trade.warningKind, 4);
     EXPECT_EQ(runtime.social.trade.warningByte, 0xff);
     EXPECT_EQ(runtime.dialogs.current, 0x98);
     EXPECT_EQ(random.State(), before);
     runtime.social.trade.warningByte = 1;
-    ASSERT_TRUE(Client::Scenes::AnswerTheNpcWarning(context, 4).HasValue());
+    ASSERT_TRUE(Client::Npc::AnswerTheNpcWarning(context, 4).HasValue());
     EXPECT_EQ(runtime.ui.field78abb20, 6);
 }
 
@@ -851,10 +850,10 @@ TEST_F(NpcWindowStepsTest, BothPanel2000ExitButtonsSend31BeforeClosing)
         runtime.panels.inventory = 0;
         runtime.hud.inventoryX = 450;
         Click();
-        Client::Scenes::GamePanels ownedPanels(world, random);
+        Client::Hud::GamePanels ownedPanels(world, random);
         auto context = Context(cross ? 475 : 485, cross ? 395 : 350);
         const auto before = random;
-        const auto stepped = Client::Scenes::StepThePanel2000(context, ownedPanels.Registry());
+        const auto stepped = Client::Npc::StepThePanel2000(context, ownedPanels.Registry());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(runtime.panels.panel2000, 0);
         EXPECT_EQ(runtime.panels.field78abb08, 0);
@@ -898,8 +897,8 @@ TEST_F(NpcWindowStepsTest, WithdrawingZenSends81OrWaitsForThePassword)
     runtime.itemMoveTarget = 9;
     runtime.ui.enterPressed = true;
     CrtRandom keys = Advanced(random, TradeQuery);
-    std::array<std::uint16_t, Client::Scenes::WarehouseKeyCount> keypad{};
-    Client::Scenes::ShuffleTheKeypad(keys, keypad);
+    std::array<std::uint16_t, Client::Npc::WarehouseKeyCount> keypad{};
+    Client::Items::ShuffleTheKeypad(keys, keypad);
     const CrtRandom expected = Advanced(random, TradeQuery + KeypadRandoms + Own);
     ASSERT_TRUE(Dialogs(0, 0).HasValue());
     EXPECT_EQ(random.State(), expected.State());
@@ -1068,7 +1067,7 @@ TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
         EXPECT_EQ(random.State(), asked.State());
         EXPECT_TRUE(sent.empty());
         EXPECT_EQ(runtime.dialogs.current, 0x98);
-        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "mezclar ya?");
+        EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "mezclar ya?");
         EXPECT_EQ(Trade().warningKind, 2);
         EXPECT_EQ(Trade().warningByte, 0xff);
         EXPECT_FALSE(runtime.movement.pendingClick);
@@ -1168,18 +1167,18 @@ TEST_F(NpcWindowStepsTest, TheFruitDialogsNameTheItem)
     auto& runtime = world.Runtime();
     runtime.dialogItem = ItemState{.id = Fruit, .scalar1Low = 2u << 3};
     ASSERT_TRUE(
-        Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 1, 0x178, 0x96, &runtime.dialogItem)
+        Client::Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 1, 0x178, 0x96, &runtime.dialogItem)
             .HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x96);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol )");
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 1), "comer la fruta?");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "( sol )");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 1), "comer la fruta?");
     EXPECT_EQ(runtime.dialogBox.lineCount, 2);
 
     Click();
     ASSERT_TRUE(Dialogs(0x15 + 0xd5, 0x5a + 0x64).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0xa8);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol y suerte )");
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 1), "elegir");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "( sol y suerte )");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 1), "elegir");
     EXPECT_EQ(runtime.dialogBox.buttons[0].x, 0x16);
     EXPECT_EQ(runtime.dialogBox.buttons[1].x, 0x52);
     EXPECT_EQ(runtime.dialogBox.thirdButton.state, 5);
@@ -1188,10 +1187,10 @@ TEST_F(NpcWindowStepsTest, TheFruitDialogsNameTheItem)
     runtime.dialogs.current = 0;
     runtime.dialogItem.id = Sword;
     ASSERT_TRUE(
-        Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 1, 0x178, 0x96, &runtime.dialogItem)
+        Client::Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 1, 0x178, 0x96, &runtime.dialogItem)
             .HasValue());
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "(  )");
-    const auto unnamed = Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 1, 0x178, 0x96);
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "(  )");
+    const auto unnamed = Client::Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 1, 0x178, 0x96);
     ASSERT_FALSE(unnamed.HasValue());
     EXPECT_NE(unnamed.Error().find("0x63330f"), std::string::npos);
 }
@@ -1248,13 +1247,13 @@ TEST_F(NpcWindowStepsTest, ARightClickedFruitOpensBothNamedConfirmations)
     const auto used = Step(InventoryX + 15 + 20 + 5, 200 + 20 + 5);
     ASSERT_TRUE(used.HasValue()) << used.Error();
     EXPECT_EQ(runtime.dialogs.current, 0x96);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol )");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "( sol )");
     EXPECT_EQ(runtime.dialogItemCell, 9);
     EXPECT_EQ(runtime.dialogItem.id, Fruit);
     Click();
     ASSERT_TRUE(Dialogs(234, 190).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0xa8);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "( sol y suerte )");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "( sol y suerte )");
 }
 
 TEST_F(NpcWindowStepsTest, TheFruitAndJewelConfirmationsSendTheOriginal26)
@@ -1271,7 +1270,7 @@ TEST_F(NpcWindowStepsTest, TheFruitAndJewelConfirmationsSendTheOriginal26)
         runtime.ui.field78abb26 = 9;
         const std::int32_t id = choice == 2 ? 0xa9 : 0xa8;
         ASSERT_TRUE(
-            Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 0, 0, id, &runtime.dialogItem)
+            Client::Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &texts, 0, 0, id, &runtime.dialogItem)
                 .HasValue());
         sent.clear();
         const auto before = random;

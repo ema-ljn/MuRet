@@ -37,6 +37,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::CrywolfInterface;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
@@ -44,7 +45,6 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -149,7 +149,7 @@ protected:
         text.texts.clear();
         sprites.Begin(Screen640);
         GameHudContext context = Context(copy);
-        const auto drawn = Client::Scenes::DrawTheCrywolfInterface(context);
+        const auto drawn = Client::Events::Crywolf::DrawTheCrywolfInterface(context);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     }
 
@@ -186,7 +186,7 @@ protected:
     RecordingTextDrawer text{sprites};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable(CrywolfTexts());
     std::uint32_t tickCount = 50000;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
 };
 
 // Sin resultados, sin aviso y fuera de la defensa en el 34: solo 0x620a00(1), que queda (no llega a 0x620980). La
@@ -541,7 +541,7 @@ TEST_F(CrywolfInterfaceTest, TheContractStepOnlyLeavesTheTitleColorInTheDefense)
             world->Runtime().hud.textColors = before;
             sprites.Begin(Screen640);
             GameHudContext context = Context();
-            ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(context).HasValue());
+            ASSERT_TRUE(Client::Events::Crywolf::DrawTheCrywolfContract(context).HasValue());
             EXPECT_TRUE(QuadsOf(sprites).empty());
             const bool defense = map == CrywolfMap && stage != 2;
             EXPECT_EQ(world->Runtime().hud.textColors.text, defense ? 0xff1594ffu : before.text);
@@ -555,7 +555,7 @@ TEST_F(CrywolfInterfaceTest, TheContractStepOnlyLeavesTheTitleColorInTheDefense)
         Ui().byte723a44 = 1;
         sprites.Begin(Screen640);
         GameHudContext context = Context();
-        ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(context).HasValue());
+        ASSERT_TRUE(Client::Events::Crywolf::DrawTheCrywolfContract(context).HasValue());
         EXPECT_TRUE(QuadsOf(sprites).empty());
     }
 }
@@ -570,7 +570,7 @@ TEST_F(CrywolfInterfaceTest, TheQuestionDrawsBothButtonsAndCloses)
         text.texts.clear();
         sprites.Begin(Screen640);
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheCrywolfContract(context);
+        const auto drawn = Client::Events::Crywolf::DrawTheCrywolfContract(context);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     };
     const auto put = [](std::array<char, 200>& line, std::string_view value)
@@ -634,7 +634,7 @@ TEST_F(CrywolfInterfaceTest, TheNoticeDrawsTheOk)
     text.texts.clear();
     sprites.Begin(Screen640);
     GameHudContext first = Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(first).HasValue());
+    ASSERT_TRUE(Client::Events::Crywolf::DrawTheCrywolfContract(first).HasValue());
     auto quads = QuadsOf(sprites);
     ASSERT_EQ(quads.size(), 2u);
     ExpectQuad(quads[1], 0x6c6, 290.0f, 250.0f, 54.0f, 30.0f);
@@ -647,7 +647,7 @@ TEST_F(CrywolfInterfaceTest, TheNoticeDrawsTheOk)
     CrywolfInterface copy = Ui();
     sprites.Begin(Screen640);
     GameHudContext second = Context(&copy);
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(second).HasValue());
+    ASSERT_TRUE(Client::Events::Crywolf::DrawTheCrywolfContract(second).HasValue());
     EXPECT_EQ(QuadsOf(sprites)[1].slot, 0x6c8);
     EXPECT_EQ(copy.byte723a44, 0);
     EXPECT_EQ(Ui().byte723a44, 2);
@@ -655,7 +655,7 @@ TEST_F(CrywolfInterfaceTest, TheNoticeDrawsTheOk)
 
     sprites.Begin(Screen640);
     GameHudContext third = Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(third).HasValue());
+    ASSERT_TRUE(Client::Events::Crywolf::DrawTheCrywolfContract(third).HasValue());
     EXPECT_EQ(QuadsOf(sprites)[1].slot, 0x6c8);
     EXPECT_EQ(Ui().byte723a44, 0);
     EXPECT_EQ(Ui().dwords723bdc[0], 0);

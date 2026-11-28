@@ -54,6 +54,7 @@
 // 0x4dd570 sobre el mundo. Los nombres y los textos son inventados.
 namespace
 {
+using Client::Chat::ChatReceiveContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
@@ -66,7 +67,6 @@ using Client::Protocol::Player::OptionData;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ChatReceiveContext;
 using Client::Scenes::SceneId;
 
 class LetterMeasure final : public ITextMeasure
@@ -148,16 +148,16 @@ protected:
 TEST_F(ChatReceiveTest, AChatGoesToABubbleAndToTheChat)
 {
     Player(7, "Zorzal");
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Zorzal", "buen dia"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Zorzal", "buen dia"), Context()).HasValue());
 
-    const Client::Scenes::ChatBubble& bubble = Runtime().chat.bubbles[0];
+    const Client::Chat::ChatBubble& bubble = Runtime().chat.bubbles[0];
     EXPECT_EQ(bubble.owner, std::optional<std::size_t>(7));
     EXPECT_EQ(bubble.name, "Zorzal");
     EXPECT_EQ(bubble.line1, "buen dia");
     EXPECT_EQ(bubble.time1, 2 * 8 + 0xa0);
     EXPECT_EQ(bubble.color, 3);
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
-    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::ChatMessage);
+    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::Ui::ChatMessage);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "buen dia");
     EXPECT_EQ(m_random.State(), After(0));
 }
@@ -170,7 +170,7 @@ TEST_F(ChatReceiveTest, AtTheLoginTheChatOnlyAsksForTheListAgain)
     ChatReceiveContext context = Context(SceneId::Login);
     context.measure = nullptr;
     context.requestServerList = [&requests] { ++requests; };
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Zorzal", "buen dia"), context).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Zorzal", "buen dia"), context).HasValue());
 
     EXPECT_EQ(requests, 1);
     EXPECT_TRUE(Runtime().chat.bubbles[0].name.empty());
@@ -181,17 +181,17 @@ TEST_F(ChatReceiveTest, AtTheLoginTheChatOnlyAsksForTheListAgain)
 // 0x4c62ef..0x4c6380: ~ al chat de la party, @@ al aviso del gremio, @ al gremio; sin la marca.
 TEST_F(ChatReceiveTest, TheMarksPickTheChannel)
 {
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Tero", "~vamos"), Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Tero", "@@reunion"), Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Tero", "@listos"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "~vamos"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "@@reunion"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "@listos"), Context()).HasValue());
 
     const auto& entries = Runtime().chat.log.entries;
     ASSERT_EQ(entries.size(), 3u);
-    EXPECT_EQ(entries[2].type, Client::UI::PartyMessage);
+    EXPECT_EQ(entries[2].type, Client::Ui::PartyMessage);
     EXPECT_EQ(entries[2].text, "vamos");
-    EXPECT_EQ(entries[1].type, Client::UI::GuildNoticeMessage);
+    EXPECT_EQ(entries[1].type, Client::Ui::GuildNoticeMessage);
     EXPECT_EQ(entries[1].text, "reunion");
-    EXPECT_EQ(entries[0].type, Client::UI::GuildMessage);
+    EXPECT_EQ(entries[0].type, Client::Ui::GuildMessage);
     EXPECT_EQ(entries[0].text, "listos");
     // Nadie habla con ese nombre: ningún globo.
     EXPECT_FALSE(Runtime().chat.bubbles[0].owner.has_value());
@@ -202,9 +202,9 @@ TEST_F(ChatReceiveTest, EachBranchCopiesItsOwnByteCount)
 {
     // De a un punto por letra, el registro no corta ningún texto en dos.
     m_letters.width = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Tero", "~" + std::string(59, 'p')), Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Tero", "@@" + std::string(58, 'g')), Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Tero", std::string(60, 'n')), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "~" + std::string(59, 'p')), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "@@" + std::string(58, 'g')), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", std::string(60, 'n')), Context()).HasValue());
 
     const auto& entries = Runtime().chat.log.entries;
     std::string all;
@@ -219,12 +219,12 @@ TEST_F(ChatReceiveTest, EachBranchCopiesItsOwnByteCount)
 TEST_F(ChatReceiveTest, AShoutOnlyMakesALongBubble)
 {
     Player(3, "Calandria");
-    ASSERT_TRUE(Client::Scenes::ApplyChat(SpokenBy<Chat>("Calandria", "#aca"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Calandria", "#aca"), Context()).HasValue());
 
     EXPECT_EQ(Runtime().chat.bubbles[0].line1, "aca");
     EXPECT_EQ(Runtime().chat.bubbles[0].time1, 1000);
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
-    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::ChatMessage);
+    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::Ui::ChatMessage);
     EXPECT_EQ(Runtime().chat.area.count, 0);
 }
 
@@ -233,13 +233,13 @@ TEST_F(ChatReceiveTest, AWhisperClosesTheOwnRecordAndRemembersTheSender)
 {
     m_world->OwnCharacter().level = 9;
     Runtime().chat.noticeSound = true;
-    ASSERT_TRUE(Client::Scenes::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
 
     EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
-    EXPECT_EQ(Client::UI::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "Benteveo");
+    EXPECT_EQ(Client::Chat::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "Benteveo");
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x26});
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
-    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::WhisperMessage);
+    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::Ui::WhisperMessage);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "psst");
 }
 
@@ -248,17 +248,17 @@ TEST_F(ChatReceiveTest, AWhisperAtLevelTenWithTheRecordOpenTakesNoRandoms)
 {
     m_world->OwnCharacter().level = 10;
     Runtime().ownRecordDepth = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
 
     EXPECT_EQ(m_random.State(), After(0));
-    EXPECT_EQ(Client::UI::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "");
+    EXPECT_EQ(Client::Chat::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "");
 }
 
 // 0x4e34f1: con 0x77f3b98, nada: ni el registro propio.
 TEST_F(ChatReceiveTest, BlockedWhispersDoNothing)
 {
     Runtime().chat.whisperBlocked = true;
-    ASSERT_TRUE(Client::Scenes::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
 
     EXPECT_EQ(m_random.State(), After(0));
     EXPECT_TRUE(Runtime().chat.log.entries.empty());
@@ -267,9 +267,9 @@ TEST_F(ChatReceiveTest, BlockedWhispersDoNothing)
 // 0x4e366f: solo el 0; el texto 482 sin Text.bmd corta.
 TEST_F(ChatReceiveTest, OnlyAFailedWhisperIsReported)
 {
-    EXPECT_TRUE(Client::Scenes::ApplyWhisperResult(WhisperResult{1}, Context()).HasValue());
+    EXPECT_TRUE(Client::Chat::ApplyWhisperResult(WhisperResult{1}, Context()).HasValue());
     EXPECT_TRUE(Runtime().chat.log.entries.empty());
-    EXPECT_FALSE(Client::Scenes::ApplyWhisperResult(WhisperResult{0}, Context()).HasValue());
+    EXPECT_FALSE(Client::Chat::ApplyWhisperResult(WhisperResult{0}, Context()).HasValue());
 }
 
 // 0x4e33fc: el globo del que tiene la clave; una clave desde 0x8000 no la tiene nadie (MOVSX).
@@ -278,8 +278,8 @@ TEST_F(ChatReceiveTest, AKeyChatFindsTheSpeakerByItsKey)
     Player(12, "Hornero").key = 0x1234;
     Player(13, "Carancho").key = 0x8001;
     ASSERT_TRUE(
-        Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x1234, .text = std::string("hola\0x", 6)}, Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x8001, .text = "chau"}, Context()).HasValue());
+        Client::Chat::ApplyKeyChat(KeyChat{.key = 0x1234, .text = std::string("hola\0x", 6)}, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyKeyChat(KeyChat{.key = 0x8001, .text = "chau"}, Context()).HasValue());
 
     EXPECT_EQ(Runtime().chat.bubbles[0].owner, std::optional<std::size_t>(12));
     EXPECT_EQ(Runtime().chat.bubbles[0].name, "Hornero");
@@ -301,12 +301,12 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
     ActorState& hero = m_world->Hero();
     hero.guildStatus = 0x80;
     hero.word1f2 = 0xffff;
-    Client::UI::ChatInputState& input = Runtime().chat.input;
+    Client::Chat::ChatInputState& input = Runtime().chat.input;
     Runtime().ui.chatOpen = true;
     input.fieldCount = 2;
-    Client::UI::CopyIntoTheBuffer(input.messageBuffer, "algo");
+    Client::Chat::CopyIntoTheBuffer(input.messageBuffer, "algo");
     input.messageLength = 4;
-    ASSERT_TRUE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
 
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
     EXPECT_TRUE(input.dialogFieldOn);
@@ -322,7 +322,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
 // 0x4e345c → 0x6599a0: abrir el gremio cierra también Senior, Hunt y los tres controles de batalla.
 TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
 {
-    Client::Scenes::ClearSelectionInventory(*m_world, m_random);
+    Client::FrontEnd::ClearSelectionInventory(*m_world, m_random);
     ActorState& master = Player(20, "");
     constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
     for (std::size_t i = 0; i < GuildMaster.size(); ++i)
@@ -359,7 +359,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         auto expected = m_random;
         expected.Discard(4); // Los mismos accesos protegidos que al abrir el gremio sin otra ventana.
 
-        auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
+        auto result = Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(sent.size(), 1u);
@@ -388,7 +388,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
     context.guildSend = [&](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
     auto expected = m_random;
     expected.Discard(2); // CanOpen consulta tienda/comercio antes de rechazar; no entra a CloseByMask.
-    const auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
+    const auto result = Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(delegated.castleSiegeList, 1);
@@ -408,11 +408,11 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     master.byte1e3 = 0xcd;
     master.key = 0x0042;
     m_world->Hero().guildStatus = 0x80;
-    Client::Scenes::SelectionState selection(*m_world);
+    Client::FrontEnd::SelectionState selection(*m_world);
     Client::Models::ClothWorld cloth;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Client::Scenes::WorldEntryResources resources{.world = *m_world,
@@ -434,7 +434,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     auto expected = m_random;
     expected.Discard(2); // Sólo las consultas protegidas de la tienda del NPC y del comercio.
 
-    auto result = Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
+    auto result = Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(sent.empty());
@@ -461,7 +461,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheHerosGuild)
     ActorState& hero = m_world->Hero();
     hero.guildStatus = 0x80;
     hero.word1f2 = 12;
-    ASSERT_TRUE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
     EXPECT_EQ(hero.word1f2, 12);
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
 }
@@ -469,13 +469,13 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheHerosGuild)
 // 0x4c65b0: el 0 al aviso centrado; el 1 al chat fuera de la selección.
 TEST_F(ChatReceiveTest, NoticesGoToTheCenterOrToTheChat)
 {
-    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 0, .text = "atencion"}, Context()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 1, .text = "sistema"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 0, .text = "atencion"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 1, .text = "sistema"}, Context()).HasValue());
 
     EXPECT_EQ(Runtime().chat.area.noticeCount, 1);
     EXPECT_EQ(Runtime().chat.area.notices[0].text, "atencion");
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
-    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::Ui::SystemMessage);
     EXPECT_FALSE(Runtime().chat.selectionNotice.has_value());
 }
 
@@ -487,14 +487,14 @@ TEST_F(ChatReceiveTest, TheGuildNoticeGoesToTheAreaAndToTheGuildWindow)
     ASSERT_TRUE(table.HasValue());
     ChatReceiveContext context = Context();
     context.texts = &table.Value();
-    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 2, .text = "reunion"}, context).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 2, .text = "hoy"}, context).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 2, .text = "reunion"}, context).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 2, .text = "hoy"}, context).HasValue());
 
     EXPECT_EQ(Runtime().chat.area.noticeCount, 2);
     const auto& notices = Runtime().chat.area.notices;
     EXPECT_TRUE(std::any_of(notices.begin(), notices.begin() + 2,
                             [](const auto& notice) { return notice.text == "Gremio: reunion"; }));
-    const Client::Scenes::GuildWindowState& window = Runtime().guild.window;
+    const Client::Guild::GuildWindowState& window = Runtime().guild.window;
     ASSERT_EQ(window.notice.size(), 2u);
     EXPECT_EQ(window.notice[0].text, "hoy");
     EXPECT_EQ(window.notice[1].text, "reunion");
@@ -506,8 +506,8 @@ TEST_F(ChatReceiveTest, TheGuildNoticeGoesToTheAreaAndToTheGuildWindow)
 TEST_F(ChatReceiveTest, TheFirstSystemNoticeInTheSelectionGoesToTheBar)
 {
     const ChatReceiveContext selection = Context(SceneId::CharacterSelect);
-    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 1, .text = "primero"}, selection).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 1, .text = "segundo"}, selection).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 1, .text = "primero"}, selection).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 1, .text = "segundo"}, selection).HasValue());
 
     EXPECT_EQ(Runtime().chat.selectionNotice, std::optional<std::string>("primero"));
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
@@ -520,19 +520,19 @@ TEST_F(ChatReceiveTest, TheSlideNoticeQueuesOnlyInTheGame)
 {
     const auto& slides = m_world->Runtime().hud.slides;
     EXPECT_TRUE(
-        Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = "evento"}, Context(SceneId::CharacterSelect))
+        Client::Chat::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = "evento"}, Context(SceneId::CharacterSelect))
             .HasValue());
-    EXPECT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 31, .text = "evento"}, Context()).HasValue());
-    EXPECT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = ""}, Context()).HasValue());
+    EXPECT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 11, .byte4 = 31, .text = "evento"}, Context()).HasValue());
+    EXPECT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = ""}, Context()).HasValue());
     EXPECT_TRUE(slides.normal.entries.empty());
     EXPECT_TRUE(slides.bold.entries.empty());
 
     ASSERT_TRUE(
-        Client::Scenes::ApplyNotice(
+        Client::Chat::ApplyNotice(
             Notice{.type = 11, .byte4 = 2, .word6 = 5, .color = 0xff112233u, .speed = 30, .text = "evento"}, Context())
             .HasValue());
     ASSERT_TRUE(
-        Client::Scenes::ApplyNotice(Notice{.type = 14, .byte4 = 1, .color = 0x80ffffffu, .text = "aviso"}, Context())
+        Client::Chat::ApplyNotice(Notice{.type = 14, .byte4 = 1, .color = 0x80ffffffu, .text = "aviso"}, Context())
             .HasValue());
 
     ASSERT_EQ(slides.normal.entries.size(), 2U);
@@ -563,7 +563,7 @@ TEST_F(ChatReceiveTest, TheOptionDataFillsTheKeysAndTheOptions)
     data.quickSlots = {0x01, 0x04, 0x09};
     data.chatWindow = 0x37;
 
-    ASSERT_TRUE(Client::Scenes::ApplyOptionData(data, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyOptionData(data, Context()).HasValue());
 
     EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
     const auto& keys = own.skillKeys[1];
@@ -589,7 +589,7 @@ TEST_F(ChatReceiveTest, ZeroRowsTakeTheLogOutOfItsWindow)
     OptionData data;
     data.skillKeys.fill(0xff);
     data.chatWindow = 0x04;
-    ASSERT_TRUE(Client::Scenes::ApplyOptionData(data, Context()).HasValue());
+    ASSERT_TRUE(Client::Chat::ApplyOptionData(data, Context()).HasValue());
 
     EXPECT_EQ(Runtime().ui.chatModes.placement, 0);
     EXPECT_EQ(Runtime().chat.log.rows, 6);
@@ -603,7 +603,7 @@ TEST_F(ChatReceiveTest, TheOptionDataWithoutAChosenSlotIsCutBeforeTheRecord)
     ChatReceiveContext context = Context();
     context.chosenSlot.reset();
     OptionData data;
-    EXPECT_FALSE(Client::Scenes::ApplyOptionData(data, context).HasValue());
+    EXPECT_FALSE(Client::Chat::ApplyOptionData(data, context).HasValue());
     EXPECT_EQ(m_random.State(), After(0));
 }
 } // namespace

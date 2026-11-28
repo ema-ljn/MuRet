@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <system_error>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 namespace
 {
@@ -321,51 +321,51 @@ void CommonMotion(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
         b.active = 0;
 }
 } // namespace
-World::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& c, World::BirdHandler handler, FaunaObject& b,
+Fauna::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& c, Fauna::BirdHandler handler, FaunaObject& b,
                                           std::int32_t index)
 {
     switch (handler)
     {
-    case World::BirdHandler::SpawnIcarus:
+    case Fauna::BirdHandler::SpawnIcarus:
         if (c.map != 10)
             return {0, {}};
         return {1, SpawnIcarus(c, b, index)};
-    case World::BirdHandler::SpawnAtlans:
+    case Fauna::BirdHandler::SpawnAtlans:
         if (c.map != 7)
             return {0, {}};
         SpawnAtlans(c, b);
         return {1, {}};
-    case World::BirdHandler::SpawnKalima:
+    case Fauna::BirdHandler::SpawnKalima:
         if (!IsKalimaMap(c.map))
             return {0, {}};
         return {1, SpawnKalima(c, b)};
-    case World::BirdHandler::MoveBat:
+    case Fauna::BirdHandler::MoveBat:
         b.position.z = F32(FaunaHeight(c, b.position.x, b.position.y));
         b.position.z = F32(static_cast<double>(b.position.z) - FaunaWave(FaunaSine(b.phase)) * 150 + 350);
         b.phase = F32(static_cast<double>(b.phase) + static_cast<double>(.2f));
         break;
-    case World::BirdHandler::MoveButterfly:
+    case Fauna::BirdHandler::MoveButterfly:
         MoveButterfly(c, b);
         break;
-    case World::BirdHandler::MoveBirdOrCrow:
+    case Fauna::BirdHandler::MoveBirdOrCrow:
         MoveBirdOrCrow(c, b);
         break;
-    case World::BirdHandler::MoveRidingSpear:
+    case Fauna::BirdHandler::MoveRidingSpear:
         MoveRidingSpear(c, b, index);
         break;
-    case World::BirdHandler::MoveMonster34:
+    case Fauna::BirdHandler::MoveMonster34:
         MoveMonster34(c, b);
         break;
-    case World::BirdHandler::CommonMotion:
+    case Fauna::BirdHandler::CommonMotion:
         CommonMotion(c, b, index);
         break;
-    case World::BirdHandler::Finalize:
+    case Fauna::BirdHandler::Finalize:
         FinalizeFauna(b);
         break;
-    case World::BirdHandler::SelectAction:
+    case Fauna::BirdHandler::SelectAction:
         Select(c, b, static_cast<std::uint8_t>(index));
         break;
     }
     return {0, {}};
 }
-} // namespace Client::Scenes
+} // namespace Client::Fauna

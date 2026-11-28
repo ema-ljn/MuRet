@@ -24,11 +24,11 @@
 // model+0x88 de la carga (06 § Los objetos de Tarkan).
 namespace
 {
+using Client::MapScripts::Tarkan::StepTarkanObject;
 using Client::Terrain::TerrainLighting;
-using Client::World::ObjectModelStepState;
-using Client::World::ObjectStepGlobals;
-using Client::World::StepTarkanObject;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectModelStepState;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::WorldObject;
 
 constexpr float Clock = 12345.0f;
 
@@ -67,7 +67,8 @@ std::unique_ptr<TerrainLighting> LightOf(const glm::vec3& color, std::int32_t ra
 {
     auto lighting = std::make_unique<TerrainLighting>();
     EXPECT_TRUE(
-        Client::World::AddDynamicLight(lighting.get(), Object(0).transform.position, color, radius, "test").HasValue());
+        Client::WorldObjects::AddDynamicLight(lighting.get(), Object(0).transform.position, color, radius, "test")
+            .HasValue());
     return lighting;
 }
 
@@ -185,7 +186,7 @@ TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
     {
         auto object = Object(type);
         ASSERT_TRUE(StepTarkanObject(object, ObjectStepGlobals{}).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
     }
     auto white = Object(0x52);
     ASSERT_TRUE(StepTarkanObject(white, ObjectStepGlobals{}).HasValue());
@@ -234,8 +235,8 @@ TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
 // y en otro mapa el 8 tampoco cambia.
 TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
 {
-    EXPECT_EQ(Client::World::TarkanAnimationSpeed(8, 0.25f), 1.0f);
-    EXPECT_EQ(Client::World::TarkanAnimationSpeed(9, 0.25f), 0.25f);
+    EXPECT_EQ(Client::MapScripts::Tarkan::TarkanAnimationSpeed(8, 0.25f), 1.0f);
+    EXPECT_EQ(Client::MapScripts::Tarkan::TarkanAnimationSpeed(9, 0.25f), 0.25f);
 
     Client::Models::Skeleton skeleton;
     skeleton.actions = {
@@ -253,7 +254,8 @@ TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
             auto lighting = std::make_unique<TerrainLighting>();
             ObjectStepGlobals globals;
             globals.dynamicLighting = lighting.get();
-            ASSERT_TRUE(Client::World::StepWorldObjectChecked(object, map, &skeleton, random, globals).HasValue());
+            ASSERT_TRUE(
+                Client::WorldObjects::StepWorldObjectChecked(object, map, &skeleton, random, globals).HasValue());
             EXPECT_EQ(object.animation.frame, map == 8 && type == 8 ? 1.0f : 0.25f);
             EXPECT_EQ(object.speed, 0.25f);
         }
@@ -264,14 +266,14 @@ TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
 TEST(TarkanObjectsTest, TheLoadMarksTheScrolledModelsUnlit)
 {
     ObjectModelStepState state;
-    Client::World::SeedTarkanModelState(8, state);
+    Client::MapScripts::Tarkan::SeedTarkanModelState(8, state);
     ASSERT_EQ(state.unlitMeshes.size(), 6u);
     for (const std::int16_t type :
          {std::int16_t{11}, std::int16_t{12}, std::int16_t{13}, std::int16_t{73}, std::int16_t{75}, std::int16_t{79}})
         EXPECT_EQ(state.unlitMeshes.at(type), 0) << type;
 
     ObjectModelStepState other;
-    Client::World::SeedTarkanModelState(1, other);
+    Client::MapScripts::Tarkan::SeedTarkanModelState(1, other);
     EXPECT_TRUE(other.unlitMeshes.empty());
 }
 } // namespace

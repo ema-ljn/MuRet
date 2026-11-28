@@ -25,7 +25,7 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 struct GameUiState;
 }
@@ -35,14 +35,18 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::Hud
+{
+struct GameHudContext;
+} // namespace Client::Hud
+
 // La ventana del gremio, [0x7d536f0] (0x64f3e0, vtable 0x6baa58; CL9 hito 8, fases 4 y 5; 06 § El gremio): la abre el
 // registro con el panel 0x10, la pasa con 0x45aa80(0) (la vtable + 0x18, que llama a la + 0x20, 0x651840) y la dibuja
 // con la + 0x14 (0x651c20). Tiene tres pestañas (+0x80: 0, 1 y 2, desde 1), cada una con su paso (0x64fc00, 0x650350
-// y 0x650c10) y su dibujo (0x64fdf0, 0x6507d0 y 0x651400, Scenes/GuildWindowTabs), y tres listas sobre UI::OldList:
+// y 0x650c10) y su dibujo (0x64fdf0, 0x6507d0 y 0x651400, Scenes/GuildWindowTabs), y tres listas sobre Ui::OldList:
 // los miembros (+0x94), el aviso (+0x1c8) y la alianza (+0x2f8).
-namespace Client::Scenes
+namespace Client::Guild
 {
-struct GameHudContext;
 
 struct GuildWindowStepContext
 {
@@ -76,7 +80,7 @@ void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot);
 void ClearTheGuildMembers(GuildWindowState& window);
 
 // 0x651680(texto), el aviso del gremio del 0D tipo 2 (0x4c665f): 0x459c70 lo corta en hasta 5 renglones de 0x6e de
-// ancho con la fuente del DC (UI::WrapByWidth), agrega cada renglón que no está vacío con la vtable + 0x94 de la
+// ancho con la fuente del DC (Chat::WrapByWidth), agrega cada renglón que no está vacío con la vtable + 0x94 de la
 // lista +0x1c8 (0x46bca0: como 0x46c930, adelante, sin el héroe) y la corre la cuenta menos los renglones (+0x34 con
 // +0x38): lo último que entró queda a la vista.
 [[nodiscard]] Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window,
@@ -99,7 +103,7 @@ void ClearTheUnions(GuildWindowState& window);
 // 0x45aa80(0) sobre una ventana del registro, sin padre y fuera del administrador (las dos del gremio, como el registro
 // del chat): con el mouse sobre ella y otra bajo el mouse o agarrándolo, no da su paso. Con el izquierdo abajo,
 // 0x490aa0 no la encuentra para traerla al frente (*inferido*).
-[[nodiscard]] bool PassesTheGuildWindowGate(const UI::OldWindowBase& base, UI::GameUiState& ui, std::int32_t mouseX,
+[[nodiscard]] bool PassesTheGuildWindowGate(const Ui::OldWindowBase& base, Ui::GameUiState& ui, std::int32_t mouseX,
                                             std::int32_t mouseY);
 
 // 0x651840: el mouse sobre 0xbe × 0x1b1 prende 0x775857c; el clic en el botón de cerrar (0x18 × 0x18 en (0x19,
@@ -134,15 +138,15 @@ void ClearTheUnions(GuildWindowState& window);
 [[nodiscard]] Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& world,
                                                                       const GuildSender& send, std::int32_t mouseX,
                                                                       std::int32_t mouseY,
-                                                                      const UI::PanelDialogAnswer& answer);
+                                                                      const Ui::PanelDialogAnswer& answer);
 
 // 0x657977: el paso de arriba en el registro. `context` se copia; el mundo tiene que vivir más que el contexto del
 // registro.
-void LendTheGuildWindowStepTo(UI::PanelContext& panels, const GuildWindowStepContext& context);
+void LendTheGuildWindowStepTo(Ui::PanelContext& panels, const GuildWindowStepContext& context);
 
 // 0x651c20: el fondo de las ventanas sin mezcla, el título (el 180, en negrita, 0xffdcdcdc sobre 0) y, con el héroe en
 // un gremio, "%s ( Score:%d )" (0xff64ffc8) o, sin él, los textos 185 a 187 (la normal, 0xffe6e6e6); el botón de cerrar
 // con su ayuda (el 220); con gremio, las tres pestañas (las rayas de 0x621aa0 bajo las otras, el 0x646 y los textos
 // 946, 1330 y 1352 centrados en 52 · rx) y el dibujo de la pestaña.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& context);
+} // namespace Client::Guild

@@ -50,7 +50,7 @@ struct Pool
     Client::Core::Expected<std::optional<std::size_t>, std::string>
     Create(std::int32_t type, std::int32_t subtype, glm::vec3 from, glm::vec3 to, float width, void* owner = nullptr,
            JointOwnerKind kind = JointOwnerKind::ByType, std::int32_t key = -1, std::int32_t skill = 0,
-           const Client::Scenes::JointKernels::CreationServices* services = nullptr)
+           const Client::Joints::JointKernels::CreationServices* services = nullptr)
     {
         glm::vec3 angles = startAngles;
         const Client::Kernel::JointRequest request{.type = type,
@@ -64,19 +64,19 @@ struct Pool
                                                    .skill = skill,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind, services);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, kind, services);
     }
 
     Client::Core::Expected<void, std::string> Step(float clock = 0.0f, Client::Kernel::WorldState* world = nullptr)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, &particles, clock, nullptr, lighting.get(), {}, {},
+        return Client::Joints::StepJoints(joints, random, nullptr, &particles, clock, nullptr, lighting.get(), {}, {},
                                           {}, {}, nullptr, nullptr, world);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
     CrtRandom random{Seed};
     glm::vec3 startAngles{};
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
@@ -101,10 +101,10 @@ template <typename Wanted> std::uint32_t SeedWhere(int index, Wanted wanted)
     return 0;
 }
 
-int AliveParticles(const Client::World::Particles& particles, std::int32_t type)
+int AliveParticles(const Client::Particles::Particles& particles, std::int32_t type)
 {
     int found = 0;
-    for (const Client::World::Particle& particle : particles.All())
+    for (const Client::Particles::Particle& particle : particles.All())
         found += particle.alive && particle.type == type ? 1 : 0;
     return found;
 }
@@ -225,7 +225,7 @@ TEST(LightningJointsTest, TheOwnerBoneBoltAimsAtTheChestOfItsOwner)
     ActorState owner = Owner({500, 600, 700});
     std::size_t askedBone = 0;
     glm::vec3 askedOffset{};
-    const Client::Scenes::JointKernels::CreationServices services{
+    const Client::Joints::JointKernels::CreationServices services{
         .playerBonePoint = [&](const ActorState& bones, std::size_t bone, const glm::vec3& offset)
         {
             askedBone = bone;
@@ -345,7 +345,7 @@ TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
     // afuera por el tope de seis (0x531995: cmp [+0x9ec],5; jg).
     actors[6].position = {500.0f, 0.0f, 0.0f};
     actors[7].position = {500.0f, 1.0f, 0.0f};
-    const Client::Scenes::JointKernels::CreationServices services{.actors = actors};
+    const Client::Joints::JointKernels::CreationServices services{.actors = actors};
     Pool pool;
     Pool unserved;
     const auto cut = unserved.Create(0x614, 0xf, {}, {}, 50.0f);
@@ -423,7 +423,7 @@ TEST(LightningJointsTest, TheMonsterBoltFollowsItsOwnerAndStopsWhenItArrives)
                                          F32(D(before.position.z) + D(moved.z))}));
     EXPECT_EQ(joint.life, 1);
     EXPECT_EQ(joint.count, 2);
-    EXPECT_EQ(AliveParticles(pool.particles, Client::World::ThunderParticle), 0);
+    EXPECT_EQ(AliveParticles(pool.particles, Client::Particles::ThunderParticle), 0);
 }
 
 // 0x536f71..0x53703d: con el ancho en 50, en la primera mitad del segundo y con rand() % 16 en 0, la /0 suelta una /1
@@ -449,7 +449,7 @@ TEST(LightningJointsTest, TheMonsterBoltBranchesInTheFirstHalfOfTheSecond)
     pool.joints[2] = pool.joints[0];
     pool.joints[0] = JointState{};
     ASSERT_TRUE(pool.Step(400.0f).HasValue());
-    EXPECT_EQ(AliveParticles(pool.particles, Client::World::ThunderParticle), 1);
+    EXPECT_EQ(AliveParticles(pool.particles, Client::Particles::ThunderParticle), 1);
     CrtRandom expected(seed);
     expected.Discard(6);
     const int x = expected.Next() % 100 - 50;
@@ -490,7 +490,7 @@ TEST(LightningJointsTest, AThinMonsterBoltNeverBranches)
     expected.Discard(2);
     EXPECT_EQ(pool.random.State(), expected.State());
     EXPECT_FALSE(pool.joints[0].alive);
-    EXPECT_EQ(AliveParticles(pool.particles, Client::World::ThunderParticle), 0);
+    EXPECT_EQ(AliveParticles(pool.particles, Client::Particles::ThunderParticle), 0);
 }
 
 // 0x536d4d: la /3 lejos de su destino (más de 150) pone la vida en 0 y la cola común la mata.
@@ -604,14 +604,14 @@ TEST(HandBoltJointsTest, AnArrivingBoltDropsFireEveryOtherTime)
         if (even)
         {
             expected.Discard(3);
-            Client::World::Particles reference;
+            Client::Particles::Particles reference;
             ASSERT_TRUE(reference
-                            .CreateChecked(Client::World::FireParticle, joint.position, joint.angles, joint.light, 0,
-                                           1.0f, 0.0f, expected)
+                            .CreateChecked(Client::Particles::FireParticle, joint.position, joint.angles, joint.light,
+                                           0, 1.0f, 0.0f, expected)
                             .HasValue());
         }
         EXPECT_EQ(pool.random.State(), expected.State());
-        EXPECT_EQ(AliveParticles(pool.particles, Client::World::FireParticle), even ? 1 : 0);
+        EXPECT_EQ(AliveParticles(pool.particles, Client::Particles::FireParticle), even ? 1 : 0);
         EXPECT_EQ(joint.count, 2);
         EXPECT_EQ(joint.life, 1);
     }

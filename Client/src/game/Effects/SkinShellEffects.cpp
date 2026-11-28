@@ -17,7 +17,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::Effects
 {
 namespace
 {
@@ -103,4 +103,4 @@ Core::Expected<void, std::string> StepSkinShell(ModelEffect& effect, const Model
     effect.alpha = F32(static_cast<double>(effect.life) * Tenth);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Effects

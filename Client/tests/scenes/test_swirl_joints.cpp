@@ -47,12 +47,12 @@ struct SwirlWorld
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random);
+        return Client::Joints::CreateFaunaJoint(joints, request, random);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random);
+        return Client::Joints::StepJoints(joints, random);
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 300.0f};

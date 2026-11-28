@@ -79,13 +79,17 @@ class IOnScreenMessages;
 class WorldState;
 } // namespace Client::Kernel
 
+namespace Client::FrontEnd
+{
+class SelectionState;
+} // namespace Client::FrontEnd
+
 // La respuesta del F3 03, 0x4c3940 con el paquete cifrado: la carga del mapa, el héroe y lo que
 // sigue. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo" (la tabla
 // de 0x4c3940), "El héroe" y "La carga del mapa"; 04-protocolo.md, "La entrada al mundo".
 namespace Client::Scenes
 {
 class IWorldEntryPublisher;
-class SelectionState;
 
 // Lo que la entrada usa y dura toda la sesión. main lo arma una vez; los tests, con lo suyo.
 struct WorldEntryResources
@@ -93,7 +97,7 @@ struct WorldEntryResources
     // El pool, el registro propio, los globales y el mapa cargado.
     Kernel::WorldState& world;
     // Quien presta el terreno vigente a la cámara: después de la carga, el del mapa nuevo.
-    SelectionState& selection;
+    FrontEnd::SelectionState& selection;
     std::filesystem::path dataRoot;
     // El rand() de la CRT y el contador de pasos (0x7d3a0f0) con su cuenta de accesos.
     Models::ClothWorld& cloth;

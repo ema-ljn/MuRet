@@ -5,17 +5,17 @@
 // Client::UI: el par de diálogos del juego y 0x6236f0 (CL8 hito 1; 06 § HUD y ventanas, "Los diálogos del juego").
 namespace
 {
-using Client::UI::DialogState;
-using Client::UI::PushDialog;
+using Client::Ui::DialogState;
+using Client::Ui::PushDialog;
 
 TEST(DialogsTest, TheFirstOneOpensAndTheNextOneWaits)
 {
     DialogState dialogs;
-    PushDialog(dialogs, Client::UI::EscapeMenuDialog);
-    EXPECT_EQ(dialogs.current, Client::UI::EscapeMenuDialog);
+    PushDialog(dialogs, Client::Ui::EscapeMenuDialog);
+    EXPECT_EQ(dialogs.current, Client::Ui::EscapeMenuDialog);
     EXPECT_EQ(dialogs.pending, 0);
     PushDialog(dialogs, 0x71);
-    EXPECT_EQ(dialogs.current, Client::UI::EscapeMenuDialog);
+    EXPECT_EQ(dialogs.current, Client::Ui::EscapeMenuDialog);
     EXPECT_EQ(dialogs.pending, 0x71);
 }
 
@@ -32,16 +32,16 @@ TEST(DialogsTest, ZeroTakesThePendingOne)
 TEST(DialogsTest, TheForcedOneReplacesTheOpenOne)
 {
     DialogState dialogs{.current = 0x6e, .pending = 0x71};
-    PushDialog(dialogs, Client::UI::ForcedDialog);
-    EXPECT_EQ(dialogs.current, Client::UI::ForcedDialog);
+    PushDialog(dialogs, Client::Ui::ForcedDialog);
+    EXPECT_EQ(dialogs.current, Client::Ui::ForcedDialog);
     EXPECT_EQ(dialogs.pending, 0x71);
 }
 
 TEST(DialogsTest, ChaosCastleIgnoresThe7f)
 {
-    DialogState dialogs{.current = Client::UI::ChaosCastleDialog};
-    PushDialog(dialogs, Client::UI::IgnoredOverChaosCastle);
-    EXPECT_EQ(dialogs.current, Client::UI::ChaosCastleDialog);
+    DialogState dialogs{.current = Client::Ui::ChaosCastleDialog};
+    PushDialog(dialogs, Client::Ui::IgnoredOverChaosCastle);
+    EXPECT_EQ(dialogs.current, Client::Ui::ChaosCastleDialog);
     EXPECT_EQ(dialogs.pending, 0);
 }
 } // namespace

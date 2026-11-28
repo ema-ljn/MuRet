@@ -35,7 +35,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Combat
 {
 namespace
 {
@@ -459,14 +459,15 @@ void DeathSound(const Kernel::ActorState& actor, const ActorCombatContext& conte
         requestSound(Audio::SoundId{0x278});
 }
 // Los servicios de World::WizardModelEffects para 0x4f4a10 y 0x4f5660: las partículas y el terreno del mundo.
-World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
+Effects::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
 {
     Kernel::WorldState& world = context.world;
-    return WizardEffectServicesOf(world, context.random,
-                                  WizardSceneParts{.particles = &world.Particles(),
-                                                   .terrain = &Terrain::TerrainOrEmpty(context.terrain),
-                                                   .dynamicLighting = context.dynamicLighting,
-                                                   .faunaModels = context.faunaModels});
+    return Effects::WizardEffectServicesOf(
+        world, context.random,
+        Effects::WizardSceneParts{.particles = &world.Particles(),
+                                  .terrain = &Terrain::TerrainOrEmpty(context.terrain),
+                                  .dynamicLighting = context.dynamicLighting,
+                                  .faunaModels = context.faunaModels});
 }
 
 // 0x4f589d..0x4f58f6 (el jugador) y 0x4f5938..0x4f5991 (el 0x170): 0x518cf0(0xd5, +0x10, +0x1c, +0xf4, 0, 0, −1, …)
@@ -476,13 +477,14 @@ Core::Expected<void, std::string> ScatterTheBones(Kernel::ActorState& actor, con
                                                   std::uint32_t firstCall, std::uint32_t boneCall)
 {
     constexpr int Bones = 10; // [ebp-0x8]
-    const World::WizardEffectServices services = WizardServicesOf(context);
-    World::ModelEffects& effects = context.world.Map().effects;
+    const Effects::WizardEffectServices services = WizardServicesOf(context);
+    Effects::ModelEffects& effects = context.world.Map().effects;
     for (int bone = -1; bone < Bones; ++bone)
     {
-        const std::int16_t type = bone < 0 ? World::FirstBoneEffect : World::SecondBoneEffect;
-        const auto created = World::CreateWizardModelEffect(
-            effects, WizardArguments(type, actor.position, actor.angles, actor.light, 0), context.random, services);
+        const std::int16_t type = bone < 0 ? Effects::FirstBoneEffect : Effects::SecondBoneEffect;
+        const auto created = Effects::CreateWizardModelEffect(
+            effects, Effects::WizardArguments(type, actor.position, actor.angles, actor.light, 0), context.random,
+            services);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{:#x}: el hueso {:#x} de la muerte: {}",
                                                 bone < 0 ? firstCall : boneCall, type, created.Error()));
@@ -491,16 +493,16 @@ Core::Expected<void, std::string> ScatterTheBones(Kernel::ActorState& actor, con
 }
 } // namespace
 
-ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
+ActorCombatContext CombatContextOf(const Scenes::WorldEntryResources& resources)
 {
     return ActorCombatContext{.world = resources.world,
                               .random = resources.cloth.random,
                               .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId),
                               .models = &resources.models,
                               .items = resources.items,
-                              .terrain = &TerrainOf(resources),
-                              .dynamicLighting = DynamicLightingOf(resources),
-                              .faunaModels = FaunaModelsOf(resources)};
+                              .terrain = &Scenes::TerrainOf(resources),
+                              .dynamicLighting = Scenes::DynamicLightingOf(resources),
+                              .faunaModels = Scenes::FaunaModelsOf(resources)};
 }
 
 Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, const ActorCombatContext& context)
@@ -515,9 +517,9 @@ Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, cons
     {
         // 0x4f4f3a..0x4f4f5b: 0x518cf0(0xd4, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0), la sierra sin dueño (con la
         // tabla llena, nada). Después el sonido 0x10.
-        const auto sawed = World::CreateWizardModelEffect(
+        const auto sawed = Effects::CreateWizardModelEffect(
             context.world.Map().effects,
-            WizardArguments(World::SawEffect, actor.position, actor.angles, actor.light, 0), context.random,
+            Effects::WizardArguments(Effects::SawEffect, actor.position, actor.angles, actor.light, 0), context.random,
             WizardServicesOf(context));
         if (!sawed.HasValue())
             return Core::Unexpected(std::format("0x4f4f5b: la sierra 0xd4 del 0x27: {}", sawed.Error()));
@@ -533,13 +535,16 @@ Core::Expected<void, std::string> SetActorAttack(Kernel::ActorState& actor, cons
     {
         // 0x4f4f98..0x4f4fc4: 0x518cf0(0x5da, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0), el golpe sin dueño
         // (Scenes/SkillBurstEffects; con la tabla llena, nada), y el sonido 0x79.
-        const auto struck = CreateHighModelEffect(
-            {.type = FlameBurstEffect, .position = actor.position, .angles = actor.angles, .light = actor.light},
-            HighEffectContext{.world = context.world,
-                              .random = context.random,
-                              .models = context.models,
-                              .terrain = context.terrain,
-                              .faunaModels = context.faunaModels});
+        const auto struck =
+            Effects::CreateHighModelEffect({.type = Effects::FlameBurstEffect,
+                                            .position = actor.position,
+                                            .angles = actor.angles,
+                                            .light = actor.light},
+                                           Effects::HighEffectContext{.world = context.world,
+                                                                      .random = context.random,
+                                                                      .models = context.models,
+                                                                      .terrain = context.terrain,
+                                                                      .faunaModels = context.faunaModels});
         if (!struck.HasValue())
             return Core::Unexpected(std::format("0x4f4fb9: {}", struck.Error()));
         context.world.Runtime().RequestSound(Audio::SoundId{0x79});
@@ -586,15 +591,15 @@ Core::Expected<void, std::string> SetActorDie(Kernel::ActorState& actor, const A
         if (actor.type == 0x16b)
         {
             // 0x4f59ad..0x4f59f4: ocho pares 0x518cf0(0xe5 y después 0xe6, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0),
-            // los pedazos que saltan (World::ModelEffects::CreateStoneChip, 0x51b659), cada uno con sus ocho rand().
+            // los pedazos que saltan (Effects::ModelEffects::CreateStoneChip, 0x51b659), cada uno con sus ocho rand().
             // Con la tabla llena, nada y sin rand(); sigue con el sonido y el frame.
             constexpr int Pairs = 8; // [ebp-0x8]
-            World::ModelEffects& effects = context.world.Map().effects;
+            Effects::ModelEffects& effects = context.world.Map().effects;
             for (int pair = 0; pair < Pairs; ++pair)
             {
-                static_cast<void>(effects.CreateStoneChip(World::FirstSplinterEffect, actor.position, actor.angles,
+                static_cast<void>(effects.CreateStoneChip(Effects::FirstSplinterEffect, actor.position, actor.angles,
                                                           actor.light, context.random));
-                static_cast<void>(effects.CreateStoneChip(World::SecondSplinterEffect, actor.position, actor.angles,
+                static_cast<void>(effects.CreateStoneChip(Effects::SecondSplinterEffect, actor.position, actor.angles,
                                                           actor.light, context.random));
             }
         }
@@ -618,4 +623,4 @@ Core::Expected<void, std::string> SetActorDie(Kernel::ActorState& actor, const A
     actor.animation.frame = DeathFrame;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Combat

@@ -41,7 +41,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -146,7 +146,7 @@ std::int16_t ModelOf(std::int32_t type, std::int32_t& value)
 }
 
 // 0x607b60 sobre el objeto del ítem: lo que el piso dibuja y pisa después.
-void InitializeTheObject(FloorItemState& item, const FloorItemCreation& creation)
+void InitializeTheObject(Scenes::FloorItemState& item, const FloorItemCreation& creation)
 {
     item.light = glm::vec3(ObjectLight);
     item.vertexLight = true;
@@ -164,30 +164,30 @@ void InitializeTheObject(FloorItemState& item, const FloorItemCreation& creation
 Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: falta el texto {} de Text.bmd", where, index));
     return *text;
 }
 
 // 0x555190(nombre, texto, 1): los nombres que pasa el 22 (0x5767994 y 0x5767998) son buffers que nadie escribe.
-Core::Expected<void, std::string> SystemLine(const WorldEntryResources& resources, std::string_view text,
+Core::Expected<void, std::string> SystemLine(const Scenes::WorldEntryResources& resources, std::string_view text,
                                              std::string_view where)
 {
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::format("{}: 0x555190 sin el medidor de los textos", where));
     const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-    return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, UI::SystemMessage);
+    return Chat::AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, Ui::SystemMessage);
 }
 
 Core::Expected<void, std::string> PickUpMessage(const Protocol::Items::PickUpResult& result,
-                                                const WorldEntryResources& resources)
+                                                const Scenes::WorldEntryResources& resources)
 {
     const Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (runtime.floor.chosen < 0 || runtime.floor.chosen >= FloorItemCount)
         return Core::Unexpected(
             std::format("0x4d0f5f: el elegido {} está fuera de la tabla 0x77f46c8", runtime.floor.chosen));
-    const FloorItemState& chosen =
+    const Scenes::FloorItemState& chosen =
         resources.world.DrawTail().floorItems[static_cast<std::size_t>(runtime.floor.chosen)];
     const auto picked = TextOf(resources.texts, PickedUpText, "0x4d0f85");
     if (!picked.HasValue())
@@ -217,7 +217,7 @@ Core::Expected<void, std::string> FruitBox(Kernel::WorldState& world, const Tabl
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     Kernel::WorldRuntime& runtime = world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, line.Value());
+    Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, line.Value());
     return {};
 }
 
@@ -229,7 +229,7 @@ Core::Expected<void, std::string> FormattedFruitBox(Kernel::WorldState& world, c
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     Kernel::WorldRuntime& runtime = world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(line.Value()));
+    Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(line.Value()));
     return {};
 }
 
@@ -244,7 +244,7 @@ Core::Expected<void, std::string> FruitFailureBox(Kernel::WorldState& world, con
     if (!argument.HasValue())
         return Core::Unexpected(argument.Error());
     Kernel::WorldRuntime& runtime = world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(format.Value(), argument.Value()));
+    Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, Crt::Sprintf(format.Value(), argument.Value()));
     return {};
 }
 
@@ -285,14 +285,14 @@ Core::Expected<void, std::string> EatTheFruit(const Protocol::Items::StatFruit& 
         return Core::Unexpected(statName.Error());
     if (!tail.HasValue())
         return Core::Unexpected(tail.Error());
-    UI::OpenMessageBox(
+    Ui::OpenMessageBox(
         runtime.dialogBox, runtime.dialogs,
         Crt::Sprintf(format.Value(), statName.Value(), static_cast<std::int32_t>(fruit.points), tail.Value()));
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Protocol::Items::ItemData& bytes,
+Core::Expected<void, std::string> CreateFloorItem(Scenes::FloorItemState& item, const Protocol::Items::ItemData& bytes,
                                                   const glm::vec3& position, bool dropped,
                                                   const FloorItemCreation& creation)
 {
@@ -352,7 +352,7 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
         // El dueño es el objeto del ítem (+0x4c de la entrada, ESI): su WORD +0x2 es el modelo, que MuRet guarda con
         // signo; leerlo como std::uint16_t es el acceso por el tipo sin signo que le corresponde. El paso de 0x100 y
         // 0xfe (0x5227d5 y 0x522b04) no lo lee.
-        const World::ModelEffectOwner owner{
+        const Effects::ModelEffectOwner owner{
             .type = reinterpret_cast<const std::uint16_t*>(&item.type), .effect = nullptr, .angles = &item.angles};
         // 0x6086ce y 0x6086f1: 0x518cf0(tipo, punto, ángulos, luz, 0, ítem, 0x37, 0, 0, 0, 0), sin rand(); con la tabla
         // llena no crea nada y sigue.
@@ -375,10 +375,10 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
 }
 
 Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::FloorItemsCreate& create,
-                                                        const WorldEntryResources& resources)
+                                                        const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
-    const Terrain::WorldTerrain& terrain = TerrainOf(resources);
+    const Terrain::WorldTerrain& terrain = Scenes::TerrainOf(resources);
     const float fixedHeight = resources.camera.fixedHeight;
     const FloorItemCreation creation{
         .random = resources.cloth.random,
@@ -422,7 +422,7 @@ void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Ker
 }
 
 Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickUpResult& result,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -453,7 +453,7 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickU
 }
 
 Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::ShortZenPickUp& result,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -527,4 +527,4 @@ void ApplyShortStatFruit(Kernel::WorldState& world)
     // 0x4de7e4, 0x4de802, 0x4de838, 0x4dea4c, 0x4dea6a, 0x4deaa0 y 0x4deb0e.
     world.Runtime().ui.field5767954 = 0;
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

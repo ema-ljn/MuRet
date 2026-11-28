@@ -23,7 +23,7 @@ struct HelperState;
 // Fenrir (0x14a..0x14c) y el Guardian Angel (0x1c12). Corren después del alpha de 0x4e9980 y antes del avance de
 // 0x445006, que pone Scenes/HelperTable.cpp. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las
 // mascotas".
-namespace Client::Scenes
+namespace Client::Pets
 {
 struct HelperStepContext;
 
@@ -62,4 +62,4 @@ inline constexpr std::uint16_t GuardianAngelModel = 0x1c12;
 // 1,5 su velocidad en z para quedar entre 100 y 200 por encima del jinete.
 void FlyTheGuardianAngel(Kernel::HelperState& helper, const Kernel::ActorState& rider, glm::vec2 riderStart,
                          Crt::CrtRandom& random);
-} // namespace Client::Scenes
+} // namespace Client::Pets

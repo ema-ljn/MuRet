@@ -32,9 +32,9 @@
 // textos son inventados.
 namespace
 {
-using Client::Scenes::QuestContext;
-using Client::Scenes::QuestState;
-using Client::Scenes::QuestStateOf;
+using Client::Quests::QuestContext;
+using Client::Quests::QuestState;
+using Client::Quests::QuestStateOf;
 
 constexpr std::uint32_t Seed = 0x5eed;
 // Un registro propio que se cierra hasta 0 gasta 3.848 rand() (0x40b4d0).
@@ -144,7 +144,7 @@ TEST(Quests, TheStateOfAQuestIsReadShiftedLikeTheOriginal)
     EXPECT_EQ(QuestStateOf(*runtime, 236), 3);
 
     quest.current = 3;
-    Client::Scenes::ReadTheCurrentQuestState(*runtime);
+    Client::Quests::ReadTheCurrentQuestState(*runtime);
     EXPECT_EQ(quest.currentState, 2);
 }
 
@@ -156,12 +156,12 @@ TEST(Quests, MissingItemsCountTheOccupiedCellsOfTheTypeAndLevel)
     tested->GiveTheScroll(63, 1);
     tested->world.Inventory().cells[63].occupied = 0;
     const auto& inventory = tested->world.Inventory();
-    EXPECT_EQ(Client::Scenes::MissingQuestItems(inventory, ScrollType, 2, 1), 1);
-    EXPECT_EQ(Client::Scenes::MissingQuestItems(inventory, ScrollType, 2, -1), 0);
-    EXPECT_EQ(Client::Scenes::MissingQuestItems(inventory, ScrollType, 1, 0), 0);
-    EXPECT_EQ(Client::Scenes::MissingQuestItems(inventory, ScrollType + 1, 3, -1), 3);
+    EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType, 2, 1), 1);
+    EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType, 2, -1), 0);
+    EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType, 1, 0), 0);
+    EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType + 1, 3, -1), 3);
     // Una cuenta de 0 sin ninguno da 0; con uno, también (llega a la cuenta).
-    EXPECT_EQ(Client::Scenes::MissingQuestItems(inventory, ScrollType + 1, 0, -1), 0);
+    EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType + 1, 0, -1), 0);
 }
 
 TEST(Quests, TheListOfTheA0CopiesTheStatesAndFindsTheFirstUnfinished)
@@ -173,7 +173,7 @@ TEST(Quests, TheListOfTheA0CopiesTheStatesAndFindsTheFirstUnfinished)
     tested->Hero().byte390 = 1;
     tested->world.Runtime().byte6eeda8 = 1;
     const std::array<std::uint8_t, 2> bytes{0b00'00'10'10, 0x40};
-    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 2, bytes), 0u);
+    EXPECT_EQ(Client::Quests::ApplyTheQuestList(tested->world, 2, bytes), 0u);
     EXPECT_EQ(quest.characterClass, 3);
     EXPECT_EQ(quest.evolution, 2);
     EXPECT_EQ(quest.refreshClass, 1);
@@ -193,7 +193,7 @@ TEST(Quests, TheThirdQuestDoneMarksTheHeroAndAShortA0IsFilledWithZeros)
     QuestState& quest = tested->Quest();
     // Q-C840 y P-C171: la cuenta pide 3 bytes y el paquete trae 1; lo que falta va en 0.
     const std::array<std::uint8_t, 1> bytes{0b10'10'10'10};
-    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 3, bytes), 0u);
+    EXPECT_EQ(Client::Quests::ApplyTheQuestList(tested->world, 3, bytes), 0u);
     EXPECT_EQ(quest.states[0], 0b10'10'10'10);
     EXPECT_EQ(quest.states[1], 0);
     EXPECT_EQ(quest.states[2], 0);
@@ -215,7 +215,7 @@ TEST(Quests, AnA0OfMoreThanFiftyBytesWritesTheObjectUpToItsEnd)
     std::fill_n(bytes.begin(), 50, std::uint8_t{0xaa});
     for (std::size_t i = 50; i < bytes.size(); ++i)
         bytes[i] = static_cast<std::uint8_t>(i);
-    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 80, bytes), 4u);
+    EXPECT_EQ(Client::Quests::ApplyTheQuestList(tested->world, 80, bytes), 4u);
     EXPECT_EQ(quest.states[49], 0xaa);
     EXPECT_EQ(quest.current, 5);
     EXPECT_EQ(quest.reached, 5);
@@ -233,7 +233,7 @@ TEST(Quests, AnA0OfMoreThanFiftyBytesWritesTheObjectUpToItsEnd)
     EXPECT_EQ(quest.y, 0x4b4a4948);
     EXPECT_EQ(tested->Hero().byte390, 1);
     // Hasta el final justo, nada afuera.
-    EXPECT_EQ(Client::Scenes::ApplyTheQuestList(tested->world, 76, bytes), 0u);
+    EXPECT_EQ(Client::Quests::ApplyTheQuestList(tested->world, 76, bytes), 0u);
 }
 
 TEST(Quests, TheA1WritesTheWholeByteAndKeepsTheHighest)
@@ -243,14 +243,14 @@ TEST(Quests, TheA1WritesTheWholeByteAndKeepsTheHighest)
     quest.reached = 9;
     quest.states[1] = 0xff;
     // Q-C843: el byte entero de las cuatro misiones, no los dos bits de la 5.
-    Client::Scenes::SetTheQuestState(tested->world, 5, 0x04);
+    Client::Quests::SetTheQuestState(tested->world, 5, 0x04);
     EXPECT_EQ(quest.current, 5);
     EXPECT_EQ(quest.reached, 9);
     EXPECT_EQ(quest.states[1], 0x04);
-    Client::Scenes::SetTheQuestState(tested->world, 12, 0x80);
+    Client::Quests::SetTheQuestState(tested->world, 12, 0x80);
     EXPECT_EQ(quest.reached, 12);
     EXPECT_EQ(tested->Hero().byte390, 0);
-    Client::Scenes::SetTheQuestState(tested->world, 3, 0x80);
+    Client::Quests::SetTheQuestState(tested->world, 3, 0x80);
     EXPECT_EQ(tested->Hero().byte390, 1);
 }
 
@@ -261,17 +261,17 @@ TEST(Quests, TheA1PastTheTwoHundredWritesTheFieldsThatFollow)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    Client::Scenes::SetTheQuestState(tested->world, 201, 7);
+    Client::Quests::SetTheQuestState(tested->world, 201, 7);
     EXPECT_EQ(quest.current, 7);
     EXPECT_EQ(quest.reached, 201);
-    Client::Scenes::SetTheQuestState(tested->world, 204, 3);
+    Client::Quests::SetTheQuestState(tested->world, 204, 3);
     EXPECT_EQ(quest.current, 204);
     EXPECT_EQ(quest.reached, 3);
-    Client::Scenes::SetTheQuestState(tested->world, 222, 2);
+    Client::Quests::SetTheQuestState(tested->world, 222, 2);
     EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 2);
     EXPECT_EQ(quest.reached, 222);
     quest.zen = 0x00123456;
-    Client::Scenes::SetTheQuestState(tested->world, 255, 0x01);
+    Client::Quests::SetTheQuestState(tested->world, 255, 0x01);
     EXPECT_EQ(quest.zen, 0x01123456u);
     EXPECT_EQ(QuestStateOf(tested->world.Runtime(), 255), 1);
 }
@@ -281,10 +281,10 @@ TEST(Quests, AnAvailableQuestChecksItsConditionsWithTheOwnRecordOpen)
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
     quest.characterClass = 0;
-    quest.states[0] = Client::Scenes::QuestAvailable;
-    const auto refreshed = Client::Scenes::RefreshTheQuest(tested->Context(), 0xff);
+    quest.states[0] = Client::Quests::QuestAvailable;
+    const auto refreshed = Client::Quests::RefreshTheQuest(tested->Context(), 0xff);
     ASSERT_TRUE(refreshed.HasValue());
-    EXPECT_EQ(refreshed.Value(), Client::Scenes::QuestAvailable);
+    EXPECT_EQ(refreshed.Value(), Client::Quests::QuestAvailable);
     EXPECT_EQ(quest.dialog, 10);
     // Sin el zen: lo guarda sin abrir el registro. El nivel mínimo, con un acceso que lo cierra.
     EXPECT_EQ(quest.zen, 1000u);
@@ -297,9 +297,9 @@ TEST(Quests, AFailedConditionLeavesItsDialogAndFive)
     QuestState& quest = tested->Quest();
     quest.characterClass = 0;
     tested->world.OwnCharacter().level = 9;
-    const auto refreshed = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestAvailable);
+    const auto refreshed = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestAvailable);
     ASSERT_TRUE(refreshed.HasValue());
-    EXPECT_EQ(refreshed.Value(), Client::Scenes::QuestConditionFailed);
+    EXPECT_EQ(refreshed.Value(), Client::Quests::QuestConditionFailed);
     EXPECT_EQ(quest.dialog, 20);
     EXPECT_EQ(tested->random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose).State());
 }
@@ -312,22 +312,22 @@ TEST(Quests, TheZenIsReadWithTheRecordOpenOnlyWhenAsked)
     tested->world.OwnCharacter().zen = 999;
     Client::Tables::QuestCondition& condition = quest.records[0].conditions[0];
     condition.maxLevel = 30;
-    const auto checked = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, true);
+    const auto checked = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, true);
     ASSERT_TRUE(checked.HasValue());
     EXPECT_FALSE(checked.Value());
     EXPECT_EQ(quest.zen, 1000u);
     EXPECT_EQ(quest.dialog, 20);
-    EXPECT_EQ(quest.currentState, Client::Scenes::QuestConditionFailed);
+    EXPECT_EQ(quest.currentState, Client::Quests::QuestConditionFailed);
     // El mínimo, el máximo y el zen: tres accesos que cierran el registro.
     EXPECT_EQ(tested->random.State(), Client::Tests::AfterDraws(Seed, 3 * OwnRecordClose).State());
 
     tested->world.OwnCharacter().zen = 1000;
-    const auto passed = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, true);
+    const auto passed = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, true);
     ASSERT_TRUE(passed.HasValue());
     EXPECT_TRUE(passed.Value());
     // El máximo se compara sin signo: 31 lo pasa.
     tested->world.OwnCharacter().level = 31;
-    const auto over = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, false);
+    const auto over = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, false);
     ASSERT_TRUE(over.HasValue());
     EXPECT_FALSE(over.Value());
 }
@@ -339,12 +339,12 @@ TEST(Quests, AConditionNeedsItsQuestDone)
     quest.characterClass = 0;
     quest.records[0].conditions[0].needQuest = 1;
     quest.records[0].conditions[0].minLevel = 0;
-    const auto failed = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, false);
+    const auto failed = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, false);
     ASSERT_TRUE(failed.HasValue());
     EXPECT_FALSE(failed.Value());
     EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom(Seed).State());
     quest.states[0] = 0b10'00;
-    const auto passed = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, false);
+    const auto passed = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, false);
     ASSERT_TRUE(passed.HasValue());
     EXPECT_TRUE(passed.Value());
 }
@@ -354,25 +354,25 @@ TEST(Quests, AQuestInProgressShowsWhetherTheItemsAreThere)
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
     quest.characterClass = 0;
-    quest.currentState = Client::Scenes::QuestInProgress;
-    const auto missing = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestInProgress);
+    quest.currentState = Client::Quests::QuestInProgress;
+    const auto missing = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestInProgress);
     ASSERT_TRUE(missing.HasValue());
     EXPECT_EQ(quest.dialog, 11);
-    const auto none = Client::Scenes::CanCompleteTheQuest(tested->world);
+    const auto none = Client::Quests::CanCompleteTheQuest(tested->world);
     ASSERT_TRUE(none.HasValue());
     EXPECT_FALSE(none.Value());
 
     tested->GiveTheScroll(5, 0);
-    const auto found = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestInProgress);
+    const auto found = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestInProgress);
     ASSERT_TRUE(found.HasValue());
-    EXPECT_EQ(found.Value(), Client::Scenes::QuestInProgress);
+    EXPECT_EQ(found.Value(), Client::Quests::QuestInProgress);
     EXPECT_EQ(quest.dialog, 12);
-    const auto complete = Client::Scenes::CanCompleteTheQuest(tested->world);
+    const auto complete = Client::Quests::CanCompleteTheQuest(tested->world);
     ASSERT_TRUE(complete.HasValue());
     EXPECT_TRUE(complete.Value());
     // Sin pedidos de ítems de la clase, no.
     quest.records[0].entries[0].kind = 0;
-    const auto noItems = Client::Scenes::CanCompleteTheQuest(tested->world);
+    const auto noItems = Client::Quests::CanCompleteTheQuest(tested->world);
     ASSERT_TRUE(noItems.HasValue());
     EXPECT_FALSE(noItems.Value());
     EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom(Seed).State());
@@ -383,7 +383,7 @@ TEST(Quests, ADoneQuestShowsItsLastDialog)
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
     quest.characterClass = 0;
-    const auto refreshed = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestDone);
+    const auto refreshed = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
     ASSERT_TRUE(refreshed.HasValue());
     EXPECT_EQ(quest.dialog, 13);
 }
@@ -396,25 +396,25 @@ TEST(Quests, WithoutAnEntryForTheClassTheQuestGoesBackOne)
     quest.current = 1;
     quest.states[0] = 0b00'10;
     // La misión 1 no tiene pedido de la clase 0: −−+0x2137e y 0x419600(0xff) con la 0, terminada.
-    const auto refreshed = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestDone);
+    const auto refreshed = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
     ASSERT_TRUE(refreshed.HasValue());
     EXPECT_EQ(quest.current, 0);
     EXPECT_EQ(quest.dialog, 13);
-    EXPECT_EQ(quest.currentState, Client::Scenes::QuestDone);
+    EXPECT_EQ(quest.currentState, Client::Quests::QuestDone);
 
     // Q-C842: desde la 0, la anterior es la 255. Su estado es el byte alto del zen de +0x21388 (byte 63 desde
     // +0x2134c, sin correr): con 0, ningún caso, y el diálogo queda.
     quest.characterClass = 1;
     quest.current = 0;
-    const auto wrapped = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestDone);
+    const auto wrapped = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
     ASSERT_TRUE(wrapped.HasValue());
-    EXPECT_EQ(wrapped.Value(), Client::Scenes::QuestNotStarted);
+    EXPECT_EQ(wrapped.Value(), Client::Quests::QuestNotStarted);
     EXPECT_EQ(quest.current, 255);
     EXPECT_EQ(quest.dialog, 13);
     // Con un zen desde 0x2000000, la 255 está terminada y su registro está fuera de los 200: corta.
     quest.zen = 0x02000000;
     quest.current = 0;
-    const auto outside = Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestDone);
+    const auto outside = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("Q-C842"), std::string::npos);
 }
@@ -425,17 +425,17 @@ TEST(Quests, AClassPastTheFiveFlagsReadsTheBytesThatFollow)
     QuestState& quest = tested->Quest();
     // La clase 5 lee el byte bajo del primer diálogo (10); la 6, el alto (0): sin pedido, vuelve a la 255.
     quest.characterClass = 5;
-    const auto low = Client::Scenes::QuestDialogOf(tested->Context(), 0, 3);
+    const auto low = Client::Quests::QuestDialogOf(tested->Context(), 0, 3);
     ASSERT_TRUE(low.HasValue());
     EXPECT_EQ(low.Value(), 13);
     quest.characterClass = 6;
-    ASSERT_TRUE(Client::Scenes::QuestDialogOf(tested->Context(), 0, 3).HasValue());
+    ASSERT_TRUE(Client::Quests::QuestDialogOf(tested->Context(), 0, 3).HasValue());
     EXPECT_EQ(quest.current, 255);
     // La 0xff de antes del primer A0 lee +0x2d + 0xff: el grupo del ítem del pedido 13.
     quest.current = 0;
-    quest.characterClass = Client::Scenes::QuestClassUnknown;
+    quest.characterClass = Client::Quests::QuestClassUnknown;
     quest.records[0].entries[13].itemGroup = 1;
-    const auto unknown = Client::Scenes::QuestDialogOf(tested->Context(), 0, 3);
+    const auto unknown = Client::Quests::QuestDialogOf(tested->Context(), 0, 3);
     ASSERT_TRUE(unknown.HasValue());
     EXPECT_EQ(unknown.Value(), 13);
 }
@@ -444,15 +444,15 @@ TEST(Quests, TheRefreshCopiesTheHeroClassOnceAfterTheA0)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    quest.characterClass = Client::Scenes::QuestClassUnknown;
+    quest.characterClass = Client::Quests::QuestClassUnknown;
     quest.refreshClass = 1;
     tested->Hero().characterClass = 0x08;
-    ASSERT_TRUE(Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestNotStarted).HasValue());
+    ASSERT_TRUE(Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestNotStarted).HasValue());
     EXPECT_EQ(quest.characterClass, 0);
     EXPECT_EQ(quest.evolution, 1);
     EXPECT_EQ(quest.refreshClass, 0);
     tested->Hero().characterClass = 1;
-    ASSERT_TRUE(Client::Scenes::RefreshTheQuest(tested->Context(), Client::Scenes::QuestNotStarted).HasValue());
+    ASSERT_TRUE(Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestNotStarted).HasValue());
     EXPECT_EQ(quest.characterClass, 0);
 }
 
@@ -462,16 +462,16 @@ TEST(Quests, OpeningTheDialogShowsTheQuestWithItsAnswers)
     QuestState& quest = tested->Quest();
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     quest.characterClass = 0;
-    quest.states[0] = Client::Scenes::QuestAvailable;
+    quest.states[0] = Client::Quests::QuestAvailable;
     runtime.panels.field78abb00 = 7;
-    ASSERT_TRUE(Client::Scenes::OpenTheQuestDialog(tested->Context(), -1).HasValue());
-    EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestDialogWindow);
+    ASSERT_TRUE(Client::Quests::OpenTheQuestDialog(tested->Context(), -1).HasValue());
+    EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
     EXPECT_EQ(runtime.panels.field78abb00, 0);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 10);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "Un texto inventado");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "Un texto inventado");
     EXPECT_EQ(runtime.dialogBox.answerCount, 2);
-    EXPECT_EQ(Client::UI::DialogAnswer(runtime.dialogBox, 0), "1) Acepto");
-    EXPECT_EQ(Client::UI::DialogAnswer(runtime.dialogBox, 1), "2) Ahora no");
+    EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) Acepto");
+    EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 1), "2) Ahora no");
 }
 
 TEST(Quests, ADialogWithoutAnswersShowsTheCloseText)
@@ -480,11 +480,11 @@ TEST(Quests, ADialogWithoutAnswersShowsTheCloseText)
     QuestState& quest = tested->Quest();
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     quest.characterClass = 0;
-    ASSERT_TRUE(Client::Scenes::OpenTheQuestDialog(tested->Context(), 0).HasValue());
+    ASSERT_TRUE(Client::Quests::OpenTheQuestDialog(tested->Context(), 0).HasValue());
     // Estado 0: ningún caso; +0x21384 queda como estaba (0), y el 0 no tiene texto ni respuestas.
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 0);
     EXPECT_EQ(runtime.dialogBox.answerCount, 1);
-    EXPECT_EQ(Client::UI::DialogAnswer(runtime.dialogBox, 0), "1) Cerrar");
+    EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) Cerrar");
 }
 
 TEST(Quests, TheListShowsTheHighestAndGoesBackToTheCurrent)
@@ -497,8 +497,8 @@ TEST(Quests, TheListShowsTheHighestAndGoesBackToTheCurrent)
     quest.byte21380 = 4;
     quest.byte21381 = 5;
     quest.states[0] = 0b00'00'10'00;
-    ASSERT_TRUE(Client::Scenes::OpenTheQuestList(tested->Context(), 0).HasValue());
-    EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestListWindow);
+    ASSERT_TRUE(Client::Quests::OpenTheQuestList(tested->Context(), 0).HasValue());
+    EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestListWindow);
     EXPECT_EQ(quest.byte21380, 0);
     EXPECT_EQ(quest.byte21381, 0);
     // La 1 leída con el corrimiento de 2 bits: terminada, el diálogo 33.
@@ -519,9 +519,9 @@ TEST(Quests, TheReturnToSelectionClearsTheQuestsButTheLastFlag)
     quest.states.fill(0xaa);
     quest.flags = {1, 2, 3, 4};
     quest.zen = 99;
-    std::uint8_t window = Client::Scenes::QuestListWindow;
-    Client::Scenes::ResetTheQuests(quest, window);
-    EXPECT_EQ(quest.characterClass, Client::Scenes::QuestClassUnknown);
+    std::uint8_t window = Client::Quests::QuestListWindow;
+    Client::Quests::ResetTheQuests(quest, window);
+    EXPECT_EQ(quest.characterClass, Client::Quests::QuestClassUnknown);
     EXPECT_EQ(quest.byte21381, 0);
     EXPECT_EQ(quest.dialog, 0);
     EXPECT_EQ(window, 0);

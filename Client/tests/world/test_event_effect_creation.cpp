@@ -15,7 +15,7 @@ namespace
 {
 TEST(CrywolfEffectsTest, TheCraterVariantsKeepTheNativeSidesAndRetainedThirdComponent)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     const std::array<int, 3> lives{60, 30, 40};
     const std::array<float, 3> sides{4.5f, 2.5f, 3};
     for (int subtype = 0; subtype < 3; ++subtype)
@@ -37,7 +37,7 @@ TEST(CrywolfEffectsTest, TheCraterVariantsKeepTheNativeSidesAndRetainedThirdComp
 // 10 + 10) · 0,1f; la /3, 15 y 1; la /4, 10 y (rand() % 6 + 6) · 0,1f. Llena, ningún rand().
 TEST(CrywolfEffectsTest, TheLowShockWavesTakeTheirLifeAndScale)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     for (const std::int32_t subtype : {0, 1, 2, 3, 4, 9})
     {
         SCOPED_TRACE(subtype);
@@ -76,7 +76,7 @@ TEST(CrywolfEffectsTest, TheLowShockWavesTakeTheirLifeAndScale)
 
 TEST(CrywolfEffectsTest, TheCastleWavesSortOnlyTheAllocatedEighthVariant)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     const std::array<int, 4> lives{20, 50, 10, 10};
     const std::array<float, 4> scales{9, 9, 1, 2.2f};
     for (int subtype = 5; subtype <= 8; ++subtype)

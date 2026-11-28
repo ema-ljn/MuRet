@@ -27,7 +27,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -116,7 +116,7 @@ std::int32_t WrappedAdd(std::int32_t a, std::int32_t b)
 
 std::string TextOf(const Tables::TextTable* texts, std::size_t index)
 {
-    return std::string(TextAt(texts, index).value_or(std::string_view{}));
+    return std::string(Ui::TextAt(texts, index).value_or(std::string_view{}));
 }
 
 // 0x5542f0(x, y, texto, 118, 2, 0) → 0x465950 → 0x467060 en el modo 2: la caja de 118 columnas desde x, con el texto
@@ -130,7 +130,7 @@ void DrawLine(Render::Frame::ITextDrawer& text, int x, int y, const std::string&
 }
 } // namespace
 
-CharacterBalloons::CharacterBalloons(TextureSizes sizes, const Tables::TextTable* texts)
+CharacterBalloons::CharacterBalloons(Ui::TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts)
 {
 }
@@ -143,8 +143,8 @@ void CharacterBalloons::Build()
     for (CharacterBalloon& balloon : m_balloons)
     {
         balloon = CharacterBalloon{};
-        balloon.image =
-            PixelImage(BalloonSlot, Rect{.x = 0, .y = 0, .width = BalloonWidth, .height = BalloonHeight}, buffer);
+        balloon.image = Ui::PixelImage(
+            BalloonSlot, Ui::Rect{.x = 0, .y = 0, .width = BalloonWidth, .height = BalloonHeight}, buffer);
     }
     m_built = true;
 }
@@ -269,4 +269,4 @@ const std::array<CharacterBalloon, BalloonCount>& CharacterBalloons::Balloons() 
 {
     return m_balloons;
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

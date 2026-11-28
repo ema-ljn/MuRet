@@ -17,11 +17,11 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Kernel
 {
@@ -46,7 +46,7 @@ struct TerrainLighting;
 // las partículas, los joints y los sprites que MuRet ya tiene; corta con la dirección de lo demás (los efectos de
 // 0x518cf0 y las partículas y los joints que el pool no conoce, CL11; los huesos por nombre, el comportamiento
 // indefinido del original), siempre después de los rand() que el original saca antes.
-namespace Client::Scenes
+namespace Client::Monsters
 {
 
 struct ModelEffectsPass
@@ -57,9 +57,9 @@ struct ModelEffectsPass
     Crt::CrtRandom& random;
     // El modelo del tipo (0x5769ad8 + tipo · 0xe0): la cantidad de huesos de +0x22 y la velocidad de las acciones.
     const Models::Skeleton& skeleton;
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     // La tabla de sprites del frame (0x5491e0), la del paso de los efectos del mapa.
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     float worldClock = 0.0f;
     std::int32_t map = 0;
     // The ground marks the 0x182 adds to (0x507486). nullptr: it stops there.
@@ -71,4 +71,4 @@ struct ModelEffectsPass
 };
 
 [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects(ModelEffectsPass& pass);
-} // namespace Client::Scenes
+} // namespace Client::Monsters

@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 // Layout trivial común de los pools de 446120 y 447030. 06 § Los pájaros / Los peces.
 // +0xc y +0xd8 intercambian su uso entre aves y peces; los nombres describen el ave.
@@ -70,4 +70,4 @@ static_assert(offsetof(FaunaObject, scale) == 0xd8);
 static_assert(offsetof(FaunaObject, action) == 0x111);
 static_assert(offsetof(FaunaObject, seen) == 0x16c);
 static_assert(offsetof(FaunaObject, alpha) == 0x174);
-} // namespace Client::Scenes
+} // namespace Client::Fauna

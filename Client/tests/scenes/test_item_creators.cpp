@@ -73,11 +73,11 @@ protected:
     glm::vec3 m_angles{};
     Client::Crt::CrtRandom m_random{1};
     Client::Actors::Drawing::GameItemRenderState m_render;
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
-    Client::World::ObjectModelStepState m_modelState;
+    Client::WorldObjects::ObjectModelStepState m_modelState;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(4);
-    std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Effects::ModelEffects> m_effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Actors::Drawing::ItemDrawResources m_resources{.random = m_random,
                                                            .itemRender = m_render,
                                                            .sprites = m_sprites,
@@ -109,13 +109,14 @@ TEST_F(ItemCreatorsTest, OnlyTheLightningAndThePortableEffectsAreCreated)
     Client::Actors::Drawing::DrawnObject object;
     object.transform.position = m_position;
     ASSERT_TRUE(m_item.createEffect(0xc2, 3, object).HasValue());
-    ASSERT_TRUE(m_item.createEffect(Client::World::DragonEffect, 0, object).HasValue());
-    ASSERT_TRUE(m_item.createEffect(Client::World::ArrivalEffect, 0, object).HasValue());
-    ASSERT_TRUE(m_item.createEffect(Client::World::TeleportEffect, 0, object).HasValue());
-    EXPECT_EQ(LiveEffects(), (std::vector<std::int16_t>{0xc2, Client::World::DragonEffect, Client::World::ArrivalEffect,
-                                                        Client::World::TeleportEffect}));
+    ASSERT_TRUE(m_item.createEffect(Client::Effects::DragonEffect, 0, object).HasValue());
+    ASSERT_TRUE(m_item.createEffect(Client::Effects::ArrivalEffect, 0, object).HasValue());
+    ASSERT_TRUE(m_item.createEffect(Client::Effects::TeleportEffect, 0, object).HasValue());
+    EXPECT_EQ(LiveEffects(),
+              (std::vector<std::int16_t>{0xc2, Client::Effects::DragonEffect, Client::Effects::ArrivalEffect,
+                                         Client::Effects::TeleportEffect}));
 
-    const auto subtyped = m_item.createEffect(Client::World::DragonEffect, 1, object);
+    const auto subtyped = m_item.createEffect(Client::Effects::DragonEffect, 1, object);
     ASSERT_FALSE(subtyped.HasValue());
     EXPECT_NE(subtyped.Error().find("0x518cf0"), std::string::npos) << subtyped.Error();
     EXPECT_FALSE(m_item.createEffect(0xc2, 0, object).HasValue());

@@ -29,7 +29,7 @@
 // personaje de la escena 2 (0x517270(2, 4, …)), con lo que les cambia la lógica en cada paso
 // (0x634c60). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El login, al entrar", "El
 // logo en el binario" y "La luz del terreno en un punto", y el plan de la CL6 (CL6.4).
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 // Un objeto suelto del mundo, como lo arma 0x606660: el modelo, dónde va, lo que le pasa a
 // RenderBody (+0x64, +0x68, +0x6c, +0x70 y +0x58), su luz (+0xf4..+0xfc, la que se suma a la del
@@ -116,7 +116,7 @@ void AdvanceRoutes(LoginRoutes& routes);
 
 // Lo que el paso del cuervo (0x416a20) lee de su dueño en el login: el personaje en su lugar y sus
 // banderas (+0x78) en 0.
-[[nodiscard]] DarkSpiritOwner LoginRavenOwner();
+[[nodiscard]] Pets::DarkSpiritOwner LoginRavenOwner();
 
 // La luz que 0x517270 le pone (+0xf4..+0xfc, 0x3e99999a): 0x50ba30, fuera de la escena 4, la suma a
 // la del terreno en su lugar.
@@ -133,4 +133,4 @@ inline constexpr std::uint8_t LoginCharacterStandingAction = 0x4a;
 // Con el rand() de la CRT (Render/Models/Cloth.h), el del original (0x634cca): el que usa el login con el
 // bucle.
 [[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Crt::CrtRandom& random);
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

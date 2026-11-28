@@ -65,10 +65,10 @@ using Client::Actors::Drawing::GameCharacterEffectsPass;
 using Client::Actors::Drawing::GameRavenPass;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::PartySlot;
+using Client::Social::PartySlot;
 
 const Client::Session::CharacterDrawHooks JointHooks;
-const Client::Scenes::ActorEffectHooks EffectHooks;
+const Client::Effects::ActorEffectHooks EffectHooks;
 
 float Float(std::uint32_t bits)
 {
@@ -120,9 +120,9 @@ std::vector<int> RandomsAfter(std::size_t skipped, std::size_t count)
     return values;
 }
 
-std::vector<Client::World::Particle> LiveParticles(Client::World::Particles& pool)
+std::vector<Client::Particles::Particle> LiveParticles(Client::Particles::Particles& pool)
 {
-    std::vector<Client::World::Particle> live;
+    std::vector<Client::Particles::Particle> live;
     for (const auto& particle : pool.All())
     {
         if (particle.alive)
@@ -142,9 +142,9 @@ std::vector<Client::Scenes::JointState> LiveJoints(std::span<const Client::Scene
     return live;
 }
 
-std::vector<Client::World::Sprite> LiveSprites(Client::World::FrameSprites& table)
+std::vector<Client::Particles::Sprite> LiveSprites(Client::Particles::FrameSprites& table)
 {
-    std::vector<Client::World::Sprite> live;
+    std::vector<Client::Particles::Sprite> live;
     for (const auto& sprite : table.Sprites())
     {
         if (sprite.alive)
@@ -202,11 +202,11 @@ protected:
     ActorState m_actor;
     std::vector<Client::Math::BoneTransform> m_body;
     CrtRandom m_random{1};
-    Client::World::FrameSprites m_sprites;
-    Client::World::Particles m_particles;
+    Client::Particles::FrameSprites m_sprites;
+    Client::Particles::Particles m_particles;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(16);
     std::vector<ActorState> m_actors = std::vector<ActorState>(400);
-    Client::World::ModelEffects m_effects;
+    Client::Effects::ModelEffects m_effects;
 };
 
 TEST_F(GameCharacterEffectsTest, TheMageSkinPutsTheSparkAndTheShinyOnBoneNineteenWithoutRandoms)
@@ -577,7 +577,7 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
     const auto created = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, Pass());
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(m_actor.counter35c, 1);
-    const Client::World::ModelEffect& flare = m_effects.Effects()[0];
+    const Client::Effects::ModelEffect& flare = m_effects.Effects()[0];
     EXPECT_TRUE(flare.alive);
     EXPECT_EQ(flare.type, 0x5ac);
     EXPECT_EQ(flare.subtype, 3);
@@ -731,7 +731,7 @@ TEST_F(GameCharacterEffectsTest, HiddenAttachmentsDropTheFlaresButKeepTheRandomO
 
 // The 0x6f1/3 of 0x53fe70 (0x543f49..0x544153) with the eleven rand() calls that follow `skipped`: life 12, the turn,
 // the scale, vz 2, the texture cra_04, the boot's light and two shifts of ±10, ±10 and ±20 from `point`.
-void ExpectBootsMist(const Client::World::Particle& mist, std::size_t skipped, const glm::vec3& point,
+void ExpectBootsMist(const Client::Particles::Particle& mist, std::size_t skipped, const glm::vec3& point,
                      const glm::vec3& light)
 {
     const std::vector<int> r = RandomsAfter(skipped, 11);
@@ -748,7 +748,7 @@ void ExpectBootsMist(const Client::World::Particle& mist, std::size_t skipped, c
                        point.y + static_cast<float>(r[4] % 20 - 10) + static_cast<float>(r[9] % 20 - 10),
                        point.z + static_cast<float>(r[5] % 40 - 20) + static_cast<float>(r[10] % 40 - 20)};
     EXPECT_EQ(mist.position, at);
-    EXPECT_EQ(mist.typedOwner, Client::World::ParticleOwner{});
+    EXPECT_EQ(mist.typedOwner, Client::Particles::ParticleOwner{});
 }
 
 // 0x50ff37..0x5102bd with seed 1 (41, 18467, …): 10 (41 & 3), 11 (41 % 3 = 2) and 12 (41 & 1) do not create and also
@@ -910,7 +910,8 @@ TEST_F(GameCharacterEffectsTest, TheSparklesOfEachLevelCreateTheirOrbitsAndJoint
             EXPECT_EQ(orbit.subtype, 0);
             EXPECT_EQ(orbit.light, glm::vec3(1.0f));
             EXPECT_EQ(orbit.life, 60);
-            EXPECT_EQ(orbit.typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, Slot}));
+            EXPECT_EQ(orbit.typedOwner,
+                      (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::Actor, Slot}));
         }
         const auto joints = LiveJoints(m_joints);
         ASSERT_EQ(joints.size(), probe.wide + probe.trails);
@@ -1047,7 +1048,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
         const auto result = Client::Actors::Drawing::DrawGameCharacterEffects(m_actor, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        const Client::World::ModelEffect& mark = m_effects.Effects()[0];
+        const Client::Effects::ModelEffect& mark = m_effects.Effects()[0];
         EXPECT_EQ(mark.alive, probe.rises);
         if (!probe.rises)
         {
@@ -1062,7 +1063,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
         EXPECT_EQ(mark.transform.position.y, point.y);
         EXPECT_EQ(mark.transform.position.z, point.z + 60.0f);
         EXPECT_EQ(m_actor.dword36c, std::bit_cast<std::uint32_t>(1000.0f));
-        EXPECT_EQ(std::ranges::count_if(m_particles.All(), [](const Client::World::Particle& particle)
+        EXPECT_EQ(std::ranges::count_if(m_particles.All(), [](const Client::Particles::Particle& particle)
                                         { return particle.alive && particle.type == 0x5c6 && particle.subtype == 4; }),
                   10);
         CrtRandom expected{1};
@@ -1127,11 +1128,11 @@ public:
 
     [[nodiscard]] const Client::Data::Models::Model* Find(Client::Models::ModelId model) const override
     {
-        return model.Value() == Client::Scenes::DarkSpiritModel ? &m_model : nullptr;
+        return model.Value() == Client::Pets::DarkSpiritModel ? &m_model : nullptr;
     }
     [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        return model.Value() == Client::Scenes::DarkSpiritModel ? &m_skeleton : nullptr;
+        return model.Value() == Client::Pets::DarkSpiritModel ? &m_skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(Client::Models::ModelId) const override
     {
@@ -1159,7 +1160,7 @@ protected:
         m_lighting->cells.fill({0.2f, 0.4f, 0.6f});
         m_polygon.everything = true;
         m_owner.position = {1000.0f, 1000.0f, 0.0f};
-        Client::Scenes::DarkSpirit& spirit = m_owner.darkSpirit.emplace();
+        Client::Pets::DarkSpirit& spirit = m_owner.darkSpirit.emplace();
         spirit.position = {1050.0f, 1060.0f, 300.0f};
         m_batch.Begin(Client::Render::Pass3D{});
     }
@@ -1220,7 +1221,7 @@ TEST_F(GameRavenTest, ASeenRavenDrawsMeshesThreeAndTwoAndTheShadowOfAllAndKeepsI
     EXPECT_EQ(m_batch.Vertices().size(), (2u + 5u) * 3u);
     EXPECT_EQ(m_owner.darkSpirit->pose.size(), 1u);
     // 0x600a1c: the shadow's origin in the model, at the terrain height under the raven.
-    EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 0.0f));
+    EXPECT_EQ(carry.models.at(Client::Pets::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 0.0f));
 }
 
 TEST_F(GameRavenTest, TheShadowFollowsTheMapRulesOf0x6002e0)
@@ -1344,7 +1345,7 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
         }
     }
     EXPECT_EQ(m_owner.darkSpirit->pose.size(), 1u);
-    EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
+    EXPECT_EQ(carry.models.at(Client::Pets::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
 }
 
 // 0x418aab..0x418b71: in state 5, with +0x38d up to 2, after the draw, ten 0x5ac/1 joints from the raven's position and
@@ -1360,7 +1361,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             SCOPED_TRACE(counter);
             m_world = std::make_unique<Client::Kernel::WorldState>();
             m_owner.flags78 = flags;
-            Client::Scenes::DarkSpirit& spirit = *m_owner.darkSpirit;
+            Client::Pets::DarkSpirit& spirit = *m_owner.darkSpirit;
             spirit.state = 5;
             spirit.byte38d = counter;
             spirit.angles = {10.0f, 0.0f, 30.0f};
@@ -1384,7 +1385,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
                                                            .skill = 0,
                                                            .skillSerial = 0,
                                                            .target = -1};
-                ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
+                ASSERT_TRUE(Client::Joints::CreateFaunaJoint(*twin, request, oracle).HasValue());
             }
             const auto turn = counter == 1 ? static_cast<std::int32_t>(oracle.Next() % 180) : 0;
 
@@ -1456,7 +1457,7 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     m_owner.darkSpirit->byte38d = 5;
     const auto high = Client::Actors::Drawing::DrawGameRaven(m_owner, Pass());
     ASSERT_TRUE(high.HasValue()) << high.Error();
-    const Client::Scenes::DarkSpirit& spirit = *m_owner.darkSpirit;
+    const Client::Pets::DarkSpirit& spirit = *m_owner.darkSpirit;
     ASSERT_EQ(spirit.pose.size(), 7u);
     const auto& air = m_world->Map().effects.Effects()[0];
     ASSERT_TRUE(air.alive);
@@ -1498,7 +1499,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
         m_owner.darkSpirit->state = 6;
         m_owner.darkSpirit->byte38d = 0;
         m_owner.darkSpirit->angles = {0.0f, 0.0f, 120.0f};
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         GameRavenPass pass = Pass();
         pass.particles = particles.get();
         pass.worldClock = 500.0f;
@@ -1514,7 +1515,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
             live += particle.alive ? 1u : 0u;
         if (first == 0)
         {
-            auto made = std::make_unique<Client::World::Particles>();
+            auto made = std::make_unique<Client::Particles::Particles>();
             const glm::vec3 point = Client::Math::OriginalVectorTransform(glm::vec3(0.0f), m_owner.darkSpirit->pose[0]);
             ASSERT_TRUE(
                 made->CreateChecked(0x5ac, point, m_owner.darkSpirit->angles,
@@ -1543,7 +1544,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
     Client::Crt::CrtRandom afterOne(BoneZero);
     ASSERT_EQ(afterOne.Next() & 1, 0);
     m_random = Client::Crt::CrtRandom(BoneZero);
-    auto full = std::make_unique<Client::World::Particles>();
+    auto full = std::make_unique<Client::Particles::Particles>();
     for (auto& particle : full->All())
         particle.alive = true;
     GameRavenPass crowded = Pass();
@@ -1617,7 +1618,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
         glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 30.0)};
         glm::vec3 first = corners[corner];
         glm::vec3 second = actors[3].position;
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twin,
                                                      {.type = 0x613,
                                                       .firstPosition = first,
                                                       .secondPosition = second,

@@ -7,7 +7,7 @@
 
 namespace
 {
-using Client::World::WorldObjectRegistrations;
+using Client::WorldObjects::WorldObjectRegistrations;
 
 // Detecta búsqueda por puntero/null o por active == 1, y borrado de metadata al reservar un slot.
 TEST(WorldObjectRegistrationsTest, UsesTheFirstZeroFlagAndPreservesAllOtherState)
@@ -23,7 +23,7 @@ TEST(WorldObjectRegistrationsTest, UsesTheFirstZeroFlagAndPreservesAllOtherState
     registry.entries[3].active = 0;
     registry.entries[17].active = 0;
     const WorldObjectRegistrations before = registry;
-    Client::World::RegisterWorldObject(registry, 42);
+    Client::WorldObjects::RegisterWorldObject(registry, 42);
     for (std::size_t index = 0; index < registry.entries.size(); ++index)
     {
         SCOPED_TRACE(index);
@@ -45,9 +45,9 @@ TEST(WorldObjectRegistrationsTest, UsesTheFirstZeroFlagAndPreservesAllOtherState
 TEST(WorldObjectRegistrationsTest, AcceptsNullAndRepeatedIdentities)
 {
     WorldObjectRegistrations registry;
-    Client::World::RegisterWorldObject(registry, 0);
-    Client::World::RegisterWorldObject(registry, 42);
-    Client::World::RegisterWorldObject(registry, 42);
+    Client::WorldObjects::RegisterWorldObject(registry, 0);
+    Client::WorldObjects::RegisterWorldObject(registry, 42);
+    Client::WorldObjects::RegisterWorldObject(registry, 42);
     EXPECT_EQ(registry.entries[0].active, 1);
     EXPECT_EQ(registry.entries[0].object, 0u);
     EXPECT_EQ(registry.entries[1].active, 1);
@@ -63,12 +63,12 @@ TEST(WorldObjectRegistrationsTest, FullTableMakesNoStores)
     WorldObjectRegistrations registry;
     for (std::size_t index = 0; index < 200; ++index)
     {
-        Client::World::RegisterWorldObject(registry, index + 1);
+        Client::WorldObjects::RegisterWorldObject(registry, index + 1);
     }
     ASSERT_EQ(registry.entries[199].active, 1);
     ASSERT_EQ(registry.entries[199].object, 200u);
     const WorldObjectRegistrations before = registry;
-    Client::World::RegisterWorldObject(registry, 999);
+    Client::WorldObjects::RegisterWorldObject(registry, 999);
     EXPECT_EQ(registry.entries, before.entries);
     EXPECT_EQ(registry.nextIdentity, before.nextIdentity);
 }

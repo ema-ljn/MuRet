@@ -25,11 +25,11 @@
 // miran el mapa ni sacan rand().
 namespace
 {
+using Client::CastleSiege::CastleAnswerContext;
+using Client::CastleSiege::CastleData;
 using Client::Network::Xor32Decode;
-using Client::Scenes::CastleAnswerContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::UI::CastleData;
 
 class CastleSeniorAnswersTest : public ::testing::Test
 {
@@ -50,7 +50,7 @@ protected:
         m_data.SetU32(at + 8, defense);
         m_data.SetU32(at + 0xc, recovery);
         m_data.SetU32(at + 0x10, maxLife);
-        m_data.bytes.at(at + 0x1a - Client::UI::CastleDataBase) = alive;
+        m_data.bytes.at(at + 0x1a - Client::CastleSiege::CastleDataBase) = alive;
     }
 
     // Los paquetes que salieron, en claro.
@@ -79,7 +79,7 @@ protected:
 
     void ExpectMoney(std::string_view field, std::uint32_t amount)
     {
-        Client::Scenes::AnswerTheMoneyDialog(2, field, Context());
+        Client::CastleSiege::AnswerTheMoneyDialog(2, field, Context());
         const auto sent = Sent();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_TRUE(SameBytes(
@@ -97,13 +97,13 @@ protected:
 // 0x6623e0: la puerta elegida desde 0x7d5c590; con +0x1a en 0 la compra (B2 05), si no la repara (B2 06).
 TEST_F(CastleSeniorAnswersTest, TheGateAnswerBuysOrRepairsTheSelectedGate)
 {
-    m_data.SetU32(Client::UI::SelectedGateAt, 1);
+    m_data.SetU32(Client::CastleSiege::SelectedGateAt, 1);
     Record(0x7d5c590 + 0x1c, 0x115, 2, 0, 0, 500000, 0);
-    Client::Scenes::AnswerTheGateDialog(7, Context());
+    Client::CastleSiege::AnswerTheGateDialog(7, Context());
     EXPECT_TRUE(m_sent.empty());
-    Client::Scenes::AnswerTheGateDialog(8, Context());
-    m_data.bytes.at(0x7d5c590 + 0x1c + 0x1a - Client::UI::CastleDataBase) = 1;
-    Client::Scenes::AnswerTheGateDialog(8, Context());
+    Client::CastleSiege::AnswerTheGateDialog(8, Context());
+    m_data.bytes.at(0x7d5c590 + 0x1c + 0x1a - Client::CastleSiege::CastleDataBase) = 1;
+    Client::CastleSiege::AnswerTheGateDialog(8, Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 2u);
     EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 0x0c, 0xb2, 5, 0x15, 1, 0, 0, 2, 0, 0, 0})));
@@ -115,9 +115,9 @@ TEST_F(CastleSeniorAnswersTest, TheStatueAnswerReadsFrom0x7d5c520)
 {
     Record(0x7d5c520, 0x11b, 1, 0, 0, 400000, 1);
     Record(0x7d5c504, 0x11b, 0, 0, 0, 400000, 0);
-    Client::Scenes::AnswerTheStatueDialog(8, Context());
-    m_data.SetU32(Client::UI::SelectedStatueAt, 0xffffffff);
-    Client::Scenes::AnswerTheStatueDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueDialog(8, Context());
+    m_data.SetU32(Client::CastleSiege::SelectedStatueAt, 0xffffffff);
+    Client::CastleSiege::AnswerTheStatueDialog(8, Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 2u);
     EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 0x0c, 0xb2, 6, 0x1b, 1, 0, 0, 1, 0, 0, 0})));
@@ -127,9 +127,9 @@ TEST_F(CastleSeniorAnswersTest, TheStatueAnswerReadsFrom0x7d5c520)
 // Una elegida cuyo registro sale de la zona no manda nada (Q-C1360).
 TEST_F(CastleSeniorAnswersTest, ASelectionOutsideTheZoneSendsNothing)
 {
-    m_data.SetU32(Client::UI::SelectedGateAt, 8);
-    Client::Scenes::AnswerTheGateDialog(8, Context());
-    Client::Scenes::AnswerTheGateLifeDialog(8, Context());
+    m_data.SetU32(Client::CastleSiege::SelectedGateAt, 8);
+    Client::CastleSiege::AnswerTheGateDialog(8, Context());
+    Client::CastleSiege::AnswerTheGateLifeDialog(8, Context());
     EXPECT_TRUE(m_sent.empty());
     EXPECT_TRUE(Warned("Q-C1360"));
 }
@@ -137,8 +137,8 @@ TEST_F(CastleSeniorAnswersTest, ASelectionOutsideTheZoneSendsNothing)
 // 0x660da0 y 0x660d20, las dos tablas de la vida.
 TEST(CastleLifeLevelsTest, LevelsAndMaxLivesFollowTheTables)
 {
-    using Client::UI::LifeLevelOf;
-    using Client::UI::MaxLifeOfLevel;
+    using Client::CastleSiege::LifeLevelOf;
+    using Client::CastleSiege::MaxLifeOfLevel;
     EXPECT_EQ(LifeLevelOf(0x115, 500000), 0);
     EXPECT_EQ(LifeLevelOf(0x115, 500001), 1);
     EXPECT_EQ(LifeLevelOf(0x115, 800000), 1);
@@ -166,15 +166,15 @@ TEST(CastleLifeLevelsTest, LevelsAndMaxLivesFollowTheTables)
 TEST_F(CastleSeniorAnswersTest, TheLifeAnswersSendTheNextLevel)
 {
     Record(0x7d5c590, 0x115, 1, 0, 0, 500000, 1);
-    Client::Scenes::AnswerTheGateLifeDialog(8, Context());
+    Client::CastleSiege::AnswerTheGateLifeDialog(8, Context());
     Record(0x7d5c590, 0x115, 1, 0, 0, 1500000, 1);
-    Client::Scenes::AnswerTheGateLifeDialog(8, Context());
+    Client::CastleSiege::AnswerTheGateLifeDialog(8, Context());
     Record(0x7d5c520, 0x11b, 1, 0, 0, 750000, 1);
-    Client::Scenes::AnswerTheStatueLifeDialog(8, Context());
-    Client::Scenes::AnswerTheStatueLifeDialog(2, Context());
+    Client::CastleSiege::AnswerTheStatueLifeDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueLifeDialog(2, Context());
     // Otro tipo: el nivel −1 + 1 y 0x660d20(tipo, 0) da −1.
     Record(0x7d5c520, 0x120, 1, 0, 0, 750000, 1);
-    Client::Scenes::AnswerTheStatueLifeDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueLifeDialog(8, Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 4u);
     EXPECT_TRUE(SameBytes(sent[3],
@@ -192,14 +192,14 @@ TEST_F(CastleSeniorAnswersTest, TheLifeAnswersSendTheNextLevel)
 TEST_F(CastleSeniorAnswersTest, TheDefenseAndRecoveryAnswersSendTheNextLevel)
 {
     Record(0x7d5c590, 0x115, 1, 2, 0, 0, 1);
-    Client::Scenes::AnswerTheGateDefenseDialog(8, Context());
+    Client::CastleSiege::AnswerTheGateDefenseDialog(8, Context());
     Record(0x7d5c520, 0x11b, 3, 0, 4, 0, 1);
-    Client::Scenes::AnswerTheStatueDefenseDialog(8, Context());
-    Client::Scenes::AnswerTheStatueRecoveryDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueDefenseDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueRecoveryDialog(8, Context());
     Record(0x7d5c520, 0x115, 3, 0, 4, 0, 1);
-    Client::Scenes::AnswerTheStatueRecoveryDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueRecoveryDialog(8, Context());
     Record(0x7d5c520, 0x120, 3, 5, 4, 0, 1);
-    Client::Scenes::AnswerTheStatueDefenseDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueDefenseDialog(8, Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 5u);
     EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 0x14, 0xb2, 7, 0x15, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0})));
@@ -212,9 +212,9 @@ TEST_F(CastleSeniorAnswersTest, TheDefenseAndRecoveryAnswersSendTheNextLevel)
 TEST_F(CastleSeniorAnswersTest, DefenseAndRecoveryIncrementWithDwordWrap)
 {
     Record(0x7d5c590, 0x115, 1, 0x7fffffffu, 0, 0, 1);
-    Client::Scenes::AnswerTheGateDefenseDialog(8, Context());
+    Client::CastleSiege::AnswerTheGateDefenseDialog(8, Context());
     Record(0x7d5c520, 0x11b, 3, 0, 0xffffffffu, 0, 1);
-    Client::Scenes::AnswerTheStatueRecoveryDialog(8, Context());
+    Client::CastleSiege::AnswerTheStatueRecoveryDialog(8, Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 2u);
     EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 0x14, 0xb2, 7, 0x15, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0x80})));
@@ -224,10 +224,10 @@ TEST_F(CastleSeniorAnswersTest, DefenseAndRecoveryIncrementWithDwordWrap)
 // 0x666b30: los dos impuestos que muestra la ventana, en dos B2 09 con el byte de arriba primero.
 TEST_F(CastleSeniorAnswersTest, TheTaxAnswerSendsBothTaxes)
 {
-    m_data.SetU32(Client::UI::ChaosTaxAt, 3);
-    m_data.SetU32(Client::UI::StoreTaxAt, 0x01020304);
-    Client::Scenes::AnswerTheTaxDialog(1, Context());
-    Client::Scenes::AnswerTheTaxDialog(8, Context());
+    m_data.SetU32(Client::CastleSiege::ChaosTaxAt, 3);
+    m_data.SetU32(Client::CastleSiege::StoreTaxAt, 0x01020304);
+    Client::CastleSiege::AnswerTheTaxDialog(1, Context());
+    Client::CastleSiege::AnswerTheTaxDialog(8, Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 2u);
     EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 9, 0xb2, 9, 1, 0, 0, 0, 3})));
@@ -237,12 +237,12 @@ TEST_F(CastleSeniorAnswersTest, TheTaxAnswerSendsBothTaxes)
 // 0x667a40: con la respuesta 2, sscanf("%u") del campo; sin número, el original manda basura de la pila (Q-C1363).
 TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerScansTheField)
 {
-    Client::Scenes::AnswerTheMoneyDialog(8, "5", Context());
-    Client::Scenes::AnswerTheMoneyDialog(2, "  1000000zen", Context());
-    Client::Scenes::AnswerTheMoneyDialog(2, "-1", Context());
-    Client::Scenes::AnswerTheMoneyDialog(2, "4294967297", Context());
-    Client::Scenes::AnswerTheMoneyDialog(2, "zen", Context());
-    Client::Scenes::AnswerTheMoneyDialog(2, "", Context());
+    Client::CastleSiege::AnswerTheMoneyDialog(8, "5", Context());
+    Client::CastleSiege::AnswerTheMoneyDialog(2, "  1000000zen", Context());
+    Client::CastleSiege::AnswerTheMoneyDialog(2, "-1", Context());
+    Client::CastleSiege::AnswerTheMoneyDialog(2, "4294967297", Context());
+    Client::CastleSiege::AnswerTheMoneyDialog(2, "zen", Context());
+    Client::CastleSiege::AnswerTheMoneyDialog(2, "", Context());
     const auto sent = Sent();
     ASSERT_EQ(sent.size(), 3u);
     EXPECT_TRUE(SameBytes(sent[0], Bytes({0xc1, 8, 0xb2, 0x10, 0x40, 0x42, 0x0f, 0})));
@@ -268,7 +268,7 @@ TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerUsesTheOriginalCrtClassesForEveryI
             ExpectMoney(field, (first - '0') * 10u + 7u);
         else
         {
-            Client::Scenes::AnswerTheMoneyDialog(2, field, Context());
+            Client::CastleSiege::AnswerTheMoneyDialog(2, field, Context());
             EXPECT_TRUE(Sent().empty());
             EXPECT_TRUE(Warned("Q-C1363"));
         }
@@ -308,7 +308,7 @@ TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerDoesNotGuessTheDestinationWhenNoDi
     for (const std::string_view field : {"", " \t\r\n", "+", "-", "+ 1", "-\t1", "++1", "--1", "zen"})
     {
         SCOPED_TRACE(field);
-        Client::Scenes::AnswerTheMoneyDialog(2, field, Context());
+        Client::CastleSiege::AnswerTheMoneyDialog(2, field, Context());
         EXPECT_TRUE(Sent().empty());
         EXPECT_TRUE(Warned("Q-C1363"));
     }

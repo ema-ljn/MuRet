@@ -42,12 +42,16 @@ class ITerrainAttributeQuerySource;
 struct TerrainLighting;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Weather
 {
 class Leaves;
+} // namespace Client::Weather
+
+namespace Client::Particles
+{
 class Particles;
 class FrameSprites;
-} // namespace Client::World
+} // namespace Client::Particles
 namespace Client::Data::Terrain
 {
 struct TerrainHeights;
@@ -58,6 +62,11 @@ namespace Client::Actors::Drawing
 struct ItemDrawContext;
 struct DrawnObject;
 } // namespace Client::Actors::Drawing
+
+namespace Client::WorldObjects
+{
+struct GameObjectPass;
+} // namespace Client::WorldObjects
 
 // Contratos estáticos de6374fe..637572. Las familias incompletas conservan su prefijo y devuelven
 // la primera dirección no portada; una tabla vacía no acredita su camino vivo.
@@ -163,7 +172,7 @@ struct JointState
 struct JointDrawResources
 {
     Crt::CrtRandom& random;
-    World::FrameSprites& sprites;
+    Particles::FrameSprites& sprites;
     bool originalFrame = true;
     float worldClock = 0; // 53c8ee: ftol firmado, resto1000 y scroll de UV.
 };
@@ -223,15 +232,14 @@ DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
 [[nodiscard]] Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch,
                                                            std::span<const DamageNumberState> damage, std::uint8_t mode,
                                                            const Math::OriginalMatrix& view);
-[[nodiscard]] Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, const World::Leaves& leaves,
+[[nodiscard]] Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, const Weather::Leaves& leaves,
                                                                std::int32_t map, const Math::OriginalMatrix& view,
                                                                std::int32_t weatherState = 0);
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                     std::span<World::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
+                     std::span<Effects::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      std::uint8_t mode = 0);
-struct GameObjectPass;
 struct ModelEffectDrawResources
 {
     const Data::Terrain::TerrainHeights& heights;
@@ -242,25 +250,25 @@ struct ModelEffectDrawResources
     // posedMeshes, con los vértices ya en el mundo.
     Actors::Drawing::TailPoseObserver onUntranslatedPose{};
     Actors::Drawing::TailMeshProvider posedMeshes{};
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     Terrain::TerrainLighting* dynamicLighting = nullptr;
     Terrain::ITerrainAttributeQuerySource* attributes = nullptr;
     bool siegeActive = false;         // 4294b0 lee7239ec; no es un test de mapa.
     Crt::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const Actors::Drawing::ItemDrawContext* itemContext = nullptr;
-    const GameObjectPass* kalimaPass = nullptr;
+    const WorldObjects::GameObjectPass* kalimaPass = nullptr;
     // 0x5ffdff..0x5ffe24: +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23 (el de `kalimaPass`), y
     // si el dibujo es de un frame del original: sólo entonces la resta de 0,15f queda guardada en el alpha del efecto.
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
     // 42cfcb del fragmento3d..40: el mismo pool518cf0 al que emite4ee770.
-    World::ModelEffects* effects = nullptr;
-    World::Particles* particles = nullptr;
+    Effects::ModelEffects* effects = nullptr;
+    Particles::Particles* particles = nullptr;
     std::function<std::span<const Math::BoneTransform>()> posedBones{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                     std::span<World::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
+                     std::span<Effects::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources& resources, std::uint8_t mode = 0);
 } // namespace Client::Scenes

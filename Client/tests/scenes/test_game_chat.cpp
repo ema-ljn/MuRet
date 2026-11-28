@@ -58,12 +58,12 @@
 // Los textos y los nombres son inventados.
 namespace
 {
+using Client::Chat::GameChatContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::GameChatContext;
 
 // 0x554a40: el registro propio, abierto y cerrado una vez.
 constexpr int WhisperRandoms = 3848;
@@ -167,26 +167,26 @@ protected:
 
     Client::Core::Expected<void, std::string> Type(std::string_view typed)
     {
-        return Client::Scenes::TypeInTheGameChat(Context(), typed);
+        return Client::Chat::TypeInTheGameChat(Context(), typed);
     }
 
-    Client::UI::ChatInputState& Input()
+    Client::Chat::ChatInputState& Input()
     {
         return world.Runtime().chat.input;
     }
 
-    Client::UI::OldEdit& FocusAnOldEdit()
+    Client::Ui::OldEdit& FocusAnOldEdit()
     {
         auto& manager = world.Runtime().oldWindows;
-        Client::UI::OldWindow box;
-        box.kind = Client::UI::OldWindowKind::AddFriendBox;
+        Client::Ui::OldWindow box;
+        box.kind = Client::Ui::OldWindowKind::AddFriendBox;
         box.base.id = 10;
         box.add.edit.base.id = 11;
         box.add.edit.base.parent = box.base.id;
         auto [window, inserted] = manager.windows.emplace(box.base.id, std::move(box));
         EXPECT_TRUE(inserted);
         manager.focusedEdit = window->second.add.edit.base.id;
-        Input().focus = Client::UI::ChatFocus::OldWindow;
+        Input().focus = Client::Chat::ChatFocus::OldWindow;
         return window->second.add.edit;
     }
 
@@ -200,7 +200,7 @@ protected:
     std::vector<std::string> filter;
     LetterMeasure letters;
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     FakeClipboard clipboard;
 };
 
@@ -218,15 +218,15 @@ TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
     ASSERT_TRUE(Type("abc\r").HasValue());
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(Input().shown);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
-    EXPECT_EQ(world.Runtime().ui.focusedList, Client::UI::ChatMessageEditId);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::Chat::ChatMessageEditId);
     // Lo de antes de abrir lo descartó la ventana del juego.
     EXPECT_EQ(Input().message.text.Value(), "");
 
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_FALSE(Input().shown);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Game);
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(random.State(), before);
 }
@@ -263,12 +263,12 @@ TEST_P(GameChatOnTheMaps, OpeningTheChatLeavesTheMoneyMode)
 TEST_P(GameChatOnTheMaps, TheMoneyDialogEmptiesItsEdit)
 {
     world.Runtime().dialogs.current = MoneyDialog;
-    Input().focus = Client::UI::ChatFocus::Dialog;
+    Input().focus = Client::Chat::ChatFocus::Dialog;
     const auto before = random.State();
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_EQ(Input().dialogEdit.text.Value(), "");
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Game);
     EXPECT_EQ(world.Runtime().dialogs.current, MoneyDialog);
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(random.State(), before);
@@ -280,13 +280,13 @@ TEST_P(GameChatOnTheMaps, TheDialogEditIsReadWithTheFieldClosed)
     world.Runtime().dialogs.current = MoneyDialog;
     world.Runtime().social.moneyField = 1;
     Input().dialogEdit.text.SetText("250");
-    Input().dialogEdit.base.state = Client::UI::ShownWindow;
-    Input().focus = Client::UI::ChatFocus::Dialog;
+    Input().dialogEdit.base.state = Client::Ui::ShownWindow;
+    Input().focus = Client::Chat::ChatFocus::Dialog;
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_EQ(world.Runtime().social.typedMoney, 250);
     EXPECT_EQ(Input().dialogEdit.text.Value(), "");
-    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Game);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 }
@@ -299,18 +299,18 @@ TEST_P(GameChatOnTheMaps, TheTypedMoneyGoesThroughAtoiAndIsNotSaid)
     for (const auto& [typed, money] : {std::pair<std::string_view, std::int32_t>{" 1234\r", 1234},
                                        std::pair<std::string_view, std::int32_t>{"-12zen\r", -12}})
     {
-        Client::UI::ClearTheChatFields(Input());
-        Client::UI::ResetTheTextBuffers(Input(), false);
+        Client::Chat::ClearTheChatFields(Input());
+        Client::Chat::ResetTheTextBuffers(Input(), false);
         world.Runtime().ui.chatOpen = false;
         ASSERT_TRUE(Type("\r").HasValue());
         world.Runtime().social.moneyField = 1;
         Input().dialogEdit.text.SetText("7");
-        Input().dialogEdit.base.state = Client::UI::ShownWindow;
+        Input().dialogEdit.base.state = Client::Ui::ShownWindow;
         const auto before = random.State();
         ASSERT_TRUE(Type(typed).HasValue());
         EXPECT_EQ(world.Runtime().social.typedMoney, money) << typed;
         EXPECT_EQ(Input().dialogEdit.text.Value(), "") << typed;
-        EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow) << typed;
+        EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow) << typed;
         EXPECT_FALSE(world.Runtime().ui.chatOpen) << typed;
         EXPECT_TRUE(sent.empty());
         EXPECT_EQ(random.State(), before);
@@ -334,8 +334,8 @@ TEST_P(GameChatOnTheMaps, TheShopTitleModeKeepsOrRefusesTheTitle)
     EXPECT_EQ(shop.ownTitle, "Tienda inventada");
     const auto& entries = world.Runtime().chat.log.entries;
     EXPECT_TRUE(
-        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
-                            { return entry.text == "aviso titulo" && entry.type == Client::UI::SystemMessage; }));
+        std::ranges::any_of(entries, [](const Client::Chat::ChatEntry& entry)
+                            { return entry.text == "aviso titulo" && entry.type == Client::Ui::SystemMessage; }));
     EXPECT_TRUE(sent.empty());
 }
 
@@ -349,8 +349,8 @@ TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
     EXPECT_EQ(shops.signsShown, 0);
     ASSERT_FALSE(entries.empty());
     EXPECT_TRUE(
-        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
-                            { return entry.text == "aviso sin carteles" && entry.type == Client::UI::ErrorMessage; }));
+        std::ranges::any_of(entries, [](const Client::Chat::ChatEntry& entry)
+                            { return entry.text == "aviso sin carteles" && entry.type == Client::Ui::ErrorMessage; }));
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).text, "/no ver puestos");
 
@@ -358,8 +358,8 @@ TEST_P(GameChatOnTheMaps, TheSignCommandsReachTheShopSigns)
     ASSERT_TRUE(Type("\r/ver puestos\r").HasValue());
     EXPECT_EQ(shops.signsShown, 1);
     EXPECT_TRUE(
-        std::ranges::any_of(entries, [](const Client::UI::ChatEntry& entry)
-                            { return entry.text == "aviso carteles" && entry.type == Client::UI::SystemMessage; }));
+        std::ranges::any_of(entries, [](const Client::Chat::ChatEntry& entry)
+                            { return entry.text == "aviso carteles" && entry.type == Client::Ui::SystemMessage; }));
 }
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, GameChatOnTheMaps, ::testing::Values(Lorencia, Devias));
@@ -382,7 +382,7 @@ TEST_F(GameChat, EnterSaysWhatWasTyped)
     EXPECT_EQ(random.State(), before);
     EXPECT_EQ(Input().brake, 0x46);
     EXPECT_EQ(Input().history.said.front(), "hola");
-    EXPECT_EQ(world.Runtime().chat.area.firstShown, Client::UI::FirstShownRow);
+    EXPECT_EQ(world.Runtime().chat.area.firstShown, Client::Ui::FirstShownRow);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_FALSE(Input().shown);
     EXPECT_EQ(Input().message.text.Value(), "");
@@ -417,9 +417,9 @@ TEST_F(GameChat, MessageAndWhisperFieldsUseXpWindows1252BytesOnTheWire)
 TEST_F(GameChat, OrderedInputEventsMoveAndEditBothChatCarets)
 {
     ASSERT_TRUE(Type("\r").HasValue());
-    for (const auto field : {Client::UI::MessageField, Client::UI::WhisperField})
+    for (const auto field : {Client::Chat::MessageField, Client::Chat::WhisperField})
     {
-        Client::UI::FocusTheChatField(Input(), field);
+        Client::Chat::FocusTheChatField(Input(), field);
         const std::array events{
             Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "abcd"},
             Client::Input::TextInputEvent{
@@ -429,9 +429,9 @@ TEST_F(GameChat, OrderedInputEventsMoveAndEditBothChatCarets)
             Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "x"},
         };
 
-        ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), events).HasValue());
+        ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), events).HasValue());
 
-        const auto* edit = Client::UI::ChatEditWithFocus(Input());
+        const auto* edit = Client::Chat::ChatEditWithFocus(Input());
         ASSERT_NE(edit, nullptr);
         EXPECT_EQ(edit->text.Value(), "axbcd");
         EXPECT_EQ(edit->text.Cursor(), 2u);
@@ -457,7 +457,7 @@ TEST_F(GameChat, OrderedChatClipboardAndDeleteUseTheSharedXpEdit)
         Client::Input::TextInputEvent{
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::X, .text = {}, .ctrl = true},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), select).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), select).HasValue());
     EXPECT_EQ(clipboard.contents, std::optional<std::string>("é"));
     EXPECT_EQ(Input().message.text.Value(), "az");
     EXPECT_EQ(clipboard.writes, 2);
@@ -471,7 +471,7 @@ TEST_F(GameChat, OrderedChatClipboardAndDeleteUseTheSharedXpEdit)
         Client::Input::TextInputEvent{
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), paste).HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent.front()).opcode, 0x00);
     EXPECT_EQ(Decode(sent.front()).text, std::string("a\x80", 2));
@@ -483,8 +483,8 @@ TEST_F(GameChat, TabKeepsBothChatTextsAndSelectsTheNewFieldBeforeWhispering)
     ASSERT_TRUE(Type("\rmensaje\tDestino").HasValue());
     const std::array tab{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}}};
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), tab).HasValue());
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), tab).HasValue());
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
     EXPECT_EQ(Input().message.text.Selected(), "mensaje");
     EXPECT_EQ(Input().whisper.text.Value(), "Destino");
 
@@ -493,10 +493,10 @@ TEST_F(GameChat, TabKeepsBothChatTextsAndSelectsTheNewFieldBeforeWhispering)
         Client::Input::TextInputEvent{
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), edited).HasValue());
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Whisper);
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), edited).HasValue());
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Whisper);
     EXPECT_EQ(Input().whisper.text.Selected(), "Destino");
-    EXPECT_EQ(world.Runtime().ui.focusedList, Client::UI::ChatWhisperEditId);
+    EXPECT_EQ(world.Runtime().ui.focusedList, Client::Chat::ChatWhisperEditId);
     EXPECT_EQ(Input().message.text.Value(), "nuevo");
     ASSERT_TRUE(Type("\r").HasValue());
     ASSERT_EQ(sent.size(), 1u);
@@ -518,9 +518,9 @@ TEST_F(GameChat, ChatPreeditCannotSendOrChangeFocusBeforeCommittedText)
         Client::Input::TextInputEvent{
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Tab, .text = {}},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), preedit).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), preedit).HasValue());
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Message);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Message);
     EXPECT_EQ(Input().message.text.Value(), "ab");
     EXPECT_EQ(Input().message.compositionText, "preview");
     EXPECT_EQ(Input().message.compositionStart, 1);
@@ -531,7 +531,7 @@ TEST_F(GameChat, ChatPreeditCannotSendOrChangeFocusBeforeCommittedText)
         Client::Input::TextInputEvent{
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), commit).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), commit).HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent.front()).text, std::string("ab\xe9", 3));
     EXPECT_TRUE(Input().message.compositionText.empty());
@@ -539,7 +539,7 @@ TEST_F(GameChat, ChatPreeditCannotSendOrChangeFocusBeforeCommittedText)
 
 TEST_F(GameChat, OrderedInputEventsEditTheFocusedOldWindowField)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     const std::array events{
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "ac"},
         Client::Input::TextInputEvent{
@@ -547,7 +547,7 @@ TEST_F(GameChat, OrderedInputEventsEditTheFocusedOldWindowField)
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "b"},
     };
 
-    const auto result = Client::Scenes::TypeTheGameInput(Context(), events);
+    const auto result = Client::Chat::TypeTheGameInput(Context(), events);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(edit.text.Value(), "abc");
@@ -557,7 +557,7 @@ TEST_F(GameChat, OrderedInputEventsEditTheFocusedOldWindowField)
 
 TEST_F(GameChat, ShiftMovementSelectsTextThatDeleteRemoves)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abcdef");
     const std::array events{
         Client::Input::TextInputEvent{
@@ -574,7 +574,7 @@ TEST_F(GameChat, ShiftMovementSelectsTextThatDeleteRemoves)
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Delete, .text = {}},
     };
 
-    const auto result = Client::Scenes::TypeTheGameInput(Context(), events);
+    const auto result = Client::Chat::TypeTheGameInput(Context(), events);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(edit.text.Value(), "cdef");
@@ -584,11 +584,11 @@ TEST_F(GameChat, ShiftMovementSelectsTextThatDeleteRemoves)
 
 TEST_F(GameChat, OldEditTypingUsesXpWindows1252Bytes)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     const std::array events{
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "€Ａ漢"}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), events).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), events).HasValue());
 
     EXPECT_EQ(edit.text.Size(), 3u);
     EXPECT_TRUE(edit.text.Value() == std::string("\x80"
@@ -598,26 +598,26 @@ TEST_F(GameChat, OldEditTypingUsesXpWindows1252Bytes)
 
 TEST_F(GameChat, OldEditClipboardCopiesCutsAndPastesInXpEncoding)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText(std::string("a\xe9z", 3));
     edit.text.Select(1, 2);
     const std::array copy{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::C, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), copy).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), copy).HasValue());
     EXPECT_TRUE(clipboard.contents == std::optional<std::string>("é"));
     EXPECT_TRUE(edit.text.HasSelection());
 
     const std::array cut{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::X, .text = {}, .ctrl = true}};
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), cut).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), cut).HasValue());
     EXPECT_TRUE(edit.text.Value() == "az");
     EXPECT_TRUE(clipboard.contents == std::optional<std::string>("é"));
 
     clipboard.contents = "€";
     const std::array paste{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::V, .text = {}, .ctrl = true}};
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), paste).HasValue());
     EXPECT_TRUE(edit.text.Value() == std::string("a\x80"
                                                  "z",
                                                  3));
@@ -627,7 +627,7 @@ TEST_F(GameChat, OldEditClipboardCopiesCutsAndPastesInXpEncoding)
 
 TEST_F(GameChat, OldEditClipboardErrorsKeepSelectionAndEmptyPasteReplacesIt)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abcd");
     edit.text.Select(1, 3);
     edit.draws = 8;
@@ -635,14 +635,14 @@ TEST_F(GameChat, OldEditClipboardErrorsKeepSelectionAndEmptyPasteReplacesIt)
     const std::array paste{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::V, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), paste).HasValue());
     EXPECT_TRUE(edit.text.Value() == "abcd");
     EXPECT_TRUE(edit.text.HasSelection());
     EXPECT_EQ(edit.draws, 0);
 
     clipboard.readFails = false;
     clipboard.contents = std::string{};
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), paste).HasValue());
     EXPECT_TRUE(edit.text.Value() == "ad");
     EXPECT_FALSE(edit.text.HasSelection());
     EXPECT_EQ(clipboard.reads, 2);
@@ -650,7 +650,7 @@ TEST_F(GameChat, OldEditClipboardErrorsKeepSelectionAndEmptyPasteReplacesIt)
 
 TEST_F(GameChat, OldEditCutKeepsTheSelectionWhenClipboardWriteFails)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abcd");
     edit.text.Select(1, 3);
     edit.draws = 8;
@@ -658,7 +658,7 @@ TEST_F(GameChat, OldEditCutKeepsTheSelectionWhenClipboardWriteFails)
     const std::array cut{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::X, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), cut).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), cut).HasValue());
 
     EXPECT_TRUE(edit.text.Value() == "abcd");
     EXPECT_TRUE(edit.text.HasSelection());
@@ -668,14 +668,14 @@ TEST_F(GameChat, OldEditCutKeepsTheSelectionWhenClipboardWriteFails)
 
 TEST_F(GameChat, OldEditCtrlBackspaceInsertsTheNativeDeleteByte)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab");
     const std::array events{Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Key,
                                                           .key = Client::Input::Key::Backspace,
                                                           .text = {},
                                                           .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), events).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), events).HasValue());
 
     EXPECT_EQ(edit.text.Size(), 3u);
     EXPECT_TRUE(edit.text.Value() == std::string("ab\x7f", 3));
@@ -683,7 +683,7 @@ TEST_F(GameChat, OldEditCtrlBackspaceInsertsTheNativeDeleteByte)
 
 TEST_F(GameChat, OldEditCtrlAIsTheNativeNoOp)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abcd");
     edit.text.Select(1, 3);
     edit.compositionText = "preedit";
@@ -691,7 +691,7 @@ TEST_F(GameChat, OldEditCtrlAIsTheNativeNoOp)
     const std::array selectAll{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::A, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), selectAll).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), selectAll).HasValue());
 
     EXPECT_TRUE(edit.text.Value() == "abcd");
     EXPECT_TRUE(edit.text.HasSelection());
@@ -702,13 +702,13 @@ TEST_F(GameChat, OldEditCtrlAIsTheNativeNoOp)
 
 TEST_F(GameChat, OldEditCtrlCWithoutSelectionStillResetsTheCaretBlink)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.draws = 8;
     const std::array copy{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::C, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), copy).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), copy).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_FALSE(edit.text.HasSelection());
@@ -717,13 +717,13 @@ TEST_F(GameChat, OldEditCtrlCWithoutSelectionStillResetsTheCaretBlink)
 
 TEST_F(GameChat, OldEditCtrlXWithoutSelectionStillResetsTheCaretBlink)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.draws = 8;
     const std::array cut{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::X, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), cut).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), cut).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_EQ(edit.text.Value(), "abc");
@@ -732,7 +732,7 @@ TEST_F(GameChat, OldEditCtrlXWithoutSelectionStillResetsTheCaretBlink)
 
 TEST_F(GameChat, OldEditCtrlVReadFailureStillResetsTheCaretBlink)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.Select(1, 2);
     edit.draws = 8;
@@ -740,7 +740,7 @@ TEST_F(GameChat, OldEditCtrlVReadFailureStillResetsTheCaretBlink)
     const std::array paste{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::V, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), paste).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_EQ(edit.text.Value(), "abc");
@@ -749,7 +749,7 @@ TEST_F(GameChat, OldEditCtrlVReadFailureStillResetsTheCaretBlink)
 
 TEST_F(GameChat, OldEditCtrlCCancelsNothingAndResetsBlinkDuringComposition)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.Select(1, 2);
     edit.compositionText = "preedit";
@@ -757,7 +757,7 @@ TEST_F(GameChat, OldEditCtrlCCancelsNothingAndResetsBlinkDuringComposition)
     const std::array copy{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::C, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), copy).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), copy).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_TRUE(edit.text.HasSelection());
@@ -766,7 +766,7 @@ TEST_F(GameChat, OldEditCtrlCCancelsNothingAndResetsBlinkDuringComposition)
 
 TEST_F(GameChat, OldEditCtrlXPreservesSelectionAndResetsBlinkDuringComposition)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.Select(1, 2);
     edit.compositionText = "preedit";
@@ -774,7 +774,7 @@ TEST_F(GameChat, OldEditCtrlXPreservesSelectionAndResetsBlinkDuringComposition)
     const std::array cut{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::X, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), cut).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), cut).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_EQ(edit.text.Value(), "abc");
@@ -784,7 +784,7 @@ TEST_F(GameChat, OldEditCtrlXPreservesSelectionAndResetsBlinkDuringComposition)
 
 TEST_F(GameChat, OldEditCtrlVDoesNotReadAndResetsBlinkDuringComposition)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.Select(1, 2);
     edit.compositionText = "preedit";
@@ -792,7 +792,7 @@ TEST_F(GameChat, OldEditCtrlVDoesNotReadAndResetsBlinkDuringComposition)
     const std::array paste{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::V, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), paste).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), paste).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_EQ(edit.text.Value(), "abc");
@@ -802,7 +802,7 @@ TEST_F(GameChat, OldEditCtrlVDoesNotReadAndResetsBlinkDuringComposition)
 
 TEST_F(GameChat, OldEditCtrlBackspaceDuringCompositionStillResetsTheCaretBlink)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.SetCursor(2);
     edit.compositionText = "preedit";
@@ -810,7 +810,7 @@ TEST_F(GameChat, OldEditCtrlBackspaceDuringCompositionStillResetsTheCaretBlink)
     const std::array backspace{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Backspace, .text = {}}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), backspace).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), backspace).HasValue());
 
     EXPECT_EQ(edit.draws, 0);
     EXPECT_EQ(edit.text.Value(), "abc");
@@ -820,7 +820,7 @@ TEST_F(GameChat, OldEditCtrlBackspaceDuringCompositionStillResetsTheCaretBlink)
 
 TEST_F(GameChat, LegacyBackspaceDuringCompositionStillResetsTheCaretBlink)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.SetCursor(2);
     edit.compositionText = "preedit";
@@ -836,7 +836,7 @@ TEST_F(GameChat, LegacyBackspaceDuringCompositionStillResetsTheCaretBlink)
 
 TEST_F(GameChat, FocusLossCancellationAllowsBackspaceAndEnterAfterRefocus)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab");
     edit.compositionText = "preedit";
     const std::array cancel{Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Composition,
@@ -844,7 +844,7 @@ TEST_F(GameChat, FocusLossCancellationAllowsBackspaceAndEnterAfterRefocus)
                                                           .compositionStart = 0,
                                                           .compositionLength = 0}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), cancel).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), cancel).HasValue());
     ASSERT_TRUE(edit.compositionText.empty());
     const std::array keys{
         Client::Input::TextInputEvent{
@@ -853,17 +853,17 @@ TEST_F(GameChat, FocusLossCancellationAllowsBackspaceAndEnterAfterRefocus)
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
     };
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), keys).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), keys).HasValue());
 
     EXPECT_EQ(edit.text.Value(), "a");
     const auto& parentQueue = world.Runtime().oldWindows.windows.at(10).base.queue;
     ASSERT_EQ(parentQueue.size(), 1u);
-    EXPECT_EQ(parentQueue.front().type, Client::UI::EnterMessage);
+    EXPECT_EQ(parentQueue.front().type, Client::Ui::EnterMessage);
 }
 
 TEST_F(GameChat, CtrlWordMovementUsesTheXpByteBoundaries)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab cd ef");
     const std::array keys{
         Client::Input::TextInputEvent{
@@ -882,20 +882,20 @@ TEST_F(GameChat, CtrlWordMovementUsesTheXpByteBoundaries)
                                       .ctrl = true},
     };
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), keys).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), keys).HasValue());
 
     EXPECT_EQ(edit.text.Cursor(), 6u);
 }
 
 TEST_F(GameChat, CtrlDeleteRemovesOnlyToTheEndOfTheXpLine)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab cd ef");
     edit.text.SetCursor(3);
     const std::array erase{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Delete, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), erase).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), erase).HasValue());
 
     EXPECT_EQ(edit.text.Value(), "ab ");
     EXPECT_EQ(edit.text.Cursor(), 3u);
@@ -903,7 +903,7 @@ TEST_F(GameChat, CtrlDeleteRemovesOnlyToTheEndOfTheXpLine)
 
 TEST_F(GameChat, ShiftCtrlMovementKeepsTheActiveWordCaretAndAnchor)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab cd ef");
     const std::array keys{
         Client::Input::TextInputEvent{
@@ -920,7 +920,7 @@ TEST_F(GameChat, ShiftCtrlMovementKeepsTheActiveWordCaretAndAnchor)
                                       .ctrl = true},
     };
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), keys).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), keys).HasValue());
 
     EXPECT_EQ(edit.text.Cursor(), 3u);
     EXPECT_TRUE(edit.text.HasSelection());
@@ -930,13 +930,13 @@ TEST_F(GameChat, ShiftCtrlMovementKeepsTheActiveWordCaretAndAnchor)
 
 TEST_F(GameChat, CtrlDeleteWithSelectionDeletesOnlyTheSelection)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab cd ef");
     edit.text.Select(1, 3);
     const std::array erase{Client::Input::TextInputEvent{
         .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Delete, .text = {}, .ctrl = true}};
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), erase).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), erase).HasValue());
 
     EXPECT_EQ(edit.text.Value(), "acd ef");
     EXPECT_EQ(edit.text.Cursor(), 1u);
@@ -945,7 +945,7 @@ TEST_F(GameChat, CtrlDeleteWithSelectionDeletesOnlyTheSelection)
 
 TEST_F(GameChat, OldEditUpDownTabAndEnterResetBlinkWithoutChangingTextDuringComposition)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("abc");
     edit.text.SetCursor(1);
     edit.compositionText = "preedit";
@@ -961,7 +961,7 @@ TEST_F(GameChat, OldEditUpDownTabAndEnterResetBlinkWithoutChangingTextDuringComp
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
     };
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), events).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), events).HasValue());
 
     EXPECT_TRUE(edit.text.Value() == "abc");
     EXPECT_EQ(edit.text.Cursor(), 1u);
@@ -972,7 +972,7 @@ TEST_F(GameChat, OldEditUpDownTabAndEnterResetBlinkWithoutChangingTextDuringComp
 
 TEST_F(GameChat, CompositionIsSeparateAndTextInputCommitsItOnce)
 {
-    Client::UI::OldEdit& edit = FocusAnOldEdit();
+    Client::Ui::OldEdit& edit = FocusAnOldEdit();
     edit.text.SetText("ab");
     edit.text.SetCursor(1);
     const std::array preedit{
@@ -982,7 +982,7 @@ TEST_F(GameChat, CompositionIsSeparateAndTextInputCommitsItOnce)
                                       .compositionLength = 3},
     };
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), preedit).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), preedit).HasValue());
 
     EXPECT_EQ(edit.text.Value(), "ab");
     EXPECT_EQ(edit.compositionText, "preview");
@@ -992,7 +992,7 @@ TEST_F(GameChat, CompositionIsSeparateAndTextInputCommitsItOnce)
     const std::array cancel{
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Composition, .text = {}},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), cancel).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), cancel).HasValue());
     EXPECT_TRUE(edit.compositionText.empty());
     EXPECT_EQ(edit.text.Value(), "ab");
 
@@ -1000,7 +1000,7 @@ TEST_F(GameChat, CompositionIsSeparateAndTextInputCommitsItOnce)
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Composition, .text = "preview"},
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "é"},
     };
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), commit).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), commit).HasValue());
     EXPECT_EQ(edit.text.Value(), std::string("a\xe9"
                                              "b",
                                              3));
@@ -1015,7 +1015,7 @@ TEST_F(GameChat, OrderedInputEventsSendTheGameChatOnce)
         Client::Input::TextInputEvent{.kind = Client::Input::TextInputEvent::Kind::Text, .text = "\r"},
     };
 
-    const auto result = Client::Scenes::TypeTheGameInput(Context(), events);
+    const auto result = Client::Chat::TypeTheGameInput(Context(), events);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(sent.size(), 1u);
@@ -1031,7 +1031,7 @@ TEST_F(GameChat, OrderedEnterKeyUsesTheLegacyGameChatExactlyOnce)
             .kind = Client::Input::TextInputEvent::Kind::Key, .key = Client::Input::Key::Enter, .text = {}},
     };
 
-    ASSERT_TRUE(Client::Scenes::TypeTheGameInput(Context(), events).HasValue());
+    ASSERT_TRUE(Client::Chat::TypeTheGameInput(Context(), events).HasValue());
 
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(Decode(sent.front()).text == "hola");
@@ -1160,7 +1160,7 @@ TEST_F(GameChat, TheWhisperGoesToTheNameOfTheSecondField)
     ASSERT_FALSE(entries.empty());
     EXPECT_EQ(entries.front().name, "Heroe");
     EXPECT_EQ(entries.front().text, "psst");
-    EXPECT_EQ(entries.front().type, Client::UI::WhisperMessage);
+    EXPECT_EQ(entries.front().type, Client::Ui::WhisperMessage);
     // El susurro no frena el chat.
     EXPECT_EQ(Input().brake, 0);
 }
@@ -1176,14 +1176,14 @@ TEST_F(GameChat, ALowLevelCannotWhisper)
     EXPECT_TRUE(sent.empty());
     ASSERT_FALSE(world.Runtime().chat.log.entries.empty());
     EXPECT_EQ(world.Runtime().chat.log.entries.front().text, "aviso nivel");
-    EXPECT_EQ(world.Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+    EXPECT_EQ(world.Runtime().chat.log.entries.front().type, Client::Ui::SystemMessage);
 }
 
 // Con el nombre entre los que susurraron (0x77997f8, que llena el 02 que llega), el nivel bajo no frena.
 TEST_F(GameChat, ALowLevelMayAnswerWhoWhispered)
 {
     world.OwnCharacter().level = 5;
-    Client::UI::RememberTheWhisperSender(world.Runtime().chat.whisperSenders, 5, "Alguien");
+    Client::Chat::RememberTheWhisperSender(world.Runtime().chat.whisperSenders, 5, "Alguien");
     ASSERT_TRUE(Type("\rpsst\tAlguien\r").HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).opcode, 0x02);
@@ -1217,7 +1217,7 @@ TEST_F(GameChat, ADyingHeroDoesNotSayMove)
     world.Hero().dying = 1;
     ASSERT_TRUE(Type("\r/mover\r").HasValue());
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(world.Runtime().panels.overlayMode, Client::UI::MoveOverlayMode);
+    EXPECT_EQ(world.Runtime().panels.overlayMode, Client::Ui::MoveOverlayMode);
 }
 
 // 0x622b40 con 1: lo que tiene una palabra de Filter.bmd sale como el texto 570.
@@ -1260,13 +1260,13 @@ TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
 {
     world.Runtime().panels.field78abb00 = 3;
     world.Runtime().events.serialEntry = true;
-    Input().focus = Client::UI::ChatFocus::Dialog;
-    Input().dialogEdit.filter = Client::UI::UppercaseLettersAndDigitsEdit;
+    Input().focus = Client::Chat::ChatFocus::Dialog;
+    Input().dialogEdit.filter = Client::Ui::UppercaseLettersAndDigitsEdit;
     Input().dialogEdit.text.SetLimit(12);
     ASSERT_TRUE(Type("ab-1 c\bz9\r\t").HasValue());
     EXPECT_EQ(Input().dialogEdit.text.Value(), "AB1Z9");
     EXPECT_EQ(Input().message.text.Value(), "");
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
     EXPECT_TRUE(world.Runtime().ui.enterPressed);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
@@ -1293,11 +1293,11 @@ TEST_F(GameChat, AStuckSerialEntrySwallowsEnter)
     ASSERT_TRUE(Type("\rhola").HasValue());
     ASSERT_TRUE(world.Runtime().ui.chatOpen);
     Input().field = 1;
-    Input().focus = Client::UI::ChatFocus::Message;
+    Input().focus = Client::Chat::ChatFocus::Message;
     const auto before = random.State();
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(Input().field, Client::UI::MessageField);
+    EXPECT_EQ(Input().field, Client::Chat::MessageField);
     EXPECT_TRUE(world.Runtime().ui.chatOpen);
     EXPECT_EQ(std::string_view(Input().messageBuffer.data()), "hola");
     EXPECT_EQ(Input().message.text.Value(), "hola");
@@ -1313,7 +1313,7 @@ TEST_F(GameChat, AHandledCommandOnlyClosesTheField)
     EXPECT_EQ(Input().macros[0], "hola");
     EXPECT_EQ(world.Runtime().chat.area.firstShown, 0);
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
-    EXPECT_EQ(world.Runtime().lastSoundId, Client::UI::ChatButtonSound);
+    EXPECT_EQ(world.Runtime().lastSoundId, Client::Chat::ChatButtonSound);
 }
 
 // 0x56c68b..0x56cdfc desde el chat: /trade con el elegido al lado manda el C1 05 36 y el aviso 475 sale armado con su
@@ -1343,15 +1343,15 @@ TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
 {
     Input().macros[0] = "uno";
     Input().macros[9] = "diez";
-    std::array<bool, Client::UI::MacroCount> pressed{};
+    std::array<bool, Client::Chat::MacroCount> pressed{};
     pressed[0] = true;
     pressed[9] = true;
     const auto before = random.State();
-    const auto said = Client::Scenes::SayTheMacros(Context(), pressed);
+    const auto said = Client::Chat::SayTheMacros(Context(), pressed);
     ASSERT_TRUE(said.HasValue()) << said.Error();
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).text, "uno");
-    EXPECT_EQ(world.Runtime().hud.macroTime, Client::UI::MacroLockSteps);
+    EXPECT_EQ(world.Runtime().hud.macroTime, Client::Chat::MacroLockSteps);
     EXPECT_EQ(random.State(), before);
 }
 
@@ -1359,12 +1359,12 @@ TEST_F(GameChat, TheMacrosSayTheirTextAndLock)
 TEST_F(GameChat, FromAMacroTheNumbersAreNotCommands)
 {
     Input().macros[0] = "/1x";
-    std::array<bool, Client::UI::MacroCount> pressed{};
+    std::array<bool, Client::Chat::MacroCount> pressed{};
     pressed[0] = true;
-    ASSERT_TRUE(Client::Scenes::SayTheMacros(Context(), pressed).HasValue());
+    ASSERT_TRUE(Client::Chat::SayTheMacros(Context(), pressed).HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(Decode(sent[0]).text, "/1x");
     EXPECT_EQ(Input().macros[0], "/1x");
-    EXPECT_EQ(world.Runtime().hud.macroTime, Client::UI::MacroLockSteps);
+    EXPECT_EQ(world.Runtime().hud.macroTime, Client::Chat::MacroLockSteps);
 }
 } // namespace

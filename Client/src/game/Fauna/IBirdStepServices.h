@@ -7,7 +7,7 @@
 #include <span>
 #include <system_error>
 
-namespace Client::World
+namespace Client::Fauna
 {
 inline constexpr std::size_t BirdRecordSize = 0x1d4;
 using BirdRecord = std::span<std::byte, BirdRecordSize>;
@@ -87,4 +87,4 @@ public:
     virtual double Wave(float sine) = 0;                                           // 622110
     virtual bool AudioDistance(const glm::vec3& bird, const glm::vec3& actor) = 0; // FSQRT XY C0: <600 o unordered
 };
-} // namespace Client::World
+} // namespace Client::Fauna

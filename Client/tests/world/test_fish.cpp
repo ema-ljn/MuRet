@@ -9,17 +9,17 @@
 
 namespace
 {
-using Client::World::AtlansFishModel;
-using Client::World::FishCopiesWorldPosition;
-using Client::World::FishDirectSpawnAllowed;
-using Client::World::FishHasModel;
-using Client::World::FishMovement;
-using Client::World::FishMovementFor;
-using Client::World::FishMovementMode;
-using Client::World::FishNeedsOscillation;
-using Client::World::FishOpenWaterTile;
-using Client::World::FishSpawnEventGate;
-using Client::World::FishStepCount;
+using Client::Fauna::AtlansFishModel;
+using Client::Fauna::FishCopiesWorldPosition;
+using Client::Fauna::FishDirectSpawnAllowed;
+using Client::Fauna::FishHasModel;
+using Client::Fauna::FishMovement;
+using Client::Fauna::FishMovementFor;
+using Client::Fauna::FishMovementMode;
+using Client::Fauna::FishNeedsOscillation;
+using Client::Fauna::FishOpenWaterTile;
+using Client::Fauna::FishSpawnEventGate;
+using Client::Fauna::FishStepCount;
 
 // 447030-contract § Recorrido y § Candidatos; oráculos estáticos, sin captura runtime fabricada.
 TEST(FishTest, AllMapFamiliesSelectTheirPersistentPrefix)

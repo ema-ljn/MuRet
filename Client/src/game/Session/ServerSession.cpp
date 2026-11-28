@@ -97,36 +97,36 @@ std::string VersionText(const std::array<char, Protocol::Session::VersionSize>& 
 
 // Lo que espera cada estado Waiting*, para el log de ReplyTimeout; vacío en los que no esperan una
 // respuesta de un servidor. Los que esperan al jugador no tienen tope.
-std::string_view Awaited(SessionState state)
+std::string_view Awaited(Session::SessionState state)
 {
     switch (state)
     {
-    case SessionState::WaitingConnectHello:
-    case SessionState::WaitingGameHello:
+    case Session::SessionState::WaitingConnectHello:
+    case Session::SessionState::WaitingGameHello:
         return "su saludo";
-    case SessionState::WaitingServerList:
+    case Session::SessionState::WaitingServerList:
         return "la lista de servidores";
-    case SessionState::WaitingServerAddress:
+    case Session::SessionState::WaitingServerAddress:
         return "la dirección del GameServer";
-    case SessionState::WaitingLoginResult:
+    case Session::SessionState::WaitingLoginResult:
         return "el resultado del login";
-    case SessionState::WaitingCharacterList:
+    case Session::SessionState::WaitingCharacterList:
         return "la lista de personajes";
-    case SessionState::WaitingCreateResult:
+    case Session::SessionState::WaitingCreateResult:
         return "el resultado de crear un personaje";
-    case SessionState::WaitingDeleteResult:
+    case Session::SessionState::WaitingDeleteResult:
         return "el resultado de borrar un personaje";
-    case SessionState::Idle:
-    case SessionState::ConnectingConnectServer:
-    case SessionState::ChoosingServer:
-    case SessionState::ConnectingGameServer:
-    case SessionState::WaitingCredentials:
-    case SessionState::LoggedIn:
-    case SessionState::ChoosingCharacter:
-    case SessionState::EnteringWorld:
-    case SessionState::InWorld:
-    case SessionState::QuitOrdered:
-    case SessionState::Failed:
+    case Session::SessionState::Idle:
+    case Session::SessionState::ConnectingConnectServer:
+    case Session::SessionState::ChoosingServer:
+    case Session::SessionState::ConnectingGameServer:
+    case Session::SessionState::WaitingCredentials:
+    case Session::SessionState::LoggedIn:
+    case Session::SessionState::ChoosingCharacter:
+    case Session::SessionState::EnteringWorld:
+    case Session::SessionState::InWorld:
+    case Session::SessionState::QuitOrdered:
+    case Session::SessionState::Failed:
         break;
     }
     return {};
@@ -222,7 +222,7 @@ void ServerSession::SendGamePacket(Protocol::Outgoing packet)
 
 void ServerSession::Start()
 {
-    if (m_state == SessionState::QuitOrdered)
+    if (m_state == Session::SessionState::QuitOrdered)
     {
         m_log.Warning("no se vuelve a conectar: el GameServer ordenó cerrar el juego");
         return;
@@ -244,7 +244,7 @@ void ServerSession::Start()
     m_mapServerMove.reset();
     m_log.Info("se conecta al ConnectServer");
     Connect(m_settings.connectServer, std::nullopt);
-    SetState(SessionState::ConnectingConnectServer);
+    SetState(Session::SessionState::ConnectingConnectServer);
 }
 
 Core::Expected<void, std::string> ServerSession::Poll()
@@ -272,7 +272,7 @@ Core::Expected<void, std::string> ServerSession::Poll()
     {
         m_log.Error("el {} no contestó en {} s: se esperaba {}", ServerName(),
                     std::chrono::duration_cast<std::chrono::seconds>(ReplyTimeout).count(), awaited);
-        Fail(SessionFailure::NoReply);
+        Fail(Session::SessionFailure::NoReply);
         return {};
     }
     if (keepaliveDue && m_connection.State() == Network::LinkState::Open && !WithConnectServer())
@@ -313,7 +313,7 @@ void ServerSession::HandleEvents()
     }
 }
 
-SessionState ServerSession::State() const
+Session::SessionState ServerSession::State() const
 {
     return m_state;
 }
@@ -328,12 +328,12 @@ void ServerSession::PublishWorldEntry()
         return;
     }
     m_log.Info("se aplicó la entrada al mundo: la sesión está en el mundo");
-    SetState(SessionState::InWorld);
+    SetState(Session::SessionState::InWorld);
 }
 
 bool ServerSession::JoinedWorld() const
 {
-    return m_state == SessionState::InWorld;
+    return m_state == Session::SessionState::InWorld;
 }
 
 std::uint16_t ServerSession::PlayerIndex() const
@@ -381,7 +381,7 @@ std::span<const Protocol::Session::ServerEntry> ServerSession::ServerList() cons
 // 0x645e10 manda el F4 03 con el código del botón y cierra la lista; el log no dice cuál.
 void ServerSession::ChooseServer(std::uint16_t code)
 {
-    if (m_state != SessionState::ChoosingServer)
+    if (m_state != Session::SessionState::ChoosingServer)
     {
         m_log.Warning("se ignora la elección de un servidor: {}", NotAwaited);
         return;
@@ -390,7 +390,7 @@ void ServerSession::ChooseServer(std::uint16_t code)
     m_chosenServer = code;
     Protocol::Outgoing choice = Protocol::Session::WriteServerSelect(code);
     m_connection.Send(std::move(choice.packet), choice.delivery);
-    SetState(SessionState::WaitingServerAddress);
+    SetState(Session::SessionState::WaitingServerAddress);
 }
 
 std::optional<std::uint16_t> ServerSession::ChosenServer() const
@@ -402,7 +402,7 @@ std::optional<std::uint16_t> ServerSession::ChosenServer() const
 // Ni la cuenta ni la clave van al log, tampoco cuando no entran.
 void ServerSession::SubmitCredentials(const Credentials& credentials)
 {
-    if (m_state != SessionState::WaitingCredentials)
+    if (m_state != Session::SessionState::WaitingCredentials)
     {
         m_log.Warning("se ignoran la cuenta y la clave: {}", NotAwaitedPlural);
         return;
@@ -415,13 +415,13 @@ void ServerSession::SubmitCredentials(const Credentials& credentials)
         return;
     }
     const Protocol::Session::LoginRequest request{credentials.account, credentials.password,
-                                                  TickCountMs(m_clock.Now())};
+                                                  Kernel::TickCountMs(m_clock.Now())};
     auto login = Protocol::Session::WriteLoginRequest(request);
     if (!login.HasValue())
     {
         m_log.Error("no se puede escribir el login: la cuenta o la clave pasan de {} bytes",
                     Protocol::Session::CredentialSize);
-        Fail(SessionFailure::CredentialsTooLong);
+        Fail(Session::SessionFailure::CredentialsTooLong);
         return;
     }
     m_log.Info("se manda el login");
@@ -431,15 +431,15 @@ void ServerSession::SubmitCredentials(const Credentials& credentials)
     m_account = credentials.account;
     Protocol::Outgoing outgoing = std::move(login).Value();
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
-    SetState(SessionState::WaitingLoginResult);
+    SetState(Session::SessionState::WaitingLoginResult);
 }
 
-std::optional<SessionFailure> ServerSession::Failure() const
+std::optional<Session::SessionFailure> ServerSession::Failure() const
 {
     return m_failure;
 }
 
-std::optional<ServerAddress> ServerSession::GameServer() const
+std::optional<Session::ServerAddress> ServerSession::GameServer() const
 {
     return m_gameServerAddress;
 }
@@ -458,7 +458,7 @@ void ServerSession::SetKeepaliveSpeeds(const KeepaliveSpeeds& speeds)
 // es la escena de la selección, al entrar.
 void ServerSession::RequestCharacterList()
 {
-    if (m_state != SessionState::LoggedIn)
+    if (m_state != Session::SessionState::LoggedIn)
     {
         m_log.Warning("se ignora el pedido de la lista de personajes: {}", NotAwaitedMasculine);
         return;
@@ -466,7 +466,7 @@ void ServerSession::RequestCharacterList()
     m_log.Info("se pide la lista de personajes");
     Protocol::Outgoing request = Protocol::FrontEnd::WriteCharacterListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
-    SetState(SessionState::WaitingCharacterList);
+    SetState(Session::SessionState::WaitingCharacterList);
 }
 
 const std::optional<Protocol::FrontEnd::CharacterList>& ServerSession::Characters() const
@@ -476,7 +476,7 @@ const std::optional<Protocol::FrontEnd::CharacterList>& ServerSession::Character
 
 void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
 {
-    if (m_state != SessionState::ChoosingCharacter)
+    if (m_state != Session::SessionState::ChoosingCharacter)
     {
         m_log.Warning("se ignora la elección de un personaje: {}", NotAwaited);
         return;
@@ -503,7 +503,7 @@ const Protocol::FrontEnd::CharacterEntry* ServerSession::ChosenCharacter() const
 // lugar: el nombre es del jugador.
 void ServerSession::EnterWorld()
 {
-    if (m_state != SessionState::ChoosingCharacter)
+    if (m_state != Session::SessionState::ChoosingCharacter)
     {
         m_log.Warning("se ignora la entrada al mundo: {}", NotAwaited);
         return;
@@ -517,14 +517,14 @@ void ServerSession::EnterWorld()
     m_log.Info("se entra al mundo con el personaje del lugar {}", chosen->slot);
     Protocol::Outgoing select = Protocol::FrontEnd::WriteCharacterSelect(chosen->name);
     m_connection.Send(std::move(select.packet), select.delivery);
-    SetState(SessionState::EnteringWorld);
+    SetState(Session::SessionState::EnteringWorld);
 }
 
 // 0x63d990 manda el F3 01 después de sus chequeos del nombre, que son de la ventana: acá solo se mira
 // que entre en el paquete. El nombre es del jugador y no va al log.
 void ServerSession::CreateCharacter(std::string_view name, std::uint8_t characterClass)
 {
-    if (m_state != SessionState::ChoosingCharacter)
+    if (m_state != Session::SessionState::ChoosingCharacter)
     {
         m_log.Warning("se ignora el pedido de crear un personaje: {}", NotAwaitedMasculine);
         return;
@@ -540,7 +540,7 @@ void ServerSession::CreateCharacter(std::string_view name, std::uint8_t characte
     Protocol::Outgoing create = Protocol::FrontEnd::WriteCharacterCreate(*bytes, characterClass);
     m_connection.Send(std::move(create.packet), create.delivery);
     m_createResult.reset();
-    SetState(SessionState::WaitingCreateResult);
+    SetState(Session::SessionState::WaitingCreateResult);
 }
 
 std::optional<std::uint8_t> ServerSession::CreateResult() const
@@ -552,7 +552,7 @@ std::optional<std::uint8_t> ServerSession::CreateResult() const
 // clave: no va al log.
 void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::FrontEnd::DeleteCodeSize> code)
 {
-    if (m_state != SessionState::ChoosingCharacter)
+    if (m_state != Session::SessionState::ChoosingCharacter)
     {
         m_log.Warning("se ignora el pedido de borrar un personaje: {}", NotAwaitedMasculine);
         return;
@@ -568,12 +568,12 @@ void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::FrontEn
     m_connection.Send(std::move(request.packet), request.delivery);
     m_deletingSlot = chosen->slot;
     m_deleteResult.reset();
-    SetState(SessionState::WaitingDeleteResult);
+    SetState(Session::SessionState::WaitingDeleteResult);
 }
 
 void ServerSession::RequestLogout(std::uint8_t kind)
 {
-    if (m_state != SessionState::ChoosingCharacter && m_state != SessionState::InWorld)
+    if (m_state != Session::SessionState::ChoosingCharacter && m_state != Session::SessionState::InWorld)
     {
         m_log.Warning("se ignora el pedido de salida (F1 02 con {}): no hay un GameServer que lo espere", kind);
         return;
@@ -592,16 +592,16 @@ std::optional<std::uint8_t> ServerSession::DeleteResult() const
 // GS saluda primero: al abrirlo no sale nada.
 void ServerSession::OnOpened()
 {
-    if (m_state == SessionState::ConnectingConnectServer)
+    if (m_state == Session::SessionState::ConnectingConnectServer)
     {
         m_log.Info("conectó con el ConnectServer");
         Protocol::Outgoing request = Protocol::Pets::WritePetInfoRequest(Protocol::Pets::LoginScenePetInfoRequest);
         m_connection.Send(std::move(request.packet), request.delivery);
-        SetState(SessionState::WaitingConnectHello);
+        SetState(Session::SessionState::WaitingConnectHello);
         return;
     }
     m_log.Info("conectó con el GameServer: se espera su saludo");
-    SetState(SessionState::WaitingGameHello);
+    SetState(Session::SessionState::WaitingGameHello);
 }
 
 void ServerSession::OnPacket(const Network::Packet& packet)
@@ -628,14 +628,14 @@ void ServerSession::OnUndecryptable(const Network::Undecryptable& undecryptable)
 void ServerSession::OnClosed(Network::CloseReason reason)
 {
     m_log.Error("se perdió la conexión con el {}: {}", ServerName(), Network::CloseReasonText(reason));
-    Fail(WithConnectServer() ? SessionFailure::ConnectServerLost : SessionFailure::GameServerLost);
+    Fail(WithConnectServer() ? Session::SessionFailure::ConnectServerLost : Session::SessionFailure::GameServerLost);
 }
 
 // 0x4e33e4 pide la lista con cada saludo: en 8 de 64 conexiones sale dos veces (04 § El flujo de
 // conexión). Acá, una vez.
 void ServerSession::OnConnectHello([[maybe_unused]] const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingConnectHello)
+    if (m_state != Session::SessionState::WaitingConnectHello)
     {
         m_log.Warning("se ignora el saludo del ConnectServer (00): {}", OutOfTurn);
         return;
@@ -643,15 +643,15 @@ void ServerSession::OnConnectHello([[maybe_unused]] const Network::Packet& packe
     m_log.Info("el ConnectServer saludó: se pide la lista de servidores");
     Protocol::Outgoing request = Protocol::Session::WriteServerListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
-    SetState(SessionState::WaitingServerList);
+    SetState(Session::SessionState::WaitingServerList);
 }
 
 // La lista se guarda en el orden en que llega, y la elección es de la UI (CL5.5) o del AutoLogin,
 // que elige el primero (pregunta 9 del plan de la CL4). 0x4c1860 la reparte en grupos para la
-// ventana: eso es de UI::GroupServers.
+// ventana: eso es de FrontEnd::GroupServers.
 void ServerSession::OnServerList(const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingServerList)
+    if (m_state != Session::SessionState::WaitingServerList)
     {
         m_log.Warning("se ignora la lista de servidores (F4 06): {}", OutOfTurn);
         return;
@@ -666,19 +666,19 @@ void ServerSession::OnServerList(const Network::Packet& packet)
     if (entries.empty())
     {
         m_log.Error("la lista de servidores está vacía: no hay a qué GameServer conectarse");
-        Fail(SessionFailure::EmptyServerList);
+        Fail(Session::SessionFailure::EmptyServerList);
         return;
     }
     m_log.Info("la lista trae {} servidores: se espera la elección", entries.size());
     m_serverList = entries;
-    SetState(SessionState::ChoosingServer);
+    SetState(Session::SessionState::ChoosingServer);
 }
 
 // El original loguea la dirección, cierra el CS (0x4e8380) y conecta al GS (0x4c1340). Acá el log
 // no la dice: es del servidor, como el host de la config.
 void ServerSession::OnServerAddress(const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingServerAddress)
+    if (m_state != Session::SessionState::WaitingServerAddress)
     {
         m_log.Warning("se ignora la dirección del GameServer (F4 03): {}", OutOfTurn);
         return;
@@ -690,9 +690,9 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
         return;
     }
     m_log.Info("el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese");
-    m_gameServerAddress = ServerAddress{address.Value().host, address.Value().port};
+    m_gameServerAddress = Session::ServerAddress{address.Value().host, address.Value().port};
     Connect(*m_gameServerAddress, m_keys);
-    SetState(SessionState::ConnectingGameServer);
+    SetState(Session::SessionState::ConnectingGameServer);
 }
 
 // El F4 05 contesta la elección de un servidor ocupado. Como el original (0x4e2b10 llama a
@@ -701,7 +701,7 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
 // tampoco lo mira.
 void ServerSession::OnServerBusy(const Network::Packet&)
 {
-    if (m_state != SessionState::WaitingServerAddress)
+    if (m_state != Session::SessionState::WaitingServerAddress)
     {
         m_log.Warning("se ignora el aviso de servidor ocupado (F4 05): {}", OutOfTurn);
         return;
@@ -710,7 +710,7 @@ void ServerSession::OnServerBusy(const Network::Packet&)
     m_chosenServer.reset();
     Protocol::Outgoing request = Protocol::Session::WriteServerListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
-    SetState(SessionState::WaitingServerList);
+    SetState(Session::SessionState::WaitingServerList);
 }
 
 // 0x4c1e20 muestra "Connectting error" con otro resultado y "Version dismatch" con otra versión,
@@ -723,7 +723,7 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
         OnGameHelloAfterLogin(packet);
         return;
     }
-    if (m_state != SessionState::WaitingGameHello)
+    if (m_state != Session::SessionState::WaitingGameHello)
     {
         m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", OutOfTurn);
         return;
@@ -737,7 +737,7 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
     if (hello.Value().result != Protocol::Session::HelloAccepted)
     {
         m_log.Error("el GameServer rechazó la conexión (resultado {})", hello.Value().result);
-        Fail(SessionFailure::HelloRejected);
+        Fail(Session::SessionFailure::HelloRejected);
         return;
     }
     // 0x4c1ec0 guarda la clave con el resultado 1, antes de comparar la versión.
@@ -747,12 +747,12 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
     {
         m_log.Error("el GameServer tiene la versión {} y este cliente la {}: no se manda el login",
                     VersionText(hello.Value().version), Protocol::Session::ClientVersion);
-        Fail(SessionFailure::VersionMismatch);
+        Fail(Session::SessionFailure::VersionMismatch);
         return;
     }
     // 0x4c1e20 abre la ventana de la cuenta con el GS ya conectado (DAT_057678c0 en 2).
     m_log.Info("el GameServer saludó: se espera la cuenta y la clave");
-    SetState(SessionState::WaitingCredentials);
+    SetState(Session::SessionState::WaitingCredentials);
 }
 
 // 0x4c1e2c..0x4c1e59: sin mirar el resultado, la versión ni el estado, la clave del jugador (0x57678bc), 0x412bb0 y
@@ -781,12 +781,15 @@ void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
     if (!CheckApplication(m_eventSink.ApplyWorld(MapServerJoined{}, *this)))
         return;
     // 0x4133cb: el reloj se lee después del reseteo y sus dos cierres, antes del relleno y el serial.
-    auto auth = Protocol::Session::WriteMapServerAuth(Protocol::Session::MapServerAuth{
-        .account = m_account, .character = name, .codes = m_mapServerMove->codes, .tick = TickCountMs(m_clock.Now())});
+    auto auth = Protocol::Session::WriteMapServerAuth(
+        Protocol::Session::MapServerAuth{.account = m_account,
+                                         .character = name,
+                                         .codes = m_mapServerMove->codes,
+                                         .tick = Kernel::TickCountMs(m_clock.Now())});
     if (!auth.HasValue())
     {
         m_log.Error("no se puede escribir el B1 01: la cuenta pasa de 10 bytes");
-        Fail(SessionFailure::CredentialsTooLong);
+        Fail(Session::SessionFailure::CredentialsTooLong);
         return;
     }
     if (!CheckApplication(m_eventSink.ApplyWorld(MapServerAuthenticationPrepared{}, *this)))
@@ -796,7 +799,7 @@ void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
     if (!CheckApplication(m_eventSink.ApplyWorld(GuildTableReset{}, *this)))
         return;
-    SetState(SessionState::EnteringWorld);
+    SetState(Session::SessionState::EnteringWorld);
 }
 
 // 0x412b30: guarda el movimiento (0x412aa0) y, con [0x5767928] distinto de 0, cierra el GameServer (0x4c1680), guarda
@@ -828,17 +831,17 @@ void ServerSession::OnMapServerMove(const Network::Packet& packet)
         // Sin un 0 en los 0x24 bytes, 0x4c1340 lee el host fuera del objeto (Q-C1402): no se conecta, y el socket ya
         // está cerrado como en el original.
         m_log.Warning("el cambio de servidor del mapa (B1 00) trae un host sin terminar: no se conecta (Q-C1402)");
-        Fail(SessionFailure::GameServerLost);
+        Fail(Session::SessionFailure::GameServerLost);
         return;
     }
     m_log.Info("el GameServer manda a otro servidor del mapa (B1 00): se cierra y se conecta a ese");
-    Connect(ServerAddress{m_mapServerMove->host, m_mapServerMove->port}, m_keys);
-    SetState(SessionState::ConnectingGameServer);
+    Connect(Session::ServerAddress{m_mapServerMove->host, m_mapServerMove->port}, m_keys);
+    SetState(Session::SessionState::ConnectingGameServer);
 }
 
 void ServerSession::OnLoginResult(const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingLoginResult)
+    if (m_state != Session::SessionState::WaitingLoginResult)
     {
         m_log.Warning("se ignora el resultado del login (F1 01): {}", OutOfTurn);
         return;
@@ -855,11 +858,11 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
         // El GS queda abierto: el aviso de la escena, y otra vez la cuenta (0x643560).
         m_log.Warning("el GameServer rechazó el login (resultado {}): se espera otra vez la cuenta y la clave",
                       result.Value());
-        SetState(SessionState::WaitingCredentials);
+        SetState(Session::SessionState::WaitingCredentials);
         return;
     }
     m_log.Info("el GameServer aceptó el login");
-    SetState(SessionState::LoggedIn);
+    SetState(Session::SessionState::LoggedIn);
     // 0x4ad100 manda uno inmediato, sin reiniciar el timer 1000 (04 § El flujo de conexión).
     SendKeepalive(m_clock.Now());
 }
@@ -868,7 +871,7 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
 // 0x33 (0x4c20a0). Elegir es del jugador.
 void ServerSession::OnCharacterList(const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingCharacterList)
+    if (m_state != Session::SessionState::WaitingCharacterList)
     {
         m_log.Warning("se ignora la lista de personajes (F3 00): {}", OutOfTurn);
         return;
@@ -889,7 +892,7 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
         return;
     }
     m_log.Info("la lista trae {} personajes: se espera la elección", m_characters->characters.size());
-    SetState(SessionState::ChoosingCharacter);
+    SetState(Session::SessionState::ChoosingCharacter);
 }
 
 // 0x4c2290: con 1, el nuevo va a su lugar con su nombre, su nivel y su clase, sin equipo (0x517270,
@@ -899,7 +902,7 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
 // (0x4c2290 deja la de la pila): no se suma.
 void ServerSession::OnCreateResult(const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingCreateResult)
+    if (m_state != Session::SessionState::WaitingCreateResult)
     {
         m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): {}", OutOfTurn);
         return;
@@ -955,14 +958,14 @@ void ServerSession::OnCreateResult(const Network::Packet& packet)
     {
         m_log.Info("el GameServer no creó el personaje: {}", created.result);
     }
-    SetState(SessionState::ChoosingCharacter);
+    SetState(Session::SessionState::ChoosingCharacter);
 }
 
 // 0x4e2b10 lee la respuesta en línea y solo abre su aviso; el 0x60 (con 1) borra al elegido cuando
 // llega (Q-C104). Acá se saca al que se mandó, y queda sin elegido.
 void ServerSession::OnDeleteResult(const Network::Packet& packet)
 {
-    if (m_state != SessionState::WaitingDeleteResult)
+    if (m_state != Session::SessionState::WaitingDeleteResult)
     {
         m_log.Warning("se ignora la respuesta de borrar un personaje (F3 02): {}", OutOfTurn);
         return;
@@ -990,7 +993,7 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
         m_log.Info("el GameServer no borró el personaje: {}", *m_deleteResult);
     }
     m_deletingSlot.reset();
-    SetState(SessionState::ChoosingCharacter);
+    SetState(Session::SessionState::ChoosingCharacter);
 }
 
 // 04 § La entrada al mundo: filtra los 23 campos wire y entrega al aplicador síncrono.
@@ -1347,7 +1350,7 @@ void ServerSession::OnLogoutResult(const Network::Packet& packet)
     m_log.Info("el GameServer ordenó cerrar el juego (F1 02 con 0): se cierra la conexión y el juego, sin aviso");
     m_connection.Close();
     ++m_generation;
-    SetState(SessionState::QuitOrdered);
+    SetState(Session::SessionState::QuitOrdered);
 }
 
 void ServerSession::ReturnToServerList(bool encrypted)
@@ -1373,7 +1376,7 @@ void ServerSession::ReturnToServerList(bool encrypted)
     m_deleteResult.reset();
     m_deletingSlot.reset();
     m_loginResult.reset();
-    SetState(SessionState::Idle); // 0x4c2f40: estado 0; LoginScene::Enter inicia la conexión al CS.
+    SetState(Session::SessionState::Idle); // 0x4c2f40: estado 0; LoginScene::Enter inicia la conexión al CS.
     m_log.Info("el GameServer ordenó volver a los servidores (F1 02 con 2): se cierra el GS y se vuelve al login");
 }
 
@@ -1403,7 +1406,7 @@ void ServerSession::ReturnToSelection(bool encrypted)
     Protocol::Outgoing request = Protocol::FrontEnd::WriteCharacterListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
     // 0x4c3900 precede al reset; sus envíos31 se producen desde el mundo en sus sitios nativos.
-    SetState(SessionState::WaitingCharacterList);
+    SetState(Session::SessionState::WaitingCharacterList);
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(SelectionWorldReset{}, *this)));
 }
 
@@ -1447,7 +1450,7 @@ void ServerSession::OnMainCheck(const Network::Packet& packet)
 void ServerSession::SendKeepalive(Core::Duration now)
 {
     using Protocol::Session::KeepaliveSpeed;
-    const Protocol::Session::Keepalive keepalive{TickCountMs(now),
+    const Protocol::Session::Keepalive keepalive{Kernel::TickCountMs(now),
                                                  KeepaliveSpeed(m_speeds.attackSpeed, m_speeds.characterFlags),
                                                  KeepaliveSpeed(m_speeds.magicSpeed, m_speeds.characterFlags)};
     Protocol::Outgoing outgoing = Protocol::Session::WriteKeepalive(keepalive);
@@ -1460,7 +1463,7 @@ void ServerSession::SendKeepalive(Core::Duration now)
 }
 
 // El CS va sin claves y el GS con las suyas: cada Open vuelve los seriales a 0.
-void ServerSession::Connect(const ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys)
+void ServerSession::Connect(const Session::ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys)
 {
     m_connection.Open(address.host, address.port, keys);
     ++m_generation;
@@ -1475,20 +1478,20 @@ bool ServerSession::CheckApplication(Core::Expected<void, std::string> applied)
     if (!m_applicationFailure)
     {
         m_applicationFailure = applied.Error();
-        Fail(SessionFailure::ApplicationFailed);
+        Fail(Session::SessionFailure::ApplicationFailed);
     }
     return false;
 }
 
-void ServerSession::Fail(SessionFailure failure)
+void ServerSession::Fail(Session::SessionFailure failure)
 {
     m_connection.Close();
     ++m_generation;
     m_failure = failure;
-    SetState(SessionState::Failed);
+    SetState(Session::SessionState::Failed);
 }
 
-void ServerSession::SetState(SessionState state)
+void ServerSession::SetState(Session::SessionState state)
 {
     m_state = state;
     m_stateSince = m_clock.Now();
@@ -1503,26 +1506,26 @@ bool ServerSession::WithConnectServer() const
 {
     switch (m_state)
     {
-    case SessionState::ConnectingConnectServer:
-    case SessionState::WaitingConnectHello:
-    case SessionState::WaitingServerList:
-    case SessionState::ChoosingServer:
-    case SessionState::WaitingServerAddress:
+    case Session::SessionState::ConnectingConnectServer:
+    case Session::SessionState::WaitingConnectHello:
+    case Session::SessionState::WaitingServerList:
+    case Session::SessionState::ChoosingServer:
+    case Session::SessionState::WaitingServerAddress:
         return true;
-    case SessionState::Idle:
-    case SessionState::ConnectingGameServer:
-    case SessionState::WaitingGameHello:
-    case SessionState::WaitingCredentials:
-    case SessionState::WaitingLoginResult:
-    case SessionState::LoggedIn:
-    case SessionState::WaitingCharacterList:
-    case SessionState::ChoosingCharacter:
-    case SessionState::WaitingCreateResult:
-    case SessionState::WaitingDeleteResult:
-    case SessionState::EnteringWorld:
-    case SessionState::InWorld:
-    case SessionState::QuitOrdered:
-    case SessionState::Failed:
+    case Session::SessionState::Idle:
+    case Session::SessionState::ConnectingGameServer:
+    case Session::SessionState::WaitingGameHello:
+    case Session::SessionState::WaitingCredentials:
+    case Session::SessionState::WaitingLoginResult:
+    case Session::SessionState::LoggedIn:
+    case Session::SessionState::WaitingCharacterList:
+    case Session::SessionState::ChoosingCharacter:
+    case Session::SessionState::WaitingCreateResult:
+    case Session::SessionState::WaitingDeleteResult:
+    case Session::SessionState::EnteringWorld:
+    case Session::SessionState::InWorld:
+    case Session::SessionState::QuitOrdered:
+    case Session::SessionState::Failed:
         break;
     }
     return false;

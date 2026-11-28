@@ -23,9 +23,13 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameUiContext;
+} // namespace Client::Hud
+
+namespace Client::Hud::Dialogs
+{
 
 enum class DialogStep : std::uint8_t
 {
@@ -89,4 +93,4 @@ struct DialogRoute
 // truncada (0x69fd3c). Sin elegido, o con una tecla de 24 o más (pisaría la pila), corta con error.
 [[nodiscard]] Core::Expected<Protocol::Player::OptionBody, std::string>
 OptionBodyOf(Kernel::WorldState& world, Crt::CrtRandom& random, std::optional<std::uint8_t> chosenSlot);
-} // namespace Client::Scenes
+} // namespace Client::Hud::Dialogs

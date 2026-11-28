@@ -46,7 +46,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
+using Client::Skills::HeroSkillContext;
 
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
@@ -128,7 +128,7 @@ struct ArrivingHero
     {
         return world.Actors()[TargetSlot];
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
     }
@@ -136,7 +136,7 @@ struct ArrivingHero
     {
         sent.push_back(std::move(outgoing));
     }
-    Client::Scenes::HeroArrivalContext Arrival()
+    Client::Hero::HeroArrivalContext Arrival()
     {
         return {.combat = {.world = world, .random = random, .playerSkeleton = &skeleton, .terrain = &terrain},
                 .skills = &skills,
@@ -156,7 +156,7 @@ struct ArrivingHero
     }
     Client::Core::Expected<void, std::string> Arrive()
     {
-        return Client::Scenes::InteractOnArrival(Hero(), Arrival());
+        return Client::Hero::InteractOnArrival(Hero(), Arrival());
     }
     std::vector<std::uint8_t> Sent(std::size_t index) const
     {
@@ -216,17 +216,17 @@ void ExpectTheDirectCall(std::uint8_t skill, std::int32_t map, int before, const
 
 Client::Core::Expected<void, std::string> OnItsTarget(ArrivingHero& hero)
 {
-    return Client::Scenes::UseTheSkillOnItsTarget(hero.Hero(), hero.Hero(), hero.Direct());
+    return Client::Skills::UseTheSkillOnItsTarget(hero.Hero(), hero.Hero(), hero.Direct());
 }
 
 Client::Core::Expected<void, std::string> AtTheTarget(ArrivingHero& hero)
 {
-    return Client::Scenes::CastTheSkillAtTheTarget(hero.Hero(), hero.Hero(), hero.Direct());
+    return Client::Skills::CastTheSkillAtTheTarget(hero.Hero(), hero.Hero(), hero.Direct());
 }
 
 Client::Core::Expected<void, std::string> ElfOnItsTarget(ArrivingHero& hero)
 {
-    return Client::Scenes::UseTheElfSkillOnItsTarget(hero.Hero(), hero.Hero(), hero.Direct());
+    return Client::Skills::UseTheElfSkillOnItsTarget(hero.Hero(), hero.Hero(), hero.Direct());
 }
 
 // 0x56629a..0x5663b7: 1 a 4, 7, 0xb, 0x11, 0x2d y 0x49 en alcance (· 100) y a la vista: 0x55cbc0(héroe, héroe) después

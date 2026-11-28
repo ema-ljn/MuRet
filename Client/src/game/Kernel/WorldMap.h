@@ -20,15 +20,15 @@ struct WorldMap
     // Internal invalidation per LoadMap attempt; neither a counter nor a native rand.
     std::uint64_t loadRevision = 0;
     // 0x723c48: replaced only on reaching 0x4377a0, after the files.
-    std::unique_ptr<World::KalimaWorld> kalima;
+    std::unique_ptr<MapScripts::Kalima::KalimaWorld> kalima;
     // 0x7b0cca4: the 65,536 (rand() % 4) · 0.25 that 0x5f8300 fills (Q-C146).
     std::vector<float> grassOffsets;
     // EncTerrain<N>.obj, in the file's order, and what 0x606660 created with them and with the map's specials
     // (0x616ec0).
     std::vector<Data::Terrain::TerrainObject> objectRecords;
-    std::vector<World::WorldObject> objects;
-    World::WorldObjectRegistrations registrations;
+    std::vector<WorldObjects::WorldObject> objects;
+    WorldObjects::WorldObjectRegistrations registrations;
     // The effects with a model (0x7491fd8), the arrival effect's (0x61f) included.
-    World::ModelEffects effects;
+    Effects::ModelEffects effects;
 };
 } // namespace Client::Kernel

@@ -50,11 +50,11 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Kernel
 {
@@ -112,9 +112,9 @@ struct CharacterStepContext
     // The load of scene 2 or 4; without it, an empty one. The TerrainWall is written right there.
     const Terrain::WorldTerrain* terrain = nullptr;
     const Models::Skeleton* darkSpiritSkeleton = nullptr;
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     // The frame's sprite table (0x5491e0) that the cases of 0x505de0 ask for (0x166). Without it, they stop there.
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // The game's joints (0x74a8d78, GameDrawTailState::joints), for the 0x618/0 and /1 of the killer (0x505169).
     // Empty, the attack step stops there.
     std::span<Scenes::JointState> joints{};
@@ -160,7 +160,7 @@ struct CharacterStepContext
     ReportedCell* reportedCell = nullptr;
     // What the step asks of other modules (Session::CharacterStepHooks). nullptr: the step does not start.
     const ICharacterStepHooks* hooks = nullptr;
-    // Who creates the model effects of the remains (0x518cf0, Scenes::ActorEffectHooks). nullptr: the ice monster's
+    // Who creates the model effects of the remains (0x518cf0, Effects::ActorEffectHooks). nullptr: the ice monster's
     // shards stop.
     const IEffectHooks* effectHooks = nullptr;
 };

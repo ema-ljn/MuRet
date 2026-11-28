@@ -21,9 +21,9 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Combat
 {
-World::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor)
+Effects::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor)
 {
     return {.type = &actor.type,
             .effect = nullptr,
@@ -39,15 +39,15 @@ namespace
 Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const Kernel::ModelEffectArguments& arguments,
                                                                       Kernel::ActorState* owner,
                                                                       Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                                      const World::BlastEffectServices& services)
+                                                                      const Effects::BlastEffectServices& services)
 {
     Kernel::ModelEffectArguments placed = arguments;
     placed.owner = owner;
-    const World::ModelEffectOwner live = owner != nullptr ? BlastOwnerOf(*owner) : World::ModelEffectOwner{};
-    auto made = World::CreateBlastModelEffect(world.Map().effects, placed, live, random, services);
+    const Effects::ModelEffectOwner live = owner != nullptr ? BlastOwnerOf(*owner) : Effects::ModelEffectOwner{};
+    auto made = Effects::CreateBlastModelEffect(world.Map().effects, placed, live, random, services);
     if (made.HasValue() && made.Value().has_value() && owner != nullptr)
     {
-        World::ModelEffect& effect = world.Map().effects.Effects()[*made.Value()];
+        Effects::ModelEffect& effect = world.Map().effects.Effects()[*made.Value()];
         effect.itemType = &owner->word8c;
         effect.itemLevel = &owner->byte8e;
     }
@@ -60,20 +60,20 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
                                                                           const Actors::CharacterStepContext& context)
 {
     Kernel::WorldState& world = context.world;
-    const World::BlastEffectServices services{
+    const Effects::BlastEffectServices services{
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
         .ownRecordCount = &world.OwnCharacter().bytef04,
         .hero = &world.Hero(),
-        .skillHits = [&](const World::ModelEffect& effect, float radius) -> Core::Expected<void, std::string>
+        .skillHits = [&](const Effects::ModelEffect& effect, float radius) -> Core::Expected<void, std::string>
         {
-            const SkillHitsRequest request{.skillIndex = effect.byte89,
-                                           .point = effect.transform.position,
-                                           .radius = radius,
-                                           .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
-                                           .key = effect.disturbanceState,
-                                           .extra = 0};
-            const auto hit = HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
-                                                 context.random, context.send);
+            const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+                                                   .point = effect.transform.position,
+                                                   .radius = radius,
+                                                   .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
+                                                   .key = effect.disturbanceState,
+                                                   .extra = 0};
+            const auto hit = Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+                                                         context.random, context.send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
@@ -82,9 +82,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
         {
             if (context.joints.empty())
                 return Core::Unexpected(std::string("0x530860: el paso no tiene la tabla de joints (0x74a8d78)"));
-            const auto made =
-                CreateFaunaJoint(context.joints, request, context.random,
-                                 effectOwner ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
+            const auto made = Joints::CreateFaunaJoint(context.joints, request, context.random,
+                                                       effectOwner ? Kernel::JointOwnerKind::ModelEffect
+                                                                   : Kernel::JointOwnerKind::ByType);
             if (!made.HasValue())
                 return Core::Unexpected(made.Error());
             return {};
@@ -104,17 +104,17 @@ CreateBlastEffectOutsideTheStep(const Kernel::ModelEffectArguments& arguments, K
                                 Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).
-    const World::BlastEffectServices services{
+    const Effects::BlastEffectServices services{
         .joint = [&world, &random](const Kernel::JointRequest& request,
                                    bool effectOwner) -> Core::Expected<void, std::string>
         {
-            const auto made =
-                CreateFaunaJoint(world.DrawTail().joints, request, random,
-                                 effectOwner ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
+            const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints, request, random,
+                                                       effectOwner ? Kernel::JointOwnerKind::ModelEffect
+                                                                   : Kernel::JointOwnerKind::ByType);
             if (!made.HasValue())
                 return Core::Unexpected(made.Error());
             return {};
         }};
     return PlaceTheBlast(arguments, owner, world, random, services);
 }
-} // namespace Client::Scenes
+} // namespace Client::Combat

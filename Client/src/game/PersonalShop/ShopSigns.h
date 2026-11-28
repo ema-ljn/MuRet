@@ -22,7 +22,7 @@ namespace Client::Render
 class SpriteBatch;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
@@ -45,8 +45,16 @@ struct ActorState;
 namespace Client::Scenes
 {
 struct GameProjection;
+} // namespace Client::Scenes
+
+namespace Client::Social
+{
 struct PersonalShopState;
 struct ShopTitle;
+} // namespace Client::Social
+
+namespace Client::PersonalShop
+{
 
 // 0x770df9c: el texto 1104 de Text.bmd, la cabeza de los carteles y del título del globo.
 inline constexpr std::size_t ShopSignHeaderText = 1104;
@@ -72,7 +80,7 @@ struct ShopTitleLines
 // 0x4518b0(personaje, salida): sin cartel, nada (la salida queda como estaba: el texto vacío de 0x556dd0). Con él, el
 // título entero si tiene 14 bytes o menos; si no, los primeros 12, o 13 si el 12 es la segunda mitad de una letra de
 // dos bytes, y ".." (0x6c7970).
-[[nodiscard]] std::string ShortShopTitle(const PersonalShopState& shops, std::size_t index);
+[[nodiscard]] std::string ShortShopTitle(const Social::PersonalShopState& shops, std::size_t index);
 [[nodiscard]] std::string ShortShopTitle(std::string_view title);
 
 // Lo que 0x452540 deja en el cartel para el dibujo, con las medidas de GetTextExtentPoint32A.
@@ -91,7 +99,7 @@ struct ShopSignLayout
 // dos líneas). El original lo mide al poner el cartel (0x4511f0); MuRet, en cada dibujo: las fuentes no cambian en el
 // juego
 // (*inferido*), así que da lo mismo.
-[[nodiscard]] ShopSignLayout MeasureTheShopSign(const ShopTitle& sign, std::string_view header,
+[[nodiscard]] ShopSignLayout MeasureTheShopSign(const Social::ShopTitle& sign, std::string_view header,
                                                 const Render::Text::ITextMeasure& measure, int fontStep);
 
 // +0x48..+0x54 de un cartel, en píxeles.
@@ -107,7 +115,7 @@ struct ShopSignBox
 
 // 0x452110: el punto 60 sobre el techo del dueño (+0x138 + z + 60, como el globo) proyectado con 0x6205b0 a 640 × 480 y
 // pasado a píxeles con IMUL y la división con signo; la x, menos la mitad del ancho, y la y, menos 36 · H / 480.
-[[nodiscard]] Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& projection,
+[[nodiscard]] Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjection& projection,
                                                                       const Kernel::ActorState& owner,
                                                                       std::int32_t width, Core::PixelSize screen);
 
@@ -120,7 +128,7 @@ void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen);
 // 0x452e50(lugar, tamaño): el quad de un renglón, en píxeles. La x en 0 y, si x + ancho pasa de W (sin signo), en
 // W − ancho; la y en 0 y, si y + alto pasa de H − H · 47 / 480 (sin signo), en H − H · 47 / 480: sin restar el alto, y
 // con 480 donde 0x554000 tiene 640 (07 Q-C976).
-[[nodiscard]] UI::Point ShopSignRowAt(UI::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen);
+[[nodiscard]] Ui::Point ShopSignRowAt(Ui::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen);
 
 // Los colores de un cartel (0x452a10, por el PK) y del título de un globo (0x451af0, 0x451b50 y 0x451bb0, que miran
 // también +0x370): el del nombre y el título, el del texto 1104 y el fondo.
@@ -142,17 +150,17 @@ struct ShopSignColors
 [[nodiscard]] ShopSignColors ShopBubbleColorsOf(const Kernel::ActorState& owner, bool hovered);
 
 // 0x4517c0: +0x60 del cartel del personaje; sin cartel, falso.
-[[nodiscard]] bool ShopSignHovered(const PersonalShopState& shops, std::size_t index);
+[[nodiscard]] bool ShopSignHovered(const Social::PersonalShopState& shops, std::size_t index);
 
 // Lo que el dibujo de los carteles lee y deja.
 struct ShopSignDrawContext
 {
     Kernel::WorldState& world;
     // 0x5bb8d0 (con las consultas de 0x20 y 0x10000 y sus rand()) e IsOpen(0x200).
-    UI::PanelRegistry& panels;
+    Ui::PanelRegistry& panels;
     // 0x6203c0 del pase del mundo de este frame: 0x451d60 arma con 0x620db0 el mismo rectángulo (0, 0, w, 432) con la
     // misma cámara, y 0x6205b0 lee lo mismo (*inferido*). Sin ella, un cartel corta.
-    const GameProjection* projection = nullptr;
+    const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // El SelectObject de 0x452d50: queda la fuente del último renglón dibujado.
@@ -170,4 +178,4 @@ struct ShopSignDrawContext
 // apaga "/no ver puestos", 0x56d776), 0x452a10 con su PK: el texto 1104 y el nombre en negrita en el primer renglón y
 // las líneas del título debajo, en blanco sobre 0xc829396c con la normal, cada uno con su quad de 0x452e50.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context);
-} // namespace Client::Scenes
+} // namespace Client::PersonalShop

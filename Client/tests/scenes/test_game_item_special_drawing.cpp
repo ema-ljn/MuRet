@@ -204,8 +204,8 @@ TEST(GameItemSpecialDrawingTest, HelmetUsesPrivateMatrixAndPublishesLightEvenWhe
     object.model = 0x121b;
     object.color = {0.2f, 0.3f, 0.4f};
     glm::vec3 light{};
-    Client::World::FrameSprites sprites;
-    for (std::size_t index = 0; index < Client::World::SpriteCount; ++index)
+    Client::Particles::FrameSprites sprites;
+    for (std::size_t index = 0; index < Client::Particles::SpriteCount; ++index)
         ASSERT_TRUE(sprites.Create(1, {}, 1, {}, 0, 0));
     Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.objectFlags = 0x102;
@@ -363,7 +363,7 @@ TEST(GameItemSpecialDrawingTest, HelmetRejectsGlobalPoseWhenThePrivateMatrixIsMi
     Client::Actors::Drawing::DrawnObject object;
     object.model = 0x121b;
     glm::vec3 light{};
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Actors::Drawing::ItemSpecialDrawContext context;
     context.objectFlags = 0x102;
     context.objectLight = &light;

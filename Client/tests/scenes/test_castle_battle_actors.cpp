@@ -15,14 +15,14 @@ namespace
 class CastleBattleActorsTest : public ::testing::Test
 {
 protected:
-    using Actors = std::array<Client::Kernel::ActorState, Client::Scenes::CastleBattleActorCount + 1>;
+    using Actors = std::array<Client::Kernel::ActorState, Client::CastleSiege::CastleBattleActorCount + 1>;
     std::unique_ptr<Actors> m_actors = std::make_unique<Actors>();
-    std::unique_ptr<Client::Scenes::GuildState> m_guild = std::make_unique<Client::Scenes::GuildState>();
+    std::unique_ptr<Client::Guild::GuildState> m_guild = std::make_unique<Client::Guild::GuildState>();
 
     void ChangeOwner()
     {
-        const auto changed = Client::Scenes::ApplyTheCastleOwner(
-            "Pinos", std::span(*m_actors).first<Client::Scenes::CastleBattleActorCount>(), *m_guild);
+        const auto changed = Client::CastleSiege::ApplyTheCastleOwner(
+            "Pinos", std::span(*m_actors).first<Client::CastleSiege::CastleBattleActorCount>(), *m_guild);
         ASSERT_TRUE(changed.HasValue()) << changed.Error();
     }
 };
@@ -64,7 +64,7 @@ TEST_F(CastleBattleActorsTest, EveryAliveSeenActorLosesItsLayerBeforeTheComparis
     EXPECT_TRUE((*m_actors)[0].layer.has_value());
     EXPECT_TRUE((*m_actors)[1].layer.has_value());
     EXPECT_TRUE(m_actors->back().layer.has_value());
-    for (std::size_t index = 2; index < Client::Scenes::CastleBattleActorCount; ++index)
+    for (std::size_t index = 2; index < Client::CastleSiege::CastleBattleActorCount; ++index)
     {
         EXPECT_FALSE((*m_actors)[index].layer.has_value());
         EXPECT_EQ((*m_actors)[index].byte360, 8);
@@ -77,7 +77,7 @@ TEST_F(CastleBattleActorsTest, TheNegativeOneGuildIndexReadsTheMemberAlias)
     auto& actor = (*m_actors)[0];
     actor.alive = actor.seen = true;
     actor.word1f2 = 0xffff;
-    m_guild->members[Client::Scenes::MemberBeforeTheTable].name = {'P', 'i', 'n', 'o', 's'};
+    m_guild->members[Client::Guild::MemberBeforeTheTable].name = {'P', 'i', 'n', 'o', 's'};
     ChangeOwner();
     EXPECT_EQ(actor.byte360, 12);
     EXPECT_EQ(actor.flags78, 0x40000u);

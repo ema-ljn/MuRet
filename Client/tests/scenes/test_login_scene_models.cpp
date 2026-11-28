@@ -78,6 +78,9 @@ namespace
 {
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::FrontEnd::LoginCharacterLight;
+using Client::FrontEnd::LoginCharacterTransform;
+using Client::FrontEnd::LoginLogo;
 using Client::Input::InputState;
 using Client::Models::ActionInfo;
 using Client::Models::BoneKey;
@@ -87,9 +90,6 @@ using Client::Models::SkeletonBone;
 using Client::Render::ModelBlend;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
-using Client::Scenes::LoginCharacterLight;
-using Client::Scenes::LoginCharacterTransform;
-using Client::Scenes::LoginLogo;
 using Client::Scenes::LoginScene;
 using Client::Scenes::SceneContext;
 using Client::Tables::GameData;
@@ -155,7 +155,7 @@ public:
     }
     [[nodiscard]] const Skeleton* SkeletonOf(Client::Models::ModelId model) const override
     {
-        if (model.Value() == Client::Scenes::DarkHorseModel)
+        if (model.Value() == Client::Pets::DarkHorseModel)
         {
             return &m_horse;
         }
@@ -163,7 +163,7 @@ public:
     }
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(Client::Models::ModelId model) const override
     {
-        return model.Value() == Client::Scenes::DarkHorseModel ? m_horseSlots : m_slots;
+        return model.Value() == Client::Pets::DarkHorseModel ? m_horseSlots : m_slots;
     }
 
     // El hueso 0 del cuerpo, dummy: 0x4eb973 no lo escribe y queda el del buffer donde se posa.
@@ -603,7 +603,7 @@ TEST(LoginSceneModelsTest, TheHorseFadesInStepByStep)
 TEST(LoginSceneModelsTest, TheHorseRearsWithItsRider)
 {
     const float standing = LoginCharacterTransform().position.z;
-    const float raised = standing + (RaisedHeight * Client::Scenes::DarkHorseLoginScale);
+    const float raised = standing + (RaisedHeight * Client::Pets::DarkHorseLoginScale);
     for (const int roll : {1, 0})
     {
         Harness tested;
@@ -628,7 +628,7 @@ TEST(LoginSceneModelsTest, TheHorseRearsWithItsRider)
 TEST(LoginSceneModelsTest, TheHorseStandsAStepAfterItsRider)
 {
     const float standing = LoginCharacterTransform().position.z;
-    const float raised = standing + (RaisedHeight * Client::Scenes::DarkHorseLoginScale);
+    const float raised = standing + (RaisedHeight * Client::Pets::DarkHorseLoginScale);
     Harness tested;
     FakeClock clock;
     clock.Advance(std::chrono::milliseconds{(3 * 2300) + 50});
@@ -647,7 +647,7 @@ TEST(LoginSceneModelsTest, TheHorseStandsAStepAfterItsRider)
     tested.Steps(1);
     EXPECT_NEAR(horseHeight(), raised, Rounding);
     tested.Steps(1);
-    EXPECT_NEAR(horseHeight(), raised - (0.3f * RaisedHeight * Client::Scenes::DarkHorseLoginScale), Rounding);
+    EXPECT_NEAR(horseHeight(), raised - (0.3f * RaisedHeight * Client::Pets::DarkHorseLoginScale), Rounding);
     EXPECT_GT(horseHeight(), standing);
 }
 
@@ -693,7 +693,7 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
     tested.Steps(1);
     static_cast<void>(tested.ModelsOfAFrame());
     ASSERT_FALSE(world.PoseCarry().bones.empty());
-    ASSERT_TRUE(world.PoseCarry().models.contains(Client::Scenes::LoginLogoModel));
+    ASSERT_TRUE(world.PoseCarry().models.contains(Client::FrontEnd::LoginLogoModel));
     world.PoseCarry().bones[0][3] = {7, 8, 9};
     static_cast<void>(tested.ModelsOfAFrame());
     EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
@@ -739,7 +739,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, *world, &cloth));
     ASSERT_EQ(world->Runtime().map, 55);
-    auto& actor = world->Actors()[Client::Scenes::LoginActorSlot];
+    auto& actor = world->Actors()[Client::FrontEnd::LoginActorSlot];
     ASSERT_TRUE(actor.alive && actor.seen);
     // Sin el cetro: su modelo no está en la biblioteca sintética y lo que cuelga cortaría en 0x50a169.
     for (auto& hand : actor.hands)
@@ -787,7 +787,7 @@ TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
 
     EXPECT_EQ(world.Runtime().chat.area.rows[0].text, "");
-    EXPECT_EQ(world.Runtime().chat.area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));
+    EXPECT_EQ(world.Runtime().chat.area.count, static_cast<std::int32_t>(Client::Ui::MessageAreaRows));
 }
 
 // Q-C410: 0x6349a0 arma al del login con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su
@@ -798,7 +798,7 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     Client::Kernel::WorldState world;
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
-    auto& actor = world.Actors()[Client::Scenes::LoginActorSlot];
+    auto& actor = world.Actors()[Client::FrontEnd::LoginActorSlot];
     actor.bodyPose.clear();
 
     static_cast<void>(tested.ModelsOfAFrame());
@@ -829,7 +829,7 @@ TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
     Client::Math::BoneTransform own(1.0f);
     own[3] = {5.0f, 10.0f, 20.0f};
-    auto& actor = world.Actors()[Client::Scenes::LoginActorSlot];
+    auto& actor = world.Actors()[Client::FrontEnd::LoginActorSlot];
     actor.bodyPose.assign(1, own);
     world.PoseCarry().bones.assign(1, Client::Math::BoneTransform(1.0f));
     world.PoseCarry().bones[0][3] = {70.0f, 110.0f, 130.0f};
@@ -881,7 +881,7 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
         actor.darkSpirit.reset();
     const auto effects = world->Map().effects.Effects();
     ASSERT_TRUE(effects[0].alive) << "el dragón del mapa 55";
-    ASSERT_EQ(effects[0].type, Client::World::DragonEffect);
+    ASSERT_EQ(effects[0].type, Client::Effects::DragonEffect);
     for (int frame = 0; frame < 4 && !effects[1].alive; ++frame)
     {
         tested.scene->Render(
@@ -890,9 +890,9 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
         tested.target.Present();
     }
     ASSERT_EQ(tested.scene->Failure(), std::nullopt);
-    const Client::World::ModelEffect& meteor = effects[1];
+    const Client::Effects::ModelEffect& meteor = effects[1];
     ASSERT_TRUE(meteor.alive);
-    EXPECT_EQ(meteor.type, Client::World::FireEffect);
+    EXPECT_EQ(meteor.type, Client::Effects::FireEffect);
     EXPECT_EQ(meteor.subtype, 9);
     const std::int32_t dragonLife = effects[0].life;
     const glm::vec3 born = meteor.transform.position;
@@ -906,7 +906,7 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
     const auto alive = [&](std::int32_t type, std::int32_t subtype)
     {
         return std::ranges::count_if(world->Particles().All(),
-                                     [&](const Client::World::Particle& particle) {
+                                     [&](const Client::Particles::Particle& particle) {
                                          return particle.alive && particle.type == type && particle.subtype == subtype;
                                      });
     };
@@ -992,7 +992,7 @@ TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = -1};
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, cloth.random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, cloth.random).HasValue());
     const Client::Scenes::JointState& ray = joints[0];
     ASSERT_TRUE(ray.alive);
     ASSERT_EQ(ray.type, 0x613);

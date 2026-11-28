@@ -110,11 +110,11 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     Client::Session::ModuleStates m_states;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
-    Client::Scenes::SelectionState m_selection{*m_world};
+    Client::FrontEnd::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
-    Client::Scenes::SingleModelLibrary m_models;
+    Client::FrontEnd::SingleModelLibrary m_models;
 };
 
 // 0x4f5475..0x4f5480 and 0x4f553d..0x4f55a7: the still monster goes to action 5 of its model (not Player.bmd's) and

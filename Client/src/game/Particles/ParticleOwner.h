@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Particles
 {
 // Identidad no poseedora, copiable con el frame. None es NULL; Actor usa índice de pool,
 // WorldObject su identidad estable. Clear de los pools precede la liberación del mapa.
@@ -19,4 +19,4 @@ struct ParticleOwner
     std::uint64_t identity = 0;
     friend bool operator==(const ParticleOwner&, const ParticleOwner&) = default;
 };
-} // namespace Client::World
+} // namespace Client::Particles

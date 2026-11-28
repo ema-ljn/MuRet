@@ -50,17 +50,17 @@ TEST(EventTicketsTest, TheRightClickRequestsEachEventAndKeepsOnlyTheChaosTicket)
         item.gridRow = 1;
         item.scalar1Low = 0x12345678u;
         std::vector<Client::Protocol::Outgoing> sent;
-        Client::Scenes::InventoryServices services{.items = &items,
-                                                   .sendGamePacket = [&sent](Client::Protocol::Outgoing packet)
-                                                   { sent.push_back(std::move(packet)); }};
+        Client::Items::InventoryServices services{.items = &items,
+                                                  .sendGamePacket = [&sent](Client::Protocol::Outgoing packet)
+                                                  { sent.push_back(std::move(packet)); }};
         Client::Input::InputState input;
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::Scenes::StepTheGameUi({.world = *world,
-                                                            .random = random,
-                                                            .input = input,
-                                                            .mouseX = runtime.hud.inventoryX + 15 + 20 + 5,
-                                                            .mouseY = runtime.hud.inventoryY + 200 + 20 + 5,
-                                                            .inventory = &services});
+        const auto stepped = Client::Hud::StepTheGameUi({.world = *world,
+                                                         .random = random,
+                                                         .input = input,
+                                                         .mouseX = runtime.hud.inventoryX + 15 + 20 + 5,
+                                                         .mouseY = runtime.hud.inventoryY + 200 + 20 + 5,
+                                                         .inventory = &services});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         const auto decoded = Client::Network::Xor32Decode(sent[0].packet);

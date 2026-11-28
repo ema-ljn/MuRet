@@ -73,12 +73,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
 
@@ -206,7 +206,7 @@ struct Game
         Name(hero.name, "Tejon");
         world.Runtime().hero = 0;
         world.Runtime().drawingEnabled = true;
-        Client::Scenes::ClearTheTradeForSelection(world.Runtime().social.trade);
+        Client::Social::ClearTheTradeForSelection(world.Runtime().social.trade);
     }
     Client::Scenes::WorldEntryResources Resources()
     {
@@ -224,11 +224,11 @@ struct Game
     }
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0}});
     Client::Tables::ItemSetTables sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
@@ -293,7 +293,7 @@ protected:
         Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
         runtime.selectedTargets[Chosen] = 1;
         std::vector<Client::Protocol::Outgoing> sent;
-        const auto asked = Client::Scenes::RequestATrade(
+        const auto asked = Client::Social::RequestATrade(
             {.world = game->world,
              .random = random,
              .texts = chatTexts,
@@ -306,14 +306,14 @@ protected:
         EXPECT_EQ(plain.Bytes()[3], std::byte{0x04});
         EXPECT_EQ(plain.Bytes()[4], std::byte{0x56});
 
-        const auto opened = Client::Scenes::ApplyTradeResponse({1, NameOf("Brezal"), 150, 0}, game->Resources());
+        const auto opened = Client::Social::ApplyTradeResponse({1, NameOf("Brezal"), 150, 0}, game->Resources());
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         ASSERT_EQ(runtime.panels.trade, 1);
-        const auto added = Client::Scenes::ApplyTradeItemAdded({9, ItemBytes(StaffType)}, game->Resources());
+        const auto added = Client::Social::ApplyTradeItemAdded({9, ItemBytes(StaffType)}, game->Resources());
         ASSERT_TRUE(added.HasValue()) << added.Error();
-        Client::Scenes::ApplyTradeOtherMoney({2500}, game->world);
+        Client::Social::ApplyTradeOtherMoney({2500}, game->world);
         runtime.social.trade.sentMoney = 1000;
-        Client::Scenes::ApplyTradeMoneyResult({1}, game->world);
+        Client::Social::ApplyTradeMoneyResult({1}, game->world);
         random = CrtRandom(Seed);
     }
 
@@ -341,23 +341,23 @@ protected:
 
     Client::Core::Expected<void, std::string> Window()
     {
-        Client::Scenes::GamePanels panels(game->world, random);
+        Client::Hud::GamePanels panels(game->world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheTradeWindow(context, panels.Registry());
+        return Client::Hud::DrawTheTradeWindow(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> GridItems()
     {
-        Client::Scenes::GamePanels panels(game->world, random);
+        Client::Hud::GamePanels panels(game->world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGridItems(context, panels.Registry());
+        return Client::Hud::DrawTheGridItems(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> GridNumbers()
     {
-        Client::Scenes::GamePanels panels(game->world, random);
+        Client::Hud::GamePanels panels(game->world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGridNumbers(context, panels.Registry());
+        return Client::Hud::DrawTheGridNumbers(context, panels.Registry());
     }
 
     std::unique_ptr<Game> game;
@@ -366,10 +366,10 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     bool leftDown = false;
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::GuildMarkTextures marks{store};
+    Client::Guild::GuildMarkTextures marks{store};
     bool withMarks = true;
     Client::Tables::TextTable chatTexts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     Client::Tables::TextTable windowTexts = Client::Tests::MakeTextTable({{224, "Zen"},
@@ -474,16 +474,16 @@ TEST_P(GameTradeWindowTest, TheOpenTradeDrawsTheWindowOfTheOther)
 TEST_P(GameTradeWindowTest, TheOthersGuildDrawsItsMarkAndName)
 {
     TradeWithTheOther();
-    Client::Scenes::GuildState& guild = game->world.Runtime().guild;
-    ASSERT_EQ(Client::Scenes::AddGuild(guild, 0x21), 0);
-    ASSERT_EQ(Client::Scenes::AddGuild(guild, 0x33), 1);
+    Client::Guild::GuildState& guild = game->world.Runtime().guild;
+    ASSERT_EQ(Client::Guild::AddGuild(guild, 0x21), 0);
+    ASSERT_EQ(Client::Guild::AddGuild(guild, 0x33), 1);
     guild.table[0].guildName = {'O', 'm', 'b', 'u'};
     guild.table[1].guildName = {'T', 'a', 'l', 'a', 's'};
     guild.table[1].mark.fill(5);
     game->world.Runtime().social.trade.otherGuild = 0x33;
     ASSERT_TRUE(Window().HasValue());
 
-    const std::uint16_t mark = Client::Scenes::GuildMarkTextures::SlotOf(1, false).value;
+    const std::uint16_t mark = Client::Guild::GuildMarkTextures::SlotOf(1, false).value;
     const std::vector<std::uint16_t> slots = SlotsOf(sprites);
     ASSERT_GT(slots.size(), 67U);
     EXPECT_EQ(slots[67], mark);
@@ -511,7 +511,7 @@ TEST_P(GameTradeWindowTest, TheOthersGuildDrawsItsMarkAndName)
 TEST_P(GameTradeWindowTest, TheButtonsLightAndTheArrowMoves)
 {
     TradeWithTheOther();
-    Client::Scenes::TradeState& trade = game->world.Runtime().social.trade;
+    Client::Social::TradeState& trade = game->world.Runtime().social.trade;
     trade.field78abac4 = 1;
     trade.okWait = 2;
     trade.otherOk = 1;
@@ -552,7 +552,7 @@ TEST_P(GameTradeWindowTest, TheButtonsLightAndTheArrowMoves)
 TEST_P(GameTradeWindowTest, TheGridsDrawTheItemsOfBoth)
 {
     TradeWithTheOther();
-    Client::Scenes::TradeState& trade = game->world.Runtime().social.trade;
+    Client::Social::TradeState& trade = game->world.Runtime().social.trade;
     ASSERT_TRUE(Window().HasValue());
 
     const CrtRandom beforeEmpty = random;

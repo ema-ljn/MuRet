@@ -44,16 +44,16 @@
 namespace
 {
 namespace Castle = Client::Protocol::CastleSiege;
+using Client::CastleSiege::CastleData;
+using Client::CastleSiege::CastleReceiveContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::CastleReceiveContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::UI::CastleData;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -107,14 +107,14 @@ protected:
     // Aplica y espera que no corte.
     void Apply(const Castle::CastleSiegePacket& packet)
     {
-        const auto applied = Client::Scenes::ApplyCastleSiegePacket(packet, Context());
+        const auto applied = Client::CastleSiege::ApplyCastleSiegePacket(packet, Context());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
     }
 
     // El error con que corta.
     [[nodiscard]] std::string CutOf(const Castle::CastleSiegePacket& packet)
     {
-        const auto applied = Client::Scenes::ApplyCastleSiegePacket(packet, Context());
+        const auto applied = Client::CastleSiege::ApplyCastleSiegePacket(packet, Context());
         EXPECT_FALSE(applied.HasValue());
         return applied.HasValue() ? std::string{} : applied.Error();
     }
@@ -124,13 +124,13 @@ protected:
         return m_world->Runtime();
     }
 
-    [[nodiscard]] Client::UI::CastleSiegeState& Castle()
+    [[nodiscard]] Client::CastleSiege::CastleSiegeState& Castle()
     {
         return Runtime().castleSiege;
     }
 
     // Los mensajes que llegaron al chat, en el orden en que llegaron (el registro guarda el último adelante).
-    [[nodiscard]] std::vector<std::string> Messages(std::int32_t type = Client::UI::SystemMessage)
+    [[nodiscard]] std::vector<std::string> Messages(std::int32_t type = Client::Ui::SystemMessage)
     {
         std::vector<std::string> texts;
         const auto& entries = Runtime().chat.log.entries;
@@ -195,7 +195,7 @@ TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationOpenStoresTheCastleState)
 {
     Runtime().panels.delegated.castleSiege = 1;
     Apply(OwnedState(2));
-    const Client::UI::SiegeRegistrationWindow& window = Castle().registration;
+    const Client::CastleSiege::SiegeRegistrationWindow& window = Castle().registration;
     EXPECT_EQ(window.state, -2);
     EXPECT_EQ(window.ownerGuild, (std::array<std::uint8_t, 9>{'R', 'o', 'c', 'a', 0, 0, 0, 0, 0}));
     EXPECT_EQ(window.ownerMaster, (std::array<std::uint8_t, 11>{'L', 'e', 'c', 'h', 'u', 'z', 'a', 'a', 'b', 'c', 0}));
@@ -212,7 +212,7 @@ TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationOpenStoresTheCastleState)
 // 0x64b0f0 a secas: +4 en 1 aunque el panel estuviera cerrado.
 TEST_P(CastleSiegeReceiveTest, StoreTheCastleStateMarksTheRegistrationOpen)
 {
-    Client::Scenes::StoreTheCastleState(OwnedState(1), Runtime());
+    Client::CastleSiege::StoreTheCastleState(OwnedState(1), Runtime());
     EXPECT_EQ(Runtime().panels.delegated.castleSiege, 1);
     EXPECT_EQ(Castle().registration.state, -2);
 }
@@ -220,7 +220,7 @@ TEST_P(CastleSiegeReceiveTest, StoreTheCastleStateMarksTheRegistrationOpen)
 // 0x65bef0..0x65bf0d y 0x64ae10: abrir pide B2 03 antes de guardar el estado de B2 00.
 TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationClosedOpensAndAsksForTheRegistration)
 {
-    const auto applied = Client::Scenes::ApplyCastleSiegePacket(OwnedState(1), Context());
+    const auto applied = Client::CastleSiege::ApplyCastleSiegePacket(OwnedState(1), Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Castle().registration.state, -2);
     EXPECT_EQ(Runtime().panels.delegated.castleSiege, 1);
@@ -237,16 +237,16 @@ TEST_P(CastleSiegeReceiveTest, ClosingTheRegistrationSendsTheWindowCloseOnlyOnce
 {
     Runtime().panels.delegated.castleSiege = 1;
     Castle().registration.tab = 2;
-    Client::Scenes::GamePanels panels(*m_world, m_random);
+    Client::Hud::GamePanels panels(*m_world, m_random);
     panels.LendTheCastleRequests(*m_world, Context().send);
-    const auto closed = panels.Registry().CloseByMask(Client::UI::CastleSiegePanel);
+    const auto closed = panels.Registry().CloseByMask(Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     EXPECT_EQ(Runtime().panels.delegated.castleSiege, 0);
     EXPECT_EQ(Castle().registration.tab, 0);
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_TRUE(SameBytes(m_sent[0].packet.Bytes(), Bytes({0xc1, 3, 0x31})));
     Castle().registration.tab = 3;
-    const auto repeated = panels.Registry().CloseByMask(Client::UI::CastleSiegePanel);
+    const auto repeated = panels.Registry().CloseByMask(Client::Ui::CastleSiegePanel);
     ASSERT_TRUE(repeated.HasValue()) << repeated.Error();
     EXPECT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(Castle().registration.tab, 3);
@@ -255,9 +255,9 @@ TEST_P(CastleSiegeReceiveTest, ClosingTheRegistrationSendsTheWindowCloseOnlyOnce
 
 TEST_P(CastleSiegeReceiveTest, OpeningTheSeniorRequestsBothNpcListsAndTaxesInOrder)
 {
-    Client::Scenes::GamePanels panels(*m_world, m_random);
+    Client::Hud::GamePanels panels(*m_world, m_random);
     panels.LendTheCastleRequests(*m_world, Context().send);
-    const auto opened = panels.Registry().Open(Client::UI::CastleSiegeListPanel);
+    const auto opened = panels.Registry().Open(Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 0);
@@ -265,20 +265,20 @@ TEST_P(CastleSiegeReceiveTest, OpeningTheSeniorRequestsBothNpcListsAndTaxesInOrd
     EXPECT_TRUE(SameBytes(Xor32Decode(m_sent[0].packet).Bytes(), Bytes({0xc1, 4, 0xb3, 1})));
     EXPECT_TRUE(SameBytes(Xor32Decode(m_sent[1].packet).Bytes(), Bytes({0xc1, 4, 0xb3, 2})));
     EXPECT_TRUE(SameBytes(Xor32Decode(m_sent[2].packet).Bytes(), Bytes({0xc1, 4, 0xb2, 8})));
-    const auto repeated = panels.Registry().Open(Client::UI::CastleSiegeListPanel);
+    const auto repeated = panels.Registry().Open(Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(repeated.HasValue()) << repeated.Error();
     EXPECT_EQ(m_sent.size(), 3u);
 }
 
 TEST_P(CastleSiegeReceiveTest, TheHuntWindowOpensWithoutARequestAndClosesWith31)
 {
-    Client::Scenes::GamePanels panels(*m_world, m_random);
+    Client::Hud::GamePanels panels(*m_world, m_random);
     panels.LendTheCastleRequests(*m_world, Context().send);
-    const auto opened = panels.Registry().Open(Client::UI::SecondCastleSiegePanel);
+    const auto opened = panels.Registry().Open(Client::Ui::SecondCastleSiegePanel);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
     EXPECT_TRUE(m_sent.empty());
-    const auto closed = panels.Registry().CloseByMask(Client::UI::SecondCastleSiegePanel);
+    const auto closed = panels.Registry().CloseByMask(Client::Ui::SecondCastleSiegePanel);
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 0);
     ASSERT_EQ(m_sent.size(), 1u);
@@ -330,7 +330,7 @@ TEST_P(CastleSiegeReceiveTest, GiveUpWithOneAndNoGameServerCutsBeforeAnything)
 {
     Castle().registration.registered = 1;
     const auto applied =
-        Client::Scenes::ApplyCastleSiegePacket(Castle::GiveUpResult{.result = 1}, Context(/*withSender=*/false));
+        Client::CastleSiege::ApplyCastleSiegePacket(Castle::GiveUpResult{.result = 1}, Context(/*withSender=*/false));
     EXPECT_FALSE(applied.HasValue());
     EXPECT_EQ(Castle().registration.registered, 1u);
     EXPECT_TRUE(Messages().empty());
@@ -372,7 +372,7 @@ std::array<std::uint8_t, 0x1c> RecordAt(const CastleData& data, std::uint32_t ad
 {
     std::array<std::uint8_t, 0x1c> record{};
     for (std::size_t i = 0; i < record.size(); ++i)
-        record[i] = data.bytes.at(address - Client::UI::CastleDataBase + i);
+        record[i] = data.bytes.at(address - Client::CastleSiege::CastleDataBase + i);
     return record;
 }
 
@@ -582,7 +582,7 @@ TEST_P(CastleSiegeReceiveTest, SuccessfulGuildListsClearTheEntriesAndSelectionBu
     registration.siegeGuildList.selection = 1;
     registration.siegeGuildList.scroll = 4;
     auto applied =
-        Client::Scenes::ApplyCastleSiegePacket(Castle::SiegeGuildList{.result = 1, .entries = {}}, Context());
+        Client::CastleSiege::ApplyCastleSiegePacket(Castle::SiegeGuildList{.result = 1, .entries = {}}, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_TRUE(registration.siegeGuilds.empty());
     EXPECT_EQ(registration.siegeGuildList.selection, 0);
@@ -591,7 +591,7 @@ TEST_P(CastleSiegeReceiveTest, SuccessfulGuildListsClearTheEntriesAndSelectionBu
     registration.registeredGuilds.push_back({});
     registration.registeredGuildList.selection = 1;
     applied =
-        Client::Scenes::ApplyCastleSiegePacket(Castle::RegisteredGuildList{.result = 1, .entries = {}}, Context());
+        Client::CastleSiege::ApplyCastleSiegePacket(Castle::RegisteredGuildList{.result = 1, .entries = {}}, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_TRUE(registration.registeredGuilds.empty());
     EXPECT_EQ(registration.registeredGuildList.selection, 0);
@@ -646,7 +646,7 @@ TEST_P(CastleSiegeReceiveTest, AMessageWithoutAMeasureCuts)
 {
     CastleReceiveContext context = Context();
     context.measure = nullptr;
-    EXPECT_FALSE(Client::Scenes::ApplyCastleSiegePacket(Castle::RegisterResult{.result = 0}, context).HasValue());
+    EXPECT_FALSE(Client::CastleSiege::ApplyCastleSiegePacket(Castle::RegisterResult{.result = 0}, context).HasValue());
     ExpectNoRandom();
 }
 } // namespace
@@ -706,7 +706,7 @@ TEST_P(CastleSiegeReceiveTest, RegisteredGuildsUsePushFrontWithoutSortingAndIgno
 
 TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSignedFeeFieldsBeforeOpening)
 {
-    auto applied = Client::Scenes::ApplyHuntInformation(3, 0x80, 0xffffffffu, 0x80000000u, 7, Context());
+    auto applied = Client::CastleSiege::ApplyHuntInformation(3, 0x80, 0xffffffffu, 0x80000000u, 7, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     auto& hunt = Castle().huntZone;
     EXPECT_EQ(hunt.mode, 3);
@@ -721,7 +721,7 @@ TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSigned
     CrtRandom expected(Seed);
     expected.Discard(4);
     EXPECT_EQ(m_random.State(), expected.State());
-    applied = Client::Scenes::ApplyHuntInformation(0, 0, 0, 0, 0, Context());
+    applied = Client::CastleSiege::ApplyHuntInformation(0, 0, 0, 0, 0, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(hunt.mode, 3);
     EXPECT_EQ(hunt.fee, 0xffffffffu);
@@ -736,16 +736,16 @@ TEST_P(CastleSiegeReceiveTest, BusySeniorCloseReturnsTrueButKeepsTheWindowAndUse
     Runtime().npcWindows.chaosBox[31].id = 0;
     Runtime().panels.delegated.castleSiegeList = 1;
     Runtime().panels.delegated.castleSiegeListMode = 3;
-    Client::Scenes::GamePanels panels(*m_world, m_random);
-    Client::Scenes::LendTheCastlePanelServices(panels, Context());
-    auto closed = panels.Registry().Close(Client::UI::CastleSiegeListPanel);
+    Client::Hud::GamePanels panels(*m_world, m_random);
+    Client::CastleSiege::LendTheCastlePanelServices(panels, Context());
+    auto closed = panels.Registry().Close(Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     EXPECT_TRUE(closed.Value());
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 3);
-    EXPECT_EQ(Messages(Client::UI::ErrorMessage), (std::vector<std::string>{Text(1641)}));
+    EXPECT_EQ(Messages(Client::Ui::ErrorMessage), (std::vector<std::string>{Text(1641)}));
     EXPECT_TRUE(m_sent.empty());
-    closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);
+    closed = panels.Registry().CloseByMask(Client::Ui::CastleSiegeListPanel);
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     EXPECT_TRUE(closed.Value());
     EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 1);
@@ -764,9 +764,9 @@ TEST_P(CastleSiegeReceiveTest, SeniorCloseChooses87Or31AndPreservesTheTabAndAnUn
         auto& dialog = Runtime().panels.delegated.panelDialog;
         dialog.opened = 18;
         Castle().senior.dialogId = 17;
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        Client::Scenes::LendTheCastlePanelServices(panels, Context());
-        const auto closed = panels.Registry().CloseByMask(Client::UI::CastleSiegeListPanel);
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        Client::CastleSiege::LendTheCastlePanelServices(panels, Context());
+        const auto closed = panels.Registry().CloseByMask(Client::Ui::CastleSiegeListPanel);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
         EXPECT_EQ(Runtime().panels.delegated.castleSiegeList, 0);
         EXPECT_EQ(Runtime().panels.delegated.castleSiegeListMode, 2);

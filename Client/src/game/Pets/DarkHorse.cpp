@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -113,4 +113,4 @@ Actors::Drawing::DrawnObject DrawnDarkHorse(const Kernel::DarkHorse& horse, cons
     drawn.vertexLight = true;
     return drawn;
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

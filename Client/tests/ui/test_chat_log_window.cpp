@@ -17,17 +17,17 @@
 // barra de 0x47a230. Los textos son inventados.
 namespace
 {
+using Client::Chat::ChatEntry;
+using Client::Chat::ChatLogFrame;
+using Client::Chat::ChatLogGlobals;
+using Client::Chat::ChatLogId;
+using Client::Chat::ChatLogState;
+using Client::Chat::ChatLogStepResult;
+using Client::Chat::ChatLogStepView;
+using Client::Chat::ChatModes;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::UI::ChatEntry;
-using Client::UI::ChatLogFrame;
-using Client::UI::ChatLogGlobals;
-using Client::UI::ChatLogId;
-using Client::UI::ChatLogState;
-using Client::UI::ChatLogStepResult;
-using Client::UI::ChatLogStepView;
-using Client::UI::ChatModes;
 
 class LetterMeasure final : public ITextMeasure
 {
@@ -73,7 +73,7 @@ protected:
                                      .focusedList = m_focused,
                                      .mouseOnUi = m_mouseOnUi,
                                      .modes = m_modes};
-        return Client::UI::StepTheChatLog(m_log, m_frame, globals, view);
+        return Client::Chat::StepTheChatLog(m_log, m_frame, globals, view);
     }
 };
 
@@ -116,7 +116,7 @@ TEST_F(ChatLogWindowTest, TheUpArrowScrollsOnceAndRepeatsAfter16Steps)
 
     const ChatLogStepResult first = Step(435, 180);
     EXPECT_EQ(m_log.scroll, 1);
-    EXPECT_EQ(first.sounds, std::vector<Client::Audio::SoundId>{Client::UI::ChatButtonSound});
+    EXPECT_EQ(first.sounds, std::vector<Client::Audio::SoundId>{Client::Chat::ChatButtonSound});
     EXPECT_EQ(m_focused, ChatLogId);
 
     for (int step = 0; step < 15; ++step)
@@ -201,7 +201,7 @@ TEST_F(ChatLogWindowTest, TheBarFollowsTheRowsAndTheScroll)
     Fill(12);
     m_log.scroll = 3;
 
-    Client::UI::PlaceTheLogBar(m_log, m_modes, m_frame);
+    Client::Chat::PlaceTheLogBar(m_log, m_modes, m_frame);
 
     EXPECT_FLOAT_EQ(m_frame.barTop, 191.0f);
     EXPECT_FLOAT_EQ(m_frame.barBottom, 403.0f);
@@ -213,7 +213,7 @@ TEST_F(ChatLogWindowTest, TheBarFollowsTheRowsAndTheScroll)
 TEST_F(ChatLogWindowTest, DraggingTheThumbScrollsAndTheReleasedClickStopsIt)
 {
     Fill(12);
-    Client::UI::PlaceTheLogBar(m_log, m_modes, m_frame);
+    Client::Chat::PlaceTheLogBar(m_log, m_modes, m_frame);
     m_leftClick = true;
     // Sin correr, el cursor está abajo: (x + w − 0x13, 297, 13, 106).
     static_cast<void>(Step(440, 360));
@@ -245,7 +245,7 @@ TEST_F(ChatLogWindowTest, TheButtonsToggleF2AndCycleTheTransparency)
     ChatLogStepResult result = Step(335, 425);
     EXPECT_FLOAT_EQ(m_log.alpha, 0.6f);
     EXPECT_FALSE(m_leftClick);
-    EXPECT_EQ(result.sounds, std::vector<Client::Audio::SoundId>{Client::UI::ChatButtonSound});
+    EXPECT_EQ(result.sounds, std::vector<Client::Audio::SoundId>{Client::Chat::ChatButtonSound});
 
     m_leftClick = true;
     static_cast<void>(Step(335, 425));

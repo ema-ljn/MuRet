@@ -23,7 +23,7 @@ struct ActorState;
 // 06, "El paso del ataque". Cada caso corre hasta donde crea un efecto con modelo, un joint o una partícula que MuRet
 // no tiene (la CL11), con los rand() de antes; los que crean lo que World ya sabe crear (el terremoto 0xfa, el calco
 // 0x61e/1, la flecha y los efectos de los magos de World/WizardModelEffects.h) siguen hasta el final.
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // La luz local de 0x4fd5f0 ([EBP − 0x30]): (1, 1, 1) en 0x4fd81e, sin condición; la partícula 0x5ac de las acciones
@@ -52,4 +52,4 @@ StepTheTargetSkill(Kernel::ActorState& actor, Kernel::ActorState& victim, std::s
 [[nodiscard]] Core::Expected<void, std::string> SparkTheTarget(const Kernel::ActorState& actor,
                                                                const Kernel::ActorState& victim, std::size_t slot,
                                                                const Actors::CharacterStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -4,21 +4,21 @@
 
 #include <string>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct WorldObject;
 }
 // 0x602ed0 con Devil Square (el mapa 9, 0x603dd7) y con los Blood Castle (11 a 17, 0x604152), y la cadena de
 // 0x6044ed con los Chaos Castle (18 a 23, 0x4059d0), después del rand() común de 0x602ef4. Contrato: 06 § Los
 // objetos de Devil Square y de Blood Castle, y § Los objetos de Chaos Castle.
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 struct GameObjectPass;
 
 // El 2: con rand() & 3 en 0, una 68/0 en el hueso 23 de la pose global (0x4ec110 con (−15; 0; 0)); con otro
 // rand() & 3 en 0, otra en el hueso 31; y siempre una más en el 23. Las tres con los ángulos del objeto, luz 1,
 // escala 1 y sin dueño. Los demás tipos, nada.
-[[nodiscard]] Core::Expected<void, std::string> StepDevilSquareObjectFrame(const World::WorldObject& object,
+[[nodiscard]] Core::Expected<void, std::string> StepDevilSquareObjectFrame(const WorldObjects::WorldObject& object,
                                                                            const GameObjectPass& pass);
 
 // Con el reloj del mundo T y el seno en la x87:
@@ -31,7 +31,7 @@ struct GameObjectPass;
 //   luz 1 y una 60f/4 con luz (1; 0,8f; 0,8f) y escala 0,19f. Todas con los ángulos del objeto y sin dueño.
 // Los demás tipos, nada. Un seno o un ftol fuera del perfil acreditado, la pose, los sprites o el pool ausentes
 // y un alta que MuRet no tiene cortan con su dirección, después de lo ya hecho.
-[[nodiscard]] Core::Expected<void, std::string> StepBloodCastleObjectFrame(World::WorldObject& object,
+[[nodiscard]] Core::Expected<void, std::string> StepBloodCastleObjectFrame(WorldObjects::WorldObject& object,
                                                                            const GameObjectPass& pass);
 
 // 0x4059d0, con el área de 0x6c634c (`pass.chaosCastleArea`, un byte sin signo):
@@ -49,6 +49,6 @@ struct GameObjectPass;
 // - el 0x16, el 0x17 y los demás, nada.
 // Sin pool, sin pose, sin quien cree el joint o sin sonido, o con un alta que MuRet no tiene, corta con su
 // dirección, después de lo que ya hizo.
-[[nodiscard]] Core::Expected<void, std::string> StepChaosCastleObjectFrame(World::WorldObject& object,
+[[nodiscard]] Core::Expected<void, std::string> StepChaosCastleObjectFrame(WorldObjects::WorldObject& object,
                                                                            const GameObjectPass& pass);
-} // namespace Client::Scenes
+} // namespace Client::WorldObjects

@@ -54,7 +54,7 @@ public:
 class FaunaStepTest : public ::testing::Test
 {
 protected:
-    Client::Scenes::FaunaState m_fauna;
+    Client::Fauna::FaunaState m_fauna;
     std::int32_t m_map = 0, m_storm = 0;
     glm::vec3 m_hero{1000, 1000, 0};
     std::uint8_t m_action = 0, m_flag = 0;
@@ -62,7 +62,7 @@ protected:
     Client::Terrain::TerrainLighting m_light;
     Models m_models;
     Client::Models::ClothWorld m_cloth;
-    Client::Scenes::FaunaStepContext Context(float time = 0)
+    Client::Fauna::FaunaStepContext Context(float time = 0)
     {
         return {m_fauna, m_map, m_storm, m_hero, m_action, m_flag, m_terrain, m_light, m_models, m_cloth, time};
     }
@@ -83,7 +83,7 @@ TEST_F(FaunaStepTest, LandingAndTakingOffRunTheirNewStatesInTheSameStep)
     Client::Crt::CrtRandom expected;
     const int first = expected.Next() % 16 - 8;
     const int second = expected.Next() % 16 - 8;
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveBirdOrCrow, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::MoveBirdOrCrow, bird, 0);
     EXPECT_FALSE(result.error);
     EXPECT_EQ(bird.motionState, 3);
     EXPECT_FLOAT_EQ(bird.vertical, 20);
@@ -99,7 +99,7 @@ TEST_F(FaunaStepTest, PerchedBirdAvoidsEveryCommonMovementDraw)
     bird.position = {1200, 1000, 0};
     bird.model = 0xad;
     bird.scale = 1;
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::CommonMotion, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::CommonMotion, bird, 0);
     EXPECT_FALSE(result.error);
     EXPECT_EQ(m_cloth.random.State(), 1U);
     EXPECT_EQ(bird.position, glm::vec3(1200, 1000, 0));
@@ -118,7 +118,7 @@ TEST_F(FaunaStepTest, CommonMovementSeesLivingNeighborsOutsideTheStepPrefix)
     last.position = m_hero + glm::vec3(100, 100, 0);
     last.aheadX = last.position.x + 10;
     last.aheadY = last.position.y + 10;
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::CommonMotion, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::CommonMotion, bird, 0);
     EXPECT_FALSE(result.error);
     EXPECT_FLOAT_EQ(bird.angles.z, 13); // 4e97a0: (360 - trunc(atan(-1)*K24) + 360) % 360.
     EXPECT_NE(bird.position.x, m_hero.x + 25);
@@ -133,7 +133,7 @@ TEST_F(FaunaStepTest, KalimaGateReadsTheSharedCounterAndSpendsItsCloseDraws)
     Client::Crt::CrtRandom expected;
     for (int i = 0; i < 4; ++i)
         static_cast<void>(expected.Next());
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnKalima, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::SpawnKalima, bird, 0);
     EXPECT_FALSE(result.error);
     EXPECT_EQ(result.value, 1);
     EXPECT_EQ(bird.active, 0);
@@ -161,7 +161,7 @@ TEST_F(FaunaStepTest, IcarusSpawnHasSixDrawsAndWritesTheNativeFlightFields)
     m_map = 10;
     auto context = Context();
     auto& bird = m_fauna.Birds()[0];
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnIcarus, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::SpawnIcarus, bird, 0);
     ASSERT_FALSE(result.error);
     EXPECT_EQ(result.value, 1);
     EXPECT_EQ(bird.model, 0x171);
@@ -184,7 +184,7 @@ TEST_F(FaunaStepTest, AtlansSpawnUsesItsOwnScaleHeightAndUpperWaterGate)
     m_map = 7;
     auto context = Context();
     auto& bird = m_fauna.Birds()[0];
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnAtlans, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::SpawnAtlans, bird, 0);
     ASSERT_FALSE(result.error);
     EXPECT_EQ(result.value, 1);
     EXPECT_EQ(bird.model, 0xb4);
@@ -195,7 +195,7 @@ TEST_F(FaunaStepTest, AtlansSpawnUsesItsOwnScaleHeightAndUpperWaterGate)
     const auto before = m_cloth.random.State();
     m_hero.y = 12801;
     bird.active = 1;
-    EXPECT_FALSE(RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnAtlans, bird, 0).error);
+    EXPECT_FALSE(RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::SpawnAtlans, bird, 0).error);
     EXPECT_EQ(bird.active, 0);
     EXPECT_EQ(m_cloth.random.State(), before);
 }
@@ -205,7 +205,7 @@ TEST_F(FaunaStepTest, KalimaBirthClosesCounterBeforeSixSpawnDraws)
     m_cloth.logicSteps = 100;
     auto context = Context();
     auto& bird = m_fauna.Birds()[0];
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnKalima, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::SpawnKalima, bird, 0);
     ASSERT_FALSE(result.error);
     EXPECT_EQ(bird.model, 0x173);
     EXPECT_EQ(bird.active, 1);
@@ -227,7 +227,7 @@ TEST_F(FaunaStepTest, MissingJointBindingStopsAfterTheIcarusBirthPrefix)
     auto context = Context();
     auto& bird = m_fauna.Birds()[3];
     bird.active = 1;
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnIcarus, bird, 3);
+    const auto result = RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::SpawnIcarus, bird, 3);
     EXPECT_EQ(result.error, std::make_error_code(std::errc::function_not_supported));
     EXPECT_EQ(bird.model, 0x10f);
     EXPECT_EQ(bird.timer, 9600);
@@ -240,10 +240,10 @@ TEST_F(FaunaStepTest, MissingJointBindingStopsAfterTheIcarusBirthPrefix)
 }
 TEST_F(FaunaStepTest, IntegerSteeringPreservesTheNativeEqualityAndOppositeTies)
 {
-    EXPECT_EQ(Client::Scenes::TurnFaunaAngle(90, 90, 13), 180);
-    EXPECT_EQ(Client::Scenes::TurnFaunaAngle(0, 180, 13), 347);
-    EXPECT_EQ(Client::Scenes::TurnFaunaAngle(180, 0, 13), 193);
-    EXPECT_EQ(Client::Scenes::TurnFaunaAngle(359, 0, 13), 12);
+    EXPECT_EQ(Client::Fauna::TurnFaunaAngle(90, 90, 13), 180);
+    EXPECT_EQ(Client::Fauna::TurnFaunaAngle(0, 180, 13), 347);
+    EXPECT_EQ(Client::Fauna::TurnFaunaAngle(180, 0, 13), 193);
+    EXPECT_EQ(Client::Fauna::TurnFaunaAngle(359, 0, 13), 12);
 }
 TEST_F(FaunaStepTest, TheOrdinaryFamiliesAndAtlansRunBothRealSteps)
 {
@@ -294,7 +294,7 @@ TEST_F(FaunaStepTest, RealBirdAndFishHeightServicesConsumeTheDurableFixedSurface
     context.fixedHeight = 1201;
     auto& bird = m_fauna.Birds()[0];
     bird.position = {1000, 1000, 0};
-    ASSERT_FALSE(RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveBat, bird, 0).error);
+    ASSERT_FALSE(RunFaunaBirdHandler(context, Client::Fauna::BirdHandler::MoveBat, bird, 0).error);
     EXPECT_FLOAT_EQ(bird.position.z, 1551);
     m_map = 1;
     auto& liveFish = m_fauna.Fish()[0];

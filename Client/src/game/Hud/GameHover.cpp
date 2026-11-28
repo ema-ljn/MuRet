@@ -27,7 +27,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -50,10 +50,10 @@ Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int
     if (context.projecting)
         return {};
     const Kernel::ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
-    return AddChatBubble(
+    return Chat::AddChatBubble(
         context.world,
-        ChatBubbleMeasure{.measure = context.text, .screen = context.sprites.Screen(), .texts = context.texts},
-        Actors::ChatNameOf(actor), "", static_cast<std::size_t>(index), ChatBubbleMode::Chat);
+        Chat::ChatBubbleMeasure{.measure = context.text, .screen = context.sprites.Screen(), .texts = context.texts},
+        Actors::ChatNameOf(actor), "", static_cast<std::size_t>(index), Chat::ChatBubbleMode::Chat);
 }
 
 // 0x5bbc9e..0x5bbd2f: el personaje elegido.
@@ -63,7 +63,7 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     if (actor.byte88 != MonsterKind)
     {
         // 0x5bbd06..0x5bbd15: con el cartel de su tienda a la vista (0x451770), nada; si no, el globo del nombre.
-        if (ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
+        if (PersonalShop::ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
             return {};
         return NameBubble(context, index);
     }
@@ -86,13 +86,13 @@ Core::Expected<void, std::string> FloorItemName(GameHoverContext& context, std::
     if (context.names == nullptr)
         return Core::Unexpected(
             std::format("{}: el nombre del ítem {} del piso (0x5ba790) sin sus tablas", where, index));
-    return DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
+    return Items::DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
 }
 
 // 0x5bbd6a..0x5bbde7: Alt.
 Core::Expected<void, std::string> FloorItemNames(GameHoverContext& context)
 {
-    if (UI::LatchTheKey(context.altLatch, context.altDown))
+    if (Ui::LatchTheKey(context.altLatch, context.altDown))
         context.altNames = context.altNames == 0 ? 1 : 0;
     if (context.altNames == 0 && !context.altDown)
         return {};
@@ -145,4 +145,4 @@ Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
     }
     return FloorItemNames(context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

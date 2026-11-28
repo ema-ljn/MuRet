@@ -9,18 +9,23 @@
 // y con la mezcla sin pedir (0x7d2dc80 menor que 2) el nombre, la chance y el precio de la mezcla que dejó 0x5fd4f0
 // (Scenes/ChaosMix.h), el aviso de la joya del caos, los de cada tipo y el botón de mezclar con su ayuda. Escribe el
 // precio (0x7d2dca0) que lee el botón de mezclar del paso siguiente. No saca rand().
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
+} // namespace Client::Hud
+
+namespace Client::ChaosMix
+{
 
 // 0x5febf0: sin la caja abierta (IsOpen(0x100), que no saca rand()), nada. Abierta, pone la esquina de la ventana
 // del NPC (0x78aba28 y 0x78aba2c) en (0x104, 0) y dibuja. Deja la fuente gruesa y los colores del último renglón, o,
 // con el mouse sobre el botón de mezclar, la normal y el blanco sobre transparente de su ayuda (0x554340). Un texto
 // de Text.bmd que falta, o uno que desborda su buffer de la pila, corta.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheChaosBox(GameHudContext& context, UI::PanelRegistry& panels);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheChaosBox(Hud::GameHudContext& context,
+                                                                Ui::PanelRegistry& panels);
+} // namespace Client::ChaosMix

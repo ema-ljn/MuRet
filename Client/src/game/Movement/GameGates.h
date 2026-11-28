@@ -19,7 +19,7 @@ class WorldState;
 } // namespace Client::Kernel
 
 // 0x599ef0: barrido de Gate.bmd con los accesos lógicos, efectos y envío en orden (06, Pisar un gate).
-namespace Client::Scenes
+namespace Client::Movement
 {
 struct GameGateContext
 {
@@ -37,5 +37,5 @@ struct GameGateContext
 // Aplica contador, pending y objetivos; el resultado conserva avisos para el futuro área de mensajes.
 // No decrementa el contador: lo hizo MoveHero antes. El destino30/31 guarda opciones y macros después del envío
 // y de la espera, antes de pending/objetivos. El caller decide cuándo lo invoca.
-[[nodiscard]] Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGateContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<Movement::GateDecision, std::string> CheckGameGates(const GameGateContext& context);
+} // namespace Client::Movement

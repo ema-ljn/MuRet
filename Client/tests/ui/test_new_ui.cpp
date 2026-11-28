@@ -12,19 +12,19 @@
 #include <optional>
 #include <vector>
 
-// Client::UI::NewUi: el administrador de la UI nueva (CL8, hito 8): el orden de 0x644b60, 0x65f610 y
+// Client::Ui::NewUi: el administrador de la UI nueva (CL8, hito 8): el orden de 0x644b60, 0x65f610 y
 // 0x65f6c0, el foco y el mouse de 0x65fc30, el arrastre de 0x669f40 y el pegado de 0x65f720.
 namespace
 {
 using Client::Core::PixelSize;
 using Client::Input::InputState;
-using Client::UI::NewUi;
-using Client::UI::NewUiMode;
-using Client::UI::NewUiTurn;
-using Client::UI::NewUiWindow;
-using Client::UI::Point;
-using Client::UI::Rect;
-using Client::UI::WindowHit;
+using Client::Ui::NewUi;
+using Client::Ui::NewUiMode;
+using Client::Ui::NewUiTurn;
+using Client::Ui::NewUiWindow;
+using Client::Ui::Point;
+using Client::Ui::Rect;
+using Client::Ui::WindowHit;
 
 constexpr PixelSize Screen640{640, 480};
 
@@ -53,7 +53,7 @@ public:
     }
     [[nodiscard]] bool Hit(WindowHit hit, Point mouse, PixelSize screen) const override
     {
-        return m_draggable ? Client::UI::HitTheBounds(*this, hit, mouse, screen) : NewUiWindow::Hit(hit, mouse, screen);
+        return m_draggable ? Client::Ui::HitTheBounds(*this, hit, mouse, screen) : NewUiWindow::Hit(hit, mouse, screen);
     }
     void PlaceAt(Point topLeft, PixelSize /*screen*/) override
     {
@@ -414,7 +414,7 @@ TEST(NewUiTest, AWindowWithoutTheMouseSeesNone)
     InputState input;
     Client::Tests::MoveMouse(input, 20, 30);
 
-    EXPECT_EQ(Client::UI::MouseOfTheTurn(NewUiTurn{.mouse = false}, input, Screen640), std::nullopt);
-    EXPECT_EQ(Client::UI::MouseOfTheTurn(NewUiTurn{}, input, Screen640), (Point{20, 30}));
+    EXPECT_EQ(Client::Ui::MouseOfTheTurn(NewUiTurn{.mouse = false}, input, Screen640), std::nullopt);
+    EXPECT_EQ(Client::Ui::MouseOfTheTurn(NewUiTurn{}, input, Screen640), (Point{20, 30}));
 }
 } // namespace

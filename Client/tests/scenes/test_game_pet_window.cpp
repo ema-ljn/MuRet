@@ -41,6 +41,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::BlendMode;
@@ -48,7 +49,6 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
@@ -182,8 +182,8 @@ protected:
                                .texts = &m_texts,
                                .skills = &m_skills,
                                .mouse = {.x = x, .y = y}};
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawThePetWindow(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Pets::DrawThePetWindow(context, panels.Registry());
     }
 
     // El personaje abierto, la ventana de la mascota abierta (0x723911 en 2) y la pestaña.
@@ -208,9 +208,9 @@ protected:
         horse.word12 = 9;
     }
 
-    Client::Scenes::DarkSpirit& GiveTheRaven()
+    Client::Pets::DarkSpirit& GiveTheRaven()
     {
-        Client::Scenes::DarkSpirit& raven = Hero().darkSpirit.emplace();
+        Client::Pets::DarkSpirit& raven = Hero().darkSpirit.emplace();
         raven.level = 2;
         raven.durability = 300;
         raven.experience = 11;
@@ -645,14 +645,14 @@ TEST_P(GamePetWindowTest, MissingTablesCut)
                            .sprites = m_sprites,
                            .text = m_text,
                            .texts = &m_texts};
-    Client::Scenes::GamePanels panels(*m_world, m_random);
-    const auto drawn = Client::Scenes::DrawThePetWindow(context, panels.Registry());
+    Client::Hud::GamePanels panels(*m_world, m_random);
+    const auto drawn = Client::Pets::DrawThePetWindow(context, panels.Registry());
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x414fd6"), std::string::npos) << drawn.Error();
 
     context.texts = nullptr;
     context.skills = &m_skills;
-    const auto noTexts = Client::Scenes::DrawThePetWindow(context, panels.Registry());
+    const auto noTexts = Client::Pets::DrawThePetWindow(context, panels.Registry());
     ASSERT_FALSE(noTexts.HasValue());
     EXPECT_NE(noTexts.Error().find("0x424dfb"), std::string::npos) << noTexts.Error();
 }

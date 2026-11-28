@@ -21,9 +21,9 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Terrain::TerrainLighting;
-using Client::World::ObjectStepGlobals;
-using Client::World::StepWorldObjectChecked;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::StepWorldObjectChecked;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t SelectionMap = 54;
 constexpr std::uint8_t AidaMap = 33;
@@ -115,7 +115,7 @@ TEST(AidaObjectsTest, TheEmittersHideTheirMeshButNotTheButterflyPost)
         auto object = Object(static_cast<std::int16_t>(type));
         CrtRandom random(7);
         ASSERT_TRUE(StepWorldObjectChecked(object, SelectionMap, nullptr, random, step.globals).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject) << type;
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject) << type;
     }
     auto post = Object(0x3c);
     CrtRandom random(7);
@@ -138,7 +138,7 @@ TEST(AidaObjectsTest, EveryObjectRequestsTheAmbientSoundAndTheGuardianNeedsTheDy
     const auto cut = StepWorldObjectChecked(mist, SelectionMap, nullptr, random, silent);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x4251fb"), std::string::npos);
-    EXPECT_EQ(mist.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(mist.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 
     ObjectStepGlobals dark;
     dark.sound = [](Client::Audio::SoundId) {};

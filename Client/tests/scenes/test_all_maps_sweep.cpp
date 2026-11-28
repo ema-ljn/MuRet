@@ -56,8 +56,8 @@ using Client::Tests::MapSweepWorldCase;
 using Client::Tests::MapSweepWorlds;
 
 constexpr std::uint16_t PlayerKey = 5;
-constexpr Client::World::WorldObjectIdentity FirstIdentity = 50000;
-constexpr Client::World::WorldObjectIdentity StaleIdentity = 1000;
+constexpr Client::WorldObjects::WorldObjectIdentity FirstIdentity = 50000;
+constexpr Client::WorldObjects::WorldObjectIdentity StaleIdentity = 1000;
 constexpr std::int16_t StaleType = -30000;
 constexpr std::int32_t EffectLife = 73;
 constexpr std::int32_t ParticleLife = 81;
@@ -103,7 +103,7 @@ std::string_view ExpectedError(MapSweepCut cut)
 void SeedThePreviousMap(WorldState& world, Client::Terrain::WorldTerrain& terrain)
 {
     auto& loaded = world.Map();
-    loaded.kalima = std::make_unique<Client::World::KalimaWorld>(24);
+    loaded.kalima = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(24);
     terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -112,7 +112,7 @@ void SeedThePreviousMap(WorldState& world, Client::Terrain::WorldTerrain& terrai
     terrain.heights->cells.front() = -123456.0f;
     loaded.grassOffsets = {-99.0f};
     loaded.objectRecords.push_back(Client::Data::Terrain::TerrainObject{.type = StaleType});
-    Client::World::WorldObject stale;
+    Client::WorldObjects::WorldObject stale;
     stale.identity = StaleIdentity;
     stale.type = StaleType;
     loaded.objects.push_back(stale);
@@ -126,13 +126,13 @@ void SeedThePreviousMap(WorldState& world, Client::Terrain::WorldTerrain& terrai
 
 void SeedTheEffectPools(WorldState& world)
 {
-    for (Client::World::ModelEffect& effect : world.Map().effects.Effects())
+    for (Client::Effects::ModelEffect& effect : world.Map().effects.Effects())
     {
         effect.alive = true;
         effect.seen = true;
         effect.life = EffectLife;
     }
-    for (Client::World::Particle& particle : world.Particles().All())
+    for (Client::Particles::Particle& particle : world.Particles().All())
     {
         particle.alive = true;
         particle.life = ParticleLife;
@@ -293,7 +293,7 @@ void ExpectEffectCleanup(const WorldState& world, const MapSweepCase& probe)
             ASSERT_EQ(effect.life, EffectLife);
         }
     }
-    for (const Client::World::Particle& particle : world.Particles().All())
+    for (const Client::Particles::Particle& particle : world.Particles().All())
     {
         ASSERT_FALSE(particle.alive);
         ASSERT_EQ(particle.life, ParticleLife);

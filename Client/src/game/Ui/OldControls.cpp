@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -55,7 +55,7 @@ std::int32_t Truncate(double value)
 bool InRect(const OldListView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height,
             std::int32_t mode)
 {
-    return MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
+    return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
 }
 
 // 0x459f70 sobre la misma lista.
@@ -505,4 +505,4 @@ void LimitTheEdit(OldEdit& edit, std::size_t limit, bool arrowHeld)
     if (arrowHeld)
         edit.draws = 0;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

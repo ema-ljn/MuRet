@@ -27,7 +27,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -522,4 +522,4 @@ Result DrawMonsterBody(MonsterBodyFrame& frame)
     }
     return DrawTheTail(frame);
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

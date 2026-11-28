@@ -84,11 +84,11 @@ struct Stage
     }
 
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf({});
     Client::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
         std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),

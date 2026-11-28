@@ -16,22 +16,22 @@
 
 namespace Client::Tests
 {
-Core::Expected<glm::vec2, World::ParticleError> ParticleDrawRecorder::Dimensions(std::int32_t image)
+Core::Expected<glm::vec2, Particles::ParticleError> ParticleDrawRecorder::Dimensions(std::int32_t image)
 {
     const auto found = dimensions.find(image);
     if (found == dimensions.end())
     {
-        return Core::Unexpected(World::ParticleError::MissingTextureSize);
+        return Core::Unexpected(Particles::ParticleError::MissingTextureSize);
     }
     return found->second;
 }
 
-Core::Expected<std::uint8_t, World::ParticleError> ParticleDrawRecorder::MaterialFlag(std::int32_t type)
+Core::Expected<std::uint8_t, Particles::ParticleError> ParticleDrawRecorder::MaterialFlag(std::int32_t type)
 {
     const auto found = materialFlags.find(type);
     if (found == materialFlags.end())
     {
-        return Core::Unexpected(World::ParticleError::MissingMaterialFlag);
+        return Core::Unexpected(Particles::ParticleError::MissingMaterialFlag);
     }
     return found->second;
 }
@@ -56,14 +56,14 @@ ParticleDrawRecorder::Result ParticleDrawRecorder::Blended()
 
 ParticleDrawRecorder::Result ParticleDrawRecorder::Type620850()
 {
-    return Core::Unexpected(World::ParticleDrawingError{
-        World::ParticleError::MissingDrawingService, World::ParticleDrawingPhase::Type620850, {}});
+    return Core::Unexpected(Particles::ParticleDrawingError{
+        Particles::ParticleError::MissingDrawingService, Particles::ParticleDrawingPhase::Type620850, {}});
 }
 
 ParticleDrawRecorder::Result ParticleDrawRecorder::Type620870()
 {
-    return Core::Unexpected(World::ParticleDrawingError{
-        World::ParticleError::MissingDrawingService, World::ParticleDrawingPhase::Type620870, {}});
+    return Core::Unexpected(Particles::ParticleDrawingError{
+        Particles::ParticleError::MissingDrawingService, Particles::ParticleDrawingPhase::Type620870, {}});
 }
 
 ParticleDrawRecorder::Result ParticleDrawRecorder::TextureEnv(Render::TextureEnvMode mode)
@@ -88,12 +88,12 @@ ParticleDrawRecorder::Result ParticleDrawRecorder::Billboard(Render::ParticleBil
     return {};
 }
 
-Core::Expected<std::optional<RecordedParticleDraw>, World::ParticleDrawingError>
-DrawOneParticle(World::Particle& particle, std::optional<glm::vec2> textureSize,
+Core::Expected<std::optional<RecordedParticleDraw>, Particles::ParticleDrawingError>
+DrawOneParticle(Particles::Particle& particle, std::optional<glm::vec2> textureSize,
                 std::optional<std::uint8_t> materialFlag, float clock, std::size_t slot, std::uint8_t mode,
                 Render::TextureEnvMode* textureEnv)
 {
-    World::Particles pool;
+    Particles::Particles pool;
     pool.All()[slot] = particle;
     ParticleDrawRecorder recorder;
     if (textureSize)
@@ -104,7 +104,7 @@ DrawOneParticle(World::Particle& particle, std::optional<glm::vec2> textureSize,
     {
         recorder.materialFlags.insert_or_assign(particle.type, *materialFlag);
     }
-    const auto drawn = World::DrawParticlesChecked(pool, mode, std::cref(clock), recorder);
+    const auto drawn = Particles::DrawParticlesChecked(pool, mode, std::cref(clock), recorder);
     particle = pool.All()[slot];
     if (textureEnv != nullptr)
     {

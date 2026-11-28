@@ -50,13 +50,13 @@ constexpr Audio::SoundId RavenShoutSound{0x1d1};
 // What the raven's step reads from the pool (DarkSpiritTargets): the character of +8 and that of +0x3b0, signed.
 // Between 0 and 399 it looks at their flags (0x416a8b..0x416ab9); 6 reads its position with any value other than
 // 0xffff (0x417858): the slots the A8 writes (0 to 400) are in MuRet's pool, and another value stops.
-Core::Expected<Scenes::DarkSpiritTargets, std::string> RavenTargetsOf(const Kernel::DarkSpirit& spirit,
-                                                                      Kernel::WorldState& world, std::size_t slot)
+Core::Expected<Pets::DarkSpiritTargets, std::string> RavenTargetsOf(const Kernel::DarkSpirit& spirit,
+                                                                    Kernel::WorldState& world, std::size_t slot)
 {
     constexpr std::int16_t PoolActors = 400;
     constexpr std::uint16_t NoAttackTarget = 0xffff;
     const auto actors = world.Actors();
-    Scenes::DarkSpiritTargets targets;
+    Pets::DarkSpiritTargets targets;
     if (spirit.target < actors.size())
     {
         targets.target = actors[spirit.target].position;
@@ -79,15 +79,15 @@ Core::Expected<Scenes::DarkSpiritTargets, std::string> RavenTargetsOf(const Kern
     return targets;
 }
 
-Actors::ModelActionEnd StepEndOf(Scenes::ModelActionEnd end)
+Actors::ModelActionEnd StepEndOf(Monsters::ModelActionEnd end)
 {
     switch (end)
     {
-    case Scenes::ModelActionEnd::AdvanceAgain:
+    case Monsters::ModelActionEnd::AdvanceAgain:
         return Actors::ModelActionEnd::AdvanceAgain;
-    case Scenes::ModelActionEnd::LeaveRemains:
+    case Monsters::ModelActionEnd::LeaveRemains:
         return Actors::ModelActionEnd::LeaveRemains;
-    case Scenes::ModelActionEnd::Done:
+    case Monsters::ModelActionEnd::Done:
         break;
     }
     return Actors::ModelActionEnd::Done;
@@ -96,18 +96,18 @@ Actors::ModelActionEnd StepEndOf(Scenes::ModelActionEnd end)
 
 Core::Expected<void, std::string> CharacterStepHooks::RefreshTheSiegePanel(Kernel::WorldRuntime& runtime) const
 {
-    return Scenes::RefreshTheSiegePanel(runtime);
+    return CastleSiege::RefreshTheSiegePanel(runtime);
 }
 
 bool CharacterStepHooks::CrywolfAltarGoal(const Kernel::WorldState& world) const
 {
-    return Scenes::CrywolfAltarGoal(world);
+    return Events::Crywolf::CrywolfAltarGoal(world);
 }
 
 Core::Expected<void, std::string>
 CharacterStepHooks::QueueTheGateName(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context) const
 {
-    return Scenes::QueueTheGateName(actor, context.texts, context.world.Runtime().worldTexts);
+    return Monsters::QueueTheGateName(actor, context.texts, context.world.Runtime().worldTexts);
 }
 
 Core::Expected<void, std::string>
@@ -119,53 +119,53 @@ CharacterStepHooks::StepTheOwnTimers(const Actors::CharacterStepContext& context
 void CharacterStepHooks::StepTheFallingBall(Kernel::ActorState& actor,
                                             const std::function<double(float, float)>& height) const
 {
-    Scenes::StepTheFallingBall(actor, height);
+    Monsters::StepTheFallingBall(actor, height);
 }
 
 void CharacterStepHooks::StepTheAlpha(Kernel::ActorState& actor) const
 {
-    World::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
+    Effects::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
 }
 
 bool CharacterStepHooks::TurnTheNpc(Kernel::ActorState& actor, std::int32_t map) const
 {
-    return Scenes::TurnTheNpc(actor, map);
+    return Monsters::TurnTheNpc(actor, map);
 }
 
 Core::Expected<void, std::string> CharacterStepHooks::SayTheNpcLine(const Kernel::ActorState& actor, std::size_t slot,
                                                                     const Actors::CharacterStepContext& context) const
 {
-    return Scenes::SayTheNpcLine(actor, slot, context);
+    return Monsters::SayTheNpcLine(actor, slot, context);
 }
 
 Core::Expected<void, std::string> CharacterStepHooks::SayTheNamedLine(const Kernel::ActorState& actor, std::size_t slot,
                                                                       const Actors::CharacterStepContext& context) const
 {
-    return Scenes::SayTheNamedLine(actor, slot, context);
+    return Monsters::SayTheNamedLine(actor, slot, context);
 }
 
 bool CharacterStepHooks::IsInTheParty(const Kernel::WorldState& world, const Kernel::ActorState& actor) const
 {
-    return Scenes::IsInTheParty(world, actor);
+    return Party::IsInTheParty(world, actor);
 }
 
 float CharacterStepHooks::ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float speed) const
 {
-    return Scenes::ModelSpeedOf(type, action, frame, speed);
+    return Monsters::ModelSpeedOf(type, action, frame, speed);
 }
 
 Core::Expected<void, std::string>
 CharacterStepHooks::FinishTheTurnedNpc(Kernel::ActorState& actor, std::size_t slot,
                                        const Actors::CharacterStepContext& context) const
 {
-    return Scenes::FinishTheTurnedNpc(actor, slot, context);
+    return Monsters::FinishTheTurnedNpc(actor, slot, context);
 }
 
 Core::Expected<Actors::ModelActionEnd, std::string>
 CharacterStepHooks::FinishTheModelAction(Kernel::ActorState& actor, const Models::Skeleton& skeleton,
                                          Kernel::WorldRuntime& runtime, Crt::CrtRandom& random) const
 {
-    auto end = Scenes::FinishTheModelAction(actor, skeleton, runtime, random);
+    auto end = Monsters::FinishTheModelAction(actor, skeleton, runtime, random);
     if (!end.HasValue())
         return Core::Unexpected(std::move(end).Error());
     return StepEndOf(end.Value());
@@ -174,7 +174,7 @@ CharacterStepHooks::FinishTheModelAction(Kernel::ActorState& actor, const Models
 Core::Expected<void, std::string> CharacterStepHooks::SetActorDie(Kernel::ActorState& actor,
                                                                   const Actors::CharacterStepContext& context) const
 {
-    return Scenes::SetActorDie(actor, Scenes::ActorCombatContext{.world = context.world,
+    return Combat::SetActorDie(actor, Combat::ActorCombatContext{.world = context.world,
                                                                  .random = context.random,
                                                                  .playerSkeleton = context.playerSkeleton,
                                                                  .models = context.models,
@@ -199,7 +199,7 @@ Core::Expected<void, std::string> CharacterStepHooks::CreateTheJoint(const Actor
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = NoTarget};
-    auto created = Scenes::CreateFaunaJoint(context.joints, request, context.random);
+    auto created = Joints::CreateFaunaJoint(context.joints, request, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::move(created).Error());
     return {};
@@ -209,35 +209,35 @@ Core::Expected<void, std::string> CharacterStepHooks::StepTheAttack(Kernel::Acto
                                                                     const Actors::CharacterStepContext& context,
                                                                     const std::optional<glm::vec3>& flareLight) const
 {
-    return Scenes::StepTheAttack(actor, slot, context, flareLight.value_or(Scenes::BodyLight));
+    return Combat::StepTheAttack(actor, slot, context, flareLight.value_or(Skills::BodyLight));
 }
 
 void CharacterStepHooks::QueueTheHealthBar(const Kernel::ActorState& actor,
                                            std::deque<Kernel::QueuedHealthBar>& queue) const
 {
-    Scenes::QueueTheHealthBar(actor, queue);
+    Hud::QueueTheHealthBar(actor, queue);
 }
 
 Core::Expected<void, std::string>
 CharacterStepHooks::EmitEarlyMonsterRibbonTrails(Kernel::ActorState& actor, const Models::Skeleton* skeleton,
                                                  const Actors::CharacterStepContext& context) const
 {
-    return Scenes::EmitEarlyMonsterRibbonTrails(actor, skeleton, context);
+    return Monsters::Drawing::EmitEarlyMonsterRibbonTrails(actor, skeleton, context);
 }
 
 Core::Expected<void, std::string>
 CharacterStepHooks::StepTheSwingsOf1abTo1b4(Kernel::ActorState& actor, std::size_t slot,
                                             const Actors::CharacterStepContext& context) const
 {
-    return Scenes::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.faunaModels, context.random,
-                                           context.particles, context.worldClock);
+    return Monsters::Drawing::StepTheSwingsOf1abTo1b4(actor, slot, context.world, context.faunaModels, context.random,
+                                                      context.particles, context.worldClock);
 }
 
 Core::Expected<void, std::string>
 CharacterStepHooks::EmitLateMonsterRibbonTrails(Kernel::ActorState& actor, const Models::Skeleton* skeleton,
                                                 const Actors::CharacterStepContext& context) const
 {
-    return Scenes::EmitLateMonsterRibbonTrails(actor, skeleton, context);
+    return Monsters::Drawing::EmitLateMonsterRibbonTrails(actor, skeleton, context);
 }
 
 // The class 0 fire without an offset, with the 0xf1's angles, position and light.
@@ -245,10 +245,10 @@ Core::Expected<void, std::string>
 CharacterStepHooks::EmitTheFallingBallFire(const Kernel::ActorState& actor,
                                            const Actors::CharacterStepContext& context) const
 {
-    const World::ObjectStepGlobals globals{
+    const WorldObjects::ObjectStepGlobals globals{
         .worldClock = context.worldClock, .dynamicLighting = context.dynamicLighting, .particles = context.particles};
-    return World::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f), context.random,
-                                 globals);
+    return WorldObjects::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f), context.random,
+                                        globals);
 }
 
 // The caller takes the raven as existing and without +0x78 & 0x1000.
@@ -267,18 +267,18 @@ Core::Expected<void, std::string> CharacterStepHooks::StepTheRaven(Kernel::Actor
         return Core::Unexpected(targets.Error());
     }
     const Kernel::SharedModelPlacement& player = context.world.PlayerModel();
-    const Scenes::DarkSpiritStepped stepped =
-        Scenes::StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                               {.position = actor.position,
-                                .flags = actor.flags78,
-                                .angles = actor.angles,
-                                .pet = actor.pet.model,
-                                .safeZone = actor.safeZone,
-                                .pose = actor.bodyPose,
-                                .modelScale = player.scale,
-                                .modelOrigin = player.origin},
-                               static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
-                               context.random, context.counter, targets.Value());
+    const Pets::DarkSpiritStepped stepped =
+        Pets::StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
+                             {.position = actor.position,
+                              .flags = actor.flags78,
+                              .angles = actor.angles,
+                              .pet = actor.pet.model,
+                              .safeZone = actor.safeZone,
+                              .pose = actor.bodyPose,
+                              .modelScale = player.scale,
+                              .modelOrigin = player.origin},
+                             static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
+                             context.random, context.counter, targets.Value());
     // 0x416fc8 and 0x4175de: the A7 that stops the attack, through send(); without the session, it does not go out.
     if (stepped.stopsTheAttack && context.send)
     {
@@ -297,33 +297,33 @@ Core::Expected<void, std::string> CharacterStepHooks::StepTheRaven(Kernel::Actor
 Core::Expected<void, std::string>
 CharacterStepHooks::SetTheModelHeadTarget(Kernel::ActorState& actor, const Actors::CharacterStepContext& context) const
 {
-    return Scenes::SetTheModelHeadTarget(actor, context.world.Actors(), context.random);
+    return Monsters::SetTheModelHeadTarget(actor, context.world.Actors(), context.random);
 }
 
 Core::Expected<void, std::string> CharacterStepHooks::AddTheHandLight(const glm::vec3& position, const glm::vec3& color,
                                                                       std::int32_t radius,
                                                                       const Actors::CharacterStepContext& context) const
 {
-    return World::AddDynamicLight(context.dynamicLighting, position, color, radius, "0x506b50");
+    return WorldObjects::AddDynamicLight(context.dynamicLighting, position, color, radius, "0x506b50");
 }
 
 Core::Expected<void, std::string>
 CharacterStepHooks::StepTheModelEffects(Kernel::ActorState& actor, std::size_t slot, const Models::Skeleton& skeleton,
                                         const Actors::CharacterStepContext& context) const
 {
-    Scenes::ModelEffectsPass pass{.actor = actor,
-                                  .slot = slot,
-                                  .world = context.world,
-                                  .random = context.random,
-                                  .skeleton = skeleton,
-                                  .particles = context.particles,
-                                  .sprites = context.sprites,
-                                  .worldClock = context.worldClock,
-                                  .map = context.world.Runtime().map,
-                                  .groundMarks = context.groundMarks,
-                                  .dynamicLighting = context.dynamicLighting,
-                                  .faunaModels = context.faunaModels};
-    return Scenes::StepTheModelEffects(pass);
+    Monsters::ModelEffectsPass pass{.actor = actor,
+                                    .slot = slot,
+                                    .world = context.world,
+                                    .random = context.random,
+                                    .skeleton = skeleton,
+                                    .particles = context.particles,
+                                    .sprites = context.sprites,
+                                    .worldClock = context.worldClock,
+                                    .map = context.world.Runtime().map,
+                                    .groundMarks = context.groundMarks,
+                                    .dynamicLighting = context.dynamicLighting,
+                                    .faunaModels = context.faunaModels};
+    return Monsters::StepTheModelEffects(pass);
 }
 
 Core::Expected<void, std::string> CharacterStepHooks::StepTheCastleObject(Kernel::ActorState& actor,
@@ -331,10 +331,10 @@ Core::Expected<void, std::string> CharacterStepHooks::StepTheCastleObject(Kernel
                                                                           std::function<double(float, float)> height,
                                                                           const Models::Skeleton* skeleton) const
 {
-    const Scenes::CastleObjectStep castle{.runtime = context.world.Runtime(),
-                                          .pool = context.world.Actors(),
-                                          .height = std::move(height),
-                                          .skeleton = skeleton};
-    return Scenes::StepTheCastleObject(actor, castle);
+    const Monsters::CastleObjectStep castle{.runtime = context.world.Runtime(),
+                                            .pool = context.world.Actors(),
+                                            .height = std::move(height),
+                                            .skeleton = skeleton};
+    return Monsters::StepTheCastleObject(actor, castle);
 }
 } // namespace Client::Session

@@ -17,7 +17,7 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::Scenes
+namespace Client::Items
 {
 // El monstruo del anillo de transformación (0x1a0a) de cada nivel: el dword de 0x6c9338 + nivel · 4, que leen
 // 0x5b21bb, 0x5b41dc y 0x5bb2ed. Del 0 al 5, los de los seis anillos (2, 7, 14, 8, 9 y 41); del 6 al 10, los bytes de
@@ -40,11 +40,11 @@ namespace Client::Scenes
 // fuera de los diez corta. Un texto o un registro que no está corta.
 [[nodiscard]] Core::Expected<std::string, std::string> ItemNameOf(const Tables::ItemTable* items,
                                                                   const Tables::TextTable* texts,
-                                                                  const NpcNameTable* npcNames, std::uint16_t type,
-                                                                  std::int32_t level);
+                                                                  const Monsters::NpcNameTable* npcNames,
+                                                                  std::uint16_t type, std::int32_t level);
 
 // Falso en los casos en que 0x5b1c70 no escribe nada en el buffer: un nivel sin nombre de los tipos con un nombre por
 // nivel y el 0x1a0a sin un registro de su monstruo en `npcNames` (los que ItemNameOf da vacíos; sin `npcNames`, sí,
 // y ItemNameOf corta). Quien no pone el buffer en cero antes, como 0x41b810 (Q-C874), lee la pila.
-[[nodiscard]] bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const NpcNameTable* npcNames);
-} // namespace Client::Scenes
+[[nodiscard]] bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const Monsters::NpcNameTable* npcNames);
+} // namespace Client::Items

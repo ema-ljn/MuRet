@@ -16,7 +16,7 @@ class CrtRandom;
 }
 
 // Partes puras acreditadas de446120/446b60; el estado canónico y el RNG pertenecen a Core.
-namespace Client::World
+namespace Client::Fauna
 {
 struct BirdStepResult
 {
@@ -57,4 +57,4 @@ void FinishOrdinaryBirdMotion(const BirdStepTail& bird, const std::int32_t& map,
 // reutilizar el resultado para ambos sprites, sin otro draw ni reinicialización entre ellos.
 // Otros tipos: nullopt sin consumir RNG; no representa el resto del drawing ni sus efectos.
 [[nodiscard]] std::optional<glm::vec3> BirdGlowLight(std::int16_t model, Crt::CrtRandom& random);
-} // namespace Client::World
+} // namespace Client::Fauna

@@ -17,8 +17,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t Spark = 0x5c6;
 
 using Client::Math::Bits;
@@ -36,7 +36,7 @@ TEST(WeaponSparkParticlesTest, TheCreationDrawsFourRandomsAndReplacesTheScale)
         CrtRandom random(seed);
         const auto created =
             particles.CreateChecked(Spark, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 45.0f}, {0.8f, 0.8f, 0.2f},
-                                    Client::World::WeaponSparkSubtype, 0.8f, 0.0f, random);
+                                    Client::Particles::WeaponSparkSubtype, 0.8f, 0.0f, random);
         ASSERT_TRUE(created.HasValue());
         ASSERT_EQ(created.Value(), 0u);
         CrtRandom draws(seed);
@@ -67,7 +67,7 @@ TEST(WeaponSparkParticlesTest, EachStepMovesThenFadesShrinksAndCountsDown)
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true,
                         .type = Spark,
-                        .subtype = Client::World::WeaponSparkSubtype,
+                        .subtype = Client::Particles::WeaponSparkSubtype,
                         .scale = 1.3f,
                         .position = {100.0f, 200.0f, 300.0f},
                         .light = {0.8f, 0.8f, 0.2f},
@@ -76,7 +76,7 @@ TEST(WeaponSparkParticlesTest, EachStepMovesThenFadesShrinksAndCountsDown)
                         .moves = true,
                         .velocity = {-3.0f, 2.0f, 1.0f}};
     CrtRandom random(7);
-    ASSERT_FALSE(Client::World::StepParticles(particles, random).has_value());
+    ASSERT_FALSE(Client::Particles::StepParticles(particles, random).has_value());
     const double fade = D(std::bit_cast<float>(0x3f73cf3eu));
     EXPECT_TRUE(particle.alive);
     EXPECT_EQ(particle.life, 29);
@@ -101,10 +101,10 @@ TEST(WeaponSparkParticlesTest, TheCountdownKillsAtZeroAndBelowButNotAbove)
         SCOPED_TRACE(value.left);
         Particle particle{.alive = true,
                           .type = Spark,
-                          .subtype = Client::World::WeaponSparkSubtype,
+                          .subtype = Client::Particles::WeaponSparkSubtype,
                           .field38 = Bits(value.left),
                           .life = 20};
-        Client::World::StepWeaponSpark(particle);
+        Client::Particles::StepWeaponSpark(particle);
         EXPECT_EQ(particle.alive, value.alive);
     }
 }
@@ -124,7 +124,7 @@ TEST(WeaponSparkParticlesTest, TheFenrirSparkOnlyLivesWithOneDrawInThree)
         CrtRandom random(seed);
         const auto created =
             particles.CreateChecked(Spark, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 45.0f}, {1.0f, 0.0f, 0.0f},
-                                    Client::World::FenrirSparkSubtype, 0.75f, 0.0f, random);
+                                    Client::Particles::FenrirSparkSubtype, 0.75f, 0.0f, random);
         ASSERT_TRUE(created.HasValue());
         ASSERT_EQ(created.Value(), 0u);
         const Particle& particle = particles.All()[0];
@@ -159,7 +159,7 @@ TEST(WeaponSparkParticlesTest, TheFenrirSparkFadesAndCountsDownWithoutShrinking)
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true,
                         .type = Spark,
-                        .subtype = Client::World::FenrirSparkSubtype,
+                        .subtype = Client::Particles::FenrirSparkSubtype,
                         .scale = 0.75f,
                         .position = {100.0f, 200.0f, 300.0f},
                         .light = {1.0f, 0.0f, 0.0f},
@@ -168,7 +168,7 @@ TEST(WeaponSparkParticlesTest, TheFenrirSparkFadesAndCountsDownWithoutShrinking)
                         .moves = true,
                         .velocity = {0.0f, 0.0f, -4.5f}};
     CrtRandom random(7);
-    ASSERT_FALSE(Client::World::StepParticles(particles, random).has_value());
+    ASSERT_FALSE(Client::Particles::StepParticles(particles, random).has_value());
     const double fade = D(std::bit_cast<float>(0x3f73cf3eu));
     EXPECT_TRUE(particle.alive);
     EXPECT_EQ(particle.life, 34);
@@ -177,8 +177,9 @@ TEST(WeaponSparkParticlesTest, TheFenrirSparkFadesAndCountsDownWithoutShrinking)
     EXPECT_EQ(particle.scale, 0.75f);
     EXPECT_EQ(particle.field38, Bits(F32(1.0 - D(0.001f))));
 
-    Particle spent{.alive = true, .type = Spark, .subtype = Client::World::FenrirSparkSubtype, .field38 = Bits(0.001f)};
-    Client::World::StepFenrirSpark(spent);
+    Particle spent{
+        .alive = true, .type = Spark, .subtype = Client::Particles::FenrirSparkSubtype, .field38 = Bits(0.001f)};
+    Client::Particles::StepFenrirSpark(spent);
     EXPECT_FALSE(spent.alive);
 }
 } // namespace

@@ -96,11 +96,11 @@ struct Replies
     static constexpr std::uint16_t HeroKey = 0x21;
     static constexpr std::uint16_t OtherKey = 0x1234;
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
@@ -116,8 +116,8 @@ TEST(QuestRepliesTest, TheFlagWritesOnlyTheFirstFour)
 {
     auto tested = MakeReplies();
     auto& flags = tested->world.Runtime().quest.flags;
-    Client::Scenes::ApplyQuestFlag(Quest::QuestFlag{3, 0x41}, tested->world);
-    Client::Scenes::ApplyQuestFlag(Quest::QuestFlag{4, 0x42}, tested->world);
+    Client::Quests::ApplyQuestFlag(Quest::QuestFlag{3, 0x41}, tested->world);
+    Client::Quests::ApplyQuestFlag(Quest::QuestFlag{4, 0x42}, tested->world);
     EXPECT_EQ(flags, (std::array<std::uint8_t, 4>{0, 0, 0, 0x41}));
 }
 
@@ -126,7 +126,7 @@ TEST(QuestRepliesTest, TheListSetsTheStateTheWindowReads)
 {
     auto tested = MakeReplies();
     tested->Hero().characterClass = 0x10;
-    Client::Scenes::ApplyQuestList(Quest::QuestList{.count = 1, .states = {0x02}}, tested->Resources());
+    Client::Quests::ApplyQuestList(Quest::QuestList{.count = 1, .states = {0x02}}, tested->Resources());
     const auto& quest = tested->world.Runtime().quest;
     EXPECT_EQ(quest.characterClass, 0);
     EXPECT_EQ(quest.evolution, 2);
@@ -141,7 +141,7 @@ TEST(QuestRepliesTest, TheListSetsTheStateTheWindowReads)
 TEST(QuestRepliesTest, AnA0PastTheObjectDiscardsTheRestWithAWarning)
 {
     auto tested = MakeReplies();
-    Client::Scenes::ApplyQuestList(Quest::QuestList{.count = 0x80, .states = std::vector<std::uint8_t>(0x80, 0x11)},
+    Client::Quests::ApplyQuestList(Quest::QuestList{.count = 0x80, .states = std::vector<std::uint8_t>(0x80, 0x11)},
                                    tested->Resources());
     const auto& quest = tested->world.Runtime().quest;
     EXPECT_EQ(quest.states[49], 0x11);
@@ -156,17 +156,17 @@ TEST(QuestRepliesTest, TheStateClosesTheListAndOpensTheDialog)
 {
     auto tested = MakeReplies();
     auto& runtime = tested->world.Runtime();
-    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
-    ASSERT_TRUE(Client::Scenes::ApplyQuestState(Quest::QuestStateChange{1, 0b01'00}, tested->Resources()).HasValue());
+    runtime.panels.delegated.quest = Client::Quests::QuestListWindow;
+    ASSERT_TRUE(Client::Quests::ApplyQuestState(Quest::QuestStateChange{1, 0b01'00}, tested->Resources()).HasValue());
     EXPECT_EQ(tested->windowCloses, 1);
-    EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestDialogWindow);
+    EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
     EXPECT_EQ(runtime.quest.current, 1);
     EXPECT_EQ(runtime.quest.states[0], 0b01'00);
-    EXPECT_EQ(runtime.quest.currentState, Client::Scenes::QuestInProgress);
+    EXPECT_EQ(runtime.quest.currentState, Client::Quests::QuestInProgress);
     EXPECT_EQ(runtime.quest.dialog, 41);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 41);
-    EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "Una misión inventada");
-    EXPECT_EQ(Client::UI::DialogAnswer(runtime.dialogBox, 0), "1) Cerrar");
+    EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "Una misión inventada");
+    EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) Cerrar");
 }
 
 // 0x4ddb40: con pkt[4] distinto de 0, nada; con 0, como el A1 con pkt[5].
@@ -175,13 +175,13 @@ TEST(QuestRepliesTest, TheSetQuestResultActsOnlyOnZero)
     auto tested = MakeReplies();
     auto& runtime = tested->world.Runtime();
     ASSERT_TRUE(
-        Client::Scenes::ApplySetQuestResult(Quest::SetQuestResult{1, 1, 0b01'00}, tested->Resources()).HasValue());
+        Client::Quests::ApplySetQuestResult(Quest::SetQuestResult{1, 1, 0b01'00}, tested->Resources()).HasValue());
     EXPECT_EQ(runtime.quest.states[0], 0);
     EXPECT_EQ(runtime.panels.delegated.quest, 0);
     ASSERT_TRUE(
-        Client::Scenes::ApplySetQuestResult(Quest::SetQuestResult{1, 0, 0b01'00}, tested->Resources()).HasValue());
+        Client::Quests::ApplySetQuestResult(Quest::SetQuestResult{1, 0, 0b01'00}, tested->Resources()).HasValue());
     EXPECT_EQ(runtime.quest.states[0], 0b01'00);
-    EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestDialogWindow);
+    EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
     EXPECT_EQ(tested->windowCloses, 0);
     // 0x657a90 cierra con los dos bytes protegidos de 0x6594a3 y 0x6597f9: un rand() cada uno.
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 2).State());
@@ -199,11 +199,11 @@ TEST(QuestRepliesTest, AQuestOutsideTheRecordsIsDiscardedFromThePacket)
         auto& runtime = tested->world.Runtime();
         runtime.quest.zen = 0x01000000;
         const auto applied =
-            fromSetQuest ? Client::Scenes::ApplySetQuestResult(Quest::SetQuestResult{0, 0, 0b01}, tested->Resources())
-                         : Client::Scenes::ApplyQuestState(Quest::QuestStateChange{0, 0b01}, tested->Resources());
+            fromSetQuest ? Client::Quests::ApplySetQuestResult(Quest::SetQuestResult{0, 0, 0b01}, tested->Resources())
+                         : Client::Quests::ApplyQuestState(Quest::QuestStateChange{0, 0b01}, tested->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(runtime.quest.current, 255);
-        EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestDialogWindow);
+        EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
         EXPECT_EQ(runtime.dialogBox.dialogIndex, -1);
         ASSERT_EQ(tested->sink.lines.size(), 1u);
         EXPECT_EQ(tested->sink.levels[0], Client::Core::LogLevel::Warning);
@@ -217,12 +217,12 @@ TEST(QuestRepliesTest, AnA1PastTheTwoHundredWritesTheObject)
 {
     auto tested = MakeReplies();
     auto& runtime = tested->world.Runtime();
-    ASSERT_TRUE(Client::Scenes::ApplyQuestState(Quest::QuestStateChange{210, 0x55}, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Quests::ApplyQuestState(Quest::QuestStateChange{210, 0x55}, tested->Resources()).HasValue());
     EXPECT_EQ(runtime.quest.byte21380, 0x55);
     EXPECT_EQ(runtime.quest.current, 210);
     EXPECT_EQ(runtime.quest.reached, 210);
-    EXPECT_EQ(runtime.quest.currentState, Client::Scenes::QuestNotStarted);
-    EXPECT_EQ(runtime.panels.delegated.quest, Client::Scenes::QuestDialogWindow);
+    EXPECT_EQ(runtime.quest.currentState, Client::Quests::QuestNotStarted);
+    EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
 }
 
 // Los joints del premio que deja una respuesta, en orden desde el lugar `first`: quince 60f/0 en la posición del
@@ -258,8 +258,8 @@ void ExpectTheDecal(const Replies& tested, const Client::Kernel::ActorState& own
 {
     const auto& decal = tested.world.Map().effects.Effects()[slot];
     EXPECT_TRUE(decal.alive);
-    EXPECT_EQ(decal.type, Client::World::ColoredDecalEffect);
-    EXPECT_EQ(decal.subtype, Client::World::LevelUpDecalSubtype);
+    EXPECT_EQ(decal.type, Client::Effects::ColoredDecalEffect);
+    EXPECT_EQ(decal.subtype, Client::Effects::LevelUpDecalSubtype);
     EXPECT_EQ(decal.transform.position, owner.position);
     EXPECT_EQ(decal.ownerContext, &owner);
 }
@@ -272,7 +272,7 @@ TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndSparkles)
     tested->world.OwnCharacter().levelUpPoints = 7;
     tested->Hero().position = {1000.0f, 2000.0f, 150.0f};
     tested->Hero().animation.action = 0x22;
-    const auto applied = Client::Scenes::ApplyQuestResult(
+    const auto applied = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::PointsPrize, 0xfe}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 7 + 0xfe);
@@ -288,7 +288,7 @@ TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndSparkles)
 TEST(QuestRepliesTest, ThePointsOfAnotherCharacterLeaveTheRecord)
 {
     auto tested = MakeReplies();
-    const auto applied = Client::Scenes::ApplyQuestResult(
+    const auto applied = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::OtherKey, Quest::ClassPointsPrize, 5}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 0);
@@ -301,7 +301,7 @@ TEST(QuestRepliesTest, ThePointsOfAnotherCharacterLeaveTheRecord)
 TEST(QuestRepliesTest, TheClassPointsOfTheHeroAlsoOpenTheRecord)
 {
     auto tested = MakeReplies();
-    const auto applied = Client::Scenes::ApplyQuestResult(
+    const auto applied = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::ClassPointsPrize, 5}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().levelUpPoints, 5);
@@ -313,14 +313,14 @@ TEST(QuestRepliesTest, TheClassPointsOfTheHeroAlsoOpenTheRecord)
 TEST(QuestRepliesTest, TheClassChangeWritesTheActorAndTheHeroRecord)
 {
     auto tested = MakeReplies();
-    const auto other = Client::Scenes::ApplyQuestResult(
+    const auto other = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::OtherKey, Quest::ClassChangePrize, 0x30}, tested->Resources());
     ASSERT_TRUE(other.HasValue()) << other.Error();
     EXPECT_EQ(tested->Other().characterClass, 9);
     EXPECT_EQ(tested->world.OwnCharacter().characterClass, 0);
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
 
-    const auto hero = Client::Scenes::ApplyQuestResult(
+    const auto hero = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::ClassChangePrize, 0x21}, tested->Resources());
     ASSERT_TRUE(hero.HasValue()) << hero.Error();
     EXPECT_EQ(tested->Hero().characterClass, 1);
@@ -336,7 +336,7 @@ TEST(QuestRepliesTest, AnUnknownKeyWritesTheSpareActor)
 {
     auto tested = MakeReplies();
     const auto applied =
-        Client::Scenes::ApplyQuestResult(Quest::QuestResult{0x777, Quest::ClassChangePrize, 0x10}, tested->Resources());
+        Client::Quests::ApplyQuestResult(Quest::QuestResult{0x777, Quest::ClassChangePrize, 0x10}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->world.Actors()[400].characterClass, 8);
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
@@ -357,7 +357,7 @@ TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
     hero.body[0].model = 0x2213;
     hero.body[0].level = 3;
     hero.body[1].model = 0x221b;
-    const auto applied = Client::Scenes::ApplyQuestResult(
+    const auto applied = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::ClassChangePrize, 0x30}, tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(hero.characterClass, 9);
@@ -383,7 +383,7 @@ TEST(QuestRepliesTest, AClassPrizeWithoutPlayerBmdCutsBeforeTheClothes)
     hero.type = Client::Tables::PlayerSkeletonModel;
     hero.animation.action = 0x22;
     hero.body[0].model = 0x2212;
-    const auto applied = Client::Scenes::ApplyQuestResult(
+    const auto applied = Client::Quests::ApplyQuestResult(
         Quest::QuestResult{Replies::HeroKey, Quest::ClassChangePrize, 0x30}, tested->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("0x4de140"), std::string::npos) << applied.Error();
@@ -400,7 +400,7 @@ TEST(QuestRepliesTest, AFullJointPoolSkipsOnlyTheSparkles)
     auto tested = MakeReplies();
     for (auto& joint : tested->world.DrawTail().joints)
         joint.alive = true;
-    const auto applied = Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::OtherKey, Quest::PointsPrize, 1},
+    const auto applied = Client::Quests::ApplyQuestResult(Quest::QuestResult{Replies::OtherKey, Quest::PointsPrize, 1},
                                                           tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested->cloth.random.State(), Client::Crt::CrtRandom(Seed).State());
@@ -411,14 +411,14 @@ TEST(QuestRepliesTest, AFullJointPoolSkipsOnlyTheSparkles)
 TEST(QuestRepliesTest, TheEffectPrizeSparklesAndAnotherKindOnlySounds)
 {
     auto tested = MakeReplies();
-    const auto effect = Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, Quest::EffectPrize, 0},
+    const auto effect = Client::Quests::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, Quest::EffectPrize, 0},
                                                          tested->Resources());
     ASSERT_TRUE(effect.HasValue()) << effect.Error();
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());
     ExpectThePrizeSparkles(*tested, tested->Hero(), true);
     ExpectTheDecal(*tested, tested->Hero());
     tested->world.Runtime().lastSoundId.reset();
-    EXPECT_TRUE(Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, 0xcc, 0}, tested->Resources())
+    EXPECT_TRUE(Client::Quests::ApplyQuestResult(Quest::QuestResult{Replies::HeroKey, 0xcc, 0}, tested->Resources())
                     .HasValue());
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x66});
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 30 * 3).State());

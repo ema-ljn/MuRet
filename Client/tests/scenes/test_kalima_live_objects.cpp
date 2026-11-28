@@ -186,7 +186,7 @@ TEST_P(KalimaLiveObjectsTest, SeveralTicksAndIntermediateFramesPreserveDurablePo
     const auto objects = m_world->Map().objects;
     const auto waves = m_world->Map().kalima->CloneForFrame();
     const auto sounds = m_world->Fauna().Sounds().size();
-    const auto effects = std::make_unique<Client::World::ModelEffects>(m_world->Map().effects);
+    const auto effects = std::make_unique<Client::Effects::ModelEffects>(m_world->Map().effects);
     auto expectedPrepare = m_cloth->random;
     for (int close = 0; close < 4; ++close)
         static_cast<void>(expectedPrepare.Next());
@@ -238,7 +238,7 @@ TEST_P(KalimaLiveObjectsTest, SeveralTicksAndIntermediateFramesPreserveDurablePo
 
 TEST_P(KalimaLiveObjectsTest, EveryReachableFamilyUsesRealImagesAndTheDepthBackend)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(7);
     constexpr std::array<std::array<int, 2>, 9> families{
         {{0x5ac, 6}, {0x5ac, 7}, {0x6ed, 0}, {0x6f0, 0}, {0x6f1, 0}, {0x6f2, 0}, {0x6f3, 0}, {0x6f4, 0}, {0x6f4, 1}}};
@@ -258,7 +258,7 @@ TEST_P(KalimaLiveObjectsTest, EveryReachableFamilyUsesRealImagesAndTheDepthBacke
     batch.ApplyState(state);
     const Client::Math::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
     const auto before = random.State();
-    const auto drawn = Client::Scenes::DrawGameParticles(batch, particles, *m_models, view, 0);
+    const auto drawn = Client::Effects::DrawGameParticles(batch, particles, *m_models, view, 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(batch.Vertices().size(), 54u);
     EXPECT_EQ(random.State(), before);
@@ -297,7 +297,7 @@ TEST_P(KalimaLiveObjectsTest, NativeStepSpawnsTheAmbientModelAndDrawsItsWholeLif
                             [](const auto& p)
                             {
                                 return p.alive && p.type == 0x5ac && p.subtype == 7 &&
-                                       p.typedOwner.kind == Client::World::ParticleOwnerKind::Actor;
+                                       p.typedOwner.kind == Client::Particles::ParticleOwnerKind::Actor;
                             }));
     EXPECT_TRUE(std::any_of(m_world->Fauna().Sounds().begin(), m_world->Fauna().Sounds().end(),
                             [](const auto& sound) { return sound.id == 0x1d7; }));
@@ -329,11 +329,11 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     Client::Assets::WorldModels models;
     ASSERT_TRUE(
         models.Load(m_dataRoot, map, store, m_log, &m_models->TextureSlots(), m_models.get(), &table).HasValue());
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Crt::CrtRandom random(7);
     ASSERT_EQ(effects->CreateKalimaEffect({6400, 6400, 1000}, {}, {0.3f, 0.8f, 1}, random), 0u);
     Client::Kernel::PoseBuffer pose;
-    const Client::Scenes::GameObjectPass pass{
+    const Client::WorldObjects::GameObjectPass pass{
         .map = map, .originalFrame = false, .retainedPose = &pose, .waterTextureFrame = 0u};
     Client::Scenes::ModelEffectDrawResources resources{*m_states->terrain.current.heights};
     resources.kalimaPass = &pass;

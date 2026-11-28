@@ -62,13 +62,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GameUiContext;
 using Client::Tests::RecordedText;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -133,7 +133,7 @@ CrtRandom Advanced(CrtRandom random, int count)
 }
 
 // Lo que pide la UI, en orden.
-class RecordingRequests final : public Client::Scenes::IGameUiRequests
+class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override
@@ -245,7 +245,7 @@ protected:
         runtime.hero = 3;
         Hero().alive = true;
         Hero().characterClass = 0;
-        Client::Scenes::QuestState& quest = Quest();
+        Client::Quests::QuestState& quest = Quest();
         quest.characterClass = 0;
         // La misión 0: el pergamino para la clase 0, con nivel 10 y 1.000 de zen.
         Client::Tables::QuestRecord& first = quest.records[0];
@@ -289,7 +289,7 @@ protected:
     {
         return m_world->Runtime();
     }
-    Client::Scenes::QuestState& Quest()
+    Client::Quests::QuestState& Quest()
     {
         return Runtime().quest;
     }
@@ -297,7 +297,7 @@ protected:
     {
         return m_world->Hero();
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return Runtime().movement;
     }
@@ -309,11 +309,11 @@ protected:
     // La ventana del diálogo con el NPC con la misión 0 en `state` y el diálogo 10 (0x4198b0 sin su 0x419600).
     void OpenTheDialog(std::uint8_t state)
     {
-        Window() = Client::Scenes::QuestDialogWindow;
+        Window() = Client::Quests::QuestDialogWindow;
         Quest().current = 0;
         Quest().currentState = state;
         ASSERT_TRUE(
-            Client::UI::ShowTheQuestDialog(Runtime().dialogBox, Runtime().dialogs, &Runtime().dialogTable, &m_texts, 10)
+            Client::Ui::ShowTheQuestDialog(Runtime().dialogBox, Runtime().dialogs, &Runtime().dialogTable, &m_texts, 10)
                 .HasValue());
         Runtime().dialogs = {};
     }
@@ -327,10 +327,10 @@ protected:
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(Movement(), true, true);
+        Client::Hud::LatchTheLeftButton(Movement(), true, true);
     }
 
-    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Scenes::IGameUiRequests* requests)
+    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Hud::IGameUiRequests* requests)
     {
         return GameUiContext{.world = *m_world,
                              .random = m_random,
@@ -343,9 +343,9 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, RecordingRequests* requests)
     {
-        Client::Scenes::GamePanels panels(*m_world, m_random, Client::Scenes::GamePanelTables{.texts = &m_texts});
+        Client::Hud::GamePanels panels(*m_world, m_random, Client::Hud::GamePanelTables{.texts = &m_texts});
         panels.LendTheWindowClose(requests);
-        return Client::Scenes::StepTheQuestWindow(UiContext(x, y, requests), panels.Registry());
+        return Client::Quests::StepTheQuestWindow(UiContext(x, y, requests), panels.Registry());
     }
 
     GameHudContext HudContext(std::int32_t x, std::int32_t y, CrtRandom& random)
@@ -369,8 +369,8 @@ protected:
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
     {
         GameHudContext context = HudContext(x, y, m_random);
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawTheQuestWindow(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Quests::DrawTheQuestWindow(context, panels.Registry());
     }
 
     std::unique_ptr<WorldState> m_world;
@@ -405,7 +405,7 @@ TEST_P(QuestWindowTest, TheCornerFollowsTheCharacterWindow)
 TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
 {
     RecordingRequests requests;
-    Quest().states[0] = Client::Scenes::QuestAvailable;
+    Quest().states[0] = Client::Quests::QuestAvailable;
     Click();
     ASSERT_TRUE(Step(0x1f9, 0x18b, &requests).HasValue());
     EXPECT_EQ(Window(), 0) << "sin el personaje";
@@ -423,7 +423,7 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
     Movement().mouseUpdateTime = 4;
     Movement().mouseUpdateTimeMax = 12;
     ASSERT_TRUE(Step(0x210, 0x1a2, &requests).HasValue());
-    EXPECT_EQ(Window(), Client::Scenes::QuestListWindow);
+    EXPECT_EQ(Window(), Client::Quests::QuestListWindow);
     EXPECT_FALSE(Movement().pendingClick);
     EXPECT_EQ(Movement().mouseUpdateTime, 0);
     EXPECT_EQ(Movement().mouseUpdateTimeMax, 6);
@@ -445,9 +445,9 @@ TEST_P(QuestWindowTest, TheCharacterButtonOpensAndClosesTheList)
 TEST_P(QuestWindowTest, TheCloseAnswerClosesTheWindow)
 {
     RecordingRequests requests;
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopOtherwise + 18, &requests).HasValue());
-    EXPECT_EQ(Window(), Client::Scenes::QuestDialogWindow) << "sin el clic";
+    EXPECT_EQ(Window(), Client::Quests::QuestDialogWindow) << "sin el clic";
 
     Click();
     Movement().mouseUpdateTime = 4;
@@ -467,17 +467,17 @@ TEST_P(QuestWindowTest, TheCloseAnswerClosesTheWindow)
 TEST_P(QuestWindowTest, TheAcceptAnswerSendsTheQuestAndShowsTheNextDialog)
 {
     RecordingRequests requests;
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopOtherwise + 36, &requests).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"A2 0 1"}));
-    EXPECT_EQ(Window(), Client::Scenes::QuestDialogWindow);
+    EXPECT_EQ(Window(), Client::Quests::QuestDialogWindow);
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 12);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, C3Randoms).State());
 
     // Sin el cable, el A2 corta antes de sacar los rand().
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Click();
     const std::uint32_t before = m_random.State();
     const auto cut = Step(AnswersCenterX, AnswersTopOtherwise + 36, nullptr);
@@ -491,7 +491,7 @@ TEST_P(QuestWindowTest, TheAcceptAnswerSendsTheQuestAndShowsTheNextDialog)
 TEST_P(QuestWindowTest, TheCheckingAnswerLooksAtTheConditionsWithTheZen)
 {
     RecordingRequests requests;
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopOtherwise, &requests).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"A2 0 1"}));
@@ -499,13 +499,13 @@ TEST_P(QuestWindowTest, TheCheckingAnswerLooksAtTheConditionsWithTheZen)
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{Seed}, 2 * OwnRecordClose + C3Randoms).State());
 
     m_world->OwnCharacter().zen = 999;
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Runtime().lastSoundId = Client::Audio::SoundId{0};
     const std::uint32_t before = m_random.State();
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopOtherwise + 17, &requests).HasValue());
     EXPECT_EQ(requests.requests.size(), 1U);
-    EXPECT_EQ(Quest().currentState, Client::Scenes::QuestConditionFailed);
+    EXPECT_EQ(Quest().currentState, Client::Quests::QuestConditionFailed);
     EXPECT_EQ(Runtime().dialogBox.dialogIndex, 20);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Advanced(CrtRandom{before}, 2 * OwnRecordClose).State());
@@ -517,12 +517,12 @@ TEST_P(QuestWindowTest, TheCheckingAnswerLooksAtTheConditionsWithTheZen)
 TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
 {
     RecordingRequests requests;
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     Click();
     ASSERT_TRUE(Step(AnswersCenterX, AnswersTopInProgress - 17, &requests).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"A2 0 1"})) << "la respuesta 0, mirar y aceptar";
 
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     requests.requests.clear();
     Runtime().lastSoundId = Client::Audio::SoundId{0};
     const std::uint32_t before = m_random.State();
@@ -540,10 +540,10 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
                                     std::pair{Beside + 0x64, false}})
     {
         SCOPED_TRACE(testing::Message() << x);
-        OpenTheDialog(Client::Scenes::QuestInProgress);
+        OpenTheDialog(Client::Quests::QuestInProgress);
         Click();
         ASSERT_TRUE(Step(x, AnswersTopInProgress + 18, &requests).HasValue());
-        EXPECT_EQ(Window(), inside ? 0 : Client::Scenes::QuestDialogWindow);
+        EXPECT_EQ(Window(), inside ? 0 : Client::Quests::QuestDialogWindow);
         EXPECT_EQ(Movement().pendingClick, !inside);
     }
 }
@@ -554,7 +554,7 @@ TEST_P(QuestWindowTest, TheAnswerRowsAreMeasuredLikeTheOriginal)
 TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
 {
     RecordingRequests requests;
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     Click();
     ASSERT_TRUE(Step(Alone + 0x23, 0x163, &requests).HasValue());
     EXPECT_TRUE(requests.requests.empty());
@@ -585,7 +585,7 @@ TEST_P(QuestWindowTest, TheFinishButtonNeedsTheItems)
 TEST_P(QuestWindowTest, TheDialogCloseButtonAndTheMouse)
 {
     RecordingRequests requests;
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Movement().releasedClick = true;
     ASSERT_TRUE(Step(Alone, 0, &requests).HasValue());
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
@@ -609,7 +609,7 @@ TEST_P(QuestWindowTest, TheDialogCloseButtonAndTheMouse)
 TEST_P(QuestWindowTest, TheListTabsAndItsCloseButton)
 {
     RecordingRequests requests;
-    Window() = Client::Scenes::QuestListWindow;
+    Window() = Client::Quests::QuestListWindow;
     Quest().tab = 1;
     Click();
     ASSERT_TRUE(Step(Alone + 0x14 + 0x33, 0xeb, &requests).HasValue());
@@ -639,11 +639,11 @@ TEST_P(QuestWindowTest, TheGameUiStepsTheWindow)
     Runtime().panels.character = 1;
     // 0x424230: el pedido del caballo oscuro ya salió.
     Runtime().panels.delegated.pet = 1;
-    Quest().states[0] = Client::Scenes::QuestAvailable;
+    Quest().states[0] = Client::Quests::QuestAvailable;
     Click();
-    const auto stepped = Client::Scenes::StepTheGameUi(UiContext(0x1f9, 0x18b, &requests));
+    const auto stepped = Client::Hud::StepTheGameUi(UiContext(0x1f9, 0x18b, &requests));
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_EQ(Window(), Client::Scenes::QuestListWindow);
+    EXPECT_EQ(Window(), Client::Quests::QuestListWindow);
     EXPECT_EQ(Quest().x, Beside);
 }
 
@@ -652,7 +652,7 @@ TEST_P(QuestWindowTest, TheGameUiStepsTheWindow)
 // la misión en su caja de 150, el texto y las respuestas desde 111.
 TEST_P(QuestWindowTest, TheDialogInProgressDrawsTheItemsAndTheFinishButton)
 {
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     GiveTheScroll();
     ASSERT_TRUE(Draw(0, 0).HasValue());
     const auto quads = QuadsOf(m_sprites);
@@ -704,7 +704,7 @@ TEST_P(QuestWindowTest, TheDialogInProgressDrawsTheItemsAndTheFinishButton)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5b1c70 desde 0x41b810 (Scenes::ItemNameOf): el 0x1c17 y el 0x1c18 con nivel 1 se llaman con los textos 906 y 907;
+// 0x5b1c70 desde 0x41b810 (Items::ItemNameOf): el 0x1c17 y el 0x1c18 con nivel 1 se llaman con los textos 906 y 907;
 // con otro nivel distinto de 0 el buffer queda sin iniciar y corta (Q-C874), igual que otro tipo con un nivel sin
 // nombre (el 0x1c09 con el 2). Un ítem que no es de misión lleva el nombre de Item.bmd y, con nivel, " +nivel"; con un
 // grupo de 128 o más el tipo lee fuera de Item.bmd.
@@ -712,7 +712,7 @@ TEST_P(QuestWindowTest, TheAskedItemNamesFollowTheLevel)
 {
     auto& entry = Quest().records[0].entries[0];
     entry.itemLevel = 1;
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     ASSERT_TRUE(Draw(0, 0).HasValue());
     EXPECT_NE(FindText(m_text.texts, "Pergamino de nivel x 1"), nullptr);
 
@@ -753,7 +753,7 @@ TEST_P(QuestWindowTest, TheAskedItemNamesFollowTheLevel)
 
 TEST_P(QuestWindowTest, WithoutTheItemsTheFinishButtonIsGrey)
 {
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     ASSERT_TRUE(Draw(0, 0).HasValue());
     const auto quads = QuadsOf(m_sprites);
     const DrawnQuad* finish = FindQuad(quads, 0xf0, static_cast<float>(Alone + 35), 355.0f);
@@ -768,7 +768,7 @@ TEST_P(QuestWindowTest, WithoutTheItemsTheFinishButtonIsGrey)
 // gastan (no en un dibujo intermedio de MuRet).
 TEST_P(QuestWindowTest, ThePressedFinishButtonSpendsTheReleasedClick)
 {
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     GiveTheScroll();
     Click();
     ASSERT_TRUE(Draw(Alone + 35, 355).HasValue());
@@ -782,8 +782,8 @@ TEST_P(QuestWindowTest, ThePressedFinishButtonSpendsTheReleasedClick)
     {
         GameHudContext context = HudContext(Alone + 154, 378, m_random);
         context.projecting = true;
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        ASSERT_TRUE(Client::Scenes::DrawTheQuestWindow(context, panels.Registry()).HasValue());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        ASSERT_TRUE(Client::Quests::DrawTheQuestWindow(context, panels.Registry()).HasValue());
         EXPECT_TRUE(Movement().pendingClick) << "proyectado";
     }
     ASSERT_TRUE(Draw(Alone + 154, 378).HasValue());
@@ -795,7 +795,7 @@ TEST_P(QuestWindowTest, ThePressedFinishButtonSpendsTheReleasedClick)
 // zen que pide la condición con su color.
 TEST_P(QuestWindowTest, TheAvailableQuestShowsItsZen)
 {
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Quest().zen = 1234567;
     ASSERT_TRUE(Draw(0, 0).HasValue());
     const auto quads = QuadsOf(m_sprites);
@@ -810,7 +810,7 @@ TEST_P(QuestWindowTest, TheAvailableQuestShowsItsZen)
     const RecordedText* amount = FindText(m_text.texts, "1,234,567");
     ASSERT_NE(amount, nullptr);
     EXPECT_EQ(amount->x, Alone + 60);
-    EXPECT_EQ(amount->style.colors.text, Client::Scenes::ZenColor(1234567));
+    EXPECT_EQ(amount->style.colors.text, Client::Ui::ZenColor(1234567));
     EXPECT_EQ(FindQuad(quads, 0xf0, static_cast<float>(Alone + 35), 355.0f), nullptr);
     // Las respuestas, en 0xfa.
     const RecordedText* answer = FindText(m_text.texts, "1) Acepto");
@@ -822,7 +822,7 @@ TEST_P(QuestWindowTest, TheAvailableQuestShowsItsZen)
 // 1 a 17 píxeles por encima es la 0 (Q-C870).
 TEST_P(QuestWindowTest, TheAnswerUnderTheMouseIsRed)
 {
-    OpenTheDialog(Client::Scenes::QuestInProgress);
+    OpenTheDialog(Client::Quests::QuestInProgress);
     ASSERT_TRUE(Draw(Alone + 0xd4, AnswersTopInProgress - 17).HasValue());
     EXPECT_EQ(FindText(m_text.texts, "1) Acepto")->style.colors.text, 0xff0000ffu);
     EXPECT_EQ(FindText(m_text.texts, "2) Me voy")->style.colors.text, 0xff67bfdfu);
@@ -836,7 +836,7 @@ TEST_P(QuestWindowTest, TheAnswerUnderTheMouseIsRed)
 // y 0x6eeda8, el de la misión 2, y sin el nombre de la misión.
 TEST_P(QuestWindowTest, TheTitleIsTheNameOfTheNpc)
 {
-    OpenTheDialog(Client::Scenes::QuestAvailable);
+    OpenTheDialog(Client::Quests::QuestAvailable);
     Runtime().npcNames[7].type = NpcType;
     PutText(Runtime().npcNames[7].name, "Guardia inventado");
     Runtime().npcNames[9].type = 0xe5;
@@ -870,11 +870,11 @@ TEST_P(QuestWindowTest, TheTitleIsTheNameOfTheNpc)
 // título "Quest", el nombre de la más alta, el texto sin respuestas y el estado en la negrita grande.
 TEST_P(QuestWindowTest, TheListDrawsItsTabsAndTheState)
 {
-    Window() = Client::Scenes::QuestListWindow;
+    Window() = Client::Quests::QuestListWindow;
     Quest().reached = 1;
-    Quest().currentState = Client::Scenes::QuestInProgress;
+    Quest().currentState = Client::Quests::QuestInProgress;
     ASSERT_TRUE(
-        Client::UI::ShowTheQuestDialog(Runtime().dialogBox, Runtime().dialogs, &Runtime().dialogTable, &m_texts, 10)
+        Client::Ui::ShowTheQuestDialog(Runtime().dialogBox, Runtime().dialogs, &Runtime().dialogTable, &m_texts, 10)
             .HasValue());
     ASSERT_TRUE(Draw(Alone + 25, 395).HasValue());
     const auto quads = QuadsOf(m_sprites);
@@ -930,7 +930,7 @@ TEST_P(QuestWindowTest, TheCharacterWindowHasTheQuestButton)
     ExpectSize(*closed, 24.0f, 24.0f);
     EXPECT_TRUE(m_text.texts.empty());
 
-    Window() = Client::Scenes::QuestListWindow;
+    Window() = Client::Quests::QuestListWindow;
     Quest().x = Beside;
     ASSERT_TRUE(Draw(0x210, 0x1a2).HasValue());
     ASSERT_NE(FindQuad(QuadsOf(m_sprites), 0x103, 505.0f, 395.0f), nullptr);
@@ -943,24 +943,24 @@ TEST_P(QuestWindowTest, TheCharacterWindowHasTheQuestButton)
 // lista (sin +0x21380) o cerrada, nada.
 TEST_P(QuestWindowTest, TheUi3DPassDrawsTheAskedItems)
 {
-    Window() = Client::Scenes::QuestListWindow;
-    Quest().currentState = Client::Scenes::QuestInProgress;
+    Window() = Client::Quests::QuestListWindow;
+    Quest().currentState = Client::Quests::QuestInProgress;
     {
         GameHudContext context = HudContext(0, 0, m_random);
-        ASSERT_TRUE(Client::Scenes::DrawTheQuestItems(context).HasValue());
+        ASSERT_TRUE(Client::Quests::DrawTheQuestItems(context).HasValue());
     }
     EXPECT_EQ(m_random.State(), Seed);
 
-    Window() = Client::Scenes::QuestDialogWindow;
+    Window() = Client::Quests::QuestDialogWindow;
     {
         GameHudContext context = HudContext(0, 0, m_random);
-        ASSERT_TRUE(Client::Scenes::DrawTheQuestItems(context).HasValue());
+        ASSERT_TRUE(Client::Quests::DrawTheQuestItems(context).HasValue());
     }
     CrtRandom expected{Seed};
     {
         GameHudContext context = HudContext(0, 0, expected);
-        const Client::Scenes::UiItemBox box{.x = 480.0f, .y = 235.0f, .width = 20.0f, .height = 20.0f};
-        ASSERT_TRUE(Client::Scenes::DrawUiItem(context, box, ScrollType, 0, 0, 0, false).HasValue());
+        const Client::Items::UiItemBox box{.x = 480.0f, .y = 235.0f, .width = 20.0f, .height = 20.0f};
+        ASSERT_TRUE(Client::Hud::DrawUiItem(context, box, ScrollType, 0, 0, 0, false).HasValue());
     }
     EXPECT_EQ(m_random.State(), expected.State());
 }
@@ -986,7 +986,7 @@ TEST(QuestItemNamesTest, OnlyTheLevelsWithoutANameAreNotWritten)
           Case{0x1c0c, 2, true},  Case{0x1c0c, 3, false}, Case{0x180b, 7, true},  Case{0x0001, 13, true}})
     {
         SCOPED_TRACE(std::format("{:#x} {}", probe.type, probe.level));
-        EXPECT_EQ(Client::Scenes::ItemNameIsWritten(probe.type, probe.level, nullptr), probe.written);
+        EXPECT_EQ(Client::Items::ItemNameIsWritten(probe.type, probe.level, nullptr), probe.written);
     }
 }
 } // namespace

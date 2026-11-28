@@ -42,15 +42,15 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
+using Client::Particles::Particle;
+using Client::Particles::ParticleError;
+using Client::Particles::ParticleOwner;
+using Client::Particles::ParticleOwnerKind;
+using Client::Particles::ParticleOwnerState;
+using Client::Particles::Particles;
+using Client::Particles::PortableParticleTrigonometry;
 using Client::Tests::AfterDraws;
 using Client::Tests::DrawOneParticle;
-using Client::World::Particle;
-using Client::World::ParticleError;
-using Client::World::ParticleOwner;
-using Client::World::ParticleOwnerKind;
-using Client::World::ParticleOwnerState;
-using Client::World::Particles;
-using Client::World::PortableParticleTrigonometry;
 
 constexpr std::uint32_t Seed = 0x1234;
 
@@ -78,13 +78,13 @@ Particle& Only(Particles& particles, std::size_t index)
 
 // 0x5446e0 con todos los servicios del juego menos la luz dinámica y los dueños.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random, float clock,
-                                                 const Client::World::ParticleOwnerStates& owners = {},
+                                                 const Client::Particles::ParticleOwnerStates& owners = {},
                                                  Client::Terrain::TerrainLighting* lighting = nullptr)
 {
     PortableParticleTrigonometry trigonometry;
     const std::int32_t map = 0;
-    return Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {}, {}, {},
-                                               lighting, {}, {}, {}, owners);
+    return Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {}, {},
+                                                   {}, lighting, {}, {}, {}, owners);
 }
 
 TEST(Cl11Particles, TheBurstRingTurnsWithOneRandAndPulsesWithTheSine)
@@ -218,7 +218,7 @@ TEST(Cl11Particles, EveryFireSubtypeIsCreatedAndStepped)
     for (const std::int32_t type : {0x5d9, 0x5db, 0x5dc})
         for (std::int32_t subtype = -1; subtype <= 15; ++subtype)
         {
-            if (subtype == Client::World::FireRingSubtype)
+            if (subtype == Client::Particles::FireRingSubtype)
                 continue;
             auto particles = std::make_unique<Particles>();
             CrtRandom random(Seed);
@@ -654,9 +654,9 @@ Client::Core::Expected<void, ParticleError> StepOverGround(Particles& particles,
     PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
-    const Client::World::ParticleTerrainHeight height = [ground](float, float) { return ground; };
-    return Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, height, {}, {},
-                                               {}, nullptr, {}, {}, {});
+    const Client::Particles::ParticleTerrainHeight height = [ground](float, float) { return ground; };
+    return Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, height, {},
+                                                   {}, {}, nullptr, {}, {}, {});
 }
 
 glm::vec3 Vec(std::uint32_t x, std::uint32_t y, std::uint32_t z)
@@ -1460,10 +1460,10 @@ TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
     PortableParticleTrigonometry trigonometry;
     const std::int32_t map = 0;
     const float clock = 0.0f;
-    const auto step = [&](Client::World::FrameSprites* sprites)
+    const auto step = [&](Client::Particles::FrameSprites* sprites)
     {
-        return Client::World::StepParticlesChecked(*particles, random, std::cref(clock), &map, trigonometry, {}, {}, {},
-                                                   {}, nullptr, {}, {}, {}, {}, sprites);
+        return Client::Particles::StepParticlesChecked(*particles, random, std::cref(clock), &map, trigonometry, {}, {},
+                                                       {}, {}, nullptr, {}, {}, {}, {}, sprites);
     };
     const auto expectTheStep = [&](const Particle& before)
     {
@@ -1486,11 +1486,11 @@ TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
         EXPECT_EQ(shine.scale, before.scale);
         EXPECT_EQ(random.State(), draws.random.State());
     };
-    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    auto sprites = std::make_unique<Client::Particles::FrameSprites>();
     const Particle first = shine;
     ASSERT_TRUE(step(sprites.get()).HasValue());
     expectTheStep(first);
-    const Client::World::Sprite& flare = sprites->Sprites()[0];
+    const Client::Particles::Sprite& flare = sprites->Sprites()[0];
     EXPECT_TRUE(flare.alive);
     EXPECT_EQ(flare.texture, 0x5ac);
     EXPECT_EQ(flare.position, shine.position);

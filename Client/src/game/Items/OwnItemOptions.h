@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 // Vista prestada de World::ItemState: {id, durability, optionCount, optionBytes}.
 // optionBytes conserva el solapamiento tag8/valor0 del productor canónico 54bf40.
@@ -22,4 +22,4 @@ struct OwnItemOptionsView
 void AddOwnItemOptionValues(std::span<std::byte, 2> destination, std::uint32_t selector, OwnItemOptionsView options);
 void ApplyOwnItemOptionPercent(std::span<std::byte, 2> destination, std::uint32_t selector, OwnItemOptionsView options,
                                std::uint32_t factor);
-} // namespace Client::Scenes
+} // namespace Client::Items

@@ -44,7 +44,7 @@ constexpr std::int32_t CounterModulus = 10000;
 
 // 0x553520(0x2c): con la tecla abajo y el latch en 0, lo pone en 1 y da verdadero; con la tecla arriba, lo vuelve a 0
 // (como KeyEdge de GameUi.cpp). La tecla abajo es también el apretón del frame que llegó con su soltada (Q-C630).
-bool PrintScreenEdge(UI::GameUiState& ui, const Input::InputState& input)
+bool PrintScreenEdge(Ui::GameUiState& ui, const Input::InputState& input)
 {
     std::int32_t& latch = ui.keyLatches[PrintScreenVirtualKey];
     if (!input.IsDown(Input::Key::PrintScreen) && !input.WasPressed(Input::Key::PrintScreen))
@@ -64,7 +64,7 @@ std::string_view GroupNameOf(const Tables::TextTable* texts, std::optional<std::
 {
     if (!chosenServer)
         return {};
-    return UI::TextAt(texts, UI::GroupNameText(UI::GroupOf(*chosenServer))).value_or(std::string_view{});
+    return Ui::TextAt(texts, FrontEnd::GroupNameText(FrontEnd::GroupOf(*chosenServer))).value_or(std::string_view{});
 }
 } // namespace
 
@@ -78,14 +78,14 @@ std::string ScreenshotMessage(std::string_view format, std::string_view fileName
                               std::string_view hero)
 {
     const std::array<std::string_view, 1> arguments{fileName};
-    std::string message = UI::PlaceArguments(format, arguments);
+    std::string message = Ui::PlaceArguments(format, arguments);
     message += std::format(" [{} / {}]", group, hero);
     return message;
 }
 
 Screenshots::Screenshots(const ScreenshotState& state) : m_state(state) {}
 
-Core::Expected<void, std::string> Screenshots::StepTheKey(UI::GameUiState& ui, const Input::InputState& input)
+Core::Expected<void, std::string> Screenshots::StepTheKey(Ui::GameUiState& ui, const Input::InputState& input)
 {
     if (m_heldFrame)
         return Core::Unexpected(*m_heldFrame);
@@ -111,14 +111,15 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
         return Core::Unexpected(std::format("0x6381c7: {}", time.Error()));
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const std::string_view format = UI::TextAt(context.texts, ScreenshotText).value_or(std::string_view{});
+    const std::string_view format = Ui::TextAt(context.texts, ScreenshotText).value_or(std::string_view{});
     std::string fileName = ScreenshotFileName(time.Value(), m_state.counter);
     std::string message = ScreenshotMessage(format, fileName, GroupNameOf(context.texts, context.chosenServer),
                                             Actors::HeroNameOf(world.Hero()));
     // 0x6382f9..0x63835a: sin Shift, el mensaje va antes del dibujo y sale en la captura.
     if (!context.shiftDown)
     {
-        if (auto added = AddGameMessage(runtime, context.measure, context.screen, {}, message, ScreenshotMessageType);
+        if (auto added =
+                Chat::AddGameMessage(runtime, context.measure, context.screen, {}, message, ScreenshotMessageType);
             !added.HasValue())
             return added;
     }
@@ -149,8 +150,8 @@ Core::Expected<void, std::string> Screenshots::AfterTheDraw(const ScreenshotFram
     // 0x6385af..0x6385d7: con Shift, el mensaje va después de la lectura.
     if (pending.shiftDown)
     {
-        if (auto added = AddGameMessage(context.world.Runtime(), context.measure, context.screen, {}, pending.message,
-                                        ScreenshotMessageType);
+        if (auto added = Chat::AddGameMessage(context.world.Runtime(), context.measure, context.screen, {},
+                                              pending.message, ScreenshotMessageType);
             !added.HasValue())
             return added;
     }

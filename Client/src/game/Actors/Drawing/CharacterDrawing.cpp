@@ -852,7 +852,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
         modelId, frame.clock, originalRandoms.has_value() ? *originalRandoms : RandomsOf(frame, modelId));
     DrawModel(frame, modelId, bones, ModelUse{glow, false, modelId, object, object.light, true});
     const DrawnCharacter& character = frame.character;
-    if (modelId == World::HdkMaceModel && character.sprites != nullptr && character.clothWorld != nullptr &&
+    if (modelId == Actors::Drawing::HdkMaceModel && character.sprites != nullptr && character.clothWorld != nullptr &&
         !bones.empty())
     {
         const Math::OriginalMatrix bone = Math::OriginalMatrixOf(bones.front());
@@ -863,8 +863,8 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
         }
         else
         {
-            World::CreateScepterGlow(*character.sprites, bone, character.object.scale, bodyOrigin,
-                                     character.clothWorld->random);
+            Actors::Drawing::CreateScepterGlow(*character.sprites, bone, character.object.scale, bodyOrigin,
+                                               character.clothWorld->random);
         }
     }
 }
@@ -1969,12 +1969,12 @@ void DrawWaterspout(Render::ModelBatch& batch, const Models::IModelLibrary& mode
 
 } // namespace Client::Actors::Drawing
 
-namespace Client::Scenes
+namespace Client::MapScripts::Crywolf
 {
 Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                          Actors::Drawing::DrawnObject& object,
                                                          Core::Duration frameClock,
-                                                         World::ObjectModelStepState* modelState)
+                                                         WorldObjects::ObjectModelStepState* modelState)
 {
     std::vector<Models::SkinnedMesh> skinned;
     std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
@@ -2003,7 +2003,7 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
         modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] = std::int8_t{-1};
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Crywolf
 
 namespace Client::Actors::Drawing
 {

@@ -22,7 +22,7 @@
 #include <utility>
 
 // Cotejado con el PE c32bbd5f: 0x51c782 (el alta del 0x11b) y 0x526507 (su paso).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -39,7 +39,7 @@ int Shake(Crt::CrtRandom& random)
 }
 
 // 0x526649..0x526691: 0x5f93c0 en la x87; cerca del terreno sube, lejos baja.
-Core::Expected<void, std::string> KeepAboveTheGround(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> KeepAboveTheGround(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     if (!context.services.terrainHeight)
         return Core::Unexpected(std::string("0x526650: el 0x11b/1 pide la altura del terreno (0x5f93c0)"));
@@ -63,14 +63,14 @@ Core::Expected<void, std::string> KeepAboveTheGround(World::ModelEffect& effect,
 }
 
 // 0x51c789..0x51c79d, la /0.
-void LightTheSpark(World::ModelEffect& effect)
+void LightTheSpark(Effects::ModelEffect& effect)
 {
     effect.life = 1;
     effect.transform.scale = std::bit_cast<float>(0x40133333u); // 0x51c791, 2,3f
 }
 } // namespace
 
-std::optional<std::size_t> CreateTheRingSpark(World::ModelEffects& effects, const glm::vec3& position,
+std::optional<std::size_t> CreateTheRingSpark(Effects::ModelEffects& effects, const glm::vec3& position,
                                               const glm::vec3& angles, const glm::vec3& light)
 {
     const auto slot = effects.Begin(
@@ -80,7 +80,7 @@ std::optional<std::size_t> CreateTheRingSpark(World::ModelEffects& effects, cons
     return slot;
 }
 
-Core::Expected<void, std::string> BeginTheRing(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> BeginTheRing(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     if (effect.subtype == SparkSubtype)
     {
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> BeginTheRing(World::ModelEffect& effect, const
     return {};
 }
 
-Core::Expected<void, std::string> StepTheRing(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepTheRing(Effects::ModelEffect& effect, float luminosity,
                                               const HighEffectStepContext& context)
 {
     const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
@@ -165,6 +165,7 @@ Core::Expected<void, std::string> StepTheRing(World::ModelEffect& effect, float 
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8, 0,1f
     const glm::vec3 color{luminosity, F32(D(luminosity) * Green), F32(D(luminosity) * Blue)};
     constexpr std::int32_t Radius = 4;
-    return World::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius, "0x5266dd");
+    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius,
+                                         "0x5266dd");
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

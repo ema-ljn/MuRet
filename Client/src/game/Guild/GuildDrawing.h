@@ -7,15 +7,19 @@
 // Los dibujos del gremio (CL9 hito 8, fase 2; 06 § El gremio en pantalla): el marcador de la guerra, el 2.º hijo del
 // HUD (0x5a7640), y el diálogo de los paneles (0x660830), el último de 0x6579e0. En 640 × 480, con el estado de GL que
 // deja y los globales de los textos (0x6c8e5c, 0x6c8e64 y la fuente del DC) en HudState.
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 struct PanelDialogState;
-} // namespace Client::UI
+} // namespace Client::Ui
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
+} // namespace Client::Hud
+
+namespace Client::Guild
+{
 
 // 0x5a7640: siempre 0x620980 (sin mezcla) y el fondo de los textos en 0x80000000. Con la guerra (0x576796c) y el héroe
 // con gremio (+0x1f2 distinto de −1): la mezcla normal, x = ancho del mundo (0x5bb8d0, una vez, con sus consultas) ·
@@ -26,10 +30,11 @@ struct GameHudContext;
 // (0x57678b8) en (_ftol(x) + 13, 19) y su nombre (0x5542f0) en (_ftol(x) + 30, 19). Cada texto vacío no se dibuja,
 // pero se mide (0x77f31b8). El segundo marcador (0x576796f, F3 23 de 0x4d9f00) corre después, independiente de la
 // guerra y el gremio del héroe; busca ambos nombres actuales en0..1998 y usa los mismos tanteadores.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(Hud::GameHudContext& context,
+                                                                Ui::PanelRegistry& panels);
 
 // 0x5a7eb0, después del HUD aun oculto (0x637668): reloj de eventos y resultado F3 24.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext& context);
 
 // 0x660830, abierto: con el dibujo propio de 0x6602b0 (+0xc), solo ese (DrawTheGuildPositions). Si no, la caja de
 // 0x6576a0 (0x620c10, glColor4f(1, 1, 1, 0,8), Message_box2 (0xfc) de 213 × 5 en
@@ -39,8 +44,8 @@ struct GameHudContext;
 // con 0x5542f0, que no dibuja uno vacío ni mide; y los botones (0x45a9d0 y 0x45b2e0) en y + 9: Aceptar en 0x127, o
 // Sí y No, o Confirmar y Cancelar en 0x104 y 0x14a. El campo de texto (0x10) y el reloj (8) cortan: ningún diálogo de
 // MuRet los abre (P-C285). No saca rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context,
-                                                                   UI::PanelDialogState& dialog);
+[[nodiscard]] Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& context,
+                                                                   Ui::PanelDialogState& dialog);
 
 // 0x64f1c0, el dibujo de la ventana de los cargos (+0xc del diálogo de los paneles, en lugar de todo): la caja de
 // 0x6576a0 de 0x96 de alto, con su esquina (0xd6, 0x37) en 0x7d536d0 y 0x7d536d4 para el paso; 0x620a00(1); las dos
@@ -49,5 +54,5 @@ struct GameHudContext;
 // (y + 0x4b) y el 1315 (y + 0x5d), centrados en _ftol(rx · 170) desde x + 0x14 (0x5542f0 en el modo 2), con la fuente
 // y los colores que haya; y los botones 0x7d535b8 en (x + 0x37, y + 0x75) y 0x7d53640 en (x + 0x6e, y + 0x75). No saca
 // rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& context);
+} // namespace Client::Guild

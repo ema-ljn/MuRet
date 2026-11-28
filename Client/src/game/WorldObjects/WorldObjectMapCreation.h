@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 // La cadena default de 0x606660: cada handler conserva su guarda/retorno y lee el mapa al entrar.
 // Unsupported es un gate de integración; no acredita el comportamiento transitivo faltante.
@@ -17,4 +17,4 @@ ApplyDefaultWorldObjectCreation(WorldObject& object, WorldObjectCreationContext&
 // 0x45, del 0x47 al 0x4c y el 0x58 quedan con +0x58 en −1 si es distinto de 0 y en −2 si es 0; el 0x10, del
 // 0x26 al 0x28, el 0x32, el 0x3a, el 0x3b, el 0x4e y del 0x50 al 0x57, al revés. Los demás tipos, nada.
 void ApplyCastleSiegeObjectState(WorldObject& object, std::uint8_t siegeState);
-} // namespace Client::World
+} // namespace Client::WorldObjects

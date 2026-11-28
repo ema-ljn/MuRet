@@ -83,7 +83,7 @@ TEST_F(FrameDigestTest, StateFollowsTheOwnCharacterTheMapThePanelsAndTheChat)
     EXPECT_TRUE(changes(
         [this]
         {
-            Client::UI::ChatEntry entry;
+            Client::Chat::ChatEntry entry;
             entry.text = "hello";
             m_world->Runtime().chat.log.entries.push_front(entry);
         }));

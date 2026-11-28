@@ -29,12 +29,16 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-// El chat que llega (CL8 hito 3; 04 § El chat que llega y 06 § El chat): lo que hacen 0x4e2b10 y sus funciones con el
-// 00, el 01, el 02, el 0C, el 0D y el F3 30, sobre WorldRuntime. Ninguno mira el estado de la sesión ni el flag de
-// cifrado.
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// El chat que llega (CL8 hito 3; 04 § El chat que llega y 06 § El chat): lo que hacen 0x4e2b10 y sus funciones con el
+// 00, el 01, el 02, el 0C, el 0D y el F3 30, sobre WorldRuntime. Ninguno mira el estado de la sesión ni el flag de
+// cifrado.
+namespace Client::Chat
+{
 
 struct ChatReceiveContext
 {
@@ -45,21 +49,21 @@ struct ChatReceiveContext
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
     // 0x6d5dc8, la escena en curso.
-    std::optional<SceneId> scene{};
+    std::optional<Scenes::SceneId> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2.
     const Tables::TextTable* texts = nullptr;
     // 0x6d5edc: el lugar del elegido en la selección, de 0 a 4. Vacío, el −1.
     std::optional<std::uint8_t> chosenSlot{};
     // El GameServer de la sesión, para lo que abrir la ventana 2 del gremio cierra (0x4e345c, CL9 hito 8). Sin él,
     // el 01 del Guild Master corta si hay algo que cerrar con cable.
-    GuildSender guildSend{};
+    Guild::GuildSender guildSend{};
     // 0x4c6098: at the login scene the 00 asks the ConnectServer for the list again through the open socket.
     std::function<void()> requestServerList{};
     // Las conexiones de las salas del chat con un amigo (la sesión); sin ellas, el CA que entra a una corta.
     App::IChatRoomLinks* rooms = nullptr;
     // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
     // que el paquete. nullptr: el C7 corta en 0x4dcd0e (P-C212).
-    const WorldEntryResources* worldEntry = nullptr;
+    const Scenes::WorldEntryResources* worldEntry = nullptr;
 };
 
 // 0x4c6098: at the login scene (2), requestServerList and nothing else.
@@ -90,7 +94,7 @@ struct ChatReceiveContext
 // 0x4c65b0: 0, un aviso centrado (0x554610 sin resaltar); 1, fuera de la selección, un mensaje de sistema y, en ella,
 // el primero va a la franja de la barra (0x63eda0) y los demás al chat; 2, el aviso del gremio (el 483 con el texto,
 // resaltado) y su ventana (0x651680, CL9.4: corta); 10 a 15 con texto, en la escena 5, a las colas del cartel de
-// Slide.bmd (0x46b720, UI::QueueTheSlide).
+// Slide.bmd (0x46b720, Ui::QueueTheSlide).
 [[nodiscard]] Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& notice,
                                                             const ChatReceiveContext& context);
 
@@ -99,4 +103,4 @@ struct ChatReceiveContext
 // registro del chat. Sin elegido, corta antes de abrir el registro (escribiría en +0x16c).
 [[nodiscard]] Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::OptionData& data,
                                                                 const ChatReceiveContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Chat

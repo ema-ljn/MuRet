@@ -17,19 +17,23 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::World
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 class ModelEffects;
-class Particles;
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Kernel
 {
 struct ActorState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 struct HighEffectStepContext;
 
@@ -43,9 +47,11 @@ inline constexpr std::size_t GuildMarkBone = static_cast<std::size_t>(Tables::Pl
 // 3,2f, la luz en 1 y la partida en la posición. Después, diez veces: el giro rand() % 360 y dos radios rand() % 20 +
 // 15 (cada uno sacado justo antes de usarlo), y la chispa 0x5c6/4 (escala 0,6f, con el efecto de dueño, hacia su
 // posición) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z). Treinta rand(); los de la chispa, ninguno.
-[[nodiscard]] Core::Expected<void, std::string>
-BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot, const Kernel::ActorState& owner,
-                  const glm::vec3& bonePoint, World::Particles& particles, Crt::CrtRandom& random, float worldClock);
+[[nodiscard]] Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect, std::size_t slot,
+                                                                  const Kernel::ActorState& owner,
+                                                                  const glm::vec3& bonePoint,
+                                                                  Particles::Particles& particles,
+                                                                  Crt::CrtRandom& random, float worldClock);
 
 // 0x510ef0 hasta 0x518cf0: +0x369 en 1 y +0x36c (un float) en 0 o un NaN, o el reloj del mundo más de 5000 después.
 [[nodiscard]] bool GuildMarkIsDue(const Kernel::ActorState& actor, float worldClock);
@@ -54,9 +60,9 @@ BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot, const Kernel::Ac
 // (0x518cf0(0x140, posición, ángulos, luz, 0, el personaje, −1, 0, 0, 0, 0), con la tabla llena nada), y +0x36c pasa
 // a ser el reloj. `bonePoint` es el punto del hueso 20 del personaje con el modelo como lo dejó su dibujo.
 [[nodiscard]] Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint,
-                                                                  World::ModelEffects& effects,
-                                                                  World::Particles& particles, Crt::CrtRandom& random,
-                                                                  float worldClock);
+                                                                  Effects::ModelEffects& effects,
+                                                                  Particles::Particles& particles,
+                                                                  Crt::CrtRandom& random, float worldClock);
 
 // 0x529f0c..0x52a176. Sin dueño (+0x108), la vida en 0. Con el alpha en 1 o más, la z de los ángulos 5 más. Con la
 // vida entre 121 y 124, cinco chispas 0x5c5/6 (escala 1,5f, 0x529f71); entre 96 y 120, el alpha 0,4f más hasta pasar 1
@@ -67,6 +73,6 @@ BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot, const Kernel::Ac
 // /6 guardan la marca de dueño (su lugar en la tabla, el ebx de 0x52a134 y 0x529f5b); la /5 lee su posición al nacer
 // (0x5403ad) y las dos la siguen en su paso. Con las partículas llenas, sin chispas ni los rand() de su alta; los
 // cuatro de 0x52a0c2..0x52a12c salen igual.
-[[nodiscard]] Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheGuildMark(Effects::ModelEffect& effect,
                                                                  const HighEffectStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Effects

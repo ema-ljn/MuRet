@@ -35,7 +35,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -347,8 +347,8 @@ void TitleButtonGray(Render::SpriteBatch& sprites, const OldWindow& window, std:
 {
     const OldWindowBase& base = window.base;
     if (window.frame.hotButton == button &&
-        MouseInRect(view.mouseX, view.mouseY, base.x - TitleButtonsWidth + base.width, base.y + TitleTextY,
-                    TitleButtonsWidth, TitleButtonsHeight, TopLeftRect))
+        Chat::MouseInRect(view.mouseX, view.mouseY, base.x - TitleButtonsWidth + base.width, base.y + TitleTextY,
+                          TitleButtonsWidth, TitleButtonsHeight, TopLeftRect))
     {
         Gray(sprites, view.leftClick ? PressedGray : 1.0f);
         return;
@@ -399,7 +399,7 @@ Core::Expected<void, std::string> DrawTheListRows(OldWindowManager& manager, Old
         list.blink = 1.0f;
     }
     context.sprites.SetBlend(Render::BlendMode::Alpha);
-    if (auto chats = DrawTheChatsInTheList(manager, window, context, view); !chats.HasValue())
+    if (auto chats = Messenger::DrawTheChatsInTheList(manager, window, context, view); !chats.HasValue())
         return chats;
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
@@ -426,12 +426,12 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         DrawTheBox(manager, window, context, view);
     else if (window.kind == OldWindowKind::AddFriendBox)
     {
-        if (auto drawn = DrawTheAddFriendBox(manager, window, context, view); !drawn.HasValue())
+        if (auto drawn = Messenger::DrawTheAddFriendBox(manager, window, context, view); !drawn.HasValue())
             return drawn;
     }
     else if (window.kind == OldWindowKind::FriendsWindow)
     {
-        if (auto drawn = DrawTheFriendsWindow(manager, window, context, view); !drawn.HasValue())
+        if (auto drawn = Messenger::DrawTheFriendsWindow(manager, window, context, view); !drawn.HasValue())
             return drawn;
     }
     else if (window.kind == OldWindowKind::WindowList)
@@ -441,17 +441,17 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     }
     else if (window.kind == OldWindowKind::ChatWindow)
     {
-        if (auto drawn = DrawTheChatWindow(manager, window, context, view); !drawn.HasValue())
+        if (auto drawn = Messenger::DrawTheChatWindow(manager, window, context, view); !drawn.HasValue())
             return drawn;
     }
     else if (window.kind == OldWindowKind::LetterReadWindow)
     {
-        if (auto drawn = DrawTheReadWindow(manager, window, context, view); !drawn.HasValue())
+        if (auto drawn = Messenger::DrawTheReadWindow(manager, window, context, view); !drawn.HasValue())
             return drawn;
     }
     else if (window.kind == OldWindowKind::LetterWriteWindow)
     {
-        if (auto drawn = DrawTheWriteWindow(manager, window, context, view); !drawn.HasValue())
+        if (auto drawn = Messenger::DrawTheWriteWindow(manager, window, context, view); !drawn.HasValue())
             return drawn;
     }
     const OldWindowBase& base = window.base;
@@ -495,8 +495,8 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         context.dcFont = Render::Text::FontKind::Bold;
         context.textColors = Render::Text::TextColors{.text = dim ? DimTitleColor : TitleColor, .background = 0};
         // 0x459c70(título, renglón, w − 0x32, 1, 0x100, 0, 0), con la fuente del DC.
-        auto wrapped = WrapByWidth(window.frame.title.value_or(std::string()), context.text, context.dcFont,
-                                   sprites.Screen(), base.width - TitleWrapCut, 1, 0);
+        auto wrapped = Chat::WrapByWidth(window.frame.title.value_or(std::string()), context.text, context.dcFont,
+                                         sprites.Screen(), base.width - TitleWrapCut, 1, 0);
         if (!wrapped.HasValue())
             return Core::Unexpected(std::move(wrapped).Error());
         const std::string title = wrapped.Value().lines.empty() ? std::string() : wrapped.Value().lines[0];
@@ -530,7 +530,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         sprites.SetBlend(Render::BlendMode::Opaque);
     }
     // La vtable + 0x54: 0x48f900 (nada) en todas, salvo en las de una carta (0x49a1d0 y 0x498800, el retrato).
-    return DrawTheLetterPortrait(window, view);
+    return Messenger::DrawTheLetterPortrait(window, view);
 }
 } // namespace
 
@@ -542,7 +542,7 @@ OldWindowDrawView WithCurrentFocus(const OldWindowManager& manager, const OldWin
     if (view.globals != nullptr)
     {
         current.focusedList = view.globals->focusedList;
-        current.focusedEdit = view.globals->keyboardFocus == ChatFocus::OldWindow ? manager.focusedEdit : 0;
+        current.focusedEdit = view.globals->keyboardFocus == Chat::ChatFocus::OldWindow ? manager.focusedEdit : 0;
     }
     return current;
 }
@@ -629,7 +629,7 @@ void DrawTheButton(const OldWindowDrawContext& context, const OldButton& button,
     const bool pressed = !disabled && button.pressed == 1;
     if (disabled)
         sprites.SetColor(Render::Color{.red = 1.0f, .green = DisabledGreen, .blue = DisabledGreen, .alpha = 1.0f});
-    else if (!MouseInRect(view.mouseX, view.mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
+    else if (!Chat::MouseInRect(view.mouseX, view.mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
         Gray(sprites, IdleGray);
     else
         Gray(sprites, pressed ? PressedGray : 1.0f);
@@ -661,7 +661,7 @@ void DrawTheButton(const OldWindowDrawContext& context, const OldButton& button,
 
 bool MouseIn(const OldWindowDrawView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
 {
-    return MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
+    return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, TopLeftRect);
 }
 
 void DrawTheTabHeaders(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y, std::int32_t width,
@@ -994,4 +994,4 @@ Core::Expected<void, std::string> DrawTheWindowList(OldWindowManager& manager, c
 {
     return DrawTheFrame(manager, manager.windowList, context, view);
 }
-} // namespace Client::UI
+} // namespace Client::Ui

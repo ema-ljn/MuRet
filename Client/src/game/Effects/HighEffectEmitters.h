@@ -17,17 +17,17 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Kernel
 {
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 struct HighEffectStepContext;
 
@@ -37,7 +37,7 @@ struct HighEffectStepContext;
 [[nodiscard]] Core::Expected<void, std::string> CreateHighJoint(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                 std::int32_t type, glm::vec3 first, glm::vec3 second,
                                                                 glm::vec3 angles, std::int32_t subtype,
-                                                                World::ModelEffect* owner, float scale,
+                                                                Effects::ModelEffect* owner, float scale,
                                                                 std::uint32_t address, std::int32_t key = -1);
 
 // 0x53fe70 de una partícula, con el error del pool como texto y la dirección del que la pide. Con el pool lleno,
@@ -45,7 +45,7 @@ struct HighEffectStepContext;
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateHighParticle(Kernel::WorldState& world, Crt::CrtRandom& random, float worldClock, std::int32_t type,
                    const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
-                   float scale, std::uint32_t address, World::ParticleOwner owner = {});
+                   float scale, std::uint32_t address, Particles::ParticleOwner owner = {});
 
 // 0x5491e0 desde un paso: el sprite con la luz y la rotación, en el lugar libre (el dueño, que MuRet no guarda). Sin
 // la tabla de sprites en los servicios, corta.
@@ -53,4 +53,4 @@ CreateHighParticle(Kernel::WorldState& world, Crt::CrtRandom& random, float worl
                                                                  std::uint16_t texture, const glm::vec3& position,
                                                                  float scale, const glm::vec3& light, float rotation,
                                                                  std::uint32_t address);
-} // namespace Client::Scenes
+} // namespace Client::Effects

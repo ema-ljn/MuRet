@@ -116,7 +116,7 @@ private:
 // El WndProc: WM_RBUTTONDOWN apaga 0x7d36840 y prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así:
 // lo apagó el WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos y, si 0x7d3685c estaba prendido, prende
 // 0x7d36840: WM_RBUTTONDOWN/UP del derecho. El 0x7d36849 es el doble clic izquierdo y se publica por separado.
-void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
+void LatchTheRightButton(Ui::GameUiState& ui, const Input::InputState& input)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
     const bool pressed = input.WasPressed(Input::MouseButton::Right);
@@ -138,7 +138,7 @@ bool AnArrowIsDown(const Input::InputState& input)
 
 // Lo que piden los diálogos del juego: el F3 30 y el F1 02 por la sesión (sin servidor, un aviso al log),
 // Data\Macro.txt y el log.
-class SceneUiRequests final : public IGameUiRequests
+class SceneUiRequests final : public Hud::IGameUiRequests
 {
 public:
     SceneUiRequests(App::ServerSession* session, Core::Log& log, const std::filesystem::path& dataRoot)
@@ -245,7 +245,7 @@ private:
 };
 
 // WM_MOUSEWHEEL (0x4b4c19) escribe la rueda del último mensaje; sin mensajes, queda la de antes.
-void LatchTheWheel(UI::GameUiState& ui, const Input::InputState& input)
+void LatchTheWheel(Ui::GameUiState& ui, const Input::InputState& input)
 {
     if (const float notches = input.LastWheel(); notches != 0.0f)
         ui.wheel = static_cast<std::int32_t>(notches);
@@ -259,17 +259,17 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
         return {};
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
-    const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const Ui::Point mouse = Ui::MouseIn640x480(input, m_screen);
     const Input::MouseMessageState& mouseMessages = input.MouseMessages();
-    LatchTheLeftRelease(runtime.movement, mouseMessages.leftPress, mouseMessages.leftRelease, mouseMessages.leftDown,
-                        mouse.x, mouse.y);
-    LatchTheLeftButton(runtime.movement, mouseMessages.leftPress, mouseMessages.leftDown);
+    Hud::LatchTheLeftRelease(runtime.movement, mouseMessages.leftPress, mouseMessages.leftRelease,
+                             mouseMessages.leftDown, mouse.x, mouse.y);
+    Hud::LatchTheLeftButton(runtime.movement, mouseMessages.leftPress, mouseMessages.leftDown);
     if (const std::optional<bool> doubleClick = input.TakeDoubleClickMessage(); doubleClick.has_value())
         runtime.ui.doubleClick = *doubleClick;
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
     // Los eventos de texto, edición y composición, en el orden en que los atendió InputState.
-    if (auto typed = TypeTheGameInput(ChatContext(), input.TextInputEvents()); !typed.HasValue())
+    if (auto typed = Chat::TypeTheGameInput(ChatContext(), input.TextInputEvents()); !typed.HasValue())
         return typed;
     // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o una ventana vieja) y la
     // escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
@@ -282,65 +282,65 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
         if (const Protocol::FrontEnd::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
             chosenSlot = chosen->slot;
     }
-    const InventoryServices inventory = InventoryContext();
-    return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
-                                            .random = m_context.cloth->random,
-                                            .input = input,
-                                            .mouseX = mouse.x,
-                                            .mouseY = mouse.y,
-                                            .measure = m_context.textMeasure,
-                                            .screen = m_screen,
-                                            .texts = m_texts,
-                                            .chosenSlot = chosenSlot,
-                                            .requests = &requests,
-                                            .inventory = &inventory,
-                                            .worldEntry = m_context.worldEntry,
-                                            .sendNpcWindow = NpcWindowSenderOf(m_session),
-                                            .terrain = &MapTerrain()});
+    const Items::InventoryServices inventory = InventoryContext();
+    return Hud::StepTheGameDialogs(Hud::GameUiContext{.world = *m_context.world,
+                                                      .random = m_context.cloth->random,
+                                                      .input = input,
+                                                      .mouseX = mouse.x,
+                                                      .mouseY = mouse.y,
+                                                      .measure = m_context.textMeasure,
+                                                      .screen = m_screen,
+                                                      .texts = m_texts,
+                                                      .chosenSlot = chosenSlot,
+                                                      .requests = &requests,
+                                                      .inventory = &inventory,
+                                                      .worldEntry = m_context.worldEntry,
+                                                      .sendNpcWindow = NpcWindowSenderOf(m_session),
+                                                      .terrain = &MapTerrain()});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
 {
-    const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const Ui::Point mouse = Ui::MouseIn640x480(input, m_screen);
     SceneUiRequests requests(m_session, m_context.log, m_context.dataRoot);
-    const GameChatContext chat = ChatContext();
-    const InventoryServices inventory = InventoryContext();
+    const Chat::GameChatContext chat = ChatContext();
+    const Items::InventoryServices inventory = InventoryContext();
     // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
     const auto systemTime =
         m_context.clock != nullptr
             ? static_cast<std::uint32_t>(
                   std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
             : 0U;
-    return StepTheGameUi(GameUiContext{.world = *m_context.world,
-                                       .random = m_context.cloth->random,
-                                       .input = input,
-                                       .mouseX = mouse.x,
-                                       .mouseY = mouse.y,
-                                       .measure = m_context.textMeasure,
-                                       .screen = m_screen,
-                                       .chat = &chat,
-                                       .texts = m_texts,
-                                       .requests = &requests,
-                                       .systemTime = systemTime,
-                                       .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables,
-                                       .skills = m_skills,
-                                       .worldEntry = m_context.worldEntry,
-                                       .sendNpcWindow = NpcWindowSenderOf(m_session),
-                                       .terrain = &MapTerrain()});
+    return Hud::StepTheGameUi(Hud::GameUiContext{.world = *m_context.world,
+                                                 .random = m_context.cloth->random,
+                                                 .input = input,
+                                                 .mouseX = mouse.x,
+                                                 .mouseY = mouse.y,
+                                                 .measure = m_context.textMeasure,
+                                                 .screen = m_screen,
+                                                 .chat = &chat,
+                                                 .texts = m_texts,
+                                                 .requests = &requests,
+                                                 .systemTime = systemTime,
+                                                 .inventory = &inventory,
+                                                 .itemSetTables = m_chatTables.itemSetTables,
+                                                 .skills = m_skills,
+                                                 .worldEntry = m_context.worldEntry,
+                                                 .sendNpcWindow = NpcWindowSenderOf(m_session),
+                                                 .terrain = &MapTerrain()});
 }
 
-NpcWindowSender GameScene::NpcWindowSenderOf(App::ServerSession* session)
+Npc::NpcWindowSender GameScene::NpcWindowSenderOf(App::ServerSession* session)
 {
     if (session == nullptr)
         return {};
     return [session](Protocol::Outgoing packet) { return session->SendNpcWindowPacket(std::move(packet)); };
 }
 
-GameChatContext GameScene::ChatContext()
+Chat::GameChatContext GameScene::ChatContext()
 {
     App::ServerSession* session = m_session;
-    return GameChatContext{
+    return Chat::GameChatContext{
         .world = *m_context.world,
         .random = m_context.cloth->random,
         .texts = m_texts,
@@ -351,8 +351,8 @@ GameChatContext GameScene::ChatContext()
         .measure = m_context.textMeasure,
         .screen = m_screen,
         .send = session != nullptr
-                    ? ChatSender([session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); })
-                    : ChatSender{},
+                    ? Chat::ChatSender([session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); })
+                    : Chat::ChatSender{},
         .sendWindowClose = session != nullptr ? std::function<void()>([session] { session->SendWindowClose(); })
                                               : std::function<void()>{},
         .clipboard = m_context.clipboard,
@@ -360,10 +360,11 @@ GameChatContext GameScene::ChatContext()
         .faunaModels = &LoadedFaunaModels()};
 }
 
-InventoryServices GameScene::InventoryContext()
+Items::InventoryServices GameScene::InventoryContext()
 {
-    InventoryServices services =
-        m_context.worldEntry != nullptr ? InventoryServicesOf(*m_context.worldEntry) : InventoryServices{};
+    Items::InventoryServices services = m_context.worldEntry != nullptr
+                                            ? Items::InventoryServicesOf(*m_context.worldEntry)
+                                            : Items::InventoryServices{};
     if (m_context.worldEntry == nullptr)
     {
         services.items = m_items;
@@ -394,31 +395,31 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     // profundidad del registro propio y los elegidos.
     std::array<std::int32_t, 5> projectedTargets = runtime.selectedTargets;
     ProjectionTintRestore tintRestore(m_context.world->Actors(), m_projectingFrame);
-    auto picked = PickInTheFrame(
-        FramePickingContext{.world = *m_context.world,
-                            .random = FrameCloth().random,
-                            .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
-                            .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay,
-                            .mouse = UI::MouseIn640x480(input, canvas.screen),
-                            .cameraPosition = m_drawnCamera.position,
-                            .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
-                                                              : std::span<Actors::ActorPickingBox>{},
-                            .floorItems = FrameTail().floorItems,
-                            .terrain = &MapTerrain()});
+    auto picked = Hud::PickInTheFrame(Hud::FramePickingContext{
+        .world = *m_context.world,
+        .random = FrameCloth().random,
+        .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
+        .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+        .altDown = input.IsDown(Input::Key::Alt),
+        .ray = m_mouseRay,
+        .mouse = Ui::MouseIn640x480(input, canvas.screen),
+        .cameraPosition = m_drawnCamera.position,
+        .pickingBoxes =
+            m_projectingFrame ? std::span(m_projection->actorPickingBoxes) : std::span<Actors::ActorPickingBox>{},
+        .floorItems = FrameTail().floorItems,
+        .terrain = &MapTerrain()});
     tintRestore.Restore();
     if (!picked.HasValue())
         return picked;
     // La imagen que 0x65dc30 cargó en el slot 0x66a al llegar al mapa (0x63bd00): el paquete no tiene GPU, la sube el
     // primer dibujo que sigue, sobre el cartel de verdad y no sobre la copia de un dibujo intermedio.
-    if (auto uploaded = UploadTheMapBanner(runtime.hud.mapBanner, m_context.dataRoot, m_context.textures);
+    if (auto uploaded = Hud::UploadTheMapBanner(runtime.hud.mapBanner, m_context.dataRoot, m_context.textures);
         !uploaded.HasValue())
         return uploaded;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
     // con las copias: el rand(), las cuentas de accesos, los globales del HUD, el humo de Crywolf y el sonido.
     Kernel::ActorState& hero = m_context.world->Hero();
-    GameHudContext hud{
+    Hud::GameHudContext hud{
         .world = *m_context.world,
         .random = FrameCloth().random,
         .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
@@ -442,8 +443,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         .setOptions = m_chatTables.setOptions,
         .setTypes = m_chatTables.itemSetTables != nullptr ? &m_chatTables.itemSetTables->types : nullptr,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
-        .tickCount = App::TickCountMs(canvas.frameClock),
-        .mouse = UI::MouseIn640x480(input, canvas.screen),
+        .tickCount = Kernel::TickCountMs(canvas.frameClock),
+        .mouse = Ui::MouseIn640x480(input, canvas.screen),
         .leftDown = input.MouseMessages().leftDown,
         .arrowHeld = AnArrowIsDown(input),
         .controlDown = input.IsDown(Input::Key::Ctrl),
@@ -458,21 +459,21 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
     Actors::Drawing::ItemSpecialDrawContext itemSpecial;
     Actors::Drawing::ItemDrawContext itemContext;
-    std::optional<UiItemResources> uiItems;
+    std::optional<Items::UiItemResources> uiItems;
     if (m_models != nullptr)
     {
-        auto pass = MakeUiItemPass(canvas.screen);
+        auto pass = Items::MakeUiItemPass(canvas.screen);
         if (!pass.HasValue())
             return Core::Unexpected(pass.Error());
         FillTheItemContexts(itemSpecial, itemContext, canvas.frameClock, m_projectingFrame ? 0 : 1);
-        uiItems.emplace(UiItemResources{.batch = canvas.models,
-                                        .models = *m_models,
-                                        .poseCarry = FramePoseCarry(),
-                                        .itemContext = itemContext,
-                                        .frameClock = canvas.frameClock,
-                                        .flushSprites = canvas.flushSprites,
-                                        .flushModels = canvas.flushModels,
-                                        .pass = pass.Value()});
+        uiItems.emplace(Items::UiItemResources{.batch = canvas.models,
+                                               .models = *m_models,
+                                               .poseCarry = FramePoseCarry(),
+                                               .itemContext = itemContext,
+                                               .frameClock = canvas.frameClock,
+                                               .flushSprites = canvas.flushSprites,
+                                               .flushModels = canvas.flushModels,
+                                               .pass = pass.Value()});
         hud.uiItems = &*uiItems;
     }
     // 0x42403d: el A9 del tooltip de las mascotas sale por la sesión del juego, como el del botón de la mascota.
@@ -480,61 +481,61 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         hud.send = [session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D.
-    WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,
-                                    .projection = projection,
-                                    .sprites = canvas.sprites,
-                                    .text = canvas.text,
-                                    .hud = hud.hud,
-                                    .projecting = m_projectingFrame};
-    if (auto drawn = DrawTheWorldTexts(worldTexts); !drawn.HasValue())
+    Hud::WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,
+                                         .projection = projection,
+                                         .sprites = canvas.sprites,
+                                         .text = canvas.text,
+                                         .hud = hud.hud,
+                                         .projecting = m_projectingFrame};
+    if (auto drawn = Hud::DrawTheWorldTexts(worldTexts); !drawn.HasValue())
         return drawn;
     // 0x637650: 0x5bbbc0, el hover y Alt.
-    GameHoverContext hover{.world = *m_context.world,
-                           .tail = FrameTail(),
-                           .random = FrameCloth().random,
-                           .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                           .hud = hud.hud,
-                           .altLatch =
-                               m_projectingFrame ? m_projection->altLatch : runtime.ui.keyLatches[UI::AltVirtualKey],
-                           .altNames = m_projectingFrame ? m_projection->altNames : runtime.ui.altNames,
-                           .altDown = input.IsDown(Input::Key::Alt),
-                           .sprites = canvas.sprites,
-                           .text = canvas.text,
-                           .projecting = m_projectingFrame,
-                           .texts = m_texts,
-                           .names = &hud};
-    if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
+    Hud::GameHoverContext hover{.world = *m_context.world,
+                                .tail = FrameTail(),
+                                .random = FrameCloth().random,
+                                .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+                                .hud = hud.hud,
+                                .altLatch = m_projectingFrame ? m_projection->altLatch
+                                                              : runtime.ui.keyLatches[Ui::AltVirtualKey],
+                                .altNames = m_projectingFrame ? m_projection->altNames : runtime.ui.altNames,
+                                .altDown = input.IsDown(Input::Key::Alt),
+                                .sprites = canvas.sprites,
+                                .text = canvas.text,
+                                .projecting = m_projectingFrame,
+                                .texts = m_texts,
+                                .names = &hud};
+    if (auto drawn = Hud::DrawTheHover(hover); !drawn.HasValue())
         return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
-    if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
+    if (auto drawn = Hud::DrawTheHud(hud); !drawn.HasValue())
         return drawn;
     // 0x637668: 0x5a7eb0, el tiempo y el resultado F3 24, aun con el HUD oculto.
-    if (auto drawn = DrawTheEventTimeAndOutcome(hud); !drawn.HasValue())
+    if (auto drawn = Guild::DrawTheEventTimeAndOutcome(hud); !drawn.HasValue())
         return drawn;
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.
-    UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;
-    const UI::OldWindowDrawContext windowContext{.sprites = canvas.sprites,
+    Ui::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;
+    const Ui::OldWindowDrawContext windowContext{.sprites = canvas.sprites,
                                                  .text = canvas.text,
                                                  .dcFont = hud.hud.dcFont,
                                                  .textColors = hud.hud.textColors,
                                                  .arrowHeld = hud.arrowHeld};
     // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
-    GamePanels panels(*m_context.world, FrameCloth().random);
+    Hud::GamePanels panels(*m_context.world, FrameCloth().random);
     // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0), el EDIT con el foco de
     // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow) y dónde va el registro del
     // chat (0x6c7a88).
-    const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
-    const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    const Ui::OldWindowTexts friendTexts = Messenger::OldWindowTextsOf(m_texts);
+    const bool editFocused = runtime.chat.input.focus == Chat::ChatFocus::OldWindow;
     // 0x49a1d0 y 0x498800 → 0x497c10: el retrato de las cartas, con el juego de SceneContext::worldEntry, los modelos
     // (los del personaje y, para el ayudante, los del mundo) y lo del frame, o sus copias en un dibujo intermedio. Sin
     // el juego o sin los modelos, el retrato a la vista corta.
     std::optional<std::string> portraitPoseFailure;
-    std::optional<LetterPortraitDraw> portraitDraw;
+    std::optional<Messenger::LetterPortraitDraw> portraitDraw;
     if (m_models != nullptr && m_context.worldEntry != nullptr)
     {
         const bool originalFrame = !m_projectingFrame;
-        portraitDraw.emplace(LetterPortraitDraw{
+        portraitDraw.emplace(Messenger::LetterPortraitDraw{
             .hud = hud,
             .batch = canvas.models,
             .flushSprites = canvas.flushSprites,
@@ -583,23 +584,23 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
             .globalPose = [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
             .originalFrame = originalFrame});
     }
-    std::function<Core::Expected<void, std::string>(UI::OldPortraitPart&)> drawThePortrait;
+    std::function<Core::Expected<void, std::string>(Ui::OldPortraitPart&)> drawThePortrait;
     if (portraitDraw)
-        drawThePortrait = [&](UI::OldPortraitPart& part) -> Core::Expected<void, std::string>
+        drawThePortrait = [&](Ui::OldPortraitPart& part) -> Core::Expected<void, std::string>
         {
-            auto drawn = DrawTheLetterPortrait(part, *portraitDraw, *m_context.worldEntry);
+            auto drawn = Messenger::DrawTheLetterPortrait(part, *portraitDraw, *m_context.worldEntry);
             if (drawn.HasValue() && portraitPoseFailure)
                 return Core::Unexpected(*portraitPoseFailure);
             return drawn;
         };
     // Una pasada intermedia parte del mismo estado que su copia del administrador y no publica efectos de red.
-    UI::GameUiState projectedUi = runtime.ui;
-    GameMovementState projectedMovement = runtime.movement;
-    UI::ChatFocus projectedFocus = runtime.chat.input.focus;
-    UI::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
-    GameMovementState& drawMovement = m_projectingFrame ? projectedMovement : runtime.movement;
-    UI::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
-    const UI::OldWindowGlobals drawGlobals{
+    Ui::GameUiState projectedUi = runtime.ui;
+    Movement::GameMovementState projectedMovement = runtime.movement;
+    Chat::ChatFocus projectedFocus = runtime.chat.input.focus;
+    Ui::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
+    Movement::GameMovementState& drawMovement = m_projectingFrame ? projectedMovement : runtime.movement;
+    Chat::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
+    const Ui::OldWindowGlobals drawGlobals{
         .leftHeld = drawMovement.leftHeld,
         .leftClick = drawMovement.pendingClick,
         .releasedClick = drawMovement.releasedClick,
@@ -618,50 +619,50 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         .soundRequest = !m_projectingFrame ? std::function<void(Audio::SoundId)>{[&runtime](Audio::SoundId sound)
                                                                                  { runtime.RequestSound(sound); }}
                                            : std::function<void(Audio::SoundId)>{}};
-    const UI::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
+    const Ui::OldWindowMeasure drawMeasure{.measure = canvas.text, .dcFont = hud.hud.dcFont, .screen = canvas.screen};
     SceneUiRequests drawRequests(m_session, m_context.log, m_context.dataRoot);
-    UI::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
+    Ui::OldWindowStepView drawStep{.mouseX = hud.mouse.x,
                                    .mouseY = hud.mouse.y,
                                    .keyEdge = [&drawUi, &input](std::uint8_t key)
-                                   { return OldWindowKeyEdge(drawUi, input, key); },
+                                   { return Hud::OldWindowKeyEdge(drawUi, input, key); },
                                    .chatOpen = drawUi.chatOpen,
                                    .texts = &friendTexts,
                                    .measure = &drawMeasure,
                                    .send =
-                                       [this, &drawRequests](const UI::FriendSend& send)
+                                       [this, &drawRequests](const Ui::FriendSend& send)
                                    {
                                        if (!m_projectingFrame)
-                                           drawRequests.SendFriendPacket(FriendPacketOf(send));
+                                           drawRequests.SendFriendPacket(Messenger::FriendPacketOf(send));
                                    }};
     // Lo demás que el paso lee del juego, como el de la UI (CL9 hito 10: el retrato, la carta guardada, el filtro):
     // un comando que llega en el dibujo (0x45aa50) no puede encontrar menos que en el paso.
-    const GameChatContext drawChat = ChatContext();
+    const Chat::GameChatContext drawChat = ChatContext();
     std::optional<std::uint8_t> drawChosenSlot;
     if (m_session != nullptr)
     {
         if (const Protocol::FrontEnd::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
             drawChosenSlot = chosen->slot;
     }
-    LendTheGameHooks(drawStep,
-                     GameUiContext{.world = *m_context.world,
-                                   .random = m_context.cloth->random,
-                                   .input = input,
-                                   .mouseX = hud.mouse.x,
-                                   .mouseY = hud.mouse.y,
-                                   .measure = m_context.textMeasure,
-                                   .screen = m_screen,
-                                   .chat = &drawChat,
-                                   .texts = m_texts,
-                                   .chosenSlot = drawChosenSlot,
-                                   .requests = &drawRequests,
-                                   .worldEntry = m_context.worldEntry,
-                                   .terrain = &MapTerrain()},
-                     !m_projectingFrame);
+    Hud::LendTheGameHooks(drawStep,
+                          Hud::GameUiContext{.world = *m_context.world,
+                                             .random = m_context.cloth->random,
+                                             .input = input,
+                                             .mouseX = hud.mouse.x,
+                                             .mouseY = hud.mouse.y,
+                                             .measure = m_context.textMeasure,
+                                             .screen = m_screen,
+                                             .chat = &drawChat,
+                                             .texts = m_texts,
+                                             .chosenSlot = drawChosenSlot,
+                                             .requests = &drawRequests,
+                                             .worldEntry = m_context.worldEntry,
+                                             .terrain = &MapTerrain()},
+                          !m_projectingFrame);
     drawStep.field78abaac = drawUi.field78abaac;
-    const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
+    const Ui::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
-                                           .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel),
+                                           .friendsOpen = panels.Registry().IsOpen(Ui::FriendsPanel),
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,
                                            .focusedEdit = editFocused ? oldWindows.focusedEdit : 0,
@@ -669,35 +670,35 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                                            .portrait = drawThePortrait,
                                            .globals = &drawGlobals,
                                            .stepView = &drawStep};
-    if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
+    if (auto windows = Ui::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
-    if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
+    if (auto list = Ui::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9, que prende el AC (CL9 hito 7).
-    if (auto duel = DrawTheDuelRequest(hud); !duel.HasValue())
+    if (auto duel = Social::DrawTheDuelRequest(hud); !duel.HasValue())
         return duel;
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
-    if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
+    if (auto dialogs = Hud::Dialogs::DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;
     // 0x63769b: 0x5f7bc0, los tooltips.
-    if (auto tooltips = DrawTheTooltips(hud); !tooltips.HasValue())
+    if (auto tooltips = Tooltips::DrawTheTooltips(hud); !tooltips.HasValue())
         return tooltips;
     // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
-    DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
+    Chat::DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
     // 0x6376bb: 0x5b0550, las superposiciones.
-    if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
+    if (auto overlays = Hud::DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;
     // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (lo abre el chat con su nombre).
-    if (auto label = DrawTheSetLabel(hud); !label.HasValue())
+    if (auto label = Tooltips::DrawTheSetLabel(hud); !label.HasValue())
         return label;
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
     // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo, con el far del mundo de este frame
     // (0x6d5d44), y 0x6376e1: el cursor otra vez, el mismo quad.
-    if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
+    if (auto cursor = Hud::DrawTheGameCursor(hud); !cursor.HasValue())
         return cursor;
-    if (auto item = DrawTheDialogItem(hud, m_drawnCamera.farPlane); !item.HasValue())
+    if (auto item = Hud::DrawTheDialogItem(hud, m_drawnCamera.farPlane); !item.HasValue())
         return item;
-    if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
+    if (auto cursor = Hud::DrawTheGameCursor(hud); !cursor.HasValue())
         return cursor;
     // 0x6376e6: 0x621a90 y 0x620fc0 cierran el 2D: el lote lo dibuja quien presenta el frame.
     return {};

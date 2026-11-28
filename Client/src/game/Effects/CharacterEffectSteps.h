@@ -11,30 +11,38 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::World
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 struct ModelEffect;
-class Particles;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Actors
 {
 class IJointHooks;
 } // namespace Client::Actors
 
-// The step (0x5208a0) of the model effects a character owns and whose step reads it live: the full set's 0x5ac/3, the
-// 0x5ac/1 and /2 of the skills that arrive and the colored decal 0x61e of the pet and of the summons. Their joints are
-// born through the hooks (Actors/JointHooks.h).
 namespace Client::Scenes
 {
 struct JointState;
+} // namespace Client::Scenes
+
+// The step (0x5208a0) of the model effects a character owns and whose step reads it live: the full set's 0x5ac/3, the
+// 0x5ac/1 and /2 of the skills that arrive and the colored decal 0x61e of the pet and of the summons. Their joints are
+// born through the hooks (Actors/JointHooks.h).
+namespace Client::Effects
+{
 
 // 0x5208a0 on the full set's 0x5ac/3 (0x52a9ad): the light's rand() for every live effect (0x5208c5), +0xd8 one step
 // more and, with the life a multiple of 15 and an owner, the z turn 180 more; the position at 50 from the owner
 // character (+0x108, read live) with the unrounded sine of the turn and the cosine of the stored turn (Q-C380), 20
 // higher, and the 0x619/9 joint there. Then the common tail (0x52cb98): no animation or speed, one life less.
-[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect,
-                                                                 std::span<JointState> joints,
+[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(Effects::ModelEffect& effect,
+                                                                 std::span<Scenes::JointState> joints,
                                                                  const Actors::IJointHooks* jointHooks,
                                                                  Crt::CrtRandom& random);
 
@@ -47,8 +55,9 @@ struct JointState;
 // 0x518900, with 0x619 joints of the same subtype except /5, which asks for 0x619/0xb (0x51898b). Negative ones, like
 // /0. Then the common tail (0x52cb98): no animation or speed, one life less. /4 and /6 to /0xa belong to
 // Scenes/HighModelEffects (StepsAsPetSummon leaves them out).
-[[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
-[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+[[nodiscard]] bool StepsAsPetSummon(const Effects::ModelEffect& effect);
+[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(Effects::ModelEffect& effect,
+                                                              std::span<Scenes::JointState> joints,
                                                               const Actors::IJointHooks* jointHooks,
                                                               Crt::CrtRandom& random);
 
@@ -61,6 +70,7 @@ struct JointState;
 // 0x619/9 joint of width 15 there (with the joint table full, none). Then the common tail (0x52cb98): no animation or
 // speed, one life less. Without an owner, the original reads +0x78 of 0: MuRet stops.
 [[nodiscard]] Core::Expected<void, std::string>
-StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints, const Actors::IJointHooks* jointHooks,
-               Crt::CrtRandom& random, World::Particles* particles = nullptr, World::ParticleOwner particleOwner = {});
-} // namespace Client::Scenes
+StepSkillFlare(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
+               const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random, Particles::Particles* particles = nullptr,
+               Particles::ParticleOwner particleOwner = {});
+} // namespace Client::Effects

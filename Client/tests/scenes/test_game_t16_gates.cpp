@@ -43,8 +43,8 @@ TEST_P(GameT16GateTransport, EveryArchivedEntrySendsItsOwnEncryptedRequestBefore
     m_world->OwnCharacter().level = 400;
     m_world->OwnCharacter().equipment[7].id = 0x1800; // Alas: requisito del gate62.
     const auto checked =
-        Client::Scenes::CheckGameGates({*m_world, *m_data->gates, m_cloth->random, 3000,
-                                        [&](std::uint8_t requested) { m_online->session.RequestGate(requested); }});
+        Client::Movement::CheckGameGates({*m_world, *m_data->gates, m_cloth->random, 3000,
+                                          [&](std::uint8_t requested) { m_online->session.RequestGate(requested); }});
     const bool macro = destination->map == 30 || destination->map == 31;
     EXPECT_EQ(checked.HasValue(), !macro);
     if (!checked.HasValue())

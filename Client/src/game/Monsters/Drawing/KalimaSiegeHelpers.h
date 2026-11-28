@@ -32,13 +32,21 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::MapScripts::Kalima
+{
+class KalimaWorld;
+} // namespace Client::MapScripts::Kalima
+
+namespace Client::Particles
 {
 class FrameSprites;
-class KalimaWorld;
-class ModelEffects;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Kernel
 {
@@ -50,7 +58,7 @@ struct ActorState;
 // asedio (0x43c150 y 0x42dfe0). Los efectos con modelo (0x518cf0), los joints (0x530860) y las partículas
 // (0x53fe70) que MuRet no tiene cortan con su dirección (CL11) si su tabla tiene lugar; llenas, el original no crea
 // nada y sigue.
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 
 struct KalimaSiegeHelperPass
@@ -60,12 +68,12 @@ struct KalimaSiegeHelperPass
     Kernel::ActorState& actor;
     // El rand() de la CRT del dibujo (o su copia entre frames).
     Crt::CrtRandom& random;
-    World::FrameSprites* sprites = nullptr;
-    World::Particles* particles = nullptr;
-    std::span<JointState> joints{};
-    World::ModelEffects* effects = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
+    Particles::Particles* particles = nullptr;
+    std::span<Scenes::JointState> joints{};
+    Effects::ModelEffects* effects = nullptr;
     // 0x723c48: sin él, 0x437860 no perturba nada.
-    World::KalimaWorld* kalima = nullptr;
+    MapScripts::Kalima::KalimaWorld* kalima = nullptr;
     // 0x7d325c8, el temblor de la cámara.
     float* cameraShake = nullptr;
     // Las alturas del .OZB de 0x5fb2f0, para los calcos de 0x42a1b0.
@@ -119,4 +127,4 @@ struct KalimaSiegeHelperPass
 // luz pasa a v y después a v · (1 − v)) y con 0x620a90 en los demás (la luz por v), v = sin(T · 0,0015f) · 0,3f + 0,7f.
 [[nodiscard]] Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pass, std::int32_t mode,
                                                                float x, float y, float side, glm::vec3& light);
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

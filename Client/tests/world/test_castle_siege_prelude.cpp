@@ -27,7 +27,7 @@ using Client::Kernel::ModelEffectArguments;
 class CastleSiegePreludeTest : public ::testing::Test
 {
 protected:
-    Client::World::CastleSiegePrelude Prelude(std::int32_t frame)
+    Client::CastleSiege::CastleSiegePrelude Prelude(std::int32_t frame)
     {
         return {.siegeActive = true,
                 .musicTime = &m_music,
@@ -63,7 +63,7 @@ protected:
 // Frame1: rand%10 (41), un cierre de4bytes delY; sin rangos, no hay emisiones.
 TEST_F(CastleSiegePreludeTest, WarContinuesAfterTheSoundAndReadsTheProtectedHeroY)
 {
-    const auto result = Client::World::StepCastleSiegePrelude(Prelude(1));
+    const auto result = Client::CastleSiege::StepCastleSiegePrelude(Prelude(1));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_reads, 1);
     EXPECT_EQ(m_depth, 0);
@@ -77,7 +77,7 @@ TEST_F(CastleSiegePreludeTest, WarContinuesAfterTheSoundAndReadsTheProtectedHero
 // Frame20: dos accesos independientes alY y rand%3 antes de comprobar su rango.
 TEST_F(CastleSiegePreludeTest, TheRockFrameReadsYTwiceEvenOutsideEveryEmissionRange)
 {
-    const auto result = Client::World::StepCastleSiegePrelude(Prelude(20));
+    const auto result = Client::CastleSiege::StepCastleSiegePrelude(Prelude(20));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_reads, 2);
     CrtRandom expected(1);
@@ -89,7 +89,7 @@ TEST_F(CastleSiegePreludeTest, TheRockFrameReadsYTwiceEvenOutsideEveryEmissionRa
 TEST_F(CastleSiegePreludeTest, AnOuterProtectedAccessPreventsBothInnerReencryptions)
 {
     m_depth = 1;
-    const auto result = Client::World::StepCastleSiegePrelude(Prelude(20));
+    const auto result = Client::CastleSiege::StepCastleSiegePrelude(Prelude(20));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_reads, 2);
     EXPECT_EQ(m_depth, 1);
@@ -101,7 +101,7 @@ TEST_F(CastleSiegePreludeTest, AnOuterProtectedAccessPreventsBothInnerReencrypti
 TEST_F(CastleSiegePreludeTest, AllFiveBattleSoundDrawsRunIndependently)
 {
     m_random = CrtRandom(420);
-    ASSERT_TRUE(Client::World::StepCastleSiegePrelude(Prelude(1)).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(Prelude(1)).HasValue());
     EXPECT_EQ(m_sounds, (std::vector<std::int32_t>{0x1e2, 0x1e6}));
     CrtRandom expected(420);
     expected.Discard(10);
@@ -112,7 +112,7 @@ TEST_F(CastleSiegePreludeTest, AllFiveBattleSoundDrawsRunIndependently)
 TEST_F(CastleSiegePreludeTest, TheSixtiethFrameEmitsTheNativeArgumentsInOrder)
 {
     m_y = 100;
-    ASSERT_TRUE(Client::World::StepCastleSiegePrelude(Prelude(60)).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(Prelude(60)).HasValue());
     ASSERT_EQ(m_emitted.size(), 6u);
     EXPECT_EQ(m_emitted[0].type, 0x12b);
     EXPECT_EQ(m_emitted[0].position, (glm::vec3{9860.0f, 4482.0f, 500.0f}));
@@ -137,7 +137,7 @@ TEST_F(CastleSiegePreludeTest, BothRockFamiliesKeepTheirStrictLogicalYBounds)
         m_y = y;
         m_random = CrtRandom(1); // El sexto randelige12b.
         m_emitted.clear();
-        ASSERT_TRUE(Client::World::StepCastleSiegePrelude(Prelude(20)).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(Prelude(20)).HasValue());
         EXPECT_EQ(std::ranges::any_of(m_emitted, [](const auto& args) { return args.type == 0x12b; }), emits) << y;
     }
     for (const auto& [y, emits] :
@@ -146,7 +146,7 @@ TEST_F(CastleSiegePreludeTest, BothRockFamiliesKeepTheirStrictLogicalYBounds)
         m_y = y;
         m_random = CrtRandom(2); // El sexto randelige12c.
         m_emitted.clear();
-        ASSERT_TRUE(Client::World::StepCastleSiegePrelude(Prelude(20)).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(Prelude(20)).HasValue());
         EXPECT_EQ(std::ranges::any_of(m_emitted, [](const auto& args) { return args.type == 0x12c; }), emits) << y;
     }
 }

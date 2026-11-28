@@ -13,7 +13,7 @@
 // (un word) y el nombre. Los llena la carga de los datos (0x61ed05) con 0x54e7f0 desde Data\Local\NpcName(%s).txt
 // (Tables::LoadNpcNames): main.cpp copia los de GameData::npcNames al principio y deja el resto en 0, como el
 // original sin el archivo (CL9 hito 2, P-C174).
-namespace Client::Scenes
+namespace Client::Monsters
 {
 using Tables::NpcNameBytes;
 using Tables::NpcNameCount;
@@ -37,4 +37,4 @@ using NpcNameTable = std::vector<NpcName>;
 // sus 0x34 bytes, por el tipo y el nombre de los registros que siguen, hasta el final de la tabla. Es lo que devuelve
 // NpcNameOf del registro que encuentra; lo usan también los que recorren la tabla sin cortar en el primero (0x5b21a6).
 [[nodiscard]] std::string NpcNameAt(const NpcNameTable& table, std::size_t index);
-} // namespace Client::Scenes
+} // namespace Client::Monsters

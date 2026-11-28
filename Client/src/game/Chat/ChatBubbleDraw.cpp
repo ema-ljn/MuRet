@@ -32,7 +32,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Chat
 {
 namespace
 {
@@ -194,14 +194,14 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     const bool clampY = context.clampBoxes != 0;
     // 0x5563a4..0x5565ef: con el cartel del dueño (0x451810, no +0x54), el texto 1104 y el título corto en negrita,
     // dos renglones más arriba, y los demás, uno (Q-C978).
-    if (HasShopTitle(runtime.social.personalShop, ownerSlot))
+    if (PersonalShop::HasShopTitle(runtime.social.personalShop, ownerSlot))
     {
-        const auto header = ShopSignHeader(context.texts, "0x556421");
+        const auto header = PersonalShop::ShopSignHeader(context.texts, "0x556421");
         if (!header.HasValue())
             return Core::Unexpected(header.Error());
         // 0x5563bc..0x556405: 0x6c8e5c, 0x6c8e60 y 0x6c8e64 con +0x60 del cartel (0x4517c0).
-        const ShopSignColors colors =
-            ShopBubbleColorsOf(owner, ShopSignHovered(runtime.social.personalShop, ownerSlot));
+        const PersonalShop::ShopSignColors colors = PersonalShop::ShopBubbleColorsOf(
+            owner, PersonalShop::ShopSignHovered(runtime.social.personalShop, ownerSlot));
         const Render::Text::TextStyle style{.font = FontKind::Bold,
                                             .colors = {.text = colors.name, .background = colors.background}};
         context.dcFont = FontKind::Bold;
@@ -309,7 +309,7 @@ Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble, const
     const std::string_view shopTitle = CString(bubble.shopTitle);
     if (shopTitle.empty())
         return {};
-    const auto header = ShopSignHeader(texts, "0x555a0f");
+    const auto header = PersonalShop::ShopSignHeader(texts, "0x555a0f");
     if (!header.HasValue())
         return Core::Unexpected(header.Error());
     const std::int32_t titled =
@@ -352,7 +352,7 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
         const glm::vec3 above{owner.position.x, owner.position.y,
                               static_cast<float>(static_cast<double>(owner.boundsTop) +
                                                  static_cast<double>(owner.position.z) + AboveTheTop)};
-        const auto projected = ProjectGamePoint(*context.projection, above);
+        const auto projected = Scenes::ProjectGamePoint(*context.projection, above);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         if (auto measured = MeasureTheChatBubble(bubble, context.text, fontStep, context.texts); !measured.HasValue())
@@ -405,4 +405,4 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Chat

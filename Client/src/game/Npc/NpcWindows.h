@@ -25,10 +25,18 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 class GamePanels;
+} // namespace Client::Hud
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Npc
+{
 
 // El envío de un paquete de las ventanas por la sesión (WorldEntryResources::sendNpcWindowPacket). Los rand() del C3
 // los saca quien lo arma, antes.
@@ -40,22 +48,22 @@ struct NpcWindowContext
 {
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    const InventoryServices& services;
+    const Items::InventoryServices& services;
     const NpcWindowSender& send;
 };
 
-// UI::PanelContext::npcWindowOpened. 0x40: 0x6c932f y 0x78abb20 en 0 (0x659f8d..0x659f94). 0x100: 0x7d2dc9d en 0, el
+// Ui::PanelContext::npcWindowOpened. 0x40: 0x6c932f y 0x78abb20 en 0 (0x659f8d..0x659f94). 0x100: 0x7d2dc9d en 0, el
 // C1 04 BD 09 con el XOR32 en claro (0x65a94f..0x65ac07) y 0x7d2dc80 en 0 (0x65ac28). 0x8000: 0x449940(1) (0x65be8b),
 // el modo 1 del entrenador y su caja vacía.
-[[nodiscard]] Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& context, UI::PanelId id);
+[[nodiscard]] Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& context, Ui::PanelId id);
 
-// UI::PanelContext::npcWindowClosing. 0x40 (0x65852b..0x65871d): con la traba del 24 (0x78abb39), false; si no, la
+// Ui::PanelContext::npcWindowClosing. 0x40 (0x65852b..0x65871d): con la traba del 24 (0x78abb39), false; si no, la
 // grilla de 0x78a7070 vacía, 0x5be150 con un ítem en el cursor, el C1 03 82 en claro y 0x6c932f en 0. 0x100
 // (0x658741..0x658961): con algo en la caja (0x5e3c20) o en el cursor, el texto 593 de error y false; si no, el C1 03
 // 87 en claro y la grilla de 0x7d2d380 vacía. 0x8000 (0x658dda..0x658dfd): con algo en la caja del entrenador
 // (0x449c10), el texto 1211 de error y false; si no, 0x4499b0 (Scenes/PetTrainer.h). 0x10000 (0x659063..): el C1 03 31
 // en claro y la grilla de 0x78a7070 vacía; el byte protegido ya lo bajó el registro.
-[[nodiscard]] Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, UI::PanelId id);
+[[nodiscard]] Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, Ui::PanelId id);
 
 // 0x4d28a9..0x4d28f6: adónde manda 0x4d1e00 el cursor con SetCursorPos, desde el mouse en 640 × 480 (0x7d3682c y
 // 0x7d36828) y el tamaño de la pantalla (0x6d5d60 y 0x6d5d64): x = (260 · mx / 640, con signo) · ancho / 640 e
@@ -67,45 +75,45 @@ struct NpcWindowContext
 // los dos sonidos (0x19 y 0x1c, CL10) y el pedido del cursor (NpcWindowState::cursorWarpRequested). Con 3, las seis
 // tasas de pkt[4..9]; las que el paquete no trae quedan en 0 (Q-C920).
 [[nodiscard]] Core::Expected<void, std::string> ApplyTalkResult(const Protocol::Npc::TalkResult& talk,
-                                                                const WorldEntryResources& resources);
+                                                                const Scenes::WorldEntryResources& resources);
 
 // El 31 (0x4c5f60): con la grilla 3, 0x7d2dc80 en 2, los sonidos 0x57 y 0x44, la caja del caos vacía y cada entrada
 // con 0x5bc740(0x7d2d380, 8, 4, lugar, datos, 1); con la 5, la caja del entrenador; con otra, la grilla de
 // 0x78a7070 vacía y cada entrada con 0x5bc150.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemList(const Protocol::Npc::ItemList& list,
-                                                              const WorldEntryResources& resources);
+                                                              const Scenes::WorldEntryResources& resources);
 
 // El 32 (0x4e3c2a..0x4e3c58): con un lugar, 0x5bc740(0x78a9bb0, 8, 8, lugar, datos, 0) y el sonido 0x1d; siempre,
 // 0x5767950 en 0.
 [[nodiscard]] Core::Expected<void, std::string> ApplyBuyResult(const Protocol::Npc::BuyResult& result,
-                                                               const WorldEntryResources& resources);
+                                                               const Scenes::WorldEntryResources& resources);
 
 // El 33 (0x4e3c6e..0x4e3cc6): con 0, 0x5be150; si no, el cursor vacío y el zen nuevo en +0xecc del registro propio,
 // abierto (0x4e79a0 y 0x40f370), y el sonido 0x1d.
 [[nodiscard]] Core::Expected<void, std::string> ApplySellResult(const Protocol::Npc::SellResult& result,
-                                                                const WorldEntryResources& resources);
+                                                                const Scenes::WorldEntryResources& resources);
 
 // El 34 (0x4e3cd7..0x4e3d24): con zen, en +0xecc del registro propio abierto, 0x550d10 y el sonido 0x25.
 [[nodiscard]] Core::Expected<void, std::string> ApplyRepairResult(const Protocol::Npc::RepairResult& result,
-                                                                  const WorldEntryResources& resources);
+                                                                  const Scenes::WorldEntryResources& resources);
 
 // El 81 (0x4e4692..0x4e46ce): con pkt[3] distinto de 0, el zen del almacén (+0xed0) y el del inventario (+0xecc) con
 // el registro propio abierto.
 [[nodiscard]] Core::Expected<void, std::string> ApplyWarehouseMoney(const Protocol::Npc::WarehouseMoney& money,
-                                                                    const WorldEntryResources& resources);
+                                                                    const Scenes::WorldEntryResources& resources);
 
 // El 82 y el 87 (0x4e4819..0x4e485d): el cursor vacío y, con el diálogo 0x73, su cierre y la entrada del chat.
 [[nodiscard]] Core::Expected<void, std::string> ApplyNpcWindowClosed(const Protocol::Npc::NpcWindowClosed&,
-                                                                     const WorldEntryResources& resources);
+                                                                     const Scenes::WorldEntryResources& resources);
 
 // El 83 (0x4e46df..0x4e47f2, las tablas de 0x4e60c0 y 0x4e60dc): 0 y 1 la traba del almacén, 0xa, 0xb y 0xd sus
 // diálogos, 0xc lo que esperaba la contraseña.
 [[nodiscard]] Core::Expected<void, std::string> ApplyWarehouseState(const Protocol::Npc::WarehouseState& state,
-                                                                    const WorldEntryResources& resources);
+                                                                    const Scenes::WorldEntryResources& resources);
 
 // El 86 (0x4da280, las tablas de 0x4da38c y 0x4da3a8): el resultado de la mezcla.
 [[nodiscard]] Core::Expected<void, std::string> ApplyChaosMixResult(const Protocol::Npc::ChaosMixResult& result,
-                                                                    const WorldEntryResources& resources);
+                                                                    const Scenes::WorldEntryResources& resources);
 
 // 0x5c4472..0x5c4a89, desde 0x5c4110 con el modo de reparar: el clic consumido, los dos rand() del C3 y el C1 05 34
 // con el lugar (fila · columnas + columna + 12) y 0x78abb10.
@@ -113,5 +121,5 @@ struct NpcWindowContext
                                                            std::uint8_t position, std::uint8_t requestPosition);
 // Los cables de 0x6599a0 y 0x657ab0 de `resources` en `panels`: el mundo, el rand() de la tela, los servicios del
 // inventario y el envío.
-void LendTheNpcWindows(GamePanels& panels, const WorldEntryResources& resources);
-} // namespace Client::Scenes
+void LendTheNpcWindows(Hud::GamePanels& panels, const Scenes::WorldEntryResources& resources);
+} // namespace Client::Npc

@@ -55,7 +55,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -449,7 +449,7 @@ Core::Expected<void, std::string> EquipTheArrows(const InventoryMoveContext& con
         if (auto sent = SendTheCursorItem(context, target); !sent.HasValue())
             return sent;
     }
-    return Message(context.services, EquippedArrowsText, UI::SystemMessage, where);
+    return Message(context.services, EquippedArrowsText, Ui::SystemMessage, where);
 }
 
 // 0x561840: con −1 de 0x5579e0, el texto 251 con el tipo 2 (0x561c31). Si no, abre el registro, mira si es un elfo
@@ -463,7 +463,7 @@ Core::Expected<void, std::string> UpdateTheArrows(const InventoryMoveContext& co
     if (!found.HasValue())
         return Core::Unexpected(found.Error());
     if (found.Value() == NoArrowCell)
-        return Message(context.services, ArrowsText, UI::ErrorMessage, "0x561c31");
+        return Message(context.services, ArrowsText, Ui::ErrorMessage, "0x561c31");
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     bool equips = false;
@@ -525,7 +525,7 @@ bool IsLevelThreeWizardsRing(const ItemState& item)
 
 // Las casillas de una grilla de 8 columnas que no es la del inventario: la de la tienda y del almacén (0x78a7070), la
 // caja del caos (0x7d2d380) o la del entrenador (0x723c80).
-std::span<ItemState> OtherGridCells(NpcWindowState& npc, Kernel::CursorGrid grid)
+std::span<ItemState> OtherGridCells(Npc::NpcWindowState& npc, Kernel::CursorGrid grid)
 {
     if (grid == Kernel::CursorGrid::ChaosBox)
         return npc.chaosBox;
@@ -576,7 +576,7 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
         lookAtTheRing = helper.has_value();
         if (helper)
         {
-            if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero, &context.random);
+            if (auto created = Pets::CreateHelper(world, *helper, hero.position, runtime.hero, &context.random);
                 !created.HasValue())
                 return Core::Unexpected(std::format("0x5be150, 0x443fa0: {}", created.Error()));
         }
@@ -604,19 +604,19 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
 
 } // namespace
 
-Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context, Ui::PanelRegistry& panels,
                                                    std::int32_t cell)
 {
     return UseInventoryItemOn(context, panels, InventoryUse{.slot = cell + FirstGridSlot, .where = "0x5af520"});
 }
 
-Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext& context, Ui::PanelRegistry& panels,
                                                      const InventoryUse& use)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x5af520 (o en línea): !IsOpen(0x40) && !IsOpen(0x80) && !IsOpen(0x20), en ese orden.
-    if (panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ClosedPanel) || panels.IsOpen(UI::TradePanel))
-        return Message(context.services, UseRefusedText, UI::ErrorMessage, use.where);
+    if (panels.IsOpen(Ui::WarehousePanel) || panels.IsOpen(Ui::ClosedPanel) || panels.IsOpen(Ui::TradePanel))
+        return Message(context.services, UseRefusedText, Ui::ErrorMessage, use.where);
     if (runtime.ui.field5767954 > 0)
         return {};
     runtime.ui.field5767954 = UseWait;
@@ -647,7 +647,7 @@ namespace
 {
 // La cola de 0x5bc740 con el último argumento en 0 (0x5bd405.. con las otras grillas): con el registro propio abierto,
 // los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3.
-void ReviewTheHeroAfterThePlacement(const WorldEntryResources& resources)
+void ReviewTheHeroAfterThePlacement(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -669,7 +669,7 @@ void ReviewTheHeroAfterThePlacement(const WorldEntryResources& resources)
 } // namespace
 
 Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Items::ItemData& item,
-                                                 const WorldEntryResources& resources)
+                                                 const Scenes::WorldEntryResources& resources)
 {
     const InventoryItemBytes bytes(item);
     if (InventoryItemType(bytes) == NoInventoryItem)
@@ -682,7 +682,7 @@ Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protoc
 
 Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<Kernel::ItemState> cells, std::int32_t columns,
                                                             std::uint8_t slot, const Protocol::Items::ItemData& item,
-                                                            const WorldEntryResources& resources,
+                                                            const Scenes::WorldEntryResources& resources,
                                                             std::string_view where)
 {
     const InventoryItemBytes bytes(item);
@@ -824,20 +824,20 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
 }
 
 // 0x5df58b..0x5df6c8: las ventanas conservan el ítem cuando el mouse está a su derecha.
-bool WindowKeepsTheItem(const Kernel::WorldState& world, UI::PanelRegistry& panels, const GroundDrop& drop)
+bool WindowKeepsTheItem(const Kernel::WorldState& world, Ui::PanelRegistry& panels, const GroundDrop& drop)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
     bool over = drop.inventoryOpen && drop.mouseX >= runtime.hud.inventoryX;
-    if (panels.IsOpen(UI::NpcShopPanel) && drop.mouseX >= runtime.ui.npcWindowX)
+    if (panels.IsOpen(Ui::NpcShopPanel) && drop.mouseX >= runtime.ui.npcWindowX)
         over = true;
-    if (panels.IsOpen(UI::WarehousePanel) && drop.mouseX >= runtime.ui.npcWindowX)
+    if (panels.IsOpen(Ui::WarehousePanel) && drop.mouseX >= runtime.ui.npcWindowX)
         over = true;
-    if (panels.IsOpen(UI::ChaosBoxPanel))
+    if (panels.IsOpen(Ui::ChaosBoxPanel))
     {
         if (drop.mouseX >= runtime.ui.npcWindowX)
             over = true;
     }
-    else if (panels.IsOpen(UI::CastleSiegeListPanel) &&
+    else if (panels.IsOpen(Ui::CastleSiegeListPanel) &&
              runtime.panels.delegated.castleSiegeListMode == CastleSiegeListMode)
     {
         // 0x6689d0: la marca WORD con signo y el estado de maestro del gremio del héroe publicado.
@@ -847,11 +847,11 @@ bool WindowKeepsTheItem(const Kernel::WorldState& world, UI::PanelRegistry& pane
             drop.mouseX >= runtime.ui.npcWindowX)
             over = true;
     }
-    if (panels.IsOpen(UI::TradePanel) && drop.mouseX >= runtime.hud.tradeX)
+    if (panels.IsOpen(Ui::TradePanel) && drop.mouseX >= runtime.hud.tradeX)
         over = true;
-    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+    if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
         over = true;
-    if (panels.IsOpen(UI::TrainerPanel) && drop.mouseX >= runtime.ui.npcWindowX)
+    if (panels.IsOpen(Ui::TrainerPanel) && drop.mouseX >= runtime.ui.npcWindowX)
         over = true;
     return over;
 }
@@ -882,12 +882,12 @@ Core::Expected<bool, std::string> CheckTheWizardsRing(const InventoryMoveContext
         if (required)
         {
             throws = false;
-            const std::optional<std::string_view> format = UI::TextAt(context.services.texts, RingLevelText);
+            const std::optional<std::string_view> format = Ui::TextAt(context.services.texts, RingLevelText);
             if (!format)
                 return Core::Unexpected(std::format("0x5df7c9: falta el texto {} de Text.bmd", RingLevelText));
             if (!context.services.chatLine)
                 return Core::Unexpected(std::string("0x5df7dc: 0x555190 con el aviso del anillo sin el chat"));
-            if (auto said = context.services.chatLine(Crt::Sprintf(*format, *required), UI::SystemMessage);
+            if (auto said = context.services.chatLine(Crt::Sprintf(*format, *required), Ui::SystemMessage);
                 !said.HasValue())
                 return Core::Unexpected(std::format("0x5df7dc, 0x555190: {}", said.Error()));
         }
@@ -926,17 +926,17 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
     const Models::LogicalAccess nested(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (world.Hero().safeZone != 0)
     {
-        if (auto shown = Message(context.services, 1238, UI::ErrorMessage, "0x437b9b"); !shown.HasValue())
+        if (auto shown = Message(context.services, 1238, Ui::ErrorMessage, "0x437b9b"); !shown.HasValue())
             return Core::Unexpected(shown.Error());
         return false;
     }
     const std::int32_t minimum = TicketLowerLevels[offset + 1];
     if (level >= minimum)
         return true;
-    const auto format = UI::TextAt(context.services.texts, 1123);
+    const auto format = Ui::TextAt(context.services.texts, 1123);
     if (!format || !context.services.chatLine)
         return Core::Unexpected(std::string("0x437c33: falta el aviso del nivel para entrar al evento"));
-    if (auto shown = context.services.chatLine(Crt::Sprintf(*format, minimum), UI::ErrorMessage); !shown.HasValue())
+    if (auto shown = context.services.chatLine(Crt::Sprintf(*format, minimum), Ui::ErrorMessage); !shown.HasValue())
         return Core::Unexpected(shown.Error());
     return false;
 }
@@ -946,7 +946,7 @@ Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& c
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (drop.panels == nullptr)
         return Core::Unexpected(std::string("0x5df59a: 0x659290 sin el registro de las ventanas"));
-    UI::PanelRegistry& panels = *drop.panels;
+    Ui::PanelRegistry& panels = *drop.panels;
     const bool over = WindowKeepsTheItem(context.world, panels, drop);
     const auto ring = CheckTheWizardsRing(context);
     if (!ring.HasValue())
@@ -955,7 +955,7 @@ Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& c
     if (!ticket.HasValue())
         return Core::Unexpected(ticket.Error());
     // 0x5dfd9d..0x5dfdb7: si no se tira o con el comercio abierto (su rand()), 0x5be150.
-    if (over || !ring.Value() || !ticket.Value() || panels.IsOpen(UI::TradePanel))
+    if (over || !ring.Value() || !ticket.Value() || panels.IsOpen(Ui::TradePanel))
         return ReturnTheCursorItem(context);
     if (!context.services.pickTheGround)
         return Core::Unexpected(std::string("0x5dfdbf: 0x5fc260(1) sin el rayo del mouse"));
@@ -981,21 +981,23 @@ Core::Expected<void, std::string> ThrowToTheGround(const InventoryMoveContext& c
 }
 } // namespace
 
-InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
+InventoryServices InventoryServicesOf(const Scenes::WorldEntryResources& resources)
 {
     return InventoryServices{
         .items = resources.items,
-        .dressTheHero = [&resources] { return DressTransitionHero(PublishedHero(resources), resources); },
-        .replaceTheRaven = [&resources] { return ReplaceTheRaven(PublishedHero(resources), resources); },
+        .dressTheHero = [&resources]
+        { return Scenes::DressTransitionHero(Scenes::PublishedHero(resources), resources); },
+        .replaceTheRaven = [&resources]
+        { return Scenes::ReplaceTheRaven(Scenes::PublishedHero(resources), resources); },
         .systemMessage = [&resources](std::size_t index, std::int32_t type) -> Core::Expected<void, std::string>
         {
-            const std::optional<std::string_view> text = UI::TextAt(resources.texts, index);
+            const std::optional<std::string_view> text = Ui::TextAt(resources.texts, index);
             if (!text)
                 return Core::Unexpected(std::format("sin el texto {} de Text.bmd", index));
             if (resources.textMeasure == nullptr)
                 return Core::Unexpected(std::string("sin el medidor de los textos"));
             const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-            return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, type);
+            return Chat::AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, type);
         },
         .sendItemMove = {},
         .texts = resources.texts,
@@ -1004,7 +1006,7 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
             if (resources.textMeasure == nullptr)
                 return Core::Unexpected(std::string("sin el medidor de los textos"));
             const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-            return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, type);
+            return Chat::AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, type);
         }};
 }
 
@@ -1202,7 +1204,7 @@ Core::Expected<void, std::string> SendTheCursorItemBetween(const InventoryMoveCo
     return context.services.sendItemMove(move);
 }
 
-void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys)
+void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, Npc::WarehouseKeyCount>& keys)
 {
     for (std::size_t key = 0; key < keys.size(); ++key)
         keys[key] = static_cast<std::uint16_t>(key);
@@ -1261,8 +1263,8 @@ Core::Expected<void, std::string> PickUpFromTheTradeGrid(const InventoryMoveCont
         return Core::Unexpected(std::format("0x5c52b1: la casilla {} está fuera de la grilla del comercio", cell));
     const ItemState& hovered = cells[cell];
     // 0x5c5342..0x5c5348: 0x5bd750 con las 8 columnas de 0x5c4110, las mismas que RemoveFromTheGrid.
-    static_assert(TradeGridColumns == Columns);
-    const std::int32_t topLeft = hovered.gridRow * TradeGridColumns + hovered.gridColumn;
+    static_assert(Social::TradeGridColumns == Columns);
+    const std::int32_t topLeft = hovered.gridRow * Social::TradeGridColumns + hovered.gridColumn;
     auto source = CellAt(cells, topLeft, "0x5c52b1 (0x5c52cd)");
     if (!source.HasValue())
         return Core::Unexpected(source.Error());
@@ -1421,7 +1423,7 @@ void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, st
     const bool missing =
         item.word26 > strength || item.word20 > agility || item.word22 > energy || item.word1e > strength;
     item.warning = missing ? RefusedMark : FitsMark;
-    runtime.ui.hoveredItem = UI::HoveredItem{.place = UI::HoveredItem::Place::Equipment, .index = slot};
+    runtime.ui.hoveredItem = Ui::HoveredItem{.place = Ui::HoveredItem::Place::Equipment, .index = slot};
     runtime.ui.field78aba27 = 0;
     runtime.hoveredItemCopy = item;
     runtime.ui.field78abb28 = 0;
@@ -1448,13 +1450,13 @@ Core::Expected<void, std::string> DropFromOtherGridOnTheEquipment(const Inventor
     {
     case Kernel::CursorGrid::NpcGrid:
     {
-        NpcWindowState& npc = runtime.npcWindows;
+        Npc::NpcWindowState& npc = runtime.npcWindows;
         if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
         {
-            npc.pendingMove = PendingWarehouseMove{.slot = WarehouseMoveGrid,
-                                                   .second = runtime.slot78a6758,
-                                                   .third = InventoryMoveGrid,
-                                                   .fourth = runtime.itemMoveTarget};
+            npc.pendingMove = Npc::PendingWarehouseMove{.slot = WarehouseMoveGrid,
+                                                        .second = runtime.slot78a6758,
+                                                        .third = InventoryMoveGrid,
+                                                        .fourth = runtime.itemMoveTarget};
             ShuffleTheKeypad(context.random, npc.keypad);
             runtime.ui.field78abb20 = 1;
             npc.typedNumber = {};
@@ -1469,7 +1471,7 @@ Core::Expected<void, std::string> DropFromOtherGridOnTheEquipment(const Inventor
     default:
         // 0x5c1d90..0x5c1da3: incluso con un envío pendiente, el OK propio decide la espera primero.
         if (runtime.social.trade.ownOk == 0)
-            runtime.social.trade.okWait = TradeOkWait;
+            runtime.social.trade.okWait = Social::TradeOkWait;
         return SendTheCursorItemBetween(context, TradeGridFlag, source, InventoryGridFlag, target);
     }
 }
@@ -1517,7 +1519,7 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
         heroClass != Kernel::CharacterClass::MagicGladiator && heroClass != Kernel::CharacterClass::DarkLord &&
         (hero.characterClass & ClassUpperMask) == 0)
     {
-        if (auto warned = Message(context.services, FenrirText, UI::ErrorMessage, "0x5bf279"); !warned.HasValue())
+        if (auto warned = Message(context.services, FenrirText, Ui::ErrorMessage, "0x5bf279"); !warned.HasValue())
             return warned;
     }
     if (runtime.ui.field78abb39 != 0)
@@ -1550,7 +1552,7 @@ Core::Expected<void, std::string> UseTheJewel(const InventoryMoveContext& contex
             // 0x5d8335..0x5d8372: la casilla de la joya y el destino para el diálogo, que usa 0x6282dc.
             runtime.dialogBox.jewelCell = runtime.slot78a6758 - FirstGridSlot;
             runtime.dialogBox.jewelTarget = target;
-            return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, 1, BlessDialogText,
+            return Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, 1, BlessDialogText,
                                       BlessDialog);
         }
     }
@@ -1593,7 +1595,7 @@ Core::Expected<bool, std::string> FromTheTradeGrid(const InventoryMoveContext& c
             return Core::Unexpected(sent.Error());
     }
     if (runtime.social.trade.ownOk == 0)
-        runtime.social.trade.okWait = TradeOkWait;
+        runtime.social.trade.okWait = Social::TradeOkWait;
     return true;
 }
 
@@ -1602,8 +1604,8 @@ Core::Expected<bool, std::string> FromTheTradeGrid(const InventoryMoveContext& c
 Core::Expected<bool, std::string> FromTheShopGrid(const InventoryMoveContext& context, std::int32_t target)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const PersonalShopState& shops = runtime.social.personalShop;
-    if (shops.mode != OwnShopView)
+    const Social::PersonalShopState& shops = runtime.social.personalShop;
+    if (shops.mode != Social::OwnShopView)
         return true;
     if (shops.ownOpen != 0)
     {
@@ -1706,10 +1708,10 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     {
         // 0x5cb386..0x5cb455: con la traba del almacén (0x6c932f) y sin 0x78abb1c, el movimiento espera la contraseña
         // (2, [0x78a6758], 0 y el destino), el teclado se baraja, 0x78abb20 en 1 y lo tecleado en 0.
-        NpcWindowState& npc = runtime.npcWindows;
+        Npc::NpcWindowState& npc = runtime.npcWindows;
         if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
         {
-            npc.pendingMove = PendingWarehouseMove{
+            npc.pendingMove = Npc::PendingWarehouseMove{
                 .slot = WarehouseMoveGrid, .second = runtime.slot78a6758, .third = InventoryMoveGrid, .fourth = target};
             ShuffleTheKeypad(context.random, npc.keypad);
             runtime.ui.field78abb20 = 1;
@@ -1784,12 +1786,13 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
+    Npc::NpcWindowState& npc = runtime.npcWindows;
     const bool chaosBox = drop.grid == Kernel::CursorGrid::ChaosBox;
     const bool trainerBox = drop.grid == Kernel::CursorGrid::TrainerBox;
     const std::span<ItemState> cells = OtherGridCells(npc, drop.grid);
-    const std::int32_t rows =
-        chaosBox || trainerBox ? ChaosBoxRows : static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns;
+    const std::int32_t rows = chaosBox || trainerBox
+                                  ? Npc::ChaosBoxRows
+                                  : static_cast<std::int32_t>(Npc::NpcGridCellCount) / Npc::NpcGridColumns;
     const std::uint8_t kind = chaosBox ? ChaosBoxMoveGrid : (trainerBox ? TrainerBoxMoveGrid : WarehouseMoveGrid);
     const ItemState& cursor = runtime.cursorItem;
     const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
@@ -1812,7 +1815,7 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
     }
     else if (runtime.panels.delegated.trainer == TrainerWithBox && trainerBox)
         allowed = std::ranges::find(TrainerBoxItems, cursor.id) != TrainerBoxItems.end();
-    const bool fits = allowed && ItemFitsInTheGrid(cursor, cells, NpcGridColumns, rows, cell, footprint.Value());
+    const bool fits = allowed && ItemFitsInTheGrid(cursor, cells, Npc::NpcGridColumns, rows, cell, footprint.Value());
     // 0x5ca385..0x5ca453: las marcas de la huella dentro de la grilla.
     const bool jewel = cursor.id == JewelOfBless || cursor.id == JewelOfSoul || cursor.id == JewelOfLife ||
                        cursor.id == JewelOfCreation;
@@ -1820,9 +1823,9 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
     {
         for (std::int32_t column = cell.column; column < cell.column + footprint.Value().width; ++column)
         {
-            if (row >= rows || column >= NpcGridColumns)
+            if (row >= rows || column >= Npc::NpcGridColumns)
                 continue;
-            ItemState& marked = cells[static_cast<std::size_t>(row * NpcGridColumns + column)];
+            ItemState& marked = cells[static_cast<std::size_t>(row * Npc::NpcGridColumns + column)];
             marked.warning = fits ? FitsMark : (jewel ? JewelMark : RefusedMark);
         }
     }
@@ -1838,7 +1841,7 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
         (cursor.id == UnmovedAtThirteen && (cursor.scalar1Low & LevelBits) == ThirteenBits))
         return true;
     // 0x5d1665..0x5d167c y 0x5d3342..0x5d3359: el destino sin el 12.
-    const std::int32_t target = cell.row * NpcGridColumns + cell.column;
+    const std::int32_t target = cell.row * Npc::NpcGridColumns + cell.column;
     runtime.itemMoveTarget = target;
     const std::uint8_t source = runtime.cursorGrid == Kernel::CursorGrid::Inventory ? InventoryMoveGrid : kind;
     if (auto sent = SendTheCursorItemBetween(context, source, static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
@@ -1865,8 +1868,9 @@ Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext&
     // 0x5ca339..0x5ca364: con 0x724580 en 3, 0x44acd0 deja pasar cualquier grilla que no sea la del entrenador.
     // 0x5c9b40 con 0x78a92a8 (0x5c9c5c): sin apilar.
     const std::span<ItemState> cells(runtime.social.trade.ownGrid);
-    const bool fits = TheFootprintIsEmpty(cells, TradeGridColumns, TradeGridRows, cell, footprint.Value());
-    static_cast<void>(MarkTheFootprint(cursor, cells, TradeGridRows, cell, footprint.Value(), fits));
+    const bool fits =
+        TheFootprintIsEmpty(cells, Social::TradeGridColumns, Social::TradeGridRows, cell, footprint.Value());
+    static_cast<void>(MarkTheFootprint(cursor, cells, Social::TradeGridRows, cell, footprint.Value(), fits));
     // 0x5ca456..0x5ca46c: el clic o el movimiento automático del almacén.
     if (!runtime.movement.pendingClick && !runtime.ui.automaticMove)
         return fits;
@@ -1881,7 +1885,7 @@ Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext&
     if (cursor.id == Untradable1c0b && (cursor.scalar1Low & UntradableLevelBits) == UntradableLevel)
         return true;
     // 0x5cf41a..0x5cf42c: el destino, sin el 12.
-    const std::int32_t target = cell.row * TradeGridColumns + cell.column;
+    const std::int32_t target = cell.row * Social::TradeGridColumns + cell.column;
     runtime.itemMoveTarget = target;
     const auto targetSlot = static_cast<std::uint8_t>(target & 0xff);
     if (runtime.cursorGrid == Kernel::CursorGrid::Inventory)
@@ -1939,14 +1943,14 @@ Core::Expected<bool, std::string> DropOnTheShopGrid(const InventoryMoveContext& 
     // 0x5d504f..0x5d5063: el destino, desde 0x4c.
     const std::int32_t target = cell.row * ShopGridColumns + cell.column + FirstSecondSlot;
     runtime.itemMoveTarget = target;
-    PersonalShopState& shops = runtime.social.personalShop;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
     if (runtime.cursorGrid == Kernel::CursorGrid::Inventory)
     {
         // 0x5d506b..0x5d5093: con la propia, el ítem del cursor al de los diálogos y el diálogo del precio.
-        if (shops.mode != OwnShopView)
+        if (shops.mode != Social::OwnShopView)
             return true;
         runtime.dialogItem = cursor;
-        OpenTheShopDialog(runtime, ShopPriceMode);
+        PersonalShop::OpenTheShopDialog(runtime, PersonalShop::ShopPriceMode);
         return true;
     }
     // 0x5d5098..0x5d509e y 0x5d64c3: al mismo lugar, 0x5be150.
@@ -1987,14 +1991,14 @@ Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& co
                       (level > MaxDroppedLevel && type < FirstWing) || (cursor.flags1b & DroppedFlagsMask) != 0;
     if (kept)
     {
-        if (auto warned = Message(context.services, KeptText, UI::ErrorMessage, "0x5e0701 (0x5e06f5)");
+        if (auto warned = Message(context.services, KeptText, Ui::ErrorMessage, "0x5e0701 (0x5e06f5)");
             !warned.HasValue())
             return warned;
         return ReturnTheCursorItem(context);
     }
     if (InRange(type, FirstStackedBox, LastBox))
     {
-        if (auto warned = Message(context.services, BoxText, UI::ErrorMessage, "0x5e0701 (0x5df556)");
+        if (auto warned = Message(context.services, BoxText, Ui::ErrorMessage, "0x5e0701 (0x5df556)");
             !warned.HasValue())
             return warned;
         return ReturnTheCursorItem(context);
@@ -2005,7 +2009,7 @@ Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& co
     {
         if (!drop.inventoryOpen || drop.mouseX <= runtime.hud.inventoryX)
         {
-            if (auto warned = Message(context.services, KeptText, UI::ErrorMessage, "0x5e0701 (0x5e06d9)");
+            if (auto warned = Message(context.services, KeptText, Ui::ErrorMessage, "0x5e0701 (0x5e06d9)");
                 !warned.HasValue())
                 return warned;
         }
@@ -2019,13 +2023,14 @@ namespace
 // 0x4d1b76..0x4d1c7d: el precio del lugar de origen ([0x78a6758], desde el 0x4c) en el mapa de la tienda que se mira
 // (0x7245e4 la propia, 0x7245e0 la de otro; sin mapas, nada) pasa al lugar nuevo si también es de la tienda (find,
 // erase y el insert de 0x4e7440); si no, se pierde. Sin precio en el origen, nada.
-void MoveTheShopPrice(PersonalShopState& shops, std::int32_t origin, std::uint8_t slot)
+void MoveTheShopPrice(Social::PersonalShopState& shops, std::int32_t origin, std::uint8_t slot)
 {
     if (origin < FirstSecondSlot || !shops.pricesBuilt)
         return;
-    if (shops.mode != OwnShopView && shops.mode != OtherShopView)
+    if (shops.mode != Social::OwnShopView && shops.mode != Social::OtherShopView)
         return;
-    std::map<std::int32_t, std::int32_t>& prices = shops.mode == OwnShopView ? shops.ownPrices : shops.otherPrices;
+    std::map<std::int32_t, std::int32_t>& prices =
+        shops.mode == Social::OwnShopView ? shops.ownPrices : shops.otherPrices;
     const auto found = prices.find(origin);
     if (found == prices.end())
         return;
@@ -2038,13 +2043,13 @@ void MoveTheShopPrice(PersonalShopState& shops, std::int32_t origin, std::uint8_
 // 0x4d1ccc..0x4d1cf4: 0x5bc740(0x78a92a8, 8, 4, pkt[4], pkt + 5, 0): el ítem en la grilla propia del comercio y la cola
 // del último argumento en 0.
 Core::Expected<void, std::string> PlaceInTheTradeGrid(std::uint8_t slot, const Protocol::Items::ItemData& item,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     const InventoryItemBytes bytes(item);
     if (InventoryItemType(bytes) == NoInventoryItem)
         return {};
-    if (auto placed = PlaceItemInOtherGrid(resources.world.Runtime().social.trade.ownGrid, TradeGridColumns, slot,
-                                           bytes, resources, "0x5bc740, la grilla de 0x78a92a8");
+    if (auto placed = PlaceItemInOtherGrid(resources.world.Runtime().social.trade.ownGrid, Social::TradeGridColumns,
+                                           slot, bytes, resources, "0x5bc740, la grilla de 0x78a92a8");
         !placed.HasValue())
         return placed;
     ReviewTheHeroAfterThePlacement(resources);
@@ -2052,20 +2057,20 @@ Core::Expected<void, std::string> PlaceInTheTradeGrid(std::uint8_t slot, const P
 }
 
 // 0x4d1d70..0x4d1d85: el 3D que llegó con la traba (0x5767968), con la traba ya suelta.
-Core::Expected<void, std::string> ReplayTheTradeResult(const WorldEntryResources& resources)
+Core::Expected<void, std::string> ReplayTheTradeResult(const Scenes::WorldEntryResources& resources)
 {
-    TradeState& trade = resources.world.Runtime().social.trade;
+    Social::TradeState& trade = resources.world.Runtime().social.trade;
     if (trade.resultDeferred == 0)
         return {};
     const Protocol::Social::TradeResult deferred{.result = trade.deferredHead[3], .head = trade.deferredHead};
-    if (auto applied = ApplyTradeResult(deferred, resources); !applied.HasValue())
+    if (auto applied = Social::ApplyTradeResult(deferred, resources); !applied.HasValue())
         return applied;
     trade.resultDeferred = 0;
     return {};
 }
 
 Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Items::ItemMoveResult& result,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (result.result == Protocol::Items::ItemMoveRejected)
@@ -2089,14 +2094,14 @@ Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Items::ItemM
         break;
     case 2:
         // 0x4d1cf6..0x4d1d0a: 0x5bc740(0x78a7070, 8, 15, lugar, datos, 0), la grilla del almacén.
-        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.grid, NpcGridColumns, result.slot, result.item,
-                                                    resources, "0x4d1d0a, 0x5bc740(0x78a7070)");
+        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.grid, Npc::NpcGridColumns, result.slot,
+                                                    result.item, resources, "0x4d1d0a, 0x5bc740(0x78a7070)");
             !placed.HasValue())
             return placed;
         break;
     case 3:
         // 0x4d1d20..0x4d1d34: 0x5bc740(0x7d2d380, 8, 4, lugar, datos, 0), la caja del caos.
-        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.chaosBox, NpcGridColumns, result.slot,
+        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.chaosBox, Npc::NpcGridColumns, result.slot,
                                                     result.item, resources, "0x4d1d34, 0x5bc740(0x7d2d380)");
             !placed.HasValue())
             return placed;
@@ -2104,7 +2109,7 @@ Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Items::ItemM
     case 5:
         // 0x4d1d4a..0x4d1d55: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0), la caja del
         // entrenador.
-        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.trainerBox, NpcGridColumns, result.slot,
+        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.trainerBox, Npc::NpcGridColumns, result.slot,
                                                     result.item, resources, "0x4d1d55, 0x5bc740(0x723c80)");
             !placed.HasValue())
             return placed;
@@ -2118,7 +2123,7 @@ Core::Expected<void, std::string> PlaceTheMovedItem(const Protocol::Items::ItemM
 } // namespace
 
 Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Items::ItemMoveResult& result,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     const InventoryItemBytes bytes(result.item);
     if (result.result == InventoryMoveGrid && DiscardInventoryOverflow(result.slot, bytes, resources))
@@ -2139,7 +2144,7 @@ Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Items::Ite
 }
 
 Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Items::ItemDelete& deleted,
-                                                  const WorldEntryResources& resources)
+                                                  const Scenes::WorldEntryResources& resources)
 {
     if (deleted.slot != Protocol::Items::NoItemToDelete)
     {
@@ -2147,7 +2152,7 @@ Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Items::ItemDel
         const InventoryServices services = InventoryServicesOf(resources);
         const InventoryMoveContext context{
             .world = resources.world, .random = resources.cloth.random, .services = services};
-        if (deleted.slot >= FirstSecondGridSlot && runtime.social.personalShop.mode == OtherShopView)
+        if (deleted.slot >= FirstSecondGridSlot && runtime.social.personalShop.mode == Social::OtherShopView)
         {
             // 0x4c5ee3: mirando la tienda de otro, 0x5bd750 con la copia de la propia (0x78a6768, desde el lugar −
             // 0x4c).
@@ -2178,7 +2183,7 @@ Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Items::ItemDel
 }
 
 Core::Expected<void, std::string> ApplyDurability(const Protocol::Items::Durability& durability,
-                                                  const WorldEntryResources& resources)
+                                                  const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -2257,7 +2262,7 @@ Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Items::ManaRef
 }
 
 Core::Expected<void, std::string> ApplyItemPut(const Protocol::Items::ItemPut& put,
-                                               const WorldEntryResources& resources)
+                                               const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     runtime.cursorItemCount = 0;
@@ -2269,7 +2274,7 @@ Core::Expected<void, std::string> ApplyItemPut(const Protocol::Items::ItemPut& p
 }
 
 Core::Expected<void, std::string> ApplyDropResult(const Protocol::Items::DropResult& result,
-                                                  const WorldEntryResources& resources)
+                                                  const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -2325,7 +2330,7 @@ void ApplyShortDropResult(const Protocol::Items::ShortDropResult& result, Kernel
 }
 
 Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::EquipmentChange& change,
-                                                       const WorldEntryResources& resources)
+                                                       const Scenes::WorldEntryResources& resources)
 {
     // 0x5139f0 con el índice de 0x5110d0 (el 400 sin ninguno, que en el arreglo de 401 existe) mira el tipo (+2) y,
     // si no es un jugador, vuelve sin tocar nada (0x513a12).
@@ -2333,6 +2338,6 @@ Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::Eq
     if (resources.world.Actors()[index].type != Tables::PlayerSkeletonModel)
         return {};
     return Actors::ApplyCharacterSet(index, change.equipment, resources,
-                                     TableHelpers(resources.world, &resources.cloth.random));
+                                     Pets::TableHelpers(resources.world, &resources.cloth.random));
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

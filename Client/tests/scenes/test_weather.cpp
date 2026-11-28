@@ -100,15 +100,15 @@ TEST(WeatherApplierTest, StartsWithTheStaticTargetAndCounterAndTheDataLeafCount)
 // 4e36c4/4e36ed escriben un solo DWORD; 4e36dd salta al default para los otros 224 bytes.
 TEST(WeatherApplierTest, AllThreeBranchesChangeOnlyTheTarget)
 {
-    const Client::World::LeafWeather before{
+    const Client::Weather::LeafWeather before{
         .target = 777, .current = -123, .firstWave = 45, .secondWave = -67, .phase = 890};
     constexpr std::array<std::int32_t, 16> RainTargets{0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90};
     for (int code = 0; code <= 0xff; ++code)
     {
         SCOPED_TRACE(code);
-        Client::World::LeafWeather after = before;
+        Client::Weather::LeafWeather after = before;
 
-        Client::World::ApplyWeather(Client::Protocol::Weather::Weather{static_cast<std::uint8_t>(code)}, after);
+        Client::Weather::ApplyWeather(Client::Protocol::Weather::Weather{static_cast<std::uint8_t>(code)}, after);
 
         const auto expected = code < 16 ? 0 : code < 32 ? RainTargets[static_cast<std::size_t>(code - 16)] : 777;
         EXPECT_EQ(after.target, expected);
@@ -136,7 +136,7 @@ TEST(WeatherSessionTest, NoCodeConsumesARandom)
         EXPECT_EQ(tested.bare->cloth.random.State(), Seed);
     }
     EXPECT_EQ(tested.targets.size(), 256u);
-    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(tested.online.session.State(), Client::Session::SessionState::LoggedIn);
     EXPECT_EQ(tested.world.Runtime().map, -1);
     EXPECT_FALSE(tested.bare->selection.HasReceivedList());
 }
@@ -153,7 +153,7 @@ TEST(WeatherSessionTest, DeliversEveryWeatherReceptionBeforeTheNextPacket)
 
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42, 0, 0}));
     EXPECT_TRUE(tested.online.eventSink.world.empty());
-    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(tested.online.session.State(), Client::Session::SessionState::LoggedIn);
 }
 
 TEST(WeatherSessionTest, AppliesTheThreeBranchesInWireOrderWithoutAdvancingTheRainCounter)
@@ -170,7 +170,7 @@ TEST(WeatherSessionTest, AppliesTheThreeBranchesInWireOrderWithoutAdvancingTheRa
 
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42, 42, 90, 0}));
     EXPECT_EQ(tested.world.Runtime().leafWeather.current, 19);
-    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(tested.online.session.State(), Client::Session::SessionState::LoggedIn);
     EXPECT_EQ(tested.online.socket.sent.size(), sentBefore);
 }
 
@@ -186,7 +186,7 @@ TEST(WeatherSessionTest, DiscardsMalformedWeatherAndContinuesTheSameBatch)
 
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{6}));
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 6);
-    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(tested.online.session.State(), Client::Session::SessionState::LoggedIn);
 }
 
 TEST(WeatherSessionTest, AcceptsTheNormalizedEncryptedPacketWithoutASeparateEncryptionGate)
@@ -214,13 +214,13 @@ TEST(WeatherSessionTest, AppliesBeforeTheGameHelloWithoutChangingTheSessionState
     online.socket.reads = {Client::Tests::AddressReply("10.0.0.2", 55901)};
     ASSERT_TRUE(online.session.Poll().HasValue());
     ASSERT_TRUE(online.session.Poll().HasValue());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::WaitingGameHello);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::WaitingGameHello);
     online.socket.reads = {Bytes({0xc1, 4, 0x0f, 0x17})};
 
     ASSERT_TRUE(online.session.Poll().HasValue());
 
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 42);
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::WaitingGameHello);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::WaitingGameHello);
 }
 
 TEST(WeatherSessionTest, DoesNotRegisterWeatherWithTheConnectServer)
@@ -234,7 +234,7 @@ TEST(WeatherSessionTest, DoesNotRegisterWeatherWithTheConnectServer)
 
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 77);
     EXPECT_TRUE(tested.targets.empty());
-    EXPECT_EQ(tested.online.session.State(), Client::App::SessionState::WaitingServerList);
+    EXPECT_EQ(tested.online.session.State(), Client::Session::SessionState::WaitingServerList);
 }
 
 // A failing reception between the weathers (the warp with an item on the cursor, 0x5be150): the weathers before it
@@ -256,7 +256,7 @@ TEST(WeatherSessionTest, KeepsTheAppliedPrefixAndStopsAtTheFirstFailure)
     EXPECT_NE(polled.Error().find("0x5be150"), std::string::npos) << polled.Error();
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42, 90, 90}));
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 90);
-    EXPECT_EQ(tested.online.session.Failure(), Client::App::SessionFailure::ApplicationFailed);
+    EXPECT_EQ(tested.online.session.Failure(), Client::Session::SessionFailure::ApplicationFailed);
     EXPECT_EQ(tested.online.connection.State(), Client::Network::LinkState::Closed);
     const auto again = tested.online.session.Poll();
     ASSERT_FALSE(again.HasValue());
@@ -276,7 +276,7 @@ TEST(WeatherSessionTest, AppliesThePacketBeforeARemoteCloseAlreadyObservedByTheP
 
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 42);
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42}));
-    EXPECT_EQ(tested.online.session.Failure(), Client::App::SessionFailure::GameServerLost);
+    EXPECT_EQ(tested.online.session.Failure(), Client::Session::SessionFailure::GameServerLost);
 }
 
 TEST(WeatherProtocolTest, ReadsItsMinimumSizeAndNotOneByteLess)

@@ -21,7 +21,7 @@
 #include <string>
 
 // El 0x62c (0x5346d8 y 0x53b93f): los que suben del efecto 0x62c/0 (la 0x41) y de la 0x4c, y los del hueso del dueño.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -63,7 +63,7 @@ void Fade(glm::vec3& light, float factor)
 
 // Un tramo de la subida: la cola con la matriz de los ángulos y el avance (0, velocidad, 0) girado por ella, sumado al
 // incremento del camino (+0x24).
-Core::Expected<Math::OriginalMatrix, std::string> Rise(JointState& joint)
+Core::Expected<Math::OriginalMatrix, std::string> Rise(Scenes::JointState& joint)
 {
     const auto matrix = OriginalAngleMatrix(joint.angles);
     if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
@@ -73,7 +73,7 @@ Core::Expected<Math::OriginalMatrix, std::string> Rise(JointState& joint)
 }
 
 // 0x53b974..0x53ba27: la /0 sube derecho, con más tramos en cada paso (+0x9ec, que crece de a 2).
-Core::Expected<void, std::string> StepTheColumn(JointState& joint)
+Core::Expected<void, std::string> StepTheColumn(Scenes::JointState& joint)
 {
     constexpr double Brake = 2.0; // 0x6b8818
     for (std::int32_t step = 1; step < joint.field9ec; ++step)
@@ -90,7 +90,7 @@ Core::Expected<void, std::string> StepTheColumn(JointState& joint)
 // 0x53ba4c..0x53bbe1: la /1..4 y la /0xb..0xd esperan su tanda (+0x9eb) y después suben como la /0, corridas del
 // camino por (0, 0, +0x58) girado por (0, +0x5c, la z de los ángulos): +0x5c baja 20 y +0x58 2,5 por tramo. La /3 y la
 // /4 restan el corrimiento; las demás lo suman.
-Core::Expected<void, std::string> StepTheSpiral(JointState& joint)
+Core::Expected<void, std::string> StepTheSpiral(Scenes::JointState& joint)
 {
     if (joint.volley > 0)
     {
@@ -121,7 +121,8 @@ Core::Expected<void, std::string> StepTheSpiral(JointState& joint)
 // origen, +0x6c..+0x74; la escala queda la que tenga) y arma el camino en el punto (0, 20, 0) de su hueso +0x9ec
 // (0x4ec110 con +0x120 + hueso · 0x30). Después da tantos tramos como el menor entre +0x6c y la tanda, cada uno con la
 // cola de esa matriz, y suma uno a +0x6c, que crece así de a uno hasta la tanda (30).
-Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> FollowTheOwnerBone(Scenes::JointState& joint,
+                                                     const JointKernels::StepServices& services)
 {
     const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr)
@@ -185,7 +186,7 @@ Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const Jo
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateSpiralJoint(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateSpiralJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                     Crt::CrtRandom& random)
 {
     // 0x5346d8..0x534765: lo común, con la z 150 más alta y el camino (+0x24) en la posición.
@@ -258,7 +259,7 @@ Core::Expected<void, std::string> CreateSpiralJoint(JointState& joint, const Ker
     return {};
 }
 
-Core::Expected<void, std::string> StepSpiralJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepSpiralJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
     if (Orbits(subtype))
@@ -293,4 +294,4 @@ Core::Expected<void, std::string> StepSpiralJoint(JointState& joint, const Joint
         Fade(joint.light, std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

@@ -12,8 +12,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::BirdGlowLight;
-using Client::World::BirdStepCount;
+using Client::Fauna::BirdGlowLight;
+using Client::Fauna::BirdStepCount;
 
 TEST(BirdsTest, AllSupportedMapsSelectTheirStepPrefix)
 {

@@ -20,7 +20,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Quests
 {
 namespace
 {
@@ -269,7 +269,7 @@ Core::Expected<std::size_t, std::string> EntryCountOf(const Tables::QuestRecord&
 Core::Expected<void, std::string> ShowTheDialog(const QuestContext& context, std::int32_t dialog)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    return UI::ShowTheQuestDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, context.texts, dialog);
+    return Ui::ShowTheQuestDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, context.texts, dialog);
 }
 } // namespace
 
@@ -635,4 +635,4 @@ void ResetTheQuests(QuestState& quest, std::uint8_t& window)
     quest.flags[1] = 0;
     quest.flags[2] = 0;
 }
-} // namespace Client::Scenes
+} // namespace Client::Quests

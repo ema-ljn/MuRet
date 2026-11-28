@@ -171,7 +171,7 @@ TEST_F(WeaponTrailTest, Type194CompletesTenSamplesWithNormalFullAndPartialPartic
     {
         SCOPED_TRACE(freeSlots);
         m_world->DrawTail().ribbons = {};
-        for (std::size_t slot = 0; slot < Client::World::ParticleCount; ++slot)
+        for (std::size_t slot = 0; slot < Client::Particles::ParticleCount; ++slot)
             m_world->Particles().All()[slot].alive = slot >= freeSlots;
         m_random = Client::Crt::CrtRandom{0x12345678u};
         auto expectedRandom = m_random;

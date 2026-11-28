@@ -59,7 +59,7 @@
 
 // Los casos de habilidad de 0x4fd5f0 (0x4fdeeb, 0x504372 y 0x5042ce), cotejados con el PE c32bbd5f: 06, "El paso del
 // ataque".
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -88,7 +88,7 @@ void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId
 Core::Expected<void, std::string> CreateHighEffect(const Kernel::ModelEffectArguments& arguments, std::uint8_t skill,
                                                    std::size_t slot, const Actors::CharacterStepContext& context)
 {
-    if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
+    if (auto made = Effects::CreateHighModelEffect(arguments, Effects::HighContextOf(context)); !made.HasValue())
         return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
     return {};
 }
@@ -124,12 +124,12 @@ CreateTheSpirit(Kernel::ActorState& actor, const Actors::CharacterStepContext& c
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", spirit.address));
-    const JointKernels::CreationServices services{.playerBonePoint = {},
-                                                  .soundRequest = [&context](Audio::SoundId sound)
-                                                  { RequestTheSound(context, sound); },
-                                                  .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
-                                                  .ownVolley = &context.world.OwnCharacter().bytef04};
-    const Kernel::JointRequest request{.type = JointFamilies::SpiritJoint,
+    const Joints::JointKernels::CreationServices services{.playerBonePoint = {},
+                                                          .soundRequest = [&context](Audio::SoundId sound)
+                                                          { RequestTheSound(context, sound); },
+                                                          .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
+                                                          .ownVolley = &context.world.OwnCharacter().bytef04};
+    const Kernel::JointRequest request{.type = Joints::JointFamilies::SpiritJoint,
                                        .firstPosition = spirit.from,
                                        .secondPosition = spirit.to,
                                        .angles = spirit.angles,
@@ -141,7 +141,7 @@ CreateTheSpirit(Kernel::ActorState& actor, const Actors::CharacterStepContext& c
                                        .skillSerial = spirit.serial,
                                        .target = -1};
     const auto created =
-        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor, &services);
+        Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor, &services);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", spirit.address, created.Error()));
     return {};
@@ -166,7 +166,8 @@ Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, Kernel::A
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = target};
-    const auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
+    const auto created =
+        Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
@@ -193,18 +194,18 @@ Core::Expected<void, std::string> CallTheStorm(Kernel::ActorState& actor, const 
     constexpr Audio::SoundId StormSound{0x266};
     if (context.joints.empty())
         return Core::Unexpected(std::string("0x4fe172: faltan los joints del frame (0x530860)"));
-    const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+    const Kernel::JointRequest request{.type = Joints::JointFamilies::StormJoint,
                                        .firstPosition = actor.position,
                                        .secondPosition = actor.position,
                                        .angles = actor.angles,
-                                       .subtype = JointFamilies::StormSubtype,
+                                       .subtype = Joints::JointFamilies::StormSubtype,
                                        .ownerContext = nullptr,
                                        .scale = 10,
                                        .key = -1,
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = -1};
-    if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+    if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
         return Core::Unexpected(std::format("0x4fe172: {}", created.Error()));
     RequestTheSound(context, StormSound);
     return {};
@@ -223,7 +224,7 @@ Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& acto
         return Core::Unexpected(std::string("0x504b33: faltan los joints del frame (0x530860)"));
     glm::vec3 from{actor.position.x, actor.position.y, F32(D(actor.position.z) + InfernoLift)};
     glm::vec3 turn{0, 0, actor.angles.z};
-    const Kernel::JointRequest request{.type = JointFamilies::InfernoJoint,
+    const Kernel::JointRequest request{.type = Joints::JointFamilies::InfernoJoint,
                                        .firstPosition = from,
                                        .secondPosition = from,
                                        .angles = turn,
@@ -234,7 +235,7 @@ Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& acto
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = -1};
-    if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+    if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
         return Core::Unexpected(std::format("0x504b33: {}", created.Error()));
     RequestTheSound(context, InfernoSound);
     return {};
@@ -299,7 +300,7 @@ Core::Expected<void, std::string> SpinTheEnergy(Kernel::ActorState& actor, const
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+        if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", energy.address, created.Error()));
     }
     RequestTheSound(context, Audio::SoundId{EnergySound});
@@ -350,7 +351,7 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
                                                  {0x51f3ad, 4, 100.0f}}};
         for (const Spiral& spiral : Spirals)
         {
-            const Kernel::JointRequest request{.type = JointFamilies::SpiralJoint,
+            const Kernel::JointRequest request{.type = Joints::JointFamilies::SpiralJoint,
                                                .firstPosition = point,
                                                .secondPosition = point,
                                                .angles = actor.angles,
@@ -361,7 +362,8 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = -1};
-            if (auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
+            if (auto created =
+                    Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
                 !created.HasValue())
                 return Core::Unexpected(std::format("{:#x}: {}", spiral.address, created.Error()));
         }
@@ -431,7 +433,7 @@ Core::Expected<void, std::string> RingTheSpirits(Kernel::ActorState& actor, std:
             return made;
         if (index % DecalEvery != 0)
             continue;
-        if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+        if (auto made = CreateHighEffect({.type = Effects::ColoredDecalEffect,
                                           .position = actor.position,
                                           .angles = angles,
                                           .light = ring.light,
@@ -455,13 +457,13 @@ void CountHeroVolley(const Kernel::ActorState& actor, const Actors::CharacterSte
     ++context.world.OwnCharacter().bytef04;
 }
 
-// El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
+// El alta de un efecto de los magos (Effects::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
 // efecto pide y MuRet no tiene corta con la dirección de la llamada.
 Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Kernel::ModelEffectArguments& arguments,
                                                std::uint8_t skill, std::size_t slot,
                                                const Actors::CharacterStepContext& context)
 {
-    const auto created = CreateWizardEffect(context, arguments);
+    const auto created = Effects::CreateWizardEffect(context, arguments);
     if (!created.HasValue())
     {
         return Core::Unexpected(std::format("{:#x}: el efecto {:#x}/{} de la habilidad {:#x} del lugar {}: {}", address,
@@ -521,14 +523,14 @@ Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, cons
     constexpr Audio::SoundId QuakeSound{0x95};
     KeepTheWeapon(actor);
     const std::int32_t index = OwnSkillIndex(context, QuakeSkill);
-    World::ModelEffects& effects = context.world.Map().effects;
+    Effects::ModelEffects& effects = context.world.Map().effects;
     const auto created = effects.CreateEarthquake(
         actor.position, actor.angles, actor.light, 0,
-        World::ModelEffectOwner{.type = &actor.type, .effect = nullptr, .angles = &actor.angles},
+        Effects::ModelEffectOwner{.type = &actor.type, .effect = nullptr, .angles = &actor.angles},
         context.world.Runtime().ownRecordDepth, context.world.OwnCharacter().bytef04, context.random);
     if (created.has_value())
     {
-        World::ModelEffect& quake = effects.Effects()[*created];
+        Effects::ModelEffect& quake = effects.Effects()[*created];
         quake.disturbanceState = static_cast<std::uint16_t>(actor.word8a);
         quake.byte89 = static_cast<std::uint8_t>(index & 0xff);
         quake.byte1bd = 0;
@@ -542,7 +544,7 @@ Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, cons
 
 // 0x500496..0x500c0b, la 0x05 (la Flame): el punto de la celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en la
 // x87, cada eje guardado en float) con la altura del terreno ahí (0x5f93c0), 0x59fb80(5) y 0x518cf0(0x5de, punto,
-// o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0): el chorro con o de dueño (World::ModelEffects::CreateOwnedFlameJet),
+// o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0): el chorro con o de dueño (Effects::ModelEffects::CreateOwnedFlameJet),
 // cuyo paso con el héroe de dueño manda los blancos (0x52ae2a, World/GameModelEffects). Con c el héroe publicado
 // ([0x743a170]), el registro propio abierto, su cuenta +0xf04 uno más y cerrado (0x500539..0x500bfa, con sus 3.848
 // rand() si queda en 0); después, con cualquiera, el sonido 0x79 (0x500c03). Con la tabla llena no hay chorro (ni el
@@ -564,7 +566,7 @@ Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const 
     point.z = static_cast<float>(
         Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
     const std::int32_t index = OwnSkillIndex(context, FlameSkill);
-    const Kernel::ModelEffectArguments arguments{.type = World::FlameJetEffect,
+    const Kernel::ModelEffectArguments arguments{.type = Effects::FlameJetEffect,
                                                  .position = point,
                                                  .angles = actor.angles,
                                                  .light = actor.light,
@@ -597,7 +599,7 @@ Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm:
                                                  .owner = &actor,
                                                  .key = static_cast<std::uint16_t>(actor.word8a),
                                                  .byte89 = static_cast<std::uint8_t>(index & 0xff)};
-    const auto made = CreateBlastEffect(arguments, &actor, context);
+    const auto made = Combat::CreateBlastEffect(arguments, &actor, context);
     if (!made.HasValue())
         return Core::Unexpected(made.Error());
     return {};
@@ -651,7 +653,7 @@ Core::Expected<void, std::string> DropTheIceStorm(const Kernel::ActorState& acto
                                                      .subtype = 0,
                                                      .owner = nullptr,
                                                      .key = static_cast<std::uint16_t>(round + 1)};
-        if (auto made = CreateBlastEffect(arguments, nullptr, context); !made.HasValue())
+        if (auto made = Combat::CreateBlastEffect(arguments, nullptr, context); !made.HasValue())
             return Core::Unexpected(made.Error());
     }
     return {};
@@ -676,7 +678,7 @@ Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::
     constexpr double Height = 1200.0; // 0x6ba198
     constexpr float Width = 120.0f;   // 0x42f00000
     glm::vec3 from{bound.position.x, bound.position.y, F32(D(bound.position.z) + Height)};
-    const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+    const Kernel::JointRequest request{.type = Joints::JointFamilies::StormJoint,
                                        .firstPosition = from,
                                        .secondPosition = from,
                                        .angles = bound.angles,
@@ -687,7 +689,7 @@ Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = -1};
-    if (auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
+    if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
         !created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", joint, created.Error()));
     constexpr Audio::SoundId BindSound{0x267};
@@ -711,11 +713,11 @@ Core::Expected<void, std::string> FreeTheTarget(Kernel::ActorState& actor, std::
     Actors::KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
     constexpr Audio::SoundId FreeSound{0x269};
     const Kernel::ActorState& freed = *target.Value();
-    if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+    if (auto made = CreateHighEffect({.type = Effects::ColoredDecalEffect,
                                       .position = freed.position,
                                       .angles = freed.angles,
                                       .light = freed.light,
-                                      .subtype = Terrain::BindingDecalSubtype,
+                                      .subtype = Effects::BindingDecalSubtype,
                                       .owner = target.Value()},
                                      skill, slot, context);
         !made.HasValue())
@@ -743,7 +745,7 @@ Core::Expected<void, std::string> SwingTheHands(const Kernel::ActorState& actor,
                             : glm::vec3(1.0f);
     const auto swing = [&](std::size_t hand, std::uint32_t address) -> Core::Expected<void, std::string>
     {
-        const glm::vec3 point = ActorBonePoint(actor, actor.hands[hand].bone, glm::vec3(0.0f), context.world);
+        const glm::vec3 point = Effects::ActorBonePoint(actor, actor.hands[hand].bone, glm::vec3(0.0f), context.world);
         if (auto made = CreateHighEffect({.type = DarkLordSkill,
                                           .position = point,
                                           .angles = actor.angles,
@@ -832,7 +834,7 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
         bool candidate = other.alive && other.byte88 == MonsterObject && other.animation.action != MonsterFallAction;
         if (!candidate && other.alive && other.byte88 == PlayerObject && other.animation.action != PlayerFallAction)
         {
-            const auto attackable = IsAttackableActor(context.world, other, context.controlDown);
+            const auto attackable = Hero::IsAttackableActor(context.world, other, context.controlDown);
             if (!attackable.HasValue())
                 return Core::Unexpected(attackable.Error());
             candidate = attackable.Value();
@@ -888,8 +890,8 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-                if (auto created =
-                        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
+                if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random,
+                                                            Kernel::JointOwnerKind::Actor);
                     !created.HasValue())
                     return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
             }
@@ -924,7 +926,7 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+        if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("0x50293c: {}", created.Error()));
     }
     return {};
@@ -937,12 +939,14 @@ Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::
 {
     constexpr Audio::SoundId RingSound{0x1cb};
     if (auto inner = CreateWizard(
-            0x4feae8, WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 2, &actor),
+            0x4feae8,
+            Effects::WizardArguments(Effects::InnerCircleEffect, actor.position, actor.angles, actor.light, 2, &actor),
             skill, slot, context);
         !inner.HasValue())
         return inner;
     if (auto outer = CreateWizard(
-            0x4feb1b, WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 3), skill,
+            0x4feb1b,
+            Effects::WizardArguments(Effects::OuterCircleEffect, actor.position, actor.angles, actor.light, 3), skill,
             slot, context);
         !outer.HasValue())
         return outer;
@@ -958,14 +962,14 @@ Core::Expected<void, std::string> LightTheHellfire(Kernel::ActorState& actor, st
 {
     const std::int32_t index = OwnSkillIndex(context, skill);
     Kernel::ModelEffectArguments inner =
-        WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 0, &actor,
-                        static_cast<std::uint16_t>(actor.word8a));
+        Effects::WizardArguments(Effects::InnerCircleEffect, actor.position, actor.angles, actor.light, 0, &actor,
+                                 static_cast<std::uint16_t>(actor.word8a));
     inner.byte89 = static_cast<std::uint8_t>(index & 0xff);
     if (auto created = CreateWizard(0x4fecf3, inner, skill, slot, context); !created.HasValue())
         return created;
-    return CreateWizard(0x4fed25,
-                        WizardArguments(World::OuterCircleEffect, actor.position, actor.angles, actor.light, 0), skill,
-                        slot, context);
+    return CreateWizard(
+        0x4fed25, Effects::WizardArguments(Effects::OuterCircleEffect, actor.position, actor.angles, actor.light, 0),
+        skill, slot, context);
 }
 
 // 0x4ff51c..0x4ff5f2, la 0x26 (el Meteorito): el punto de la celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en
@@ -991,10 +995,10 @@ Core::Expected<void, std::string> RainTheMeteors(Kernel::ActorState& actor, std:
         Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
     for (const std::uint32_t address : {0x4ff5b2u, 0x4ff5dcu})
     {
-        if (auto created = CreateWizard(
-                address,
-                WizardArguments(World::FireEffect, point, actor.angles, MeteorLight, MeteorSubtype, nullptr, MeteorKey),
-                skill, slot, context);
+        if (auto created = CreateWizard(address,
+                                        Effects::WizardArguments(Effects::FireEffect, point, actor.angles, MeteorLight,
+                                                                 MeteorSubtype, nullptr, MeteorKey),
+                                        skill, slot, context);
             !created.HasValue())
             return created;
     }
@@ -1019,7 +1023,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         // 0x4fdef2..0x4fdf26: 0x518cf0(0x61e, o+0x10, o+0x1c, o+0xf4, 3, o, −1, 0, 0, 0, 0), y nada más. Su paso suelta
         // los joints 619/3 de la CL11 (Scenes/CharacterEffectSteps.h, StepPetSummon). Con la tabla llena, nada.
         static_cast<void>(context.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
-                                                                      World::SummonDecalSubtype));
+                                                                      Effects::SummonDecalSubtype));
         return {};
     case 0x2a:
         return ShakeTheGround(actor, context);
@@ -1032,7 +1036,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 2,
                                .jointAddress = 0x4fe0e4,
-                               .decalSubtype = Terrain::PulsingDecalSubtype,
+                               .decalSubtype = Effects::PulsingDecalSubtype,
                                .light = actor.light,
                                .sound = 0x7f});
     case 0x43:
@@ -1043,7 +1047,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 0x15,
                                .jointAddress = 0x4fe322,
-                               .decalSubtype = Terrain::CoolPulsingDecalSubtype,
+                               .decalSubtype = Effects::CoolPulsingDecalSubtype,
                                .light = CaseLight(actor),
                                .sound = 0x268});
     case 0x46:
@@ -1063,10 +1067,10 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     case 0x31:
     {
         // 0x4febdb..0x4fec2b: 0x518cf0(0x6ac, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, [0x5767948], 0, 0, 0) sin
-        // 0x59fb80 antes (Scenes::FireBreathEffect: sus cuarenta joints 0x617/1) y el sonido 0x72.
+        // 0x59fb80 antes (Effects::FireBreathEffect: sus cuarenta joints 0x617/1) y el sonido 0x72.
         constexpr Audio::SoundId BreathSound = Sound::KnightSkill3Sound;
         if (auto made =
-                CreateHighEffect({.type = FireBreathEffect,
+                CreateHighEffect({.type = Effects::FireBreathEffect,
                                   .position = actor.position,
                                   .angles = actor.angles,
                                   .light = actor.light,
@@ -1108,10 +1112,10 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return {};
     case 0x28:
         // 0x4ff4c3: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 1, o, −1, …).
-        if (auto circle = CreateWizard(
-                0x4ff4ef,
-                WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 1, &actor), skill,
-                slot, context);
+        if (auto circle = CreateWizard(0x4ff4ef,
+                                       Effects::WizardArguments(Effects::InnerCircleEffect, actor.position,
+                                                                actor.angles, actor.light, 1, &actor),
+                                       skill, slot, context);
             !circle.HasValue())
             return circle;
         context.world.Runtime().StopSound(Audio::SoundId{0x92}, true); // 0x4ff4fe: rebobina antes de pedir 0x93.
@@ -1133,8 +1137,9 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         // lugar, 0, 0, 0); después el sonido 0x74.
         constexpr Audio::SoundId TwisterSound{0x74};
         const std::int32_t index = OwnSkillIndex(context, skill);
-        Kernel::ModelEffectArguments storm = WizardArguments(World::StormEffect, actor.position, actor.angles, light, 0,
-                                                             &actor, static_cast<std::uint16_t>(actor.word8a));
+        Kernel::ModelEffectArguments storm =
+            Effects::WizardArguments(Effects::StormEffect, actor.position, actor.angles, light, 0, &actor,
+                                     static_cast<std::uint16_t>(actor.word8a));
         storm.byte89 = static_cast<std::uint8_t>(index & 0xff);
         if (auto created = CreateWizard(0x500c49, storm, skill, slot, context); !created.HasValue())
             return created;
@@ -1148,7 +1153,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         // 0x517a20. Después, el sonido 0x7a.
         constexpr std::int16_t LightningRay = 0x5e8;
         constexpr glm::vec3 RayOffset{-20.0f, -90.0f, 100.0f};
-        const glm::vec3 point = PointAround(actor, RayOffset);
+        const glm::vec3 point = Effects::PointAround(actor, RayOffset);
         const std::int32_t index = OwnSkillIndex(context, skill);
         if (auto made = CreateHighEffect({.type = LightningRay,
                                           .position = point,
@@ -1179,7 +1184,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return {};
     }
     case 0x0e:
-        if (auto burst = ScatterCombatBurstAt(actor.position, context); !burst.HasValue())
+        if (auto burst = Effects::ScatterCombatBurstAt(actor.position, context); !burst.HasValue())
             return burst;
         // 0x5014da: el 0xf6 sobre o, con o de dueño.
         if (auto made = CreateOwnedBlast(0xf6, actor.position, actor, OwnSkillIndex(context, skill), context);
@@ -1264,7 +1269,7 @@ Core::Expected<void, std::string> LaunchThePierParts(const Kernel::ActorState& a
     constexpr std::size_t LaunchBone = 0;
     constexpr double Turn = 90.0, Half = 2.0, Whole = 1.0; // 0x6b8948, 0x6b8818 y 0x6b87d4
     constexpr std::int16_t PierPart = 0x116, DarkLordSkill = 0x117;
-    const glm::vec3 point = ActorBonePoint(actor, LaunchBone, LaunchOffset, context.world);
+    const glm::vec3 point = Effects::ActorBonePoint(actor, LaunchBone, LaunchOffset, context.world);
     const double yaw = static_cast<double>(actor.angles.z);
     glm::vec3 aim{0.0f, 0.0f, static_cast<float>(static_cast<double>(victim.boundsTop) / Whole)};
     const auto launch = [&](float z, std::uint32_t address) -> Core::Expected<void, std::string>
@@ -1310,7 +1315,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // 0x504379..0x5043aa: 0x53e2b0(c, o, 0, 0x59fb80(+0x38e), 1, 0), la tanda sin blanco; sigue en la 0x34
         // (0x5043b2).
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
-        if (auto fired = FireTheArrow(actor, nullptr, slot, index, 1, 0, context); !fired.HasValue())
+        if (auto fired = Effects::FireTheArrow(actor, nullptr, slot, index, 1, 0, context); !fired.HasValue())
             return fired;
     }
         [[fallthrough]];
@@ -1321,7 +1326,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // 0x59fb80; 0x53e2b0(c, o, 0, lugar, 0, skill).
         const std::uint8_t shot = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
-        return FireTheArrow(actor, nullptr, slot, index, 0, shot, context);
+        return Effects::FireTheArrow(actor, nullptr, slot, index, 0, shot, context);
     }
     case 0x2e:
     {
@@ -1329,7 +1334,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         constexpr Audio::SoundId BlastSound{0x26e};
         const std::uint8_t shot = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
-        if (auto fired = FireTheArrow(actor, &victim, slot, index, 0, shot, context); !fired.HasValue())
+        if (auto fired = Effects::FireTheArrow(actor, &victim, slot, index, 0, shot, context); !fired.HasValue())
             return fired;
         RequestTheSound(context, BlastSound);
         return {};
@@ -1344,7 +1349,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // 0x5044fe: con +0x38d y sin 0x4000 en o+0x78, el calco 0x61e/2 sobre el blanco.
         if (actor.skillSucceeded == 0 || (actor.flags78 & QuietFlag) != 0)
             return {};
-        if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+        if (auto made = CreateHighEffect({.type = Effects::ColoredDecalEffect,
                                           .position = victim.position,
                                           .angles = victim.angles,
                                           .light = victim.light,
@@ -1380,7 +1385,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         if ((actor.flags78 & QuietFlag) != 0)
             return {};
         static_cast<void>(context.world.Map().effects.CreatePetSummon(victim.position, victim.angles, victim.light,
-                                                                      &victim, World::SummonDecalSubtype));
+                                                                      &victim, Effects::SummonDecalSubtype));
         if (actor.skillSucceeded != 0)
             victim.flags78 |= SummonedFlag;
         return {};
@@ -1391,9 +1396,9 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // pedazos de hielo 0xca (blanco+0x10, o+0x1c, o+0xf4; ModelEffects::CreateIceShard, cinco rand() cada uno);
         // con +0x38d, 2 en +0x78 del blanco, y el sonido 0x78.
         constexpr int Shards = 5;
-        if (auto created =
-                CreateWizard(0x504768, WizardArguments(World::IceEffect, victim.position, actor.angles, light, 0),
-                             skill, slot, context);
+        if (auto created = CreateWizard(
+                0x504768, Effects::WizardArguments(Effects::IceEffect, victim.position, actor.angles, light, 0), skill,
+                slot, context);
             !created.HasValue())
             return created;
         for (int shard = 0; shard < Shards; ++shard)
@@ -1435,7 +1440,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         if (actor.type == PlayerType)
         {
             if (auto created = CreateWizard(
-                    0x504926, WizardArguments(World::PoisonEffect, victim.position, actor.angles, actor.light, 0),
+                    0x504926,
+                    Effects::WizardArguments(Effects::PoisonEffect, victim.position, actor.angles, actor.light, 0),
                     skill, slot, context);
                 !created.HasValue())
                 return created;
@@ -1468,8 +1474,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         // 0x5049bf..0x5049fd (el Meteor): 0x518cf0(0xc2, blanco+0x10, blanco+0x1c, o+0xf4, 0, sin dueño, −1, …) y el
         // sonido 0x42.
         if (auto created = CreateWizard(
-                0x5049ef, WizardArguments(World::FireEffect, victim.position, victim.angles, actor.light, 0), skill,
-                slot, context);
+                0x5049ef, Effects::WizardArguments(Effects::FireEffect, victim.position, victim.angles, actor.light, 0),
+                skill, slot, context);
             !created.HasValue())
             return created;
         RequestTheSound(context, FireSound);
@@ -1477,13 +1483,13 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     case 0x2d:
     {
         // 0x504a0a..0x504abf: tres 0x518cf0(0x139, o+0x10, o+0x1c, o+0xf4, subtipo, blanco, −1, 0, 0, 0, 0), con los
-        // subtipos 0, 1 y 2 (Scenes::JavelinEffect, un rand() cada uno), y el sonido 0x26d.
+        // subtipos 0, 1 y 2 (Effects::JavelinEffect, un rand() cada uno), y el sonido 0x26d.
         constexpr Audio::SoundId JavelinSound{0x26d};
         constexpr std::array<std::int32_t, 3> Subtypes{0, 1, 2};
         constexpr std::array<std::uint32_t, 3> Addresses{0x504a3a, 0x504a72, 0x504aa9};
         for (std::size_t index = 0; index < Subtypes.size(); ++index)
         {
-            if (auto made = CreateHighEffect({.type = JavelinEffect,
+            if (auto made = CreateHighEffect({.type = Effects::JavelinEffect,
                                               .position = actor.position,
                                               .angles = actor.angles,
                                               .light = actor.light,
@@ -1519,10 +1525,11 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     case 0x04:
         // 0x504b9e..0x504bdc (la Fire Ball): 0x518cf0(0xc2, o+0x10, los ángulos hacia el blanco, o+0xf4, 1, el blanco
         // de dueño, −1, …) y el sonido 0x42.
-        if (auto created = CreateWizard(0x504bce,
-                                        WizardArguments(World::FireEffect, actor.position,
-                                                        TowardsTheTarget(actor, victim), actor.light, 1, &victim),
-                                        skill, slot, context);
+        if (auto created =
+                CreateWizard(0x504bce,
+                             Effects::WizardArguments(Effects::FireEffect, actor.position,
+                                                      TowardsTheTarget(actor, victim), actor.light, 1, &victim),
+                             skill, slot, context);
             !created.HasValue())
             return created;
         RequestTheSound(context, FireSound);
@@ -1539,7 +1546,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         glm::vec3 angles = TowardsTheTarget(actor, victim);
         const auto wave = [&](std::uint32_t address)
         {
-            return CreateWizard(address, WizardArguments(World::MagicEffect, actor.position, angles, actor.light, 0),
+            return CreateWizard(address,
+                                Effects::WizardArguments(Effects::MagicEffect, actor.position, angles, actor.light, 0),
                                 skill, slot, context);
         };
         if (actor.type == TripleType)
@@ -1598,13 +1606,13 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
             // 0x504fdc..0x505022: 0x518cf0(0xd7, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, el blanco de dueño,
             // −1, …), sin sonido.
             return CreateWizard(0x50501a,
-                                WizardArguments(World::SnowEffect, actor.position, TowardsTheTarget(actor, victim),
-                                                actor.light, 0, &victim),
+                                Effects::WizardArguments(Effects::SnowEffect, actor.position,
+                                                         TowardsTheTarget(actor, victim), actor.light, 0, &victim),
                                 skill, slot, context);
         }
         // 0x505024..0x505061: 0x518cf0(0x5ca, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, el blanco de dueño, −1,
         // …) (Scenes/SkillBurstEffects) y el sonido 0x76, también con la tabla llena.
-        if (auto made = CreateHighEffect({.type = EnergyBallEffect,
+        if (auto made = CreateHighEffect({.type = Effects::EnergyBallEffect,
                                           .position = actor.position,
                                           .angles = TowardsTheTarget(actor, victim),
                                           .light = actor.light,
@@ -1634,7 +1642,7 @@ Core::Expected<void, std::string> SparkTheTarget(const Kernel::ActorState& actor
     constexpr int FairySparks = 20;
     if (context.particles == nullptr)
         return Core::Unexpected(std::format("0x52e77b: falta el pool de partículas del lugar {}", slot));
-    const auto fail = [&](std::uint32_t address, std::int32_t type, World::ParticleError error)
+    const auto fail = [&](std::uint32_t address, std::int32_t type, Particles::ParticleError error)
     {
         return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/0 de 0x52e740 del lugar {} (acción {:#x}) falla "
                                             "con error {}",
@@ -1655,4 +1663,4 @@ Core::Expected<void, std::string> SparkTheTarget(const Kernel::ActorState& actor
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -55,7 +55,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::StepTheAttackCases: los casos de los monstruos de 0x4f5b70 (CL9 hito 3, fase 2e-B) sobre monstruos
+// Client::Monsters::StepTheAttackCases: los casos de los monstruos de 0x4f5b70 (CL9 hito 3, fase 2e-B) sobre monstruos
 // del alta (0x5141e0) con el Data del repo: los ayudantes de Kalima (24 y 36), del asedio (30), del 33 y el 54, del 35
 // y de Crywolf (34), el switch por +0x376 y los dos de la cola (0x11 y 3), con los mismos tipos en Lorencia (0) y
 // Devias (2). Las claves son inventadas; el alta carga los modelos del Data del repo (0x612d90, CL9 hito 2) con una
@@ -165,7 +165,7 @@ struct Game
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
@@ -176,7 +176,7 @@ struct Game
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     std::vector<Client::Scenes::JointState> joints{};
 };
 
@@ -229,7 +229,7 @@ protected:
     {
         for (ActorState& actor : game->world.Actors())
             actor.alive = false;
-        const auto created = Client::Scenes::CreateMonster(type, 100, 100, MonsterKey, game->Resources());
+        const auto created = Client::Monsters::CreateMonster(type, 100, 100, MonsterKey, game->Resources());
         EXPECT_TRUE(created.HasValue()) << (created.HasValue() ? "" : created.Error());
         slot = created.HasValue() ? created.Value() : 0;
         return game->world.Actors()[slot];
@@ -272,7 +272,7 @@ protected:
                                                                sounds.push_back(sound.Value());
                                                                soundDraws.push_back(Draws());
                                                            }};
-        return Client::Scenes::StepTheAttackCases(monster, slot, context);
+        return Client::Monsters::StepTheAttackCases(monster, slot, context);
     }
 
     [[nodiscard]] int Draws() const
@@ -283,7 +283,7 @@ protected:
     void FillModelEffectPoolExceptLast(std::size_t freeSlots)
     {
         auto effects = game->world.Map().effects.Effects();
-        for (Client::World::ModelEffect& effect : effects)
+        for (Client::Effects::ModelEffect& effect : effects)
             effect.alive = true;
         for (std::size_t effectSlot = 0; effectSlot < freeSlots; ++effectSlot)
             effects[effects.size() - effectSlot - 1].alive = false;
@@ -292,7 +292,7 @@ protected:
     void SaturatePools()
     {
         FillModelEffectPoolExceptLast(0);
-        for (Client::World::Particle& particle : game->particles.All())
+        for (Client::Particles::Particle& particle : game->particles.All())
             particle.alive = true;
         game->joints.assign(1, Client::Scenes::JointState{});
         game->joints.front().alive = true;
@@ -301,7 +301,7 @@ protected:
     void SetPoolAvailability(bool modelsFull, bool particlesFull, bool jointsFull)
     {
         FillModelEffectPoolExceptLast(modelsFull ? 0 : 1);
-        for (Client::World::Particle& particle : game->particles.All())
+        for (Client::Particles::Particle& particle : game->particles.All())
             particle.alive = particlesFull;
         game->joints.assign(1, Client::Scenes::JointState{});
         game->joints.front().alive = jointsFull;
@@ -310,7 +310,7 @@ protected:
     void SetFreeParticleSlots(std::size_t freeSlots)
     {
         auto particles = game->particles.All();
-        for (Client::World::Particle& particle : particles)
+        for (Client::Particles::Particle& particle : particles)
             particle.alive = true;
         for (std::size_t freeSlot = 0; freeSlot < freeSlots; ++freeSlot)
             particles[particles.size() - freeSlot - 1].alive = false;
@@ -530,7 +530,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaSeamenRaiseTheSeamanEffectOverThemselves
     for (const std::uint16_t kind : std::array<std::uint16_t, 7>{0x93, 0xb1, 0xb9, 0xc1, 0x107, 0x10f, 0x117})
     {
         SCOPED_TRACE(kind);
-        for (Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+        for (Client::Effects::ModelEffect& effect : game->world.Map().effects.Effects())
             effect.alive = false;
         ActorState& monster =
             Prepare(Probe{.name = "en la 4 y en 14", .type = 0x93, .step = 14, .action = 4, .kind = kind});
@@ -615,10 +615,10 @@ TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeAndTheThunder
                 EXPECT_TRUE(earthquake->hasOwner);
                 EXPECT_EQ(earthquake->owner.type, &monster.type);
                 EXPECT_EQ(earthquake->owner.angles, &monster.angles);
-                EXPECT_EQ(Client::World::OwnerTypeOf(earthquake->owner), std::optional<std::uint16_t>{monster.type});
+                EXPECT_EQ(Client::Effects::OwnerTypeOf(earthquake->owner), std::optional<std::uint16_t>{monster.type});
                 const std::uint16_t initialType = monster.type;
                 monster.type = 0x1777;
-                EXPECT_EQ(Client::World::OwnerTypeOf(earthquake->owner),
+                EXPECT_EQ(Client::Effects::OwnerTypeOf(earthquake->owner),
                           std::optional<std::uint16_t>{std::uint16_t{0x1777}});
                 monster.type = initialType;
             }
@@ -634,7 +634,7 @@ TEST_F(MonsterAttackCasesTest, KalimaA1BindsTheLiveEarthquakeOwnerForDrawing)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto effects = game->world.Map().effects.Effects();
     const auto quake = std::find_if(effects.begin(), effects.end(), [](const auto& effect)
-                                    { return effect.alive && effect.type == Client::World::EarthquakeEffect; });
+                                    { return effect.alive && effect.type == Client::Effects::EarthquakeEffect; });
     ASSERT_NE(quake, effects.end());
     EXPECT_EQ(quake->state, 0);
     EXPECT_EQ(quake->ownerContext, &monster);
@@ -653,7 +653,7 @@ TEST_F(MonsterAttackCasesTest, KalimaSkipsEffectsWhenTheirOwnPoolIsFull)
         SCOPED_TRACE(kind);
         Load(24);
         ActorState& monster = Prepare(Probe{.name = "Kalima 14 con partículas llenas", .type = kind, .step = 14});
-        for (Client::World::Particle& particle : game->particles.All())
+        for (Client::Particles::Particle& particle : game->particles.All())
             particle.alive = true;
 
         const auto stepped = Step(monster);
@@ -1200,9 +1200,9 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
         EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(Draws(), 0);
         EXPECT_TRUE(sounds.empty());
-        ASSERT_EQ(game->world.Map().effects.Effects().size(), Client::World::ModelEffectCount);
+        ASSERT_EQ(game->world.Map().effects.Effects().size(), Client::Effects::ModelEffectCount);
         EXPECT_TRUE(std::all_of(game->world.Map().effects.Effects().begin(), game->world.Map().effects.Effects().end(),
-                                [](const Client::World::ModelEffect& effect) { return effect.alive; }));
+                                [](const Client::Effects::ModelEffect& effect) { return effect.alive; }));
 
         FillModelEffectPoolExceptLast(1);
         const auto freeSlot = Step(monster);
@@ -1224,7 +1224,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
             EXPECT_TRUE(freeSlot.HasValue()) << (freeSlot.HasValue() ? std::string() : freeSlot.Error());
             EXPECT_EQ(Draws(), 0);
             const auto& twister = game->world.Map().effects.Effects().back();
-            EXPECT_EQ(twister.type, Client::World::StormEffect);
+            EXPECT_EQ(twister.type, Client::Effects::StormEffect);
             EXPECT_EQ(twister.subtype, 3);
         }
         else if (probe.cut.empty())
@@ -1278,7 +1278,7 @@ TEST_F(MonsterAttackCasesTest, Crywolf17cScattersAndContinuesThroughTheCommonKin
         EXPECT_EQ(Draws(), probe.draws);
         EXPECT_EQ(sounds, std::vector<std::int32_t>(probe.sounds, 0x40));
         EXPECT_TRUE(std::all_of(game->world.Map().effects.Effects().begin(), game->world.Map().effects.Effects().end(),
-                                [](const Client::World::ModelEffect& effect) { return effect.alive; }));
+                                [](const Client::Effects::ModelEffect& effect) { return effect.alive; }));
     }
 }
 
@@ -1302,7 +1302,7 @@ TEST_F(MonsterAttackCasesTest, CrywolfScattersPairedStonesInSlotOrderBeforeTheCo
             Probe{.type = 3, .step = 1, .target = 0, .kind = std::uint16_t{0x3b}, .model = std::uint16_t{0x17c}});
         monster.position = {1000, 2000, 350};
         FillModelEffectPoolExceptLast(freeSlots);
-        for (Client::World::Particle& particle : game->particles.All())
+        for (Client::Particles::Particle& particle : game->particles.All())
             particle.alive = true;
         game->cloth.random = CrtRandom(Seed);
 
@@ -2162,10 +2162,10 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedFireParticle
         EXPECT_EQ(game->cloth.random.State(), expectedRandom.State());
         EXPECT_EQ(sounds, probe.sound ? std::vector<std::int32_t>{*probe.sound} : std::vector<std::int32_t>{});
         EXPECT_EQ(soundDraws, probe.sound ? std::vector<int>{probe.soundDraw} : std::vector<int>{});
-        std::vector<const Client::World::Particle*> fires;
-        for (const Client::World::Particle& particle : game->particles.All())
+        std::vector<const Client::Particles::Particle*> fires;
+        for (const Client::Particles::Particle& particle : game->particles.All())
         {
-            if (particle.alive && particle.type == Client::World::FireParticle)
+            if (particle.alive && particle.type == Client::Particles::FireParticle)
                 fires.push_back(&particle);
         }
         ASSERT_EQ(fires.size(), 4u);
@@ -2221,7 +2221,7 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedThunderParti
     EXPECT_TRUE(sounds.empty());
     const auto particles = game->particles.All();
     ASSERT_EQ(std::count_if(particles.begin(), particles.end(), [](const auto& particle)
-                            { return particle.alive && particle.type == Client::World::ThunderParticle; }),
+                            { return particle.alive && particle.type == Client::Particles::ThunderParticle; }),
               4);
     const std::array<std::size_t, 4> bones{2, 2, 3, 3};
     for (std::size_t index = 0; index < bones.size(); ++index)
@@ -2229,7 +2229,7 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedThunderParti
         const auto& thunder = particles[index];
         const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
             Client::Math::OriginalMatrixOf(monster.bodyPose[bones[index]]), glm::vec3(0.0f), 2.0f, ModelOrigin);
-        EXPECT_EQ(thunder.type, Client::World::ThunderParticle);
+        EXPECT_EQ(thunder.type, Client::Particles::ThunderParticle);
         EXPECT_EQ(thunder.subtype, 0);
         EXPECT_EQ(thunder.position, expectedPosition);
         EXPECT_EQ(thunder.angles, monster.angles);
@@ -2286,7 +2286,7 @@ TEST_F(MonsterAttackCasesTest, ThunderSkillThreeUsesItsNativeBoneOffsetAndLocalL
         const auto particles = game->particles.All();
         const auto thunder =
             std::find_if(particles.begin(), particles.end(), [](const auto& particle)
-                         { return particle.alive && particle.type == Client::World::ThunderParticle; });
+                         { return particle.alive && particle.type == Client::Particles::ThunderParticle; });
         ASSERT_NE(thunder, particles.end());
         const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
             Client::Math::OriginalMatrixOf(monster.bodyPose[0]), probe.offset, 2.0f, ModelOrigin);
@@ -2338,9 +2338,9 @@ TEST_F(MonsterAttackCasesTest, PartialParticlePoolsKeepFireCallerAndConstructorR
         EXPECT_EQ(Draws(), TailSkillReads + FireAttempts + 3 * static_cast<int>(freeSlots));
         EXPECT_EQ(game->cloth.random.State(), expectedRandom.State());
         std::vector<float> rotations;
-        for (const Client::World::Particle& particle : game->particles.All())
+        for (const Client::Particles::Particle& particle : game->particles.All())
         {
-            if (particle.alive && particle.type == Client::World::FireParticle)
+            if (particle.alive && particle.type == Client::Particles::FireParticle)
                 rotations.push_back(particle.rotation);
         }
         EXPECT_EQ(rotations, expectedRotations);
@@ -2640,8 +2640,8 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
 {
     const auto alive = [this](std::int16_t type)
     {
-        std::vector<const Client::World::ModelEffect*> found;
-        for (const Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+        std::vector<const Client::Effects::ModelEffect*> found;
+        for (const Client::Effects::ModelEffect& effect : game->world.Map().effects.Effects())
         {
             if (effect.alive && effect.type == type)
                 found.push_back(&effect);
@@ -2653,8 +2653,8 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
         Load(24);
         ActorState& monster = Prepare(Probe{.name = "0x91 con 0xc8", .type = 0x91, .step = 13, .skill = 0xc8});
         ASSERT_TRUE(Step(monster).HasValue());
-        const auto inner = alive(Client::World::InnerCircleEffect);
-        const auto outer = alive(Client::World::OuterCircleEffect);
+        const auto inner = alive(Client::Effects::InnerCircleEffect);
+        const auto outer = alive(Client::Effects::OuterCircleEffect);
         ASSERT_EQ(inner.size(), 1u);
         ASSERT_EQ(outer.size(), 1u);
         EXPECT_EQ(inner.front()->subtype, 3);
@@ -2670,9 +2670,9 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
         ActorState& hero = game->world.Hero();
         hero.position = glm::vec3(3000.0f, 4000.0f, 250.0f);
         ASSERT_TRUE(Step(monster).HasValue());
-        const auto fires = alive(Client::World::FireEffect);
+        const auto fires = alive(Client::Effects::FireEffect);
         ASSERT_EQ(fires.size(), 3u);
-        for (const Client::World::ModelEffect* fire : fires)
+        for (const Client::Effects::ModelEffect* fire : fires)
         {
             EXPECT_EQ(fire->subtype, 7);
             EXPECT_EQ(fire->ownerContext, nullptr);
@@ -2689,7 +2689,7 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
         Load(33);
         ActorState& monster = Prepare(Probe{.name = "0x135", .type = 0x135, .step = 10});
         ASSERT_TRUE(Step(monster).HasValue());
-        const auto twisters = alive(Client::World::StormEffect);
+        const auto twisters = alive(Client::Effects::StormEffect);
         ASSERT_EQ(twisters.size(), 5u);
         for (std::size_t index = 0; index < twisters.size(); ++index)
         {
@@ -2702,18 +2702,18 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
         Load(0);
         ActorState& monster = Prepare(Probe{.name = "0x26 en 1", .type = 0x26, .step = 1, .skill = CaseSkill});
         ASSERT_TRUE(Step(monster).HasValue());
-        const auto inner = alive(Client::World::InnerCircleEffect);
+        const auto inner = alive(Client::Effects::InnerCircleEffect);
         ASSERT_EQ(inner.size(), 1u);
         EXPECT_EQ(inner.front()->subtype, 0);
         EXPECT_EQ(inner.front()->ownerContext, nullptr);
-        EXPECT_EQ(alive(Client::World::OuterCircleEffect).size(), 1u);
-        EXPECT_EQ(alive(Client::World::FireEffect).size(), 1u);
+        EXPECT_EQ(alive(Client::Effects::OuterCircleEffect).size(), 1u);
+        EXPECT_EQ(alive(Client::Effects::FireEffect).size(), 1u);
     }
     {
         Load(0);
         ActorState& monster = Prepare(Probe{.name = "0x23 en 1", .type = 0x23, .step = 1, .skill = CaseSkill});
         ASSERT_TRUE(Step(monster).HasValue());
-        const auto fires = alive(Client::World::FireEffect);
+        const auto fires = alive(Client::Effects::FireEffect);
         ASSERT_EQ(fires.size(), 18u);
         for (std::size_t index = 0; index < fires.size(); ++index)
         {
@@ -2729,7 +2729,7 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
         ASSERT_TRUE(Step(monster).HasValue());
         std::vector<glm::vec3> falling;
         std::size_t scattered = 0;
-        for (const Client::World::ModelEffect* fire : alive(Client::World::FireEffect))
+        for (const Client::Effects::ModelEffect* fire : alive(Client::Effects::FireEffect))
         {
             if (fire->subtype == 2)
                 falling.push_back(fire->transform.angles);
@@ -2744,7 +2744,7 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
         Load(0);
         ActorState& monster = Prepare(Probe{.name = "0x57 en 13", .type = 0x57, .step = 13, .skill = 0x11});
         ASSERT_TRUE(Step(monster).HasValue());
-        const auto fires = alive(Client::World::FireEffect);
+        const auto fires = alive(Client::Effects::FireEffect);
         ASSERT_EQ(fires.size(), 1u);
         EXPECT_EQ(fires.front()->subtype, 5);
         EXPECT_EQ(fires.front()->life, 40);
@@ -2775,10 +2775,9 @@ TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
                     EXPECT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? std::string() : stepped.Error());
                     EXPECT_EQ(Draws(), SkillRead + 1 + 2 + 2 + Tail);
                     EXPECT_EQ(sounds, (std::vector<std::int32_t>{0x42}));
-                    EXPECT_TRUE(std::ranges::any_of(game->world.Map().effects.Effects(),
-                                                    [](const Client::World::ModelEffect& effect) {
-                                                        return effect.alive && effect.type == Client::World::FireEffect;
-                                                    }));
+                    EXPECT_TRUE(std::ranges::any_of(
+                        game->world.Map().effects.Effects(), [](const Client::Effects::ModelEffect& effect)
+                        { return effect.alive && effect.type == Client::Effects::FireEffect; }));
                     // El fuego sigue vivo; se baja para que la vuelta par busque sólo su 0xf6.
                     for (auto& effect : game->world.Map().effects.Effects())
                     {
@@ -2828,7 +2827,7 @@ TEST_F(MonsterAttackCasesTest, TheBleedingMonsterDropsFourPairs)
         EXPECT_EQ(Draws(), Pairs * (3 + 2 + 4) + Tail);
         int drops = 0;
         int blood = 0;
-        for (const Client::World::Particle& particle : game->particles.All())
+        for (const Client::Particles::Particle& particle : game->particles.All())
         {
             if (!particle.alive)
                 continue;
@@ -2836,12 +2835,12 @@ TEST_F(MonsterAttackCasesTest, TheBleedingMonsterDropsFourPairs)
             // La sangre pisa el giro x con rand() % 360 (0x542b3b); la gota deja los ángulos del pedido.
             EXPECT_EQ(particle.angles.y, monster.angles.y);
             EXPECT_EQ(particle.angles.z, monster.angles.z);
-            if (particle.type == Client::World::DropParticle)
+            if (particle.type == Client::Particles::DropParticle)
             {
                 EXPECT_EQ(particle.angles.x, monster.angles.x);
             }
-            drops += particle.type == Client::World::DropParticle ? 1 : 0;
-            blood += particle.type == Client::World::BloodParticle ? 1 : 0;
+            drops += particle.type == Client::Particles::DropParticle ? 1 : 0;
+            blood += particle.type == Client::Particles::BloodParticle ? 1 : 0;
         }
         EXPECT_EQ(drops, Pairs);
         EXPECT_EQ(blood, Pairs);
@@ -3154,9 +3153,9 @@ TEST_F(MonsterAttackCasesTest, SaturatedSkill3FallbackPreservesLogicalDepthAndLe
         EXPECT_EQ(Draws(), logicalDepth == 0 ? Tail : 0);
         EXPECT_EQ(monster.byte38eAccesses, logicalDepth);
         EXPECT_TRUE(std::all_of(game->world.Map().effects.Effects().begin(), game->world.Map().effects.Effects().end(),
-                                [](const Client::World::ModelEffect& effect) { return effect.alive; }));
+                                [](const Client::Effects::ModelEffect& effect) { return effect.alive; }));
         EXPECT_TRUE(std::all_of(game->particles.All().begin(), game->particles.All().end(),
-                                [](const Client::World::Particle& particle) { return particle.alive; }));
+                                [](const Client::Particles::Particle& particle) { return particle.alive; }));
         EXPECT_TRUE(std::all_of(game->joints.begin(), game->joints.end(),
                                 [](const Client::Scenes::JointState& joint) { return joint.alive; }));
     }
@@ -3175,7 +3174,7 @@ TEST_F(MonsterAttackCasesTest, TheAquagoldCasesCreateTheirArrowsAndContinueTheTa
             ActorState& monster = Prepare(Probe{.type = 3, .step = 1, .target = 0, .kind = kind});
             monster.angles.z = 100.3f;
             if (full)
-                for (Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+                for (Client::Effects::ModelEffect& effect : game->world.Map().effects.Effects())
                     effect.alive = true;
             const auto stepped = Step(monster);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -3212,10 +3211,10 @@ TEST_F(MonsterAttackCasesTest, TheScatteredBurstSkipsFullModelPoolsAndKeepsAllCa
         SCOPED_TRACE(particlesFull);
         Load(0);
         ActorState& monster = Prepare(Probe{.type = 3, .step = 1, .target = NoTarget, .kind = std::uint16_t{0x35}});
-        for (Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+        for (Client::Effects::ModelEffect& effect : game->world.Map().effects.Effects())
             effect.alive = true;
         if (particlesFull)
-            for (Client::World::Particle& particle : game->particles.All())
+            for (Client::Particles::Particle& particle : game->particles.All())
                 particle.alive = true;
         const auto stepped = Step(monster);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -3328,10 +3327,10 @@ TEST_F(MonsterAttackCasesTest, FullModelPoolContinuesPastScatterHelpersIntoFollo
             EXPECT_EQ(monster.trailOrigin, expectedTrail);
             EXPECT_EQ(game->cloth.random.State(), expectedRandom.State());
             EXPECT_TRUE(std::none_of(game->particles.All().begin(), game->particles.All().end(),
-                                     [](const Client::World::Particle& particle) { return !particle.alive; }));
+                                     [](const Client::Particles::Particle& particle) { return !particle.alive; }));
             EXPECT_TRUE(std::all_of(game->world.Map().effects.Effects().begin(),
                                     game->world.Map().effects.Effects().end(),
-                                    [](const Client::World::ModelEffect& effect) { return effect.alive; }));
+                                    [](const Client::Effects::ModelEffect& effect) { return effect.alive; }));
         }
     }
 }
@@ -3448,11 +3447,11 @@ TEST_F(MonsterAttackCasesTest, Kind49And4bStepNineUseTheirOrangeTailLightWithout
         EXPECT_EQ(monster.position, glm::vec3(100.0f, 200.0f, 300.0f));
         const auto particles = game->particles.All();
         ASSERT_EQ(std::count_if(particles.begin(), particles.end(), [](const auto& particle)
-                                { return particle.alive && particle.type == Client::World::ThunderParticle; }),
+                                { return particle.alive && particle.type == Client::Particles::ThunderParticle; }),
                   1);
         const auto thunder =
             std::find_if(particles.begin(), particles.end(), [](const auto& particle)
-                         { return particle.alive && particle.type == Client::World::ThunderParticle; });
+                         { return particle.alive && particle.type == Client::Particles::ThunderParticle; });
         ASSERT_NE(thunder, particles.end());
         const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
             Client::Math::OriginalMatrixOf(monster.bodyPose[0]), glm::vec3(0.0f, -130.0f, 0.0f), 2.0f, PublishedOrigin);
@@ -3500,9 +3499,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaInfernosLeaveTheirOwnerAndEndTheCount)
             EXPECT_FALSE(effects[2].alive);
             EXPECT_EQ(effects[0].type, 0xf6);
             EXPECT_EQ(effects[0].subtype, probe.inferno);
-            EXPECT_EQ(effects[1].type, Client::World::FlameJetEffect);
+            EXPECT_EQ(effects[1].type, Client::Effects::FlameJetEffect);
             EXPECT_EQ(effects[1].subtype, probe.jet);
-            for (const Client::World::ModelEffect* effect : {&effects[0], &effects[1]})
+            for (const Client::Effects::ModelEffect* effect : {&effects[0], &effects[1]})
             {
                 EXPECT_EQ(effect->transform.position, monster.position);
                 EXPECT_EQ(effect->ownerContext, &monster);
@@ -3541,7 +3540,7 @@ TEST_F(MonsterAttackCasesTest, TheEvenDrawDropsTwoBlastsOnTheTarget)
     for (std::size_t blast = 0; blast < 2; ++blast)
     {
         SCOPED_TRACE(blast);
-        const Client::World::ModelEffect& effect = effects[blast];
+        const Client::Effects::ModelEffect& effect = effects[blast];
         ASSERT_TRUE(effect.alive);
         EXPECT_EQ(effect.type, 0xf5);
         EXPECT_EQ(effect.subtype, 0);
@@ -3568,7 +3567,7 @@ TEST_F(MonsterAttackCasesTest, TheFiveStabsFallFromTheTrailPoints)
     int infernos = 0;
     int stabs = 0;
     int children = 0;
-    for (const Client::World::ModelEffect& effect : game->world.Map().effects.Effects())
+    for (const Client::Effects::ModelEffect& effect : game->world.Map().effects.Effects())
     {
         if (!effect.alive)
             continue;

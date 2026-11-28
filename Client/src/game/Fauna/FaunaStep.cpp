@@ -35,7 +35,7 @@
 #include <string>
 #include <system_error>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 namespace
 {
@@ -43,7 +43,7 @@ std::error_code Unsupported()
 {
     return std::make_error_code(std::errc::function_not_supported);
 }
-FaunaObject& Object(World::BirdRecord bird)
+FaunaObject& Object(Fauna::BirdRecord bird)
 {
     // BirdRecord fue producido con as_writable_bytes del mismo objeto vivo y alineado.
     return *reinterpret_cast<FaunaObject*>(bird.data());
@@ -53,7 +53,7 @@ struct ModelBorrow
     const Models::Skeleton* skeleton = nullptr;
     std::uint8_t action = 0;
 };
-class BirdServices final : public World::IBirdStepServices
+class BirdServices final : public Fauna::IBirdStepServices
 {
 public:
     explicit BirdServices(FaunaStepContext& context) : m_context(context) {}
@@ -79,7 +79,7 @@ public:
     }
     std::int32_t TileIndex(std::int32_t x, std::int32_t y) override
     {
-        return static_cast<std::int32_t>(World::FishTileIndex(x, y));
+        return static_cast<std::int32_t>(Fauna::FishTileIndex(x, y));
     }
     const std::uint16_t& TileAttributes(std::int32_t index) override
     {
@@ -112,30 +112,30 @@ public:
         return m_context.models.SkeletonOf(Models::ModelId{Assets::Monster32Model}) != nullptr ? std::error_code{}
                                                                                                : Unsupported();
     }
-    World::BirdCallResult Call(World::BirdHandler handler, World::BirdRecord bird, std::int32_t index) override
+    Fauna::BirdCallResult Call(Fauna::BirdHandler handler, Fauna::BirdRecord bird, std::int32_t index) override
     {
         return RunFaunaBirdHandler(m_context, handler, Object(bird), index);
     }
-    World::BirdModelBorrow BorrowModel(std::int16_t model) override
+    Fauna::BirdModelBorrow BorrowModel(std::int16_t model) override
     {
         auto& borrowed = m_models[model];
         borrowed.skeleton = m_context.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(model)});
-        return borrowed.skeleton ? World::BirdModelBorrow{&borrowed, &borrowed.action}
-                                 : World::BirdModelBorrow{nullptr, nullptr};
+        return borrowed.skeleton ? Fauna::BirdModelBorrow{&borrowed, &borrowed.action}
+                                 : Fauna::BirdModelBorrow{nullptr, nullptr};
     }
-    std::error_code Pose(World::BirdModelBorrow model, World::BirdRecord bird, float factor) override
+    std::error_code Pose(Fauna::BirdModelBorrow model, Fauna::BirdRecord bird, float factor) override
     {
         const auto& borrow = *static_cast<ModelBorrow*>(model.identity);
         AdvanceFaunaAnimation(Object(bird), *borrow.skeleton, factor);
         return {};
     }
-    std::error_code Rotation(World::BirdRecord bird) override
+    std::error_code Rotation(Fauna::BirdRecord bird) override
     {
         auto& object = Object(bird);
         object.matrix = Math::OriginalAngleMatrix(object.angles);
         return {};
     }
-    glm::vec3 Transform(World::BirdRecord bird, const glm::vec3& vector) override
+    glm::vec3 Transform(Fauna::BirdRecord bird, const glm::vec3& vector) override
     {
         return Math::OriginalVectorRotate(vector, Object(bird).matrix);
     }
@@ -161,7 +161,7 @@ private:
     FaunaStepContext& m_context;
     std::map<std::int16_t, ModelBorrow> m_models;
 };
-class FishServices final : public World::IFishStepServices
+class FishServices final : public Fauna::IFishStepServices
 {
 public:
     explicit FishServices(FaunaStepContext& context) : m_context(context) {}
@@ -175,7 +175,7 @@ public:
     }
     Core::Expected<std::uint8_t, std::error_code> EventGate() override
     {
-        return static_cast<std::uint8_t>(World::FishSpawnEventGate(m_context.map));
+        return static_cast<std::uint8_t>(Fauna::FishSpawnEventGate(m_context.map));
     }
     Core::Expected<std::uint32_t, std::error_code> CreateEffect(const Kernel::JointRequest& request) override
     {
@@ -187,22 +187,22 @@ public:
     {
         return FaunaHeight(m_context, x, y);
     }
-    Core::Expected<World::FishModelStepView, std::error_code> LookupModel(std::int16_t model) override
+    Core::Expected<Fauna::FishModelStepView, std::error_code> LookupModel(std::int16_t model) override
     {
         auto& borrowed = m_models[model];
         borrowed.skeleton = m_context.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(model)});
         if (!borrowed.skeleton)
             return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));
-        return World::FishModelStepView{borrowed.action, &borrowed};
+        return Fauna::FishModelStepView{borrowed.action, &borrowed};
     }
-    Core::Expected<std::uint8_t, std::error_code> AdvanceModel(World::FishModelStepView model,
-                                                               World::FishStepView& fish, float speed) override
+    Core::Expected<std::uint8_t, std::error_code> AdvanceModel(Fauna::FishModelStepView model,
+                                                               Fauna::FishStepView& fish, float speed) override
     {
         auto& object = *static_cast<FaunaObject*>(fish.context);
         AdvanceFaunaAnimation(object, *static_cast<ModelBorrow*>(model.identity)->skeleton, speed);
         return std::uint8_t{1};
     }
-    Core::Expected<void, std::error_code> Move(World::FishStepView& fish, std::int32_t mode) override
+    Core::Expected<void, std::error_code> Move(Fauna::FishStepView& fish, std::int32_t mode) override
     {
         auto& object = *static_cast<FaunaObject*>(fish.context);
         const auto* model =
@@ -214,13 +214,13 @@ public:
         SetFaunaAction(object, *model, static_cast<std::uint8_t>(mode));
         return {};
     }
-    Core::Expected<void, std::error_code> Steer(World::FishStepView& fish, std::size_t index,
-                                                std::span<World::FishStepView, World::FishPoolSize>) override
+    Core::Expected<void, std::error_code> Steer(Fauna::FishStepView& fish, std::size_t index,
+                                                std::span<Fauna::FishStepView, Fauna::FishPoolSize>) override
     {
         SteerFauna(*static_cast<FaunaObject*>(fish.context), index, m_context.fauna.Fish());
         return {};
     }
-    Core::Expected<void, std::error_code> AngleMatrix(World::FishStepView& fish) override
+    Core::Expected<void, std::error_code> AngleMatrix(Fauna::FishStepView& fish) override
     {
         fish.matrix = Math::OriginalAngleMatrix(fish.angles);
         return {};
@@ -241,7 +241,7 @@ public:
         }
         return std::int32_t{0};
     }
-    Core::Expected<void, std::error_code> Finalize(World::FishStepView& fish) override
+    Core::Expected<void, std::error_code> Finalize(Fauna::FishStepView& fish) override
     {
         FinalizeFauna(*static_cast<FaunaObject*>(fish.context));
         return {};
@@ -270,7 +270,7 @@ Core::Expected<void, std::string> StepGameBirds(FaunaStepContext& context)
         return Core::Unexpected(std::string("446120: terreno de fauna ausente"));
     auto birds = context.fauna.BirdRecords();
     BirdServices services(context);
-    const auto result = World::StepBirds(birds, services);
+    const auto result = Fauna::StepBirds(birds, services);
     if (result.error)
         return Core::Unexpected("446120: " + result.error.message());
     return {};
@@ -280,11 +280,11 @@ Core::Expected<void, std::string> StepGameFish(FaunaStepContext& context)
     if (!HasTerrain(context))
         return Core::Unexpected(std::string("447030: terreno de fauna ausente"));
     auto fish = context.fauna.FishViews();
-    const World::FishHeroView heroView{context.heroPosition, context.heroFlag};
-    const World::FishHeroView* hero = &heroView;
-    World::FishStepWorld world{context.map, hero, context.terrain.mapping->layer1, context.terrain.attributes->cells};
+    const Fauna::FishHeroView heroView{context.heroPosition, context.heroFlag};
+    const Fauna::FishHeroView* hero = &heroView;
+    Fauna::FishStepWorld world{context.map, hero, context.terrain.mapping->layer1, context.terrain.attributes->cells};
     FishServices services(context);
-    const auto result = World::StepFish(fish, world, services);
+    const auto result = Fauna::StepFish(fish, world, services);
     if (!result.HasValue())
         return Core::Unexpected("447030: " + result.Error().message());
     return {};
@@ -296,4 +296,4 @@ Core::Expected<void, std::string> StepGameFauna(FaunaStepContext& context)
         return birds;
     return StepGameFish(context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Fauna

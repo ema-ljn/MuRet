@@ -29,8 +29,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 
 constexpr std::uint32_t Seed = 0x1357bdfu;
 
@@ -51,8 +51,8 @@ TEST(AttackParticlesTest, TheBowSparkTakesSixDrawsAndStartsAboveItsOwner)
     const glm::vec3 point{1000.5f, 2000.25f, 50.0f};
     const glm::vec3 angles{0.0f, 0.0f, 90.0f};
     const glm::vec3 light{0.5f, 0.25f, 1.0f};
-    const auto index = particles.CreateChecked(Client::World::SparkParticle, point, angles, light,
-                                               Client::World::BowSparkSubtype, 2.0f, 0.0f, random);
+    const auto index = particles.CreateChecked(Client::Particles::SparkParticle, point, angles, light,
+                                               Client::Particles::BowSparkSubtype, 2.0f, 0.0f, random);
     ASSERT_TRUE(index.HasValue());
     ASSERT_EQ(index.Value(), std::optional<std::size_t>{0});
 
@@ -92,11 +92,11 @@ TEST(AttackParticlesTest, TheBowSparkFlickersShrinksAndDiesAtForty)
     Particles particles;
     CrtRandom random(Seed);
     ASSERT_TRUE(particles
-                    .CreateChecked(Client::World::SparkParticle, {100.0f, 200.0f, 300.0f}, glm::vec3(0.0f),
-                                   glm::vec3(1.0f), Client::World::BowSparkSubtype, 2.0f, 0.0f, random)
+                    .CreateChecked(Client::Particles::SparkParticle, {100.0f, 200.0f, 300.0f}, glm::vec3(0.0f),
+                                   glm::vec3(1.0f), Client::Particles::BowSparkSubtype, 2.0f, 0.0f, random)
                     .HasValue());
     Particle& spark = particles.All()[0];
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
     for (int step = 1; step <= 40; ++step)
@@ -109,8 +109,8 @@ TEST(AttackParticlesTest, TheBowSparkFlickersShrinksAndDiesAtForty)
         static_cast<void>(expected.Next());
         const auto flicker = static_cast<double>(expected.Next() & 1);
 
-        ASSERT_TRUE(
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry)
+                        .HasValue());
 
         EXPECT_EQ(spark.life, 40 - step);
         EXPECT_EQ(spark.alive, step < 40);
@@ -129,50 +129,52 @@ TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
 {
     const glm::vec3 point{1200.0f, 3400.0f, 200.0f};
     const glm::vec3 light{0.4f, 0.3f, 0.2f};
-    for (const std::int32_t subtype : {Client::World::LightningTrailSubtype, Client::World::LightningHitSubtype})
+    for (const std::int32_t subtype :
+         {Client::Particles::LightningTrailSubtype, Client::Particles::LightningHitSubtype})
     {
         SCOPED_TRACE(subtype);
         Particles particles;
         CrtRandom random(Seed);
         ASSERT_TRUE(particles
-                        .CreateChecked(Client::World::LightningParticle, point, glm::vec3(0.0f), light, subtype, 1.0f,
-                                       0.0f, random)
+                        .CreateChecked(Client::Particles::LightningParticle, point, glm::vec3(0.0f), light, subtype,
+                                       1.0f, 0.0f, random)
                         .HasValue());
         EXPECT_EQ(random.State(), CrtRandom(Seed).State());
         Particle& bolt = particles.All()[0];
-        const bool hit = subtype == Client::World::LightningHitSubtype;
+        const bool hit = subtype == Client::Particles::LightningHitSubtype;
         EXPECT_EQ(bolt.life, hit ? 10 : 2);
         EXPECT_EQ(bolt.scale, hit ? 0.0f : std::bit_cast<float>(0x3e19999au));
         EXPECT_EQ(bolt.light,
                   (glm::vec3{F32(static_cast<double>(light.x) + 0.5), F32(static_cast<double>(light.y) + 0.5),
                              F32(static_cast<double>(light.z) + 0.5)}));
 
-        Client::World::PortableParticleTrigonometry trigonometry;
+        Client::Particles::PortableParticleTrigonometry trigonometry;
         const float clock = 123456.75f;
         const std::int32_t map = 0;
         auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {}, {},
-                                                        {}, {}, lighting.get())
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, {},
+                                                            {}, {}, {}, lighting.get())
                         .HasValue());
         EXPECT_EQ(bolt.rotation, F32(static_cast<double>(Client::Math::FtolLow(static_cast<double>(clock)) % 1000) *
                                      Bits(0x3a83126fu)));
         const double glow = static_cast<double>(bolt.life) * Bits(0x3dcccccdu);
         const glm::vec3 color{F32(glow * 0.5), F32(glow), F32(static_cast<double>(F32(glow)) * Bits(0x3f4ccccdu))};
         auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::World::AddDynamicLight(expectedLighting.get(), bolt.position, color, 3, "test").HasValue());
+        ASSERT_TRUE(
+            Client::WorldObjects::AddDynamicLight(expectedLighting.get(), bolt.position, color, 3, "test").HasValue());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
 
-        EXPECT_FALSE(
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry).HasValue());
+        EXPECT_FALSE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry)
+                         .HasValue());
     }
 }
 
 // 0x548644: el 0x5d5 va al billboard común (0x54889a) con su textura, y la 0x5c6/12, con la 0x5fc de su creación.
 TEST(AttackParticlesTest, TheLightningAndTheBowSparkUseTheCommonBillboard)
 {
-    for (const auto& [type, subtype, texture] :
-         {std::tuple{Client::World::LightningParticle, 0, 0x5d5},
-          std::tuple{static_cast<std::int32_t>(Client::World::SparkParticle), Client::World::BowSparkSubtype, 0x5fc}})
+    for (const auto& [type, subtype, texture] : {std::tuple{Client::Particles::LightningParticle, 0, 0x5d5},
+                                                 std::tuple{static_cast<std::int32_t>(Client::Particles::SparkParticle),
+                                                            Client::Particles::BowSparkSubtype, 0x5fc}})
     {
         SCOPED_TRACE(type);
         Particle particle;

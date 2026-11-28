@@ -28,7 +28,7 @@ void PrintTo(LoopCall call, std::ostream* out);
 // Cuenta polls, pasos y dibujos, anota el orden en que llegan, guarda cada alfa, y hace "tardar"
 // a cada uno lo que se le diga moviendo el FakeClock: así un test arma un frame de 130 ms, un
 // breakpoint de 10 s o una red que tarda 20 ms en cada poll.
-class RecordingClient final : public App::ILoopClient
+class RecordingClient final : public Scenes::ILoopClient
 {
 public:
     explicit RecordingClient(FakeClock& clock);

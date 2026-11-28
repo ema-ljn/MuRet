@@ -31,7 +31,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Combat
 {
 namespace
 {
@@ -74,17 +74,17 @@ float Plus(std::int32_t drawn, float constant)
 
 // 0x4cfc93..0x4cfcb7: sprintf(texto 486, experiencia) y 0x555190(0x576798c, texto, 1); el 0x9C (0x4d0775..0x4d0799),
 // lo mismo con 0x5767990.
-Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, const ChatReceiveContext& chat)
+Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, const Chat::ChatReceiveContext& chat)
 {
-    const std::optional<std::string_view> format = UI::TextAt(chat.texts, ExperienceText);
+    const std::optional<std::string_view> format = Ui::TextAt(chat.texts, ExperienceText);
     if (!format)
         return Core::Unexpected(std::string("0x4cfc9e: el texto 486 de Text.bmd no está"));
     if (chat.measure == nullptr)
         return Core::Unexpected(std::string("0x555190: no hay con qué medir el mensaje de la experiencia"));
     const std::string text = Crt::Sprintf(CString(*format), amount);
     // 0x576798c y 0x5767990, en la .bss: nadie les escribe un nombre en lo que MuRet porta (*inferido*, P-C252 d).
-    return AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, std::string_view{}, text,
-                          UI::SystemMessage);
+    return Chat::AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, std::string_view{}, text,
+                                Ui::SystemMessage);
 }
 
 // 0x4d08ea..0x4d0a06: lo empujan del puente, hacia el lado de la celda vecina con el bit 8: la de la derecha
@@ -178,7 +178,8 @@ Core::Expected<void, std::string> DieInTheCastle(Kernel::ActorState& actor, cons
 } // namespace
 
 Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::KillExperience& reply,
-                                                      const ActorCombatContext& combat, const ChatReceiveContext& chat)
+                                                      const ActorCombatContext& combat,
+                                                      const Chat::ChatReceiveContext& chat)
 {
     Kernel::WorldState& world = combat.world;
     const std::size_t index = Kernel::ActorWithKey(world, reply.key);
@@ -242,4 +243,4 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.headTurn.angles.y = actor.angles.y;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Combat

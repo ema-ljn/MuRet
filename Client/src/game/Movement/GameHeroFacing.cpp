@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Movement
 {
 Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& context)
 {
@@ -50,4 +50,4 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
         return Core::Unexpected(std::string("0x59b74c: falta el servicio de envío 18/7A"));
     return context.sendFacing(*newSector);
 }
-} // namespace Client::Scenes
+} // namespace Client::Movement

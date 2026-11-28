@@ -33,7 +33,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -148,7 +148,7 @@ constexpr std::uint32_t StatDamageSpread = 0x1e;
 // stats con lo de los ítems (DI, SI, BX, [EBP−4] y [EBP−0x14]), los daños y lo que dejó 0x551c70.
 struct SkillFrame
 {
-    GameHudContext& context;
+    Hud::GameHudContext& context;
     TooltipWriter& lines;
     const Kernel::OwnCharacterRecord& own;
     const Kernel::ActorState& hero;
@@ -189,7 +189,7 @@ std::int32_t Wrapped(std::uint32_t value)
 
 // La entrada `skill` de Skill.bmd, sin abrir su acceso.
 Core::Expected<std::span<const std::byte, Tables::SkillRecordSize>, std::string>
-SkillEntryOf(const GameHudContext& context, std::uint32_t skill, std::string_view where)
+SkillEntryOf(const Hud::GameHudContext& context, std::uint32_t skill, std::string_view where)
 {
     if (context.skills == nullptr)
         return Core::Unexpected(std::format("{}: sin Skill.bmd", where));
@@ -205,7 +205,7 @@ std::uint8_t EntryByte(std::span<const std::byte, Tables::SkillRecordSize> entry
 }
 
 // 0x552470 y 0x5519f0: un byte de la entrada `skill`, con su acceso (60 rand() si su cuenta vuelve a 0).
-Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(GameHudContext& context, std::uint8_t skill,
+Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(Hud::GameHudContext& context, std::uint8_t skill,
                                                            std::size_t offset, std::string_view where)
 {
     auto entry = SkillEntryOf(context, skill, where);
@@ -218,7 +218,7 @@ Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(GameHudContext& conte
 
 // La caja arriba de y, con cy del primer carácter del renglón 0 (GetTextExtentPointA sobre la fuente del DC) y la
 // altura ((renglones − medios) · cy + medios · cy / 2) / ry por _ftol.
-Core::Expected<void, std::string> DrawTheBoxAbove(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheBoxAbove(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   std::int32_t count, std::int32_t halves, std::string_view where)
 {
     const TooltipLines& lines = context.hud.tooltip;
@@ -236,7 +236,7 @@ Core::Expected<void, std::string> DrawTheBoxAbove(GameHudContext& context, std::
 // 0x421c10(x, y, lugar), cdecl: con un lugar de 0x78 a 0x7b y el Dark Lord, el nombre del comando en azul y negrita,
 // dos "\n" y su ayuda, y la caja; devuelve 1. Solo escribe el color del renglón 1 y el color y la negrita del 0: los
 // otros quedan como estaban (Q-C720).
-Core::Expected<bool, std::string> DrawTheCommandTooltip(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<bool, std::string> DrawTheCommandTooltip(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                         std::int32_t slot, CharacterClass heroClass)
 {
     if (slot < FirstCommand || slot >= FirstCommand + CommandCount || heroClass != CharacterClass::DarkLord)
@@ -474,7 +474,7 @@ Core::Expected<void, std::string> WriteTheAttribute(SkillFrame& frame)
 // con el acceso de su entrada adentro del de la skill.
 Core::Expected<void, std::string> WriteTheGiver(SkillFrame& frame, std::uint8_t giver)
 {
-    GameHudContext& context = frame.context;
+    Hud::GameHudContext& context = frame.context;
     auto entry = SkillEntryOf(context, giver, "0x5b9ccf");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
@@ -505,7 +505,7 @@ Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
 {
     if (auto checked = Checked(frame.lines); !checked.HasValue())
         return checked;
-    GameHudContext& context = frame.context;
+    Hud::GameHudContext& context = frame.context;
     auto entry = SkillEntryOf(context, frame.skill, "0x5b9ab8");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
@@ -552,7 +552,7 @@ Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
 }
 
 // 0x5b91a1..0x5ba4d2, con el registro propio abierto: los daños, la entrada y los tramos.
-Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, TooltipWriter& lines,
                                                 const Kernel::ActorState& hero, CharacterClass heroClass,
                                                 std::int32_t slot, std::int32_t siegeSkill)
 {
@@ -613,7 +613,7 @@ Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, Tooltip
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, std::int32_t x, std::int32_t y,
+Core::Expected<void, std::string> DrawTheSkillTooltip(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                       std::int32_t slot, std::int32_t siegeSkill)
 {
     Kernel::WorldState& world = context.world;
@@ -635,4 +635,4 @@ Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, s
     }
     return DrawTheBoxAbove(context, x, y, count, SkillHalves, "0x5ba6fb");
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

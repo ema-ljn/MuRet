@@ -35,7 +35,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::Kalima
 {
 namespace
 {
@@ -80,7 +80,7 @@ Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, cons
 
 Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                Actors::Drawing::DrawnObject& drawn, Core::Duration frameClock,
-                                               const GameObjectPass& pass)
+                                               const WorldObjects::GameObjectPass& pass)
 {
     // 439570: argumento sin spill binary32; el color sí tiene tres FSTP idénticos.
     const auto pulse = Math::Detail::SineProductPC53(
@@ -100,7 +100,7 @@ Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const 
     return KalimaMeshPass(batch, models, drawn, frameClock, -1, 2, texture);
 }
 
-Core::Expected<void, std::string> Flare(const GameObjectPass& pass)
+Core::Expected<void, std::string> Flare(const WorldObjects::GameObjectPass& pass)
 {
     // 438c53..438cd0: hueso20 del scratch global; un hueso aún no escrito conserva .bss cero.
     constexpr std::size_t Bone = 20;
@@ -116,15 +116,16 @@ Core::Expected<void, std::string> Flare(const GameObjectPass& pass)
     if (pass.sprites == nullptr)
         return Core::Unexpected(std::string("0x438cd0: falta el pool de sprites de Kalima"));
     const float scale = static_cast<float>((*pulse + FlareBase) + FlareExtra);
-    static_cast<void>(pass.sprites->Create(World::StreetLightGlowTexture, point, scale,
+    static_cast<void>(pass.sprites->Create(WorldObjects::StreetLightGlowTexture, point, scale,
                                            glm::vec3(FlareChannel, FlareChannel, 1.0f), 0.0f, 0));
     return {};
 }
-Core::Expected<void, std::string> MoveObject(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> MoveObject(WorldObjects::WorldObject& object,
+                                             const WorldObjects::GameObjectPass& pass)
 {
     if (pass.hero == nullptr)
         return Core::Unexpected(std::string("0x438ad0: falta el préstamo del héroe de Kalima"));
-    World::MoveKalimaObject(object, pass.hero->position, pass.hero->animation.action);
+    MapScripts::Kalima::MoveKalimaObject(object, pass.hero->position, pass.hero->animation.action);
     if (object.type == 32)
     {
         if (auto flare = Flare(pass); !flare.HasValue())
@@ -141,23 +142,24 @@ Core::Expected<void, std::string> MoveObject(World::WorldObject& object, const G
     object.transform.position.z = static_cast<float>(static_cast<double>(*height) + AboveWater);
     return {};
 }
-Core::Expected<void, std::string> EmitParticle(World::WorldObject& object, const GameObjectPass& pass,
-                                               std::int32_t type, std::int32_t subtype, const glm::vec3& light)
+Core::Expected<void, std::string> EmitParticle(WorldObjects::WorldObject& object,
+                                               const WorldObjects::GameObjectPass& pass, std::int32_t type,
+                                               std::int32_t subtype, const glm::vec3& light)
 {
     if (pass.particles == nullptr || pass.random == nullptr)
         return Core::Unexpected(std::string("0x53fe70: falta el pool/CRT de partículas de Kalima"));
-    const World::ParticleOwner owner =
-        object.type == 35 ? World::ParticleOwner{World::ParticleOwnerKind::WorldObject, object.identity}
-                          : World::ParticleOwner{};
+    const Particles::ParticleOwner owner =
+        object.type == 35 ? Particles::ParticleOwner{Particles::ParticleOwnerKind::WorldObject, object.identity}
+                          : Particles::ParticleOwner{};
     const auto made = pass.particles->CreateKalimaChecked(type, object.transform.position, object.transform.angles,
                                                           light, subtype, 1.0f, pass.worldClock, *pass.random,
-                                                          static_cast<std::int32_t>(SceneId::Game), owner);
+                                                          static_cast<std::int32_t>(Scenes::SceneId::Game), owner);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x53fe70: alta Kalima {:#x}/{} falla con {}", type, subtype,
                                             static_cast<unsigned>(made.Error())));
     return {};
 }
-Core::Expected<void, std::string> WaterfallSound(const GameObjectPass& pass, std::string_view callSite)
+Core::Expected<void, std::string> WaterfallSound(const WorldObjects::GameObjectPass& pass, std::string_view callSite)
 {
     if (!pass.requestSound)
         return Core::Unexpected(std::format("{}: falta el servicio de sonido0x1d6 de Kalima", callSite));
@@ -168,9 +170,10 @@ Core::Expected<void, std::string> WaterfallSound(const GameObjectPass& pass, std
 } // namespace
 
 Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       const World::WorldObject& object,
+                                                       const WorldObjects::WorldObject& object,
                                                        const Actors::Drawing::DrawnObject& drawn,
-                                                       Core::Duration frameClock, const GameObjectPass& pass)
+                                                       Core::Duration frameClock,
+                                                       const WorldObjects::GameObjectPass& pass)
 {
     Actors::Drawing::DrawnObject current = drawn;
     if (HasWaterOverlay(object.type))
@@ -196,7 +199,8 @@ Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch
     return {};
 }
 
-Core::Expected<void, std::string> StepKalimaObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepKalimaObjectFrame(WorldObjects::WorldObject& object,
+                                                        const WorldObjects::GameObjectPass& pass)
 {
     // 6044ed→4059d0 retorna AL0;438c10 retorna AL1 aun en el default de438f90.
     switch (object.type)
@@ -246,4 +250,4 @@ Core::Expected<void, std::string> StepKalimaObjectFrame(World::WorldObject& obje
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Kalima

@@ -10,17 +10,17 @@
 #include <cstdint>
 #include <optional>
 
-// Client::UI::NoticeOfDeleteButton y FreeDeletionGroup: las revisiones del botón de borrar
+// Client::FrontEnd::NoticeOfDeleteButton y FreeDeletionGroup: las revisiones del botón de borrar
 // (0x63edf0), con el elegido y el grupo del servidor elegido.
 namespace
 {
+using Client::FrontEnd::FreeDeletionGroup;
+using Client::FrontEnd::NoticeOfDeleteButton;
 using Client::Protocol::FrontEnd::CharacterEntry;
-using Client::UI::BlockedAccountNotice;
-using Client::UI::ConfirmDeletionNotice;
-using Client::UI::FreeDeletionGroup;
-using Client::UI::GuildMemberNotice;
-using Client::UI::HighLevelNotice;
-using Client::UI::NoticeOfDeleteButton;
+using Client::Ui::BlockedAccountNotice;
+using Client::Ui::ConfirmDeletionNotice;
+using Client::Ui::GuildMemberNotice;
+using Client::Ui::HighLevelNotice;
 
 CharacterEntry Deletable()
 {

@@ -118,7 +118,8 @@ Core::Expected<void, std::string> CreateTheChaosCastleBurst(Kernel::ActorState& 
         return Core::Unexpected(
             std::format("0x4fbba8: falta el pool para las chispas de Chaos Castle del lugar {}", slot));
     }
-    const auto burst = World::CreateParticleBurst(*context.particles, point, context.random, true, context.worldClock);
+    const auto burst =
+        Particles::CreateParticleBurst(*context.particles, point, context.random, true, context.worldClock);
     if (!burst.HasValue())
         return Core::Unexpected(std::format("0x4fbba8: falla el burst de Chaos Castle del lugar {} con error {}", slot,
                                             static_cast<unsigned>(burst.Error())));
@@ -152,7 +153,7 @@ Core::Expected<void, std::string> CreateTheDeathSkillFlares(const Kernel::ActorS
         const int scaleDraw = context.random.Next() % DeathSkillScaleSpan;
         const auto scale = static_cast<float>(static_cast<double>(scaleDraw) * ScaleStep + ScaleBase);
         const auto created =
-            context.particles->CreateChecked(World::KalimaFlare, point, actor.angles, FlareLight,
+            context.particles->CreateChecked(Particles::KalimaFlare, point, actor.angles, FlareLight,
                                              DeathSkillFlareSubtype, scale, context.worldClock, context.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x4fbd3a: la partícula 0x5ac/5 del lugar {} falla con error {}", slot,

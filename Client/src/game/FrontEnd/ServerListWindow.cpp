@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -75,14 +75,14 @@ constexpr unsigned MaxBarLoad = 100;
 constexpr std::uint32_t LabelGray = 0xffe2e2e2;
 constexpr std::uint32_t LabelWhite = 0xffffffff;
 constexpr std::uint32_t NonPvpYellow = 0xff79ffff;
-constexpr ButtonColors GroupColors{.normal = LabelGray,
-                                   .pressed = LabelGray,
-                                   .hover = LabelWhite,
-                                   .checkedNormal = LabelGray,
-                                   .checkedPressed = LabelGray,
-                                   .checkedHover = LabelWhite};
-constexpr ButtonColors ServerColors{.normal = LabelGray, .pressed = LabelGray, .hover = LabelWhite};
-constexpr ButtonColors NonPvpColors{.normal = NonPvpYellow, .pressed = NonPvpYellow, .hover = NonPvpYellow};
+constexpr Ui::ButtonColors GroupColors{.normal = LabelGray,
+                                       .pressed = LabelGray,
+                                       .hover = LabelWhite,
+                                       .checkedNormal = LabelGray,
+                                       .checkedPressed = LabelGray,
+                                       .checkedHover = LabelWhite};
+constexpr Ui::ButtonColors ServerColors{.normal = LabelGray, .pressed = LabelGray, .hover = LabelWhite};
+constexpr Ui::ButtonColors NonPvpColors{.normal = NonPvpYellow, .pressed = NonPvpYellow, .hover = NonPvpYellow};
 
 // Una pieza de server_deco_all (0x647260): su lugar en la textura, su tamaño y su punto.
 struct FramePiece
@@ -91,7 +91,7 @@ struct FramePiece
     int v = 0;
     int width = 0;
     int height = 0;
-    Point point;
+    Ui::Point point;
 };
 // 0x6451d0, de 0x6452a3 a 0x645378.
 constexpr FramePiece LeftCorner{.u = 0, .v = 0, .width = 68, .height = 95, .point = {8, 19}};
@@ -128,11 +128,11 @@ constexpr std::uint16_t GroupTwenty = 20;
 
 // La pieza con su punto en `at`: 0x6472e0(x, y, 3) resta el punto de +0x58 y +0x5c. Las que
 // empiezan en (0, 0) de la textura no tienen cuadros (0x647260 le da a 0x647050 una lista nula).
-Render::UiImage PlacePiece(const FramePiece& piece, Point at, const TextureSizes& sizes)
+Render::UiImage PlacePiece(const FramePiece& piece, Ui::Point at, const Ui::TextureSizes& sizes)
 {
-    Render::UiImage image = PixelImage(
+    Render::UiImage image = Ui::PixelImage(
         FrameSlot,
-        Rect{.x = at.x - piece.point.x, .y = at.y - piece.point.y, .width = piece.width, .height = piece.height},
+        Ui::Rect{.x = at.x - piece.point.x, .y = at.y - piece.point.y, .width = piece.width, .height = piece.height},
         sizes(FrameSlot));
     if (piece.u != 0 || piece.v != 0)
     {
@@ -168,7 +168,7 @@ ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight,
     const int height = OriginalServerButtons * ButtonHeight + ButtonHeight + descriptionHeight + BottomMargin;
     const int x = (screen.width - ServerListWidth) / 2;
     const int y = (screen.height - height) / 2;
-    layout.window = Rect{.x = x, .y = y, .width = ServerListWidth, .height = height};
+    layout.window = Ui::Rect{.x = x, .y = y, .width = ServerListWidth, .height = height};
 
     const int firstRow = y + height - (GroupRows + 1) * ButtonHeight - descriptionHeight - BottomMargin;
     const int rightColumn = x + ServerListWidth - GroupButtonWidth;
@@ -176,14 +176,14 @@ ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight,
     for (std::size_t row = 0; row < Rows; ++row)
     {
         const int rowY = firstRow + static_cast<int>(row) * ButtonHeight;
-        layout.groupButtons[row] = Rect{.x = x, .y = rowY, .width = GroupButtonWidth, .height = ButtonHeight};
+        layout.groupButtons[row] = Ui::Rect{.x = x, .y = rowY, .width = GroupButtonWidth, .height = ButtonHeight};
         layout.groupButtons[row + Rows] =
-            Rect{.x = rightColumn, .y = rowY, .width = GroupButtonWidth, .height = ButtonHeight};
+            Ui::Rect{.x = rightColumn, .y = rowY, .width = GroupButtonWidth, .height = ButtonHeight};
     }
-    layout.groupButtons[2 * Rows] = Rect{.x = x + (ServerListWidth - GroupButtonWidth) / 2,
-                                         .y = y + height - descriptionHeight - ButtonHeight - LastGroupGap,
-                                         .width = GroupButtonWidth,
-                                         .height = ButtonHeight};
+    layout.groupButtons[2 * Rows] = Ui::Rect{.x = x + (ServerListWidth - GroupButtonWidth) / 2,
+                                             .y = y + height - descriptionHeight - ButtonHeight - LastGroupGap,
+                                             .width = GroupButtonWidth,
+                                             .height = ButtonHeight};
 
     // 0x6456c0: con 10 o más servidores (count · 26 >= 260), el primero sube.
     const int count = static_cast<int>(std::min(serverCount, ServersPerGroup));
@@ -196,90 +196,92 @@ ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight,
     for (std::size_t i = 0; i < ServersPerGroup; ++i)
     {
         const int buttonY = serverY + static_cast<int>(i) * ButtonHeight;
-        layout.serverButtons[i] = Rect{.x = serverX, .y = buttonY, .width = ServerButtonWidth, .height = ButtonHeight};
-        layout.loadBars[i] =
-            Rect{.x = serverX + LoadBarLeft, .y = buttonY + LoadBarTop, .width = LoadBarWidth, .height = LoadBarHeight};
+        layout.serverButtons[i] =
+            Ui::Rect{.x = serverX, .y = buttonY, .width = ServerButtonWidth, .height = ButtonHeight};
+        layout.loadBars[i] = Ui::Rect{
+            .x = serverX + LoadBarLeft, .y = buttonY + LoadBarTop, .width = LoadBarWidth, .height = LoadBarHeight};
     }
 
     // 0x645679..0x6456a7: (x − (512 − 465) / 2, y + alto − la caja), con la división de C.
-    layout.description = Rect{.x = x - (DescriptionWidth - ServerListWidth) / 2,
-                              .y = y + height - descriptionHeight,
-                              .width = DescriptionWidth,
-                              .height = descriptionHeight};
+    layout.description = Ui::Rect{.x = x - (DescriptionWidth - ServerListWidth) / 2,
+                                  .y = y + height - descriptionHeight,
+                                  .width = DescriptionWidth,
+                                  .height = descriptionHeight};
     return layout;
 }
 
 ServerListFrame LayoutServerListFrame(const ServerListLayout& layout, std::size_t groupButtons,
-                                      std::optional<std::size_t> selected, const TextureSizes& sizes)
+                                      std::optional<std::size_t> selected, const Ui::TextureSizes& sizes)
 {
     ServerListFrame frame;
-    const Rect& first = layout.groupButtons[0];
-    frame.corners[0] = PlacePiece(LeftCorner, Point{first.x, first.y}, sizes);
+    const Ui::Rect& first = layout.groupButtons[0];
+    frame.corners[0] = PlacePiece(LeftCorner, Ui::Point{first.x, first.y}, sizes);
     if (groupButtons > GroupsPerColumn)
     {
-        const Rect& top = layout.groupButtons[GroupsPerColumn];
-        frame.corners[1] = PlacePiece(RightCorner, Point{top.x + top.width, top.y}, sizes);
+        const Ui::Rect& top = layout.groupButtons[GroupsPerColumn];
+        frame.corners[1] = PlacePiece(RightCorner, Ui::Point{top.x + top.width, top.y}, sizes);
     }
     if (selected && *selected < MarkedGroups)
     {
-        const Rect& button = layout.groupButtons[*selected];
+        const Ui::Rect& button = layout.groupButtons[*selected];
         if (*selected < GroupsPerColumn)
         {
-            frame.markers[0] = PlacePiece(LeftMarker, Point{button.x + button.width, button.y}, sizes);
+            frame.markers[0] = PlacePiece(LeftMarker, Ui::Point{button.x + button.width, button.y}, sizes);
         }
         else
         {
-            frame.markers[1] = PlacePiece(RightMarker, Point{button.x, button.y}, sizes);
+            frame.markers[1] = PlacePiece(RightMarker, Ui::Point{button.x, button.y}, sizes);
         }
     }
     return frame;
 }
 
-std::array<Render::UiImage, 5> DescriptionBoxImages(Rect box, const TextureSizes& sizes)
+std::array<Render::UiImage, 5> DescriptionBoxImages(Ui::Rect box, const Ui::TextureSizes& sizes)
 {
     // 0x66a4e0: los lados miden las 10 líneas, el alto de la caja menos los dos bordes.
     const int sideHeight = box.height - 2 * BoxEdgeHeight;
 
     // El fondo, de 506 × (alto − 6), y el lado de la izquierda siguen a 0x647370 (+0x98 en 1) y
     // repiten su textura.
-    Render::UiImage fill = PixelImage(BoxFillSlot,
-                                      Rect{.x = box.x + BoxFillInset,
-                                           .y = box.y + BoxFillInset,
-                                           .width = box.width - 2 * BoxFillInset,
-                                           .height = box.height - 2 * BoxFillInset},
-                                      sizes(BoxFillSlot));
+    Render::UiImage fill = Ui::PixelImage(BoxFillSlot,
+                                          Ui::Rect{.x = box.x + BoxFillInset,
+                                                   .y = box.y + BoxFillInset,
+                                                   .width = box.width - 2 * BoxFillInset,
+                                                   .height = box.height - 2 * BoxFillInset},
+                                          sizes(BoxFillSlot));
     fill.resizedWidth = true;
     fill.resizedHeight = true;
 
-    const Render::UiImage top = PixelImage(
-        BoxEdgeSlot, Rect{.x = box.x, .y = box.y, .width = box.width, .height = BoxEdgeHeight}, sizes(BoxEdgeSlot));
-    Render::UiImage bottom = PixelImage(
+    const Render::UiImage top = Ui::PixelImage(
+        BoxEdgeSlot, Ui::Rect{.x = box.x, .y = box.y, .width = box.width, .height = BoxEdgeHeight}, sizes(BoxEdgeSlot));
+    Render::UiImage bottom = Ui::PixelImage(
         BoxEdgeSlot,
-        Rect{.x = box.x, .y = box.y + box.height - BoxEdgeHeight, .width = box.width, .height = BoxEdgeHeight},
+        Ui::Rect{.x = box.x, .y = box.y + box.height - BoxEdgeHeight, .width = box.width, .height = BoxEdgeHeight},
         sizes(BoxEdgeSlot));
     bottom.frameTop = BoxEdgeHeight;
 
-    Render::UiImage left = PixelImage(
-        DescriptionLineSlot, Rect{.x = box.x, .y = box.y + BoxEdgeHeight, .width = BoxSideWidth, .height = sideHeight},
-        sizes(DescriptionLineSlot));
+    Render::UiImage left =
+        Ui::PixelImage(DescriptionLineSlot,
+                       Ui::Rect{.x = box.x, .y = box.y + BoxEdgeHeight, .width = BoxSideWidth, .height = sideHeight},
+                       sizes(DescriptionLineSlot));
     left.resizedHeight = true;
 
     // El de la derecha empieza en (3, 0) de server_ex02: tiene cuadros, y 0x647050 le pone +0x98
     // en 0. Sus UV quedan en las 4 filas con que lo arma 0x6451d0, no en las del buffer, y se
     // estira.
-    Render::UiImage right = PixelImage(DescriptionLineSlot,
-                                       Rect{.x = box.x + box.width - BoxSideWidth,
-                                            .y = box.y + BoxEdgeHeight,
-                                            .width = BoxSideWidth,
-                                            .height = sideHeight},
-                                       sizes(DescriptionLineSlot));
+    Render::UiImage right = Ui::PixelImage(DescriptionLineSlot,
+                                           Ui::Rect{.x = box.x + box.width - BoxSideWidth,
+                                                    .y = box.y + BoxEdgeHeight,
+                                                    .width = BoxSideWidth,
+                                                    .height = sideHeight},
+                                           sizes(DescriptionLineSlot));
     right.frameTop = 0;
     right.frameLeft = RightSideColumn;
     right.uvHeight = RightSideRows;
     return {fill, top, bottom, left, right};
 }
 
-ServerListWindow::ServerListWindow(TextureSizes sizes, const Tables::TextTable* texts)
+ServerListWindow::ServerListWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts)
 {
 }
@@ -295,8 +297,8 @@ void ServerListWindow::Open(ServerGroups groups)
     const std::size_t shown = std::min(m_groups.groups.size(), GroupButtonCount);
     for (std::size_t i = 0; i < shown; ++i)
     {
-        Button button(GroupButtonSlot, GroupButtonWidth, ButtonHeight, CheckedFrame);
-        if (const auto name = TextAt(m_texts, GroupNameText(m_groups.groups[i].group)))
+        Ui::Button button(GroupButtonSlot, GroupButtonWidth, ButtonHeight, CheckedFrame);
+        if (const auto name = Ui::TextAt(m_texts, GroupNameText(m_groups.groups[i].group)))
         {
             button.SetLabel(std::string(*name), GroupColors);
         }
@@ -324,24 +326,24 @@ const std::vector<std::string>& ServerListWindow::Description() const
     return m_description;
 }
 
-Rect ServerListWindow::Bounds(Core::PixelSize screen) const
+Ui::Rect ServerListWindow::Bounds(Core::PixelSize screen) const
 {
     return LayoutServerList(screen, DescriptionHeight(m_sizes(DescriptionLineSlot)), ShownServers()).window;
 }
 
 std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input, Core::PixelSize screen,
-                                                  NewUiTurn turn)
+                                                  Ui::NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    const std::optional<Ui::Point> mouse = Ui::MouseOfTheTurn(turn, input, screen);
     if (!turn.logic)
     {
         // Sin el foco, 0x669f40 atiende los botones y no corre 0x645e10.
-        for (Button& button : m_groupButtons)
+        for (Ui::Button& button : m_groupButtons)
         {
             static_cast<void>(button.Step(input, mouse, turn.buttonClicked));
         }
@@ -419,7 +421,7 @@ void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Rende
     const ServerListFrame frame = LayoutServerListFrame(m_layout, m_groupButtons.size(), m_selected, m_sizes);
     static_assert(DescriptionLines == std::tuple_size<decltype(ServerListFrame::corners)>::value,
                   "un renglón por columna");
-    const Rect& box = m_layout.description;
+    const Ui::Rect& box = m_layout.description;
     for (std::size_t line = 0; line < DescriptionLines; ++line)
     {
         if (frame.corners[line])
@@ -445,7 +447,7 @@ std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Render
                                             Core::PixelSize screen, std::uint32_t textColor) const
 {
     // 3: los botones con sus rótulos (0x66a090), primero los de grupo, y después las barras.
-    const auto drawButton = [&](const Button& button)
+    const auto drawButton = [&](const Ui::Button& button)
     {
         sprites.Image(button.Image(m_sizes));
         if (const std::optional<std::uint32_t> color = button.DrawLabel(text, screen))
@@ -465,7 +467,7 @@ std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Render
     }
     for (std::size_t i = 0; i < ShownServers(); ++i)
     {
-        Render::UiImage bar = PixelImage(LoadBarSlot, m_layout.loadBars[i], m_sizes(LoadBarSlot));
+        Render::UiImage bar = Ui::PixelImage(LoadBarSlot, m_layout.loadBars[i], m_sizes(LoadBarSlot));
         // 0x640580 le cambia el ancho con 0x647370(ancho, 0, 1): la u de la derecha, sin medio
         // téxel.
         bar.width = BarWidth(group->servers[i].load);
@@ -485,7 +487,7 @@ void ServerListWindow::DrawGroupTwentyTexts(Render::Frame::ITextDrawer& text, st
     }
     for (std::size_t k = 0; k < GroupTwentyTextCount; ++k)
     {
-        if (const auto line = TextAt(m_texts, FirstGroupTwentyText + k); line && !line->empty())
+        if (const auto line = Ui::TextAt(m_texts, FirstGroupTwentyText + k); line && !line->empty())
         {
             text.Draw(GroupTwentyLeft, GroupTwentyTop + static_cast<int>(k) * GroupTwentyStep, *line,
                       Render::Text::TextStyle{ListFont, Render::Text::TextColors{color, 0}});
@@ -499,25 +501,25 @@ void ServerListWindow::Select(std::size_t index)
     const ServerGroup& group = m_groups.groups[index];
     // 0x645860: los dos renglones, vacíos sin el texto.
     m_description.clear();
-    if (const auto description = TextAt(m_texts, DescriptionText(group.slot)))
+    if (const auto description = Ui::TextAt(m_texts, DescriptionText(group.slot)))
     {
-        m_description = SplitIntoLines(*description, DescriptionLines, DescriptionLineBytes);
+        m_description = Ui::SplitIntoLines(*description, DescriptionLines, DescriptionLineBytes);
     }
     for (std::size_t i = 0; i < m_groupButtons.size(); ++i)
     {
         m_groupButtons[i].SetChecked(i == index);
     }
     m_serverButtons.clear();
-    const std::optional<std::string_view> name = TextAt(m_texts, GroupNameText(group.group));
+    const std::optional<std::string_view> name = Ui::TextAt(m_texts, GroupNameText(group.group));
     const bool single = group.servers.size() <= 1;
     for (const Protocol::Session::ServerEntry& server : group.servers)
     {
-        Button button(ServerButtonSlot, ServerButtonWidth, ButtonHeight);
+        Ui::Button button(ServerButtonSlot, ServerButtonWidth, ButtonHeight);
         const int number = ServerNumber(server.code);
         const bool nonPvp = IsNonPvp(group.slot, number);
         if (name)
         {
-            const std::string_view load = TextAt(m_texts, LoadText(server.load)).value_or(std::string_view{});
+            const std::string_view load = Ui::TextAt(m_texts, LoadText(server.load)).value_or(std::string_view{});
             button.SetLabel(single ? SingleServerLabel(*name, nonPvp, load) : ServerLabel(*name, number, nonPvp, load),
                             nonPvp ? NonPvpColors : ServerColors);
         }
@@ -531,11 +533,11 @@ void ServerListWindow::Place(Core::PixelSize screen)
     m_layout = LayoutServerList(screen, description, ShownServers());
     for (std::size_t i = 0; i < m_groupButtons.size(); ++i)
     {
-        m_groupButtons[i].MoveTo(Point{m_layout.groupButtons[i].x, m_layout.groupButtons[i].y});
+        m_groupButtons[i].MoveTo(Ui::Point{m_layout.groupButtons[i].x, m_layout.groupButtons[i].y});
     }
     for (std::size_t i = 0; i < m_serverButtons.size(); ++i)
     {
-        m_serverButtons[i].MoveTo(Point{m_layout.serverButtons[i].x, m_layout.serverButtons[i].y});
+        m_serverButtons[i].MoveTo(Ui::Point{m_layout.serverButtons[i].x, m_layout.serverButtons[i].y});
     }
 }
 
@@ -552,8 +554,8 @@ bool ServerListWindow::ShowsGroupTwentyTexts() const
     {
         return false;
     }
-    const std::optional<std::string_view> name = TextAt(m_texts, GroupNameText(group->group));
-    const std::optional<std::string_view> twenty = TextAt(m_texts, GroupNameText(GroupTwenty));
+    const std::optional<std::string_view> name = Ui::TextAt(m_texts, GroupNameText(group->group));
+    const std::optional<std::string_view> twenty = Ui::TextAt(m_texts, GroupNameText(GroupTwenty));
     return name && twenty && *name == *twenty;
 }
 
@@ -565,4 +567,4 @@ const ServerGroup* ServerListWindow::SelectedGroup() const
     }
     return &m_groups.groups[*m_selected];
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

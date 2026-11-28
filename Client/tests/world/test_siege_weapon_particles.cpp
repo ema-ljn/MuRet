@@ -17,10 +17,10 @@ namespace
 {
 TEST(SiegeWeaponParticlesTest, TheSmallImpactFlameKeepsAllSixConstructorDraws)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
     const auto created =
-        particles.CreateChecked(Client::World::TorchFlameParticle, {}, {}, {1, 1, 1}, 1, 2.0f, 0.0f, random);
+        particles.CreateChecked(Client::Particles::TorchFlameParticle, {}, {}, {1, 1, 1}, 1, 2.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     auto& particle = particles.All()[*created.Value()];
@@ -39,10 +39,10 @@ TEST(SiegeWeaponParticlesTest, TheSmallImpactFlameKeepsAllSixConstructorDraws)
 TEST(SiegeWeaponParticlesTest, TheFlightFireUsesTheInputScaleAndItsRotatingAtlas)
 {
     constexpr std::int32_t FlightFire = 5;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
     const auto created =
-        particles.CreateChecked(Client::World::FireParticle, {}, {}, {1, 2, 3}, FlightFire, 2.0f, 0.0f, random);
+        particles.CreateChecked(Client::Particles::FireParticle, {}, {}, {1, 2, 3}, FlightFire, 2.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     auto& particle = particles.All()[*created.Value()];
@@ -52,7 +52,7 @@ TEST(SiegeWeaponParticlesTest, TheFlightFireUsesTheInputScaleAndItsRotatingAtlas
     EXPECT_EQ(particle.scale, scale);
     EXPECT_EQ(particle.rotation, 214.0f);
     EXPECT_EQ(particle.velocity, (glm::vec3{0, velocity, 0}));
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_EQ(particle.life, 23);
     EXPECT_EQ(particle.scale, static_cast<float>(static_cast<double>(scale) - static_cast<double>(0.04f)));
     EXPECT_EQ(particle.rotation, 219.0f);

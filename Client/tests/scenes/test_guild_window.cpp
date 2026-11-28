@@ -59,12 +59,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Guild::GuildMarkTextures;
+using Client::Guild::GuildState;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GuildMarkTextures;
-using Client::Scenes::GuildState;
 
 constexpr std::uint32_t Seed = 23;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -275,63 +275,63 @@ protected:
         Guild().score = 17;
     }
 
-    Client::Scenes::GuildSender Sender()
+    Client::Guild::GuildSender Sender()
     {
         return [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); };
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepTheGuildWindow(Client::Scenes::GuildWindowStepContext{
-            .world = *m_world,
-            .mouseX = m_mouseX,
-            .mouseY = m_mouseY,
-            .screen = Screen640,
-            .send = Sender(),
-            .keyEdge =
-                [this](std::uint8_t key)
-            {
-                const auto found = std::find(m_edges.begin(), m_edges.end(), key);
-                if (found == m_edges.end())
-                    return false;
-                m_edges.erase(found);
-                return true;
-            },
-            .keyDown = [](std::uint8_t) { return false; },
-            .now = Now,
-            .measure = &m_text,
-            .texts = &m_texts});
+        return Client::Guild::StepTheGuildWindow(
+            Client::Guild::GuildWindowStepContext{.world = *m_world,
+                                                  .mouseX = m_mouseX,
+                                                  .mouseY = m_mouseY,
+                                                  .screen = Screen640,
+                                                  .send = Sender(),
+                                                  .keyEdge =
+                                                      [this](std::uint8_t key)
+                                                  {
+                                                      const auto found = std::find(m_edges.begin(), m_edges.end(), key);
+                                                      if (found == m_edges.end())
+                                                          return false;
+                                                      m_edges.erase(found);
+                                                      return true;
+                                                  },
+                                                  .keyDown = [](std::uint8_t) { return false; },
+                                                  .now = Now,
+                                                  .measure = &m_text,
+                                                  .texts = &m_texts});
     }
 
     // Un miembro del 52: en la tabla de 0x787a5e8 (en el orden del paquete) y en la lista (0x6517a0).
     void AddMember(std::string_view name, std::uint8_t status, std::uint8_t server = 0)
     {
-        Client::Scenes::GuildMemberSlot& slot = Guild().members[static_cast<std::size_t>(Guild().memberCount)];
+        Client::Guild::GuildMemberSlot& slot = Guild().members[static_cast<std::size_t>(Guild().memberCount)];
         Fill(slot.name, name);
         slot.status = status;
         slot.server = server;
         ++Guild().memberCount;
-        Client::Scenes::AddTheGuildMember(*m_world, slot);
+        Client::Guild::AddTheGuildMember(*m_world, slot);
     }
 
     // Un gremio de la alianza del E9 (0x6517e0), con la marca de un solo color.
     void AddUnion(std::string_view name, std::uint8_t number, std::uint8_t color)
     {
-        std::array<std::uint8_t, Client::Scenes::GuildMarkNibbles> mark{};
+        std::array<std::uint8_t, Client::Guild::GuildMarkNibbles> mark{};
         mark.fill(color);
-        Client::Scenes::AddTheUnion(Guild().window, mark, name, number);
+        Client::Guild::AddTheUnion(Guild().window, mark, name, number);
     }
 
     // El aviso del 0D tipo 2 (0x651680).
     void AddNotice(std::string_view text)
     {
-        ASSERT_TRUE(Client::Scenes::AddTheGuildNotice(Guild().window, m_text, Runtime().hud.dcFont, Screen640, text)
-                        .HasValue());
+        ASSERT_TRUE(
+            Client::Guild::AddTheGuildNotice(Guild().window, m_text, Runtime().hud.dcFont, Screen640, text).HasValue());
     }
 
     std::string MemberAt(std::size_t at)
     {
-        return std::string(Client::Scenes::GuildTextOf(Guild().window.members.at(at).slot.name));
+        return std::string(Client::Guild::GuildTextOf(Guild().window.members.at(at).slot.name));
     }
 
     // 0x45b200: el flanco sobre el botón y, el cuadro que sigue, soltarlo encima.
@@ -346,11 +346,11 @@ protected:
         return ClickOn(Guild().window.tabButtons.at(button));
     }
 
-    Client::Core::Expected<void, std::string> ClickOn(const Client::UI::OldButton& target)
+    Client::Core::Expected<void, std::string> ClickOn(const Client::Ui::OldButton& target)
     {
         m_mouseX = target.base.x + target.base.width / 2;
         m_mouseY = target.base.y + target.base.height / 2;
-        Client::Scenes::GameMovementState& movement = Runtime().movement;
+        Client::Movement::GameMovementState& movement = Runtime().movement;
         movement.pendingClick = true;
         movement.leftHeld = true;
         if (auto pressed = Step(); !pressed.HasValue())
@@ -380,15 +380,15 @@ protected:
                                .texts = &m_texts,
                                .mouse = {m_mouseX, m_mouseY},
                                .guildMarks = &m_marks};
-        return Client::Scenes::DrawTheGuildWindow(context);
+        return Client::Guild::DrawTheGuildWindow(context);
     }
 
     // 0x6605b0 por el registro (LendThePanelDialogStepTo), con la respuesta de LendTheGuildTo.
     Client::Core::Expected<void, std::string> StepTheDialog()
     {
-        Client::UI::PanelContext panels{.random = m_random, .dialogs = Runtime().dialogs};
-        Client::Scenes::LendTheGuildTo(panels, *m_world, Sender());
-        Client::Scenes::LendThePanelDialogStepTo(panels, *m_world, Sender(), m_mouseX, m_mouseY, Now);
+        Client::Ui::PanelContext panels{.random = m_random, .dialogs = Runtime().dialogs};
+        Client::Guild::LendTheGuildTo(panels, *m_world, Sender());
+        Client::Guild::LendThePanelDialogStepTo(panels, *m_world, Sender(), m_mouseX, m_mouseY, Now);
         return panels.panelDialogStep();
     }
 
@@ -397,7 +397,7 @@ protected:
     {
         m_mouseX = x;
         m_mouseY = y;
-        Client::Scenes::GameMovementState& movement = Runtime().movement;
+        Client::Movement::GameMovementState& movement = Runtime().movement;
         movement.pendingClick = true;
         movement.leftHeld = true;
         if (auto pressed = StepTheDialog(); !pressed.HasValue())
@@ -412,7 +412,7 @@ protected:
 
     Client::Core::Expected<void, std::string> ClickThePositionsButton(std::size_t button)
     {
-        const Client::UI::OldButton& target = Guild().positions.buttons.at(button);
+        const Client::Ui::OldButton& target = Guild().positions.buttons.at(button);
         return ClickTheDialogAt(target.base.x + target.base.width / 2, target.base.y + target.base.height / 2);
     }
 
@@ -434,7 +434,7 @@ protected:
                                .texts = &m_texts,
                                .mouse = {m_mouseX, m_mouseY},
                                .guildMarks = &m_marks};
-        return Client::Scenes::DrawThePanelDialog(context, runtime.panels.delegated.panelDialog);
+        return Client::Guild::DrawThePanelDialog(context, runtime.panels.delegated.panelDialog);
     }
 
     // El maestro elige a `name` (con su cargo) y aprieta el botón del cargo.
@@ -443,7 +443,7 @@ protected:
         JoinTheGuild("");
         Hero().guildStatus = MasterStatus;
         AddMember(name, status);
-        const auto clicked = Click(Client::Scenes::GuildAssignButton);
+        const auto clicked = Click(Client::Guild::GuildAssignButton);
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     }
 
@@ -634,7 +634,7 @@ TEST_P(GuildWindowTest, TheMemberListPutsEachNewMemberFirst)
     EXPECT_EQ(Guild().window.memberList.scroll, 0);
     EXPECT_EQ(Guild().window.heroFirst, 1);
 
-    Client::Scenes::ClearTheGuildMembers(Guild().window);
+    Client::Guild::ClearTheGuildMembers(Guild().window);
     EXPECT_TRUE(Guild().window.members.empty());
     EXPECT_EQ(Guild().window.memberList.selection, 0);
     AddMember("Ombu", MemberStatus);
@@ -698,21 +698,21 @@ TEST_P(GuildWindowTest, TheMasterDismissesTheChosenMember)
     AddMember("Sauce", BattleMasterStatus);
     AddMember("Ombu", MemberStatus);
     ASSERT_EQ(Guild().window.memberList.selection, 2);
-    const auto clicked = Click(Client::Scenes::GuildDismissButton);
+    const auto clicked = Click(Client::Guild::GuildDismissButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogConfirm);
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogConfirm);
     ASSERT_EQ(dialog.lineCount, 2);
     EXPECT_EQ(dialog.lines[0], "Miembro: Sauce");
     EXPECT_EQ(dialog.lines[1], "pierde el cargo");
     EXPECT_EQ(Guild().window.dialog, Now);
-    EXPECT_EQ(Client::Scenes::GuildTextOf(Guild().chosenName), "Sauce");
+    EXPECT_EQ(Client::Guild::GuildTextOf(Guild().chosenName), "Sauce");
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_TRUE(m_sent.empty());
 
     auto answered =
-        Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerConfirm);
+        Client::Guild::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::Ui::PanelAnswerConfirm);
     ASSERT_TRUE(answered.HasValue());
     EXPECT_TRUE(answered.Value());
     ASSERT_EQ(m_sent.size(), 2U);
@@ -721,8 +721,8 @@ TEST_P(GuildWindowTest, TheMasterDismissesTheChosenMember)
     EXPECT_EQ(std::vector<std::byte>(list.begin(), list.end()), BytesOf({0xc1, 0x03, 0x52}));
 
     // Cancelar no manda nada.
-    answered = Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), Client::UI::PanelDialogOwner::GuildDismiss,
-                                                    Client::UI::PanelAnswerCancel);
+    answered = Client::Guild::AnswerThePanelDialog(*m_world, Sender(), Client::Ui::PanelDialogOwner::GuildDismiss,
+                                                   Client::Ui::PanelAnswerCancel);
     ASSERT_TRUE(answered.HasValue());
     EXPECT_EQ(m_sent.size(), 2U);
     EXPECT_EQ(Draws(m_random), 0);
@@ -736,20 +736,20 @@ TEST_P(GuildWindowTest, TheMasterKicksTheChosenMember)
     Hero().guildStatus = MasterStatus;
     AddMember("Sauce", BattleMasterStatus);
     AddMember("Ombu", MemberStatus);
-    Client::UI::SelectInTheList(Guild().window.memberList, Guild().window.members.size(), 1);
-    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
+    Client::Ui::SelectInTheList(Guild().window.memberList, Guild().window.members.size(), 1);
+    ASSERT_TRUE(Click(Client::Guild::GuildDismissButton).HasValue());
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
 
-    const auto clicked = Click(Client::Scenes::GuildKickButton);
+    const auto clicked = Click(Client::Guild::GuildKickButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildKick);
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildKick);
     EXPECT_EQ(dialog.lines[0], "Miembro: Ombu");
     EXPECT_EQ(dialog.lines[1], "se va del gremio");
     EXPECT_EQ(Guild().kickIndex, 1);
     EXPECT_EQ(Guild().kickMember, -1);
 
-    ASSERT_TRUE(Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerConfirm)
+    ASSERT_TRUE(Client::Guild::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::Ui::PanelAnswerConfirm)
                     .HasValue());
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
     EXPECT_EQ(Guild().kickMember, 1);
@@ -764,20 +764,20 @@ TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
 {
     JoinTheGuild("");
     AddMember("Sauce", BattleMasterStatus);
-    ASSERT_TRUE(Click(Client::Scenes::GuildAssignButton).HasValue());
-    ASSERT_TRUE(Click(Client::Scenes::GuildKickButton).HasValue());
-    Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_TRUE(Click(Client::Guild::GuildAssignButton).HasValue());
+    ASSERT_TRUE(Click(Client::Guild::GuildKickButton).HasValue());
+    Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
     EXPECT_EQ(dialog.opened, 0U);
 
     Hero().guildStatus = MasterStatus;
-    const auto clicked = Click(Client::Scenes::GuildAssignButton);
+    const auto clicked = Click(Client::Guild::GuildAssignButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     EXPECT_EQ(Guild().chosenStatus, BattleMasterStatus);
-    EXPECT_EQ(Client::Scenes::GuildTextOf(Guild().chosenName), "Sauce");
+    EXPECT_EQ(Client::Guild::GuildTextOf(Guild().chosenName), "Sauce");
     EXPECT_EQ(dialog.opened, Now);
     EXPECT_EQ(Guild().window.dialog, Now);
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::None);
-    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::None);
+    EXPECT_EQ(dialog.hooks, Client::Ui::PanelDialogHooks::GuildPositions);
     EXPECT_EQ(dialog.flags, 0U);
     EXPECT_EQ(dialog.lineCount, 0);
     EXPECT_EQ(dialog.width, 0xd5);
@@ -785,11 +785,11 @@ TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
     EXPECT_TRUE(m_sent.empty());
 
     // Cerrar no borra los ganchos; abrir otro, sí.
-    ASSERT_TRUE(Client::UI::CloseThePanelDialog(dialog).HasValue());
-    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
-    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
-    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::None);
+    ASSERT_TRUE(Client::Ui::CloseThePanelDialog(dialog).HasValue());
+    EXPECT_EQ(dialog.hooks, Client::Ui::PanelDialogHooks::GuildPositions);
+    ASSERT_TRUE(Click(Client::Guild::GuildDismissButton).HasValue());
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.hooks, Client::Ui::PanelDialogHooks::None);
     EXPECT_EQ(Draws(m_random), 0);
 }
 
@@ -813,25 +813,25 @@ TEST_P(GuildWindowTest, ASecondMasterButtonWithTheDialogOpenGetsTheBusyNotice)
     JoinTheGuild("");
     Hero().guildStatus = MasterStatus;
     AddMember("Sauce", BattleMasterStatus);
-    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    ASSERT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    ASSERT_TRUE(Click(Client::Guild::GuildDismissButton).HasValue());
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDismiss);
     ASSERT_EQ(Guild().window.dialog, Now);
     ASSERT_TRUE(Runtime().chat.log.entries.empty());
     Guild().kickIndex = 7;
 
     // 0x6507ad: el lugar de 0x64faa0 va a 0x7d536c8 antes de 0x6600d0.
-    const auto clicked = Click(Client::Scenes::GuildKickButton);
+    const auto clicked = Click(Client::Guild::GuildKickButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
     EXPECT_EQ(Runtime().chat.log.entries.front().text, BusyNotice());
-    EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+    EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::Ui::SystemMessage);
     EXPECT_EQ(Guild().window.dialog, 0U);
     EXPECT_EQ(Guild().kickIndex, 0);
     EXPECT_EQ(dialog.opened, Now);
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDismiss);
     EXPECT_EQ(dialog.lines[1], "pierde el cargo");
-    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::None);
+    EXPECT_EQ(dialog.hooks, Client::Ui::PanelDialogHooks::None);
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Draws(m_random), 0);
 }
@@ -844,31 +844,31 @@ TEST_P(GuildWindowTest, TheAssignButtonHooksThePositionsOntoTheOpenDialog)
     JoinTheGuild("");
     Hero().guildStatus = MasterStatus;
     AddMember("Sauce", BattleMasterStatus);
-    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
-    Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    ASSERT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    ASSERT_TRUE(Click(Client::Guild::GuildDismissButton).HasValue());
+    Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDismiss);
 
-    const auto clicked = Click(Client::Scenes::GuildAssignButton);
+    const auto clicked = Click(Client::Guild::GuildAssignButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
     EXPECT_EQ(Runtime().chat.log.entries.front().text, BusyNotice());
     EXPECT_EQ(Guild().window.dialog, 0U);
     EXPECT_EQ(Guild().chosenStatus, BattleMasterStatus);
     EXPECT_EQ(dialog.opened, Now);
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogConfirm);
-    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogConfirm);
+    EXPECT_EQ(dialog.hooks, Client::Ui::PanelDialogHooks::GuildPositions);
 
     ASSERT_TRUE(DrawTheDialog().HasValue());
-    Guild().positions.choice = Client::Scenes::AssistantChoice;
-    const auto accepted = ClickThePositionsButton(Client::Scenes::GuildPositionsOkButton);
+    Guild().positions.choice = Client::Guild::AssistantChoice;
+    const auto accepted = ClickThePositionsButton(Client::Guild::GuildPositionsOkButton);
     ASSERT_TRUE(accepted.HasValue()) << accepted.Error();
     ASSERT_EQ(m_sent.size(), 2U);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x0f, 0xe1, 0x02, 0x40, 'S', 'a', 'u', 'c', 'e', 0, 0, 0, 0, 0}));
     const auto list = m_sent[1].packet.Bytes();
     EXPECT_EQ(std::vector<std::byte>(list.begin(), list.end()), BytesOf({0xc1, 0x03, 0x52}));
     EXPECT_EQ(dialog.opened, 0U);
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::None);
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::None);
     EXPECT_EQ(Draws(m_random), 0);
 }
 
@@ -919,12 +919,12 @@ TEST_P(GuildWindowTest, ThePositionsWindowDrawsItsBoxesAndTexts)
     }
     EXPECT_LT(FindText(m_text.texts, "Aceptar", at), m_text.texts.size());
     EXPECT_LT(FindText(m_text.texts, "Cancelar", at), m_text.texts.size());
-    EXPECT_EQ(Guild().positions.buttons[Client::Scenes::GuildPositionsOkButton].base.x, 214 + 0x37);
-    EXPECT_EQ(Guild().positions.buttons[Client::Scenes::GuildPositionsCancelButton].base.x, 214 + 0x6e);
-    EXPECT_EQ(Guild().positions.buttons[Client::Scenes::GuildPositionsOkButton].base.y, 55 + 0x75);
+    EXPECT_EQ(Guild().positions.buttons[Client::Guild::GuildPositionsOkButton].base.x, 214 + 0x37);
+    EXPECT_EQ(Guild().positions.buttons[Client::Guild::GuildPositionsCancelButton].base.x, 214 + 0x6e);
+    EXPECT_EQ(Guild().positions.buttons[Client::Guild::GuildPositionsOkButton].base.y, 55 + 0x75);
 
     // Con el guerrero elegido, la rellena es la de abajo y el texto dice el 1302.
-    Guild().positions.choice = Client::Scenes::BattleMasterChoice;
+    Guild().positions.choice = Client::Guild::BattleMasterChoice;
     m_text.texts.clear();
     m_sprites.Begin(Screen640);
     ASSERT_TRUE(DrawTheDialog().HasValue());
@@ -943,18 +943,18 @@ TEST_P(GuildWindowTest, ThePositionsWindowAppointsAMember)
     OpenThePositionsFor("Sauce", MemberStatus);
     // Antes del primer dibujo la esquina es la de 0x64f3e0, (0, 0).
     ASSERT_TRUE(ClickTheDialogAt(0x14 + 2, 0x29 + 2).HasValue());
-    EXPECT_EQ(Guild().positions.choice, Client::Scenes::BattleMasterChoice);
+    EXPECT_EQ(Guild().positions.choice, Client::Guild::BattleMasterChoice);
     ASSERT_TRUE(DrawTheDialog().HasValue());
     Runtime().ui.mouseOnUi = 0;
     ASSERT_TRUE(ClickTheDialogAt(234 + 2, 74 + 2).HasValue());
-    EXPECT_EQ(Guild().positions.choice, Client::Scenes::AssistantChoice);
+    EXPECT_EQ(Guild().positions.choice, Client::Guild::AssistantChoice);
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     ASSERT_TRUE(ClickTheDialogAt(234 + 2, 55 + 0x29 + 2).HasValue());
-    EXPECT_EQ(Guild().positions.choice, Client::Scenes::BattleMasterChoice);
+    EXPECT_EQ(Guild().positions.choice, Client::Guild::BattleMasterChoice);
     EXPECT_TRUE(m_sent.empty());
     ASSERT_NE(Runtime().panels.delegated.panelDialog.opened, 0U);
 
-    const auto clicked = ClickThePositionsButton(Client::Scenes::GuildPositionsOkButton);
+    const auto clicked = ClickThePositionsButton(Client::Guild::GuildPositionsOkButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     ASSERT_EQ(m_sent.size(), 2U);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x0f, 0xe1, 0x01, 0x20, 'S', 'a', 'u', 'c', 'e', 0, 0, 0, 0, 0}));
@@ -972,16 +972,16 @@ TEST_P(GuildWindowTest, ThePositionsWindowChangesAPositionOrCancels)
     Fill(Guild().chosenName, "Algarrobo");
     OpenThePositionsFor("Tala", BattleMasterStatus);
     ASSERT_TRUE(DrawTheDialog().HasValue());
-    Guild().positions.choice = Client::Scenes::AssistantChoice;
-    ASSERT_TRUE(ClickThePositionsButton(Client::Scenes::GuildPositionsOkButton).HasValue());
+    Guild().positions.choice = Client::Guild::AssistantChoice;
+    ASSERT_TRUE(ClickThePositionsButton(Client::Guild::GuildPositionsOkButton).HasValue());
     ASSERT_EQ(m_sent.size(), 2U);
     EXPECT_EQ(PlainOf(m_sent[0]),
               BytesOf({0xc1, 0x0f, 0xe1, 0x02, 0x40, 'T', 'a', 'l', 'a', 0, 'r', 'o', 'b', 'o', 0}));
 
     m_sent.clear();
-    ASSERT_TRUE(Click(Client::Scenes::GuildAssignButton).HasValue());
+    ASSERT_TRUE(Click(Client::Guild::GuildAssignButton).HasValue());
     ASSERT_NE(Runtime().panels.delegated.panelDialog.opened, 0U);
-    const auto cancelled = ClickThePositionsButton(Client::Scenes::GuildPositionsCancelButton);
+    const auto cancelled = ClickThePositionsButton(Client::Guild::GuildPositionsCancelButton);
     ASSERT_TRUE(cancelled.HasValue()) << cancelled.Error();
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
     EXPECT_TRUE(m_sent.empty());
@@ -1012,7 +1012,7 @@ TEST_P(GuildWindowTest, TheNoticeTabDrawsTheGuildAndItsNotice)
     EXPECT_EQ(CountQuadsAt(quads, 0x117, Left + 0x19, 0xf6, 140.0f, 2.0f), 1U);
     EXPECT_EQ(CountQuadsAt(quads, 0x104, Left + 0x19, 0xf6, 2.0f, 95.0f), 1U);
 
-    const Client::UI::OldList& list = Guild().window.noticeList;
+    const Client::Ui::OldList& list = Guild().window.noticeList;
     EXPECT_EQ(list.base.x, WindowX + 0x1c);
     EXPECT_EQ(list.base.y, 0x104 + 0x50);
     EXPECT_EQ(list.base.width, 0x88);
@@ -1036,7 +1036,7 @@ TEST_P(GuildWindowTest, TheNoticeTabDrawsTheGuildAndItsNotice)
     EXPECT_EQ(m_text.texts[9].columns, 136);
     EXPECT_EQ(m_text.texts[10].text, "Hola socios");
     EXPECT_EQ(m_text.texts[10].x, WindowX + 0x1c + 4);
-    EXPECT_EQ(m_text.texts[10].y, Client::UI::ListRowY(list, 1, 0));
+    EXPECT_EQ(m_text.texts[10].y, Client::Ui::ListRowY(list, 1, 0));
     EXPECT_EQ(m_text.texts[10].style.colors.text, ChosenText);
     EXPECT_EQ(m_text.texts[11].text, "Dejar");
     EXPECT_EQ(Draws(m_random), 0);
@@ -1084,7 +1084,7 @@ TEST_P(GuildWindowTest, TheMembersTabDrawsTheRowsAndTheMasterButtons)
     AddMember("Ombu", MemberStatus, 0xff);
     const auto drawn = Draw();
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    const Client::UI::OldList& list = Guild().window.memberList;
+    const Client::Ui::OldList& list = Guild().window.memberList;
     const auto& texts = m_text.texts;
     ASSERT_GE(texts.size(), 8U);
     const std::array<std::string_view, 3> headers{"Nombre", "Cargo", "Server"};
@@ -1099,7 +1099,7 @@ TEST_P(GuildWindowTest, TheMembersTabDrawsTheRowsAndTheMasterButtons)
 
     const std::size_t sauce = FindText(texts, "Sauce");
     ASSERT_LT(sauce + 2, texts.size());
-    const int sauceY = Client::UI::ListRowY(list, 2, 1);
+    const int sauceY = Client::Ui::ListRowY(list, 2, 1);
     EXPECT_EQ(texts[sauce].x, 0x1d2 + 8);
     EXPECT_EQ(texts[sauce].y, sauceY);
     EXPECT_EQ(texts[sauce].style.colors.text, ChosenText);
@@ -1114,7 +1114,7 @@ TEST_P(GuildWindowTest, TheMembersTabDrawsTheRowsAndTheMasterButtons)
 
     const std::size_t ombu = FindText(texts, "Ombu");
     ASSERT_LT(ombu + 1, texts.size());
-    EXPECT_EQ(texts[ombu].y, Client::UI::ListRowY(list, 2, 0));
+    EXPECT_EQ(texts[ombu].y, Client::Ui::ListRowY(list, 2, 0));
     EXPECT_EQ(texts[ombu].style.colors.text, RowText);
     EXPECT_NE(texts[ombu + 1].y, texts[ombu].y);
 
@@ -1180,7 +1180,7 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     AddUnion("Ombues", 12, 2);
     auto drawn = Draw();
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    const Client::UI::OldList& list = Guild().window.unionList;
+    const Client::Ui::OldList& list = Guild().window.unionList;
     EXPECT_EQ(list.base.x, WindowX + 0xf);
     EXPECT_EQ(list.base.y, 0x6e + 100);
     EXPECT_EQ(list.base.width, 0xa0);
@@ -1196,7 +1196,7 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
 
     const std::size_t talas = FindText(texts, "Talas");
     ASSERT_LT(talas + 1, texts.size());
-    const int talasY = Client::UI::ListRowY(list, 2, 1);
+    const int talasY = Client::Ui::ListRowY(list, 2, 1);
     EXPECT_EQ(texts[talas].x, WindowX + 0xf + 4 + 0xc);
     EXPECT_EQ(texts[talas].y, talasY);
     EXPECT_EQ(texts[talas].style.colors.text, ChosenText);
@@ -1216,9 +1216,9 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
                            8.0f),
               1U);
     EXPECT_EQ(CountQuadsAt(quads, firstRow, static_cast<float>(WindowX + 0xf + 4),
-                           static_cast<float>(Client::UI::ListRowY(list, 2, 0)), 8.0f, 8.0f),
+                           static_cast<float>(Client::Ui::ListRowY(list, 2, 0)), 8.0f, 8.0f),
               1U);
-    EXPECT_FALSE(m_store.Find(GuildMarkTextures::SlotOf(Client::Scenes::CreatingGuildIndex, true)).has_value());
+    EXPECT_FALSE(m_store.Find(GuildMarkTextures::SlotOf(Client::Guild::CreatingGuildIndex, true)).has_value());
     const auto ombuesMark = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(firstRow)});
     const auto talasMark = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(firstRow + 1)});
     ASSERT_TRUE(ombuesMark.has_value());
@@ -1226,13 +1226,13 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     EXPECT_EQ(ombuesMark->texture.pixels[0], 0x80);
     EXPECT_EQ(talasMark->texture.pixels[0], 0);
     EXPECT_EQ(talasMark->texture.pixels[3], 0xff);
-    EXPECT_EQ(Guild().table[static_cast<std::size_t>(Client::Scenes::CreatingGuildIndex)].mark,
+    EXPECT_EQ(Guild().table[static_cast<std::size_t>(Client::Guild::CreatingGuildIndex)].mark,
               Guild().table[InTheGuild].mark);
 
-    const Client::Scenes::GuildWindowState& window = Guild().window;
+    const Client::Guild::GuildWindowState& window = Guild().window;
     EXPECT_EQ(texts[texts.size() - 2].text, "Echarlo");
     EXPECT_EQ(texts[texts.size() - 1].text, "Romperla");
-    EXPECT_EQ(window.tabButtons[Client::Scenes::GuildUnionKickButton].base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(window.tabButtons[Client::Guild::GuildUnionKickButton].base.state, Client::Ui::ShownWindow);
 
     EXPECT_EQ(Draws(m_random), 0);
 
@@ -1250,7 +1250,7 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     ASSERT_FALSE(m_text.texts.empty());
     EXPECT_EQ(m_text.texts.back().text, "Dejarla");
     EXPECT_EQ(FindText(m_text.texts, "Echarlo"), m_text.texts.size());
-    EXPECT_EQ(window.tabButtons[Client::Scenes::GuildUnionKickButton].base.state, Client::UI::DisabledWindow);
+    EXPECT_EQ(window.tabButtons[Client::Guild::GuildUnionKickButton].base.state, Client::Ui::DisabledWindow);
     EXPECT_EQ(Draws(m_random), Client::Models::OwnRecordCloseRandoms);
 }
 
@@ -1260,11 +1260,11 @@ TEST_P(GuildWindowTest, TheAllianceMasterCannotLeaveTheGuild)
     JoinTheGuild("Talas");
     Hero().guildStatus = MasterStatus;
     Guild().window.tab = 0;
-    const auto clicked = ClickTheTabButton(Client::Scenes::GuildLeaveButton);
+    const auto clicked = ClickTheTabButton(Client::Guild::GuildLeaveButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::None);
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogOk);
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::None);
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogOk);
     ASSERT_EQ(dialog.lineCount, 1);
     EXPECT_EQ(dialog.lines[0], "No deja el gremio");
     EXPECT_EQ(Guild().window.dialog, Now);
@@ -1279,21 +1279,21 @@ TEST_P(GuildWindowTest, TheMasterDisbandsTheGuildThroughTheNumberDialog)
     JoinTheGuild("");
     Hero().guildStatus = MasterStatus;
     Guild().window.tab = 0;
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildLeaveButton).HasValue());
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDisband);
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogConfirm);
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildLeaveButton).HasValue());
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::GuildDisband);
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogConfirm);
     ASSERT_EQ(dialog.lineCount, 4);
     for (std::size_t line = 0; line < 4; ++line)
         EXPECT_EQ(dialog.lines[line], std::format("Disolver {}", line + 1));
 
     auto answered =
-        Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerCancel);
+        Client::Guild::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::Ui::PanelAnswerCancel);
     ASSERT_TRUE(answered.HasValue());
     EXPECT_EQ(Runtime().dialogs.current, 0);
 
     Runtime().ui.chatOpen = true;
-    answered = Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerConfirm);
+    answered = Client::Guild::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::Ui::PanelAnswerConfirm);
     ASSERT_TRUE(answered.HasValue());
     EXPECT_TRUE(answered.Value());
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
@@ -1315,8 +1315,8 @@ TEST_P(GuildWindowTest, ALongDisbandLineRunsIntoTheNextOne)
     JoinTheGuild("");
     Hero().guildStatus = MasterStatus;
     Guild().window.tab = 0;
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildLeaveButton).HasValue());
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildLeaveButton).HasValue());
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
     ASSERT_EQ(dialog.lineCount, 4);
     EXPECT_EQ(dialog.lines[0], "Disolver 1");
     EXPECT_EQ(dialog.lines[1], spanish.substr(0, 0x32) + "Y el Ranking del gremio tambien desaparecio");
@@ -1326,7 +1326,7 @@ TEST_P(GuildWindowTest, ALongDisbandLineRunsIntoTheNextOne)
     Runtime().panels.delegated.panelDialog = {};
     Guild().window.dialog = 0;
     m_texts = WindowTexts({{1366, std::string(0x32, 'x')}});
-    const auto cut = ClickTheTabButton(Client::Scenes::GuildLeaveButton);
+    const auto cut = ClickTheTabButton(Client::Guild::GuildLeaveButton);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x64fd8f"), std::string::npos);
 }
@@ -1339,7 +1339,7 @@ TEST_P(GuildWindowTest, AMemberLeavesTheGuildThroughTheNumberDialog)
     Guild().window.tab = 0;
     AddMember("Sauce", MasterStatus);
     AddMember("Ombu", MemberStatus);
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildLeaveButton).HasValue());
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildLeaveButton).HasValue());
     EXPECT_EQ(Guild().kickMember, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
     EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
@@ -1353,9 +1353,9 @@ TEST_P(GuildWindowTest, TheAllianceMasterCannotLeaveTheAlliance)
     JoinTheGuild("Talas");
     Hero().guildStatus = MasterStatus;
     Guild().window.tab = 2;
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildUnionLeaveButton).HasValue());
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogOk);
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildUnionLeaveButton).HasValue());
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogOk);
     ASSERT_EQ(dialog.lineCount, 1);
     EXPECT_EQ(dialog.lines[0], "No deja la alianza");
     EXPECT_TRUE(m_sent.empty());
@@ -1369,13 +1369,13 @@ TEST_P(GuildWindowTest, AMasterLeavesTheAlliance)
     Hero().guildStatus = MasterStatus;
     Hero().key = 0x1234;
     Guild().window.tab = 2;
-    const auto clicked = ClickTheTabButton(Client::Scenes::GuildUnionLeaveButton);
+    const auto clicked = ClickTheTabButton(Client::Guild::GuildUnionLeaveButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     ASSERT_EQ(m_sent.size(), 1U);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x07, 0xe5, 0x01, 0x02, 0x12, 0x34}));
     ASSERT_FALSE(Runtime().chat.log.entries.empty());
     EXPECT_EQ(Runtime().chat.log.entries.back().text, "Dejaste la alianza");
-    EXPECT_EQ(Runtime().chat.log.entries.back().type, Client::UI::SystemMessage);
+    EXPECT_EQ(Runtime().chat.log.entries.back().type, Client::Ui::SystemMessage);
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
     EXPECT_EQ(Draws(m_random), 0);
 }
@@ -1391,12 +1391,12 @@ TEST_P(GuildWindowTest, TheAllianceMasterKicksAGuildOutOfIt)
     Fill(Guild().chosenName, "Sauceda1234");
     AddUnion("Talas", 3, 1);
     AddUnion("Ombues", 12, 2);
-    Client::UI::SelectInTheList(Guild().window.unionList, Guild().window.unions.size(), 1);
-    const auto clicked = ClickTheTabButton(Client::Scenes::GuildUnionKickButton);
+    Client::Ui::SelectInTheList(Guild().window.unionList, Guild().window.unions.size(), 1);
+    const auto clicked = ClickTheTabButton(Client::Guild::GuildUnionKickButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::UnionKick);
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogConfirm);
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::UnionKick);
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogConfirm);
     ASSERT_EQ(dialog.lineCount, 2);
     EXPECT_EQ(dialog.lines[0], "Gremio: Ombues");
     EXPECT_EQ(dialog.lines[1], "se va del gremio");
@@ -1405,18 +1405,18 @@ TEST_P(GuildWindowTest, TheAllianceMasterKicksAGuildOutOfIt)
     EXPECT_TRUE(m_sent.empty());
 
     auto answered =
-        Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerCancel);
+        Client::Guild::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::Ui::PanelAnswerCancel);
     ASSERT_TRUE(answered.HasValue());
     EXPECT_TRUE(m_sent.empty());
-    answered = Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerConfirm);
+    answered = Client::Guild::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::Ui::PanelAnswerConfirm);
     ASSERT_TRUE(answered.HasValue());
     EXPECT_TRUE(answered.Value());
     ASSERT_EQ(m_sent.size(), 1U);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x0c, 0xeb, 0x01, 'O', 'm', 'b', 'u', 'e', 's', 0, '1'}));
 
-    Runtime().panels.delegated.panelDialog = Client::UI::PanelDialogState{};
-    Client::UI::SelectInTheList(Guild().window.unionList, Guild().window.unions.size(), 2);
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildUnionKickButton).HasValue());
+    Runtime().panels.delegated.panelDialog = Client::Ui::PanelDialogState{};
+    Client::Ui::SelectInTheList(Guild().window.unionList, Guild().window.unions.size(), 2);
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildUnionKickButton).HasValue());
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
     EXPECT_EQ(Draws(m_random), 0);
 }
@@ -1427,12 +1427,12 @@ TEST_P(GuildWindowTest, OnlyAMasterWithAnAllianceHasTheUnionButtons)
     JoinTheGuild("Talas");
     Guild().window.tab = 2;
     AddUnion("Ombues", 12, 2);
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildUnionLeaveButton).HasValue());
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildUnionKickButton).HasValue());
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildUnionLeaveButton).HasValue());
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildUnionKickButton).HasValue());
     Hero().guildStatus = MasterStatus;
     Fill(Guild().table[InTheGuild].unionName, "");
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildUnionLeaveButton).HasValue());
-    ASSERT_TRUE(ClickTheTabButton(Client::Scenes::GuildUnionKickButton).HasValue());
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildUnionLeaveButton).HasValue());
+    ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildUnionKickButton).HasValue());
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
     EXPECT_TRUE(m_sent.empty());
 }
@@ -1444,7 +1444,7 @@ TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
 {
     for (int notice = 1; notice <= 8; ++notice)
         AddNotice(std::format("Aviso {}", notice));
-    const Client::Scenes::GuildWindowState& window = Guild().window;
+    const Client::Guild::GuildWindowState& window = Guild().window;
     ASSERT_EQ(window.notice.size(), 8U);
     EXPECT_EQ(window.notice[0].text, "Aviso 8");
     EXPECT_EQ(window.notice[7].text, "Aviso 1");
@@ -1452,7 +1452,7 @@ TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
     EXPECT_EQ(window.noticeList.scroll, 0);
 
     const std::string_view text = "uno dos tres cuatro cinco seis siete";
-    const auto wrapped = Client::UI::WrapByWidth(text, m_text, Runtime().hud.dcFont, Screen640, 0x6e, 5, 0);
+    const auto wrapped = Client::Chat::WrapByWidth(text, m_text, Runtime().hud.dcFont, Screen640, 0x6e, 5, 0);
     ASSERT_TRUE(wrapped.HasValue());
     std::vector<std::string> lines;
     for (const std::string& line : wrapped.Value().lines)
@@ -1466,7 +1466,7 @@ TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
     for (std::size_t line = 0; line < lines.size(); ++line)
         EXPECT_EQ(window.notice[line].text, lines[lines.size() - 1 - line]);
 
-    Client::Scenes::ClearTheGuildNotice(Guild().window);
+    Client::Guild::ClearTheGuildNotice(Guild().window);
     EXPECT_TRUE(window.notice.empty());
     EXPECT_EQ(window.noticeList.selection, 0);
     EXPECT_EQ(window.noticeList.scroll, 0);
@@ -1479,14 +1479,14 @@ TEST_P(GuildWindowTest, TheUnionListPutsEachGuildFirst)
     EXPECT_TRUE(Guild().window.unions.empty());
     AddUnion("Talas", 3, 1);
     AddUnion("Ombues", 12, 2);
-    const Client::Scenes::GuildWindowState& window = Guild().window;
+    const Client::Guild::GuildWindowState& window = Guild().window;
     ASSERT_EQ(window.unions.size(), 2U);
-    EXPECT_EQ(Client::Scenes::GuildTextOf(window.unions[0].name), "Ombues");
+    EXPECT_EQ(Client::Guild::GuildTextOf(window.unions[0].name), "Ombues");
     EXPECT_EQ(window.unions[0].byte0, 12);
     EXPECT_EQ(window.unions[0].mark[0], 2);
-    EXPECT_EQ(Client::Scenes::GuildTextOf(window.unions[1].name), "Talas");
+    EXPECT_EQ(Client::Guild::GuildTextOf(window.unions[1].name), "Talas");
     EXPECT_EQ(window.unionList.selection, 2);
-    Client::Scenes::ClearTheUnions(Guild().window);
+    Client::Guild::ClearTheUnions(Guild().window);
     EXPECT_TRUE(window.unions.empty());
     EXPECT_EQ(window.unionList.selection, 0);
 }

@@ -16,7 +16,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 namespace
 {
@@ -160,4 +160,4 @@ Core::Expected<void, std::string> GuildMarkTextures::Load(Render::TextureSlot sl
     m_uploaded.insert_or_assign(slot.value, image);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

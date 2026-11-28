@@ -10,7 +10,7 @@
 // El cursor del juego (0x5ac2d0): el original esconde el de Windows (ShowCursor(FALSE) en WinMain,
 // 0x4ba238, y en el WndProc, 0x4b3327) y dibuja el suyo al final de la UI de cada escena: el login
 // (0x635560), la selección (0x634980) y el juego (0x6376d7). Contrato: 06 § Lo demás del login.
-namespace Client::UI
+namespace Client::Ui
 {
 // Interface\Cursor.tga y Interface\CursorPush.tga, que sube 0x61ccb0 (0x61ccf9 y 0x61cd12) con
 // GL_LINEAR y GL_CLAMP.
@@ -35,4 +35,4 @@ inline constexpr Render::TextureSlot CursorPushSlot{3};
 
 // 0x620a00(1), glColor3f(1, 1, 1) y el quad de CursorQuad con el mouse y el botón de `input`.
 void DrawGameCursor(Render::SpriteBatch& sprites, const Input::InputState& input, Core::PixelSize screen);
-} // namespace Client::UI
+} // namespace Client::Ui

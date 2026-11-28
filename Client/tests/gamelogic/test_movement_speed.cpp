@@ -11,9 +11,9 @@
 // 06 § Caminar, velocidad 0x508940: expectativas analíticas del ASM, sin ejecutar el original.
 namespace
 {
-using Client::GameLogic::MovementSpeedInput;
-using Client::GameLogic::MovementSpeedSharedState;
-using Client::GameLogic::UpdateMovementSpeed;
+using Client::Actors::MovementSpeedInput;
+using Client::Actors::MovementSpeedSharedState;
+using Client::Actors::UpdateMovementSpeed;
 
 MovementSpeedInput PlayerInput()
 {

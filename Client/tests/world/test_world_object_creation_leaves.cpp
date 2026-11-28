@@ -17,11 +17,11 @@
 namespace
 {
 // Aísla las leafs: acepta sólo el request309 acreditado. No demuestra ModelEffects transitivo.
-class CastleEffectBinding final : public Client::World::IWorldObjectCreationServices
+class CastleEffectBinding final : public Client::WorldObjects::IWorldObjectCreationServices
 {
 public:
-    bool CreateModelEffect(const Client::World::WorldObjectModelEffectRequest& request,
-                           Client::World::WorldObject& source) noexcept override
+    bool CreateModelEffect(const Client::WorldObjects::WorldObjectModelEffectRequest& request,
+                           Client::WorldObjects::WorldObject& source) noexcept override
     {
         return request.type == 309 && request.scale == 0.0f && request.owner == source.identity &&
                request.position == source.transform.position && &request.position == &source.transform.position;
@@ -41,11 +41,11 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesUseTheCorrectCastleGroupForEve
         {
             const auto signedType = static_cast<std::int16_t>(type);
             const Client::Data::Terrain::TerrainObject record{.type = signedType, .scale = 2.0f};
-            Client::World::WorldObjectRegistrations registrations;
+            Client::WorldObjects::WorldObjectRegistrations registrations;
             Client::Crt::CrtRandom random(1);
-            Client::World::WorldObjectCreationContext context{
-                30, Client::World::ObjectScene::Other, registrations, &services, &random, &flag};
-            const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
+            Client::WorldObjects::WorldObjectCreationContext context{
+                30, Client::WorldObjects::ObjectScene::Other, registrations, &services, &random, &flag};
+            const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
             ASSERT_FALSE(result.failure.has_value());
             ASSERT_EQ(result.objects.size(), 1u);
             std::int16_t expectedHidden = -1;
@@ -71,11 +71,11 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesOnMap31ConsumeRandomOnlyFor27A
     for (int type = -32768; type <= 32767; ++type)
     {
         const Client::Data::Terrain::TerrainObject record{.type = static_cast<std::int16_t>(type)};
-        Client::World::WorldObjectRegistrations registrations;
+        Client::WorldObjects::WorldObjectRegistrations registrations;
         Client::Crt::CrtRandom random(1);
-        Client::World::WorldObjectCreationContext context{31, Client::World::ObjectScene::Other, registrations, nullptr,
-                                                          &random};
-        const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
+        Client::WorldObjects::WorldObjectCreationContext context{31, Client::WorldObjects::ObjectScene::Other,
+                                                                 registrations, nullptr, &random};
+        const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
         ASSERT_FALSE(result.failure.has_value());
         ASSERT_EQ(result.objects.size(), 1u);
         const bool draws = type == 27 || type == 54;
@@ -93,12 +93,12 @@ TEST(WorldObjectCreationLeavesTest, Map31PredicateDoesNotNarrowOrConfuseTheMapWi
         for (const std::int16_t type : std::array<std::int16_t, 2>{27, 54})
         {
             const Client::Data::Terrain::TerrainObject record{.type = type};
-            Client::World::WorldObjectRegistrations registrations;
+            Client::WorldObjects::WorldObjectRegistrations registrations;
             Client::Crt::CrtRandom random(1);
             const std::uint8_t flag = 255;
-            Client::World::WorldObjectCreationContext context{
-                map, Client::World::ObjectScene::Other, registrations, nullptr, &random, &flag};
-            const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
+            Client::WorldObjects::WorldObjectCreationContext context{
+                map, Client::WorldObjects::ObjectScene::Other, registrations, nullptr, &random, &flag};
+            const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
             ASSERT_FALSE(result.failure.has_value());
             ASSERT_EQ(result.objects.size(), 1u);
             EXPECT_EQ(random.State(), 1u) << map << '/' << type;
@@ -111,11 +111,12 @@ TEST(WorldObjectCreationLeavesTest, MissingLiveStateNeverBecomesAnInventedZero)
 {
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 4},
                              Client::Data::Terrain::TerrainObject{.type = 4}};
-    Client::World::WorldObjectRegistrations registrations;
-    Client::World::WorldObjectCreationContext context{30, Client::World::ObjectScene::Other, registrations};
-    const auto result = Client::World::CreateWorldObjects(records, context);
+    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::WorldObjects::WorldObjectCreationContext context{30, Client::WorldObjects::ObjectScene::Other,
+                                                             registrations};
+    const auto result = Client::WorldObjects::CreateWorldObjects(records, context);
     ASSERT_TRUE(result.failure.has_value());
-    EXPECT_EQ(result.failure->error, Client::World::WorldObjectCreationError::UnsupportedMapHandler);
+    EXPECT_EQ(result.failure->error, Client::WorldObjects::WorldObjectCreationError::UnsupportedMapHandler);
     EXPECT_EQ(result.failure->recordIndex, 0u);
     ASSERT_EQ(result.objects.size(), 1u);
     EXPECT_EQ(result.objects[0].state.hiddenMesh, -1);
@@ -125,14 +126,14 @@ TEST(WorldObjectCreationLeavesTest, MissingLiveStateNeverBecomesAnInventedZero)
 TEST(WorldObjectCreationLeavesTest, ReusingTheContextReadsTheCurrentPredicateByteEachTime)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 4};
-    Client::World::WorldObjectRegistrations registrations;
+    Client::WorldObjects::WorldObjectRegistrations registrations;
     std::uint8_t flag = 0;
-    Client::World::WorldObjectCreationContext context{
-        30, Client::World::ObjectScene::Other, registrations, nullptr, nullptr, &flag};
+    Client::WorldObjects::WorldObjectCreationContext context{
+        30, Client::WorldObjects::ObjectScene::Other, registrations, nullptr, nullptr, &flag};
     for (const std::uint8_t next : std::array<std::uint8_t, 5>{0, 255, 2, 1, 0})
     {
         flag = next;
-        const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
+        const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
         ASSERT_FALSE(result.failure.has_value());
         ASSERT_EQ(result.objects.size(), 1u);
         EXPECT_EQ(result.objects[0].state.hiddenMesh, next == 0 ? -2 : -1);
@@ -147,17 +148,17 @@ struct CastleTransition
     std::uint8_t state;
 };
 
-class CastleTransitionServices final : public Client::World::IWorldObjectCreationServices
+class CastleTransitionServices final : public Client::WorldObjects::IWorldObjectCreationServices
 {
 public:
-    CastleTransitionServices(Client::World::WorldObjectCreationContext& context, std::uint8_t& state,
+    CastleTransitionServices(Client::WorldObjects::WorldObjectCreationContext& context, std::uint8_t& state,
                              CastleTransition transition)
         : m_context(context), m_state(state), m_transition(transition)
     {
     }
 
-    bool CreateModelEffect(const Client::World::WorldObjectModelEffectRequest& request,
-                           Client::World::WorldObject& source) noexcept override
+    bool CreateModelEffect(const Client::WorldObjects::WorldObjectModelEffectRequest& request,
+                           Client::WorldObjects::WorldObject& source) noexcept override
     {
         if (request.type != 309)
         {
@@ -170,7 +171,7 @@ public:
     }
 
 private:
-    Client::World::WorldObjectCreationContext& m_context;
+    Client::WorldObjects::WorldObjectCreationContext& m_context;
     std::uint8_t& m_state;
     CastleTransition m_transition;
 };
@@ -178,13 +179,13 @@ private:
 TEST(WorldObjectCreationLeavesTest, CastleFinalLeafReadsTheTypeAndPredicateAfterTheEffect)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
-    Client::World::WorldObjectRegistrations registrations;
+    Client::WorldObjects::WorldObjectRegistrations registrations;
     std::uint8_t flag = 255;
-    Client::World::WorldObjectCreationContext context{
-        30, Client::World::ObjectScene::Other, registrations, nullptr, nullptr, &flag};
+    Client::WorldObjects::WorldObjectCreationContext context{
+        30, Client::WorldObjects::ObjectScene::Other, registrations, nullptr, nullptr, &flag};
     CastleTransitionServices services(context, flag, {4, 30, 0});
     context.services = &services;
-    const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
+    const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
     ASSERT_FALSE(result.failure.has_value());
     ASSERT_EQ(result.objects.size(), 1u);
     EXPECT_EQ(result.objects[0].type, 4);
@@ -195,14 +196,14 @@ TEST(WorldObjectCreationLeavesTest, CastleFinalLeafReadsTheTypeAndPredicateAfter
 TEST(WorldObjectCreationLeavesTest, LaterMap31HandlerReadsTheMapAndTypeChangedByTheCastleEffect)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
-    Client::World::WorldObjectRegistrations registrations;
+    Client::WorldObjects::WorldObjectRegistrations registrations;
     Client::Crt::CrtRandom random(1);
     std::uint8_t flag = 255;
-    Client::World::WorldObjectCreationContext context{
-        30, Client::World::ObjectScene::Other, registrations, nullptr, &random, &flag};
+    Client::WorldObjects::WorldObjectCreationContext context{
+        30, Client::WorldObjects::ObjectScene::Other, registrations, nullptr, &random, &flag};
     CastleTransitionServices services(context, flag, {27, 31, 2});
     context.services = &services;
-    const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
+    const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
     ASSERT_FALSE(result.failure.has_value());
     ASSERT_EQ(result.objects.size(), 1u);
     EXPECT_EQ(result.objects[0].type, 27);

@@ -21,7 +21,7 @@
 // De toda la pantalla (0x669c70(W, H, −1, 0), negra con alfa 0x80, como el aviso), con un marco de
 // piedra de 213 de ancho al centro (0x66a1c0) y cuatro botones de 108 × 30 (0x63c330): salir del
 // juego (381), elegir otro servidor (382, solo en la selección), las opciones (385) y cerrar (388).
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // 0x647ef0: "...en% d segundos.", con lo que falta de la cuenta.
 inline constexpr std::size_t LeavingTheGameText = 380;
@@ -30,9 +30,9 @@ inline constexpr std::size_t LeavingTheGameText = 380;
 struct EscapeWindowLayout
 {
     // 213 × (64 + líneas · alto de op1_back3 + 43), al centro.
-    Rect frame;
+    Ui::Rect frame;
     // Salir, otro servidor, opciones y cerrar.
-    std::array<Rect, 4> buttons{};
+    std::array<Ui::Rect, 4> buttons{};
 };
 
 // 0x6478c0 y 0x647c00 con `lines` líneas del marco (6 en el login, 10 en la selección) de
@@ -40,11 +40,11 @@ struct EscapeWindowLayout
 [[nodiscard]] EscapeWindowLayout LayoutEscapeWindow(Core::PixelSize screen, int lines, int lineHeight);
 
 // 0x66a960: el fondo de piedra, el borde de arriba, el de abajo y los dos lados, en ese orden.
-[[nodiscard]] std::array<Render::UiImage, 5> EscapeFrameImages(Rect frame, const TextureSizes& sizes);
+[[nodiscard]] std::array<Render::UiImage, 5> EscapeFrameImages(Ui::Rect frame, const Ui::TextureSizes& sizes);
 // Lo mismo con otro borde de arriba (`topSlot`, de `topHeight`): el de las opciones es op2_back1,
 // de 65 (0x644120).
-[[nodiscard]] std::array<Render::UiImage, 5> StoneFrameImages(Rect frame, Render::TextureSlot topSlot, int topHeight,
-                                                              const TextureSizes& sizes);
+[[nodiscard]] std::array<Render::UiImage, 5> StoneFrameImages(Ui::Rect frame, Render::TextureSlot topSlot,
+                                                              int topHeight, const Ui::TextureSizes& sizes);
 
 // Lo que pasó en un paso de 0x647d40.
 struct EscapeWindowEvent
@@ -71,31 +71,31 @@ struct EscapeWindowEvent
     friend bool operator==(const EscapeWindowEvent&, const EscapeWindowEvent&) = default;
 };
 
-class EscapeWindow final : public NewUiWindow
+class EscapeWindow final : public Ui::NewUiWindow
 {
 public:
-    EscapeWindow(TextureSizes sizes, const Tables::TextTable* texts);
+    EscapeWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x6478c0 para la escena del modo: en el login (2) el 1 deshabilitado (y sin dibujar: su
     // cuadro de deshabilitado es −1) y 6 líneas; en la selección (4), 10. Sin cuenta (+0x408 en −1
     // y +0x410 en 0). Cerrada.
-    void Arm(NewUiMode mode);
+    void Arm(Ui::NewUiMode mode);
 
     // 0x647cd0 con 1. La cuenta no vuelve a empezar.
     void Open();
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // De toda la pantalla: 0x647c00 mueve el marco y los botones, no el rectángulo.
-    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
+    [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
 
     // +0x408: los segundos que faltan para cerrar el juego, o nada sin cuenta.
     [[nodiscard]] std::optional<int> Countdown() const;
-    [[nodiscard]] const Button& ButtonAt(std::size_t index) const;
+    [[nodiscard]] const Ui::Button& ButtonAt(std::size_t index) const;
 
     // Los botones (0x63c490) y, con el foco, 0x647d40 con los `elapsedMs` de este paso (el original
     // le pasa los del frame, hasta 200).
     std::optional<EscapeWindowEvent> Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs,
-                                          NewUiTurn turn = {});
+                                          Ui::NewUiTurn turn = {});
     // 0x66a050 y 0x647ed0: el fondo negro, el marco y los botones con su rótulo (0x63c710, que no
     // dibuja el deshabilitado).
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
@@ -103,9 +103,9 @@ public:
 private:
     void Place(Core::PixelSize screen);
 
-    TextureSizes m_sizes;
+    Ui::TextureSizes m_sizes;
     const Tables::TextTable* m_texts = nullptr;
-    std::array<Button, 4> m_buttons;
+    std::array<Ui::Button, 4> m_buttons;
     EscapeWindowLayout m_layout;
     int m_lines = 1;
     bool m_open = false;
@@ -113,4 +113,4 @@ private:
     std::optional<int> m_countdown;
     double m_elapsed = 0.0;
 };
-} // namespace Client::UI
+} // namespace Client::FrontEnd

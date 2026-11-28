@@ -17,9 +17,13 @@ namespace Client::Terrain
 struct TerrainView;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
 {
 class Particles;
+} // namespace Client::Particles
+
+namespace Client::MapScripts::Crywolf
+{
 
 // Lo que 0x5fa5c0 lee fuera de la celda en el mapa 34. Quien llama lo presta durante el pase.
 struct CrywolfWaterContext
@@ -28,7 +32,7 @@ struct CrywolfWaterContext
     float heroZ = 0.0f;
     glm::vec3 heroAngles{0.0f};
     Crt::CrtRandom* random = nullptr;
-    Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     std::reference_wrapper<const float> worldClock;
 };
 
@@ -41,4 +45,4 @@ struct CrywolfWaterContext
 [[nodiscard]] Core::Expected<void, std::string> StepCrywolfWaterCell(const Terrain::TerrainView& view, std::uint8_t x,
                                                                      std::uint8_t y,
                                                                      const CrywolfWaterContext& context);
-} // namespace Client::World
+} // namespace Client::MapScripts::Crywolf

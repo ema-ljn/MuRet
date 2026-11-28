@@ -21,7 +21,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -161,7 +161,7 @@ namespace Steps
 bool MouseIn(const OldWindowStepView& view, std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height,
              std::int32_t mode)
 {
-    return MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
+    return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
 }
 
 bool IsShowing(std::int32_t state)
@@ -500,7 +500,7 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
             // El foco deja de ser del EDIT de una caja ya destruida (el huérfano, CL9 hito 9).
             manager.orphanedEdit.reset();
             manager.focusedEditIsOrphan = false;
-            globals.keyboardFocus = ChatFocus::OldWindow;
+            globals.keyboardFocus = Chat::ChatFocus::OldWindow;
             manager.focusedEdit = base.id;
             globals.focusedList = base.id;
             edit.text.Deselect();
@@ -683,7 +683,7 @@ Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manage
     if (globals.releasedClick && window.base.state == ShownWindow)
     {
         // SetFocus([0x5763544]), como FocusTheGame.
-        globals.keyboardFocus = ChatFocus::Game;
+        globals.keyboardFocus = Chat::ChatFocus::Game;
         globals.RequestSound(ButtonSound);
         globals.releasedClick = false;
         // Con el elegido en el final (el borde de arriba, 0 de distancia), el original lee la ranura después del último
@@ -959,7 +959,7 @@ void ShowTheWindow(OldWindowManager& manager, std::int32_t id, bool show)
 // del IME, que MuRet no tiene; 0x4906a0 no lo llama.
 void FocusTheGame(const OldWindowGlobals& globals)
 {
-    globals.keyboardFocus = ChatFocus::Game;
+    globals.keyboardFocus = Chat::ChatFocus::Game;
 }
 
 // El final del 2 y del 4 de 0x490b70: el foco a la nueva del final de la lista, o al juego.
@@ -1008,7 +1008,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
         if (FindTheOldWindow(manager, id)->base.state == HiddenWindow)
             ShowTheWindow(manager, id, true);
         // 0x490c7d..0x490cd8: la sube al final, salvo que ya esté ahí con el foco en otro lado.
-        if (LastOldWindow(manager) != id || globals.keyboardFocus == ChatFocus::Game)
+        if (LastOldWindow(manager) != id || globals.keyboardFocus == Chat::ChatFocus::Game)
         {
             manager.order.remove(id);
             manager.order.push_back(id);
@@ -1262,7 +1262,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         box.owner = request.aux;
         base.parent = 0;
         auto wrapped =
-            WrapByWidth(request.data, measure.measure, measure.dcFont, measure.screen, BoxWrapWidth, BoxLines, 0);
+            Chat::WrapByWidth(request.data, measure.measure, measure.dcFont, measure.screen, BoxWrapWidth, BoxLines, 0);
         if (!wrapped.HasValue())
             return Core::Unexpected(std::move(wrapped).Error());
         for (std::size_t line = 0; line < box.lines.size(); ++line)
@@ -1345,7 +1345,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         // 0x48f810..0x48f847: los chats a +0xb4 de la lista de ventanas (0x4a4990), la vtable + 0x30 y, en el 1, el
         // foco al EDIT.
         if (request.kind == ChatCase || request.kind == CalledChatCase)
-            AddTheChatToTheList(manager, id);
+            Messenger::AddTheChatToTheList(manager, id);
         if (globals == nullptr || view == nullptr)
             return Core::Unexpected(std::string("0x48ee60: el chat o una carta sin el paso de las ventanas"));
         if (auto settled = SettleTheWindow(manager, placed, *globals, *view); !settled.HasValue())
@@ -1387,8 +1387,8 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
     // en el EDIT de una ventana vieja, su subclase (0x467b10) lo lee igual con cada mensaje que le llega, menos WM_CHAR
     // y los del IME (0x467d3b), antes del paso (*inferido*: acá, en el lugar del de la ventana del juego). Los dos EDIT
     // de la entrada del chat tienen otra subclase, que no lo lee.
-    if ((globals.keyboardFocus == ChatFocus::Game || globals.keyboardFocus == ChatFocus::OldWindow) && view.keyEdge &&
-        view.keyEdge(F5Key))
+    if ((globals.keyboardFocus == Chat::ChatFocus::Game || globals.keyboardFocus == Chat::ChatFocus::OldWindow) &&
+        view.keyEdge && view.keyEdge(F5Key))
         ShowTheWindowList(manager, 1);
     // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))
@@ -1631,4 +1631,4 @@ void HideTheWindowList(OldWindow& list)
     list.list.blinkStep = WindowListBlinkDown;
     list.list.armed = 0;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

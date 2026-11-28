@@ -57,12 +57,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GameUiContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -164,7 +164,7 @@ protected:
     {
         world = std::make_unique<WorldState>();
         // El juego llega después de 0x5bbe10: la caja del caos tiene tipos 0xffff, no el cero de la BSS.
-        Client::Scenes::ClearSelectionInventory(*world, random);
+        Client::FrontEnd::ClearSelectionInventory(*world, random);
         world->Inventory().ClearForInventoryReply();
         Runtime().map = map;
         Runtime().panels.inventory = 1;
@@ -178,7 +178,7 @@ protected:
         return world->Runtime();
     }
 
-    Client::Core::Expected<void, std::string> Draw(Client::UI::Point mouse, bool projecting = false,
+    Client::Core::Expected<void, std::string> Draw(Client::Ui::Point mouse, bool projecting = false,
                                                    bool withNames = true)
     {
         Client::Kernel::WorldRuntime& runtime = Runtime();
@@ -198,19 +198,19 @@ protected:
                                .worldClock = worldClock,
                                .mouse = mouse};
         // 0x7681eb8 (CL9 hito 2): el NPC 236 en el registro 7 de la tabla, con un nombre inventado.
-        Client::Scenes::NpcName& record = runtime.npcNames[7];
+        Client::Monsters::NpcName& record = runtime.npcNames[7];
         record = {};
         if (withNames)
         {
             record.type = 236;
             std::ranges::copy(InventedNpc, record.name.begin());
         }
-        return Client::Scenes::DrawTheEventChipWindow(context);
+        return Client::Events::DrawTheEventChipWindow(context);
     }
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        const Client::Scenes::GameChatContext chat{
+        const Client::Chat::GameChatContext chat{
             .world = *world, .random = random, .send = [this](Client::Protocol::Outgoing packet) {
                 sent.push_back(std::move(packet));
             }};
@@ -221,8 +221,8 @@ protected:
                                     .mouseY = y,
                                     .chat = &chat,
                                     .texts = &texts};
-        Client::Scenes::GamePanels panels(*world, random);
-        return Client::Scenes::StepTheEventChipWindow(context, panels.Registry());
+        Client::Hud::GamePanels panels(*world, random);
+        return Client::Events::StepTheEventChipWindow(context, panels.Registry());
     }
 
     // El estado de rand() después de 0x65cae0(0x4000000, 0) con los paneles de ahora.
@@ -233,8 +233,8 @@ protected:
         other->Runtime().cursorItemCount = Runtime().cursorItemCount;
         other->Runtime().npcWindows.chaosBox = Runtime().npcWindows.chaosBox;
         CrtRandom expected = random;
-        Client::Scenes::GamePanels panels(*other, expected);
-        EXPECT_TRUE(panels.Registry().Close(Client::UI::InventoryPanel).HasValue());
+        Client::Hud::GamePanels panels(*other, expected);
+        EXPECT_TRUE(panels.Registry().Close(Client::Ui::InventoryPanel).HasValue());
         return expected.State();
     }
 
@@ -268,7 +268,7 @@ TEST_F(EventChipWindowTest, TheMutoButtonAsksForTheNumber)
     {
         SCOPED_TRACE(map);
         Reset(map);
-        Runtime().panels.field78abb00 = Client::Scenes::MutoNumberWindow;
+        Runtime().panels.field78abb00 = Client::Events::MutoNumberWindow;
         const std::uint32_t before = random.State();
         ASSERT_TRUE(Step(0x1e5, 0xdc).HasValue());
         EXPECT_TRUE(sent.empty());
@@ -310,7 +310,7 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
         PutItem(5, 0x1c15, 1);
         const std::uint32_t before = random.State();
 
-        Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
+        Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
         Runtime().movement.releasedClick = true;
         ASSERT_TRUE(Step(0x1e5, 0xe7).HasValue());
         ASSERT_EQ(sent.size(), 1u);
@@ -318,7 +318,7 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
         EXPECT_TRUE(Client::Tests::SameBytes(Decoded(sent[0]), Bytes({0xC1, 0x05, 0x95, 0x00, 0x1F})));
         EXPECT_FALSE(Runtime().movement.releasedClick);
 
-        Runtime().panels.field78abb00 = Client::Scenes::StoneChipWindow;
+        Runtime().panels.field78abb00 = Client::Events::StoneChipWindow;
         Runtime().movement.releasedClick = true;
         ASSERT_TRUE(Step(0x25c, 0xfc).HasValue());
         ASSERT_EQ(sent.size(), 2u);
@@ -335,7 +335,7 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
 
         // Sin la Rena, el soltado se gasta sin enviar.
         world->Inventory().cells[31].occupied = 0;
-        Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
+        Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
         Runtime().movement.releasedClick = true;
         ASSERT_TRUE(Step(0x1e5, 0xe7).HasValue());
         EXPECT_EQ(sent.size(), 3u);
@@ -352,7 +352,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
     {
         SCOPED_TRACE(map);
         Reset(map);
-        Runtime().panels.field78abb00 = Client::Scenes::SerialNumberWindow;
+        Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
         Runtime().chat.input.dialogEdit.text.SetText("AB12CD34EF56");
         Runtime().movement.releasedClick = true;
         Runtime().movement.leftHeld = true;
@@ -392,18 +392,18 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
         item.id = 0x0001;
         item.occupied = 1;
     }
-    Runtime().panels.field78abb00 = Client::Scenes::SerialNumberWindow;
+    Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
     Runtime().chat.input.dialogEdit.text.SetText("AB12");
     Runtime().movement.releasedClick = true;
     Runtime().movement.leftHeld = true;
     ASSERT_TRUE(Step(500, 300).HasValue());
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);
+    EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
     EXPECT_EQ(std::string_view(Runtime().dialogBox.rows.data()), "sin lugar");
     EXPECT_FALSE(Runtime().movement.leftHeld);
 
     Reset(0);
-    Runtime().panels.field78abb00 = Client::Scenes::SerialNumberWindow;
+    Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
     Runtime().chat.input.dialogEdit.text.SetText("ABCDEFGHIJKLM");
     Runtime().movement.releasedClick = true;
     const auto cut = Step(500, 300);
@@ -428,9 +428,9 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             Runtime().panels.field78abb04 = 9;
             Runtime().hud.inventoryX = 0x1c2;
             Runtime().hud.inventoryY = 0;
-            Runtime().events.serialEntry = window == Client::Scenes::SerialNumberWindow;
-            Client::UI::ChatInputState& chat = Runtime().chat.input;
-            chat.focus = Client::UI::ChatFocus::Dialog;
+            Runtime().events.serialEntry = window == Client::Events::SerialNumberWindow;
+            Client::Chat::ChatInputState& chat = Runtime().chat.input;
+            chat.focus = Client::Chat::ChatFocus::Dialog;
             chat.dialogEdit.text.SetText("AB12");
             chat.messageBuffer[0] = 'm';
             chat.messageLength = 1;
@@ -459,7 +459,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             EXPECT_EQ(Runtime().social.moneyField, 0);
             EXPECT_EQ(Runtime().social.typedMoney, 0);
             EXPECT_EQ(Runtime().social.trade.field78abacc, 0);
-            EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Game);
+            EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Game);
             EXPECT_EQ(chat.messageBuffer[0], '\0');
             EXPECT_EQ(chat.messageLength, 0);
             EXPECT_EQ(chat.dialogEdit.text.Value(), "");
@@ -471,7 +471,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
 // 0x7d53710): dos con el inventario abierto.
 TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 {
-    Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
+    Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
     Runtime().movement.pendingClick = true;
     const CrtRandom before = random;
     ASSERT_TRUE(Step(0x19, 0x18b).HasValue());
@@ -487,18 +487,18 @@ TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 // foco.
 TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 {
-    Client::UI::ChatInputState& chat = Runtime().chat.input;
+    Client::Chat::ChatInputState& chat = Runtime().chat.input;
     Runtime().events.serial[0] = std::byte{0x41};
     Runtime().ui.chatOpen = true;
     chat.messageBuffer[0] = 'm';
     chat.messageLength = 1;
     chat.whisperBuffer[0] = 'w';
     chat.fieldCount = 2;
-    Client::Scenes::SocialState& social = Runtime().social;
+    Client::Social::SocialState& social = Runtime().social;
     social.moneyField = 1;
     social.typedMoney = 500;
     social.trade.field78abacc = 2;
-    Client::Scenes::OpenTheSerialEntry(Runtime());
+    Client::Events::OpenTheSerialEntry(Runtime());
     EXPECT_EQ(Runtime().events.serial[0], std::byte{0});
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(chat.messageBuffer[0], '\0');
@@ -512,7 +512,7 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 
     chat.dialogEdit.text.SetText("AB12");
     chat.numberField.text.SetText("1234");
-    chat.focus = Client::UI::ChatFocus::Dialog;
+    chat.focus = Client::Chat::ChatFocus::Dialog;
     chat.field = 1;
     chat.messageBuffer[0] = 'm';
     chat.whisperBuffer[0] = 'w';
@@ -520,13 +520,13 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
     social.moneyField = 1;
     social.typedMoney = 500;
     social.trade.field78abacc = 2;
-    Client::Scenes::CloseTheSerialEntry(Runtime());
-    EXPECT_EQ(chat.field, Client::UI::MessageField);
+    Client::Events::CloseTheSerialEntry(Runtime());
+    EXPECT_EQ(chat.field, Client::Chat::MessageField);
     EXPECT_EQ(chat.messageBuffer[0], '\0');
     EXPECT_EQ(chat.whisperBuffer[0], 'w');
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
     EXPECT_EQ(chat.numberField.text.Value(), "");
-    EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Dialog);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(social.moneyField, 0);
     EXPECT_EQ(social.typedMoney, 0);
@@ -537,7 +537,7 @@ TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 // La subclase 0x467b10 con +0x4c en 2: cifras y letras, las minúsculas en mayúscula; nada más.
 TEST(EventChipEditTest, TheEditFilterTakesDigitsAndLetters)
 {
-    using Client::UI::FilteredByTheEdit;
+    using Client::Ui::FilteredByTheEdit;
     EXPECT_EQ(FilteredByTheEdit(2, 'a'), std::optional<char>('A'));
     EXPECT_EQ(FilteredByTheEdit(2, 'Z'), std::optional<char>('Z'));
     EXPECT_EQ(FilteredByTheEdit(2, '7'), std::optional<char>('7'));
@@ -549,10 +549,10 @@ TEST(EventChipEditTest, TheEditFilterTakesDigitsAndLetters)
     EXPECT_EQ(FilteredByTheEdit(0, static_cast<char>(0x1b)), std::nullopt);
     EXPECT_EQ(FilteredByTheEdit(2, static_cast<char>(0x1a)), std::nullopt);
 
-    Client::UI::OldEdit edit;
-    edit.filter = Client::UI::UppercaseLettersAndDigitsEdit;
+    Client::Ui::OldEdit edit;
+    edit.filter = Client::Ui::UppercaseLettersAndDigitsEdit;
     edit.text.SetLimit(12);
-    Client::UI::TypeInTheEdit(edit, "ab-12 cd34ef56gh");
+    Client::Ui::TypeInTheEdit(edit, "ab-12 cd34ef56gh");
     EXPECT_EQ(edit.text.Value(), "AB12CD34EF56");
 }
 
@@ -567,7 +567,7 @@ TEST_F(EventChipWindowTest, WithoutTheNpcInTheTableTheTitleIsNotDrawn)
     {
         SCOPED_TRACE(map);
         Reset(map);
-        Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
+        Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
         const auto drawn = Draw({0, 0}, false, false);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         const auto& lines = text.texts;
@@ -590,7 +590,7 @@ TEST_F(EventChipWindowTest, TheRenaWindowDrawsItsCounts)
         PutItem(3, 0x1c15, 0);
         PutItem(4, 0x1c15, 0);
         PutItem(5, 0x1c15, 1);
-        Runtime().panels.field78abb00 = Client::Scenes::RenaChipWindow;
+        Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
         Runtime().panels.field78abb04 = 7;
         const std::uint32_t before = random.State();
         const auto drawn = Draw({0, 0});
@@ -652,7 +652,7 @@ TEST_F(EventChipWindowTest, TheRenaWindowDrawsItsCounts)
 TEST_F(EventChipWindowTest, TheStoneWindowWithoutStonesIsGrey)
 {
     PutItem(3, 0x1c15, 0);
-    Runtime().panels.field78abb00 = Client::Scenes::StoneChipWindow;
+    Runtime().panels.field78abb00 = Client::Events::StoneChipWindow;
     ASSERT_TRUE(Draw({0, 0}).HasValue());
     const std::vector<DrawnQuad> quads = QuadsOf(sprites);
     ASSERT_GE(quads.size(), 3u);
@@ -669,7 +669,7 @@ TEST_F(EventChipWindowTest, TheStoneWindowWithoutStonesIsGrey)
 // uno que proyecta no.
 TEST_F(EventChipWindowTest, ThePressedButtonTakesTheClick)
 {
-    Runtime().panels.field78abb00 = Client::Scenes::MutoNumberWindow;
+    Runtime().panels.field78abb00 = Client::Events::MutoNumberWindow;
     Runtime().movement.pendingClick = true;
     Runtime().movement.releasedClick = true;
     Runtime().movement.leftHeld = true;
@@ -692,12 +692,12 @@ TEST_F(EventChipWindowTest, ThePressedButtonTakesTheClick)
 // abajo. Sin cuentas. Uno que proyecta no toca el EDIT ni el foco.
 TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
 {
-    Runtime().panels.field78abb00 = Client::Scenes::SerialNumberWindow;
+    Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
     const std::string_view result = "R3SULT0";
     for (std::size_t at = 0; at < result.size(); ++at)
         Runtime().events.serial[at] = static_cast<std::byte>(result[at]);
     ASSERT_TRUE(Draw({0, 0}, true).HasValue());
-    EXPECT_EQ(Runtime().chat.input.focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::Game);
     EXPECT_EQ(Runtime().chat.input.dialogEdit.filter, 0);
 
     sprites.Begin(Screen640);
@@ -706,10 +706,10 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     const auto drawn = Draw({0, 0});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), before);
-    const Client::UI::OldEdit& edit = Runtime().chat.input.dialogEdit;
-    EXPECT_EQ(Runtime().chat.input.focus, Client::UI::ChatFocus::Dialog);
-    EXPECT_EQ(Runtime().ui.focusedList, Client::UI::DialogFieldId);
-    EXPECT_EQ(edit.filter, Client::UI::UppercaseLettersAndDigitsEdit);
+    const Client::Ui::OldEdit& edit = Runtime().chat.input.dialogEdit;
+    EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::Dialog);
+    EXPECT_EQ(Runtime().ui.focusedList, Client::Chat::DialogFieldId);
+    EXPECT_EQ(edit.filter, Client::Ui::UppercaseLettersAndDigitsEdit);
     EXPECT_EQ(edit.backgroundColor, 0u);
     EXPECT_EQ(edit.base.x, 495);
     EXPECT_EQ(edit.base.y, 265);
@@ -761,7 +761,7 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
 // rótulos.
 TEST_F(EventChipWindowTest, TheMutoWindowDrawsItsButton)
 {
-    Runtime().panels.field78abb00 = Client::Scenes::MutoNumberWindow;
+    Runtime().panels.field78abb00 = Client::Events::MutoNumberWindow;
     Runtime().panels.field78abb04 = 3;
     ASSERT_TRUE(Draw({0, 0}).HasValue());
     std::vector<std::string> said;

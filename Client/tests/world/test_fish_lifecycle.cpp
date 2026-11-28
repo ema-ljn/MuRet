@@ -21,7 +21,7 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Core::Unexpected;
-using namespace Client::World;
+using namespace Client::Fauna;
 struct Storage
 {
     std::uint8_t active = 0, field8f = 19, fieldE8 = 20, action = 21, previousAction = 22, field16d = 23;

@@ -29,28 +29,28 @@ inline constexpr std::size_t ChatBadShopTitleText = 1130;
 inline std::map<std::size_t, std::string> ChatTexts()
 {
     std::map<std::size_t, std::string> texts{
-        {UI::ExchangeCommandText, "/cambiar"},
-        {UI::TradeCommandText, "/comerciar"},
-        {UI::MoveCommandText, "/mover"},
-        {UI::GuildCommandText, "/clan"},
-        {UI::PartyCommandText, "/grupo"},
-        {UI::GuildWarCommandText, "/guerra"},
-        {UI::SoccerCommandText, "/pelota"},
-        {UI::FilterCommandText, "/filtro"},
-        {UI::DuelStartCommandText, "/retar"},
-        {UI::DuelEndCommandText, "/noretar"},
-        {UI::ShopCommandText, "/puesto"},
-        {UI::BuyCommandText, "/adquirir"},
-        {UI::ShopViewOnCommandText, "/ver puestos"},
-        {UI::ShopViewOffCommandText, "/no ver puestos"},
-        {UI::ShopViewOnNoticeText, "aviso carteles"},
-        {UI::ShopViewOffNoticeText, "aviso sin carteles"},
-        {UI::AllianceCommandText, "/aliados"},
-        {UI::RivalCommandText, "/rivales"},
-        {UI::RivalOffCommandText, "/sin rivales"},
-        {UI::ChaosCastleCommandText, "aviso castillo"},
-        {UI::ShopTrainerText, "aviso entrenador"},
-        {UI::ShopLevelText, "desde el nivel %d"},
+        {Chat::ExchangeCommandText, "/cambiar"},
+        {Chat::TradeCommandText, "/comerciar"},
+        {Chat::MoveCommandText, "/mover"},
+        {Chat::GuildCommandText, "/clan"},
+        {Chat::PartyCommandText, "/grupo"},
+        {Chat::GuildWarCommandText, "/guerra"},
+        {Chat::SoccerCommandText, "/pelota"},
+        {Chat::FilterCommandText, "/filtro"},
+        {Chat::DuelStartCommandText, "/retar"},
+        {Chat::DuelEndCommandText, "/noretar"},
+        {Chat::ShopCommandText, "/puesto"},
+        {Chat::BuyCommandText, "/adquirir"},
+        {Chat::ShopViewOnCommandText, "/ver puestos"},
+        {Chat::ShopViewOffCommandText, "/no ver puestos"},
+        {Chat::ShopViewOnNoticeText, "aviso carteles"},
+        {Chat::ShopViewOffNoticeText, "aviso sin carteles"},
+        {Chat::AllianceCommandText, "/aliados"},
+        {Chat::RivalCommandText, "/rivales"},
+        {Chat::RivalOffCommandText, "/sin rivales"},
+        {Chat::ChaosCastleCommandText, "aviso castillo"},
+        {Chat::ShopTrainerText, "aviso entrenador"},
+        {Chat::ShopLevelText, "desde el nivel %d"},
         {ChatFilteredText, "..."},
         {ChatWhisperOffCommandText, "/callar"},
         {ChatWhisperOnCommandText, "/escuchar"},
@@ -65,9 +65,9 @@ inline std::map<std::size_t, std::string> ChatTexts()
         {755, "aviso filtro"},
         {756, "aviso sin filtro"},
     };
-    for (std::size_t index = UI::FirstEmoteText; index <= UI::LastEmoteText; ++index)
+    for (std::size_t index = Chat::FirstEmoteText; index <= Chat::LastEmoteText; ++index)
         texts.emplace(index, "#e" + std::to_string(index));
-    texts.emplace(UI::LastEmoteExtraText, "#e" + std::to_string(UI::LastEmoteExtraText));
+    texts.emplace(Chat::LastEmoteExtraText, "#e" + std::to_string(Chat::LastEmoteExtraText));
     return texts;
 }
 } // namespace Client::Tests

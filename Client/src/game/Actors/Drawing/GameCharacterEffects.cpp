@@ -338,9 +338,9 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
     // (0x50fa1c..0x50faba).
     if (!(frame >= PartyFrameLimit) && !tail.pass.party.empty())
     {
-        if (!Scenes::IsInTheParty(tail.pass.party, actor))
+        if (!Party::IsInTheParty(tail.pass.party, actor))
             return GuildMark;
-        for (const Scenes::PartySlot& member : tail.pass.party)
+        for (const Social::PartySlot& member : tail.pass.party)
         {
             if (!original || member.actorIndex < 0 || static_cast<std::size_t>(member.actorIndex) == tail.pass.slot)
                 continue;
@@ -595,11 +595,11 @@ Result SparkleOrbit(const Tail& tail, std::string_view call)
     if (tail.pass.particles == nullptr)
         return Core::Unexpected(std::format("{}: falta el pool de partículas del frame", call));
     Kernel::ActorState& actor = tail.actor;
-    World::PortableParticleTrigonometry trigonometry;
+    Particles::PortableParticleTrigonometry trigonometry;
     const auto created = tail.pass.particles->CreateChecked(
         SparkleType, actor.position, actor.angles, actor.light, SparkleSubtype, SparkleOrbitScale,
         std::cref(tail.pass.worldClock), tail.pass.random, 0, trigonometry,
-        World::ParticleOwner{World::ParticleOwnerKind::Actor, tail.pass.slot});
+        Particles::ParticleOwner{Particles::ParticleOwnerKind::Actor, tail.pass.slot});
     if (!created.HasValue())
         return Core::Unexpected(std::format("{}: la partícula {:#x}/{} falla con el error {}", call, SparkleType,
                                             SparkleSubtype, static_cast<unsigned>(created.Error())));
@@ -773,7 +773,7 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(Kernel::ActorState& a
 // EndTheShout.
 Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit, const Kernel::ActorState& owner,
                                                      const Models::Skeleton* skeleton, Crt::CrtRandom& random,
-                                                     World::Particles* particles, float worldClock,
+                                                     Particles::Particles* particles, float worldClock,
                                                      Kernel::WorldState* world, const IJointHooks* jointHooks,
                                                      const IEffectHooks* effectHooks)
 {
@@ -999,7 +999,7 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
     }
     // 0x5ffdff..0x5ffe3b: in maps 18 to 23, with the hero's +0x1a1, the alpha drops by 0.15f and stays stored.
     if (pass.originalFrame)
-        spirit.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, spirit.alpha);
+        spirit.alpha = Events::ChaosCastle::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, spirit.alpha);
     // If 0x602e90 posed the raven in this draw: its scratch (0x5786f9c) is the pose buffer's.
     bool ravenPosed = false;
     if (spirit.alpha >= DrawnAlpha)

@@ -43,13 +43,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Protocol::Outgoing;
-using Client::Scenes::GameUiContext;
 using Client::Tests::SameBytes;
 
 // 0x5a05e5..0x5a10e2: el registro propio de la barra de skills; 0x5a343e..0x5a3587: las consultas del comercio y de
@@ -118,14 +118,14 @@ public:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x = 0, std::int32_t y = 0)
     {
-        return Client::Scenes::StepTheGameUi(GameUiContext{.world = world,
-                                                           .random = random,
-                                                           .input = input,
-                                                           .mouseX = x,
-                                                           .mouseY = y,
-                                                           .chat = &chat,
-                                                           .inventory = &inventory,
-                                                           .itemSetTables = sets});
+        return Client::Hud::StepTheGameUi(GameUiContext{.world = world,
+                                                        .random = random,
+                                                        .input = input,
+                                                        .mouseX = x,
+                                                        .mouseY = y,
+                                                        .chat = &chat,
+                                                        .inventory = &inventory,
+                                                        .itemSetTables = sets});
     }
     void Press(Key key)
     {
@@ -137,7 +137,7 @@ public:
     }
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
     }
     // La ventana ya abierta, con el pedido del caballo hecho (0x723911 en 1).
     void OpenTheWindow()
@@ -153,8 +153,8 @@ public:
     const Client::Tables::ItemTable items = EmptyItems();
     const Client::Tables::ItemSetTables setTables = EmptySets();
     const Client::Tables::ItemSetTables* sets = &setTables;
-    const Client::Scenes::InventoryServices inventory{.items = &items};
-    const Client::Scenes::GameChatContext chat{
+    const Client::Items::InventoryServices inventory{.items = &items};
+    const Client::Chat::GameChatContext chat{
         .world = world, .random = random, .send = [this](Outgoing packet) { sent.push_back(std::move(packet)); }};
 };
 
@@ -243,7 +243,7 @@ TEST(GameCharacterWindowTest, TheDarkHorseIsAskedOncePerOpening)
     for (const std::int32_t map : Maps)
     {
         SteppingCharacter tested(map);
-        const Client::UI::DelegatedPanels& delegated = tested.world.Runtime().panels.delegated;
+        const Client::Ui::DelegatedPanels& delegated = tested.world.Runtime().panels.delegated;
         tested.Press(Key::C);
         ASSERT_TRUE(tested.Step(320, 240).HasValue());
         EXPECT_TRUE(tested.sent.empty());

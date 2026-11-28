@@ -10,7 +10,7 @@
 
 // Políticas puras usadas por el paso 0x447030. La orquestación conserva las lecturas tardías de mapa,
 // tile y del predicado 0x425070 alrededor de estos helpers.
-namespace Client::World
+namespace Client::Fauna
 {
 // Solo el prefijo del mapa actual se procesa; el resto del pool conserva sus campos y flags.
 [[nodiscard]] std::size_t FishStepCount(std::int32_t map);
@@ -48,4 +48,4 @@ enum class FishMovement : std::uint8_t
 // Un fallo alcanzado conserva el prefijo; no valida por adelantado servicios de ramas no tomadas.
 [[nodiscard]] Core::Expected<void, std::error_code> StepFish(std::span<FishStepView, FishPoolSize> pool,
                                                              const FishStepWorld& world, IFishStepServices& services);
-} // namespace Client::World
+} // namespace Client::Fauna

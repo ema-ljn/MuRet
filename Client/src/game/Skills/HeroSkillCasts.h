@@ -21,7 +21,7 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // Lo que 0x551c70(skill, 1, 0, &maná, 0, &stamina) deja en sus punteros: el WORD +0x22 y el WORD +0x24 de la entrada
@@ -108,4 +108,4 @@ UseTheWeaponOptions(Kernel::ActorState& hero, const Kernel::ItemState& item, con
 // Sigue con las demás opciones; da 1 si alguna tiró.
 [[nodiscard]] Core::Expected<bool, std::string>
 UseTheElfWeaponOptions(Kernel::ActorState& hero, const Kernel::ItemState& item, const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

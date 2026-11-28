@@ -23,14 +23,14 @@
 #include <string>
 #include <vector>
 
-// Client::World::Leaves con las brasas del login y Client::Terrain::TerrainHeightAt contra el código real del
+// Client::Weather::Leaves con las brasas del login y Client::Terrain::TerrainHeightAt contra el código real del
 // main.exe: 0x530490 (con 0x42b1e0 y 0x5303a0), 0x5306a0 y 0x5f93c0, en 3 casos de 150 pasos sobre un mapa
 // de alturas de una fórmula (tests/vectors/world55/leaves.txt, make_leaf_vectors.py), bit a bit.
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Leaf;
-using Client::World::Leaves;
+using Client::Weather::Leaf;
+using Client::Weather::Leaves;
 
 using Client::Math::Bits;
 
@@ -84,7 +84,7 @@ std::uint32_t Crc32(const std::vector<std::uint8_t>& bytes)
 std::uint32_t TableCrc(const Leaves& leaves)
 {
     std::vector<std::uint8_t> bytes;
-    for (std::size_t k = 0; k < Client::World::LoginEmberCount; ++k)
+    for (std::size_t k = 0; k < Client::Weather::LoginEmberCount; ++k)
     {
         for (const std::uint32_t word : WordsOf(leaves.All()[k]))
         {
@@ -132,7 +132,7 @@ TEST(LeavesTest, ThreeCasesMatchTheBinary)
     Terrain terrain;
     Leaves leaves;
     CrtRandom random;
-    Client::World::EmberWorld world;
+    Client::Weather::EmberWorld world;
     std::size_t cases = 0;
     std::size_t step = 0;
     std::size_t heights = 0;
@@ -182,7 +182,7 @@ TEST(LeavesTest, ThreeCasesMatchTheBinary)
         else if (kind == "step")
         {
             ++step;
-            Client::World::StepLoginEmbers(leaves, world, random);
+            Client::Weather::StepLoginEmbers(leaves, world, random);
             std::string state;
             std::string crc;
             words >> state >> crc;
@@ -216,7 +216,7 @@ TEST(LeavesTest, ThreeCasesMatchTheBinary)
                 {
                     continue;
                 }
-                const Client::World::LeafQuad quad = Client::World::LeafQuadOf(leaf);
+                const Client::Weather::LeafQuad quad = Client::Weather::LeafQuadOf(leaf);
                 expectLine("bind 635");
                 ASSERT_TRUE(std::getline(file, line));
                 std::istringstream translate(line);
@@ -327,12 +327,12 @@ TEST(LeavesTest, AnEmberOnTheGroundDiesWhenItsRedReachesZero)
         leaf.light = {1.0f, 0.0f, 0.0f};
     }
     leaves.All()[0].light.x = 0.05f;
-    const Client::World::EmberWorld world{.hero = glm::vec3(0.0f),
-                                          .cameraY = 0.0f,
-                                          .heights = terrain.heights.get(),
-                                          .attributes = terrain.attributes.get()};
+    const Client::Weather::EmberWorld world{.hero = glm::vec3(0.0f),
+                                            .cameraY = 0.0f,
+                                            .heights = terrain.heights.get(),
+                                            .attributes = terrain.attributes.get()};
     CrtRandom random(1);
-    Client::World::StepLoginEmbers(leaves, world, random);
+    Client::Weather::StepLoginEmbers(leaves, world, random);
     EXPECT_FALSE(leaves.All()[0].alive) << "el rojo en 0";
     EXPECT_TRUE(leaves.All()[1].alive) << "el rojo en 0,95";
     EXPECT_EQ(random.State(), CrtRandom(1).State()) << "en el suelo no saca rand()";

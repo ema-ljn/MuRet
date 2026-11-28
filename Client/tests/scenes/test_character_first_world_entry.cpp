@@ -155,7 +155,7 @@ protected:
         knight.equipment[11] = 0xf0;
         knight.equipment[12] = 0xf0;
         m_online.ReceiveTheList({knight});
-        ASSERT_EQ(m_online.session.State(), Client::App::SessionState::ChoosingCharacter);
+        ASSERT_EQ(m_online.session.State(), Client::Session::SessionState::ChoosingCharacter);
     }
 
     Client::Scenes::WorldEntryResources Resources()
@@ -192,7 +192,7 @@ protected:
         m_online.socket.reads = {Client::Tests::FromTheGameServer(reply, m_serverSends)};
         const auto entered = m_online.session.Poll();
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
-        ASSERT_EQ(m_online.session.State(), Client::App::SessionState::InWorld);
+        ASSERT_EQ(m_online.session.State(), Client::Session::SessionState::InWorld);
     }
 
     void ReceiveInventory(bool withBackpack)
@@ -202,7 +202,7 @@ protected:
             reply = Client::Tests::Bytes({0xc2, 0, 14, 0xf3, 0x10, 1, 12, 0, 0, 1, 0, 0, 0xe0, 0});
         m_online.socket.reads = {Client::Tests::FromTheGameServer(reply, m_serverSends)};
         ASSERT_TRUE(m_online.session.Poll().HasValue());
-        ASSERT_EQ(m_online.session.State(), Client::App::SessionState::InWorld);
+        ASSERT_EQ(m_online.session.State(), Client::Session::SessionState::InWorld);
     }
 
     void DrawFrames()
@@ -221,7 +221,7 @@ protected:
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Session::ModuleStates m_states;
-    Client::Scenes::SelectionState m_selection{*m_world};
+    Client::FrontEnd::SelectionState m_selection{*m_world};
     Client::Models::ClothWorld m_cloth;
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;
@@ -278,7 +278,7 @@ TEST_F(CharacterFirstWorldEntryTest, ASecondCreatedWizardEntersAfterAnEquippedKn
     m_online.socket.reads = {Client::Tests::FromTheGameServer(
         Client::Tests::Bytes({0xc2, 0, 14, 0xf3, 0x10, 1, 0, 1, 0, 25, 0, 0, 0, 0}), m_serverSends)};
     ASSERT_TRUE(m_online.session.Poll().HasValue());
-    ASSERT_EQ(m_online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online.session.State(), Client::Session::SessionState::InWorld);
     const Client::Kernel::ItemState& weapon = m_world->OwnCharacter().equipment[0];
     ASSERT_EQ(weapon.id, 1);
     ASSERT_EQ(weapon.durability, 25);
@@ -313,13 +313,12 @@ TEST_F(CharacterFirstWorldEntryTest, TheServerListResponseReturnsTheHeldItemBefo
     ASSERT_NO_FATAL_FAILURE(ReceiveInventory(true));
     ASSERT_NO_FATAL_FAILURE(DrawFrames());
     const auto resources = Resources();
-    const auto services = Client::Scenes::InventoryServicesOf(resources);
+    const auto services = Client::Items::InventoryServicesOf(resources);
     const auto hero = m_world->Runtime().hero;
     m_world->Runtime().ui.logoutRequested = true;
     m_online.session.RequestLogout(2);
-    ASSERT_TRUE(
-        Client::Scenes::PickUpFromTheGrid({.world = *m_world, .random = m_cloth.random, .services = services}, 0)
-            .HasValue());
+    ASSERT_TRUE(Client::Items::PickUpFromTheGrid({.world = *m_world, .random = m_cloth.random, .services = services}, 0)
+                    .HasValue());
     ASSERT_GT(m_world->Runtime().cursorItemCount, 0);
     m_online.socket.reads = {
         Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 5, 0xf1, 2, 2}), m_serverSends)};
@@ -327,7 +326,7 @@ TEST_F(CharacterFirstWorldEntryTest, TheServerListResponseReturnsTheHeldItemBefo
     const auto returned = m_online.session.Poll();
 
     ASSERT_TRUE(returned.HasValue()) << returned.Error();
-    EXPECT_EQ(m_online.session.State(), Client::App::SessionState::Idle);
+    EXPECT_EQ(m_online.session.State(), Client::Session::SessionState::Idle);
     EXPECT_EQ(m_online.connection.State(), Client::Network::LinkState::Closed);
     EXPECT_EQ(m_world->Runtime().orderedScene, Client::Scenes::SceneId::Login);
     EXPECT_EQ(m_world->Runtime().cursorItemCount, 0);

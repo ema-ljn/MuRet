@@ -17,12 +17,12 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::StepTheCrywolfMusic (0x430250). The stages are the bytes of the BD 00, written as the original
-// compares them.
+// Client::Events::Crywolf::StepTheCrywolfMusic (0x430250). The stages are the bytes of the BD 00, written as the
+// original compares them.
 namespace
 {
+using Client::Events::Crywolf::StepTheCrywolfMusic;
 using Client::Kernel::WorldRuntime;
-using Client::Scenes::StepTheCrywolfMusic;
 
 constexpr std::int32_t CrywolfMap = 34;
 constexpr std::int32_t AidaMap = 33;

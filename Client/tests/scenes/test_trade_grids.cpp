@@ -166,7 +166,7 @@ struct Game
         world.Runtime().drawingEnabled = true;
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
-        Client::Scenes::ClearTheTradeForSelection(world.Runtime().social.trade);
+        Client::Social::ClearTheTradeForSelection(world.Runtime().social.trade);
     }
     Client::Scenes::WorldEntryResources Resources()
     {
@@ -185,11 +185,11 @@ struct Game
     }
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {SwordType, 1, 3, 0}, {0x1c00, 1, 1, 0xff}});
     Client::Tables::ItemSetTables sets =
@@ -224,8 +224,8 @@ protected:
         services.sendGamePacket = [this](Client::Protocol::Outgoing packet) { sent.push_back(PlainOf(packet)); };
         // El bastón del héroe, de nivel 2, en la casilla (1, 2) del inventario.
         Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
-        ASSERT_TRUE(Client::Scenes::PlaceMovedItem(Byte(12 + StaffCell), ItemBytes(StaffType, 2), game->Resources())
-                        .HasValue());
+        ASSERT_TRUE(
+            Client::Items::PlaceMovedItem(Byte(12 + StaffCell), ItemBytes(StaffType, 2), game->Resources()).HasValue());
         ASSERT_EQ(game->world.Inventory().cells[StaffCell].id, StaffType);
         // Las esquinas que dejan los dibujos (0x5f3b40 y 0x5f0c30) y el registro propio abierto alrededor de todo.
         runtime.hud.inventoryX = InventoryX;
@@ -279,14 +279,14 @@ protected:
         Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
         runtime.selectedTargets[Chosen] = 1;
         std::vector<Client::Protocol::Outgoing> asked;
-        const auto requested = Client::Scenes::RequestATrade(
+        const auto requested = Client::Social::RequestATrade(
             {.world = game->world,
              .random = game->cloth.random,
              .texts = game->texts,
              .send = [&asked](Client::Protocol::Outgoing packet) { asked.push_back(std::move(packet)); }});
         ASSERT_TRUE(requested.HasValue()) << requested.Error();
         ASSERT_EQ(asked.size(), 1U);
-        const auto opened = Client::Scenes::ApplyTradeResponse({1, NameOf("Brezal"), 150, 0}, game->Resources());
+        const auto opened = Client::Social::ApplyTradeResponse({1, NameOf("Brezal"), 150, 0}, game->Resources());
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         ASSERT_EQ(runtime.panels.trade, 1);
         ASSERT_EQ(runtime.panels.inventory, 1);
@@ -296,13 +296,13 @@ protected:
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool click)
     {
         if (click)
-            Client::Scenes::LatchTheLeftButton(game->world.Runtime().movement, true, true);
-        return Client::Scenes::StepTheGameUi(Client::Scenes::GameUiContext{.world = game->world,
-                                                                           .random = game->cloth.random,
-                                                                           .input = input,
-                                                                           .mouseX = x,
-                                                                           .mouseY = y,
-                                                                           .inventory = &services});
+            Client::Hud::LatchTheLeftButton(game->world.Runtime().movement, true, true);
+        return Client::Hud::StepTheGameUi(Client::Hud::GameUiContext{.world = game->world,
+                                                                     .random = game->cloth.random,
+                                                                     .input = input,
+                                                                     .mouseX = x,
+                                                                     .mouseY = y,
+                                                                     .inventory = &services});
     }
 
     CrtRandom& Random()
@@ -312,7 +312,7 @@ protected:
 
     std::unique_ptr<Game> game;
     Client::Input::InputState input;
-    Client::Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
     std::vector<Sent> sent;
 };
 
@@ -326,7 +326,7 @@ protected:
 TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
 {
     Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
-    Client::Scenes::TradeState& trade = runtime.social.trade;
+    Client::Social::TradeState& trade = runtime.social.trade;
     auto& inventory = game->world.Inventory().cells;
 
     // Levantar el bastón del inventario.
@@ -372,7 +372,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
 
     // La respuesta: 0x5bc740 en la grilla propia, sin rand() con el registro abierto.
     expected = Random();
-    auto applied = Client::Scenes::ApplyItemMoveResult({1, 2, ItemBytes(StaffType, 2)}, game->Resources());
+    auto applied = Client::Items::ApplyItemMoveResult({1, 2, ItemBytes(StaffType, 2)}, game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Random().State(), expected.State());
     EXPECT_EQ(runtime.ui.field78abb39, 0);
@@ -396,7 +396,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     stepped = Step(takeX, takeY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Random().State(), expected.State());
-    EXPECT_EQ(runtime.ui.hoveredItem.place, Client::UI::HoveredItem::Place::OwnTradeCell);
+    EXPECT_EQ(runtime.ui.hoveredItem.place, Client::Ui::HoveredItem::Place::OwnTradeCell);
     EXPECT_EQ(runtime.ui.hoveredItem.index, 10U);
     EXPECT_EQ(runtime.ui.field78abb28, 2);
     EXPECT_EQ(runtime.ui.field78abb2c, 10);
@@ -418,7 +418,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     EXPECT_EQ(runtime.slot78a6758, 2);
     for (const std::size_t cell : {2U, 10U, 18U})
         EXPECT_EQ(trade.ownGrid[cell].id, EmptyOwnItemId);
-    EXPECT_EQ(runtime.ui.hoveredItem.place, Client::UI::HoveredItem::Place::None);
+    EXPECT_EQ(runtime.ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 
     // Soltarlo en la casilla (3, 1) del inventario: el 24 desde la grilla 1 y la espera del OK.
@@ -430,11 +430,11 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     ASSERT_EQ(sent.size(), 1U);
     EXPECT_EQ(sent[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x0e, 0x24, 0x01, 0x02, 0x05, 2 << 3, 30, 0x00, 0x00,
                                                         0x50, 0x00, 0x00, 12 + 8 + 3}));
-    EXPECT_EQ(trade.okWait, Client::Scenes::TradeOkWait);
+    EXPECT_EQ(trade.okWait, Client::Social::TradeOkWait);
     EXPECT_EQ(runtime.itemMoveTarget, 12 + 8 + 3);
 
     // La respuesta, en el inventario.
-    applied = Client::Scenes::ApplyItemMoveResult({0, 12 + 8 + 3, ItemBytes(StaffType, 2)}, game->Resources());
+    applied = Client::Items::ApplyItemMoveResult({0, 12 + 8 + 3, ItemBytes(StaffType, 2)}, game->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(inventory[8 + 3].id, StaffType);
     EXPECT_EQ(inventory[16 + 3].id, StaffType);
@@ -447,17 +447,17 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
 TEST_P(TradeGridsTest, TheOtherGridIsOnlyLookedAt)
 {
     Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
-    Client::Scenes::TradeState& trade = runtime.social.trade;
-    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({9, ItemBytes(SwordType, 0)}, game->Resources()).HasValue());
-    trade.otherGrid[17].warning = Client::Scenes::ChangedFromTheCopy;
+    Client::Social::TradeState& trade = runtime.social.trade;
+    ASSERT_TRUE(Client::Social::ApplyTradeItemAdded({9, ItemBytes(SwordType, 0)}, game->Resources()).HasValue());
+    trade.otherGrid[17].warning = Client::Social::ChangedFromTheCopy;
     const CrtRandom expected = Advanced(Random(), QuietStepRandoms);
     const auto stepped = Step(TradeGridLeft + Cell + 5, 0x46 + 2 * Cell + 5, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Random().State(), expected.State());
     EXPECT_EQ(trade.otherGrid[9].warning, 2);
-    EXPECT_EQ(trade.otherGrid[17].warning, Client::Scenes::ChangedFromTheCopy);
+    EXPECT_EQ(trade.otherGrid[17].warning, Client::Social::ChangedFromTheCopy);
     EXPECT_EQ(trade.otherGrid[25].warning, 2);
-    EXPECT_EQ(runtime.ui.hoveredItem.place, Client::UI::HoveredItem::Place::OtherTradeCell);
+    EXPECT_EQ(runtime.ui.hoveredItem.place, Client::Ui::HoveredItem::Place::OtherTradeCell);
     EXPECT_EQ(runtime.ui.hoveredItem.index, 17U);
     EXPECT_EQ(runtime.ui.field78abb28, 3);
     EXPECT_EQ(runtime.ui.field78abb2c, 17);
@@ -473,18 +473,18 @@ TEST_P(TradeGridsTest, TheOtherGridIsOnlyLookedAt)
 TEST_P(TradeGridsTest, TheRightClickOnTheOwnGridIsTheInventoryBranch)
 {
     Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
-    Client::Scenes::TradeState& trade = runtime.social.trade;
+    Client::Social::TradeState& trade = runtime.social.trade;
     std::vector<std::pair<std::size_t, std::int32_t>> notices;
     services.systemMessage = [&notices](std::size_t index, std::int32_t type)
     {
         notices.emplace_back(index, type);
         return Client::Core::Expected<void, std::string>{};
     };
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({1, 4, ItemBytes(SwordType, 0)}, game->Resources()).HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({1, 6, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({1, 4, ItemBytes(SwordType, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({1, 6, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
     ASSERT_EQ(trade.ownGrid[6].id, 0x1c00);
     // El botón izquierdo suelto (WM_LBUTTONUP): el clic de antes ya no queda.
-    Client::Scenes::LatchTheLeftButton(runtime.movement, false, false);
+    Client::Hud::LatchTheLeftButton(runtime.movement, false, false);
 
     runtime.ui.rightClick = true;
     CrtRandom expected = Advanced(Random(), QuietStepRandoms + TradeQueryRandoms);
@@ -559,39 +559,39 @@ protected:
 TEST_P(ItemMoveReplyTest, ThePriceFollowsTheItem)
 {
     Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
-    Client::Scenes::PersonalShopState& shops = runtime.social.personalShop;
+    Client::Social::PersonalShopState& shops = runtime.social.personalShop;
     shops.pricesBuilt = true;
-    shops.mode = Client::Scenes::OwnShopView;
+    shops.mode = Client::Social::OwnShopView;
     shops.ownPrices = {{0x4c, 500}, {0x50, 700}};
     runtime.slot78a6758 = 0x4c;
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({0, 0x4d, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({0, 0x4d, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
     EXPECT_EQ(shops.ownPrices, (std::map<std::int32_t, std::int32_t>{{0x4d, 500}, {0x50, 700}}));
     runtime.slot78a6758 = 0x4d;
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({0, 0x20, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({0, 0x20, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
     EXPECT_EQ(shops.ownPrices, (std::map<std::int32_t, std::int32_t>{{0x50, 700}}));
     // Mirando otra tienda, el de esa; sin la vista, ninguno.
-    shops.mode = Client::Scenes::OtherShopView;
+    shops.mode = Client::Social::OtherShopView;
     shops.otherPrices = {{0x50, 900}};
     runtime.slot78a6758 = 0x50;
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({0, 0x51, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({0, 0x51, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{0x51, 900}}));
     EXPECT_EQ(shops.ownPrices, (std::map<std::int32_t, std::int32_t>{{0x50, 700}}));
-    shops.mode = Client::Scenes::NoShopView;
+    shops.mode = Client::Social::NoShopView;
     runtime.slot78a6758 = 0x51;
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({0, 0x52, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({0, 0x52, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{0x51, 900}}));
 }
 
 TEST_P(ItemMoveReplyTest, TheDeferredTradeResultIsReplayed)
 {
     Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
-    Client::Scenes::GamePanels panels(game->world, game->cloth.random);
-    ASSERT_TRUE(panels.Registry().Open(Client::UI::TradePanel).HasValue());
+    Client::Hud::GamePanels panels(game->world, game->cloth.random);
+    ASSERT_TRUE(panels.Registry().Open(Client::Ui::TradePanel).HasValue());
     runtime.ui.field78abb39 = 1;
-    ASSERT_TRUE(Client::Scenes::ApplyTradeResult({1, {0xc1, 0x04, 0x3d, 0x01}}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Social::ApplyTradeResult({1, {0xc1, 0x04, 0x3d, 0x01}}, game->Resources()).HasValue());
     EXPECT_EQ(runtime.social.trade.resultDeferred, 1);
     EXPECT_EQ(runtime.panels.trade, 1);
-    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({0xff, 0, {}}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyItemMoveResult({0xff, 0, {}}, game->Resources()).HasValue());
     EXPECT_EQ(runtime.social.trade.resultDeferred, 0);
     EXPECT_EQ(runtime.panels.trade, 0);
     EXPECT_EQ(runtime.ui.field78abb39, 0);

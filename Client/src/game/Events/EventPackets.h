@@ -42,15 +42,19 @@ namespace Client::Terrain
 struct WorldTerrain;
 } // namespace Client::Terrain
 
+namespace Client::Items
+{
+struct InventoryServices;
+} // namespace Client::Items
+
 // CL9 hito 11: lo que los paquetes de los eventos (Protocol::Events, 04 § Los eventos) hacen al llegar, como el
 // dispatcher 0x4e2b10 y sus handlers, sobre los globales de WorldRuntime: los avisos (0x632e30, 0x633300), los
 // mensajes (0x555190), el .att (0x7d0d348), el objeto del evento de [0x723c60], los chips (0x78abb00), Crywolf y los
 // personajes. Lo que es de otra ola u otro hito corta con su dirección, después de lo que el original hizo antes; lo
 // que el original hace fuera de sus tablas se descarta (EventPacketResult::discarded).
-namespace Client::Scenes
+namespace Client::Events
 {
 struct EventMapObject;
-struct InventoryServices;
 
 struct EventPacketContext
 {
@@ -83,7 +87,7 @@ struct EventPacketContext
     // C1 03 82, el C1 03 87 y el C1 03 31 en claro por la sesión (App::ServerSession::SendNpcWindowPacket) y los
     // servicios del inventario (el ítem del cursor y los avisos). Vacío, cerrar una de ellas corta donde manda.
     std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
-    const InventoryServices* inventory = nullptr;
+    const Items::InventoryServices* inventory = nullptr;
     // The current map's terrain, whose .att the events mark and Crywolf reloads. Without it, those stop.
     Terrain::WorldTerrain* terrain = nullptr;
 };
@@ -114,4 +118,4 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables:
 // llegada (0x6c8e54, GameMovementState::chosenNpc) y el segundo de los objetivos elegidos (0x6c8e2c) en −1. Lo llaman
 // la vuelta a la selección (0x4c363a) y el BD 00 con la etapa 6.
 void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime);
-} // namespace Client::Scenes
+} // namespace Client::Events

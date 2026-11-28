@@ -25,11 +25,11 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Math::RoundedSin;
-using Client::World::Particle;
-using Client::World::ParticleOwner;
-using Client::World::ParticleOwnerKind;
-using Client::World::Particles;
-using Client::World::SkillShineParticle;
+using Client::Particles::Particle;
+using Client::Particles::ParticleOwner;
+using Client::Particles::ParticleOwnerKind;
+using Client::Particles::Particles;
+using Client::Particles::SkillShineParticle;
 
 constexpr std::uint32_t Seed = 0x1357bdfu;
 constexpr ParticleOwner HeroOwner{.kind = ParticleOwnerKind::Actor, .identity = 3};
@@ -68,12 +68,12 @@ TEST(SkillShineParticlesTest, TheShineIsBornOnTheOwnersBoneWithoutDraws)
     const auto lost = particles.CreateFollowingChecked(SkillShineParticle, {}, {}, glm::vec3(1.0f), 0, 0.0f,
                                                        ParticleOwner{}, BonePoint);
     ASSERT_FALSE(lost.HasValue());
-    EXPECT_EQ(lost.Error(), Client::World::ParticleError::MissingOwner);
+    EXPECT_EQ(lost.Error(), Client::Particles::ParticleError::MissingOwner);
     EXPECT_FALSE(particles.All()[1].alive);
 
     const auto other = particles.CreateFollowingChecked(0x5e4, {}, {}, glm::vec3(1.0f), 0, 0.0f, HeroOwner, BonePoint);
     ASSERT_FALSE(other.HasValue());
-    EXPECT_EQ(other.Error(), Client::World::ParticleError::UnsupportedType);
+    EXPECT_EQ(other.Error(), Client::Particles::ParticleError::UnsupportedType);
 
     for (Particle& particle : particles.All())
         particle.alive = true;
@@ -94,7 +94,7 @@ TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
         particles.CreateFollowingChecked(SkillShineParticle, {}, {}, glm::vec3(1.0f), 0, 0.0f, HeroOwner, BonePoint)
             .HasValue());
     const Particle& shine = particles.All()[0];
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 2;
     const double frequency = static_cast<double>(std::bit_cast<float>(0x3e32b8c2u));
@@ -104,8 +104,8 @@ TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
         CrtRandom wind(random.State());
         static_cast<void>(wind.Next());
         static_cast<void>(wind.Next());
-        const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map,
-                                                                 trigonometry, {}, {}, {}, {}, nullptr, {}, BonePoint);
+        const auto stepped = Client::Particles::StepParticlesChecked(
+            particles, random, std::cref(clock), &map, trigonometry, {}, {}, {}, {}, nullptr, {}, BonePoint);
         ASSERT_TRUE(stepped.HasValue());
         const int life = 18 - step;
         EXPECT_EQ(shine.life, life);
@@ -120,9 +120,9 @@ TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
     ASSERT_TRUE(
         lonely.CreateFollowingChecked(SkillShineParticle, {}, {}, glm::vec3(1.0f), 0, 0.0f, HeroOwner, BonePoint)
             .HasValue());
-    const auto lost = Client::World::StepParticlesChecked(lonely, random, std::cref(clock), &map, trigonometry);
+    const auto lost = Client::Particles::StepParticlesChecked(lonely, random, std::cref(clock), &map, trigonometry);
     ASSERT_FALSE(lost.HasValue());
-    EXPECT_EQ(lost.Error(), Client::World::ParticleError::MissingOwner);
+    EXPECT_EQ(lost.Error(), Client::Particles::ParticleError::MissingOwner);
 }
 
 // 0x548550: la 5fe va por la tabla de 0x548cf0 (el byte 8) al billboard común de 0x54889a, con la mezcla de su

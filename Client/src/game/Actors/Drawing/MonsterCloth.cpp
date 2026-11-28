@@ -16,7 +16,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -91,4 +91,4 @@ void MonsterMeshCloth::Release()
     m_cloth.reset();
     m_simulatedBody.reset();
 }
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

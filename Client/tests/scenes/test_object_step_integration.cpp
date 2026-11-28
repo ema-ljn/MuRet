@@ -71,7 +71,8 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
         SCOPED_TRACE(map);
         const auto loaded = Client::Terrain::LoadWorldObjects(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-        auto created = Client::World::CreateWorldObjects(loaded.Value(), map, Client::World::ObjectScene::Other);
+        auto created =
+            Client::WorldObjects::CreateWorldObjects(loaded.Value(), map, Client::WorldObjects::ObjectScene::Other);
         ASSERT_FALSE(created.failure.has_value());
         ASSERT_GT(created.objects.size(), 100u);
         for (auto& object : created.objects)
@@ -79,10 +80,10 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
             object.seen = true;
         }
         auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         const glm::vec3 hero{13500.0f, 12500.0f, 0.0f};
         std::vector<std::int32_t> sounds;
-        Client::World::ObjectStepGlobals globals;
+        Client::WorldObjects::ObjectStepGlobals globals;
         globals.dynamicLighting = lighting.get();
         globals.particles = particles.get();
         globals.heroPosition = &hero;
@@ -91,7 +92,8 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
         for (int step = 0; step < 4; ++step)
         {
             globals.worldClock = static_cast<float>(step * 40);
-            const auto stepped = Client::Scenes::StepGameWorldObjects(created.objects, map, models, random, globals);
+            const auto stepped =
+                Client::WorldObjects::StepGameWorldObjects(created.objects, map, models, random, globals);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         }
         EXPECT_NE(random.State(), 7u);
@@ -111,30 +113,31 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     const auto records = Client::Terrain::LoadWorldObjects(root, 3);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), 9399u);
-    auto created = Client::World::CreateWorldObjects(records.Value(), 3, Client::World::ObjectScene::Other);
+    auto created =
+        Client::WorldObjects::CreateWorldObjects(records.Value(), 3, Client::WorldObjects::ObjectScene::Other);
     ASSERT_FALSE(created.failure.has_value());
-    Client::World::ObjectModelStepState state;
-    auto particles = std::make_unique<Client::World::Particles>();
-    Client::World::ObjectStepGlobals globals;
+    Client::WorldObjects::ObjectModelStepState state;
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    Client::WorldObjects::ObjectStepGlobals globals;
     globals.modelState = &state;
     globals.particles = particles.get();
     for (auto& object : created.objects)
         object.seen = true;
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::Scenes::StepGameWorldObjects(created.objects, 3, models, random, globals);
+    const auto stepped = Client::WorldObjects::StepGameWorldObjects(created.objects, 3, models, random, globals);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(state.unlitMeshes.at(0x2a), 0);
     EXPECT_EQ(state.unlitMeshes.at(0x2b), 0);
     std::set<std::int16_t> types;
-    std::vector<Client::World::WorldObject> representatives;
+    std::vector<Client::WorldObjects::WorldObject> representatives;
     for (const auto& object : created.objects)
         if (types.insert(object.type).second)
             representatives.push_back(object);
     ASSERT_EQ(representatives.size(), 44u);
     Client::Kernel::PoseBuffer pose;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     std::vector<Client::Scenes::JointState> joints(100);
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.map = 3;
     pass.random = &random;
     pass.particles = particles.get();
@@ -146,14 +149,14 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     int jointCalls = 0;
     pass.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
-        const auto made = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        const auto made = Client::Joints::CreateFaunaJoint(joints, request, random);
         if (!made.HasValue())
             return Client::Core::Unexpected(made.Error());
         ++jointCalls;
         return {};
     };
     Client::Render::ModelBatch batch;
-    const auto drawn = Client::Scenes::DrawGameWorldObjects(
+    const auto drawn = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, representatives, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {}, pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(batch.Vertices().empty());
@@ -166,7 +169,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     fairyPose.animation = fairy->animation;
     ASSERT_TRUE(Client::Actors::Drawing::PublishPose(pose, models, fairyPose, true).HasValue());
     random = Client::Crt::CrtRandom(4);
-    const auto emitted = Client::Scenes::StepNoriaObjectFrame(*fairy, 61, pass);
+    const auto emitted = Client::MapScripts::Noria::StepNoriaObjectFrame(*fairy, 61, pass);
     ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
     EXPECT_GE(jointCalls, 8);
     EXPECT_TRUE(std::ranges::any_of(joints, [](const auto& joint) { return joint.alive && joint.type == 0x617; }));
@@ -175,10 +178,10 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     const auto terrain = Client::Terrain::LoadWorldTerrain(root, 3);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     const std::int32_t map = 3;
-    const auto particleStep = Client::Scenes::StepGameParticles(
+    const auto particleStep = Client::Effects::StepGameParticles(
         *particles, random, map, [&](float x, float y)
         { return Client::Terrain::TerrainHeightAt(*terrain.Value().heights, *terrain.Value().attributes, x, y); });
     ASSERT_TRUE(particleStep.HasValue()) << particleStep.Error();
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 }
 } // namespace

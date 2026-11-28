@@ -48,7 +48,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::StepTheHeadSkill, StepTheTargetSkill y SparkTheTarget: los casos de habilidad del paso del ataque
+// Client::Skills::StepTheHeadSkill, StepTheTargetSkill y SparkTheTarget: los casos de habilidad del paso del ataque
 // (0x4fdeeb, 0x504372 y 0x5042ce). 06, "El paso del ataque".
 namespace
 {
@@ -57,9 +57,9 @@ using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
 using Client::Scenes::JointState;
-using Client::Scenes::SparkTheTarget;
-using Client::Scenes::StepTheHeadSkill;
-using Client::Scenes::StepTheTargetSkill;
+using Client::Skills::SparkTheTarget;
+using Client::Skills::StepTheHeadSkill;
+using Client::Skills::StepTheTargetSkill;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;
@@ -201,10 +201,10 @@ struct SkillWorld
     bool withParticles = false;
 };
 
-std::vector<const Client::World::ModelEffect*> AliveEffects(const WorldState& world)
+std::vector<const Client::Effects::ModelEffect*> AliveEffects(const WorldState& world)
 {
-    std::vector<const Client::World::ModelEffect*> found;
-    for (const Client::World::ModelEffect& effect : world.Map().effects.Effects())
+    std::vector<const Client::Effects::ModelEffect*> found;
+    for (const Client::Effects::ModelEffect& effect : world.Map().effects.Effects())
     {
         if (effect.alive)
             found.push_back(&effect);
@@ -422,7 +422,7 @@ TEST(AttackSkillCasesTest, TheBreathCaseRaisesTheFireBreathOverTheStriker)
 
     const auto alive = AliveEffects(tested.world);
     ASSERT_EQ(alive.size(), 1u);
-    const Client::World::ModelEffect& breath = *alive.front();
+    const Client::Effects::ModelEffect& breath = *alive.front();
     EXPECT_EQ(breath.type, 0x6ac);
     EXPECT_EQ(breath.subtype, 0);
     EXPECT_EQ(breath.ownerContext, &striker);
@@ -434,7 +434,7 @@ TEST(AttackSkillCasesTest, TheBreathCaseRaisesTheFireBreathOverTheStriker)
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x72});
 
     SkillWorld full;
-    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    for (Client::Effects::ModelEffect& effect : full.world.Map().effects.Effects())
         effect.alive = true;
     ASSERT_TRUE(full.Head(0x31).HasValue());
     EXPECT_EQ(DrawsSince(Seed, full.random), 0);
@@ -456,10 +456,10 @@ TEST(AttackSkillCasesTest, TheLightningRayLeavesFromTheHand)
 
     const auto alive = AliveEffects(tested.world);
     ASSERT_EQ(alive.size(), 1u);
-    const Client::World::ModelEffect& ray = *alive.front();
+    const Client::Effects::ModelEffect& ray = *alive.front();
     EXPECT_EQ(ray.type, 0x5e8);
     EXPECT_EQ(ray.subtype, 0);
-    EXPECT_EQ(ray.transform.position, Client::Scenes::PointAround(striker, {-20.0f, -90.0f, 100.0f}));
+    EXPECT_EQ(ray.transform.position, Client::Effects::PointAround(striker, {-20.0f, -90.0f, 100.0f}));
     EXPECT_EQ(ray.ownerContext, &striker);
     EXPECT_EQ(ray.disturbanceState, 0x1234);
     EXPECT_EQ(ray.life, 20);
@@ -502,9 +502,9 @@ TEST(AttackSkillCasesTest, TheSummonsLeaveTheirDecalOverTheStriker)
 
                 const auto alive = AliveEffects(tested.world);
                 ASSERT_EQ(alive.size(), 1u);
-                const Client::World::ModelEffect& decal = *alive.front();
-                EXPECT_EQ(decal.type, Client::World::ColoredDecalEffect);
-                EXPECT_EQ(decal.subtype, Client::World::SummonDecalSubtype);
+                const Client::Effects::ModelEffect& decal = *alive.front();
+                EXPECT_EQ(decal.type, Client::Effects::ColoredDecalEffect);
+                EXPECT_EQ(decal.subtype, Client::Effects::SummonDecalSubtype);
                 EXPECT_EQ(decal.ownerContext, &striker);
                 EXPECT_EQ(decal.transform.position, striker.position);
                 EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
@@ -514,7 +514,7 @@ TEST(AttackSkillCasesTest, TheSummonsLeaveTheirDecalOverTheStriker)
         }
     }
     SkillWorld full;
-    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    for (Client::Effects::ModelEffect& effect : full.world.Map().effects.Effects())
     {
         effect.alive = true;
         effect.type = 0x01;
@@ -560,8 +560,8 @@ TEST(AttackSkillCasesTest, TheFlameLightsItsJetOnTheSkillCell)
             EXPECT_EQ(DrawsSince(Seed, tested.random), (hero ? 3 : 2) * OwnRecord);
             const auto alive = AliveEffects(tested.world);
             ASSERT_EQ(alive.size(), 1u);
-            const Client::World::ModelEffect& jet = *alive.front();
-            EXPECT_EQ(jet.type, Client::World::FlameJetEffect);
+            const Client::Effects::ModelEffect& jet = *alive.front();
+            EXPECT_EQ(jet.type, Client::Effects::FlameJetEffect);
             EXPECT_EQ(jet.subtype, 0);
             EXPECT_EQ(jet.life, 40);
             EXPECT_EQ(jet.transform.position, glm::vec3(12'050.0f, 3'350.0f, 150.0f));
@@ -584,7 +584,7 @@ TEST(AttackSkillCasesTest, TheFlameWithoutRoomOrGroundSkipsItsJet)
     SkillWorld full;
     Flatten(full.terrain);
     full.world.Runtime().hero = StrikerSlot;
-    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    for (Client::Effects::ModelEffect& effect : full.world.Map().effects.Effects())
     {
         effect.alive = true;
         effect.type = 0x01;
@@ -661,7 +661,7 @@ TEST(AttackSkillCasesTest, TheQuakeKeepsTheWeaponForItsOwner)
         EXPECT_EQ(tested.random.State(), expected.State());
         const auto alive = AliveEffects(tested.world);
         ASSERT_EQ(alive.size(), 1u);
-        const Client::World::ModelEffect& quake = *alive.front();
+        const Client::Effects::ModelEffect& quake = *alive.front();
         EXPECT_EQ(quake.type, 0xfa);
         EXPECT_EQ(quake.subtype, subtype);
         EXPECT_EQ(quake.state, 0);
@@ -683,7 +683,7 @@ TEST(AttackSkillCasesTest, TheQuakeKeepsTheWeaponForItsOwner)
 TEST(AttackSkillCasesTest, AFullTableSkipsTheQuakeButNotItsSound)
 {
     SkillWorld tested;
-    for (Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+    for (Client::Effects::ModelEffect& effect : tested.world.Map().effects.Effects())
     {
         effect.alive = true;
         effect.type = 0x01;
@@ -780,7 +780,7 @@ TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
 
     const auto alive = AliveEffects(tested.world);
     ASSERT_EQ(alive.size(), 1u);
-    const Client::World::ModelEffect& decal = *alive.front();
+    const Client::Effects::ModelEffect& decal = *alive.front();
     CrtRandom expected{Seed};
     const int grown = expected.Next() % 50 + 50;
     EXPECT_EQ(decal.type, 0x61e);
@@ -1339,9 +1339,9 @@ TEST(AttackSkillCasesTest, TheSummonTargetLeavesItsDecalAndItsMark)
 
             const auto alive = AliveEffects(tested.world);
             ASSERT_EQ(alive.size(), 1u);
-            const Client::World::ModelEffect& decal = *alive.front();
-            EXPECT_EQ(decal.type, Client::World::ColoredDecalEffect);
-            EXPECT_EQ(decal.subtype, Client::World::SummonDecalSubtype);
+            const Client::Effects::ModelEffect& decal = *alive.front();
+            EXPECT_EQ(decal.type, Client::Effects::ColoredDecalEffect);
+            EXPECT_EQ(decal.subtype, Client::Effects::SummonDecalSubtype);
             EXPECT_EQ(decal.ownerContext, &victim);
             EXPECT_EQ(decal.transform.position, victim.position);
             EXPECT_EQ(victim.flags78, succeeded != 0 ? 0x14u : 0x10u);
@@ -1351,7 +1351,7 @@ TEST(AttackSkillCasesTest, TheSummonTargetLeavesItsDecalAndItsMark)
     }
     SkillWorld full;
     full.Striker().skillSucceeded = 1;
-    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    for (Client::Effects::ModelEffect& effect : full.world.Map().effects.Effects())
     {
         effect.alive = true;
         effect.type = 0x01;
@@ -1507,12 +1507,12 @@ TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
         if (probe.volley)
         {
             twin.random.Discard(static_cast<std::uint32_t>(SkillRead + OwnRecord));
-            ASSERT_TRUE(
-                Client::Scenes::FireTheArrow(twin.Striker(), nullptr, StrikerSlot, 2, 1, 0, twin.Context()).HasValue());
+            ASSERT_TRUE(Client::Effects::FireTheArrow(twin.Striker(), nullptr, StrikerSlot, 2, 1, 0, twin.Context())
+                            .HasValue());
         }
         twin.random.Discard(static_cast<std::uint32_t>(2 * SkillRead + OwnRecord));
         const auto fired =
-            Client::Scenes::FireTheArrow(twin.Striker(), nullptr, StrikerSlot, 2, 0, probe.skill, twin.Context());
+            Client::Effects::FireTheArrow(twin.Striker(), nullptr, StrikerSlot, 2, 0, probe.skill, twin.Context());
         if (probe.cut.empty())
         {
             EXPECT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
@@ -1527,9 +1527,9 @@ TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
         const auto arrows = AliveEffects(tested.world);
         EXPECT_EQ(arrows.size(), AliveEffects(twin.world).size());
         EXPECT_GE(arrows.size(), probe.arrows);
-        for (const Client::World::ModelEffect* arrow : arrows)
+        for (const Client::Effects::ModelEffect* arrow : arrows)
         {
-            if (Client::Scenes::IsArrowEffect(arrow->type))
+            if (Client::Effects::IsArrowEffect(arrow->type))
             {
                 EXPECT_EQ(arrow->byte89, 2);
             }
@@ -1554,14 +1554,14 @@ TEST(AttackSkillCasesTest, TheBlastLeavesItsJointBeforeItsSound)
 
     ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
     twin.random.Discard(static_cast<std::uint32_t>(2 * SkillRead + OwnRecord));
-    ASSERT_TRUE(Client::Scenes::FireTheArrow(twin.Striker(), &twin.Victim(), StrikerSlot, 2, 0, 0x2e, twin.Context())
+    ASSERT_TRUE(Client::Effects::FireTheArrow(twin.Striker(), &twin.Victim(), StrikerSlot, 2, 0, 0x2e, twin.Context())
                     .HasValue());
     EXPECT_EQ(tested.random.State(), twin.random.State());
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26e});
     EXPECT_EQ(tested.world.OwnCharacter().bytef04, twin.world.OwnCharacter().bytef04);
     const auto alive = AliveEffects(tested.world);
     ASSERT_EQ(alive.size(), 1u);
-    const Client::World::ModelEffect& blast = *alive.front();
+    const Client::Effects::ModelEffect& blast = *alive.front();
     EXPECT_EQ(blast.type, 0x13a);
     EXPECT_EQ(blast.ownerContext, &tested.Victim());
     const auto& joints = tested.world.DrawTail().joints;
@@ -1659,8 +1659,8 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
 {
     const auto alive = [](SkillWorld& tested, std::int16_t type)
     {
-        std::vector<const Client::World::ModelEffect*> found;
-        for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+        std::vector<const Client::Effects::ModelEffect*> found;
+        for (const Client::Effects::ModelEffect& effect : tested.world.Map().effects.Effects())
         {
             if (effect.alive && effect.type == type)
                 found.push_back(&effect);
@@ -1728,7 +1728,7 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
         EXPECT_EQ(beams, jointsFull ? 0 : 2);
         const auto blasts = alive(tested, 0xf5);
         ASSERT_EQ(blasts.size(), 2u);
-        for (const Client::World::ModelEffect* blast : blasts)
+        for (const Client::Effects::ModelEffect* blast : blasts)
         {
             EXPECT_EQ(blast->ownerContext, &striker);
             EXPECT_EQ(blast->byte89, 2);
@@ -1985,7 +1985,7 @@ TEST(AttackSkillCasesTest, TheStormDropsThreeBolts)
         EXPECT_EQ(bolt.pathIncrement, bolt.position);
     }
     EXPECT_EQ(DrawsSince(Seed, tested.random), 6);
-    const auto stepped = Client::Scenes::StepJoints(tested.joints, tested.random);
+    const auto stepped = Client::Joints::StepJoints(tested.joints, tested.random);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53bf6e"), std::string::npos) << stepped.Error();
     EXPECT_EQ(DrawsSince(Seed, tested.random), 7);
@@ -2033,7 +2033,7 @@ TEST(AttackSkillCasesTest, AFullEffectPoolStillDisturbsKalimaWhenItsOwnerExists)
         tested.Striker().cellX = 64;
         tested.Striker().cellY = 63;
         if (hasOwner)
-            tested.world.Map().kalima = std::make_unique<Client::World::KalimaWorld>(24);
+            tested.world.Map().kalima = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(24);
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
         const auto used = tested.Head(0x0a);
@@ -2050,10 +2050,10 @@ TEST(AttackSkillCasesTest, AFullEffectPoolStillDisturbsKalimaWhenItsOwnerExists)
 }
 
 // Los efectos vivos de un tipo, en el orden de la tabla.
-std::vector<const Client::World::ModelEffect*> AliveOfType(const WorldState& world, std::int16_t type)
+std::vector<const Client::Effects::ModelEffect*> AliveOfType(const WorldState& world, std::int16_t type)
 {
-    std::vector<const Client::World::ModelEffect*> found;
-    for (const Client::World::ModelEffect* effect : AliveEffects(world))
+    std::vector<const Client::Effects::ModelEffect*> found;
+    for (const Client::Effects::ModelEffect* effect : AliveEffects(world))
     {
         if (effect->type == type)
             found.push_back(effect);
@@ -2087,7 +2087,7 @@ TEST(AttackSkillCasesTest, TheEnergyBallFliesAtTheTarget)
             tested.Victim().position = glm::vec3(1300.0f, 2400.0f, 0.0f);
             if (full)
             {
-                for (Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+                for (Client::Effects::ModelEffect& effect : tested.world.Map().effects.Effects())
                 {
                     effect.alive = true;
                     effect.type = 0x01;
@@ -2099,14 +2099,14 @@ TEST(AttackSkillCasesTest, TheEnergyBallFliesAtTheTarget)
             ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
             EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x76});
-            const auto balls = AliveOfType(tested.world, Client::Scenes::EnergyBallEffect);
+            const auto balls = AliveOfType(tested.world, Client::Effects::EnergyBallEffect);
             if (full)
             {
                 EXPECT_EQ(AliveEffects(tested.world).size(), tested.world.Map().effects.Effects().size());
                 continue;
             }
             ASSERT_EQ(balls.size(), 1u);
-            const Client::World::ModelEffect& ball = *balls.front();
+            const Client::Effects::ModelEffect& ball = *balls.front();
             EXPECT_EQ(ball.subtype, 0);
             EXPECT_EQ(ball.ownerContext, &tested.Victim());
             EXPECT_EQ(ball.transform.position, glm::vec3(1000.0f, 2000.0f, 150.0f));
@@ -2131,8 +2131,8 @@ TEST(AttackSkillCasesTest, TheRaisedRingsGoOverTheStriker)
 
     ASSERT_TRUE(tested.Head(0x3f).HasValue());
 
-    const auto inner = AliveOfType(tested.world, Client::World::InnerCircleEffect);
-    const auto outer = AliveOfType(tested.world, Client::World::OuterCircleEffect);
+    const auto inner = AliveOfType(tested.world, Client::Effects::InnerCircleEffect);
+    const auto outer = AliveOfType(tested.world, Client::Effects::OuterCircleEffect);
     ASSERT_EQ(inner.size(), 1u);
     ASSERT_EQ(outer.size(), 1u);
     EXPECT_EQ(inner.front()->subtype, 2);
@@ -2162,8 +2162,8 @@ TEST(AttackSkillCasesTest, TheHellfireLeavesBothCirclesOverTheStriker)
 
     ASSERT_TRUE(tested.Head(0x0a).HasValue());
 
-    const auto inner = AliveOfType(tested.world, Client::World::InnerCircleEffect);
-    const auto outer = AliveOfType(tested.world, Client::World::OuterCircleEffect);
+    const auto inner = AliveOfType(tested.world, Client::Effects::InnerCircleEffect);
+    const auto outer = AliveOfType(tested.world, Client::Effects::OuterCircleEffect);
     ASSERT_EQ(inner.size(), 1u);
     ASSERT_EQ(outer.size(), 1u);
     EXPECT_EQ(inner.front()->subtype, 0);
@@ -2188,7 +2188,7 @@ TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
 
     ASSERT_TRUE(tested.Head(0x28).HasValue());
 
-    const auto inner = AliveOfType(tested.world, Client::World::InnerCircleEffect);
+    const auto inner = AliveOfType(tested.world, Client::Effects::InnerCircleEffect);
     ASSERT_EQ(inner.size(), 1u);
     EXPECT_EQ(inner.front()->subtype, 1);
     EXPECT_EQ(inner.front()->objectState.hiddenMesh, -2);
@@ -2212,13 +2212,13 @@ TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
     const auto stepped = tested.Head(0x26);
     ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
 
-    const auto meteors = AliveOfType(tested.world, Client::World::FireEffect);
+    const auto meteors = AliveOfType(tested.world, Client::Effects::FireEffect);
     ASSERT_EQ(meteors.size(), 2u);
     const auto& joints = tested.joints;
     for (std::size_t index = 0; index < meteors.size(); ++index)
     {
         SCOPED_TRACE(index);
-        const Client::World::ModelEffect& meteor = *meteors[index];
+        const Client::Effects::ModelEffect& meteor = *meteors[index];
         EXPECT_EQ(meteor.subtype, 6);
         EXPECT_EQ(meteor.ownerContext, nullptr);
         EXPECT_EQ(meteor.speed, 0.0f);
@@ -2252,7 +2252,7 @@ TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
 // Después, el sonido 0x74.
 TEST(AttackSkillCasesTest, TheTwisterTakesTheBodyLight)
 {
-    for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
+    for (const glm::vec3& light : {Client::Skills::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
     {
         SkillWorld tested;
         Flatten(tested.terrain);
@@ -2266,9 +2266,9 @@ TEST(AttackSkillCasesTest, TheTwisterTakesTheBodyLight)
         const auto stepped = StepTheHeadSkill(striker, StrikerSlot, 0x08, tested.Context(), light);
         ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
 
-        const auto storms = AliveOfType(tested.world, Client::World::StormEffect);
+        const auto storms = AliveOfType(tested.world, Client::Effects::StormEffect);
         ASSERT_EQ(storms.size(), 1u);
-        const Client::World::ModelEffect& storm = *storms.front();
+        const Client::Effects::ModelEffect& storm = *storms.front();
         EXPECT_EQ(storm.subtype, 0);
         EXPECT_EQ(storm.light, light);
         EXPECT_EQ(storm.ownerContext, &striker);
@@ -2300,13 +2300,13 @@ TEST(AttackSkillCasesTest, TheIceFreezesTheTarget)
         const auto stepped = StepTheTargetSkill(striker, victim, StrikerSlot, 0x07, tested.Context(), light);
         ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
 
-        const auto ice = AliveOfType(tested.world, Client::World::IceEffect);
+        const auto ice = AliveOfType(tested.world, Client::Effects::IceEffect);
         ASSERT_EQ(ice.size(), 1u);
         EXPECT_EQ(ice.front()->subtype, 0);
         EXPECT_EQ(ice.front()->life, 50);
         EXPECT_EQ(ice.front()->light, light);
         EXPECT_EQ(ice.front()->transform.position, victim.position);
-        EXPECT_EQ(AliveOfType(tested.world, Client::World::IceShardEffect).size(), 5u);
+        EXPECT_EQ(AliveOfType(tested.world, Client::Effects::IceShardEffect).size(), 5u);
         EXPECT_EQ(DrawsSince(Seed, tested.random), 25);
         EXPECT_EQ(victim.flags78, succeeded != 0 ? 2u : 0u);
         EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x78}));
@@ -2325,7 +2325,7 @@ TEST(AttackSkillCasesTest, TheFiresGoToTheTarget)
 
         ASSERT_TRUE(tested.WithTarget(0x02).HasValue());
 
-        const auto fires = AliveOfType(tested.world, Client::World::FireEffect);
+        const auto fires = AliveOfType(tested.world, Client::Effects::FireEffect);
         ASSERT_EQ(fires.size(), 1u);
         EXPECT_EQ(fires.front()->subtype, 0);
         EXPECT_EQ(fires.front()->ownerContext, nullptr);
@@ -2343,7 +2343,7 @@ TEST(AttackSkillCasesTest, TheFiresGoToTheTarget)
 
         ASSERT_TRUE(tested.WithTarget(0x04).HasValue());
 
-        const auto fires = AliveOfType(tested.world, Client::World::FireEffect);
+        const auto fires = AliveOfType(tested.world, Client::Effects::FireEffect);
         ASSERT_EQ(fires.size(), 1u);
         EXPECT_EQ(fires.front()->subtype, 1);
         EXPECT_EQ(fires.front()->ownerContext, &victim);
@@ -2370,9 +2370,9 @@ TEST(AttackSkillCasesTest, ThePowerWaveFansOutForTheTriple)
 
         ASSERT_TRUE(tested.WithTarget(0x0b).HasValue());
 
-        const auto waves = AliveOfType(tested.world, Client::World::MagicEffect);
+        const auto waves = AliveOfType(tested.world, Client::Effects::MagicEffect);
         std::vector<float> headings;
-        for (const Client::World::ModelEffect* wave : waves)
+        for (const Client::Effects::ModelEffect* wave : waves)
         {
             EXPECT_EQ(wave->subtype, 0);
             EXPECT_EQ(wave->ownerContext, nullptr);
@@ -2402,7 +2402,7 @@ TEST(AttackSkillCasesTest, TheSnowballAndThePoisonFindTheTarget)
 
         ASSERT_TRUE(tested.WithTarget(0x11).HasValue());
 
-        const auto snow = AliveOfType(tested.world, Client::World::SnowEffect);
+        const auto snow = AliveOfType(tested.world, Client::Effects::SnowEffect);
         ASSERT_EQ(snow.size(), 1u);
         EXPECT_EQ(snow.front()->ownerContext, &victim);
         EXPECT_EQ(snow.front()->transform.angles.z, HeadingTo(striker, victim));
@@ -2416,7 +2416,7 @@ TEST(AttackSkillCasesTest, TheSnowballAndThePoisonFindTheTarget)
 
         EXPECT_TRUE(HasError(tested.WithTarget(0x01), "0x50497e"));
 
-        const auto poison = AliveOfType(tested.world, Client::World::PoisonEffect);
+        const auto poison = AliveOfType(tested.world, Client::Effects::PoisonEffect);
         ASSERT_EQ(poison.size(), 1u);
         EXPECT_EQ(poison.front()->transform.position, victim.position);
         EXPECT_EQ(poison.front()->life, 40);

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <string_view>
 
-namespace Client::UI::OldEditWordMovement
+namespace Client::Ui::OldEditWordMovement
 {
 namespace
 {
@@ -61,4 +61,4 @@ std::size_t CursorAfterCtrlRight(std::string_view text, std::size_t cursor)
         ++cursor;
     return cursor;
 }
-} // namespace Client::UI::OldEditWordMovement
+} // namespace Client::Ui::OldEditWordMovement

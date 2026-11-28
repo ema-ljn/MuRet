@@ -179,7 +179,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
         SCOPED_TRACE(probe.type);
         SCOPED_TRACE(probe.subtype);
         std::array<Client::Scenes::JointState, 1> joints{};
-        Client::Scenes::FaunaObject owner;
+        Client::Fauna::FaunaObject owner;
         owner.active = 1;
         owner.position = {100, 200, 100};
         owner.previousPosition = {90, 190, 100};
@@ -199,7 +199,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_TRUE(created.Value().has_value());
         auto& joint = joints[*created.Value()];
@@ -212,7 +212,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
             joint.points[0][point] = {static_cast<float>(point & 1u), static_cast<float>(point >> 1u), 0};
             joint.points[1][point] = joint.points[0][point] + glm::vec3{0, 0, 1};
         }
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         const Client::Scenes::JointDrawResources resources{random, sprites};
         Client::Render::ModelBatch batch;
 

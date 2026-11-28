@@ -23,12 +23,12 @@
 // posiciones y los dueños son inventados; los valores esperados salen del ASM.
 namespace
 {
-using Client::World::HandShineParticle;
-using Client::World::Particle;
-using Client::World::ParticleError;
-using Client::World::ParticleOwner;
-using Client::World::ParticleOwnerKind;
-using Client::World::Particles;
+using Client::Particles::HandShineParticle;
+using Client::Particles::Particle;
+using Client::Particles::ParticleError;
+using Client::Particles::ParticleOwner;
+using Client::Particles::ParticleOwnerKind;
+using Client::Particles::Particles;
 
 constexpr std::uint64_t OwnerSlot = 7;
 constexpr ParticleOwner Owner{ParticleOwnerKind::Actor, OwnerSlot};
@@ -36,7 +36,7 @@ constexpr ParticleOwner Owner{ParticleOwnerKind::Actor, OwnerSlot};
 constexpr float PulseStep = std::bit_cast<float>(0x3db2b8c2u);
 
 // Un seno de mentira: anota el argumento y el factor, y devuelve `product`.
-class ScriptedSine final : public Client::World::IParticleTrigonometry
+class ScriptedSine final : public Client::Particles::IParticleTrigonometry
 {
 public:
     mutable std::vector<double> arguments;
@@ -68,11 +68,11 @@ protected:
         return created.HasValue() ? created.Value().value_or(0) : 0;
     }
 
-    Client::Core::Expected<void, ParticleError> Step(const Client::World::ParticleActorHands& hands)
+    Client::Core::Expected<void, ParticleError> Step(const Client::Particles::ParticleActorHands& hands)
     {
         const std::int32_t map = 0;
-        return Client::World::StepParticlesChecked(*m_particles, m_random, std::cref(m_clock), &map, m_sine, {}, {}, {},
-                                                   {}, nullptr, hands);
+        return Client::Particles::StepParticlesChecked(*m_particles, m_random, std::cref(m_clock), &map, m_sine, {}, {},
+                                                       {}, {}, nullptr, hands);
     }
 
     std::unique_ptr<Particles> m_particles = std::make_unique<Particles>();
@@ -80,8 +80,8 @@ protected:
     ScriptedSine m_sine;
     float m_clock = 0.0f;
     std::vector<std::int32_t> m_handSubtypes;
-    Client::World::ParticleActorHands m_hands = [this](std::uint64_t slot,
-                                                       std::int32_t subtype) -> std::optional<glm::vec3>
+    Client::Particles::ParticleActorHands m_hands = [this](std::uint64_t slot,
+                                                           std::int32_t subtype) -> std::optional<glm::vec3>
     {
         EXPECT_EQ(slot, OwnerSlot);
         m_handSubtypes.push_back(subtype);

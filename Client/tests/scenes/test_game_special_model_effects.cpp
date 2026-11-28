@@ -149,9 +149,9 @@ glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
     return {std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)};
 }
 
-Client::World::ModelEffect ItemEffect(std::int16_t type, const std::int16_t& itemType, const std::uint8_t& itemLevel)
+Client::Effects::ModelEffect ItemEffect(std::int16_t type, const std::int16_t& itemType, const std::uint8_t& itemLevel)
 {
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = type;
     effect.life = 11;
@@ -170,7 +170,7 @@ Client::World::ModelEffect ItemEffect(std::int16_t type, const std::int16_t& ite
     return effect;
 }
 
-void ExpectItemInitialization(const Client::World::ModelEffect& effect, float scale, float turnDirection)
+void ExpectItemInitialization(const Client::Effects::ModelEffect& effect, float scale, float turnDirection)
 {
     EXPECT_EQ(effect.light, glm::vec3(0.3f));
     EXPECT_TRUE(effect.vertexLight);
@@ -201,7 +201,7 @@ TEST(GameSpecialModelEffectsTest, MissingSpritesPreservesTheFirstSubtypeOneRotat
 {
     NoModels models;
     Client::Render::ModelBatch batch;
-    std::array<Client::World::ModelEffect, 2> effects{};
+    std::array<Client::Effects::ModelEffect, 2> effects{};
     auto& effect = effects[0];
     effect.alive = true;
     effect.type = 0x5e8;
@@ -225,8 +225,8 @@ TEST(GameSpecialModelEffectsTest, TwentySpriteSamplesAccumulateRealDynamicLightW
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto light = std::make_unique<Client::Terrain::TerrainLighting>();
-    Client::World::FrameSprites sprites;
-    Client::World::ModelEffect effect;
+    Client::Particles::FrameSprites sprites;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x5e9;
     effect.transform.position = {1000, 1000, 40};
@@ -257,10 +257,10 @@ TEST(GameSpecialModelEffectsTest, SubtypeOneMutatesTwentyTimesEvenWhenSpritesAre
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto light = std::make_unique<Client::Terrain::TerrainLighting>();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     for (auto& sprite : sprites.Sprites())
         sprite.alive = true;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x5ea;
     effect.subtype = 1;
@@ -284,10 +284,10 @@ TEST(GameSpecialModelEffectsTest, SiegeBarrierReturnsTheEntirePassAfterItsFirstS
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto light = std::make_unique<Client::Terrain::TerrainLighting>();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     AttributeSource attributes;
     attributes.table->cells[10 * 256 + 11] = 0x100;
-    std::array<Client::World::ModelEffect, 2> effects{};
+    std::array<Client::Effects::ModelEffect, 2> effects{};
     effects[0].alive = true;
     effects[0].type = 0x5e8;
     effects[0].transform.position = {1050, 1050, 0};
@@ -313,8 +313,8 @@ TEST(GameSpecialModelEffectsTest, MissingDynamicLightPreservesTheSpriteAndStopsB
     NoModels models;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::FrameSprites sprites;
-    std::array<Client::World::ModelEffect, 2> effects{};
+    Client::Particles::FrameSprites sprites;
+    std::array<Client::Effects::ModelEffect, 2> effects{};
     for (auto& effect : effects)
     {
         effect.alive = true;
@@ -334,7 +334,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemGuardDoesNotRequireItsOwnerOrResourc
 {
     NoModels models;
     Client::Render::ModelBatch batch;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xfa;
     effect.life = 10;
@@ -351,7 +351,7 @@ TEST(GameSpecialModelEffectsTest, TheTrailWithoutAMeshContinuesTheSecondKalimaPa
 {
     NoModels models;
     Client::Render::ModelBatch batch;
-    Client::World::ModelEffect trail;
+    Client::Effects::ModelEffect trail;
     trail.alive = true;
     trail.type = 0x104;
     trail.life = 6;
@@ -369,7 +369,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemRequiresItsOwnerBeforeStoringAngul
 {
     NoModels models;
     Client::Render::ModelBatch batch;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xf4;
     effect.velocity.z = 60;
@@ -389,7 +389,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
     Client::Crt::CrtRandom expected(3);
     std::int16_t itemType = 0;
     std::uint8_t itemLevel = 0;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xf4;
     effect.transform.position = {100, 200, 300};
@@ -424,7 +424,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditive
     Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x10f;
     effect.life = 10;
@@ -457,7 +457,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPo
     auto light = std::make_unique<Client::Terrain::TerrainLighting>();
     std::int16_t itemType = 0;
     std::uint8_t itemLevel = 0;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xf4;
     models.model.meshes[0].normals[0].normal = {};
@@ -736,7 +736,7 @@ TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToThe
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::int16_t itemType = 0x1a16 - 0x212;
     std::uint8_t itemLevel = 0;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xfa;
     effect.life = 11;
@@ -767,7 +767,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     std::int16_t itemType = 0x2246 - 0x212;
     std::uint8_t itemLevel = 0;
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
@@ -795,7 +795,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     EXPECT_EQ(batch.Vertices()[0].position, Bits(0x447c8e14u, 0x44f95666u, 0x439768f6u));
     EXPECT_EQ(batch.Vertices()[1].position, Bits(0x447ce000u, 0x44f8fcccu, 0x43987333u));
     EXPECT_EQ(batch.Vertices()[2].position, Bits(0x447c71ebu, 0x44f9df5cu, 0x4396d47bu));
-    const auto glow = std::ranges::find_if(sprites.Sprites(), [](const Client::World::Sprite& sprite)
+    const auto glow = std::ranges::find_if(sprites.Sprites(), [](const Client::Particles::Sprite& sprite)
                                            { return sprite.alive && sprite.texture == 0x5c6; });
     ASSERT_NE(glow, sprites.Sprites().end());
     EXPECT_EQ(glow->position, Bits(0x447d2666u, 0x44f92000u, 0x439f199au));
@@ -812,10 +812,10 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndIt
     Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     std::int16_t itemType = 0x1e24 - 0x212;
     std::uint8_t itemLevel = 0;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xf4;
     effect.transform.position = {100, 200, 300};
@@ -866,7 +866,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAn
     Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x10f;
     effect.life = 10;

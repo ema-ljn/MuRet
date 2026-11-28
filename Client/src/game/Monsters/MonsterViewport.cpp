@@ -46,7 +46,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -59,7 +59,7 @@ constexpr std::size_t SummonNameBytes = 24;
 // 0x4c9790, los casos con la acción 1, +0x112 en 1, el alpha en 1 y, si hay, el sonido.
 Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, std::uint32_t address,
                                                     std::optional<std::int32_t> sound,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     if (auto set = Actors::SetMonsterAction(actor, 1, address, resources); !set.HasValue())
         return set;
@@ -71,14 +71,15 @@ Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, s
 }
 
 // 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: la puerta de Castle Siege.
-Core::Expected<void, std::string> CheckTheSiegeGate(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> CheckTheSiegeGate(Kernel::ActorState& actor,
+                                                    const Scenes::WorldEntryResources& resources)
 {
     if (resources.world.Runtime().map != CastleSiegeMap || actor.word376 != SiegeGateKind)
         return {};
     if ((actor.flags78 & GateOpenFlag) == GateOpenFlag)
-        return SetTheCastleGateState(actor, true, resources);
+        return CastleSiege::SetTheCastleGateState(actor, true, resources);
     if (actor.flags78 == 0)
-        return SetTheCastleGateState(actor, false, resources);
+        return CastleSiege::SetTheCastleGateState(actor, false, resources);
     return {};
 }
 
@@ -100,7 +101,7 @@ float AngleStepOf(const Kernel::ActorState& actor)
 }
 
 Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Actors::MonsterRecord& record,
-                                                     const WorldEntryResources& resources)
+                                                     const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -175,7 +176,7 @@ Core::Expected<std::string, std::string> FormatTheSummonName(std::string_view fo
 
 // 0x517400(dueño, clave, tipo, X, Y, recién llegado).
 Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::SummonRecord& record,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     const auto created = CreateMonster(record.type, record.x, record.y, record.key, resources);
     if (!created.HasValue())
@@ -227,7 +228,8 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = -1};
-            if (auto made = CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random);
+            if (auto made =
+                    Joints::CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random);
                 !made.HasValue())
                 return Core::Unexpected(std::format("{:#x}: {}", Calls[bolt], made.Error()));
         }
@@ -238,7 +240,7 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
 // 0x4ca516..0x4ca5bf: el dueño (diez bytes, con +0x1e3 en 0 antes), el Text 485 y el nombre que tenía.
 Core::Expected<void, std::string> NameAfterTheOwner(Kernel::ActorState& actor,
                                                     const Protocol::Actors::SummonRecord& record,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     // 0x76e0a38, el registro 485 de Text.bmd.
     constexpr std::size_t OwnerText = 485;
@@ -277,7 +279,7 @@ bool IsSummonType(std::uint16_t type)
 }
 
 Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::SummonRecord& record,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -316,18 +318,18 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
         // (World/BlastModelEffects), y 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje), el rayo que lo
         // sigue en su paso, como el transformado de 0x4c965c; ninguno saca rand(). Con la tabla llena, nada.
         constexpr std::int16_t MagicCircle = 0xec;
-        if (auto circle = CreateBlastEffectOutsideTheStep({.type = MagicCircle,
-                                                           .position = actor.position,
-                                                           .angles = actor.angles,
-                                                           .light = actor.light,
-                                                           .subtype = 0,
-                                                           .key = 0xffff},
-                                                          &actor, world, random);
+        if (auto circle = Combat::CreateBlastEffectOutsideTheStep({.type = MagicCircle,
+                                                                   .position = actor.position,
+                                                                   .angles = actor.angles,
+                                                                   .light = actor.light,
+                                                                   .subtype = 0,
+                                                                   .key = 0xffff},
+                                                                  &actor, world, random);
             !circle.HasValue())
             return Core::Unexpected(std::format("0x4ca5f6: {}", circle.Error()));
-        const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, index};
-        if (auto bolt = world.Particles().CreateOwnedChecked(World::LightningParticle, actor.position, actor.angles,
-                                                             actor.light, World::LightningFollowSubtype, 1.0f, 0.0f,
+        const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::Actor, index};
+        if (auto bolt = world.Particles().CreateOwnedChecked(Particles::LightningParticle, actor.position, actor.angles,
+                                                             actor.light, Particles::LightningFollowSubtype, 1.0f, 0.0f,
                                                              random, 0, owner);
             !bolt.HasValue())
             return Core::Unexpected(
@@ -357,13 +359,13 @@ void TurnAtRandom(Kernel::ActorState& actor, Crt::CrtRandom& random)
 
 // 0x4e0c1d..0x4e0e52, el registro de un jugador.
 Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::ObjectRecord& record,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = resources.cloth.random;
-    const Actors::ActorConstructionContext construction{TerrainOf(resources), runtime.map, Terrain::CullingScene::Game,
-                                                        resources.camera.fixedHeight};
+    const Actors::ActorConstructionContext construction{Scenes::TerrainOf(resources), runtime.map,
+                                                        Terrain::CullingScene::Game, resources.camera.fixedHeight};
     const auto created = Actors::CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
                                              construction, resources.cloth);
     if (!created.HasValue())
@@ -387,7 +389,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
     TurnAtRandom(actor, random);
     // 0x4e0e16..0x4e0e1f: 0x5139f0 con el lugar de 0x5110d0 y el equipo de +7.
     if (auto set = Actors::ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources,
-                                             TableHelpers(world, &resources.cloth.random));
+                                             Pets::TableHelpers(world, &resources.cloth.random));
         !set.HasValue())
         return set;
     // 0x4e0e24..0x4e0e52: "   " (0x6c8648) y +0x1e3 en 0.
@@ -400,7 +402,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
 
 // 0x4e09ca..0x4e0c18, el registro de un monstruo (un 0 de 0x5141e0 pasa al siguiente, 0x4e0a06).
 Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Actors::ObjectRecord& record,
-                                                     const WorldEntryResources& resources)
+                                                     const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -421,7 +423,7 @@ Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Actors::Obj
 }
 } // namespace
 
-Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     switch (actor.word376)
@@ -458,7 +460,7 @@ Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const W
             return {};
         }
         actor.alpha = 0.0f;
-        return CreateArrivalSparks(actor, resources.world, resources.cloth.random);
+        return Effects::CreateArrivalSparks(actor, resources.world, resources.cloth.random);
     default:
         break;
     }
@@ -479,7 +481,7 @@ Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const W
 }
 
 Core::Expected<void, std::string> ApplyViewportMonsters(const Protocol::Actors::Monsters& monsters,
-                                                        const WorldEntryResources& resources)
+                                                        const Scenes::WorldEntryResources& resources)
 {
     for (const Protocol::Actors::MonsterRecord& record : monsters.records)
     {
@@ -490,7 +492,7 @@ Core::Expected<void, std::string> ApplyViewportMonsters(const Protocol::Actors::
 }
 
 Core::Expected<void, std::string> ApplySummons(const Protocol::Actors::Summons& summons,
-                                               const WorldEntryResources& resources)
+                                               const Scenes::WorldEntryResources& resources)
 {
     for (const Protocol::Actors::SummonRecord& record : summons.records)
     {
@@ -501,7 +503,7 @@ Core::Expected<void, std::string> ApplySummons(const Protocol::Actors::Summons& 
 }
 
 Core::Expected<void, std::string> ApplyViewportObjects(const Protocol::Actors::Objects& objects,
-                                                       const WorldEntryResources& resources)
+                                                       const Scenes::WorldEntryResources& resources)
 {
     constexpr std::uint8_t PlayerKind = 1;
     constexpr std::uint8_t FirstMonsterKind = 2;
@@ -518,4 +520,4 @@ Core::Expected<void, std::string> ApplyViewportObjects(const Protocol::Actors::O
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

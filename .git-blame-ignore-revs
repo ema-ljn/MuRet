@@ -86,3 +86,6 @@ a142b0c0300ae61793bdb1d1a4fda8b67246bcd4
 
 # refactor(AR4.1): move LoadedWorld to Client/src/game/Assets (#547)
 c5d07e8c4154241f842c0132a6f93bfaaf960dd7
+
+# refactor(AR4): move the rest of the game and the app to Client/src/game and Client/src/app (#583)
+c964abe2f644f8b3150cb533a69dc6511cab8e80

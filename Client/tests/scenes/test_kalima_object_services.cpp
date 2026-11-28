@@ -87,9 +87,9 @@ private:
                                                           Client::Render::TextureSlot{101}};
 };
 
-Client::World::WorldObject Object(std::int16_t type)
+Client::WorldObjects::WorldObject Object(std::int16_t type)
 {
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = type;
     object.transform.position = glm::vec3(100, 100, 0);
     object.light = glm::vec3(1);
@@ -98,11 +98,11 @@ Client::World::WorldObject Object(std::int16_t type)
 }
 
 Client::Core::Expected<void, std::string> Draw(Client::Render::ModelBatch& batch, const KalimaModel& models,
-                                               std::span<Client::World::WorldObject> objects,
-                                               const Client::Scenes::GameObjectPass& pass)
+                                               std::span<Client::WorldObjects::WorldObject> objects,
+                                               const Client::WorldObjects::GameObjectPass& pass)
 {
     batch.Begin(Client::Render::Pass3D{});
-    return Client::Scenes::DrawGameWorldObjects(batch, models, objects, {.everything = true}, nullptr, {}, pass);
+    return Client::WorldObjects::DrawGameWorldObjects(batch, models, objects, {.everything = true}, nullptr, {}, pass);
 }
 } // namespace
 
@@ -173,7 +173,7 @@ TEST(KalimaObjectServicesTest, TheStepHidesExactlyThirtySevenThroughFortyAfterTh
         {
             auto object = Object(type);
             Client::Crt::CrtRandom random(7);
-            const auto result = Client::World::StepWorldObjectChecked(object, map, nullptr, random, {});
+            const auto result = Client::WorldObjects::StepWorldObjectChecked(object, map, nullptr, random, {});
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(object.state.hiddenMesh, type >= 37 && type <= 40 ? -2 : -1);
             EXPECT_EQ(random.State(), 7u);
@@ -183,7 +183,7 @@ TEST(KalimaObjectServicesTest, TheStepHidesExactlyThirtySevenThroughFortyAfterTh
     faded.alpha = 0;
     faded.targetAlpha = 0;
     Client::Crt::CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepWorldObjectChecked(faded, 24, nullptr, random, {}).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(faded, 24, nullptr, random, {}).HasValue());
     EXPECT_EQ(faded.state.hiddenMesh, -1);
 }
 
@@ -191,9 +191,9 @@ TEST(KalimaObjectServicesTest, TheFlareUsesBoneTwentyAndDoesNotInventAnObjectOri
 {
     auto object = Object(12);
     Client::Kernel::PoseBuffer carry;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(7);
-    const auto result = Client::Scenes::StepKalimaObjectFrame(
+    const auto result = Client::MapScripts::Kalima::StepKalimaObjectFrame(
         object, {.map = 24, .random = &random, .sprites = &sprites, .retainedPose = &carry});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_TRUE(sprites.Sprites()[0].alive);
@@ -215,7 +215,7 @@ TEST(KalimaObjectServicesTest, TheLastMarkerKeepsItsGuardBeforeTheScaleStoreOrTh
         Client::Crt::CrtRandom random(seed);
         auto expected = random;
         const bool creates = expected.Next() % 4 == 0;
-        const auto result = Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .random = &random});
+        const auto result = Client::MapScripts::Kalima::StepKalimaObjectFrame(object, {.map = 24, .random = &random});
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(result.HasValue(), !creates);
         EXPECT_FLOAT_EQ(object.transform.scale, creates ? 7 : 0.5f);
@@ -269,8 +269,9 @@ TEST(KalimaObjectServicesTest, HeightWrapperClampsUnorderedAndNegativeCoordinate
     auto object = Object(15);
     object.transform.position = {std::numeric_limits<float>::quiet_NaN(), -100, 999};
     const Client::Kernel::ActorState hero;
-    Client::World::KalimaWorld water(24);
-    const auto result = Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .hero = &hero, .kalima = &water});
+    Client::MapScripts::Kalima::KalimaWorld water(24);
+    const auto result =
+        Client::MapScripts::Kalima::StepKalimaObjectFrame(object, {.map = 24, .hero = &hero, .kalima = &water});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(object.transform.position.z, 355);
     EXPECT_TRUE(std::isnan(object.transform.position.x));
@@ -278,12 +279,12 @@ TEST(KalimaObjectServicesTest, HeightWrapperClampsUnorderedAndNegativeCoordinate
 
 TEST(KalimaObjectServicesTest, FullParticlePoolStillHidesMarkersStoresScaleAndRequestsBothSounds)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     for (auto& p : particles.All())
         p.alive = true;
     Client::Crt::CrtRandom random(7);
     std::vector<std::int32_t> sounds;
-    const Client::Scenes::GameObjectPass pass{
+    const Client::WorldObjects::GameObjectPass pass{
         .map = 24, .random = &random, .particles = &particles, .requestSound = [&](Client::Audio::SoundId sound) {
             sounds.push_back(sound.Value());
         }};
@@ -291,7 +292,7 @@ TEST(KalimaObjectServicesTest, FullParticlePoolStillHidesMarkersStoresScaleAndRe
     {
         auto object = Object(type);
         object.transform.scale = 7;
-        ASSERT_TRUE(Client::Scenes::StepKalimaObjectFrame(object, pass).HasValue());
+        ASSERT_TRUE(Client::MapScripts::Kalima::StepKalimaObjectFrame(object, pass).HasValue());
         EXPECT_EQ(object.transform.scale, type == 35 ? 7 : 0.5f);
         if (type <= 36)
         {
@@ -308,10 +309,10 @@ TEST(KalimaObjectServicesTest, MissingSoundKeepsTheDifferentNativeScaleStoreOrde
     {
         auto object = Object(type);
         object.transform.scale = 7;
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         Client::Crt::CrtRandom random(7);
-        const auto result =
-            Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .random = &random, .particles = &particles});
+        const auto result = Client::MapScripts::Kalima::StepKalimaObjectFrame(
+            object, {.map = 24, .random = &random, .particles = &particles});
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find(type == 37 ? "0x438e84" : "0x438ee6"), std::string::npos);
         EXPECT_EQ(object.transform.scale, type == 37 ? 0.5f : 7);
@@ -324,13 +325,13 @@ TEST(KalimaObjectServicesTest, ObjectOwnedFlareKeepsItsStableIdentityAcrossTheFr
 {
     auto object = Object(35);
     object.identity = 0x100000042ull;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(7);
-    const auto made =
-        Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .random = &random, .particles = &particles});
+    const auto made = Client::MapScripts::Kalima::StepKalimaObjectFrame(
+        object, {.map = 24, .random = &random, .particles = &particles});
     ASSERT_TRUE(made.HasValue()) << made.Error();
     EXPECT_EQ(object.state.hiddenMesh, -2);
-    EXPECT_EQ(particles.All()[0].typedOwner.kind, Client::World::ParticleOwnerKind::WorldObject);
+    EXPECT_EQ(particles.All()[0].typedOwner.kind, Client::Particles::ParticleOwnerKind::WorldObject);
     EXPECT_EQ(particles.All()[0].typedOwner.identity, 0x100000042ull);
     const auto projected = particles;
     particles.Clear();

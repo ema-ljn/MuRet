@@ -90,7 +90,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -175,7 +175,7 @@ struct Frame
     Kernel::WorldRuntime& runtime;
     Kernel::OwnCharacterRecord& own;
     Kernel::ActorState& hero;
-    UI::PanelRegistry& panels;
+    Ui::PanelRegistry& panels;
 };
 
 // Un acceso al registro propio ([0x7681eb4]): abre sin gastar y, si lo deja en 0, cierra con 3.848 rand().
@@ -193,7 +193,7 @@ Models::LogicalAccess SkillAccess(const Frame& frame, std::uint32_t skill)
 
 Core::Expected<std::string_view, std::string> TextOf(const Frame& frame, std::size_t index, std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(frame.context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(frame.context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -250,13 +250,13 @@ void DrawHudText(Frame& frame, int x, int y, std::string_view text, bool endingA
 // 0x554340 deja el texto en blanco sobre un fondo transparente (0x6c8e5c en −1 y 0x6c8e64 en 0).
 void DrawHelp(Frame& frame, int x, int y, std::string_view help)
 {
-    UI::DrawHelp(frame.context.sprites, frame.context.text, x, y, help);
+    Ui::DrawHelp(frame.context.sprites, frame.context.text, x, y, help);
     frame.context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
 }
 
 bool MouseIn(const Frame& frame, int left, int top, int right, int bottom)
 {
-    const UI::Point mouse = frame.context.mouse;
+    const Ui::Point mouse = frame.context.mouse;
     return left <= mouse.x && mouse.x < right && top <= mouse.y && mouse.y < bottom;
 }
 
@@ -451,7 +451,7 @@ Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x
     // 0x5a6855..0x5a6888: los tres del 0xcc.
     constexpr std::int32_t ThreeLinesIcon = 0xcc;
     constexpr std::array<std::size_t, 3> ThreeLines{1638, 1639, 1472};
-    TooltipLines& lines = frame.context.hud.tooltip;
+    Tooltips::TooltipLines& lines = frame.context.hud.tooltip;
     std::size_t last = 3;
     {
         const auto own = OwnAccess(frame);
@@ -466,7 +466,7 @@ Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x
         }
         lines.text[0] = "\n";
         lines.text[1] = Crt::Sprintf("%s", std::string_view(name));
-        lines.colors[1] = TooltipBlue;
+        lines.colors[1] = Tooltips::TooltipBlue;
         lines.bold[1] = 1;
         lines.text[2] = "\n";
         const auto write = [&](std::size_t line, std::size_t index) -> Core::Expected<void, std::string>
@@ -493,11 +493,11 @@ Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x
             if (auto written = write(3, help.text); !written.HasValue())
                 return written;
         }
-        lines.colors[last] = TooltipWhite;
+        lines.colors[last] = Tooltips::TooltipWhite;
         lines.bold[last] = 0;
         lines.text[last + 1] = "\n";
     }
-    return DrawTheTooltipBox(frame.context, x, y, static_cast<std::int32_t>(last + 2), 0, 2, 1);
+    return Tooltips::DrawTheTooltipBox(frame.context, x, y, static_cast<std::int32_t>(last + 2), 0, 2, 1);
 }
 
 Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
@@ -522,7 +522,7 @@ Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
             continue;
         const int x = shown * 25 + 180;
         DrawStatusIcon(frame, icon.icon, x, 1, 20, 24);
-        const UI::Point mouse = frame.context.mouse;
+        const Ui::Point mouse = frame.context.mouse;
         if (x < mouse.x && mouse.x < x + 20 && 1 < mouse.y && mouse.y < 25)
         {
             if (auto help = DrawTheStatusHelp(frame, x + 10, 0x1d, icon.icon); !help.HasValue())
@@ -541,7 +541,7 @@ float PartyOffset(Frame& frame)
 {
     if (frame.context.hud.partyCount <= 0)
         return 0.0f;
-    return frame.panels.IsOpen(UI::PartyPanel) ? 10.0f : 60.0f;
+    return frame.panels.IsOpen(Ui::PartyPanel) ? 10.0f : 60.0f;
 }
 
 // Un texto de las flechas: con la mezcla normal, en (x, 4) con el modo 1, y su tamaño en 0x77f31b8 y 0x77f31bc
@@ -574,15 +574,15 @@ void DrawTheMacroTime(Frame& frame)
     const Render::Text::TextExtent extent = frame.context.text.Measure(Render::Text::FontKind::Normal, MacroTimeText);
     hud.arrowsTextWidth = Render::Text::DesignX(extent.width, frame.context.sprites.Screen());
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, frame.context.sprites.Screen());
-    UI::DrawGauge(frame.context.sprites, x, MacroTimeBarTop, MacroTimeBarWidth, MacroTimeBarHeight,
+    Ui::DrawGauge(frame.context.sprites, x, MacroTimeBarTop, MacroTimeBarWidth, MacroTimeBarHeight,
                   static_cast<float>(fill), false, true);
 }
 
 // 0x469350: los dos EDIT usan la misma vtable +0x14 (0x468320) que amigos, cartas y diálogos.
-void DrawTheChatEdit(Frame& frame, UI::OldEdit& edit, bool focused)
+void DrawTheChatEdit(Frame& frame, Ui::OldEdit& edit, bool focused)
 {
     GameHudContext& context = frame.context;
-    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = context.sprites,
+    Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = context.sprites,
                                                          .text = context.text,
                                                          .dcFont = context.hud.dcFont,
                                                          .textColors = context.hud.textColors,
@@ -597,7 +597,7 @@ void DrawTheChatInput(Frame& frame)
 {
     GameHudContext& context = frame.context;
     Kernel::HudState& hud = context.hud;
-    const UI::ChatInputState& input = frame.runtime.chat.input;
+    const Chat::ChatInputState& input = frame.runtime.chat.input;
     context.sprites.SetColor(White);
     hud.dcFont = Render::Text::FontKind::Normal;
     if (!frame.runtime.ui.chatOpen && !input.otherInput)
@@ -608,21 +608,21 @@ void DrawTheChatInput(Frame& frame)
     context.sprites.SetBlend(BlendMode::Alpha);
     if (input.shown)
     {
-        UI::OldEdit messageCopy;
-        UI::OldEdit whisperCopy;
-        UI::OldEdit& message = context.projecting ? (messageCopy = input.message) : frame.runtime.chat.input.message;
-        UI::OldEdit& whisper = context.projecting ? (whisperCopy = input.whisper) : frame.runtime.chat.input.whisper;
-        DrawTheChatEdit(frame, message, input.focus == UI::ChatFocus::Message);
-        DrawTheChatEdit(frame, whisper, input.focus == UI::ChatFocus::Whisper);
+        Ui::OldEdit messageCopy;
+        Ui::OldEdit whisperCopy;
+        Ui::OldEdit& message = context.projecting ? (messageCopy = input.message) : frame.runtime.chat.input.message;
+        Ui::OldEdit& whisper = context.projecting ? (whisperCopy = input.whisper) : frame.runtime.chat.input.whisper;
+        DrawTheChatEdit(frame, message, input.focus == Chat::ChatFocus::Message);
+        DrawTheChatEdit(frame, whisper, input.focus == Chat::ChatFocus::Whisper);
     }
     hud.textColors = WhisperNamesColors;
-    if (input.field % 2 == UI::WhisperField)
+    if (input.field % 2 == Chat::WhisperField)
     {
-        for (std::int32_t slot = 0; slot < static_cast<std::int32_t>(UI::WhisperNameSlots); ++slot)
+        for (std::int32_t slot = 0; slot < static_cast<std::int32_t>(Chat::WhisperNameSlots); ++slot)
         {
             if (slot == input.whisperNameAt)
                 continue;
-            const std::string_view name = UI::CStringOf(input.whisperNames[static_cast<std::size_t>(slot)]);
+            const std::string_view name = Chat::CStringOf(input.whisperNames[static_cast<std::size_t>(slot)]);
             if (!name.empty())
                 DrawHudText(frame, WhisperNamesLeft, (slot - input.whisperNameAt) * WhisperNamesStep + WhisperNamesTop,
                             name, false);
@@ -667,7 +667,8 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
         std::int32_t total = 0;
         {
             const auto nested = OwnAccess(frame);
-            total = CountTheAmmo(frame.own.characterClass, frame.own.equipment[0].id, frame.own.equipment[1].id, cells);
+            total = Items::CountTheAmmo(frame.own.characterClass, frame.own.equipment[0].id, frame.own.equipment[1].id,
+                                        cells);
         }
         if (count <= 0 && (!ammo.countsTheInventory || total <= 0))
             continue;
@@ -677,7 +678,7 @@ Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
         const std::string first = std::to_string(count);
         const std::string second = std::to_string(total);
         const std::array<std::string_view, 2> arguments{first, second};
-        DrawAmmoText(frame, x, UI::PlaceArguments(format.Value(), arguments));
+        DrawAmmoText(frame, x, Ui::PlaceArguments(format.Value(), arguments));
         shown = true;
     }
     return shown;
@@ -691,7 +692,7 @@ Core::Expected<std::int32_t, std::string> DrawTheHelper(Frame& frame, bool arrow
     Render::SpriteBatch& sprites = frame.context.sprites;
     float partyOffset = 0.0f;
     std::int32_t top = 15;
-    if (frame.context.hud.partyCount > 0 && !frame.panels.IsOpen(UI::PartyPanel))
+    if (frame.context.hud.partyCount > 0 && !frame.panels.IsOpen(Ui::PartyPanel))
         partyOffset = 50.0f;
     const auto pet = static_cast<std::int16_t>(frame.hero.pet.model);
     if ((pet > 0x1c11 && pet < 0x1c17) || pet == FenrirModel)
@@ -727,11 +728,11 @@ Core::Expected<std::int32_t, std::string> DrawTheHelper(Frame& frame, bool arrow
             auto record = ItemRecordOf(frame, pet - static_cast<std::int32_t>(Tables::FirstItemModel), "0x5ab2f0");
             if (!record.HasValue())
                 return Core::Unexpected(record.Error());
-            name = ItemRecordName(record.Value());
+            name = Items::ItemRecordName(record.Value());
         }
         if (!name.empty())
             DrawHudText(frame, Truncate(x) + 50, Truncate(y), name, true);
-        UI::DrawGauge(sprites, x, F32(static_cast<double>(y) + 12.0), 50.0f, 2.0f, static_cast<float>(fill), false,
+        Ui::DrawGauge(sprites, x, F32(static_cast<double>(y) + 12.0), 50.0f, 2.0f, static_cast<float>(fill), false,
                       true);
         top = Truncate(y) + 0x17;
     }
@@ -747,7 +748,7 @@ Core::Expected<std::int32_t, std::string> DrawTheHelper(Frame& frame, bool arrow
             return Core::Unexpected(text.Error());
         if (!text.Value().empty())
             DrawHudText(frame, Truncate(x) + 50, 4, text.Value(), true);
-        UI::DrawGauge(sprites, x, 16.0f, 50.0f, 2.0f, static_cast<float>(fill), false, true);
+        Ui::DrawGauge(sprites, x, 16.0f, 50.0f, 2.0f, static_cast<float>(fill), false, true);
     }
     return top;
 }
@@ -763,7 +764,7 @@ bool ShowsNoDurability(std::int16_t type)
 
 Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t top)
 {
-    if (frame.panels.IsOpen(UI::TradePanel))
+    if (frame.panels.IsOpen(Ui::TradePanel))
         return {};
     Kernel::HudState& hud = frame.context.hud;
     Render::SpriteBatch& sprites = frame.context.sprites;
@@ -789,7 +790,7 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
             if (!record.HasValue())
                 return Core::Unexpected(record.Error());
             std::uint16_t maximum =
-                MaxDurability(item, record.Value(), static_cast<int>((item.scalar1Low >> 3) & 0xfu));
+                Items::MaxDurability(item, record.Value(), static_cast<int>((item.scalar1Low >> 3) & 0xfu));
             if (item.id == 0x1a0a)
                 maximum = 200;
             const std::uint8_t durability = item.durability;
@@ -826,7 +827,8 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
             if (shown)
             {
                 // 0x6c9304: "%s (%d/%d)", el nombre de Item.bmd, la durabilidad y el máximo.
-                const std::string text = std::format("{} ({}/{})", ItemRecordName(record.Value()), durability, maximum);
+                const std::string text =
+                    std::format("{} ({}/{})", Items::ItemRecordName(record.Value()), durability, maximum);
                 hud.durabilityWarning = 1;
                 DrawHudText(frame, Truncate(x), Truncate(y) + Truncate(offset), text, true);
                 offset = static_cast<float>(Truncate(offset) + 12);
@@ -857,10 +859,11 @@ Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
 {
     if (!frame.runtime.eventObject)
         return {};
-    EventMapObject& event = *frame.runtime.eventObject;
+    Events::EventMapObject& event = *frame.runtime.eventObject;
     // 0x40bab0: la cuenta de 30 segundos con +8 de 1 a 14 (GetTickCount contra +0xc y los textos de la entrada). Un
     // dibujo intermedio no apaga la cuenta vencida: el frame siguiente del original lo vuelve a hacer.
-    auto countdown = EventCountdownText(event, frame.context.tickCount, frame.context.texts, !frame.context.projecting);
+    auto countdown =
+        Events::EventCountdownText(event, frame.context.tickCount, frame.context.texts, !frame.context.projecting);
     if (!countdown.HasValue())
         return Core::Unexpected(std::move(countdown).Error());
     if (countdown.Value())
@@ -874,7 +877,7 @@ Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
     }
     // El método +4: el de Blood Castle (0x40c2d0), el de Chaos Castle (0x405090) y el de Devil Square (0x40bdb0), un
     // ret. Los campos los escribe el 9B (CL9 hito 11). Un dibujo intermedio no elige el área de la trampa.
-    return DrawTheCastleTimeAndPoints(frame.context, event, !frame.context.projecting);
+    return Events::DrawTheCastleTimeAndPoints(frame.context, event, !frame.context.projecting);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -886,16 +889,16 @@ constexpr std::int32_t PartyWindowLeft = 0x1c2;
 Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    UI::PanelRegistry& panels = frame.panels;
-    const UI::PanelState& state = frame.runtime.panels;
+    Ui::PanelRegistry& panels = frame.panels;
+    const Ui::PanelState& state = frame.runtime.panels;
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
     frame.context.hud.textColors.text = 0xffff8080u;
     // 0x5f7474: 0x5f0be0(0x1c2, 0), que empieza con su IsOpen.
-    if (auto party = DrawThePartyWindow(frame.context, panels, PartyWindowLeft, 0); !party.HasValue())
+    if (auto party = Party::DrawThePartyWindow(frame.context, panels, PartyWindowLeft, 0); !party.HasValue())
         return party;
     // 0x5f7487: 0x5ee2e0 y el botón de cerrar, con la ventana del personaje abierta.
-    if (panels.IsOpen(UI::CharacterPanel))
+    if (panels.IsOpen(Ui::CharacterPanel))
     {
         if (auto character = DrawTheCharacterWindow(frame.context); !character.HasValue())
             return character;
@@ -910,55 +913,55 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (auto shop = DrawThePersonalShopWindow(frame.context, panels); !shop.HasValue())
         return shop;
     // 0x5f4720, que empieza con su IsOpen (el byte protegido, 1 rand()).
-    if (auto shop = DrawTheNpcShop(frame.context, panels); !shop.HasValue())
+    if (auto shop = Npc::DrawTheNpcShop(frame.context, panels); !shop.HasValue())
         return shop;
     // 0x5f75b2: 0x5febf0, que empieza con su IsOpen.
-    if (auto chaos = DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
+    if (auto chaos = ChaosMix::DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
         return chaos;
     // 0x5f75b7: 0x44b510, que mira el modo.
-    if (auto trainer = DrawTheTrainer(frame.context); !trainer.HasValue())
+    if (auto trainer = PetTrainer::DrawTheTrainer(frame.context); !trainer.HasValue())
         return trainer;
-    if (auto siege = DrawTheSiegeControls(frame.context); !siege.HasValue())
+    if (auto siege = CastleSiege::DrawTheSiegeControls(frame.context); !siege.HasValue())
         return siege;
     // 0x5f4e30, que empieza con su IsOpen (sin rand()).
-    if (auto warehouse = DrawTheWarehouse(frame.context, panels); !warehouse.HasValue())
+    if (auto warehouse = Npc::DrawTheWarehouse(frame.context, panels); !warehouse.HasValue())
         return warehouse;
     // 0x5f75cb: 0x5f58f0, los NPC de evento (CL9 hito 11), que empieza con sus IsOpen.
-    if (auto events = DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
+    if (auto events = Events::DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
         return events;
     // 0x5f75d0: 0x5f6550, con 0x78abb00 distinto de 0.
     if (state.field78abb00 != 0)
     {
-        if (auto chips = DrawTheEventChipWindow(frame.context); !chips.HasValue())
+        if (auto chips = Events::DrawTheEventChipWindow(frame.context); !chips.HasValue())
             return chips;
     }
     // 0x5f75db (CL9 hito 2): 0x41ca40, la ventana de las misiones y el botón de la del personaje.
-    if (auto quest = DrawTheQuestWindow(frame.context, panels); !quest.HasValue())
+    if (auto quest = Quests::DrawTheQuestWindow(frame.context, panels); !quest.HasValue())
         return quest;
     // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
-    if (auto pet = DrawThePetWindow(frame.context, panels); !pet.HasValue())
+    if (auto pet = Pets::DrawThePetWindow(frame.context, panels); !pet.HasValue())
         return pet;
-    if (auto drawn = DrawThePanel2000(frame.context, panels); !drawn.HasValue())
+    if (auto drawn = Npc::DrawThePanel2000(frame.context, panels); !drawn.HasValue())
         return drawn;
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
     // 0x6579e0: [0x7d536f4] por su vtable + 0x14 (0x656e70) primero.
-    if (panels.IsOpen(UI::SecondGuildPanel))
+    if (panels.IsOpen(Ui::SecondGuildPanel))
     {
-        if (auto second = DrawTheSecondGuildWindow(frame.context); !second.HasValue())
+        if (auto second = Guild::DrawTheSecondGuildWindow(frame.context); !second.HasValue())
             return second;
     }
     // 0x657a18: [0x7d536f0] por su vtable + 0x14 (0x651c20).
-    if (panels.IsOpen(UI::GuildPanel))
+    if (panels.IsOpen(Ui::GuildPanel))
     {
-        if (auto guild = DrawTheGuildWindow(frame.context); !guild.HasValue())
+        if (auto guild = Guild::DrawTheGuildWindow(frame.context); !guild.HasValue())
             return guild;
     }
-    if (auto castle = DrawTheCastleWindows(frame.context); !castle.HasValue())
+    if (auto castle = CastleSiege::DrawTheCastleWindows(frame.context); !castle.HasValue())
         return castle;
     // 0x6579e0: 0x660830, el diálogo de los paneles, si está abierto.
-    return DrawThePanelDialog(frame.context, frame.runtime.panels.delegated.panelDialog);
+    return Guild::DrawThePanelDialog(frame.context, frame.runtime.panels.delegated.panelDialog);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1026,7 +1029,7 @@ Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
         sprites.ColorQuad(221.0f, 439.0f, F32(static_cast<double>(barFraction) * 198.0), 4.0f);
         sprites.SetBlend(BlendMode::Alpha);
         sprites.SetColor(Color{0.91f, 0.81f, 0.6f, 1.0f});
-        UI::DrawNumber(sprites, 425.0f, 434.0f, Truncate(fill), 9.0f, 10.0f);
+        Ui::DrawNumber(sprites, 425.0f, 434.0f, Truncate(fill), 9.0f, 10.0f);
         sprites.SetBlend(BlendMode::Opaque);
         sprites.SetColor(White);
     }
@@ -1038,7 +1041,7 @@ Core::Expected<void, std::string> DrawTheExperience(Frame& frame)
         const std::string experience = std::to_string(record.experience);
         const std::string next = std::to_string(record.nextExperience);
         const std::array<std::string_view, 2> arguments{experience, next};
-        DrawHelp(frame, 223, 424, UI::PlaceArguments(format.Value(), arguments));
+        DrawHelp(frame, 223, 424, Ui::PlaceArguments(format.Value(), arguments));
     }
     return {};
 }
@@ -1063,7 +1066,7 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
     sprites.SetColor(NumberColor);
     Quad(sprites, 0x101, 551.0f, F32(473.0 - static_cast<double>(fill)), 15.0f, fill, 0.0f, 0.0f, 0.9375f,
          F32(static_cast<double>(fill) * 0.015625));
-    UI::DrawNumber(sprites, 571.0f, 467.0f, current, 9.0f, 10.0f);
+    Ui::DrawNumber(sprites, 571.0f, 467.0f, current, 9.0f, 10.0f);
     if (MouseIn(frame, 551, 437, 566, 473))
     {
         auto format = TextOf(frame, AgHelpText, "0x5a8e7e");
@@ -1072,7 +1075,7 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
         const std::string first = std::to_string(current);
         const std::string second = std::to_string(maximum);
         const std::array<std::string_view, 2> arguments{first, second};
-        DrawHelp(frame, 546, 419, UI::PlaceArguments(format.Value(), arguments));
+        DrawHelp(frame, 546, 419, Ui::PlaceArguments(format.Value(), arguments));
     }
     return {};
 }
@@ -1082,14 +1085,14 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
 
 Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
 {
-    const UI::PanelState& state = frame.runtime.panels;
+    const Ui::PanelState& state = frame.runtime.panels;
     // 0x5ac1c7 (CL9 hito 2): 0x41b9e0, los ítems pedidos de la ventana de las misiones.
-    if (auto quest = DrawTheQuestItems(frame.context); !quest.HasValue())
+    if (auto quest = Quests::DrawTheQuestItems(frame.context); !quest.HasValue())
         return quest;
     // 0x5ac1cc..0x5ac1df: con 0x78abb00 fuera de 0 y 3, 0x5f70a0 y el salto a 0x5ac269, sin las grillas, el ítem del
     // cursor ni las ranuras rápidas.
-    if (state.field78abb00 != 0 && state.field78abb00 != SerialNumberWindow)
-        return DrawTheEventChipItems(frame.context);
+    if (state.field78abb00 != 0 && state.field78abb00 != Events::SerialNumberWindow)
+        return Events::DrawTheEventChipItems(frame.context);
     // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
     if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
         return grids;
@@ -1097,7 +1100,7 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     // un aviso esperando (0x78abb14 en 0: el de vender lo dibuja 0x633110 en su diálogo) y sin el diálogo del precio de
     // la tienda propia (0x78aba60 distinto de 2).
     constexpr std::int32_t ShopPriceDialog = 2;
-    const SocialState& social = frame.runtime.social;
+    const Social::SocialState& social = frame.runtime.social;
     if (social.trade.warningKind == 0 && social.personalShop.dialogMode != ShopPriceDialog)
     {
         if (auto cursor = DrawTheCursorItem(frame.context); !cursor.HasValue())
@@ -1108,15 +1111,16 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
-        auto found = FindQuickSlotItem(frame.context.hud.quickSlots, cells, slot,
-                                       frame.runtime.movement.gateRequestBlocked != 0);
+        auto found = Items::FindQuickSlotItem(frame.context.hud.quickSlots, cells, slot,
+                                              frame.runtime.movement.gateRequestBlocked != 0);
         if (!found.HasValue())
             return Core::Unexpected(found.Error());
         if (!found.Value())
             continue;
         const Kernel::ItemState& item = cells[*found.Value()];
         const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-        const UiItemBox box{.x = static_cast<float>(208 + 31 * slot), .y = 454.0f, .width = 20.0f, .height = 20.0f};
+        const Items::UiItemBox box{
+            .x = static_cast<float>(208 + 31 * slot), .y = 454.0f, .width = 20.0f, .height = 20.0f};
         if (auto drawn = DrawUiItem(frame.context, box, type, item.scalar1Low, 0, 0, false); !drawn.HasValue())
             return drawn;
     }
@@ -1131,7 +1135,7 @@ Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
 {
     auto drawn = DrawTheUi3DItems(frame);
     if (frame.context.uiItems != nullptr)
-        CloseUiItemPass(*frame.context.uiItems);
+        Items::CloseUiItemPass(*frame.context.uiItems);
     return drawn;
 }
 
@@ -1355,7 +1359,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
         {
             // 0x5a61e7: el número de la skill de comando, desde 1.
             sprites.SetColor(SkillColor);
-            UI::DrawNumber(sprites, F32(static_cast<double>(static_cast<float>(x)) + 4.0),
+            Ui::DrawNumber(sprites, F32(static_cast<double>(static_cast<float>(x)) + 4.0),
                            F32(static_cast<double>(static_cast<float>(y)) + 26.0), static_cast<int>(skill) - 0x77, 9.0f,
                            10.0f);
             return {};
@@ -1371,7 +1375,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
     if (key != 0xff)
     {
         sprites.SetColor(SkillColor);
-        UI::DrawNumber(sprites, F32(static_cast<double>(x) + 4.0), F32(static_cast<double>(y) + 26.0), key, 9.0f,
+        Ui::DrawNumber(sprites, F32(static_cast<double>(x) + 4.0), F32(static_cast<double>(y) + 26.0), key, 9.0f,
                        10.0f);
     }
     return {};
@@ -1466,14 +1470,14 @@ Core::Expected<void, std::string> HelpWithValues(Frame& frame, int x, int y, std
     const std::string one = std::to_string(first);
     const std::string two = std::to_string(second);
     const std::array<std::string_view, 2> arguments{one, two};
-    DrawHelp(frame, x, y, UI::PlaceArguments(format.Value(), arguments));
+    DrawHelp(frame, x, y, Ui::PlaceArguments(format.Value(), arguments));
     return {};
 }
 
 Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    UI::PanelRegistry& panels = frame.panels;
+    Ui::PanelRegistry& panels = frame.panels;
     sprites.SetBlend(BlendMode::Alpha);
     sprites.SetColor(White);
     std::uint16_t maxLife = 0;
@@ -1510,12 +1514,12 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
     {
         int left = 0;
         std::size_t help = 0;
-        UI::PanelId panel = 0;
+        Ui::PanelId panel = 0;
         std::uint16_t slot = 0;
     };
-    constexpr std::array<Button, 3> Buttons{{{348, PartyHelpText, UI::PartyPanel, 0xec},
-                                             {379, CharacterHelpText, UI::CharacterPanel, 0xed},
-                                             {410, InventoryHelpText, UI::InventoryPanel, 0xee}}};
+    constexpr std::array<Button, 3> Buttons{{{348, PartyHelpText, Ui::PartyPanel, 0xec},
+                                             {379, CharacterHelpText, Ui::CharacterPanel, 0xed},
+                                             {410, InventoryHelpText, Ui::InventoryPanel, 0xee}}};
     for (const Button& button : Buttons)
     {
         if (MouseIn(frame, button.left, 452, button.left + 24, 476))
@@ -1531,7 +1535,7 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
     // siguen salen con la mezcla y el color que deje (P-C63).
     // 0x5a9ddb: 0x4a5120, los íconos de los amigos y las cartas de la UI vieja (CL9 hito 10), con la lista de ventanas
     // (la copia de la proyección en un dibujo intermedio).
-    UI::DrawTheFriendBarIcons(
+    Messenger::DrawTheFriendBarIcons(
         frame.context.oldWindows != nullptr ? *frame.context.oldWindows : frame.runtime.oldWindows, sprites);
     // 0x5a9de6: 0x40a5b0, el botón de los comandos.
     if (MouseIn(frame, 6, 435, 59, 454))
@@ -1546,7 +1550,7 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         if (auto help = HelpWithText(frame, 582, 444, GuildHelpText, "0x5a9cb2"); !help.HasValue())
             return help;
     }
-    if (panels.IsOpen(UI::GuildPanel))
+    if (panels.IsOpen(Ui::GuildPanel))
         Quad(sprites, 0xfa, 582.0f, 459.0f, 52.0f, 18.0f, 0.0f, 0.0f, 0.8125f, 0.5625f);
     {
         const auto own = OwnAccess(frame);
@@ -1570,27 +1574,27 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
                                            Models::SmallLogicalCloseRandoms);
         cell = frame.hero.cellX;
     }
-    UI::DrawNumber(sprites, 24.0f, 462.0f, cell, 8.0f, 9.0f);
+    Ui::DrawNumber(sprites, 24.0f, 462.0f, cell, 8.0f, 9.0f);
     {
         const Models::LogicalAccess access(frame.context.cellYDepth, frame.context.random,
                                            Models::SmallLogicalCloseRandoms);
         cell = frame.hero.cellY;
     }
-    UI::DrawNumber(sprites, 48.0f, 462.0f, cell, 8.0f, 9.0f);
+    Ui::DrawNumber(sprites, 48.0f, 462.0f, cell, 8.0f, 9.0f);
     sprites.SetColor(NumberColor);
     {
         const auto own = OwnAccess(frame);
-        UI::DrawNumber(sprites, 100.0f, 467.0f, frame.own.life, 9.0f, 10.0f);
-        UI::DrawNumber(sprites, 540.0f, 467.0f, frame.own.mana, 9.0f, 10.0f);
+        Ui::DrawNumber(sprites, 100.0f, 467.0f, frame.own.life, 9.0f, 10.0f);
+        Ui::DrawNumber(sprites, 540.0f, 467.0f, frame.own.mana, 9.0f, 10.0f);
     }
     const std::span<const Kernel::ItemState, Kernel::InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
-        auto count = CountQuickSlotItems(frame.context.hud.quickSlots, cells, slot);
+        auto count = Items::CountQuickSlotItems(frame.context.hud.quickSlots, cells, slot);
         if (!count.HasValue())
             return Core::Unexpected(count.Error());
         if (count.Value() > 0)
-            UI::DrawNumber(sprites, F32(static_cast<double>(slot) * 31.0 + 226.0), 447.0f, count.Value(), 9.0f, 10.0f);
+            Ui::DrawNumber(sprites, F32(static_cast<double>(slot) * 31.0 + 226.0), 447.0f, count.Value(), 9.0f, 10.0f);
     }
     // 0x5aa980: 0x621a90, los pops de las matrices del 2D, que MuRet arma por pase.
     return {};
@@ -1616,7 +1620,8 @@ constexpr std::array<std::pair<std::uint32_t, std::uint8_t>, 3> SwitchSides{
 
 // Un %s de sprintf sobre el objeto desde `at`: hasta el primer 0. Sin ninguno antes del final de los 0x36 bytes, el
 // original sigue leyendo el heap que viene después (Q-C1403): std::nullopt.
-std::optional<std::string> HolderText(const std::array<std::uint8_t, UI::SwitchHoldersSize>& holders, std::size_t at)
+std::optional<std::string> HolderText(const std::array<std::uint8_t, CastleSiege::SwitchHoldersSize>& holders,
+                                      std::size_t at)
 {
     std::string text;
     for (std::size_t i = at; i < holders.size(); ++i)
@@ -1657,19 +1662,20 @@ Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
     const auto& holders = *storage;
     for (std::size_t half = 0; half < 2; ++half)
     {
-        const std::size_t base = half * UI::SwitchHolderHalf;
+        const std::size_t base = half * CastleSiege::SwitchHolderHalf;
         // 0x5a71f0: JBE, el byte sin signo en 0.
-        if (holders[base + UI::HolderShownAt] == 0)
+        if (holders[base + CastleSiege::HolderShownAt] == 0)
             continue;
-        const std::uint8_t side = holders[base + UI::HolderSideAt];
+        const std::uint8_t side = holders[base + CastleSiege::HolderSideAt];
         bool withName = false;
         for (const auto& [flag, sideOfFlag] : SwitchSides)
             withName = withName || ((frame.hero.flags78 & flag) == flag && side == sideOfFlag);
         auto title = TextOf(frame, SwitchHolderText, "0x5a7227");
         if (!title.HasValue())
             return Core::Unexpected(title.Error());
-        const auto guild = HolderText(holders, base + UI::HolderGuildAt);
-        const auto name = withName ? HolderText(holders, base + UI::HolderNameAt) : std::optional<std::string>{};
+        const auto guild = HolderText(holders, base + CastleSiege::HolderGuildAt);
+        const auto name =
+            withName ? HolderText(holders, base + CastleSiege::HolderNameAt) : std::optional<std::string>{};
         if (!guild || (withName && !name))
             return Core::Unexpected(std::format("0x5a6fc0: el %s de la mitad {} del objeto de 0x5767924 no tiene un 0 "
                                                 "antes del final de sus 0x36 bytes y sigue leyendo el heap (Q-C1403)",
@@ -1704,10 +1710,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 1. 0x5a7520.
     DrawTheSands(frame);
     // 2. 0x5a7640..0x5a7cbd: los tanteadores de guerra y Battle Soccer.
-    if (auto war = DrawTheWarScore(context, frame.panels); !war.HasValue())
+    if (auto war = Guild::DrawTheWarScore(context, frame.panels); !war.HasValue())
         return war;
     // 3. 0x5a89b0: las barras de la party.
-    if (auto life = DrawThePartyLife(context); !life.HasValue())
+    if (auto life = Party::DrawThePartyLife(context); !life.HasValue())
         return life;
     // 4. 0x5a6fc0: quiénes tienen los interruptores.
     if (auto holders = DrawTheSwitchHolders(frame); !holders.HasValue())
@@ -1742,38 +1748,38 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return event;
     // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0, Scenes/ChatBubbleDraw). No saca rand() y
     // escribe en cada entrada dónde quedó (+0x278..+0x284), que lee el clic derecho de 0x557650.
-    ChatBubbleDrawContext bubbles{.world = world,
-                                  .projection = context.projection,
-                                  .sprites = context.sprites,
-                                  .text = context.text,
-                                  .dcFont = hud.dcFont,
-                                  .textColors = hud.textColors,
-                                  .clampBoxes = hud.durabilityWarning,
-                                  .boxWidth = hud.arrowsTextWidth,
-                                  .boxHeight = hud.arrowsTextHeight,
-                                  .mouse = context.mouse,
-                                  .blink = hud.messageFrame.areaBlink,
-                                  .projecting = context.projecting,
-                                  .texts = context.texts};
-    if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
+    Chat::ChatBubbleDrawContext bubbles{.world = world,
+                                        .projection = context.projection,
+                                        .sprites = context.sprites,
+                                        .text = context.text,
+                                        .dcFont = hud.dcFont,
+                                        .textColors = hud.textColors,
+                                        .clampBoxes = hud.durabilityWarning,
+                                        .boxWidth = hud.arrowsTextWidth,
+                                        .boxHeight = hud.arrowsTextHeight,
+                                        .mouse = context.mouse,
+                                        .blink = hud.messageFrame.areaBlink,
+                                        .projecting = context.projecting,
+                                        .texts = context.texts};
+    if (auto drawn = Chat::DrawTheChatBubbles(bubbles); !drawn.HasValue())
         return drawn;
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (Scenes/ShopSigns). Sin ninguno (+0xc en 0),
     // nada; con alguno, 0x5bb8d0 con sus rand(), su lugar (0x451d60), el reparto para que no se pisen (0x451e40), la
     // cuenta de +0x10 y cada cartel (0x452a10).
-    ShopSignDrawContext signs{.world = world,
-                              .panels = frame.panels,
-                              .projection = context.projection,
-                              .sprites = context.sprites,
-                              .text = context.text,
-                              .dcFont = hud.dcFont,
-                              .texts = context.texts,
-                              .projecting = context.projecting};
-    if (auto drawn = DrawTheShopSigns(signs); !drawn.HasValue())
+    PersonalShop::ShopSignDrawContext signs{.world = world,
+                                            .panels = frame.panels,
+                                            .projection = context.projection,
+                                            .sprites = context.sprites,
+                                            .text = context.text,
+                                            .dcFont = hud.dcFont,
+                                            .texts = context.texts,
+                                            .projecting = context.projecting};
+    if (auto drawn = PersonalShop::DrawTheShopSigns(signs); !drawn.HasValue())
         return drawn;
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8, que prende el AA (CL9 hito 7).
-    DrawTheDuelScore(context, frame.panels);
+    Social::DrawTheDuelScore(context, frame.panels);
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
-    if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
+    if (auto slides = Ui::DrawTheSlides(hud.slides, Ui::SlideDrawContext{.sprites = context.sprites,
                                                                          .text = context.text,
                                                                          .dcFont = hud.dcFont,
                                                                          .textColors = hud.textColors,
@@ -1783,18 +1789,18 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         !slides.HasValue())
         return slides;
     // 16. 0x413ca0.
-    DrawTheBattleClock(context);
+    CastleSiege::DrawTheBattleClock(context);
     // 17. [[0x576350c]] + 0x14: el registro del chat (0x479080).
-    UI::DrawTheChatLog(
+    Chat::DrawTheChatLog(
         runtime.chat.log, hud.chatFrame, runtime.ui.chatModes,
-        UI::ChatLogDrawContext{
+        Chat::ChatLogDrawContext{
             .sprites = context.sprites, .text = context.text, .dcFont = hud.dcFont, .textColors = hud.textColors},
-        UI::ChatLogDrawView{.mouseX = context.mouse.x,
-                            .mouseY = context.mouse.y,
-                            .leftDown = context.leftDown,
-                            .chatOpen = runtime.ui.chatOpen,
-                            .crywolfStage = runtime.crywolf.stage,
-                            .texts = context.texts});
+        Chat::ChatLogDrawView{.mouseX = context.mouse.x,
+                              .mouseY = context.mouse.y,
+                              .leftDown = context.leftDown,
+                              .chatOpen = runtime.ui.chatOpen,
+                              .crywolfStage = runtime.crywolf.stage,
+                              .texts = context.texts});
     // 18. 0x5f7440.
     if (auto windows = DrawTheWindows(frame); !windows.HasValue())
         return windows;
@@ -1804,7 +1810,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     DrawTheBottomBar(frame);
     // 21. 0x4365c0: la interfaz de Crywolf (Scenes/CrywolfInterfaceDrawing), que empieza siempre con 0x620a00(1); la
     // traza lo muestra antes de la experiencia.
-    if (auto crywolf = DrawTheCrywolfInterface(context); !crywolf.HasValue())
+    if (auto crywolf = Events::Crywolf::DrawTheCrywolfInterface(context); !crywolf.HasValue())
         return crywolf;
     // 22. 0x5aa9a0.
     DrawTheChatInput(frame);
@@ -1814,10 +1820,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto ag = DrawTheAg(frame); !ag.HasValue())
         return ag;
     // 25. 0x652c90.
-    if (auto siege = DrawTheBattleSkill(context); !siege.HasValue())
+    if (auto siege = CastleSiege::DrawTheBattleSkill(context); !siege.HasValue())
         return siege;
     // 26. 0x436240: el color del texto y la ventana del contrato de Crywolf (Scenes/CrywolfInterfaceDrawing).
-    if (auto contract = DrawTheCrywolfContract(context); !contract.HasValue())
+    if (auto contract = Events::Crywolf::DrawTheCrywolfContract(context); !contract.HasValue())
         return contract;
     // 27. y 28. 0x5ac120 y 0x5f7840.
     if (auto ui3D = DrawTheUi3D(frame); !ui3D.HasValue())
@@ -1828,10 +1834,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto bar = DrawTheMainBar(frame); !bar.HasValue())
         return bar;
     // 30. 0x5e9b10, que empieza con el modo del teclado (0x78abb20).
-    if (auto keypad = DrawTheKeypad(frame.context); !keypad.HasValue())
+    if (auto keypad = Warehouse::DrawTheKeypad(frame.context); !keypad.HasValue())
         return keypad;
     // 31. Sin ninguna ventana, 0x4125b0.
-    return DrawTheBattlePanel(context);
+    return CastleSiege::DrawTheBattlePanel(context);
 }
 
 Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
@@ -1839,18 +1845,18 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
     Kernel::WorldState& world = context.world;
     const std::int32_t& mode = world.Runtime().panels.overlayMode;
     // 0x5b0559..0x5b06ac: la primera ayuda de F1, y el modo otra vez.
-    if (mode == UI::FirstHelpMode)
+    if (mode == Ui::FirstHelpMode)
     {
-        if (auto drawn = DrawTheFunctionHelp(context, UI::FirstHelpMode); !drawn.HasValue())
+        if (auto drawn = Tooltips::DrawTheFunctionHelp(context, Ui::FirstHelpMode); !drawn.HasValue())
             return drawn;
     }
-    if (mode == UI::SecondHelpMode)
-        return DrawTheFunctionHelp(context, UI::SecondHelpMode);
-    if (mode == UI::ItemHelpMode)
-        return DrawTheItemHelp(context);
+    if (mode == Ui::SecondHelpMode)
+        return Tooltips::DrawTheFunctionHelp(context, Ui::SecondHelpMode);
+    if (mode == Ui::ItemHelpMode)
+        return Tooltips::DrawTheItemHelp(context);
     // 0x5b10cf..0x5b10e0: IsOpen(2), la ventana /move.
     GamePanels panels(world, context.random);
-    if (panels.Registry().IsOpen(UI::MovePanel))
+    if (panels.Registry().IsOpen(Ui::MovePanel))
         return DrawTheMoveWindow(context);
     return {};
 }
@@ -1894,7 +1900,7 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     {
         // 0x5ac53c..0x5ac60b (CL9 hito 3): atacable (0x558bb0) y el mouse fuera de la UI (0x775857c), el de atacar (4,
         // o 0x68d en el 30); si no, el de los comandos con IsOpen(0x200) o el normal (0x5ac818).
-        const auto attackable = IsAttackable(world, context.controlDown);
+        const auto attackable = Hero::IsAttackable(world, context.controlDown);
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
         if (attackable.Value() && runtime.ui.mouseOnUi == 0)
@@ -1902,10 +1908,10 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
             cursor(runtime.map == CastleSiegeMap ? 0x68d : 4);
             return {};
         }
-        cursor(panels.Registry().IsOpen(UI::CommandsPanel) ? 0x65a : 2);
+        cursor(panels.Registry().IsOpen(Ui::CommandsPanel) ? 0x65a : 2);
         return {};
     }
-    if (panels.Registry().IsOpen(UI::CommandsPanel))
+    if (panels.Registry().IsOpen(Ui::CommandsPanel))
     {
         cursor(0x65a);
         return {};
@@ -1936,4 +1942,4 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     cursor(2);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

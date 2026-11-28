@@ -22,6 +22,12 @@
 // (0x45cbb0) y los botones (0x45d420). Los textos son inventados.
 namespace
 {
+using Client::Chat::ChatEntry;
+using Client::Chat::ChatLogDrawContext;
+using Client::Chat::ChatLogDrawView;
+using Client::Chat::ChatLogFrame;
+using Client::Chat::ChatLogState;
+using Client::Chat::ChatModes;
 using Client::Core::PixelSize;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
@@ -30,12 +36,6 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
-using Client::UI::ChatEntry;
-using Client::UI::ChatLogDrawContext;
-using Client::UI::ChatLogDrawView;
-using Client::UI::ChatLogFrame;
-using Client::UI::ChatLogState;
-using Client::UI::ChatModes;
 
 constexpr PixelSize Screen640{640, 480};
 
@@ -60,7 +60,7 @@ protected:
     {
         const ChatLogDrawContext context{
             .sprites = m_sprites, .text = m_text, .dcFont = m_dcFont, .textColors = m_colors};
-        Client::UI::DrawTheChatLog(m_log, m_frame, m_modes, context, m_view);
+        Client::Chat::DrawTheChatLog(m_log, m_frame, m_modes, context, m_view);
     }
 
     // El registro fuera de su ventana, donde lo pone el paso de la UI: (−10, 0x65).
@@ -184,7 +184,7 @@ TEST_F(ChatLogDrawTest, InItsWindowTheFrameSizesToTheRowsWithATranslucentBackgro
 TEST_F(ChatLogDrawTest, TheFilterTitleIsDrawnInBold)
 {
     AtTheTopLeft();
-    const auto texts = Client::Tests::MakeTextTable({{Client::UI::FilterTitleText, "Filtro"}});
+    const auto texts = Client::Tests::MakeTextTable({{Client::Chat::FilterTitleText, "Filtro"}});
     m_view.texts = &texts;
     m_log.filter[0] = "dragon";
     m_log.filter[1] = "alas";

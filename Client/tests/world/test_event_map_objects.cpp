@@ -23,9 +23,9 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Terrain::TerrainLighting;
-using Client::World::ObjectStepGlobals;
-using Client::World::StepWorldObjectChecked;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::StepWorldObjectChecked;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t DevilSquareMap = 9;
 
@@ -97,7 +97,7 @@ TEST(EventMapObjectsTest, TheDevilSquareFlashLightsAroundTheHeroInsideTheWindow)
         SCOPED_TRACE(clock);
         Step step(clock);
         CrtRandom random(seed);
-        ASSERT_TRUE(Client::World::StepDevilSquarePrelude(random, step.globals).HasValue());
+        ASSERT_TRUE(Client::Events::StepDevilSquarePrelude(random, step.globals).HasValue());
         CrtRandom draws(seed);
         static_cast<void>(draws.Next());
         const double level = (draws.Next() % 12 + 4) * Bits(0x3dcccccdu);
@@ -106,7 +106,7 @@ TEST(EventMapObjectsTest, TheDevilSquareFlashLightsAroundTheHeroInsideTheWindow)
         const float x = F32((draws.Next() % 1200 + static_cast<double>(step.hero.x)) - 600.0);
         EXPECT_EQ(random.State(), draws.State());
         auto expected = std::make_unique<TerrainLighting>();
-        ASSERT_TRUE(Client::World::AddDynamicLight(expected.get(), {x, y, 0.0f}, color, 12, "test").HasValue());
+        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(expected.get(), {x, y, 0.0f}, color, 12, "test").HasValue());
         EXPECT_TRUE(step.lighting->cells == expected->cells);
         EXPECT_EQ(step.looped, std::vector<std::int32_t>{1});
     }
@@ -119,7 +119,7 @@ TEST(EventMapObjectsTest, TheDevilSquarePreludeCutsWhereItsBindingsAreRead)
     Step noHero(4500.0f);
     noHero.globals.heroPosition = nullptr;
     CrtRandom random(seed);
-    const auto cut = Client::World::StepDevilSquarePrelude(random, noHero.globals);
+    const auto cut = Client::Events::StepDevilSquarePrelude(random, noHero.globals);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x604b53"), std::string::npos) << cut.Error();
     CrtRandom draws(seed);
@@ -151,7 +151,7 @@ TEST(EventMapObjectsTest, TheBloodCastleGatesHideUntilTheyOpen)
             ASSERT_TRUE(StepWorldObjectChecked(closed, map, nullptr, random, ObjectStepGlobals{}).HasValue());
             ASSERT_TRUE(StepWorldObjectChecked(open, map, nullptr, random, ObjectStepGlobals{}).HasValue());
             EXPECT_EQ(closed.state.hiddenMesh,
-                      type == 11 ? WorldObject{}.state.hiddenMesh : Client::World::HiddenObject);
+                      type == 11 ? WorldObject{}.state.hiddenMesh : Client::WorldObjects::HiddenObject);
             EXPECT_EQ(open.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
             EXPECT_EQ(random.State(), CrtRandom(7).State());
         }
@@ -174,11 +174,11 @@ TEST(EventMapObjectsTest, TheBloodCastlePreludeReleasesAnOrbitAroundTheHero)
         const int dy = draws.Next() % 900 - 300;
         const int dz = draws.Next() % 50;
         const bool releases = draws.Next() % 4 == 0;
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         CrtRandom random(seed);
-        ASSERT_TRUE(Client::World::StepBloodCastlePrelude(random, hero, &particles, clock).HasValue());
+        ASSERT_TRUE(Client::Events::StepBloodCastlePrelude(random, hero, &particles, clock).HasValue());
         CrtRandom without(seed);
-        const auto bare = Client::World::StepBloodCastlePrelude(without, hero, nullptr, clock);
+        const auto bare = Client::Events::StepBloodCastlePrelude(without, hero, nullptr, clock);
         EXPECT_EQ(bare.HasValue(), !releases);
         if (!releases)
         {
@@ -189,13 +189,13 @@ TEST(EventMapObjectsTest, TheBloodCastlePreludeReleasesAnOrbitAroundTheHero)
         }
         ++created;
         EXPECT_NE(bare.Error().find("0x6063be"), std::string::npos) << bare.Error();
-        const Client::World::Particle& orbit = particles.All()[0];
-        EXPECT_EQ(orbit.type, Client::World::OrbitParticle);
+        const Client::Particles::Particle& orbit = particles.All()[0];
+        EXPECT_EQ(orbit.type, Client::Particles::OrbitParticle);
         EXPECT_EQ(orbit.subtype, 3);
         EXPECT_EQ(orbit.start, glm::vec3(F32(dx + static_cast<double>(hero.x)), F32(dy + static_cast<double>(hero.y)),
                                          F32((dz + static_cast<double>(hero.z)) + 250.0)));
         EXPECT_EQ(orbit.light, glm::vec3(1.0f));
-        EXPECT_EQ(orbit.life, Client::World::OrbitLife);
+        EXPECT_EQ(orbit.life, Client::Particles::OrbitLife);
     }
     EXPECT_GT(created, 0);
     EXPECT_GT(skipped, 0);

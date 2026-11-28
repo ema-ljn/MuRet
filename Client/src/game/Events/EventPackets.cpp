@@ -64,7 +64,7 @@
 #include <variant>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Events
 {
 namespace
 {
@@ -150,8 +150,8 @@ constexpr std::int32_t ChaosCastleCollapseCounter = 0x28;
 constexpr std::int32_t CollapseDelay = 1;
 
 // 0x40bd20, 0x40c0c0 y 0x404da0: el primer botón de la caja de los resultados y los diálogos.
-constexpr UI::DialogButton DevilSquareResultButton{.state = 1, .x = 0x47, .y = 0x104, .width = 0x46, .height = 0x15};
-constexpr UI::DialogButton CastleResultButton{.state = 1, .x = 0x47, .y = 0x82, .width = 0x46, .height = 0x15};
+constexpr Ui::DialogButton DevilSquareResultButton{.state = 1, .x = 0x47, .y = 0x104, .width = 0x46, .height = 0x15};
+constexpr Ui::DialogButton CastleResultButton{.state = 1, .x = 0x47, .y = 0x82, .width = 0x46, .height = 0x15};
 constexpr std::int32_t DevilSquareResultDialog = 0x8b;
 constexpr std::int32_t BloodCastleResultDialog = 0x97;
 constexpr std::int32_t ChaosCastleResultDialog = 0x9b;
@@ -334,7 +334,7 @@ private:
 
     [[nodiscard]] Core::Expected<std::string_view, std::string> Text(std::size_t index, std::string_view where) const
     {
-        const std::optional<std::string_view> text = UI::TextAt(m_context.texts, index);
+        const std::optional<std::string_view> text = Ui::TextAt(m_context.texts, index);
         if (!text)
             return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
         return *text;
@@ -379,7 +379,7 @@ private:
     // 0x632e30(texto).
     void MessageBox(std::string_view text)
     {
-        UI::OpenMessageBox(m_runtime.dialogBox, m_runtime.dialogs, text);
+        Ui::OpenMessageBox(m_runtime.dialogBox, m_runtime.dialogs, text);
     }
 
     // 0x632e30 con un registro de Text.bmd.
@@ -409,23 +409,23 @@ private:
     {
         if (m_context.measure == nullptr)
             return Core::Unexpected(std::format("{}: sin el medidor de los mensajes (0x555190)", where));
-        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen, std::string_view{}, text,
-                              UI::SystemMessage);
+        return Chat::AddGameMessage(m_runtime, *m_context.measure, m_context.screen, std::string_view{}, text,
+                                    Ui::SystemMessage);
     }
 
     // 0x657a90 sobre [0x576352c].
     Applied CloseAllPanels()
     {
-        GamePanels panels(m_world, m_context.random);
+        Hud::GamePanels panels(m_world, m_context.random);
         panels.LendTheSession(m_world, m_context.random, m_context.send, m_context.sendWindowClose);
         panels.LendTheCastleRequests(m_world, m_context.send,
-                                     CastleWindowServices{.measure = m_context.measure,
-                                                          .texts = m_context.texts,
-                                                          .screen = m_context.screen,
-                                                          .now = m_context.tickCount});
+                                     CastleSiege::CastleWindowServices{.measure = m_context.measure,
+                                                                       .texts = m_context.texts,
+                                                                       .screen = m_context.screen,
+                                                                       .now = m_context.tickCount});
         // 0x657a90 alcanza también el almacén, la caja del caos, el entrenador y la tienda del NPC (0x657ab0).
         panels.LendTheNpcWindows(m_world, m_context.random,
-                                 m_context.inventory != nullptr ? *m_context.inventory : InventoryServices{},
+                                 m_context.inventory != nullptr ? *m_context.inventory : Items::InventoryServices{},
                                  m_context.sendNpcWindow);
         return panels.Registry().CloseAll();
     }
@@ -518,7 +518,7 @@ private:
     }
 
     // Los botones de 0x7d368b8 en cero y el primero con `button`.
-    void SetTheResultButtons(const UI::DialogButton& button)
+    void SetTheResultButtons(const Ui::DialogButton& button)
     {
         m_runtime.dialogBox.buttons = {};
         m_runtime.dialogBox.buttons[0] = button;
@@ -567,7 +567,7 @@ private:
             m_runtime.storm = packet.state != 0 ? Storm : 0;
         else if (packet.event == StrongStormEvent)
             m_runtime.storm = packet.state != 0 ? StrongStorm : 0;
-        for (FaunaObject& bird : m_world.Fauna().Birds())
+        for (Fauna::FaunaObject& bird : m_world.Fauna().Birds())
             bird.active = 0;
         return {};
     }
@@ -633,8 +633,8 @@ private:
             line = std::move(formatted).Value();
         }
         // 0x4d6a54: 0x5b1c70(tipo, pkt[0xc]) en el segundo buffer, en cero; donde no escribe nada queda vacío.
-        auto name = ItemNameOf(m_context.items, m_context.texts, &m_context.world.Runtime().npcNames,
-                               static_cast<std::uint16_t>(packet.item & ItemTypeMask), packet.level);
+        auto name = Items::ItemNameOf(m_context.items, m_context.texts, &m_context.world.Runtime().npcNames,
+                                      static_cast<std::uint16_t>(packet.item & ItemTypeMask), packet.level);
         if (!name.HasValue())
             return Core::Unexpected(std::format("0x4d6a54: {}", name.Error()));
         if (name.Value().size() >= ItemNoticeBuffer)
@@ -665,8 +665,8 @@ private:
             return Core::Unexpected(std::move(text).Error());
         if (m_context.measure == nullptr)
             return Core::Unexpected(std::string("0x4d6b4d: sin el medidor de los mensajes (0x555190)"));
-        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen,
-                              Actors::ChatNameOf(m_world.Actors()[owner]), text.Value(), UI::SystemMessage);
+        return Chat::AddGameMessage(m_runtime, *m_context.measure, m_context.screen,
+                                    Actors::ChatNameOf(m_world.Actors()[owner]), text.Value(), Ui::SystemMessage);
     }
 
     // ----- 90 (0x4e4870).
@@ -674,9 +674,9 @@ private:
     Applied On(const Events::DevilSquareEntryResult& packet)
     {
         // 0x4e487d: 0x65cae0(0x1000, 0).
-        GamePanels panels(m_world, m_context.random);
+        Hud::GamePanels panels(m_world, m_context.random);
         panels.LendTheWindowClose(m_context.sendWindowClose);
-        if (auto closed = panels.Registry().Close(UI::EventNpcPanel); !closed.HasValue())
+        if (auto closed = panels.Registry().Close(Ui::EventNpcPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         if (packet.result < 1 || packet.result > DevilSquareEntryTexts.size())
             return {};
@@ -735,7 +735,7 @@ private:
             if (!second.HasValue())
                 return Core::Unexpected(std::move(second).Error());
             const std::array<std::string_view, 2> texts{first.Value(), second.Value()};
-            return UI::OpenTheChaosCastleDialog(m_runtime.dialogBox, m_runtime.dialogs, texts);
+            return Ui::OpenTheChaosCastleDialog(m_runtime.dialogBox, m_runtime.dialogs, texts);
         }
         const std::int32_t hours = remaining / MinutesPerHour;
         const std::int32_t minutes = remaining - hours * MinutesPerHour;
@@ -756,7 +756,7 @@ private:
                                        "Text.bmd (Q-C1109)",
                                        joined.size() + 1));
         const std::array<std::string_view, 1> texts{joined};
-        return UI::OpenTheChaosCastleDialog(m_runtime.dialogBox, m_runtime.dialogs, texts);
+        return Ui::OpenTheChaosCastleDialog(m_runtime.dialogBox, m_runtime.dialogs, texts);
     }
 
     // ----- 92 (0x4e4930): con el objeto, 0x40ba60(pkt[3] + 1): +8 y GetTickCount en +0xc.
@@ -789,7 +789,7 @@ private:
             event.field28 = packet.rank;
             if (!CopyTheResults(event, packet, packet.count, "0x40bd97"))
                 return {};
-            UI::PushDialog(m_runtime.dialogs, DevilSquareResultDialog);
+            Ui::PushDialog(m_runtime.dialogs, DevilSquareResultDialog);
             return {};
         }
         case EventMapKind::BloodCastle:
@@ -811,7 +811,7 @@ private:
         event.field24 = packet.rank;
         if (!CopyTheResults(event, packet, 1, where))
             return {};
-        UI::PushDialog(m_runtime.dialogs, dialog);
+        Ui::PushDialog(m_runtime.dialogs, dialog);
         return {};
     }
 
@@ -821,7 +821,7 @@ private:
     {
         if (auto closed = CloseAllPanels(); !closed.HasValue())
             return closed;
-        UI::PanelState& panels = m_runtime.panels;
+        Ui::PanelState& panels = m_runtime.panels;
         panels.field78abb04 = static_cast<std::int16_t>(packet.count);
         panels.field78abb00 = std::int32_t{packet.type} + 1;
         if (panels.field78abb00 == SerialNumberWindow)
@@ -868,7 +868,7 @@ private:
     Applied On(const Events::EventDialog& packet)
     {
         if (packet.kind < EventDialogs.size())
-            UI::PushDialog(m_runtime.dialogs, EventDialogs[packet.kind]);
+            Ui::PushDialog(m_runtime.dialogs, EventDialogs[packet.kind]);
         return {};
     }
 
@@ -998,7 +998,7 @@ private:
             if (m_runtime.ui.chatOpen)
             {
                 m_runtime.ui.chatOpen = false;
-                UI::ShowTheChatFields(m_runtime.chat.input, HideTheChatFields);
+                Chat::ShowTheChatFields(m_runtime.chat.input, HideTheChatFields);
             }
             if (auto turned = TurnThePlayersToTheGate("0x404e7f"); !turned.HasValue())
                 return turned;
@@ -1179,8 +1179,8 @@ private:
     // 0x4e45d9 y 0x4da5af: 0x6236f0(0) y 0x6236f0(0xa6).
     Applied OpenTheJewelDialog()
     {
-        UI::PushDialog(m_runtime.dialogs, 0);
-        UI::PushDialog(m_runtime.dialogs, JewelDialog);
+        Ui::PushDialog(m_runtime.dialogs, 0);
+        Ui::PushDialog(m_runtime.dialogs, JewelDialog);
         return {};
     }
 
@@ -1188,15 +1188,15 @@ private:
     // en claro por el send() de los paquetes de mundo. Sin él, ese envío corta.
     Applied CloseTheJewelWindow()
     {
-        return ReturnToTheJewelChoice(m_world,
-                                      [this](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
-                                      {
-                                          if (!m_context.send)
-                                              return Core::Unexpected(
-                                                  std::string("0x402f91: el C1 03 31 sin la sesión"));
-                                          m_context.send(std::move(packet));
-                                          return {};
-                                      });
+        return ChaosMix::ReturnToTheJewelChoice(m_world,
+                                                [this](Protocol::Outgoing packet) -> Core::Expected<void, std::string>
+                                                {
+                                                    if (!m_context.send)
+                                                        return Core::Unexpected(
+                                                            std::string("0x402f91: el C1 03 31 sin la sesión"));
+                                                    m_context.send(std::move(packet));
+                                                    return {};
+                                                });
     }
 
     // ----- BD 00 (0x4e5965): 0x42fe80(pkt[4], pkt[5]) y 0x4033b0(pkt[5]) sobre [0x6e5904].
@@ -1304,26 +1304,29 @@ private:
                 level = m_world.OwnCharacter().level;
             }
             if (level >= ContractLevel)
-                return ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractLevelMessage});
-            if (auto shown = ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractFailedMessage});
+                return Crywolf::ShowTheContractMessage(m_runtime, m_context.texts,
+                                                       {.message = Crywolf::ContractLevelMessage});
+            if (auto shown = Crywolf::ShowTheContractMessage(m_runtime, m_context.texts,
+                                                             {.message = Crywolf::ContractFailedMessage});
                 !shown.HasValue())
                 return shown;
-            return ShowTheContractMessage(m_runtime, m_context.texts,
-                                          {.message = ContractFailedSecondMessage, .line = 1});
+            return Crywolf::ShowTheContractMessage(m_runtime, m_context.texts,
+                                                   {.message = Crywolf::ContractFailedSecondMessage, .line = 1});
         }
         if (packet.result != ContractSigned)
             return {};
         // 0x4e119b..0x4e11d9: los dos renglones, el altar de la clave, el héroe sentado y su acción 0xca.
-        if (auto shown = ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractSignedMessage});
+        if (auto shown = Crywolf::ShowTheContractMessage(m_runtime, m_context.texts,
+                                                         {.message = Crywolf::ContractSignedMessage});
             !shown.HasValue())
             return shown;
-        if (auto shown =
-                ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractSignedSecondMessage, .line = 1});
+        if (auto shown = Crywolf::ShowTheContractMessage(m_runtime, m_context.texts,
+                                                         {.message = Crywolf::ContractSignedSecondMessage, .line = 1});
             !shown.HasValue())
             return shown;
         // 0x4e11b5..0x4e11c2: la clave − 0x13c sin tope (Q-C1347).
         const std::int32_t altar = static_cast<std::int32_t>(packet.key) - FirstAltarKey;
-        if (!SetTheAltar(m_runtime, altar, packet.value))
+        if (!Crywolf::SetTheAltar(m_runtime, altar, packet.value))
             return Discard(std::format("0x435aeb: el altar {} (la clave {:#x} − 0x13c) escribe fuera de "
                                        "0x6c73cc..0x6c73d0 (Q-C1347)",
                                        altar, packet.key));
@@ -1394,7 +1397,7 @@ private:
     Applied On(const Events::CrywolfBoss& packet)
     {
         Kernel::CrywolfGlobals& crywolf = m_runtime.crywolf;
-        if (!InTheCrywolfDefense(m_runtime))
+        if (!Crywolf::InTheCrywolfDefense(m_runtime))
             return {};
         Kernel::CrywolfInterface& ui = crywolf.ui;
         ui.dword723bd8 = packet.count;
@@ -1532,13 +1535,13 @@ private:
                 return Discard(std::format("0x4da195: el diálogo {} de 0x632f70 cae fuera de los 200 de 0x7688ac0 "
                                            "(Q-C1325)",
                                            static_cast<int>(packet.value5)));
-            return UI::OpenTheAnswersDialog(m_runtime.dialogBox, m_runtime.dialogs, &m_runtime.dialogTable,
+            return Ui::OpenTheAnswersDialog(m_runtime.dialogBox, m_runtime.dialogs, &m_runtime.dialogTable,
                                             m_context.texts, packet.value5);
         case CommandFixedNotice:
             return MessageBoxOf(FixedNoticeText, "0x4da1a6");
         case CommandCastleNotice:
             if (packet.value5 == 0)
-                return UI::OpenTextDialog(m_runtime.dialogBox, m_runtime.dialogs, m_context.texts, 1,
+                return Ui::OpenTextDialog(m_runtime.dialogBox, m_runtime.dialogs, m_context.texts, 1,
                                           static_cast<std::int32_t>(CastleNoticeBase), CastleNoticeDialog);
             return MessageBoxOf(CastleNoticeBase + packet.value5, "0x4da1e7");
         case CommandGuildNotice:
@@ -1578,7 +1581,7 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables:
     const auto left = static_cast<std::int32_t>(CountdownSeconds - static_cast<std::int32_t>(elapsed / MsPerSecond));
     const auto textOf = [texts](std::size_t index) -> Core::Expected<std::string_view, std::string>
     {
-        const std::optional<std::string_view> text = UI::TextAt(texts, index);
+        const std::optional<std::string_view> text = Ui::TextAt(texts, index);
         if (!text)
             return Core::Unexpected(std::format("0x40bab0: sin el texto {} de Text.bmd", index));
         return *text;
@@ -1643,4 +1646,4 @@ void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime)
     // 0x42fe41: 0x6c8e2c, el segundo de los objetivos elegidos.
     runtime.selectedTargets[1] = -1;
 }
-} // namespace Client::Scenes
+} // namespace Client::Events

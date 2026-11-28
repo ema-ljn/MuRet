@@ -16,7 +16,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -289,4 +289,4 @@ void DrawTheNotices(const MessageAreaState& area, MessageFrameState& frame, cons
     }
     ++frame.noticeBlink;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

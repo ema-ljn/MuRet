@@ -11,7 +11,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -40,7 +40,7 @@ std::uint32_t TimerPeriod(std::int32_t seconds)
 void QueueATimedSlide(Kernel::WorldState& world, Crt::CrtRandom& random, bool gameScene)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
-    UI::SlideBanner& banner = runtime.hud.slides;
+    Ui::SlideBanner& banner = runtime.hud.slides;
     if (!gameScene || !runtime.chat.slidesOn || banner.normal.alpha > 0)
         return;
     // 0x46b115..0x46b372: abre la entrada del registro propio, lee +0xe y la cierra.
@@ -49,16 +49,16 @@ void QueueATimedSlide(Kernel::WorldState& world, Crt::CrtRandom& random, bool ga
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         level = world.OwnCharacter().level;
     }
-    const std::optional<std::string> text = UI::PickASlide(banner, level, random);
+    const std::optional<std::string> text = Ui::PickASlide(banner, level, random);
     if (!text)
         return;
-    UI::QueueTheSlide(banner, TimedRepeats, TimedGap, *text, TimedKind, banner.speed, TimedColor);
+    Ui::QueueTheSlide(banner, TimedRepeats, TimedGap, *text, TimedKind, banner.speed, TimedColor);
 }
 
 void StartTheSlides(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint32_t now)
 {
-    UI::SlideBanner& banner = world.Runtime().hud.slides;
-    UI::ResetTheSlideQueues(banner, now);
+    Ui::SlideBanner& banner = world.Runtime().hud.slides;
+    Ui::ResetTheSlideQueues(banner, now);
     banner.timerPeriod = TimerPeriod(banner.periodSeconds);
     banner.timerDue = now + banner.timerPeriod;
     QueueATimedSlide(world, random, true);
@@ -66,7 +66,7 @@ void StartTheSlides(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint
 
 void RunTheSlideTimer(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint32_t now, bool gameScene)
 {
-    UI::SlideBanner& banner = world.Runtime().hud.slides;
+    Ui::SlideBanner& banner = world.Runtime().hud.slides;
     // La resta con signo: el reloj en ms de 32 bits da la vuelta, como timeGetTime.
     if (!banner.timerDue || static_cast<std::int32_t>(now - *banner.timerDue) < 0)
         return;
@@ -75,4 +75,4 @@ void RunTheSlideTimer(Kernel::WorldState& world, Crt::CrtRandom& random, std::ui
     QueueATimedSlide(world, random, gameScene);
     random.Discard(FocusCloseRandoms);
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

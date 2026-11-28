@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -78,7 +78,8 @@ Core::Expected<void, std::string> ConstructLoginActor(Kernel::ActorState& actor,
     }
     EquipTheLoginActor(actor);
     const auto stopped = Actors::SetActorStop(
-        actor, {.runtime = runtime, .scene = SceneId::Login, .playerSkeleton = skeleton, .random = cloth.random});
+        actor,
+        {.runtime = runtime, .scene = Scenes::SceneId::Login, .playerSkeleton = skeleton, .random = cloth.random});
     if (!stopped.HasValue())
     {
         return Core::Unexpected(stopped.Error());
@@ -91,9 +92,9 @@ Core::Expected<void, std::string> ConstructLoginActor(Kernel::ActorState& actor,
     constexpr float CellCentre = 50.0f;
     const double ground = Terrain::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes,
                                                    CellCentre, CellCentre, construction.fixedHeight);
-    actor.darkSpirit = CreateDarkSpirit(
+    actor.darkSpirit = Pets::CreateDarkSpirit(
         actor.cellX, actor.cellY, ground, cloth.random,
         {.cellX = actor.cellXAccesses, .cellY = actor.cellYAccesses, .counter = cloth.openCounterAccesses});
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

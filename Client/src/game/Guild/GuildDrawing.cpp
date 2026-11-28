@@ -38,15 +38,15 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 namespace
 {
+using Hud::WindowDrawing::DrawText;
+using Hud::WindowDrawing::Quad;
+using Hud::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
-using WindowDrawing::DrawText;
-using WindowDrawing::Quad;
-using WindowDrawing::SelectFont;
 
 // 0x5a764e..0x5a7653.
 constexpr std::uint32_t ScoreBackground = 0x80000000u;
@@ -91,7 +91,7 @@ constexpr std::int32_t FirstLineOffset = 0x14;
 constexpr float LineStep = 15.0f;
 // 0x65ff12..0x65ff9c: los textos que 0x65feb0 les copia a los botones (vtable + 0x2c, 0x45b170): Aceptar o Sí, No,
 // Confirmar y Cancelar.
-constexpr std::array<std::size_t, UI::PanelDialogButtonCount> ButtonTexts{228, 229, 1037, 1038};
+constexpr std::array<std::size_t, Ui::PanelDialogButtonCount> ButtonTexts{228, 229, 1037, 1038};
 // 0x64f1c0, la ventana de los cargos: la caja de 0x6576a0(0x96, −1), en (0xd6, 0x82 − 0x4b) con 40 de mínimo.
 constexpr std::int32_t PositionsBoxHeight = 0x96;
 constexpr std::int32_t PanelBoxLeft = 0xd6;
@@ -134,17 +134,18 @@ template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>
     return {name.data(), static_cast<std::size_t>(end - name.begin())};
 }
 
-Core::Expected<std::string_view, std::string> PositionsTextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> PositionsTextOf(const Hud::GameHudContext& context, std::size_t index,
                                                               std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
 
 // 0x5542f0(x, y, texto, caja, 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
-void DrawInTheMiddle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
+void DrawInTheMiddle(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                     std::int32_t box)
 {
     if (text.empty() && box == 0)
         return;
@@ -166,7 +167,7 @@ std::int32_t MarkOf(const GuildState& guild, std::string_view rival)
 }
 
 // 0x5f16a0(índice, 1) y el quad del slot donde quedó, en (x, top).
-Core::Expected<void, std::string> DrawTheMark(GameHudContext& context, const GuildState& guild, std::int32_t index,
+Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, const GuildState& guild, std::int32_t index,
                                               float x, float top)
 {
     auto slot = context.guildMarks->Upload(guild, index, true);
@@ -207,7 +208,7 @@ void DrawTheDialogBox(Render::SpriteBatch& sprites, std::int32_t height, std::in
 
 // 0x5542f0(x, y, texto, 0, 1, 0): 0x465950 con la fuente del DC y los colores de 0x6c8e5c; uno vacío no se dibuja. No
 // mide (0x77f31b8 es de 0x554180).
-void DrawTheLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawTheLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     if (text.empty())
         return;
@@ -218,7 +219,7 @@ void DrawTheLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::s
 
 namespace
 {
-Core::Expected<void, std::string> DrawTheGuildWarScore(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheGuildWarScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::WorldState& world = context.world;
@@ -251,7 +252,7 @@ Core::Expected<void, std::string> DrawTheGuildWarScore(GameHudContext& context, 
 }
 
 // 0x5a7a01..0x5a7cbd: los nombres recibidos buscan sus marcas en la tabla actual, incluso sin guerra.
-Core::Expected<void, std::string> DrawTheSoccerScore(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheSoccerScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     const auto& soccer = context.world.Runtime().events.soccer;
     if (!soccer.active)
@@ -278,7 +279,7 @@ Core::Expected<void, std::string> DrawTheSoccerScore(GameHudContext& context, UI
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheWarScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     context.sprites.SetBlend(BlendMode::Opaque);
     context.hud.textColors.background = ScoreBackground;
@@ -287,7 +288,7 @@ Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::P
     return DrawTheSoccerScore(context, panels);
 }
 
-Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Hud::GameHudContext& context)
 {
     auto& events = context.world.Runtime().events;
     auto& hud = context.hud;
@@ -306,11 +307,11 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& con
                                      : Crt::Sprintf(format.Value(), events.timeValue / 60, events.timeValue % 60);
         if (events.timeKind == 3 || events.timeValue < 60)
             hud.textColors.text = 0xff0affffu;
-        GamePanels panels(context.world, context.random);
+        Hud::GamePanels panels(context.world, context.random);
         const auto center = panels.Registry().WorldWidth() / 2;
-        WindowDrawing::DrawCenteredText(context, center, 350, text);
+        Hud::WindowDrawing::DrawCenteredText(context, center, 350, text);
         hud.textColors.text = 0xffffffffu;
-        WindowDrawing::DrawCenteredText(context, center + 1, 351, text);
+        Hud::WindowDrawing::DrawCenteredText(context, center + 1, 351, text);
         SelectFont(context, FontKind::Normal);
     }
     const auto& outcome = events.guildWarOutcome;
@@ -378,7 +379,7 @@ Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(GameHudContext& con
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheGuildPositions(Hud::GameHudContext& context)
 {
     GuildState& guild = context.world.Runtime().guild;
     GuildPositionsState& positions = guild.positions;
@@ -393,14 +394,14 @@ Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, sprites.Screen()));
     const std::int32_t box = Truncate(rx * PositionsTextBox);
     const std::int32_t left = x + PositionsLeft;
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + AssistantFrameTop),
-                                PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + AssistantFrameTop),
+                                     PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
     auto assistant = PositionsTextOf(context, AssistantText, "0x64f25c");
     if (!assistant.HasValue())
         return Core::Unexpected(std::move(assistant).Error());
     DrawInTheMiddle(context, left, y + AssistantTextTop, assistant.Value(), box);
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + BattleMasterFrameTop),
-                                PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + BattleMasterFrameTop),
+                                     PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
     auto battleMaster = PositionsTextOf(context, BattleMasterText, "0x64f2d9");
     if (!battleMaster.HasValue())
         return Core::Unexpected(std::move(battleMaster).Error());
@@ -419,12 +420,12 @@ Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)
     if (!hint.HasValue())
         return Core::Unexpected(std::move(hint).Error());
     DrawInTheMiddle(context, left, y + PositionsHintTop, hint.Value(), box);
-    const UI::OldWindowDrawContext buttons{
+    const Ui::OldWindowDrawContext buttons{
         .sprites = sprites, .text = context.text, .dcFont = context.hud.dcFont, .textColors = context.hud.textColors};
-    const UI::OldWindowDrawView view{.mouseX = context.mouse.x, .mouseY = context.mouse.y};
+    const Ui::OldWindowDrawView view{.mouseX = context.mouse.x, .mouseY = context.mouse.y};
     for (std::size_t index = 0; index < positions.buttons.size(); ++index)
     {
-        UI::OldButton& button = positions.buttons[index];
+        Ui::OldButton& button = positions.buttons[index];
         if (!button.label)
         {
             auto label = PositionsTextOf(context, PositionsButtonTexts[index], "0x64f5f7");
@@ -434,24 +435,24 @@ Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)
         }
         button.base.x = x + PositionsButtonLefts[index];
         button.base.y = y + PositionsButtonsTop;
-        UI::DrawTheOldButton(buttons, button, view);
+        Ui::DrawTheOldButton(buttons, button, view);
     }
     return {};
 }
 
-Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI::PanelDialogState& dialog)
+Core::Expected<void, std::string> DrawThePanelDialog(Hud::GameHudContext& context, Ui::PanelDialogState& dialog)
 {
-    if (UI::PanelDialogHandle(dialog) == 0)
+    if (Ui::PanelDialogHandle(dialog) == 0)
         return {};
     // 0x660846: +0xc, el dibujo propio que pone 0x6602b0, en lugar de todo.
-    if (dialog.hooks == UI::PanelDialogHooks::GuildPositions)
+    if (dialog.hooks == Ui::PanelDialogHooks::GuildPositions)
         return DrawTheGuildPositions(context);
     for (std::size_t button = 0; button < dialog.buttons.size(); ++button)
     {
         // 0x65feb0 los copia al armarse, después de Text.bmd (0x4b9b9f); MuRet, la primera vez que dibuja.
         if (dialog.buttons[button].label)
             continue;
-        const std::optional<std::string_view> label = UI::TextAt(context.texts, ButtonTexts[button]);
+        const std::optional<std::string_view> label = Ui::TextAt(context.texts, ButtonTexts[button]);
         if (!label)
             return Core::Unexpected(
                 std::format("0x65ff12: el botón {} del diálogo de los paneles sin el texto {} de Text.bmd", button,
@@ -459,7 +460,7 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
         dialog.buttons[button].label = std::string(*label);
     }
     // 0x660856..0x6608a1 y los 0x45a9d0 de los botones: la esquina de la caja y la y de los botones.
-    const UI::Point corner = UI::PlaceThePanelDialog(dialog);
+    const Ui::Point corner = Ui::PlaceThePanelDialog(dialog);
     Render::SpriteBatch& sprites = context.sprites;
     DrawTheDialogBox(sprites, dialog.height, corner.y);
     SelectFont(context, FontKind::Normal);
@@ -476,16 +477,16 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
         DrawTheLine(context, DialogCenterX - width / 2, static_cast<std::int32_t>(y), text);
         y = F32(static_cast<double>(y) + static_cast<double>(LineStep));
     }
-    if ((dialog.flags & UI::PanelDialogTextField) != 0)
+    if ((dialog.flags & Ui::PanelDialogTextField) != 0)
     {
         const auto width = dialog.inputWidth;
         Quad(sprites, 0x10f, static_cast<float>(320 - width / 2), y, static_cast<float>(width), 18, 0.8828125f,
              0.5625f);
         y = F32(static_cast<double>(y) + 7.0);
         auto& runtime = context.world.Runtime();
-        UI::OldEdit projected = runtime.chat.input.dialogEdit;
+        Ui::OldEdit projected = runtime.chat.input.dialogEdit;
         auto& edit = context.projecting ? projected : runtime.chat.input.dialogEdit;
-        edit.base.state = UI::ShownWindow;
+        edit.base.state = Ui::ShownWindow;
         edit.filter = dialog.inputFilter;
         edit.backgroundColor = 0;
         edit.text.SetLimit(dialog.inputMaxChars);
@@ -495,20 +496,20 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
         edit.base.y = static_cast<std::int32_t>(y);
         if (!context.projecting)
         {
-            UI::FocusTheDialogField(runtime.chat.input);
+            Chat::FocusTheDialogField(runtime.chat.input);
             runtime.ui.focusedList = edit.base.id;
         }
-        UI::OldDraw::DrawTheOldEdit({.sprites = sprites,
+        Ui::OldDraw::DrawTheOldEdit({.sprites = sprites,
                                      .text = context.text,
                                      .dcFont = context.hud.dcFont,
                                      .textColors = context.hud.textColors},
                                     edit, true);
         y = F32(static_cast<double>(y) + 10.0);
     }
-    if ((dialog.flags & UI::PanelDialogTimed) != 0)
+    if ((dialog.flags & Ui::PanelDialogTimed) != 0)
     {
         y = F32(static_cast<double>(y) + 7.0);
-        const auto frame = UI::PanelTimerFrameAt(context.tickCount, dialog.timerStart, dialog.timerEnd);
+        const auto frame = Ui::PanelTimerFrameAt(context.tickCount, dialog.timerStart, dialog.timerEnd);
         if (!context.projecting)
             dialog.elapsedSeconds = frame.elapsedSeconds;
         Quad(sprites, 0x667, 245, y, 150, 12, 0.78125f, 1);
@@ -516,21 +517,21 @@ Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI
         Quad(sprites, 0x668, 241, y, frame.width, 12, frame.du, 1);
         sprites.SetBlend(BlendMode::Opaque);
     }
-    const UI::OldWindowDrawContext buttons{
+    const Ui::OldWindowDrawContext buttons{
         .sprites = sprites, .text = context.text, .dcFont = context.hud.dcFont, .textColors = context.hud.textColors};
-    const UI::OldWindowDrawView view{.mouseX = context.mouse.x, .mouseY = context.mouse.y};
-    if ((dialog.flags & UI::PanelDialogOk) != 0)
-        UI::DrawTheOldButton(buttons, dialog.buttons[UI::PanelOkButton], view);
-    else if ((dialog.flags & UI::PanelDialogYesNo) != 0)
+    const Ui::OldWindowDrawView view{.mouseX = context.mouse.x, .mouseY = context.mouse.y};
+    if ((dialog.flags & Ui::PanelDialogOk) != 0)
+        Ui::DrawTheOldButton(buttons, dialog.buttons[Ui::PanelOkButton], view);
+    else if ((dialog.flags & Ui::PanelDialogYesNo) != 0)
     {
-        UI::DrawTheOldButton(buttons, dialog.buttons[UI::PanelOkButton], view);
-        UI::DrawTheOldButton(buttons, dialog.buttons[UI::PanelNoButton], view);
+        Ui::DrawTheOldButton(buttons, dialog.buttons[Ui::PanelOkButton], view);
+        Ui::DrawTheOldButton(buttons, dialog.buttons[Ui::PanelNoButton], view);
     }
-    else if ((dialog.flags & UI::PanelDialogConfirm) != 0)
+    else if ((dialog.flags & Ui::PanelDialogConfirm) != 0)
     {
-        UI::DrawTheOldButton(buttons, dialog.buttons[UI::PanelConfirmButton], view);
-        UI::DrawTheOldButton(buttons, dialog.buttons[UI::PanelCancelButton], view);
+        Ui::DrawTheOldButton(buttons, dialog.buttons[Ui::PanelConfirmButton], view);
+        Ui::DrawTheOldButton(buttons, dialog.buttons[Ui::PanelCancelButton], view);
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

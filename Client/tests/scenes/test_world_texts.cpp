@@ -23,13 +23,13 @@
 namespace
 {
 using Client::Core::PixelSize;
+using Client::Hud::WorldText;
+using Client::Hud::WorldTextDrawContext;
+using Client::Hud::WorldTextQueue;
 using Client::Kernel::HudState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameProjection;
-using Client::Scenes::WorldText;
-using Client::Scenes::WorldTextDrawContext;
-using Client::Scenes::WorldTextQueue;
 using Client::Tests::RecordingTextDrawer;
 
 constexpr PixelSize Screen640{640, 480};
@@ -71,7 +71,7 @@ protected:
                                      .text = m_text,
                                      .hud = m_hud,
                                      .projecting = projecting};
-        return Client::Scenes::DrawTheWorldTexts(context);
+        return Client::Hud::DrawTheWorldTexts(context);
     }
 
     SpriteBatch m_sprites;
@@ -121,7 +121,7 @@ TEST_F(WorldTextsTest, AnEntryOffTheScreenIsDroppedWithoutDrawing)
 // strlen sobre los 64 bytes: sin 0, los 64.
 TEST_F(WorldTextsTest, AFullEntryReadsItsSixtyFourBytes)
 {
-    const std::string full(Client::Scenes::WorldTextSize, 'a');
+    const std::string full(Client::Hud::WorldTextSize, 'a');
     m_queue.push_back(Entry(full, glm::vec3(0.0f, 0.0f, 0.0f)));
     ASSERT_TRUE(Draw().HasValue());
     ASSERT_EQ(m_text.texts.size(), 1U);

@@ -34,8 +34,12 @@ class WorldState;
 
 namespace Client::Scenes
 {
-struct ChatBubble;
 struct GameProjection;
+} // namespace Client::Scenes
+
+namespace Client::Chat
+{
+struct ChatBubble;
 
 // 0x555840(entrada) con la fuente normal en el DC: el ancho (+0x280) es el mayor de los del nombre más 3, el gremio y
 // el puesto, con el renglón de abajo si alguno de los dos tiene tiempo y el de arriba si lo tiene el de arriba; el alto
@@ -51,7 +55,7 @@ struct ChatBubbleDrawContext
 {
     Kernel::WorldState& world;
     // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, un globo vivo corta.
-    const GameProjection* projection = nullptr;
+    const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // El SelectObject de 0x5a9050 (la normal) y los de la tienda de 0x555b00 (la negrita y la normal).
@@ -63,7 +67,7 @@ struct ChatBubbleDrawContext
     std::int32_t& boxWidth;
     std::int32_t& boxHeight;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
-    UI::Point mouse{};
+    Ui::Point mouse{};
     // 0x77f3b94: el contador del área vieja.
     std::int32_t blink = 0;
     // Un dibujo intermedio de MuRet no escribe la tabla: el paso del original lee lo del último frame suyo.
@@ -80,4 +84,4 @@ struct ChatBubbleDrawContext
 // y 0x451bb0 dos renglones arriba, y los demás renglones uno más arriba (Q-C978). Un globo sin dueño (+0x288, que no
 // escribe nadie: 0x557430 no tiene quien la llame, *estático*) corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Chat

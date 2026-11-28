@@ -49,6 +49,7 @@
 // abajo en 407, de 86 de alto. Los nombres y los textos son inventados.
 namespace
 {
+using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -62,18 +63,17 @@ using Client::Render::Text::TextColors;
 using Client::Render::Text::TextExtent;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
-using Client::UI::ChatFocus;
-using Client::UI::FriendSend;
-using Client::UI::OldEdit;
-using Client::UI::OldList;
-using Client::UI::OldWindow;
-using Client::UI::OldWindowDrawContext;
-using Client::UI::OldWindowDrawView;
-using Client::UI::OldWindowGlobals;
-using Client::UI::OldWindowManager;
-using Client::UI::OldWindowMeasure;
-using Client::UI::OldWindowStepView;
-using Client::UI::OldWindowTexts;
+using Client::Ui::FriendSend;
+using Client::Ui::OldEdit;
+using Client::Ui::OldList;
+using Client::Ui::OldWindow;
+using Client::Ui::OldWindowDrawContext;
+using Client::Ui::OldWindowDrawView;
+using Client::Ui::OldWindowGlobals;
+using Client::Ui::OldWindowManager;
+using Client::Ui::OldWindowMeasure;
+using Client::Ui::OldWindowStepView;
+using Client::Ui::OldWindowTexts;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr TextureSlot ScrollbarSlot{0x649};
@@ -162,7 +162,7 @@ void ExpectBox(const Box& box, float left, float top, float right, float bottom)
 // El color de 0x491960 con el alfa en 1.
 Color PaletteOf(std::int32_t index)
 {
-    return *Client::UI::OldWindowPalette(index, 1.0f);
+    return *Client::Ui::OldWindowPalette(index, 1.0f);
 }
 
 struct ExpectedCommand
@@ -215,7 +215,7 @@ protected:
         return OldWindowStepView{.mouseX = 639,
                                  .mouseY = 479,
                                  .keyEdge = [this](std::uint8_t key)
-                                 { return key == EnterKey && Client::UI::LatchTheKey(m_enterLatch, m_enterHeld); },
+                                 { return key == EnterKey && Client::Ui::LatchTheKey(m_enterLatch, m_enterHeld); },
                                  .keyDown = {},
                                  .chatOpen = false,
                                  .texts = &m_texts,
@@ -223,8 +223,8 @@ protected:
                                  .send = [this](const FriendSend& send) { m_sent.push_back(send); },
                                  .whisperTo = {},
                                  .openFriends = {},
-                                 .portrait = [this](Client::UI::OldPortraitPart& /*part*/,
-                                                    Client::UI::PortraitCallKind call,
+                                 .portrait = [this](Client::Ui::OldPortraitPart& /*part*/,
+                                                    Client::Ui::PortraitCallKind call,
                                                     std::int32_t /*delta*/) -> Client::Core::Expected<void, std::string>
                                  {
                                      m_portraitCalls.push_back(call);
@@ -235,12 +235,12 @@ protected:
     // 0x491080 la primera vez, con los amigos en el modelo y copiados a la pestaña (0x49ddd0).
     void OpenFriends(const std::vector<NewFriend>& friends = {})
     {
-        const auto opened = Client::UI::OpenTheFriendsWindow(m_manager, Client::UI::FriendsWindowX,
-                                                             Client::UI::FriendsWindowY, Globals(), StepView());
+        const auto opened = Client::Messenger::OpenTheFriendsWindow(
+            m_manager, Client::Messenger::FriendsWindowX, Client::Messenger::FriendsWindowY, Globals(), StepView());
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         for (const NewFriend& entry : friends)
-            Client::UI::AddAFriend(m_manager.friendModel, entry.name, 0, entry.state);
-        Client::UI::RefreshTheFriendTab(m_manager);
+            Client::Messenger::AddAFriend(m_manager.friendModel, entry.name, 0, entry.state);
+        Client::Messenger::RefreshTheFriendTab(m_manager);
     }
 
     OldWindow& Friends()
@@ -250,7 +250,7 @@ protected:
 
     OldList& FriendList()
     {
-        return Friends().tabs[Client::UI::FriendTabNumber].tab.list;
+        return Friends().tabs[Client::Messenger::FriendTabNumber].tab.list;
     }
 
     OldWindowDrawContext Context()
@@ -271,14 +271,14 @@ protected:
             .texts = &m_texts,
             .focusedList = m_focusedList,
             .focusedEdit = m_focusedEdit,
-            .portrait = [this](Client::UI::OldPortraitPart& /*part*/) -> Client::Core::Expected<void, std::string>
+            .portrait = [this](Client::Ui::OldPortraitPart& /*part*/) -> Client::Core::Expected<void, std::string>
             {
                 ++m_portraitDraws;
                 return {};
             },
             .globals = m_withStepContext ? &globals : nullptr,
             .stepView = m_withStepContext ? &stepView : nullptr};
-        return Client::UI::DrawTheOldWindows(m_manager, Context(), view);
+        return Client::Ui::DrawTheOldWindows(m_manager, Context(), view);
     }
 
     const SpriteVertex& VertexOf(std::size_t command, std::size_t quad = 0, std::size_t corner = 0) const
@@ -322,7 +322,7 @@ protected:
     }
 
     bool m_withStepContext = false;
-    std::vector<Client::UI::PortraitCallKind> m_portraitCalls;
+    std::vector<Client::Ui::PortraitCallKind> m_portraitCalls;
     int m_portraitDraws = 0;
     bool m_enterHeld = false;
     std::int32_t m_enterLatch = 0;
@@ -360,12 +360,12 @@ protected:
 TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
 {
     OpenFriends({{"Zorzal", 2}, {"Hornero", 0xff}});
-    Client::UI::SelectInTheList(FriendList(), 2, 2);
+    Client::Ui::SelectInTheList(FriendList(), 2, 2);
 
     const auto drawn = Draw();
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
-    const TextureSlot button{Client::UI::WindowButtonSlot};
+    const TextureSlot button{Client::Ui::WindowButtonSlot};
     ExpectCommands({
         {std::nullopt, BlendMode::Alpha, 2},   // la sombra del marco y el negro debajo de la lista
         {ScrollbarSlot, BlendMode::Opaque, 2}, // las flechas
@@ -388,7 +388,7 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
         {TextMarkerSlot, BlendMode::Alpha, 4}, // los tres títulos y el del estado
         {std::nullopt, BlendMode::Opaque, 4},  // la casilla
         // El marco sigue con la mezcla normal que dejó 0x463090.
-        {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Alpha, 1},
+        {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Alpha, 1},
     });
 
     // 0x49cc20: el 7 en (395, 304 + 86 + 0x12) de 240 × (125 − 86 − 18).
@@ -474,7 +474,7 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
 TEST_F(FriendWindowsDrawTest, TheColumnTitleUnderTheMouseAndTheSortedOneAreWhite)
 {
     OpenFriends({{"Zorzal", 2}});
-    m_manager.friendModel.sortMode = Client::UI::ByStateSort;
+    m_manager.friendModel.sortMode = Client::Messenger::ByStateSort;
 
     ASSERT_TRUE(Draw(400, 310).HasValue());
 
@@ -543,14 +543,14 @@ TEST_F(FriendWindowsDrawTest, TheStateBoxIsMarkedOffline)
 TEST_F(FriendWindowsDrawTest, TheWindowsTabDrawsTheBoxTitles)
 {
     OpenFriends();
-    const auto opened = Client::UI::CreateTheOldWindow(
+    const auto opened = Client::Ui::CreateTheOldWindow(
         m_manager,
-        Client::UI::OldWindowRequest{
-            .kind = Client::UI::NoticeCase, .x = -1, .y = -1, .data = "aviso uno", .aux = 0, .flags = 0},
+        Client::Ui::OldWindowRequest{
+            .kind = Client::Ui::NoticeCase, .x = -1, .y = -1, .data = "aviso uno", .aux = 0, .flags = 0},
         m_texts, m_measure);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
-    Friends().friends.currentTab = Client::UI::WindowsTabNumber;
-    Friends().friends.hoverTab = Client::UI::WindowsTabNumber;
+    Friends().friends.currentTab = Client::Messenger::WindowsTabNumber;
+    Friends().friends.hoverTab = Client::Messenger::WindowsTabNumber;
 
     ASSERT_TRUE(Draw().HasValue());
 
@@ -561,7 +561,7 @@ TEST_F(FriendWindowsDrawTest, TheWindowsTabDrawsTheBoxTitles)
         {ScrollbarSlot, BlendMode::Alpha, 3},
         {std::nullopt, BlendMode::Alpha, 1},   // la franja del elegido
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "aviso uno"
-        {TextureSlot{Client::UI::WindowButtonSlot}, BlendMode::Alpha, 1},
+        {TextureSlot{Client::Ui::WindowButtonSlot}, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {std::nullopt, BlendMode::Alpha, 3},   // las dos rayas y la franja de la columna
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t1026"
@@ -585,7 +585,7 @@ TEST_F(FriendWindowsDrawTest, TheWindowsTabDrawsTheBoxTitles)
 TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
 {
     OpenFriends();
-    Friends().friends.hoverTab = Client::UI::WindowsTabNumber;
+    Friends().friends.hoverTab = Client::Messenger::WindowsTabNumber;
 
     ASSERT_TRUE(Draw().HasValue());
 
@@ -602,8 +602,8 @@ TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuring
 {
     m_withStepContext = true;
     OpenFriends();
-    Friends().base.state = Client::UI::DraggedWindow;
-    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 4, 0);
+    Friends().base.state = Client::Ui::DraggedWindow;
+    Client::Ui::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 4, 0);
 
     const auto drawn = Draw();
 
@@ -612,7 +612,7 @@ TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuring
     // 0x497f50: el retrato de la de escribir, con el gancho del juego también en el dibujo.
     EXPECT_FALSE(m_portraitCalls.empty());
     EXPECT_TRUE(std::ranges::any_of(m_manager.windows, [](const auto& entry)
-                                    { return entry.second.kind == Client::UI::OldWindowKind::LetterWriteWindow; }));
+                                    { return entry.second.kind == Client::Ui::OldWindowKind::LetterWriteWindow; }));
 }
 
 // 0x49d422 y 0x49d118: Name y Answer conservan orden, envían durante la pasada real y no vuelven al paso siguiente.
@@ -620,19 +620,19 @@ TEST_F(FriendWindowsDrawTest, DrawingSendsPendingNamesAndDeleteAnswersInOrderOnc
 {
     m_withStepContext = true;
     OpenFriends({{"Tero", 1}});
-    Client::UI::SelectInTheList(FriendList(), 1, 1);
-    Friends().base.state = Client::UI::DraggedWindow;
+    Client::Ui::SelectInTheList(FriendList(), 1, 1);
+    Friends().base.state = Client::Ui::DraggedWindow;
     Friends().tabs[0].base.queue.push_back(
-        Client::UI::OldMessage{.type = Client::UI::NameMessage, .a = 0, .b = 1, .text = "Tordo"});
-    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::AnswerMessage, 0, 1);
+        Client::Ui::OldMessage{.type = Client::Ui::NameMessage, .a = 0, .b = 1, .text = "Tordo"});
+    Client::Ui::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::Ui::AnswerMessage, 0, 1);
 
     ASSERT_TRUE(Draw().HasValue());
 
     EXPECT_EQ(m_sent,
-              (std::vector<FriendSend>{{.kind = Client::UI::FriendSendKind::Add, .value = 0, .name = "Tordo"},
-                                       {.kind = Client::UI::FriendSendKind::Delete, .value = 0, .name = "Tero"}}));
+              (std::vector<FriendSend>{{.kind = Client::Ui::FriendSendKind::Add, .value = 0, .name = "Tordo"},
+                                       {.kind = Client::Ui::FriendSendKind::Delete, .value = 0, .name = "Tero"}}));
     EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
@@ -641,21 +641,21 @@ TEST_F(FriendWindowsDrawTest, DrawingADeleteCommandReadsEnterAndKeepsTheManagers
 {
     m_withStepContext = true;
     OpenFriends({{"Tero", 1}});
-    Client::UI::SelectInTheList(FriendList(), 1, 1);
-    Friends().base.state = Client::UI::DraggedWindow;
+    Client::Ui::SelectInTheList(FriendList(), 1, 1);
+    Friends().base.state = Client::Ui::DraggedWindow;
     m_enterHeld = true;
-    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 2, 0);
+    Client::Ui::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 2, 0);
 
     ASSERT_TRUE(Draw().HasValue());
 
     ASSERT_EQ(m_sent.size(), 1u);
-    EXPECT_EQ(m_sent[0], (FriendSend{.kind = Client::UI::FriendSendKind::Delete, .value = 0, .name = "Tero"}));
+    EXPECT_EQ(m_sent[0], (FriendSend{.kind = Client::Ui::FriendSendKind::Delete, .value = 0, .name = "Tero"}));
     EXPECT_EQ(m_enterLatch, 1);
     ASSERT_NE(m_manager.modal, 0);
     EXPECT_TRUE(m_manager.windows.contains(m_manager.modal));
     EXPECT_TRUE(
-        std::ranges::any_of(m_manager.queue, [this](const Client::UI::OldMessage& message)
-                            { return message.type == Client::UI::CloseMessage && message.a == m_manager.modal; }));
+        std::ranges::any_of(m_manager.queue, [this](const Client::Ui::OldMessage& message)
+                            { return message.type == Client::Ui::CloseMessage && message.a == m_manager.modal; }));
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(m_sent.size(), 1u);
 }
@@ -665,8 +665,8 @@ TEST_F(FriendWindowsDrawTest, DrawingAnAddCommandClipsTheNewEmptyEditCaretInTheS
 {
     m_withStepContext = true;
     OpenFriends();
-    Friends().base.state = Client::UI::DraggedWindow;
-    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+    Friends().base.state = Client::Ui::DraggedWindow;
+    Client::Ui::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 1, 0);
 
     ASSERT_TRUE(Draw().HasValue());
 
@@ -684,15 +684,15 @@ TEST_F(FriendWindowsDrawTest, DrawingAnAddCommandClipsTheNewEmptyEditCaretInTheS
 TEST_F(FriendWindowsDrawTest, AFunctionalDrawMessageWithoutStepServicesIsAnExplicitError)
 {
     OpenFriends();
-    Friends().base.state = Client::UI::DraggedWindow;
-    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+    Friends().base.state = Client::Ui::DraggedWindow;
+    Client::Ui::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 1, 0);
 
     const auto drawn = Draw();
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x45aa50"), std::string::npos);
     ASSERT_FALSE(Friends().tabs[0].base.queue.empty());
-    EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::CommandMessage);
+    EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::CommandMessage);
 }
 
 // La pestaña de las cartas (0x4a0a30, CL9 hito 10) con dos cartas, la primera marcada y sin leer, la segunda leída y
@@ -703,16 +703,16 @@ TEST_F(FriendWindowsDrawTest, AFunctionalDrawMessageWithoutStepServicesIsAnExpli
 TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
 {
     OpenFriends();
-    Client::UI::AddALetter(m_manager.letterModel, 1, "Tordo", "Asado", "2026/11/13", "21:30", 0);
-    Client::UI::AddALetter(m_manager.letterModel, 2, "Calandria", "Mate", "2026/11/12", "08:15", 1);
-    Client::UI::RefreshTheLettersTab(m_manager);
-    OldWindow& tab = Friends().tabs[Client::UI::LettersTabNumber];
+    Client::Messenger::AddALetter(m_manager.letterModel, 1, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+    Client::Messenger::AddALetter(m_manager.letterModel, 2, "Calandria", "Mate", "2026/11/12", "08:15", 1);
+    Client::Messenger::RefreshTheLettersTab(m_manager);
+    OldWindow& tab = Friends().tabs[Client::Messenger::LettersTabNumber];
     ASSERT_EQ(tab.tab.letters.size(), 2u);
     tab.tab.letters[0].selected = 1;
     tab.tab.allChecked = 1;
-    Client::UI::SelectInTheList(tab.tab.list, 2, 2);
-    m_manager.letterModel.sortMode = Client::UI::ByDateLetters;
-    Friends().friends.currentTab = Client::UI::LettersTabNumber;
+    Client::Ui::SelectInTheList(tab.tab.list, 2, 2);
+    m_manager.letterModel.sortMode = Client::Messenger::ByDateLetters;
+    Friends().friends.currentTab = Client::Messenger::LettersTabNumber;
     // 0x463190: la columna de la marca de 0x19 y las de los textos de 5 letras, + 8.
     ASSERT_EQ(tab.tab.list.headers, 0x19);
     ASSERT_EQ(tab.tab.list.nameWidth, 38);
@@ -722,7 +722,7 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     const auto drawn = Draw();
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
-    const TextureSlot button{Client::UI::WindowButtonSlot};
+    const TextureSlot button{Client::Ui::WindowButtonSlot};
     const TextureSlot mail{0x64b};
     std::vector<ExpectedCommand> expected{
         {std::nullopt, BlendMode::Alpha, 2},   // la sombra del marco y el negro debajo de la lista
@@ -751,7 +751,7 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     expected.push_back({std::nullopt, BlendMode::Alpha, 14});
     expected.push_back({TextMarkerSlot, BlendMode::Alpha, 4});
     expected.push_back({std::nullopt, BlendMode::Opaque, 4});
-    expected.push_back({TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Alpha, 1});
+    expected.push_back({TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Alpha, 1});
     ExpectCommands(expected);
 
     // 0x4a0ac1: el 7 en (395, 304 + 86 + 0x12) de 240 × (125 − 86 − 18).
@@ -809,12 +809,12 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
 TEST_F(FriendWindowsDrawTest, TheLetterBoxesAreInPixels)
 {
     OpenFriends();
-    Client::UI::AddALetter(m_manager.letterModel, 1, "Tordo", "Asado", "2026/11/13", "21:30", 0);
-    Client::UI::RefreshTheLettersTab(m_manager);
-    Friends().friends.currentTab = Client::UI::LettersTabNumber;
+    Client::Messenger::AddALetter(m_manager.letterModel, 1, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+    Client::Messenger::RefreshTheLettersTab(m_manager);
+    Friends().friends.currentTab = Client::Messenger::LettersTabNumber;
     m_sprites.Begin(PixelSize{800, 600});
 
-    ASSERT_TRUE(Client::UI::DrawTheFriendsWindow(
+    ASSERT_TRUE(Client::Messenger::DrawTheFriendsWindow(
                     m_manager, Friends(), Context(),
                     OldWindowDrawView{.mouseX = 500, .mouseY = 310, .friendsOpen = true, .texts = &m_texts})
                     .HasValue());
@@ -835,9 +835,9 @@ TEST_F(FriendWindowsDrawTest, TheLetterBoxesAreInPixels)
 TEST_F(FriendWindowsDrawTest, TheAddBoxDrawsItsEditWithTheCaret)
 {
     OpenFriends();
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
-    Client::UI::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
-    ASSERT_TRUE(Client::UI::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
+    Client::Ui::PostToTheWindow(m_manager, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 1, 0);
+    ASSERT_TRUE(Client::Ui::StepTheOldWindows(m_manager, Globals(), StepView()).HasValue());
     ASSERT_NE(m_manager.letter, 0);
     OldEdit& edit = m_manager.windows.at(m_manager.letter).add.edit;
     ASSERT_EQ(edit.base.x, 35);
@@ -868,7 +868,7 @@ TEST_F(FriendWindowsDrawTest, TheAddBoxDrawsItsEditWithTheCaret)
     ExpectBox(QuadOf(*black + 1, 0), 38.0f, 367.0f, 51.0f, 380.0f);
     ExpectBox(QuadOf(*black + 1, 1), 52.0f, 367.0f, 62.0f, 380.0f);
     ExpectBox(QuadOf(*black + 1, 2), 51.0f, 367.0f, 52.0f, 380.0f);
-    EXPECT_EQ(commands[*black + 2].texture, TextureSlot{Client::UI::WindowTitleSlot});
+    EXPECT_EQ(commands[*black + 2].texture, TextureSlot{Client::Ui::WindowTitleSlot});
     EXPECT_EQ(commands[*black + 2].blend, BlendMode::Opaque);
     EXPECT_EQ(edit.draws, 1);
     EXPECT_FLOAT_EQ(edit.caretHeight, 13.0f);
@@ -929,7 +929,7 @@ TEST(OldEditBitmapIntegrationTest, PixelCaretInvertsTheRasterizedGlyphColumn)
     TextColors textColors{};
     const OldWindowDrawContext context{.sprites = sprites, .text = text, .dcFont = dcFont, .textColors = textColors};
 
-    Client::UI::OldDraw::DrawTheOldEdit(context, edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(context, edit, true);
 
     const TextureSlot selectedSlot{static_cast<std::uint16_t>(Client::Render::FirstTextTextureSlot.value)};
     const auto selected = textures.Find(selectedSlot);
@@ -1020,7 +1020,7 @@ TEST_F(FriendWindowsDrawTest, TheEditDrawsTextAtItsPixelMarginAndCaretAtTheByteC
     edit.text.SetText("abcd");
     edit.text.SetCursor(2);
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     ASSERT_EQ(m_text.texts.size(), 3u);
     EXPECT_EQ(m_text.texts[0].text, "abcd");
@@ -1054,7 +1054,7 @@ TEST_F(FriendWindowsDrawTest, TheEditClipsTheCaretAtTheEndOfText)
     edit.base.height = 14;
     edit.text.SetText("abcd");
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     ASSERT_EQ(m_text.texts.size(), 1u);
     EXPECT_EQ(m_sprites.Vertices().size(), 12u);
@@ -1068,7 +1068,7 @@ TEST_F(FriendWindowsDrawTest, TheEditClipsTheCaretForEmptyText)
     edit.base.width = 80;
     edit.base.height = 14;
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     EXPECT_TRUE(m_text.texts.empty());
     EXPECT_EQ(m_sprites.Vertices().size(), 6u);
@@ -1084,7 +1084,7 @@ TEST_F(FriendWindowsDrawTest, TheEditDrawsSelectionAndCaretFromFullTextColumns)
     edit.text.SetText("abcd");
     edit.text.Select(1, 3);
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     ASSERT_EQ(m_text.texts.size(), 5u);
     EXPECT_EQ(m_text.texts[0].text, "abcd");
@@ -1130,7 +1130,7 @@ TEST_F(FriendWindowsDrawTest, TheEditSelectionUsesTheEditTextColor)
     edit.text.SetText("abcd");
     edit.text.Select(1, 3);
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     ASSERT_EQ(m_text.texts.size(), 5u);
     EXPECT_EQ(m_text.texts[0].style.colors.text, 0xff123456u);
@@ -1151,7 +1151,7 @@ TEST_F(FriendWindowsDrawTest, TheEditUsesTheActiveCaretForReverseSelection)
     edit.text.SetText("abcd");
     edit.text.Select(3, 1);
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     ASSERT_EQ(m_text.texts.size(), 5u);
     EXPECT_EQ(m_text.texts[4].x, 30);
@@ -1171,7 +1171,7 @@ TEST_F(FriendWindowsDrawTest, TheEditHidesSelectionWhenUnfocusedButKeepsItInTheM
     edit.text.SetText("abcd");
     edit.text.Select(1, 3);
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, false);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, false);
 
     ASSERT_EQ(m_text.texts.size(), 1u);
     EXPECT_TRUE(edit.text.HasSelection());
@@ -1194,24 +1194,24 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
     const auto quads = [this] { return m_sprites.Vertices().size() / 6; };
 
     edit.draws = 11;
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
     // El bitmap, los dos tramos de texto y la columna de caret.
     EXPECT_EQ(quads(), 4u);
     EXPECT_EQ(edit.draws, 12);
 
     m_sprites.Begin(Screen640);
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
     EXPECT_EQ(quads(), 2u);
     EXPECT_EQ(edit.draws, 13);
 
     m_sprites.Begin(Screen640);
     edit.draws = 24;
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, false);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, false);
     EXPECT_EQ(quads(), 2u);
 
     m_sprites.Begin(Screen640);
-    edit.base.state = Client::UI::HiddenWindow;
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    edit.base.state = Client::Ui::HiddenWindow;
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
     EXPECT_EQ(quads(), 0u);
     EXPECT_EQ(edit.draws, 25);
 }
@@ -1238,25 +1238,25 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
     held.arrowHeld = true;
 
     edit.draws = 13;
-    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(held, edit, true);
     // El bitmap y el texto: el cursor se eligió con 13.
     EXPECT_FALSE(caretDrawn());
     EXPECT_EQ(edit.draws, 1);
 
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
-    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(held, edit, true);
     EXPECT_TRUE(caretDrawn());
     EXPECT_EQ(edit.draws, 1);
 
     // Sin el foco el WM_GETTEXT llega igual.
     edit.draws = 20;
-    Client::UI::OldDraw::DrawTheOldEdit(held, edit, false);
+    Client::Ui::OldDraw::DrawTheOldEdit(held, edit, false);
     EXPECT_EQ(edit.draws, 1);
 
     edit.draws = 20;
-    edit.base.state = Client::UI::HiddenWindow;
-    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    edit.base.state = Client::Ui::HiddenWindow;
+    Client::Ui::OldDraw::DrawTheOldEdit(held, edit, true);
     EXPECT_EQ(edit.draws, 20);
 }
 
@@ -1264,7 +1264,7 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
 // el bitmap mide los '*' en la negrita y el DC queda con la normal; el cursor, al final de los '*'.
 TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
 {
-    OldEdit edit = Client::UI::NumberFieldEdit();
+    OldEdit edit = Client::Chat::NumberFieldEdit();
     edit.base.state = 0;
     edit.base.x = 0xf3;
     edit.base.y = 0x62;
@@ -1273,7 +1273,7 @@ TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
     edit.text.Type("4321");
     m_dcFont = FontKind::Bold;
 
-    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+    Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
 
     EXPECT_EQ(m_dcFont, FontKind::Normal);
     ASSERT_EQ(m_text.texts.size(), 1u);

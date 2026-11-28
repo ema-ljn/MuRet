@@ -6,7 +6,7 @@ namespace
 {
 TEST(PanelTimerFrameTest, HalfTheDurationDrawsHalfTheNative150PixelBar)
 {
-    const auto frame = Client::UI::PanelTimerFrameAt(3500, 1000, 6000);
+    const auto frame = Client::Ui::PanelTimerFrameAt(3500, 1000, 6000);
     EXPECT_EQ(frame.elapsedSeconds, 2u);
     EXPECT_FLOAT_EQ(frame.width, 75.0f);
     EXPECT_FLOAT_EQ(frame.du, 0.29296875f);
@@ -14,7 +14,7 @@ TEST(PanelTimerFrameTest, HalfTheDurationDrawsHalfTheNative150PixelBar)
 
 TEST(PanelTimerFrameTest, DrawingPastTheDeadlineDoesNotClampTheWidth)
 {
-    const auto frame = Client::UI::PanelTimerFrameAt(8500, 1000, 6000);
+    const auto frame = Client::Ui::PanelTimerFrameAt(8500, 1000, 6000);
     EXPECT_EQ(frame.elapsedSeconds, 7u);
     EXPECT_FLOAT_EQ(frame.width, 225.0f);
     EXPECT_FLOAT_EQ(frame.du, 0.87890625f);
@@ -22,10 +22,10 @@ TEST(PanelTimerFrameTest, DrawingPastTheDeadlineDoesNotClampTheWidth)
 
 TEST(PanelTimerFrameTest, ElapsedTickWrapsButTheDivisorIsASignedDword)
 {
-    const auto wrapped = Client::UI::PanelTimerFrameAt(984, 0xfffffff0u, 4984);
+    const auto wrapped = Client::Ui::PanelTimerFrameAt(984, 0xfffffff0u, 4984);
     EXPECT_EQ(wrapped.elapsedSeconds, 1u);
     EXPECT_FLOAT_EQ(wrapped.width, 30.0f);
-    const auto negative = Client::UI::PanelTimerFrameAt(1, 0, 0xffffffffu);
+    const auto negative = Client::Ui::PanelTimerFrameAt(1, 0, 0xffffffffu);
     EXPECT_FLOAT_EQ(negative.width, -150.0f);
 }
 } // namespace

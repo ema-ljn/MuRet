@@ -182,7 +182,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     Client::Models::ClothWorld cloth;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     auto data = Client::Tables::LoadGameData(m_dataRoot);

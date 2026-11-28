@@ -24,14 +24,14 @@
 // fracciones exactas), con registros de Item.bmd inventados y, al final, con el Item.bmd real del repo.
 namespace
 {
+using Client::Items::ItemPrice;
+using Client::Items::PetPriceLevels;
+using Client::Items::RepairPriceOf;
 using Client::Kernel::ItemState;
-using Client::Scenes::ItemPrice;
-using Client::Scenes::PetPriceLevels;
-using Client::Scenes::RepairPriceOf;
 
-constexpr std::int32_t ShopGrid = Client::Scenes::ShopGridPrice;
-constexpr std::int32_t Inventory = Client::Scenes::InventoryPrice;
-constexpr std::int32_t Repair = Client::Scenes::RepairPriceMode;
+constexpr std::int32_t ShopGrid = Client::Items::ShopGridPrice;
+constexpr std::int32_t Inventory = Client::Items::InventoryPrice;
+constexpr std::int32_t Repair = Client::Items::RepairPriceMode;
 
 // Los tipos inventados de esta prueba.
 constexpr std::uint16_t OneHanded = 0x0010;

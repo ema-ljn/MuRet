@@ -7,7 +7,7 @@
 // Lo que guardan los paquetes de la batalla del castillo (CL9 hito 13; 04 § Castle Siege, la batalla): el objeto de
 // 0x5767924 que arma el B2 20 y dibuja 0x5a6fc0, y la marca del gremio dueño del B9 02, que 0x5f1890 pinta en la
 // textura de la bandera del 30 (0x69c, Object31\Flag.tga).
-namespace Client::UI
+namespace Client::CastleSiege
 {
 // 0x4e04f3: new(0x36), dos mitades de 0x1b con un B2 20 entero cada una: la primera para la clave 0x13d y la segunda
 // para las demás (0x4e051e). En cada mitad, +4/+5 la clave, +6 se muestra (0x5a71f0), +7 el bando (0x5a7215: 2, 3 o
@@ -32,4 +32,4 @@ struct CastleBattleState
     std::array<std::uint8_t, OwnerMarkColors> ownerMark{};
     std::uint32_t ownerMarkRevision = 0;
 };
-} // namespace Client::UI
+} // namespace Client::CastleSiege

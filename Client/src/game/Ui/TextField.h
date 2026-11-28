@@ -11,7 +11,7 @@
 //
 // Sin operator<<: lo que tiene no se imprime nunca, ni al log. El PrintTo de los tests
 // (tests/support/UiPrinters.h) escribe el largo.
-namespace Client::UI
+namespace Client::Ui
 {
 class TextField
 {
@@ -87,4 +87,4 @@ private:
     std::size_t m_cursor = 0;
     bool m_allSelected = false;
 };
-} // namespace Client::UI
+} // namespace Client::Ui

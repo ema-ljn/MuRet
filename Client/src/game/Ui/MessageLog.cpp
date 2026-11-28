@@ -10,12 +10,12 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Ui
 {
 Core::Expected<std::optional<Audio::SoundId>, std::string> AddMessage(const MessageSink& sink, std::string_view name,
                                                                       std::string_view text, std::int32_t type)
 {
-    auto sound = AddToTheLog(sink.log, sink.modes, sink.measure, name, text, type, 0, sink.noticeSound);
+    auto sound = Chat::AddToTheLog(sink.log, sink.modes, sink.measure, name, text, type, 0, sink.noticeSound);
     if (!sound.HasValue())
         return sound;
     AddToTheMessageArea(sink.area, sink.measure.measure, sink.measure.dcFont, name, text, type);
@@ -31,4 +31,4 @@ Core::Expected<std::optional<Audio::SoundId>, std::string> StepTheMessageClock(c
     sink.area.clock = MessageClockSteps;
     return AddMessage(sink, {}, {}, 0);
 }
-} // namespace Client::UI
+} // namespace Client::Ui

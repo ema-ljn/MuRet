@@ -31,6 +31,10 @@ struct HudState;
 namespace Client::Scenes
 {
 struct GameProjection;
+} // namespace Client::Scenes
+
+namespace Client::Hud
+{
 
 // 0x4381f0: el texto, copiado en 64 bytes, y la posición.
 inline constexpr std::size_t WorldTextSize = 64;
@@ -52,7 +56,7 @@ struct WorldTextDrawContext
     // 0x723c18. En un dibujo intermedio de MuRet la cola se lee sin vaciarla: la vacía el frame del original.
     WorldTextQueue& queue;
     // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, una entrada en la cola corta.
-    const GameProjection* projection = nullptr;
+    const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // La fuente del DC, 0x6c8e5c y 0x6c8e64 (quedan los del último texto) y 0x77f31b8 y 0x77f31bc (0x554180).
@@ -64,4 +68,4 @@ struct WorldTextDrawContext
 // (0x6b8b88) proyectada con 0x6205b0; con las dos coordenadas en 0 o más, la negrita en el DC, el fondo 0xff000064, el
 // texto 0xffc8e6ff y 0x623690, el texto centrado en la x. Después la saca de la cola, se haya dibujado o no.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldTexts(WorldTextDrawContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hud

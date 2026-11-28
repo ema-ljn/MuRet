@@ -17,17 +17,17 @@ namespace Client::Models
 class IModelLibrary;
 }
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 // Borrow del mismo owner CPU y del contexto/view vigentes; no posee metadata ni caches GL.
-class ParticleDrawServices final : public World::IParticleDrawingServices
+class ParticleDrawServices final : public Particles::IParticleDrawingServices
 {
 public:
     ParticleDrawServices(std::reference_wrapper<const Models::IModelLibrary> models,
                          std::reference_wrapper<Render::IParticleDrawBackend> backend,
                          std::reference_wrapper<const Math::OriginalMatrix> view);
-    [[nodiscard]] Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t image) override;
-    [[nodiscard]] Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t type) override;
+    [[nodiscard]] Core::Expected<glm::vec2, Particles::ParticleError> Dimensions(std::int32_t image) override;
+    [[nodiscard]] Core::Expected<std::uint8_t, Particles::ParticleError> MaterialFlag(std::int32_t type) override;
     [[nodiscard]] Result Material(std::uint8_t rawFlag) override;
     [[nodiscard]] Result Subtractive() override;
     [[nodiscard]] Result Blended() override;
@@ -43,4 +43,4 @@ private:
     const std::reference_wrapper<const Math::OriginalMatrix> m_view;
     bool m_textureEnvOverride = false;
 };
-} // namespace Client::Scenes
+} // namespace Client::Effects

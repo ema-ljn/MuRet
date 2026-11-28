@@ -16,7 +16,7 @@ class CrtRandom;
 // Lost Tower (0x54143c), que sólo sube; y las nubes 622/0..5 de los objetos de Icarus (0x603f3b), con el alta
 // y el paso de la 622/1 y el giro por subtipo de 0x54848c. Intermedios double (PC53) y stores binary32, como
 // los demás kernels. Contrato: 06 § El mundo de la selección y § Los objetos de Icarus.
-namespace Client::World
+namespace Client::Particles
 {
 inline constexpr std::int32_t FlameParticle = 0x5de;
 inline constexpr std::int32_t ChaseLightParticle = 0x729;
@@ -38,4 +38,4 @@ void CreateSelectionParticle(Particle& particle, float scaleArgument, Crt::CrtRa
 [[nodiscard]] Core::Expected<void, ParticleError> StepSelectionParticle(Particle& particle, const float* worldClock,
                                                                         IParticleTrigonometry* trigonometry,
                                                                         const ParticleObjectOwners& owners);
-} // namespace Client::World
+} // namespace Client::Particles

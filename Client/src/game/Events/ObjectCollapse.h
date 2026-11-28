@@ -14,11 +14,15 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::WorldObjects
+{
+struct WorldObject;
+} // namespace Client::WorldObjects
+
+namespace Client::Particles
 {
 class Particles;
-struct WorldObject;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Kernel
 {
@@ -28,7 +32,7 @@ struct WorldRuntime;
 // El derrumbe de los objetos de Blood Castle y de Chaos Castle (CL9 hito 11, fase 3; 06 § El derrumbe de los
 // objetos): lo pide 0x5ff930 desde los paquetes de los eventos (EventGlobals::objectCollapse) y lo hace 0x5ff960 con
 // cada objeto que recorre el paso de los objetos (0x606560).
-namespace Client::Scenes
+namespace Client::Events
 {
 struct ObjectCollapse;
 
@@ -41,7 +45,7 @@ struct ObjectCollapseContext
     Crt::CrtRandom& random;
     // 0x53fe70: el polvo 5f3/0 de la puerta de Blood Castle y la piedra 5f6/0 de Chaos Castle. Sin el pool, corta
     // donde lo pide.
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     // El reloj del mundo (0x5767b88) con que 0x53fe70 crea.
     float worldClock = 0.0f;
     // +0x18 del héroe ([0x743a170]): la z de la piedra.
@@ -67,6 +71,6 @@ void CountDownTheObjectCollapse(Kernel::WorldRuntime& runtime);
 // de Blood Castle: el giro de +0x1c con la demora, el sonido 0x89 con la cuenta en 20, el polvo con +0x1c en 80 justo y
 // el final con la cuenta en 0, que saca el atributo 8 de (13..15, 70..75) y borra el pedido). Corta donde MuRet no
 // tiene lo que la rama pide, con lo anterior hecho.
-[[nodiscard]] Core::Expected<void, std::string> CollapseTheObject(World::WorldObject& object,
+[[nodiscard]] Core::Expected<void, std::string> CollapseTheObject(WorldObjects::WorldObject& object,
                                                                   const ObjectCollapseContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Events

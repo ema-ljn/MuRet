@@ -18,14 +18,14 @@
 // inventario (0x557d80), la durabilidad máxima (0x5b1ba0) y el nombre de Item.bmd.
 namespace
 {
+using Client::Items::CountQuickSlotItems;
+using Client::Items::CountTheAmmo;
+using Client::Items::FindQuickSlotItem;
+using Client::Items::ItemRecordName;
+using Client::Items::MaxDurability;
+using Client::Items::QuickSlots;
 using Client::Kernel::InventoryCellCount;
 using Client::Kernel::ItemState;
-using Client::Scenes::CountQuickSlotItems;
-using Client::Scenes::CountTheAmmo;
-using Client::Scenes::FindQuickSlotItem;
-using Client::Scenes::ItemRecordName;
-using Client::Scenes::MaxDurability;
-using Client::Scenes::QuickSlots;
 
 using Cells = std::array<ItemState, InventoryCellCount>;
 using Record = std::array<std::byte, Client::Tables::ItemRecordSize>;
@@ -150,13 +150,13 @@ TEST(HudItemsTest, TheSkillsAskForTheManaAndLifePotionsWith3And4)
     slots.types = {0x1c14, 0x1c0a, 0x1c08};
     slots.levels = {3, 3, 3};
     // La 0x1c05 gana a la 0x1c04 y la 0x1c02 a la 0x1c00, aunque estén después en la grilla.
-    EXPECT_EQ(Found(slots, cells, Client::Scenes::ManaPotionSlot, true), 7u * 8u + 1u);
-    EXPECT_EQ(Found(slots, cells, Client::Scenes::LifePotionSlot, true), 1u * 8u + 6u);
+    EXPECT_EQ(Found(slots, cells, Client::Items::ManaPotionSlot, true), 7u * 8u + 1u);
+    EXPECT_EQ(Found(slots, cells, Client::Items::LifePotionSlot, true), 1u * 8u + 6u);
     cells[7 * 8 + 1].occupied = 0;
-    EXPECT_EQ(Found(slots, cells, Client::Scenes::ManaPotionSlot), 0u);
+    EXPECT_EQ(Found(slots, cells, Client::Items::ManaPotionSlot), 0u);
     const Cells empty{};
-    EXPECT_EQ(Found(slots, empty, Client::Scenes::ManaPotionSlot), std::nullopt);
-    EXPECT_EQ(Found(slots, empty, Client::Scenes::LifePotionSlot), std::nullopt);
+    EXPECT_EQ(Found(slots, empty, Client::Items::ManaPotionSlot), std::nullopt);
+    EXPECT_EQ(Found(slots, empty, Client::Items::LifePotionSlot), std::nullopt);
     const auto fifth = FindQuickSlotItem(slots, cells, 5, false);
     ASSERT_FALSE(fifth.HasValue());
     EXPECT_NE(fifth.Error().find("0x558110(5)"), std::string::npos) << fifth.Error();

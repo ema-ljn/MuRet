@@ -6,7 +6,7 @@
 #include <vector>
 
 // Los tres objetos de 0x412140: base de 0x20 bytes, tabla de 7 × 5 en la clase 1 y vector más tabla en la 2.
-namespace Client::UI
+namespace Client::CastleSiege
 {
 inline constexpr std::size_t SiegeStatusSlots = 7;
 struct SiegePanelState
@@ -30,4 +30,4 @@ struct SiegePanelState
     std::uint8_t command = 3;
     std::uint8_t targetTtl = 0;
 };
-} // namespace Client::UI
+} // namespace Client::CastleSiege

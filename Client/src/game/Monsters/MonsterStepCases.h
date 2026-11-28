@@ -27,14 +27,14 @@ struct WorldRuntime;
 // Los casos por tipo del paso de los personajes que no son el 0x20a (0x4fd5f0 y 0x508ea0): el nombre del 0xc5, la
 // caída del 0xf1 y los objetos del asedio de 0x42da90. Contrato: 06 § El cuerpo de los personajes (0x4fd5f0) y § Los
 // objetos del mapa 30 en el paso (0x42da90).
-namespace Client::Scenes
+namespace Client::Monsters
 {
 
 // 0x4fd603..0x4fd698, el 0xc5 (las puertas de Kalima): "%s ." (0x6c88bc) con el nombre (+0x1d9, como cadena de C),
 // Text.bmd[1176] (0x77133fc) con +0x1d6 sin signo, el strcat de los dos en el buffer de 100 bytes y 0x4381f0 con la
 // posición (+0x10). Sin rand(). Sin Text.bmd, o si el strcat se pasara de los 100 bytes, corta.
-[[nodiscard]] Core::Expected<void, std::string> QueueTheGateName(const Kernel::ActorState& actor,
-                                                                 const Tables::TextTable* texts, WorldTextQueue& queue);
+[[nodiscard]] Core::Expected<void, std::string>
+QueueTheGateName(const Kernel::ActorState& actor, const Tables::TextTable* texts, Hud::WorldTextQueue& queue);
 
 // 0x4fb910..0x4fb9c7, el 0xf1 desde 0x4fb380: la z sube +0xe4 y +0xe4 baja 6; si la altura del terreno (0x5f93c0) más
 // 30 queda por encima, la z pasa a esa y +0xe4 a −0,4f veces; los ángulos suman +0xcc, +0xd0 y +0xd4, que se achican a
@@ -67,4 +67,4 @@ struct CastleObjectStep
 // Sin rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheCastleObject(Kernel::ActorState& actor,
                                                                     const CastleObjectStep& step);
-} // namespace Client::Scenes
+} // namespace Client::Monsters

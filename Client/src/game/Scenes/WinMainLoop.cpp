@@ -39,7 +39,7 @@ void StepTheGameMusic(Kernel::WorldState& world, Crt::CrtRandom& random)
     Kernel::ActorState& hero = world.Hero();
     runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
                             [&hero, &random] { return InTheDeviasChurch(hero, random); });
-    StepTheCrywolfMusic(runtime);
+    Events::Crywolf::StepTheCrywolfMusic(runtime);
 }
 } // namespace
 
@@ -168,7 +168,7 @@ void FinishTheWinMainLoop(WinMainLoopState& loop, Kernel::WorldState& world, Crt
         if (gameScene)
             StepTheGameMusic(world, random);
         CloseTheFrameCounter(random);
-        RunTheSlideTimer(world, random, systemTime, gameScene);
+        Hud::RunTheSlideTimer(world, random, systemTime, gameScene);
         StepTheWinMainLoop(loop.counters, random);
     }
 }

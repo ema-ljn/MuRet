@@ -34,10 +34,10 @@
 namespace
 {
 using Client::Actors::CharacterStepContext;
+using Client::Chat::ChatBubble;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::ChatBubble;
 
 constexpr std::size_t NpcSlot = 9;
 constexpr std::int32_t Lorencia = 0;
@@ -167,9 +167,9 @@ protected:
 TEST_F(NpcChatterTest, TheArcherTurnsInLorenciaAndDevias)
 {
     Npc().angles = {10.0f, 20.0f, 30.0f};
-    EXPECT_TRUE(Client::Scenes::TurnTheNpc(Npc(), Lorencia));
+    EXPECT_TRUE(Client::Monsters::TurnTheNpc(Npc(), Lorencia));
     EXPECT_EQ(Npc().angles, glm::vec3(0.0f, 0.0f, 90.0f));
-    EXPECT_TRUE(Client::Scenes::TurnTheNpc(Npc(), Devias));
+    EXPECT_TRUE(Client::Monsters::TurnTheNpc(Npc(), Devias));
     EXPECT_EQ(Npc().angles, glm::vec3(0.0f));
 
     struct Case
@@ -191,7 +191,7 @@ TEST_F(NpcChatterTest, TheArcherTurnsInLorenciaAndDevias)
         ActorState npc = Npc();
         probe.prepare(npc);
         npc.angles = {10.0f, 20.0f, 30.0f};
-        EXPECT_FALSE(Client::Scenes::TurnTheNpc(npc, probe.map));
+        EXPECT_FALSE(Client::Monsters::TurnTheNpc(npc, probe.map));
         EXPECT_EQ(npc.angles, glm::vec3(10.0f, 20.0f, 30.0f));
     }
 }
@@ -223,7 +223,7 @@ TEST_F(NpcChatterTest, AnEvenRandomSaysTheLineOfTheType)
         Npc().type = probe.type;
         Npc().word376 = probe.npcClass;
 
-        const auto said = Client::Scenes::SayTheNpcLine(Npc(), NpcSlot, Context());
+        const auto said = Client::Monsters::SayTheNpcLine(Npc(), NpcSlot, Context());
 
         ASSERT_TRUE(said.HasValue()) << said.Error();
         EXPECT_EQ(Said(), probe.said);
@@ -237,13 +237,13 @@ TEST_F(NpcChatterTest, AnOddRandomOrAnotherKindSaysNothing)
     Npc().type = 0x1d3;
     const std::uint32_t odd = SeedWhere([](CrtRandom& random) { return random.Next() % 2 != 0; });
     UseTheSeed(odd);
-    ASSERT_TRUE(Client::Scenes::SayTheNpcLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNpcLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(Said(), std::nullopt);
     EXPECT_EQ(m_random.State(), AfterDraws(odd, 1).State());
 
     Npc().byte88 = 2;
     UseTheSeed(odd);
-    ASSERT_TRUE(Client::Scenes::SayTheNpcLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNpcLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(m_random.State(), AfterDraws(odd, 0).State());
 
     Npc().byte88 = 4;
@@ -251,7 +251,7 @@ TEST_F(NpcChatterTest, AnOddRandomOrAnotherKindSaysNothing)
     m_world->Runtime().map = CastleSiege;
     const std::uint32_t even = SeedWhere([](CrtRandom& random) { return random.Next() % 2 == 0; });
     UseTheSeed(even);
-    ASSERT_TRUE(Client::Scenes::SayTheNpcLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNpcLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(Said(), std::nullopt);
     EXPECT_EQ(m_random.State(), AfterDraws(even, 1).State());
 }
@@ -263,14 +263,14 @@ TEST_F(NpcChatterTest, WithoutTheTextOrTheMeasureTheSpeakerStops)
     const std::uint32_t even = SeedWhere([](CrtRandom& random) { return random.Next() % 2 == 0; });
     m_withTexts = false;
     UseTheSeed(even);
-    const auto withoutTexts = Client::Scenes::SayTheNpcLine(Npc(), NpcSlot, Context());
+    const auto withoutTexts = Client::Monsters::SayTheNpcLine(Npc(), NpcSlot, Context());
     ASSERT_FALSE(withoutTexts.HasValue());
     EXPECT_NE(withoutTexts.Error().find("0x4fc838"), std::string::npos) << withoutTexts.Error();
 
     m_withTexts = true;
     m_withMeasure = false;
     UseTheSeed(even);
-    const auto withoutMeasure = Client::Scenes::SayTheNpcLine(Npc(), NpcSlot, Context());
+    const auto withoutMeasure = Client::Monsters::SayTheNpcLine(Npc(), NpcSlot, Context());
     ASSERT_FALSE(withoutMeasure.HasValue());
     EXPECT_NE(withoutMeasure.Error().find("0x4fc838"), std::string::npos) << withoutMeasure.Error();
     EXPECT_EQ(Said(), std::nullopt);
@@ -282,7 +282,7 @@ TEST_F(NpcChatterTest, TheNamedLineTakesTurnsEveryFourSeconds)
 {
     TheMessageName();
     m_now = 1000;
-    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(m_clockReads, 2);
     EXPECT_EQ(Said(), "evento dos");
     EXPECT_EQ(m_world->Runtime().namedLineTime, 1000u);
@@ -290,13 +290,13 @@ TEST_F(NpcChatterTest, TheNamedLineTakesTurnsEveryFourSeconds)
 
     m_world->Runtime().chat.bubbles = {};
     m_now = 5000;
-    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(m_clockReads, 3);
     EXPECT_EQ(Said(), std::nullopt);
     EXPECT_EQ(m_world->Runtime().namedLineTime, 1000u);
 
     m_now = 5001;
-    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(Said(), "evento uno");
     EXPECT_EQ(m_world->Runtime().namedLineTime, 5001u);
     EXPECT_FALSE(m_world->Runtime().namedLineFirst);
@@ -308,18 +308,18 @@ TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
 {
     TheMessageName();
     Npc().nameSpill[0] = std::byte{0};
-    EXPECT_TRUE(Client::Scenes::HasTheMessageName(Npc()));
+    EXPECT_TRUE(Client::Monsters::HasTheMessageName(Npc()));
     Npc().nameSpill[0] = std::byte{'s'};
-    EXPECT_FALSE(Client::Scenes::HasTheMessageName(Npc()));
+    EXPECT_FALSE(Client::Monsters::HasTheMessageName(Npc()));
     Npc().nameSpill[0] = std::byte{0};
     Npc().byte1e3 = 0;
-    EXPECT_FALSE(Client::Scenes::HasTheMessageName(Npc()));
+    EXPECT_FALSE(Client::Monsters::HasTheMessageName(Npc()));
 
     // Con +0x1e4 en algo, SayTheNamedLine no habla aunque pasen los 4.000 ms.
     TheMessageName();
     Npc().nameSpill[0] = std::byte{'s'};
     m_now = 1000;
-    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(Said(), std::nullopt);
 }
 
@@ -328,17 +328,17 @@ TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
 TEST_F(NpcChatterTest, TheClockStartsWithAnyoneAndWithoutItOnlyTheNameStops)
 {
     m_now = 300;
-    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(m_world->Runtime().namedLineTime, 300u - 5000u);
     EXPECT_EQ(Said(), std::nullopt);
     EXPECT_FALSE(m_world->Runtime().namedLineFirst);
 
     m_withClock = false;
     m_world->Runtime().namedLineTime.reset();
-    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_FALSE(m_world->Runtime().namedLineTime.has_value());
     TheMessageName();
-    const auto named = Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context());
+    const auto named = Client::Monsters::SayTheNamedLine(Npc(), NpcSlot, Context());
     ASSERT_FALSE(named.HasValue());
     EXPECT_NE(named.Error().find("0x4fcd82"), std::string::npos) << named.Error();
     EXPECT_EQ(Said(), std::nullopt);
@@ -349,7 +349,7 @@ TEST_F(NpcChatterTest, TheTurnedArcherGoesBackToRest)
 {
     Npc().animation.action = 0x9d;
     UseTheSeed(7);
-    ASSERT_TRUE(Client::Scenes::FinishTheTurnedNpc(Npc(), NpcSlot, Context()).HasValue());
+    ASSERT_TRUE(Client::Monsters::FinishTheTurnedNpc(Npc(), NpcSlot, Context()).HasValue());
     EXPECT_EQ(Npc().animation.action, 1);
     EXPECT_EQ(Said(), std::nullopt);
     EXPECT_EQ(m_random.State(), AfterDraws(7, 1).State());
@@ -391,7 +391,7 @@ TEST_F(NpcChatterTest, TheRestingArcherDrawsItsNextAction)
                 Npc().animation.action = 1;
                 UseTheSeed(seed);
 
-                ASSERT_TRUE(Client::Scenes::FinishTheTurnedNpc(Npc(), NpcSlot, Context()).HasValue());
+                ASSERT_TRUE(Client::Monsters::FinishTheTurnedNpc(Npc(), NpcSlot, Context()).HasValue());
 
                 EXPECT_EQ(Npc().animation.action, probe.action);
                 EXPECT_EQ(Said(), speaks && map == Devias ? std::optional<std::string>(probe.said) : std::nullopt);

@@ -23,6 +23,10 @@ struct ActorState;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Monsters
+{
 
 // Los bytes de texto desde +0x1d9: el nombre (diez bytes), +0x1e3 y +0x1e4..+0x1f1 (ActorState::nameSpill).
 inline constexpr std::size_t ActorTextSize = 25;
@@ -67,5 +71,5 @@ inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 // vivos, el 400, que el original escribe igual.
 [[nodiscard]] Core::Expected<std::size_t, std::string> CreateMonster(std::int32_t type, std::uint8_t x, std::uint8_t y,
                                                                      std::int32_t key,
-                                                                     const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                                     const Scenes::WorldEntryResources& resources);
+} // namespace Client::Monsters

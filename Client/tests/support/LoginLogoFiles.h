@@ -47,8 +47,8 @@ inline void WriteLoginLogo(const std::filesystem::path& root, bool withoutSecond
     logo.bones = {bone};
     WriteSceneFile(root, "Logo/Logo03.bmd", PlainBmd(BmdContent(logo), logo.version));
     const std::array<Data::Textures::TextureSetEntry, 2> textures{{
-        {"Logo\\logo.jpg", 0x455, Scenes::LoginLogoSampling},
-        {"Logo\\logo2.jpg", 0x456, Scenes::LoginLogoSampling},
+        {"Logo\\logo.jpg", 0x455, FrontEnd::LoginLogoSampling},
+        {"Logo\\logo2.jpg", 0x456, FrontEnd::LoginLogoSampling},
     }};
     WriteTextureSet(root, std::span(textures).first(withoutSecondTexture ? 1 : 2));
 }

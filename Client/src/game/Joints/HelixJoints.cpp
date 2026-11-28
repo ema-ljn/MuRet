@@ -20,7 +20,7 @@
 // (0x52c9da y 0x52c9a7, con él de dueño). Giran alrededor de su destino, que avanza (vy, vz) por paso, en un círculo
 // vertical orientado por la z de sus ángulos; la /4 con un radio que se achica con la vida y la /0xc con uno fijo de 26
 // que baja 0,3 por paso. Su paso se repite en el mismo cuadro hasta que la vida es múltiplo de 12 (0x53c3c6).
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -37,7 +37,7 @@ bool IsHelix(std::int32_t type, std::int32_t subtype)
     return (type == DropJoint || type == SecondHelixJoint) && (subtype == HelixSubtype || subtype == WideHelixSubtype);
 }
 
-Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateHelixJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa. 0x533faf: el ancho.
@@ -64,7 +64,7 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Kern
             return Core::Unexpected(std::format("0x534070: falta el efecto dueño del joint {:#x}/4", joint.type));
         joint.life = 0x6e;
         joint.maximumCount = 0xc8;
-        joint.light = static_cast<const World::ModelEffect*>(joint.ownerContext)->light;
+        joint.light = static_cast<const Effects::ModelEffect*>(joint.ownerContext)->light;
         reach = -2.0; // 0x6ba21c
     }
     // 0x533fdc..0x53401d y 0x534090..0x5340d1: vx en rand() % 360; vy y vz, el seno y el coseno de −z en radianes por
@@ -87,7 +87,7 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Kern
     return {};
 }
 
-Core::Expected<void, std::string> StepHelixJoint(JointState& joint)
+Core::Expected<void, std::string> StepHelixJoint(Scenes::JointState& joint)
 {
     // 0x53b08a..0x53b10e: el giro a = (vida + vx) · 0,1f y, en la x87, el radio horizontal h y el vertical v.
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
@@ -149,4 +149,4 @@ Core::Expected<void, std::string> StepHelixJoint(JointState& joint)
     }
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

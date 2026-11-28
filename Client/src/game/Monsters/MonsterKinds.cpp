@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -115,4 +115,4 @@ float AddTailScale(float scale, std::int32_t steps) noexcept
     constexpr float Step = 0.05f; // 0x6b8a48
     return static_cast<float>(static_cast<double>(steps) * static_cast<double>(Step) + static_cast<double>(scale));
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

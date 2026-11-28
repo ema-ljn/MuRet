@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 namespace
 {
@@ -253,4 +253,4 @@ std::optional<WorldObjectCreationError> ApplyDefaultWorldObjectCreation(WorldObj
     (void)CreateMapObject4303D0(context);
     return std::nullopt;
 }
-} // namespace Client::World
+} // namespace Client::WorldObjects

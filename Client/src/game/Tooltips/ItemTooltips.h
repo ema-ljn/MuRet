@@ -6,16 +6,20 @@
 #include <cstdint>
 #include <string>
 
+namespace Client::Hud
+{
+struct GameHudContext;
+} // namespace Client::Hud
+
 // Los cuerpos de los tooltips de un ítem (06 § Los tooltips, CL8 hito 5): el del ítem (0x5b2aa0) y el de reparar
 // (0x5b8150); el de la skill (0x5b90b0) está en SkillTooltip.h. Cada uno limpia sus renglones de HudState::tooltip, los
 // llena y dibuja la caja (0x5af090). 0x5f7bc0 los llama con el registro propio abierto alrededor.
-namespace Client::Scenes
+namespace Client::Tooltips
 {
-struct GameHudContext;
 
 struct ItemTooltipContext
 {
-    GameHudContext& hud;
+    Hud::GameHudContext& hud;
     // 0x78a9bac y 0x78a9ba8: dónde va (el centro de arriba de la caja).
     std::int32_t x = 0;
     std::int32_t y = 0;
@@ -32,4 +36,4 @@ struct ItemTooltipContext
 
 // 0x5b8150(x, y, ítem, grilla): con el modo de reparar, el nombre, la durabilidad y el precio de la reparación.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

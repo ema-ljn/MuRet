@@ -370,9 +370,10 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
         auto& state = frame.world.Runtime().objectModelState;
         for (const std::int16_t type : std::array<std::int16_t, 2>{0x2a, 0x2b})
         {
-            Client::World::WorldObject object;
+            Client::WorldObjects::WorldObject object;
             object.type = type;
-            ASSERT_TRUE(Client::World::StepNoriaObject(object, frame.cloth.random, {.modelState = &state}).HasValue());
+            ASSERT_TRUE(Client::MapScripts::Noria::StepNoriaObject(object, frame.cloth.random, {.modelState = &state})
+                            .HasValue());
             ASSERT_EQ(state.unlitMeshes.at(type), 0);
         }
         ASSERT_TRUE(Client::Scenes::LoadMap(map, {m_dataRoot, frame.world, frame.states.terrain,
@@ -397,7 +398,7 @@ TEST_F(GameSceneTailIntegrationTest, HeldGameLoopFramePublishesThePulseBeforeThe
     auto manager = MakeManager(Client::Scenes::SceneId::Game);
     frame.clock.Advance(std::chrono::milliseconds{1000});
     Client::Input::InputState input;
-    Client::App::GameLoop loop(frame.clock, *manager, Client::App::PacingMode::Decoupled, 0);
+    Client::App::GameLoop loop(frame.clock, *manager, Client::Kernel::PacingMode::Decoupled, 0);
     EXPECT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 0);
     EXPECT_EQ(frame.target.frames.size(), frames);
     EXPECT_TRUE(manager->HoldsTheLastFrame());
@@ -416,7 +417,7 @@ TEST_F(GameSceneTailIntegrationTest, ADisabledWorldPublishesWithoutReadingTheWar
     frame.clock.Advance(std::chrono::milliseconds{1000});
     const auto random = frame.cloth.random.State();
     Client::Input::InputState input;
-    Client::App::GameLoop loop(frame.clock, *manager, Client::App::PacingMode::Decoupled, 0);
+    Client::App::GameLoop loop(frame.clock, *manager, Client::Kernel::PacingMode::Decoupled, 0);
     EXPECT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 0);
     EXPECT_TRUE(manager->HoldsTheLastFrame());
     EXPECT_EQ(frame.target.frames.size(), frames);
@@ -431,7 +432,7 @@ TEST_F(GameSceneTailIntegrationTest, TheOrchestratorPublishesDuringTheRealWorldL
     auto manager = MakeManager(Client::Scenes::SceneId::WorldLoading);
     frame.clock.Advance(std::chrono::milliseconds{1000});
     Client::Input::InputState input;
-    Client::App::GameLoop loop(frame.clock, *manager, Client::App::PacingMode::Decoupled, 0);
+    Client::App::GameLoop loop(frame.clock, *manager, Client::Kernel::PacingMode::Decoupled, 0);
     EXPECT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 0);
     ASSERT_EQ(frame.target.frames.size(), 1u);
     EXPECT_TRUE(frame.target.frames[0].presented);

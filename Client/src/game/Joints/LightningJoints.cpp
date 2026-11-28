@@ -28,7 +28,7 @@
 #include <string>
 
 // El 0x614: el alta (0x5309d6, después del primer tramo de 0x530afa) y el paso (0x53683e..0x537278).
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -51,7 +51,8 @@ glm::vec3 RandomGray(CrtRandom& random)
 }
 
 // 0x5313fe..0x53145b: la /2 apunta al hueso 33 (0x630) del personaje dueño, (0, −150, 0) con el modelo del jugador.
-Core::Expected<void, std::string> AimAtTheOwnerBone(JointState& joint, const JointKernels::CreationServices* services)
+Core::Expected<void, std::string> AimAtTheOwnerBone(Scenes::JointState& joint,
+                                                    const JointKernels::CreationServices* services)
 {
     constexpr std::size_t HandBone = static_cast<std::size_t>(Tables::PlayerRightHandBone);
     constexpr glm::vec3 BelowTheBone{0.0f, -150.0f, 0.0f}; // 0xc3160000
@@ -71,7 +72,7 @@ namespace
 // en +0x9f4 los lugares de los que están a 400 o menos en el plano (con NaN también), vivos, sin +0x389, de clase 2
 // (+0x88), visibles (+0x16c) y que no son el dueño, hasta seis. +0x9eb es la cuenta · 15 (en un byte), +0x9ec vuelve
 // a 0 y +0x24 es el segundo punto 150 más arriba.
-Core::Expected<void, std::string> CreateTheChain(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateTheChain(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                  const JointKernels::CreationServices* services)
 {
     if (services == nullptr || services->actors.empty())
@@ -111,7 +112,7 @@ Core::Expected<void, std::string> CreateTheChain(JointState& joint, const Kernel
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateLightningJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                        CrtRandom& random,
                                                        const JointKernels::CreationServices* services)
 {
@@ -220,7 +221,7 @@ Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const 
 namespace
 {
 // 0x536982: el dueño de la /0, /1, /2 y /0x10 es un personaje; sin dueño apunta a lo que ya tenía.
-Core::Expected<void, std::string> FollowTheOwner(JointState& joint)
+Core::Expected<void, std::string> FollowTheOwner(Scenes::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return {};
@@ -233,10 +234,10 @@ Core::Expected<void, std::string> FollowTheOwner(JointState& joint)
 }
 
 // 0x536a15..0x536a93: la /6 apunta 2.050 a 2.250 al costado del objeto dueño y 10.000 más abajo.
-Core::Expected<float, std::string> TurnFromTheObject(JointState& joint, CrtRandom& random)
+Core::Expected<float, std::string> TurnFromTheObject(Scenes::JointState& joint, CrtRandom& random)
 {
     const auto* owner = joint.ownerKind == Kernel::JointOwnerKind::ByType
-                            ? static_cast<const World::WorldObject*>(joint.ownerContext)
+                            ? static_cast<const WorldObjects::WorldObject*>(joint.ownerContext)
                             : nullptr;
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x536a15: falta el objeto dueño del joint 0x614/6"));
@@ -252,7 +253,7 @@ Core::Expected<float, std::string> TurnFromTheObject(JointState& joint, CrtRando
 
 // 0x53695e..0x536b3a: hacia dónde gira cada subtipo; devuelve lo que falta (el float de 0x536b3a). `services` puede
 // faltar en los caminos sin rand().
-Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scratch, CrtRandom& random,
+Core::Expected<float, std::string> Turn(Scenes::JointState& joint, const glm::vec3& scratch, CrtRandom& random,
                                         const JointKernels::StepServices* services)
 {
     using Math::MoveToward;
@@ -314,7 +315,7 @@ Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scra
 }
 
 // 0x536b40..0x536cfb: la sacudida de cada subtipo en vx y vz.
-void Jitter(JointState& joint, CrtRandom& random)
+void Jitter(Scenes::JointState& joint, CrtRandom& random)
 {
     const auto centered = [&random](int mask, int center) { return (random.Next() & mask) - center; };
     switch (joint.subtype)
@@ -349,7 +350,8 @@ void Jitter(JointState& joint, CrtRandom& random)
 }
 
 // 0x536d8e..0x536e32: con el ancho en 50 o más, la luz dinámica de radio 2 de la /0, la /0xb y la /2.
-Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, Terrain::TerrainLighting* lighting)
+Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, CrtRandom& random,
+                                       Terrain::TerrainLighting* lighting)
 {
     if (!(joint.width >= 50.0f))
         return {};
@@ -362,10 +364,10 @@ Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& rando
     const double value = static_cast<double>((random.Next() & 3) + 4) * Step;
     const glm::vec3 color = subtype == 2 ? glm::vec3(F32(value * Red), F32(value * Tenth), F32(value * Tenth))
                                          : glm::vec3(F32(value * Tenth), F32(value * Tenth), F32(value * 0.5));
-    return World::AddDynamicLight(lighting, joint.position, color, 2, "0x536e2d");
+    return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x536e2d");
 }
 
-Core::Expected<void, std::string> Particle(const JointState& joint, std::int32_t type,
+Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, std::int32_t type,
                                            const JointKernels::StepServices& services, std::string_view address)
 {
     if (services.particles == nullptr)
@@ -381,19 +383,19 @@ Core::Expected<void, std::string> Particle(const JointState& joint, std::int32_t
 // 0x536e95..0x537042: al llegar, sólo con el ancho en 50 justo (0x536e9c: con otro ancho salta a 0x537045, también
 // la /0), el 0x5ca y una vez cada ocho el 0x5f2 (tres rand() para un punto que nadie lee); la /0 en la primera mitad de
 // cada segundo, una vez cada dieciséis, suelta una /1 hacia el destino.
-Core::Expected<void, std::string> Arrive(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Arrive(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     CrtRandom& random = *services.random;
     constexpr std::uint32_t ArrivalWidthBits = 0x42480000u; // 50.0f, el inmediato de 0x536e95.
     if (std::bit_cast<std::uint32_t>(joint.width) != ArrivalWidthBits)
         return {};
-    if (auto made = Particle(joint, World::ThunderParticle, services, "0x536eb9"); !made.HasValue())
+    if (auto made = Particle(joint, Particles::ThunderParticle, services, "0x536eb9"); !made.HasValue())
         return made;
     if (random.Next() % 8 == 0)
     {
         for (int axis = 0; axis < 3; ++axis)
             static_cast<void>(random.Next());
-        if (auto made = Particle(joint, World::BreathParticle, services, "0x536f58"); !made.HasValue())
+        if (auto made = Particle(joint, Particles::BreathParticle, services, "0x536f58"); !made.HasValue())
             return made;
     }
     if (joint.subtype != 0)
@@ -462,7 +464,7 @@ std::uint32_t FirstJitterRandom(std::int32_t subtype)
 }
 
 // Sin el RNG de MuRet: hace lo que el paso hace antes del primer rand() y corta ahí (el original siempre lo tiene).
-Core::Expected<void, std::string> StepWithoutRandom(JointState& joint)
+Core::Expected<void, std::string> StepWithoutRandom(Scenes::JointState& joint)
 {
     const std::int32_t subtype = joint.subtype;
     const auto cut = [subtype](std::uint32_t address)
@@ -501,7 +503,7 @@ namespace
 // del 0x613/0; sin ninguno antes, lo que haya en la pila) (Q-C1622), y corta. Lo que sigue (0x5370ed..0x537278: los
 // joints hacia los personajes de +0x9f4 cada 15 de +0x9ec, que crece de a uno con la vida par hasta +0x9eb) queda
 // documentado en 06.
-Core::Expected<void, std::string> StepTheChain(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepTheChain(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.life % 2 != 0)
         return {};
@@ -528,7 +530,8 @@ Core::Expected<void, std::string> StepTheChain(JointState& joint, const JointKer
 }
 } // namespace
 
-Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepLightningJoint(Scenes::JointState& joint,
+                                                     const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
     // 0x536956/0x536964: la /0xf no gira (sin puntos y con su salto) y va a 0x537064.
@@ -609,4 +612,4 @@ Core::Expected<void, std::string> StepLightningJoint(JointState& joint, const Jo
         joint.position = joint.targetPosition;
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

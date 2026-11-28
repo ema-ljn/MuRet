@@ -11,7 +11,7 @@
 // 0x78a7070, la caja del caos tiene la suya en 0x7d2d380, y el 30 (0x4d1e00), el 31 (0x4c5f60), el 83 y el 86
 // (0x4da280) escriben el resto. Los ítems se vacían al entrar a selección (0x5bbe10), conservando sus otros bytes.
 // Contrato: Client/docs/research/04-protocolo.md, "Las ventanas de los NPC".
-namespace Client::Scenes
+namespace Client::Npc
 {
 // 0x78a7070..0x78a926c: 120 casillas de 0x48 bytes, 8 por fila (0x5bc150 y la vuelta de 0x657ab0(0x40)).
 inline constexpr std::size_t NpcGridCellCount = 120;
@@ -185,7 +185,7 @@ struct NpcWindowState
     // la apaga soltarlo (0x5e9ac9); el dibujo (0x5e9e25) baja un punto el número de la tecla del mouse.
     std::uint8_t keypadPressed = 0;
     // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 en cada paso con la caja
-    // abierta (0x5d8dda, Scenes::ScanTheChaosBox).
+    // abierta (0x5d8dda, ChaosMix::ScanTheChaosBox).
     std::int32_t mixKind = 0;
     // 0x7d2d378: lo que vale la caja (0x5fd120 desde 0x5d8dcd), con lo que el dibujo saca la chance de la mezcla 1.
     std::int32_t chaosBoxValue = 0;
@@ -231,4 +231,4 @@ struct NpcWindowState
     // a la ventana es de la plataforma (CL10).
     bool cursorWarpRequested = false;
 };
-} // namespace Client::Scenes
+} // namespace Client::Npc

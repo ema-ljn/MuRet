@@ -36,12 +36,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::TooltipLines;
+using Client::Tooltips::TooltipLines;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint8_t None = 0xff;
@@ -133,7 +133,7 @@ public:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::Tables::TextTable texts = Texts();
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
 
 private:
     const Client::Tables::ItemSetOptionTable* m_setOptions = nullptr;
@@ -209,12 +209,12 @@ TEST(GameTooltipsTest, TheBoxMeasuresFramesAndCentersEachLine)
     TooltipLines& lines = tested.Lines();
     lines.text[0] = "\n";
     lines.text[1] = "Uno";
-    lines.colors[1] = Client::Scenes::TooltipGold;
+    lines.colors[1] = Client::Tooltips::TooltipGold;
     lines.bold[1] = 1;
     lines.text[2] = "Dos";
-    lines.colors[2] = Client::Scenes::TooltipBlue;
+    lines.colors[2] = Client::Tooltips::TooltipBlue;
     GameHudContext context = tested.Context();
-    const auto drawn = Client::Scenes::DrawTheTooltipBox(context, 320, 100, 3, 0, 2, 1);
+    const auto drawn = Client::Tooltips::DrawTheTooltipBox(context, 320, 100, 3, 0, 2, 1);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     // El ancho, 18 / rx + 4 = 22, centrado en 320: desde 309. El alto, (13 · 0,5 + 2 · 13) / 0,90909088.
@@ -262,12 +262,12 @@ TEST(GameTooltipsTest, AnEmptyLineEndsTheBoxAndSomeColorsCarryABackground)
     Tooltips tested;
     TooltipLines& lines = tested.Lines();
     lines.text[0] = "Set";
-    lines.colors[0] = Client::Scenes::TooltipGreenOnRed;
+    lines.colors[0] = Client::Tooltips::TooltipGreenOnRed;
     lines.text[1] = "Azul";
-    lines.colors[1] = Client::Scenes::TooltipWhiteOnBlue;
+    lines.colors[1] = Client::Tooltips::TooltipWhiteOnBlue;
     lines.text[3] = "No sale";
     GameHudContext context = tested.Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 0, 0, 5, 0, 2, 0).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 0, 0, 5, 0, 2, 0).HasValue());
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
     EXPECT_EQ(texts[0].style.colors.text, 0xff00ff00u);
@@ -291,11 +291,11 @@ TEST(GameTooltipsTest, TheModeThreePutsEachLineAgainstTheRightEdge)
     Tooltips tested;
     TooltipLines& lines = tested.Lines();
     lines.text[0] = "1";
-    lines.colors[0] = Client::Scenes::TooltipRed;
+    lines.colors[0] = Client::Tooltips::TooltipRed;
     lines.text[1] = "100";
-    lines.colors[1] = Client::Scenes::TooltipWhiteOnRed;
+    lines.colors[1] = Client::Tooltips::TooltipWhiteOnRed;
     GameHudContext context = tested.Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 100, 50, 2, 0, 3, 0).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 100, 50, 2, 0, 3, 0).HasValue());
     // El ancho, 18 + 4, centrado en 100: desde 89, y los textos desde 90 en 20 columnas.
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
@@ -325,9 +325,9 @@ TEST(GameTooltipsTest, TheModeOnePutsEachLineAgainstTheLeftEdge)
     TooltipLines& lines = tested.Lines();
     lines.text[0] = "1";
     lines.text[1] = "100";
-    lines.colors[1] = Client::Scenes::TooltipWhiteOnRed;
+    lines.colors[1] = Client::Tooltips::TooltipWhiteOnRed;
     GameHudContext context = tested.Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 100, 50, 2, 0, 1, 1).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 100, 50, 2, 0, 1, 1).HasValue());
     // El ancho, 18 + 4, centrado en 100: desde 89, y los textos desde 90 en 20 columnas, en la primera.
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
@@ -345,7 +345,7 @@ TEST(GameTooltipsTest, TheModeOnePutsEachLineAgainstTheLeftEdge)
     ExpectQuad(quads[4], 89.0f, 50.0f, 22.0f, quads[4].bottom - 50.0f);
     EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
     // Otro modo corta antes de dibujar.
-    EXPECT_FALSE(Client::Scenes::DrawTheTooltipBox(context, 100, 50, 2, 0, 4, 1).HasValue());
+    EXPECT_FALSE(Client::Tooltips::DrawTheTooltipBox(context, 100, 50, 2, 0, 4, 1).HasValue());
 }
 
 // En 800 × 600 (rx = 1,25) la caja del texto es de píxeles y la x, la de 640 × 480 sin pasar por la pantalla: con
@@ -359,9 +359,9 @@ TEST(GameTooltipsTest, TheTextBoxIsInPixelsAtAnotherResolution)
         tested.sprites.Begin(Client::Core::PixelSize{800, 600});
         TooltipLines& lines = tested.Lines();
         lines.text[0] = "Uno";
-        lines.colors[0] = Client::Scenes::TooltipGreenOnRed;
+        lines.colors[0] = Client::Tooltips::TooltipGreenOnRed;
         GameHudContext context = tested.Context();
-        ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 320, 100, 1, 0, mode, 0).HasValue()) << mode;
+        ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 320, 100, 1, 0, mode, 0).HasValue()) << mode;
         const auto& texts = tested.text.texts;
         ASSERT_EQ(texts.size(), 1u) << mode;
         EXPECT_EQ(texts[0].x, 311) << mode;
@@ -377,17 +377,17 @@ TEST(GameTooltipsTest, ASetOptionPicksItsFormatText)
 {
     const Client::Tables::TextTable texts = Texts();
     std::string line = "viejo";
-    ASSERT_TRUE(Client::Scenes::WriteTheSetOption(&texts, line, 0, 12).HasValue());
+    ASSERT_TRUE(Client::Tooltips::WriteTheSetOption(&texts, line, 0, 12).HasValue());
     EXPECT_EQ(line, "Fuerza +12");
-    ASSERT_TRUE(Client::Scenes::WriteTheSetOption(&texts, line, 7, 3).HasValue());
+    ASSERT_TRUE(Client::Tooltips::WriteTheSetOption(&texts, line, 7, 3).HasValue());
     EXPECT_EQ(line, "Magia + 3 %");
-    ASSERT_TRUE(Client::Scenes::WriteTheSetOption(&texts, line, 8, 4).HasValue());
+    ASSERT_TRUE(Client::Tooltips::WriteTheSetOption(&texts, line, 8, 4).HasValue());
     EXPECT_EQ(line, "Opcion ocho 4");
-    ASSERT_TRUE(Client::Scenes::WriteTheSetOption(&texts, line, 0x15, 9).HasValue());
+    ASSERT_TRUE(Client::Tooltips::WriteTheSetOption(&texts, line, 0x15, 9).HasValue());
     EXPECT_EQ(line, "Ignora 9%");
-    ASSERT_TRUE(Client::Scenes::WriteTheSetOption(&texts, line, 0x24, 9).HasValue());
+    ASSERT_TRUE(Client::Tooltips::WriteTheSetOption(&texts, line, 0x24, 9).HasValue());
     EXPECT_EQ(line, "Ignora 9%");
-    EXPECT_FALSE(Client::Scenes::WriteTheSetOption(nullptr, line, 2, 9).HasValue());
+    EXPECT_FALSE(Client::Tooltips::WriteTheSetOption(nullptr, line, 2, 9).HasValue());
 }
 
 // 0x40e850 desde 0x5f7bc0: con el inventario abierto y +0x9304, el conjunto puesto y sus opciones; una de 0xa5 o más
@@ -408,18 +408,18 @@ TEST(GameTooltipsTest, TheSetWindowListsTheWornSetAndTurnsItselfOff)
     sets.list.values[1] = 3;
     tested.Lines().text[4] = "viejo";
     GameHudContext context = tested.Context();
-    const auto drawn = Client::Scenes::DrawTheTooltips(context);
+    const auto drawn = Client::Tooltips::DrawTheTooltips(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     const TooltipLines& lines = tested.Lines();
     EXPECT_EQ(lines.text[0], "\n");
     EXPECT_EQ(lines.text[3], "Alfa Set");
-    EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipGold);
+    EXPECT_EQ(lines.colors[3], Client::Tooltips::TooltipGold);
     EXPECT_EQ(lines.bold[3], 1);
     EXPECT_EQ(lines.text[4], "Fuerza +5");
-    EXPECT_EQ(lines.colors[4], Client::Scenes::TooltipBlue);
+    EXPECT_EQ(lines.colors[4], Client::Tooltips::TooltipBlue);
     EXPECT_EQ(lines.text[5], "");
-    EXPECT_EQ(lines.colors[5], Client::Scenes::TooltipRed);
+    EXPECT_EQ(lines.colors[5], Client::Tooltips::TooltipRed);
     EXPECT_EQ(sets.byte9304, 0);
     // El renglón vacío corta la caja: salen el título y la opción.
     ASSERT_EQ(tested.text.texts.size(), 2u);
@@ -436,7 +436,7 @@ TEST(GameTooltipsTest, AProjectedFrameKeepsTheSetWindowOn)
     sets.list.count9349 = 1;
     sets.names[1] = {'B'};
     GameHudContext context = tested.Context(true);
-    ASSERT_TRUE(Client::Scenes::DrawTheTooltips(context).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheTooltips(context).HasValue());
     EXPECT_EQ(sets.byte9304, 1);
     EXPECT_EQ(tested.Lines().text[3], "\n");
     EXPECT_EQ(tested.Lines().text[4], "B Set");
@@ -462,7 +462,7 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     // Q-C596: la negrita que dejó un cuerpo anterior en el título queda.
     tested.Lines().bold[1] = 1;
     GameHudContext context = tested.Context();
-    const auto drawn = Client::Scenes::DrawTheSetLabel(context);
+    const auto drawn = Client::Tooltips::DrawTheSetLabel(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     const TooltipLines& lines = tested.Lines();
@@ -471,9 +471,9 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     for (std::size_t i = 0; i < expected.size(); ++i)
         EXPECT_EQ(lines.text[i], expected[i]) << i;
     EXPECT_EQ(lines.text[expected.size()], "");
-    EXPECT_EQ(lines.colors[1], Client::Scenes::TooltipGold);
-    EXPECT_EQ(lines.colors[4], Client::Scenes::TooltipBlue);
-    EXPECT_EQ(lines.colors[7], Client::Scenes::TooltipBlue);
+    EXPECT_EQ(lines.colors[1], Client::Tooltips::TooltipGold);
+    EXPECT_EQ(lines.colors[4], Client::Tooltips::TooltipBlue);
+    EXPECT_EQ(lines.colors[7], Client::Tooltips::TooltipBlue);
     // Limpia 20 colores de los 30: el 25 queda.
     EXPECT_EQ(lines.colors[25], 4);
     EXPECT_EQ(lines.bold[1], 1);
@@ -496,7 +496,7 @@ TEST(GameTooltipsTest, TheSecondOptionOfTheSixthPairRepeatsInTheSetLabel)
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 1;
     GameHudContext context = tested.Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheSetLabel(context).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheSetLabel(context).HasValue());
     const TooltipLines& lines = tested.Lines();
     for (std::size_t i = 4; i < 12; ++i)
         EXPECT_EQ(lines.text[i], "Agilidad +9") << i;
@@ -511,7 +511,7 @@ TEST(GameTooltipsTest, AnUnusedSetTurnsTheLabelOff)
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 3;
     GameHudContext context = tested.Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheSetLabel(context).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheSetLabel(context).HasValue());
     EXPECT_EQ(tested.world.ItemSets().byte9305, 0);
     EXPECT_TRUE(tested.text.texts.empty());
 }
@@ -524,10 +524,10 @@ TEST(GameTooltipsTest, TheTooltipsResetTheRepairModeAndTheDurabilityWarning)
     runtime.panels.repairMode = 2;
     runtime.hud.durabilityWarning = 1;
     GameHudContext projected = tested.Context(true);
-    ASSERT_TRUE(Client::Scenes::DrawTheTooltips(projected).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheTooltips(projected).HasValue());
     EXPECT_EQ(runtime.panels.repairMode, 2);
     GameHudContext context = tested.Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheTooltips(context).HasValue());
+    ASSERT_TRUE(Client::Tooltips::DrawTheTooltips(context).HasValue());
     EXPECT_EQ(runtime.panels.repairMode, 1);
     EXPECT_EQ(runtime.hud.durabilityWarning, 0);
 }

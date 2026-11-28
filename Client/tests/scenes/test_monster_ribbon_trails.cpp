@@ -44,13 +44,13 @@ protected:
 
     Client::Core::Expected<void, std::string> EmitEarly()
     {
-        return Client::Scenes::EmitEarlyMonsterRibbonTrails(
+        return Client::Monsters::Drawing::EmitEarlyMonsterRibbonTrails(
             m_actor, &m_skeleton, {.world = *m_world, .random = m_random, .faunaModels = &m_faunaModels});
     }
 
     Client::Core::Expected<void, std::string> EmitLate()
     {
-        return Client::Scenes::EmitLateMonsterRibbonTrails(
+        return Client::Monsters::Drawing::EmitLateMonsterRibbonTrails(
             m_actor, &m_skeleton, {.world = *m_world, .random = m_random, .faunaModels = &m_faunaModels});
     }
 

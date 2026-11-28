@@ -8,12 +8,12 @@
 // El 0x139 (Skill\Javelin), los tres de la 0x2d de 0x4fd5f0 sobre o con el blanco de dueño (0x504a3a, 0x504a72,
 // 0x504aa9): su alta (0x51dacb) y su paso (0x529b86). Se dibuja por el camino común (0x52da92 → 0x602e90) y la cola
 // lo anima sin moverlo (0x52ccb0 → 0x52cd94). 06, "Los efectos con modelo de los tipos altos".
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 struct HighEffectContext;
 struct HighEffectStepContext;
@@ -23,7 +23,7 @@ inline constexpr std::int16_t JavelinEffect = 0x139;
 // 0x51dacb..0x51db6e: vida 35, +0xe4 en 2, +0xd8 en 10, escala 1,2f, la velocidad (0, −5, 0), los ángulos copiados en
 // +0x28, la partida en la posición del dueño (+0x108; sin dueño el original lee la dirección 0x10, MuRet corta) y la z
 // 150 más. Después, rand() % 80 + 10 (r): la z de +0x28 más (subtipo · r − r).
-[[nodiscard]] Core::Expected<void, std::string> BeginTheJavelin(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> BeginTheJavelin(Effects::ModelEffect& effect,
                                                                 const HighEffectContext& context);
 
 // 0x529b86..0x529de9: con dueño, la partida en su posición con la z 150 más; la escala 0,015f más. Con 25 o más de
@@ -32,6 +32,6 @@ inline constexpr std::int16_t JavelinEffect = 0x139;
 // partícula siempre. Después (desde 24), +0xd8 1,5 más, avanza con +0x28, +0xe4 en rand() % 30 + 30 y, por encima de
 // −50, la velocidad y 8 menos. Siempre: la z de los ángulos más +0xe4, +0x68 y el alpha en vida · 0,1f, la z en la de
 // la partida más (el /1) o menos (el /2) FSIN(vida · 0,1f) · 30 y la luz dinámica (1; 0,6f; 0,3f) de radio 2.
-[[nodiscard]] Core::Expected<void, std::string> StepTheJavelin(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheJavelin(Effects::ModelEffect& effect,
                                                                const HighEffectStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Effects

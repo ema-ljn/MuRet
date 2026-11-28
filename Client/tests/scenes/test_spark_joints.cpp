@@ -63,12 +63,12 @@ struct Pool
                                                    .skill = skill,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, kind);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr, lighting.get());
+        return Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr, lighting.get());
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);

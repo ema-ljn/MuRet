@@ -1,6 +1,6 @@
 #include "Particles/IParticleTrigonometry.h"
 
-namespace Client::World
+namespace Client::Particles
 {
 IParticleTrigonometry::~IParticleTrigonometry() = default;
-} // namespace Client::World
+} // namespace Client::Particles

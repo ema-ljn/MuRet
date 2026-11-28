@@ -6,10 +6,11 @@
 #include <cmath>
 #include <span>
 #include <string>
-namespace Client::World
+namespace Client::CastleSiege
 {
-Core::Expected<bool, std::string> CollideTheSiegeObject(ModelEffect& projectile, std::span<WorldObject> objects,
-                                                        float radius, float heightLimit, bool markOnly)
+Core::Expected<bool, std::string> CollideTheSiegeObject(Effects::ModelEffect& projectile,
+                                                        std::span<WorldObjects::WorldObject> objects, float radius,
+                                                        float heightLimit, bool markOnly)
 {
     const auto& p = projectile.transform.position;
     // 6b8a54: 1/1600f, producto x87 sinstoreantesde_ftol.
@@ -48,4 +49,4 @@ Core::Expected<bool, std::string> CollideTheSiegeObject(ModelEffect& projectile,
     }
     return false;
 }
-} // namespace Client::World
+} // namespace Client::CastleSiege

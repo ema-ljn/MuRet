@@ -20,7 +20,7 @@ class ModelBatch;
 } // namespace Client::Render
 
 // 06 § Kalima: dueño portable de4377a0/723c48. El mapa no sustituye su existencia.
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 struct KalimaFrameContext
 {
@@ -59,4 +59,4 @@ private:
     struct Storage;
     std::unique_ptr<Storage> m_storage;
 };
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

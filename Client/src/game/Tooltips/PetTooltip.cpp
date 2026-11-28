@@ -32,7 +32,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -81,7 +81,7 @@ constexpr std::int32_t WithFrame = 1;
 using PetTable = std::array<Kernel::PetStats, Kernel::PetStatsCount>;
 
 // 0x423c65..0x42403d: anota el ítem y pide su A9 por la sesión del juego, como el botón de la mascota (0x424610).
-void AskForThePet(GameHudContext& hud, std::uint32_t key, const Kernel::ItemState& item, std::uint8_t pet)
+void AskForThePet(Hud::GameHudContext& hud, std::uint32_t key, const Kernel::ItemState& item, std::uint8_t pet)
 {
     Kernel::WorldRuntime& runtime = hud.world.Runtime();
     runtime.petTooltipQuery = Kernel::PetTooltipQuery{.key = key, .type = item.id, .scalar = item.scalar1Low};
@@ -93,7 +93,7 @@ void AskForThePet(GameHudContext& hud, std::uint32_t key, const Kernel::ItemStat
 }
 
 // 0x42324c..0x42350b: el nivel pedido del caballo y, con el registro propio abierto, lo que le falta al héroe.
-Core::Expected<void, std::string> WriteTheLevelRequirement(GameHudContext& hud, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheLevelRequirement(Hud::GameHudContext& hud, TooltipWriter& lines,
                                                            std::int32_t required)
 {
     lines.At("0x423252");
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> WriteTheLevelRequirement(GameHudContext& hud, 
 
 // 0x423671..0x423a8b: el liderazgo pedido del cuervo y, con el registro propio abierto, lo que le falta al héroe:
 // +0x36 + +0x20 en 16 bits (0x423839..0x423844).
-Core::Expected<void, std::string> WriteTheLeadershipRequirement(GameHudContext& hud, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheLeadershipRequirement(Hud::GameHudContext& hud, TooltipWriter& lines,
                                                                 std::int32_t required)
 {
     lines.At("0x42367c");
@@ -158,8 +158,8 @@ Core::Expected<void, std::string> WriteTheLeadershipRequirement(GameHudContext& 
 // 0x96), 0x4225d0 (que con el cuervo vuelve enseguida) y 0x5b2320(tipo, renglón, tag, valor, 0), en azul y sin
 // negrita, con un medio renglón. Con la 0x96 en la primera opción cada vuelta agrega otra (Q-C415) y el lazo no
 // termina hasta que la cuenta da la vuelta, escribiendo más allá del ítem (Q-C1044): MuRet corta antes de la décima.
-Core::Expected<void, std::string> WriteTheOptions(GameHudContext& hud, TooltipWriter& lines, Kernel::ItemState& item,
-                                                  std::int32_t& halves)
+Core::Expected<void, std::string> WriteTheOptions(Hud::GameHudContext& hud, TooltipWriter& lines,
+                                                  Kernel::ItemState& item, std::int32_t& halves)
 {
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     for (std::uint8_t i = 0; i < item.optionCount; ++i)
@@ -169,13 +169,13 @@ Core::Expected<void, std::string> WriteTheOptions(GameHudContext& hud, TooltipWr
             return Core::Unexpected(lines.Error());
         if (item.id == DarkHorseItem)
         {
-            const std::uint8_t place = DarkHorseOptionPlace(item);
+            const std::uint8_t place = Items::DarkHorseOptionPlace(item);
             if (place >= Kernel::MaxItemOptions)
                 return Core::Unexpected(
                     std::format("0x423b07: la 0x96 del caballo va en la opción {} (D+0x2b + {}), fuera de las {} que "
                                 "guarda MuRet (Q-C415, Q-C1044)",
                                 place, place, Kernel::MaxItemOptions));
-            AddTheDarkHorseOption(item, hud.world, hud.ownRecordDepth, hud.random);
+            Items::AddTheDarkHorseOption(item, hud.world, hud.ownRecordDepth, hud.random);
         }
         if (i >= Kernel::MaxItemOptions)
             return Core::Unexpected(
@@ -197,7 +197,7 @@ Core::Expected<void, std::string> WriteTheOptions(GameHudContext& hud, TooltipWr
 Core::Expected<void, std::string> DrawThePetBox(const ItemTooltipContext& context, std::int32_t count,
                                                 std::int32_t halves)
 {
-    GameHudContext& hud = context.hud;
+    Hud::GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
     const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
@@ -221,7 +221,7 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
     Kernel::ItemState& item = context.item;
     if (item.id != DarkHorseItem && item.id != DarkRavenItem)
         return false;
-    GameHudContext& hud = context.hud;
+    Hud::GameHudContext& hud = context.hud;
     Kernel::WorldState& world = hud.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     const bool horse = item.id == DarkHorseItem;
@@ -240,29 +240,29 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
     // 0x422a35: 0x4221d0(mascota), con el registro propio abierto y cerrado.
     PetTable projected = runtime.pets;
     PetTable& pets = hud.projecting ? projected : runtime.pets;
-    UpdatePetStats(pet, world, pets, hud.ownRecordDepth, hud.random);
+    Pets::UpdatePetStats(pet, world, pets, hud.ownRecordDepth, hud.random);
     // 0x422a3a..0x42303d: los precios comparten los proveedores del cuerpo del ítem, pero N y M son locales.
     std::int32_t next = 0;
     std::int32_t halves = 0;
     TooltipWriter lines(hud.hud.tooltip, hud.texts, next, halves);
-    GamePanels panels(world, hud.random);
-    UI::PanelRegistry& registry = panels.Registry();
-    if (registry.IsOpen(UI::NpcShopPanel))
+    Hud::GamePanels panels(world, hud.random);
+    Ui::PanelRegistry& registry = panels.Registry();
+    if (registry.IsOpen(Ui::NpcShopPanel))
     {
         constexpr std::uint32_t SaleDivisor = 3;
         constexpr std::uint32_t PriceRounding = 100;
         constexpr std::size_t PriceText = 63;
-        const PetPriceLevels levels{.raven = pets[Protocol::Pets::DarkRavenPet].level,
-                                    .horse = pets[Protocol::Pets::DarkHorsePet].level};
-        const std::uint32_t price = PetBasePrice(item.id, levels) / SaleDivisor / PriceRounding * PriceRounding;
+        const Items::PetPriceLevels levels{.raven = pets[Protocol::Pets::DarkRavenPet].level,
+                                           .horse = pets[Protocol::Pets::DarkHorsePet].level};
+        const std::uint32_t price = Items::PetBasePrice(item.id, levels) / SaleDivisor / PriceRounding * PriceRounding;
         lines.At("0x422a55");
-        lines.PrintText(PriceText, std::string_view(FormatZen(price)));
+        lines.PrintText(PriceText, std::string_view(Ui::FormatZen(price)));
         lines.Color(TooltipWhite);
         lines.Bold(1);
         lines.Next();
         lines.NewLine();
     }
-    else if (registry.IsOpen(UI::PersonalShopPanel) || registry.IsOpen(UI::OtherShopPanel))
+    else if (registry.IsOpen(Ui::PersonalShopPanel) || registry.IsOpen(Ui::OtherShopPanel))
     {
         if (auto written = WriteThePersonalShopPrice(hud, lines, item); !written.HasValue())
             return Core::Unexpected(written.Error());
@@ -357,4 +357,4 @@ Core::Expected<bool, std::string> DrawThePetTooltip(const ItemTooltipContext& co
         return Core::Unexpected(drawn.Error());
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

@@ -44,7 +44,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Npc
 {
 namespace
 {
@@ -141,7 +141,7 @@ bool GridIsEmpty(std::span<const Kernel::ItemState> cells)
         { return cell.id != Kernel::EmptyOwnItemId && static_cast<std::int32_t>(cell.occupied) > 0; });
 }
 
-Core::Expected<void, std::string> Message(const InventoryServices& services, std::size_t text, std::int32_t type,
+Core::Expected<void, std::string> Message(const Items::InventoryServices& services, std::size_t text, std::int32_t type,
                                           std::string_view where)
 {
     if (!services.systemMessage)
@@ -149,44 +149,46 @@ Core::Expected<void, std::string> Message(const InventoryServices& services, std
     return services.systemMessage(text, type);
 }
 
-Core::Expected<void, std::string> OpenTheBox(const WorldEntryResources& resources, std::size_t text)
+Core::Expected<void, std::string> OpenTheBox(const Scenes::WorldEntryResources& resources, std::size_t text)
 {
-    const std::optional<std::string_view> found = UI::TextAt(resources.texts, text);
+    const std::optional<std::string_view> found = Ui::TextAt(resources.texts, text);
     if (!found)
         return Core::Unexpected(std::format("0x632e30: sin el texto {} de Text.bmd", text));
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
-    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *found);
+    Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *found);
     return {};
 }
 
-InventoryMoveContext MovesOf(const WorldEntryResources& resources, const InventoryServices& services)
+Items::InventoryMoveContext MovesOf(const Scenes::WorldEntryResources& resources,
+                                    const Items::InventoryServices& services)
 {
-    return InventoryMoveContext{.world = resources.world, .random = resources.cloth.random, .services = services};
+    return Items::InventoryMoveContext{
+        .world = resources.world, .random = resources.cloth.random, .services = services};
 }
 } // namespace
 
-void LendTheNpcWindows(GamePanels& panels, const WorldEntryResources& resources)
+void LendTheNpcWindows(Hud::GamePanels& panels, const Scenes::WorldEntryResources& resources)
 {
-    panels.LendTheNpcWindows(resources.world, resources.cloth.random, InventoryServicesOf(resources),
+    panels.LendTheNpcWindows(resources.world, resources.cloth.random, Items::InventoryServicesOf(resources),
                              resources.sendNpcWindowPacket);
 }
 
-Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& context, UI::PanelId id)
+Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& context, Ui::PanelId id)
 {
     NpcWindowState& npc = context.world.Runtime().npcWindows;
-    if (id == UI::WarehousePanel)
+    if (id == Ui::WarehousePanel)
     {
         npc.warehouseLocked = 0;
         context.world.Runtime().ui.field78abb20 = 0;
         return {};
     }
-    if (id == UI::TrainerPanel)
+    if (id == Ui::TrainerPanel)
     {
         // 0x65be8b: 0x449940(1).
-        OpenTheTrainer(context.world, TrainerMenuMode);
+        PetTrainer::OpenTheTrainer(context.world, PetTrainer::TrainerMenuMode);
         return {};
     }
-    if (id != UI::ChaosBoxPanel)
+    if (id != Ui::ChaosBoxPanel)
         return Core::Unexpected(std::format("0x6599a0({:#x}) no es una ventana de NPC", id));
     npc.field7d2dc9d = 0;
     if (auto sent = Send(context.send, Npc::WriteChaosRateRequest(), "0x65a956: el C1 04 BD 09"); !sent.HasValue())
@@ -195,22 +197,22 @@ Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& contex
     return {};
 }
 
-Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, UI::PanelId id)
+Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, Ui::PanelId id)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     switch (id)
     {
-    case UI::WarehousePanel:
+    case Ui::WarehousePanel:
     {
         if (runtime.ui.field78abb39 != 0)
             return false;
         EmptyTheGrid(npc.grid);
         if (runtime.cursorItemCount > 0)
         {
-            const InventoryMoveContext moves{
+            const Items::InventoryMoveContext moves{
                 .world = context.world, .random = context.random, .services = context.services};
-            if (auto returned = ReturnTheCursorItem(moves); !returned.HasValue())
+            if (auto returned = Items::ReturnTheCursorItem(moves); !returned.HasValue())
                 return Core::Unexpected(returned.Error());
         }
         if (auto sent = Send(context.send, Npc::WriteWarehouseClose(), "0x658567: el C1 03 82"); !sent.HasValue())
@@ -218,7 +220,7 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
         npc.warehouseLocked = 0;
         return true;
     }
-    case UI::ChaosBoxPanel:
+    case Ui::ChaosBoxPanel:
     {
         if (!GridIsEmpty(npc.chaosBox) || runtime.cursorItemCount > 0)
         {
@@ -232,22 +234,22 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
         EmptyTheGrid(npc.chaosBox);
         return true;
     }
-    case UI::TrainerPanel:
+    case Ui::TrainerPanel:
     {
         // 0x658dda..0x658dfd: con algo en la caja, el texto 1211 sin cerrar; si no, 0x4499b0, que vuelve a mirarla.
-        if (TrainerBoxHasItems(context.world))
+        if (PetTrainer::TrainerBoxHasItems(context.world))
         {
             if (auto shown = Message(context.services, TrainerBoxNotEmptyText, ErrorMessage, "0x658def");
                 !shown.HasValue())
                 return Core::Unexpected(shown.Error());
             return false;
         }
-        auto closed = CloseTheTrainer(context.world, &context.services, context.send);
+        auto closed = PetTrainer::CloseTheTrainer(context.world, &context.services, context.send);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         return true;
     }
-    case UI::NpcShopPanel:
+    case Ui::NpcShopPanel:
     {
         if (auto sent = Send(context.send, Protocol::Session::WriteWindowClose(), "0x659063: el C1 03 31");
             !sent.HasValue())
@@ -271,13 +273,14 @@ CursorWarp NpcTalkCursorWarp(std::int32_t mouseX, std::int32_t mouseY, std::int3
     return CursorWarp{.x = static_cast<std::int32_t>(x), .y = static_cast<std::int32_t>(y)};
 }
 
-Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk,
+                                                  const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
-    GamePanels panels(resources.world, resources.cloth.random,
-                      GamePanelTables{.items = resources.items, .itemSetTables = resources.itemSetTables});
+    Hud::GamePanels panels(resources.world, resources.cloth.random,
+                           Hud::GamePanelTables{.items = resources.items, .itemSetTables = resources.itemSetTables});
     std::optional<std::string> sendError;
-    CastleSender sender;
+    CastleSiege::CastleSender sender;
     if (resources.sendNpcWindowPacket)
         sender = [&resources, &sendError](Protocol::Outgoing packet)
         {
@@ -285,26 +288,26 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
             if (!sent.HasValue() && !sendError)
                 sendError = sent.Error();
         };
-    const CastleReceiveContext castle{.world = resources.world,
-                                      .random = resources.cloth.random,
-                                      .log = resources.log,
-                                      .measure = resources.textMeasure,
-                                      .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
-                                      .texts = resources.texts,
-                                      .send = sender,
-                                      .dataRoot = resources.dataRoot,
-                                      .tick =
-                                          resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
-                                      .entryResources = &resources,
-                                      .terrain = WritableTerrainOf(resources),
-                                      .faunaModels = FaunaModelsOf(resources)};
-    LendTheCastlePanelServices(panels, castle);
+    const CastleSiege::CastleReceiveContext castle{
+        .world = resources.world,
+        .random = resources.cloth.random,
+        .log = resources.log,
+        .measure = resources.textMeasure,
+        .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
+        .texts = resources.texts,
+        .send = sender,
+        .dataRoot = resources.dataRoot,
+        .tick = resources.clock != nullptr ? Kernel::TickCountMs(resources.clock->Now()) : 0u,
+        .entryResources = &resources,
+        .terrain = Scenes::WritableTerrainOf(resources),
+        .faunaModels = Scenes::FaunaModelsOf(resources)};
+    CastleSiege::LendTheCastlePanelServices(panels, castle);
     LendTheNpcWindows(panels, resources);
-    UI::PanelRegistry& registry = panels.Registry();
+    Ui::PanelRegistry& registry = panels.Registry();
     // 0x4d250c..0x4d2512: 0x657a90.
     if (auto closed = registry.CloseAll(); !closed.HasValue())
         return closed;
-    const auto open = [&registry](UI::PanelId id) -> Core::Expected<void, std::string>
+    const auto open = [&registry](Ui::PanelId id) -> Core::Expected<void, std::string>
     {
         if (auto opened = registry.Open(id); !opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
@@ -314,42 +317,42 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
     switch (talk.result)
     {
     case TalkWarehouse:
-        done = open(UI::WarehousePanel);
+        done = open(Ui::WarehousePanel);
         break;
     case TalkChaosBox:
         // 0x4d253b..0x4d2566: abre la caja y copia pkt[4..9] a 0x6c9da8, cada byte en un int.
-        done = open(UI::ChaosBoxPanel);
+        done = open(Ui::ChaosBoxPanel);
         if (done.HasValue())
             std::ranges::copy(talk.rates, runtime.npcWindows.chaosRates.begin());
         break;
     case TalkEventNpc:
-        done = open(UI::EventNpcPanel);
+        done = open(Ui::EventNpcPanel);
         break;
     case TalkPanel2000:
-        done = open(UI::Panel2000);
+        done = open(Ui::Panel2000);
         break;
     case TalkSecondEventNpc:
-        done = open(UI::SecondEventNpcPanel);
+        done = open(Ui::SecondEventNpcPanel);
         break;
     case TalkTrainer:
-        done = open(UI::TrainerPanel);
+        done = open(Ui::TrainerPanel);
         break;
     case TalkBloodCastle:
         // 0x4d259d..0x4d25b4: sin abrir nada.
         if (runtime.npcWindows.field6e5798 == 0)
-            UI::PushDialog(runtime.dialogs, BloodCastleDialog);
+            Ui::PushDialog(runtime.dialogs, BloodCastleDialog);
         break;
     case TalkCastleSiegeList:
         // 0x4d25bc: el byte se escribe ANTES del open; sólo el1 selecciona87 al cerrar.
         runtime.castleSiege.senior.closeWith87 = talk.rates[0] == 1;
-        done = open(UI::CastleSiegeListPanel);
+        done = open(Ui::CastleSiegeListPanel);
         break;
     case TalkCastleSiegeRequest:
         done = Send(resources.sendNpcWindowPacket, Protocol::CastleSiege::WriteStateRequest(), "0x4d25dd: el B2 00");
         break;
     default:
         // 0x4d2881..0x4d288e: la tienda de NPC (0, 1, 8, 10, 11 y desde 14).
-        done = open(UI::NpcShopPanel);
+        done = open(Ui::NpcShopPanel);
         break;
     }
     if (!done.HasValue())
@@ -363,7 +366,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
     return {};
 }
 
-Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
@@ -378,7 +381,7 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
     {
         // 0x4c5fb4..0x4c5fde: el aviso 1208 (con el nombre de 0x576797c, que nadie escribe), los dos sonidos de la caja
         // del caos y la del entrenador vacía (0x449c40), sin tocar 0x7d2dc80.
-        if (auto shown = Message(InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
+        if (auto shown = Message(Items::InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
             !shown.HasValue())
             return shown;
         runtime.RequestSound(FirstChaosSound);
@@ -389,37 +392,38 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
         EmptyTheGrid(npc.grid);
     for (const Npc::ListedItem& entry : list.items)
     {
-        const InventoryItemBytes bytes(entry.item);
+        const Items::InventoryItemBytes bytes(entry.item);
         const std::size_t cells =
             list.grid == ChaosBoxGrid || list.grid == TrainerGrid ? npc.chaosBox.size() : npc.grid.size();
-        if (DiscardGridOverflow(cells, NpcGridColumns, entry.slot, bytes, resources, "31"))
+        if (Items::DiscardGridOverflow(cells, NpcGridColumns, entry.slot, bytes, resources, "31"))
             continue;
         Core::Expected<void, std::string> placed{};
         if (list.grid == ChaosBoxGrid)
-            placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
-                                          "0x4c6029, 0x5bc740(0x7d2d380)");
+            placed = Items::PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
+                                                 "0x4c6029, 0x5bc740(0x7d2d380)");
         // 0x4c6042: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0) con su cola.
         else if (list.grid == TrainerGrid)
-            placed = PlaceMovedItemInOtherGrid(npc.trainerBox, NpcGridColumns, entry.slot, entry.item, resources,
-                                               "0x4c6042, 0x5bc740(0x723c80)");
+            placed = Items::PlaceMovedItemInOtherGrid(npc.trainerBox, NpcGridColumns, entry.slot, entry.item, resources,
+                                                      "0x4c6042, 0x5bc740(0x723c80)");
         else
-            placed = PlaceInTheNpcGrid(npc.grid, entry.slot, bytes, resources);
+            placed = Items::PlaceInTheNpcGrid(npc.grid, entry.slot, bytes, resources);
         if (!placed.HasValue())
             return placed;
     }
     return {};
 }
 
-Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result,
+                                                 const Scenes::WorldEntryResources& resources)
 {
     if (result.slot != Npc::BuyRejected &&
-        DiscardInventoryOverflow(result.slot, InventoryItemBytes(result.item), resources))
+        Items::DiscardInventoryOverflow(result.slot, Items::InventoryItemBytes(result.item), resources))
         return {};
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (result.slot != Npc::BuyRejected)
     {
         const Protocol::Items::ItemData& item = result.item;
-        if (auto placed = PlaceMovedItem(result.slot, item, resources); !placed.HasValue())
+        if (auto placed = Items::PlaceMovedItem(result.slot, item, resources); !placed.HasValue())
         {
             runtime.npcWindows.buyLock = 0;
             return placed;
@@ -430,13 +434,14 @@ Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, c
     return {};
 }
 
-Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result,
+                                                  const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     if (result.result == 0)
     {
-        const InventoryServices services = InventoryServicesOf(resources);
-        return ReturnTheCursorItem(MovesOf(resources, services));
+        const Items::InventoryServices services = Items::InventoryServicesOf(resources);
+        return Items::ReturnTheCursorItem(MovesOf(resources, services));
     }
     runtime.cursorItemCount = 0;
     runtime.cursorItem.occupied = 0;
@@ -449,7 +454,7 @@ Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result,
 }
 
 Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& result,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     if (result.money == 0)
         return {};
@@ -476,7 +481,7 @@ Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& res
 }
 
 Core::Expected<void, std::string> ApplyWarehouseMoney(const Npc::WarehouseMoney& money,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     if (money.result == 0)
         return {};
@@ -489,7 +494,7 @@ Core::Expected<void, std::string> ApplyWarehouseMoney(const Npc::WarehouseMoney&
 }
 
 Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClosed&,
-                                                       const WorldEntryResources& resources)
+                                                       const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     runtime.cursorItemCount = 0;
@@ -497,8 +502,8 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
     if (runtime.dialogs.current != ClosedByTheServerDialog)
         return {};
     // 0x4e4831..0x4e485d.
-    UI::PushDialog(runtime.dialogs, 0);
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::PushDialog(runtime.dialogs, 0);
+    Chat::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.social.dialogFieldLimit = ClosedFieldLimit;
     runtime.chat.input.fieldCount = ClosedChatFieldCount;
     runtime.social.moneyField = 0;
@@ -507,7 +512,7 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
 }
 
 Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState& state,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
@@ -519,13 +524,13 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
         npc.field78abb1c = 0;
         return {};
     case WarehouseFirstDialog:
-        UI::PushDialog(runtime.dialogs, FirstWarehouseDialog);
+        Ui::PushDialog(runtime.dialogs, FirstWarehouseDialog);
         return {};
     case WarehouseSecondDialog:
-        UI::PushDialog(runtime.dialogs, SecondWarehouseDialog);
+        Ui::PushDialog(runtime.dialogs, SecondWarehouseDialog);
         return {};
     case WarehouseThirdDialog:
-        UI::PushDialog(runtime.dialogs, ThirdWarehouseDialog);
+        Ui::PushDialog(runtime.dialogs, ThirdWarehouseDialog);
         return {};
     case WarehousePasswordAccepted:
         break;
@@ -540,14 +545,15 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
         {
             // 0x4e47b0..0x4e47c6: 0x449d80(origen, lugar, destino, lugar) con los cuatro, el 24 del ítem del cursor
             // en C3 por la misma sesión.
-            InventoryServices services = InventoryServicesOf(resources);
+            Items::InventoryServices services = Items::InventoryServicesOf(resources);
             services.sendItemMove = [&resources](const Protocol::Items::ItemMove& move) {
                 return Send(resources.sendNpcWindowPacket, Protocol::Items::WriteItemMove(move),
                             "0x4e47c6: el C1 0E 24");
             };
             const auto byte = [](std::int32_t value) { return static_cast<std::uint8_t>(value & 0xff); };
-            if (auto sent = SendTheCursorItemBetween(MovesOf(resources, services), byte(pending.slot),
-                                                     byte(pending.second), byte(pending.third), byte(pending.fourth));
+            if (auto sent =
+                    Items::SendTheCursorItemBetween(MovesOf(resources, services), byte(pending.slot),
+                                                    byte(pending.second), byte(pending.third), byte(pending.fourth));
                 !sent.HasValue())
                 return sent;
         }
@@ -565,15 +571,15 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
 }
 
 Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult& result,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     if ((result.result == Npc::ChaosMixSucceeded || result.result == Npc::TrainerMixResult) &&
-        DiscardGridOverflow(resources.world.Runtime().npcWindows.chaosBox.size(), NpcGridColumns, 0,
-                            InventoryItemBytes(result.item), resources, "86"))
+        Items::DiscardGridOverflow(resources.world.Runtime().npcWindows.chaosBox.size(), NpcGridColumns, 0,
+                                   Items::InventoryItemBytes(result.item), resources, "86"))
         return {};
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    const InventoryServices services = InventoryServicesOf(resources);
+    const Items::InventoryServices services = Items::InventoryServicesOf(resources);
     switch (result.result)
     {
     case MixFailed:
@@ -585,9 +591,9 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
         if (auto shown = Message(services, MixSucceededText, SystemMessage, "0x4da2db"); !shown.HasValue())
             return shown;
         EmptyTheGrid(npc.chaosBox);
-        const InventoryItemBytes bytes(result.item);
-        if (auto placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, 0, bytes, resources,
-                                               "0x4da310, 0x5bc740(0x7d2d380)");
+        const Items::InventoryItemBytes bytes(result.item);
+        if (auto placed = Items::PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, 0, bytes, resources,
+                                                      "0x4da310, 0x5bc740(0x7d2d380)");
             !placed.HasValue())
             return placed;
         runtime.RequestSound(FirstChaosSound);
@@ -610,9 +616,9 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
         // 0x4da373..0x4da385: la caja del entrenador vacía (0x449c40) y el ítem en su lugar 0 con 0x44ad70(0, datos,
         // 1), sin la cola de 0x5bc740, sin sonido y sin tocar 0x7d2dc80.
         EmptyTheGrid(npc.trainerBox);
-        const InventoryItemBytes bytes(result.item);
-        return PlaceItemInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources,
-                                    "0x4da380, 0x5bc740(0x723c80)");
+        const Items::InventoryItemBytes bytes(result.item);
+        return Items::PlaceItemInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources,
+                                           "0x4da380, 0x5bc740(0x723c80)");
     }
     default:
         npc.chaosMixState = MixReady;
@@ -626,4 +632,4 @@ Core::Expected<void, std::string> SendRepair(Crt::CrtRandom& random, const NpcWi
     random.Discard(C3SendRandoms);
     return Send(send, Npc::WriteRepair(position, requestPosition), "0x5c4485: el C1 05 34");
 }
-} // namespace Client::Scenes
+} // namespace Client::Npc

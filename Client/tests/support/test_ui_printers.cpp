@@ -11,8 +11,8 @@
 // puede ser lo tecleado (CL5.5).
 namespace
 {
-using Client::UI::LoginRequest;
-using Client::UI::TextField;
+using Client::FrontEnd::LoginRequest;
+using Client::Ui::TextField;
 
 // El campo de la clave dice su largo y que es la clave, no lo que tiene; el de la cuenta, lo mismo
 // sin la marca.

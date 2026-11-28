@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -201,7 +201,7 @@ void Land(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 // 0x417b33..0x417e10: los estados 0 y 1, el vuelo libre hacia `destination` (el dueño o, con +0x1ad en 1, el blanco
 // de +8). +0x1ad en 0; la chispa mira las banderas del dueño y la altura, su mascota.
 void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& destination, std::uint8_t map,
-         World::Particles& particles, float worldClock, Crt::CrtRandom& random)
+         Particles::Particles& particles, float worldClock, Crt::CrtRandom& random)
 {
     spirit.byte1ad = 0;
     const glm::vec3 start = spirit.position;
@@ -215,7 +215,7 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
         const glm::vec3 from = bone < spirit.pose.size()
                                    ? Math::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone])
                                    : spirit.position;
-        (void)particles.Create(World::SparkParticle, from, spirit.angles, SparkLight, World::RavenSparkSubtype,
+        (void)particles.Create(Particles::SparkParticle, from, spirit.angles, SparkLight, Particles::RavenSparkSubtype,
                                SparkScale, worldClock, random);
     }
     // 0x417bcb: la distancia² en la x87 (fst la guarda en float y compara la de 53 bits).
@@ -383,7 +383,7 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtR
 }
 
 DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& skeleton, const DarkSpiritOwner& owner,
-                                 std::uint8_t map, World::Particles& particles, float worldClock,
+                                 std::uint8_t map, Particles::Particles& particles, float worldClock,
                                  Crt::CrtRandom& random, std::int32_t counter, const DarkSpiritTargets& targets)
 {
     spirit.previousPosition = spirit.position;
@@ -455,4 +455,4 @@ DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& ske
     }
     return stepped;
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

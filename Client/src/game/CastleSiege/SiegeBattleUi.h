@@ -17,12 +17,16 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// La interfaz de batalla del mapa 30: el mismo estado recibe B6/BB/B2 1D y alimenta paso y dibujo.
-namespace Client::Scenes
+namespace Client::Hud
 {
-struct CastleReceiveContext;
 struct GameUiContext;
 struct GameHudContext;
+} // namespace Client::Hud
+
+// La interfaz de batalla del mapa 30: el mismo estado recibe B6/BB/B2 1D y alimenta paso y dibujo.
+namespace Client::CastleSiege
+{
+struct CastleReceiveContext;
 
 // 0x412140: conserva el objeto si el puesto sigue pidiendo la misma clase.
 [[nodiscard]] Core::Expected<void, std::string> RefreshTheSiegePanel(Kernel::WorldRuntime& runtime);
@@ -40,13 +44,13 @@ void OpenTheSiegeGate(Kernel::WorldState& world, std::uint16_t key);
 [[nodiscard]] Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContext& context,
                                                                      std::uint16_t key, std::uint8_t mode);
 
-[[nodiscard]] Core::Expected<void, std::string> StepTheSiegeControls(const GameUiContext& context);
-[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkill(const GameUiContext& context);
-[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkillChoice(const GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheSiegeControls(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkill(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkillChoice(const Hud::GameUiContext& context);
 void InitializeTheBattleSkill(Kernel::WorldState& world, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepTheBattlePanel(const GameUiContext& context);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheSiegeControls(GameHudContext& context);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context);
-[[nodiscard]] Core::Expected<void, std::string> DrawTheBattlePanel(GameHudContext& context);
-void DrawTheBattleClock(GameHudContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> StepTheBattlePanel(const Hud::GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheSiegeControls(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheBattleSkill(Hud::GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheBattlePanel(Hud::GameHudContext& context);
+void DrawTheBattleClock(Hud::GameHudContext& context);
+} // namespace Client::CastleSiege

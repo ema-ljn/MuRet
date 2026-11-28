@@ -27,7 +27,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Terrain
+namespace Client::Effects
 {
 namespace
 {
@@ -90,20 +90,20 @@ void SetBlend(Render::ModelBatch& batch, Render::ModelBlend blend)
     }
 }
 
-Core::Expected<void, std::string> DrawDecal(Render::ModelBatch& batch, const World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawDecal(Render::ModelBatch& batch, const Effects::ModelEffect& effect,
                                             const GroundEffectResources& resources, std::int32_t slot, float width,
                                             float height, const glm::vec3& color, float angle)
 {
-    return DrawTerrainDecal(batch, resources.heights,
-                            TerrainDecal{.slot = slot,
-                                         .x = effect.transform.position.x,
-                                         .y = effect.transform.position.y,
-                                         .width = width,
-                                         .height = height,
-                                         .color = color,
-                                         .angle = angle,
-                                         .alpha = 1.0f,
-                                         .lift = DecalLift});
+    return Terrain::DrawTerrainDecal(batch, resources.heights,
+                                     Terrain::TerrainDecal{.slot = slot,
+                                                           .x = effect.transform.position.x,
+                                                           .y = effect.transform.position.y,
+                                                           .width = width,
+                                                           .height = height,
+                                                           .color = color,
+                                                           .angle = angle,
+                                                           .alpha = 1.0f,
+                                                           .lift = DecalLift});
 }
 
 // 0x5fc9c0 stores the same elements of 0x5fc8f0 transposed, with the same roundings.
@@ -171,7 +171,7 @@ float ArrivalSide(std::int32_t life)
     return F32(static_cast<double>(Difference(FullArrivalLife, life)) * D(ArrivalGrowth));
 }
 
-Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const Effects::ModelEffect& effect,
                                               const GroundEffectResources& resources)
 {
     SetBlend(batch, Render::ModelBlend::Additive); // 0x52e1c2, before the clock's ftol.
@@ -203,7 +203,7 @@ Core::Expected<void, std::string> DrawArrival(Render::ModelBatch& batch, const W
     const glm::vec3 color(F32(brightness), F32(brightness * D(TwoFifths)), F32(brightness * D(Fifth)));
     return DrawDecal(batch, effect, resources, ArrivalDecal, side, side, color, -effect.transform.angles.z);
 }
-Core::Expected<void, std::string> DrawFadingDecal(Render::ModelBatch& batch, World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawFadingDecal(Render::ModelBatch& batch, Effects::ModelEffect& effect,
                                                   const GroundEffectResources& resources)
 {
     if (effect.subtype != 1)
@@ -225,7 +225,7 @@ Core::Expected<void, std::string> DrawFadingDecal(Render::ModelBatch& batch, Wor
     return {};
 }
 
-Core::Expected<void, std::string> DrawRandomDecal(Render::ModelBatch& batch, const World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawRandomDecal(Render::ModelBatch& batch, const Effects::ModelEffect& effect,
                                                   const GroundEffectResources& resources)
 {
     if (effect.subtype == 3)
@@ -238,7 +238,7 @@ Core::Expected<void, std::string> DrawRandomDecal(Render::ModelBatch& batch, con
                      -effect.transform.angles.z);
 }
 
-Core::Expected<void, std::string> DrawGrowingDecal(Render::ModelBatch& batch, World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawGrowingDecal(Render::ModelBatch& batch, Effects::ModelEffect& effect,
                                                    const GroundEffectResources& resources)
 {
     // 0x52dd7b..0x52dd98: the side changes before entering 0x5fb2f0.
@@ -273,7 +273,7 @@ Core::Expected<glm::vec3, std::string> ColoredDecalLight(std::int32_t subtype, d
 
 // 0x52e010..0x52e0a2: /6 every 25 lives and /8 on even lives shed a 0x61e/7 or /9 into the pass's table, with their
 // position, angles, light and owner (0x518cf0 with key −1; /7 draws its rand() % 360).
-void SpawnColoredDecal(const World::ModelEffect& effect, const GroundEffectResources& resources, std::int32_t subtype)
+void SpawnColoredDecal(const Effects::ModelEffect& effect, const GroundEffectResources& resources, std::int32_t subtype)
 {
     const Kernel::ModelEffectArguments child{.type = ArrivalDecal,
                                              .position = effect.transform.position,
@@ -284,7 +284,7 @@ void SpawnColoredDecal(const World::ModelEffect& effect, const GroundEffectResou
     static_cast<void>(CreateColoredDecal(resources.table, child, resources.random));
 }
 
-Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, Effects::ModelEffect& effect,
                                                    const GroundEffectResources& resources)
 {
     // 0x52dddc..0x52de2a: light 1, that of the last five lives and, in /7 above 30, (40 − life) · 0.1f.
@@ -333,7 +333,7 @@ Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, Wo
     return DrawDecal(batch, effect, resources, ArrivalDecal, side, side, color.Value(), -effect.transform.angles.z);
 }
 
-Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const Effects::ModelEffect& effect,
                                                const GroundEffectResources& resources)
 {
     constexpr std::uint8_t FirstSpecialMap = 24;
@@ -349,16 +349,17 @@ Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const 
         batch.ApplyOperation(state, Render::ModelStateOperation::DepthWrite);
         if (resources.kalima)
         {
-            const TerrainDecal decal{.slot = effect.type,
-                                     .x = effect.transform.position.x,
-                                     .y = effect.transform.position.y,
-                                     .width = effect.transform.scale,
-                                     .height = effect.transform.scale,
-                                     .color = effect.light,
-                                     .angle = -effect.transform.angles.z,
-                                     .alpha = 1,
-                                     .lift = 0};
-            if (const auto drawn = World::DrawKalimaSurfaceDecal(batch, *resources.kalima, decal); !drawn.HasValue())
+            const Terrain::TerrainDecal decal{.slot = effect.type,
+                                              .x = effect.transform.position.x,
+                                              .y = effect.transform.position.y,
+                                              .width = effect.transform.scale,
+                                              .height = effect.transform.scale,
+                                              .color = effect.light,
+                                              .angle = -effect.transform.angles.z,
+                                              .alpha = 1,
+                                              .lift = 0};
+            if (const auto drawn = MapScripts::Kalima::DrawKalimaSurfaceDecal(batch, *resources.kalima, decal);
+                !drawn.HasValue())
                 return drawn;
         }
         // 0x52e137 → 0x620890: writes it as 1 even when 0x437940 found no owner.
@@ -377,7 +378,7 @@ void ApplyGroundEffectAdditive(Render::ModelBatch& batch)
     SetBlend(batch, Render::ModelBlend::Additive);
 }
 
-Core::Expected<void, std::string> DrawGroundEffectCase(Render::ModelBatch& batch, World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawGroundEffectCase(Render::ModelBatch& batch, Effects::ModelEffect& effect,
                                                        const GroundEffectResources& resources)
 {
     switch (effect.type)
@@ -390,7 +391,7 @@ Core::Expected<void, std::string> DrawGroundEffectCase(Render::ModelBatch& batch
         return DrawGrowingDecal(batch, effect, resources);
     case 0x61e:
         return DrawColoredDecal(batch, effect, resources);
-    case World::ArrivalEffect:
+    case Effects::ArrivalEffect:
         return DrawArrival(batch, effect, resources);
     case 0x636:
         SetBlend(batch, Render::ModelBlend::Alpha);
@@ -402,4 +403,4 @@ Core::Expected<void, std::string> DrawGroundEffectCase(Render::ModelBatch& batch
         return {};
     }
 }
-} // namespace Client::Terrain
+} // namespace Client::Effects

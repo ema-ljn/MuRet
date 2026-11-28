@@ -26,12 +26,12 @@ class WorldState;
 
 // Los llamadores de los efectos con modelo del lote "switch" de la CL11 (World/BlastModelEffects) desde los pasos de
 // los personajes: 0x43a7a0 (Kalima), 0x4f5b70 (los monstruos), 0x4fd5f0 (las skills) y 0x4f97b0.
-namespace Client::Scenes
+namespace Client::Combat
 {
 
 // +0x108 con un personaje: su tipo (+0x2), sus ángulos (+0x1c), su posición (+0x10), el byte vivo (+0) y +0x16c, que
 // los pasos leen en vivo.
-[[nodiscard]] World::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor);
+[[nodiscard]] Effects::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor);
 
 // 0x518cf0(`arguments`) para un tipo del lote, con `owner` (o nadie) en +0x108 y sus +0x8c y +0x8e (ModelEffect::
 // itemType e itemLevel). Lo que pide el alta sale de `context`: el registro propio y el héroe del mundo, los blancos de
@@ -47,4 +47,4 @@ CreateBlastEffect(const Kernel::ModelEffectArguments& arguments, Kernel::ActorSt
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastEffectOutsideTheStep(const Kernel::ModelEffectArguments& arguments, Kernel::ActorState* owner,
                                 Kernel::WorldState& world, Crt::CrtRandom& random);
-} // namespace Client::Scenes
+} // namespace Client::Combat

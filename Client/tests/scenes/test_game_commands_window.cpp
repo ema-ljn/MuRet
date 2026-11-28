@@ -44,14 +44,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GameUiContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eedd00du;
@@ -148,7 +148,7 @@ protected:
         return m_world->Runtime();
     }
 
-    Client::UI::CommandsWindowState& Window()
+    Client::Ui::CommandsWindowState& Window()
     {
         return Runtime().panels.delegated.commandsWindow;
     }
@@ -160,7 +160,7 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheCommandsWindow(UiContext(x, y));
+        return Client::Hud::StepTheCommandsWindow(UiContext(x, y));
     }
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
@@ -179,7 +179,7 @@ protected:
                                .text = m_text,
                                .texts = &m_texts,
                                .mouse = {.x = x, .y = y}};
-        return Client::Scenes::DrawTheCommandsWindow(context);
+        return Client::Hud::DrawTheCommandsWindow(context);
     }
 
     // Lo que dejó un frame anterior: el fondo de 0x5f7440 sin mezcla.
@@ -193,7 +193,7 @@ protected:
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
     }
 
     void Press(Client::Input::Key key)
@@ -223,20 +223,20 @@ protected:
 TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
 {
     Press(Client::Input::Key::D);
-    const auto stepped = Client::Scenes::StepTheGameUi(UiContext(300, 300));
+    const auto stepped = Client::Hud::StepTheGameUi(UiContext(300, 300));
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().panels.delegated.commands, 1);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
     // Debajo del registro del chat, que con el mouse encima no deja correr los paneles (0x5ee174).
-    const auto again = Client::Scenes::StepTheGameUi(UiContext(100, 200));
+    const auto again = Client::Hud::StepTheGameUi(UiContext(100, 200));
     ASSERT_TRUE(again.HasValue()) << again.Error();
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     EXPECT_EQ(Runtime().panels.delegated.commands, 1);
 
     // El botón de los comandos del HUD la cierra.
     Click();
-    ASSERT_TRUE(Client::Scenes::StepTheGameUi(UiContext(8, 0x1b4)).HasValue());
+    ASSERT_TRUE(Client::Hud::StepTheGameUi(UiContext(8, 0x1b4)).HasValue());
     EXPECT_EQ(Runtime().panels.delegated.commands, 0);
 
     auto chaosCastle = std::make_unique<WorldState>();
@@ -246,7 +246,7 @@ TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
         Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::D});
     CrtRandom random(Seed);
     ASSERT_TRUE(
-        Client::Scenes::StepTheGameUi(
+        Client::Hud::StepTheGameUi(
             GameUiContext{.world = *chaosCastle, .random = random, .input = input, .mouseX = 300, .mouseY = 300})
             .HasValue());
     EXPECT_EQ(chaosCastle->Runtime().panels.delegated.commands, 0);
@@ -256,7 +256,7 @@ TEST_P(GameCommandsWindowTest, TheDLetterOpensTheCommands)
 // estados en 1 en cada paso. Sin +4, nada. No saca rand().
 TEST_P(GameCommandsWindowTest, TheStepTakesTheMouseAndResetsTheStates)
 {
-    Client::UI::GameUiState& ui = Runtime().ui;
+    Client::Ui::GameUiState& ui = Runtime().ui;
     Window().states[3] = 0;
     ASSERT_TRUE(Step(Left, 0).HasValue());
     EXPECT_EQ(ui.mouseOnUi, 0);
@@ -274,7 +274,7 @@ TEST_P(GameCommandsWindowTest, TheStepTakesTheMouseAndResetsTheStates)
         ASSERT_TRUE(Step(x, y).HasValue());
         EXPECT_EQ(ui.mouseOnUi, inside ? 1 : 0);
         for (const std::uint8_t state : Window().states)
-            EXPECT_EQ(state, Client::UI::CommandReady);
+            EXPECT_EQ(state, Client::Ui::CommandReady);
     }
     EXPECT_EQ(m_random.State(), Seed);
 }
@@ -300,7 +300,7 @@ TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterReadsTheCells)
 TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
 {
     OpenAndPlace();
-    Client::Scenes::GameMovementState& movement = Runtime().movement;
+    Client::Movement::GameMovementState& movement = Runtime().movement;
     for (const auto& [x, y] : {std::pair{ButtonsLeft, RowTop(3) + 1}, std::pair{ButtonsLeft + 108, RowTop(3) + 1},
                                std::pair{ButtonsLeft + 1, RowTop(3)}, std::pair{ButtonsLeft + 1, RowTop(3) + 20},
                                std::pair{ButtonsLeft + 1, RowTop(0) + 1}})
@@ -330,7 +330,7 @@ TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
 TEST_P(GameCommandsWindowTest, TheCloseButtonResetsTheCommands)
 {
     OpenAndPlace();
-    Client::Scenes::GameMovementState& movement = Runtime().movement;
+    Client::Movement::GameMovementState& movement = Runtime().movement;
     movement.mouseUpdateTime = 5;
     Window().chosen = 4;
     Window().target = 9;
@@ -480,7 +480,7 @@ TEST_P(GameCommandsWindowTest, TheChosenStateGivesItsNotice)
           std::tuple{9, 0xfe, "sin grupo"}, std::tuple{9, 1, ""}, std::tuple{9, 7, ""}})
     {
         SCOPED_TRACE(testing::Message() << chosen << ", " << state);
-        Window().states.fill(Client::UI::CommandReady);
+        Window().states.fill(Client::Ui::CommandReady);
         Window().chosen = chosen;
         Window().states[static_cast<std::size_t>(chosen)] = static_cast<std::uint8_t>(state);
         ASSERT_TRUE(Redraw(0, 0).HasValue());

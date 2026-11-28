@@ -8,8 +8,8 @@
 #include <vector>
 
 // 0x6189e9..0x618a18: Kalima's water textures (Terrain::KalimaWaterTextureSet), read from `dataRoot`.
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 [[nodiscard]] Core::Expected<std::vector<Data::Textures::LoadedTexture>, std::string>
 LoadKalimaTextures(const std::filesystem::path& dataRoot);
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

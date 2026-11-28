@@ -46,7 +46,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -122,7 +122,7 @@ Core::Expected<SkillCell, std::string> AttackCellOf(const Kernel::ActorState& he
 
 // 0x58ecaa..0x58ecf9 (y 0x58b0cd.., 0x58dcec..): la distancia al centro de la celda del blanco (0x77e1ba8, 0x77e1bac)
 // contra el alcance · 100, en la x87. Menor, igual o unordered (C0 o C3) está en alcance.
-bool InReach(const Kernel::ActorState& hero, const GameMovementState& state)
+bool InReach(const Kernel::ActorState& hero, const Movement::GameMovementState& state)
 {
     const auto targetX = std::bit_cast<std::int32_t>(state.targetX);
     const auto targetY = std::bit_cast<std::int32_t>(state.targetY);
@@ -154,7 +154,7 @@ Core::Expected<void, std::string> WalkToward(Kernel::ActorState& hero, std::int3
     const auto path =
         Pathfinding::PathFinder(terrain.attributes->cells)
             .Find({start.x, start.y}, {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)},
-                  CrywolfAltarGoal(context.world), distance);
+                  Events::Crywolf::CrywolfAltarGoal(context.world), distance);
     if (!path)
         return {};
     hero.path = *path;
@@ -197,7 +197,7 @@ private:
     Core::Expected<bool, std::string> PassesTheHead();
     Core::Expected<bool, std::string> Attackable() const
     {
-        return IsAttackable(m_world, m_context.controlDown);
+        return Hero::IsAttackable(m_world, m_context.controlDown);
     }
     Core::Expected<Kernel::ActorState*, std::string> ChosenActor(std::string_view where) const;
     Core::Expected<void, std::string> SendTheMagicAttack(std::uint16_t key, std::string_view brake);
@@ -221,7 +221,7 @@ private:
     const HeroSkillContext& m_context;
     Kernel::WorldState& m_world;
     Kernel::WorldRuntime& m_runtime;
-    GameMovementState& m_state;
+    Movement::GameMovementState& m_state;
     Kernel::CharacterClass m_class = Kernel::CharacterClass::DarkWizard;
     bool m_aimed = false;
 };
@@ -279,7 +279,7 @@ Core::Expected<bool, std::string> WizardBranch::PassesTheHead()
     {
         if (charged)
         {
-            UI::GameUiState& ui = m_runtime.ui;
+            Ui::GameUiState& ui = m_runtime.ui;
             ui.rightReleased = false;
             ui.rightClick = false;
             ui.rightDown = false;
@@ -348,7 +348,7 @@ Core::Expected<void, std::string> WizardBranch::ReleaseTheCharge()
         return {};
     if (auto sent = SendTheMagicAttack(m_context.playerKey, "0x58a1be"); !sent.HasValue())
         return sent;
-    RefreshCombatActionSpeeds(m_world, m_context.random);
+    Combat::RefreshCombatActionSpeeds(m_world, m_context.random);
     if (auto acted = Act(m_hero, 0x44, m_context); !acted.HasValue())
         return acted;
     m_hero.movement = 0;
@@ -362,14 +362,14 @@ Core::Expected<void, std::string> WizardBranch::ShootTheCharge()
     if (!IsPlayer(m_hero))
         return {};
     const auto chosenKey =
-        ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_runtime.selectedTargets[2], m_context.controlDown);
+        Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_runtime.selectedTargets[2], m_context.controlDown);
     if (!chosenKey.HasValue())
         return Core::Unexpected(chosenKey.Error());
     const std::uint16_t key =
         chosenKey.Value() == -1 ? m_context.playerKey : static_cast<std::uint16_t>(chosenKey.Value());
     if (auto sent = SendTheMagicAttack(key, "0x58a938"); !sent.HasValue())
         return sent;
-    RefreshCombatActionSpeeds(m_world, m_context.random);
+    Combat::RefreshCombatActionSpeeds(m_world, m_context.random);
     if (auto acted = Act(m_hero, 0x45, m_context); !acted.HasValue())
         return acted;
     m_hero.movement = 0;
@@ -401,7 +401,7 @@ Core::Expected<void, std::string> WizardBranch::RaiseTheSoulBarrier()
         // 0x58b06e: 0x59e680, el nombre del elegido entre los de la party (0x77f3cd0, de a 0x24); fuera de ella o sin
         // party, nada (0x599d5d).
         Kernel::ActorState& member = *target.Value();
-        if (!IsInTheParty(m_world, member))
+        if (!Party::IsInTheParty(m_world, member))
             return {};
         // 0x58b07e..0x58b0c7: +0x3a4 con el elegido (WORD) y 0x7758580..88 con 1, el lugar de la skill del héroe
         // publicado (+0x425, sin el registro propio) y el elegido.
@@ -447,7 +447,7 @@ Core::Expected<void, std::string> WizardBranch::CastAround(std::uint8_t action, 
                                                                  .direction = direction.Value(),
                                                                  .key = Protocol::Skills::NoSkillTargetKey}));
     }
-    RefreshCombatActionSpeeds(m_world, m_context.random);
+    Combat::RefreshCombatActionSpeeds(m_world, m_context.random);
     if (auto acted = Act(m_hero, action, m_context); !acted.HasValue())
         return acted;
     m_hero.movement = 0;
@@ -508,7 +508,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
         !delayed.HasValue())
         return delayed;
-    const auto key = ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
+    const auto key = Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     m_hero.skillTarget4c = chosen;
@@ -684,7 +684,7 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosenKey =
-            ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
+            Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
         if (!chosenKey.HasValue())
             return Core::Unexpected(chosenKey.Error());
         key = static_cast<std::uint16_t>(chosenKey.Value());
@@ -789,7 +789,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     {
         // 0x5926ca..0x592766: el nombre del elegido entre los de la party (0x77f3cd0, el strncmp de 0x59272c, como
         // 0x59e680 en línea); fuera de ella o sin party, nada.
-        if (!IsInTheParty(m_world, target))
+        if (!Party::IsInTheParty(m_world, target))
             return {};
     }
     // 0x592660..0x592799.
@@ -868,4 +868,4 @@ Core::Expected<void, std::string> UseTheWizardSkill(Kernel::ActorState& hero, st
 {
     return WizardBranch(hero, skill, context).Use();
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -42,7 +42,7 @@ struct BeamWorld
         glm::vec3 angles{0.0f, 0.0f, 0.0f};
         for (const std::int32_t subtype : {0, 1})
         {
-            const Client::Kernel::JointRequest request{.type = Client::Scenes::KillBeamJoint,
+            const Client::Kernel::JointRequest request{.type = Client::Joints::KillBeamJoint,
                                                        .firstPosition = from,
                                                        .secondPosition = to,
                                                        .angles = angles,
@@ -53,31 +53,31 @@ struct BeamWorld
                                                        .skill = 0,
                                                        .skillSerial = 0,
                                                        .target = -1};
-            created = created && Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue();
+            created = created && Client::Joints::CreateFaunaJoint(joints, request, random).HasValue();
         }
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, &particles, 0.0f, nullptr, lighting.get(),
+        return Client::Joints::StepJoints(joints, random, nullptr, &particles, 0.0f, nullptr, lighting.get(),
                                           [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); });
     }
 
     ActorState killer;
     std::vector<JointState> joints = std::vector<JointState>(4);
     CrtRandom random{Seed};
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::vector<std::int32_t> sounds;
     bool created = true;
 };
 
-int AliveLightning(const Client::World::Particles& particles, std::int32_t subtype)
+int AliveLightning(const Client::Particles::Particles& particles, std::int32_t subtype)
 {
     int found = 0;
-    for (const Client::World::Particle& particle : particles.All())
+    for (const Client::Particles::Particle& particle : particles.All())
     {
-        if (particle.alive && particle.type == Client::World::LightningParticle && particle.subtype == subtype)
+        if (particle.alive && particle.type == Client::Particles::LightningParticle && particle.subtype == subtype)
             ++found;
     }
     return found;
@@ -118,7 +118,7 @@ TEST(KillBeamJointsTest, TheBeamsSpinWhileTheirLifeIsAboveOneHundred)
         EXPECT_EQ(beam->life, 119);
         EXPECT_TRUE(beam->alive);
     }
-    EXPECT_EQ(AliveLightning(tested.particles, Client::World::LightningTrailSubtype), 2);
+    EXPECT_EQ(AliveLightning(tested.particles, Client::Particles::LightningTrailSubtype), 2);
     EXPECT_TRUE(tested.sounds.empty());
 }
 
@@ -145,7 +145,7 @@ TEST(KillBeamJointsTest, TheBeamsComeBackToTheKillerAndSound)
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_LT(steps, 120);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x23, 0x23}));
-    EXPECT_EQ(AliveLightning(tested.particles, Client::World::LightningHitSubtype), 2);
+    EXPECT_EQ(AliveLightning(tested.particles, Client::Particles::LightningHitSubtype), 2);
     EXPECT_EQ(tested.joints[0].speed, 30.0f);
 }
 

@@ -45,12 +45,12 @@
 #include <utility>
 #include <vector>
 
-// Scenes::ApplyMagicAttackCount: el 1A, la skill que pega a varios (0x4cedd0). Las claves, las celdas y la vida son
+// Combat::ApplyMagicAttackCount: el 1A, la skill que pega a varios (0x4cedd0). Las claves, las celdas y la vida son
 // inventadas; lo esperado sale del ASM (0x4cedd0, 0x53d810, 0x53fdb0, 0x548e40).
 namespace
 {
 using Client::Kernel::ActorState;
-using Client::World::HandShineParticle;
+using Client::Particles::HandShineParticle;
 
 constexpr std::uint16_t CasterKey = 0x1234;
 constexpr std::size_t CasterSlot = 12;
@@ -199,14 +199,14 @@ protected:
                                                             .models = m_models,
                                                             .log = m_log,
                                                             .states = &m_states};
-        return Client::Scenes::ApplyMagicAttackCount(
+        return Client::Combat::ApplyMagicAttackCount(
             Client::Protocol::Actors::MagicAttackCount{.key = caster, .magic = Magic, .targets = std::move(targets)},
             Client::Kernel::PlayerKey{PlayerKey}, resources);
     }
 
-    std::vector<const Client::World::Particle*> Shines() const
+    std::vector<const Client::Particles::Particle*> Shines() const
     {
-        std::vector<const Client::World::Particle*> shines;
+        std::vector<const Client::Particles::Particle*> shines;
         for (const auto& particle : m_world->Particles().All())
             if (particle.alive && particle.type == HandShineParticle)
                 shines.push_back(&particle);
@@ -226,7 +226,7 @@ protected:
     MonsterModels m_fauna;
     Client::Session::ModuleStates m_states;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
-    Client::Scenes::SelectionState m_selection{*m_world};
+    Client::FrontEnd::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
@@ -248,7 +248,7 @@ TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
     ASSERT_EQ(shines.size(), 2u);
     for (std::size_t index = 0; index < shines.size(); ++index)
     {
-        const Client::World::Particle& shine = *shines[index];
+        const Client::Particles::Particle& shine = *shines[index];
         EXPECT_EQ(shine.subtype, static_cast<std::int32_t>(index * 2));
         EXPECT_EQ(shine.life, 36);
         EXPECT_EQ(shine.start, glm::vec3(1010.0f, 2000.0f, 50.0f));
@@ -256,7 +256,7 @@ TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
         EXPECT_EQ(shine.angles, glm::vec3(45.0f, 0.0f, 90.0f));
         EXPECT_EQ(shine.light, glm::vec3(1.0f, 0.5f, 0.2f));
         EXPECT_EQ(shine.typedOwner,
-                  (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, CasterSlot}));
+                  (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::Actor, CasterSlot}));
     }
     EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x76});
     EXPECT_EQ(Caster().animation.action, 0x96);
@@ -396,7 +396,7 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
 // El paso de las partículas pide la mano con ParticleActorHandsAmong: la del héroe sobre los huesos del dueño.
 TEST_F(MagicAttackCountTest, TheStepFindsTheHandOfTheOwner)
 {
-    const auto hands = Client::Scenes::ParticleActorHandsAmong(m_world->Actors(), HeroSlot);
+    const auto hands = Client::Effects::ParticleActorHandsAmong(m_world->Actors(), HeroSlot);
     EXPECT_EQ(hands(CasterSlot, 0), std::optional(glm::vec3(1000.0f, 2020.0f, 50.0f)));
     EXPECT_EQ(hands(CasterSlot, 2), std::optional(glm::vec3(1000.0f, 2020.0f, 50.0f)));
     EXPECT_EQ(hands(401, 0), std::nullopt);

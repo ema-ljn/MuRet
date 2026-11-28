@@ -47,7 +47,6 @@ namespace Client::Tests::ServerSessionSupport
 using App::Credentials;
 using App::ServerSession;
 using App::SessionSettings;
-using App::SessionState;
 using App::WorldEvent;
 using Core::Duration;
 using Core::Log;
@@ -64,6 +63,7 @@ using Protocol::KeepaliveOpcode;
 using Protocol::FrontEnd::CharacterSelectResult;
 using Protocol::Items::InventoryList;
 using Protocol::Session::ClientVersion;
+using Session::SessionState;
 
 using std::chrono::milliseconds;
 

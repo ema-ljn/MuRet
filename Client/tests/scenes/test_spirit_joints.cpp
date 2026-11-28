@@ -74,17 +74,17 @@ struct Pool
                                                    .skill = skill,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        const Client::Scenes::JointKernels::CreationServices services{
+        const Client::Joints::JointKernels::CreationServices services{
             .playerBonePoint = {},
             .soundRequest = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
             .ownRecordDepth = withOwnRecord ? &ownRecordDepth : nullptr,
             .ownVolley = withOwnRecord ? &ownVolley : nullptr};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind, &services);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, kind, &services);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get(), {},
+        return Client::Joints::StepJoints(joints, random, &cloth, &particles, 0.0f, &sprites, lighting.get(), {},
                                           terrainHeight, {}, {}, effects.get(), hero, nullptr, volley);
     }
 
@@ -97,12 +97,12 @@ struct Pool
     std::uint8_t ownRecordDepth = 0;
     std::uint8_t ownVolley = 0;
     Client::Models::ClothWorld cloth{.random = CrtRandom{1}};
-    Client::World::Particles particles;
-    Client::World::FrameSprites sprites;
+    Client::Particles::Particles particles;
+    Client::Particles::FrameSprites sprites;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
     const ActorState* hero = nullptr;
-    const Client::Scenes::JointKernels::VolleyServices* volley = nullptr;
+    const Client::Joints::JointKernels::VolleyServices* volley = nullptr;
 };
 
 ActorState Owner(glm::vec3 position)
@@ -126,20 +126,20 @@ template <typename Wanted> std::uint32_t SeedWhere(int index, Wanted wanted)
     return 0;
 }
 
-std::vector<Client::World::Sprite> AliveSprites(Client::World::FrameSprites& sprites)
+std::vector<Client::Particles::Sprite> AliveSprites(Client::Particles::FrameSprites& sprites)
 {
-    std::vector<Client::World::Sprite> found;
-    for (const Client::World::Sprite& sprite : sprites.Sprites())
+    std::vector<Client::Particles::Sprite> found;
+    for (const Client::Particles::Sprite& sprite : sprites.Sprites())
         if (sprite.alive)
             found.push_back(sprite);
     return found;
 }
 
 // La partícula que pide un paso, repetida en un pool gemelo con `replay`, que avanza los rand() como el original.
-Client::World::Particle Twin(CrtRandom& replay, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
-                             const glm::vec3& angles, const glm::vec3& light, float scale)
+Client::Particles::Particle Twin(CrtRandom& replay, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
+                                 const glm::vec3& angles, const glm::vec3& light, float scale)
 {
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     const auto made = twin->CreateChecked(type, position, angles, light, subtype, scale, 0.0f, replay);
     EXPECT_TRUE(made.HasValue() && made.Value().has_value());
     return twin->All()[0];
@@ -151,7 +151,7 @@ std::array<std::uint32_t, 3> Bits(const glm::vec3& value)
 }
 
 // Todos los campos, bit a bit.
-void ExpectSameParticle(const Client::World::Particle& made, const Client::World::Particle& twin)
+void ExpectSameParticle(const Client::Particles::Particle& made, const Client::Particles::Particle& twin)
 {
     EXPECT_EQ(made.alive, twin.alive);
     EXPECT_EQ(made.type, twin.type);
@@ -174,10 +174,10 @@ void ExpectSameParticle(const Client::World::Particle& made, const Client::World
     EXPECT_EQ(Bits(made.start), Bits(twin.start));
 }
 
-std::size_t AliveParticles(Client::World::Particles& particles)
+std::size_t AliveParticles(Client::Particles::Particles& particles)
 {
     std::size_t count = 0;
-    for (const Client::World::Particle& particle : particles.All())
+    for (const Client::Particles::Particle& particle : particles.All())
         count += particle.alive ? 1 : 0;
     return count;
 }
@@ -596,7 +596,7 @@ TEST(SpiritJointsTest, TheEighthArcsAndTheTenthTurns)
 TEST(SpiritJointsTest, TheWideVolleyDropsItsRayAndGoesOn)
 {
     const ActorState someoneElse = Owner({});
-    const Client::Scenes::JointKernels::VolleyServices calm{.siegeActive = false};
+    const Client::Joints::JointKernels::VolleyServices calm{.siegeActive = false};
     for (const std::int32_t subtype : {0, 5, 0x13})
     {
         SCOPED_TRACE(subtype);
@@ -682,8 +682,8 @@ TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
     auto open = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     const ActorState someoneElse = Owner({});
     ActorState owner = Owner({50.0f, 60.0f, 70.0f});
-    const Client::Scenes::JointKernels::VolleyServices wall{.siegeActive = true, .attributes = walled.get()};
-    const Client::Scenes::JointKernels::VolleyServices field{.siegeActive = true, .attributes = open.get()};
+    const Client::Joints::JointKernels::VolleyServices wall{.siegeActive = true, .attributes = walled.get()};
+    const Client::Joints::JointKernels::VolleyServices field{.siegeActive = true, .attributes = open.get()};
     Pool stopped;
     Pool going;
     Pool thin;
@@ -719,11 +719,11 @@ TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
 // u otra vida, ninguno.
 TEST(SpiritJointsTest, TheWideVolleyOfTheHeroHitsEveryFifteenSteps)
 {
-    std::vector<Client::Scenes::SkillHitsRequest> hits;
-    const Client::Scenes::JointKernels::VolleyServices volley{
+    std::vector<Client::Skills::SkillHitsRequest> hits;
+    const Client::Joints::JointKernels::VolleyServices volley{
         .siegeActive = false,
         .skillHits =
-            [&hits](const Client::Scenes::SkillHitsRequest& request) -> Client::Core::Expected<void, std::string>
+            [&hits](const Client::Skills::SkillHitsRequest& request) -> Client::Core::Expected<void, std::string>
         {
             hits.push_back(request);
             return {};

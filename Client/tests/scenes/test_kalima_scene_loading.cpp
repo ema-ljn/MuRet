@@ -116,7 +116,7 @@ TEST_F(KalimaSceneLoadingTest, AllSevenMapsLoadRealCpuDataAndWaterResourcesBefor
 }
 TEST_F(KalimaSceneLoadingTest, ReentryAndAnOrdinaryMapReplaceTheOwnerOnlyAfterTheNativeLoadStage)
 {
-    m_world->Map().kalima = std::make_unique<Client::World::KalimaWorld>(24);
+    m_world->Map().kalima = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(24);
     ASSERT_TRUE(m_world->Map().kalima->Disturb(64, 64, 3, 1000000, m_random).HasValue());
     const auto* previous = m_world->Map().kalima.get();
     Client::Tests::TemporaryFolder missing("kalima-failed-stage");
@@ -137,7 +137,7 @@ TEST_F(KalimaSceneLoadingTest, ReentryAndAnOrdinaryMapReplaceTheOwnerOnlyAfterTh
 TEST_F(KalimaSceneLoadingTest, LoadRevisionInvalidatesEveryAttemptIncludingFailuresAndSameMapReentry)
 {
     EXPECT_EQ(m_world->Map().loadRevision, 0u);
-    m_world->Map().kalima = std::make_unique<Client::World::KalimaWorld>(24);
+    m_world->Map().kalima = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(24);
     const auto* previous = m_world->Map().kalima.get();
     Client::Tests::TemporaryFolder missing("kalima-revision-failure");
     const auto state = m_random.State();
@@ -188,7 +188,7 @@ TEST(KalimaSceneTextureTest, APartialUploadRollsBackOnlyItsSuccessfulPhysicalRef
     SlotFailureStore store;
     ModelTextureTable table;
     table.Bind(store);
-    const auto decoded = Client::World::LoadKalimaTextures(Client::Tests::RepoDataDir());
+    const auto decoded = Client::MapScripts::Kalima::LoadKalimaTextures(Client::Tests::RepoDataDir());
     ASSERT_TRUE(decoded.HasValue());
     ASSERT_TRUE(table.Upload(decoded.Value()[0]).HasValue());
     table.Acquire(TextureSlot{0x23});

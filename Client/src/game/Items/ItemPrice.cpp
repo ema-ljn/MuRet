@@ -18,7 +18,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -786,4 +786,4 @@ RepairPrice RepairPriceOf(std::uint32_t price, std::int32_t durability, std::int
         gold = gold / RepairTen * RepairTen;
     return RepairPrice{.gold = gold, .text = GoldText(static_cast<std::uint32_t>(gold))};
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

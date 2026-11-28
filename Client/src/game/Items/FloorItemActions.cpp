@@ -31,7 +31,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -67,10 +67,10 @@ Core::Expected<void, std::string> RequestThePickUp(const InventoryMoveContext& c
 }
 } // namespace
 
-std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const Terrain::TerrainPickingSegment& ray)
+std::int32_t PickTheFloorItem(std::span<Scenes::FloorItemState> items, const Terrain::TerrainPickingSegment& ray)
 {
     // 0x59e2f0..0x59e31f.
-    for (FloorItemState& item : items)
+    for (Scenes::FloorItemState& item : items)
     {
         if (!item.alive || !item.seen)
             continue;
@@ -80,7 +80,7 @@ std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const Terrain::Te
     // 0x59e321..0x59e3a6.
     for (std::size_t index = 0; index < items.size(); ++index)
     {
-        FloorItemState& item = items[index];
+        Scenes::FloorItemState& item = items[index];
         if (!item.alive || !item.seen || !Models::SegmentHitsBox(ray.origin, ray.end, item.pickBox))
             continue;
         item.vertexLight = false;
@@ -137,7 +137,7 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
     if (floor.chosen < 0 || floor.chosen >= FloorItemCount)
         return Core::Unexpected(
             std::format("0x5667c6: el ítem elegido {} está fuera de la tabla 0x77f46c8", floor.chosen));
-    FloorItemState& item = world.DrawTail().floorItems[static_cast<std::size_t>(floor.chosen)];
+    Scenes::FloorItemState& item = world.DrawTail().floorItems[static_cast<std::size_t>(floor.chosen)];
     if (item.itemType == ZenItem)
         return RequestThePickUp(context);
     // 0x566e0a..0x566e1f.
@@ -147,12 +147,12 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
     if (room.Value())
         return RequestThePickUp(context);
     // 0x566e23..0x566e42: sprintf(buffer, 375) y 0x555190 con el nombre vacío de 0x77f3bec.
-    const std::optional<std::string_view> format = UI::TextAt(context.services.texts, NoRoomText);
+    const std::optional<std::string_view> format = Ui::TextAt(context.services.texts, NoRoomText);
     if (!format)
         return Core::Unexpected(std::format("0x566e2f: falta el texto {} de Text.bmd", NoRoomText));
     if (!context.services.chatLine)
         return Core::Unexpected(std::string("0x566e42: 0x555190 con el aviso 375 sin el chat"));
-    if (auto said = context.services.chatLine(Crt::Sprintf(*format), UI::SystemMessage); !said.HasValue())
+    if (auto said = context.services.chatLine(Crt::Sprintf(*format), Ui::SystemMessage); !said.HasValue())
         return Core::Unexpected(std::format("0x566e42, 0x555190: {}", said.Error()));
     // 0x566e47..0x566e76.
     if (!terrain.heights || !terrain.attributes)
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
     auto& items = world.DrawTail().floorItems;
     for (std::size_t index = 0; index < items.size(); ++index)
     {
-        const FloorItemState& item = items[index];
+        const Scenes::FloorItemState& item = items[index];
         if (!item.alive || !item.seen)
             continue;
         // 0x5ac947..0x5ac97b: la distancia en 3D a la posición del héroe (+0x10), en la x87.
@@ -194,4 +194,4 @@ Core::Expected<void, std::string> PickUpTheNearestFloorItem(const InventoryMoveC
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

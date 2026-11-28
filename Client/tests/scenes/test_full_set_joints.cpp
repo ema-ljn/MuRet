@@ -96,7 +96,7 @@ Create(std::span<JointState> joints, Request request, void* owner, CrtRandom& ra
                             request.skill,
                             0,
                             -1};
-    return Client::Scenes::CreateFaunaJoint(joints, made, random, ownerKind);
+    return Client::Joints::CreateFaunaJoint(joints, made, random, ownerKind);
 }
 
 // La cola común (0x53c393) con los ángulos en 0: count sube hasta maximumCount − 1.
@@ -200,7 +200,7 @@ TEST(FullSetJointsTest, TheSparkleTurnsAroundItsTargetUntilItsLifeRunsOut)
     for (int step = 1; step <= 101; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         TurnSparkle(expected);
         expected.count = Appended(expected.count, expected.maximumCount);
         --expected.life;
@@ -238,14 +238,14 @@ TEST(FullSetJointsTest, TheSparkleFallsWithTheActionsOfItsOwnerAndThenOnlyFades)
         JointState expected = joints[0];
         for (int step = 0; step < 3; ++step)
         {
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             TurnSparkle(expected);
             expected.count = Appended(expected.count, expected.maximumCount);
             --expected.life;
         }
 
         actor.animation.action = probe.action;
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         TurnSparkle(expected);
         JointState& joint = joints[0];
         EXPECT_EQ(joint.position, expected.position);
@@ -266,7 +266,7 @@ TEST(FullSetJointsTest, TheSparkleFallsWithTheActionsOfItsOwnerAndThenOnlyFades)
         for (int step = 1; step <= 10; ++step)
         {
             SCOPED_TRACE(step);
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             light = Faded(light, 0x3f44ec4fu);
             EXPECT_EQ(joint.position, expected.position);
             EXPECT_EQ(joint.light, light);
@@ -331,7 +331,7 @@ TEST(FullSetJointsTest, TheSparkleOfTheHorseFallsWithTheActionOfTheHorse)
         JointState expected = joints[0];
         horse.horse.animation.action = action;
 
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
         TurnSparkle(expected);
         const JointState& joint = joints[0];
@@ -380,7 +380,7 @@ TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
     joints[1].position = {10.0f, 20.0f, 30.0f};
     CrtRandom random(1);
     auto alone = joints;
-    const auto stepped = Client::Scenes::StepJoints(alone, random);
+    const auto stepped = Client::Joints::StepJoints(alone, random);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53c3a5"), std::string::npos) << stepped.Error();
 
@@ -391,10 +391,10 @@ TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
     joints[0].angles = {0.0f, 0.0f, 90.0f};
     joints[0].life = 10;
     JointState expected = joints[1];
-    ASSERT_TRUE(Client::Scenes::JointKernels::AppendJointTail(
+    ASSERT_TRUE(Client::Joints::JointKernels::AppendJointTail(
                     expected, Client::Math::OriginalAngleMatrix(glm::vec3{0.0f, 0.0f, 90.0f}))
                     .HasValue());
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_EQ(joints[1].count, expected.count);
     EXPECT_EQ(joints[1].points[0], expected.points[0]);
     EXPECT_EQ(joints[1].position, (glm::vec3{10.0f, 20.0f, 30.0f}));
@@ -432,7 +432,7 @@ TEST(FullSetJointsTest, TheWideSparklesTurnBothWaysAndGrow)
         for (int step = 1; step <= 51; ++step)
         {
             SCOPED_TRACE(step);
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
             TurnSparkle(expected);
             expected.count = Appended(expected.count, expected.maximumCount);
             --expected.life;
@@ -457,7 +457,7 @@ TEST(FullSetJointsTest, AWideSparkleOfFortyDoesNotFall)
     CrtRandom random(1);
     ASSERT_TRUE(Create(joints, {0x60f, 0x12, 40.0f, -1, 0}, &actor, random).HasValue());
 
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
     EXPECT_EQ(joints[0].subtype, 0x12);
     EXPECT_TRUE(joints[0].tailEnabled);
@@ -528,7 +528,7 @@ TEST(FullSetJointsTest, TheSetTrailSwaysUpwardsUntilItsLifeRunsOut)
     for (int step = 1; step <= 41; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         const float argument = F32(static_cast<double>(expected.life) * D(Float(0x3ecccccdu)));
         expected.position.x = F32(Sine(D(argument), expected.velocity.x) + D(expected.pathIncrement.x));
         expected.position.y = expected.pathIncrement.y;
@@ -607,7 +607,7 @@ TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
             actor.position = {F32(D(actor.position.x) + 3.5), F32(D(actor.position.y) - 2.25),
                               F32(D(actor.position.z) + 1.0)};
         const JointState before = joints[0];
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
         glm::vec3 delta{};
         for (int axis = 0; axis < 3; ++axis)
@@ -767,7 +767,7 @@ TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
             SCOPED_TRACE(step);
             if (step == 20)
                 actor.position = {133.5f, 167.75f, 291.0f};
-            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
             const JointState& joint = joints[0];
             EXPECT_EQ(joint.targetPosition, actor.position);
@@ -854,7 +854,7 @@ void ClimbTowardsTheOwner(std::int32_t subtype)
     request.angles = {40.0f, 0.0f, 213.0f};
     ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
     JointState expected = joints[0];
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     CrtRandom draws(1);
     const double tenth = D(Float(0x3dcccccdu));
 
@@ -863,7 +863,7 @@ void ClimbTowardsTheOwner(std::int32_t subtype)
         SCOPED_TRACE(step);
         if (step == 6)
             hero.position = {1310.0f, 1690.0f, 300.0f};
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
 
         const auto matrix = Client::Math::OriginalAngleMatrix(expected.angles);
         const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
@@ -933,7 +933,7 @@ TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
     CrtRandom random(1);
     Request request{0x619, 1, 5.0f, -1, 0};
     ASSERT_TRUE(Create(joints, request, nullptr, random).HasValue());
-    const auto ownerless = Client::Scenes::StepJoints(joints, random);
+    const auto ownerless = Client::Joints::StepJoints(joints, random);
     ASSERT_FALSE(ownerless.HasValue());
     EXPECT_NE(ownerless.Error().find("0x538b17"), std::string::npos) << ownerless.Error();
 
@@ -942,7 +942,7 @@ TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
     ASSERT_TRUE(Create(last, request, &hero, random).HasValue());
     last[0].life = 1;
     const JointState before = last[0];
-    const auto blind = Client::Scenes::StepJoints(last, random);
+    const auto blind = Client::Joints::StepJoints(last, random);
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x538cce"), std::string::npos) << blind.Error();
     EXPECT_EQ(last[0].speed, before.speed);
@@ -985,14 +985,14 @@ TEST(FullSetJointsTest, TheBoltEnergyGlidesAndSparksInItsLastLives)
     request.angles = {40.0f, 0.0f, 213.0f};
     ASSERT_TRUE(Create(joints, request, nullptr, random).HasValue());
     JointState expected = joints[0];
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     CrtRandom draws(1);
     std::size_t made = 0;
 
     for (int step = 1; step <= 13; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
 
         const auto matrix = Client::Math::OriginalAngleMatrix(expected.angles);
         const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
@@ -1040,10 +1040,10 @@ TEST(FullSetJointsTest, TheBoltEnergyNeedsTheSpritesOnlyForItsSparks)
     CrtRandom random(1);
     Request request{0x619, 6, 5.0f, -1, 0};
     ASSERT_TRUE(Create(joints, request, nullptr, random).HasValue());
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_EQ(joints[0].life, 10);
-    const auto blind = Client::Scenes::StepJoints(joints, random);
+    const auto blind = Client::Joints::StepJoints(joints, random);
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x538c5d"), std::string::npos) << blind.Error();
 }
@@ -1120,9 +1120,9 @@ TEST(FullSetJointsTest, TheChargedEnergySteersTowardsItsTargetAndLeavesAFlare)
     request.second = {300.0f, 200.0f, 300.0f};
     ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
     const auto afterBirth = random.State();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
 
-    const auto stepped = Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites);
+    const auto stepped = Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0, &sprites);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), afterBirth);
@@ -1169,9 +1169,9 @@ TEST(FullSetJointsTest, TheChargedEnergyStopsTurningAndFadesBelowSixLives)
         request.angles = {20.0f, 0.0f, 30.0f};
         ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
         joints[0].life = probe.life;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
 
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
 
         EXPECT_EQ(joints[0].angles, request.angles);
         EXPECT_EQ(joints[0].light, probe.light);
@@ -1189,7 +1189,7 @@ TEST(FullSetJointsTest, TheChargedEnergyNeedsTheFrameSprites)
     CrtRandom random(1);
     ASSERT_TRUE(Create(joints, Request{0x619, ChargedEnergy, 10.0f, -1, 0}, &hero, random).HasValue());
 
-    const auto blind = Client::Scenes::StepJoints(joints, random);
+    const auto blind = Client::Joints::StepJoints(joints, random);
 
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x538b0d"), std::string::npos) << blind.Error();

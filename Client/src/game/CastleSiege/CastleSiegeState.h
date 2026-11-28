@@ -19,13 +19,13 @@
 // ventana del registro ([0x7d536f8], 0x80000) y de la del guardia de la zona de caza ([0x7d53700], 0x200000).
 // Los dos globales del B2 1A viven en NpcWindowState (chaosTaxRate/taxRate). El byte abierto vive en
 // DelegatedPanels (castleSiege en +4 y secondCastleSiege en +0x14); los widgets se conservan aquí entre frames.
-namespace Client::UI
+namespace Client::CastleSiege
 {
 // Los botones reciben ids internos negativos, como los del diálogo y del gremio (P-C280); los nativos son del
 // contador 0x5762eb0. No se usa su valor para el wire.
-[[nodiscard]] inline OldButton CastleButton(std::int32_t id, std::int32_t width, std::int32_t height)
+[[nodiscard]] inline Ui::OldButton CastleButton(std::int32_t id, std::int32_t width, std::int32_t height)
 {
-    OldButton button;
+    Ui::OldButton button;
     button.base.id = id;
     button.base.width = width;
     button.base.height = height;
@@ -33,9 +33,9 @@ namespace Client::UI
 }
 
 // 0x46f320 y 0x4706f0: listas ancladas abajo, 18 renglones, capacidad 150.
-[[nodiscard]] inline OldList CastleGuildList(std::int32_t id)
+[[nodiscard]] inline Ui::OldList CastleGuildList(std::int32_t id)
 {
-    OldList list;
+    Ui::OldList list;
     list.base.id = id;
     list.base.x = 470;
     list.base.y = 360;
@@ -155,9 +155,9 @@ struct SiegeRegistrationWindow
     // argumento, en un dword).
     std::uint32_t marks = 0;
     std::uint32_t registered = 0;
-    OldButton button = CastleButton(-300, 50, 18);
-    OldList siegeGuildList = CastleGuildList(-301);
-    OldList registeredGuildList = CastleGuildList(-302);
+    Ui::OldButton button = CastleButton(-300, 50, 18);
+    Ui::OldList siegeGuildList = CastleGuildList(-301);
+    Ui::OldList registeredGuildList = CastleGuildList(-302);
     std::deque<CastleGuildRow> siegeGuilds;
     std::deque<CastleGuildRow> registeredGuilds;
 };
@@ -178,10 +178,10 @@ struct HuntZoneWindow
     std::int32_t step = 0;
     std::int32_t max = 0;
     std::uint32_t dialogId = 0;
-    OldButton commit = CastleButton(-310, 50, 18);
-    OldButton plus = CastleButton(-311, 16, 16);
-    OldButton minus = CastleButton(-312, 16, 16);
-    OldButton enter = CastleButton(-313, 50, 18);
+    Ui::OldButton commit = CastleButton(-310, 50, 18);
+    Ui::OldButton plus = CastleButton(-311, 16, 16);
+    Ui::OldButton minus = CastleButton(-312, 16, 16);
+    Ui::OldButton enter = CastleButton(-313, 50, 18);
 };
 
 struct CastleSiegeState
@@ -220,4 +220,4 @@ struct CastleSiegeState
     // (0x4e04e0) and 0x4e05f0 releases it; the 0x14 clears +4..+6 or +0x1f..+0x21 (0x4ca799..0x4ca7cd).
     std::optional<std::array<std::uint8_t, 0x36>> castleSiegeInfo{};
 };
-} // namespace Client::UI
+} // namespace Client::CastleSiege

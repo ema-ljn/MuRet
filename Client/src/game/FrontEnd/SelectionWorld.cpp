@@ -63,7 +63,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -128,12 +128,12 @@ struct SelectionWorld::Projection
 {
     Terrain::TerrainLighting lighting{};
     Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
-    World::Particles particles{};
-    World::ModelEffects effects{};
-    std::vector<World::WorldObject> objects{};
-    GameDrawTailState tail{};
+    Particles::Particles particles{};
+    Effects::ModelEffects effects{};
+    std::vector<WorldObjects::WorldObject> objects{};
+    Scenes::GameDrawTailState tail{};
     Actors::Drawing::GameItemRenderState items{};
-    World::ObjectModelStepState modelState{};
+    WorldObjects::ObjectModelStepState modelState{};
 };
 
 SelectionWorld::SelectionWorld(Render::ITextureStore& store, Core::Log& log)
@@ -206,40 +206,43 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState
                                                               Terrain::TerrainLighting& dynamicLighting,
                                                               Crt::CrtRandom& random, float worldClock)
 {
-    std::span<World::WorldObject> objects = world.Map().objects;
+    std::span<WorldObjects::WorldObject> objects = world.Map().objects;
     // 0x5ff960 con cada vivo del recorrido, también en la espera (Scenes/ObjectCollapse.h). La escena no tiene el
     // temblor de la cámara del juego: la piedra de Chaos Castle corta antes, en el pool (0x4056e5, 0x4057bf y
     // 0x405899).
-    const ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
-                                                .random = random,
-                                                .particles = &world.Particles(),
-                                                .worldClock = worldClock,
-                                                .heroZ = world.Hero().position.z,
-                                                .cameraShake = nullptr,
-                                                .attributes = terrain.attributes.get()};
-    const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
-    { return CollapseTheObject(object, collapseContext); };
+    const Events::ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
+                                                        .random = random,
+                                                        .particles = &world.Particles(),
+                                                        .worldClock = worldClock,
+                                                        .heroZ = world.Hero().position.z,
+                                                        .cameraShake = nullptr,
+                                                        .attributes = terrain.attributes.get()};
+    const WorldObjects::AfterObjectStep collapse = [&collapseContext](WorldObjects::WorldObject& object)
+    { return Events::CollapseTheObject(object, collapseContext); };
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
     // el derrumbe con los vivos y la cuenta (0x606610).
-    if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
+    if (std::ranges::none_of(objects,
+                             [](const WorldObjects::WorldObject& object) { return object.alive && object.seen; }))
     {
-        if (auto walked = WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
+        if (auto walked = WorldObjects::WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
             return Core::Unexpected(walked.Error() + ", en la selección");
-        CountDownTheObjectCollapse(world.Runtime());
+        Events::CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
-    const World::ObjectStepGlobals globals{.heroCellLayer = world.Runtime().heroCellLayer,
-                                           .worldClock = worldClock,
-                                           .dynamicLighting = &dynamicLighting,
-                                           .particles = &world.Particles(),
-                                           .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
-                                           .modelState = &world.Runtime().objectModelState};
-    if (auto stepped = StepGameWorldObjects(objects, map, m_models, random, globals, {}, collapse); !stepped.HasValue())
+    const WorldObjects::ObjectStepGlobals globals{.heroCellLayer = world.Runtime().heroCellLayer,
+                                                  .worldClock = worldClock,
+                                                  .dynamicLighting = &dynamicLighting,
+                                                  .particles = &world.Particles(),
+                                                  .sound = [&world](Audio::SoundId id)
+                                                  { world.Runtime().RequestSound(id); },
+                                                  .modelState = &world.Runtime().objectModelState};
+    if (auto stepped = WorldObjects::StepGameWorldObjects(objects, map, m_models, random, globals, {}, collapse);
+        !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en la selección");
     }
-    CountDownTheObjectCollapse(world.Runtime());
+    Events::CountDownTheObjectCollapse(world.Runtime());
     return {};
 }
 
@@ -249,7 +252,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
                                                               const std::function<double(float, float)>& height,
                                                               std::uint32_t systemTime)
 {
-    const World::ModelEffectStepServices services{
+    const Effects::ModelEffectStepServices services{
         .terrainHeight = height,
         .sprites = &m_sprites,
         .effects = &world.Map().effects,
@@ -258,7 +261,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
         .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
         .joint = [&world, &cloth](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
-            const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
+            const auto created = Joints::CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return {};
@@ -271,13 +274,13 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
             world.PlaceModel(type, placement);
         },
         .soundAt = [&world](Audio::SoundId id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); }};
-    for (World::ModelEffect& effect : world.Map().effects.Effects())
+    for (Effects::ModelEffect& effect : world.Map().effects.Effects())
     {
-        const auto* skeleton = effect.type == World::EarthquakeBurstEffect
+        const auto* skeleton = effect.type == Effects::EarthquakeBurstEffect
                                    ? nullptr
                                    : m_models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)});
-        if (auto stepped = World::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock, cloth.random,
-                                                      world.Map().kalima.get(), services);
+        if (auto stepped = Effects::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock, cloth.random,
+                                                        world.Map().kalima.get(), services);
             !stepped.HasValue())
         {
             return Core::Unexpected(stepped.Error() + ", en la selección (0x52d220)");
@@ -292,7 +295,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
     const auto actors = world.Actors();
     const std::size_t heroSlot = world.Runtime().hero;
     const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
-    if (auto stepped = StepJoints(
+    if (auto stepped = Joints::StepJoints(
             world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites, &dynamicLighting,
             [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, height, actors, {}, &world.Map().effects,
             hero, &world);
@@ -350,32 +353,32 @@ Actors::Drawing::GameItemRenderState& SelectionWorld::FrameItemRender()
     return m_projecting ? m_projection->items : m_world->Runtime().itemRender;
 }
 
-World::ObjectModelStepState& SelectionWorld::FrameModelState()
+WorldObjects::ObjectModelStepState& SelectionWorld::FrameModelState()
 {
     return m_projecting ? m_projection->modelState : m_world->Runtime().objectModelState;
 }
 
-World::Particles& SelectionWorld::FrameParticles()
+Particles::Particles& SelectionWorld::FrameParticles()
 {
     return m_projecting ? m_projection->particles : m_world->Particles();
 }
 
-World::ModelEffects& SelectionWorld::FrameEffects()
+Effects::ModelEffects& SelectionWorld::FrameEffects()
 {
     return m_projecting ? m_projection->effects : m_world->Map().effects;
 }
 
-std::span<World::WorldObject> SelectionWorld::FrameObjects()
+std::span<WorldObjects::WorldObject> SelectionWorld::FrameObjects()
 {
     return m_projecting ? std::span(m_projection->objects) : std::span(m_world->Map().objects);
 }
 
-GameDrawTailState& SelectionWorld::FrameTail()
+Scenes::GameDrawTailState& SelectionWorld::FrameTail()
 {
     return m_projecting ? m_projection->tail : m_world->DrawTail();
 }
 
-World::FrameSprites& SelectionWorld::FrameSprites()
+Particles::FrameSprites& SelectionWorld::FrameSprites()
 {
     return m_projecting ? m_projectedSprites : m_sprites;
 }
@@ -431,25 +434,26 @@ SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame
     const float clock = Milliseconds(frame.frameClock);
     const auto systemTime =
         static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(frame.frameClock).count());
-    const GameObjectPass pass{.map = map,
-                              .originalFrame = frame.frames > 0,
-                              .random = &FrameRandom(),
-                              .worldClock = clock,
-                              .particles = &FrameParticles(),
-                              .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
-                              { return Actors::Drawing::PublishPose(poseCarry, m_models, drawn, true); },
-                              .sprites = &FrameSprites(),
-                              .retainedPose = &poseCarry,
-                              .modelState = &world.Runtime().objectModelState,
-                              .publishProjectedPose = true,
-                              .effects = &FrameEffects(),
-                              // Q-C304: timeGetTime (0x6b8544) es el reloj del sistema; MuRet le presta el del dibujo.
-                              .systemTime = [systemTime]() { return systemTime; },
-                              .scene = SelectionScene,
-                              .objectDrawCounter = &world.Runtime().objectDrawCounter,
-                              .crywolf = &world.Runtime().crywolf};
-    if (auto drawn = DrawGameWorldObjects(frame.batch, m_models, FrameObjects(), frame.polygon, &FrameLighting(),
-                                          frame.frameClock, pass);
+    const WorldObjects::GameObjectPass pass{
+        .map = map,
+        .originalFrame = frame.frames > 0,
+        .random = &FrameRandom(),
+        .worldClock = clock,
+        .particles = &FrameParticles(),
+        .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
+        { return Actors::Drawing::PublishPose(poseCarry, m_models, drawn, true); },
+        .sprites = &FrameSprites(),
+        .retainedPose = &poseCarry,
+        .modelState = &world.Runtime().objectModelState,
+        .publishProjectedPose = true,
+        .effects = &FrameEffects(),
+        // Q-C304: timeGetTime (0x6b8544) es el reloj del sistema; MuRet le presta el del dibujo.
+        .systemTime = [systemTime]() { return systemTime; },
+        .scene = SelectionScene,
+        .objectDrawCounter = &world.Runtime().objectDrawCounter,
+        .crywolf = &world.Runtime().crywolf};
+    if (auto drawn = WorldObjects::DrawGameWorldObjects(frame.batch, m_models, FrameObjects(), frame.polygon,
+                                                        &FrameLighting(), frame.frameClock, pass);
         !drawn.HasValue())
     {
         return Core::Unexpected(drawn.Error() + ", en la selección");
@@ -464,20 +468,20 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
                                                                       Kernel::PoseBuffer& poseCarry)
 {
     const float clock = Milliseconds(frame.frameClock);
-    GameDrawTailState& tail = FrameTail();
+    Scenes::GameDrawTailState& tail = FrameTail();
     // 0x52e590: las cintas.
-    if (auto ribbons = DrawRibbons(frame.batch, tail.ribbons); !ribbons.HasValue())
+    if (auto ribbons = Scenes::DrawRibbons(frame.batch, tail.ribbons); !ribbons.HasValue())
         return ribbons;
     // 0x53c6a0(0): las juntas.
-    const JointDrawResources joints{FrameRandom(), FrameSprites(), frame.frames > 0, clock};
-    if (auto drawn = DrawJoints(frame.batch, tail.joints, 0, joints); !drawn.HasValue())
+    const Scenes::JointDrawResources joints{FrameRandom(), FrameSprites(), frame.frames > 0, clock};
+    if (auto drawn = Scenes::DrawJoints(frame.batch, tail.joints, 0, joints); !drawn.HasValue())
         return drawn;
     // 0x52d620(0): los efectos con modelo; la mariposa de la escena 4 sale con +0x58 = −2 (0x600328).
     if (!terrain.heights)
     {
         return Core::Unexpected(std::string("0x52d620: faltan las alturas del terreno 54"));
     }
-    ModelEffectDrawResources resources{*terrain.heights, clock};
+    Scenes::ModelEffectDrawResources resources{*terrain.heights, clock};
     resources.onPose = [&](const Actors::Drawing::DrawnObject& object)
     { return Actors::Drawing::PublishPose(poseCarry, m_models, object, true); };
     resources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
@@ -487,8 +491,8 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
     resources.dynamicLighting = &FrameLighting();
     resources.random = &FrameRandom();
     const Terrain::SphereFrustum frustum = Terrain::SphereFrustumOf(frame.batch.Pass().view, camera);
-    if (auto drawn = DrawGameModelEffects(frame.batch, m_models, FrameEffects().Effects(), frustum, &FrameLighting(),
-                                          frame.frameClock, 0, resources, 0);
+    if (auto drawn = Scenes::DrawGameModelEffects(frame.batch, m_models, FrameEffects().Effects(), frustum,
+                                                  &FrameLighting(), frame.frameClock, 0, resources, 0);
         !drawn.HasValue())
     {
         return Core::Unexpected(drawn.Error() + ", en la selección");
@@ -511,7 +515,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
 
 Core::Expected<void, std::string> SelectionWorld::DrawEye(const Render::Pass3D& pass, const SelectionWorldFrame& frame,
                                                           const Assets::SceneTextures& sceneTextures,
-                                                          std::span<const DamageNumberState> damage)
+                                                          std::span<const Scenes::DamageNumberState> damage)
 {
     // 0x6213e0: la modelview en la identidad para el pase de ojo.
     Render::Pass3D eye = pass;
@@ -520,19 +524,19 @@ Core::Expected<void, std::string> SelectionWorld::DrawEye(const Render::Pass3D& 
     const auto view = Render::ViewRows(pass.view);
     const SelectionTextureLibrary textures(m_models, sceneTextures);
     // 0x549440(0): dibuja y apaga los sprites.
-    DrawFrameSprites(frame.batch, FrameSprites(), textures, view, 0);
+    WorldObjects::DrawFrameSprites(frame.batch, FrameSprites(), textures, view, 0);
     // 0x548550(0): las partículas.
-    if (auto particles =
-            DrawGameParticles(frame.batch, FrameParticles(), textures, view, Milliseconds(frame.frameClock), 0);
+    if (auto particles = Effects::DrawGameParticles(frame.batch, FrameParticles(), textures, view,
+                                                    Milliseconds(frame.frameClock), 0);
         !particles.HasValue())
     {
         return Core::Unexpected(particles.Error() + ", en la selección");
     }
     // 0x548eb0(0): los números.
-    if (auto numbers = DrawDamage(frame.batch, damage, 0, view); !numbers.HasValue())
+    if (auto numbers = Scenes::DrawDamage(frame.batch, damage, 0, view); !numbers.HasValue())
         return numbers;
     if (frame.flushModels)
         frame.flushModels();
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

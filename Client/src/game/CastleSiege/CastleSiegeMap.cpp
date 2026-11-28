@@ -10,7 +10,7 @@
 #include <filesystem>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 Core::Expected<void, std::string> SetTheSiegeActive(std::uint8_t value, Kernel::WorldState& world,
                                                     Terrain::WorldTerrain* terrain,
@@ -38,4 +38,4 @@ Core::Expected<void, std::string> SetTheSiegeActive(std::uint8_t value, Kernel::
         return attributes;
     return light;
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

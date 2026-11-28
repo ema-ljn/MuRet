@@ -44,7 +44,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::PersonalShop
 {
 namespace
 {
@@ -139,19 +139,20 @@ constexpr std::int32_t PriceWarningText = 1132;
 // 0x5dc7ab: 0x54d0f0 con el modo 2.
 constexpr std::int32_t PriceValueMode = 2;
 
-const InventoryServices& ServicesOf(const GameUiContext& context)
+const Items::InventoryServices& ServicesOf(const Hud::GameUiContext& context)
 {
-    static const InventoryServices None{};
+    static const Items::InventoryServices None{};
     return context.inventory != nullptr ? *context.inventory : None;
 }
 
-bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
+bool InRect(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+            std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
 // Los dos rand() del C3 y el paquete por el cable. Sin el cable, el error con `where`.
-Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protocol::Outgoing outgoing,
+Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing outgoing,
                                            std::string_view where)
 {
     if (context.requests == nullptr)
@@ -173,13 +174,13 @@ std::array<std::byte, Shop::TitleSize> TitleBytes(const std::string& title)
 }
 
 // 0x5f8110(modo): el mapa de la propia (1) o de la de otro (2); con otro modo o sin armar, ninguno.
-std::map<std::int32_t, std::int32_t>* PricesOf(PersonalShopState& shops)
+std::map<std::int32_t, std::int32_t>* PricesOf(Social::PersonalShopState& shops)
 {
     if (!shops.pricesBuilt)
         return nullptr;
-    if (shops.mode == OwnShopView)
+    if (shops.mode == Social::OwnShopView)
         return &shops.ownPrices;
-    if (shops.mode == OtherShopView)
+    if (shops.mode == Social::OtherShopView)
         return &shops.otherPrices;
     return nullptr;
 }
@@ -187,7 +188,7 @@ std::map<std::int32_t, std::int32_t>* PricesOf(PersonalShopState& shops)
 // 0x5ea37f..0x5ea3f4: cada ítem de la grilla con su precio de más de 0, alguno y el título.
 bool TheShopIsReady(Kernel::WorldState& world)
 {
-    PersonalShopState& shops = world.Runtime().social.personalShop;
+    Social::PersonalShopState& shops = world.Runtime().social.personalShop;
     bool empty = true;
     for (const Kernel::ItemState& cell : world.Inventory().secondCells)
     {
@@ -198,7 +199,7 @@ bool TheShopIsReady(Kernel::WorldState& world)
         if (prices == nullptr)
             return false;
         const std::int32_t place =
-            cell.gridColumn + cell.gridRow * ShopColumns + static_cast<std::int32_t>(FirstSecondGridSlot);
+            cell.gridColumn + cell.gridRow * ShopColumns + static_cast<std::int32_t>(Items::FirstSecondGridSlot);
         const auto found = prices->find(place);
         if (found == prices->end() || found->second <= 0)
             return false;
@@ -211,15 +212,15 @@ bool TheShopIsReady(Kernel::WorldState& world)
 }
 
 // 0x5ea3a3..0x5eaa4f: el botón de abrir.
-Core::Expected<void, std::string> PressTheOpenButton(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    PersonalShopState& shops = runtime.social.personalShop;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
     runtime.movement.pendingClick = false;
     if (!TheShopIsReady(context.world))
     {
         // 0x5eaa3b: 0x555190 con el nombre de 0x78abb7c, que nadie escribe (*inferido*, 08 P-C72).
-        const InventoryServices& services = ServicesOf(context);
+        const Items::InventoryServices& services = ServicesOf(context);
         if (!services.systemMessage)
             return Core::Unexpected(std::string("0x5eaa47: 0x555190 con el texto 1119 sin el chat"));
         return services.systemMessage(MissingPriceText, ErrorType);
@@ -230,7 +231,7 @@ Core::Expected<void, std::string> PressTheOpenButton(const GameUiContext& contex
             !sent.HasValue())
             return sent;
         // 0x5ea99a..0x5ea9ae: 0x65cae0(0x4000000, 0).
-        if (auto closed = panels.Close(UI::InventoryPanel); !closed.HasValue())
+        if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         return {};
     }
@@ -247,11 +248,12 @@ Core::Expected<void, std::string> PressTheOpenButton(const GameUiContext& contex
 }
 
 // 0x5dc807.. y 0x5da5ac..: el precio escrito al lugar del ítem.
-Core::Expected<void, std::string> SetThePrice(const GameUiContext& context, const InventoryMoveContext& moves)
+Core::Expected<void, std::string> SetThePrice(const Hud::GameUiContext& context,
+                                              const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    PersonalShopState& shops = runtime.social.personalShop;
-    SocialState& social = runtime.social;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
+    Social::SocialState& social = runtime.social;
     // 0x5dc807..0x5dcd38: con la tienda abierta, el C1 04 3F 03.
     if (shops.ownOpen != 0)
     {
@@ -268,8 +270,8 @@ Core::Expected<void, std::string> SetThePrice(const GameUiContext& context, cons
             return sent;
         if (runtime.ui.field78abb39 == 0)
         {
-            if (auto moved = SendTheCursorItem(moves, static_cast<std::uint8_t>(runtime.itemMoveTarget & 0xff),
-                                               InventoryGridFlag, ShopGridFlag);
+            if (auto moved = Items::SendTheCursorItem(moves, static_cast<std::uint8_t>(runtime.itemMoveTarget & 0xff),
+                                                      Items::InventoryGridFlag, Items::ShopGridFlag);
                 !moved.HasValue())
                 return moved;
         }
@@ -285,11 +287,12 @@ Core::Expected<void, std::string> SetThePrice(const GameUiContext& context, cons
 }
 
 // 0x5dc79e..0x5deac0: la respuesta del diálogo del precio.
-Core::Expected<bool, std::string> AnswerThePriceDialog(const GameUiContext& context, const InventoryMoveContext& moves)
+Core::Expected<bool, std::string> AnswerThePriceDialog(const Hud::GameUiContext& context,
+                                                       const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    TradeState& trade = runtime.social.trade;
-    PersonalShopState& shops = runtime.social.personalShop;
+    Social::TradeState& trade = runtime.social.trade;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
     if (trade.warningByte == Yes)
     {
         shops.dialogMode = 0;
@@ -297,15 +300,15 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const GameUiContext& cont
         if (moves.services.items == nullptr)
             return Core::Unexpected(std::string("0x5dc7c3: 0x54d0f0 sin Item.bmd"));
         // 0x5dc7c3: el valor del ítem de 0x78a59c8; el cuervo y el caballo, sin los niveles de 0x723968, cortan.
-        auto value = ItemPrice(runtime.dialogItem, *moves.services.items, PriceValueMode, std::nullopt);
+        auto value = Items::ItemPrice(runtime.dialogItem, *moves.services.items, PriceValueMode, std::nullopt);
         if (!value.HasValue())
             return Core::Unexpected(std::move(value).Error());
         if (static_cast<std::uint32_t>(runtime.social.typedMoney) < value.Value())
         {
             // 0x5dc7d5: 0x633300(2, 1132, 0x99), con el zen tipeado escrito por 0x5b1130.
-            auto warned = UI::OpenTheMoneyTextDialog(runtime.dialogBox, runtime.dialogs, context.texts,
-                                                     PriceWarningLines, PriceWarningText,
-                                                     FormatZen(static_cast<std::uint32_t>(runtime.social.typedMoney)));
+            auto warned = Ui::OpenTheMoneyTextDialog(
+                runtime.dialogBox, runtime.dialogs, context.texts, PriceWarningLines, PriceWarningText,
+                Ui::FormatZen(static_cast<std::uint32_t>(runtime.social.typedMoney)));
             if (!warned.HasValue())
                 return Core::Unexpected(std::move(warned).Error());
             trade.warningKind = PriceWarningKind;
@@ -320,18 +323,18 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const GameUiContext& cont
     {
         shops.dialogMode = 0;
         trade.warningByte = NoAnswer;
-        if (auto returned = ReturnTheCursorItem(moves); !returned.HasValue())
+        if (auto returned = Items::ReturnTheCursorItem(moves); !returned.HasValue())
             return Core::Unexpected(std::move(returned).Error());
     }
     return false;
 }
 
 // 0x5d8e00..0x5dc790: el aviso `kind` (de 1 a 6) con su respuesta.
-Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context, const InventoryMoveContext& moves,
-                                                   std::int32_t kind)
+Core::Expected<bool, std::string> AnswerTheWarning(const Hud::GameUiContext& context,
+                                                   const Items::InventoryMoveContext& moves, std::int32_t kind)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    TradeState& trade = runtime.social.trade;
+    Social::TradeState& trade = runtime.social.trade;
     const std::uint8_t answer = trade.warningByte;
     if (answer != Yes && answer != No)
         return false;
@@ -347,7 +350,7 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
     case 4:
         // La venta (0x5d8e0d y 0x5d931f), la mezcla (0x5d934f) y el del panel 0x2000 (0x5d9b82), de las ventanas de NPC
         // (CL9 hito 6).
-        if (auto answered = AnswerTheNpcWarning(context, kind); !answered.HasValue())
+        if (auto answered = Npc::AnswerTheNpcWarning(context, kind); !answered.HasValue())
             return Core::Unexpected(std::move(answered).Error());
         return false;
     case TradeWarningKind:
@@ -372,7 +375,7 @@ Core::Expected<bool, std::string> AnswerTheWarning(const GameUiContext& context,
         if (answer == No)
             return false;
         // 0x5d9c82..0x5da58d: con la clave del dueño (su WORD bajo), el 3F 06.
-        const PersonalShopState& shops = runtime.social.personalShop;
+        const Social::PersonalShopState& shops = runtime.social.personalShop;
         if (shops.ownerKey == 0)
             return false;
         const auto slot = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff);
@@ -403,17 +406,17 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
 {
     if (mode != ShopTitleMode && mode != ShopPriceMode)
         return;
-    UI::PushDialog(runtime.dialogs, ShopDialogId);
+    Ui::PushDialog(runtime.dialogs, ShopDialogId);
     runtime.social.personalShop.dialogMode = mode;
     runtime.ui.chatOpen = false;
     runtime.social.moneyField = mode == ShopPriceMode ? 1 : 0;
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    Chat::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.social.dialogFieldLimit = mode == ShopPriceMode ? PriceFieldLimit : TitleFieldLimit;
     // Con 0x6c7b8c en 1: la vtable + 4 con 0 (a la vista), +0x4c, la + 0x44 con (0, 0, 0, 0) (el fondo), el tope, el
     // tamaño y el lugar. El foco y el dibujo son del dibujo del 0x91 (0x6305c9).
     const bool price = mode == ShopPriceMode;
-    UI::OldEdit& edit = runtime.chat.input.dialogEdit;
-    edit.base.state = UI::ShownWindow;
+    Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+    edit.base.state = Ui::ShownWindow;
     edit.filter = price ? PriceEditFilter : TitleEditFilter;
     edit.backgroundColor = 0;
     edit.text.SetLimit(price ? PriceEditLimit : TitleEditLimit);
@@ -423,12 +426,12 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
     edit.base.y = ShopEditY;
 }
 
-Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
-    PersonalShopState& shops = runtime.social.personalShop;
-    SocialState& social = runtime.social;
+    Chat::ChatInputState& input = runtime.chat.input;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
+    Social::SocialState& social = runtime.social;
     bool& click = runtime.movement.pendingClick;
     const auto in = [&context](std::int32_t left, std::int32_t right)
     {
@@ -443,29 +446,30 @@ Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context
     {
         pressed = 1;
         click = false;
-        UI::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
-        input.messageLength = static_cast<std::int32_t>(UI::CStringOf(input.messageBuffer).size());
-        const std::string_view typed = UI::CStringOf(input.messageBuffer);
+        Chat::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
+        input.messageLength = static_cast<std::int32_t>(Chat::CStringOf(input.messageBuffer).size());
+        const std::string_view typed = Chat::CStringOf(input.messageBuffer);
         if (shops.dialogMode == ShopTitleMode)
         {
             const std::span<const std::string> filter =
                 context.chat != nullptr ? context.chat->filter : std::span<const std::string>{};
-            if (UI::IsAShopTitle(typed, filter))
+            if (FrontEnd::IsAShopTitle(typed, filter))
                 shops.ownTitle = std::string(typed);
             else
             {
-                const std::optional<std::string_view> text = UI::TextAt(context.texts, BadTitleText);
+                const std::optional<std::string_view> text = Ui::TextAt(context.texts, BadTitleText);
                 if (!text)
                     return Core::Unexpected(std::format("0x6261cc: sin el texto {} de Text.bmd", BadTitleText));
                 if (context.measure == nullptr)
                     return Core::Unexpected(std::string("0x6261d6: el mensaje del texto 1130 sin medidor"));
-                if (auto said = AddGameMessage(runtime, *context.measure, context.screen, {}, *text, UI::SystemMessage);
+                if (auto said =
+                        Chat::AddGameMessage(runtime, *context.measure, context.screen, {}, *text, Ui::SystemMessage);
                     !said.HasValue())
                     return said;
             }
         }
         else if (shops.dialogMode == ShopPriceMode)
-            social.typedMoney = AtoiLikeTheCrt(typed);
+            social.typedMoney = Chat::AtoiLikeTheCrt(typed);
     }
     // 0x6261f7..0x626230: el cancelar, con el clic que quede.
     if (click && in(ShopCancelLeft, ShopCancelRight))
@@ -485,27 +489,27 @@ Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context
         return {};
     // 0x626251..0x626291: el OK responde 1 con un título no vacío (0x78aba64) o un precio mayor que 0 (con signo);
     // si no, 2. 0x6c932e es la respuesta que miran el paso de la ventana (0x5ea2f1) y el del precio (0x5dc79e).
-    TradeState& trade = social.trade;
+    Social::TradeState& trade = social.trade;
     trade.warningByte = static_cast<std::uint8_t>(No);
     if (ok && ((shops.dialogMode == ShopTitleMode && !shops.ownTitle.empty()) ||
                (shops.dialogMode == ShopPriceMode && social.typedMoney > 0)))
         trade.warningByte = static_cast<std::uint8_t>(Yes);
     // 0x62629a..0x6262d0: los campos de texto vacíos (0x553570(0), con el EDIT), el campo del chat cerrado, el foco a
     // la ventana del juego y el diálogo que espera abierto.
-    UI::ResetTheTextBuffers(input, false);
+    Chat::ResetTheTextBuffers(input, false);
     runtime.ui.chatOpen = false;
-    input.focus = UI::ChatFocus::Game;
+    input.focus = Chat::ChatFocus::Game;
     runtime.dialogs.current = runtime.dialogs.pending;
     runtime.dialogs.pending = 0;
     return {};
 }
 
-bool OpenTheConfirmBox(ConfirmBoxState& box, UI::DialogState& dialogs, std::int32_t id, std::string_view text,
+bool OpenTheConfirmBox(Social::ConfirmBoxState& box, Ui::DialogState& dialogs, std::int32_t id, std::string_view text,
                        std::int32_t type)
 {
     if (dialogs.current == ConfirmDialog)
         return false;
-    UI::PushDialog(dialogs, ConfirmDialog);
+    Ui::PushDialog(dialogs, ConfirmDialog);
     if (type <= 0 || type > TwoButtons)
         return false;
     box.id = id;
@@ -527,13 +531,13 @@ bool OpenTheConfirmBox(ConfirmBoxState& box, UI::DialogState& dialogs, std::int3
     return true;
 }
 
-Core::Expected<void, std::string> StepTheConfirmBox(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
     if (runtime.dialogs.current != ConfirmDialog || !click)
         return {};
-    const ConfirmBoxState& box = runtime.social.confirmBox;
+    const Social::ConfirmBoxState& box = runtime.social.confirmBox;
     // 0x471956..0x471978: el alto, entero, y su float.
     const auto lines = static_cast<std::int32_t>(box.lines.size());
     const std::int32_t height = (Render::Text::FontStepFor(context.screen.width) + ConfirmLineGap) * lines;
@@ -567,7 +571,7 @@ Core::Expected<void, std::string> StepTheConfirmBox(const GameUiContext& context
     return {};
 }
 
-Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& context, std::int32_t id,
+Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& context, std::int32_t id,
                                                       std::int32_t answer)
 {
     if (id != OpenShopConfirm || (answer != Yes && answer != No))
@@ -579,7 +583,7 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& conte
         if (auto sent = SendInC3(context, Shop::WriteOpenShop(TitleBytes(title)), "0x62378b"); !sent.HasValue())
             return sent;
         // 0x623daa: 0x657a90, con lo que cierra mandando lo suyo (el 3D, el 3F 07 y el 31).
-        GamePanels panels(context.world, context.random);
+        Hud::GamePanels panels(context.world, context.random);
         panels.LendTheSession(context.world, context.random, context.requests);
         if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
             return closed;
@@ -590,14 +594,15 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& conte
     return {};
 }
 
-Core::Expected<void, std::string> StepThePersonalShopWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiContext& context,
+                                                            Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel))
+    if (!panels.IsOpen(Ui::PersonalShopPanel) && !panels.IsOpen(Ui::OtherShopPanel))
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    PersonalShopState& shops = runtime.social.personalShop;
-    TradeState& trade = runtime.social.trade;
-    if (shops.mode != OwnShopView)
+    Social::PersonalShopState& shops = runtime.social.personalShop;
+    Social::TradeState& trade = runtime.social.trade;
+    if (shops.mode != Social::OwnShopView)
         return {};
     // 0x5ea2f1..0x5ea310.
     if (shops.dialogMode == ShopTitleMode && (trade.warningByte == Yes || trade.warningByte == No))
@@ -633,7 +638,8 @@ Core::Expected<void, std::string> StepThePersonalShopWindow(const GameUiContext&
     return {};
 }
 
-Core::Expected<bool, std::string> StepTheWarningAnswers(const GameUiContext& context, const InventoryMoveContext& moves)
+Core::Expected<bool, std::string> StepTheWarningAnswers(const Hud::GameUiContext& context,
+                                                        const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::int32_t kind = runtime.social.trade.warningKind;
@@ -643,4 +649,4 @@ Core::Expected<bool, std::string> StepTheWarningAnswers(const GameUiContext& con
         return AnswerThePriceDialog(context, moves);
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::PersonalShop

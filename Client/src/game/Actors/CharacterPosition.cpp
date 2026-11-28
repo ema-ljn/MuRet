@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace Client::GameLogic
+namespace Client::Actors
 {
 namespace
 {
@@ -75,4 +75,4 @@ void UpdateCharacterPosition(CharacterPositionState state, const std::function<d
     assert(height);
     static_cast<void>(TryUpdateCharacterPosition(state, speed, height));
 }
-} // namespace Client::GameLogic
+} // namespace Client::Actors

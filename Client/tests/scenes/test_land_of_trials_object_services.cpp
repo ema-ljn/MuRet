@@ -24,18 +24,18 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::GameObjectPass;
-using Client::Scenes::LandOfTrialsBody;
-using Client::Scenes::StepLandOfTrialsObjectFrame;
-using Client::World::Particle;
-using Client::World::WorldObject;
+using Client::MapScripts::LandOfTrials::LandOfTrialsBody;
+using Client::MapScripts::LandOfTrials::StepLandOfTrialsObjectFrame;
+using Client::Particles::Particle;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TrialsMap = 31;
 
 struct Fixture
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
     Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
 
@@ -71,10 +71,10 @@ struct Fixture
         return alive;
     }
 
-    [[nodiscard]] std::vector<const Client::World::Sprite*> Sprites() const
+    [[nodiscard]] std::vector<const Client::Particles::Sprite*> Sprites() const
     {
-        std::vector<const Client::World::Sprite*> alive;
-        for (const Client::World::Sprite& sprite : sprites->Sprites())
+        std::vector<const Client::Particles::Sprite*> alive;
+        for (const Client::Particles::Sprite& sprite : sprites->Sprites())
             if (sprite.alive)
                 alive.push_back(&sprite);
         return alive;

@@ -16,14 +16,14 @@
 // y el fundido de cada dibujo (0x65dcd0).
 namespace
 {
-using Client::Scenes::MapBanner;
-using Client::Scenes::MapBannerState;
+using Client::Hud::MapBanner;
+using Client::Hud::MapBannerState;
 
 // 0x65d080: el mapa → Interface\*.tga; del 11 al 17 Blood Castle, del 18 al 23 Chaos Castle, del 24 al 29 y el 36
 // Kalima. El 5, el 32 y el 35 no están.
 TEST(MapBannerTest, TheTableHasTheImageOfEachMap)
 {
-    const MapBanner banner = Client::Scenes::MakeTheMapBanner();
+    const MapBanner banner = Client::Hud::MakeTheMapBanner();
     EXPECT_EQ(banner.files.size(), 34u);
     EXPECT_EQ(banner.files.at(0), "Interface\\lorencia.tga");
     EXPECT_EQ(banner.files.at(1), "Interface\\dungeun.tga");
@@ -44,11 +44,11 @@ TEST(MapBannerTest, TheTableHasTheImageOfEachMap)
 // el alfa en 1.
 TEST(MapBannerTest, TheResetLeavesItOffWithoutAMap)
 {
-    MapBanner banner = Client::Scenes::MakeTheMapBanner();
+    MapBanner banner = Client::Hud::MakeTheMapBanner();
     banner.state = MapBannerState::FadingOut;
     banner.elapsed = 99;
 
-    Client::Scenes::ResetTheMapBanner(banner, 1234);
+    Client::Hud::ResetTheMapBanner(banner, 1234);
 
     EXPECT_EQ(banner.state, MapBannerState::Off);
     EXPECT_EQ(banner.shownMap, -1);
@@ -62,10 +62,10 @@ TEST(MapBannerTest, TheResetLeavesItOffWithoutAMap)
 // árbol, que lo mete vacío.
 TEST(MapBannerTest, ShowingAskForTheImageOfANewMapOnce)
 {
-    MapBanner banner = Client::Scenes::MakeTheMapBanner();
-    Client::Scenes::ResetTheMapBanner(banner, 0);
+    MapBanner banner = Client::Hud::MakeTheMapBanner();
+    Client::Hud::ResetTheMapBanner(banner, 0);
 
-    Client::Scenes::ShowTheMapBanner(banner, 2);
+    Client::Hud::ShowTheMapBanner(banner, 2);
     EXPECT_EQ(banner.state, MapBannerState::FadingIn);
     EXPECT_EQ(banner.alpha, 0.2f);
     EXPECT_EQ(banner.elapsed, 0u);
@@ -75,11 +75,11 @@ TEST(MapBannerTest, ShowingAskForTheImageOfANewMapOnce)
 
     banner.pendingImage.reset();
     banner.state = MapBannerState::Holding;
-    Client::Scenes::ShowTheMapBanner(banner, 2);
+    Client::Hud::ShowTheMapBanner(banner, 2);
     EXPECT_EQ(banner.state, MapBannerState::FadingIn);
     EXPECT_FALSE(banner.pendingImage.has_value());
 
-    Client::Scenes::ShowTheMapBanner(banner, 5);
+    Client::Hud::ShowTheMapBanner(banner, 5);
     ASSERT_TRUE(banner.pendingImage.has_value());
     EXPECT_EQ(*banner.pendingImage, "");
     EXPECT_TRUE(banner.files.contains(5));
@@ -90,15 +90,15 @@ TEST(MapBannerTest, ShowingAskForTheImageOfANewMapOnce)
 // 5.000 ms de timeGetTime (JBE, sin signo) y sale de a 0,015 hasta 0, cuando se apaga. El reloj se guarda siempre.
 TEST(MapBannerTest, ItFadesInHoldsFiveSecondsAndFadesOut)
 {
-    MapBanner banner = Client::Scenes::MakeTheMapBanner();
-    Client::Scenes::ResetTheMapBanner(banner, 0);
-    Client::Scenes::ShowTheMapBanner(banner, 0);
+    MapBanner banner = Client::Hud::MakeTheMapBanner();
+    Client::Hud::ResetTheMapBanner(banner, 0);
+    Client::Hud::ShowTheMapBanner(banner, 0);
     std::uint32_t now = 0;
     int steps = 0;
     while (banner.state == MapBannerState::FadingIn && steps < 1000)
     {
         now += 20;
-        Client::Scenes::StepTheMapBanner(banner, now);
+        Client::Hud::StepTheMapBanner(banner, now);
         ++steps;
     }
     // De 0,2 a 1 de a 0,015: 0,2 + 54 · 0,015 = 1,01 es el primero que llega.
@@ -108,18 +108,18 @@ TEST(MapBannerTest, ItFadesInHoldsFiveSecondsAndFadesOut)
     EXPECT_EQ(banner.last, now);
 
     now += 5000;
-    Client::Scenes::StepTheMapBanner(banner, now);
+    Client::Hud::StepTheMapBanner(banner, now);
     EXPECT_EQ(banner.state, MapBannerState::Holding);
     EXPECT_EQ(banner.elapsed, 5000u);
     now += 1;
-    Client::Scenes::StepTheMapBanner(banner, now);
+    Client::Hud::StepTheMapBanner(banner, now);
     EXPECT_EQ(banner.state, MapBannerState::FadingOut);
     EXPECT_EQ(banner.elapsed, 0u);
 
     steps = 0;
     while (banner.state == MapBannerState::FadingOut && steps < 1000)
     {
-        Client::Scenes::StepTheMapBanner(banner, now);
+        Client::Hud::StepTheMapBanner(banner, now);
         ++steps;
     }
     EXPECT_EQ(steps, 67);
@@ -138,15 +138,15 @@ TEST(MapBannerTest, TheImageGoesToItsSlotAndAMissingOneCuts)
     Client::Tests::WriteSceneFile(data.Path(), "Interface/noria.OZT", Client::Tests::PlainOzt(8, 4));
     Client::Tests::WriteSceneFile(data.Path(), "Interface/devias.OZT", Client::Tests::PlainOzt(4, 4, 24));
     Client::Tests::FakeTextureStore store;
-    const Client::Render::TextureSlot slot{Client::Scenes::MapBannerSlot};
-    MapBanner banner = Client::Scenes::MakeTheMapBanner();
-    Client::Scenes::ResetTheMapBanner(banner, 0);
-    const auto upload = [&] { return Client::Scenes::UploadTheMapBanner(banner, data.Path(), store); };
+    const Client::Render::TextureSlot slot{Client::Hud::MapBannerSlot};
+    MapBanner banner = Client::Hud::MakeTheMapBanner();
+    Client::Hud::ResetTheMapBanner(banner, 0);
+    const auto upload = [&] { return Client::Hud::UploadTheMapBanner(banner, data.Path(), store); };
 
     ASSERT_TRUE(upload().HasValue());
     EXPECT_EQ(store.loadCalls, 0);
 
-    Client::Scenes::ShowTheMapBanner(banner, 0);
+    Client::Hud::ShowTheMapBanner(banner, 0);
     const auto lorencia = upload();
     ASSERT_TRUE(lorencia.HasValue()) << lorencia.Error();
     EXPECT_FALSE(banner.pendingImage.has_value());
@@ -156,26 +156,26 @@ TEST(MapBannerTest, TheImageGoesToItsSlotAndAMissingOneCuts)
     EXPECT_EQ(first->sampling.filter, Client::Data::Textures::Filter::Nearest);
     EXPECT_EQ(first->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
 
-    Client::Scenes::ShowTheMapBanner(banner, 3);
+    Client::Hud::ShowTheMapBanner(banner, 3);
     const auto noria = upload();
     ASSERT_TRUE(noria.HasValue()) << noria.Error();
     const auto second = store.Find(slot);
     ASSERT_TRUE(second.has_value());
     EXPECT_EQ(second->texture.width, 8);
 
-    Client::Scenes::ShowTheMapBanner(banner, 2);
+    Client::Hud::ShowTheMapBanner(banner, 2);
     const auto devias = upload();
     ASSERT_TRUE(devias.HasValue()) << devias.Error();
     EXPECT_FALSE(banner.pendingImage.has_value());
     EXPECT_EQ(store.Find(slot)->texture.width, 8);
     EXPECT_EQ(store.loadCalls, 2);
 
-    Client::Scenes::ShowTheMapBanner(banner, 1);
+    Client::Hud::ShowTheMapBanner(banner, 1);
     const auto dungeon = upload();
     ASSERT_FALSE(dungeon.HasValue());
     EXPECT_NE(dungeon.Error().find("dungeun"), std::string::npos) << dungeon.Error();
 
-    Client::Scenes::ShowTheMapBanner(banner, 5);
+    Client::Hud::ShowTheMapBanner(banner, 5);
     EXPECT_FALSE(upload().HasValue());
     EXPECT_EQ(store.loadCalls, 2);
 }

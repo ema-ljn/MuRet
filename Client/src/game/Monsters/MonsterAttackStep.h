@@ -17,7 +17,7 @@ struct ActorState;
 
 // CL9 hito 3, fase 2e-B: los casos de los monstruos de 0x4f5b70, lo que corre en cada paso de +0x381 después de
 // 0x4f97b0. 06, "El paso del ataque" y "Los casos de los monstruos (0x4f5b70)".
-namespace Client::Scenes
+namespace Client::Monsters
 {
 
 // 0x4f5b70 después de su rand() de 0x4f5b97 (que saca StepTheAttack): los seis ayudantes de los mapas (0x43a7a0 en
@@ -31,4 +31,4 @@ namespace Client::Scenes
 // `slot` es el lugar de `actor` en el pool.
 [[nodiscard]] Core::Expected<void, std::string> StepTheAttackCases(Kernel::ActorState& actor, std::size_t slot,
                                                                    const Actors::CharacterStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Monsters

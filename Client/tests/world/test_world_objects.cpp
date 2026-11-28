@@ -22,12 +22,12 @@
 #include <utility>
 #include <vector>
 
-// Client::World::CreateWorldObjects, StepWorldObject y DrawOf en los casos que los 276 vectores del
+// Client::WorldObjects::CreateWorldObjects, StepWorldObject y DrawOf en los casos que los 276 vectores del
 // mapa 55 no tocan (06 § El mundo del login, la revisión de la CL7.2), y StepWorldObjectChecked con los
 // casos de los mapas 0 y 2 (06 § Los objetos del juego).
 namespace
 {
-using Client::World::WorldObject;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 constexpr std::uint8_t Lorencia = 0;
@@ -39,22 +39,23 @@ std::vector<WorldObject> Created(std::int16_t type, float x, float y, std::uint8
     record.type = type;
     record.position = {x, y, 0.0f};
     record.scale = 1.0f;
-    return Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), map, Client::World::ObjectScene::Login);
+    return Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), map,
+                                                       Client::WorldObjects::ObjectScene::Login);
 }
 
 // 0x60666c: la posición por 0,000625f en la x87, sin redondear el producto, y ftol. En los múltiplos de
 // 1.600 el float sube al entero siguiente; la x87 no.
 TEST(WorldObjectsTest, TheSectorIsTheProductWithoutRounding)
 {
-    EXPECT_EQ(Client::World::SectorX(Created(1, 1600.0f, 0.0f).front()), 0);
-    EXPECT_EQ(Client::World::SectorX(Created(1, 14400.0f, 0.0f).front()), 8);
-    EXPECT_EQ(Client::World::SectorX(Created(1, 8000.0f, 0.0f).front()), 4);
+    EXPECT_EQ(Client::WorldObjects::SectorX(Created(1, 1600.0f, 0.0f).front()), 0);
+    EXPECT_EQ(Client::WorldObjects::SectorX(Created(1, 14400.0f, 0.0f).front()), 8);
+    EXPECT_EQ(Client::WorldObjects::SectorX(Created(1, 8000.0f, 0.0f).front()), 4);
     const auto edge = Created(1, 25600.0f, 25600.0f);
     ASSERT_EQ(edge.size(), 1u) << "25.600 es el sector 15: se crea";
-    EXPECT_EQ(Client::World::SectorX(edge.front()), 15);
-    EXPECT_EQ(Client::World::SectorY(edge.front()), 15);
-    EXPECT_EQ(Client::World::SectorX(Created(1, -1000.0f, 0.0f).front()), 0) << "ftol trunca hacia el 0";
-    EXPECT_EQ(Client::World::SectorX(Created(1, -1600.0f, 0.0f).front()), 0) << "−0,99999…: todavía el 0";
+    EXPECT_EQ(Client::WorldObjects::SectorX(edge.front()), 15);
+    EXPECT_EQ(Client::WorldObjects::SectorY(edge.front()), 15);
+    EXPECT_EQ(Client::WorldObjects::SectorX(Created(1, -1000.0f, 0.0f).front()), 0) << "ftol trunca hacia el 0";
+    EXPECT_EQ(Client::WorldObjects::SectorX(Created(1, -1600.0f, 0.0f).front()), 0) << "−0,99999…: todavía el 0";
     EXPECT_TRUE(Created(1, -1601.0f, 0.0f).empty());
     EXPECT_TRUE(Created(1, 25700.0f, 0.0f).empty());
 }
@@ -66,8 +67,8 @@ TEST(WorldObjectsTest, ANotANumberPositionGoesToSectorZeroAndIsCreated)
 {
     const auto objects = Created(86, 4000.0f, std::bit_cast<float>(0xFFFFFFFFu), Devias);
     ASSERT_EQ(objects.size(), 1u);
-    EXPECT_EQ(Client::World::SectorX(objects.front()), 2);
-    EXPECT_EQ(Client::World::SectorY(objects.front()), 0);
+    EXPECT_EQ(Client::WorldObjects::SectorX(objects.front()), 2);
+    EXPECT_EQ(Client::WorldObjects::SectorY(objects.front()), 0);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(objects.front().transform.position.y), 0xFFFFFFFFu);
 }
 
@@ -80,7 +81,7 @@ TEST(WorldObjectsTest, TheSectorIsTheSignedLowDwordOfFtol)
     {
         const auto objects = Created(1, x, 0.0f);
         ASSERT_EQ(objects.size(), 1u) << x;
-        EXPECT_EQ(Client::World::SectorX(objects.front()), 0) << x;
+        EXPECT_EQ(Client::WorldObjects::SectorX(objects.front()), 0) << x;
     }
     for (const float x :
          {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 0x1p74f, -0x1p74f})
@@ -96,8 +97,8 @@ TEST(WorldObjectsTest, TheWhirlpoolsKeepTheSectorOfTheFile)
     const auto whirlpool = Created(0x56, 100.0f, 100.0f);
     ASSERT_EQ(whirlpool.size(), 1u);
     EXPECT_EQ(whirlpool.front().transform.position.x, 8600.0f);
-    EXPECT_EQ(Client::World::SectorX(whirlpool.front()), 0);
-    EXPECT_EQ(Client::World::SectorY(whirlpool.front()), 0);
+    EXPECT_EQ(Client::WorldObjects::SectorX(whirlpool.front()), 0);
+    EXPECT_EQ(Client::WorldObjects::SectorY(whirlpool.front()), 0);
 }
 
 // Fija una inferencia: 06 da +0xdc = -50 de Bridge01 como *inferido*; falta su lectura estática (P-C35 del 08).
@@ -118,8 +119,8 @@ TEST(WorldObjectsTest, TheBridgeCullingMarginDependsOnItsMapNotItsScene)
     constexpr std::array cases{Case{0, 0xC2480000u}, Case{55, 0xC1F00000u}, Case{0, 0xC2480000u}, Case{54, 0xC1F00000u},
                                Case{10, 0xC1F00000u}};
     std::vector<WorldObject> objects;
-    for (const auto scene : {Client::World::ObjectScene::Other, Client::World::ObjectScene::Login,
-                             Client::World::ObjectScene::CharacterSelect})
+    for (const auto scene : {Client::WorldObjects::ObjectScene::Other, Client::WorldObjects::ObjectScene::Login,
+                             Client::WorldObjects::ObjectScene::CharacterSelect})
     {
         SCOPED_TRACE(static_cast<int>(scene));
         for (const Case& test : cases)
@@ -174,9 +175,9 @@ TEST(WorldObjectsTest, LorenciaCreationCoversEveryDirectType)
                                                     .position = {100.0f, 100.0f, 25.0f},
                                                     .angle = {10.0f, 20.0f, 30.0f},
                                                     .scale = 2.0f};
-        Client::World::WorldObjectRegistrations registry;
-        const auto objects = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
-                                                                         Client::World::ObjectScene::Other, &registry);
+        Client::WorldObjects::WorldObjectRegistrations registry;
+        const auto objects = Client::Tests::CheckedWorldObjectProjection(
+            std::span(&record, 1), Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
         ASSERT_EQ(objects.size(), 1u);
         const WorldObject& object = objects.front();
         std::int16_t blend = -1;
@@ -223,8 +224,9 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
                                Case{161, 0x3F4CCCCDu, 1.0f, 0, true}, Case{162, 0x400CCCCDu, 0.0f, 1, false},
                                Case{163, 0x40400000u, 0.5f, 0, true}, Case{164, 0x40000000u, 1.0f, 10, true},
                                Case{180, 0x40000000u, 1.0f, -1, true}};
-    for (const auto scene : {Client::World::ObjectScene::Login, Client::World::ObjectScene::CharacterSelect,
-                             Client::World::ObjectScene::Other})
+    for (const auto scene :
+         {Client::WorldObjects::ObjectScene::Login, Client::WorldObjects::ObjectScene::CharacterSelect,
+          Client::WorldObjects::ObjectScene::Other})
     {
         SCOPED_TRACE(static_cast<int>(scene));
         for (const std::uint8_t map : std::array<std::uint8_t, 3>{0, 55, 10})
@@ -235,12 +237,12 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
                 SCOPED_TRACE(test.type);
                 Client::Data::Terrain::TerrainObject record{
                     .type = test.type, .position = {1600.0f, 14400.0f, 25.0f}, .scale = 2.0f};
-                Client::World::WorldObjectRegistrations registry;
+                Client::WorldObjects::WorldObjectRegistrations registry;
                 const auto objects =
                     Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), map, scene, &registry);
                 ASSERT_EQ(objects.size(), 1u);
                 const WorldObject& object = objects.front();
-                const bool special = scene != Client::World::ObjectScene::Other;
+                const bool special = scene != Client::WorldObjects::ObjectScene::Other;
                 EXPECT_EQ(std::bit_cast<std::uint32_t>(object.transform.scale), special ? test.scale : 0x40000000u);
                 EXPECT_EQ(object.light, glm::vec3(special ? test.light : 0.0f));
                 EXPECT_EQ(object.state.blendMesh, special ? test.blend : -1);
@@ -257,7 +259,7 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
 // Detecta tabla descartada al crear otro batch, IDs ligados a direcciones y registro del tipo equivocado.
 TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTable)
 {
-    Client::World::WorldObjectRegistrations registry;
+    Client::WorldObjects::WorldObjectRegistrations registry;
     registry.nextIdentity = 1000;
     registry.entries[0] = {.active = 2, .metadata = {7, 6, 5, 4, 3, 2, 1}, .object = 987};
     const std::array<Client::Data::Terrain::TerrainObject, 7> records{
@@ -268,13 +270,13 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
         Client::Data::Terrain::TerrainObject{.type = 52, .position = {100.0f, 100.0f, 50.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 6, .position = {25700.0f, 100.0f, 60.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 6, .position = {100.0f, 100.0f, 70.0f}, .scale = 1.0f}};
-    auto first =
-        Client::Tests::CheckedWorldObjectProjection(records, Lorencia, Client::World::ObjectScene::Other, &registry);
+    auto first = Client::Tests::CheckedWorldObjectProjection(records, Lorencia,
+                                                             Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(first.size(), 6u);
     EXPECT_EQ(registry.entries[0].active, 2);
     EXPECT_EQ(registry.entries[0].object, 987u);
     EXPECT_EQ(registry.entries[0].metadata, (std::array<std::uint8_t, 7>{7, 6, 5, 4, 3, 2, 1}));
-    constexpr std::array<Client::World::WorldObjectIdentity, 5> registered{1000, 1001, 1002, 1003, 1005};
+    constexpr std::array<Client::WorldObjects::WorldObjectIdentity, 5> registered{1000, 1001, 1002, 1003, 1005};
     for (std::size_t index = 0; index < registered.size(); ++index)
     {
         EXPECT_EQ(registry.entries[index + 1].active, 1);
@@ -291,8 +293,8 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
     {
         EXPECT_EQ(moved[index].identity, 1000u + index);
     }
-    const auto second = Client::Tests::CheckedWorldObjectProjection(std::span(records).first(1), Lorencia,
-                                                                    Client::World::ObjectScene::Other, &registry);
+    const auto second = Client::Tests::CheckedWorldObjectProjection(
+        std::span(records).first(1), Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(second.size(), 1u);
     EXPECT_EQ(second[0].identity, 1006u);
     EXPECT_EQ(registry.entries[6].object, 1006u);
@@ -303,7 +305,7 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
 // Detecta que el límite auxiliar se confunda con un pool de objetos o reinicialice metadata/objetos.
 TEST(WorldObjectsTest, FullAuxiliaryTableStillCreatesEveryNewObject)
 {
-    Client::World::WorldObjectRegistrations registry;
+    Client::WorldObjects::WorldObjectRegistrations registry;
     for (auto& entry : registry.entries)
     {
         entry = {.active = 2, .metadata = {1, 2, 3, 4, 5, 6, 7}, .object = 99};
@@ -315,8 +317,8 @@ TEST(WorldObjectsTest, FullAuxiliaryTableStillCreatesEveryNewObject)
     {
         record = {.type = 133, .position = {100.0f, 100.0f, 0.0f}, .scale = 1.0f};
     }
-    const auto objects =
-        Client::Tests::CheckedWorldObjectProjection(records, Lorencia, Client::World::ObjectScene::Other, &registry);
+    const auto objects = Client::Tests::CheckedWorldObjectProjection(
+        records, Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 401u);
     EXPECT_EQ(registry.entries, previous);
     EXPECT_EQ(registry.nextIdentity, 501u);
@@ -339,14 +341,15 @@ TEST(WorldObjectsTest, RegistrationIsAMapCaseInEverySceneAndNotAnotherMap)
         Client::Data::Terrain::TerrainObject{.type = 133, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 145, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 146, .scale = 1.0f}};
-    for (const auto scene : {Client::World::ObjectScene::Login, Client::World::ObjectScene::CharacterSelect,
-                             Client::World::ObjectScene::Other})
+    for (const auto scene :
+         {Client::WorldObjects::ObjectScene::Login, Client::WorldObjects::ObjectScene::CharacterSelect,
+          Client::WorldObjects::ObjectScene::Other})
     {
         for (const std::uint8_t map : std::array<std::uint8_t, 3>{0, 1, 55})
         {
             SCOPED_TRACE(map);
             SCOPED_TRACE(static_cast<int>(scene));
-            Client::World::WorldObjectRegistrations registry;
+            Client::WorldObjects::WorldObjectRegistrations registry;
             const auto objects = Client::Tests::CheckedWorldObjectProjection(records, map, scene, &registry);
             ASSERT_EQ(objects.size(), 4u);
             EXPECT_EQ(registry.entries[0].active, map == 0 ? 1 : 0);
@@ -377,7 +380,7 @@ TEST(WorldObjectsTest, TreeSpeedRetainsTheWideReciprocalUntilItsOnlyStore)
             SCOPED_TRACE(type);
             Client::Data::Terrain::TerrainObject record{.type = type, .scale = std::bit_cast<float>(test.scale)};
             const auto objects = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
-                                                                             Client::World::ObjectScene::Other);
+                                                                             Client::WorldObjects::ObjectScene::Other);
             ASSERT_EQ(objects.size(), 1u);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].speed), test.speed);
             EXPECT_EQ(objects[0].boundsMinimum, glm::vec3(-150.0f, -150.0f, 0.0f));
@@ -389,18 +392,18 @@ TEST(WorldObjectsTest, TreeSpeedRetainsTheWideReciprocalUntilItsOnlyStore)
 // Detecta defaults prestados de actores y datos heredados del batch anterior.
 TEST(WorldObjectsTest, NewObjectsHaveFreshConstructorStateAndTheSecondPositionCopy)
 {
-    Client::World::WorldObjectRegistrations registry;
+    Client::WorldObjects::WorldObjectRegistrations registry;
     Client::Data::Terrain::TerrainObject record{
         .type = 6, .position = {1600.0f, 14400.0f, 25.0f}, .angle = {10.0f, 20.0f, 30.0f}, .scale = 2.0f};
     auto previous = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
-                                                                Client::World::ObjectScene::Other, &registry);
+                                                                Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(previous.size(), 1u);
     previous[0].alive = false;
     previous[0].alpha = 0.0f;
     previous[0].seen = true;
     previous[0].boundsMaximum = glm::vec3(900.0f);
-    const auto created = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
-                                                                     Client::World::ObjectScene::Other, &registry);
+    const auto created = Client::Tests::CheckedWorldObjectProjection(
+        std::span(&record, 1), Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(created.size(), 1u);
     const WorldObject& object = created[0];
     EXPECT_NE(object.identity, previous[0].identity);
@@ -431,9 +434,9 @@ TEST(WorldObjectsTest, SignedFileTypesOutsideTheMapZeroSelectorKeepDefaults)
     for (const std::int16_t type : std::array<std::int16_t, 6>{-32768, -515, -1, 151, 153, 32767})
     {
         Client::Data::Terrain::TerrainObject record{.type = type, .scale = 7.0f};
-        Client::World::WorldObjectRegistrations registry;
-        const auto objects = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
-                                                                         Client::World::ObjectScene::Other, &registry);
+        Client::WorldObjects::WorldObjectRegistrations registry;
+        const auto objects = Client::Tests::CheckedWorldObjectProjection(
+            std::span(&record, 1), Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
         ASSERT_EQ(objects.size(), 1u);
         EXPECT_EQ(objects[0].type, type);
         EXPECT_EQ(objects[0].state.blendMesh, -1);
@@ -453,11 +456,11 @@ TEST(WorldObjectsTest, RegistrationDoesNotChangeSectorAndInsertionDrawOrder)
         Client::Data::Terrain::TerrainObject{.type = 145, .position = {100.0f, 100.0f, 0.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 146, .position = {100.0f, 2000.0f, 0.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 52, .position = {2000.0f, 100.0f, 0.0f}, .scale = 1.0f}};
-    Client::World::WorldObjectRegistrations registry;
-    const auto objects =
-        Client::Tests::CheckedWorldObjectProjection(records, Lorencia, Client::World::ObjectScene::Other, &registry);
+    Client::WorldObjects::WorldObjectRegistrations registry;
+    const auto objects = Client::Tests::CheckedWorldObjectProjection(
+        records, Lorencia, Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 5u);
-    EXPECT_EQ(Client::World::DrawOrder(objects), (std::vector<std::size_t>{2, 1, 3, 4, 0}));
+    EXPECT_EQ(Client::WorldObjects::DrawOrder(objects), (std::vector<std::size_t>{2, 1, 3, 4, 0}));
     for (const WorldObject& object : objects)
     {
         EXPECT_FALSE(object.seen);
@@ -471,7 +474,7 @@ TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
     whirlpool.alpha = 0.005f;
     whirlpool.targetAlpha = 0.0f;
     const float yaw = whirlpool.transform.angles.z;
-    Client::World::StepWorldObject(whirlpool, Login, nullptr);
+    Client::WorldObjects::StepWorldObject(whirlpool, Login, nullptr);
     EXPECT_LT(whirlpool.alpha, 0.01f);
     EXPECT_EQ(whirlpool.transform.angles.z, yaw) << "el giro del caso 0x56 no corre";
     EXPECT_EQ(whirlpool.state.blendMesh, Client::Models::NoBlendMesh);
@@ -509,8 +512,8 @@ TEST(WorldObjectsTest, TheRoofsFollowTheLayerOfTheHero)
         WorldObject roof = Created(probe.type, 100.0f, 100.0f, probe.map).front();
         roof.targetAlpha = 0.5f;
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::World::StepWorldObjectChecked(
-            roof, probe.map, nullptr, random, Client::World::ObjectStepGlobals{.heroCellLayer = probe.layer});
+        const auto stepped = Client::WorldObjects::StepWorldObjectChecked(
+            roof, probe.map, nullptr, random, Client::WorldObjects::ObjectStepGlobals{.heroCellLayer = probe.layer});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(roof.targetAlpha, probe.target);
         EXPECT_EQ(random.State(), 7u);
@@ -534,8 +537,8 @@ TEST(WorldObjectsTest, TheWindowsFlickerWithARand)
         WorldObject window = Created(probe.type, 100.0f, 100.0f, probe.map).front();
         const float before = window.state.light;
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::World::StepWorldObjectChecked(window, probe.map, nullptr, random,
-                                                                   Client::World::ObjectStepGlobals{});
+        const auto stepped = Client::WorldObjects::StepWorldObjectChecked(window, probe.map, nullptr, random,
+                                                                          Client::WorldObjects::ObjectStepGlobals{});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
         Client::Crt::CrtRandom expected(7);
@@ -562,8 +565,8 @@ TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
         SCOPED_TRACE(probe.clock);
         WorldObject house = Created(probe.type, 100.0f, 100.0f, Lorencia).front();
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::World::StepWorldObjectChecked(
-            house, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{.worldClock = probe.clock});
+        const auto stepped = Client::WorldObjects::StepWorldObjectChecked(
+            house, Lorencia, nullptr, random, Client::WorldObjects::ObjectStepGlobals{.worldClock = probe.clock});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(house.state.uv.y,
                   static_cast<float>(static_cast<double>(probe.scroll) * static_cast<double>(0.001f)));
@@ -595,8 +598,8 @@ TEST(WorldObjectsTest, MissingStepDestinationsKeepTheirAddressAndRandomPrefix)
         WorldObject object = Created(probe.type, 100.0f, 100.0f, probe.map).front();
         object.alpha = 0.5f;
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::World::StepWorldObjectChecked(object, probe.map, nullptr, random,
-                                                                   Client::World::ObjectStepGlobals{});
+        const auto stepped = Client::WorldObjects::StepWorldObjectChecked(object, probe.map, nullptr, random,
+                                                                          Client::WorldObjects::ObjectStepGlobals{});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find(probe.address), std::string::npos) << stepped.Error();
         EXPECT_GT(object.alpha, 0.5f) << "el alpha ya fue hacia su meta";
@@ -612,17 +615,17 @@ TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
     window.alpha = 0.005f;
     window.targetAlpha = 0.0f;
     Client::Crt::CrtRandom random(7);
-    ASSERT_TRUE(
-        Client::World::StepWorldObjectChecked(window, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{})
-            .HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(window, Lorencia, nullptr, random,
+                                                             Client::WorldObjects::ObjectStepGlobals{})
+                    .HasValue());
     EXPECT_EQ(random.State(), 7u);
 
     WorldObject roof = Created(0x7d, 100.0f, 100.0f, Lorencia).front();
     roof.alpha = 0.005f;
     roof.targetAlpha = 0.0f;
-    ASSERT_TRUE(
-        Client::World::StepWorldObjectChecked(roof, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{})
-            .HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(roof, Lorencia, nullptr, random,
+                                                             Client::WorldObjects::ObjectStepGlobals{})
+                    .HasValue());
     EXPECT_EQ(roof.targetAlpha, 1.0f);
 }
 
@@ -633,18 +636,18 @@ TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
     WorldObject other = Created(1, 100.0f, 100.0f, 3).front();
     other.alpha = 0.5f;
     Client::Crt::CrtRandom random(7);
-    const auto stepped =
-        Client::World::StepWorldObjectChecked(other, 35, nullptr, random, Client::World::ObjectStepGlobals{});
+    const auto stepped = Client::WorldObjects::StepWorldObjectChecked(other, 35, nullptr, random,
+                                                                      Client::WorldObjects::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x604ab0"), std::string::npos) << stepped.Error();
     EXPECT_EQ(other.alpha, 0.5f);
 
     WorldObject whirlpool = Created(0x56, 100.0f, 100.0f).front();
     WorldObject login = whirlpool;
-    ASSERT_TRUE(
-        Client::World::StepWorldObjectChecked(whirlpool, Login, nullptr, random, Client::World::ObjectStepGlobals{})
-            .HasValue());
-    Client::World::StepWorldObject(login, Login, nullptr);
+    ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(whirlpool, Login, nullptr, random,
+                                                             Client::WorldObjects::ObjectStepGlobals{})
+                    .HasValue());
+    Client::WorldObjects::StepWorldObject(login, Login, nullptr);
     EXPECT_EQ(whirlpool.transform.angles.z, login.transform.angles.z);
     EXPECT_EQ(whirlpool.alpha, login.alpha);
     EXPECT_EQ(whirlpool.state.blendMesh, login.state.blendMesh);
@@ -659,7 +662,7 @@ TEST(WorldObjectsTest, TheRedOfAnUnlitObjectIsNotRoundedFirst)
     logo.vertexLight = false;
     logo.light = glm::vec3(std::bit_cast<float>(0x3F142C32u));
     const glm::vec3 terrain(std::bit_cast<float>(0x3F01DAADu));
-    const auto draw = Client::World::DrawOf(logo, terrain, Lorencia);
+    const auto draw = Client::WorldObjects::DrawOf(logo, terrain, Lorencia);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.x), 0x3F212877u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.y), 0x3F212876u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.z), 0x3F212876u);
@@ -670,25 +673,27 @@ TEST(WorldObjectsTest, TheRedOfAnUnlitObjectIsNotRoundedFirst)
 // va por el RenderBody común.
 TEST(WorldObjectsTest, TheLorenciaWaterspoutDrawsItsOwnMeshes)
 {
-    WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
+    WorldObject fountain = Created(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Lorencia).front();
     fountain.light = glm::vec3(0.25f);
     const glm::vec3 terrain(0.5f);
-    const auto draw = Client::World::DrawOf(fountain, terrain, Lorencia);
-    EXPECT_EQ(draw.kind, Client::World::ObjectDrawKind::Waterspout);
+    const auto draw = Client::WorldObjects::DrawOf(fountain, terrain, Lorencia);
+    EXPECT_EQ(draw.kind, Client::WorldObjects::ObjectDrawKind::Waterspout);
     EXPECT_TRUE(draw.posed);
     EXPECT_EQ(draw.state.blendMesh, 3);
     EXPECT_EQ(draw.color, glm::vec3(0.75f));
     EXPECT_TRUE(draw.vertexLight);
 
     WorldObject hidden = fountain;
-    hidden.state.hiddenMesh = Client::World::HiddenObject;
-    EXPECT_EQ(Client::World::DrawOf(hidden, terrain, Lorencia).kind, Client::World::ObjectDrawKind::Hidden);
+    hidden.state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    EXPECT_EQ(Client::WorldObjects::DrawOf(hidden, terrain, Lorencia).kind,
+              Client::WorldObjects::ObjectDrawKind::Hidden);
     WorldObject faded = fountain;
     faded.alpha = 0.005f;
-    EXPECT_EQ(Client::World::DrawOf(faded, terrain, Lorencia).kind, Client::World::ObjectDrawKind::Hidden);
+    EXPECT_EQ(Client::WorldObjects::DrawOf(faded, terrain, Lorencia).kind,
+              Client::WorldObjects::ObjectDrawKind::Hidden);
 
-    const WorldObject devias = Created(Client::World::Waterspout, 100.0f, 100.0f, Devias).front();
-    EXPECT_EQ(Client::World::DrawOf(devias, terrain, Devias).kind, Client::World::ObjectDrawKind::Body);
+    const WorldObject devias = Created(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Devias).front();
+    EXPECT_EQ(Client::WorldObjects::DrawOf(devias, terrain, Devias).kind, Client::WorldObjects::ObjectDrawKind::Body);
 }
 
 // La primera semilla desde 1 cuyo primer rand() es impar (`odd`) o par.
@@ -712,12 +717,12 @@ TEST(WorldObjectsTest, TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime)
     for (const bool odd : {true, false})
     {
         SCOPED_TRACE(odd);
-        WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
+        WorldObject fountain = Created(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Lorencia).front();
         fountain.state.light = 0.25f;
         fountain.state.uv.x = 0.5f;
         const std::uint32_t seed = SeedWithFirstRand(odd);
         Client::Crt::CrtRandom random(seed);
-        const auto stepped = Client::World::StepTheWaterspoutFrame(fountain, random, 1234.0f);
+        const auto stepped = Client::WorldObjects::StepTheWaterspoutFrame(fountain, random, 1234.0f);
         EXPECT_EQ(fountain.state.light, 1.0f);
         EXPECT_EQ(fountain.state.uv.y, static_cast<float>(-234.0 * static_cast<double>(0.001f)));
         EXPECT_EQ(fountain.state.uv.x, 0.5f);
@@ -744,12 +749,12 @@ TEST(WorldObjectsTest, TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime)
 // rand().
 TEST(WorldObjectsTest, TheWaterspoutFrameNeedsACreditedClock)
 {
-    WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
+    WorldObject fountain = Created(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Lorencia).front();
     fountain.state.light = 0.25f;
     fountain.state.uv.y = 0.5f;
     Client::Crt::CrtRandom random(7);
     const auto stepped =
-        Client::World::StepTheWaterspoutFrame(fountain, random, std::numeric_limits<float>::infinity());
+        Client::WorldObjects::StepTheWaterspoutFrame(fountain, random, std::numeric_limits<float>::infinity());
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x60301e"), std::string::npos) << stepped.Error();
     EXPECT_EQ(fountain.state.light, 1.0f);
@@ -767,11 +772,11 @@ TEST(WorldObjectsTest, TheLanternGlowIsOrange)
                                             std::bit_cast<std::uint32_t>(light.y),
                                             std::bit_cast<std::uint32_t>(light.z)};
     };
-    EXPECT_EQ(bits(Client::World::StreetLightGlowLight(0)),
+    EXPECT_EQ(bits(Client::WorldObjects::StreetLightGlowLight(0)),
               (std::array<std::uint32_t, 3>{0x3F333333u, 0x3EB33333u, 0x3E0F5C29u}));
-    EXPECT_EQ(bits(Client::World::StreetLightGlowLight(59)),
+    EXPECT_EQ(bits(Client::WorldObjects::StreetLightGlowLight(59)),
               (std::array<std::uint32_t, 3>{0x3F7D70A3u, 0x3EFD70A3u, 0x3E4AC083u}));
-    EXPECT_EQ(bits(Client::World::StreetLightGlowLight(13)),
+    EXPECT_EQ(bits(Client::WorldObjects::StreetLightGlowLight(13)),
               (std::array<std::uint32_t, 3>{0x3F547AE1u, 0x3ED47AE1u, 0x3E29FBE7u}));
 }
 } // namespace

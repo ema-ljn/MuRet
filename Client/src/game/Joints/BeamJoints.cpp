@@ -27,7 +27,7 @@
 #include <string>
 
 // El 0x618 (0x530860 y 0x535840): los rayos que vuelven al dueño y los que lo siguen.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -51,18 +51,18 @@ struct BeamOwner
     std::optional<glm::vec3> point4c{};
 };
 
-std::optional<BeamOwner> OwnerOf(const JointState& joint)
+std::optional<BeamOwner> OwnerOf(const Scenes::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return std::nullopt;
     if (joint.ownerKind == Kernel::JointOwnerKind::ModelEffect)
     {
-        const auto& effect = *static_cast<const World::ModelEffect*>(joint.ownerContext);
+        const auto& effect = *static_cast<const Effects::ModelEffect*>(joint.ownerContext);
         return BeamOwner{effect.alive, effect.transform.position, effect.point40, effect.point4c};
     }
     if (joint.ownerKind == Kernel::JointOwnerKind::ByType && joint.subtype == TarkanSubtype)
     {
-        const auto& object = *static_cast<const FaunaObject*>(joint.ownerContext);
+        const auto& object = *static_cast<const Fauna::FaunaObject*>(joint.ownerContext);
         return BeamOwner{object.active != 0, object.position, object.previousPosition, std::nullopt};
     }
     if (joint.ownerKind != Kernel::JointOwnerKind::ByType && joint.ownerKind != Kernel::JointOwnerKind::Actor)
@@ -91,7 +91,8 @@ bool Swerves(std::int32_t subtype)
     return subtype == 0xc || subtype == 0xd || subtype == 0x10;
 }
 
-Core::Expected<glm::vec3, std::string> PointOf(const JointState& joint, const BeamOwner& owner, std::uint32_t address)
+Core::Expected<glm::vec3, std::string> PointOf(const Scenes::JointState& joint, const BeamOwner& owner,
+                                               std::uint32_t address)
 {
     if (!FollowsThe4c(joint.subtype))
         return owner.point40;
@@ -102,7 +103,7 @@ Core::Expected<glm::vec3, std::string> PointOf(const JointState& joint, const Be
 }
 
 // 0x5322cc..0x5323ce: la luz de cada subtipo; la /7 y la /9 no la escriben aquí (la /9 ya tiene la suya).
-void PaintTheBeam(JointState& joint)
+void PaintTheBeam(Scenes::JointState& joint)
 {
     const auto bits = [](std::uint32_t red, std::uint32_t green, std::uint32_t blue)
     { return glm::vec3(std::bit_cast<float>(red), std::bit_cast<float>(green), std::bit_cast<float>(blue)); };
@@ -150,8 +151,8 @@ void PaintTheBeam(JointState& joint)
 }
 
 // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en la posición y con los ángulos del joint. Todas las del
-// 0x618 (0x5d5/0, /1, /3, /4 y 0x5f2/0x1f) las acepta World::Particles; un error suyo corta con la dirección.
-Core::Expected<void, std::string> Particle(const JointState& joint, const JointKernels::StepServices& services,
+// 0x618 (0x5d5/0, /1, /3, /4 y 0x5f2/0x1f) las acepta Particles::Particles; un error suyo corta con la dirección.
+Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, const JointKernels::StepServices& services,
                                            std::uint32_t address, std::int32_t type, std::int32_t subtype,
                                            const glm::vec3& light, float scale)
 {
@@ -168,7 +169,7 @@ Core::Expected<void, std::string> Particle(const JointState& joint, const JointK
 }
 
 // 0x538352..0x538387 y 0x53840c..0x538441: rand() · el sentido, % 5 (el resto de C), en x y en y.
-void Jitter(JointState& joint, CrtRandom& random)
+void Jitter(Scenes::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t Spread = 5;
     const auto step = [&random, &joint]
@@ -181,7 +182,7 @@ void Jitter(JointState& joint, CrtRandom& random)
 }
 
 // 0x5383a6..0x5383e7: (rand() % 5 + 3) · el sentido, en x y en y.
-void WideJitter(JointState& joint, CrtRandom& random)
+void WideJitter(Scenes::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t Spread = 5, Least = 3;
     const auto step = [&random, &joint]
@@ -196,7 +197,7 @@ void WideJitter(JointState& joint, CrtRandom& random)
 // 0x538313..0x538470: con la vida en 100 o más, gira y sube. La /0 suma 10 al rumbo y 6 a la z; la /0xc, 15 y 6 con
 // dos rand() en x y en y; la /0x10 resta 20 · el sentido y suma 8, con dos rand(); la /0xd resta 20 y suma 6, con dos
 // rand(); las demás (la /1, /6 y /9) restan 10 y suman 5.
-Core::Expected<void, std::string> Spin(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Spin(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
     if (Swerves(subtype) && services.random == nullptr)
@@ -238,7 +239,7 @@ Core::Expected<void, std::string> Spin(JointState& joint, const JointKernels::St
 // las demás) y 0x4e9810 los gira hacia el destino: el propio en la /6 y la /9, y en las demás el dueño (+0x10, la z +
 // 120), que queda en +0x58. A 35 o menos (o NaN) muere y pide el 0x5d5/1 y el sonido 0x23; de 35 a 70, con el rumbo
 // girado más de 20 y la velocidad en 20 o más, la velocidad − 10.
-Core::Expected<void, std::string> Return(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Return(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
     const bool swerves = Swerves(subtype);
@@ -272,8 +273,8 @@ Core::Expected<void, std::string> Return(JointState& joint, const JointKernels::
     if (!(distance > Hit))
     {
         joint.alive = false;
-        if (auto made = Particle(joint, services, 0x538577, World::LightningParticle, World::LightningHitSubtype,
-                                 joint.light, 1.0f);
+        if (auto made = Particle(joint, services, 0x538577, Particles::LightningParticle,
+                                 Particles::LightningHitSubtype, joint.light, 1.0f);
             !made.HasValue())
             return made;
         if (services.soundRequest != nullptr && *services.soundRequest)
@@ -288,7 +289,7 @@ Core::Expected<void, std::string> Return(JointState& joint, const JointKernels::
 // 0x5385d3..0x538704: v = ((rand() & 3) + 8) · 0,03f, la luz dinámica de radio 2 (v · 0,4f; v; v · 0,8f) y lo que
 // deja cada uno: la /6 y la /9 el 0x5d5/3 (escala 0,05f), la /0xc y la /0xd los sprites 0x5ac y 0x5fd (el segundo
 // girado rand() % 360), la /0x10 el 0x5f2/0x1f (escala 0,8f, luz (0,4; 0,8; 1)) y la /0 y la /1 el 0x5d5/0.
-Core::Expected<void, std::string> Glow(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Glow(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.random == nullptr)
         return Core::Unexpected(
@@ -300,7 +301,7 @@ Core::Expected<void, std::string> Glow(JointState& joint, const JointKernels::St
     constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38
     const double glow = static_cast<double>((services.random->Next() & GlowMask) + GlowBase) * GlowStep;
     const glm::vec3 color{F32(glow * GlowRed), F32(glow), F32(glow * GlowBlue)};
-    if (auto lit = World::AddDynamicLight(services.lighting, joint.position, color, GlowRadius, "0x53861c");
+    if (auto lit = WorldObjects::AddDynamicLight(services.lighting, joint.position, color, GlowRadius, "0x53861c");
         !lit.HasValue())
         return lit;
     const std::int32_t subtype = joint.subtype;
@@ -308,7 +309,7 @@ Core::Expected<void, std::string> Glow(JointState& joint, const JointKernels::St
     {
         constexpr std::int32_t SparkSubtype = 3;
         constexpr float SparkScale = std::bit_cast<float>(0x3d4ccccdu); // 0x5386ea
-        return Particle(joint, services, 0x5386ff, World::LightningParticle, SparkSubtype, joint.light, SparkScale);
+        return Particle(joint, services, 0x5386ff, Particles::LightningParticle, SparkSubtype, joint.light, SparkScale);
     }
     if (subtype == 0xc || subtype == 0xd)
     {
@@ -327,16 +328,16 @@ Core::Expected<void, std::string> Glow(JointState& joint, const JointKernels::St
         constexpr std::int32_t SmokeSubtype = 0x1f;
         constexpr float SmokeScale = std::bit_cast<float>(0x3f4ccccdu); // 0x53864a
         const glm::vec3 smoke{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3f4ccccdu), 1.0f};
-        return Particle(joint, services, 0x538674, World::BreathParticle, SmokeSubtype, smoke, SmokeScale);
+        return Particle(joint, services, 0x538674, Particles::BreathParticle, SmokeSubtype, smoke, SmokeScale);
     }
-    return Particle(joint, services, 0x538695, World::LightningParticle, World::LightningTrailSubtype, joint.light,
-                    1.0f);
+    return Particle(joint, services, 0x538695, Particles::LightningParticle, Particles::LightningTrailSubtype,
+                    joint.light, 1.0f);
 }
 
 // 0x53820e..0x53830e: el byte vivo del dueño en 0 apaga el joint y sale del paso sin la cola ni la vida. Vivo, la
 // posición sigue su +0x40 (la /2, /4, /5, /8, /0xa, /0xe y /0x11; la /8 además ensancha 10,1f) o su +0x4c (la /3,
 // /0xb y /0xf). La /2 y la /3 dejan el 0x5d5/0 y la /0xe y la /0xf el 0x5d5/4, con la luz del seno del reloj.
-Core::Expected<void, std::string> Follow(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Follow(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     const auto owner = OwnerOf(joint);
     if (!owner)
@@ -373,15 +374,15 @@ Core::Expected<void, std::string> Follow(JointState& joint, const JointKernels::
             std::format("0x53829d: el reloj del joint 0x618/{:#x} excede el seno canónico", joint.subtype));
     const double glow = *wave + Base;
     if (barrier)
-        return Particle(joint, services, 0x5386ff, World::LightningParticle, World::LightningTrailSubtype,
+        return Particle(joint, services, 0x5386ff, Particles::LightningParticle, Particles::LightningTrailSubtype,
                         {F32(glow * 0.5), F32(glow * Tenth), F32(glow)}, 1.0f);
     constexpr std::int32_t RedSubtype = 4;
-    return Particle(joint, services, 0x538309, World::LightningParticle, RedSubtype,
+    return Particle(joint, services, 0x538309, Particles::LightningParticle, RedSubtype,
                     {F32(glow), F32(glow * Tenth), F32(glow * Tenth)}, 1.0f);
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateBeamJoint(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateBeamJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                   CrtRandom& random)
 {
     // 0x532125: el ancho; 0x534ebc elige el grupo.
@@ -456,7 +457,7 @@ Core::Expected<void, std::string> CreateBeamJoint(JointState& joint, const Kerne
     return {};
 }
 
-Core::Expected<void, std::string> StepBeamJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepBeamJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     // 0x5381f3: la /7 (y lo que pasa de 0x11) va derecho a la cola.
     const std::int32_t subtype = joint.subtype;
@@ -474,4 +475,4 @@ Core::Expected<void, std::string> StepBeamJoint(JointState& joint, const JointKe
         return returned;
     return Glow(joint, services);
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

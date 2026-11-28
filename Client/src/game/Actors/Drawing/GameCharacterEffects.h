@@ -32,13 +32,17 @@ struct TerrainPolygon;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Effects
 {
-class FrameSprites;
 struct ModelEffect;
 class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::Particles
+{
+class FrameSprites;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Models
 {
@@ -75,13 +79,13 @@ struct GameCharacterEffectsPass
     // The global rand() of 0x69fd70.
     Crt::CrtRandom& random;
     // The frame's sprite table (0x5491e0). Needed only if a branch puts sprites.
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // The frame's particles (0x53fe70), joints (0x530860, born through `jointHooks`) and model effects (0x518cf0), for
     // what the full set creates. Needed only if a branch creates, in an original frame.
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     std::span<Scenes::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
-    World::ModelEffects* effects = nullptr;
+    Effects::ModelEffects* effects = nullptr;
     // Who creates those model effects (0x518cf0). Without it, they stop there.
     const IEffectHooks* effectHooks = nullptr;
     // The world, for the 0x518cf0 additions of the Dark Lord's actions 0x51 and 0x5b (the 0x621/2 of 0x50f9b3 and the
@@ -93,7 +97,7 @@ struct GameCharacterEffectsPass
     FullSetScan scan;
     // The party's places up to its count (PartyMembers): the Dark Lord's actions 0x51, 0x5b and 0x94 read them with the
     // frame below 2 (0x50f9c9).
-    std::span<const Scenes::PartySlot> party{};
+    std::span<const Social::PartySlot> party{};
     // The 400 characters (0x743a16c): the party members the 0x618 joints of those actions go to (0x50fa25). Without
     // them, they stop.
     std::span<const Kernel::ActorState> actors{};
@@ -148,7 +152,7 @@ struct GameRavenPass
     Crt::CrtRandom* random = nullptr;
     // The world's particles (0x743a198) and their clock (DAT_05767b88), for the 0x5ac/6 of the shout (0x418a26).
     // Without them, the shout stops at its first particle.
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     float worldClock = 0.0f;
     // The world's tables for state 5 (0x418aab..0x418c0a: the 0x5ac/1 joints of 0x530860 and the 0x117/3 and 0x113/0
     // effects of 0x518cf0) and for the end of the shout (0x418a8c: the 0x613/0xd joints toward the character of +0x3b0,

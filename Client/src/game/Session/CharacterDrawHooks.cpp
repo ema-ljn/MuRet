@@ -18,13 +18,13 @@ Core::Expected<void, std::string> CharacterDrawHooks::DrawTheMonster(Render::Mod
                                                                      const Actors::Drawing::GameCharacterPass& pass,
                                                                      bool originalFrame) const
 {
-    return Scenes::DrawGameMonster(batch, models, world, slot, pass, originalFrame);
+    return Monsters::Drawing::DrawGameMonster(batch, models, world, slot, pass, originalFrame);
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
 CharacterDrawHooks::CreateTheJoint(std::span<Scenes::JointState> joints, const Kernel::JointRequest& request,
                                    Crt::CrtRandom& random, Kernel::JointOwnerKind owner) const
 {
-    return Scenes::CreateFaunaJoint(joints, request, random, owner);
+    return Joints::CreateFaunaJoint(joints, request, random, owner);
 }
 } // namespace Client::Session

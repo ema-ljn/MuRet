@@ -25,14 +25,14 @@ TEST(NoriaObjectsTest, ClockCasesStoreTheirNativeUvAndSharedModelSelection)
           Probe{0x2b, 0.468f, 0.0f, -1}, Probe{0x27, 0.0f, 0.0f, 1}})
     {
         SCOPED_TRACE(probe.type);
-        Client::World::WorldObject object;
+        Client::WorldObjects::WorldObject object;
         object.type = probe.type;
-        Client::World::ObjectModelStepState models;
-        Client::World::ObjectStepGlobals globals;
+        Client::WorldObjects::ObjectModelStepState models;
+        Client::WorldObjects::ObjectStepGlobals globals;
         globals.worldClock = 1234.75f;
         globals.modelState = &models;
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::World::StepWorldObjectChecked(object, 3, nullptr, random, globals);
+        const auto stepped = Client::WorldObjects::StepWorldObjectChecked(object, 3, nullptr, random, globals);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_FLOAT_EQ(object.state.uv.x, probe.u);
         EXPECT_FLOAT_EQ(object.state.uv.y, probe.v);
@@ -49,11 +49,11 @@ TEST(NoriaObjectsTest, NoriaNeverRunsTheLoginMarkersOrWhirlpools)
 {
     for (const std::int16_t type : {std::int16_t{0x54}, std::int16_t{0x56}, std::int16_t{0x5a}})
     {
-        Client::World::WorldObject object;
+        Client::WorldObjects::WorldObject object;
         object.type = type;
         object.transform.angles.z = 90.0f;
         Client::Crt::CrtRandom random(7);
-        ASSERT_TRUE(Client::World::StepWorldObjectChecked(object, 3, nullptr, random, {}).HasValue());
+        ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(object, 3, nullptr, random, {}).HasValue());
         EXPECT_EQ(object.transform.angles.z, 90.0f);
         EXPECT_EQ(object.state.hiddenMesh, -1);
         EXPECT_EQ(object.alpha, 1.0f);
@@ -64,14 +64,14 @@ TEST(NoriaObjectsTest, NoriaKeepsTheModelAndBlendPrefixWhenTheClockCannotConvert
 {
     for (const std::int16_t type : {std::int16_t{0x29}, std::int16_t{0x2a}, std::int16_t{0x2b}})
     {
-        Client::World::WorldObject object;
+        Client::WorldObjects::WorldObject object;
         object.type = type;
-        Client::World::ObjectModelStepState models;
-        Client::World::ObjectStepGlobals globals;
+        Client::WorldObjects::ObjectModelStepState models;
+        Client::WorldObjects::ObjectStepGlobals globals;
         globals.modelState = &models;
         globals.worldClock = std::numeric_limits<float>::infinity();
         Client::Crt::CrtRandom random(7);
-        const auto stepped = Client::World::StepWorldObjectChecked(object, 3, nullptr, random, globals);
+        const auto stepped = Client::WorldObjects::StepWorldObjectChecked(object, 3, nullptr, random, globals);
         ASSERT_FALSE(stepped.HasValue());
         if (type == 0x29)
             EXPECT_EQ(object.state.blendMesh, 0);
@@ -83,15 +83,15 @@ TEST(NoriaObjectsTest, NoriaKeepsTheModelAndBlendPrefixWhenTheClockCannotConvert
 
 TEST(NoriaObjectsTest, ARegisteredTowerEmitsItsMapSparkBeforeScrolling)
 {
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = 0x142;
     object.transform.position = {1000, 2000, 300};
-    auto particles = std::make_unique<Client::World::Particles>();
-    Client::World::ObjectStepGlobals globals;
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    Client::WorldObjects::ObjectStepGlobals globals;
     globals.particles = particles.get();
     globals.worldClock = 1234.75f;
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::World::StepWorldObjectChecked(object, 3, nullptr, random, globals);
+    const auto stepped = Client::WorldObjects::StepWorldObjectChecked(object, 3, nullptr, random, globals);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto& particle = particles->All().front();
     EXPECT_TRUE(particle.alive);

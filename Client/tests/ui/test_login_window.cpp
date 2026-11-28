@@ -21,25 +21,25 @@
 #include <string_view>
 #include <vector>
 
-// Client::UI::LoginWindow: la ventana de la cuenta (0x6415c0, 0x641700, 0x641990 y 0x6418b0, en el
+// Client::FrontEnd::LoginWindow: la ventana de la cuenta (0x6415c0, 0x641700, 0x641990 y 0x6418b0, en el
 // paso; el emisor 0x641bf0; CL5.5). Dos campos de 10 bytes, la clave con asteriscos, OK y cancelar;
 // Enter u OK manda, Esc o cancelar cancela, Tab cambia de campo. Solo la cuenta y la clave
 // sintéticas de los fixtures.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::LayoutLogin;
+using Client::FrontEnd::LoginFocus;
+using Client::FrontEnd::LoginLayout;
+using Client::FrontEnd::LoginRequest;
+using Client::FrontEnd::LoginWindow;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::ClickAt;
 using Client::Tests::PressLeft;
 using Client::Tests::TapKey;
 using Client::Tests::TypeText;
-using Client::UI::LayoutLogin;
-using Client::UI::LoginFocus;
-using Client::UI::LoginLayout;
-using Client::UI::LoginRequest;
-using Client::UI::LoginWindow;
-using Client::UI::Rect;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
@@ -47,7 +47,7 @@ constexpr PixelSize Screen1024{1024, 768};
 // No verifica el caret rectangular ni un parpadeo basado en tiempo.
 constexpr int RepeatedDrawCount = 48;
 
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes(
         {{0x13, {512, 256}}, {0x14, {256, 32}}, {0x724, {64, 128}}, {0x725, {64, 128}}});

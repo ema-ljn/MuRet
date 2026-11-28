@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -73,14 +73,14 @@ constexpr int CheckedFrame = 3;
 constexpr int DisabledFrame = 0;
 // Los rótulos de las clases, los textos 20 a 24, con la tabla de 0x63d360.
 constexpr std::size_t FirstClassText = 20;
-constexpr ButtonColors ClassColors{.normal = 0xffe2e2e2,
-                                   .pressed = 0xffe2e2e2,
-                                   .hover = 0xffffffff,
-                                   .checkedNormal = 0xffe2e2e2,
-                                   .checkedPressed = 0xffe2e2e2,
-                                   .checkedHover = 0xffffffff,
-                                   .disabled = 0xff777777,
-                                   .checkedDisabled = 0xff777777};
+constexpr Ui::ButtonColors ClassColors{.normal = 0xffe2e2e2,
+                                       .pressed = 0xffe2e2e2,
+                                       .hover = 0xffffffff,
+                                       .checkedNormal = 0xffe2e2e2,
+                                       .checkedPressed = 0xffe2e2e2,
+                                       .checkedHover = 0xffffffff,
+                                       .disabled = 0xff777777,
+                                       .checkedDisabled = 0xff777777};
 // 0x63e0a0: con DAT_05763560, sin fondo; los valores en 0xff00b4ff y los rótulos (1701 + i) en
 // blanco, en (ax + 76) y (ax + 22), de a 17 desde ay + 10; el comando del Dark Lord en ay + 78.
 constexpr Render::Text::TextStyle ValueStyle{Render::Text::FontKind::OtherFace12,
@@ -116,12 +116,12 @@ constexpr int DescriptionStep = 19;
 constexpr Render::Text::TextStyle NameStyle{Render::Text::FontKind::Normal, Render::Text::TextColors{0xffffffff, 0}};
 constexpr std::string_view Caret = "_";
 
-Rect Area(int x, int y, int width, int height)
+Ui::Rect Area(int x, int y, int width, int height)
 {
-    return Rect{.x = x, .y = y, .width = width, .height = height};
+    return Ui::Rect{.x = x, .y = y, .width = width, .height = height};
 }
 
-Render::UiImage BlackBox(const Rect& area, float alpha)
+Render::UiImage BlackBox(const Ui::Rect& area, float alpha)
 {
     return Render::UiImage{.slot = std::nullopt,
                            .x = area.x,
@@ -154,23 +154,23 @@ CreateWindowLayout LayoutCreateWindow(Core::PixelSize screen, std::uint8_t chara
     layout.ok = Area(x + RightColumn, y + ButtonsTop, ButtonWidth, ButtonHeight);
     layout.cancel = Area(x + CancelLeft, y + ButtonsTop, ButtonWidth, ButtonHeight);
     layout.nameField =
-        Point{Render::Text::DesignX(x + NameFieldLeft, screen), Render::Text::DesignY(y + NameFieldTop, screen)};
+        Ui::Point{Render::Text::DesignX(x + NameFieldLeft, screen), Render::Text::DesignY(y + NameFieldTop, screen)};
     return layout;
 }
 
-CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Tables::TextTable* texts)
+CreateCharacterWindow::CreateCharacterWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts),
-      m_classes{Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
-                Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
-                Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
-                Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
-                Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame)},
+      m_classes{Ui::Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
+                Ui::Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
+                Ui::Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
+                Ui::Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
+                Ui::Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame)},
       m_ok(OkSlot, ButtonWidth, ButtonHeight), m_cancel(CancelSlot, ButtonWidth, ButtonHeight),
-      m_name(NameBytes, false, TextField::Charset::Windows1252Xp)
+      m_name(NameBytes, false, Ui::TextField::Charset::Windows1252Xp)
 {
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
-        const std::optional<std::string_view> label = TextAt(m_texts, FirstClassText + i);
+        const std::optional<std::string_view> label = Ui::TextAt(m_texts, FirstClassText + i);
         m_classes[i].SetLabel(std::string(label.value_or(std::string_view{})), ClassColors);
         m_classes[i].SetChecked(i == m_class);
     }
@@ -249,12 +249,12 @@ void CreateCharacterWindow::TypeInto(const Input::InputState& input)
     }
 }
 
-const Button& CreateCharacterWindow::ClassButton(std::size_t index) const
+const Ui::Button& CreateCharacterWindow::ClassButton(std::size_t index) const
 {
     return m_classes.at(index);
 }
 
-const Button& CreateCharacterWindow::OkButton() const
+const Ui::Button& CreateCharacterWindow::OkButton() const
 {
     return m_ok;
 }
@@ -273,13 +273,13 @@ void CreateCharacterWindow::Choose(std::uint8_t characterClass)
     m_class = characterClass;
 }
 
-Rect CreateCharacterWindow::Bounds(Core::PixelSize screen) const
+Ui::Rect CreateCharacterWindow::Bounds(Core::PixelSize screen) const
 {
-    return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
+    return Ui::Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
 
 std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputState& input, Core::PixelSize screen,
-                                                             NewUiTurn turn)
+                                                             Ui::NewUiTurn turn)
 {
     if (!m_open)
     {
@@ -287,7 +287,7 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
     }
     Place(screen);
     TypeInto(input);
-    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    const std::optional<Ui::Point> mouse = Ui::MouseOfTheTurn(turn, input, screen);
     std::optional<std::uint8_t> clicked;
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
@@ -349,11 +349,11 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::IT
     // 0x620a00(1): la mezcla normal con la textura (la base la apagó).
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{});
-    sprites.Image(PixelImage(NameBackSlot, m_layout.nameBack, m_sizes(NameBackSlot)));
+    sprites.Image(Ui::PixelImage(NameBackSlot, m_layout.nameBack, m_sizes(NameBackSlot)));
     sprites.Image(BlackBox(m_layout.attributes, BoxAlpha));
     sprites.Image(BlackBox(m_layout.strip, BoxAlpha));
     // Las cajas apagaron la textura (Q-C75): la imagen de cada botón, con su slot, la vuelve a prender.
-    for (const Button& button : m_classes)
+    for (const Ui::Button& button : m_classes)
     {
         sprites.Image(button.Image(m_sizes));
         static_cast<void>(button.DrawLabel(text, screen));
@@ -367,12 +367,12 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::IT
 
 void CreateCharacterWindow::DrawAttributes(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
-    const Rect& box = m_layout.attributes;
+    const Ui::Rect& box = m_layout.attributes;
     const auto drawAttribute = [&](std::string_view value, std::size_t label, int top)
     {
         const int y = Render::Text::DesignY(box.y + top, screen);
         text.Draw(Render::Text::DesignX(box.x + ValueLeft, screen), y, value, ValueStyle);
-        if (const std::optional<std::string_view> name = TextAt(m_texts, label); name && !name->empty())
+        if (const std::optional<std::string_view> name = Ui::TextAt(m_texts, label); name && !name->empty())
         {
             text.Draw(Render::Text::DesignX(box.x + LabelLeft, screen), y, *name, LabelStyle);
         }
@@ -390,12 +390,12 @@ void CreateCharacterWindow::DrawAttributes(Render::Frame::ITextDrawer& text, Cor
 
 void CreateCharacterWindow::DrawDescription(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
-    const std::optional<std::string_view> description = TextAt(m_texts, FirstDescriptionText + m_class);
+    const std::optional<std::string_view> description = Ui::TextAt(m_texts, FirstDescriptionText + m_class);
     if (!description || description->empty())
     {
         return;
     }
-    const std::vector<std::string> lines = SplitIntoLines(*description, DescriptionLines, DescriptionBytes);
+    const std::vector<std::string> lines = Ui::SplitIntoLines(*description, DescriptionLines, DescriptionBytes);
     for (std::size_t j = 0; j < lines.size(); ++j)
     {
         text.Draw(
@@ -421,9 +421,9 @@ void CreateCharacterWindow::Place(Core::PixelSize screen)
     m_layout = LayoutCreateWindow(screen, m_class);
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
-        m_classes[i].MoveTo(Point{m_layout.classes[i].x, m_layout.classes[i].y});
+        m_classes[i].MoveTo(Ui::Point{m_layout.classes[i].x, m_layout.classes[i].y});
     }
-    m_ok.MoveTo(Point{m_layout.ok.x, m_layout.ok.y});
-    m_cancel.MoveTo(Point{m_layout.cancel.x, m_layout.cancel.y});
+    m_ok.MoveTo(Ui::Point{m_layout.ok.x, m_layout.ok.y});
+    m_cancel.MoveTo(Ui::Point{m_layout.cancel.x, m_layout.cancel.y});
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

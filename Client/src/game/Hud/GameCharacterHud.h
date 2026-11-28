@@ -13,7 +13,7 @@
 //
 // Los textos van por ITextDrawer::DrawColumns, con la caja del ancho que les da 0x554180 (W · k / 640): el fondo la
 // llena entera, y el que no entra se recorta como en 0x467060 (el modo 1 muestra el final y el 2 el centro).
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
 
@@ -26,4 +26,4 @@ struct GameHudContext;
 // que en el original es una excepción). La skill del héroe (+0x6c + [+0x425]) está siempre en los 256 bytes del
 // registro: el corte de 0x5f04cd no se alcanza (P-C122).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hud

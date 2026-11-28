@@ -14,13 +14,13 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::CastleSiege
 {
 namespace
 {
 using Math::F32;
 
-void ChooseTheTarget(ModelEffect& effect, const Kernel::ModelEffectArguments& arguments, const glm::vec3& hero,
+void ChooseTheTarget(Effects::ModelEffect& effect, const Kernel::ModelEffectArguments& arguments, const glm::vec3& hero,
                      Crt::CrtRandom& random)
 {
     if (effect.disturbanceState == 1)
@@ -42,7 +42,7 @@ void ChooseTheTarget(ModelEffect& effect, const Kernel::ModelEffectArguments& ar
     effect.siegeTarget.z = 100.0f;
 }
 
-void BeginTheFlight(ModelEffect& effect, const Kernel::ModelEffectArguments& arguments, const glm::vec3& hero,
+void BeginTheFlight(Effects::ModelEffect& effect, const Kernel::ModelEffectArguments& arguments, const glm::vec3& hero,
                     Crt::CrtRandom& random)
 {
     constexpr double SpeedStep = static_cast<double>(0.01f);
@@ -62,7 +62,7 @@ void BeginTheFlight(ModelEffect& effect, const Kernel::ModelEffectArguments& arg
     effect.velocity.z = 5.0f;
 }
 
-void BeginTheFragment(ModelEffect& effect, Crt::CrtRandom& random)
+void BeginTheFragment(Effects::ModelEffect& effect, Crt::CrtRandom& random)
 {
     effect.life = 50;
     effect.transform.scale =
@@ -82,7 +82,7 @@ bool IsSiegeStoneEffect(std::int16_t type)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const Kernel::ModelEffectArguments& arguments,
-                                                                         ModelEffects& effects,
+                                                                         Effects::ModelEffects& effects,
                                                                          const glm::vec3& heroPosition,
                                                                          Crt::CrtRandom& random)
 {
@@ -91,7 +91,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const K
     const auto slot = effects.Begin(arguments);
     if (!slot)
         return slot;
-    ModelEffect& effect = effects.Effects()[*slot];
+    Effects::ModelEffect& effect = effects.Effects()[*slot];
     if (effect.subtype <= 1)
         BeginTheFlight(effect, arguments, heroPosition, random);
     else if (effect.type == SiegeStoneEffect && effect.subtype == 2)
@@ -99,4 +99,4 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const K
     // 51d165/51d1f0: otros subtipos conservan la vida del uso anterior del lugar, tras el prefijo común.
     return slot;
 }
-} // namespace Client::World
+} // namespace Client::CastleSiege

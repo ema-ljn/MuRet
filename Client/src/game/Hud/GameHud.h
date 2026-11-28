@@ -26,7 +26,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 struct OldWindowManager;
 }
@@ -38,11 +38,23 @@ struct CrywolfInterface;
 struct HudState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 class IGuildMarks;
-struct GameProjection;
+} // namespace Client::Guild
+
+namespace Client::Items
+{
 struct UiItemResources;
+} // namespace Client::Items
+
+namespace Client::Scenes
+{
+struct GameProjection;
+} // namespace Client::Scenes
+
+namespace Client::Hud
+{
 
 struct GameHudContext
 {
@@ -74,13 +86,13 @@ struct GameHudContext
     // La UI vieja que lee y escribe 0x4a5120, los íconos de la barra (la lista de ventanas de [0x5763524]: +0x144, la
     // carta nueva, y +0x148 y +0x14c, los dibujos y los parpadeos). Sin ella, la de WorldRuntime; en un dibujo
     // intermedio, la copia de la proyección, que nadie vuelve a leer.
-    UI::OldWindowManager* oldWindows = nullptr;
+    Ui::OldWindowManager* oldWindows = nullptr;
     // Un dibujo intermedio de MuRet no escribe los avisos de los ítems puestos (D+0x44): van a una copia que nadie
     // lee, y el frame siguiente del original los vuelve a escribir.
     bool projecting = false;
     // 0x6203c0 del pase del mundo de este frame, que leen los globos (0x5a9050 → 0x6205b0). Sin ella, un globo vivo
     // corta.
-    const GameProjection* projection = nullptr;
+    const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // Text.bmd, Item.bmd y Skill.bmd; sin alguna, lo que la lee corta con error.
@@ -94,15 +106,15 @@ struct GameHudContext
     const Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
-    // GetTickCount del frame (App::TickCountMs), que leen la cuenta de los eventos (0x40bab0) y el reloj de la interfaz
-    // de Crywolf (0x437410 y 0x437426), y que MuRet da también por el timeGetTime() de 0x63b0e3 (0x430180).
+    // GetTickCount del frame (Kernel::TickCountMs), que leen la cuenta de los eventos (0x40bab0) y el reloj de la
+    // interfaz de Crywolf (0x437410 y 0x437426), y que MuRet da también por el timeGetTime() de 0x63b0e3 (0x430180).
     std::uint32_t tickCount = 0;
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).
-    UI::Point mouse{};
+    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (Ui::MouseIn640x480).
+    Ui::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
     // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: la subclase de los EDIT (0x467b10) las
-    // mira con el WM_GETTEXT de 0x468320 (UI::OldWindowDrawContext::arrowHeld).
+    // mira con el WM_GETTEXT de 0x468320 (Ui::OldWindowDrawContext::arrowHeld).
     bool arrowHeld = false;
     // GetAsyncKeyState(0x11) en el dibujo: Ctrl abajo, que 0x558bb0 mira para atacar a otro jugador (0x558e7f).
     bool controlDown = false;
@@ -113,9 +125,9 @@ struct GameHudContext
     std::optional<std::uint8_t> chosenSlot{};
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
-    UiItemResources* uiItems = nullptr;
+    Items::UiItemResources* uiItems = nullptr;
     // Las marcas de los gremios (0x5f16a0) del marcador de la guerra (0x5a7640); sin ellas, la guerra corta.
-    IGuildMarks* guildMarks = nullptr;
+    Guild::IGuildMarks* guildMarks = nullptr;
     // El send() de la sesión, el del A9 que pide el tooltip de las mascotas (0x423c87..0x42403d). Sin él (una escena
     // sin sesión, como las de las pruebas), el pedido no sale; un dibujo intermedio no lo llama.
     std::function<void(Protocol::Outgoing)> send{};
@@ -137,4 +149,4 @@ struct GameHudContext
 // objeto, el de atacar (4, o 0x68d en el 30), el de los comandos (0x65a), el de reparar (7, girando con el modo 2),
 // el de apretar (3, o 0xa con 0x77f3b5c) y el normal (2). Lo que lee de otra ola corta con su dirección.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hud

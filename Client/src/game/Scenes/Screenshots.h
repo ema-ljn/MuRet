@@ -27,7 +27,7 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 struct GameUiState;
 }
@@ -98,7 +98,7 @@ public:
     // 0x637cfd..0x637d25, detrás del paso de cualquier escena: con el flanco de Impr Pant (0x553520(0x2c), con su
     // latch en ui.keyLatches), invierte el pedido. Un apretón que llega con su soltada en el mismo frame también es
     // el flanco (Q-C630). Si un frame retenido tenía la captura pedida, su error (FinishTheLoop).
-    [[nodiscard]] Core::Expected<void, std::string> StepTheKey(UI::GameUiState& ui, const Input::InputState& input);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheKey(Ui::GameUiState& ui, const Input::InputState& input);
 
     // 0x6381bb..0x63835a, antes del dibujo de la escena: con la captura pedida, el nombre y el mensaje, y sin Shift,
     // el mensaje en el chat (0x555190 con el 0x7d3a190 vacío y el tipo 1), que sale en la captura. El original los

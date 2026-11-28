@@ -32,13 +32,13 @@
 // 0.97 no tiene Crywolf). Text.bmd es inventado. Nada de esto saca rand().
 namespace
 {
+using Client::Events::Crywolf::AltarClick;
+using Client::Events::Crywolf::ContractMessage;
 using Client::Kernel::ActorState;
 using Client::Kernel::CrywolfInterface;
 using Client::Kernel::WorldRuntime;
 using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
-using Client::Scenes::AltarClick;
-using Client::Scenes::ContractMessage;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -79,12 +79,12 @@ protected:
 
     Client::Core::Expected<void, std::string> Show(const ContractMessage& message)
     {
-        return Client::Scenes::ShowTheContractMessage(Runtime(), &texts, message);
+        return Client::Events::Crywolf::ShowTheContractMessage(Runtime(), &texts, message);
     }
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, std::uint16_t pet = 0xffff)
     {
-        return Client::Scenes::StepTheContractWindow(Client::Scenes::ContractWindowContext{
+        return Client::Events::Crywolf::StepTheContractWindow(Client::Events::Crywolf::ContractWindowContext{
             .runtime = Runtime(),
             .texts = &texts,
             .heroPet = pet,
@@ -112,14 +112,16 @@ TEST_F(CrywolfContractTest, TheDefenseNeedsTheStageAndTheMap)
     for (int stage = 0; stage <= 0xff; ++stage)
     {
         Enter(CrywolfMap, static_cast<std::uint8_t>(stage));
-        EXPECT_EQ(Client::Scenes::InTheCrywolfDefense(Runtime()), stage == 3 || stage == 4) << "stage " << stage;
+        EXPECT_EQ(Client::Events::Crywolf::InTheCrywolfDefense(Runtime()), stage == 3 || stage == 4)
+            << "stage " << stage;
     }
     for (const std::int32_t map : {0, AidaMap, MapAfterCrywolf})
     {
         for (const std::uint8_t stage : std::initializer_list<std::uint8_t>{3, 4})
         {
             Enter(map, stage);
-            EXPECT_FALSE(Client::Scenes::InTheCrywolfDefense(Runtime())) << "map " << map << ", stage " << int{stage};
+            EXPECT_FALSE(Client::Events::Crywolf::InTheCrywolfDefense(Runtime()))
+                << "map " << map << ", stage " << int{stage};
         }
     }
 }
@@ -136,7 +138,7 @@ TEST_F(CrywolfContractTest, TheMessageNeedsTheDefenseInCrywolf)
             SCOPED_TRACE(static_cast<int>(stage));
             Enter(map, stage);
             Ui().contractLines[1][0] = 'x';
-            ASSERT_TRUE(Show({.message = Client::Scenes::ContractRefusedMessage, .value = 7}).HasValue());
+            ASSERT_TRUE(Show({.message = Client::Events::Crywolf::ContractRefusedMessage, .value = 7}).HasValue());
             const bool shown = map == CrywolfMap && stage != 2;
             EXPECT_EQ(Ui().byte723a44, shown ? 2 : 0);
             EXPECT_EQ(LineOf(Ui().contractLines[0]), shown ? "no se firmo" : "");
@@ -146,7 +148,7 @@ TEST_F(CrywolfContractTest, TheMessageNeedsTheDefenseInCrywolf)
     }
     Enter(CrywolfMap, 3);
     Runtime().ui.logoutRequested = true;
-    ASSERT_TRUE(Show({.message = Client::Scenes::ContractRefusedMessage}).HasValue());
+    ASSERT_TRUE(Show({.message = Client::Events::Crywolf::ContractRefusedMessage}).HasValue());
     EXPECT_EQ(Ui().byte723a44, 0);
 }
 
@@ -158,11 +160,12 @@ TEST_F(CrywolfContractTest, TheOfferFormatsTheContractsLeft)
     Ui().altars[3] = 0x05;
     std::string old(30, 'z');
     std::copy(old.begin(), old.end(), Ui().contractLines[0].begin());
-    ASSERT_TRUE(Show({.message = Client::Scenes::AltarOfferMessage, .line = 0, .value = 0x13f, .altar = 3}).HasValue());
+    ASSERT_TRUE(Show({.message = Client::Events::Crywolf::AltarOfferMessage, .line = 0, .value = 0x13f, .altar = 3})
+                    .HasValue());
     EXPECT_EQ(Ui().byte723a44, 1);
     EXPECT_EQ(LineOf(Ui().contractLines[0]), "quedan 5 contratos");
     EXPECT_EQ(Ui().contractLines[0][19], 'z');
-    ASSERT_TRUE(Show({.message = Client::Scenes::AltarQuestionMessage, .line = 1, .value = 0x13f}).HasValue());
+    ASSERT_TRUE(Show({.message = Client::Events::Crywolf::AltarQuestionMessage, .line = 1, .value = 0x13f}).HasValue());
     EXPECT_EQ(Ui().byte723a44, 1);
     EXPECT_EQ(LineOf(Ui().contractLines[0]), "quedan 5 contratos");
     EXPECT_EQ(LineOf(Ui().contractLines[1]), "firmas el contrato?");
@@ -175,19 +178,19 @@ TEST_F(CrywolfContractTest, WhatDoesNotFitIsCut)
 {
     Enter(CrywolfMap, 3);
     texts = Client::Tests::MakeTextTable({{1952, std::string(199, 'a')}, {1953, std::string(200, 'b')}});
-    ASSERT_TRUE(Show({.message = Client::Scenes::ContractRefusedMessage}).HasValue());
+    ASSERT_TRUE(Show({.message = Client::Events::Crywolf::ContractRefusedMessage}).HasValue());
     EXPECT_EQ(LineOf(Ui().contractLines[0]).size(), 199u);
-    const auto longer = Show({.message = Client::Scenes::ContractSignedMessage});
+    const auto longer = Show({.message = Client::Events::Crywolf::ContractSignedMessage});
     ASSERT_FALSE(longer.HasValue());
     EXPECT_NE(longer.Error().find("0x435b00"), std::string::npos) << longer.Error();
-    const auto line = Show({.message = Client::Scenes::ContractRefusedMessage, .line = 2});
+    const auto line = Show({.message = Client::Events::Crywolf::ContractRefusedMessage, .line = 2});
     ASSERT_FALSE(line.HasValue());
     EXPECT_NE(line.Error().find("0x723a48"), std::string::npos) << line.Error();
-    const auto altar = Show({.message = Client::Scenes::AltarOfferMessage, .altar = -1});
+    const auto altar = Show({.message = Client::Events::Crywolf::AltarOfferMessage, .altar = -1});
     ASSERT_FALSE(altar.HasValue());
     EXPECT_NE(altar.Error().find("0x435b39"), std::string::npos) << altar.Error();
-    const auto missing =
-        Client::Scenes::ShowTheContractMessage(Runtime(), nullptr, {.message = Client::Scenes::ContractLevelMessage});
+    const auto missing = Client::Events::Crywolf::ShowTheContractMessage(
+        Runtime(), nullptr, {.message = Client::Events::Crywolf::ContractLevelMessage});
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("2008"), std::string::npos) << missing.Error();
 }
@@ -202,17 +205,17 @@ TEST_F(CrywolfContractTest, TheAltarIsSetOnlyInTheDefense)
         Enter(map, 3);
         Runtime().ui.logoutRequested = true;
         const auto before = Ui().altars;
-        EXPECT_TRUE(Client::Scenes::SetTheAltar(Runtime(), 4, 0x13));
+        EXPECT_TRUE(Client::Events::Crywolf::SetTheAltar(Runtime(), 4, 0x13));
         EXPECT_EQ(Ui().altars[4], map == CrywolfMap ? 0x13 : 0x02);
-        EXPECT_EQ(Client::Scenes::SetTheAltar(Runtime(), 5, 1), map != CrywolfMap);
-        EXPECT_EQ(Client::Scenes::SetTheAltar(Runtime(), -1, 1), map != CrywolfMap);
+        EXPECT_EQ(Client::Events::Crywolf::SetTheAltar(Runtime(), 5, 1), map != CrywolfMap);
+        EXPECT_EQ(Client::Events::Crywolf::SetTheAltar(Runtime(), -1, 1), map != CrywolfMap);
         auto expected = before;
         if (map == CrywolfMap)
             expected[4] = 0x13;
         EXPECT_EQ(Ui().altars, expected);
     }
     Enter(CrywolfMap, 5);
-    EXPECT_TRUE(Client::Scenes::SetTheAltar(Runtime(), -1, 1));
+    EXPECT_TRUE(Client::Events::Crywolf::SetTheAltar(Runtime(), -1, 1));
 }
 
 // 0x435c6b..0x435cb4 y 0x4361b4: el No deja 0x723bdc en 1 y pasa a la ventana 2 con 1952; la ventana 1 se queda con
@@ -314,7 +317,7 @@ TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
     {
         SCOPED_TRACE(map);
         Enter(map, 3);
-        const auto click = Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar);
+        const auto click = Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar);
         ASSERT_TRUE(click.HasValue());
         EXPECT_EQ(click.Value(), AltarClick::NotAnAltar);
     }
@@ -323,28 +326,33 @@ TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
     for (const std::uint16_t type : {std::uint16_t{0x203}, std::uint16_t{0x209}})
     {
         other.type = type;
-        EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, other).Value(), AltarClick::NotAnAltar);
+        EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, other).Value(),
+                  AltarClick::NotAnAltar);
     }
     ActorState knight;
     knight.characterClass = 1;
-    EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, knight, altar).Value(), AltarClick::Talk);
+    EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, knight, altar).Value(),
+              AltarClick::Talk);
     EXPECT_EQ(Ui().byte723a44, 0);
 
     Ui().altars[2] = 0x13;
-    EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(), AltarClick::Contract);
+    EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(),
+              AltarClick::Contract);
     EXPECT_EQ(LineOf(Ui().contractLines[0]), "altar ocupado");
     EXPECT_EQ(Ui().byte723a44, 2);
 
     Enter(CrywolfMap, 4);
     Ui().altars[2] = 0x20;
-    EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(), AltarClick::Contract);
+    EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(),
+              AltarClick::Contract);
     EXPECT_EQ(LineOf(Ui().contractLines[0]), "altar agotado");
     EXPECT_EQ(Ui().byte723a44, 2);
 
     Enter(CrywolfMap, 4);
     Ui().altars[2] = 0x02;
     altar.key = 0x8140;
-    EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(), AltarClick::Contract);
+    EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(),
+              AltarClick::Contract);
     EXPECT_EQ(LineOf(Ui().contractLines[0]), "quedan 2 contratos");
     EXPECT_EQ(LineOf(Ui().contractLines[1]), "firmas el contrato?");
     EXPECT_EQ(Ui().byte723a44, 1);
@@ -353,7 +361,8 @@ TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
     // Con la salida pedida, 0x435b00 no hace nada pero el clic sigue en 0x569573.
     Enter(CrywolfMap, 4);
     Runtime().ui.logoutRequested = true;
-    EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(), AltarClick::Contract);
+    EXPECT_EQ(Client::Events::Crywolf::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(),
+              AltarClick::Contract);
     EXPECT_EQ(Ui().byte723a44, 0);
 }
 
@@ -368,7 +377,7 @@ TEST_F(CrywolfContractTest, TheAltarGoalNeedsTheDefenseInCrywolfAndAChosenAltar)
         Runtime().movement.chosenNpc = chosen;
         world->Actors()[AltarSlot] = ActorState{};
         world->Actors()[AltarSlot].type = type;
-        return Client::Scenes::CrywolfAltarGoal(*world);
+        return Client::Events::Crywolf::CrywolfAltarGoal(*world);
     };
     const auto slot = static_cast<std::int32_t>(AltarSlot);
     for (const std::uint8_t stage : {std::uint8_t{3}, std::uint8_t{4}})

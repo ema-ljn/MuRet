@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <optional>
 
-// Client::UI::Button: el botón de la UI nueva (0x63c330, 0x63c490 y 0x63c710), en el paso (CL5.5).
+// Client::Ui::Button: el botón de la UI nueva (0x63c330, 0x63c490 y 0x63c710), en el paso (CL5.5).
 // Captura con el apretón encima y hace clic con la soltada encima; sus cuadros, uno abajo del
 // otro: 0 normal, 1 con el mouse encima, 2 apretado, y el marcado (3 en los de los grupos).
 namespace
@@ -26,11 +26,11 @@ using Client::Tests::ClickAt;
 using Client::Tests::MoveMouse;
 using Client::Tests::PressLeft;
 using Client::Tests::ReleaseLeft;
-using Client::UI::Button;
-using Client::UI::ButtonColors;
-using Client::UI::MouseInPixels;
-using Client::UI::Point;
-using Client::UI::Rect;
+using Client::Ui::Button;
+using Client::Ui::ButtonColors;
+using Client::Ui::MouseInPixels;
+using Client::Ui::Point;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};

@@ -13,9 +13,9 @@
 namespace
 {
 using namespace Client;
-World::ModelEffect Flight(std::int16_t type)
+Effects::ModelEffect Flight(std::int16_t type)
 {
-    World::ModelEffect effect;
+    Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = type;
     effect.subtype = 1;
@@ -34,16 +34,17 @@ struct Services
     std::unique_ptr<Terrain::TerrainLighting> lighting = std::make_unique<Terrain::TerrainLighting>();
     glm::vec3 camera{};
     float shake = 0;
-    World::SiegeStoneStepServices services{
+    CastleSiege::SiegeStoneStepServices services{
         .terrainHeight = [](float, float) { return 0.0; },
         .lighting = lighting.get(),
         .cameraTarget = &camera,
         .cameraShake = &shake,
-        .collide = [](World::ModelEffect&, float, float, bool) -> Core::Expected<bool, std::string> { return false; }};
+        .collide = [](Effects::ModelEffect&, float, float, bool) -> Core::Expected<bool, std::string>
+        { return false; }};
 };
 TEST(SiegeStoneStepTest, StoneNotifiesOnlyAfterItsAgeAndWithTwoNonzeroKeyBytes)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(1);
     Services state;
     int notifications = 0;
@@ -53,45 +54,45 @@ TEST(SiegeStoneStepTest, StoneNotifiesOnlyAfterItsAgeAndWithTwoNonzeroKeyBytes)
         EXPECT_EQ(lo, 1);
         ++notifications;
     };
-    auto effect = Flight(World::SiegeStoneEffect);
+    auto effect = Flight(CastleSiege::SiegeStoneEffect);
     effect.life = 250;
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(notifications, 0);
     EXPECT_EQ(effect.life, 249);
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(notifications, 1);
     EXPECT_EQ(effect.state, 0);
     EXPECT_EQ(effect.byte89, 0);
     effect.state = 0;
     effect.byte89 = 1;
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(notifications, 1);
 }
 TEST(SiegeStoneStepTest, IceCanNotifyAtTheFirstFlightTick)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(1);
     Services state;
     int notifications = 0;
     state.services.notify = [&](auto, auto) { ++notifications; };
-    auto effect = Flight(World::SiegeIceStoneEffect);
+    auto effect = Flight(CastleSiege::SiegeIceStoneEffect);
     effect.life = 300;
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(notifications, 1);
     EXPECT_EQ(effect.life, 299);
 }
 TEST(SiegeStoneStepTest, InvisibleLandingStillSetsImpactAndConsumesShakeBeforeTheLifeEpilogue)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(1);
     Services state;
     state.services.terrainHeight = [](float, float) { return 200.0; };
-    auto effect = Flight(World::SiegeStoneEffect);
+    auto effect = Flight(CastleSiege::SiegeStoneEffect);
     effect.subtype = 0;
     effect.transform.position.z = 100;
     effect.start.z = 100;
     effect.seen = false;
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(effect.subtype, 88);
     EXPECT_EQ(effect.life, 14);
     EXPECT_EQ(effect.byte90, 0);
@@ -103,17 +104,17 @@ TEST(SiegeStoneStepTest, InvisibleLandingStillSetsImpactAndConsumesShakeBeforeTh
 }
 TEST(SiegeStoneStepTest, HeroCameraFollowsPersistentImpactEvenBelowTheCutoff)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(1);
     Services state;
     int hero = 0;
     state.services.hero = &hero;
-    auto effect = Flight(World::SiegeStoneEffect);
+    auto effect = Flight(CastleSiege::SiegeStoneEffect);
     effect.subtype = 99;
     effect.life = 25;
     effect.byte90 = 25;
     effect.ownerContext = &hero;
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(effect.life, 24);
     EXPECT_EQ(state.camera, effect.transform.position);
     EXPECT_FALSE(particles.All()[0].alive);
@@ -123,10 +124,10 @@ TEST(SiegeStoneStepTest, HeroCameraFollowsPersistentImpactEvenBelowTheCutoff)
 }
 TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(1);
     Services state;
-    state.services.collide = [](World::ModelEffect& effect, float r, float h,
+    state.services.collide = [](Effects::ModelEffect& effect, float r, float h,
                                 bool mark) -> Core::Expected<bool, std::string>
     {
         EXPECT_EQ(r, 200);
@@ -137,7 +138,7 @@ TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
         effect.objectState.hiddenMesh = 99;
         return true;
     };
-    auto effect = Flight(World::SiegeStoneEffect);
+    auto effect = Flight(CastleSiege::SiegeStoneEffect);
     effect.seen = true;
     int sounds = 0;
     state.services.sound = [&](Client::Audio::SoundId id, const glm::vec3& position)
@@ -147,20 +148,20 @@ TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
         ++sounds;
     };
     effect.byte90 = 71;
-    ASSERT_TRUE(World::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
+    ASSERT_TRUE(CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services).HasValue());
     EXPECT_EQ(effect.life, 14);
     EXPECT_EQ(effect.byte90, 71);
     EXPECT_EQ(sounds, 1);
 }
 TEST(SiegeStoneStepTest, VisibleLandingSoundsAtTheGroundAdjustedImpactPosition)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(1);
     Services state;
-    auto effects = std::make_unique<World::ModelEffects>();
+    auto effects = std::make_unique<Effects::ModelEffects>();
     state.services.effects = effects.get();
     state.services.heroAction = [](const glm::vec3&, float) -> Core::Expected<void, std::string> { return {}; };
-    auto effect = Flight(World::SiegeStoneEffect);
+    auto effect = Flight(CastleSiege::SiegeStoneEffect);
     effect.subtype = 0;
     effect.transform.position.z = -100;
     effect.start.z = -100;
@@ -173,7 +174,7 @@ TEST(SiegeStoneStepTest, VisibleLandingSoundsAtTheGroundAdjustedImpactPosition)
         EXPECT_EQ(position.z, -5.0f);
         ++sounds;
     };
-    const auto stepped = World::StepSiegeStone(effect, nullptr, particles, random, state.services);
+    const auto stepped = CastleSiege::StepSiegeStone(effect, nullptr, particles, random, state.services);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(sounds, 1);
 }

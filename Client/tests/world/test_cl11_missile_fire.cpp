@@ -28,11 +28,11 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Math::Detail::CosineProductPC53;
 using Client::Math::Detail::SineProductPC53;
+using Client::Particles::Particle;
+using Client::Particles::ParticleError;
+using Client::Particles::Particles;
+using Client::Particles::PortableParticleTrigonometry;
 using Client::Tests::AfterDraws;
-using Client::World::Particle;
-using Client::World::ParticleError;
-using Client::World::Particles;
-using Client::World::PortableParticleTrigonometry;
 
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::int32_t Fire = 0x5da;
@@ -64,7 +64,7 @@ Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom
     PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
-    return Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
+    return Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
 }
 
 Particle& Create(Particles& particles, CrtRandom& random, std::int32_t subtype, const glm::vec3& position = {},

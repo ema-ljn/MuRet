@@ -33,12 +33,16 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-// Los paquetes del gremio, de la alianza y de la guerra que llegan (CL9 hito 8; 04 § El gremio, la alianza y la
-// guerra; 06 § El gremio): lo que hacen 0x4e2b10 y sus funciones sobre WorldRuntime::guild, los personajes, los paneles
-// y el chat. Ninguno mira la escena ni el flag de cifrado.
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// Los paquetes del gremio, de la alianza y de la guerra que llegan (CL9 hito 8; 04 § El gremio, la alianza y la
+// guerra; 06 § El gremio): lo que hacen 0x4e2b10 y sus funciones sobre WorldRuntime::guild, los personajes, los paneles
+// y el chat. Ninguno mira la escena ni el flag de cifrado.
+namespace Client::Guild
+{
 
 struct GuildReceiveContext
 {
@@ -61,7 +65,7 @@ struct GuildReceiveContext
     // (Actors::PlayTheEmote, hito 1 de la CL9) antes de su C1 18. Sin ellos, cortan antes del gesto.
     const Models::IModelLibrary* models = nullptr;
     // El 54 abre creación y cierra ventanas de NPC/castillo/batalla por los servicios canónicos del mundo.
-    const WorldEntryResources* worldEntry = nullptr;
+    const Scenes::WorldEntryResources* worldEntry = nullptr;
 };
 
 // 0x4e2b10 con un paquete del gremio: 50 (0x4d74b0), 51 (0x4d7a20), 52 (0x4d7b60), 53 (0x4d7c30), 54 (0x4e4279), 56
@@ -74,4 +78,4 @@ struct GuildReceiveContext
 // cada personaje vivo en 1 si es del gremio del héroe (con gremio) y en 0 si no. La llaman el 60 sin guerra y el no del
 // diálogo 0x7f (0x62c854 y 0x62c86a, dos veces).
 void ClearTheWar(Kernel::WorldState& world);
-} // namespace Client::Scenes
+} // namespace Client::Guild

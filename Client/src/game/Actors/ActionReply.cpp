@@ -141,7 +141,7 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
 Core::Expected<void, std::string> Strike(Kernel::ActorState& actor, std::size_t index,
                                          const Scenes::WorldEntryResources& resources)
 {
-    if (auto attacked = Scenes::SetActorAttack(actor, Scenes::CombatContextOf(resources)); !attacked.HasValue())
+    if (auto attacked = Combat::SetActorAttack(actor, Combat::CombatContextOf(resources)); !attacked.HasValue())
         return attacked;
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     actor.byte381 = 1;

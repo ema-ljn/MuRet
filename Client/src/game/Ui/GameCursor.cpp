@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -79,4 +79,4 @@ void DrawGameCursor(Render::SpriteBatch& sprites, const Input::InputState& input
     sprites.SetColor(Render::Color{});
     sprites.Quad(CursorQuad(MouseIn640x480(input, screen), input.IsDown(Input::MouseButton::Left)));
 }
-} // namespace Client::UI
+} // namespace Client::Ui

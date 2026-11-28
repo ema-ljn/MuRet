@@ -29,7 +29,7 @@ namespace Client::Kernel
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 // Los servicios opcionales fallan al alcanzarse: no simulan efectos con un éxito vacío.
 struct FaunaStepEffects
@@ -63,6 +63,6 @@ struct FaunaStepContext
 [[nodiscard]] Core::Expected<void, std::string> StepGameFish(FaunaStepContext& context);
 [[nodiscard]] Core::Expected<void, std::string> StepGameFauna(FaunaStepContext& context);
 // Dispatch productivo de IBirdStepServices::Call; expuesto también para comprobar cada handler con ASM.
-[[nodiscard]] World::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& context, World::BirdHandler handler,
+[[nodiscard]] Fauna::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& context, Fauna::BirdHandler handler,
                                                         FaunaObject& bird, std::int32_t index);
-} // namespace Client::Scenes
+} // namespace Client::Fauna

@@ -28,14 +28,22 @@ struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
+{
+class KalimaWorld;
+} // namespace Client::MapScripts::Kalima
+
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 struct ModelEffect;
 struct ModelEffectOwner;
 struct ModelEffectStepServices;
 class ModelEffects;
-class Particles;
-class KalimaWorld;
 
 // Lo que las altas de este lote piden afuera de su lugar: el registro propio (0x7681eb4: su profundidad, que gasta
 // los 3.848 rand() del cierre, y su cuenta +0xf04), el héroe publicado (0x743a170), los blancos de 0x517a20 (el
@@ -71,7 +79,7 @@ CreateBlastModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments
 // de los BMD de [0xad, 0x151), 0x51fc80 con los ángulos o, el 0x10f, sin ellos; el 0xf3 y el 0xf4 sólo pierden la
 // vida; los 0xe7..0xe9 y el 0x113 sin dueño salen sin cola). Deja `before` en previousPosition.
 [[nodiscard]] Core::Expected<void, std::string>
-StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles& particles, float worldClock,
-                     Crt::CrtRandom& random, int lightDraw, KalimaWorld* kalima,
+StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles::Particles& particles,
+                     float worldClock, Crt::CrtRandom& random, int lightDraw, MapScripts::Kalima::KalimaWorld* kalima,
                      const ModelEffectStepServices& services);
-} // namespace Client::World
+} // namespace Client::Effects

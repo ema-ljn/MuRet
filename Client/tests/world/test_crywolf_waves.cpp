@@ -14,7 +14,7 @@ namespace
 {
 TEST(CrywolfWavesTest, TheConstructorsKeepTheSignedKeyAndNativePrefixStores)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     const auto wave = effects->CreateWaveEffect({.type = 0x114,
                                                  .position = {100, 200, 300},
                                                  .angles = {10, 20, 30},
@@ -47,8 +47,8 @@ TEST(CrywolfWavesTest, BothNativeWaveSubtypesKeepTheirOwnGrowthFadeAndCommonTail
 {
     for (const int subtype : {2, 6})
     {
-        auto particles = std::make_unique<Client::World::Particles>();
-        Client::World::ModelEffect wave;
+        auto particles = std::make_unique<Client::Particles::Particles>();
+        Client::Effects::ModelEffect wave;
         wave.alive = true;
         wave.type = 0x114;
         wave.subtype = subtype;
@@ -58,7 +58,7 @@ TEST(CrywolfWavesTest, BothNativeWaveSubtypesKeepTheirOwnGrowthFadeAndCommonTail
         wave.turnDirection = subtype == 2 ? 0.01f : 0.08f;
         wave.velocity = {1, 2, 3};
         Client::Crt::CrtRandom random(7);
-        const auto result = Client::World::StepGameModelEffect(wave, nullptr, *particles, 0, random);
+        const auto result = Client::Effects::StepGameModelEffect(wave, nullptr, *particles, 0, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_FALSE(wave.alive);
         EXPECT_EQ(wave.life, 0);
@@ -74,12 +74,12 @@ TEST(CrywolfWavesTest, ThePiercingMovesTwiceAndCreatesTheWaveAtItsIntermediatePo
 {
     for (const bool full : {false, true})
     {
-        auto particles = std::make_unique<Client::World::Particles>();
-        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
         if (full)
             for (auto& e : effects->Effects())
                 e.alive = true;
-        Client::World::ModelEffect piercing;
+        Client::Effects::ModelEffect piercing;
         piercing.alive = true;
         piercing.type = 0x115;
         piercing.subtype = 1;
@@ -88,8 +88,8 @@ TEST(CrywolfWavesTest, ThePiercingMovesTwiceAndCreatesTheWaveAtItsIntermediatePo
         piercing.velocity = {0, -60, 0};
         piercing.light = {1, 0, 0.5f};
         Client::Crt::CrtRandom random(7);
-        const auto result = Client::World::StepGameModelEffect(piercing, nullptr, *particles, 0, random, nullptr,
-                                                               {.effects = effects.get()});
+        const auto result = Client::Effects::StepGameModelEffect(piercing, nullptr, *particles, 0, random, nullptr,
+                                                                 {.effects = effects.get()});
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(piercing.life, 5);
         EXPECT_EQ(piercing.velocity, (glm::vec3{0, -48, 0}));
@@ -116,7 +116,7 @@ TEST(CrywolfWavesTest, EveryWorldWaveSubtypeTakesItsLifeGrowthAndPitch)
     for (const int subtype : {2, 3, 4, 5, 6})
     {
         SCOPED_TRACE(subtype);
-        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
         const auto made = effects->CreateWaveEffect(
             {.type = 0x114, .position = {100, 200, 300}, .angles = {10, 20, 30}, .subtype = subtype, .key = 20});
         ASSERT_EQ(made, 0u);
@@ -129,7 +129,7 @@ TEST(CrywolfWavesTest, EveryWorldWaveSubtypeTakesItsLifeGrowthAndPitch)
     }
     for (const int subtype : {0, 1, 7})
     {
-        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
         EXPECT_EQ(effects->CreateWaveEffect({.type = 0x114, .subtype = subtype}), std::nullopt);
     }
 }
@@ -168,8 +168,8 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
     {
         const Case& probe = cases[index];
         SCOPED_TRACE(index);
-        auto particles = std::make_unique<Client::World::Particles>();
-        Client::World::ModelEffect wave;
+        auto particles = std::make_unique<Client::Particles::Particles>();
+        Client::Effects::ModelEffect wave;
         wave.alive = true;
         wave.type = 0x114;
         wave.subtype = probe.subtype;
@@ -178,7 +178,7 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
         wave.turnDirection = 0.5f;
         wave.objectState.light = 1.0f;
         Client::Crt::CrtRandom random(7);
-        const auto result = Client::World::StepGameModelEffect(wave, nullptr, *particles, 0, random);
+        const auto result = Client::Effects::StepGameModelEffect(wave, nullptr, *particles, 0, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(wave.life, probe.life - 1);
         EXPECT_EQ(wave.transform.scale, probe.scale);
@@ -192,23 +192,23 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
 // 0x51c8e8 y 0x52705a: el 0x115 de otro subtipo que el 1 vive 10 y suelta la onda 0x114/2 sólo con más de 5 de vida.
 TEST(CrywolfWavesTest, TheOtherPiercingLivesTenAndWavesAboveFive)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     ASSERT_EQ(effects->CreatePiercingEffect({.type = 0x115, .position = {100, 200, 300}}), 0u);
     EXPECT_EQ(effects->Effects()[0].life, 10);
     for (const int life : {5, 6})
     {
         SCOPED_TRACE(life);
-        auto table = std::make_unique<Client::World::ModelEffects>();
-        auto particles = std::make_unique<Client::World::Particles>();
-        Client::World::ModelEffect piercing;
+        auto table = std::make_unique<Client::Effects::ModelEffects>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
+        Client::Effects::ModelEffect piercing;
         piercing.alive = true;
         piercing.type = 0x115;
         piercing.subtype = 0;
         piercing.life = life;
         piercing.objectState.light = 1.0f;
         Client::Crt::CrtRandom random(7);
-        const auto result = Client::World::StepGameModelEffect(piercing, nullptr, *particles, 0, random, nullptr,
-                                                               {.effects = table.get()});
+        const auto result = Client::Effects::StepGameModelEffect(piercing, nullptr, *particles, 0, random, nullptr,
+                                                                 {.effects = table.get()});
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(table->Effects()[0].alive, life == 6);
         EXPECT_EQ(piercing.objectState.light, life == 6 ? 0.625f : 1.0f);

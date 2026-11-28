@@ -29,9 +29,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::ObjectCollapse;
-using Client::Scenes::ObjectCollapseContext;
-using Client::World::WorldObject;
+using Client::Events::ObjectCollapse;
+using Client::Events::ObjectCollapseContext;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
@@ -47,10 +47,10 @@ std::size_t CellIndex(std::int32_t x, std::int32_t y)
     return static_cast<std::size_t>((y << 8) + x);
 }
 
-std::size_t AliveParticles(const Client::World::Particles& particles)
+std::size_t AliveParticles(const Client::Particles::Particles& particles)
 {
     std::size_t count = 0;
-    for (const Client::World::Particle& particle : particles.All())
+    for (const Client::Particles::Particle& particle : particles.All())
         count += particle.alive ? 1U : 0U;
     return count;
 }
@@ -97,11 +97,11 @@ protected:
 
     Client::Core::Expected<void, std::string> Collapse(WorldObject& object)
     {
-        return Client::Scenes::CollapseTheObject(object, Context());
+        return Client::Events::CollapseTheObject(object, Context());
     }
 
     std::unique_ptr<Client::Kernel::WorldRuntime> m_runtime = std::make_unique<Client::Kernel::WorldRuntime>();
-    std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> m_particles = std::make_unique<Client::Particles::Particles>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> m_attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     CrtRandom m_random{7};
@@ -113,17 +113,17 @@ protected:
 TEST_F(ObjectCollapseTest, TheRequestOnlyActsOnItsMap)
 {
     Runtime().map = FirstBloodCastle;
-    EXPECT_FALSE(Client::Scenes::ObjectCollapseActive(Runtime()));
+    EXPECT_FALSE(Client::Events::ObjectCollapseActive(Runtime()));
     Request() = {.map = FirstBloodCastle, .type = Gate, .counter = 0, .delay = 1.0f};
-    EXPECT_TRUE(Client::Scenes::ObjectCollapseActive(Runtime()));
+    EXPECT_TRUE(Client::Events::ObjectCollapseActive(Runtime()));
     Request().type = -1;
-    EXPECT_FALSE(Client::Scenes::ObjectCollapseActive(Runtime()));
+    EXPECT_FALSE(Client::Events::ObjectCollapseActive(Runtime()));
     Request().type = Gate;
-    Client::Scenes::CountDownTheObjectCollapse(Runtime());
+    Client::Events::CountDownTheObjectCollapse(Runtime());
     EXPECT_EQ(Request().counter, -1);
-    EXPECT_FALSE(Client::Scenes::ObjectCollapseActive(Runtime()));
+    EXPECT_FALSE(Client::Events::ObjectCollapseActive(Runtime()));
     Request().counter = std::numeric_limits<std::int32_t>::min();
-    Client::Scenes::CountDownTheObjectCollapse(Runtime());
+    Client::Events::CountDownTheObjectCollapse(Runtime());
     EXPECT_EQ(Request().counter, std::numeric_limits<std::int32_t>::max());
 
     // Pedido para el 11 con el héroe en Lorencia o en Devias: ni la puerta ni los 9 y 10 se mueven.
@@ -163,7 +163,7 @@ TEST_F(ObjectCollapseTest, TheGateStartsFallingAtTwenty)
     WorldObject second = Object(Gate);
     second.transform.angles.x = 10.0f;
     Runtime().lastSoundId = Client::Audio::SoundId{0};
-    Client::Scenes::CountDownTheObjectCollapse(Runtime());
+    Client::Events::CountDownTheObjectCollapse(Runtime());
     ASSERT_TRUE(Collapse(second).HasValue());
     EXPECT_EQ(second.transform.angles.x, 12.5f);
     EXPECT_EQ(Request().delay, 4.0f);
@@ -185,7 +185,7 @@ TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
     EXPECT_EQ(AliveParticles(*m_particles), 10U);
 
     CrtRandom mirror{7};
-    auto expected = std::make_unique<Client::World::Particles>();
+    auto expected = std::make_unique<Client::Particles::Particles>();
     for (int count = 0; count < 10; ++count)
     {
         const int spreadX = mirror.Next() % 300;
@@ -193,18 +193,18 @@ TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
         const glm::vec3 dust{static_cast<float>((static_cast<double>(spreadX) - 150.0) + 1000.0),
                              static_cast<float>(2000.0 - (static_cast<double>(spreadY) + 600.0)), 300.0f};
         ASSERT_TRUE(expected
-                        ->CreateChecked(Client::World::DustParticle, dust, gate.transform.angles, gate.light, 0, 1.0f,
-                                        WorldClock, mirror, 0)
+                        ->CreateChecked(Client::Particles::DustParticle, dust, gate.transform.angles, gate.light, 0,
+                                        1.0f, WorldClock, mirror, 0)
                         .HasValue());
     }
     EXPECT_EQ(m_random.State(), mirror.State());
     for (std::size_t index = 0; index < 10; ++index)
     {
         SCOPED_TRACE(index);
-        const Client::World::Particle& got = m_particles->All()[index];
-        const Client::World::Particle& want = expected->All()[index];
+        const Client::Particles::Particle& got = m_particles->All()[index];
+        const Client::Particles::Particle& want = expected->All()[index];
         EXPECT_TRUE(got.alive);
-        EXPECT_EQ(got.type, Client::World::DustParticle);
+        EXPECT_EQ(got.type, Client::Particles::DustParticle);
         EXPECT_EQ(got.subtype, 0);
         EXPECT_EQ(got.scale, want.scale);
         EXPECT_EQ(got.position, want.position);
@@ -215,7 +215,7 @@ TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
     }
 
     // Con la cuenta en 9 da 81: sin polvo ni rand().
-    m_particles = std::make_unique<Client::World::Particles>();
+    m_particles = std::make_unique<Client::Particles::Particles>();
     const std::uint32_t before = m_random.State();
     Request() = {.map = FourthBloodCastle, .type = Gate, .counter = 9, .delay = 5.0f};
     gate.transform.angles.x = 85.0f;
@@ -245,7 +245,7 @@ TEST_F(ObjectCollapseTest, TheDustNeedsTheParticlePool)
     gate.transform.angles.x = 85.0f;
     ObjectCollapseContext context = Context();
     context.particles = nullptr;
-    const auto cut = Client::Scenes::CollapseTheObject(gate, context);
+    const auto cut = Client::Events::CollapseTheObject(gate, context);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5ffb21"), std::string::npos) << cut.Error();
     EXPECT_EQ(gate.transform.angles.x, 80.0f);
@@ -263,7 +263,7 @@ TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
     WorldObject gate = Object(Gate);
     ASSERT_TRUE(Collapse(gate).HasValue());
     EXPECT_EQ(gate.transform.angles.x, 90.0f);
-    EXPECT_EQ(gate.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(gate.state.hiddenMesh, Client::WorldObjects::HiddenObject);
     EXPECT_EQ(Request().map, -1);
     EXPECT_EQ(Request().type, -1);
     EXPECT_EQ(Request().counter, -1);
@@ -287,10 +287,10 @@ TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
     ObjectCollapseContext context = Context();
     context.attributes = nullptr;
     WorldObject last = Object(Gate);
-    const auto cut = Client::Scenes::CollapseTheObject(last, context);
+    const auto cut = Client::Events::CollapseTheObject(last, context);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5ffb54"), std::string::npos) << cut.Error();
-    EXPECT_EQ(last.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(last.state.hiddenMesh, Client::WorldObjects::HiddenObject);
     EXPECT_EQ(Request().map, -1);
 }
 
@@ -392,7 +392,7 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepEndsInTheNextArea)
         Request() = {.map = 20, .type = 0x10, .counter = 0, .delay = 2.0f};
         WorldObject object = Object(step.type);
         ASSERT_TRUE(Collapse(object).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
         EXPECT_EQ(object.transform.position.z, 300.0f);
         EXPECT_EQ(Runtime().chaosCastleArea, step.next);
         EXPECT_EQ(Request().map, -1);
@@ -415,8 +415,8 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStoneFallsWithItsShake)
         for (const Case step : {Case{2, 1}, Case{25, 7}, Case{31, 4}})
         {
             SCOPED_TRACE(testing::Message() << step.type << ' ' << full);
-            m_particles = std::make_unique<Client::World::Particles>();
-            auto twin = std::make_unique<Client::World::Particles>();
+            m_particles = std::make_unique<Client::Particles::Particles>();
+            auto twin = std::make_unique<Client::Particles::Particles>();
             if (full)
             {
                 for (auto& particle : m_particles->All())
@@ -477,19 +477,19 @@ TEST_F(ObjectCollapseTest, TheWalkCollapsesTheObjectsOfSectorsThatDidNotPass)
     objects[4].alive = false;
     std::vector<std::int16_t> stepped;
     std::vector<std::int16_t> collapsed;
-    const Client::Scenes::AfterObjectStep seenStep =
+    const Client::WorldObjects::AfterObjectStep seenStep =
         [&stepped](WorldObject& object) -> Client::Core::Expected<void, std::string>
     {
         stepped.push_back(object.type);
         return {};
     };
-    const Client::Scenes::AfterObjectStep collapse =
+    const Client::WorldObjects::AfterObjectStep collapse =
         [&collapsed](WorldObject& object) -> Client::Core::Expected<void, std::string>
     {
         collapsed.push_back(object.type);
         return {};
     };
-    ASSERT_TRUE(Client::Scenes::WalkTheObjectSectors(objects, seenStep, collapse).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::WalkTheObjectSectors(objects, seenStep, collapse).HasValue());
     EXPECT_EQ(stepped, (std::vector<std::int16_t>{0}));
     EXPECT_EQ(collapsed, (std::vector<std::int16_t>{0, 3}));
     EXPECT_TRUE(objects[0].seen);
@@ -499,7 +499,7 @@ TEST_F(ObjectCollapseTest, TheWalkCollapsesTheObjectsOfSectorsThatDidNotPass)
 
     // Sin el paso (ningún visto) el derrumbe sigue; el primer corte para el recorrido.
     collapsed.clear();
-    const Client::Scenes::AfterObjectStep cutting =
+    const Client::WorldObjects::AfterObjectStep cutting =
         [&collapsed](WorldObject& object) -> Client::Core::Expected<void, std::string>
     {
         collapsed.push_back(object.type);
@@ -507,7 +507,7 @@ TEST_F(ObjectCollapseTest, TheWalkCollapsesTheObjectsOfSectorsThatDidNotPass)
     };
     for (WorldObject& object : objects)
         object.sectorPassed = false;
-    const auto cut = Client::Scenes::WalkTheObjectSectors(objects, {}, cutting);
+    const auto cut = Client::WorldObjects::WalkTheObjectSectors(objects, {}, cutting);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_EQ(collapsed, (std::vector<std::int16_t>{0}));
 }
@@ -526,11 +526,11 @@ TEST_F(ObjectCollapseTest, TheWalkResetsTheRequestHalfway)
     objects[2].sectorPassed = true;
     objects[2].seen = true;
     const ObjectCollapseContext context = Context();
-    const Client::Scenes::AfterObjectStep collapse = [&context](WorldObject& object)
-    { return Client::Scenes::CollapseTheObject(object, context); };
-    ASSERT_TRUE(Client::Scenes::WalkTheObjectSectors(objects, {}, collapse).HasValue());
+    const Client::WorldObjects::AfterObjectStep collapse = [&context](WorldObject& object)
+    { return Client::Events::CollapseTheObject(object, context); };
+    ASSERT_TRUE(Client::WorldObjects::WalkTheObjectSectors(objects, {}, collapse).HasValue());
     EXPECT_EQ(objects[2].field8a, 4);
-    EXPECT_EQ(objects[0].state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(objects[0].state.hiddenMesh, Client::WorldObjects::HiddenObject);
     EXPECT_EQ(objects[0].transform.angles.x, 90.0f);
     EXPECT_EQ(objects[1].field8a, 0);
     EXPECT_EQ(objects[1].state.hiddenMesh, Client::Models::NoHiddenMesh);

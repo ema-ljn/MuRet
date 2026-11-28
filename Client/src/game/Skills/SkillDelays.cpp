@@ -16,7 +16,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -164,4 +164,4 @@ Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed, con
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

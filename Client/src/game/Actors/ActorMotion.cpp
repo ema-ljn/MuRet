@@ -64,44 +64,44 @@ bool MoveActorPath(Kernel::ActorState& actor, std::uint8_t rotate, Crt::CrtRando
     std::uint32_t y = actor.cellY;
     std::optional<Models::LogicalAccess> xAccess;
     std::optional<Models::LogicalAccess> yAccess;
-    const GameLogic::LogicalCellEffects effects{
-        .onStore = [&](GameLogic::LogicalAxis axis, GameLogic::LogicalStoreStage stage, std::uint32_t& cell)
+    const Actors::LogicalCellEffects effects{
+        .onStore = [&](Actors::LogicalAxis axis, Actors::LogicalStoreStage stage, std::uint32_t& cell)
         {
-            const bool before = stage == GameLogic::LogicalStoreStage::BeginningBefore ||
-                                stage == GameLogic::LogicalStoreStage::ArrivalBefore;
-            auto& access = axis == GameLogic::LogicalAxis::X ? xAccess : yAccess;
-            auto& depth = axis == GameLogic::LogicalAxis::X ? actor.cellXAccesses : actor.cellYAccesses;
+            const bool before = stage == Actors::LogicalStoreStage::BeginningBefore ||
+                                stage == Actors::LogicalStoreStage::ArrivalBefore;
+            auto& access = axis == Actors::LogicalAxis::X ? xAccess : yAccess;
+            auto& depth = axis == Actors::LogicalAxis::X ? actor.cellXAccesses : actor.cellYAccesses;
             if (before)
             {
                 access.emplace(depth, random, Models::SmallLogicalCloseRandoms);
                 return;
             }
-            auto& stored = axis == GameLogic::LogicalAxis::X ? actor.cellX : actor.cellY;
+            auto& stored = axis == Actors::LogicalAxis::X ? actor.cellX : actor.cellY;
             stored = static_cast<std::uint8_t>(cell);
             access.reset();
         }};
-    return GameLogic::MovePath({actor.path, actor.position, actor.angles.z, x, y}, rotate, effects);
+    return Actors::MovePath({actor.path, actor.position, actor.angles.z, x, y}, rotate, effects);
 }
 
 Core::Expected<void, std::string> UpdateActorPosition(Kernel::ActorState& actor, const ActorMotionContext& context)
 {
     const auto speed = [&]()
     {
-        const GameLogic::MovementSpeedInput input{.type = actor.type,
-                                                  .baseSpeed = actor.baseMovementSpeed,
-                                                  .item = actor.pet.model,
-                                                  .wings = actor.wings.model,
-                                                  .movementMode = actor.byte88,
-                                                  .itemVariant = actor.pet.flags1b,
-                                                  .safeZone = actor.safeZone,
-                                                  .flags = actor.flags78,
-                                                  .map = context.runtime.map};
-        return static_cast<double>(GameLogic::UpdateMovementSpeed(actor.run, context.runtime.movementSpeed, input));
+        const Actors::MovementSpeedInput input{.type = actor.type,
+                                               .baseSpeed = actor.baseMovementSpeed,
+                                               .item = actor.pet.model,
+                                               .wings = actor.wings.model,
+                                               .movementMode = actor.byte88,
+                                               .itemVariant = actor.pet.flags1b,
+                                               .safeZone = actor.safeZone,
+                                               .flags = actor.flags78,
+                                               .map = context.runtime.map};
+        return static_cast<double>(Actors::UpdateMovementSpeed(actor.run, context.runtime.movementSpeed, input));
     };
-    const bool updated = GameLogic::TryUpdateCharacterPosition(
-        {actor.position, actor.angles, actor.movementPhase, std::cref(actor.type), std::cref(actor.pet.model),
-         std::cref(actor.safeZone), std::cref(context.runtime.map)},
-        speed, context.height);
+    const bool updated = Actors::TryUpdateCharacterPosition({actor.position, actor.angles, actor.movementPhase,
+                                                             std::cref(actor.type), std::cref(actor.pet.model),
+                                                             std::cref(actor.safeZone), std::cref(context.runtime.map)},
+                                                            speed, context.height);
     if (!updated)
     {
         return Core::Unexpected(std::string("0x508a80: falta la consulta de altura 0x5f93c0"));

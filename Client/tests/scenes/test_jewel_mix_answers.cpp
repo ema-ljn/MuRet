@@ -30,7 +30,7 @@
 #include <vector>
 
 // Las respuestas del BC de la mezcla de joyas (0x4e4547 con 0x4e60a8 y 0x4da540 con 0x4da620, CL9 hitos 6 y 11): los
-// mensajes de tipo 1, el diálogo 0xa6 y la vuelta de 0x402e50, por Scenes::ApplyEventPacket. El GameServer 0.97 no
+// mensajes de tipo 1, el diálogo 0xa6 y la vuelta de 0x402e50, por Events::ApplyEventPacket. El GameServer 0.97 no
 // manda el BC; ninguna saca rand(). Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3), el mapa del
 // NPC de las joyas.
 namespace
@@ -76,13 +76,13 @@ struct Stage
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Answer(Client::Network::Subcode subcode, int result)
     {
-        const Client::Scenes::EventPacketContext context{.world = world,
+        const Client::Events::EventPacketContext context{.world = world,
                                                          .random = random,
                                                          .texts = &texts,
                                                          .measure = &measure,
                                                          .send = [this](Client::Protocol::Outgoing packet)
                                                          { sent.push_back(std::move(packet)); }};
-        auto applied = Client::Scenes::ApplyEventPacket(
+        auto applied = Client::Events::ApplyEventPacket(
             Events::JewelMixResult{.subcode = subcode, .result = static_cast<std::uint8_t>(result)}, context);
         if (!applied.HasValue())
             return Client::Core::Unexpected(std::move(applied).Error());
@@ -93,15 +93,15 @@ struct Stage
     [[nodiscard]] std::vector<std::string> Messages() const
     {
         std::vector<std::string> messages;
-        for (const Client::UI::MessageAreaRow& row : world.Runtime().chat.area.rows)
+        for (const Client::Ui::MessageAreaRow& row : world.Runtime().chat.area.rows)
         {
-            if (row.type == Client::UI::SystemMessage && !row.text.empty())
+            if (row.type == Client::Ui::SystemMessage && !row.text.empty())
                 messages.push_back(row.text);
         }
         return messages;
     }
 
-    [[nodiscard]] Client::Scenes::NpcWindowState& Npc()
+    [[nodiscard]] Client::Npc::NpcWindowState& Npc()
     {
         return world.Runtime().npcWindows;
     }

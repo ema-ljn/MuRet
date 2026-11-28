@@ -38,7 +38,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -286,9 +286,9 @@ void PutOnTheBoxArmour(Kernel::ActorState& actor)
 
 // 0x612d90(n) y 0x612270(modelo) sobre los modelos del juego que no se sueltan (Assets::AssetsState::fauna), con el
 // mapa en curso y la tabla de texturas que liga el juego.
-Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const WorldEntryResources& resources)
+Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Scenes::WorldEntryResources& resources)
 {
-    Assets::FaunaModels* models = FaunaModelsOf(resources);
+    Assets::FaunaModels* models = Scenes::FaunaModelsOf(resources);
     if (models == nullptr)
         return Core::Unexpected(std::format("{:#x}: no fauna models (0x5769ad8)", step.address));
     auto context = models->LoadContextOf(resources.dataRoot, resources.log);
@@ -315,10 +315,10 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Wo
 }
 
 // 0x5f93c0 en la escena del juego: la altura del terreno en la X y la Y del personaje.
-Core::Expected<double, std::string> GroundAt(const Kernel::ActorState& actor, const WorldEntryResources& resources,
-                                             std::uint32_t address)
+Core::Expected<double, std::string> GroundAt(const Kernel::ActorState& actor,
+                                             const Scenes::WorldEntryResources& resources, std::uint32_t address)
 {
-    const Terrain::WorldTerrain& terrain = TerrainOf(resources);
+    const Terrain::WorldTerrain& terrain = Scenes::TerrainOf(resources);
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::format("{:#x}: 0x5f93c0 sin las alturas del mundo cargado", address));
     return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, actor.position.x, actor.position.y,
@@ -329,7 +329,7 @@ class MonsterBuilder
 {
 public:
     MonsterBuilder(std::int32_t type, std::uint8_t x, std::uint8_t y, std::int32_t key,
-                   const WorldEntryResources& resources)
+                   const Scenes::WorldEntryResources& resources)
         : m_type(type), m_x(x), m_y(y), m_key(key), m_resources(resources)
     {
     }
@@ -387,11 +387,11 @@ private:
             {
                 Kernel::ActorState& actor = m_resources.world.Actors()[*m_index];
                 auto created =
-                    CreateFaunaJoint(m_resources.world.DrawTail().joints,
-                                     Kernel::JointRequest{static_cast<std::int32_t>(step.value), actor.position,
-                                                          actor.position, actor.angles, step.offset, &actor,
-                                                          std::bit_cast<float>(step.extra), -1, 0, 0, -1},
-                                     m_resources.cloth.random, Kernel::JointOwnerKind::Actor);
+                    Joints::CreateFaunaJoint(m_resources.world.DrawTail().joints,
+                                             Kernel::JointRequest{static_cast<std::int32_t>(step.value), actor.position,
+                                                                  actor.position, actor.angles, step.offset, &actor,
+                                                                  std::bit_cast<float>(step.extra), -1, 0, 0, -1},
+                                             m_resources.cloth.random, Kernel::JointOwnerKind::Actor);
                 if (!created.HasValue())
                     return Core::Unexpected(std::move(created).Error());
                 return {};
@@ -411,14 +411,14 @@ private:
                                                              .light = actor.light,
                                                              .owner = &actor,
                                                              .key = ArrivalScaleKey};
-                const auto created =
-                    CreateHighModelEffect(arguments, {.world = m_resources.world, .random = m_resources.cloth.random});
+                const auto created = Effects::CreateHighModelEffect(
+                    arguments, {.world = m_resources.world, .random = m_resources.cloth.random});
                 if (!created.HasValue())
                     return Core::Unexpected(created.Error());
                 return {};
             }
             // 0x518d0f devuelve el control al caller cuando no hay un lugar libre en el pool.
-            if (std::ranges::all_of(m_resources.world.Map().effects.Effects(), &World::ModelEffect::alive))
+            if (std::ranges::all_of(m_resources.world.Map().effects.Effects(), &Effects::ModelEffect::alive))
                 return {};
             return Core::Unexpected(std::format("{:#x}: el efecto {:#x} (0x518cf0) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
@@ -433,8 +433,9 @@ private:
     Core::Expected<void, std::string> Create(const MonsterStep& step)
     {
         Kernel::WorldState& world = m_resources.world;
-        const Actors::ActorConstructionContext construction{
-            TerrainOf(m_resources), world.Runtime().map, Terrain::CullingScene::Game, m_resources.camera.fixedHeight};
+        const Actors::ActorConstructionContext construction{Scenes::TerrainOf(m_resources), world.Runtime().map,
+                                                            Terrain::CullingScene::Game,
+                                                            m_resources.camera.fixedHeight};
         const Actors::ActorPlacement placement{m_x, m_y, std::bit_cast<float>(step.extra)};
         auto created = Actors::CreateActor(world, m_key, static_cast<std::uint16_t>(step.value), placement,
                                            construction, m_resources.cloth);
@@ -549,7 +550,7 @@ private:
     std::uint8_t m_x;
     std::uint8_t m_y;
     std::int32_t m_key;
-    const WorldEntryResources& m_resources;
+    const Scenes::WorldEntryResources& m_resources;
     std::optional<std::size_t> m_index;
 };
 } // namespace
@@ -590,8 +591,8 @@ Core::Expected<std::string, std::string> ActorCString(const Kernel::ActorState& 
 }
 
 Core::Expected<std::size_t, std::string> CreateMonster(std::int32_t type, std::uint8_t x, std::uint8_t y,
-                                                       std::int32_t key, const WorldEntryResources& resources)
+                                                       std::int32_t key, const Scenes::WorldEntryResources& resources)
 {
     return MonsterBuilder(type, x, y, key, resources).Run();
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

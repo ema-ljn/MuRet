@@ -50,7 +50,7 @@
 // más su índice), deja ver qué pase dibuja qué malla con qué textura, qué color y qué mezcla.
 namespace
 {
-const Client::Scenes::ActorEffectHooks EffectHooks;
+const Client::Effects::ActorEffectHooks EffectHooks;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 using Client::Render::ModelBlend;
@@ -96,7 +96,7 @@ std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const
                                                        .skill = 0,
                                                        .skillSerial = 0,
                                                        .target = -1};
-            const auto created = Client::Scenes::CreateFaunaJoint(*joints, request, random);
+            const auto created = Client::Joints::CreateFaunaJoint(*joints, request, random);
             EXPECT_TRUE(created.HasValue()) << created.Error();
         }
     }
@@ -202,31 +202,31 @@ protected:
         object.color = {0.2f, 0.4f, 0.6f};
         object.alpha = m_actor->alpha;
         m_meshes = Client::Actors::Drawing::SkinObjectMeshes(m_models, object, m_bones, m_boneScale);
-        Client::Scenes::MonsterBodyModel model{.batch = m_batch,
-                                               .models = m_models,
-                                               .object = object,
-                                               .meshes = m_meshes,
-                                               .frameClock = Client::Core::Duration{},
-                                               .worldClock = worldClock,
-                                               .boneScale = m_boneScale};
-        Client::Scenes::MonsterBodyFrame frame{.model = model,
-                                               .actor = *m_actor,
-                                               .bones = m_bones,
-                                               .map = map,
-                                               .special = special,
-                                               .worldClock = worldClock,
-                                               .random = m_cloth.random,
-                                               .cloth = m_cloth,
-                                               .siegeActive = m_siegeActive,
-                                               .lastSoundId = &m_sound,
-                                               .originalFrame = originalFrame,
-                                               .cameraShake = &m_shake,
-                                               .effects = m_effects.get(),
-                                               .effectHooks = &EffectHooks,
-                                               .particles = m_particles.get(),
-                                               .terrainHeight = m_terrainHeight,
-                                               .joints = m_joints};
-        auto result = Client::Scenes::DrawMonsterBody(frame);
+        Client::Monsters::Drawing::MonsterBodyModel model{.batch = m_batch,
+                                                          .models = m_models,
+                                                          .object = object,
+                                                          .meshes = m_meshes,
+                                                          .frameClock = Client::Core::Duration{},
+                                                          .worldClock = worldClock,
+                                                          .boneScale = m_boneScale};
+        Client::Monsters::Drawing::MonsterBodyFrame frame{.model = model,
+                                                          .actor = *m_actor,
+                                                          .bones = m_bones,
+                                                          .map = map,
+                                                          .special = special,
+                                                          .worldClock = worldClock,
+                                                          .random = m_cloth.random,
+                                                          .cloth = m_cloth,
+                                                          .siegeActive = m_siegeActive,
+                                                          .lastSoundId = &m_sound,
+                                                          .originalFrame = originalFrame,
+                                                          .cameraShake = &m_shake,
+                                                          .effects = m_effects.get(),
+                                                          .effectHooks = &EffectHooks,
+                                                          .particles = m_particles.get(),
+                                                          .terrainHeight = m_terrainHeight,
+                                                          .joints = m_joints};
+        auto result = Client::Monsters::Drawing::DrawMonsterBody(frame);
         m_color = model.object.color;
         return result;
     }
@@ -236,8 +236,8 @@ protected:
     std::size_t ExpectTheTwinVertexEffects(std::uint32_t state, std::int32_t mesh, std::int32_t type,
                                            std::int32_t subtype)
     {
-        auto effects = std::make_unique<Client::World::ModelEffects>();
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         Client::Crt::CrtRandom random{state};
         const auto emitted = Client::Actors::Drawing::EmitVertexEffectsOf(
             *m_models.Find(Client::Models::ModelId{m_actor->type}), m_transform.scale, m_meshes,
@@ -317,8 +317,8 @@ protected:
     float m_boneScale = 1.0f;
     // La escala y la posición que 0x5ffdf0 copió al modelo (+0x68 y +0x6c): las del objeto del dibujo.
     Client::Models::ObjectTransform m_transform{};
-    std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
-    std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Effects::ModelEffects> m_effects = std::make_unique<Client::Effects::ModelEffects>();
+    std::unique_ptr<Client::Particles::Particles> m_particles = std::make_unique<Client::Particles::Particles>();
     // La tabla de joints (0x74a8d78): vacía salvo en Kundun al morir.
     std::vector<Client::Scenes::JointState> m_joints;
     std::vector<Client::Math::BoneTransform> m_bones{Client::Math::BoneTransform(1.0f)};
@@ -567,7 +567,7 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
             static_cast<void>(random.Next());
         return random.State();
     };
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Crt::CrtRandom random{8};
     const auto emitted =
         Client::Actors::Drawing::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
@@ -610,7 +610,7 @@ TEST_F(MonsterBodyTest, TheDying18eAnd18fDieWithoutTheCounter)
         m_actor->alive = true;
         m_actor->animation.action = 6;
         m_sound.reset();
-        m_effects = std::make_unique<Client::World::ModelEffects>();
+        m_effects = std::make_unique<Client::Effects::ModelEffects>();
         const auto before = m_cloth.random.State();
         const auto result = Draw(type, 0);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -620,7 +620,7 @@ TEST_F(MonsterBodyTest, TheDying18eAnd18fDieWithoutTheCounter)
     }
     m_sound.reset();
     m_actor->alive = true;
-    m_effects = std::make_unique<Client::World::ModelEffects>();
+    m_effects = std::make_unique<Client::Effects::ModelEffects>();
     const auto before = m_cloth.random.State();
     ASSERT_TRUE(Draw(0x18f, 0, 0, 0.0f, false).HasValue());
     EXPECT_FALSE(m_sound.has_value());
@@ -1010,7 +1010,7 @@ TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
         {
             SCOPED_TRACE(type);
             m_batch.Begin(Client::Render::Pass3D{});
-            m_particles = std::make_unique<Client::World::Particles>();
+            m_particles = std::make_unique<Client::Particles::Particles>();
             const auto before = m_cloth.random.State();
             const auto result = Draw(type, 2);
             ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1019,7 +1019,7 @@ TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
     }
     EXPECT_GT(made, 0u);
     // Con el alpha en 0,5 o fuera de los frames del original, sin rand().
-    m_particles = std::make_unique<Client::World::Particles>();
+    m_particles = std::make_unique<Client::Particles::Particles>();
     for (const bool original : {true, false})
     {
         m_actor->alpha = original ? 0.5f : 0.25f;
@@ -1046,7 +1046,7 @@ TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
             m_actor->subtype = 9;
             m_actor->byte110 = strike;
             m_sound.reset();
-            m_effects = std::make_unique<Client::World::ModelEffects>();
+            m_effects = std::make_unique<Client::Effects::ModelEffects>();
             m_batch.Begin(Client::Render::Pass3D{});
             const auto before = m_cloth.random.State();
             ASSERT_TRUE(Draw(type, 2).HasValue());
@@ -1060,7 +1060,7 @@ TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
     }
     m_actor->byte110 = 0x21;
     m_sound.reset();
-    m_effects = std::make_unique<Client::World::ModelEffects>();
+    m_effects = std::make_unique<Client::Effects::ModelEffects>();
     const auto before = m_cloth.random.State();
     ASSERT_TRUE(Draw(0x197, 2, 0, 0.0f, false).HasValue());
     EXPECT_EQ(m_actor->byte110, 0);
@@ -1203,7 +1203,7 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
-        m_effects = std::make_unique<Client::World::ModelEffects>();
+        m_effects = std::make_unique<Client::Effects::ModelEffects>();
         m_actor->dword60 = 0x5a;
         m_actor->animation = {.action = 6, .frame = 15.0f};
         m_actor->position = {1000.0f, 2000.0f, 300.0f};
@@ -1227,7 +1227,7 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         {
             SCOPED_TRACE(slot);
             const Piece& expected = pieces[slot];
-            const Client::World::ModelEffect& piece = effects[slot];
+            const Client::Effects::ModelEffect& piece = effects[slot];
             ASSERT_TRUE(piece.alive);
             EXPECT_EQ(piece.type, expected.type);
             EXPECT_EQ(piece.subtype, expected.subtype);
@@ -1254,21 +1254,21 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
             }
         }
         EXPECT_EQ(m_cloth.random.State(), replica.State());
-        const Client::World::ModelEffect& call = effects[8];
+        const Client::Effects::ModelEffect& call = effects[8];
         ASSERT_TRUE(call.alive);
         EXPECT_EQ(call.type, 0x128);
         EXPECT_EQ(call.subtype, 2);
         EXPECT_EQ(call.life, 40);
         EXPECT_EQ(call.ownerContext, nullptr);
         EXPECT_EQ(call.transform.position, m_actor->position);
-        const Client::World::ModelEffect& echo = effects[9];
+        const Client::Effects::ModelEffect& echo = effects[9];
         ASSERT_TRUE(echo.alive);
         EXPECT_EQ(echo.type, 0x127);
         EXPECT_EQ(echo.ownerContext, &call);
         EXPECT_EQ(echo.life, 200);
         EXPECT_FALSE(effects[10].alive);
 
-        m_effects = std::make_unique<Client::World::ModelEffects>();
+        m_effects = std::make_unique<Client::Effects::ModelEffects>();
         m_terrainHeight = {};
         m_actor->dword60 = 0x5a;
         m_cloth.random = Client::Crt::CrtRandom{1};
@@ -1289,7 +1289,7 @@ TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
-        m_effects = std::make_unique<Client::World::ModelEffects>();
+        m_effects = std::make_unique<Client::Effects::ModelEffects>();
         m_actor->dword60 = 0x5a;
         m_actor->animation = {.action = 6, .frame = 15.0f};
         m_bones.assign(5, Client::Math::BoneTransform(1.0f));

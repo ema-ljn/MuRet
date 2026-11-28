@@ -29,7 +29,7 @@
 
 // Cotejado con el PE c32bbd5f: las altas 0x51e234 (los pedazos), 0x51cf6d (el 0x127) y 0x518f51 (la vuelta del 0x128/2)
 // y los pasos 0x52a17b y 0x5277ae.
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -56,13 +56,13 @@ constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b88d4 y 0x6b86c0, 0,
 constexpr float PieceScale = 2.0f;                    // 0x40000000
 
 // 0x52a5fe..0x52a683: el alpha (+0x174) 0,01f menos.
-void Fade(World::ModelEffect& effect)
+void Fade(Effects::ModelEffect& effect)
 {
     effect.alpha = F32(D(effect.alpha) - Hundredth);
 }
 
 // 0x52a4ab..0x52a5f9: el /3 con más de 385 de vida; el /2 no tiembla.
-Core::Expected<void, std::string> Shake(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> Shake(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr std::int32_t StillLife = 0x181; // 385
     if (effect.subtype == RockSubtype || effect.life <= StillLife)
@@ -98,7 +98,7 @@ Core::Expected<void, std::string> Shake(World::ModelEffect& effect, const HighEf
 }
 
 // 0x52a1ae..0x52a259: por encima de 350, la caída.
-void Drop(World::ModelEffect& effect, CrtRandom& random)
+void Drop(Effects::ModelEffect& effect, CrtRandom& random)
 {
     glm::vec3& velocity = effect.velocity;
     if (EqualOrUnordered(velocity.x, 0.0f) && EqualOrUnordered(velocity.y, 0.0f) && EqualOrUnordered(velocity.z, 0.0f))
@@ -112,7 +112,7 @@ void Drop(World::ModelEffect& effect, CrtRandom& random)
 }
 
 // 0x52a26e..0x52a386: la onda de Kalima y las cien partículas 0x6f4/2 del golpe contra el suelo.
-Core::Expected<void, std::string> Strike(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> Strike(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     CrtRandom& random = context.random;
     // 0x52a26e..0x52a293: ftol de y · 0,01f y después de x · 0,01f; 0x437860 no hace nada sin Kalima (0x723c48).
@@ -152,7 +152,7 @@ Core::Expected<void, std::string> Strike(World::ModelEffect& effect, const HighE
 }
 
 // 0x52a41e..0x52a487: la x de los ángulos baja hasta −30 y sube hasta 30, con la x copiada (+0x28) de sentido.
-void Rock(World::ModelEffect& effect, CrtRandom& random)
+void Rock(Effects::ModelEffect& effect, CrtRandom& random)
 {
     constexpr float Low = -30.0f, High = 30.0f; // 0x6ba1f4 y 0x6b8858
     constexpr int Swing = 3;
@@ -172,7 +172,8 @@ void Rock(World::ModelEffect& effect, CrtRandom& random)
 }
 
 // 0x52a191..0x52a4a6: el /2 y el /3.
-Core::Expected<void, std::string> StepTheFallingPiece(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheFallingPiece(Effects::ModelEffect& effect,
+                                                      const HighEffectStepContext& context)
 {
     constexpr std::int32_t Base = 0x5e, Step = 5;
     if (effect.life >= (Base - effect.byte89) * Step)
@@ -209,7 +210,7 @@ Core::Expected<void, std::string> StepTheFallingPiece(World::ModelEffect& effect
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheKundunPiece(World::ModelEffect& effect, CrtRandom& random,
+Core::Expected<void, std::string> BeginTheKundunPiece(Effects::ModelEffect& effect, CrtRandom& random,
                                                       const KundunTerrainHeight& terrainHeight)
 {
     const std::int32_t subtype = effect.subtype;
@@ -265,7 +266,7 @@ Core::Expected<void, std::string> BeginTheKundunPiece(World::ModelEffect& effect
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunPiece(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments, CrtRandom& random,
+CreateTheKundunPiece(Effects::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments, CrtRandom& random,
                      const KundunTerrainHeight& terrainHeight)
 {
     if (arguments.type < FirstKundunPieceEffect || arguments.type > LastKundunPieceEffect)
@@ -279,7 +280,7 @@ CreateTheKundunPiece(World::ModelEffects& effects, const Kernel::ModelEffectArgu
     return slot;
 }
 
-void BeginTheKundunEcho(World::ModelEffect& effect)
+void BeginTheKundunEcho(Effects::ModelEffect& effect)
 {
     constexpr float Speed = std::bit_cast<float>(0x3da3d70au); // 0,08f
     constexpr std::int32_t EchoLife = 200;                     // 0xc8
@@ -292,9 +293,9 @@ void BeginTheKundunEcho(World::ModelEffect& effect)
     effect.light = glm::vec3(Glow);
 }
 
-std::optional<std::size_t> CreateTheKundunEcho(World::ModelEffects& effects, std::size_t call)
+std::optional<std::size_t> CreateTheKundunEcho(Effects::ModelEffects& effects, std::size_t call)
 {
-    World::ModelEffect& owner = effects.Effects()[call];
+    Effects::ModelEffect& owner = effects.Effects()[call];
     const auto slot = effects.Begin({.type = KundunEchoEffect,
                                      .position = owner.transform.position,
                                      .angles = owner.transform.angles,
@@ -304,14 +305,14 @@ std::optional<std::size_t> CreateTheKundunEcho(World::ModelEffects& effects, std
                                      .key = NoKey});
     if (!slot.has_value())
         return slot;
-    World::ModelEffect& echo = effects.Effects()[*slot];
+    Effects::ModelEffect& echo = effects.Effects()[*slot];
     // El paso lee la clave (+0x8a) de su dueño, el 0x128/2.
     echo.owner.effect = &owner;
     BeginTheKundunEcho(echo);
     return slot;
 }
 
-Core::Expected<void, std::string> StepTheKundunPiece(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheKundunPiece(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     switch (effect.subtype)
     {
@@ -351,11 +352,11 @@ Core::Expected<void, std::string> StepTheKundunPiece(World::ModelEffect& effect,
     }
 }
 
-Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheKundunEcho(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     if (effect.ownerContext != nullptr)
     {
-        const World::ModelEffect* call = effect.owner.effect;
+        const Effects::ModelEffect* call = effect.owner.effect;
         if (call == nullptr)
             return Core::Unexpected(
                 std::string("0x5277ba: el dueño (+0x108) del 0x127 no es un efecto con modelo (CL11)"));
@@ -425,16 +426,15 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
     point.x = F32(static_cast<double>(random.Next() % Spread - Center) + D(point.x));
     point.y = F32(static_cast<double>(random.Next() % Spread - Center) + D(point.y));
     const glm::vec3 angles{0.0f, 0.0f, F32(static_cast<double>(random.Next() % Spokes) * SpokeTurn)};
-    constexpr std::int16_t FireEffect = 0xc2;
     constexpr std::uint16_t FireKey = 0; // ESI en 0x527a6f
-    const World::WizardEffectServices services =
+    const Effects::WizardEffectServices services =
         WizardEffectServicesOf(context.world, random,
                                WizardSceneParts{.particles = &context.world.Particles(),
                                                 .worldClock = context.worldClock,
                                                 .terrain = context.terrain,
                                                 .dynamicLighting = context.services.lighting,
                                                 .faunaModels = context.faunaModels});
-    const auto fire = World::CreateWizardModelEffect(
+    const auto fire = Effects::CreateWizardModelEffect(
         context.world.Map().effects, WizardArguments(FireEffect, point, angles, glm::vec3(1.0f), 0, nullptr, FireKey),
         random, services);
     if (!fire.HasValue())
@@ -448,4 +448,4 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
     *context.services.cameraShake = F32(static_cast<double>(shake) * Tenth);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

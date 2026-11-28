@@ -35,12 +35,16 @@ struct TerrainPolygon;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::Particles
 {
 class FrameSprites;
-class ModelEffects;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Actors::Drawing
 {
@@ -59,7 +63,7 @@ class WorldState;
 // caballo del login sigue en LoginScene. Porta el caballo oscuro (0xbf), el Uniria (0xc6), el Dinorant (0x110), los
 // Fenrir (0x14a..0x14c) y el Guardian Angel (0x1c12). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El
 // caballo oscuro" y "Las mascotas".
-namespace Client::Scenes
+namespace Client::Pets
 {
 
 // 0x443fa0(tipo, posición, jinete, 0, 0), como la llaman 0x5bc740 y los otros armados del juego: en los
@@ -96,7 +100,7 @@ struct HelperStepContext
     float worldClock = 0.0f;
     // DAT_006d5dc8: solo la 5 apaga el ayudante sin jinete (0x44402a), y la 4 decide el final de la animación
     // con el frame + 2 (0x4ec200, Q-C21).
-    SceneId scene = SceneId::Game;
+    Scenes::SceneId scene = Scenes::SceneId::Game;
     // The attributes (0x7d0d348) of scene 4's load; without it, an empty terrain's.
     const Terrain::WorldTerrain* terrain = nullptr;
     // 0x7d3a0f0, la cuenta de los pasos lógicos que 0x4453e0 lee cruda para la onda 0x6eb/0 de la acción 3 del
@@ -154,17 +158,17 @@ struct HelperDrawContext
     std::function<std::span<const Models::SkinnedMesh>()> posedMeshes{};
     // DAT_006d5dc8, por la escala de 0x4452db..0x445309: 1,6 en la 2 y 1 en la 4; en la 5, la del lugar con los
     // Fenrir y 1 con los demás.
-    SceneId scene = SceneId::Game;
+    Scenes::SceneId scene = Scenes::SceneId::Game;
     // El buffer dinámico de la luz del terreno (0x5ffce0): el color de los que no son el caballo.
     const Terrain::TerrainLighting* lighting = nullptr;
     // La tabla de los sprites del frame (0x5491e0): el brillo del 0x1c12 (0x445390) y los de los Fenrir.
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // Lo que el dibujo de los Fenrir (0x60277b) lee y crea además: el reloj del mundo (0x5767b88), los efectos con
     // modelo (0x518cf0), las partículas (0x53fe70), timeGetTime() (0x6b8544, del calco 0x14e) y el buffer global de la
     // pose (0x68b181c) después de posarlo, el del frame o su copia proyectada.
     float worldClock = 0.0f;
-    World::ModelEffects* effects = nullptr;
-    World::Particles* particles = nullptr;
+    Effects::ModelEffects* effects = nullptr;
+    Particles::Particles* particles = nullptr;
     std::function<std::uint32_t()> systemTime{};
     std::function<std::span<const Math::BoneTransform>()> globalPose{};
     // The global trapezoid (Camera::CameraState::trapezoid) that 0x5fba90 reads. nullptr: the .bss's zeros.
@@ -234,4 +238,4 @@ private:
     const Kernel::WorldState& m_world;
     Crt::CrtRandom* m_random;
 };
-} // namespace Client::Scenes
+} // namespace Client::Pets

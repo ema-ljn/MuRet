@@ -43,7 +43,7 @@ namespace Client::Session
                                                              App::ServerSession& session,
                                                              const Scenes::WorldEntryResources& resources);
 
-// 0x4d52bc..0x4d5553: with a personal shop open, the C1 04 37 00 that Scenes::ApplyTradeRequest returns goes out in
+// 0x4d52bc..0x4d5553: with a personal shop open, the C1 04 37 00 that Social::ApplyTradeRequest returns goes out in
 // clear, with the XOR32.
 [[nodiscard]] Core::Expected<void, std::string> ReceiveTradeRequest(const Protocol::Social::TradeRequest& request,
                                                                     App::ServerSession& session,

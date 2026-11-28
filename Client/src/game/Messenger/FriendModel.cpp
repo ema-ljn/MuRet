@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Messenger
 {
 namespace
 {
@@ -95,4 +95,4 @@ void SortTheFriends(FriendModel& model, std::int32_t mode)
     else if (model.sortMode == ByStateSort)
         Crt::Msvc6Sort(model.entries, StateComesFirst);
 }
-} // namespace Client::UI
+} // namespace Client::Messenger

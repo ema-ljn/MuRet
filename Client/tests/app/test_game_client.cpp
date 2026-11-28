@@ -67,7 +67,7 @@ protected:
     // One frame as GameLoop runs it with one step, then the clock moves 40 ms.
     void RunFrame(GameClient& client)
     {
-        ILoopClient& loop = client.Loop();
+        Scenes::ILoopClient& loop = client.Loop();
         loop.Poll();
         loop.Step(m_input);
         m_input.ConsumeEdges();

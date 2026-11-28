@@ -40,8 +40,10 @@
 // inventados.
 namespace
 {
+using Client::Chat::ChatReceiveContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
+using Client::Messenger::FriendsOpenContext;
 using Client::Protocol::Messenger::FriendAddResult;
 using Client::Protocol::Messenger::FriendDeleteResult;
 using Client::Protocol::Messenger::FriendList;
@@ -51,11 +53,9 @@ using Client::Protocol::Messenger::FriendState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ChatReceiveContext;
-using Client::Scenes::FriendsOpenContext;
-using Client::UI::FriendSend;
-using Client::UI::FriendSendKind;
-using Client::UI::OldWindowKind;
+using Client::Ui::FriendSend;
+using Client::Ui::FriendSendKind;
+using Client::Ui::OldWindowKind;
 
 constexpr std::uint32_t Seed = 4242;
 constexpr std::uint8_t EnterKey = 0x0d;
@@ -119,9 +119,9 @@ protected:
                                   .chosenSlot = std::nullopt};
     }
 
-    [[nodiscard]] Client::UI::OldWindowStepView View()
+    [[nodiscard]] Client::Ui::OldWindowStepView View()
     {
-        return Client::UI::OldWindowStepView{.mouseX = 639,
+        return Client::Ui::OldWindowStepView{.mouseX = 639,
                                              .mouseY = 479,
                                              .keyEdge = [this](std::uint8_t key) { return m_keys.erase(key) > 0; },
                                              .keyDown = {},
@@ -135,17 +135,17 @@ protected:
 
     Client::Core::Expected<void, std::string> Open()
     {
-        return Client::Scenes::OpenTheFriends(FriendsOpenContext{.world = *m_world,
-                                                                 .random = m_random,
-                                                                 .measure = &m_letters,
-                                                                 .screen = Client::Core::PixelSize{640, 480},
-                                                                 .texts = &m_texts},
-                                              Client::Scenes::OldWindowGlobalsOf(Runtime()), View());
+        return Client::Messenger::OpenTheFriends(FriendsOpenContext{.world = *m_world,
+                                                                    .random = m_random,
+                                                                    .measure = &m_letters,
+                                                                    .screen = Client::Core::PixelSize{640, 480},
+                                                                    .texts = &m_texts},
+                                                 Client::Hud::OldWindowGlobalsOf(Runtime()), View());
     }
 
     Client::Core::Expected<void, std::string> StepTheWindows()
     {
-        return Client::UI::StepTheOldWindows(Manager(), Client::Scenes::OldWindowGlobalsOf(Runtime()), View());
+        return Client::Ui::StepTheOldWindows(Manager(), Client::Hud::OldWindowGlobalsOf(Runtime()), View());
     }
 
     [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
@@ -153,7 +153,7 @@ protected:
         return m_world->Runtime();
     }
 
-    [[nodiscard]] Client::UI::OldWindowManager& Manager()
+    [[nodiscard]] Client::Ui::OldWindowManager& Manager()
     {
         return Runtime().oldWindows;
     }
@@ -191,12 +191,12 @@ protected:
         const auto block = [this](std::int32_t x, std::int32_t y)
         {
             const auto created =
-                Client::UI::CreateTheOldWindow(Manager(),
-                                               Client::UI::OldWindowRequest{.kind = Client::UI::FrameCase,
+                Client::Ui::CreateTheOldWindow(Manager(),
+                                               Client::Ui::OldWindowRequest{.kind = Client::Ui::FrameCase,
                                                                             .x = x,
                                                                             .y = y,
                                                                             .data = "obstáculo",
-                                                                            .flags = Client::UI::KeepPlaceFlag},
+                                                                            .flags = Client::Ui::KeepPlaceFlag},
                                                m_oldTexts, m_oldMeasure);
             ASSERT_TRUE(created.HasValue()) << created.Error();
             ASSERT_NE(created.Value(), 0);
@@ -217,8 +217,8 @@ protected:
     CrtRandom m_random;
     LetterMeasure m_letters;
     Client::Tables::TextTable m_texts;
-    Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
-    Client::UI::OldWindowMeasure m_oldMeasure{
+    Client::Ui::OldWindowTexts m_oldTexts = Client::Messenger::OldWindowTextsOf(&m_texts);
+    Client::Ui::OldWindowMeasure m_oldMeasure{
         .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::Core::PixelSize{640, 480}};
     std::set<std::uint8_t> m_keys;
     std::vector<FriendSend> m_sent;
@@ -235,7 +235,7 @@ TEST_F(GameFriendsTest, BelowLevelSixOpeningSaysTheLevelText)
     EXPECT_EQ(Manager().friends, 0);
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "falta nivel");
-    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::Ui::SystemMessage);
 
     opened = Open();
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
@@ -280,15 +280,15 @@ TEST_F(GameFriendsTest, TheListFillsTheModelSortedAndSaysTheLetters)
     ASSERT_TRUE(Open().HasValue());
     Manager().listReceived = 0;
     Manager().titleText = 1066;
-    Client::UI::AddAFriend(Manager().friendModel, "Viejo", 0, 1);
+    Client::Messenger::AddAFriend(Manager().friendModel, "Viejo", 0, 1);
     const FriendList list{.letters = 2,
                           .maxLetters = 50,
                           .friends = {FriendRow{"Benteveo", 0xff}, FriendRow{"Zorzal", 3}, FriendRow{"Hornero", 3},
                                       FriendRow{"Calandria", 0xff}}};
-    const auto applied = Client::Scenes::ApplyFriendList(list, Context());
+    const auto applied = Client::Messenger::ApplyFriendList(list, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Calandria", "Benteveo", "Zorzal", "Hornero"}));
-    EXPECT_EQ(Manager().friendModel.sortMode, Client::UI::ByStateSort);
+    EXPECT_EQ(Manager().friendModel.sortMode, Client::Messenger::ByStateSort);
     const auto& tab = Manager().windows.at(Manager().friends).tabs[0];
     ASSERT_EQ(tab.tab.friends.size(), 4u);
     EXPECT_EQ(tab.tab.friends[0].name, "Calandria");
@@ -303,12 +303,13 @@ TEST_F(GameFriendsTest, TheListFillsTheModelSortedAndSaysTheLetters)
 // 0x4dc38a: con 0 cartas, nada; las cuentas van sin signo.
 TEST_F(GameFriendsTest, AListWithoutLettersSaysNothingAndTheLettersHaveNoSign)
 {
-    ASSERT_TRUE(Client::Scenes::ApplyFriendList(FriendList{.letters = 0, .maxLetters = 10, .friends = {}}, Context())
+    ASSERT_TRUE(Client::Messenger::ApplyFriendList(FriendList{.letters = 0, .maxLetters = 10, .friends = {}}, Context())
                     .HasValue());
     EXPECT_TRUE(Runtime().chat.log.entries.empty());
     EXPECT_TRUE(Manager().friendModel.entries.empty());
-    ASSERT_TRUE(Client::Scenes::ApplyFriendList(FriendList{.letters = 0xff, .maxLetters = 10, .friends = {}}, Context())
-                    .HasValue());
+    ASSERT_TRUE(
+        Client::Messenger::ApplyFriendList(FriendList{.letters = 0xff, .maxLetters = 10, .friends = {}}, Context())
+            .HasValue());
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "cartas 255 de 10");
 }
@@ -317,12 +318,12 @@ TEST_F(GameFriendsTest, AListWithoutLettersSaysNothingAndTheLettersHaveNoSign)
 TEST_F(GameFriendsTest, AnAddedFriendJoinsTheListInTheSameOrder)
 {
     ASSERT_TRUE(
-        Client::Scenes::ApplyFriendList(
+        Client::Messenger::ApplyFriendList(
             FriendList{.letters = 0, .maxLetters = 0, .friends = {FriendRow{"Zorzal", 2}, FriendRow{"Tero", 1}}},
             Context())
             .HasValue());
     const auto applied =
-        Client::Scenes::ApplyFriendAddResult(FriendAddResult{.result = 1, .name = "Hornero", .state = 5}, Context());
+        Client::Messenger::ApplyFriendAddResult(FriendAddResult{.result = 1, .name = "Hornero", .state = 5}, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Hornero", "Zorzal", "Tero"}));
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
@@ -343,8 +344,8 @@ TEST_F(GameFriendsTest, TheAddFailuresOpenANoticeBox)
                                 Case{5, "no a uno mismo"}, Case{6, "el otro sin nivel"}, Case{2, ""}})
     {
         SCOPED_TRACE(failure.result);
-        Client::UI::ResetTheOldWindows(Manager(), m_world->Runtime().ui.pressedButton);
-        const auto applied = Client::Scenes::ApplyFriendAddResult(
+        Client::Ui::ResetTheOldWindows(Manager(), m_world->Runtime().ui.pressedButton);
+        const auto applied = Client::Messenger::ApplyFriendAddResult(
             FriendAddResult{.result = failure.result, .name = "Hornero", .state = 0}, Context());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_TRUE(Manager().friendModel.entries.empty());
@@ -362,7 +363,7 @@ TEST_F(GameFriendsTest, TheAddFailuresOpenANoticeBox)
 TEST_F(GameFriendsTest, AReceivedNoticeReleasesTheReusedButtonWhenItsCascadeAborts)
 {
     ASSERT_TRUE(
-        Client::Scenes::ApplyFriendAddResult(FriendAddResult{.result = 0, .name = "Hornero", .state = 0}, Context())
+        Client::Messenger::ApplyFriendAddResult(FriendAddResult{.result = 0, .name = "Hornero", .state = 0}, Context())
             .HasValue());
     ASSERT_EQ(Manager().windows.size(), 1u);
     const std::int32_t firstId = Manager().order.back();
@@ -373,7 +374,7 @@ TEST_F(GameFriendsTest, AReceivedNoticeReleasesTheReusedButtonWhenItsCascadeAbor
     Manager().lastId = firstId - 1;
 
     const auto received =
-        Client::Scenes::ApplyFriendAddResult(FriendAddResult{.result = 3, .name = "Hornero", .state = 0}, Context());
+        Client::Messenger::ApplyFriendAddResult(FriendAddResult{.result = 3, .name = "Hornero", .state = 0}, Context());
 
     ASSERT_TRUE(received.HasValue()) << received.Error();
     EXPECT_EQ(Runtime().ui.pressedButton, 0);
@@ -389,7 +390,7 @@ TEST_F(GameFriendsTest, AReceivedNoticeReleasesTheReusedButtonWhenItsCascadeAbor
 // (Enter sobre la de arriba) manda C1 0E C2 01 con el nombre.
 TEST_F(GameFriendsTest, ARequestAsksAndTheYesGoesBackWithTheName)
 {
-    const auto applied = Client::Scenes::ApplyFriendRequest(FriendRequest{.name = "Calandria"}, Context());
+    const auto applied = Client::Messenger::ApplyFriendRequest(FriendRequest{.name = "Calandria"}, Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(BoxLines(), std::vector<std::string>{"Calandria quiere ser amigo"});
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x2a});
@@ -415,19 +416,19 @@ TEST_F(GameFriendsTest, ARequestAsksAndTheYesGoesBackWithTheName)
 TEST_F(GameFriendsTest, TheDeleteResultRemovesOrSaysItCouldNot)
 {
     ASSERT_TRUE(
-        Client::Scenes::ApplyFriendList(
+        Client::Messenger::ApplyFriendList(
             FriendList{.letters = 0, .maxLetters = 0, .friends = {FriendRow{"Zorzal", 2}, FriendRow{"Tero", 1}}},
             Context())
             .HasValue());
-    ASSERT_TRUE(
-        Client::Scenes::ApplyFriendDeleteResult(FriendDeleteResult{.result = 0, .name = "Tero"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendDeleteResult(FriendDeleteResult{.result = 0, .name = "Tero"}, Context())
+                    .HasValue());
     EXPECT_EQ(BoxLines(), std::vector<std::string>{"no se borra"});
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Zorzal", "Tero"}));
-    ASSERT_TRUE(
-        Client::Scenes::ApplyFriendDeleteResult(FriendDeleteResult{.result = 2, .name = "Tero"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendDeleteResult(FriendDeleteResult{.result = 2, .name = "Tero"}, Context())
+                    .HasValue());
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Zorzal", "Tero"}));
-    ASSERT_TRUE(
-        Client::Scenes::ApplyFriendDeleteResult(FriendDeleteResult{.result = 1, .name = "Tero"}, Context()).HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendDeleteResult(FriendDeleteResult{.result = 1, .name = "Tero"}, Context())
+                    .HasValue());
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Zorzal"}));
 }
 
@@ -437,16 +438,16 @@ TEST_F(GameFriendsTest, TheStateChangesOneFriendOrAllOfThem)
     m_world->OwnCharacter().level = 6;
     ASSERT_TRUE(Open().HasValue());
     ASSERT_TRUE(
-        Client::Scenes::ApplyFriendList(
+        Client::Messenger::ApplyFriendList(
             FriendList{.letters = 0, .maxLetters = 0, .friends = {FriendRow{"Zorzal", 2}, FriendRow{"Tero", 1}}},
             Context())
             .HasValue());
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Zorzal", "Tero"}));
-    ASSERT_TRUE(Client::Scenes::ApplyFriendState(FriendState{.name = "Tero", .state = 7}, Context()).HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendState(FriendState{.name = "Tero", .state = 7}, Context()).HasValue());
     EXPECT_EQ(ModelNames(), (std::vector<std::string>{"Tero", "Zorzal"}));
     EXPECT_EQ(Manager().windows.at(Manager().friends).tabs[0].tab.friends[0].state, 7);
 
-    ASSERT_TRUE(Client::Scenes::ApplyFriendState(FriendState{.name = "", .state = 0xfc}, Context()).HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendState(FriendState{.name = "", .state = 0xfc}, Context()).HasValue());
     for (const auto& entry : Manager().friendModel.entries)
         EXPECT_EQ(entry.state, 0xfc);
     EXPECT_EQ(Manager().listReceived, 0);
@@ -454,12 +455,12 @@ TEST_F(GameFriendsTest, TheStateChangesOneFriendOrAllOfThem)
     EXPECT_EQ(Manager().windows.at(Manager().friends).frame.title, std::optional<std::string>("Amigos sin servidor"));
 }
 
-// El paquete de cada pedido de la ventana (Scenes::FriendPacketOf).
+// El paquete de cada pedido de la ventana (Messenger::FriendPacketOf).
 TEST_F(GameFriendsTest, EachSendBecomesItsPacket)
 {
     const auto bytesOf = [](const Client::Protocol::Outgoing& sent)
     { return std::vector<std::byte>(sent.packet.Bytes().begin(), sent.packet.Bytes().end()); };
-    using Client::Scenes::FriendPacketOf;
+    using Client::Messenger::FriendPacketOf;
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::ListRequest, .value = 0, .name = {}})),
               bytesOf(Client::Protocol::Messenger::WriteFriendListRequest()));
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::Add, .value = 0, .name = "Tero"})),

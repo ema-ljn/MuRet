@@ -42,12 +42,16 @@ struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::World
+namespace Client::Particles
+{
+class Particles;
+class FrameSprites;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 struct ModelEffect;
 class ModelEffects;
-class Particles;
-class FrameSprites;
 
 // Los tipos (0x615700 carga sus modelos; el 0xbd y el 0xc7 no tienen y 0x52d620 no dibuja el 0xbd).
 inline constexpr std::int16_t ShadowRainEffect = 0xbd;     // 0x51bc43: diez joints 0x60f/0x10 que bajan.
@@ -88,10 +92,10 @@ struct WizardOwnerView
 struct WizardEffectServices
 {
     // 0x53fe70, con el reloj del mundo (0x5767b88) que leen sus altas y el seno del 0xc1/1.
-    Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     float worldClock = 0.0f;
     // 0x5491e0.
-    FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // 0x5f9780 sobre 0x7b4ccc4.
     Terrain::TerrainLighting* lighting = nullptr;
     // 0x518cf0 para los hijos que crean los pasos (las piedritas 0xc8/0xc9 y 0xd8/0xd9).
@@ -122,7 +126,7 @@ struct WizardEffectServices
     // 0x52cc21: la cola publica la acción del efecto en la tabla de modelos antes de animar.
     std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
     // 0x518cf0 con un tipo de otro lote: el 0xf6/2 que suelta el 0xc2/6..8 al caer (0x524d38), con el meteoro de
-    // dueño (+0x108). Scenes::WizardEffectServicesOf lo da con World::CreateBlastModelEffect.
+    // dueño (+0x108). Effects::WizardEffectServicesOf lo da con Effects::CreateBlastModelEffect.
     std::function<Core::Expected<void, std::string>(const Kernel::ModelEffectArguments&)> otherEffect{};
     // 0x524a8d..0x524b21: el 0xc2/4 que toca el suelo en (x, y) empuja a los 400 personajes del pool (de a 0x438) que
     // están vivos, vistos (+0x16c), no son el héroe, no se mueren (+0x389 en 0) y quedan a 200 o menos (la raíz de
@@ -152,4 +156,4 @@ CreateWizardModelEffect(ModelEffects& effects, const Kernel::ModelEffectArgument
                                                                       const Models::Skeleton* skeleton,
                                                                       Crt::CrtRandom& random,
                                                                       const WizardEffectServices& services);
-} // namespace Client::World
+} // namespace Client::Effects

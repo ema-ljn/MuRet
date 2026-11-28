@@ -20,7 +20,7 @@ class ITextMeasure;
 // el corrimiento y el cursor, y los lee con EM_GETLINECOUNT, GetScrollPos y el bitmap que pinta (0x468320); MuRet no
 // tiene esa ventana y los arma acá. Lo que es de Windows es *inferido* y va contra la VM (08, P-C217): el corte de
 // las palabras, el ancho del área del texto (el de la ventana menos los 16 de su barra) y los topes del corrimiento.
-namespace Client::UI
+namespace Client::Ui
 {
 // La fuente del EDIT: WM_SETFONT con la normal ([0x5763554], 0x49812c).
 inline constexpr Render::Text::FontKind EditFont = Render::Text::FontKind::Normal;
@@ -62,7 +62,7 @@ void ScrollTheEdit(OldEdit& edit, std::int32_t lineCount, std::int32_t code);
 void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount, std::int32_t caretLine = -1);
 
 // WM_CHAR con el retroceso o con Enter (0x467b10): +0x80 en 0 (0x467b9d) y, al EDIT de Windows. Enter solo llega con
-// +0xc4 en 1 (0x467c8f), y es un "\r\n" si entra entero. Un carácter es UI::TypeInTheEdit (UI/OldControls.h). Con
+// +0xc4 en 1 (0x467c8f), y es un "\r\n" si entra entero. Un carácter es Ui::TypeInTheEdit (UI/OldControls.h). Con
 // +0xc4 en 1, el retroceso borra entero el "\r\n" de antes del cursor y Supr, el de después (*inferido*, P-C217).
 void BackspaceInTheEdit(OldEdit& edit);
 void DeleteInTheEdit(OldEdit& edit);
@@ -88,4 +88,4 @@ void MoveTheEditCaret(OldEdit& edit, const Render::Text::ITextMeasure& measure, 
 // WM_PASTE en el EDIT de Windows con +0xc4 en 1 (*inferido*, P-C217): el texto del portapapeles en CP1252 hasta el
 // primer NUL, con cada fin de renglón ("\r\n", "\n" o "\r") como "\r\n", hasta el tope.
 void PasteInTheEdit(OldEdit& edit, std::string_view utf8);
-} // namespace Client::UI
+} // namespace Client::Ui

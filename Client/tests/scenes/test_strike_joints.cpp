@@ -54,21 +54,21 @@ struct Strike
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random,
+        return Client::Joints::CreateFaunaJoint(joints, request, random,
                                                 owned ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, particles.get(), 0.0f, sprites.get(), nullptr, {},
+        return Client::Joints::StepJoints(joints, random, nullptr, particles.get(), 0.0f, sprites.get(), nullptr, {},
                                           [this](float, float) { return ground; });
     }
 
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    Client::World::ModelEffect owner{};
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    Client::Effects::ModelEffect owner{};
     glm::vec3 start{1000.0f, 2000.0f, 300.0f};
     double ground = 250.0;
 };
@@ -160,7 +160,7 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
         EXPECT_TRUE(joint.tailEnabled);
         const auto made =
             std::ranges::count_if(strike.particles->All(), [](const auto& particle)
-                                  { return particle.alive && particle.type == Client::World::KalimaFanta; });
+                                  { return particle.alive && particle.type == Client::Particles::KalimaFanta; });
         if (subtype == 5)
         {
             EXPECT_EQ(made, 0);

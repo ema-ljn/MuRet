@@ -42,7 +42,7 @@
 #include <tuple>
 #include <utility>
 
-// Los casos de 0x505de0 y los helpers de 0x5085db de un personaje que no es el 0x20a (Scenes::StepTheModelEffects):
+// Los casos de 0x505de0 y los helpers de 0x5085db de un personaje que no es el 0x20a (Monsters::StepTheModelEffects):
 // lo que escriben, sus rand() en orden, sus partículas, joints, sprites y luces, y dónde cortan.
 namespace
 {
@@ -71,19 +71,19 @@ protected:
     Client::Core::Expected<void, std::string> Step(std::uint16_t type, std::int32_t map, CrtRandom& random)
     {
         m_actor.type = type;
-        Client::Scenes::ModelEffectsPass pass{.actor = m_actor,
-                                              .slot = 3,
-                                              .world = *m_world,
-                                              .random = random,
-                                              .skeleton = m_skeleton,
-                                              .particles = &m_world->Particles(),
-                                              .sprites = &m_sprites,
-                                              .worldClock = m_clock,
-                                              .map = map,
-                                              .groundMarks = m_groundMarks,
-                                              .dynamicLighting = &m_light.Lighting(),
-                                              .faunaModels = &m_faunaModels};
-        return Client::Scenes::StepTheModelEffects(pass);
+        Client::Monsters::ModelEffectsPass pass{.actor = m_actor,
+                                                .slot = 3,
+                                                .world = *m_world,
+                                                .random = random,
+                                                .skeleton = m_skeleton,
+                                                .particles = &m_world->Particles(),
+                                                .sprites = &m_sprites,
+                                                .worldClock = m_clock,
+                                                .map = map,
+                                                .groundMarks = m_groundMarks,
+                                                .dynamicLighting = &m_light.Lighting(),
+                                                .faunaModels = &m_faunaModels};
+        return Client::Monsters::StepTheModelEffects(pass);
     }
 
     int Alive(std::int32_t type, std::int32_t subtype)
@@ -153,26 +153,26 @@ protected:
     }
 
     // 0x53fe70(0x5de, …) en un pool gemelo, con el reloj `clock` y el rand() de `replay`.
-    static void ReferenceFlame(Client::World::Particles& reference, CrtRandom& replay, const float& clock,
+    static void ReferenceFlame(Client::Particles::Particles& reference, CrtRandom& replay, const float& clock,
                                std::int32_t subtype, const glm::vec3& point, const glm::vec3& angles,
                                const glm::vec3& light, float scale)
     {
-        Client::World::PortableParticleTrigonometry trigonometry;
+        Client::Particles::PortableParticleTrigonometry trigonometry;
         const auto made = reference.CreateChecked(0x5de, point, angles, light, subtype, scale, std::cref(clock), replay,
                                                   0, trigonometry);
         ASSERT_TRUE(made.HasValue());
     }
 
     // Deja libres sólo los primeros `free` lugares de `pool`; los demás, ocupados por una partícula sin tipo.
-    static void Crowd(Client::World::Particles& pool, std::size_t free)
+    static void Crowd(Client::Particles::Particles& pool, std::size_t free)
     {
         const auto all = pool.All();
         for (std::size_t index = free; index < all.size(); ++index)
-            all[index] = Client::World::Particle{.alive = true};
+            all[index] = Client::Particles::Particle{.alive = true};
     }
 
     // Las partículas del mundo, lugar por lugar, contra las del pool gemelo.
-    void ExpectTheSameParticles(const Client::World::Particles& reference)
+    void ExpectTheSameParticles(const Client::Particles::Particles& reference)
     {
         const auto got = m_world->Particles().All();
         const auto want = reference.All();
@@ -197,7 +197,7 @@ protected:
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     Client::Terrain::GroundMarkTable m_marks{};
     Client::Terrain::GroundMarkTable* m_groundMarks = &m_marks;
     Client::Terrain::DynamicWorldLight m_light;
@@ -271,7 +271,7 @@ TEST_F(ModelEffectsTest, TheBullBreathesOnlyInItsFrameWindows)
             m_actor.animation.frame = frame;
             CrtRandom random(breath);
             ASSERT_TRUE(Step(0x152, map, random).HasValue());
-            EXPECT_EQ(Alive(Client::World::BreathParticle, 0), breathes ? 1 : 0);
+            EXPECT_EQ(Alive(Client::Particles::BreathParticle, 0), breathes ? 1 : 0);
             if (!breathes)
             {
                 EXPECT_EQ(random.State(), AfterDraws(breath, 1).State());
@@ -341,7 +341,7 @@ TEST_F(ModelEffectsTest, TheSecondLevelBurnsTenTimes)
         EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
         m_actor.level = 2;
         ASSERT_TRUE(Step(0x15d, map, random).HasValue());
-        EXPECT_EQ(Alive(Client::World::FireParticle, 0), 10);
+        EXPECT_EQ(Alive(Client::Particles::FireParticle, 0), 10);
     }
 }
 
@@ -355,13 +355,13 @@ TEST_F(ModelEffectsTest, TheWizardSparksByItsAction)
         m_actor.animation.action = 3;
         CrtRandom random(Seed);
         ASSERT_TRUE(Step(0x172, map, random).HasValue());
-        EXPECT_EQ(Alive(Client::World::ThunderParticle, 0), 1);
-        EXPECT_EQ(Alive(Client::World::FireParticle, 0), 1);
+        EXPECT_EQ(Alive(Client::Particles::ThunderParticle, 0), 1);
+        EXPECT_EQ(Alive(Client::Particles::FireParticle, 0), 1);
         Clear();
         m_actor.animation.action = 6;
         m_actor.animation.frame = 11.5f;
         ASSERT_TRUE(Step(0x172, map, random).HasValue());
-        EXPECT_EQ(Alive(Client::World::FireParticle, 0), 20);
+        EXPECT_EQ(Alive(Client::Particles::FireParticle, 0), 20);
         Clear();
         m_actor.animation.frame = 12.0f;
         CrtRandom late(Seed);
@@ -387,7 +387,7 @@ TEST_F(ModelEffectsTest, TheFountainSparksAtTheStartOfItsRest)
         EXPECT_EQ(m_actor.blendMeshLight, Brightness(Seed));
         EXPECT_EQ(m_actor.dword64, 4);
         EXPECT_EQ(Joints(0x617), 4);
-        EXPECT_EQ(Alive(Client::World::FairySparkParticle, 0), 4);
+        EXPECT_EQ(Alive(Client::Particles::FairySparkParticle, 0), 4);
         Clear();
         m_actor.flags7c = 0x10000000u;
         m_actor.dword64 = 0;
@@ -435,8 +435,8 @@ TEST_F(ModelEffectsTest, TheWalkersKickDustByTheirMap)
         m_actor.dying = 0;
         CrtRandom random(kick);
         ASSERT_TRUE(Step(0x155, map, random).HasValue());
-        EXPECT_EQ(Alive(Client::World::BreathParticle, 0), map == 2 ? 1 : 0);
-        EXPECT_EQ(Alive(Client::World::DustParticle, 0), map == 2 ? 0 : 1);
+        EXPECT_EQ(Alive(Client::Particles::BreathParticle, 0), map == 2 ? 1 : 0);
+        EXPECT_EQ(Alive(Client::Particles::DustParticle, 0), map == 2 ? 0 : 1);
         Clear();
         CrtRandom glowing(kick);
         ASSERT_TRUE(Step(0x166, map, glowing).HasValue());
@@ -485,14 +485,14 @@ TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
         const auto stepped = Step(0x157, map, random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
-        EXPECT_EQ(Alive(Client::World::DustParticle, 1), 20);
+        EXPECT_EQ(Alive(Client::Particles::DustParticle, 1), 20);
         // El rand() & 7 y veinte vueltas de nueve: 181.
         EXPECT_EQ(random.State(), 0xd8d78c92u);
         for (std::size_t slot = 0; slot < Dusts.size(); ++slot)
         {
-            const Client::World::Particle& made = m_world->Particles().All()[slot];
+            const Client::Particles::Particle& made = m_world->Particles().All()[slot];
             ASSERT_TRUE(made.alive) << slot;
-            EXPECT_EQ(made.type, Client::World::DustParticle);
+            EXPECT_EQ(made.type, Client::Particles::DustParticle);
             EXPECT_EQ(made.subtype, 1);
             EXPECT_EQ(made.life, 40);
             EXPECT_EQ(made.position, Dusts[slot].position) << slot;
@@ -524,7 +524,7 @@ TEST_F(ModelEffectsTest, TheDyingBurstScattersWithAFullPoolAndSkipsANaNFrame)
     EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
     EXPECT_EQ(random.State(), 0x90b0001au);
     EXPECT_TRUE(std::ranges::all_of(m_world->Particles().All(),
-                                    [](const Client::World::Particle& particle) { return particle.type == 0; }));
+                                    [](const Client::Particles::Particle& particle) { return particle.type == 0; }));
 
     Clear();
     m_actor.animation.frame = std::numeric_limits<float>::quiet_NaN();
@@ -533,7 +533,7 @@ TEST_F(ModelEffectsTest, TheDyingBurstScattersWithAFullPoolAndSkipsANaNFrame)
     ASSERT_TRUE(Step(0x157, 0, nan).HasValue());
     EXPECT_EQ(nan.State(), AfterDraws(Seed, 1).State());
     EXPECT_EQ(m_actor.light, glm::vec3(0.0f));
-    EXPECT_EQ(Alive(Client::World::DustParticle, 1), 0);
+    EXPECT_EQ(Alive(Client::Particles::DustParticle, 1), 0);
 }
 
 // 0x507006: el 0x185 crea sus catorce joints 0x614/7 (0x5315b7, sin rand()).
@@ -576,12 +576,12 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
     for (const std::int32_t map : {0, 2})
     {
         for (const auto& [clock, free] :
-             {std::pair{12345.0f, Client::World::ParticleCount}, std::pair{12346.0f, Client::World::ParticleCount},
-              std::pair{12346.0f, std::size_t{5}}})
+             {std::pair{12345.0f, Client::Particles::ParticleCount},
+              std::pair{12346.0f, Client::Particles::ParticleCount}, std::pair{12346.0f, std::size_t{5}}})
         {
             SCOPED_TRACE(testing::Message() << map << " " << clock << " " << free);
             const bool even = *Client::Math::OriginalFtolLow(static_cast<double>(clock)) % 2 == 0;
-            const bool crowded = free < Client::World::ParticleCount;
+            const bool crowded = free < Client::Particles::ParticleCount;
             Clear();
             Crowd(m_world->Particles(), free);
             m_clock = clock;
@@ -599,7 +599,7 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
             std::array<glm::vec3, Bones.size()> points{};
             for (std::size_t index = 0; index < Bones.size(); ++index)
                 points[index] = BoneAt(Bones[index]);
-            auto reference = std::make_unique<Client::World::Particles>();
+            auto reference = std::make_unique<Client::Particles::Particles>();
             Crowd(*reference, free);
             CrtRandom replay = AfterDraws(Seed, 1);
             glm::vec3 angles(0.0f);
@@ -662,9 +662,9 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
         EXPECT_EQ(m_actor.bonePoint4c, BoneAt(8));
         EXPECT_EQ(m_actor.effectOrigin, BoneAt(9));
         EXPECT_EQ(Alive(0x5de, 1), 2);
-        EXPECT_EQ(Alive(Client::World::DustParticle, 0), 1);
+        EXPECT_EQ(Alive(Client::Particles::DustParticle, 0), 1);
 
-        auto reference = std::make_unique<Client::World::Particles>();
+        auto reference = std::make_unique<Client::Particles::Particles>();
         CrtRandom replay = AfterDraws(Seed, 1);
         glm::vec3 angles(0.0f);
         for (const auto& [from, to] : {std::pair<std::size_t, std::size_t>{55, 62}, {70, 77}})
@@ -676,7 +676,7 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
                                            static_cast<double>(m_actor.position.x) - 100.0);
         const float y = static_cast<float>(static_cast<double>(replay.Next() % 200) +
                                            static_cast<double>(m_actor.position.y) - 100.0);
-        const auto dust = reference->CreateChecked(Client::World::DustParticle, {x, y, m_actor.position.z},
+        const auto dust = reference->CreateChecked(Client::Particles::DustParticle, {x, y, m_actor.position.z},
                                                    m_actor.angles, m_actor.light, 0, 1.0f, Clock, replay, 0);
         ASSERT_TRUE(dust.HasValue());
         EXPECT_EQ(random.State(), replay.State());
@@ -689,7 +689,7 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
         const auto burnt = Step(0x17e, map, burst);
         ASSERT_TRUE(burnt.HasValue()) << burnt.Error();
         EXPECT_EQ(Alive(0x5de, 1), 2);
-        EXPECT_EQ(Alive(Client::World::DustParticle, 1), 20);
+        EXPECT_EQ(Alive(Client::Particles::DustParticle, 1), 20);
     }
 }
 
@@ -799,7 +799,7 @@ TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCompletesItsStoneEffects)
         m_actor.animation.action = 0;
         CrtRandom gate(Seed);
         ASSERT_TRUE(Step(0xc5, map, gate).HasValue());
-        EXPECT_EQ(Alive(Client::World::DustParticle, 0), 2);
+        EXPECT_EQ(Alive(Client::Particles::DustParticle, 0), 2);
     }
 }
 
@@ -892,7 +892,7 @@ TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
             CrtRandom random(smoky);
             const auto stepped = Step(value.type, map, random);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-            auto reference = std::make_unique<Client::World::Particles>();
+            auto reference = std::make_unique<Client::Particles::Particles>();
             CrtRandom expected = AfterDraws(smoky, 2);
             const glm::vec3 point = m_actor.position + glm::vec3(2.0f, 30.0f, value.bone);
             const auto made =
@@ -901,10 +901,10 @@ TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
             ASSERT_TRUE(made.Value().has_value());
             EXPECT_EQ(random.State(), expected.State());
             ASSERT_EQ(Alive(0x5f2, 0x11), 1);
-            const Client::World::Particle& want = reference->All()[*made.Value()];
+            const Client::Particles::Particle& want = reference->All()[*made.Value()];
             const auto all = m_world->Particles().All();
             const auto got =
-                std::ranges::find_if(all, [](const Client::World::Particle& particle) { return particle.alive; });
+                std::ranges::find_if(all, [](const Client::Particles::Particle& particle) { return particle.alive; });
             ASSERT_NE(got, all.end());
             EXPECT_EQ(got->position, want.position);
             EXPECT_EQ(got->angles, want.angles);
@@ -990,7 +990,7 @@ TEST_F(ModelEffectsTest, TheCrywolfHelpersCutOnlyAtTheirEffects)
         m_actor.animation.action = 2;
         CrtRandom kicked(dust);
         ASSERT_TRUE(Step(0x1ad, map, kicked).HasValue());
-        EXPECT_EQ(Alive(Client::World::DustParticle, 0), 1);
+        EXPECT_EQ(Alive(Client::Particles::DustParticle, 0), 1);
         m_actor.animation.action = 0;
         m_actor.animation.frame = 3.0f;
         m_faunaModels.RecordAnimation(0x1b4, 6.25f, 7);

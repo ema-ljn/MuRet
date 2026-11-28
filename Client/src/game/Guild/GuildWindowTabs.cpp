@@ -37,7 +37,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 namespace
 {
@@ -132,27 +132,27 @@ constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha =
 using Math::F32;
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
 
-UI::OldWindowDrawContext OldContextOf(GameHudContext& context)
+Ui::OldWindowDrawContext OldContextOf(Hud::GameHudContext& context)
 {
-    return UI::OldWindowDrawContext{.sprites = context.sprites,
+    return Ui::OldWindowDrawContext{.sprites = context.sprites,
                                     .text = context.text,
                                     .dcFont = context.hud.dcFont,
                                     .textColors = context.hud.textColors};
 }
 
-UI::OldWindowDrawView OldViewOf(const GameHudContext& context)
+Ui::OldWindowDrawView OldViewOf(const Hud::GameHudContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
-    return UI::OldWindowDrawView{.mouseX = context.mouse.x,
+    return Ui::OldWindowDrawView{.mouseX = context.mouse.x,
                                  .mouseY = context.mouse.y,
                                  .leftClick = runtime.movement.pendingClick,
                                  .focusedList = runtime.ui.focusedList};
@@ -160,7 +160,7 @@ UI::OldWindowDrawView OldViewOf(const GameHudContext& context)
 
 // 0x5542f0(x, y, texto, caja, 1, 0) → 0x467060 en el modo 1 (0x467102..0x467119): la caja de ese ancho desde x; si el
 // texto es más ancho, se ve desde la columna cx − caja. Vacío y sin caja, nada.
-void DrawInTheBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
+void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
 {
     const Render::Text::TextStyle style{.font = context.hud.dcFont, .colors = context.hud.textColors};
     if (box <= 0)
@@ -173,20 +173,20 @@ void DrawInTheBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::
     context.text.DrawColumns(x, y, text, style, box < measured ? measured - box : 0, box);
 }
 
-std::int32_t BoxOf(const GameHudContext& context, double width)
+std::int32_t BoxOf(const Hud::GameHudContext& context, double width)
 {
     return Truncate(static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen())) * width);
 }
 
 // 0x45b2e0 sobre un botón de la ventana, con el mouse del dibujo.
-void DrawTheButton(GameHudContext& context, const UI::OldButton& button)
+void DrawTheButton(Hud::GameHudContext& context, const Ui::OldButton& button)
 {
-    UI::DrawTheOldButton(OldContextOf(context), button,
-                         UI::OldWindowDrawView{.mouseX = context.mouse.x, .mouseY = context.mouse.y});
+    Ui::DrawTheOldButton(OldContextOf(context), button,
+                         Ui::OldWindowDrawView{.mouseX = context.mouse.x, .mouseY = context.mouse.y});
 }
 
 // La primera vez, el texto de 0x45b170 (MuRet lo copia en el primer dibujo, como la ventana 2).
-Core::Expected<void, std::string> LabelTheButton(GameHudContext& context, UI::OldButton& button, std::size_t text)
+Core::Expected<void, std::string> LabelTheButton(Hud::GameHudContext& context, Ui::OldButton& button, std::size_t text)
 {
     if (button.label)
         return {};
@@ -198,8 +198,8 @@ Core::Expected<void, std::string> LabelTheButton(GameHudContext& context, UI::Ol
 }
 
 // La vtable + 0x30 del botón: el texto nuevo.
-Core::Expected<void, std::string> RelabelTheButton(GameHudContext& context, UI::OldButton& button, std::size_t text,
-                                                   std::string_view where)
+Core::Expected<void, std::string> RelabelTheButton(Hud::GameHudContext& context, Ui::OldButton& button,
+                                                   std::size_t text, std::string_view where)
 {
     auto label = TextOf(context, text, where);
     if (!label.HasValue())
@@ -211,24 +211,24 @@ Core::Expected<void, std::string> RelabelTheButton(GameHudContext& context, UI::
 // El principio de 0x46be20, 0x46cb20 y 0x46daa0 (la vtable + 0x7c): 0x620a00(1), la caja del 7 de la paleta con alfa
 // 0,4 un punto afuera (x − 1, y − h − 1, w + 1, h + 2), 0x459ec0 y la barra (0x461890), y los encabezados en
 // y − h − 0xc con 0x465950 en el modo 1, con la fuente y los colores que haya.
-Core::Expected<void, std::string> DrawTheListHead(GameHudContext& context, UI::OldList& list, std::size_t size,
+Core::Expected<void, std::string> DrawTheListHead(Hud::GameHudContext& context, Ui::OldList& list, std::size_t size,
                                                   std::span<const std::size_t> headers,
                                                   std::span<const std::int32_t> lefts)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    const UI::OldWindowBase& base = list.base;
+    const Ui::OldWindowBase& base = list.base;
     sprites.SetBlend(Render::BlendMode::Alpha);
-    UI::OldDraw::SetThePalette(sprites, ListBoxPalette, ListBoxAlpha);
+    Ui::OldDraw::SetThePalette(sprites, ListBoxPalette, ListBoxAlpha);
     sprites.ColorQuad(static_cast<float>(base.x - 1), static_cast<float>(base.y - base.height - 1),
                       static_cast<float>(base.width + 1), static_cast<float>(base.height + 2));
-    UI::OldDraw::WhiteWithTexture(sprites);
-    UI::OldDraw::DrawTheListBar(sprites, list, size, OldViewOf(context));
+    Ui::OldDraw::WhiteWithTexture(sprites);
+    Ui::OldDraw::DrawTheListBar(sprites, list, size, OldViewOf(context));
     for (std::size_t header = 0; header < headers.size(); ++header)
     {
         auto text = TextOf(context, headers[header], "0x46cb20");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        static_cast<void>(UI::OldDraw::DrawText(OldContextOf(context), base.x + lefts[header],
+        static_cast<void>(Ui::OldDraw::DrawText(OldContextOf(context), base.x + lefts[header],
                                                 base.y - base.height - HeaderAbove, text.Value()));
     }
     return {};
@@ -237,13 +237,13 @@ Core::Expected<void, std::string> DrawTheListHead(GameHudContext& context, UI::O
 // El principio de 0x46c2c0, 0x46d050 y 0x46dfa0 después del color del puesto: el elegido (+0x68 igual al corrimiento
 // + renglón + 1) sobre la franja blanca de alfa 0,5 con el texto en negro; los demás en 0xffc8dce6. glEnable de la
 // textura y el fondo del texto en 0.
-void DrawTheRowBand(GameHudContext& context, const UI::OldList& list, std::size_t size, std::int32_t row)
+void DrawTheRowBand(Hud::GameHudContext& context, const Ui::OldList& list, std::size_t size, std::int32_t row)
 {
     Render::SpriteBatch& sprites = context.sprites;
     if (list.selection == list.scroll + row + 1)
     {
         sprites.SetColor(Render::Color{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = ChosenAlpha});
-        sprites.ColorQuad(static_cast<float>(list.base.x), static_cast<float>(UI::ListRowY(list, size, row) - RowAbove),
+        sprites.ColorQuad(static_cast<float>(list.base.x), static_cast<float>(Ui::ListRowY(list, size, row) - RowAbove),
                           F32(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0),
                           RowHeight);
         sprites.SetColor(White);
@@ -256,13 +256,14 @@ void DrawTheRowBand(GameHudContext& context, const UI::OldList& list, std::size_
 }
 
 // 0x46c2c0, el renglón del aviso.
-std::int32_t DrawTheNoticeRow(GameHudContext& context, const GuildWindowState& window, std::int32_t row, std::size_t at)
+std::int32_t DrawTheNoticeRow(Hud::GameHudContext& context, const GuildWindowState& window, std::int32_t row,
+                              std::size_t at)
 {
-    const UI::OldList& list = window.noticeList;
+    const Ui::OldList& list = window.noticeList;
     const std::size_t size = window.notice.size();
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     DrawTheRowBand(context, list, size, row);
-    static_cast<void>(UI::OldDraw::DrawText(OldContextOf(context), list.base.x + RowLeft, UI::ListRowY(list, size, row),
+    static_cast<void>(Ui::OldDraw::DrawText(OldContextOf(context), list.base.x + RowLeft, Ui::ListRowY(list, size, row),
                                             window.notice[at].text));
     // 0x620980.
     context.sprites.SetBlend(Render::BlendMode::Opaque);
@@ -270,14 +271,14 @@ std::int32_t DrawTheNoticeRow(GameHudContext& context, const GuildWindowState& w
 }
 
 // 0x46d050, el renglón de los miembros.
-Core::Expected<std::int32_t, std::string> DrawTheMemberRow(GameHudContext& context, const GuildWindowState& window,
+Core::Expected<std::int32_t, std::string> DrawTheMemberRow(Hud::GameHudContext& context, const GuildWindowState& window,
                                                            std::int32_t row, std::size_t at)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    const UI::OldList& list = window.memberList;
+    const Ui::OldList& list = window.memberList;
     const std::size_t size = window.members.size();
     const GuildMemberSlot& member = window.members[at].slot;
-    const std::int32_t rowY = UI::ListRowY(list, size, row);
+    const std::int32_t rowY = Ui::ListRowY(list, size, row);
     sprites.SetBlend(Render::BlendMode::Alpha);
     std::optional<StatusLook> look;
     for (const StatusLook& candidate : StatusLooks)
@@ -298,9 +299,9 @@ Core::Expected<std::int32_t, std::string> DrawTheMemberRow(GameHudContext& conte
         sprites.SetColor(White);
     }
     DrawTheRowBand(context, list, size, row);
-    const UI::OldWindowDrawContext old = OldContextOf(context);
+    const Ui::OldWindowDrawContext old = OldContextOf(context);
     const std::int32_t left = list.base.x + MemberNameLeft;
-    static_cast<void>(UI::OldDraw::DrawText(old, left, rowY, GuildTextOf(member.name)));
+    static_cast<void>(Ui::OldDraw::DrawText(old, left, rowY, GuildTextOf(member.name)));
     if (look)
     {
         // 0x46d300: 0x465950(x, y, texto, 0x46, 0, 2, 0, 0x280), centrado en una caja de 0x46 sin escalar.
@@ -317,7 +318,7 @@ Core::Expected<std::int32_t, std::string> DrawTheMemberRow(GameHudContext& conte
     {
         context.hud.textColors.background = 0;
         context.hud.textColors.text = ServerColor;
-        static_cast<void>(UI::OldDraw::DrawText(old, list.base.x + list.base.width - ServerRight, rowY,
+        static_cast<void>(Ui::OldDraw::DrawText(old, list.base.x + list.base.width - ServerRight, rowY,
                                                 Crt::Sprintf("%d", static_cast<std::int32_t>(member.server) + 1)));
     }
     sprites.SetBlend(Render::BlendMode::Opaque);
@@ -326,15 +327,15 @@ Core::Expected<std::int32_t, std::string> DrawTheMemberRow(GameHudContext& conte
 
 // 0x46dfa0, el renglón de la alianza: la marca del elemento pasa por la entrada 1999 de la tabla (0x78a5986), que
 // después toma la del gremio del héroe, o ceros sin gremio (Q-C1294).
-Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& context, GuildState& guild, std::int32_t row,
-                                                          std::size_t at)
+Core::Expected<std::int32_t, std::string> DrawTheUnionRow(Hud::GameHudContext& context, GuildState& guild,
+                                                          std::int32_t row, std::size_t at)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const GuildWindowState& window = guild.window;
-    const UI::OldList& list = window.unionList;
+    const Ui::OldList& list = window.unionList;
     const std::size_t size = window.unions.size();
     const GuildUnionRow& element = window.unions[at];
-    const std::int32_t rowY = UI::ListRowY(list, size, row);
+    const std::int32_t rowY = Ui::ListRowY(list, size, row);
     sprites.SetBlend(Render::BlendMode::Alpha);
     DrawTheRowBand(context, list, size, row);
     const std::int32_t left = list.base.x + RowLeft;
@@ -347,8 +348,8 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& contex
     auto slot = context.guildMarks->UploadToTheUnionRow(guild, CreatingGuildIndex, true, row);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(left), static_cast<float>(rowY), UnionMarkSide,
-                        UnionMarkSide, 1.0f, 1.0f);
+    Hud::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(left), static_cast<float>(rowY),
+                             UnionMarkSide, UnionMarkSide, 1.0f, 1.0f);
     const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
     if (index < 0)
         creating = {};
@@ -356,14 +357,14 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& contex
         return Core::Unexpected(std::format("0x46e101: el gremio {} del héroe cae fuera de la tabla", index));
     else
         creating = guild.table[static_cast<std::size_t>(index)].mark;
-    const UI::OldWindowDrawContext old = OldContextOf(context);
-    static_cast<void>(UI::OldDraw::DrawText(old, left + UnionNameLeft, rowY, GuildTextOf(element.name)));
+    const Ui::OldWindowDrawContext old = OldContextOf(context);
+    static_cast<void>(Ui::OldDraw::DrawText(old, left + UnionNameLeft, rowY, GuildTextOf(element.name)));
     // 0x46e1bd: 0x465950 en el modo 4 (0x467146): x = _ftol(x − cx / rx), y el texto desde ahí.
     const std::string number = Crt::Sprintf("%d", static_cast<std::int32_t>(element.byte0));
     const auto measured = static_cast<double>(context.text.Measure(context.hud.dcFont, number).width);
     const std::int32_t right =
-        Truncate(static_cast<double>(left + UnionNumberRight) - measured / UI::OldDraw::RatioX(sprites.Screen()));
-    static_cast<void>(UI::OldDraw::DrawText(old, right, rowY, number));
+        Truncate(static_cast<double>(left + UnionNumberRight) - measured / Ui::OldDraw::RatioX(sprites.Screen()));
+    static_cast<void>(Ui::OldDraw::DrawText(old, right, rowY, number));
     sprites.SetBlend(Render::BlendMode::Opaque);
     return 1;
 }
@@ -371,12 +372,12 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& contex
 // 0x47a810 (o 0x480520 y 0x481bf0) con la cabeza y el renglón de la instancia, sin cola (0x4724e0, 0x472110 y
 // 0x472580: un ret). El primer error de un renglón corta.
 template <typename Row>
-Core::Expected<void, std::string> DrawTheList(GameHudContext& context, UI::OldList& list, std::size_t size,
+Core::Expected<void, std::string> DrawTheList(Hud::GameHudContext& context, Ui::OldList& list, std::size_t size,
                                               std::span<const std::size_t> headers, std::span<const std::int32_t> lefts,
                                               Row drawRow)
 {
     std::optional<std::string> failed;
-    const UI::OldDraw::OldListDrawing drawing{.head =
+    const Ui::OldDraw::OldListDrawing drawing{.head =
                                                   [&]()
                                               {
                                                   if (auto head = DrawTheListHead(context, list, size, headers, lefts);
@@ -396,14 +397,14 @@ Core::Expected<void, std::string> DrawTheList(GameHudContext& context, UI::OldLi
                                                   return drawn.Value();
                                               },
                                               .tail = {}};
-    UI::OldDraw::DrawTheOldList(OldContextOf(context), list, size, drawing);
+    Ui::OldDraw::DrawTheOldList(OldContextOf(context), list, size, drawing);
     if (failed)
         return Core::Unexpected(std::move(*failed));
     return {};
 }
 
 // 0x650047..0x6500dd: el tope de miembros del maestro, con el registro propio abierto.
-std::int32_t MostMembersOf(GameHudContext& context)
+std::int32_t MostMembersOf(Hud::GameHudContext& context)
 {
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const Kernel::OwnCharacterRecord& record = context.world.OwnCharacter();
@@ -415,7 +416,7 @@ std::int32_t MostMembersOf(GameHudContext& context)
 }
 
 // 0x64fdf0.
-Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheNoticeTab(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -424,17 +425,17 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
     const std::int32_t x = window.base.x;
     const std::int32_t y = window.base.y;
     const Kernel::ActorState& hero = context.world.Hero();
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
-                                MarkBoxSide, false);
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
+                                     MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x64fe4a: la marca del gremio (0x5f16a0) sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, static_cast<std::int16_t>(hero.word1f2), true);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
-                        MarkSide, MarkSide, 1.0f, 1.0f);
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(y + 0xaa), InfoBoxWidth,
-                                InfoBoxHeight, false);
+    Hud::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
+                             MarkSide, MarkSide, 1.0f, 1.0f);
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(y + 0xaa), InfoBoxWidth,
+                                     InfoBoxHeight, false);
     const std::int32_t left = x + 0x1e;
     std::int32_t top = y + 0xb2;
     const std::int32_t box = BoxOf(context, InfoTextBox);
@@ -485,7 +486,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
     DrawInTheBox(context, left, top, title.Value(), BoxOf(context, NoticeTitleBox));
     top += 0xa;
     // 0x650298..0x6502c2: el tamaño (la vtable + 8), el lugar (0x45a9d0) y el dibujo de la lista del aviso.
-    UI::OldList& list = window.noticeList;
+    Ui::OldList& list = window.noticeList;
     list.base.width = NoticeListWidth;
     list.base.height = ListHeight;
     list.base.x = x + 0x1c;
@@ -496,9 +497,9 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
         !drawn.HasValue())
         return drawn;
     top -= 0xe;
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(top), InfoBoxWidth,
-                                NoticeBoxHeight, false);
-    UI::OldButton& leave = window.tabButtons[GuildLeaveButton];
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(top), InfoBoxWidth,
+                                     NoticeBoxHeight, false);
+    Ui::OldButton& leave = window.tabButtons[GuildLeaveButton];
     if (auto labeled = RelabelTheButton(context, leave, hero.guildStatus == MasterStatus ? MasterLeaveText : LeaveText,
                                         "0x6502f8");
         !labeled.HasValue())
@@ -508,7 +509,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
 }
 
 // 0x6507d0.
-Core::Expected<void, std::string> DrawTheMembersTab(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheMembersTab(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -534,7 +535,7 @@ Core::Expected<void, std::string> DrawTheMembersTab(GameHudContext& context)
 }
 
 // 0x651400.
-Core::Expected<void, std::string> DrawTheUnionTab(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheUnionTab(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -561,14 +562,14 @@ Core::Expected<void, std::string> DrawTheUnionTab(GameHudContext& context)
             auto text = TextOf(context, FirstNoUnionText + line, "0x651443");
             if (!text.HasValue())
                 return Core::Unexpected(std::move(text).Error());
-            WindowDrawing::DrawText(context, x + 0xa, top, text.Value());
+            Hud::WindowDrawing::DrawText(context, x + 0xa, top, text.Value());
         }
         // 0x651540: el texto en blanco otra vez (el fondo queda en 0xff0000cc).
         context.hud.textColors.text = NoUnionColor;
         return {};
     }
     // 0x651559..0x651580: el tamaño, el lugar (con el alto de la lista del aviso, +0x224: Q-C1293) y el dibujo.
-    UI::OldList& list = window.unionList;
+    Ui::OldList& list = window.unionList;
     list.base.width = UnionListWidth;
     list.base.height = ListHeight;
     list.base.x = x;
@@ -580,13 +581,13 @@ Core::Expected<void, std::string> DrawTheUnionTab(GameHudContext& context)
         return drawn;
     if (hero.guildStatus != MasterStatus)
         return {};
-    UI::OldButton& leave = window.tabButtons[GuildUnionLeaveButton];
-    UI::OldButton& kick = window.tabButtons[GuildUnionKickButton];
+    Ui::OldButton& leave = window.tabButtons[GuildUnionLeaveButton];
+    Ui::OldButton& kick = window.tabButtons[GuildUnionKickButton];
     if (*name == *alliance)
     {
         if (auto labeled = RelabelTheButton(context, leave, UnionMasterButtonText, "0x6515ed"); !labeled.HasValue())
             return labeled;
-        kick.base.state = UI::ShownWindow;
+        kick.base.state = Ui::ShownWindow;
         if (auto labeled = LabelTheButton(context, kick, UnionKickButtonText); !labeled.HasValue())
             return labeled;
         DrawTheButton(context, kick);
@@ -595,13 +596,13 @@ Core::Expected<void, std::string> DrawTheUnionTab(GameHudContext& context)
     }
     if (auto labeled = RelabelTheButton(context, leave, UnionButtonText, "0x651621"); !labeled.HasValue())
         return labeled;
-    kick.base.state = UI::DisabledWindow;
+    kick.base.state = Ui::DisabledWindow;
     DrawTheButton(context, leave);
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheGuildTab(GameHudContext& context, std::int32_t tab)
+Core::Expected<void, std::string> DrawTheGuildTab(Hud::GameHudContext& context, std::int32_t tab)
 {
     switch (tab)
     {
@@ -615,4 +616,4 @@ Core::Expected<void, std::string> DrawTheGuildTab(GameHudContext& context, std::
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

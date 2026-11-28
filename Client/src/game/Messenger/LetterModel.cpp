@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Messenger
 {
 namespace
 {
@@ -187,4 +187,4 @@ void ForgetTheChatRoom(ChatRooms& rooms, std::uint32_t room)
 {
     rooms.rooms.erase(room);
 }
-} // namespace Client::UI
+} // namespace Client::Messenger

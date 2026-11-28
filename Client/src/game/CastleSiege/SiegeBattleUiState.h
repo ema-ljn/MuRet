@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // Globales de los controles de asedio y el objeto reloj 0x6eeda0. No se reinician al cambiar de escena.
-namespace Client::UI
+namespace Client::CastleSiege
 {
 struct SiegeBattleUiState
 {
@@ -23,4 +23,4 @@ struct SiegeBattleUiState
     std::uint16_t gateKey = 0;     // 0x7245a4
     std::uint8_t skillPressed = 0; // 0x7d536dc
 };
-} // namespace Client::UI
+} // namespace Client::CastleSiege

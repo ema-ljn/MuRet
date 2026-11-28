@@ -25,7 +25,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::SkillDelayContext;
+using Client::Skills::SkillDelayContext;
 
 constexpr int OwnRecordRandoms = 3848;
 constexpr int SkillEntryRandoms = 60;
@@ -93,7 +93,7 @@ TEST(SkillDelaysTest, TheRequirementIsTheWordAt2e)
 {
     auto tested = std::make_unique<Delays>();
     const CrtRandom expected = Advanced(tested->random, SkillEntryRandoms);
-    const auto requirement = Client::Scenes::SkillDelayRequirement(0x13, tested->Context());
+    const auto requirement = Client::Skills::SkillDelayRequirement(0x13, tested->Context());
     ASSERT_TRUE(requirement.HasValue()) << requirement.Error();
     EXPECT_EQ(requirement.Value(), 16);
     EXPECT_EQ(tested->random.State(), expected.State());
@@ -106,7 +106,7 @@ TEST(SkillDelaysTest, StartingPutsTheDelayWhenTheRequirementIsMet)
     auto tested = std::make_unique<Delays>();
     const CrtRandom expected =
         Advanced(tested->random, OwnRecordRandoms + SkillEntryRandoms + SkillEntryRandoms + OwnRecordRandoms);
-    ASSERT_TRUE(Client::Scenes::StartSkillDelay(0, tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::StartSkillDelay(0, tested->Context()).HasValue());
     EXPECT_EQ(tested->Own().skillDelays[0], 3000);
     EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
@@ -116,10 +116,10 @@ TEST(SkillDelaysTest, StartingPutsTheDelayWhenTheRequirementIsMet)
 TEST(SkillDelaysTest, StartingWithoutTheRequirementLeavesTheDelay)
 {
     auto tested = std::make_unique<Delays>();
-    ASSERT_TRUE(Client::Scenes::StartSkillDelay(3, tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::StartSkillDelay(3, tested->Context()).HasValue());
     EXPECT_EQ(tested->Own().skillDelays[3], 0);
     tested->Own().leadership = 6;
-    ASSERT_TRUE(Client::Scenes::StartSkillDelay(3, tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::StartSkillDelay(3, tested->Context()).HasValue());
     EXPECT_EQ(tested->Own().skillDelays[3], 1500);
 }
 
@@ -128,13 +128,13 @@ TEST(SkillDelaysTest, StartingStopsWithoutDelayOrWithItRunning)
 {
     auto tested = std::make_unique<Delays>();
     const CrtRandom none = Advanced(tested->random, OwnRecordRandoms + SkillEntryRandoms);
-    ASSERT_TRUE(Client::Scenes::StartSkillDelay(1, tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::StartSkillDelay(1, tested->Context()).HasValue());
     EXPECT_EQ(tested->random.State(), none.State());
     EXPECT_EQ(tested->Own().skillDelays[1], 0);
 
     tested->Own().skillDelays[0] = 7;
     const CrtRandom running = Advanced(tested->random, OwnRecordRandoms + SkillEntryRandoms + OwnRecordRandoms);
-    ASSERT_TRUE(Client::Scenes::StartSkillDelay(0, tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::StartSkillDelay(0, tested->Context()).HasValue());
     EXPECT_EQ(tested->random.State(), running.State());
     EXPECT_EQ(tested->Own().skillDelays[0], 7);
 }
@@ -143,17 +143,17 @@ TEST(SkillDelaysTest, StartingStopsWithoutDelayOrWithItRunning)
 TEST(SkillDelaysTest, TryingSaysWhetherTheSkillCanBeUsed)
 {
     auto tested = std::make_unique<Delays>();
-    const auto first = Client::Scenes::TryStartSkillDelay(0, tested->Context());
+    const auto first = Client::Skills::TryStartSkillDelay(0, tested->Context());
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_TRUE(first.Value());
     EXPECT_EQ(tested->Own().skillDelays[0], 3000);
-    const auto again = Client::Scenes::TryStartSkillDelay(0, tested->Context());
+    const auto again = Client::Skills::TryStartSkillDelay(0, tested->Context());
     ASSERT_TRUE(again.HasValue());
     EXPECT_FALSE(again.Value());
-    const auto unmet = Client::Scenes::TryStartSkillDelay(3, tested->Context());
+    const auto unmet = Client::Skills::TryStartSkillDelay(3, tested->Context());
     ASSERT_TRUE(unmet.HasValue());
     EXPECT_FALSE(unmet.Value());
-    const auto free = Client::Scenes::TryStartSkillDelay(1, tested->Context());
+    const auto free = Client::Skills::TryStartSkillDelay(1, tested->Context());
     ASSERT_TRUE(free.HasValue());
     EXPECT_TRUE(free.Value());
 }
@@ -162,7 +162,7 @@ TEST(SkillDelaysTest, TryingSaysWhetherTheSkillCanBeUsed)
 TEST(SkillDelaysTest, TryingTheSkill4cDoesNotPutItsDelay)
 {
     auto tested = std::make_unique<Delays>();
-    const auto tried = Client::Scenes::TryStartSkillDelay(2, tested->Context());
+    const auto tried = Client::Skills::TryStartSkillDelay(2, tested->Context());
     ASSERT_TRUE(tried.HasValue());
     EXPECT_TRUE(tried.Value());
     EXPECT_EQ(tested->Own().skillDelays[2], 0);
@@ -173,7 +173,7 @@ TEST(SkillDelaysTest, WithoutSkillBmdItIsACut)
     auto tested = std::make_unique<Delays>();
     SkillDelayContext context = tested->Context();
     context.skills = nullptr;
-    const auto started = Client::Scenes::StartSkillDelay(0, context);
+    const auto started = Client::Skills::StartSkillDelay(0, context);
     ASSERT_FALSE(started.HasValue());
     EXPECT_NE(started.Error().find("0x552990"), std::string::npos) << started.Error();
 }
@@ -190,7 +190,7 @@ TEST(SkillDelaysTest, TheCountDownLowersTheFirstSlots)
     own.skillDelays[4] = 100;
     own.skillDelays[2] = -5;
     const CrtRandom expected = Advanced(tested->random, OwnRecordRandoms);
-    ASSERT_TRUE(Client::Scenes::CountDownSkillDelays(40, tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::CountDownSkillDelays(40, tested->Context()).HasValue());
     EXPECT_EQ(own.skillDelays[0], 60);
     EXPECT_EQ(own.skillDelays[1], 0);
     EXPECT_EQ(own.skillDelays[2], -5);
@@ -210,7 +210,7 @@ TEST(SkillDelaysTest, TheCountDownWrapsBeforeTheSignedClamp)
         own.skillDelays[0] = elapsed == -1 ? std::numeric_limits<std::int32_t>::max() : 1;
         own.skillDelays[1] = -7;
         own.skillDelays[2] = 0;
-        const auto counted = Client::Scenes::CountDownSkillDelays(elapsed, tested->Context());
+        const auto counted = Client::Skills::CountDownSkillDelays(elapsed, tested->Context());
         ASSERT_TRUE(counted.HasValue()) << counted.Error();
         EXPECT_EQ(own.skillDelays[0], 0);
         EXPECT_EQ(own.skillDelays[1], -7);
@@ -223,10 +223,10 @@ TEST(SkillDelaysTest, TheCountDownPastTheDelaysIsACut)
 {
     auto tested = std::make_unique<Delays>();
     tested->Own().byte6a = 0xfe;
-    const auto counted = Client::Scenes::CountDownSkillDelays(1, tested->Context());
+    const auto counted = Client::Skills::CountDownSkillDelays(1, tested->Context());
     ASSERT_FALSE(counted.HasValue());
     EXPECT_NE(counted.Error().find("0x5530bb"), std::string::npos) << counted.Error();
     tested->Own().byte6a = 0xfd;
-    EXPECT_TRUE(Client::Scenes::CountDownSkillDelays(1, tested->Context()).HasValue());
+    EXPECT_TRUE(Client::Skills::CountDownSkillDelays(1, tested->Context()).HasValue());
 }
 } // namespace

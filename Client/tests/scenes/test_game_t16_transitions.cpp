@@ -94,14 +94,14 @@ TEST_P(GameT16Transitions, EncryptedTeleportEntersAndReturnsOrNamesItsExactBound
     }
     if (!boundary.empty())
     {
-        ASSERT_NE(m_online->session.State(), Client::App::SessionState::InWorld);
+        ASSERT_NE(m_online->session.State(), Client::Session::SessionState::InWorld);
         ASSERT_TRUE(m_pollFailure.has_value());
         EXPECT_NE(m_pollFailure->find(boundary), std::string::npos) << *m_pollFailure;
         EXPECT_TRUE(sent.packets.empty());
         RecordProperty("scene_coverage", "blocked before scene: " + std::string(boundary));
         return;
     }
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     // 0x42a981: al cargar el 30 sale el B9 02 (el estado del asedio), antes de la confirmación del teleport. 0x4c785d:
     // al entrar al 34 por el 1C, el BD 00 (el pedido del estado de Crywolf) sale antes del F3 12.
     const std::size_t requests = map == 30 || map == 34 ? 1u : 0u;
@@ -125,7 +125,7 @@ TEST_P(GameT16Transitions, EncryptedTeleportEntersAndReturnsOrNamesItsExactBound
     ASSERT_NE(m_states->terrain.current.heights, nullptr);
     ASSERT_NE(m_states->terrain.current.attributes, nullptr);
     Teleport(0);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(m_world->Runtime().map, 0);
     ASSERT_NO_FATAL_FAILURE(ExpectKalimaResources(0));
     EXPECT_EQ(m_world->Runtime().hero, hero);
@@ -166,14 +166,14 @@ TEST_P(GameT16Transitions, RegenUsesRealMapDataWithoutSendingTeleportDone)
     }
     if (loadBoundary)
     {
-        ASSERT_EQ(m_online->session.State(), Client::App::SessionState::Failed);
+        ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::Failed);
         ASSERT_TRUE(m_pollFailure.has_value());
         EXPECT_EQ(*m_pollFailure, TeleportBoundary(map));
-        EXPECT_EQ(m_online->session.Failure(), Client::App::SessionFailure::ApplicationFailed);
+        EXPECT_EQ(m_online->session.Failure(), Client::Session::SessionFailure::ApplicationFailed);
         RecordProperty("scene_coverage", "F304 blocked at " + std::string(TeleportBoundary(map)));
         return;
     }
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(Hero().guildStatus, 5);
     EXPECT_EQ(Hero().byte369, 6);
     EXPECT_EQ(Hero().byte370, 7);
@@ -183,7 +183,7 @@ TEST_P(GameT16Transitions, RegenUsesRealMapDataWithoutSendingTeleportDone)
     EXPECT_EQ(m_world->OwnCharacter().mana, 80);
     EXPECT_EQ(m_world->OwnCharacter().bp, 90);
     Regen(0);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(m_world->Runtime().map, 0);
     ASSERT_NO_FATAL_FAILURE(ExpectKalimaResources(0));
     EXPECT_EQ(m_world->Runtime().warpCounter, 42);

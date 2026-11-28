@@ -43,7 +43,7 @@
 // 0x6b9edc, la de las ventanas, y 0x6b9f38, la de las cartas, que es del hito 10) y la caja de agregar un amigo
 // (0x6b9d10), sobre los controles de UI/OldControls. Las ventanas de una carta y del chat con un amigo son del
 // hito 10.
-namespace Client::UI
+namespace Client::Ui
 {
 struct OldWindowTexts;
 struct OldWindowMeasure;
@@ -182,12 +182,12 @@ struct OldTabPart
     // Cuatro en la de amigos y en la de cartas; uno en la de ventanas.
     std::vector<OldButton> buttons;
     // El deque de la lista de amigos: la copia del modelo (0x49bd60).
-    std::deque<FriendEntry> friends;
+    std::deque<Messenger::FriendEntry> friends;
     // El de la lista de ventanas.
     std::deque<WindowRow> windows;
     // El de la lista de cartas: la copia del modelo (+0x12c, 0x49f500 desde 0x4a0960), y +0x414, todas marcadas
     // (0x4a09d0).
-    std::deque<LetterEntry> letters;
+    std::deque<Messenger::LetterEntry> letters;
     std::int32_t allChecked = 0;
 };
 
@@ -229,13 +229,13 @@ struct OldChatPart
     std::deque<ChatLine> wrappedRows;
     // +0x3d0: los miembros de la sala.
     OldList users;
-    std::deque<FriendEntry> members;
+    std::deque<Messenger::FriendEntry> members;
     // +0x518 y +0x6e8: el botón de invitar (el 1: muestra u oculta la lista) y el de mandar la invitación (el 2).
     OldButton inviteButton;
     OldButton sendButton;
     // +0x5a0: los amigos que se pueden invitar (0x4942d0).
     OldList invite;
-    std::deque<FriendEntry> invitable;
+    std::deque<Messenger::FriendEntry> invitable;
     // +0x770: la sala (0x493530).
     std::uint32_t room = 0;
     // +0x774.
@@ -283,7 +283,7 @@ struct OldLetterPart
     // +0x8b0, la lista de los renglones del cuerpo (0x464620), partido por '\n': `lineRows` como llegan (0x464ae0, al
     // revés que el original, como en OldChatPart) y `wrappedRows` partidos en el ancho de la lista menos 0x1e (0x465270
     // con 0x465450), el más nuevo primero; su tamaño es +0xf8.
-    LetterEntry entry;
+    Messenger::LetterEntry entry;
     std::int32_t fromWebzen = 0;
     OldList lines;
     std::deque<std::string> lineRows;
@@ -433,12 +433,12 @@ struct OldWindowManager
     // +0xf0: la caja de agregar un amigo de la pestaña de amigos (0x49d0b0); 0x490200 la vuelve a 0.
     std::int32_t letter = 0;
     // [0x5763518]: los amigos.
-    FriendModel friendModel;
+    Messenger::FriendModel friendModel;
     // 0x5767970: el tope de las cartas que manda el C0 (0x4dc010); lo lee el C6 (0x4dcb4c).
     std::uint8_t letterLimit = 0;
     // [0x576351c] y [0x5763520]: las cartas y las salas del chat con un amigo (CL9 hito 10).
-    LetterModel letterModel;
-    ChatRooms chatRooms;
+    Messenger::LetterModel letterModel;
+    Messenger::ChatRooms chatRooms;
     // +0x94: la ventana de leer de cada carta (0x491720; 0x491570 y 0x491780 la buscan).
     std::map<std::uint16_t, std::int32_t> letterWindows;
     // 0x5762f0c y 0x5762f10: dónde abre el C7 la próxima ventana de leer (−1, en (100, 100); 0x49a1f0 las pone al
@@ -476,7 +476,7 @@ struct OldWindowGlobals
     std::int32_t& hovered;
     std::int32_t& capture;
     std::int32_t& pressedButton;
-    ChatFocus& keyboardFocus;
+    Chat::ChatFocus& keyboardFocus;
     std::optional<Audio::SoundId>& sound;
     // 0x5762ec0 (la lista que toma las flechas), 0x7d366d8 (la rueda), 0x7d36880 (el clic derecho) y 0x7d36849 (el
     // doble clic, alimentado por SDL como el WM_LBUTTONDBLCLK: P-C182/P-C187).
@@ -484,7 +484,7 @@ struct OldWindowGlobals
     std::int32_t& wheel;
     bool& rightClick;
     bool& doubleClick;
-    // 0x77f3b10 y 0x6c8dcc (Scenes::GameMovementState): el clic sobre un EDIT los pone en 0 y en 6 (0x4690e0). Sin
+    // 0x77f3b10 y 0x6c8dcc (Movement::GameMovementState): el clic sobre un EDIT los pone en 0 y en 6 (0x4690e0). Sin
     // ellos (un paso sin el juego), no se tocan.
     std::int32_t* mouseUpdateTime = nullptr;
     std::int32_t* mouseUpdateTimeMax = nullptr;
@@ -701,4 +701,4 @@ void HideTheWindowList(OldWindow& list);
 // oculta, la muestra (alta y y por el renglón de +0x100 más 4, el parpadeo sube de a 0,25) y, con 1, elige el primero
 // que no es la de arriba; a la vista, con 1, elige el que sigue, con vuelta.
 void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm);
-} // namespace Client::UI
+} // namespace Client::Ui

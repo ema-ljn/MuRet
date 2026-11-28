@@ -179,13 +179,13 @@ TEST(GameDrawTailTest, GroundOnlyEffectsPublishVisibilityWithoutLookingForModels
 {
     Client::Render::ModelBatch batch;
     LookupCounter models;
-    std::array<Client::World::ModelEffect, 3> effects{};
+    std::array<Client::Effects::ModelEffect, 3> effects{};
     for (std::size_t i = 0; i < effects.size(); ++i)
     {
         effects[i].alive = true;
         effects[i].type = static_cast<std::int16_t>(0x61d + i);
     }
-    Client::Scenes::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.0f);
+    Client::WorldObjects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.0f);
     EXPECT_EQ(models.lookups, 0);
     for (const auto& effect : effects)
         EXPECT_TRUE(effect.seen);
@@ -195,7 +195,7 @@ TEST(GameDrawTailTest, GroundOnlyEffectsPublishVisibilityWithoutLookingForModels
 TEST(GameDrawTailTest, LorenciaLeavesIgnoreScaleAndPublishTheEmptyPassBlend)
 {
     Client::Render::ModelBatch batch;
-    Client::World::Leaves leaves;
+    Client::Weather::Leaves leaves;
     const auto view = Client::Render::ViewRows(glm::mat4(1.0f));
     ASSERT_TRUE(Client::Scenes::DrawGameLeaves(batch, leaves, 0, view).HasValue());
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Alpha);
@@ -214,7 +214,7 @@ TEST(GameDrawTailTest, LorenciaLeavesIgnoreScaleAndPublishTheEmptyPassBlend)
 TEST(GameDrawTailTest, DeviasLeavesUseTheWorldViewAndTheirOwnLight)
 {
     Client::Render::ModelBatch batch;
-    Client::World::Leaves leaves;
+    Client::Weather::Leaves leaves;
     auto& leaf = leaves.All()[0];
     leaf.alive = true;
     leaf.scale = 8;
@@ -349,16 +349,16 @@ TEST(GameDrawTailTest, FirstSpritePassRetainsSpritesAndSecondPassKillsItsLowerBa
 {
     Client::Render::ModelBatch batch;
     LookupCounter models;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, 325}, 1, {1, 1, 1}, 0, 0));
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, 300}, 1, {1, 1, 1}, 0, 0));
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, std::numeric_limits<float>::quiet_NaN()}, 1, {1, 1, 1}, 0, 0));
     const auto view = Client::Render::ViewRows(glm::mat4(1.0f));
-    Client::Scenes::DrawFrameSprites(batch, sprites, models, view, 1);
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, models, view, 1);
     EXPECT_TRUE(sprites.Sprites()[0].alive);
     EXPECT_TRUE(sprites.Sprites()[1].alive);
     EXPECT_TRUE(sprites.Sprites()[2].alive);
-    Client::Scenes::DrawFrameSprites(batch, sprites, models, view, 2);
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, models, view, 2);
     EXPECT_FALSE(sprites.Any());
 }
 
@@ -366,9 +366,9 @@ TEST(GameDrawTailTest, SpriteBlendThreeUsesTheInverseColorAdditiveProfile)
 {
     Client::Render::ModelBatch batch;
     LookupCounter models;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, 0}, 1, {1, 1, 1}, 0, 3));
-    Client::Scenes::DrawFrameSprites(batch, sprites, models, Client::Render::ViewRows(glm::mat4(1.0f)));
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, models, Client::Render::ViewRows(glm::mat4(1.0f)));
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::InverseColorAdditive);
 }
 
@@ -419,13 +419,13 @@ TEST(GameDrawTailTest, ParticleModesFilterBeforeLookingUpUnsupportedResources)
 {
     Client::Render::ModelBatch batch;
     LookupCounter models;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     particles.All()[0].alive = true;
     particles.All()[0].type = -1;
     particles.All()[0].position.z = 351;
     const auto view = Client::Render::ViewRows(glm::mat4(1.0f));
-    EXPECT_TRUE(Client::Scenes::DrawGameParticles(batch, particles, models, view, 0, 1).HasValue());
-    EXPECT_FALSE(Client::Scenes::DrawGameParticles(batch, particles, models, view, 0, 2).HasValue());
+    EXPECT_TRUE(Client::Effects::DrawGameParticles(batch, particles, models, view, 0, 1).HasValue());
+    EXPECT_FALSE(Client::Effects::DrawGameParticles(batch, particles, models, view, 0, 2).HasValue());
     EXPECT_TRUE(particles.All()[0].alive);
 }
 
@@ -458,7 +458,7 @@ TEST(GameDrawTailTest, ProjectionPreparationMatchesTheThreeReferenceScreensAtThi
 TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
 {
     std::array<Client::Scenes::JointState, 1> joints{};
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.position = {10, 20, 30};
     owner.light = {0.1f, 0.2f, 0.3f};
@@ -476,7 +476,7 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
                                          .target = -1};
     Client::Crt::CrtRandom random(7), expected(7);
     joints[0].points[0][0] = {99, 98, 97};
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     EXPECT_EQ(joints[0].life, 120);
     EXPECT_EQ(joints[0].count, -1);
     EXPECT_FLOAT_EQ(joints[0].points[0][0].x, 99);
@@ -486,16 +486,16 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
     request.subtype = 3;
     const float sway = static_cast<float>(expected.Next() % 500);
     const float speed = static_cast<float>(expected.Next() % 5 + 5);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(joints[0].texture, 0x613);
     EXPECT_EQ(joints[0].life, 999999);
     EXPECT_FLOAT_EQ(joints[0].velocity.y, sway);
     EXPECT_FLOAT_EQ(joints[0].speed, speed);
     EXPECT_FLOAT_EQ(joints[0].light.y, owner.light.y);
-    EXPECT_FALSE(Client::Scenes::StepJoints(joints).HasValue());
+    EXPECT_FALSE(Client::Joints::StepJoints(joints).HasValue());
     request.ownerContext = nullptr;
-    const auto full = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    const auto full = Client::Joints::CreateFaunaJoint(joints, request, random);
     ASSERT_TRUE(full.HasValue());
     EXPECT_FALSE(full.Value().has_value());
     EXPECT_EQ(random.State(), expected.State());
@@ -506,7 +506,7 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
 TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
 {
     std::array<Client::Scenes::JointState, 1> joints{};
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.previousPosition = {10, 20, 30};
     glm::vec3 first{1, 2, 3}, second{4, 5, 6}, angles{};
@@ -522,7 +522,7 @@ TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
                                                .skillSerial = 0,
                                                .target = -1};
     Client::Crt::CrtRandom random(7);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     EXPECT_EQ(joint.subtype, 5);
     EXPECT_EQ(joint.life, 120);
@@ -530,13 +530,13 @@ TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
     EXPECT_EQ(joint.maximumCount, 28);
     EXPECT_EQ(joint.speed, 3.0f);
     EXPECT_EQ(joint.width, 30.0f);
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_EQ(joint.position, owner.previousPosition);
     EXPECT_EQ(joint.count, 0);
     EXPECT_EQ(joint.life, 119);
     owner.active = 0;
     owner.previousPosition = {40, 50, 60};
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.position, owner.previousPosition);
     EXPECT_EQ(joint.count, 0);
@@ -546,7 +546,7 @@ TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
 TEST(GameDrawTailTest, CrywolfJointCopiesItsOwnerTrailBeforeGrowingAndExpiring)
 {
     std::array<Client::Scenes::JointState, 1> joints{};
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.previousPosition = {10, 20, 30};
     auto& joint = joints[0];
@@ -558,25 +558,25 @@ TEST(GameDrawTailTest, CrywolfJointCopiesItsOwnerTrailBeforeGrowingAndExpiring)
     joint.maximumCount = 28;
     joint.life = 2;
     joint.width = 4;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_EQ(joint.count, 0);
     EXPECT_EQ(joint.life, 1);
     EXPECT_FLOAT_EQ(joint.position.y, 20);
     EXPECT_FLOAT_EQ(joint.points[0][0].x, 8);
     owner.previousPosition = {40, 50, 60};
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_EQ(joint.count, 1);
     EXPECT_FLOAT_EQ(joint.points[1][0].x, 8);
     EXPECT_FLOAT_EQ(joint.points[0][0].x, 38);
     EXPECT_TRUE(joint.alive); // life0 sigue vivo; muere al quedar negativo.
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_FALSE(joint.alive);
 }
 
 TEST(GameDrawTailTest, TarkanJointChecksItsOwnerBeforeCopyingTheTrail)
 {
     std::array<Client::Scenes::JointState, 1> joints{};
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.previousPosition = {12, 22, 32};
     auto& joint = joints[0];
@@ -589,13 +589,13 @@ TEST(GameDrawTailTest, TarkanJointChecksItsOwnerBeforeCopyingTheTrail)
     joint.maximumCount = 20;
     joint.life = 10;
     joint.width = 2;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_FLOAT_EQ(joint.position.x, 12);
     EXPECT_EQ(joint.count, 1);
     EXPECT_EQ(joint.life, 9);
     owner.active = 0;
     owner.previousPosition = {90, 90, 90};
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_FLOAT_EQ(joint.position.x, 12);
     EXPECT_EQ(joint.life, 9);
@@ -607,7 +607,7 @@ TEST(GameDrawTailTest, FirstDeviasSnowPassKeepsTheActiveWorldModelview)
     Client::Render::Pass3D world;
     world.view[3][0] = 20;
     batch.Begin(world);
-    Client::World::Leaves leaves;
+    Client::Weather::Leaves leaves;
     auto& leaf = leaves.All()[0];
     leaf.alive = true;
     leaf.scale = 8;
@@ -648,7 +648,7 @@ TEST(GameDrawTailTest, IcarusJointOwnerColorFailureKeepsTheEarlierConstructorPre
                                          .skillSerial = 0,
                                          .target = -1};
     Client::Crt::CrtRandom random(1);
-    const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
     ASSERT_FALSE(created.HasValue());
     EXPECT_NE(created.Error().find("0x531c7b"), std::string::npos);
     EXPECT_TRUE(joints[0].alive);
@@ -698,7 +698,7 @@ TEST(GameDrawTailTest, IcarusJointEmitsTwoRotatedSpritesBeforeDrawingItsFirstFac
     joint.texture = 0x610;
     joint.light = {0.2f, 0.4f, 0.8f};
     joint.points[0] = {{{0, 0, 0}, {4, 0, 0}, {0, 4, 0}, {0, 0, 4}}};
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(7), expected(7);
     const auto first = expected.Next() % 360;
     const auto second = expected.Next() % 360;
@@ -725,7 +725,7 @@ TEST(GameDrawTailTest, IcarusJointEmitsTwoRotatedSpritesBeforeDrawingItsFirstFac
 
 TEST(GameDrawTailTest, BloodCastleJointMissingRandomFailsAfterMovementAndOwnerCheck)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     Client::Scenes::JointState joint;
     joint.alive = true;
@@ -734,7 +734,7 @@ TEST(GameDrawTailTest, BloodCastleJointMissingRandomFailsAfterMovementAndOwnerCh
     joint.ownerContext = &owner;
     joint.speed = 2;
     joint.life = 10;
-    const auto result = Client::Scenes::StepJoints(std::span(&joint, 1));
+    const auto result = Client::Joints::StepJoints(std::span(&joint, 1));
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x535f18"), std::string::npos);
     EXPECT_FLOAT_EQ(joint.position.y, -2);
@@ -743,7 +743,7 @@ TEST(GameDrawTailTest, BloodCastleJointMissingRandomFailsAfterMovementAndOwnerCh
 
 TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerColor)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.timer = 50;
     owner.light = {0.25f, 0.5f, 0.75f};
@@ -760,7 +760,7 @@ TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerCo
     joint.width = 2;
     joint.points[0][0] = {100, 200, 300};
     Client::Crt::CrtRandom random(7);
-    ASSERT_TRUE(Client::Scenes::StepJoints(std::span(&joint, 1), random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(std::span(&joint, 1), random).HasValue());
     EXPECT_EQ(random.State(), 3289278137u); // rand61%5 !=0; rand17422%2 ==0.
     EXPECT_EQ(joint.life, 10);              // 10+1 antes de sin; -1 al final.
     // Decimal100: sin((11-2)*F32(.05))*3 =1.304896620447595617..., storeF32.
@@ -773,7 +773,7 @@ TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerCo
 
 TEST(GameDrawTailTest, BloodCastleDeadOwnerStillAddsItsLastTailWithoutRandom)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     Client::Scenes::JointState joint;
     joint.alive = true;
     joint.type = 0x10f;
@@ -785,7 +785,7 @@ TEST(GameDrawTailTest, BloodCastleDeadOwnerStillAddsItsLastTailWithoutRandom)
     joint.count = -1;
     joint.maximumCount = 30;
     joint.width = 2;
-    ASSERT_TRUE(Client::Scenes::StepJoints(std::span(&joint, 1)).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(std::span(&joint, 1)).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, -1);
     EXPECT_EQ(joint.count, 0);
@@ -795,7 +795,7 @@ TEST(GameDrawTailTest, BloodCastleDeadOwnerStillAddsItsLastTailWithoutRandom)
 
 TEST(GameDrawTailTest, IcarusJointCopiesEvenItsDeadOwnerAndPinsTheTailToHeightThreeHundred)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.position = {12, 34, 56};
     Client::Scenes::JointState joint;
     joint.alive = true;
@@ -807,7 +807,7 @@ TEST(GameDrawTailTest, IcarusJointCopiesEvenItsDeadOwnerAndPinsTheTailToHeightTh
     joint.count = -1;
     joint.maximumCount = 20;
     joint.width = 2;
-    ASSERT_TRUE(Client::Scenes::StepJoints(std::span(&joint, 1)).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(std::span(&joint, 1)).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, 9);
     EXPECT_EQ(joint.count, 0);
@@ -817,7 +817,7 @@ TEST(GameDrawTailTest, IcarusJointCopiesEvenItsDeadOwnerAndPinsTheTailToHeightTh
     joint.ownerContext = nullptr;
     joint.position.x = -0.0f;
     joint.position.y = -0.0f;
-    ASSERT_TRUE(Client::Scenes::StepJoints(std::span(&joint, 1)).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(std::span(&joint, 1)).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, 8);
     EXPECT_EQ(joint.count, 1);
@@ -833,7 +833,7 @@ TEST(GameDrawTailTest, GroundModelEffectsRenderBeforeRestoringOpaqueStateWithout
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     heights->cells.fill(7);
     const Client::Scenes::ModelEffectDrawResources resources{*heights, 30};
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xcf;
     effect.subtype = 3;
@@ -875,7 +875,7 @@ TEST(GameDrawTailTest, TheSiegeEffectsDrawOnlyTheAuraThroughItsModel)
         SCOPED_TRACE(type);
         Client::Render::ModelBatch batch;
         LookupCounter models;
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.alive = true;
         effect.type = type;
         effect.transform.position = {1000, 2000, 300};
@@ -892,16 +892,16 @@ TEST(GameDrawTailTest, TheSiegeEffectsDrawOnlyTheAuraThroughItsModel)
 // pase del suelo (0x52dc46) saca su rand() aunque el tipo no tenga caso.
 TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     effects->Effects().front().seen = true;
     const auto slot = effects->Begin({.type = 0x19f});
     ASSERT_EQ(slot, 0u);
 
     Client::Crt::CrtRandom random(11);
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    const Client::Terrain::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
+    const Client::Effects::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
     Client::Render::ModelBatch batch;
-    const auto drawn = Client::Scenes::DrawGroundEffects(batch, effects->Effects(), resources);
+    const auto drawn = Client::WorldObjects::DrawGroundEffects(batch, effects->Effects(), resources);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     Client::Crt::CrtRandom expected(11);
@@ -928,7 +928,7 @@ TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
         for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})
         {
             LookupCounter models;
-            Client::World::ModelEffect effect;
+            Client::Effects::ModelEffect effect;
             effect.alive = true;
             effect.type = type;
             effect.subtype = subtype;
@@ -966,7 +966,7 @@ TEST(GameDrawTailTest, TheHighEffectsDrawThroughTheirModelsOrNotAtAll)
     {
         SCOPED_TRACE(type);
         LookupCounter models;
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.alive = true;
         effect.type = type;
         effect.subtype = subtype;
@@ -999,7 +999,7 @@ TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrow
                                                .skillSerial = 0,
                                                .target = -1};
     Client::Crt::CrtRandom random(7);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     EXPECT_FALSE(joint.icarusRotations.has_value());
     EXPECT_EQ(random.State(), 3289278137u);
@@ -1008,7 +1008,7 @@ TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrow
     EXPECT_EQ(joint.life, 14);
     EXPECT_EQ(joint.maximumCount, 2);
     EXPECT_FLOAT_EQ(joint.points[0][0].x, 5);
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_EQ(joint.life, 13);
     EXPECT_EQ(joint.position, glm::vec3(10, 13, 30));
     EXPECT_EQ(joint.count, 1);
@@ -1025,7 +1025,7 @@ TEST(GameDrawTailTest, FloorStepFallsBeforeClampingAndSettlesItsWeaponWithoutRes
 {
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(7);
     Client::Scenes::FloorItemState item;
     item.alive = true;
@@ -1033,32 +1033,32 @@ TEST(GameDrawTailTest, FloorStepFallsBeforeClampingAndSettlesItsWeaponWithoutRes
     item.position = {100, 200, 200};
     item.dropSpeed = 5;
     item.effectCounter = 1;
-    const Client::Scenes::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    const Client::Items::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_FLOAT_EQ(item.position.z, 205);
     EXPECT_FLOAT_EQ(item.dropSpeed, -1);
     EXPECT_FLOAT_EQ(item.angles.y, 10);
     EXPECT_EQ(item.effectCounter, 2);
     item.position.z = 100;
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_FLOAT_EQ(item.position.z, 99); // Sigue en el aire: suelo0 +30 +40.
     EXPECT_FLOAT_EQ(item.dropSpeed, -7);
     EXPECT_FLOAT_EQ(item.angles.y, 70);
     item.position.z = 60;
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_FLOAT_EQ(item.position.z, 70);
     EXPECT_FLOAT_EQ(item.dropSpeed, -13); // el contacto no resetea la gravedad.
     EXPECT_EQ(item.angles, glm::vec3(60, 0, -45));
     EXPECT_EQ(random.State(), 7u);
     item.type = 0xe12;
     item.position.z = 200;
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_FLOAT_EQ(item.angles.z, 190);
     EXPECT_FLOAT_EQ(item.position.z, 187);
     item.type = 0x1e21;
     item.position.z = 20;
     item.dropSpeed = 0;
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_FLOAT_EQ(item.position.z, 30);
 }
 
@@ -1066,7 +1066,7 @@ TEST(GameDrawTailTest, FloorStepTakesItsTwoCallerRandomsEvenWhenTheParticlePoolI
 {
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     for (auto& particle : particles.All())
         particle.alive = true;
     Client::Crt::CrtRandom random(7);
@@ -1074,8 +1074,8 @@ TEST(GameDrawTailTest, FloorStepTakesItsTwoCallerRandomsEvenWhenTheParticlePoolI
     item.alive = true;
     item.type = 0x212;
     item.effectCounter = 48;
-    const Client::Scenes::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    const Client::Items::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_EQ(item.effectCounter, 49);
     EXPECT_EQ(random.State(), 3289278137u);
     EXPECT_TRUE(item.alive);
@@ -1085,15 +1085,15 @@ TEST(GameDrawTailTest, FloorStepEmitsBothSparkSubtypesAtTheSameRotatedPoint)
 {
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(7);
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.position = {100, 200, 10000};
     item.dropSpeed = 6;
-    const Client::Scenes::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
-    ASSERT_TRUE(Client::Scenes::StepFloorItems(std::span(&item, 1), context).HasValue());
+    const Client::Items::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
+    ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_EQ(item.effectCounter, 1);
     EXPECT_EQ(random.State(), 3289278137u); // R1=61→45,R2=17422→30;542ab9 no sortea para/0,/1.
     for (std::size_t i = 0; i < 2; ++i)
@@ -1140,7 +1140,7 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     Client::Terrain::SphereFrustum frustum;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0xc2;
     effect.transform.scale = 1;
@@ -1182,9 +1182,9 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
 {
     TriangleModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::ModelEffect burst;
+    Client::Effects::ModelEffect burst;
     burst.alive = true;
-    burst.type = Client::World::EarthquakeBurstEffect;
+    burst.type = Client::Effects::EarthquakeBurstEffect;
     burst.objectState.blendMesh = 0;
     burst.alpha = 1;
     burst.transform.scale = 0.5f;
@@ -1206,7 +1206,7 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
     EXPECT_TRUE(excluded.Vertices().empty());
     // Sin flashing.bmd la cuenta de mallas es 0 (0x60dbe0): el primer pase no dibuja nada y no corta.
     burst.objectState.blendMesh = 0;
-    models.missingModel = static_cast<std::uint16_t>(Client::World::EarthquakeBurstEffect);
+    models.missingModel = static_cast<std::uint16_t>(Client::Effects::EarthquakeBurstEffect);
     Client::Render::ModelBatch missing;
     const auto withoutModel =
         Client::Scenes::DrawGameModelEffects(missing, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
@@ -1225,9 +1225,9 @@ TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
         SCOPED_TRACE(life);
         LookupCounter models;
         Client::Render::ModelBatch batch;
-        Client::World::ModelEffect quake;
+        Client::Effects::ModelEffect quake;
         quake.alive = true;
-        quake.type = Client::World::EarthquakeEffect;
+        quake.type = Client::Effects::EarthquakeEffect;
         quake.state = 2;
         quake.life = life;
         quake.transform.scale = 0.9f;
@@ -1238,11 +1238,12 @@ TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
         EXPECT_TRUE(batch.Vertices().empty());
     }
     TriangleModels models;
-    for (std::int16_t type = Client::World::FirstEarthquakeCrack; type <= Client::World::LastEarthquakeCrack; ++type)
+    for (std::int16_t type = Client::Effects::FirstEarthquakeCrack; type <= Client::Effects::LastEarthquakeCrack;
+         ++type)
     {
         SCOPED_TRACE(type);
         Client::Render::ModelBatch batch;
-        Client::World::ModelEffect crack;
+        Client::Effects::ModelEffect crack;
         crack.alive = true;
         crack.type = type;
         crack.subtype = 1;
@@ -1253,7 +1254,7 @@ TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(batch.Vertices().size(), 3u);
 
-        crack.renderFlags = Client::World::CrackRenderFlags;
+        crack.renderFlags = Client::Effects::CrackRenderFlags;
         Client::Render::ModelBatch flagged;
         const auto dark =
             Client::Scenes::DrawGameModelEffects(flagged, models, std::span(&crack, 1), frustum, nullptr, {}, 0, 0);
@@ -1287,15 +1288,15 @@ TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
     constexpr float NormalLight = 2.0f;
     using Client::Render::ModelBlend;
     const std::array cases{
-        Case{Client::World::LaserEffect, 0, Client::World::CrackRenderFlags, ModelBlend::Subtractive, Light, Plain},
-        Case{Client::World::OuterCircleEffect, 1, Client::World::CrackRenderFlags, ModelBlend::Subtractive, Light,
+        Case{Client::Effects::LaserEffect, 0, Client::Effects::CrackRenderFlags, ModelBlend::Subtractive, Light, Plain},
+        Case{Client::Effects::OuterCircleEffect, 1, Client::Effects::CrackRenderFlags, ModelBlend::Subtractive, Light,
              Plain},
-        Case{Client::World::OuterCircleEffect, 3, 0, ModelBlend::Opaque, deep, Plain},
-        Case{Client::World::OuterCircleEffect, 4, 0, ModelBlend::Opaque, deep, Plain},
-        Case{Client::World::OuterCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
-        Case{Client::World::InnerCircleEffect, 2, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
-        Case{Client::World::InnerCircleEffect, 3, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
-        Case{Client::World::InnerCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
+        Case{Client::Effects::OuterCircleEffect, 3, 0, ModelBlend::Opaque, deep, Plain},
+        Case{Client::Effects::OuterCircleEffect, 4, 0, ModelBlend::Opaque, deep, Plain},
+        Case{Client::Effects::OuterCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
+        Case{Client::Effects::InnerCircleEffect, 2, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
+        Case{Client::Effects::InnerCircleEffect, 3, 0, ModelBlend::Opaque, {0.5f, 0.5f, 1.0f}, Magic},
+        Case{Client::Effects::InnerCircleEffect, 0, 0, ModelBlend::Opaque, Light, Plain},
     };
     Client::Terrain::SphereFrustum frustum;
     TriangleModels models;
@@ -1304,7 +1305,7 @@ TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
         SCOPED_TRACE(tested.type);
         SCOPED_TRACE(tested.subtype);
         Client::Render::ModelBatch batch;
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.alive = true;
         effect.type = tested.type;
         effect.subtype = tested.subtype;
@@ -1354,7 +1355,7 @@ TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommo
     {
         SCOPED_TRACE(subtype);
         Client::Render::ModelBatch batch;
-        Client::World::ModelEffect shield;
+        Client::Effects::ModelEffect shield;
         shield.alive = true;
         shield.type = 0x109;
         shield.subtype = subtype;
@@ -1411,7 +1412,7 @@ TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
                 drawn.push_back({command.state.blend, command.state.texture.value_or(Client::Render::TextureSlot{})});
         return drawn;
     };
-    Client::World::ModelEffect rock;
+    Client::Effects::ModelEffect rock;
     rock.alive = true;
     rock.type = 0x13d;
     rock.life = 10;
@@ -1429,7 +1430,7 @@ TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
     EXPECT_EQ(rockPasses[1].texture, Client::Render::TextureSlot{0x63c});
     EXPECT_EQ(rock.objectState.uv, (glm::vec2{0.5f, 0.25f}));
 
-    Client::World::ModelEffect shell = rock;
+    Client::Effects::ModelEffect shell = rock;
     shell.type = 0x13e;
     Client::Render::ModelBatch shellBatch;
     const auto swayed = Client::Scenes::DrawGameModelEffects(shellBatch, models, std::span(&shell, 1), frustum, nullptr,
@@ -1463,16 +1464,16 @@ TEST(GameDrawTailTest, TheDarkBodyDarkensItsBlendMeshToo)
         std::array<ModelBlend, 2> blends;
     };
     for (const Case& tested :
-         {Case{Client::World::CrackRenderFlags, 0, {ModelBlend::Subtractive, ModelBlend::Subtractive}},
-          Case{Client::World::CrackRenderFlags, -2, {ModelBlend::Subtractive, ModelBlend::Subtractive}},
+         {Case{Client::Effects::CrackRenderFlags, 0, {ModelBlend::Subtractive, ModelBlend::Subtractive}},
+          Case{Client::Effects::CrackRenderFlags, -2, {ModelBlend::Subtractive, ModelBlend::Subtractive}},
           Case{0, 0, {ModelBlend::Additive, ModelBlend::Opaque}}})
     {
         SCOPED_TRACE(tested.renderFlags);
         SCOPED_TRACE(tested.blendMesh);
         Client::Render::ModelBatch batch;
-        Client::World::ModelEffect laser;
+        Client::Effects::ModelEffect laser;
         laser.alive = true;
-        laser.type = Client::World::LaserEffect;
+        laser.type = Client::Effects::LaserEffect;
         laser.life = 10;
         laser.renderFlags = tested.renderFlags;
         laser.objectState.blendMesh = tested.blendMesh;
@@ -1510,12 +1511,12 @@ TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
     for (const bool hidden : {true, false})
     {
         Client::Render::ModelBatch batch;
-        Client::World::ModelEffect effect;
+        Client::Effects::ModelEffect effect;
         effect.alive = true;
-        effect.type = Client::World::ButterflyEffect;
+        effect.type = Client::Effects::ButterflyEffect;
         effect.transform.scale = 1;
         if (hidden)
-            effect.objectState.hiddenMesh = Client::World::HiddenObject;
+            effect.objectState.hiddenMesh = Client::WorldObjects::HiddenObject;
         const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), frustum, nullptr,
                                                                 {}, 0, resources);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -1534,7 +1535,7 @@ TEST(GameDrawTailTest, ModelEffectNonzeroModeFiltersBlendMeshBeforeDispatchingIt
     Client::Render::ModelBatch batch;
     LookupCounter missing;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x14e;
     ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(batch, missing, std::span(&effect, 1), frustum, nullptr, {}, 0, 1)
@@ -1567,7 +1568,7 @@ TEST(GameDrawTailTest, AnUnloadedModelDoesNotAbortTheRestOfTheSecondPass)
     TriangleModels models;
     models.missingModel = std::uint16_t{0x14e};
     Client::Terrain::SphereFrustum frustum;
-    std::array<Client::World::ModelEffect, 2> effects{};
+    std::array<Client::Effects::ModelEffect, 2> effects{};
     effects[0].alive = true;
     effects[0].type = 0x14e;
     effects[0].objectState.blendMesh = 1;
@@ -1587,7 +1588,7 @@ TEST(GameDrawTailTest, MirroredModelEffectDrawsTwiceAndRetainsItsSecondHeight)
     Client::Render::ModelBatch batch;
     TriangleModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
     effect.type = 0x135;
     effect.transform.scale = 1;
@@ -1643,7 +1644,7 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     Client::Terrain::SphereFrustum frustum;
     Client::Kernel::PoseBuffer carry;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    std::array<Client::World::ModelEffect, 2> effects{};
+    std::array<Client::Effects::ModelEffect, 2> effects{};
     for (std::size_t i = 0; i < effects.size(); ++i)
     {
         effects[i].alive = true;
@@ -1669,7 +1670,7 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     RetainedDummyModels models;
     Client::Terrain::SphereFrustum frustum;
     Client::Kernel::PoseBuffer carry;
-    std::array<Client::World::ModelEffect, 2> effects{};
+    std::array<Client::Effects::ModelEffect, 2> effects{};
     for (std::size_t i = 0; i < effects.size(); ++i)
     {
         effects[i].alive = true;
@@ -1681,8 +1682,9 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     { return Client::Actors::Drawing::PublishPose(carry, models, object, true); };
     const Client::Actors::Drawing::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh>
     { return carry.meshes; };
-    ASSERT_TRUE(Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
-                    .HasValue());
+    ASSERT_TRUE(
+        Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
+            .HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(7, 8, 9)); // La matriz del anterior, sin el origen (0x4ebc80).
 }

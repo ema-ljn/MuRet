@@ -22,11 +22,15 @@ namespace Client::Models
 {
 class IModelLibrary;
 } // namespace Client::Models
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
+} // namespace Client::Particles
+
+namespace Client::Effects
+{
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Actors::Drawing
 {
@@ -37,21 +41,21 @@ struct DrawnObject;
 // con modelo de los tipos altos que 0x52d620 manda por 0x52da92 → 0x602e90, después de posarlos (0x5ffdf0) y de mirar
 // la malla oculta −2 (0x600328). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los efectos con modelo
 // de los tipos altos".
-namespace Client::Scenes
+namespace Client::Effects
 {
 
 // Lo que esos casos leen además del objeto: los sprites del frame (0x5491e0), el CRT (0x69fd70), los huesos del buffer
 // global de la pose (0x68b181c, que 0x5ffdf0 deja en el mundo) y el reloj del mundo (0x5767b88).
 struct HighEffectDrawServices
 {
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     Crt::CrtRandom* random = nullptr;
     std::function<std::span<const Math::BoneTransform>()> posedBones{};
     std::optional<float> worldClock{};
 };
 
 // Si el efecto tiene caso propio acá: el 0x11b, el 0x114/3, /4 y /5, el 0x140 y el 0x125, de cualquier otro subtipo.
-[[nodiscard]] bool HasHighEffectBody(const World::ModelEffect& effect);
+[[nodiscard]] bool HasHighEffectBody(const Effects::ModelEffect& effect);
 
 // El cuerpo de esos casos, con `object` posado (sus mallas en `object.retainedMeshes` o posadas acá como 0x5ffdf0).
 // Sólo llega acá un efecto con el alpha en 0,01 o más: con menos, o sin orden, 0x5ffdf0 devuelve 0 (0x5ffe2a..0x5ffe3d)
@@ -72,7 +76,7 @@ struct HighEffectDrawServices
 // modelo no escribe su +0x78 (nadie lo hace entre 0x518cf0 y 0x52ce13), así que acá no corre. Devuelve true si lo
 // dibujó; false si el efecto no tiene caso acá. Sin los sprites, el CRT, los huesos o el reloj que pide, corta.
 [[nodiscard]] Core::Expected<bool, std::string>
-DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
+DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, Effects::ModelEffect& effect,
                       Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
                       const HighEffectDrawServices& services);
-} // namespace Client::Scenes
+} // namespace Client::Effects

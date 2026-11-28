@@ -22,16 +22,24 @@ namespace Client::Kernel
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::WorldObjects
+{
+struct WorldObject;
+} // namespace Client::WorldObjects
+
+namespace Client::Particles
 {
 class FrameSprites;
-class ModelEffects;
-struct WorldObject;
-} // namespace Client::World
+} // namespace Client::Particles
 
 // Lo que 0x606560 hace en Icarus (el mapa 10) fuera de 0x604ab0: el preludio 0x6061c0 (con 0x605d70) antes
 // de los objetos y 0x6063d0 con cada objeto visto. Contrato: 06 § Los objetos de Icarus.
-namespace Client::Scenes
+namespace Client::MapScripts::Icarus
 {
 struct IcarusObjectServices
 {
@@ -41,9 +49,9 @@ struct IcarusObjectServices
     // La luz dinámica durable (0x7b4ccc4).
     Terrain::TerrainLighting* lighting = nullptr;
     // La tabla de 0x518cf0.
-    World::ModelEffects* effects = nullptr;
+    Effects::ModelEffects* effects = nullptr;
     // 0x5491e0.
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // 0x530860.
     std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> createJoint;
 };
@@ -63,7 +71,7 @@ struct IcarusObjectServices
 // rand() % 10 == 0 y el tipo del 0 al 5, un sprite 0x623 de escala 0,5 en el objeto con la luz
 // ((rand() % 10) · 0,02f) por canal y dos uniones 614/6 del objeto, de ancho rand() % 20 + 10; si no, count
 // vuelve a bajar.
-[[nodiscard]] Core::Expected<void, std::string> StepIcarusSeenObject(World::WorldObject& object, std::int32_t selector,
-                                                                     std::int32_t& count,
+[[nodiscard]] Core::Expected<void, std::string> StepIcarusSeenObject(WorldObjects::WorldObject& object,
+                                                                     std::int32_t selector, std::int32_t& count,
                                                                      const IcarusObjectServices& services);
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Icarus

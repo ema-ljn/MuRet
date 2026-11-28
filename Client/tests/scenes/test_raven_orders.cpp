@@ -72,15 +72,15 @@ struct Ravens
     }
     void Attack(std::uint8_t kind)
     {
-        Client::Scenes::ApplyPetAttack(PetAttack{kind, LordKey, MonsterKey}, Resources());
+        Client::Pets::ApplyPetAttack(PetAttack{kind, LordKey, MonsterKey}, Resources());
     }
 
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
@@ -89,12 +89,12 @@ struct Ravens
 TEST(RavenOrdersTest, TheFollowOrderTakesTheTarget)
 {
     auto tested = std::make_unique<Ravens>();
-    Client::Scenes::ApplyPetOrder(PetOrder{3, MonsterKey}, tested->world);
+    Client::Pets::ApplyPetOrder(PetOrder{3, MonsterKey}, tested->world);
     EXPECT_EQ(tested->Raven().order, 3);
     EXPECT_EQ(tested->Raven().byte1ad, 1);
     EXPECT_EQ(tested->Raven().target, MonsterIndex);
     // Sin el blanco, el 400.
-    Client::Scenes::ApplyPetOrder(PetOrder{3, 0x0777}, tested->world);
+    Client::Pets::ApplyPetOrder(PetOrder{3, 0x0777}, tested->world);
     EXPECT_EQ(tested->Raven().target, 400u);
 }
 
@@ -110,7 +110,7 @@ TEST(RavenOrdersTest, TheOtherOrdersDropTheChargeOutsideTheAttackStates)
             tested->Raven().state = state;
             tested->Raven().byte1ad = 1;
             tested->Raven().target = MonsterIndex;
-            Client::Scenes::ApplyPetOrder(PetOrder{order, LordKey}, tested->world);
+            Client::Pets::ApplyPetOrder(PetOrder{order, LordKey}, tested->world);
             EXPECT_EQ(tested->Raven().order, order);
             EXPECT_EQ(tested->Raven().byte1ad, kept ? 1 : 0) << int{order} << " " << int{state};
             EXPECT_EQ(tested->Raven().target, MonsterIndex);
@@ -122,8 +122,8 @@ TEST(RavenOrdersTest, WithoutTheRavenTheOrderDoesNothing)
 {
     auto tested = std::make_unique<Ravens>();
     tested->world.Actors()[LordIndex].darkSpirit.reset();
-    Client::Scenes::ApplyPetOrder(PetOrder{3, MonsterKey}, tested->world);
-    Client::Scenes::ApplyPetAttack(PetAttack{0, LordKey, MonsterKey}, tested->Resources());
+    Client::Pets::ApplyPetOrder(PetOrder{3, MonsterKey}, tested->world);
+    Client::Pets::ApplyPetAttack(PetAttack{0, LordKey, MonsterKey}, tested->Resources());
     EXPECT_FALSE(tested->world.Actors()[LordIndex].darkSpirit.has_value());
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }

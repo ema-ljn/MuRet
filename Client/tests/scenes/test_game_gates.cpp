@@ -36,9 +36,9 @@
 
 namespace
 {
-using Client::GameLogic::GateWarning;
-using Client::Scenes::CheckGameGates;
-using Client::Scenes::GameGateContext;
+using Client::Movement::CheckGameGates;
+using Client::Movement::GameGateContext;
+using Client::Movement::GateWarning;
 using Client::Tables::GateRecord;
 using Client::Tables::GateTable;
 using Client::Tests::AfterDraws;
@@ -297,11 +297,11 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
             EXPECT_EQ(runtime.selectedTargets[0], 9);
             EXPECT_EQ(runtime.movement.movementTarget, 8);
             EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());
-            auto body = Client::Scenes::OptionBodyOf(world, tested.random, std::uint8_t{0});
+            auto body = Client::Hud::Dialogs::OptionBodyOf(world, tested.random, std::uint8_t{0});
             if (!body.HasValue())
                 return Client::Core::Unexpected(std::move(body).Error());
             options.push_back(Client::Protocol::Player::WriteOptionData(body.Value()));
-            macros = Client::UI::WrittenMacros(runtime.chat.input.macros);
+            macros = Client::Chat::WrittenMacros(runtime.chat.input.macros);
             // 61c210 abre/cierra dentro del acceso de599ef0: el cierre interior no consume3.848 rand().
             EXPECT_EQ(runtime.ownRecordDepth, 1);
             EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());

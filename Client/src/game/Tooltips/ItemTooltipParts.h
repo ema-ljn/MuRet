@@ -11,19 +11,23 @@
 #include <string>
 #include <string_view>
 
+namespace Client::Hud
+{
+struct GameHudContext;
+} // namespace Client::Hud
+
 // Los tramos del cuerpo del tooltip de un ítem, 0x5b2aa0 (06 § Los tooltips, "El cuerpo del ítem"), en el orden en
 // que los escribe: el nombre, las líneas de cada tipo, el daño y los stats, la durabilidad, los requisitos, las
 // clases, las opciones y el conjunto. Cada uno escribe en TooltipWriter y devuelve el error de lo que MuRet no porta.
-namespace Client::Scenes
+namespace Client::Tooltips
 {
-struct GameHudContext;
 class TooltipWriter;
 
 // Lo que comparten los tramos: el ítem ([EBP+0x10]), su registro de Item.bmd ([EBP−0x18]), su nivel ((D+4 >> 3) &
 // 0xf, [EBP−0x14]) y el color del nombre ([EBP−0x1c]).
 struct ItemTooltipFrame
 {
-    GameHudContext& context;
+    Hud::GameHudContext& context;
     TooltipWriter& lines;
     const Kernel::ItemState& item;
     std::span<const std::byte, Tables::ItemRecordSize> record;
@@ -36,7 +40,7 @@ struct ItemTooltipFrame
 // D+0x1b & 0x3f: alguna opción excelente.
 [[nodiscard]] bool IsExcellent(const Kernel::ItemState& item);
 // La clase del héroe, el byte +0x1d4 de [0x743a170] (la clase en los bits 0 a 2 y la evolución arriba).
-[[nodiscard]] std::uint8_t HeroClassOf(const GameHudContext& context);
+[[nodiscard]] std::uint8_t HeroClassOf(const Hud::GameHudContext& context);
 
 // Lo que se lee de una entrada de Skill.bmd con su acceso abierto: el nombre (+0, hasta su '\0' o el fin de la
 // entrada), el byte +0x21, el word +0x22 (el maná), el word +0x24 (el texto 360, "Stamina usada") y el byte +0x26 (el
@@ -53,7 +57,7 @@ struct SkillEntryFields
 // El acceso de la entrada `skill` de Skill.bmd (0x551c70 o el mismo código en línea): se abre, se leen sus campos y
 // se cierra, con sus 60 rand() si su cuenta vuelve a 0.
 [[nodiscard]] Core::Expected<SkillEntryFields, std::string>
-ReadTheSkillEntry(GameHudContext& context, std::uint32_t skill, std::string_view where);
+ReadTheSkillEntry(Hud::GameHudContext& context, std::uint32_t skill, std::string_view where);
 // Lo mismo desde un tramo: con un error ya guardado en el escritor, ese error, sin abrir el acceso.
 [[nodiscard]] Core::Expected<SkillEntryFields, std::string>
 ReadTheSkillEntry(ItemTooltipFrame& frame, std::uint32_t skill, std::string_view where);
@@ -61,11 +65,11 @@ ReadTheSkillEntry(ItemTooltipFrame& frame, std::uint32_t skill, std::string_view
 // 0x40cf30(buffer, tipo, D+0x1c), un thiscall sobre [0x6eed3c]: con D+0x1c & 3 de 1 a 3, el conjunto del byte
 // (& 3) − 1 de ItemSetType.bmd; si no es 0 ni 0xff, los 32 bytes del nombre de su registro de ItemSetOption.bmd y un
 // espacio. Sin conjunto, nada. Un conjunto fuera de los 64 o un nombre sin '\0' leen fuera: error.
-[[nodiscard]] Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context,
+[[nodiscard]] Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Hud::GameHudContext& context,
                                                                                     const Kernel::ItemState& item);
 // Lo mismo con el tipo y la pieza (& 3) dados, como la llama la ayuda del ítem con 1 y 2 (0x5b0ccd y 0x5b0d45).
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
-ItemSetNameOf(const GameHudContext& context, std::uint16_t type, std::uint8_t piece);
+ItemSetNameOf(const Hud::GameHudContext& context, std::uint16_t type, std::uint8_t piece);
 
 // 0x5b371b..0x5b45f4: el renglón del nombre, en el color del nombre y en negrita, y un "\n".
 [[nodiscard]] Core::Expected<void, std::string> WriteTheItemName(ItemTooltipFrame& frame);
@@ -90,7 +94,7 @@ ItemSetNameOf(const GameHudContext& context, std::uint16_t type, std::uint8_t pi
 // dos clases, el 61 con el nombre de cada una (15 + 5 · byte + clase); con tres o cuatro, el 60 con el de cada clase
 // que no lo usa (20 + clase); con cinco, nada más. Lo que el héroe no cumple va en rojo si su clase lo usa y en el 5 si
 // no. La llaman el cuerpo del ítem (0x5b79d2) y la ayuda del ítem (0x5b0da8).
-void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
+void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& lines,
                          std::span<const std::byte, Tables::ItemRecordSize> record);
 
 // 0x5b2f7f..0x5b3716 (CL9 hito 7), con la tienda personal propia o la de otro abiertas: con el ítem de su grilla bajo
@@ -99,17 +103,17 @@ void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
 // cien mil (con signo), en negrita, y un "\n"; después el zen del registro propio (+0xecc) con su acceso abierto y
 // cerrado y, mirando la de otro con menos zen (sin signo), el 423 en rojo y en negrita y otro "\n". Sin precio, con la
 // propia, el 1101 en rojo y en negrita y un "\n". Sin rand() salvo los del acceso.
-[[nodiscard]] Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& context, TooltipWriter& lines,
-                                                                          const Kernel::ItemState& item);
+[[nodiscard]] Core::Expected<void, std::string>
+WriteThePersonalShopPrice(Hud::GameHudContext& context, TooltipWriter& lines, const Kernel::ItemState& item);
 
 // 0x5b2320(tipo, renglón, opción, valor, maná): el texto de la opción `tag` en el renglón que sigue de `lines`, sin su
 // color ni su negrita. Las que leen el maná abren la entrada de la skill de la opción (0x551c70, que pisa el maná del
 // argumento: 60 rand() si su cuenta vuelve a 0). Una opción que no está en la tabla de 0x5b2a00 deja el renglón como
 // estaba. La llaman las opciones del ítem (0x5b7c62), la caja azul (0x5b7e49) y el tooltip de las mascotas (0x423b1d).
-[[nodiscard]] Core::Expected<void, std::string> WriteAnOption(GameHudContext& context, TooltipWriter& lines,
+[[nodiscard]] Core::Expected<void, std::string> WriteAnOption(Hud::GameHudContext& context, TooltipWriter& lines,
                                                               std::int32_t type, std::uint8_t tag, std::uint8_t value);
 
 // 0x5b79bd..0x5b801a: las clases (0x5af590), lo que suma cada tipo, el stat del conjunto (0x40dd80), las opciones
 // (0x5b2320), las cajas 0x1a20 a 0x1a25 y las opciones del conjunto (0x40eee0).
 [[nodiscard]] Core::Expected<void, std::string> WriteTheOptions(ItemTooltipFrame& frame);
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

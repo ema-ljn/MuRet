@@ -49,8 +49,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
-using Client::Scenes::UseTheKnightSkill;
+using Client::Skills::HeroSkillContext;
+using Client::Skills::UseTheKnightSkill;
 
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
@@ -168,7 +168,7 @@ struct KnightHero
     {
         return world.Actors()[0];
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
     }
@@ -793,35 +793,35 @@ TEST(HeroSkillsKnightTest, TheOtherSkillsDoNothing)
 // 0x4e9920: arriba ((y) − (blancoY) + 8) << 4 y abajo (x) − (blancoX) + 8, sin enmascarar el de abajo (Q-C1232).
 TEST(HeroSkillsKnightHelpersTest, TheRelativeCellBleedsIntoTheHighNibble)
 {
-    EXPECT_EQ(Client::Scenes::RelativeTargetCell(18250.0f, 11550.0f, 18450, 11750), 0xaa);
-    EXPECT_EQ(Client::Scenes::RelativeTargetCell(18250.0f, 11550.0f, 18250, 11550), 0x88);
+    EXPECT_EQ(Client::Skills::RelativeTargetCell(18250.0f, 11550.0f, 18450, 11750), 0xaa);
+    EXPECT_EQ(Client::Skills::RelativeTargetCell(18250.0f, 11550.0f, 18250, 11550), 0x88);
     // X − blancoX = +9 (en celdas negativas): el 0x11 de abajo prende el bit 4 del 0x80 de arriba.
-    EXPECT_EQ(Client::Scenes::RelativeTargetCell(17350.0f, 11550.0f, 18250, 11550), 0x91);
+    EXPECT_EQ(Client::Skills::RelativeTargetCell(17350.0f, 11550.0f, 18250, 11550), 0x91);
 }
 
 // 0x4e9c50: las dos manos 0x63, la derecha 0x64, la izquierda 0x65 y ninguna 0x62.
 TEST(HeroSkillsKnightHelpersTest, TheHandsChooseTheAction)
 {
     Client::Kernel::ActorState actor = Client::Tests::UnarmedPlayer(1);
-    EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x62);
+    EXPECT_EQ(Client::Skills::ActionByTheHands(actor), 0x62);
     actor.hands[1].model = 0xc12;
-    EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x65);
+    EXPECT_EQ(Client::Skills::ActionByTheHands(actor), 0x65);
     actor.hands[0].model = Sword;
-    EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x63);
+    EXPECT_EQ(Client::Skills::ActionByTheHands(actor), 0x63);
     actor.hands[1].model = Client::Kernel::NoItemModel;
-    EXPECT_EQ(Client::Scenes::ActionByTheHands(actor), 0x64);
+    EXPECT_EQ(Client::Skills::ActionByTheHands(actor), 0x64);
 }
 
 // 0x57cf90: de 1 a 0x32 y otra vez 1.
 TEST(HeroSkillsKnightHelpersTest, TheMagicKeyWrapsAfter32)
 {
-    Client::Scenes::GameMovementState state;
+    Client::Movement::GameMovementState state;
     std::uint8_t key = 0;
-    EXPECT_EQ(Client::Scenes::NextMagicKey(state, key), 1);
+    EXPECT_EQ(Client::Skills::NextMagicKey(state, key), 1);
     EXPECT_EQ(key, 1);
     state.magicKeyCounter = 0x31;
-    EXPECT_EQ(Client::Scenes::NextMagicKey(state, key), 0x32);
-    EXPECT_EQ(Client::Scenes::NextMagicKey(state, key), 1);
+    EXPECT_EQ(Client::Skills::NextMagicKey(state, key), 0x32);
+    EXPECT_EQ(Client::Skills::NextMagicKey(state, key), 1);
     EXPECT_EQ(state.magicKeyCounter, 1);
 }
 
@@ -832,17 +832,17 @@ TEST(HeroSkillsKnightHelpersTest, TheEnergyComesFromSkillBmd)
     CrtRandom random;
     const auto skills = SkillsWith(
         {{.skill = 0x29, .range = 3, .mana = 0x123, .stamina = 0x45, .level = 7, .energy = 9}, {.skill = 0x2a}});
-    const Client::Scenes::SkillDelayContext context{.world = *world, .random = random, .skills = &skills};
+    const Client::Skills::SkillDelayContext context{.world = *world, .random = random, .skills = &skills};
     const CrtRandom expected = Advanced(random, 2 * EntryDraws);
-    const auto energy = Client::Scenes::SkillEnergyRequirement(0x29, context);
+    const auto energy = Client::Skills::SkillEnergyRequirement(0x29, context);
     ASSERT_TRUE(energy.HasValue()) << energy.Error();
     EXPECT_EQ(energy.Value(), 7 * 9 * 4 / 100 + 20);
-    const auto none = Client::Scenes::SkillEnergyRequirement(0x2a, context);
+    const auto none = Client::Skills::SkillEnergyRequirement(0x2a, context);
     ASSERT_TRUE(none.HasValue()) << none.Error();
     EXPECT_EQ(none.Value(), 0);
     EXPECT_EQ(random.State(), expected.State());
-    const Client::Scenes::SkillDelayContext missing{.world = *world, .random = random};
-    EXPECT_FALSE(Client::Scenes::SkillEnergyRequirement(0x29, missing).HasValue());
+    const Client::Skills::SkillDelayContext missing{.world = *world, .random = random};
+    EXPECT_FALSE(Client::Skills::SkillEnergyRequirement(0x29, missing).HasValue());
 }
 } // namespace
 

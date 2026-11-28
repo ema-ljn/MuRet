@@ -13,7 +13,7 @@
 // pop_front, sus iteradores y el mapa del deque): 0x4733c0, 0x473830, 0x473860, 0x473a20, 0x476b20,
 // 0x476c70, 0x476cf0, 0x476d10, 0x476d80, 0x4784d0, 0x47a770, 0x4874e0, 0x487560, 0x4875f0, 0x4a76b0, 0x4a7bd0 y
 // 0x4a7d20.
-namespace Client::UI
+namespace Client::Messenger
 {
 // El nombre de un amigo: strncpy de 10 con el '\0' en +0xe (0x49b220).
 inline constexpr std::size_t FriendNameLength = 10;
@@ -80,4 +80,4 @@ void SetAllTheFriends(FriendModel& model, std::uint8_t flag, std::uint8_t state)
 // 0x49c260: con un modo que no es −1 lo guarda, y ordena con el sort de MSVC6 por nombre (0) o por estado (1); con
 // otro modo guardado, nada.
 void SortTheFriends(FriendModel& model, std::int32_t mode);
-} // namespace Client::UI
+} // namespace Client::Messenger

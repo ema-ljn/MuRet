@@ -22,10 +22,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
-using Client::World::Particle;
-using Client::World::Particles;
 constexpr std::int32_t LoginCloudType = 0x622;
 constexpr std::int32_t LoginCloudSubtype = 10;
 
@@ -136,7 +136,7 @@ TEST(LoginCloudParticlesTest, CreationPreservesTheRotationFactorUntilTheFirstSte
     ASSERT_TRUE(drawn.Value().has_value());
     const auto expected = static_cast<float>(100.0 * -7.25 * static_cast<double>(0.02f) + particle.start.y);
     EXPECT_EQ(Bits(drawn.Value()->rotation), Bits(expected));
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(particle.rotationFactor, 1.5f);
 }
 
@@ -203,7 +203,7 @@ TEST(LoginCloudParticlesTest, UpdateAddsRotatedAndUnrotatedVelocity)
         Client::Math::OriginalVectorRotate(particle.velocity, Client::Math::OriginalAngleMatrix(particle.angles));
     const glm::vec3 before = particle.position;
     CrtRandom random(7);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     for (int axis = 0; axis < 3; ++axis)
     {
         const auto common = static_cast<float>(static_cast<double>(before[axis]) + turned[axis]);
@@ -230,7 +230,7 @@ TEST(LoginCloudParticlesTest, DisabledCommonMoveStillAddsTheUnrotatedVelocity)
     particle.velocity = {4.0f, 5.0f, 6.0f};
     particle.angles = {90.0f, 90.0f, 90.0f};
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(particle.position, glm::vec3(5.0f, 7.0f, 9.0f));
 }
 
@@ -242,7 +242,7 @@ TEST(LoginCloudParticlesTest, Radius300GrowsAndTheRedThresholdSetsAllChannels)
     particle.position = {40.0f, 50.0f, 360.0f};
     particle.light = {0.145f, 0.8f, -1.0f};
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(Bits(particle.light.x), 0x3e19999au);
     EXPECT_EQ(Bits(particle.light.y), 0x3e19999au);
     EXPECT_EQ(Bits(particle.light.z), 0x3e19999au);
@@ -255,7 +255,7 @@ TEST(LoginCloudParticlesTest, GrowthDoesNotClampOtherChannelsWhenRedIsBelowTheTh
     Particle& particle = Cloud(particles);
     particle.light = {0.0f, 0.8f, -1.0f};
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(Bits(particle.light.x), 0x3c23d70au);
     EXPECT_EQ(Bits(particle.light.y), Bits(static_cast<float>(static_cast<double>(0.8f) + 0.01f)));
     EXPECT_EQ(Bits(particle.light.z), Bits(static_cast<float>(-1.0 + 0.01f)));
@@ -267,7 +267,7 @@ TEST(LoginCloudParticlesTest, TheRedComparisonUsesTheUnspilledSum)
     Particle& particle = Cloud(particles);
     particle.light = {0.14f, 0.8f, -1.0f};
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     // 0,14f + 0,01f queda debajo de 0,15f en double, aunque guardado en float sea 0,15f.
     EXPECT_EQ(Bits(particle.light.x), 0x3e19999au);
     EXPECT_GT(particle.light.y, 0.8f);
@@ -284,7 +284,7 @@ TEST(LoginCloudParticlesTest, TheXDistanceRetainsTheSumButTheYDistanceUsesTheSto
         particle.velocity[axis] = 0.000001f;
         particle.light = glm::vec3(0.1f);
         CrtRandom random;
-        Client::World::StepParticles(particles, random);
+        Client::Particles::StepParticles(particles, random);
         EXPECT_EQ(particle.position[axis], 300.0f);
         EXPECT_EQ(Bits(particle.light.x), axis == 0 ? 0x3dc30c32u : 0x3de147aeu);
     }
@@ -296,7 +296,7 @@ TEST(LoginCloudParticlesTest, TheDistanceIsSphericalAndIncludesAllThreeAxes)
     Particle& particle = Cloud(particles);
     particle.position = {300.0f, 300.0f, 300.0f};
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
 }
 
@@ -309,7 +309,7 @@ TEST(LoginCloudParticlesTest, JustOver300AndExactly500FadeByTheStoredConstant)
         particle.position.z = radius;
         particle.light = {0.1f, 0.2f, 0.3f};
         CrtRandom random;
-        Client::World::StepParticles(particles, random);
+        Client::Particles::StepParticles(particles, random);
         EXPECT_TRUE(particle.alive);
         EXPECT_EQ(Bits(particle.light.x), 0x3dc30c32u);
         EXPECT_EQ(Bits(particle.light.y), 0x3e430c32u);
@@ -325,7 +325,7 @@ TEST(LoginCloudParticlesTest, JustOver500DiesWithoutFadingOrWrapping)
     particle.light = {0.1f, 0.2f, 0.3f};
     const glm::vec3 before = particle.position;
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.position, before);
     EXPECT_EQ(particle.light, glm::vec3(0.1f, 0.2f, 0.3f));
@@ -339,12 +339,12 @@ TEST(LoginCloudParticlesTest, LifetimeExpiryStillRunsTheLastUpdateAndInactiveSlo
     particle.life = 1;
     particle.velocity.x = 1.0f;
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(particle.position.x, 1.0f);
     EXPECT_EQ(Bits(particle.light.x), 0x3c23d70au);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(particle.position.x, 1.0f);
     EXPECT_EQ(particle.life, 0);
 }
@@ -355,7 +355,7 @@ TEST(LoginCloudParticlesTest, AnUnorderedDistanceTakesTheGrowthBranch)
     Particle& particle = Cloud(particles);
     particle.position.x = std::numeric_limits<float>::quiet_NaN();
     CrtRandom random;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_TRUE(particle.alive);
     EXPECT_EQ(Bits(particle.light.x), 0x3c23d70au);
 }

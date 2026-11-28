@@ -256,7 +256,7 @@ TEST(GameSceneKalimaTailTest, EyeKeepsMaterialAndWorldRestoresItsNativeAxesWithT
 
 TEST(GameSceneKalimaTailTest, RealSpritesOverlapBothBandsWhileDamageOnlyUsesTheSecondBand)
 {
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     std::array<Client::Scenes::DamageNumberState, 3> damage{};
     constexpr std::array heights{300.0f, 325.0f, 351.0f};
     for (std::size_t i = 0; i < heights.size(); ++i)
@@ -285,7 +285,7 @@ TEST(GameSceneKalimaTailTest, RealSpritesOverlapBothBandsWhileDamageOnlyUsesTheS
             if (stage == GameTailStage::Sprites)
             {
                 batch.Begin(pass);
-                Client::Scenes::DrawFrameSprites(batch, sprites, textures, view, mode);
+                Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, view, mode);
                 spriteModes.at(spritePass) = mode;
                 spriteVertices.at(spritePass++) = batch.Vertices().size();
             }

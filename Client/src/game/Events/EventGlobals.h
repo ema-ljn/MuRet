@@ -8,7 +8,7 @@
 
 // Los globales que escriben los paquetes de los eventos (CL9 hito 11, 04 § Los eventos) y que no son del objeto de
 // [0x723c60] (EventMapObject) ni de Crywolf (CrywolfGlobals). Arrancan como la .data y la .bss del original.
-namespace Client::Scenes
+namespace Client::Events
 {
 // 0x6c9dd8, 0x6c9dd4, 0x6c9ddc y 0x6c9de0 (.data −1, −1, −1 y −1,0f; 0x5ff910 los vuelve a poner así): el derrumbe de
 // objetos que pide 0x5ff930(mapa, tipo, cuenta, demora) y que hace 0x5ff960 con cada objeto vivo del paso (0x606560),
@@ -127,4 +127,4 @@ struct EventGlobals
     // su paso al elegir uno (0x5e5a8b, Q-C1336).
     std::array<std::array<std::int32_t, 2>, 6> devilSquareLevels{};
 };
-} // namespace Client::Scenes
+} // namespace Client::Events

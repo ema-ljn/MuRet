@@ -14,7 +14,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -145,4 +145,4 @@ void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, in
     // 0x55452d..0x554576: la de antes, por su número (0x620980 con 0, 0x620a00(1) con 2 y 0x620a90 con 3).
     sprites.SetBlend(before);
 }
-} // namespace Client::UI
+} // namespace Client::Ui

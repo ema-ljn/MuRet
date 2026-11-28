@@ -33,7 +33,7 @@
 
 // La ayuda del ítem (06 § HUD y ventanas, "La ayuda del ítem"): el modo 3 de 0x5b0550, desde 0x5b0802, con la tabla
 // por nivel (ItemHelpLevels.h), la caja de arriba (0x5af090 con marco) y las columnas (0x5afb00 y 0x5af9b0).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -186,7 +186,8 @@ std::int32_t HelpWidth(const ItemHelpRow& first, std::int32_t item, std::int32_t
 
 // 0x5b0c97..0x5b0d9f: 0x40cf00(ítem), los bytes 2 y 3 de ItemSetType.bmd, y un renglón por pieza (la 1 con el 3 y la
 // 2 con el 2) con su mezcla de 0 a 3 y un conjunto (0x40cf30).
-Core::Expected<void, std::string> WriteTheSetLines(GameHudContext& context, TooltipWriter& lines, std::int32_t item)
+Core::Expected<void, std::string> WriteTheSetLines(Hud::GameHudContext& context, TooltipWriter& lines,
+                                                   std::int32_t item)
 {
     if (context.setTypes == nullptr)
         return Core::Unexpected(std::format("0x40cf13: la ayuda del ítem {:#x} sin ItemSetType.bmd", item));
@@ -217,8 +218,8 @@ Core::Expected<void, std::string> WriteTheSetLines(GameHudContext& context, Tool
 
 // 0x5b09b0..0x5b0dea: los renglones de la caja de arriba, desde el 0, y la caja. El título se copia con strcpy y el
 // nombre del ítem con "%s"; los "\n" y " " no tocan su color ni su negrita.
-Core::Expected<void, std::string> DrawTheHelpBox(GameHudContext& context, std::int32_t item, std::int32_t blankRows,
-                                                 Record record, std::int32_t width)
+Core::Expected<void, std::string> DrawTheHelpBox(Hud::GameHudContext& context, std::int32_t item,
+                                                 std::int32_t blankRows, Record record, std::int32_t width)
 {
     TooltipLines& written = context.hud.tooltip;
     written.next = 0;
@@ -232,7 +233,7 @@ Core::Expected<void, std::string> DrawTheHelpBox(GameHudContext& context, std::i
     lines.Bold(1);
     lines.Next();
     lines.At("0x5b0a34");
-    const std::string name = ItemRecordName(record);
+    const std::string name = Items::ItemRecordName(record);
     lines.Print("%s", std::string_view(name));
     lines.Color(TooltipWhite);
     lines.Bold(1);
@@ -314,7 +315,7 @@ std::optional<std::size_t> ColumnTitleText(ItemHelpColumn column)
 class HelpColumns
 {
 public:
-    HelpColumns(GameHudContext& context, std::int32_t x, const HelpLayout& layout)
+    HelpColumns(Hud::GameHudContext& context, std::int32_t x, const HelpLayout& layout)
         : m_context(context), m_x(x), m_layout(layout)
     {
     }
@@ -400,14 +401,14 @@ private:
             m_error = drawn.Error();
     }
 
-    GameHudContext& m_context;
+    Hud::GameHudContext& m_context;
     std::int32_t m_x = 0;
     HelpLayout m_layout;
     std::string m_error;
 };
 
 // 0x5b0dfb..0x5b10b6: las columnas que tiene la fila del nivel 0, en el orden del original.
-Core::Expected<void, std::string> DrawTheColumns(GameHudContext& context, std::int32_t item, std::int32_t kind,
+Core::Expected<void, std::string> DrawTheColumns(Hud::GameHudContext& context, std::int32_t item, std::int32_t kind,
                                                  std::int32_t x, const HelpLayout& layout)
 {
     const ItemHelpRow& first = context.hud.itemHelp.rows[0];
@@ -466,11 +467,11 @@ Core::Expected<void, std::string> DrawTheColumns(GameHudContext& context, std::i
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheItemHelp(Hud::GameHudContext& context)
 {
     // 0x5b0802.
     context.sprites.SetBlend(Render::BlendMode::Opaque);
-    UI::PanelState& panels = context.world.Runtime().panels;
+    Ui::PanelState& panels = context.world.Runtime().panels;
     const std::int32_t item = panels.helpItem;
     const std::int32_t screenWidth = context.sprites.Screen().width;
     const std::optional<ItemKind> kind =
@@ -516,4 +517,4 @@ Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

@@ -51,7 +51,7 @@ class WorldState;
 // macros de 0x59ff10 (Alt y un número). Lo que se manda (el C1 00, el C1 02 y los C1 18 del emote, CL9 hito 1) va por
 // `send`; lo que se avisa, por 0x555190 (AddGameMessage). Lo que el jugador escribe y a quién le susurra no va al log.
 // *Estático*.
-namespace Client::Scenes
+namespace Client::Chat
 {
 
 // Quien manda los paquetes del chat (App::ServerSession::SendChat). Vacío, no se manda nada.
@@ -64,7 +64,7 @@ struct GameChatContext
     Crt::CrtRandom& random;
     // Text.bmd: los comandos, los avisos y el "..." del filtro. Sin él, el primero que se lee es el error.
     const Tables::TextTable* texts = nullptr;
-    // La cola de los nombres de 0x56c440 (UI::ChatCommandContext); sin ellas, no hay nombres.
+    // La cola de los nombres de 0x56c440 (Chat::ChatCommandContext); sin ellas, no hay nombres.
     const Tables::ItemTable* items = nullptr;
     const Tables::ItemSetOptionTable* setOptions = nullptr;
     // Las palabras de Filter.bmd (0x622b40).
@@ -121,7 +121,7 @@ struct GameChatContext
 // 0x5a119f..0x5a2b47: con Alt (y el freno 0x77f3b74 en 0, fuera de Chaos Castle, que mira quien llama), cada macro
 // de la tecla apretada de 1 a 9 y 0, en ese orden: los comandos (0x56c440 desde una macro), los emotes, el filtro y
 // lo mismo que el chat de Enter, sin el historial y siempre con el C1 00. Cada una que pasa los comandos deja el
-// freno en UI::MacroLockSteps.
+// freno en Chat::MacroLockSteps.
 [[nodiscard]] Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
-                                                             const std::array<bool, UI::MacroCount>& pressed);
-} // namespace Client::Scenes
+                                                             const std::array<bool, Chat::MacroCount>& pressed);
+} // namespace Client::Chat

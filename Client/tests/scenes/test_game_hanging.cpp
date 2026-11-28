@@ -129,9 +129,9 @@ void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
     }
 }
 
-void ExpectSameParticles(const Client::World::Particles& actual, const Client::World::Particles& expected)
+void ExpectSameParticles(const Client::Particles::Particles& actual, const Client::Particles::Particles& expected)
 {
-    for (std::size_t k = 0; k < Client::World::ParticleCount; ++k)
+    for (std::size_t k = 0; k < Client::Particles::ParticleCount; ++k)
     {
         const auto& a = actual.All()[k];
         const auto& e = expected.All()[k];
@@ -249,9 +249,9 @@ protected:
                 .logicSteps = 1};
     }
 
-    std::vector<Client::World::Sprite> LiveSprites()
+    std::vector<Client::Particles::Sprite> LiveSprites()
     {
-        std::vector<Client::World::Sprite> live;
+        std::vector<Client::Particles::Sprite> live;
         for (const auto& sprite : m_sprites.Sprites())
         {
             if (sprite.alive)
@@ -265,9 +265,9 @@ protected:
     Client::Render::ModelBatch m_batch;
     Client::Crt::CrtRandom m_random{1};
     Client::Kernel::PoseBuffer m_carry;
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(8);
-    Client::World::Particles m_particles;
+    Client::Particles::Particles m_particles;
 };
 
 // With nothing hanging, the rand() of 0x50db57 remains and, outside the back, the close of +0x38e before each hand.
@@ -523,12 +523,12 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     point.y = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.y));
     point.z = 64.0f;
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     for (int spark = 0; spark < 4; ++spark)
     {
         glm::vec3 angles{static_cast<float>(draws.Next() % 60 + 150), 0.0f, 135.0f};
         const Client::Kernel::JointRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, draws).HasValue());
         ASSERT_TRUE(particles.CreateChecked(0x5c5, point, angles, glm::vec3(1.0f), 0, 1.0f, 0.0f, draws).HasValue());
     }
     static_cast<void>(draws.Next()); // +0x38e of the left one.
@@ -574,14 +574,14 @@ TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
         m_actor.hands[0].model = Bow;
         m_actor.angles = {0.0f, 0.0f, 60.0f};
         m_random = Client::Crt::CrtRandom{seed};
-        m_particles = Client::World::Particles{};
+        m_particles = Client::Particles::Particles{};
         m_sprites.Clear();
 
         const auto result = Client::Actors::Drawing::DrawGameHanging(m_actor, Pass(models));
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         Client::Crt::CrtRandom draws = Skipped(seed, Before + 1);
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         if (sparks)
         {
             for (const float z : {47.0f, 55.0f})
@@ -615,7 +615,7 @@ TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
     const glm::vec3 light{lum, lum * 0.6f, lum * 0.4f};
     // 0x50db57, +0x38e of the hand and of 0x509340 and the light of 0x509a92.
     Client::Crt::CrtRandom draws = Skipped(1, 4);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     for (int spark = 0; spark < 4; ++spark)
     {
         const auto x = static_cast<float>(draws.Next() % 20 - 10);
@@ -681,7 +681,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     for (int beam = 0; beam < 3; ++beam)
     {
         const Client::Kernel::JointRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, draws).HasValue());
     }
     static_cast<void>(draws.Next()); // +0x38e of the left one.
     EXPECT_EQ(m_random.State(), draws.State());
@@ -724,7 +724,7 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
     for (auto [first, second] : edges)
     {
         const Client::Kernel::JointRequest request{0x610, first, second, angles, 4, &m_actor, 20.0f, -1, 0, 0, -1};
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, unused).HasValue());
     }
     EXPECT_EQ(unused.State(), Client::Crt::CrtRandom(1).State());
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
@@ -767,9 +767,9 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
     const Client::Kernel::JointRequest request{0x618, point, point, angles, 0x11, &m_actor, 30.0f, -1, 0, 0, -1};
     Client::Crt::CrtRandom unused(1);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, unused).HasValue());
     const glm::vec3 violet{1.0f, 0.4f, 1.0f};
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     ASSERT_TRUE(particles.CreateChecked(0x5c6, point, angles, violet, 11, 2.0f, 0.0f, draws).HasValue());
     static_cast<void>(draws.Next()); // +0x38e of the left one.
     EXPECT_EQ(m_random.State(), draws.State());
@@ -1104,7 +1104,7 @@ TEST_F(GameHangingTest, EverySiegeRoleCreatesItsAtlasLayerAndDrawsItsFrame)
 TEST_F(GameHangingTest, AUnionLeaderUsesTheAdditionalAtlasFrame)
 {
     const HangingModels models({});
-    auto guild = std::make_unique<Client::Scenes::GuildState>();
+    auto guild = std::make_unique<Client::Guild::GuildState>();
     m_actor.guildStatus = 0x80;
     m_actor.word1f2 = 0;
     guild->table[0].guildName = {'P', 'i', 'n', 'o', 's'};

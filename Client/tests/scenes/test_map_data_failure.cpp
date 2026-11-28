@@ -287,7 +287,7 @@ TEST_P(MapDataSessionFailureTest, TheFatalDataRequestSurvivesSessionAndManagerPo
     const std::string path = map == 5 ? "Data\\World6\\TerrainHeight.OZB" : "Data\\World36\\EncTerrain36.att";
     EXPECT_NE(manager.Failure()->find(path), std::string::npos);
     ASSERT_TRUE(m_online->session.Failure());
-    EXPECT_EQ(*m_online->session.Failure(), Client::App::SessionFailure::ApplicationFailed);
+    EXPECT_EQ(*m_online->session.Failure(), Client::Session::SessionFailure::ApplicationFailed);
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, path + " file not found.");
     const auto first = m_world->Runtime().fatalDataMessage;
     manager.Poll();

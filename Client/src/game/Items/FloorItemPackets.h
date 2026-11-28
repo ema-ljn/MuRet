@@ -26,7 +26,7 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::World
+namespace Client::Effects
 {
 class ModelEffects;
 }
@@ -40,6 +40,10 @@ namespace Client::Scenes
 {
 struct FloorItemState;
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Items
+{
 
 // 0x20: la entrada de 0x220 bytes de `key & 0x7fff` (0 si pasa de 999) en 0x77f46c8.
 inline constexpr std::uint16_t FloorItemIndexMask = 0x7fff;
@@ -60,7 +64,7 @@ struct FloorItemCreation
     std::function<void(Audio::SoundId, const glm::vec3&)> soundRequest{};
     // 0x518cf0: la tabla de efectos del mapa, donde la medalla recién caída crea sus dos grietas. Sin ella, la medalla
     // corta (falta el servicio, no es la entrada).
-    World::ModelEffects* effects = nullptr;
+    Effects::ModelEffects* effects = nullptr;
 };
 
 // 0x608350(entrada, ítem, posición, recién caído): el tipo (0x54b3a0) en +4, el valor, la durabilidad y las opciones,
@@ -68,14 +72,14 @@ struct FloorItemCreation
 // HangingRandomCount), la caja de ±30, la posición y la altura: con `dropped`, 180 por encima del terreno y la
 // velocidad 20 (las medallas de plata y de oro, los modelos 0x2242 y 0x2243, crean antes las grietas 0x100 y 0xfe con
 // la medalla de dueño, sin rand(), y quedan a 3 con la velocidad 50); si no, en el terreno. Termina con 0x607fb0.
-[[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item,
+[[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(Scenes::FloorItemState& item,
                                                                 const Protocol::Items::ItemData& bytes,
                                                                 const glm::vec3& position, bool dropped,
                                                                 const FloorItemCreation& creation);
 
 // 0x4d0ba0: cada entrada en (x + 0,5, y + 0,5) · 100, en orden; el 0x54b3a0 que sigue no deja nada.
 [[nodiscard]] Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::FloorItemsCreate& create,
-                                                                      const WorldEntryResources& resources);
+                                                                      const Scenes::WorldEntryResources& resources);
 
 // 0x4e3849: apaga (+0x4c en 0) la entrada de cada clave, con las de 1000 o más en la 0.
 void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Kernel::WorldState& world);
@@ -85,13 +89,13 @@ void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, Ker
 // aviso "%s %s" con el nombre del elegido (0x5b1c70) y el 918. Después el sonido por el tipo de pkt[4..] (0x45 o 0x1d,
 // CL10) y, también con 0xff, el pedido (0x6c82e8) en −1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickUpResult& result,
-                                                                  const WorldEntryResources& resources);
+                                                                  const Scenes::WorldEntryResources& resources);
 
 // El 22 con 0xfe y corto (07 Q-C1240, el GCMoneySend del GameServer 0.97): de 0x4d0cc0, lo que no lee más allá de
 // pkt[7], en su orden: el zen con el registro propio abierto (0x4d0d9b), el aviso con el elegido vivo (0x4d0f5f) y el
 // pedido en −1 (0x4d10b9). El sonido (0x4d1051) no sale: su tipo cae en pkt[8..10], fuera del paquete.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::ShortZenPickUp& result,
-                                                                    const WorldEntryResources& resources);
+                                                                    const Scenes::WorldEntryResources& resources);
 
 // Un 22 corto (07 Q-C1240): de 0x4d0cc0, solo el pedido (0x6c82e8) en −1, que 0x4d10b9 escribe en todos los caminos.
 // Sin él, RequestThePickUp (0x5667d7, 0x566e90) no vuelve a pedir nada.
@@ -107,4 +111,4 @@ void ApplyShortPickUpResult(Kernel::WorldState& world);
 // Un 2C corto (07 Q-C1240): de 0x4de500, solo la espera del uso (0x5767954) en 0, que escribe en todos los caminos.
 // Sin ella, el JG de 0x5c5920 y 0x5a2bea no deja usar otro ítem.
 void ApplyShortStatFruit(Kernel::WorldState& world);
-} // namespace Client::Scenes
+} // namespace Client::Items

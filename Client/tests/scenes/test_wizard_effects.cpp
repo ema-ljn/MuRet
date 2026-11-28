@@ -80,8 +80,8 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     world->Runtime().hero = Hero;
     const PushedModels models;
     Client::Crt::CrtRandom random(1);
-    const Client::World::WizardEffectServices services =
-        Client::Scenes::WizardEffectServicesOf(*world, random, Client::Scenes::WizardSceneParts{.models = &models});
+    const Client::Effects::WizardEffectServices services =
+        Client::Effects::WizardEffectServicesOf(*world, random, Client::Effects::WizardSceneParts{.models = &models});
     ASSERT_TRUE(services.pushAround);
     const auto place = [&world](std::size_t slot, std::uint16_t type, float x, float y) -> ActorState&
     {
@@ -128,26 +128,26 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     EXPECT_EQ(random.State(), Client::Crt::CrtRandom(1).State());
 
     // Sin los modelos del juego, el 0x20a que empuja no tiene Player.bmd: corta en 0x524afc.
-    const Client::World::WizardEffectServices bare =
-        Client::Scenes::WizardEffectServicesOf(*world, random, Client::Scenes::WizardSceneParts{});
+    const Client::Effects::WizardEffectServices bare =
+        Client::Effects::WizardEffectServicesOf(*world, random, Client::Effects::WizardSceneParts{});
     const auto cut = bare.pushAround(1000.0f, 1000.0f);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x524afc"), std::string::npos) << cut.Error();
 }
 
-// 0x524d38: el 0xf6/2 del meteoro que cae va por World::CreateBlastModelEffect a la tabla del mundo, con el meteoro de
-// dueño (+0x108, que el paso lee en vivo) y la clave 30 en +0xec y en la escala (30 · 0,01f), vida 12 y sin rand().
+// 0x524d38: el 0xf6/2 del meteoro que cae va por Effects::CreateBlastModelEffect a la tabla del mundo, con el meteoro
+// de dueño (+0x108, que el paso lee en vivo) y la clave 30 en +0xec y en la escala (30 · 0,01f), vida 12 y sin rand().
 // Un dueño que no es un lugar de la tabla no tiene cómo leerse: corta.
 TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom random(5);
-    const Client::World::WizardEffectServices services =
-        Client::Scenes::WizardEffectServicesOf(*world, random, Client::Scenes::WizardSceneParts{});
+    const Client::Effects::WizardEffectServices services =
+        Client::Effects::WizardEffectServicesOf(*world, random, Client::Effects::WizardSceneParts{});
     ASSERT_TRUE(services.otherEffect);
-    Client::World::ModelEffect& meteor = world->Map().effects.Effects()[3];
+    Client::Effects::ModelEffect& meteor = world->Map().effects.Effects()[3];
     meteor.alive = true;
-    meteor.type = Client::World::FireEffect;
+    meteor.type = Client::Effects::FireEffect;
     meteor.subtype = 7;
     const Client::Kernel::ModelEffectArguments burst{.type = 0xf6,
                                                      .position = {100.0f, 200.0f, 300.0f},
@@ -159,7 +159,7 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
     const auto created = services.otherEffect(burst);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(random.State(), 5u);
-    const Client::World::ModelEffect& made = world->Map().effects.Effects()[0];
+    const Client::Effects::ModelEffect& made = world->Map().effects.Effects()[0];
     ASSERT_TRUE(made.alive);
     EXPECT_EQ(made.type, 0xf6);
     EXPECT_EQ(made.subtype, 2);
@@ -171,7 +171,7 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
     EXPECT_EQ(made.transform.position, glm::vec3(100.0f, 200.0f, 300.0f));
     EXPECT_EQ(made.light, glm::vec3(0.0f, 0.5f, 0.0f));
 
-    Client::World::ModelEffect loose = meteor;
+    Client::Effects::ModelEffect loose = meteor;
     auto outside = burst;
     outside.owner = &loose;
     const auto cut = services.otherEffect(outside);
@@ -190,16 +190,17 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     ActorState& caster = world->Actors()[5];
     caster.alive = true;
     caster.byte1bc = 0;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(21);
-    const Client::World::WizardEffectServices services = Client::Scenes::WizardEffectServicesOf(
+    const Client::Effects::WizardEffectServices services = Client::Effects::WizardEffectServicesOf(
         *world, random,
-        Client::Scenes::WizardSceneParts{.particles = &world->Particles(), .worldClock = 1000.0f, .sprites = &sprites});
-    const Client::Kernel::ModelEffectArguments arguments = Client::Scenes::WizardArguments(
+        Client::Effects::WizardSceneParts{
+            .particles = &world->Particles(), .worldClock = 1000.0f, .sprites = &sprites});
+    const Client::Kernel::ModelEffectArguments arguments = Client::Effects::WizardArguments(
         0xcb, {1000.0f, 2000.0f, 300.0f}, {0.0f, 0.0f, 90.0f}, glm::vec3(1.0f), 1, &caster);
-    const auto created = Client::World::CreateWizardModelEffect(world->Map().effects, arguments, random, services);
+    const auto created = Client::Effects::CreateWizardModelEffect(world->Map().effects, arguments, random, services);
     ASSERT_TRUE(created.HasValue() && created.Value().has_value()) << (created.HasValue() ? "" : created.Error());
-    Client::World::ModelEffect& circle = world->Map().effects.Effects()[*created.Value()];
+    Client::Effects::ModelEffect& circle = world->Map().effects.Effects()[*created.Value()];
     ASSERT_EQ(circle.life, 45);
 
     auto twin = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
@@ -225,10 +226,10 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
                                                        .skill = 0,
                                                        .skillSerial = 0,
                                                        .target = -1};
-            ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
+            ASSERT_TRUE(Client::Joints::CreateFaunaJoint(*twin, request, oracle).HasValue());
         }
     }
-    const auto stepped = Client::World::StepWizardModelEffect(circle, nullptr, random, services);
+    const auto stepped = Client::Effects::StepWizardModelEffect(circle, nullptr, random, services);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), oracle.State());
     const auto& joints = world->DrawTail().joints;
@@ -252,7 +253,7 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }), 72);
 
     const auto advanced =
-        Client::Scenes::StepJoints(world->DrawTail().joints, random, nullptr, &world->Particles(), 1000.0f, &sprites);
+        Client::Joints::StepJoints(world->DrawTail().joints, random, nullptr, &world->Particles(), 1000.0f, &sprites);
     ASSERT_TRUE(advanced.HasValue()) << advanced.Error();
 }
 } // namespace

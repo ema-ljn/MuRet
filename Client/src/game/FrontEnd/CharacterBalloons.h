@@ -21,7 +21,7 @@
 // adelante: 0x63ce70 lo arma desde 0x65f4b0, 0x63cfb0 lo pone al día y 0x63cf80 lo dibuja desde 0x65fe00, antes de las
 // ventanas. Lo sueltan 0x63ce50 en el login (0x65f300) y en el juego (0x65f5f0): solo hay globos en el modo 4.
 // *Estático*.
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // Los globos de 0x63ce70, uno por lugar de la selección, en el orden del pool (0x743a16c + 0x438 · i).
 inline constexpr std::size_t BalloonCount = 5;
@@ -45,7 +45,7 @@ struct BalloonRecord
 // CtlCode de ahora (+0x1d8), por los tres renglones de 0x80.
 struct BalloonHead
 {
-    Point point;
+    Ui::Point point;
     std::uint8_t controlCode = 0;
 };
 
@@ -70,7 +70,7 @@ class CharacterBalloons
 {
 public:
     // `texts` puede ser nullptr (los textos vacíos) y tiene que vivir lo que los globos.
-    CharacterBalloons(TextureSizes sizes, const Tables::TextTable* texts);
+    CharacterBalloons(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x63ce70: los cinco, cada uno con 0x63c9a0: la imagen armada de nuevo en (0, 0), sin mostrar, sin color y sin
     // textos.
@@ -95,9 +95,9 @@ public:
     [[nodiscard]] const std::array<CharacterBalloon, BalloonCount>& Balloons() const;
 
 private:
-    TextureSizes m_sizes;
+    Ui::TextureSizes m_sizes;
     const Tables::TextTable* m_texts = nullptr;
     bool m_built = false;
     std::array<CharacterBalloon, BalloonCount> m_balloons{};
 };
-} // namespace Client::UI
+} // namespace Client::FrontEnd

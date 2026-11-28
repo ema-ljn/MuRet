@@ -30,7 +30,7 @@ namespace Client::Input
 class InputState;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 struct GameUiState;
 }
@@ -50,7 +50,7 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 struct GameUiState;
 }
@@ -72,16 +72,31 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
+namespace Client::Chat
+{
+struct GameChatContext;
+} // namespace Client::Chat
+
+namespace Client::Items
+{
+struct InventoryServices;
+} // namespace Client::Items
+
+namespace Client::Movement
+{
+struct GameMovementState;
+} // namespace Client::Movement
+
 namespace Client::Scenes
 {
-// 0x553520 para las teclas de las ventanas viejas: mismo latch en el paso y al atender mensajes durante el dibujo.
-[[nodiscard]] bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey);
-
 struct FloorItemState;
-struct GameChatContext;
-struct GameMovementState;
-struct InventoryServices;
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Hud
+{
+// 0x553520 para las teclas de las ventanas viejas: mismo latch en el paso y al atender mensajes durante el dibujo.
+[[nodiscard]] bool OldWindowKeyEdge(Ui::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey);
 
 // 0x6578e0: campos de chat/gremio/panel y GetFocus distinto de la ventana del juego.
 [[nodiscard]] bool GameTextInputBusy(const Kernel::WorldRuntime& runtime);
@@ -107,9 +122,9 @@ public:
     virtual void SendWindowClose() = 0;
     // 0x419bd0 y 0x41a9e0: el C3 A2 con la misión y el estado. Los dos rand() del C3 los saca el paso.
     virtual void SendSetQuest(std::uint8_t quest, std::uint8_t state) = 0;
-    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Messenger, por Scenes::FriendPacketOf).
+    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Messenger, por Messenger::FriendPacketOf).
     virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
-    // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
+    // 0x61c170("Data\\Macro.txt"): `content` (Chat::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 sobre el log del original (0x57630f0).
     virtual void Log(std::string_view line) = 0;
@@ -131,7 +146,7 @@ struct GameUiContext
     // dibujo, y el cartel la usa en su rx (0x46a9c0 y 0x46abc0).
     Core::PixelSize screen{640, 480};
     // Lo que las macros (0x5a116f) mandan y avisan. nullptr (los tests que no las miran): una macro es el error.
-    const GameChatContext* chat = nullptr;
+    const Chat::GameChatContext* chat = nullptr;
     // Text.bmd: los textos de los diálogos (el 592 del menú de Esc, las páginas del 0x8c). nullptr sin tabla: el que
     // lee uno corta con error.
     const Tables::TextTable* texts = nullptr;
@@ -143,7 +158,7 @@ struct GameUiContext
     std::uint32_t systemTime = 0;
     // Item.bmd, vestir al héroe, el cuervo, los mensajes y el envío del 24 para levantar, soltar y equipar
     // (Scenes/InventoryMoves). nullptr (los tests que no los miran): lo que los necesita corta.
-    const InventoryServices* inventory = nullptr;
+    const Items::InventoryServices* inventory = nullptr;
     // 0x5f93c0 (la altura del terreno) sin las celdas del mapa: la de la cámara. La pide levantar con la barra
     // (CL9 hito 5).
     float fixedHeight = 1200.0f;
@@ -155,7 +170,7 @@ struct GameUiContext
     const Tables::SkillTable* skills = nullptr;
     // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
     // que el paso. nullptr: el retrato corta (P-C212).
-    const WorldEntryResources* worldEntry = nullptr;
+    const Scenes::WorldEntryResources* worldEntry = nullptr;
     // El envío de los paquetes de las ventanas de los NPC (App::ServerSession::SendNpcWindowPacket, CL9 hito 6). Vacío
     // (los tests que no los miran): lo que manda corta.
     std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
@@ -167,27 +182,27 @@ struct GameUiContext
 // abajo), antes de cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus
 // pruebas, con los flags de los mensajes del mouse (Input::MouseMessageState): el WM_LBUTTONDBLCLK no prende
 // 0x7d36874 (P-C187).
-void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down);
+void LatchTheLeftButton(Movement::GameMovementState& state, bool pressed, bool down);
 
 // El WndProc y el soltado del izquierdo: WM_LBUTTONUP prende 0x7d366ec con el mouse de ese momento (0x4b3cea, en
 // 0x576358c y 0x5763590), WM_LBUTTONDOWN lo apaga (0x4b3947) y cualquier mensaje con el mouse en otro lugar también
 // (0x4b344d). MuRet ve los mensajes del paso juntos, con el mouse del paso (*inferido*, P-C96). Va antes de
 // LatchTheLeftButton, con el mouse en 640 × 480.
-void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, bool down, std::int32_t mouseX,
-                         std::int32_t mouseY);
+void LatchTheLeftRelease(Movement::GameMovementState& state, bool pressed, bool released, bool down,
+                         std::int32_t mouseX, std::int32_t mouseY);
 
 // Los globales de las ventanas viejas sobre los del juego: los del mouse, los de la UI, el foco del teclado (el de la
 // entrada del chat) y el último sonido.
-[[nodiscard]] UI::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime);
+[[nodiscard]] Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime);
 
 // Lo que el paso de las ventanas viejas lee del juego, además del mouse, las teclas, los textos y el cable: las flechas
 // (GetAsyncKeyState, 0x47b0f0), el susurro (0x4694c0), las malas palabras (0x622b40 con 0), el nombre del héroe, la
 // carta guardada (0x4dcb70 desde 0x4a11b0), el personaje del retrato (Scenes/LetterPortrait) y 0x78abaac. Lo usan el
 // paso de la UI (0x490490) y el que corre dentro del dibujo (0x45aa50 desde los dibujos de las ventanas viejas,
-// UI::OldWindowDrawView::stepView), que tienen que ver lo mismo. Con `effects` en false (el dibujo intermedio de
+// Ui::OldWindowDrawView::stepView), que tienen que ver lo mismo. Con `effects` en false (el dibujo intermedio de
 // MuRet, sobre la copia de las ventanas), el susurro, la carta guardada y el retrato no hacen nada. Los ganchos
 // guardan lo de `context` que usan, no `context`.
-void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects);
+void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context, bool effects);
 
 // 0x637c4a..0x637c5c → 0x623e70: Esc y el diálogo abierto, en cada paso de la escena 5 antes de su lógica.
 [[nodiscard]] Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context);
@@ -209,13 +224,13 @@ struct FramePickingContext
     // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
     std::optional<Terrain::TerrainPickingSegment> ray{};
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480, que lee la lista de la party (0x5e4140).
-    UI::Point mouse{};
+    Ui::Point mouse{};
     // La posición de la cámara del dibujo (0x7d36884), distinta del origen del rayo.
     glm::vec3 cameraPosition{};
     std::span<Actors::ActorPickingBox> pickingBoxes{};
     // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
     // mismo segmento; sin él (antes del primer dibujo) no busca.
-    std::span<FloorItemState> floorItems{};
+    std::span<Scenes::FloorItemState> floorItems{};
     // The current map's terrain, whose .map layers the pick reads in Lorencia and Devias. nullptr:
     // Terrain::EmptyTerrain().
     const Terrain::WorldTerrain* terrain = nullptr;
@@ -238,4 +253,4 @@ struct FramePickingContext
 // 0x6c8e38 puesto, 0x59e3b0 busca a los miembros en el viewport. Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el
 // segundo intento de personajes acierta: vuelve antes).
 [[nodiscard]] Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hud

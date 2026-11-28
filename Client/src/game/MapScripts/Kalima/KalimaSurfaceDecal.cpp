@@ -24,7 +24,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 namespace
 {
@@ -164,4 +164,4 @@ Core::Expected<void, std::string> DrawKalimaSurfaceDecal(Render::ModelBatch& bat
             Cell(batch, plane, decal, projection, x, y);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

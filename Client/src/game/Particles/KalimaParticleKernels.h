@@ -12,7 +12,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 struct Particle;
 class IParticleTrigonometry;
@@ -66,4 +66,4 @@ inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepKalimaParticle(Particle& particle, Crt::CrtRandom& random, const float* clock, IParticleTrigonometry* trigonometry,
                    const glm::vec2& wind, const ParticleOwnerStates& ownerStates = {});
-} // namespace Client::World
+} // namespace Client::Particles

@@ -11,7 +11,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -191,4 +191,4 @@ void StepBloodCastleParticle(Particle& particle, Crt::CrtRandom& random)
     else
         StepFlameOrSmoke(particle, random);
 }
-} // namespace Client::World
+} // namespace Client::Particles

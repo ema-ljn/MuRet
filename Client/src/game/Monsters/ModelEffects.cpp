@@ -52,7 +52,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -102,7 +102,7 @@ Result Emit(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, st
 // 0x5f9780(x, y, color, radio, 0x7b4ccc4).
 Result Light(ModelEffectsPass& pass, std::string_view address, const glm::vec3& color, std::int32_t radius)
 {
-    return World::AddDynamicLight(pass.dynamicLighting, pass.actor.position, color, radius, address);
+    return WorldObjects::AddDynamicLight(pass.dynamicLighting, pass.actor.position, color, radius, address);
 }
 
 // 0x530860(tipo, primero, segundo, ángulos, subtipo, 0, ancho, −1, 0, 0, −1). Con el pool lleno no crea nada.
@@ -120,7 +120,7 @@ Result Joint(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, s
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = -1};
-    const auto created = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random);
+    const auto created = Joints::CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random);
     if (!created.HasValue())
         return Core::Unexpected(
             std::format("{:#x}: {} (modelo {:#x}, lugar {})", address, created.Error(), pass.actor.type, pass.slot));
@@ -187,7 +187,7 @@ Result RaiseTheDust(ModelEffectsPass& pass)
     constexpr double Spread = 100.0;
     const float x = F32(static_cast<double>(Roll(pass, 200)) + D(at.x) - Spread);
     const float y = F32(static_cast<double>(Roll(pass, 200)) + D(at.y) - Spread);
-    return Emit(pass, 0x505dc4, World::DustParticle, 0, {x, y, at.z}, pass.actor.angles, pass.actor.light);
+    return Emit(pass, 0x505dc4, Particles::DustParticle, 0, {x, y, at.z}, pass.actor.angles, pass.actor.light);
 }
 
 // 0x505c50: en la acción 6 con el frame en [8, 9), veinte vueltas: la luz propia en (1, 1, 1), tres rand() alrededor
@@ -203,7 +203,7 @@ Result BurstTheDust(ModelEffectsPass& pass)
     {
         actor.light = White;
         const glm::vec3 position = Scatter(pass);
-        if (auto emitted = Emit(pass, 0x505d2c, World::DustParticle, 1, position, actor.angles, actor.light);
+        if (auto emitted = Emit(pass, 0x505d2c, Particles::DustParticle, 1, position, actor.angles, actor.light);
             !emitted.HasValue())
             return emitted;
     }
@@ -384,7 +384,8 @@ Result StepThe16f(ModelEffectsPass& pass)
         return scrolled;
     if (Roll(pass, 2) != 0)
         return {};
-    return Emit(pass, 0x507aaa, World::FireParticle, 0, BonePoint(pass.actor, 2, NoOffset), pass.actor.angles, White);
+    return Emit(pass, 0x507aaa, Particles::FireParticle, 0, BonePoint(pass.actor, 2, NoOffset), pass.actor.angles,
+                White);
 }
 
 // 0x507b05..0x507da6: el 0x172. En la 3, la 4, la 8 y la 9, del hueso de la acción el 0x5ca/0 con (0,6; 1; 0,8) y el
@@ -413,10 +414,10 @@ Result StepThe172(ModelEffectsPass& pass)
         if (actor.animation.action != strike.action)
             continue;
         const glm::vec3 point = BonePoint(actor, strike.bone, NoOffset);
-        if (auto emitted = Emit(pass, strike.thunder, World::ThunderParticle, 0, point, actor.angles, spark);
+        if (auto emitted = Emit(pass, strike.thunder, Particles::ThunderParticle, 0, point, actor.angles, spark);
             !emitted.HasValue())
             return emitted;
-        if (auto emitted = Emit(pass, strike.fire, World::FireParticle, 0, point, actor.angles, flame);
+        if (auto emitted = Emit(pass, strike.fire, Particles::FireParticle, 0, point, actor.angles, flame);
             !emitted.HasValue())
             return emitted;
     }
@@ -429,7 +430,7 @@ Result StepThe172(ModelEffectsPass& pass)
         const auto bone = RandomBone(pass, 0x507d69);
         if (!bone.HasValue())
             return Core::Unexpected(bone.Error());
-        if (auto emitted = Emit(pass, 0x507d9b, World::FireParticle, 0, BonePoint(actor, bone.Value(), NoOffset),
+        if (auto emitted = Emit(pass, 0x507d9b, Particles::FireParticle, 0, BonePoint(actor, bone.Value(), NoOffset),
                                 actor.angles, glow);
             !emitted.HasValue())
             return emitted;
@@ -451,7 +452,7 @@ Result StepThe15d(ModelEffectsPass& pass, float brightness)
         const auto bone = RandomBone(pass, 0x507ded);
         if (!bone.HasValue())
             return Core::Unexpected(bone.Error());
-        if (auto emitted = Emit(pass, 0x507e1f, World::FireParticle, 0, BonePoint(actor, bone.Value(), NoOffset),
+        if (auto emitted = Emit(pass, 0x507e1f, Particles::FireParticle, 0, BonePoint(actor, bone.Value(), NoOffset),
                                 actor.angles, White);
             !emitted.HasValue())
             return emitted;
@@ -487,7 +488,7 @@ Result StepThe1ce(ModelEffectsPass& pass, float brightness)
         const glm::vec3 angles{pitch, 0.0f, turn};
         if (auto joined = Joint(pass, 0x508060, 0x617, 0, point, point, angles, 10.0f); !joined.HasValue())
             return joined;
-        if (auto emitted = Emit(pass, 0x50807f, World::FairySparkParticle, 0, point, angles, White);
+        if (auto emitted = Emit(pass, 0x50807f, Particles::FairySparkParticle, 0, point, angles, White);
             !emitted.HasValue())
             return emitted;
     }
@@ -516,7 +517,8 @@ Result StepThe1f5(ModelEffectsPass& pass, float brightness)
             return joined;
         if (Roll(pass, 2) == 0)
             continue;
-        if (auto emitted = Emit(pass, 0x5081b5, World::FairySparkParticle, 0, point, angles, glow); !emitted.HasValue())
+        if (auto emitted = Emit(pass, 0x5081b5, Particles::FairySparkParticle, 0, point, angles, glow);
+            !emitted.HasValue())
             return emitted;
     }
     return {};
@@ -543,8 +545,8 @@ Result StepThe155(ModelEffectsPass& pass, float brightness)
     const glm::vec3 position = Scatter(pass);
     constexpr std::int32_t Devias = 2;
     if (pass.map == Devias)
-        return Emit(pass, 0x508394, World::BreathParticle, 0, position, actor.angles, light);
-    return Emit(pass, 0x508451, World::DustParticle, 0, position, actor.angles, light);
+        return Emit(pass, 0x508394, Particles::BreathParticle, 0, position, actor.angles, light);
+    return Emit(pass, 0x508451, Particles::DustParticle, 0, position, actor.angles, light);
 }
 
 // 0x5081c9..0x508265: el 0x154 en la 3 con el frame en 4 o menos (o NaN), el 0x5d9/1 blanco del hueso 7 en (0,
@@ -556,7 +558,7 @@ Result StepThe154(ModelEffectsPass& pass, float brightness)
     {
         const glm::vec3 offset{0.0f, static_cast<float>(Roll(pass, 32) + 32), 0.0f};
         if (auto emitted =
-                Emit(pass, 0x508265, World::FireParticle, 1, BonePoint(actor, 7, offset), actor.angles, White);
+                Emit(pass, 0x508265, Particles::FireParticle, 1, BonePoint(actor, 7, offset), actor.angles, White);
             !emitted.HasValue())
             return emitted;
     }
@@ -571,7 +573,7 @@ Result StepThe173(ModelEffectsPass& pass)
     if (actor.dying != 0 || actor.level != 1 || Roll(pass, 4) != 0)
         return {};
     const glm::vec3 position = Scatter(pass);
-    return Emit(pass, 0x508451, World::DustParticle, 0, position, actor.angles, White);
+    return Emit(pass, 0x508451, Particles::DustParticle, 0, position, actor.angles, White);
 }
 
 // 0x50846c..0x5085d1: el 0x15e y el 0x15f, con rand() % 4 en 0, el 0x5f2/0 del hueso 22 con la luz propia.
@@ -579,7 +581,7 @@ Result StepThe15e(ModelEffectsPass& pass)
 {
     if (Roll(pass, 4) != 0)
         return {};
-    return Emit(pass, 0x5085d1, World::BreathParticle, 0, BonePoint(pass.actor, 22, NoOffset), pass.actor.angles,
+    return Emit(pass, 0x5085d1, Particles::BreathParticle, 0, BonePoint(pass.actor, 22, NoOffset), pass.actor.angles,
                 pass.actor.light);
 }
 
@@ -606,7 +608,7 @@ Result StepThe152(ModelEffectsPass& pass)
     }
     if (!breath || Roll(pass, 2) != 0)
         return {};
-    return Emit(pass, 0x5085d1, World::BreathParticle, 0, BonePoint(actor, 24, {0.0f, -4.0f, 0.0f}), actor.angles,
+    return Emit(pass, 0x5085d1, Particles::BreathParticle, 0, BonePoint(actor, 24, {0.0f, -4.0f, 0.0f}), actor.angles,
                 actor.light);
 }
 
@@ -625,7 +627,7 @@ Result StepThe17c(ModelEffectsPass& pass)
     for (const auto& [bone, address] : {std::pair<std::size_t, std::uint32_t>{6, 0x507907}, {13, 0x507943}})
     {
         if (auto emitted =
-                Emit(pass, address, World::FireParticle, 0, BonePoint(actor, bone, NoOffset), actor.angles, White);
+                Emit(pass, address, Particles::FireParticle, 0, BonePoint(actor, bone, NoOffset), actor.angles, White);
             !emitted.HasValue())
             return emitted;
     }
@@ -641,9 +643,9 @@ Result Flame(ModelEffectsPass& pass, std::uint32_t address, std::int32_t subtype
     if (pass.particles == nullptr)
         return Core::Unexpected(std::format("{:#x}: faltan las partículas del modelo {:#x} (lugar {})", address,
                                             pass.actor.type, pass.slot));
-    World::PortableParticleTrigonometry trigonometry;
-    const auto created = pass.particles->CreateChecked(World::FlameParticle, position, angles, light, subtype, scale,
-                                                       std::cref(pass.worldClock), pass.random, 0, trigonometry);
+    Particles::PortableParticleTrigonometry trigonometry;
+    const auto created = pass.particles->CreateChecked(Particles::FlameParticle, position, angles, light, subtype,
+                                                       scale, std::cref(pass.worldClock), pass.random, 0, trigonometry);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: la llama 0x5de/{} del modelo {:#x} (lugar {}) falla (error {})",
                                             address, subtype, pass.actor.type, pass.slot,
@@ -934,7 +936,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
             const float y = F32(static_cast<double>(Roll(pass, 100)) + D(actor.position.y) - 50.0);
             const glm::vec3 position{x, y, actor.position.z};
             for (const std::uint32_t address : {0x43be6eu, 0x43be87u})
-                if (auto emitted = Emit(pass, address, World::DustParticle, 0, position, actor.angles, actor.light);
+                if (auto emitted = Emit(pass, address, Particles::DustParticle, 0, position, actor.angles, actor.light);
                     !emitted.HasValue())
                     return Core::Unexpected(emitted.Error());
             // 0x43bea5 y 0x43bec6: el dueño es 0; omitir un alta con el pool lleno no detiene el segundo intento.
@@ -963,7 +965,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0x197:
     {
         // 0x43befb y 0x43bfa8: el 0x197 en la 6, nada; si no, rand() % 2 en 0 pide del hueso 6 (el 0x192) o 31 (el
-        // 0x197) en (2, 30, 0) el humo 0x5f2/0x11 (World::GlowSmokeSubtype).
+        // 0x197) en (2, 30, 0) el humo 0x5f2/0x11 (Particles::GlowSmokeSubtype).
         if (actor.type == 0x197 && actor.animation.action == 6)
             return true;
         if (Roll(pass, 2) != 0)
@@ -974,7 +976,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
         if (tall)
             light = actor.subtype == 9 ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, Bits(0x3e99999au), 1.0f};
         if (auto emitted =
-                Emit(pass, tall ? 0x43c04b : 0x43bf75, World::BreathParticle, 0x11, point, actor.angles, light);
+                Emit(pass, tall ? 0x43c04b : 0x43bf75, Particles::BreathParticle, 0x11, point, actor.angles, light);
             !emitted.HasValue())
             return Core::Unexpected(emitted.Error());
         return true;
@@ -1049,14 +1051,14 @@ Result KickTheDust(ModelEffectsPass& pass, const glm::vec3* light, std::uint32_t
     if (Roll(pass, 10) != 0)
         return {};
     if (pass.particles != nullptr &&
-        std::ranges::all_of(pass.particles->All(), [](const World::Particle& particle) { return particle.alive; }))
+        std::ranges::all_of(pass.particles->All(), [](const Particles::Particle& particle) { return particle.alive; }))
         return {};
     if (light == nullptr)
         return Core::Unexpected(std::format("0x431e86: la luz del polvo 0x5f3/0 del modelo {:#x} (lugar {}) es "
                                             "[EBP−{:#x}], que ese camino de 0x431470 no escribe (comportamiento "
                                             "indefinido)",
                                             pass.actor.type, pass.slot, local));
-    return Emit(pass, 0x431e86, World::DustParticle, 0, pass.actor.position, pass.actor.angles, *light);
+    return Emit(pass, 0x431e86, Particles::DustParticle, 0, pass.actor.position, pass.actor.angles, *light);
 }
 
 Core::Expected<glm::vec3, std::string> CrywolfNamedPoint(ModelEffectsPass& pass, std::string_view name,
@@ -1231,12 +1233,13 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
                 return particle;
         }
         for (int index = 0; index < 5; ++index)
-            static_cast<void>(effects.CreateCastleShockWave(Kernel::ModelEffectArguments{.type = World::ShockWaveEffect,
-                                                                                         .position = point,
-                                                                                         .angles = actor.angles,
-                                                                                         .light = red,
-                                                                                         .subtype = 8},
-                                                            pass.random));
+            static_cast<void>(
+                effects.CreateCastleShockWave(Kernel::ModelEffectArguments{.type = Effects::ShockWaveEffect,
+                                                                           .position = point,
+                                                                           .angles = actor.angles,
+                                                                           .light = red,
+                                                                           .subtype = 8},
+                                              pass.random));
         return {};
     }
     case 0x1b0:
@@ -1324,15 +1327,15 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         if (actor.animation.action == 3 && std::bit_cast<std::uint32_t>(actor.movementPhase) == 0x3f800000u &&
             actor.animation.frame >= 5.0f)
         {
-            auto created =
-                CreateTheArrowEffect(Kernel::ModelEffectArguments{.type = 0xed,
-                                                                  .position = actor.position,
-                                                                  .angles = actor.angles,
-                                                                  .light = actor.light,
-                                                                  .subtype = 1,
-                                                                  .owner = &actor,
-                                                                  .key = static_cast<std::uint16_t>(actor.word8a)},
-                                     pass.world, pass.random);
+            auto created = Effects::CreateTheArrowEffect(
+                Kernel::ModelEffectArguments{.type = 0xed,
+                                             .position = actor.position,
+                                             .angles = actor.angles,
+                                             .light = actor.light,
+                                             .subtype = 1,
+                                             .owner = &actor,
+                                             .key = static_cast<std::uint16_t>(actor.word8a)},
+                pass.world, pass.random);
             if (!created.HasValue())
                 return created;
             actor.movementPhase = 0.0f;
@@ -1427,4 +1430,4 @@ Core::Expected<void, std::string> StepTheModelEffects(ModelEffectsPass& pass)
         return {};
     return StepTheHelpers(pass);
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

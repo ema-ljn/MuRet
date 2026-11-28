@@ -30,7 +30,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -87,12 +87,12 @@ bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, Kernel::WorldStat
         return false;
     if (reply.slot >= EquipmentSlots)
         return true;
-    GamePanels panels(world, random);
-    return !panels.Registry().IsOpen(UI::TrainerPanel);
+    Hud::GamePanels panels(world, random);
+    return !panels.Registry().IsOpen(Ui::TrainerPanel);
 }
 
 // 0x4e4cbd..0x4e4ce7: con el registro propio abierto (0x4e79a0 y 0x40f370), 0x550d10.
-Core::Expected<void, std::string> RecalculateTheStats(const WorldEntryResources& resources)
+Core::Expected<void, std::string> RecalculateTheStats(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -111,7 +111,7 @@ Core::Expected<void, std::string> RecalculateTheStats(const WorldEntryResources&
 
 // 0x421db0 con la ventana de la mascota abierta (0x421dc7..0x421ead).
 Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInfoReply& reply,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -129,7 +129,7 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInf
 }
 
 // 0x421fb6..0x422196: el caballo del héroe, en la casilla 8.
-void TheHorse(const Protocol::Pets::PetInfoReply& reply, const WorldEntryResources& resources)
+void TheHorse(const Protocol::Pets::PetInfoReply& reply, const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -144,26 +144,26 @@ void TheHorse(const Protocol::Pets::PetInfoReply& reply, const WorldEntryResourc
     const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     Kernel::ItemState& item = world.OwnCharacter().equipment[HorseEquipmentSlot];
     if (item.id == DarkHorseItem)
-        AddTheDarkHorseOption(item, resources);
+        Items::AddTheDarkHorseOption(item, resources);
 }
 
 // 0x418390 (cinco) y 0x418400 (quince), por la vtable del cuervo (+0x14 y +0x18): 0x530860(0x60f, p, q, ángulos, 0,
 // cuervo, 40, la clave 2, 0, 0, −1) con el objeto del cuervo (+0xc) de dueño. 0x418390 pasa una copia de su posición
 // en p y q y los ángulos en 0; 0x418400, la copia en p, su posición en q y sus ángulos. Son los 60f/0 de
-// Scenes::CreateFaunaJoint (la luz del cuervo, +0xf4, y con el ancho de 40 su paso no lee su acción): tres rand() cada
+// Joints::CreateFaunaJoint (la luz del cuervo, +0xf4, y con el ancho de 40 su paso no lee su acción): tres rand() cada
 // uno. Con la tabla de joints llena, ninguno y sigue. Sin rand() propios.
-Core::Expected<void, std::string> SparkTheRaven(DarkSpirit& raven, int joints, bool turned,
-                                                const WorldEntryResources& resources)
+Core::Expected<void, std::string> SparkTheRaven(Kernel::DarkSpirit& raven, int joints, bool turned,
+                                                const Scenes::WorldEntryResources& resources)
 {
     constexpr std::int32_t SparkleJoint = 0x60f, SparkleSubtype = 0, OrderKey = 2, NoTarget = -1;
     constexpr float OrderWidth = 40.0f; // 0x42200000
-    std::span<JointState> pool = resources.world.DrawTail().joints;
+    std::span<Scenes::JointState> pool = resources.world.DrawTail().joints;
     glm::vec3 start = raven.position;
     glm::vec3 angles = turned ? raven.angles : glm::vec3(0.0f);
     glm::vec3& target = turned ? raven.position : start;
     for (int made = 0; made < joints; ++made)
     {
-        const auto created = CreateFaunaJoint(
+        const auto created = Joints::CreateFaunaJoint(
             pool, {SparkleJoint, start, target, angles, SparkleSubtype, &raven, OrderWidth, OrderKey, 0, 0, NoTarget},
             resources.cloth.random, Kernel::JointOwnerKind::Raven);
         if (!created.HasValue())
@@ -174,7 +174,7 @@ Core::Expected<void, std::string> SparkTheRaven(DarkSpirit& raven, int joints, b
 
 // 0x421db0 con la ventana cerrada (0x421ef2..0x422196).
 Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetInfoReply& reply,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -259,7 +259,7 @@ void UpdatePetStats(std::uint8_t pet, const Kernel::WorldState& world,
     stats.word12 = static_cast<std::uint16_t>(level * 16 + 1000);
 }
 
-void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, Kernel::WorldState& world,
+void ApplyRavenInfo(Kernel::DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, Kernel::WorldState& world,
                     Crt::CrtRandom& random)
 {
     const std::uint32_t allowance = Allowance(world, random);
@@ -276,7 +276,7 @@ void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experie
 }
 
 Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoReply& reply,
-                                               const WorldEntryResources& resources)
+                                               const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const bool windowOpen = runtime.panels.delegated.pet == PetWindowOpen;
@@ -293,4 +293,4 @@ Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoRepl
         return applied;
     return RecalculateTheStats(resources);
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

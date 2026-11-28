@@ -41,13 +41,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x6a3c19e5u;
@@ -177,15 +177,15 @@ protected:
     Client::Core::Expected<void, std::string> DrawTheShop(std::int32_t x, std::int32_t y, bool projecting = false)
     {
         GameHudContext context = Context(x, y, projecting);
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawTheNpcShop(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Npc::DrawTheNpcShop(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> DrawTheWarehouse(std::int32_t x, std::int32_t y, bool leftDown = false)
     {
         GameHudContext context = Context(x, y, false, leftDown);
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawTheWarehouse(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Npc::DrawTheWarehouse(context, panels.Registry());
     }
 
     // La tienda abierta, como la dejan el 30 con 0 (0x65ba67, el byte protegido sin accesos abiertos) y el 31 con la
@@ -243,8 +243,8 @@ TEST_P(NpcWindowDrawingTest, ThePanel2000DrawsTheAcceptanceAndBothButtons)
         m_sprites.Begin(Screen640);
         m_text.texts.clear();
         GameHudContext context = Context(0, 0, false);
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        const auto drawn = Client::Scenes::DrawThePanel2000(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        const auto drawn = Client::Npc::DrawThePanel2000(context, panels.Registry());
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(Runtime().hud.inventoryX, 450);
         EXPECT_EQ(Runtime().hud.inventoryY, 0);

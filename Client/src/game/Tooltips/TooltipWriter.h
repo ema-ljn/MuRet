@@ -14,7 +14,7 @@
 // (0x78abb34). El primer error (un texto que Text.bmd no tiene, o un renglón fuera de los 30, donde el original
 // escribe sobre el ítem del cursor, 0x7879f80) queda guardado y lo que sigue no escribe nada: quien escribe lo mira
 // antes de lo que tiene efectos fuera de los renglones (un acceso protegido, la caja).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 class TooltipWriter
 {
@@ -89,4 +89,4 @@ private:
     std::string m_where;
     std::string m_error;
 };
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

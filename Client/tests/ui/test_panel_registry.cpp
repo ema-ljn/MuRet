@@ -18,7 +18,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using namespace Client::UI;
+using namespace Client::Ui;
 
 constexpr std::uint32_t Seed = 1;
 

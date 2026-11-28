@@ -52,11 +52,11 @@
 // 480, con textos inventados y el mundo en Lorencia (0) y en Devias (2).
 namespace
 {
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Scenes::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t Lorencia = 0;
@@ -136,7 +136,7 @@ public:
                                .texts = &texts,
                                .mouse = mouse,
                                .arrowHeld = arrowHeld};
-        return Client::Scenes::DrawTheGameDialogs(context);
+        return Client::Hud::Dialogs::DrawTheGameDialogs(context);
     }
 
     [[nodiscard]] std::vector<std::string> Texts() const
@@ -153,7 +153,7 @@ public:
     std::optional<Client::Audio::SoundId> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     bool arrowHeld = false;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({
         {381, "salir"},
@@ -226,7 +226,7 @@ TEST(GameDialogDrawingTest, TheEscapeMenuDrawsItsButtonsAndItsTexts)
     for (const std::int32_t map : {Lorencia, Devias})
     {
         DrawingDialogs tested(map);
-        tested.world.Runtime().dialogs.current = Client::UI::EscapeMenuDialog;
+        tested.world.Runtime().dialogs.current = Client::Ui::EscapeMenuDialog;
         tested.mouse = {0x110, 95};
 
         ASSERT_TRUE(tested.Draw().HasValue());
@@ -263,7 +263,7 @@ TEST(GameDialogDrawingTest, TheOptionsDrawTheVolumeBarAndTheGlow)
     {
         DrawingDialogs tested(map);
         Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-        runtime.dialogs.current = Client::UI::OptionsDialog;
+        runtime.dialogs.current = Client::Ui::OptionsDialog;
         runtime.ui.autoAttack = true;
         runtime.chat.noticeSound = false;
         runtime.chat.slidesOn = true;
@@ -304,7 +304,7 @@ TEST(GameDialogDrawingTest, AnIntermediateDrawDoesNotMoveTheVolumeBar)
 {
     DrawingDialogs tested(Devias);
     Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::OptionsDialog;
+    runtime.dialogs.current = Client::Ui::OptionsDialog;
     ASSERT_TRUE(tested.Draw(true).HasValue());
     EXPECT_EQ(runtime.ui.volumeBarX, 0);
     EXPECT_EQ(runtime.ui.volumeBarY, 0);
@@ -318,7 +318,7 @@ TEST(GameDialogDrawingTest, TheMessageBoxDrawsItsFrameButtonAndRows)
     {
         DrawingDialogs tested(map);
         Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-        Client::UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs,
+        Client::Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs,
                                    "una caja con un texto bastante largo para dos renglones");
         runtime.dialogBox.buttons[0].state = 2;
 
@@ -347,7 +347,7 @@ TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
 {
     DrawingDialogs tested(Lorencia);
     Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::PagedDialog;
+    runtime.dialogs.current = Client::Ui::PagedDialog;
     runtime.dialogBox.page = 0;
     runtime.dialogBox.lastPage = 2;
     runtime.movement.pendingClick = true;
@@ -386,7 +386,7 @@ TEST(GameDialogDrawingTest, TheEventBoxesDrawTheTextOfTheEventObject)
         EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
         EXPECT_TRUE(tested.text.texts.empty());
 
-        runtime.eventObject = Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::BloodCastle};
+        runtime.eventObject = Client::Events::EventMapObject{.kind = Client::Events::EventMapKind::BloodCastle};
         tested.sprites.Begin(Screen640);
         const auto drawn = tested.Draw();
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -402,7 +402,7 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
     {
         DrawingDialogs tested(map);
         Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-        runtime.dialogs.current = Client::UI::DisconnectDialog;
+        runtime.dialogs.current = Client::Ui::DisconnectDialog;
         tested.mouse = {0x11c, 0x76};
 
         ASSERT_TRUE(tested.Draw().HasValue());
@@ -684,12 +684,12 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x7d;
         runtime.ui.focusedList = -3;
-        Client::UI::ChatInputState& input = runtime.chat.input;
+        Client::Chat::ChatInputState& input = runtime.chat.input;
         input.numberField.text.Type("12");
         tested->mouse = {0x16a, 0x76};
 
         ASSERT_TRUE(tested->Draw().HasValue());
-        const Client::UI::OldEdit& field = input.numberField;
+        const Client::Ui::OldEdit& field = input.numberField;
         EXPECT_EQ(field.base.state, 0);
         EXPECT_EQ(field.filter, 9);
         EXPECT_EQ(field.backgroundColor, 0u);
@@ -697,8 +697,8 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_EQ(field.base.y, 0x62);
         EXPECT_EQ(field.base.width, 0x46);
         EXPECT_EQ(field.base.height, 0xe);
-        EXPECT_EQ(input.focus, Client::UI::ChatFocus::NumberField);
-        EXPECT_EQ(runtime.ui.focusedList, Client::UI::NumberFieldId);
+        EXPECT_EQ(input.focus, Client::Chat::ChatFocus::NumberField);
+        EXPECT_EQ(runtime.ui.focusedList, Client::Chat::NumberFieldId);
         EXPECT_EQ(field.draws, 1);
 
         const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
@@ -714,7 +714,7 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         EXPECT_FALSE(quads[2].slot.has_value());
         EXPECT_EQ(quads[2].color.alpha, 0.0f);
         // El cursor va en la columna 3 + 12 + 1 de un bitmap de ftol(3 + 12) = 15: al final del texto queda recortado
-        // (el editor XP de UI::OldDraw::DrawTheOldEdit, con el margen de 3 antes del texto).
+        // (el editor XP de Ui::OldDraw::DrawTheOldEdit, con el margen de 3 antes del texto).
         EXPECT_EQ(quads[3].slot, 0xf2);
         EXPECT_EQ(quads[3].x, 323.0f);
         EXPECT_EQ(quads[3].y, 98.0f);
@@ -734,7 +734,7 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
 
         // El tope 7 (EM_LIMITTEXT) frena lo que se teclea desde ahora. Cada WM_CHAR pasa por la subclase (0x467b10),
         // que pone +0x80 en 0 (0x467b9d) antes de dárselo al EDIT.
-        Client::UI::TypeInTheChat(input, "345678");
+        Client::Chat::TypeInTheChat(input, "345678");
         EXPECT_EQ(input.numberField.text.Value(), "1234567");
         EXPECT_EQ(input.numberField.draws, 0);
 
@@ -764,8 +764,8 @@ TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
         auto tested = std::make_unique<DrawingDialogs>(Lorencia);
         Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = dialog;
-        Client::UI::ChatInputState& input = runtime.chat.input;
-        Client::UI::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
+        Client::Chat::ChatInputState& input = runtime.chat.input;
+        Client::Ui::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
         // El cursor al principio: al final del texto quedaría fuera del bitmap.
         edit.text.Type("12");
         edit.text.SetCursor(0);
@@ -925,22 +925,22 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
             Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x73;
             runtime.social.trade.field78abacc = mark;
-            Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
+            Client::Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
             edit.text.SetText("150");
-            edit.base.state = Client::UI::HiddenWindow;
-            runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+            edit.base.state = Client::Ui::HiddenWindow;
+            runtime.chat.input.focus = Client::Chat::ChatFocus::Game;
             tested->mouse = {0x11c, 0x76};
 
             ASSERT_TRUE(tested->Draw().HasValue());
-            EXPECT_EQ(edit.base.state, Client::UI::ShownWindow);
+            EXPECT_EQ(edit.base.state, Client::Ui::ShownWindow);
             EXPECT_EQ(edit.filter, 9);
             EXPECT_EQ(edit.base.x, 0x11b);
             EXPECT_EQ(edit.base.y, 0x5f);
             EXPECT_EQ(edit.base.width, 0x46);
             EXPECT_EQ(edit.base.height, 0xe);
             EXPECT_EQ(edit.draws, 1);
-            EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
-            EXPECT_EQ(runtime.ui.focusedList, Client::UI::DialogFieldId);
+            EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.ui.focusedList, Client::Chat::DialogFieldId);
 
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
             ASSERT_EQ(quads.size(), 3u);
@@ -963,7 +963,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
 
             // El tope de lo tecleado es 8 (la vtable + 0x3c).
             edit.text.SetText({});
-            Client::UI::TypeInTheEdit(edit, "1234567890");
+            Client::Ui::TypeInTheEdit(edit, "1234567890");
             EXPECT_EQ(edit.text.Value(), "12345678");
         }
     }
@@ -975,13 +975,13 @@ TEST(GameDialogDrawingTest, TheProjectingPassLeavesTheDialogEdit)
     auto tested = std::make_unique<DrawingDialogs>(Lorencia);
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = 0x73;
-    Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
-    edit.base.state = Client::UI::HiddenWindow;
-    runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+    Client::Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+    edit.base.state = Client::Ui::HiddenWindow;
+    runtime.chat.input.focus = Client::Chat::ChatFocus::Game;
     ASSERT_TRUE(tested->Draw(true).HasValue());
-    EXPECT_EQ(edit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(edit.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(edit.draws, 0);
-    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
 }
 
 // 0x91 (0x6304f2..0x630813): el marco (0xfc en (213, 100), 0xfb en 105 y 145, 0xfc en 185), el EDIT que armó
@@ -1002,8 +1002,8 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
             Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x91;
             runtime.social.personalShop.dialogMode = mode;
-            Client::UI::OldEdit& edit = runtime.chat.input.dialogEdit;
-            edit.base.state = Client::UI::ShownWindow;
+            Client::Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+            edit.base.state = Client::Ui::ShownWindow;
             edit.filter = 0xc;
             edit.backgroundColor = 0;
             edit.base.x = 0xfd;
@@ -1011,12 +1011,12 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
             edit.base.width = 0x85;
             edit.base.height = 0xa;
             edit.text.SetText("Puesto");
-            runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+            runtime.chat.input.focus = Client::Chat::ChatFocus::Game;
             tested->mouse = {0x133, 0xb0};
 
             ASSERT_TRUE(tested->Draw().HasValue());
-            EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
-            EXPECT_EQ(runtime.ui.focusedList, Client::UI::DialogFieldId);
+            EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.ui.focusedList, Client::Chat::DialogFieldId);
             EXPECT_EQ(edit.base.x, 0xfd);
             EXPECT_EQ(edit.draws, 1);
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
@@ -1067,15 +1067,15 @@ TEST(GameDialogDrawingTest, TheShopDialogLightsTheButtonUnderTheMouse)
     {
         SCOPED_TRACE(map);
         for (const auto& [mouse, ok, cancel] :
-             {std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0x14a, 0xa0}, 0xf1, 0xf4},
-              std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0x149, 0xa0}, 0xf1, 0xf3},
-              std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0xff, 0x9f}, 0xf1, 0xf3},
-              std::tuple<Client::UI::Point, std::uint16_t, std::uint16_t>{{0xff, 0xa0}, 0xf2, 0xf3}})
+             {std::tuple<Client::Ui::Point, std::uint16_t, std::uint16_t>{{0x14a, 0xa0}, 0xf1, 0xf4},
+              std::tuple<Client::Ui::Point, std::uint16_t, std::uint16_t>{{0x149, 0xa0}, 0xf1, 0xf3},
+              std::tuple<Client::Ui::Point, std::uint16_t, std::uint16_t>{{0xff, 0x9f}, 0xf1, 0xf3},
+              std::tuple<Client::Ui::Point, std::uint16_t, std::uint16_t>{{0xff, 0xa0}, 0xf2, 0xf3}})
         {
             auto tested = std::make_unique<DrawingDialogs>(map);
             Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x91;
-            runtime.chat.input.dialogEdit.base.state = Client::UI::ShownWindow;
+            runtime.chat.input.dialogEdit.base.state = Client::Ui::ShownWindow;
             tested->mouse = mouse;
             ASSERT_TRUE(tested->Draw().HasValue());
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
@@ -1118,7 +1118,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogDrawsItsTextAndItsAnswers)
     std::ranges::copy(std::string_view("seguir"), table[3].answers[0].begin());
     std::ranges::copy(std::string_view("chau"), table[3].answers[1].begin());
     ASSERT_TRUE(
-        Client::UI::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &table, &tested->texts, 3).HasValue());
+        Client::Ui::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &table, &tested->texts, 3).HasValue());
     tested->mouse = {0x13f - 0x6a, 150};
 
     ASSERT_TRUE(tested->Draw().HasValue());
@@ -1151,7 +1151,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
 {
     const auto tested = std::make_unique<DrawingDialogs>(Lorencia);
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
-    runtime.dialogs.current = Client::UI::AnswersDialog;
+    runtime.dialogs.current = Client::Ui::AnswersDialog;
     runtime.dialogBox.lineCount = 7;
     runtime.dialogBox.answerCount = 3;
     std::ranges::copy(std::string_view("arriba"), runtime.dialogBox.rows.begin());
@@ -1166,7 +1166,7 @@ TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
     // El 0x8a también baja con las respuestas que quedaron (0x632472 es el mismo tramo), sin el mínimo.
     tested->sprites.Begin(Screen640);
     tested->text.texts.clear();
-    runtime.dialogs.current = Client::UI::MessageBoxDialog;
+    runtime.dialogs.current = Client::Ui::MessageBoxDialog;
     ASSERT_TRUE(tested->Draw().HasValue());
     ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"arriba"}));
     EXPECT_EQ(tested->text.texts[0].y, 49);
@@ -1210,12 +1210,12 @@ QuadExtent ExtentOf(const SpriteBatch& sprites, std::size_t index)
 }
 
 // Los renglones de la caja, uno por cada 0x26 bytes de 0x7d36a98, y su cuenta.
-void SetRows(Client::UI::DialogBoxState& box, std::initializer_list<std::string_view> rows)
+void SetRows(Client::Ui::DialogBoxState& box, std::initializer_list<std::string_view> rows)
 {
     box.rows.fill('\0');
     std::size_t row = 0;
     for (const std::string_view text : rows)
-        std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row++ * Client::UI::DialogRowBytes));
+        std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row++ * Client::Ui::DialogRowBytes));
     box.lineCount = static_cast<std::int32_t>(rows.size());
 }
 
@@ -1953,9 +1953,9 @@ TEST(GameDialogDrawingTest, TheJewelUnmixWithAKindDrawsTheListAndItsButtons)
         runtime.npcWindows.jewels.kind = 1;
         for (const std::size_t cell : {3u, 9u, 63u})
             tested->world.Inventory().cells[cell].id = 0xffff;
-        Client::Scenes::JewelBundleList& list = runtime.npcWindows.jewels.bundles;
-        Client::Scenes::AddTheBundle(list, 8, 0);
-        Client::Scenes::AddTheBundle(list, 5, 2);
+        Client::Npc::JewelBundleList& list = runtime.npcWindows.jewels.bundles;
+        Client::ChaosMix::AddTheBundle(list, 8, 0);
+        Client::ChaosMix::AddTheBundle(list, 5, 2);
         list.selection = 1;
         tested->mouse = {330, 380};
         ASSERT_TRUE(tested->Draw().HasValue());
@@ -2053,7 +2053,7 @@ TEST(GameDialogDrawingTest, TheJewelWaitAndResultDrawTheirTexts)
             result->texts = JewelTexts();
             result->world.Runtime().dialogs.current = 0xa6;
             result->world.Runtime().npcWindows.jewels.mode = mode;
-            result->mouse = mode == 0 ? Client::UI::Point{352, 195} : Client::UI::Point{353, 195};
+            result->mouse = mode == 0 ? Client::Ui::Point{352, 195} : Client::Ui::Point{353, 195};
             ASSERT_TRUE(result->Draw().HasValue());
             const std::vector<DrawnQuad> quads = QuadsOf(result->sprites);
             ASSERT_EQ(quads.size(), 5u);
@@ -2086,10 +2086,10 @@ TEST(GameDialogDrawingTest, TheJewelResultCutsALongText)
 }
 
 // Un renglón de 0x7d36a98, como lo copia 0x633300 (strcpy).
-void PutRow(Client::UI::DialogBoxState& box, std::size_t row, std::string_view text)
+void PutRow(Client::Ui::DialogBoxState& box, std::size_t row, std::string_view text)
 {
-    std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row * Client::UI::DialogRowBytes));
-    box.rows[row * Client::UI::DialogRowBytes + text.size()] = '\0';
+    std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row * Client::Ui::DialogRowBytes));
+    box.rows[row * Client::Ui::DialogRowBytes + text.size()] = '\0';
 }
 
 // 0x94 con el aviso 3 (0x630cbd y 0x632637): el marco desde y = 100 (0xfc, tres 0xfb y 0xfc en 225), los botones de
@@ -2104,9 +2104,9 @@ TEST(GameDialogDrawingTest, TheTradeWarningDrawsItsBoxAndItsRows)
         Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x94;
         runtime.social.trade.warningKind = 3;
-        Client::UI::DialogBoxState& box = runtime.dialogBox;
-        box.buttons = {Client::UI::DialogButton{2, 0x15, 0x5a, 0x46, 0x15},
-                       Client::UI::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
+        Client::Ui::DialogBoxState& box = runtime.dialogBox;
+        box.buttons = {Client::Ui::DialogButton{2, 0x15, 0x5a, 0x46, 0x15},
+                       Client::Ui::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
         const std::vector<std::string> rows{"el otro", "cambio", "sus items", "cuidado"};
         for (std::size_t row = 0; row < rows.size(); ++row)
             PutRow(box, row, rows[row]);
@@ -2160,9 +2160,9 @@ TEST(GameDialogDrawingTest, TheBuyWarningCentersItsRowFurtherRight)
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = 0x94;
     runtime.social.trade.warningKind = 5;
-    Client::UI::DialogBoxState& box = runtime.dialogBox;
-    box.buttons = {Client::UI::DialogButton{0, 0x15, 0x5a, 0x46, 0x15},
-                   Client::UI::DialogButton{5, 0x78, 0x5a, 0x46, 0x15}};
+    Client::Ui::DialogBoxState& box = runtime.dialogBox;
+    box.buttons = {Client::Ui::DialogButton{0, 0x15, 0x5a, 0x46, 0x15},
+                   Client::Ui::DialogButton{5, 0x78, 0x5a, 0x46, 0x15}};
     PutRow(box, 0, "comprar?");
     box.lineCount = 1;
     ASSERT_TRUE(tested->Draw().HasValue());
@@ -2178,11 +2178,11 @@ TEST(GameDialogDrawingTest, TheLowPriceWarningDrawsLikeTheWarning)
 {
     auto tested = std::make_unique<DrawingDialogs>(Devias);
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
-    runtime.dialogs.current = Client::UI::MoneyTextDialog;
+    runtime.dialogs.current = Client::Ui::MoneyTextDialog;
     runtime.social.trade.warningKind = 6;
-    Client::UI::DialogBoxState& box = runtime.dialogBox;
-    box.buttons = {Client::UI::DialogButton{1, 0x15, 0x5a, 0x46, 0x15},
-                   Client::UI::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
+    Client::Ui::DialogBoxState& box = runtime.dialogBox;
+    box.buttons = {Client::Ui::DialogButton{1, 0x15, 0x5a, 0x46, 0x15},
+                   Client::Ui::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
     const std::vector<std::string> rows{"precio 1,000 zen", "vender?"};
     for (std::size_t row = 0; row < rows.size(); ++row)
         PutRow(box, row, rows[row]);
@@ -2230,7 +2230,7 @@ TEST(GameDialogDrawingTest, TheWarehouseConfirmationDrawsItsNumberEditAndBothIns
         EXPECT_EQ(runtime.chat.input.numberField.base.x, 243);
         EXPECT_EQ(runtime.chat.input.numberField.base.y, 98);
         EXPECT_EQ(runtime.chat.input.numberField.draws, 1);
-        EXPECT_EQ(runtime.ui.focusedList, Client::UI::NumberFieldId);
+        EXPECT_EQ(runtime.ui.focusedList, Client::Chat::NumberFieldId);
         const auto quads = QuadsOf(tested->sprites);
         ASSERT_EQ(quads.size(), 5u);
         EXPECT_EQ(quads[3].x, 323);

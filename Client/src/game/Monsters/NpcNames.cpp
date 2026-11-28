@@ -7,7 +7,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 NpcNameTable NpcNameTableOf(std::span<const NpcName> loaded)
 {
@@ -54,4 +54,4 @@ std::string NpcNameAt(const NpcNameTable& table, std::size_t index)
     }
     return name;
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

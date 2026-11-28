@@ -48,6 +48,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Crt::Sprintf;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Math::RoundedSin;
 using Client::Models::OwnRecordCloseRandoms;
@@ -55,7 +56,6 @@ using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 using Client::Tests::RecordedText;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
@@ -214,12 +214,12 @@ protected:
     Client::Core::Expected<void, std::string> Window()
     {
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheCharacterWindow(context);
+        return Client::Hud::DrawTheCharacterWindow(context);
     }
 
     std::string TextAt(std::size_t index) const
     {
-        return std::string(Client::UI::TextAt(&*data.text, index).value_or("?"));
+        return std::string(Client::Ui::TextAt(&*data.text, index).value_or("?"));
     }
 
     // El texto que la ventana dejó con ese contenido, o nada.
@@ -257,7 +257,7 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     bool leftDown = false;
     std::optional<std::uint16_t> chosenServer = ServerCode;
     const Client::Tables::ItemTable* items = nullptr;
@@ -690,7 +690,7 @@ TEST_F(GameCharacterHudTest, TheHudWithTheCharacterOpenSpendsItsRandomsInLorenci
         const CrtRandom expected = Advanced(random, HudBaseDraws + PlainWindowCloses * Own);
 
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheHud(context);
+        const auto drawn = Client::Hud::DrawTheHud(context);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), expected.State());

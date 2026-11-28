@@ -12,7 +12,7 @@
 // píxeles del framebuffer, con la y desde arriba, como los guarda la UI nueva del original (06 §
 // Las ventanas de la UI nueva); el mouse de la UI, y las imágenes en píxeles. Cada ventana se
 // atiende en el paso, con los flancos de la CL3.3, y se dibuja en el frame (Q-C81).
-namespace Client::UI
+namespace Client::Ui
 {
 struct Point
 {
@@ -47,4 +47,4 @@ using TextureSizes = std::function<Assets::TextureBufferSize(Render::TextureSlot
 
 // Una imagen de una ventana: en píxeles (fx = fy = 1), con la textura de `slot` y su buffer.
 [[nodiscard]] Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Assets::TextureBufferSize buffer);
-} // namespace Client::UI
+} // namespace Client::Ui

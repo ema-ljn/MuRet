@@ -16,7 +16,8 @@
 namespace
 {
 using namespace Client::Platform;
-using namespace Client::UI;
+using namespace Client::Chat;
+using namespace Client::Ui;
 
 ChatInputState OpenInput()
 {

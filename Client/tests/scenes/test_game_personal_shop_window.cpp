@@ -40,12 +40,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x5f30;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -200,7 +200,7 @@ protected:
         return shop->world.Runtime();
     }
 
-    Client::Scenes::PersonalShopState& Shops()
+    Client::Social::PersonalShopState& Shops()
     {
         return Runtime().social.personalShop;
     }
@@ -235,23 +235,23 @@ protected:
 
     Client::Core::Expected<void, std::string> Window()
     {
-        Client::Scenes::GamePanels panels(shop->world, random);
+        Client::Hud::GamePanels panels(shop->world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawThePersonalShopWindow(context, panels.Registry());
+        return Client::Hud::DrawThePersonalShopWindow(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> GridItems()
     {
-        Client::Scenes::GamePanels panels(shop->world, random);
+        Client::Hud::GamePanels panels(shop->world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGridItems(context, panels.Registry());
+        return Client::Hud::DrawTheGridItems(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> GridNumbers()
     {
-        Client::Scenes::GamePanels panels(shop->world, random);
+        Client::Hud::GamePanels panels(shop->world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGridNumbers(context, panels.Registry());
+        return Client::Hud::DrawTheGridNumbers(context, panels.Registry());
     }
 
     void ExpectTexts(const std::vector<Expected>& expected)
@@ -280,7 +280,7 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     bool withTexts = true;
 };
 
@@ -305,7 +305,7 @@ TEST_P(GamePersonalShopWindowTest, ClosedItDrawsNothing)
 // los dos que laten. Todo en la negrita, sin rand().
 TEST_P(GamePersonalShopWindowTest, TheClosedOwnShopDrawsItsStatusAndItsButtons)
 {
-    OpenTheShop(Client::Scenes::OwnShopView);
+    OpenTheShop(Client::Social::OwnShopView);
     // 0x5f7440 deja la mezcla apagada antes de las ventanas.
     sprites.SetBlend(Client::Render::BlendMode::Opaque);
     ASSERT_TRUE(Window().HasValue());
@@ -353,7 +353,7 @@ TEST_P(GamePersonalShopWindowTest, TheClosedOwnShopDrawsItsStatusAndItsButtons)
 // aplicar (1106) y el de cerrar en el color de los botones. Con el reloj, el aviso y los dos últimos laten.
 TEST_P(GamePersonalShopWindowTest, TheOpenOwnShopShowsItsTitle)
 {
-    OpenTheShop(Client::Scenes::OwnShopView);
+    OpenTheShop(Client::Social::OwnShopView);
     Shops().ownOpen = 1;
     Shops().ownTitle = "Ofertas del dia";
     worldClock = 1000.0f;
@@ -382,7 +382,7 @@ TEST_P(GamePersonalShopWindowTest, TheOpenOwnShopShowsItsTitle)
 // renglones de la de otro.
 TEST_P(GamePersonalShopWindowTest, TheOtherShopShowsItsNameAndItsLines)
 {
-    OpenTheShop(Client::Scenes::OtherShopView);
+    OpenTheShop(Client::Social::OtherShopView);
     Shops().windowX = 7;
     ASSERT_TRUE(Window().HasValue());
 
@@ -408,7 +408,7 @@ TEST_P(GamePersonalShopWindowTest, TheOtherShopShowsItsNameAndItsLines)
 // Con el byte abierto y 0x6c931c en −1 (0x5f36bb): el título del cartel o el 1105 y solo el aviso.
 TEST_P(GamePersonalShopWindowTest, WithoutAModeOnlyTheWarningIsWritten)
 {
-    OpenTheShop(Client::Scenes::NoShopView);
+    OpenTheShop(Client::Social::NoShopView);
     ASSERT_TRUE(Window().HasValue());
 
     ExpectTexts({{"Tienda", Left + 0x23, 0xc, 0xffdcdcdcu, 0xff141414u, 120},
@@ -419,7 +419,7 @@ TEST_P(GamePersonalShopWindowTest, WithoutAModeOnlyTheWarningIsWritten)
 // Sin Text.bmd, el título corta con su dirección.
 TEST_P(GamePersonalShopWindowTest, WithoutTheTextsItCuts)
 {
-    OpenTheShop(Client::Scenes::OwnShopView);
+    OpenTheShop(Client::Social::OwnShopView);
     withTexts = false;
     const auto drawn = Window();
     ASSERT_FALSE(drawn.HasValue());
@@ -430,7 +430,7 @@ TEST_P(GamePersonalShopWindowTest, WithoutTheTextsItCuts)
 // del inventario abierto; 0x5f7ace..0x5f7af9: la poción con 5 muestra la cifra en su casilla.
 TEST_P(GamePersonalShopWindowTest, TheGridDrawsItsItemsAndItsNumbers)
 {
-    OpenTheShop(Client::Scenes::OwnShopView);
+    OpenTheShop(Client::Social::OwnShopView);
     Runtime().panels.inventory = 1;
     ASSERT_TRUE(Window().HasValue());
 

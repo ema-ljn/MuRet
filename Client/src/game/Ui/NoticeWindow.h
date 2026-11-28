@@ -23,7 +23,7 @@
 // se vacía al abrir (0x6436c0). Se atiende en el paso (Q-C81). *Estático*.
 //
 // No se llama MessageBox: <windows.h> define una macro con ese nombre.
-namespace Client::UI
+namespace Client::Ui
 {
 struct NoticeLayout
 {
@@ -92,4 +92,4 @@ private:
     TextField m_code;
     NoticeControls m_layout;
 };
-} // namespace Client::UI
+} // namespace Client::Ui

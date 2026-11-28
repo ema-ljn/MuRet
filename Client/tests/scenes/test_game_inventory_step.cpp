@@ -44,11 +44,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Kernel::WorldState;
-using Client::Scenes::GameUiContext;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // El paso con todo cerrado (test_game_ui.cpp): la barra de skills, la cadena de Q, W y E y la cola IsOpen(0).
@@ -72,7 +72,7 @@ class InventoryStepTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        Client::Scenes::ClearSelectionInventory(world, random);
+        Client::FrontEnd::ClearSelectionInventory(world, random);
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
         world.Runtime().panels.inventory = 1;
@@ -80,15 +80,15 @@ protected:
     }
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y,
-                                                   const Client::Scenes::InventoryServices* inventory = nullptr)
+                                                   const Client::Items::InventoryServices* inventory = nullptr)
     {
-        return Client::Scenes::StepTheGameUi(GameUiContext{
+        return Client::Hud::StepTheGameUi(GameUiContext{
             .world = world, .random = random, .input = input, .mouseX = x, .mouseY = y, .inventory = inventory});
     }
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
     }
 
     static void ExpectCut(const Client::Core::Expected<void, std::string>& stepped, std::string_view address)
@@ -186,7 +186,7 @@ TEST_F(InventoryStepTest, TheCloseButtonWaitsForTheChaosBoxTypesToBeClearedBySel
         EXPECT_EQ(item.occupied, 0u);
         EXPECT_FALSE(world.Runtime().movement.pendingClick);
 
-        Client::Scenes::ClearSelectionInventory(world, random);
+        Client::FrontEnd::ClearSelectionInventory(world, random);
         EXPECT_EQ(item.id, Client::Kernel::EmptyOwnItemId);
         EXPECT_EQ(item.scalar1Low, 0x1234u);
         Click();
@@ -238,20 +238,20 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     EXPECT_EQ(world.Runtime().social.personalShop.windowX, 0x104);
     EXPECT_EQ(world.Runtime().social.personalShop.windowY, 0);
     EXPECT_EQ(world.Runtime().panels.personalShop, 1);
-    EXPECT_EQ(world.Runtime().social.personalShop.mode, Client::Scenes::OwnShopView);
+    EXPECT_EQ(world.Runtime().social.personalShop.mode, Client::Social::OwnShopView);
     world.Runtime().panels.personalShop = 0;
-    world.Runtime().social.personalShop.mode = Client::Scenes::NoShopView;
+    world.Runtime().social.personalShop.mode = Client::Social::NoShopView;
 
     // El comercio abierto (CL9 hito 7): el mouse sobre su ventana (desde 0x78a5a1c y 0x78a5a18, en 0 antes del
     // dibujo) es de la UI; un ítem de sus grillas bajo el mouse lee Item.bmd (0x5c420a), que este paso no tiene: corta
     // ahí. Con él, test_trade_grids.cpp. Las grillas, vacías como las deja la entrada a la selección (0x5bbe10).
-    Client::Scenes::TradeState& trade = world.Runtime().social.trade;
-    Client::Scenes::ClearTheTradeForSelection(trade);
+    Client::Social::TradeState& trade = world.Runtime().social.trade;
+    Client::Social::ClearTheTradeForSelection(trade);
     // 0x5e513a..0x5e5205: +0x44 en cada casilla de las dos grillas; la del otro conserva el 99 (0x5e5172).
     trade.otherGrid[3].id = 0x1c00;
-    trade.otherGrid[3].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.otherGrid[3].warning = Client::Social::ChangedFromTheCopy;
     trade.otherGrid[4].id = 0x1c00;
-    trade.otherGrid[5].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.otherGrid[5].warning = Client::Social::ChangedFromTheCopy;
     trade.ownGrid[2].id = 0x1c00;
     trade.ownGrid[6].warning = 1;
     world.Runtime().panels.trade = 1;
@@ -259,7 +259,7 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     const auto trading = Step(100, 300);
     ASSERT_TRUE(trading.HasValue()) << trading.Error();
     EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
-    EXPECT_EQ(trade.otherGrid[3].warning, Client::Scenes::ChangedFromTheCopy);
+    EXPECT_EQ(trade.otherGrid[3].warning, Client::Social::ChangedFromTheCopy);
     EXPECT_EQ(trade.otherGrid[4].warning, 1);
     EXPECT_EQ(trade.otherGrid[5].warning, 0);
     EXPECT_EQ(trade.ownGrid[2].warning, 1);
@@ -278,7 +278,7 @@ TEST_F(InventoryStepTest, AnOccupiedEquipmentPlaceUnderTheMouseIsMarked)
     ASSERT_TRUE(Step(WindowX + 15, 89).HasValue());
     EXPECT_EQ(world.OwnCharacter().equipment[0].warning, 2);
     EXPECT_EQ(world.Runtime().ui.field78abaac, 1);
-    EXPECT_EQ(world.Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::Equipment);
+    EXPECT_EQ(world.Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::Equipment);
     EXPECT_EQ(world.Runtime().ui.skillTooltipX, WindowX + 15 + 20);
     EXPECT_EQ(world.Runtime().ui.skillTooltipY, 89);
     EXPECT_EQ(random.State(), expected.State());
@@ -317,7 +317,7 @@ protected:
     static constexpr std::int32_t PotionY = 200 + 40 + 5;
     Client::Tables::ItemTable items = Client::Tests::ItemTableOf(
         {{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}, {EventTicket, 1, 1, 0xff}});
-    Client::Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
     int dressed = 0;
     std::vector<std::size_t> messages;
 };
@@ -362,12 +362,12 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
 
     world.Runtime().panels.inventory = 0;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Escape});
-    ASSERT_TRUE(Client::Scenes::StepTheGameDialogs(GameUiContext{.world = world,
-                                                                 .random = random,
-                                                                 .input = input,
-                                                                 .mouseX = PotionX,
-                                                                 .mouseY = PotionY,
-                                                                 .inventory = &services})
+    ASSERT_TRUE(Client::Hud::StepTheGameDialogs(GameUiContext{.world = world,
+                                                              .random = random,
+                                                              .input = input,
+                                                              .mouseX = PotionX,
+                                                              .mouseY = PotionY,
+                                                              .inventory = &services})
                     .HasValue());
     EXPECT_EQ(world.Runtime().cursorItemCount, 0);
     EXPECT_EQ(world.Inventory().cells[PotionCell].id, Potion);
@@ -493,17 +493,17 @@ TEST_F(InventoryMovesStepTest, RepairModeSendsTheItemsPlaceByteByByte)
     std::vector<Client::Protocol::Outgoing> sent;
     const auto step = [this, &sent]
     {
-        return Client::Scenes::StepTheGameUi(GameUiContext{.world = world,
-                                                           .random = random,
-                                                           .input = input,
-                                                           .mouseX = PotionX,
-                                                           .mouseY = PotionY,
-                                                           .inventory = &services,
-                                                           .sendNpcWindow = [&sent](Client::Protocol::Outgoing packet)
-                                                           {
-                                                               sent.push_back(std::move(packet));
-                                                               return Client::Core::Expected<void, std::string>{};
-                                                           }});
+        return Client::Hud::StepTheGameUi(GameUiContext{.world = world,
+                                                        .random = random,
+                                                        .input = input,
+                                                        .mouseX = PotionX,
+                                                        .mouseY = PotionY,
+                                                        .inventory = &services,
+                                                        .sendNpcWindow = [&sent](Client::Protocol::Outgoing packet)
+                                                        {
+                                                            sent.push_back(std::move(packet));
+                                                            return Client::Core::Expected<void, std::string>{};
+                                                        }});
     };
     world.Runtime().panels.repairMode = 1;
     Click();

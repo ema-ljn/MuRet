@@ -22,7 +22,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Quests
 {
 namespace
 {
@@ -68,14 +68,15 @@ constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 constexpr Audio::SoundId ButtonSound = Sound::CreateWindowSound;
 
 // El clic gastado por un botón de la ventana: 0x7d366d4 en 0, 0x77f3b10 en 0 y 0x6c8dcc en 6.
-void SpendTheClick(GameMovementState& movement)
+void SpendTheClick(Movement::GameMovementState& movement)
 {
     movement.pendingClick = false;
     movement.mouseUpdateTime = 0;
     movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
 }
 
-bool MouseIn(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
+bool MouseIn(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+             std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
@@ -83,7 +84,7 @@ bool MouseIn(const GameUiContext& context, std::int32_t left, std::int32_t top, 
 // Los C3 A2 de 0x419bd0 (0x419d13.. y 0x41a35b..) y de 0x41a9e0 (0x41aaa1..): C1 05 A2 con +0x2137e y 1, el XOR32 y la
 // entrega en C3, con el rand() del relleno (0x419fc1, 0x41a60d, 0x41ad4f) y el serial (0x5767913) por la tabla de
 // protección, que al cerrarse saca otro.
-Core::Expected<void, std::string> SendTheQuestState(const GameUiContext& context, std::string_view where)
+Core::Expected<void, std::string> SendTheQuestState(const Hud::GameUiContext& context, std::string_view where)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::format("{}: el C3 A2 sin el cable", where));
@@ -97,7 +98,7 @@ Core::Expected<void, std::string> SendTheQuestState(const GameUiContext& context
 }
 
 // 0x419900: la ventana en 0 y el C1 03 31 en claro, sin sonido ni rand().
-Core::Expected<void, std::string> CloseTheQuestWindow(const GameUiContext& context, std::string_view where)
+Core::Expected<void, std::string> CloseTheQuestWindow(const Hud::GameUiContext& context, std::string_view where)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::format("{}: 0x419900 manda el C1 03 31 sin el cable", where));
@@ -120,24 +121,24 @@ DialogRecordOf(const Kernel::WorldRuntime& runtime, std::int32_t index, std::int
 }
 
 // 0x419bd0.
-Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheQuestAnswers(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
-    UI::DialogBoxState& box = runtime.dialogBox;
-    GameMovementState& movement = runtime.movement;
+    Ui::DialogBoxState& box = runtime.dialogBox;
+    Movement::GameMovementState& movement = runtime.movement;
     // 0x419bf7..0x419c22: ((7 − (respuestas + renglones)) · 0x12) / 2 + renglones · 0x12 + 0x42, la división con signo.
     const std::int32_t answers = box.answerCount;
     std::int32_t top =
-        ((static_cast<std::int32_t>(UI::DialogRowCount) - (answers + box.lineCount)) * UI::DialogLineStep) / 2 +
-        box.lineCount * UI::DialogLineStep + AnswersTop;
+        ((static_cast<std::int32_t>(Ui::DialogRowCount) - (answers + box.lineCount)) * Ui::DialogLineStep) / 2 +
+        box.lineCount * Ui::DialogLineStep + AnswersTop;
     if (quest.currentState != QuestInProgress && runtime.panels.delegated.quest == QuestDialogWindow)
         top = AnswersTopWithoutTheQuest;
     // 0x419c3f..0x419c7e: sale sin nada.
     if (context.mouseY < 0)
         return {};
     const std::int32_t offset = context.mouseY - top;
-    if (offset >= answers * UI::DialogLineStep)
+    if (offset >= answers * Ui::DialogLineStep)
         return {};
     const std::int64_t distance = static_cast<std::int64_t>(AnswersCenterX) - context.mouseX;
     if ((distance < 0 ? -distance : distance) > AnswersHalfWidth)
@@ -149,7 +150,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
     movement.leftHeld = false;
     movement.mouseUpdateTime = 0;
     movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    const std::int32_t row = offset / UI::DialogLineStep;
+    const std::int32_t row = offset / Ui::DialogLineStep;
     if (row < 0)
         return {};
     // 0x419cbd..0x419cc7: la acción de la respuesta, [0x6d5e28] · 0x100 + fila dwords desde 0x7688c18.
@@ -170,7 +171,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
         {
             failed = true;
             if (auto shown =
-                    UI::ShowTheQuestDialog(box, runtime.dialogs, &runtime.dialogTable, context.texts, quest.dialog);
+                    Ui::ShowTheQuestDialog(box, runtime.dialogs, &runtime.dialogTable, context.texts, quest.dialog);
                 !shown.HasValue())
                 return shown;
             break;
@@ -202,15 +203,15 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
     const std::int32_t next = now.Value()->next[static_cast<std::size_t>(row)];
     if (next <= 0 || failed)
         return {};
-    return UI::ShowTheQuestDialog(box, runtime.dialogs, &runtime.dialogTable, context.texts, next);
+    return Ui::ShowTheQuestDialog(box, runtime.dialogs, &runtime.dialogTable, context.texts, next);
 }
 
 // 0x41a9e0.
-Core::Expected<void, std::string> StepTheQuestDialog(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheQuestDialog(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     if (MouseIn(context, quest.x, quest.y, quest.x + WindowWidth, quest.y + WindowHeight))
         runtime.ui.mouseOnUi = 1;
     if (auto answered = StepTheQuestAnswers(context); !answered.HasValue())
@@ -244,11 +245,11 @@ Core::Expected<void, std::string> StepTheQuestDialog(const GameUiContext& contex
 }
 
 // 0x41b170.
-Core::Expected<void, std::string> StepTheQuestList(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheQuestList(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     if (MouseIn(context, quest.x, quest.y, quest.x + WindowWidth, quest.y + WindowHeight))
         runtime.ui.mouseOnUi = 1;
     for (std::int32_t tab = 0; tab < TabCount; ++tab)
@@ -274,18 +275,18 @@ Core::Expected<void, std::string> StepTheQuestList(const GameUiContext& context,
         return {};
     SpendTheClick(movement);
     // 0x41b58b: 0x65cae0(8, 0), que pone la ventana en 0, manda el C1 03 31 y suena.
-    auto closed = panels.Close(UI::QuestPanel);
+    auto closed = panels.Close(Ui::QuestPanel);
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheQuestWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheQuestWindow(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
-    if (panels.IsOpen(UI::CharacterPanel))
+    if (panels.IsOpen(Ui::CharacterPanel))
     {
         quest.x = BesideTheCharacterX;
         quest.y = 0;
@@ -294,7 +295,7 @@ Core::Expected<void, std::string> StepTheQuestWindow(const GameUiContext& contex
         {
             SpendTheClick(runtime.movement);
             // 0x41b621..0x41b63b: Close(8) o Open(8), los dos con 0 de segundo argumento.
-            auto toggled = panels.IsOpen(UI::QuestPanel) ? panels.Close(UI::QuestPanel) : panels.Open(UI::QuestPanel);
+            auto toggled = panels.IsOpen(Ui::QuestPanel) ? panels.Close(Ui::QuestPanel) : panels.Open(Ui::QuestPanel);
             if (!toggled.HasValue())
                 return Core::Unexpected(std::move(toggled).Error());
         }
@@ -315,4 +316,4 @@ Core::Expected<void, std::string> StepTheQuestWindow(const GameUiContext& contex
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Quests

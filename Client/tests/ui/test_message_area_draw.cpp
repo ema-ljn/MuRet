@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <initializer_list>
 
-// Client::UI::DrawTheMessageArea (0x5554e0). The text is invented.
+// Client::Ui::DrawTheMessageArea (0x5554e0). The text is invented.
 namespace
 {
 using Client::Core::PixelSize;
@@ -20,10 +20,10 @@ using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordingTextDrawer;
-using Client::UI::MessageAreaState;
-using Client::UI::MessageAreaView;
-using Client::UI::MessageDrawContext;
-using Client::UI::MessageFrameState;
+using Client::Ui::MessageAreaState;
+using Client::Ui::MessageAreaView;
+using Client::Ui::MessageDrawContext;
+using Client::Ui::MessageFrameState;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr int RowHeight = 13;
@@ -39,7 +39,7 @@ protected:
 
     void PutRow(std::size_t shown)
     {
-        m_area.rows[static_cast<std::size_t>(Client::UI::FirstShownRow) + shown].text = "invented";
+        m_area.rows[static_cast<std::size_t>(Client::Ui::FirstShownRow) + shown].text = "invented";
     }
 
     void DrawAt(std::uint8_t crywolfStage)
@@ -52,7 +52,7 @@ protected:
                                          .textColors = m_colors,
                                          .textWidth = m_textWidth,
                                          .textHeight = m_textHeight};
-        Client::UI::DrawTheMessageArea(m_area, m_frame, context, m_view);
+        Client::Ui::DrawTheMessageArea(m_area, m_frame, context, m_view);
     }
 
     SpriteBatch m_sprites;

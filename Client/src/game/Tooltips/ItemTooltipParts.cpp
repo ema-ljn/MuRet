@@ -18,7 +18,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -53,13 +53,13 @@ bool IsExcellent(const Kernel::ItemState& item)
     return (item.flags1b & ExcellentBits) != 0;
 }
 
-std::uint8_t HeroClassOf(const GameHudContext& context)
+std::uint8_t HeroClassOf(const Hud::GameHudContext& context)
 {
     const Kernel::WorldState& world = context.world;
     return world.Hero().characterClass;
 }
 
-Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(GameHudContext& context, std::uint32_t skill,
+Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(Hud::GameHudContext& context, std::uint32_t skill,
                                                                 std::string_view where)
 {
     if (context.skills == nullptr)
@@ -92,14 +92,14 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(ItemTooltipFrame
     return ReadTheSkillEntry(frame.context, skill, where);
 }
 
-Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context,
+Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Hud::GameHudContext& context,
                                                                       const Kernel::ItemState& item)
 {
     return ItemSetNameOf(context, item.id, static_cast<std::uint8_t>(item.flags1c & SetKindMask));
 }
 
-Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context, std::uint16_t type,
-                                                                      std::uint8_t piece)
+Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Hud::GameHudContext& context,
+                                                                      std::uint16_t type, std::uint8_t piece)
 {
     const auto kind = static_cast<std::uint8_t>(piece & SetKindMask);
     if (kind == 0)
@@ -131,4 +131,4 @@ Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const Game
                                         "sigue por la pila)",
                                         set));
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

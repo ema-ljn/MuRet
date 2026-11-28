@@ -16,7 +16,7 @@
 // que escriben los paquetes (0x4d74b0..0x4d9e50) y lo que guardan las dos ventanas del gremio ([0x7d536f0] y
 // [0x7d536f4]) de esos paquetes, y la ventana 2 con sus botones (Scenes/SecondGuildWindow, la fase 3). La ventana del
 // gremio, con sus pestañas y sus listas (fases 4 y 5), está en Scenes/GuildWindow y Scenes/GuildWindowTabs.
-namespace Client::Scenes
+namespace Client::Guild
 {
 // 0x447b50: la tabla de los gremios ([0x723c58], entradas en 0x787aa48) tiene lugar para 2.000.
 inline constexpr std::size_t GuildTableSize = 2000;
@@ -83,15 +83,15 @@ struct GuildUnionRow
     std::uint8_t byte0 = 0;
 };
 
-// La ventana del gremio, [0x7d536f0] (0x64f3e0), con sus tres listas sobre UI::OldList (los elementos, en su dueño).
+// La ventana del gremio, [0x7d536f0] (0x64f3e0), con sus tres listas sobre Ui::OldList (los elementos, en su dueño).
 // El id de la ventana del gremio: el original lo saca del contador 0x5762eb0 como los de la ventana 2; MuRet le da −10,
 // después de los de la ventana 2 (P-C280).
 inline constexpr std::int32_t GuildWindowId = -10;
 
 // 0x64f3e0: la ventana base (0x45a210) en (0x1c2, 0) de 0xbe × 0x17c (0x45a9d0 y 0x45a9f0), que nadie mueve.
-[[nodiscard]] inline UI::OldWindowBase GuildWindowBase()
+[[nodiscard]] inline Ui::OldWindowBase GuildWindowBase()
 {
-    UI::OldWindowBase base;
+    Ui::OldWindowBase base;
     base.id = GuildWindowId;
     base.x = 0x1c2;
     base.y = 0;
@@ -106,9 +106,9 @@ inline constexpr std::int32_t GuildWindowId = -10;
 // (P-C280).
 inline constexpr std::int32_t GuildMemberListId = -11;
 
-[[nodiscard]] inline UI::OldList GuildMemberList()
+[[nodiscard]] inline Ui::OldList GuildMemberList()
 {
-    UI::OldList list;
+    Ui::OldList list;
     list.base.id = GuildMemberListId;
     list.base.x = 0x1d2;
     list.base.y = 0x159;
@@ -128,13 +128,13 @@ inline constexpr std::size_t GuildDismissButton = 1;
 inline constexpr std::size_t GuildKickButton = 2;
 inline constexpr std::size_t GuildMemberButtonCount = 3;
 
-[[nodiscard]] inline std::array<UI::OldButton, GuildMemberButtonCount> GuildMemberButtons()
+[[nodiscard]] inline std::array<Ui::OldButton, GuildMemberButtonCount> GuildMemberButtons()
 {
     constexpr std::array<std::int32_t, GuildMemberButtonCount> Lefts{0x12, 0x46, 0x7a};
-    std::array<UI::OldButton, GuildMemberButtonCount> buttons{};
+    std::array<Ui::OldButton, GuildMemberButtonCount> buttons{};
     for (std::size_t index = 0; index < buttons.size(); ++index)
     {
-        UI::OldButton& button = buttons[index];
+        Ui::OldButton& button = buttons[index];
         button.base.id = GuildMemberListId - 1 - static_cast<std::int32_t>(index);
         button.base.parent = GuildWindowId;
         button.base.x = 0x1c2 + Lefts[index];
@@ -154,9 +154,9 @@ inline constexpr std::size_t GuildMemberButtonCount = 3;
 inline constexpr std::int32_t GuildNoticeListId = -15;
 inline constexpr std::int32_t GuildUnionListId = -16;
 
-[[nodiscard]] inline UI::OldList GuildSmallList(std::int32_t id)
+[[nodiscard]] inline Ui::OldList GuildSmallList(std::int32_t id)
 {
-    UI::OldList list;
+    Ui::OldList list;
     list.base.id = id;
     list.base.rectMode = 2;
     list.rows = 6;
@@ -172,14 +172,14 @@ inline constexpr std::size_t GuildUnionLeaveButton = 1;
 inline constexpr std::size_t GuildUnionKickButton = 2;
 inline constexpr std::size_t GuildTabButtonCount = 3;
 
-[[nodiscard]] inline std::array<UI::OldButton, GuildTabButtonCount> GuildTabButtons()
+[[nodiscard]] inline std::array<Ui::OldButton, GuildTabButtonCount> GuildTabButtons()
 {
     constexpr std::array<std::int32_t, GuildTabButtonCount> Commands{1, 7, 8};
     constexpr std::array<std::int32_t, GuildTabButtonCount> Tops{0x17c - 0x12, 0x15e, 0xdc};
-    std::array<UI::OldButton, GuildTabButtonCount> buttons{};
+    std::array<Ui::OldButton, GuildTabButtonCount> buttons{};
     for (std::size_t index = 0; index < buttons.size(); ++index)
     {
-        UI::OldButton& button = buttons[index];
+        Ui::OldButton& button = buttons[index];
         button.base.id = GuildUnionListId - 1 - static_cast<std::int32_t>(index);
         button.base.parent = GuildWindowId;
         button.base.x = 0x1c2 + 0x46;
@@ -195,7 +195,7 @@ inline constexpr std::size_t GuildTabButtonCount = 3;
 
 struct GuildWindowState
 {
-    UI::OldWindowBase base = GuildWindowBase();
+    Ui::OldWindowBase base = GuildWindowBase();
     // +0x80: la pestaña (0x64f3e0 la deja en 1) y +0x84, el pedido del E9 ya hecho.
     std::int32_t tab = 1;
     std::int32_t unionRequested = 0;
@@ -203,20 +203,20 @@ struct GuildWindowState
     std::array<char, 9> name88{};
     // +0x94: la lista de los miembros (0x6517a0 agrega la entrada de 0x787a5e8 adelante, 0x6517d0 la vacía) y su
     // deque, en el orden del deque.
-    UI::OldList memberList = GuildMemberList();
+    Ui::OldList memberList = GuildMemberList();
     std::vector<GuildMemberRow> members;
     // +0x130 de la lista: el primero que entró a la lista vacía es el héroe (0x46c992).
     std::int32_t heroFirst = 0;
     // +0x4b4, +0x53c y +0x5c4.
-    std::array<UI::OldButton, GuildMemberButtonCount> memberButtons = GuildMemberButtons();
+    std::array<Ui::OldButton, GuildMemberButtonCount> memberButtons = GuildMemberButtons();
     // +0x1c8: la lista del aviso del gremio (0x651680 le agrega los renglones, 0x651790 la vacía) y su deque.
-    UI::OldList noticeList = GuildSmallList(GuildNoticeListId);
+    Ui::OldList noticeList = GuildSmallList(GuildNoticeListId);
     std::vector<GuildNoticeRow> notice;
     // +0x2f8: la lista de la alianza (0x6517e0 agrega, 0x651830 vacía) y su deque.
-    UI::OldList unionList = GuildSmallList(GuildUnionListId);
+    Ui::OldList unionList = GuildSmallList(GuildUnionListId);
     std::vector<GuildUnionRow> unions;
     // +0x42c, +0x64c y +0x6d4. El texto de +0x6d4 (el 1422) lo copia MuRet la primera vez que lo dibuja.
-    std::array<UI::OldButton, GuildTabButtonCount> tabButtons = GuildTabButtons();
+    std::array<Ui::OldButton, GuildTabButtonCount> tabButtons = GuildTabButtons();
     // +0x428: el diálogo de los paneles que abrió (lo que dio 0x6600d0).
     std::uint32_t dialog = 0;
 };
@@ -236,9 +236,9 @@ inline constexpr std::int32_t SecondGuildWindowId = -5;
 
 // 0x654900: la ventana base (0x45a210) en (0x1c2, 0) de 0xbe × 0x5a, que nadie mueve (*estático*: 0x45a9d0 sobre
 // [0x7d536f4] solo lo llama el constructor).
-[[nodiscard]] inline UI::OldWindowBase SecondGuildWindowBase()
+[[nodiscard]] inline Ui::OldWindowBase SecondGuildWindowBase()
 {
-    UI::OldWindowBase base;
+    Ui::OldWindowBase base;
     base.id = SecondGuildWindowId;
     base.x = 0x1c2;
     base.y = 0;
@@ -250,17 +250,17 @@ inline constexpr std::int32_t SecondGuildWindowId = -5;
 // 0x654926..0x654a7a: los cuatro botones, colgados de la ventana (+0x44 con su id). Los dos primeros, de 100 × 20, los
 // ubica el dibujo de la página 0 (0x6563e0); los otros dos, de 50 × 18, quedan en (x + 0x61, y + 0x168) y
 // (x + 0x2d, y + 0x168).
-[[nodiscard]] inline std::array<UI::OldButton, SecondGuildButtonCount> SecondGuildButtons()
+[[nodiscard]] inline std::array<Ui::OldButton, SecondGuildButtonCount> SecondGuildButtons()
 {
     constexpr std::array<std::int32_t, SecondGuildButtonCount> Commands{1, 2, 5, 4};
     constexpr std::array<std::int32_t, SecondGuildButtonCount> Widths{100, 100, 0x32, 0x32};
     constexpr std::array<std::int32_t, SecondGuildButtonCount> Heights{20, 20, 0x12, 0x12};
     constexpr std::array<std::int32_t, SecondGuildButtonCount> Lefts{0, 0, 0x1c2 + 0x61, 0x1c2 + 0x2d};
     constexpr std::array<std::int32_t, SecondGuildButtonCount> Tops{0, 0, 0x168, 0x168};
-    std::array<UI::OldButton, SecondGuildButtonCount> buttons{};
+    std::array<Ui::OldButton, SecondGuildButtonCount> buttons{};
     for (std::size_t index = 0; index < buttons.size(); ++index)
     {
-        UI::OldButton& button = buttons[index];
+        Ui::OldButton& button = buttons[index];
         button.base.id = SecondGuildWindowId - 1 - static_cast<std::int32_t>(index);
         button.base.parent = SecondGuildWindowId;
         button.base.x = Lefts[index];
@@ -275,9 +275,9 @@ inline constexpr std::int32_t SecondGuildWindowId = -5;
 // La ventana 2 del gremio, [0x7d536f4] (0x654900): su base, sus botones y los diálogos que abrió.
 struct SecondGuildWindowState
 {
-    UI::OldWindowBase base = SecondGuildWindowBase();
+    Ui::OldWindowBase base = SecondGuildWindowBase();
     // Los textos (0x45b170) los copia MuRet la primera vez que la dibuja, como los del diálogo de los paneles.
-    std::array<UI::OldButton, SecondGuildButtonCount> buttons = SecondGuildButtons();
+    std::array<Ui::OldButton, SecondGuildButtonCount> buttons = SecondGuildButtons();
     // +0x2a0 y +0x2a4: los diálogos de los paneles que abrió (0x654f50 los cancela al cerrarse).
     std::uint32_t dialog2a0 = 0;
     std::uint32_t dialog2a4 = 0;
@@ -296,12 +296,12 @@ inline constexpr std::int32_t GuildPositionsFirstId = -20;
 inline constexpr std::int32_t AssistantChoice = 0x40;
 inline constexpr std::int32_t BattleMasterChoice = 0x20;
 
-[[nodiscard]] inline std::array<UI::OldButton, GuildPositionsButtonCount> GuildPositionsButtons()
+[[nodiscard]] inline std::array<Ui::OldButton, GuildPositionsButtonCount> GuildPositionsButtons()
 {
-    std::array<UI::OldButton, GuildPositionsButtonCount> buttons{};
+    std::array<Ui::OldButton, GuildPositionsButtonCount> buttons{};
     for (std::size_t index = 0; index < buttons.size(); ++index)
     {
-        UI::OldButton& button = buttons[index];
+        Ui::OldButton& button = buttons[index];
         button.base.id = GuildPositionsFirstId - static_cast<std::int32_t>(index);
         button.base.parent = GuildWindowId;
         button.base.width = 0x32;
@@ -320,7 +320,7 @@ struct GuildPositionsState
     // 0x7d536d8. Nadie lo vuelve a 0x40 al abrir: queda el último.
     std::int32_t choice = AssistantChoice;
     // 0x7d535b8 y 0x7d53640. Los textos (0x45b150) los copia MuRet la primera vez que los dibuja.
-    std::array<UI::OldButton, GuildPositionsButtonCount> buttons = GuildPositionsButtons();
+    std::array<Ui::OldButton, GuildPositionsButtonCount> buttons = GuildPositionsButtons();
 };
 
 struct GuildState
@@ -469,4 +469,4 @@ template <std::size_t Size> [[nodiscard]] std::string_view GuildTextOf(const std
         return std::nullopt;
     return guild.table[static_cast<std::size_t>(index)].unionName[0];
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

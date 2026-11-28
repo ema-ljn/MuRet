@@ -32,7 +32,7 @@ TEST(CrywolfMissilesTest, TheEffectPacketCreatesAllThreeNativeDirections)
             Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 0x0a, 0xbd, 0x0c, 0, 0, direction, 0xff, 12, 34}));
         const auto read = Client::Protocol::Events::ReadEventPacket(wire);
         ASSERT_TRUE(read.HasValue());
-        const auto applied = Client::Scenes::ApplyEventPacket(read.Value(), {.world = *world, .random = random});
+        const auto applied = Client::Events::ApplyEventPacket(read.Value(), {.world = *world, .random = random});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const auto& effect = world->Map().effects.Effects()[0];
         EXPECT_EQ(effect.type, 0xee);
@@ -55,8 +55,8 @@ TEST(CrywolfMissilesTest, TheEffectPacketCreatesAllThreeNativeDirections)
 
 TEST(CrywolfMissilesTest, TheSeenMissileCreatesThreeOwnedParticlesBeforeTheCommonMotion)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto made =
         effects->CreateCrywolfMissile({.type = 0xee, .position = {1000, 2000, 300}, .angles = {10, 20, 30}});
@@ -65,7 +65,7 @@ TEST(CrywolfMissilesTest, TheSeenMissileCreatesThreeOwnedParticlesBeforeTheCommo
     effect.seen = true;
     effect.transform.angles = {0, 0, 0};
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::World::StepGameModelEffect(
+    const auto stepped = Client::Effects::StepGameModelEffect(
         effect, nullptr, *particles, 0, random, nullptr,
         {.terrainHeight = [](float, float) { return 0.0; }, .effects = effects.get(), .lighting = lighting.get()});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -81,7 +81,8 @@ TEST(CrywolfMissilesTest, TheSeenMissileCreatesThreeOwnedParticlesBeforeTheCommo
     EXPECT_EQ(pool[2].subtype, 9);
     EXPECT_EQ(pool[1].position, (glm::vec3{1000, 2000, 300}));
     EXPECT_EQ(pool[2].position, pool[1].position);
-    EXPECT_EQ(pool[0].typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 0}));
+    EXPECT_EQ(pool[0].typedOwner,
+              (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 0}));
     EXPECT_EQ(pool[1].typedOwner, pool[0].typedOwner);
     EXPECT_EQ(pool[2].typedOwner, pool[0].typedOwner);
     EXPECT_EQ(pool[1].light, glm::vec3(1));
@@ -90,8 +91,8 @@ TEST(CrywolfMissilesTest, TheSeenMissileCreatesThreeOwnedParticlesBeforeTheCommo
 
 TEST(CrywolfMissilesTest, TheImpactKeepsCallerRandomsAndTheCommonTailWithBothPoolsFull)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto made = effects->CreateCrywolfMissile({.type = 0xee, .position = {1000, 2000, 30}});
     ASSERT_TRUE(made);
@@ -104,11 +105,11 @@ TEST(CrywolfMissilesTest, TheImpactKeepsCallerRandomsAndTheCommonTailWithBothPoo
         e.alive = true;
     float shake = 0;
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
-                                                            {.terrainHeight = [](float, float) { return 0.0; },
-                                                             .effects = effects.get(),
-                                                             .lighting = lighting.get(),
-                                                             .cameraShake = &shake});
+    const auto stepped = Client::Effects::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
+                                                              {.terrainHeight = [](float, float) { return 0.0; },
+                                                               .effects = effects.get(),
+                                                               .lighting = lighting.get(),
+                                                               .cameraShake = &shake});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 341).State());
     EXPECT_EQ(effect.objectState.hiddenMesh, 99);
@@ -123,8 +124,8 @@ TEST(CrywolfMissilesTest, TheImpactKeepsCallerRandomsAndTheCommonTailWithBothPoo
 // Más6 del fuego6ac/0, cuarenta sorteos caller por grupo, dieciséis selectores y cinco de la cola del misil.
 TEST(CrywolfMissilesTest, TheNormalImpactBuildsAllEightBurstsSixteenStonesAndTheCrater)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto made = effects->CreateCrywolfMissile({.type = 0xee, .position = {1000, 2000, 30}});
     ASSERT_TRUE(made);
@@ -133,7 +134,7 @@ TEST(CrywolfMissilesTest, TheNormalImpactBuildsAllEightBurstsSixteenStonesAndThe
     float shake = 0;
     std::vector<int> sounds;
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::World::StepGameModelEffect(
+    const auto stepped = Client::Effects::StepGameModelEffect(
         effect, nullptr, *particles, 0, random, nullptr,
         {.terrainHeight = [](float, float) { return 0.0; },
          .effects = effects.get(),

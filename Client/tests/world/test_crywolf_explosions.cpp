@@ -15,7 +15,7 @@ namespace
 {
 TEST(CrywolfExplosionsTest, TheLargeExplosionHasThirtyStepsAndTheRingExplosionTwenty)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     for (int subtype = 0; subtype <= 2; ++subtype)
     {
@@ -30,7 +30,7 @@ TEST(CrywolfExplosionsTest, TheLargeExplosionHasThirtyStepsAndTheRingExplosionTw
 
 TEST(CrywolfExplosionsTest, TheFullParticlePoolSkipsTheRingCalleesAndKeepsTheFrameAndLight)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     for (auto& p : particles->All())
     {
@@ -45,10 +45,10 @@ TEST(CrywolfExplosionsTest, TheFullParticlePoolSkipsTheRingCalleesAndKeepsTheFra
     explosion.life = 21;
     explosion.position = {1000, 2000, 300};
     Client::Crt::CrtRandom random(7);
-    Client::World::PortableParticleTrigonometry trig;
+    Client::Particles::PortableParticleTrigonometry trig;
     const float clock = 0;
-    const auto stepped = Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trig, {},
-                                                             {}, {}, {}, lighting.get());
+    const auto stepped = Client::Particles::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trig,
+                                                                 {}, {}, {}, {}, lighting.get());
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(explosion.life, 20);
     EXPECT_EQ(std::bit_cast<std::int32_t>(explosion.field48), 5);
@@ -62,7 +62,7 @@ TEST(CrywolfExplosionsTest, TheRingRetainsThePhysicalVisitOrderAndTheAcceptedExp
     for (const bool sourceLast : {false, true})
     {
         SCOPED_TRACE(sourceLast);
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
         for (auto& p : particles->All())
         {
@@ -82,10 +82,10 @@ TEST(CrywolfExplosionsTest, TheRingRetainsThePhysicalVisitOrderAndTheAcceptedExp
         explosion.life = 21;
         explosion.position = {1000, 2000, 300};
         Client::Crt::CrtRandom random(7);
-        Client::World::PortableParticleTrigonometry trig;
+        Client::Particles::PortableParticleTrigonometry trig;
         const float clock = 0;
         std::vector<int> sounds;
-        const auto stepped = Client::World::StepParticlesChecked(
+        const auto stepped = Client::Particles::StepParticlesChecked(
             *particles, random, std::cref(clock), nullptr, trig, {}, {}, {}, {}, lighting.get(), {}, {},
             [&](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); });
         ASSERT_TRUE(stepped.HasValue());

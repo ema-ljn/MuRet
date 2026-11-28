@@ -25,7 +25,7 @@
 //
 // Lo que manda nunca va al log: el pedido trae la cuenta y la clave, y su PrintTo de los tests
 // (tests/support/UiPrinters.h) escribe los largos.
-namespace Client::UI
+namespace Client::FrontEnd
 {
 enum class LoginFocus : std::uint8_t
 {
@@ -57,22 +57,22 @@ struct LoginRequest
 // Dónde va cada cosa, en píxeles con la y desde arriba.
 struct LoginLayout
 {
-    Rect window;
-    Rect account;
-    Rect password;
-    Rect ok;
-    Rect cancel;
+    Ui::Rect window;
+    Ui::Rect account;
+    Ui::Rect password;
+    Ui::Rect ok;
+    Ui::Rect cancel;
 };
 
 // 0x641700: 329 × 245 en ((W − 329) / 2, (H − 245) · 2 / 3); los campos de 156 × 23 en (+109,
 // +106) y (+109, +131); OK y cancelar de 54 × 30 en (+150, +178) y (+211, +178).
 [[nodiscard]] LoginLayout LayoutLogin(Core::PixelSize screen);
 
-class LoginWindow final : public NewUiWindow
+class LoginWindow final : public Ui::NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (sin rótulos) y tiene que vivir lo que la ventana.
-    LoginWindow(TextureSizes sizes, const Tables::TextTable* texts);
+    LoginWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
     // Como 0x643560: abre con el foco en `focus`. Lo que tenían los campos queda.
     void Open(LoginFocus focus);
@@ -81,18 +81,18 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // La ventana (`window` de LayoutLogin).
-    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
+    [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
     [[nodiscard]] LoginFocus Focus() const;
     // El título de arriba (0x641990): el texto 460 o 461 con el grupo y el número, ya armado.
     void SetTitle(std::string title);
 
-    [[nodiscard]] const TextField& Account() const;
-    [[nodiscard]] const TextField& Password() const;
+    [[nodiscard]] const Ui::TextField& Account() const;
+    [[nodiscard]] const Ui::TextField& Password() const;
 
     // 0x6418b0 en el paso, con lo tecleado desde el paso anterior. Con Submit, la clave queda
     // vacía en la ventana; con Cancel, también; con EmptyAccount queda, como el emisor la deja. Lo
     // tecleado entra con o sin el foco de la UI; los clics, Enter y Esc, solo con él.
-    std::optional<LoginRequest> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
+    std::optional<LoginRequest> Step(const Input::InputState& input, Core::PixelSize screen, Ui::NewUiTurn turn = {});
     // Pone la mezcla normal (Q-C80) y dibuja el fondo, los campos, los botones, lo que tiene cada
     // campo (la clave con asteriscos), los rótulos y el título. El control activo del original
     // (0x468320) compone el caret como píxeles; no agrega el glifo "_" del camino legacy.
@@ -100,25 +100,25 @@ public:
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
-    [[nodiscard]] TextField& Focused();
+    [[nodiscard]] Ui::TextField& Focused();
     // Lo tecleado, byte por byte: TabChar pasa el foco, BackspaceChar borra en el campo del foco y
     // lo demás va a ese campo (TextField descarta lo que no es ASCII imprimible).
     void TypeInOrder(std::string_view typed);
     void Place(Core::PixelSize screen);
     LoginRequest Send();
     LoginRequest Cancel();
-    void DrawField(Render::Frame::ITextDrawer& text, const TextField& field, const Rect& area,
+    void DrawField(Render::Frame::ITextDrawer& text, const Ui::TextField& field, const Ui::Rect& area,
                    Core::PixelSize screen) const;
 
-    TextureSizes m_sizes;
+    Ui::TextureSizes m_sizes;
     const Tables::TextTable* m_texts;
     bool m_open = false;
     LoginFocus m_focus = LoginFocus::Account;
-    TextField m_account;
-    TextField m_password;
-    Button m_ok;
-    Button m_cancel;
+    Ui::TextField m_account;
+    Ui::TextField m_password;
+    Ui::Button m_ok;
+    Ui::Button m_cancel;
     std::string m_title;
     LoginLayout m_layout;
 };
-} // namespace Client::UI
+} // namespace Client::FrontEnd

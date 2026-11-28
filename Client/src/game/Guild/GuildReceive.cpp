@@ -37,7 +37,7 @@
 #include <utility>
 #include <variant>
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 namespace
 {
@@ -138,7 +138,7 @@ std::string_view CString(std::string_view text)
 
 Core::Expected<std::string_view, std::string> TextOf(const GuildReceiveContext& context, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected("el texto " + std::to_string(index) + " de Text.bmd no está");
     return CString(*text);
@@ -151,7 +151,7 @@ Core::Expected<void, std::string> AddMessage(const GuildReceiveContext& context,
     auto measure = MeasureOf(context, "0x555190");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
-    return AddGameMessage(context.world.Runtime(), *measure.Value(), context.screen, {}, text, type);
+    return Chat::AddGameMessage(context.world.Runtime(), *measure.Value(), context.screen, {}, text, type);
 }
 
 Core::Expected<void, std::string> AddTextMessage(const GuildReceiveContext& context, std::size_t index,
@@ -170,7 +170,7 @@ Core::Expected<void, std::string> AddHighlightedNotice(const GuildReceiveContext
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, text, 1);
+    Ui::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, text, 1);
     return {};
 }
 
@@ -183,7 +183,7 @@ Core::Expected<std::string, std::string> Formatted(const GuildReceiveContext& co
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
     const std::array<std::string_view, 1> arguments{argument};
-    std::string line = UI::PlaceArguments(format.Value(), std::span(arguments).first(argument.data() ? 1 : 0));
+    std::string line = Ui::PlaceArguments(format.Value(), std::span(arguments).first(argument.data() ? 1 : 0));
     if (line.size() >= bytes)
         return Core::Unexpected(std::string(where) + ": el renglón no entra en su buffer de la pila (Q-C1282)");
     return line;
@@ -221,22 +221,22 @@ Core::Expected<GuildTableEntry*, std::string> EntryOf(GuildState& guild, std::in
 }
 
 // El registro de los paneles con los ganchos del gremio, para abrir y cerrar como el original.
-Core::Expected<bool, std::string> OpenThePanel(const GuildReceiveContext& context, UI::PanelId id)
+Core::Expected<bool, std::string> OpenThePanel(const GuildReceiveContext& context, Ui::PanelId id)
 {
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     if (context.worldEntry != nullptr)
-        LendTheCastlePanelServices(panels, *context.worldEntry, context.send);
+        CastleSiege::LendTheCastlePanelServices(panels, *context.worldEntry, context.send);
     else
-        LendTheCastlePanelServices(
+        CastleSiege::LendTheCastlePanelServices(
             panels, context.world, context.random, context.send, nullptr,
             {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.now});
     panels.LendTheGuild(context.world, context.send);
     return panels.Registry().Open(id);
 }
 
-Core::Expected<bool, std::string> CloseThePanel(const GuildReceiveContext& context, UI::PanelId id)
+Core::Expected<bool, std::string> CloseThePanel(const GuildReceiveContext& context, Ui::PanelId id)
 {
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     panels.LendTheGuild(context.world, context.send);
     return panels.Registry().Close(id);
 }
@@ -293,14 +293,14 @@ Core::Expected<void, std::string> Gesture(const GuildReceiveContext& context, st
 
 // 0x6600d0 con los renglones (ocupado, el aviso de 0x6d69a8 y 0: el 50 y el E5 miran 0x660340 antes y no llegan).
 Core::Expected<std::uint32_t, std::string> OpenTheDialog(const GuildReceiveContext& context,
-                                                         std::span<const std::string> lines, UI::PanelDialogOwner owner)
+                                                         std::span<const std::string> lines, Ui::PanelDialogOwner owner)
 {
     auto measure = MeasureOf(context, "0x6600d0");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
     return PopUpThePanelDialog(
         context.world.Runtime(),
-        UI::PanelDialogRequest{.lines = lines, .flags = UI::PanelDialogConfirm, .owner = owner, .placed = 0},
+        Ui::PanelDialogRequest{.lines = lines, .flags = Ui::PanelDialogConfirm, .owner = owner, .placed = 0},
         *measure.Value(), context.screen, context.now);
 }
 
@@ -308,7 +308,7 @@ Core::Expected<void, std::string> ApplyJoinRequest(const JoinRequest& request, c
 {
     GuildState& guild = context.world.Runtime().guild;
     // 0x4d74e2: la clave a 0x78aba40 y, con el diálogo ocupado (0x4d74ec: 0x660340 distinto de 0), no.
-    if (UI::PanelDialogHandle(context.world.Runtime().panels.delegated.panelDialog) != 0)
+    if (Ui::PanelDialogHandle(context.world.Runtime().panels.delegated.panelDialog) != 0)
     {
         guild.requester = request.key;
         return Send(context, WriteJoinAnswer(false, request.key), "0x4d754d");
@@ -327,7 +327,7 @@ Core::Expected<void, std::string> ApplyJoinRequest(const JoinRequest& request, c
     if (!second.HasValue())
         return Core::Unexpected(second.Error());
     const std::array<std::string, 2> lines{first.Value(), second.Value()};
-    auto opened = OpenTheDialog(context, lines, UI::PanelDialogOwner::GuildJoin);
+    auto opened = OpenTheDialog(context, lines, Ui::PanelDialogOwner::GuildJoin);
     if (!opened.HasValue())
         return Core::Unexpected(opened.Error());
     return {};
@@ -337,12 +337,12 @@ Core::Expected<void, std::string> ApplyJoinResult(const JoinResult& result, cons
 {
     if (result.result <= LastJoinResult)
     {
-        if (auto added = AddTextMessage(context, FirstJoinResultText + result.result, UI::ErrorMessage);
+        if (auto added = AddTextMessage(context, FirstJoinResultText + result.result, Ui::ErrorMessage);
             !added.HasValue())
             return added;
     }
     // 0x4d7a3f..: 0x6236f0(0) con cualquier resultado.
-    UI::PushDialog(context.world.Runtime().dialogs, 0);
+    Ui::PushDialog(context.world.Runtime().dialogs, 0);
     return {};
 }
 
@@ -380,13 +380,13 @@ Core::Expected<void, std::string> ApplyLeaveResult(const LeaveResult& result, co
 {
     if (result.result <= LastNumberedLeaveResult)
     {
-        if (auto added = AddTextMessage(context, FirstLeaveResultText + result.result, UI::ErrorMessage);
+        if (auto added = AddTextMessage(context, FirstLeaveResultText + result.result, Ui::ErrorMessage);
             !added.HasValue())
             return added;
     }
     else if (result.result == AskTheListAgain)
     {
-        if (auto added = AddTextMessage(context, ListAgainText, UI::ErrorMessage); !added.HasValue())
+        if (auto added = AddTextMessage(context, ListAgainText, Ui::ErrorMessage); !added.HasValue())
             return added;
     }
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -408,7 +408,7 @@ Core::Expected<void, std::string> ApplyLeaveResult(const LeaveResult& result, co
         hero.byte370 = 0;
         guild.warOn = 0;
         guild.memberCount = -1;
-        auto closed = CloseThePanel(context, UI::GuildPanel);
+        auto closed = CloseThePanel(context, Ui::GuildPanel);
         if (!closed.HasValue())
             return Core::Unexpected(closed.Error());
         return {};
@@ -424,7 +424,7 @@ Core::Expected<void, std::string> ApplyCreateResult(const CreateResult& result, 
     {
         if (result.result >= std::size(CreateResultTexts))
             return {};
-        return AddTextMessage(context, CreateResultTexts[result.result], UI::ErrorMessage);
+        return AddTextMessage(context, CreateResultTexts[result.result], Ui::ErrorMessage);
     }
     // 0x4d808f..0x4d80cf: los diez primeros bytes del buffer del mensaje (0x7798bf8..0x7798c01: dos DWORD y un WORD) y
     // su largo (0x7758590) en 0, 0x6c8e78 en 10 (el tope de la entrada sin EDIT, que MuRet no guarda), la ventana 2
@@ -434,7 +434,7 @@ Core::Expected<void, std::string> ApplyCreateResult(const CreateResult& result, 
     std::fill_n(runtime.chat.input.messageBuffer.begin(), ClearedBytes, '\0');
     static_cast<void>(NoEditFieldLimit);
     runtime.chat.input.messageLength = 0;
-    auto closed = CloseThePanel(context, UI::SecondGuildPanel);
+    auto closed = CloseThePanel(context, Ui::SecondGuildPanel);
     if (!closed.HasValue())
         return Core::Unexpected(closed.Error());
     runtime.movement.mouseUpdateTime = 0;
@@ -457,7 +457,7 @@ Core::Expected<void, std::string> ApplyViewportGuildDelete(const ViewportGuildDe
     actor.byte369 = 0;
     actor.dword36c = 0;
     actor.byte370 = 0;
-    auto closed = CloseThePanel(context, UI::GuildPanel);
+    auto closed = CloseThePanel(context, Ui::GuildPanel);
     if (!closed.HasValue())
         return Core::Unexpected(closed.Error());
     return {};
@@ -468,7 +468,7 @@ Core::Expected<void, std::string> ApplyWarRequestResult(const WarRequestResult& 
 {
     if (result.result <= LastWarRequestResult)
     {
-        if (auto added = AddTextMessage(context, FirstWarRequestText + result.result, UI::ErrorMessage);
+        if (auto added = AddTextMessage(context, FirstWarRequestText + result.result, Ui::ErrorMessage);
             !added.HasValue())
             return added;
     }
@@ -483,7 +483,7 @@ Core::Expected<void, std::string> ApplyWarRequest(const WarRequest& request, con
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     CopyName(guild.rival, request.name);
-    UI::PushDialog(runtime.dialogs, UI::IgnoredOverChaosCastle);
+    Ui::PushDialog(runtime.dialogs, Ui::IgnoredOverChaosCastle);
     if (request.type == TypedWar)
         guild.warType = 1;
     return {};
@@ -531,7 +531,7 @@ Core::Expected<void, std::string> ApplyWarEnd(const WarEnd& end, const GuildRece
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
     // 0x4d88ba: sprintf sin argumentos.
-    const std::string line = UI::PlaceArguments(text.Value(), {});
+    const std::string line = Ui::PlaceArguments(text.Value(), {});
     std::int32_t gesture = WonGesture;
     if (end.result == 1 || end.result == 2 || end.result == 4)
         gesture = LostGesture;
@@ -722,8 +722,8 @@ Core::Expected<void, std::string> ApplyAssignResult(const AssignResult& result, 
         }
     }
     if (!index)
-        return AddMessage(context, InvalidAssign, UI::SystemMessage);
-    return AddTextMessage(context, *index, UI::SystemMessage);
+        return AddMessage(context, InvalidAssign, Ui::SystemMessage);
+    return AddTextMessage(context, *index, Ui::SystemMessage);
 }
 
 Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipRequest& request,
@@ -732,7 +732,7 @@ Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipReq
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     // 0x656603: con el diálogo ocupado, no (C1 08 E6 con 0).
-    if (UI::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
+    if (Ui::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
         return Send(context,
                     WriteRelationshipAnswer(request.relation, request.request, 0, request.keyHigh, request.keyLow),
                     "0x656616");
@@ -769,7 +769,7 @@ Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipReq
     if (!third.HasValue())
         return Core::Unexpected(third.Error());
     const std::array<std::string, 3> lines{first.Value(), second.Value(), third.Value()};
-    auto opened = OpenTheDialog(context, lines, UI::PanelDialogOwner::Relationship);
+    auto opened = OpenTheDialog(context, lines, Ui::PanelDialogOwner::Relationship);
     if (!opened.HasValue())
         return Core::Unexpected(opened.Error());
     guild.secondWindow.dialog2a4 = opened.Value();
@@ -823,8 +823,8 @@ Core::Expected<void, std::string> ApplyRelationshipResult(const RelationshipResu
                 index = text;
         }
     }
-    const auto added = index ? AddTextMessage(context, *index, UI::SystemMessage)
-                             : AddMessage(context, InvalidRelationship, UI::SystemMessage);
+    const auto added = index ? AddTextMessage(context, *index, Ui::SystemMessage)
+                             : AddMessage(context, InvalidRelationship, Ui::SystemMessage);
     if (!added.HasValue())
         return added;
     if (result.key != context.playerKey || result.result != 1 || result.relation != UnionRelation ||
@@ -875,7 +875,7 @@ Core::Expected<void, std::string> ApplyUnionListRefresh(const UnionListRefresh& 
     if (refresh.kind != RefreshKind)
         return {};
     if (refresh.result == RefreshEmpty)
-        return AddTextMessage(context, UnionListEmptyText, UI::SystemMessage);
+        return AddTextMessage(context, UnionListEmptyText, Ui::SystemMessage);
     if (refresh.result != RefreshAgain)
         return {};
     GuildWindowState& window = context.world.Runtime().guild.window;
@@ -919,7 +919,7 @@ Core::Expected<void, std::string> ApplyGuildPacket(const GuildPacket& packet, co
             else if constexpr (std::is_same_v<Received, MasterQuestion>)
             {
                 // 0x4e4279: 0x6599a0(0x40000, 0).
-                auto opened = OpenThePanel(context, UI::SecondGuildPanel);
+                auto opened = OpenThePanel(context, Ui::SecondGuildPanel);
                 if (!opened.HasValue())
                     return Core::Unexpected(opened.Error());
                 return {};
@@ -957,4 +957,4 @@ Core::Expected<void, std::string> ApplyGuildPacket(const GuildPacket& packet, co
         },
         packet);
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

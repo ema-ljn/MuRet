@@ -9,11 +9,11 @@
 
 namespace
 {
-using Client::World::KalimaWaveCellCount;
-using Client::World::KalimaWavePlane;
-using Client::World::KalimaWaveSide;
-using Client::World::KalimaWaveState;
-using Client::World::UpdateKalimaWaves;
+using Client::MapScripts::Kalima::KalimaWaveCellCount;
+using Client::MapScripts::Kalima::KalimaWavePlane;
+using Client::MapScripts::Kalima::KalimaWaveSide;
+using Client::MapScripts::Kalima::KalimaWaveState;
+using Client::MapScripts::Kalima::UpdateKalimaWaves;
 
 constexpr std::size_t Cell(std::size_t row, std::size_t column)
 {

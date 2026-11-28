@@ -5,7 +5,7 @@
 #include <cstdint>
 
 // 06 § Lo propio de Lorencia: registro auxiliar de 0x606630, separado de los objetos y actores.
-namespace Client::World
+namespace Client::WorldObjects
 {
 // Identidad moderna no poseedora: 0 representa el argumento null, no un objeto vivo.
 using WorldObjectIdentity = std::uint64_t;
@@ -35,4 +35,4 @@ struct WorldObjectRegistrations
 // Primer active == 0: activa y guarda el argumento; null y duplicados son válidos. Si está lleno no
 // cambia nada. No toca los objetos ni calcula poses. El caller conserva metadata y vida de entidades.
 void RegisterWorldObject(WorldObjectRegistrations& registrations, WorldObjectIdentity object);
-} // namespace Client::World
+} // namespace Client::WorldObjects

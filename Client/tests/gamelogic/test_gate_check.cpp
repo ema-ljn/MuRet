@@ -17,10 +17,10 @@
 // Casos del ASM de 0x599ef0: la decisión no ejecuta el original ni simula sus accesos protegidos.
 namespace
 {
-using Client::GameLogic::GateCheck;
-using Client::GameLogic::GateCheckState;
-using Client::GameLogic::GateDecision;
-using Client::GameLogic::GateWarning;
+using Client::Movement::GateCheck;
+using Client::Movement::GateCheckState;
+using Client::Movement::GateDecision;
+using Client::Movement::GateWarning;
 using Client::Tables::GateRecord;
 using Client::Tables::GateTable;
 using Client::Tests::GateTableBytes;

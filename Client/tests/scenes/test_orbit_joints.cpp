@@ -54,12 +54,12 @@ struct OrbitWorld
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, kind);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr);
+        return Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr);
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 100.0f};
@@ -159,7 +159,7 @@ TEST(OrbitJointsTest, TheWhirlBornsWithThreeOrFourDraws)
     {
         SCOPED_TRACE(width);
         OrbitWorld tested;
-        Client::World::ModelEffect effect{};
+        Client::Effects::ModelEffect effect{};
         ASSERT_TRUE(tested.Create(0x62b, 0xf, &effect, width, JointOwnerKind::ModelEffect).HasValue());
         CrtRandom replay{Seed};
         float lift = F32(static_cast<double>(replay.Next() % 150) * Hundredth);
@@ -220,7 +220,7 @@ TEST(OrbitJointsTest, TheWhirlTurnsAroundItsTarget)
     {
         SCOPED_TRACE(probe.y);
         OrbitWorld tested;
-        Client::World::ModelEffect effect{};
+        Client::Effects::ModelEffect effect{};
         ASSERT_TRUE(tested.Create(0x62b, probe.subtype, &effect, 40.0f, JointOwnerKind::ModelEffect).HasValue());
         JointState& joint = tested.joints[0];
         joint.angles = glm::vec3(0.0f);
@@ -249,7 +249,7 @@ TEST(OrbitJointsTest, TheWhirlTurnsAroundItsTarget)
 
     // Con vida 20 la velocidad no crece; sin dueño (0x53b18f) no gira ni saca rand(): sólo el movimiento común.
     OrbitWorld steady;
-    Client::World::ModelEffect effect{};
+    Client::Effects::ModelEffect effect{};
     ASSERT_TRUE(steady.Create(0x60f, 0xe, &effect, 40.0f, JointOwnerKind::ModelEffect).HasValue());
     ASSERT_TRUE(steady.Step().HasValue());
     EXPECT_EQ(steady.joints[0].speed, 30.0f);

@@ -53,14 +53,14 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 namespace
 {
+using Hud::WindowDrawing::DrawText;
+using Hud::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
-using WindowDrawing::DrawText;
-using WindowDrawing::SelectFont;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 // 0x65202d y 0x6520fe: la pestaña que no está elegida, en 0,6.
@@ -171,14 +171,14 @@ using Math::Truncate;
 Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
 
 // 0x5542f0(x, y, texto, _ftol(rx · 52), 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
-void DrawInTheTabBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawInTheTabBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen()));
     const std::int32_t box = Truncate(rx * TabTextBox);
@@ -215,18 +215,18 @@ Core::Expected<void, std::string> AskForTheUnionList(const GuildWindowStepContex
 // salvo el tamaño del elemento y la y del renglón de la alianza, que es su + 0xa0): el mouse sobre el renglón con el
 // clic lo elige (corrimiento + renglón + 1, la + 0x58), invierte +0 de su elemento y gasta el clic. Siempre 1.
 template <typename Row>
-std::int32_t HoverTheRow(const GuildWindowStepContext& context, UI::OldList& list, std::vector<Row>& rows,
+std::int32_t HoverTheRow(const GuildWindowStepContext& context, Ui::OldList& list, std::vector<Row>& rows,
                          std::int32_t row, std::size_t at)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::size_t size = rows.size();
     const std::int32_t width =
         Truncate(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
-    if (UI::MouseInRect(context.mouseX, context.mouseY, list.base.x, UI::ListRowY(list, size, row) - MemberRowAbove,
-                        width, MemberRowHeight, TopLeftRect) &&
+    if (Chat::MouseInRect(context.mouseX, context.mouseY, list.base.x, Ui::ListRowY(list, size, row) - MemberRowAbove,
+                          width, MemberRowHeight, TopLeftRect) &&
         runtime.movement.pendingClick)
     {
-        UI::SelectInTheList(list, size, list.scroll + row + 1);
+        Ui::SelectInTheList(list, size, list.scroll + row + 1);
         Row& element = rows[at];
         element.toggled = (element.toggled + 1) % 2;
         runtime.movement.pendingClick = false;
@@ -237,14 +237,14 @@ std::int32_t HoverTheRow(const GuildWindowStepContext& context, UI::OldList& lis
 // 0x650378, 0x64fc14 y 0x650c3c: 0x5762eb4 con el id de la lista, su vtable + 0x18 (0x45aa80(0): la cola, vacía
 // porque nadie le manda mensajes, el mouse y 0x47b0f0 o sus iguales 0x480e00 y 0x4824d0) y 0x5762eb4 en 0.
 template <typename Row>
-void StepTheGuildList(const GuildWindowStepContext& context, UI::OldList& list, std::vector<Row>& rows)
+void StepTheGuildList(const GuildWindowStepContext& context, Ui::OldList& list, std::vector<Row>& rows)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.ui.capture = list.base.id;
     if (PassesTheGuildWindowGate(list.base, runtime.ui, context.mouseX, context.mouseY))
     {
-        const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-        const UI::OldListGlobals listGlobals{.leftClick = globals.leftClick,
+        const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
+        const Ui::OldListGlobals listGlobals{.leftClick = globals.leftClick,
                                              .wheel = globals.wheel,
                                              .capture = globals.capture,
                                              .focusedList = globals.focusedList,
@@ -253,11 +253,11 @@ void StepTheGuildList(const GuildWindowStepContext& context, UI::OldList& list, 
                                              .drawn = runtime.oldWindows.drawn == 1,
                                              .modal = runtime.oldWindows.modal,
                                              .soundRequest = globals.soundRequest};
-        const UI::OldListView view{
+        const Ui::OldListView view{
             .mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
                 return context.keyDown && context.keyDown(key);
             }};
-        static_cast<void>(UI::StepTheListMouse(list, rows.size(), listGlobals, view,
+        static_cast<void>(Ui::StepTheListMouse(list, rows.size(), listGlobals, view,
                                                [&context, &list, &rows](std::int32_t row, std::size_t at)
                                                { return HoverTheRow(context, list, rows, row, at); }));
     }
@@ -267,31 +267,31 @@ void StepTheGuildList(const GuildWindowStepContext& context, UI::OldList& list, 
 // 0x46c930, 0x46bca0 y 0x46d900 después de armar el elemento: adelante, con más de +0xfc saca del final (0x47b7e0 y sus
 // iguales 0x4814f0 y 0x482bc0), elige 0, uno más de corrimiento con más que los renglones, lo acota, 1 si es el único,
 // y al final el último (la cuenta) con el corrimiento hasta el final (−10.000).
-template <typename Row> void PutFirst(UI::OldList& list, std::vector<Row>& rows, Row row)
+template <typename Row> void PutFirst(Ui::OldList& list, std::vector<Row>& rows, Row row)
 {
     rows.insert(rows.begin(), std::move(row));
     while (std::cmp_greater(rows.size(), list.maxEntries))
         rows.pop_back();
     const std::size_t size = rows.size();
-    UI::SelectInTheList(list, size, 0);
-    if (UI::ListCount(list, size) > list.rows)
+    Ui::SelectInTheList(list, size, 0);
+    if (Ui::ListCount(list, size) > list.rows)
         ++list.scroll;
-    if (const std::int32_t count = UI::ListCount(list, size); count >= list.rows && count - list.scroll < list.rows)
+    if (const std::int32_t count = Ui::ListCount(list, size); count >= list.rows && count - list.scroll < list.rows)
         list.scroll = count - list.rows;
     if (size == 1)
-        UI::SelectInTheList(list, size, 1);
+        Ui::SelectInTheList(list, size, 1);
     if (size != 0)
     {
-        UI::SelectInTheList(list, size, UI::ListCount(list, size));
-        UI::ScrollTheList(list, size, ScrollToTheEnd);
+        Ui::SelectInTheList(list, size, Ui::ListCount(list, size));
+        Ui::ScrollTheList(list, size, ScrollToTheEnd);
     }
 }
 
 // 0x47a410 y sus iguales 0x480260 y 0x4818b0: la vacía, elige 0 y vuelve el corrimiento a 0.
-template <typename Row> void ClearTheGuildList(UI::OldList& list, std::vector<Row>& rows)
+template <typename Row> void ClearTheGuildList(Ui::OldList& list, std::vector<Row>& rows)
 {
     rows.clear();
-    UI::SelectInTheList(list, 0, 0);
+    Ui::SelectInTheList(list, 0, 0);
     list.scroll = 0;
 }
 
@@ -323,13 +323,13 @@ void ChooseTheMember(GuildState& guild, std::string_view name)
 // +0x428 en 0.
 Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContext& context,
                                                      std::span<const std::string> lines, std::uint32_t flags,
-                                                     UI::PanelDialogOwner owner, std::string_view where)
+                                                     Ui::PanelDialogOwner owner, std::string_view where)
 {
     if (context.measure == nullptr)
         return Core::Unexpected(std::format("{}: el diálogo de los paneles (0x6600d0) sin medidor", where));
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     auto opened = PopUpThePanelDialog(
-        runtime, UI::PanelDialogRequest{.lines = lines, .flags = flags, .owner = owner, .placed = 0}, *context.measure,
+        runtime, Ui::PanelDialogRequest{.lines = lines, .flags = flags, .owner = owner, .placed = 0}, *context.measure,
         context.screen, context.now);
     if (!opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
@@ -345,12 +345,12 @@ Core::Expected<void, std::string> TellTheMaster(const GuildWindowStepContext& co
     if (!line.HasValue())
         return Core::Unexpected(std::move(line).Error());
     const std::array<std::string, 1> lines{std::string(line.Value())};
-    return OpenTheGuildDialog(context, lines, UI::PanelDialogOk, UI::PanelDialogOwner::None, where);
+    return OpenTheGuildDialog(context, lines, Ui::PanelDialogOk, Ui::PanelDialogOwner::None, where);
 }
 
 // 0x650648 y 0x6507ad: 0x6600d0(renglones, 2, 0x40, 4, función, 0), con lo que da en +0x428.
 Core::Expected<void, std::string> AskAboutTheMember(const GuildWindowStepContext& context, std::string_view name,
-                                                    std::size_t text, UI::PanelDialogOwner owner)
+                                                    std::size_t text, Ui::PanelDialogOwner owner)
 {
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x650648: el diálogo de los paneles (0x6600d0) sin medidor"));
@@ -361,8 +361,8 @@ Core::Expected<void, std::string> AskAboutTheMember(const GuildWindowStepContext
     if (!second.HasValue())
         return Core::Unexpected(std::move(second).Error());
     const std::array<std::string_view, 1> arguments{name};
-    const std::array<std::string, 2> lines{UI::PlaceArguments(format.Value(), arguments), std::string(second.Value())};
-    return OpenTheGuildDialog(context, lines, UI::PanelDialogConfirm, owner, "0x650648");
+    const std::array<std::string, 2> lines{Ui::PlaceArguments(format.Value(), arguments), std::string(second.Value())};
+    return OpenTheGuildDialog(context, lines, Ui::PanelDialogConfirm, owner, "0x650648");
 }
 
 // 0x6503bd..0x6507bb: los tres botones del maestro, uno detrás del otro.
@@ -371,15 +371,15 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
     const auto chosen = [&]() -> std::optional<GuildMemberSlot>
     {
-        const auto at = UI::SelectedInTheList(window.memberList, window.members.size());
+        const auto at = Ui::SelectedInTheList(window.memberList, window.members.size());
         if (!at)
             return std::nullopt;
         return window.members[*at].slot;
     };
-    if (UI::ClickTheButton(window.memberButtons[GuildAssignButton], globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(window.memberButtons[GuildAssignButton], globals, context.mouseX, context.mouseY))
     {
         if (const auto member = chosen(); member && member->status != MasterStatus)
         {
@@ -389,25 +389,25 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
             // y el dibujo de la ventana de los cargos. Con otro abierto, 0x6600d0 da 0 (con el aviso) y 0x6504d4 le
             // pone los ganchos igual al abierto: su paso y su dibujo pasan a ser los de los cargos, y su respuesta
             // sigue (Q-C1306).
-            if (auto opened = OpenTheGuildDialog(context, {}, 0, UI::PanelDialogOwner::None, "0x6504b6");
+            if (auto opened = OpenTheGuildDialog(context, {}, 0, Ui::PanelDialogOwner::None, "0x6504b6");
                 !opened.HasValue())
                 return opened;
-            UI::HookThePanelDialog(runtime.panels.delegated.panelDialog, UI::PanelDialogHooks::GuildPositions);
+            Ui::HookThePanelDialog(runtime.panels.delegated.panelDialog, Ui::PanelDialogHooks::GuildPositions);
         }
     }
-    if (UI::ClickTheButton(window.memberButtons[GuildDismissButton], globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(window.memberButtons[GuildDismissButton], globals, context.mouseX, context.mouseY))
     {
         if (const auto member = chosen();
             member && (member->status == AssistantStatus || member->status == BattleMasterStatus))
         {
             const std::string_view name = GuildTextOf(member->name);
             ChooseTheMember(guild, name);
-            if (auto asked = AskAboutTheMember(context, name, DismissText, UI::PanelDialogOwner::GuildDismiss);
+            if (auto asked = AskAboutTheMember(context, name, DismissText, Ui::PanelDialogOwner::GuildDismiss);
                 !asked.HasValue())
                 return asked;
         }
     }
-    if (UI::ClickTheButton(window.memberButtons[GuildKickButton], globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(window.memberButtons[GuildKickButton], globals, context.mouseX, context.mouseY))
     {
         if (const auto member = chosen(); member && member->status != MasterStatus)
         {
@@ -416,7 +416,7 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
             if (!index.HasValue())
                 return Core::Unexpected(std::move(index).Error());
             guild.kickIndex = index.Value();
-            if (auto asked = AskAboutTheMember(context, name, KickText, UI::PanelDialogOwner::GuildKick);
+            if (auto asked = AskAboutTheMember(context, name, KickText, Ui::PanelDialogOwner::GuildKick);
                 !asked.HasValue())
                 return asked;
         }
@@ -431,12 +431,12 @@ Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext
         return Core::Unexpected(std::string("0x650387: PgUp y PgDn de la lista de los miembros sin el teclado"));
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildWindowState& window = runtime.guild.window;
-    UI::OldList& list = window.memberList;
+    Ui::OldList& list = window.memberList;
     StepTheGuildList(context, list, window.members);
     if (context.keyEdge(PageUpKey))
-        UI::ScrollTheList(list, window.members.size(), -list.rows);
+        Ui::ScrollTheList(list, window.members.size(), -list.rows);
     if (context.keyEdge(PageDownKey))
-        UI::ScrollTheList(list, window.members.size(), list.rows);
+        Ui::ScrollTheList(list, window.members.size(), list.rows);
     if (context.world.Hero().guildStatus != MasterStatus)
         return {};
     return StepTheMasterButtons(context);
@@ -466,7 +466,7 @@ Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(Kernel::WorldState&
 void OpenTheNumberDialog(Kernel::WorldRuntime& runtime)
 {
     runtime.dialogs.current = NumberDialog;
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    Chat::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.ui.chatOpen = false;
     runtime.chat.input.fieldCount = NumberDialogFields;
 }
@@ -506,8 +506,8 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
     GuildState& guild = runtime.guild;
     GuildWindowState& window = guild.window;
     StepTheGuildList(context, window.noticeList, window.notice);
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-    if (!UI::ClickTheButton(window.tabButtons[GuildLeaveButton], globals, context.mouseX, context.mouseY))
+    const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
+    if (!Ui::ClickTheButton(window.tabButtons[GuildLeaveButton], globals, context.mouseX, context.mouseY))
         return {};
     const Kernel::ActorState& hero = context.world.Hero();
     if (hero.guildStatus == MasterStatus)
@@ -520,7 +520,7 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
         auto lines = DisbandLines(context.texts);
         if (!lines.HasValue())
             return Core::Unexpected(std::move(lines).Error());
-        return OpenTheGuildDialog(context, lines.Value(), UI::PanelDialogConfirm, UI::PanelDialogOwner::GuildDisband,
+        return OpenTheGuildDialog(context, lines.Value(), Ui::PanelDialogConfirm, Ui::PanelDialogOwner::GuildDisband,
                                   "0x64fcd5");
     }
     // 0x64fd9c: 0x64faa0 con el nombre del héroe (+0x1d9).
@@ -547,8 +547,8 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
         return Core::Unexpected(std::move(names).Error());
     if (names.Value().alliance.empty())
         return {};
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-    if (UI::ClickTheButton(window.tabButtons[GuildUnionLeaveButton], globals, context.mouseX, context.mouseY))
+    const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
+    if (Ui::ClickTheButton(window.tabButtons[GuildUnionLeaveButton], globals, context.mouseX, context.mouseY))
     {
         if (names.Value().guild == names.Value().alliance)
         {
@@ -566,15 +566,15 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
                 return Core::Unexpected(std::move(format).Error());
             if (context.measure == nullptr)
                 return Core::Unexpected(std::string("0x651290: el aviso de salir de la alianza sin medidor"));
-            if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, Crt::Sprintf(format.Value()),
-                                            UnionLeftType);
+            if (auto added = Chat::AddGameMessage(runtime, *context.measure, context.screen, {},
+                                                  Crt::Sprintf(format.Value()), UnionLeftType);
                 !added.HasValue())
                 return added;
         }
     }
-    if (!UI::ClickTheButton(window.tabButtons[GuildUnionKickButton], globals, context.mouseX, context.mouseY))
+    if (!Ui::ClickTheButton(window.tabButtons[GuildUnionKickButton], globals, context.mouseX, context.mouseY))
         return {};
-    const auto at = UI::SelectedInTheList(window.unionList, window.unions.size());
+    const auto at = Ui::SelectedInTheList(window.unionList, window.unions.size());
     if (!at)
         return {};
     const std::string_view name = GuildTextOf(window.unions[*at].name);
@@ -587,9 +587,9 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
     if (!second.HasValue())
         return Core::Unexpected(std::move(second).Error());
     const std::array<std::string_view, 1> arguments{name};
-    const std::array<std::string, 2> lines{UI::PlaceArguments(format.Value(), arguments), std::string(second.Value())};
+    const std::array<std::string, 2> lines{Ui::PlaceArguments(format.Value(), arguments), std::string(second.Value())};
     ChooseTheMember(guild, name);
-    return OpenTheGuildDialog(context, lines, UI::PanelDialogConfirm, UI::PanelDialogOwner::UnionKick, "0x6513d8");
+    return OpenTheGuildDialog(context, lines, Ui::PanelDialogConfirm, Ui::PanelDialogOwner::UnionKick, "0x6513d8");
 }
 
 // 0x651bbf..0x651c05: el paso de la pestaña.
@@ -610,7 +610,8 @@ Core::Expected<void, std::string> StepTheTab(const GuildWindowStepContext& conte
 
 // 0x651f1c..0x652275: las rayas de 0x621aa0 bajo las pestañas que no están elegidas, 0x459ec0, la negrita en blanco
 // sobre 0 y cada pestaña: blanca la elegida (2 más alta y más arriba) y en 0,6 las otras, con su texto.
-Core::Expected<void, std::string> DrawTheTabs(GameHudContext& context, std::int32_t tab, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheTabs(Hud::GameHudContext& context, std::int32_t tab, std::int32_t x,
+                                              std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(TabLine);
@@ -655,10 +656,10 @@ Core::Expected<void, std::string> DrawTheTabs(GameHudContext& context, std::int3
 }
 } // namespace
 
-bool PassesTheGuildWindowGate(const UI::OldWindowBase& base, UI::GameUiState& ui, std::int32_t mouseX,
+bool PassesTheGuildWindowGate(const Ui::OldWindowBase& base, Ui::GameUiState& ui, std::int32_t mouseX,
                               std::int32_t mouseY)
 {
-    if (!UI::MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, base.rectMode))
+    if (!Chat::MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, base.rectMode))
         return true;
     if (ui.hovered == 0)
     {
@@ -666,20 +667,20 @@ bool PassesTheGuildWindowGate(const UI::OldWindowBase& base, UI::GameUiState& ui
             return false;
         ui.hovered = base.id;
     }
-    return base.state != UI::ShownWindow || ui.hovered == base.id || ui.capture == base.id;
+    return base.state != Ui::ShownWindow || ui.hovered == base.id || ui.capture == base.id;
 }
 
 Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildWindowState& window = runtime.guild.window;
-    const UI::OldWindowBase& base = window.base;
+    const Ui::OldWindowBase& base = window.base;
     if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
         return {};
-    if (UI::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
+    if (Chat::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
         runtime.ui.mouseOnUi = 1;
-    if (runtime.movement.pendingClick && UI::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
-                                                         base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
+    if (runtime.movement.pendingClick && Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
+                                                           base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
     {
         runtime.movement.pendingClick = false;
         runtime.movement.mouseUpdateTime = 0;
@@ -696,9 +697,9 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
         const auto inTab = [&](std::int32_t tab)
         {
             return window.tab != tab &&
-                   UI::MouseInRect(context.mouseX, context.mouseY,
-                                   base.x + TabMouseLefts[static_cast<std::size_t>(tab)], base.y + TabMouseTop,
-                                   TabMouseWidth, TabMouseHeight, TopLeftRect);
+                   Chat::MouseInRect(context.mouseX, context.mouseY,
+                                     base.x + TabMouseLefts[static_cast<std::size_t>(tab)], base.y + TabMouseTop,
+                                     TabMouseWidth, TabMouseHeight, TopLeftRect);
         };
         std::optional<std::int32_t> chosen;
         if (inTab(0))
@@ -727,9 +728,9 @@ void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot)
         return;
     Kernel::WorldRuntime& runtime = world.Runtime();
     GuildWindowState& window = runtime.guild.window;
-    UI::OldList& list = window.memberList;
+    Ui::OldList& list = window.memberList;
     const std::string_view name = GuildTextOf(slot.name);
-    if (UI::ListCount(list, window.members.size()) == 0)
+    if (Ui::ListCount(list, window.members.size()) == 0)
     {
         // 0x46c955: strcmp con el nombre del héroe (+0x1d9, diez bytes y lo que sigue: *inferido*, hasta el primer 0).
         const auto& heroName = world.Hero().name;
@@ -761,10 +762,10 @@ Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window, co
 {
     constexpr int NoticeWidth = 0x6e;
     constexpr int NoticeLines = 5;
-    auto wrapped = UI::WrapByWidth(text, measure, font, screen, NoticeWidth, NoticeLines, 0);
+    auto wrapped = Chat::WrapByWidth(text, measure, font, screen, NoticeWidth, NoticeLines, 0);
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
-    UI::OldList& list = window.noticeList;
+    Ui::OldList& list = window.noticeList;
     for (const std::string& line : wrapped.Value().lines)
     {
         // 0x46bca0: sin texto o vacío, nada; strcpy a 0x575d234 (+0 de 0x575d230 nadie lo escribe: 0).
@@ -773,7 +774,7 @@ Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window, co
         PutFirst(list, window.notice, GuildNoticeRow{.toggled = 0, .text = line});
     }
     const std::size_t size = window.notice.size();
-    UI::ScrollTheList(list, size, UI::ListCount(list, size) - list.rows);
+    Ui::ScrollTheList(list, size, Ui::ListCount(list, size) - list.rows);
     return {};
 }
 
@@ -804,27 +805,27 @@ void ClearTheUnions(GuildWindowState& window)
 
 Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& world, const GuildSender& send,
                                                         std::int32_t mouseX, std::int32_t mouseY,
-                                                        const UI::PanelDialogAnswer& answer)
+                                                        const Ui::PanelDialogAnswer& answer)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     GuildState& guild = runtime.guild;
     GuildPositionsState& positions = guild.positions;
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-    if (UI::MouseInRect(mouseX, mouseY, positions.x, positions.y, PositionsMouseWidth, PositionsMouseHeight,
-                        TopLeftRect))
+    const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
+    if (Chat::MouseInRect(mouseX, mouseY, positions.x, positions.y, PositionsMouseWidth, PositionsMouseHeight,
+                          TopLeftRect))
         runtime.ui.mouseOnUi = 1;
     // 0x64e64e: con el flanco del clic (0x7d366d4, que no gasta), las dos cajas eligen el cargo.
     if (runtime.movement.pendingClick)
     {
-        if (UI::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + AssistantChoiceTop,
-                            PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))
+        if (Chat::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + AssistantChoiceTop,
+                              PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))
             positions.choice = AssistantChoice;
-        if (UI::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + BattleMasterChoiceTop,
-                            PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))
+        if (Chat::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + BattleMasterChoiceTop,
+                              PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))
             positions.choice = BattleMasterChoice;
     }
-    UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
-    if (UI::ClickTheButton(positions.buttons[GuildPositionsOkButton], globals, mouseX, mouseY))
+    Ui::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
+    if (Ui::ClickTheButton(positions.buttons[GuildPositionsOkButton], globals, mouseX, mouseY))
     {
         // 0x64e6cc: sin cargo (0x7d535b4 en 0), C1 0F E1 01; con uno, 02; con el elegido y los 10 bytes de 0x7d535a8,
         // por el socket (0x6c82a0). Después C1 03 52 (0x64efca) y 0x6603c0.
@@ -836,21 +837,21 @@ Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& worl
             name[index] = static_cast<std::byte>(guild.chosenName[index]);
         send(Protocol::Guild::WriteAssignStatus(type, static_cast<std::uint8_t>(positions.choice), name));
         send(Protocol::Guild::WriteMemberListRequest());
-        if (auto cancelled = UI::CancelThePanelDialog(dialog, answer); !cancelled.HasValue())
+        if (auto cancelled = Ui::CancelThePanelDialog(dialog, answer); !cancelled.HasValue())
             return cancelled;
     }
     // 0x64f196: el otro botón cancela (cerrado, 0x6603c0 no hace nada).
-    if (UI::ClickTheButton(positions.buttons[GuildPositionsCancelButton], globals, mouseX, mouseY))
-        return UI::CancelThePanelDialog(dialog, answer);
+    if (Ui::ClickTheButton(positions.buttons[GuildPositionsCancelButton], globals, mouseX, mouseY))
+        return Ui::CancelThePanelDialog(dialog, answer);
     return {};
 }
 
-void LendTheGuildWindowStepTo(UI::PanelContext& panels, const GuildWindowStepContext& context)
+void LendTheGuildWindowStepTo(Ui::PanelContext& panels, const GuildWindowStepContext& context)
 {
     panels.guildStep = [context]() { return StepTheGuildWindow(context); };
 }
 
-Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const GuildState& guild = runtime.guild;
@@ -860,14 +861,14 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
-    WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     sprites.SetBlend(BlendMode::Alpha);
     auto title = TextOf(context.texts, TitleText, "0x651cd5");
     if (!title.HasValue())
         return Core::Unexpected(std::move(title).Error());
     context.hud.textColors = TitleColors;
     SelectFont(context, FontKind::Bold);
-    WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
+    Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
     const Kernel::ActorState& hero = context.world.Hero();
     const bool inAGuild = hero.guildStatus != NoGuildStatus;
     if (inAGuild)
@@ -877,8 +878,8 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
         if (!name)
             return Core::Unexpected(std::format("0x651da0: el gremio {} del héroe cae fuera de la tabla", index));
         context.hud.textColors.text = ScoreColor;
-        WindowDrawing::DrawTitle(context, x + TitleLeft, y + ScoreTop,
-                                 std::format("{} ( Score:{} )", *name, guild.score));
+        Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + ScoreTop,
+                                      std::format("{} ( Score:{} )", *name, guild.score));
     }
     else
     {
@@ -894,12 +895,12 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
             top += NoGuildStep;
         }
     }
-    if (WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto help = TextOf(context.texts, CloseHelpText, "0x651ee6");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
+        Hud::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     }
     if (!inAGuild)
         return {};
@@ -908,4 +909,4 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
     // 0x652291..0x6522c0: el dibujo de la pestaña.
     return DrawTheGuildTab(context, window.tab);
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

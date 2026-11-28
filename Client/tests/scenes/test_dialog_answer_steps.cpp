@@ -44,10 +44,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Scenes::GameUiContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -115,12 +115,12 @@ public:
         const std::int32_t id = world->Runtime().dialogs.current;
         box.buttons[0] = {.state = 1, .x = 0x15, .y = 0x5a, .width = 0x46, .height = 0x15};
         box.buttons[1] = {.state = 3, .x = 0x78, .y = 0x5a, .width = 0x46, .height = 0x15};
-        if (id == Client::UI::ChaosCastleDialog)
+        if (id == Client::Ui::ChaosCastleDialog)
         {
             box.buttons[0].y = 0x78;
             box.buttons[1].y = 0x78;
         }
-        if (id == Client::UI::ItemNameWithLuckDialog)
+        if (id == Client::Ui::ItemNameWithLuckDialog)
         {
             box.buttons[0] = {.state = 1, .x = 0x16, .y = 0x5c, .width = 0x31, .height = 0x10};
             box.buttons[1] = {.state = 3, .x = 0x52, .y = 0x5c, .width = 0x31, .height = 0x10};
@@ -130,25 +130,24 @@ public:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheGameDialogs(
-            GameUiContext{.world = *world,
-                          .random = random,
-                          .input = input,
-                          .mouseX = x,
-                          .mouseY = y,
-                          .measure = &measure,
-                          .texts = &texts,
-                          .inventory = &services,
-                          .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
-                          {
-                              sent.push_back(std::move(packet));
-                              return Client::Core::Expected<void, std::string>{};
-                          }});
+        return Client::Hud::StepTheGameDialogs(GameUiContext{.world = *world,
+                                                             .random = random,
+                                                             .input = input,
+                                                             .mouseX = x,
+                                                             .mouseY = y,
+                                                             .measure = &measure,
+                                                             .texts = &texts,
+                                                             .inventory = &services,
+                                                             .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                                             {
+                                                                 sent.push_back(std::move(packet));
+                                                                 return Client::Core::Expected<void, std::string>{};
+                                                             }});
     }
 
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::LatchTheLeftButton(world->Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world->Runtime().movement, true, true);
         return Step(x, y);
     }
 
@@ -179,7 +178,7 @@ public:
     Client::Input::InputState input;
     LetterMeasure measure;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{474, "ahora no"}});
-    Client::Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
     std::vector<Client::Protocol::Outgoing> sent;
     std::vector<std::pair<std::size_t, std::int32_t>> messages;
 };
@@ -202,7 +201,7 @@ TEST(DialogAnswerStepsTest, TheChaosCastleYesSendsTheEntryWithTheItemLevelAndSlo
     for (const std::int32_t map : Maps)
     {
         SCOPED_TRACE(map);
-        AnsweringDialogs tested(map, Client::UI::ChaosCastleDialog);
+        AnsweringDialogs tested(map, Client::Ui::ChaosCastleDialog);
         tested.OpenWithTheButtons();
         tested.Runtime().dialogItem.scalar1Low = (5u << 3) | 2u;
         tested.Runtime().slot78a6758 = 0x114;
@@ -224,12 +223,12 @@ TEST(DialogAnswerStepsTest, TheChaosCastleWithoutItemStaysAndItsNoCloses)
     for (const std::int32_t map : Maps)
     {
         SCOPED_TRACE(map);
-        AnsweringDialogs tested(map, Client::UI::ChaosCastleDialog);
+        AnsweringDialogs tested(map, Client::Ui::ChaosCastleDialog);
         tested.OpenWithTheButtons();
         tested.Runtime().dialogItem.scalar1Low = 0xff;
         ASSERT_TRUE(tested.Click(YesX, ChaosCastleY).HasValue());
         EXPECT_TRUE(tested.sent.empty());
-        EXPECT_EQ(tested.Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
+        EXPECT_EQ(tested.Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
         EXPECT_EQ(tested.Runtime().lastSoundId, Client::Audio::SoundId{Silent});
         EXPECT_FALSE(tested.Runtime().movement.pendingClick);
 
@@ -245,7 +244,7 @@ TEST(DialogAnswerStepsTest, TheNoticeYesSendsD0AndTheNoOnlyCloses)
     for (const std::int32_t map : Maps)
     {
         SCOPED_TRACE(map);
-        AnsweringDialogs yes(map, Client::UI::NoticeQuestionDialog);
+        AnsweringDialogs yes(map, Client::Ui::NoticeQuestionDialog);
         yes.OpenWithTheButtons();
         const CrtRandom quiet = yes.QuietStep();
         ASSERT_TRUE(yes.Click(YesX, ButtonsY).HasValue());
@@ -255,13 +254,13 @@ TEST(DialogAnswerStepsTest, TheNoticeYesSendsD0AndTheNoOnlyCloses)
         EXPECT_TRUE(SameBytes(Xor32Decode(yes.sent[0].packet).Bytes(), Bytes({0xc1, 0x04, 0xd0, 0x00})));
         ExpectClosedWithTheSound(yes);
 
-        AnsweringDialogs no(map, Client::UI::NoticeQuestionDialog);
+        AnsweringDialogs no(map, Client::Ui::NoticeQuestionDialog);
         no.OpenWithTheButtons();
         ASSERT_TRUE(no.Click(NoX, ButtonsY).HasValue());
         EXPECT_TRUE(no.sent.empty());
         ExpectClosedWithTheSound(no);
 
-        AnsweringDialogs escape(map, Client::UI::NoticeQuestionDialog);
+        AnsweringDialogs escape(map, Client::Ui::NoticeQuestionDialog);
         escape.OpenWithTheButtons();
         escape.PressEscape();
         ASSERT_TRUE(escape.Step(0, 0).HasValue());
@@ -278,7 +277,7 @@ TEST(DialogAnswerStepsTest, TheLuckThirdButtonAndEscapeSkipTheItem)
     for (const std::int32_t map : Maps)
     {
         SCOPED_TRACE(map);
-        AnsweringDialogs third(map, Client::UI::ItemNameWithLuckDialog);
+        AnsweringDialogs third(map, Client::Ui::ItemNameWithLuckDialog);
         third.OpenWithTheButtons();
         const CrtRandom quiet = third.QuietStep();
         ASSERT_TRUE(third.Click(LuckThirdX + 0x31, LuckY + 0x10).HasValue());
@@ -287,7 +286,7 @@ TEST(DialogAnswerStepsTest, TheLuckThirdButtonAndEscapeSkipTheItem)
         EXPECT_EQ(third.Runtime().dialogBox.thirdButton.state, 5);
         EXPECT_FALSE(third.Runtime().movement.pendingClick);
 
-        AnsweringDialogs escape(map, Client::UI::ItemNameWithLuckDialog);
+        AnsweringDialogs escape(map, Client::Ui::ItemNameWithLuckDialog);
         escape.OpenWithTheButtons();
         const CrtRandom escapeQuiet = escape.QuietStep();
         escape.PressEscape();
@@ -309,7 +308,7 @@ TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
                  {{LuckYesX, std::uint8_t{0}}, {LuckNoX, std::uint8_t{1}}}))
         {
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", botón " << int{choice});
-            AnsweringDialogs refused(map, Client::UI::ItemNameWithLuckDialog);
+            AnsweringDialogs refused(map, Client::Ui::ItemNameWithLuckDialog);
             refused.OpenWithTheButtons();
             refused.Runtime().ui.field78abb26 = 7;
             refused.Runtime().panels.warehouse = 1;
@@ -322,7 +321,7 @@ TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
             EXPECT_EQ(refused.Runtime().ui.field5767954, 0);
             ExpectClosedWithTheSound(refused);
 
-            AnsweringDialogs waiting(map, Client::UI::ItemNameWithLuckDialog);
+            AnsweringDialogs waiting(map, Client::Ui::ItemNameWithLuckDialog);
             waiting.OpenWithTheButtons();
             waiting.Runtime().ui.field5767954 = 4;
             const CrtRandom waitingQuiet = waiting.QuietStep();
@@ -334,7 +333,7 @@ TEST(DialogAnswerStepsTest, TheLuckAnswersUseTheItemOrSayWhyNot)
             EXPECT_TRUE(waiting.messages.empty());
             ExpectClosedWithTheSound(waiting);
 
-            AnsweringDialogs used(map, Client::UI::ItemNameWithLuckDialog);
+            AnsweringDialogs used(map, Client::Ui::ItemNameWithLuckDialog);
             used.OpenWithTheButtons();
             used.Runtime().dialogItemCell = LuckItemCell;
             used.Runtime().slot78a6758 = 0x73;

@@ -50,9 +50,9 @@ namespace
 {
 using Client::Actors::Drawing::DrawnObject;
 using Client::Crt::CrtRandom;
+using Client::Effects::ModelEffect;
 using Client::Math::BoneTransform;
 using Client::Render::ModelBatch;
-using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr glm::vec3 SecondBonePoint{100.0f, 200.0f, 300.0f};
@@ -143,10 +143,10 @@ struct Drawer
                                                     {}, 0, resources, mode);
     }
 
-    [[nodiscard]] std::vector<Client::World::Sprite> Alive()
+    [[nodiscard]] std::vector<Client::Particles::Sprite> Alive()
     {
-        std::vector<Client::World::Sprite> alive;
-        for (const Client::World::Sprite& sprite : sprites.Sprites())
+        std::vector<Client::Particles::Sprite> alive;
+        for (const Client::Particles::Sprite& sprite : sprites.Sprites())
             if (sprite.alive)
                 alive.push_back(sprite);
         return alive;
@@ -155,13 +155,13 @@ struct Drawer
     TriangleModels models;
     std::unique_ptr<Client::Data::Terrain::TerrainHeights> heights =
         std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     CrtRandom random{Seed};
     bool withRandom = true;
     float clock = 1000.0f;
     // El pase de los objetos (su mapa, 0x6c9dd0), el +0x1a1 del héroe y si el dibujo es de un frame del original: lo
     // que 0x5ffdf0 mira para la resta de Chaos Castle.
-    std::unique_ptr<Client::Scenes::GameObjectPass> pass;
+    std::unique_ptr<Client::WorldObjects::GameObjectPass> pass;
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
     std::vector<BoneTransform> bones;
@@ -199,8 +199,8 @@ std::vector<Drawn> DrawCommands(const ModelBatch& batch)
     return drawn;
 }
 
-void ExpectSprite(const Client::World::Sprite& sprite, std::uint16_t texture, const glm::vec3& position, float scale,
-                  const glm::vec3& light, float rotation)
+void ExpectSprite(const Client::Particles::Sprite& sprite, std::uint16_t texture, const glm::vec3& position,
+                  float scale, const glm::vec3& light, float rotation)
 {
     EXPECT_EQ(sprite.texture, texture);
     EXPECT_EQ(sprite.position, position);
@@ -278,7 +278,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
 {
     {
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
         drawer.pass->map = 18;
         drawer.heroByte1a1 = 1;
         drawer.originalFrame = true;
@@ -307,7 +307,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
         SCOPED_TRACE(outside.heroByte1a1);
         SCOPED_TRACE(outside.originalFrame);
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
         drawer.pass->map = outside.map;
         drawer.heroByte1a1 = outside.heroByte1a1;
         drawer.originalFrame = outside.originalFrame;
@@ -319,7 +319,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
     }
     // En el 23 con el byte, el 0x134 con alpha 1 queda en 0x3f59999a (1 − 0,15f) y se dibuja con ese alpha.
     Drawer drawer;
-    drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+    drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
     drawer.pass->map = 23;
     drawer.heroByte1a1 = 1;
     drawer.originalFrame = true;
@@ -340,7 +340,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheMirroredEffectOnEachOfItsTwoBodie
     {
         SCOPED_TRACE(static_cast<int>(map));
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
         drawer.pass->map = map;
         drawer.heroByte1a1 = 1;
         drawer.originalFrame = true;
@@ -407,7 +407,7 @@ TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPo
         {
             SCOPED_TRACE(alpha);
             Drawer drawer;
-            drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+            drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
             drawer.pass->map = tested.map;
             ModelEffect effect = EffectOf(tested.type, 0);
             effect.alpha = alpha;
@@ -422,7 +422,7 @@ TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPo
             EXPECT_EQ(DrawsSince(drawer.random), 0);
         }
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::Scenes::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
         drawer.pass->map = tested.map;
         ModelEffect effect = EffectOf(tested.type, 0);
         const auto drawn = drawer.Draw(std::span(&effect, 1), 0);
@@ -490,7 +490,7 @@ TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
     auto world = std::make_unique<Client::Kernel::WorldState>();
     CrtRandom random(Seed);
     Client::Kernel::ActorState owner;
-    const auto made = Client::Scenes::CreateHighModelEffect(
+    const auto made = Client::Effects::CreateHighModelEffect(
         {.type = 0x11b, .position = {1000.0f, 2000.0f, 300.0f}, .subtype = 1, .owner = &owner},
         {.world = *world, .random = random, .worldClock = 0.0f});
     ASSERT_TRUE(made.HasValue()) << made.Error();
@@ -504,7 +504,7 @@ TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     const auto stepped =
-        Client::Scenes::StepJoints(joints, random, nullptr, &world->Particles(), 0.0f, &drawer.sprites, lighting.get());
+        Client::Joints::StepJoints(joints, random, nullptr, &world->Particles(), 0.0f, &drawer.sprites, lighting.get());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joints[0].subtype, 0xa);
     EXPECT_EQ(joints[0].position, SecondBonePoint);
@@ -594,7 +594,7 @@ TEST(HighEffectDrawingTest, TheGuildMarkChromeKeepsTheScaleOfItsNormal)
     object.alpha = 1.0f;
     ASSERT_TRUE(object.retainedMeshes.empty());
     ModelBatch batch;
-    const auto drawn = Client::Scenes::DrawTheHighEffectBody(batch, drawer.models, mark, object, {}, {});
+    const auto drawn = Client::Effects::DrawTheHighEffectBody(batch, drawer.models, mark, object, {}, {});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_TRUE(drawn.Value());
     ASSERT_EQ(batch.Vertices().size(), 6u);
@@ -615,8 +615,8 @@ TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
         for (Client::Scenes::JointState& joint : world->DrawTail().joints)
             joint.alive = true;
         CrtRandom creation(Seed);
-        const auto made = Client::Scenes::CreateHighModelEffect({.type = 0x125, .position = {1000.0f, 2000.0f, 300.0f}},
-                                                                {.world = *world, .random = creation});
+        const auto made = Client::Effects::CreateHighModelEffect(
+            {.type = 0x125, .position = {1000.0f, 2000.0f, 300.0f}}, {.world = *world, .random = creation});
         ASSERT_TRUE(made.HasValue()) << made.Error();
         const auto effects = world->Map().effects.Effects();
         ASSERT_TRUE(effects[0].alive);
@@ -659,8 +659,8 @@ TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
     ModelEffect clockless = EffectOf(0x125, 0);
     DrawnObject object;
     object.model = 0x125;
-    const auto cut = Client::Scenes::DrawTheHighEffectBody(batch, drawer.models, clockless, object, {},
-                                                           {.sprites = &drawer.sprites});
+    const auto cut = Client::Effects::DrawTheHighEffectBody(batch, drawer.models, clockless, object, {},
+                                                            {.sprites = &drawer.sprites});
     ASSERT_FALSE(cut.HasValue());
     EXPECT_TRUE(cut.Error().starts_with("0x4390df")) << cut.Error();
 }

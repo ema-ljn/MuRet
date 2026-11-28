@@ -31,18 +31,18 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::GameObjectPass;
-using Client::Scenes::StepAidaObjectFrame;
-using Client::World::Particle;
-using Client::World::WorldObject;
+using Client::MapScripts::Aida::StepAidaObjectFrame;
+using Client::Particles::Particle;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t SelectionMap = 54;
 
 struct Fixture
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     std::uint32_t time = 0;
@@ -205,10 +205,10 @@ TEST(AidaObjectServicesTest, TheWaterfallFallsOnEvenDraws)
         }
         ++created;
         ASSERT_EQ(alive.size(), 1u);
-        EXPECT_EQ(alive[0]->type, Client::World::KalimaWaterfallFirst);
+        EXPECT_EQ(alive[0]->type, Client::Particles::KalimaWaterfallFirst);
         EXPECT_EQ(alive[0]->subtype, 2);
         EXPECT_EQ(alive[0]->scale, static_cast<float>(1.25 + static_cast<double>(1.6f)));
-        EXPECT_EQ(alive[0]->typedOwner, Client::World::ParticleOwner{});
+        EXPECT_EQ(alive[0]->typedOwner, Client::Particles::ParticleOwner{});
     }
     EXPECT_GT(created, 0);
     EXPECT_GT(skipped, 0);
@@ -221,7 +221,7 @@ TEST(AidaObjectServicesTest, TheSplashAlwaysEmitsAndTheMistOnAThirdOfTheDraws)
     WorldObject object = ObjectOf(0x39);
     ASSERT_TRUE(StepAidaObjectFrame(object, splash.Pass()).HasValue());
     ASSERT_EQ(splash.Alive().size(), 1u);
-    EXPECT_EQ(splash.Alive()[0]->type, Client::World::WaterfallSplashFirst);
+    EXPECT_EQ(splash.Alive()[0]->type, Client::Particles::WaterfallSplashFirst);
     EXPECT_EQ(splash.Alive()[0]->subtype, 4);
 
     int created = 0;
@@ -237,7 +237,7 @@ TEST(AidaObjectServicesTest, TheSplashAlwaysEmitsAndTheMistOnAThirdOfTheDraws)
         if (emits)
         {
             ++created;
-            EXPECT_EQ(fixture.Alive()[0]->type, Client::World::KalimaWaterfallMist);
+            EXPECT_EQ(fixture.Alive()[0]->type, Client::Particles::KalimaWaterfallMist);
             EXPECT_EQ(fixture.Alive()[0]->subtype, 2);
             EXPECT_EQ(fixture.Alive()[0]->life, 40);
             EXPECT_EQ(fixture.Alive()[0]->light, glm::vec3(0.25f));
@@ -265,15 +265,15 @@ TEST(AidaObjectServicesTest, TheMistsEmitTwentyOwnedCloudsUntilTheirOwnerIsHidde
         ASSERT_EQ(alive.size(), 20u);
         for (const Particle* particle : alive)
         {
-            EXPECT_EQ(particle->type, Client::World::CloudParticle);
+            EXPECT_EQ(particle->type, Client::Particles::CloudParticle);
             EXPECT_EQ(particle->subtype, 1);
             EXPECT_EQ(particle->light, light);
             EXPECT_EQ(particle->typedOwner,
-                      (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::WorldObject, 41}));
+                      (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::WorldObject, 41}));
         }
 
         Fixture hidden;
-        object.state.hiddenMesh = Client::World::HiddenObject;
+        object.state.hiddenMesh = Client::WorldObjects::HiddenObject;
         ASSERT_TRUE(StepAidaObjectFrame(object, hidden.Pass()).HasValue());
         EXPECT_TRUE(hidden.Alive().empty());
         EXPECT_EQ(hidden.random.State(), 7u);
@@ -290,7 +290,7 @@ TEST(AidaObjectServicesTest, TheButterflyFliesOnlyInTheFirstTenMillisecondsOfEac
         fixture.time = time;
         WorldObject object = ObjectOf(0x3c);
         ASSERT_TRUE(StepAidaObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
         const auto& effect = fixture.effects->Effects()[0];
         if (time == 0x400u + 10u)
         {
@@ -300,9 +300,9 @@ TEST(AidaObjectServicesTest, TheButterflyFliesOnlyInTheFirstTenMillisecondsOfEac
         }
         CrtRandom draws(7);
         ASSERT_TRUE(effect.alive);
-        EXPECT_EQ(effect.type, Client::World::ButterflyEffect);
+        EXPECT_EQ(effect.type, Client::Effects::ButterflyEffect);
         EXPECT_EQ(effect.subtype, 3);
-        EXPECT_EQ(effect.objectState.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(effect.objectState.hiddenMesh, Client::WorldObjects::HiddenObject);
         EXPECT_EQ(effect.life, 250);
         EXPECT_EQ(effect.state, static_cast<std::uint8_t>(draws.Next() & 1));
         EXPECT_EQ(effect.velocity, glm::vec3(0.0f, static_cast<float>(1.25 * -5.0), 0.0f));
@@ -330,7 +330,7 @@ TEST(AidaObjectServicesTest, TheBrazierLightsAtAThirdAndRaisesAFlame)
     EXPECT_EQ(object.light, light);
     const auto alive = fixture.Alive();
     ASSERT_EQ(alive.size(), 1u);
-    EXPECT_EQ(alive[0]->type, Client::World::FlameParticle);
+    EXPECT_EQ(alive[0]->type, Client::Particles::FlameParticle);
     EXPECT_EQ(alive[0]->subtype, 7);
     EXPECT_EQ(alive[0]->light, light);
     EXPECT_EQ(alive[0]->life, 33);
@@ -359,7 +359,7 @@ TEST(AidaObjectServicesTest, TheWispLeavesOnlyWhenTheDrawAndTheClockAllowIt)
                 ++created;
                 for (int draw = 0; draw < 6; ++draw)
                     static_cast<void>(draws.Next());
-                EXPECT_EQ(effect.type, Client::World::AidaWispEffect);
+                EXPECT_EQ(effect.type, Client::Effects::AidaWispEffect);
                 EXPECT_EQ(effect.light, glm::vec3(0.01f, 0.01f, std::bit_cast<float>(0x3cf5c28fu)));
                 EXPECT_EQ(effect.life, 1000);
             }

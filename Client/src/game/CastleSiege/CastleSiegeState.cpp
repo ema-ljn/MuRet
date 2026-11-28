@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::UI
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -144,4 +144,4 @@ std::uint32_t NpcRecordAddress(std::uint32_t type, std::uint32_t index)
     const std::uint32_t base = type == GateType ? GateRecordsAt : StatueRecordsAt;
     return base + index * NpcRecordBytes;
 }
-} // namespace Client::UI
+} // namespace Client::CastleSiege

@@ -50,7 +50,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -224,7 +224,7 @@ Core::Expected<void, std::string> Breathe(const Kernel::HelperState& helper, con
         return Core::Unexpected(point.Error());
     }
     const std::int32_t type =
-        context.world.Runtime().map == AtlansMap ? World::DropParticle : std::int32_t{World::BreathParticle};
+        context.world.Runtime().map == AtlansMap ? Particles::DropParticle : std::int32_t{Particles::BreathParticle};
     return EmitHelperParticle(context, type, ParticleSubtype, point.Value(), helper.angles, HorseLight, "0x4445d9");
 }
 
@@ -289,7 +289,7 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
 Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, const HelperStepContext& context)
 {
     ++helper.horse.effectCount;
-    World::ModelEffects& effects = context.world.Map().effects;
+    Effects::ModelEffects& effects = context.world.Map().effects;
     if (context.logicSteps % ShockWaveEvery == 0)
     {
         static_cast<void>(effects.CreateStompShockWave(helper.position, helper.angles, helper.light)); // 0x445425
@@ -310,7 +310,7 @@ Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, con
                                       F32(static_cast<double>(offset.y) + static_cast<double>(helper.position.y)),
                                       F32(static_cast<double>(offset.z) + static_cast<double>(helper.position.z)));
                 const auto type =
-                    static_cast<std::int16_t>(World::FirstGroundStoneEffect + (context.random.Next() & 1));
+                    static_cast<std::int16_t>(Effects::FirstGroundStoneEffect + (context.random.Next() & 1));
                 const auto created = effects.CreateGroundStone(type, place, helper.angles, helper.light,
                                                                terrain.attributes.get(), context.random);
                 if (!created.HasValue())
@@ -331,7 +331,7 @@ Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, con
         // 0x44558a..0x4455b3: el dueño se lee vivo (su tipo y sus ángulos) mientras el 0xfa dure.
         static_cast<void>(effects.CreateEarthquake(
             helper.position, helper.angles, helper.light, EarthquakeState,
-            World::ModelEffectOwner{.type = &helper.type, .effect = nullptr, .angles = &helper.angles},
+            Effects::ModelEffectOwner{.type = &helper.type, .effect = nullptr, .angles = &helper.angles},
             context.world.Runtime().ownRecordDepth, context.world.OwnCharacter().bytef04, context.random));
         helper.horse.effectCount = EarthquakeDone;
     }
@@ -372,8 +372,8 @@ Core::Expected<void, std::string> RaiseTheOrbits(Kernel::HelperState& helper, co
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = NoTarget};
-            const auto created = CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
-                                                  Kernel::JointOwnerKind::Helper);
+            const auto created = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
+                                                          Kernel::JointOwnerKind::Helper);
             if (!created.HasValue())
             {
                 return Core::Unexpected(std::format("0x444740: {}", created.Error()));
@@ -473,7 +473,7 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
                                              const HelperStepContext& context)
 {
     // 0x44402a..0x444047: solo en la escena 5, con el jinete muerto o sin el 1 en +0x88.
-    if (context.scene == SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
+    if (context.scene == Scenes::SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
     {
         helper.alive = false;
         return {};
@@ -499,8 +499,8 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
     }
     // 0x445006..0x445039: +0xa0 del modelo con la acción, que lo portado no lee, y el avance.
     AdvanceDarkHorse(helper.horse, *skeleton,
-                     context.scene == SceneId::CharacterSelect ? Models::AnimationScene::CharacterSelect
-                                                               : Models::AnimationScene::Other);
+                     context.scene == Scenes::SceneId::CharacterSelect ? Models::AnimationScene::CharacterSelect
+                                                                       : Models::AnimationScene::Other);
     if (helper.type == RiderlessHelper)
     {
         FlyTheGuardianAngel(helper, rider, riderStart, context.random);
@@ -510,13 +510,13 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
 
 // 0x4452db..0x445309: con el segundo argumento en 0, 1,6 en la escena 2 y 1 en la 4; en las demás, los Fenrir se
 // quedan con la de 0x443d70 (0,9) y los demás van a 1.
-float DrawScaleOf(const Kernel::HelperState& helper, SceneId scene)
+float DrawScaleOf(const Kernel::HelperState& helper, Scenes::SceneId scene)
 {
-    if (scene == SceneId::Login)
+    if (scene == Scenes::SceneId::Login)
     {
         return DarkHorseLoginScale; // 0x3fcccccd
     }
-    if (scene != SceneId::CharacterSelect && IsFenrir(helper.type))
+    if (scene != Scenes::SceneId::CharacterSelect && IsFenrir(helper.type))
     {
         return helper.scale;
     }
@@ -618,9 +618,9 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
         const glm::vec3 offset(F32(static_cast<double>(x) * Half), 0.0f, F32(static_cast<double>(z) * Half));
         const glm::vec3 point = FenrirBonePoint(bones, FenrirSparkBone, offset);
         const float scale = F32(pulse * FenrirSparkScaleStep + FenrirSparkScaleBase);
-        const auto created =
-            context.particles->CreateChecked(World::SparkParticle, point, helper.angles, glm::vec3(1.0f, 0.0f, 0.0f),
-                                             World::FenrirSparkSubtype, scale, context.worldClock, random);
+        const auto created = context.particles->CreateChecked(
+            Particles::SparkParticle, point, helper.angles, glm::vec3(1.0f, 0.0f, 0.0f), Particles::FenrirSparkSubtype,
+            scale, context.worldClock, random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x6028c6: el alta de 0x5c6/15 falla con error {}",
                                                 static_cast<unsigned>(created.Error())));
@@ -793,7 +793,8 @@ Core::Expected<void, std::string> DrawHelper(Kernel::HelperState& helper, const 
     // 0x602e90 → 0x5ffdf0: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado, una
     // vez por frame del original.
     if (context.originalFrame)
-        helper.horse.alpha = World::ChaosCastlePoseAlpha(runtime.map, world.Hero().byte1a1, helper.horse.alpha);
+        helper.horse.alpha =
+            Events::ChaosCastle::ChaosCastlePoseAlpha(runtime.map, world.Hero().byte1a1, helper.horse.alpha);
     // 0x5ffe2a..0x5ffe3b: por debajo de 0,01 (o sin orden) no lo dibuja.
     if (helper.horse.alpha >= DrawnAlpha)
     {
@@ -1024,4 +1025,4 @@ Core::Expected<void, std::string> OwnHelper::CreateTheHelper(std::uint16_t type,
         return Core::Unexpected(built.Error());
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

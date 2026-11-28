@@ -17,7 +17,7 @@ constexpr std::int32_t Blessing = 0x638;
 
 TEST(SiegeBlessingParticleTest, CreationAndStepPreserveTheNativeJitterAndRandomOrder)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
     const auto created = particles.CreateChecked(Blessing, {100, 200, 300}, {}, {1, 2, 3}, 0, 1.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
@@ -26,7 +26,7 @@ TEST(SiegeBlessingParticleTest, CreationAndStepPreserveTheNativeJitterAndRandomO
     EXPECT_EQ(particle.life, 20);
     EXPECT_EQ(particle.position, (glm::vec3{96, 202, 540}));
     EXPECT_EQ(particle.light, (glm::vec3{1, 2, 3}));
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_EQ(particle.life, 19);
     EXPECT_EQ(particle.position, (glm::vec3{96, 201, 542}));
     EXPECT_EQ(particle.scale, static_cast<float>(1.0 - static_cast<double>(0.01f)));
@@ -38,14 +38,14 @@ TEST(SiegeBlessingParticleTest, CreationAndStepPreserveTheNativeJitterAndRandomO
 
 TEST(SiegeBlessingParticleTest, TheFinalTickStillRunsItsJitterAfterDeath)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     auto& particle = particles.All().front();
     particle.alive = true;
     particle.type = Blessing;
     particle.life = 1;
     particle.scale = 1.0f;
     Client::Crt::CrtRandom random(1);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(particle.position, (glm::vec3{-1, -1, 2}));
@@ -56,7 +56,7 @@ TEST(SiegeBlessingParticleTest, TheFinalTickStillRunsItsJitterAfterDeath)
 }
 TEST(SiegeBlessingParticleTest, TheBlessingDrawsThroughTheCommonBillboardBranch)
 {
-    Client::World::Particle particle;
+    Client::Particles::Particle particle;
     particle.alive = true;
     particle.type = particle.texture = Blessing;
     particle.scale = 2.0f;

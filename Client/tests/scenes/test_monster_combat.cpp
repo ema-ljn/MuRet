@@ -175,7 +175,7 @@ struct Game
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
@@ -213,7 +213,7 @@ protected:
             {{.key = MonsterKey, .typeHigh = 0x00, .typeLow = type, .x = x, .y = y, .targetX = x, .targetY = y}}};
         auto read = Client::Protocol::Actors::ReadMonsters(Client::Tests::MonstersPacket(records));
         EXPECT_TRUE(read.HasValue());
-        const auto applied = Client::Scenes::ApplyViewportMonsters(read.Value(), game->Resources());
+        const auto applied = Client::Monsters::ApplyViewportMonsters(read.Value(), game->Resources());
         EXPECT_TRUE(applied.HasValue()) << (applied.HasValue() ? "" : applied.Error());
         for (std::size_t slot = 0; slot < game->world.Actors().size(); ++slot)
         {
@@ -280,7 +280,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     context.soundRequest = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); };
     for (int step = 1; step < 4; ++step)
     {
-        const auto stepped = Client::Scenes::StepTheAttack(monster, slot, context);
+        const auto stepped = Client::Combat::StepTheAttack(monster, slot, context);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(monster.byte381, step + 1);
     }
@@ -288,7 +288,7 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
     EXPECT_EQ(DrawsSince(before, game->cloth.random), 3 * 4);
 
     monster.animation.frame = 5.0f;
-    const auto struck = Client::Scenes::StepTheAttack(monster, slot, context);
+    const auto struck = Client::Combat::StepTheAttack(monster, slot, context);
     ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(monster.byte381, 0);
     // El paso con el registro propio (4 + 3.848) y la habilidad con blanco (3.853).
@@ -315,15 +315,15 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     EXPECT_GE(DrawsSince(created, game->cloth.random), 1);
     game->world.Runtime().lastSoundId.reset();
 
-    Client::Scenes::ChatReceiveContext chat{.world = game->world, .random = game->cloth.random};
+    Client::Chat::ChatReceiveContext chat{.world = game->world, .random = game->cloth.random};
     const Client::Protocol::Combat::KillExperience kill{.key = MonsterKey, .shock = true, .amount = 0, .damage = 12};
     const auto killed =
-        Client::Scenes::ApplyKillExperience(kill, Client::Scenes::CombatContextOf(game->Resources()), chat);
+        Client::Combat::ApplyKillExperience(kill, Client::Combat::CombatContextOf(game->Resources()), chat);
     ASSERT_TRUE(killed.HasValue()) << killed.Error();
     EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd + 0xd2});
 
     const Client::Protocol::Combat::Death death{.key = MonsterKey, .skill = 0, .killer = HeroKey};
-    const auto died = Client::Scenes::ApplyDeath(death, Client::Scenes::CombatContextOf(game->Resources()));
+    const auto died = Client::Combat::ApplyDeath(death, Client::Combat::CombatContextOf(game->Resources()));
     ASSERT_TRUE(died.HasValue()) << died.Error();
     EXPECT_NE(monster.dying, 0);
 
@@ -373,7 +373,7 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
     EXPECT_EQ(experience.Value().damage, 4630);
 
     const auto appliedDeath =
-        Client::Scenes::ApplyDeath(death.Value(), Client::Scenes::CombatContextOf(game->Resources()));
+        Client::Combat::ApplyDeath(death.Value(), Client::Combat::CombatContextOf(game->Resources()));
     ASSERT_TRUE(appliedDeath.HasValue()) << appliedDeath.Error();
     EXPECT_EQ(monster.dying, 1);
     EXPECT_EQ(monster.movement, 0);
@@ -381,10 +381,10 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
 
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
     CombatMessageMeasure measure;
-    Client::Scenes::ChatReceiveContext chat{
+    Client::Chat::ChatReceiveContext chat{
         .world = game->world, .random = game->cloth.random, .measure = &measure, .texts = &texts};
-    const auto appliedExperience = Client::Scenes::ApplyKillExperience(
-        experience.Value(), Client::Scenes::CombatContextOf(game->Resources()), chat);
+    const auto appliedExperience = Client::Combat::ApplyKillExperience(
+        experience.Value(), Client::Combat::CombatContextOf(game->Resources()), chat);
     ASSERT_TRUE(appliedExperience.HasValue()) << appliedExperience.Error();
 
     EXPECT_EQ(monster.dying, 1);
@@ -426,7 +426,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
         std::size_t expectedSparks;
     };
     for (const PoolCase probe :
-         {PoolCase{"libre", Client::World::ParticleCount, 2}, PoolCase{"parcial", 1, 1}, PoolCase{"lleno", 0, 0}})
+         {PoolCase{"libre", Client::Particles::ParticleCount, 2}, PoolCase{"parcial", 1, 1}, PoolCase{"lleno", 0, 0}})
     {
         SCOPED_TRACE(probe.name);
         Load(0);
@@ -440,8 +440,8 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
         game->world.Runtime().modelSounds[0x18f] = Sounds(0x31, 0x32, 0x41, 0x42, 0x43);
 
         auto actual = game->world.Particles().All();
-        auto expected = std::make_unique<Client::World::Particles>();
-        if (probe.initiallyFree != Client::World::ParticleCount)
+        auto expected = std::make_unique<Client::Particles::Particles>();
+        if (probe.initiallyFree != Client::Particles::ParticleCount)
         {
             for (std::size_t index = 0; index < actual.size(); ++index)
             {
@@ -470,7 +470,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
                                                static_cast<double>(expectedRandom.Next() % 128 - 64));
             const float z = static_cast<float>(
                 (static_cast<double>(monster.position.z) + static_cast<double>(expectedRandom.Next() % 50)) + 200.0);
-            const auto created = expected->CreateChecked(Client::World::DustParticle, {x, monster.position.y, z},
+            const auto created = expected->CreateChecked(Client::Particles::DustParticle, {x, monster.position.y, z},
                                                          monster.angles, monster.light, 0, 1.0f, 0.0f, expectedRandom);
             ASSERT_TRUE(created.HasValue());
             expectedSparkCount += created.Value().has_value() ? 1u : 0u;
@@ -492,7 +492,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
             const auto& expectedParticle = expectedParticles[index];
             EXPECT_EQ(actualParticle.alive, expectedParticle.alive) << index;
             EXPECT_EQ(actualParticle.type, expectedParticle.type) << index;
-            if (!actualParticle.alive || actualParticle.type != Client::World::DustParticle)
+            if (!actualParticle.alive || actualParticle.type != Client::Particles::DustParticle)
                 continue;
             ++actualSparkCount;
             EXPECT_EQ(actualParticle.subtype, 0) << index;

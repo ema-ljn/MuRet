@@ -22,7 +22,7 @@
 
 // Cotejado con el PE c32bbd5f: 0x518f38, 0x51cebf y 0x51cdc9 (las altas del 0x128, el 0x126 y el 0x125) y 0x527ad6,
 // 0x52778c y 0x5276b7 (sus pasos).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -36,7 +36,7 @@ constexpr int FullTurn = Math::FullTurn; // 0x168
 constexpr std::int32_t CallLife = 30;    // 0x1e, 0x51cf97 y 0x527add
 
 // 0x518cf0(tipo, posición del 0x128, ángulos, luz del 0x128, 0, 0, −1, 0, 0, 0, 0) desde su paso, en `address`.
-Core::Expected<void, std::string> CallOut(const World::ModelEffect& call, std::int16_t type, const glm::vec3& angles,
+Core::Expected<void, std::string> CallOut(const Effects::ModelEffect& call, std::int16_t type, const glm::vec3& angles,
                                           const HighEffectContext& creation, std::uint32_t address)
 {
     const auto made = CreateHighModelEffect(
@@ -47,10 +47,10 @@ Core::Expected<void, std::string> CallOut(const World::ModelEffect& call, std::i
 }
 } // namespace
 
-void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot)
+void BeginTheKundunCall(Effects::ModelEffects& effects, std::size_t slot)
 {
     constexpr std::int32_t EchoSubtype = 2;
-    World::ModelEffect& effect = effects.Effects()[slot];
+    Effects::ModelEffect& effect = effects.Effects()[slot];
     if (effect.subtype == 0 || effect.subtype == 1)
     {
         effect.life = CallLife;
@@ -66,7 +66,7 @@ void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunCall(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments)
+CreateTheKundunCall(Effects::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments)
 {
     if (arguments.type != KundunCallEffect)
         return Core::Unexpected(std::format("0x518cf0: el alta de Kundun recibe el tipo {:#x}", arguments.type));
@@ -77,7 +77,7 @@ CreateTheKundunCall(World::ModelEffects& effects, const Kernel::ModelEffectArgum
     return slot;
 }
 
-Core::Expected<void, std::string> StepTheKundunCall(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheKundunCall(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     const HighEffectContext creation{.world = context.world,
                                      .random = context.random,
@@ -130,7 +130,7 @@ Core::Expected<void, std::string> StepTheKundunCall(World::ModelEffect& effect, 
     return {};
 }
 
-Core::Expected<void, std::string> BeginTheKundunPhoenix(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> BeginTheKundunPhoenix(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr float Speed = std::bit_cast<float>(0x3eae147bu); // 0,34f
     constexpr std::int32_t PhoenixLife = 20;                   // 0x14
@@ -155,7 +155,7 @@ Core::Expected<void, std::string> BeginTheKundunPhoenix(World::ModelEffect& effe
     return {};
 }
 
-void StepTheKundunPhoenix(World::ModelEffect& effect)
+void StepTheKundunPhoenix(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t FadeLife = 5;                                                // edi, 0x5208df
     constexpr double FadeStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
@@ -164,7 +164,7 @@ void StepTheKundunPhoenix(World::ModelEffect& effect)
     effect.alpha = F32(static_cast<double>(effect.life) * FadeStep);
 }
 
-Core::Expected<void, std::string> BeginTheKundunSpirit(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> BeginTheKundunSpirit(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr std::int32_t SpiritLife = 30;
     constexpr float Glow = 0.5f;                         // 0x3f000000
@@ -196,7 +196,8 @@ Core::Expected<void, std::string> BeginTheKundunSpirit(World::ModelEffect& effec
     return {};
 }
 
-Core::Expected<void, std::string> StepTheKundunSpirit(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheKundunSpirit(Effects::ModelEffect& effect,
+                                                      const HighEffectStepContext& context)
 {
     constexpr int SpinSpan = 10, SpinBase = 10; // 0xa
     effect.transform.angles.z =
@@ -217,4 +218,4 @@ Core::Expected<void, std::string> StepTheKundunSpirit(World::ModelEffect& effect
     return CreateHighJoint(context.world, context.random, SpiritJoint, point, point, angles, FanSubtype, nullptr,
                            SpiritWidth, 0x52777f, SpiritKey);
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

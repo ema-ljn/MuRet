@@ -62,7 +62,6 @@
 namespace
 {
 using Client::App::GameLoop;
-using Client::App::PacingMode;
 using Client::Core::Duration;
 using Client::Core::Expected;
 using Client::Core::Log;
@@ -70,6 +69,7 @@ using Client::Core::LogLevel;
 using Client::Core::Unexpected;
 using Client::Data::Textures::LoadedTexture;
 using Client::Input::InputState;
+using Client::Kernel::PacingMode;
 using Client::Platform::WindowState;
 using Client::Render::TextureSlot;
 using Client::Render::Frame::SceneCanvas;
@@ -1309,7 +1309,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     Client::Models::ClothWorld cloth;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     ManagerGameResources gameResources;

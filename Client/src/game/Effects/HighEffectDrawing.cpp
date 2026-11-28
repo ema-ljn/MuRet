@@ -27,7 +27,7 @@
 #include <vector>
 
 // Cotejado con el PE c32bbd5f: 0x6002e0 (0x601e68..0x602044) y 0x438fe0 (0x43909e..0x439214).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -77,7 +77,7 @@ Core::Expected<std::span<const Math::BoneTransform>, std::string> BonesOf(const 
 
 // 0x601e68..0x601faf: el 0x11b.
 Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                              World::ModelEffect& effect, Actors::Drawing::DrawnObject& object,
+                                              Effects::ModelEffect& effect, Actors::Drawing::DrawnObject& object,
                                               Core::Duration frameClock, const HighEffectDrawServices& services)
 {
     // 0x601e72..0x601e7c: (edi = 1, 0x3f19999a, 0x3e99999a).
@@ -167,7 +167,7 @@ Core::Expected<bool, std::string> DrawTheGuildMark(Render::ModelBatch& batch, co
 }
 } // namespace
 
-bool HasHighEffectBody(const World::ModelEffect& effect)
+bool HasHighEffectBody(const Effects::ModelEffect& effect)
 {
     if (effect.type == WaveType)
         return effect.subtype == 3 || effect.subtype == 4 || effect.subtype == 5;
@@ -175,7 +175,7 @@ bool HasHighEffectBody(const World::ModelEffect& effect)
 }
 
 Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                        World::ModelEffect& effect,
+                                                        Effects::ModelEffect& effect,
                                                         Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
                                                         const HighEffectDrawServices& services)
 {
@@ -198,4 +198,4 @@ Core::Expected<bool, std::string> DrawTheHighEffectBody(Render::ModelBatch& batc
     Actors::Drawing::DrawObjectWithTexture(batch, models, object, frameClock, PinkWave);
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

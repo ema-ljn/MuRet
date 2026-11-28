@@ -42,6 +42,7 @@
 // adentro de 360 × 156 y el cuerpo con el borde de abajo en 237, de 240 × 120. Los nombres y los textos son inventados.
 namespace
 {
+using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -55,23 +56,22 @@ using Client::Render::Text::TextColors;
 using Client::Render::Text::TextExtent;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
-using Client::UI::ChatFocus;
-using Client::UI::FriendSend;
-using Client::UI::OldChatPart;
-using Client::UI::OldPortraitPart;
-using Client::UI::OldWindow;
-using Client::UI::OldWindowDrawContext;
-using Client::UI::OldWindowDrawView;
-using Client::UI::OldWindowGlobals;
-using Client::UI::OldWindowManager;
-using Client::UI::OldWindowMeasure;
-using Client::UI::OldWindowStepView;
-using Client::UI::OldWindowTexts;
-using Client::UI::PortraitCallKind;
+using Client::Ui::FriendSend;
+using Client::Ui::OldChatPart;
+using Client::Ui::OldPortraitPart;
+using Client::Ui::OldWindow;
+using Client::Ui::OldWindowDrawContext;
+using Client::Ui::OldWindowDrawView;
+using Client::Ui::OldWindowGlobals;
+using Client::Ui::OldWindowManager;
+using Client::Ui::OldWindowMeasure;
+using Client::Ui::OldWindowStepView;
+using Client::Ui::OldWindowTexts;
+using Client::Ui::PortraitCallKind;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr TextureSlot ScrollbarSlot{0x649};
-constexpr TextureSlot ButtonSlot{Client::UI::WindowButtonSlot};
+constexpr TextureSlot ButtonSlot{Client::Ui::WindowButtonSlot};
 constexpr std::uint32_t Dim = 0xffc8dce6u;
 constexpr std::string_view Hero = "Heroico";
 constexpr std::int32_t ChatX = 100;
@@ -118,7 +118,7 @@ void ExpectBox(const Box& box, float left, float top, float right, float bottom)
 
 Color PaletteOf(std::int32_t index)
 {
-    return *Client::UI::OldWindowPalette(index, 1.0f);
+    return *Client::Ui::OldWindowPalette(index, 1.0f);
 }
 
 struct ExpectedCommand
@@ -202,23 +202,24 @@ protected:
     {
         const OldWindowGlobals globals = Globals();
         const OldWindowStepView view = StepView();
-        const auto opened = Client::UI::CreateTheOldWindow(
+        const auto opened = Client::Ui::CreateTheOldWindow(
             m_manager,
-            Client::UI::OldWindowRequest{
-                .kind = Client::UI::ChatCase, .x = ChatX, .y = ChatY, .data = "t994", .aux = 0, .flags = 0},
+            Client::Ui::OldWindowRequest{
+                .kind = Client::Ui::ChatCase, .x = ChatX, .y = ChatY, .data = "t994", .aux = 0, .flags = 0},
             m_texts, m_measure, &globals, &view);
         EXPECT_TRUE(opened.HasValue()) << opened.Error();
         m_chat = opened.HasValue() ? opened.Value() : 0;
         OldWindow& chat = Chat();
-        EXPECT_TRUE(Client::UI::AddAChatMember(m_manager, chat, Hero, 0, 0, m_texts, Hero, &m_measure).HasValue());
+        EXPECT_TRUE(
+            Client::Messenger::AddAChatMember(m_manager, chat, Hero, 0, 0, m_texts, Hero, &m_measure).HasValue());
         for (const NewMember& member : members)
-            EXPECT_TRUE(
-                Client::UI::AddAChatMember(m_manager, chat, member.name, member.index, 0, m_texts, Hero, &m_measure)
-                    .HasValue());
+            EXPECT_TRUE(Client::Messenger::AddAChatMember(m_manager, chat, member.name, member.index, 0, m_texts, Hero,
+                                                          &m_measure)
+                            .HasValue());
         for (const NewLine& line : lines)
         {
             const auto added =
-                Client::UI::AddAChatLine(m_manager, chat, line.speaker, line.text, line.kind, 0, &m_measure);
+                Client::Messenger::AddAChatLine(m_manager, chat, line.speaker, line.text, line.kind, 0, &m_measure);
             EXPECT_TRUE(added.HasValue()) << added.Error();
         }
         return chat;
@@ -234,23 +235,23 @@ protected:
     {
         const OldWindowGlobals globals = Globals();
         const OldWindowStepView view = StepView();
-        const auto opened = Client::UI::CreateTheOldWindow(
+        const auto opened = Client::Ui::CreateTheOldWindow(
             m_manager,
-            Client::UI::OldWindowRequest{
-                .kind = Client::UI::LetterReadCase, .x = ChatX, .y = ChatY, .data = "t1054", .aux = 0, .flags = 0},
+            Client::Ui::OldWindowRequest{
+                .kind = Client::Ui::LetterReadCase, .x = ChatX, .y = ChatY, .data = "t1054", .aux = 0, .flags = 0},
             m_texts, m_measure, &globals, &view);
         EXPECT_TRUE(opened.HasValue()) << opened.Error();
         m_letter = opened.HasValue() ? opened.Value() : 0;
         OldWindow& read = Letter();
-        const auto set = Client::UI::SetTheLetter(m_manager, read,
-                                                  Client::UI::LetterEntry{.selected = 0,
-                                                                          .index = 3,
-                                                                          .name = "Tordo",
-                                                                          .subject = "Asado",
-                                                                          .date = "2026/11/13",
-                                                                          .time = "21:30",
-                                                                          .type = 1},
-                                                  body, &m_measure);
+        const auto set = Client::Messenger::SetTheLetter(m_manager, read,
+                                                         Client::Messenger::LetterEntry{.selected = 0,
+                                                                                        .index = 3,
+                                                                                        .name = "Tordo",
+                                                                                        .subject = "Asado",
+                                                                                        .date = "2026/11/13",
+                                                                                        .time = "21:30",
+                                                                                        .type = 1},
+                                                         body, &m_measure);
         EXPECT_TRUE(set.HasValue()) << set.Error();
         return read;
     }
@@ -265,10 +266,10 @@ protected:
     {
         const OldWindowGlobals globals = Globals();
         const OldWindowStepView view = StepView();
-        const auto opened = Client::UI::CreateTheOldWindow(
+        const auto opened = Client::Ui::CreateTheOldWindow(
             m_manager,
-            Client::UI::OldWindowRequest{
-                .kind = Client::UI::LetterWriteCase, .x = ChatX, .y = ChatY, .data = "t1053", .aux = 0, .flags = 0},
+            Client::Ui::OldWindowRequest{
+                .kind = Client::Ui::LetterWriteCase, .x = ChatX, .y = ChatY, .data = "t1053", .aux = 0, .flags = 0},
             m_texts, m_measure, &globals, &view);
         EXPECT_TRUE(opened.HasValue()) << opened.Error();
         m_letter = opened.HasValue() ? opened.Value() : 0;
@@ -278,7 +279,7 @@ protected:
     // El paso de las ventanas, con la cola del administrador.
     void Step()
     {
-        const auto stepped = Client::UI::StepTheOldWindows(m_manager, Globals(), StepView());
+        const auto stepped = Client::Ui::StepTheOldWindows(m_manager, Globals(), StepView());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     }
 
@@ -299,7 +300,7 @@ protected:
                                      .focusedEdit = m_focusedEdit,
                                      .chatPlacement = m_placement,
                                      .portrait = m_portrait};
-        return Client::UI::DrawTheOldWindows(m_manager, Context(), view);
+        return Client::Ui::DrawTheOldWindows(m_manager, Context(), view);
     }
 
     const SpriteVertex& VertexOf(std::size_t command, std::size_t quad = 0, std::size_t corner = 0) const
@@ -403,7 +404,7 @@ TEST_F(LetterWindowsDrawTest, TheChatDrawsItsLinesItsBottomItsButtonAndItsEdit)
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t993"
         {std::nullopt, BlendMode::Opaque, 1},  // el bitmap del EDIT, sin mezcla; el cursor vacío queda recortado
-        {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1},
+        {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1},
     });
     // 0x45fac0: las flechas en (x + w − 12, y − h − 1) y (x + w − 12, y − 12).
     ExpectBox(QuadOf(1, 0), 333.0f, 100.0f, 346.0f, 113.0f);
@@ -434,10 +435,10 @@ TEST_F(LetterWindowsDrawTest, TheChatDrawsItsLinesItsBottomItsButtonAndItsEdit)
 // normal) y la de 0x50, y el botón de mandar la invitación después del EDIT.
 TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendButton)
 {
-    Client::UI::AddAFriend(m_manager.friendModel, "Zorzal", 0, 3);
-    Client::UI::AddAFriend(m_manager.friendModel, "Calandria", 0, 1);
+    Client::Messenger::AddAFriend(m_manager.friendModel, "Zorzal", 0, 3);
+    Client::Messenger::AddAFriend(m_manager.friendModel, "Calandria", 0, 1);
     OpenAChat({{"Tordo", 1}}, {});
-    Client::UI::PostToTheWindow(m_manager, m_chat, Client::UI::CommandMessage, 1, 0);
+    Client::Ui::PostToTheWindow(m_manager, m_chat, Client::Ui::CommandMessage, 1, 0);
     Step();
     const OldChatPart& part = Chat().chat;
     ASSERT_EQ(part.mode, 2);
@@ -472,7 +473,7 @@ TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendB
         {std::nullopt, BlendMode::Opaque, 1},  // el EDIT, sin el foco
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t993"
-        {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1},
+        {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1},
     });
     // 0x491ba0(105 + 320 − 0xa0, 101, 144 − 16): los filos del 2 en x y x + 4 y el medio del 1 en x + 1 de 3.
     ExpectBox(QuadOf(15, 0), 265.0f, 101.0f, 266.0f, 229.0f);
@@ -549,7 +550,7 @@ TEST_F(LetterWindowsDrawTest, TheChatRowColorsGoByTheKind)
     m_text.texts.clear();
     m_colors = TextColors{.text = 0xff123456u, .background = 0xff000000u};
     // Solo el primero que llegó, que es el último del segundo deque.
-    std::deque<Client::UI::ChatLine>& wrapped = Chat().chat.wrappedRows;
+    std::deque<Client::Ui::ChatLine>& wrapped = Chat().chat.wrappedRows;
     wrapped.erase(wrapped.begin(), wrapped.end() - 1);
     Chat().chat.lines.fixedCountValue = 1;
     ASSERT_TRUE(Draw().HasValue());
@@ -607,9 +608,9 @@ TEST_F(LetterWindowsDrawTest, ALongChatLineIsWrappedWithTheIndentOfTheName)
     ASSERT_EQ(part.lines.base.width, 240);
     ASSERT_EQ(part.wrappedRows.size(), 2u);
     EXPECT_EQ(part.wrappedRows[0],
-              (Client::UI::ChatLine{.name = "", .text = std::string(Said.substr(29)), .kind = 3, .extra = 0}));
+              (Client::Ui::ChatLine{.name = "", .text = std::string(Said.substr(29)), .kind = 3, .extra = 0}));
     EXPECT_EQ(part.wrappedRows[1],
-              (Client::UI::ChatLine{.name = "Tordo", .text = std::string(Said.substr(0, 29)), .kind = 3, .extra = 0}));
+              (Client::Ui::ChatLine{.name = "Tordo", .text = std::string(Said.substr(0, 29)), .kind = 3, .extra = 0}));
     EXPECT_EQ(part.lines.fixedCountValue, 2);
 
     ASSERT_TRUE(Draw().HasValue());
@@ -638,11 +639,12 @@ TEST_F(LetterWindowsDrawTest, TheThirdMemberNarrowsTheLinesAndWrapsThemAgain)
     constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
     OldWindow& chat = OpenAChat({{"Tordo", 1}}, {{1, std::string(Said), 3}, {0xff, "listo", 1}});
     ASSERT_EQ(chat.chat.wrappedRows.size(), 3u);
-    ASSERT_TRUE(Client::UI::AddAChatMember(m_manager, chat, "Zorzal", 2, 0, m_texts, Hero, &m_measure).HasValue());
+    ASSERT_TRUE(
+        Client::Messenger::AddAChatMember(m_manager, chat, "Zorzal", 2, 0, m_texts, Hero, &m_measure).HasValue());
     const OldChatPart& part = chat.chat;
     EXPECT_EQ(part.lines.base.width, 160);
     std::deque<std::string> texts;
-    for (const Client::UI::ChatLine& line : part.wrappedRows)
+    for (const Client::Ui::ChatLine& line : part.wrappedRows)
         texts.push_back(line.text);
     EXPECT_EQ(texts, (std::deque<std::string>{"listo", std::string(Said.substr(58)), std::string(Said.substr(37, 21)),
                                               std::string(Said.substr(16, 21)), std::string(Said.substr(0, 16))}));
@@ -660,7 +662,7 @@ TEST_F(LetterWindowsDrawTest, AChatLineInMoreThanTenRowsKeepsTen)
     std::string said;
     while (said.size() < 0x120)
         said += "la ronda de mate sigue en la plaza hasta tarde ";
-    const auto added = Client::UI::AddAChatLine(m_manager, chat, 1, said, 3, 0, &m_measure);
+    const auto added = Client::Messenger::AddAChatLine(m_manager, chat, 1, said, 3, 0, &m_measure);
     ASSERT_TRUE(added.HasValue()) << added.Error();
     ASSERT_EQ(chat.chat.lineRows.size(), 1u);
     EXPECT_EQ(chat.chat.lineRows[0].text.size(), 0x100u);
@@ -676,10 +678,10 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
     OldWindow& chat = OpenAChat({{"Tordo", 1}}, {});
     chat.base.x += 10;
     chat.base.y += 20;
-    chat.base.state = Client::UI::DraggedWindow;
+    chat.base.state = Client::Ui::DraggedWindow;
 
-    ASSERT_TRUE(
-        Client::UI::DrawTheChatWindow(m_manager, chat, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    ASSERT_TRUE(Client::Messenger::DrawTheChatWindow(m_manager, chat, Context(), OldWindowDrawView{.texts = &m_texts})
+                    .HasValue());
 
     const OldChatPart& part = chat.chat;
     EXPECT_EQ(part.lines.base.x, 115);
@@ -693,7 +695,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
     EXPECT_EQ(part.lines.base.height, 128);
 
     chat.base.height += 26;
-    chat.base.state = Client::UI::ResizedWindow;
+    chat.base.state = Client::Ui::ResizedWindow;
     m_sprites.Begin(Screen640);
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(part.lines.base.height, 154);
@@ -710,7 +712,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
 TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntilThePortrait)
 {
     OldWindow& read = OpenALetter("linea uno\nlinea dos\nlinea tres");
-    const Client::UI::OldLetterPart& letter = read.letter;
+    const Client::Ui::OldLetterPart& letter = read.letter;
     ASSERT_EQ(letter.portraitMode, 2);
     ASSERT_EQ(read.base.width, 370);
     ASSERT_EQ(letter.lines.base.x, 105);
@@ -738,7 +740,7 @@ TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntil
         expected.push_back({ButtonSlot, BlendMode::Alpha, 1});
         expected.push_back({TextMarkerSlot, BlendMode::Alpha, 1});
     }
-    expected.push_back({TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1});
+    expected.push_back({TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1});
     ExpectCommands(expected);
     // 0x499e44..0x49a0f4: la raya del costado en (105 + 360 − 0x78, 156 + 101 − 19) de 1 × 19, la de los botones en
     // y + h − 20 de 360 − 120 y el negro de 18 debajo; arriba, la raya en y + 0xe y el negro de 14.
@@ -788,7 +790,7 @@ TEST_F(LetterWindowsDrawTest, WithoutThePortraitModeTheBarsAreWholeAndNothingIsC
     });
     ExpectBox(QuadOf(4, 0), 105.0f, 237.0f, 465.0f, 238.0f);
     ExpectBox(QuadOf(4, 1), 105.0f, 238.0f, 465.0f, 256.0f);
-    EXPECT_EQ(Client::UI::DrawTheLetterPortrait(read, OldWindowDrawView{}).HasValue(), true);
+    EXPECT_EQ(Client::Messenger::DrawTheLetterPortrait(read, OldWindowDrawView{}).HasValue(), true);
 }
 
 // Con el juego, la vtable + 0x54 de las dos le pasa su retrato (+0xb0 la de leer, +0xb4 la de escribir) a la vtable
@@ -830,12 +832,12 @@ TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
     OldWindow& read = OpenALetter("hola");
     read.base.x += 10;
     read.base.height += 13;
-    read.base.state = Client::UI::ResizedWindow;
+    read.base.state = Client::Ui::ResizedWindow;
 
-    ASSERT_TRUE(
-        Client::UI::DrawTheReadWindow(m_manager, read, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    ASSERT_TRUE(Client::Messenger::DrawTheReadWindow(m_manager, read, Context(), OldWindowDrawView{.texts = &m_texts})
+                    .HasValue());
 
-    const Client::UI::OldLetterPart& letter = read.letter;
+    const Client::Ui::OldLetterPart& letter = read.letter;
     EXPECT_EQ(letter.lines.base.x, 115);
     EXPECT_EQ(letter.lines.base.y, 250);
     EXPECT_EQ(letter.lines.base.height, 133);
@@ -853,7 +855,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
 TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsButtonsUntilThePortrait)
 {
     OldWindow& write = OpenAWrite();
-    const Client::UI::OldLetterPart& letter = write.letter;
+    const Client::Ui::OldLetterPart& letter = write.letter;
     ASSERT_EQ(letter.withPortrait, 1);
     ASSERT_EQ(write.base.width, 370);
     ASSERT_EQ(write.base.height, 216);
@@ -879,7 +881,7 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsB
         expected.push_back({ButtonSlot, BlendMode::Alpha, 1});
         expected.push_back({TextMarkerSlot, BlendMode::Alpha, 1});
     }
-    expected.push_back({TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1});
+    expected.push_back({TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1});
     ExpectCommands(expected);
     // El área de adentro: (105, 101), 360 × 190.
     ExpectBox(QuadOf(0, 1), 105.0f, 101.0f, 465.0f, 130.0f);
@@ -932,7 +934,7 @@ TEST_F(LetterWindowsDrawTest, WithoutThePortraitTheWriteWindowDrawsTwoButtons)
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
-        {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1},
+        {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1},
     };
     ExpectCommands(expected);
 }
@@ -941,7 +943,7 @@ TEST_F(LetterWindowsDrawTest, WithoutThePortraitTheWriteWindowDrawsTwoButtons)
 TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret)
 {
     OldWindow& write = OpenAWrite();
-    Client::UI::OldLetterPart& letter = write.letter;
+    Client::Ui::OldLetterPart& letter = write.letter;
     letter.to.text.SetText("Tordo");
     letter.subject.text.SetText("Asado");
     letter.text.text.SetText("Hay asado");
@@ -996,17 +998,17 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
 TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizingThem)
 {
     OldWindow& write = OpenAWrite();
-    const Client::UI::OldLetterPart& letter = write.letter;
+    const Client::Ui::OldLetterPart& letter = write.letter;
     const std::int32_t toX = letter.to.base.x;
     const std::int32_t bodyHeight = letter.text.base.height;
     const std::int32_t portraitHeight = letter.portrait.base.height;
     write.base.x += 10;
     write.base.y += 20;
     write.base.height += 13;
-    write.base.state = Client::UI::ResizedWindow;
+    write.base.state = Client::Ui::ResizedWindow;
 
-    ASSERT_TRUE(
-        Client::UI::DrawTheWriteWindow(m_manager, write, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    ASSERT_TRUE(Client::Messenger::DrawTheWriteWindow(m_manager, write, Context(), OldWindowDrawView{.texts = &m_texts})
+                    .HasValue());
 
     EXPECT_EQ(letter.to.base.x, toX + 10);
     EXPECT_EQ(letter.subject.base.y, 80 + 20 + 0x15 + 0x12);
@@ -1029,17 +1031,17 @@ TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMa
     const std::int32_t first = OpenAChat({{"Tordo", 1}}, {}).base.id;
     const std::int32_t second = OpenAChat({{"Zorzal", 1}, {"Mirlo", 2}}, {}).base.id;
     OldWindow& third = OpenAChat({{"Hornero", 1}}, {});
-    third.base.state = Client::UI::MinimizedWindow;
+    third.base.state = Client::Ui::MinimizedWindow;
     OldWindow& list = m_manager.windowList;
     ASSERT_EQ(list.list.chats.size(), 3u);
     ASSERT_EQ(list.list.chats[0], first);
     ASSERT_EQ(list.list.chats[1], second);
-    list.base.state = Client::UI::ShownWindow;
+    list.base.state = Client::Ui::ShownWindow;
     list.list.blink = 1.0f;
     list.list.cursor = 1;
     list.list.waiting.push_back(first);
 
-    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    ASSERT_TRUE(Client::Ui::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
 
     const TextureSlot mark{0x64c};
     ExpectCommands({
@@ -1082,20 +1084,20 @@ TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMa
 TEST_F(LetterWindowsDrawTest, TheWindowListShowsTheClosedChatsAndTheEmptyOnes)
 {
     OldWindow& closed = OpenAChat({{"Tordo", 1}}, {});
-    Client::UI::CloseTheChat(closed, 1, m_texts);
+    Client::Messenger::CloseTheChat(closed, 1, m_texts);
     ASSERT_EQ(closed.frame.title, std::optional<std::string>("t995t994Tordo"));
     OpenAChat({}, {});
     OldWindow& list = m_manager.windowList;
-    list.base.state = Client::UI::ShownWindow;
+    list.base.state = Client::Ui::ShownWindow;
     list.list.blink = 0.5f;
     list.list.cursor = list.list.chats.size();
 
-    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    ASSERT_TRUE(Client::Ui::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
 
     const TextColors faded{.text = 0x7fc8dce6u, .background = 0};
     ExpectTexts(0, {{"Tordo", 584, 421, faded}, {"t995", 584, 404, faded}});
     // El fondo y el borde con el alfa del parpadeo.
-    EXPECT_EQ(VertexOf(0, 1).color, *Client::UI::OldWindowPalette(15, 0.5f));
+    EXPECT_EQ(VertexOf(0, 1).color, *Client::Ui::OldWindowPalette(15, 0.5f));
 }
 
 // Oculta, o con todos los chats minimizados, la lista no dibuja nada más que lo del marco.
@@ -1103,12 +1105,12 @@ TEST_F(LetterWindowsDrawTest, TheWindowListWithoutChatsToShowDrawsNothing)
 {
     OldWindow& chat = OpenAChat({{"Tordo", 1}}, {});
     OldWindow& list = m_manager.windowList;
-    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    ASSERT_TRUE(Client::Ui::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
     EXPECT_TRUE(m_sprites.Commands().empty());
 
-    list.base.state = Client::UI::ShownWindow;
-    chat.base.state = Client::UI::MinimizedWindow;
-    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    list.base.state = Client::Ui::ShownWindow;
+    chat.base.state = Client::Ui::MinimizedWindow;
+    ASSERT_TRUE(Client::Ui::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
     EXPECT_TRUE(m_sprites.Commands().empty());
     EXPECT_TRUE(m_text.texts.empty());
 }
@@ -1118,12 +1120,12 @@ TEST_F(LetterWindowsDrawTest, TheWindowListWithoutChatsToShowDrawsNothing)
 // mientras haya una sin leer. Sin rand().
 TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntilTheSixthBlink)
 {
-    Client::UI::OldWindowListPart& list = m_manager.windowList.list;
+    Client::Ui::OldWindowListPart& list = m_manager.windowList.list;
     list.waiting.push_back(7);
     list.newLetter = 1;
-    Client::UI::AddALetter(m_manager.letterModel, 3, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+    Client::Messenger::AddALetter(m_manager.letterModel, 3, "Tordo", "Asado", "2026/11/13", "21:30", 0);
 
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
 
     ExpectCommands({{TextureSlot{0x64e}, BlendMode::Alpha, 1}, {TextureSlot{0x64d}, BlendMode::Alpha, 1}});
     EXPECT_EQ(m_sprites.Commands().size(), 2u);
@@ -1139,12 +1141,12 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
 
     // Los dibujos 1..130: cinco parpadeos (en el 11, 35, 59, 83 y 107), y la carta nueva sigue.
     for (int draw = 1; draw < 131; ++draw)
-        Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+        Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     EXPECT_EQ(list.barBlink, 131);
     EXPECT_EQ(list.letterBlinks, 5);
     EXPECT_EQ(list.newLetter, 1);
     // El 131 (131 % 24 = 11): el sexto la apaga y vuelve a 0.
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     EXPECT_EQ(list.barBlink, 132);
     EXPECT_EQ(list.letterBlinks, 0);
     EXPECT_EQ(list.newLetter, 0);
@@ -1152,7 +1154,7 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
     // Apagado (el 12 de cada 24): sin el hombre, y la carta fija por la que no se leyó.
     list.barBlink = 12;
     m_sprites.Begin(Screen640);
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     ExpectCommands({{TextureSlot{0x64d}, BlendMode::Alpha, 1}});
     EXPECT_EQ(m_sprites.Commands().size(), 1u);
     ExpectBox(QuadOf(0), 615.0f, 440.0f, 630.0f, 449.0f);
@@ -1161,9 +1163,9 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
     // Leída, nada; con la carta nueva y apagado, tampoco.
     m_manager.letterModel.letters.front().type = 1;
     m_sprites.Begin(Screen640);
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     list.newLetter = 1;
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     EXPECT_TRUE(m_sprites.Commands().empty());
     EXPECT_EQ(list.barBlink, 15);
     EXPECT_EQ(list.newLetter, 1);
@@ -1175,15 +1177,15 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
 // nueva se apaga (0x4a6420(0)) y la carta se dibuja igual en ese dibujo; en el siguiente, solo con una sin leer.
 TEST_F(LetterWindowsDrawTest, WithTheFriendsWindowTheBarIconsGoOverThePushedButton)
 {
-    const auto opened = Client::UI::OpenTheFriendsWindow(m_manager, Client::UI::FriendsWindowX,
-                                                         Client::UI::FriendsWindowY, Globals(), StepView());
+    const auto opened = Client::Messenger::OpenTheFriendsWindow(
+        m_manager, Client::Messenger::FriendsWindowX, Client::Messenger::FriendsWindowY, Globals(), StepView());
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
-    Client::UI::OldWindowListPart& list = m_manager.windowList.list;
+    Client::Ui::OldWindowListPart& list = m_manager.windowList.list;
     list.waiting.push_back(7);
     list.newLetter = 1;
     m_sprites.Begin(Screen640);
 
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
 
     ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1},
                     {TextureSlot{0x64e}, BlendMode::Alpha, 1},
@@ -1201,13 +1203,13 @@ TEST_F(LetterWindowsDrawTest, WithTheFriendsWindowTheBarIconsGoOverThePushedButt
 
     // Sin carta nueva: sin ninguna sin leer, solo el botón y el hombre; con una, también la carta.
     m_sprites.Begin(Screen640);
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1}, {TextureSlot{0x64e}, BlendMode::Alpha, 1}});
     EXPECT_EQ(m_sprites.Commands().size(), 2u);
-    Client::UI::AddALetter(m_manager.letterModel, 4, "Zorzal", "Mate", "2026/11/13", "22:00", 0);
+    Client::Messenger::AddALetter(m_manager.letterModel, 4, "Zorzal", "Mate", "2026/11/13", "22:00", 0);
     list.barBlink = 23;
     m_sprites.Begin(Screen640);
-    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1}, {TextureSlot{0x64d}, BlendMode::Alpha, 1}});
     EXPECT_EQ(m_sprites.Commands().size(), 2u);
     ExpectBox(QuadOf(1), 618.0f, 442.0f, 633.0f, 451.0f);

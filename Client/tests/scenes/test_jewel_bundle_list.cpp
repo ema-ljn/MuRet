@@ -45,7 +45,7 @@ using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::Key;
 using Client::Kernel::WorldState;
-using Client::Scenes::JewelBundleList;
+using Client::Npc::JewelBundleList;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 // 0x62f734: la esquina que pone el dibujo del 0xa4, (0xe4, 0x6d + 0xf0).
@@ -80,18 +80,18 @@ public:
     void Fill(std::int32_t count)
     {
         JewelBundleList& list = List();
-        Client::Scenes::ClearTheBundles(list);
+        Client::ChaosMix::ClearTheBundles(list);
         for (std::int32_t cell = 1; cell <= count; ++cell)
-            Client::Scenes::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell % 16));
+            Client::ChaosMix::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell % 16));
         PlaceTheBar();
     }
 
     void PlaceTheBar()
     {
         JewelBundleList& list = List();
-        const Client::UI::OldListBar bar =
-            Client::UI::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows,
-                                        static_cast<std::int32_t>(list.rows.size()), list.scroll);
+        const Client::Chat::OldListBar bar =
+            Client::Chat::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows,
+                                          static_cast<std::int32_t>(list.rows.size()), list.scroll);
         list.barTop = bar.barTop;
         list.barBottom = bar.barBottom;
         list.thumbY = bar.thumbY;
@@ -99,22 +99,22 @@ public:
     }
 
     // Sin el clic.
-    Client::Scenes::BundleListStep Step(std::int32_t x, std::int32_t y)
+    Client::ChaosMix::BundleListStep Step(std::int32_t x, std::int32_t y)
     {
         world->Runtime().movement.pendingClick = false;
         return Run(x, y);
     }
 
-    Client::Scenes::BundleListStep Click(std::int32_t x, std::int32_t y)
+    Client::ChaosMix::BundleListStep Click(std::int32_t x, std::int32_t y)
     {
         world->Runtime().movement.pendingClick = true;
         return Run(x, y);
     }
 
-    Client::Scenes::BundleListStep Run(std::int32_t x, std::int32_t y)
+    Client::ChaosMix::BundleListStep Run(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheBundleList(
-            Client::Scenes::GameUiContext{.world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y});
+        return Client::ChaosMix::StepTheBundleList(
+            Client::Hud::GameUiContext{.world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y});
     }
 
     void Press(Key key)
@@ -132,7 +132,7 @@ public:
         return world->Runtime().npcWindows.jewels.bundles;
     }
 
-    [[nodiscard]] Client::UI::GameUiState& Ui() const
+    [[nodiscard]] Client::Ui::GameUiState& Ui() const
     {
         return world->Runtime().ui;
     }
@@ -149,38 +149,38 @@ TEST(JewelBundleListTest, AddingSortsByCellAndKeepsTheLastInView)
 {
     JewelBundleList list;
     list.selection = 2;
-    Client::Scenes::AddTheBundle(list, 5, 3);
+    Client::ChaosMix::AddTheBundle(list, 5, 3);
     EXPECT_EQ(list.selection, 0);
-    Client::Scenes::AddTheBundle(list, 2, 1);
-    Client::Scenes::AddTheBundle(list, 5, 9);
-    Client::Scenes::AddTheBundle(list, -1, 0);
-    Client::Scenes::AddTheBundle(list, 0x41, 0);
-    Client::Scenes::AddTheBundle(list, 0x40, 0xff);
-    Client::Scenes::AddTheBundle(list, 0, 7);
+    Client::ChaosMix::AddTheBundle(list, 2, 1);
+    Client::ChaosMix::AddTheBundle(list, 5, 9);
+    Client::ChaosMix::AddTheBundle(list, -1, 0);
+    Client::ChaosMix::AddTheBundle(list, 0x41, 0);
+    Client::ChaosMix::AddTheBundle(list, 0x40, 0xff);
+    Client::ChaosMix::AddTheBundle(list, 0, 7);
     const std::vector<std::pair<std::int32_t, std::uint8_t>> expected{
         {0, std::uint8_t{7}}, {2, std::uint8_t{1}}, {5, std::uint8_t{3}}, {0x40, std::uint8_t{0xff}}};
     EXPECT_EQ(RowsOf(list), expected);
     EXPECT_EQ(list.scroll, 0);
 
     for (std::int32_t cell = 10; cell < 16; ++cell)
-        Client::Scenes::AddTheBundle(list, cell, 0);
+        Client::ChaosMix::AddTheBundle(list, cell, 0);
     EXPECT_EQ(list.rows.size(), 10u);
     EXPECT_EQ(list.scroll, 2);
     EXPECT_EQ(list.rows.back().flag, 0);
 
-    EXPECT_FALSE(Client::Scenes::ChosenBundle(list).has_value());
+    EXPECT_FALSE(Client::ChaosMix::ChosenBundle(list).has_value());
     list.selection = 2;
-    const auto chosen = Client::Scenes::ChosenBundle(list);
+    const auto chosen = Client::ChaosMix::ChosenBundle(list);
     ASSERT_TRUE(chosen.has_value());
     EXPECT_EQ(chosen->cell, 2);
     EXPECT_EQ(chosen->level, 1);
 
-    Client::Scenes::ClearTheBundles(list);
+    Client::ChaosMix::ClearTheBundles(list);
     EXPECT_TRUE(list.rows.empty());
     EXPECT_EQ(list.selection, 0);
     EXPECT_EQ(list.scroll, 0);
     list.selection = 3;
-    EXPECT_FALSE(Client::Scenes::ChosenBundle(list).has_value());
+    EXPECT_FALSE(Client::ChaosMix::ChosenBundle(list).has_value());
     EXPECT_EQ(list.selection, 0);
 }
 
@@ -354,7 +354,7 @@ TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheDoubleClick)
         SteppingTheList tested(map);
         JewelBundleList& list = tested.List();
         for (const std::int32_t cell : {0, 7, 9})
-            Client::Scenes::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell));
+            Client::ChaosMix::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell));
         // Con 3 filas, la fila i en y = (3 − i) · 13 + 230.
         const std::int32_t secondRowY = 2 * 13 + 230 - 2;
         auto& runtime = tested.world->Runtime();
@@ -396,20 +396,20 @@ public:
     Client::Core::Expected<void, std::string> Draw(bool projecting = false, bool withTexts = true)
     {
         Client::Kernel::WorldRuntime& runtime = world->Runtime();
-        Client::Scenes::GameHudContext context{.world = *world,
-                                               .random = random,
-                                               .ownRecordDepth = runtime.ownRecordDepth,
-                                               .cellXDepth = cellDepth,
-                                               .cellYDepth = cellDepth,
-                                               .hud = runtime.hud,
-                                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                               .sound = sound,
-                                               .projecting = projecting,
-                                               .sprites = sprites,
-                                               .text = text,
-                                               .texts = withTexts ? &texts : nullptr,
-                                               .mouse = mouse};
-        return Client::Scenes::DrawTheBundleList(context, ListX, ListY);
+        Client::Hud::GameHudContext context{.world = *world,
+                                            .random = random,
+                                            .ownRecordDepth = runtime.ownRecordDepth,
+                                            .cellXDepth = cellDepth,
+                                            .cellYDepth = cellDepth,
+                                            .hud = runtime.hud,
+                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                            .sound = sound,
+                                            .projecting = projecting,
+                                            .sprites = sprites,
+                                            .text = text,
+                                            .texts = withTexts ? &texts : nullptr,
+                                            .mouse = mouse};
+        return Client::ChaosMix::DrawTheBundleList(context, ListX, ListY);
     }
 
     // El quad `index` del lote, sin las marcas de los textos: su primer vértice (arriba a la izquierda) y el tercero.
@@ -452,7 +452,7 @@ public:
     std::optional<Client::Audio::SoundId> sound;
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"}, {1807, "alma"}});
 };
 
@@ -470,7 +470,7 @@ TEST(JewelBundleListTest, TheListDrawsItsFrameBarAndRows)
         JewelBundleList& list = tested.List();
         tested.world->Runtime().npcWindows.jewels.kind = 1;
         for (const std::int32_t cell : {4, 10, 20})
-            Client::Scenes::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell == 20 ? 15 : cell / 5));
+            Client::ChaosMix::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell == 20 ? 15 : cell / 5));
         list.selection = 2;
         tested.world->Runtime().hud.dcFont = Client::Render::Text::FontKind::Bold;
         const CrtRandom before = tested.random;
@@ -539,7 +539,7 @@ TEST(JewelBundleListTest, ThePressedArrowFlipsAndAnIntermediateDrawWritesNothing
         JewelBundleList& list = tested.List();
         tested.world->Runtime().npcWindows.jewels.kind = 0;
         for (std::int32_t cell = 0; cell < 12; ++cell)
-            Client::Scenes::AddTheBundle(list, cell, 0);
+            Client::ChaosMix::AddTheBundle(list, cell, 0);
         tested.world->Runtime().movement.pendingClick = true;
         tested.mouse = {397, 345};
         ASSERT_TRUE(tested.Draw(true).HasValue());

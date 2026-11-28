@@ -21,7 +21,7 @@ class WorldState;
 // Lo que comparten los cuerpos de 0x444010 (Scenes/HelperTable.cpp y Scenes/PetHelperSteps.cpp): la celda segura
 // del jinete, el buffer global de la pose, el alta de las partículas y el polvo. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro" y "Las mascotas".
-namespace Client::Scenes
+namespace Client::Pets
 {
 struct HelperStepContext;
 
@@ -68,4 +68,4 @@ ScatterTheDust(const Kernel::HelperState& helper, const HelperStepContext& conte
 // 0x44480b..0x44484a y 0x444b3b..0x444b7a: con +0x80 del jinete en 1 o en 2 el alpha baja 0,1f, con la resta en
 // la x87 guardada en float y comparada sin redondear: por debajo de 0, 0. Con otro, 1.
 void FadeWithTheRider(Kernel::HelperState& helper, const Kernel::ActorState& rider);
-} // namespace Client::Scenes
+} // namespace Client::Pets

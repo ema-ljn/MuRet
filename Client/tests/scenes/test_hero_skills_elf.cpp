@@ -42,7 +42,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
+using Client::Skills::HeroSkillContext;
 
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
@@ -154,7 +154,7 @@ struct ElfHero
     {
         return world.Actors()[ChosenSlot];
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
     }
@@ -197,7 +197,7 @@ struct ElfHero
     }
     Client::Core::Expected<void, std::string> Use()
     {
-        return Client::Scenes::UseTheElfSkill(Hero(), skill, Context());
+        return Client::Skills::UseTheElfSkill(Hero(), skill, Context());
     }
     std::vector<std::uint8_t> Sent(std::size_t index) const
     {
@@ -636,14 +636,14 @@ TEST(HeroSkillsElfTest, TheTargetOfTheElfDoesNothingWithOtherSkills)
     tested->Movement().weaponSkill = {.active = 1, .slot = 0, .target = static_cast<std::int32_t>(ChosenSlot)};
     const CrtRandom expected = Advanced(tested->random, ReachedDraws);
     ASSERT_TRUE(
-        Client::Scenes::UseTheElfSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context()).HasValue());
+        Client::Skills::UseTheElfSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context()).HasValue());
     EXPECT_EQ(tested->random.State(), expected.State());
     ASSERT_EQ(tested->sent.size(), 1u);
     EXPECT_EQ(tested->Sent(0)[2], 0xd3);
     EXPECT_EQ(tested->Hero().attackPosition, tested->Chosen().position);
     // El blanco fuera del pool corta.
     tested->Movement().weaponSkill.target = -1;
-    const auto result = Client::Scenes::UseTheElfSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context());
+    const auto result = Client::Skills::UseTheElfSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context());
     ASSERT_FALSE(result.HasValue());
     EXPECT_TRUE(Contains(result.Error(), "0x560080")) << result.Error();
 }

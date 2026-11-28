@@ -75,11 +75,11 @@
 // Sin un Step ni un Render entre recepciones, la fotografía de la UI no reemplaza los constructores.
 namespace
 {
-using Client::App::SessionFailure;
-using Client::App::SessionState;
-using Client::Scenes::CharacterSlotHeight;
-using Client::Scenes::CharacterSlots;
+using Client::FrontEnd::CharacterSlotHeight;
+using Client::FrontEnd::CharacterSlots;
 using Client::Scenes::SceneId;
+using Client::Session::SessionFailure;
+using Client::Session::SessionState;
 using Client::Tests::CharacterEntryFields;
 
 constexpr std::uint8_t LoginMap = 55;
@@ -194,7 +194,7 @@ protected:
     Client::Tests::FakeTextureStore m_textures;
     Client::Tests::RecordingFrameTarget m_target;
     Client::Tables::GameData m_data;
-    Client::Scenes::SingleModelLibrary m_models;
+    Client::FrontEnd::SingleModelLibrary m_models;
     // Con las texturas de efectos de GameModels, que piden las partículas del mundo 54.
     Client::Tests::WithEffectTextures m_library{m_models};
     Client::Camera::GameCamera m_camera;
@@ -202,7 +202,7 @@ protected:
     Client::Models::ClothWorld m_cloth;
     Client::Kernel::WorldState m_world;
     Client::Session::ModuleStates m_states;
-    Client::Scenes::SelectionState m_state{m_world};
+    Client::FrontEnd::SelectionState m_state{m_world};
     Client::Tests::RecordingSink m_entrySink;
     Client::Core::Log m_entryLog{m_entrySink, Client::Core::LogLevel::Debug};
     Client::Scenes::SessionEventApplier m_applier{Client::Scenes::WorldEntryResources{.world = m_world,
@@ -260,7 +260,7 @@ TEST_F(SelectionPipelineTest, SelectionForwardsTheLastFireworkSound)
     m_manager->Step(Client::Input::InputState{});
     ASSERT_TRUE(m_state.IsInitialized());
 
-    Client::World::ModelEffect& firework = m_world.Map().effects.Effects()[0];
+    Client::Effects::ModelEffect& firework = m_world.Map().effects.Effects()[0];
     firework.alive = true;
     firework.type = 0x60d;
     firework.life = 1;
@@ -695,8 +695,8 @@ TEST_F(SelectionPipelineTest, EachListedCharacterGetsItsBalloonBeforeTheWindows)
     ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
 
     const Client::Tables::TextTable* texts = m_data.text ? &*m_data.text : nullptr;
-    const std::string guild = "(" + std::string(Client::UI::TextAt(texts, 488).value_or("")) + ")";
-    const std::string wizard(Client::UI::TextAt(texts, 20).value_or(""));
+    const std::string guild = "(" + std::string(Client::Ui::TextAt(texts, 488).value_or("")) + ")";
+    const std::string wizard(Client::Ui::TextAt(texts, 20).value_or(""));
     ASSERT_FALSE(m_target.frames.empty());
     const std::vector<Client::Tests::FrameEvent>& events = m_target.frames.back().events;
     const auto indexOf = [&events](const auto& predicate)

@@ -13,7 +13,7 @@
 
 // 0x5b45f5..0x5b58e9 del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): las líneas de algunos tipos, el
 // daño y los stats. Los textos son los de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -357,4 +357,4 @@ Core::Expected<void, std::string> WriteTheStats(ItemTooltipFrame& frame)
     WriteTheLuckyBox(frame);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

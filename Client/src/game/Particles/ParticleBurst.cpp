@@ -8,7 +8,7 @@
 
 #include <bit>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -54,4 +54,4 @@ Core::Expected<void, ParticleError> CreatePushBurst(Particles& particles, const 
         return Core::Unexpected(created.Error());
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Particles

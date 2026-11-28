@@ -131,9 +131,9 @@ void ExpectSameGeometry(const Client::Render::ModelBatch& actual, const Client::
     }
 }
 
-std::vector<Client::World::Sprite> LiveSprites(Client::World::FrameSprites& table)
+std::vector<Client::Particles::Sprite> LiveSprites(Client::Particles::FrameSprites& table)
 {
-    std::vector<Client::World::Sprite> live;
+    std::vector<Client::Particles::Sprite> live;
     for (const auto& sprite : table.Sprites())
     {
         if (sprite.alive)
@@ -142,7 +142,8 @@ std::vector<Client::World::Sprite> LiveSprites(Client::World::FrameSprites& tabl
     return live;
 }
 
-void ExpectSameSprites(std::span<const Client::World::Sprite> actual, std::span<const Client::World::Sprite> expected)
+void ExpectSameSprites(std::span<const Client::Particles::Sprite> actual,
+                       std::span<const Client::Particles::Sprite> expected)
 {
     ASSERT_EQ(actual.size(), expected.size());
     for (std::size_t sprite = 0; sprite < actual.size(); ++sprite)
@@ -286,10 +287,10 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
-    Client::Scenes::ActorEffectHooks m_effectHooks;
+    Client::Effects::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
     CharacterModels m_models;
     Client::Render::ModelBatch m_batch;
@@ -736,7 +737,7 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         // El héroe publicado es otro (sin dibujar).
         m_world->Runtime().hero = 5;
         m_world->Actors()[5].key = 0x0021;
-        Client::Scenes::DuelState& duel = m_world->Runtime().social.duel;
+        Client::Social::DuelState& duel = m_world->Runtime().social.duel;
         duel = {};
         auto cloths = std::make_unique<std::array<Client::Actors::Drawing::CharacterCloth, 401>>();
         GameCharacterPass pass = Pass();
@@ -794,7 +795,7 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         SCOPED_TRACE(map);
         Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
         runtime.map = map;
-        Client::Scenes::GuildState& guild = runtime.guild;
+        Client::Guild::GuildState& guild = runtime.guild;
         guild.table[3].guildName = {'T', 'a', 'l', 'a', 's'};
         guild.table[4].guildName = {'O', 'm', 'b', 'u'};
         guild.table[7].guildName = {};
@@ -815,7 +816,7 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         pass.cloths = *cloths;
         // Con +0x1f2 en 3 y las claves en −1, 0x50d533 también pide la marca (0x447b00 encuentra la entrada 0).
         auto store = std::make_unique<Client::Tests::FakeTextureStore>();
-        auto marks = std::make_unique<Client::Scenes::GuildMarkTextures>(*store);
+        auto marks = std::make_unique<Client::Guild::GuildMarkTextures>(*store);
         pass.guildMarks = marks.get();
         const auto draw = [&]()
         {
@@ -889,7 +890,7 @@ TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTea
     soccer.secondName = {'O', 'm', 'b', 'u'};
     auto cloths = std::make_unique<std::array<Client::Actors::Drawing::CharacterCloth, 401>>();
     auto store = std::make_unique<Client::Tests::FakeTextureStore>();
-    auto marks = std::make_unique<Client::Scenes::GuildMarkTextures>(*store);
+    auto marks = std::make_unique<Client::Guild::GuildMarkTextures>(*store);
     GameCharacterPass pass = Pass();
     pass.cloths = *cloths;
     pass.guildMarks = marks.get();
@@ -932,7 +933,7 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeO
             Player(0).characterClass = characterClass;
             m_clothWorld.random = Client::Crt::CrtRandom{1};
             std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
-            Client::World::FrameSprites sprites;
+            Client::Particles::FrameSprites sprites;
             GameCharacterPass pass = Pass();
             pass.originalFrames = 0;
             pass.pace = pace;
@@ -995,8 +996,8 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
     Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> referenceCloths;
-    Client::World::FrameSprites sprites;
-    Client::World::FrameSprites referenceSprites;
+    Client::Particles::FrameSprites sprites;
+    Client::Particles::FrameSprites referenceSprites;
     GameCharacterPass pass = Pass();
     pass.originalFrames = 2;
     pass.frameClock = Client::Models::OriginalFrameTime;
@@ -1050,9 +1051,9 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     Client::Models::ClothWorld referenceClothWorld = m_clothWorld;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> cloths;
     std::array<Client::Actors::Drawing::CharacterCloth, 401> referenceCloths;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x777, {9.0f, 8.0f, 7.0f}, 1.0f, {1.0f, 0.5f, 0.25f}, 0.0f, 0));
-    Client::World::FrameSprites referenceSprites = sprites;
+    Client::Particles::FrameSprites referenceSprites = sprites;
     Client::Render::Pass3D originalPass;
     originalPass.viewport = {3, 5, 1024, 691};
     m_batch.Begin(originalPass);

@@ -161,12 +161,12 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
     std::int32_t hovered = 0;
     std::int32_t capture = 0;
     std::int32_t pressedButton = 0;
-    UI::ChatFocus keyboardFocus = UI::ChatFocus::Game;
+    Chat::ChatFocus keyboardFocus = Chat::ChatFocus::Game;
     std::int32_t focusedList = 0;
     std::int32_t wheel = 0;
     bool rightClick = false;
     bool doubleClick = false;
-    UI::OldWindowGlobals globals{.leftHeld = leftHeld,
+    Ui::OldWindowGlobals globals{.leftHeld = leftHeld,
                                  .leftClick = leftClick,
                                  .releasedClick = releasedClick,
                                  .mouseOnUi = mouseOnUi,
@@ -189,7 +189,7 @@ TEST(WorldRuntimeAudioTest, RoutesNestedWindowSoundsInOrderAndKeepsProjectionLoc
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
 
     std::optional<Client::Audio::SoundId> projectedSound{};
-    UI::OldWindowGlobals projected{.leftHeld = leftHeld,
+    Ui::OldWindowGlobals projected{.leftHeld = leftHeld,
                                    .leftClick = leftClick,
                                    .releasedClick = releasedClick,
                                    .mouseOnUi = mouseOnUi,

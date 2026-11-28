@@ -62,10 +62,10 @@ namespace
 const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Core::Expected;
 using Client::Kernel::ActorState;
+using Client::Movement::HeroMovementContext;
+using Client::Movement::StepHeroMovement;
 using Client::Pathfinding::PathCell;
 using Client::Protocol::Movement::Cell;
-using Client::Scenes::HeroMovementContext;
-using Client::Scenes::StepHeroMovement;
 
 struct MapCase
 {
@@ -407,7 +407,7 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     ASSERT_LT(Hero().position.x, 1100.0f);
     // Con el pool: la burbuja de Atlans (0x506d0a, con el reloj en 0), la lluvia de Devil Square (0x506d7f) y los
     // pasos de Kalima (0x5087fc) lo piden.
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     const auto stepped = Client::Actors::StepCharacters({.world = m_world,
                                                          .random = m_random,
                                                          .playerSkeleton = &m_skeleton,
@@ -467,7 +467,7 @@ TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
     EXPECT_EQ(world.Runtime().map, 9);
     Client::Scenes::ArmEventMapObject(world.Runtime().map, world.Runtime());
     ASSERT_TRUE(world.Runtime().eventObject.has_value());
-    EXPECT_EQ(world.Runtime().eventObject->kind, Client::Scenes::EventMapKind::DevilSquare);
+    EXPECT_EQ(world.Runtime().eventObject->kind, Client::Events::EventMapKind::DevilSquare);
 }
 
 TEST_F(GameMovementMapEvidenceTest, TheTwoSceneMapsExposeTerrainHeightsWithoutClaimingHeroMovement)

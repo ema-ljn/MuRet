@@ -58,7 +58,7 @@
 
 // Las altas (0x518cf0) y los pasos (0x5208a0) de los tipos altos, cotejados con el PE c32bbd5f: 06, "Los efectos con
 // modelo de los tipos altos".
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -85,7 +85,7 @@ constexpr std::int16_t PierPartEffect = 0x116, DarkLordSkillEffect = 0x117, Mana
 constexpr std::int16_t SparkEmitterEffect = 0x812, BoltEmitterEffect = 0x813;
 // El brillo del tiro penetrante (0x621): el /0 nace y da su paso en World (ModelEffects::CreatePiercingShot y
 // StepGameModelEffect); los demás subtipos, aquí.
-constexpr std::int16_t PiercingGlowEffect = World::PiercingShotGlowEffect;
+constexpr std::int16_t PiercingGlowEffect = Effects::PiercingShotGlowEffect;
 // Los que caen sobre el blanco del 0x46 (+0x376) en su paso 5 (0x4f5cb6): sin dibujo, sólo su fuego y sus sprites.
 constexpr std::int16_t FallingStarEffect = 0x625;
 
@@ -119,7 +119,7 @@ const Models::Skeleton* ModelSkeletonOf(const Assets::FaunaModels* faunaModels, 
 
 // 0x51d714..0x51d73a, el 0x134 (la llegada del asedio, 0x42d513 y 0x42d5af): vida 100, la escala de la clave (+0x8a,
 // MOVSX) por 0,01f y +0x64 y +0x68 en 0. Cualquier subtipo; sin rand().
-void BeginTheSiegeAura(World::ModelEffect& effect)
+void BeginTheSiegeAura(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t AuraLife = 100;
     constexpr double ScalePerKey = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0, 0,01f
@@ -133,7 +133,7 @@ void BeginTheSiegeAura(World::ModelEffect& effect)
 // 0x51e4ba..0x51e4f5, el 0x19f con el subtipo 0 (0x42dd9c): vida 20, +0x58 en 3, +0xd8 en 0,33f, 0x4ea030(efecto, 2) y
 // los ángulos en 0. Con otro subtipo sale por 0x51db73 con lo del prefijo. 0x4ea030 pone la acción 2 si el modelo
 // 0x19f (Monster78) tiene más de dos acciones (+0x26) y la acción no es ya la 2.
-void BeginTheSiegeSpearman(World::ModelEffect& effect, const HighEffectContext& context)
+void BeginTheSiegeSpearman(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     if (effect.subtype != 0)
         return;
@@ -158,7 +158,7 @@ void BeginTheSiegeSpearman(World::ModelEffect& effect, const HighEffectContext& 
 // el 0 o (0, −250, 0) con el 1, los ángulos en (−90, 0, z del argumento), +0x28 y +0x2c en 0, +0x30 en rand() % 360 y
 // la partida en la posición. El /0, entre el sorteo y la partida, el joint 0x61c/3 en la posición (0x51f1c5). Otro
 // subtipo sale por 0x51db73 con lo del prefijo.
-Core::Expected<void, std::string> BeginTheSiegePulse(World::ModelEffect& effect,
+Core::Expected<void, std::string> BeginTheSiegePulse(Effects::ModelEffect& effect,
                                                      const Kernel::ModelEffectArguments& arguments,
                                                      const HighEffectContext& context)
 {
@@ -190,7 +190,7 @@ Core::Expected<void, std::string> BeginTheSiegePulse(World::ModelEffect& effect,
 // 0x51e059..0x51e0ca, el 0x13b: +0xd8 en 0,25f. El /0 (0x502975): vida 15, la escala en 0, la z 100 más, la velocidad
 // (0, −10, 0). El /1 (el que suelta el pulso 0x61c, 0x52c39c): vida 5 y escala 3,5. Todos: +0x64 en 0 y +0x68 en 1;
 // otro subtipo conserva la vida y la escala de antes. Sin rand().
-void BeginTheSiegeFlare(World::ModelEffect& effect)
+void BeginTheSiegeFlare(Effects::ModelEffect& effect)
 {
     constexpr float FlareSpeed = 0.25f;
     effect.speed = FlareSpeed;
@@ -217,7 +217,7 @@ void BeginTheSiegeFlare(World::ModelEffect& effect)
 
 // 0x51f85a..0x51f8a7, el 0xc1a (0x4329db y 0x4f6780): vida 30, +0x64 en −2, escala 1, la z 280 más, la x de los
 // ángulos 20 más y la velocidad (0, −80, −10). Cualquier subtipo; sin rand().
-void BeginTheRadialShard(World::ModelEffect& effect)
+void BeginTheRadialShard(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t ShardLife = 30;
     constexpr double ShardLift = 280.0, ShardPitch = 20.0;
@@ -230,7 +230,7 @@ void BeginTheRadialShard(World::ModelEffect& effect)
 }
 
 // 0x51c410..0x51c437, el 0x141: la z 20 más, vida 20, +0xe8 en 0 y la escala en 0,05f. Sin rand().
-void BeginTheGrowingFlash(World::ModelEffect& effect)
+void BeginTheGrowingFlash(Effects::ModelEffect& effect)
 {
     constexpr double FlashLift = 20.0; // 0x6b86d0
     constexpr std::int32_t FlashLife = 20;
@@ -245,7 +245,7 @@ void BeginTheGrowingFlash(World::ModelEffect& effect)
 // naranjas): vida 20, la luz, la escala y la velocidad (0, −50, 0) (el 0x5ea, (0, −15, 0)) girada por los ángulos.
 // Con el héroe ([0x743a170]) de dueño, cuatro veces: el punto 150 más adelante (girado) y 0x517a20(+0x89, punto, 150,
 // +0x8c, +0x8a, 0), los blancos alrededor y el C1 10. Sin rand() propios (los de 0x517a20, sí).
-Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> BeginTheMovingLight(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr std::int32_t LightLife = 20;
     constexpr float Orange = std::bit_cast<float>(0x3ecccccdu), Ember = std::bit_cast<float>(0x3e4ccccdu);
@@ -288,14 +288,14 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
     for (int hit = 0; hit < Hits; ++hit)
     {
         point = Sum(step, point);
-        const SkillHitsRequest request{.skillIndex = effect.byte89,
-                                       .point = point,
-                                       .radius = HitRadius,
-                                       .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
-                                       .key = effect.disturbanceState,
-                                       .extra = 0};
-        if (auto hits = HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain), context.random,
-                                            context.send);
+        const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+                                               .point = point,
+                                               .radius = HitRadius,
+                                               .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
+                                               .key = effect.disturbanceState,
+                                               .extra = 0};
+        if (auto hits = Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+                                                    context.random, context.send);
             !hits.HasValue())
             return Core::Unexpected(std::format("0x51e75b: {}", hits.Error()));
     }
@@ -307,7 +307,7 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
 // 10 más (fsubr), y reparte en 300; los demás, la escala en 0 y reparten en 200. La x y la y más rand() % reparto menos
 // la mitad (fild, fadd, fsub en la x87), la z 500 más y la x 100 más, y la partida (+0x17c) en la posición. Termina con
 // el sonido 0x41ed10(0x42, 0, 0). Cuatro rand() (cinco con el /1): la vida, +0xd8, [+0xe4], la x y la y.
-void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& context)
+void BeginTheFallingStar(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr int LifeSpan = 15, LifeBase = 15, FullTurn = Math::FullTurn;
     constexpr float InitialRise = -20.0f; // 0xc1a00000
@@ -354,7 +354,7 @@ void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& co
 // (0x53fe70 con la escala 1 y el efecto de dueño). El /2 (la 0x4a, 0x504b80): vida 20, +0xd8 en 50, +0x58 en −2, la z
 // 20 menos, la velocidad (0, −40, 0), +0x28..+0x30 en los ángulos y los ángulos en (0, 0, z). Otro subtipo, sólo el
 // prefijo. Sin rand() (los de la llama, sí).
-Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
+Core::Expected<void, std::string> BeginThePierPart(Effects::ModelEffect& effect,
                                                    const Kernel::ModelEffectArguments& arguments,
                                                    const HighEffectContext& context)
 {
@@ -378,7 +378,7 @@ Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
     }
     if (effect.subtype == 1)
     {
-        const auto* parent = static_cast<const World::ModelEffect*>(effect.ownerContext);
+        const auto* parent = static_cast<const Effects::ModelEffect*>(effect.ownerContext);
         if (parent == nullptr)
             return Core::Unexpected(std::string("0x51cad9: el 0x116/1 lee la vida de un dueño (+0x108) nulo"));
         constexpr float TrailScale = 0.5f;                                                  // 0x3f000000
@@ -388,7 +388,7 @@ Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
         effect.transform.scale = TrailScale;
         effect.alpha = F32(static_cast<double>(PartLife - effect.life) * FadeStep);
         effect.velocity = glm::vec3(0.0f);
-        constexpr std::int32_t TrailFire = World::MissileFireParticle, TrailFireSubtype = 0;
+        constexpr std::int32_t TrailFire = Particles::MissileFireParticle, TrailFireSubtype = 0;
         if (auto fire = CreateHighParticle(context.world, context.random, context.worldClock, TrailFire,
                                            effect.transform.position, effect.transform.angles, effect.light,
                                            TrailFireSubtype, 1.0f, 0x51cb38);
@@ -415,7 +415,7 @@ Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
 // 0x51cbb2..0x51cc6a, el 0x117 (Skill\DarkLordSkill): vida 10, la escala 0,2f y +0xd8 (lo que crece) en 0,1f. Con el
 // subtipo 1 o menos (con signo), los ángulos (45, y, 0): y es subtipo · −90 + 45 si rand() % 2 sale distinto de 0 y,
 // si no, 45 con el /0 o −45 con los demás. El /2, vida 12 y +0xd8 en 0,4f, sin rand(). Otro subtipo, nada más.
-void BeginTheDarkLordSkill(World::ModelEffect& effect, CrtRandom& random)
+void BeginTheDarkLordSkill(Effects::ModelEffect& effect, CrtRandom& random)
 {
     constexpr std::int32_t SkillLife = 10, WideLife = 12;
     constexpr float SkillScale = std::bit_cast<float>(0x3e4ccccdu); // 0,2f
@@ -447,7 +447,7 @@ void BeginTheDarkLordSkill(World::ModelEffect& effect, CrtRandom& random)
 // crece) en 0,1f, el alpha en 0,3f, +0x58 en 0, la z 300 más y los ángulos en (0, 0, 45). El /1 (lo suelta el paso del
 // /0): vida 10, la escala 1,1f, +0xe4 en 0,1f, +0x58 en −1, +0x64 en −2 y +0x68 en 0,4f. Otro subtipo, sólo el
 // prefijo. Sin rand().
-void BeginTheManaRune(World::ModelEffect& effect)
+void BeginTheManaRune(Effects::ModelEffect& effect)
 {
     constexpr float Growth = std::bit_cast<float>(0x3dcccccdu); // 0,1f
     if (effect.subtype == 0)
@@ -481,7 +481,7 @@ void BeginTheManaRune(World::ModelEffect& effect)
 }
 
 // 0x51e4f6, el 0x812 (y el 0x5c6): vida 10. 0x51f8a8, el 0x813: los ángulos en 0 y vida 5. Sin rand().
-void BeginTheEmitter(World::ModelEffect& effect)
+void BeginTheEmitter(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t SparkLife = 10, BoltLife = 5;
     if (effect.type == BoltEmitterEffect)
@@ -495,7 +495,7 @@ void BeginTheEmitter(World::ModelEffect& effect)
 
 // 0x51efa5..0x51efe9, el 0x621 salvo el /0: vida 10; el /1 y el /2, vida 20 y la partida (+0x17c) en la posición que
 // recibió. Sin rand().
-void BeginThePiercingGlow(World::ModelEffect& effect, const Kernel::ModelEffectArguments& arguments)
+void BeginThePiercingGlow(Effects::ModelEffect& effect, const Kernel::ModelEffectArguments& arguments)
 {
     constexpr std::int32_t GlowLife = 10, HeldLife = 20;
     effect.life = GlowLife;
@@ -510,8 +510,8 @@ void BeginThePiercingGlow(World::ModelEffect& effect, const Kernel::ModelEffectA
 
 // 0x52cbf4..0x52cc7b: la acción publicada en el modelo (+0xa0) y 0x4ec200 con +0xd8. Si la acción termina, el frame
 // queda en sus keys y la acción en 0xff.
-void Animate(World::ModelEffect& effect, const Models::Skeleton* skeleton,
-             const World::ModelEffectStepServices& services)
+void Animate(Effects::ModelEffect& effect, const Models::Skeleton* skeleton,
+             const Effects::ModelEffectStepServices& services)
 {
     if (services.publishAction)
         services.publishAction(static_cast<std::uint16_t>(effect.type), effect.animation.action);
@@ -527,7 +527,7 @@ void Animate(World::ModelEffect& effect, const Models::Skeleton* skeleton,
 }
 
 // 0x51fc80(efecto, 1): la velocidad girada por los ángulos, sumada a la posición; con 0, sin girar.
-void Move(World::ModelEffect& effect, bool rotated)
+void Move(Effects::ModelEffect& effect, bool rotated)
 {
     const glm::vec3 step = rotated ? Rotated(effect.velocity, effect.transform.angles) : effect.velocity;
     effect.transform.position = Sum(step, effect.transform.position);
@@ -536,8 +536,8 @@ void Move(World::ModelEffect& effect, bool rotated)
 // 0x52cb98..0x52cd9d para los tipos de este archivo: la animación de los BMD de [0xad, 0x151) (salvo el 0x116 y el
 // 0x147, que saltan a la vida), el movimiento (salvo 0x5e8..0x5ea y el 0x139, que la tabla de 0x52ccb0 manda a la
 // vida, 0x52cd94; el 0x13b anima otra vez antes, 0x52cd41) y una vida menos.
-Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const Models::Skeleton* skeleton,
-                                             const World::ModelEffectStepServices& services)
+Core::Expected<void, std::string> CommonTail(Effects::ModelEffect& effect, const Models::Skeleton* skeleton,
+                                             const Effects::ModelEffectStepServices& services)
 {
     constexpr std::int16_t FirstAnimated = 0xad, PastAnimated = 0x151;
     const std::int16_t type = effect.type;
@@ -577,7 +577,7 @@ Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const M
 // 0x52952d..0x52959f, el 0x134: con el dueño (+0x108, el personaje de la llegada) vivo (+0x0 en 1), +0x58 en −1 con el
 // asedio (0x4294b0) o −2 sin él, la vida en 2 y +0x68 en FSIN(T · 0,001f) · 0,1f + 0,2f (PC53); si no, el lugar libre.
 // Las dos ramas, +0x6c en T · 0,0005f. T es el reloj del mundo (0x5767b88).
-Core::Expected<void, std::string> StepTheSiegeAura(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheSiegeAura(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr double WaveRate = static_cast<double>(std::bit_cast<float>(0x3a83126fu));   // 0x6b89c8, 0,001f
     constexpr float WaveDepth = std::bit_cast<float>(0x3dcccccdu);                        // 0x6b87b8, 0,1f
@@ -606,7 +606,8 @@ Core::Expected<void, std::string> StepTheSiegeAura(World::ModelEffect& effect, c
 
 // 0x52aa6a..0x52aaff y 0x52725b, el 0x19f: con el subtipo 0 y la vida múltiplo de 5, el fragmento 0x12b/2 en la
 // posición corrida rand() % 100 − 50 en x y −(rand() % 30 + 15) en y; con menos de 5 de vida, el alpha por 0,769f.
-Core::Expected<void, std::string> StepTheSiegeSpearman(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheSiegeSpearman(Effects::ModelEffect& effect,
+                                                       const HighEffectStepContext& context)
 {
     constexpr std::int32_t DropEvery = 5;
     if (effect.subtype == 0 && effect.life % DropEvery == 0)
@@ -617,13 +618,14 @@ Core::Expected<void, std::string> StepTheSiegeSpearman(World::ModelEffect& effec
         point.x = F32(static_cast<double>(context.random.Next() % SideSpan) - SideCenter + D(point.x));
         point.y = F32(D(point.y) - (static_cast<double>(context.random.Next() % FallSpan) + FallBase));
         constexpr std::int32_t FragmentSubtype = 2;
-        const Kernel::ModelEffectArguments arguments{.type = World::SiegeStoneEffect,
+        const Kernel::ModelEffectArguments arguments{.type = CastleSiege::SiegeStoneEffect,
                                                      .position = point,
                                                      .angles = effect.transform.angles,
                                                      .light = effect.light,
                                                      .subtype = FragmentSubtype};
         const auto& hero = context.world.Hero();
-        if (auto made = World::CreateSiegeStone(arguments, context.world.Map().effects, hero.position, context.random);
+        if (auto made =
+                CastleSiege::CreateSiegeStone(arguments, context.world.Map().effects, hero.position, context.random);
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -636,7 +638,7 @@ Core::Expected<void, std::string> StepTheSiegeSpearman(World::ModelEffect& effec
 // 0x52c19a..0x52c34a, lo del 0x61c antes de la parte que comparte con el 0x13b: con la vida por debajo de 11 y par, los
 // ángulos en (90, 0, 0), +0x30 72 más y, desde la partida, la velocidad girada por +0x28; con el /0 el joint 0x632/5
 // rand() % 400 + 700 más arriba (escala 110) y con el /1 dos 0x615/6 100 más arriba (escala 80).
-Core::Expected<void, std::string> StepTheSiegePulseJoints(World::ModelEffect& effect,
+Core::Expected<void, std::string> StepTheSiegePulseJoints(Effects::ModelEffect& effect,
                                                           const HighEffectStepContext& context)
 {
     constexpr std::int32_t LastJointLife = 10;
@@ -673,7 +675,7 @@ Core::Expected<void, std::string> StepTheSiegePulseJoints(World::ModelEffect& ef
 // un punto corrido rand() % 30 − 15 en x y en y y 100 más abajo, cuatro veces el joint 0x617/0 (escala 10) con los
 // ángulos (rand() % 60 + 150, 0, z) y la chispa 0x5d9/2 (escala 1,5f); después, la luz dinámica (1; 0,8f; 0,6f) de
 // radio 1. Con el /1, +0x68, el alpha y la luz en vida · 0,1f.
-Core::Expected<void, std::string> StepTheSiegeFlare(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheSiegeFlare(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     if (effect.subtype == 1)
     {
@@ -731,19 +733,21 @@ Core::Expected<void, std::string> StepTheSiegeFlare(World::ModelEffect& effect, 
                                              SparkJointScale, 0x52c4a2);
                 !joint.HasValue())
                 return joint;
-            if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, World::FireParticle,
-                                               point, angles, effect.light, SparkSubtype, SparkScale, 0x52c4be);
+            if (auto made =
+                    CreateHighParticle(context.world, context.random, context.worldClock, Particles::FireParticle,
+                                       point, angles, effect.light, SparkSubtype, SparkScale, 0x52c4be);
                 !made.HasValue())
                 return Core::Unexpected(made.Error());
         }
     }
     constexpr glm::vec3 GlowColor{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
-    return World::AddDynamicLight(context.services.lighting, effect.transform.position, GlowColor, 1, "0x52c4f1");
+    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, GlowColor, 1,
+                                         "0x52c4f1");
 }
 
 // 0x525f1a..0x525f65, el 0x141: la escala 0,1f más (FST) y, con la suma de la x87 en 1 o más, el alpha 0,07f menos y
 // la escala en 1.
-void StepTheGrowingFlash(World::ModelEffect& effect)
+void StepTheGrowingFlash(Effects::ModelEffect& effect)
 {
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
     constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d8f5c29u));   // 0x6ba190, 0,07f
@@ -764,7 +768,7 @@ void StepTheGrowingFlash(World::ModelEffect& effect)
 // escala
 // ((rand() & 31) + 80) · 0,025f, y una de cinco veces (rand() % 5) el pedazo de hielo 0xca ahí con su luz. Otro
 // subtipo, nada.
-Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheFallingStar(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr std::int32_t QuietLife = 15;
     constexpr std::int32_t WobblySubtype = 0, StraightSubtype = 1;
@@ -799,7 +803,7 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     constexpr std::int32_t WobblyFire = 7, StraightFire = 0xb;
     const glm::vec3 localLight{1.0f};
     if (auto fire =
-            CreateHighParticle(context.world, random, context.worldClock, World::DeathSpiritFireParticle, position,
+            CreateHighParticle(context.world, random, context.worldClock, Particles::DeathSpiritFireParticle, position,
                                effect.transform.angles, localLight, wobbly ? WobblyFire : StraightFire,
                                effect.transform.scale, wobbly ? 0x52bf29u : 0x52c036u);
         !fire.HasValue())
@@ -835,8 +839,8 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     constexpr double SmokeStep = static_cast<double>(std::bit_cast<float>(0x3ccccccdu)); // 0x6b8bd0, 0,025f
     const float smokeScale = F32(static_cast<double>((random.Next() & SmokeSizes) + SmokeBase) * SmokeStep);
     if (auto smoke =
-            CreateHighParticle(context.world, random, context.worldClock, World::BreathParticle, point,
-                               effect.transform.angles, SmokeLight, World::StoneDustSubtype, smokeScale, 0x52c15a);
+            CreateHighParticle(context.world, random, context.worldClock, Particles::BreathParticle, point,
+                               effect.transform.angles, SmokeLight, Particles::StoneDustSubtype, smokeScale, 0x52c15a);
         !smoke.HasValue())
         return Core::Unexpected(smoke.Error());
     constexpr int ShardOdds = 5;
@@ -847,7 +851,7 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
 }
 
 // La velocidad (+0xcc) girada por los ángulos (0x5fc8f0 y 0x5fcbd0) sumada a la posición, un fstp por eje.
-void Advance(World::ModelEffect& effect)
+void Advance(Effects::ModelEffect& effect)
 {
     effect.transform.position = Sum(Rotated(effect.velocity, effect.transform.angles), effect.transform.position);
 }
@@ -858,7 +862,7 @@ void Advance(World::ModelEffect& effect)
 // sin redondear); avanza y suelta el 0x116/1 en su lugar con él de dueño. Después, +0xe4 0,1f más y el sonido 0x1ca.
 // Con la distancia del último giro por debajo de 40 y la vida en 5, lee la altura del terreno (0x5f93c0) en una
 // variable que nadie lee: MuRet no la pide. Sin dueño, nada.
-Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheHomingPart(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
@@ -906,7 +910,7 @@ Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, 
 // 0x527455..0x527534, el 0x116/2: con dueño, 0x4e9810 gira hacia su posición de a +0xd8, +0xd8 2,4f más, avanza y,
 // con la vida múltiplo de 3, el joint 0x61c/2 en su lugar con los ángulos (−90, 0, z) y la escala 150. Sin dueño,
 // nada.
-Core::Expected<void, std::string> StepTheDivingPart(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheDivingPart(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
@@ -930,7 +934,7 @@ Core::Expected<void, std::string> StepTheDivingPart(World::ModelEffect& effect, 
 
 // 0x52727b..0x527276, el 0x116: el /0 y el /2 buscan a su dueño; el /1, con menos de 5 de vida (edi, 5 desde
 // 0x5208df), el alpha por 0,7692308f.
-Core::Expected<void, std::string> StepThePierPart(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepThePierPart(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     if (effect.subtype == 0)
         return StepTheHomingPart(effect, context);
@@ -946,7 +950,7 @@ Core::Expected<void, std::string> StepThePierPart(World::ModelEffect& effect, co
 // 0x527539..0x5275c8, el 0x117: la escala crece +0xd8. Con el subtipo 1 o menos, +0xd8 0,02f más y, con menos de 7 de
 // vida, +0x68 por 0,5555556f. El /2, +0xd8 0,06f menos y, con menos de 8, +0x68 por 0,6666667f. Los demás, +0xd8 0,04f
 // más y, con menos de 8, +0x68 por 0,5555556f.
-void StepTheDarkLordSkill(World::ModelEffect& effect)
+void StepTheDarkLordSkill(Effects::ModelEffect& effect)
 {
     constexpr double SmallGrowth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0,02f
     constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d75c28fu));      // 0x6ba230, 0,06f
@@ -979,7 +983,7 @@ void StepTheDarkLordSkill(World::ModelEffect& effect)
 // escala crece +0xe4 y +0xe4 0,15f más, y al pasar de 1 la escala queda en 1, +0xe4 en 0,01f y suelta el 0x138/1 en su
 // lugar con su luz; con menos de 15, la escala achica +0xe4 (con piso 0), +0xe4 0,2f más, el alpha es vida · 0,05f y
 // baja 10. El /1: la escala 0,02f menos (comparada sin redondear: por debajo de 1, queda en 1) y el alpha vida · 0,05f.
-Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheManaRune(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr double AlphaPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0, 0,05f
     if (effect.subtype == 1)
@@ -1049,7 +1053,8 @@ Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, co
 // 0x52bb79..0x52bbf1, el 0x621 salvo el /0: con el /1 y el /2, el origen compartido del modelo del dueño (+0x108 →
 // +0x2, el +0x6c..+0x74 de su BMD) pasa a ser la partida y la posición es el punto (0, 0, 10) del hueso 33 del dueño
 // (0x4ec110 con sus huesos, +0x120 + 0x630). Después, todos, las tres emisiones del /0 (0x52bbf6).
-Core::Expected<void, std::string> StepThePiercingGlow(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepThePiercingGlow(Effects::ModelEffect& effect,
+                                                      const HighEffectStepContext& context)
 {
     if (effect.subtype == 1 || effect.subtype == 2)
     {
@@ -1064,13 +1069,14 @@ Core::Expected<void, std::string> StepThePiercingGlow(World::ModelEffect& effect
         context.world.PlaceModel(type, placement);
         effect.transform.position = ActorBonePoint(*owner, GlowBone, GlowOffset, context.world);
     }
-    return World::EmitPiercingShotGlow(effect, context.world.Particles(), context.random, context.services);
+    return Effects::EmitPiercingShotGlow(effect, context.world.Particles(), context.random, context.services);
 }
 
 // 0x52c981..0x52c9e2, el 0x812: en cada paso, el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala 50) en
 // su lugar con él de dueño (0x530860(0x60f, posición, posición, ángulos, subtipo, efecto, escala, −1, 0, 0, −1)). Otro
 // subtipo, nada.
-Core::Expected<void, std::string> StepTheSparkEmitter(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheSparkEmitter(Effects::ModelEffect& effect,
+                                                      const HighEffectStepContext& context)
 {
     constexpr std::int32_t SparkJoint = 0x60f;
     constexpr std::int32_t WideSubtype = 0xc, NarrowSubtype = 4;
@@ -1087,7 +1093,7 @@ Core::Expected<void, std::string> StepTheSparkEmitter(World::ModelEffect& effect
 // 0x52caa5..0x52cb94, el 0x813: tres veces, los ángulos (rand() % 90, 0, rand() % 360), el punto 100 hacia atrás
 // (la posición menos (0, −100, 0) girado por ellos, un fstp por eje) y el joint 0x619/6 del punto a la posición, sin
 // dueño y con la escala 5.
-Core::Expected<void, std::string> StepTheBoltEmitter(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheBoltEmitter(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr int Bolts = 3, PitchSpan = 90, FullTurn = Math::FullTurn;
     constexpr glm::vec3 Reach{0.0f, -100.0f, 0.0f}; // 0xc2c80000
@@ -1113,7 +1119,7 @@ Core::Expected<void, std::string> StepTheBoltEmitter(World::ModelEffect& effect,
 // 0x52c9fd..0x52caa0 y 0x521216, el 0xc1a: con el terreno (0x5f93c0) por encima de su z, la explosión 0x5ed/0 80 más
 // arriba (con su sonido 0x40), seis piedritas 0xc8 o 0xc9 (rand() & 1) con el subtipo 0 y el lugar libre; siempre, la
 // luz dinámica (luz · 0,2f; luz · 0,4f; luz) de radio 2 con la luz local del primer rand().
-Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect, int lightDraw,
+Core::Expected<void, std::string> StepTheRadialShard(Effects::ModelEffect& effect, int lightDraw,
                                                      const HighEffectStepContext& context)
 {
     if (!context.services.terrainHeight)
@@ -1124,7 +1130,7 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
         constexpr double BlastLift = 80.0;
         const glm::vec3 blast{position.x, position.y, F32(D(position.z) + BlastLift)};
         const auto made =
-            CreateHighParticle(context.world, context.random, context.worldClock, World::ExplosionParticle, blast,
+            CreateHighParticle(context.world, context.random, context.worldClock, Particles::ExplosionParticle, blast,
                                effect.transform.angles, glm::vec3(1.0f), 0, 1.0f, 0x52ca4f);
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
@@ -1134,17 +1140,17 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
         constexpr int Chips = 6;
         for (int chip = 0; chip < Chips; ++chip)
         {
-            const auto type = static_cast<std::int16_t>(World::FirstStoneChipEffect + (context.random.Next() & 1));
+            const auto type = static_cast<std::int16_t>(Effects::FirstStoneChipEffect + (context.random.Next() & 1));
             static_cast<void>(context.world.Map().effects.CreateStoneChip(
                 type, effect.transform.position, effect.transform.angles, effect.light, context.random));
         }
         effect.alive = false;
     }
-    const float luminosity = World::StepLuminosity(lightDraw, effect.life);
+    const float luminosity = Effects::StepLuminosity(lightDraw, effect.life);
     constexpr double Fifth = Math::FifthAsDouble;                                        // 0x6b8854
     constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4
     const glm::vec3 color{F32(D(luminosity) * Fifth), F32(D(luminosity) * TwoFifths), luminosity};
-    return World::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
+    return WorldObjects::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
 }
 
 // 0x52b9c1..0x52bb24, el 0x61e/6 (el calco que la 0x46 pone sobre el blanco, su dueño, 0x4fe424): el modelo del dueño
@@ -1153,7 +1159,8 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
 // corrimiento (± 50, ± 10, ± 10), su punto (0x4ec110 con los huesos propios del dueño, la escala del modelo y ese
 // origen) y la partícula 0x5ac/8 con los ángulos del dueño, luz 1 y escala 1; después, el alpha del dueño (+0x174) en
 // vida · 0,0125f.
-Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheBindingDecal(Effects::ModelEffect& effect,
+                                                      const HighEffectStepContext& context)
 {
     auto* owner = static_cast<Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
@@ -1188,8 +1195,9 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
             bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Math::BoneTransform(0.0f);
         const glm::vec3 point =
             Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
-        if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, World::SwellLifeParticle,
-                                           point, owner->angles, glm::vec3(1.0f), SparkSubtype, SparkScale, 0x52baf5);
+        if (auto made =
+                CreateHighParticle(context.world, context.random, context.worldClock, Particles::SwellLifeParticle,
+                                   point, owner->angles, glm::vec3(1.0f), SparkSubtype, SparkScale, 0x52baf5);
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -1199,7 +1207,7 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
 }
 
 // 0x52bb29..0x52bb74, el 0x61e/9: la escala 0,3f más y la luz por 0,909f en cada canal.
-void StepTheGrowingDecal(World::ModelEffect& effect)
+void StepTheGrowingDecal(Effects::ModelEffect& effect)
 {
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
     constexpr double Decay = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu));  // 0x6ba26c
@@ -1237,7 +1245,7 @@ bool IsHighModelEffect(std::int16_t type)
 {
     return type == SiegeAuraEffect || type == SiegeFlareEffect || type == SiegeSpearmanEffect ||
            type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
-           type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
+           type == Effects::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
@@ -1266,7 +1274,7 @@ CreateHighModelEffect(const Kernel::ModelEffectArguments& arguments, const HighE
     const auto slot = context.world.Map().effects.Begin(arguments);
     if (!slot.has_value())
         return slot;
-    World::ModelEffect& effect = context.world.Map().effects.Effects()[*slot];
+    Effects::ModelEffect& effect = context.world.Map().effects.Effects()[*slot];
     Core::Expected<void, std::string> begun;
     switch (arguments.type)
     {
@@ -1288,8 +1296,8 @@ CreateHighModelEffect(const Kernel::ModelEffectArguments& arguments, const HighE
     case GrowingFlashEffect:
         BeginTheGrowingFlash(effect);
         break;
-    case World::ColoredDecalEffect:
-        Terrain::BeginColoredDecal(effect, context.random);
+    case Effects::ColoredDecalEffect:
+        Effects::BeginColoredDecal(effect, context.random);
         break;
     case MovingLightFirst:
     case MovingLightSecond:
@@ -1388,13 +1396,13 @@ CreateHighModelEffect(const Kernel::ModelEffectArguments& arguments, const HighE
     return slot;
 }
 
-bool StepsAsHighModelEffect(const World::ModelEffect& effect)
+bool StepsAsHighModelEffect(const Effects::ModelEffect& effect)
 {
     // 0x52b984: los 0x61e que no van a 0x518900 (los /0, /1, /3 y los demás que sí van son de StepPetSummon).
-    if (effect.type == World::ColoredDecalEffect)
-        return effect.subtype == Terrain::PulsingDecalSubtype || effect.subtype == Terrain::BindingDecalSubtype ||
-               effect.subtype == Terrain::BindingChildSubtype || effect.subtype == Terrain::SpawningDecalSubtype ||
-               effect.subtype == Terrain::GrowingDecalSubtype || effect.subtype == Terrain::CoolPulsingDecalSubtype;
+    if (effect.type == Effects::ColoredDecalEffect)
+        return effect.subtype == Effects::PulsingDecalSubtype || effect.subtype == Effects::BindingDecalSubtype ||
+               effect.subtype == Effects::BindingChildSubtype || effect.subtype == Effects::SpawningDecalSubtype ||
+               effect.subtype == Effects::GrowingDecalSubtype || effect.subtype == Effects::CoolPulsingDecalSubtype;
     // El 0x621/0 da su paso en World (StepGameModelEffect).
     if (effect.type == PiercingGlowEffect)
         return effect.subtype != 0;
@@ -1407,7 +1415,7 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
     return IsHighModelEffect(effect.type);
 }
 
-Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect, const Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepHighModelEffect(Effects::ModelEffect& effect, const Models::Skeleton* skeleton,
                                                       const HighEffectStepContext& context)
 {
     if (!effect.alive)
@@ -1440,10 +1448,10 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
     case GrowingFlashEffect:
         StepTheGrowingFlash(effect);
         break;
-    case World::ColoredDecalEffect:
-        if (effect.subtype == Terrain::BindingDecalSubtype)
+    case Effects::ColoredDecalEffect:
+        if (effect.subtype == Effects::BindingDecalSubtype)
             stepped = StepTheBindingDecal(effect, context);
-        else if (effect.subtype == Terrain::GrowingDecalSubtype)
+        else if (effect.subtype == Effects::GrowingDecalSubtype)
             StepTheGrowingDecal(effect);
         break;
     case FallingStarEffect:
@@ -1471,10 +1479,10 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         stepped = StepTheSkull(effect, context);
         break;
     case SeamanEffect:
-        stepped = StepTheSeaman(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        stepped = StepTheSeaman(effect, Effects::StepLuminosity(lightDraw, effect.life), context);
         break;
     case FireBreathEffect:
-        stepped = StepTheFireBreath(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        stepped = StepTheFireBreath(effect, Effects::StepLuminosity(lightDraw, effect.life), context);
         break;
     case JavelinEffect:
         stepped = StepTheJavelin(effect, context);
@@ -1483,7 +1491,7 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         stepped = StepTheThunder(effect, context);
         break;
     case RingEffect:
-        stepped = StepTheRing(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        stepped = StepTheRing(effect, Effects::StepLuminosity(lightDraw, effect.life), context);
         break;
     case MeteorEffect:
         stepped = StepTheMeteor(effect, skeleton, context);
@@ -1513,7 +1521,7 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         stepped = StepTheEnergyBall(effect, context);
         break;
     case FlameBurstEffect:
-        stepped = StepTheFlameBurst(effect, World::StepLuminosity(lightDraw, effect.life), context);
+        stepped = StepTheFlameBurst(effect, Effects::StepLuminosity(lightDraw, effect.life), context);
         break;
     case ArrowBlastEffect:
         stepped = StepTheArrowBlast(effect, context);
@@ -1543,4 +1551,4 @@ std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const Kerne
         return std::nullopt;
     };
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

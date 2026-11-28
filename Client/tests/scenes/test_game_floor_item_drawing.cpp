@@ -408,7 +408,7 @@ TEST(GameFloorItemDrawingTest, GlowItemsPublishTheirSpritesFromTheRetainedBones)
     {
         Client::Render::ModelBatch batch;
         Client::Terrain::SphereFrustum frustum;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         Client::Kernel::PoseBuffer carry;
         auto item = Item(types[index]);
         Client::Actors::Drawing::ItemSpecialDrawContext special;
@@ -437,7 +437,7 @@ TEST(GameFloorItemDrawingTest, ItemClockTruncationUsesTheLowWordOfTheNativeInt64
     FloorModels models;
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     auto item = Item(0x2247);
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.sprites = &sprites;
@@ -460,7 +460,7 @@ TEST(GameFloorItemDrawingTest, HelperBeamsUseTheRetainedBonesAndKeepTheDurableOw
         models.skeleton.bones[bone].actions[0][0].position.x = static_cast<float>(bone);
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     auto item = Item(0x1a18);
     item.scale = 2;
     item.position = {100, 200, 300};
@@ -596,7 +596,7 @@ TEST(GameFloorItemDrawingTest, TheBasePassReadsTheSharedUnlitSelectionBeforeDraw
     models.model.meshes[0].normals[0].normal = {0, 0, -1};
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::ObjectModelStepState state;
+    Client::WorldObjects::ObjectModelStepState state;
     state.unlitMeshes[0x212] = 0;
     auto item = Item(0x212);
     item.vertexLight = true;
@@ -618,8 +618,8 @@ TEST(GameFloorItemDrawingTest, RedGlowSelectsUnlitMeshBeforeRenderingItsScroll)
     FloorModels models;
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    Client::World::FrameSprites sprites;
-    Client::World::ObjectModelStepState modelState;
+    Client::Particles::FrameSprites sprites;
+    Client::WorldObjects::ObjectModelStepState modelState;
     modelState.unlitMeshes[0x2247] = -1;
     auto item = Item(0x2247);
     item.vertexLight = true;
@@ -651,7 +651,7 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         FloorModels models;
         Client::Render::ModelBatch batch;
         Client::Terrain::SphereFrustum frustum;
-        Client::World::ObjectModelStepState modelState;
+        Client::WorldObjects::ObjectModelStepState modelState;
         modelState.unlitMeshes[0x2247] = -1;
         auto item = Item(0x2247);
         Client::Kernel::PoseBuffer carry;
@@ -727,5 +727,5 @@ TEST(GameFloorItemDrawingTest, TheBodyPartRootHeightIsTheInventorysForEveryModel
         return 0.0f;
     };
     for (std::int32_t model = 0; model <= 0xffff; ++model)
-        ASSERT_EQ(Client::Scenes::BodyPartRootHeight(static_cast<std::int16_t>(model)), inventory(model)) << model;
+        ASSERT_EQ(Client::Items::BodyPartRootHeight(static_cast<std::int16_t>(model)), inventory(model)) << model;
 }

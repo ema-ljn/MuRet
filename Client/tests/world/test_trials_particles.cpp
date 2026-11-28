@@ -19,8 +19,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 
 constexpr std::int32_t Splash = 0x6f2;
 constexpr std::int32_t Smoke = 0x5f2;
@@ -90,13 +90,13 @@ TEST(TrialsParticlesTest, TheSmokeIsCreatedWithThreeDrawsAndItsRise)
 // Otros subtipos de esos tipos no son de esta familia.
 TEST(TrialsParticlesTest, OnlyTheTwoObjectSubtypesBelongToTheFamily)
 {
-    EXPECT_TRUE(Client::World::IsTrialsParticle(0x6f2, 3));
-    EXPECT_TRUE(Client::World::IsTrialsParticle(0x6f3, 3));
-    EXPECT_TRUE(Client::World::IsTrialsParticle(0x5f2, 22));
-    EXPECT_FALSE(Client::World::IsTrialsParticle(0x6f2, 4));
-    EXPECT_FALSE(Client::World::IsTrialsParticle(0x6f4, 3));
-    EXPECT_FALSE(Client::World::IsTrialsParticle(0x5f2, 3));
-    EXPECT_FALSE(Client::World::IsTrialsParticle(0x5f3, 22));
+    EXPECT_TRUE(Client::Particles::IsTrialsParticle(0x6f2, 3));
+    EXPECT_TRUE(Client::Particles::IsTrialsParticle(0x6f3, 3));
+    EXPECT_TRUE(Client::Particles::IsTrialsParticle(0x5f2, 22));
+    EXPECT_FALSE(Client::Particles::IsTrialsParticle(0x6f2, 4));
+    EXPECT_FALSE(Client::Particles::IsTrialsParticle(0x6f4, 3));
+    EXPECT_FALSE(Client::Particles::IsTrialsParticle(0x5f2, 3));
+    EXPECT_FALSE(Client::Particles::IsTrialsParticle(0x5f3, 22));
 }
 
 // 0x54815d..0x54819e: la escala +0,005f, la velocidad z −0,05f y la luz por 0,97f, sin rand().
@@ -109,7 +109,7 @@ TEST(TrialsParticlesTest, TheSplashGrowsFallsFasterAndFades)
     p.scale = 0.5f;
     p.velocity = {0.0f, 0.0f, -1.0f};
     p.light = {1.0f, 0.75f, 0.5f};
-    ASSERT_TRUE(Client::World::StepTrialsParticle(p, nullptr).HasValue());
+    ASSERT_TRUE(Client::Particles::StepTrialsParticle(p, nullptr).HasValue());
     const double fade = Bits(0x3f7851ecu);
     EXPECT_EQ(p.scale, static_cast<float>(0.5 + Bits(0x3ba3d70au)));
     EXPECT_EQ(p.velocity.z, static_cast<float>(-1.0 - Bits(0x3d4ccccdu)));
@@ -131,7 +131,7 @@ TEST(TrialsParticlesTest, TheSmokeRisesSlowerSwaysWithTheClockAndDims)
     p.verticalSpeed = 7.3f;
     p.position = {100.0f, 200.0f, 300.0f};
     const float clock = 123456.0f;
-    ASSERT_TRUE(Client::World::StepTrialsParticle(p, &clock).HasValue());
+    ASSERT_TRUE(Client::Particles::StepTrialsParticle(p, &clock).HasValue());
     const double light = 37.0 * Bits(0x3ca3d70au);
     const double rise = static_cast<double>(7.3f) - Bits(0x3dcccccdu);
     const auto sway = Client::Math::Detail::SineDoubleProductPC53(static_cast<double>(clock), rise);
@@ -146,9 +146,9 @@ TEST(TrialsParticlesTest, TheSmokeRisesSlowerSwaysWithTheClockAndDims)
 
     // Sin el reloj del mundo, corta después de la luz y de la velocidad, sin tocar la posición.
     Particle q = p;
-    const auto cut = Client::World::StepTrialsParticle(q, nullptr);
+    const auto cut = Client::Particles::StepTrialsParticle(q, nullptr);
     ASSERT_FALSE(cut.HasValue());
-    EXPECT_EQ(cut.Error(), Client::World::ParticleError::MissingClock);
+    EXPECT_EQ(cut.Error(), Client::Particles::ParticleError::MissingClock);
     EXPECT_EQ(q.position, p.position);
     EXPECT_NE(q.verticalSpeed, p.verticalSpeed);
 }
@@ -185,12 +185,12 @@ TEST(TrialsParticlesTest, BothLiveSixtyStepsInThePool)
                     .HasValue());
     const float splashZ = particles.All()[0].position.z;
     float clock = 1000.0f;
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     int steps = 0;
     while ((particles.All()[0].alive || particles.All()[1].alive) && steps < 100)
     {
-        ASSERT_TRUE(
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry)
+                        .HasValue());
         clock += 40.0f;
         ++steps;
     }

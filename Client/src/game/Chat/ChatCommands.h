@@ -22,7 +22,7 @@
 // /1../0 y la cola de los nombres; lo de cada comando social corta con la dirección de su bloque (CL9.4), donde
 // todavía no se sacó ningún rand(). Las comparaciones no sacan rand(): IsOpen(0x40) no lee la tabla de protección.
 // *Estático*.
-namespace Client::UI
+namespace Client::Chat
 {
 // Los textos de Text.bmd que compara y avisa.
 inline constexpr std::size_t ExchangeCommandText = 258;     // "/exchange"
@@ -128,26 +128,26 @@ struct ChatCommandContext
     // corta.
     std::function<Core::Expected<void, std::string>()> endTheDuel{};
     // 0x56c68b..0x56d623 (/trade con el nivel) y 0x56f13f..0x570d47 (/party fuera de Chaos Castle): a quién pedirle
-    // (el elegido 0x6c8e30 o el que está enfrente), su paquete y su aviso (Scenes::RequestATrade y RequestAParty); lo
+    // (el elegido 0x6c8e30 o el que está enfrente), su paquete y su aviso (Social::RequestATrade y RequestAParty); lo
     // que devuelven es la salida del comando. Sin ellos, esos casos cortan.
     std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestATrade{};
     std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestAParty{};
     // 0x56d823..0x56e9ec (/duelstart sin duelo): el AA al elegido o al de enfrente, y la cadena sigue
-    // (Scenes::RequestADuel). Sin él, ese caso corta.
+    // (Social::RequestADuel). Sin él, ese caso corta.
     std::function<Core::Expected<void, std::string>()> requestADuel{};
     // IsOpen(0x8000), el entrenador (sin rand()): /personalshop no abre la tienda.
     bool trainerOpen = false;
     // 0x576815..0x576822 (/personalshop con el nivel): 0x6599a0(0x800, 0), con lo que abrir la tienda hace
-    // (Scenes::OpenThePersonalShop). Sin él, ese caso corta.
+    // (PersonalShop::OpenThePersonalShop). Sin él, ese caso corta.
     std::function<Core::Expected<void, std::string>()> openThePersonalShop{};
     // 0x574c0c..0x57694d (/purchase fuera de Chaos Castle): los paneles que lo traban, el elegido, el nombre o el que
-    // está enfrente y el C1 10 3F 05 (Scenes::RequestTheShopItems). Recibe lo que strlen y strcmp leen en el segundo
+    // está enfrente y el C1 10 3F 05 (Social::RequestTheShopItems). Recibe lo que strlen y strcmp leen en el segundo
     // buffer de sscanf (EBP − 0xc0): la segunda palabra, o sin valor si sscanf no la llenó; lo que devuelve es la
     // salida del comando. Sin él, ese caso corta.
     std::function<Core::Expected<ChatCommandOutcome, std::string>(std::optional<std::string_view>)> requestShopItems{};
     // 0x573f85..0x574bd5 (/guild fuera de Chaos Castle) y 0x570d7e..0x573f48 (/union, /rival y /rivaloff): el gremio
     // del héroe, a quién pedirle (el elegido o el de enfrente), el C1 05 50 o el E5 y su aviso
-    // (Scenes::RequestAGuildJoin y RequestAGuildRelation); lo que devuelven es la salida del comando. Sin ellos, esos
+    // (Hud::RequestAGuildJoin y RequestAGuildRelation); lo que devuelven es la salida del comando. Sin ellos, esos
     // casos cortan.
     std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestAGuildJoin{};
     std::function<Core::Expected<ChatCommandOutcome, std::string>(GuildRelationCommand)> requestAGuildRelation{};
@@ -159,4 +159,4 @@ struct ChatCommandContext
 
 // 0x56c1f0: lo que sigue a "/N " es uno de los comandos que una macro no puede guardar.
 [[nodiscard]] bool IsAForbiddenMacro(const Tables::TextTable& texts, std::string_view text);
-} // namespace Client::UI
+} // namespace Client::Chat

@@ -42,21 +42,21 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::CrywolfGlobals;
-using Client::Scenes::CrywolfObjectBody;
-using Client::Scenes::GameObjectPass;
-using Client::Scenes::StepCrywolfObjectFrame;
-using Client::World::ObjectDraw;
-using Client::World::ObjectDrawKind;
-using Client::World::Particle;
-using Client::World::WorldObject;
+using Client::MapScripts::Crywolf::CrywolfObjectBody;
+using Client::MapScripts::Crywolf::StepCrywolfObjectFrame;
+using Client::Particles::Particle;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::ObjectDraw;
+using Client::WorldObjects::ObjectDrawKind;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CrywolfMap = 34;
 
 struct Fixture
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
     CrywolfGlobals crywolf;
     std::int32_t drawCounter = 1;
     CrtRandom random{7};
@@ -84,19 +84,19 @@ struct Fixture
         return alive;
     }
 
-    [[nodiscard]] std::vector<const Client::World::Sprite*> Sprites() const
+    [[nodiscard]] std::vector<const Client::Particles::Sprite*> Sprites() const
     {
-        std::vector<const Client::World::Sprite*> alive;
-        for (const Client::World::Sprite& sprite : sprites->Sprites())
+        std::vector<const Client::Particles::Sprite*> alive;
+        for (const Client::Particles::Sprite& sprite : sprites->Sprites())
             if (sprite.alive)
                 alive.push_back(&sprite);
         return alive;
     }
 
-    [[nodiscard]] std::vector<const Client::World::ModelEffect*> Effects() const
+    [[nodiscard]] std::vector<const Client::Effects::ModelEffect*> Effects() const
     {
-        std::vector<const Client::World::ModelEffect*> alive;
-        for (const Client::World::ModelEffect& effect : effects->Effects())
+        std::vector<const Client::Effects::ModelEffect*> alive;
+        for (const Client::Effects::ModelEffect& effect : effects->Effects())
             if (effect.alive)
                 alive.push_back(&effect);
         return alive;
@@ -159,7 +159,7 @@ struct NoModels final : Client::Models::IModelLibrary
 // Dos mallas: el caso51 sólo debe repetir la0. Cada consulta durante un pase observa model+88.
 struct AltarModels final : Client::Models::IModelLibrary
 {
-    explicit AltarModels(Client::World::ObjectModelStepState& state) : shared(state)
+    explicit AltarModels(Client::WorldObjects::ObjectModelStepState& state) : shared(state)
     {
         Client::Data::Models::Mesh mesh;
         mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
@@ -188,7 +188,7 @@ struct AltarModels final : Client::Models::IModelLibrary
     {
         return textures;
     }
-    Client::World::ObjectModelStepState& shared;
+    Client::WorldObjects::ObjectModelStepState& shared;
     mutable std::vector<std::int8_t> selections;
     Client::Data::Models::Model model;
     Client::Models::Skeleton skeleton;
@@ -356,7 +356,7 @@ TEST(CrywolfObjectServicesTest, TheBannerDropsAFadingDecalOnceInThreeWithTheStar
             continue;
         }
         ASSERT_EQ(effects.size(), 1u);
-        EXPECT_EQ(effects[0]->type, Client::World::FadingDecalEffect);
+        EXPECT_EQ(effects[0]->type, Client::Effects::FadingDecalEffect);
         EXPECT_EQ(effects[0]->subtype, 3);
         EXPECT_EQ(effects[0]->light, glm::vec3(level));
         EXPECT_EQ(effects[0]->transform.position, object.transform.position);
@@ -404,7 +404,7 @@ TEST(CrywolfObjectServicesTest, TheTorchesHideTheirBodyAndSparkOnceInThree)
                 continue;
             }
             ASSERT_EQ(alive.size(), type == 0x39 ? 2u : 1u);
-            EXPECT_EQ(alive[0]->type, Client::World::CrywolfFanta);
+            EXPECT_EQ(alive[0]->type, Client::Particles::CrywolfFanta);
             EXPECT_EQ(alive[0]->subtype, 5);
             EXPECT_EQ(alive[0]->life, 20);
             EXPECT_EQ(alive[0]->scale, 1.25f);
@@ -518,7 +518,7 @@ TEST(CrywolfObjectServicesTest, TheRisingSmokeLeavesOnceInTenFiftyAboveTheObject
         const int turn = draws.Next() % 360;
         EXPECT_EQ(smoke.angles, glm::vec3(static_cast<float>(tilt), 0.0f, static_cast<float>(turn)));
         EXPECT_EQ(smoke.velocity, glm::vec3(0.0f, -static_cast<float>(draws.Next() & 7), 0.0f));
-        EXPECT_EQ(smoke.typedOwner, Client::World::ParticleOwner{});
+        EXPECT_EQ(smoke.typedOwner, Client::Particles::ParticleOwner{});
         EXPECT_EQ(fixture.random.State(), draws.State());
     }
 
@@ -576,8 +576,9 @@ TEST(CrywolfObjectServicesTest, TheObjectDrawCountsFromOneToFortyOne)
     std::vector<std::int32_t> seen;
     for (int frame = 0; frame < 43; ++frame)
     {
-        ASSERT_TRUE(Client::Scenes::DrawGameWorldObjects(batch, models, objects, polygon, nullptr, {}, fixture.Pass())
-                        .HasValue());
+        ASSERT_TRUE(
+            Client::WorldObjects::DrawGameWorldObjects(batch, models, objects, polygon, nullptr, {}, fixture.Pass())
+                .HasValue());
         seen.push_back(fixture.drawCounter);
     }
     EXPECT_EQ(seen[0], 1);
@@ -587,7 +588,8 @@ TEST(CrywolfObjectServicesTest, TheObjectDrawCountsFromOneToFortyOne)
     EXPECT_EQ(seen[42], 2);
     auto pass = fixture.Pass();
     pass.originalFrame = false;
-    ASSERT_TRUE(Client::Scenes::DrawGameWorldObjects(batch, models, objects, polygon, nullptr, {}, pass).HasValue());
+    ASSERT_TRUE(
+        Client::WorldObjects::DrawGameWorldObjects(batch, models, objects, polygon, nullptr, {}, pass).HasValue());
     EXPECT_EQ(fixture.drawCounter, 2);
 }
 
@@ -613,7 +615,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             Fixture fixture;
             fixture.crywolf.state = 2;
             fixture.crywolf.ui.light = given.light;
-            Client::World::ObjectModelStepState shared;
+            Client::WorldObjects::ObjectModelStepState shared;
             shared.unlitMeshes[0x51] = 7;
             AltarModels models(shared);
             std::array objects{ObjectOf(0x51)};
@@ -636,7 +638,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             Client::Render::ModelBatch batch;
             batch.Begin(Client::Render::Pass3D{});
             const auto seed = fixture.random;
-            const auto drawn = Client::Scenes::DrawGameWorldObjects(
+            const auto drawn = Client::WorldObjects::DrawGameWorldObjects(
                 batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {}, pass);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             ASSERT_EQ(posedScales, (std::vector<float>{1.25f}));
@@ -688,7 +690,7 @@ TEST(CrywolfObjectServicesTest, OtherAltarStatesStayHiddenWithoutScaleOrModelSto
     {
         Fixture fixture;
         fixture.crywolf.state = state;
-        Client::World::ObjectModelStepState shared;
+        Client::WorldObjects::ObjectModelStepState shared;
         shared.unlitMeshes[0x51] = 7;
         AltarModels models(shared);
         std::array objects{ObjectOf(0x51)};
@@ -697,7 +699,7 @@ TEST(CrywolfObjectServicesTest, OtherAltarStatesStayHiddenWithoutScaleOrModelSto
         pass.modelState = &shared;
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        const auto drawn = Client::Scenes::DrawGameWorldObjects(
+        const auto drawn = Client::WorldObjects::DrawGameWorldObjects(
             batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {}, pass);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(batch.Vertices().empty());

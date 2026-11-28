@@ -27,7 +27,7 @@ class CrtRandom;
 // Effect\FireSnuff.jpg que nacen alrededor del héroe (0x42b1e0), caen con su velocidad al azar
 // (0x5303a0) y en el suelo se apagan, y su dibujo, 0x5306a0. Contrato: 06 § Los efectos del login.
 // Verificado bit a bit contra el código real emulado (tests/vectors/world55/leaves.txt).
-namespace Client::World
+namespace Client::Weather
 {
 inline constexpr std::size_t LeafCount = 200;
 // Cuántas usa el mapa 0x37 (0x5304e6).
@@ -92,4 +92,4 @@ struct LeafQuad
     std::array<glm::vec2, 4> uv{};
 };
 [[nodiscard]] LeafQuad LeafQuadOf(const Leaf& leaf);
-} // namespace Client::World
+} // namespace Client::Weather

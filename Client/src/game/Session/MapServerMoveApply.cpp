@@ -30,12 +30,12 @@ Core::Expected<void, std::string> ApplyMapServerLeave(const WorldEntryResources&
                                                       std::optional<std::uint8_t> chosenSlot)
 {
     // 0x412b63: 0x61c210. El C1 1C F3 30 va al socket que 0x4c1680 ya cerró: send falla y no sale nada.
-    auto body = OptionBodyOf(resources.world, resources.cloth.random, chosenSlot);
+    auto body = Hud::Dialogs::OptionBodyOf(resources.world, resources.cloth.random, chosenSlot);
     if (!body.HasValue())
         return Core::Unexpected(std::move(body).Error());
     // 0x412b6d guarda las macros y, al retornar, 0x412b77 espera antes de conectar.
     const auto saved =
-        Tables::WriteMacroFile(resources.dataRoot, UI::WrittenMacros(resources.world.Runtime().chat.input.macros));
+        Tables::WriteMacroFile(resources.dataRoot, Chat::WrittenMacros(resources.world.Runtime().chat.input.macros));
     if (!saved.HasValue())
         resources.log.Warning("no se pudo guardar Macro.txt durante el cambio de servidor: {}", saved.Error());
     return {};

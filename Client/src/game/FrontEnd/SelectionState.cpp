@@ -32,7 +32,7 @@
 #include <utility>
 #include <variant>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -146,20 +146,20 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     // (06, "La entrada al mundo", paso 1). Es esta carga y no la entrada a la escena 4, que la
     // selección hace antes de tener la lista (0x6342cb).
     m_world.Runtime().drawingEnabled = true;
-    constexpr std::uint8_t SelectionMap = WorldOf(SceneId::CharacterSelect)->map;
+    constexpr std::uint8_t SelectionMap = Scenes::WorldOf(Scenes::SceneId::CharacterSelect)->map;
     // 0x633f44: el 54 es el mundo en curso antes de 0x61a560, aunque la carga falle. El préstamo anterior
     // deja de valer antes de que la carga pise el terreno del mundo.
     BorrowTerrain(SelectionMap, nullptr);
     // 0x61a560(54) → 0x6070a0: mata los efectos, las partículas y los demás pools antes de abrir los
     // archivos (conserva +0x16c y el viento); sin 0x510f70 en la escena 4.
-    const MapLoadContext context{.dataRoot = dataRoot,
-                                 .world = m_world,
-                                 .terrain = terrain,
-                                 .scene = SceneId::CharacterSelect,
-                                 .playerKey = 0,
-                                 .random = random != nullptr ? *random : m_localCloth.random,
-                                 .faunaModels = faunaModels};
-    if (auto loaded = LoadMap(SelectionMap, context); !loaded.HasValue())
+    const Scenes::MapLoadContext context{.dataRoot = dataRoot,
+                                         .world = m_world,
+                                         .terrain = terrain,
+                                         .scene = Scenes::SceneId::CharacterSelect,
+                                         .playerKey = 0,
+                                         .random = random != nullptr ? *random : m_localCloth.random,
+                                         .faunaModels = faunaModels};
+    if (auto loaded = Scenes::LoadMap(SelectionMap, context); !loaded.HasValue())
     {
         return Fail(loaded.Error());
     }
@@ -216,7 +216,7 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
         {
             // 0x4c20b3..0x4c2101: antes de los personajes, sin guerra ni rival (0x576796c, 0x6c82f0 y 0x5767804) y
             // +0x374 de los 400 por el gremio del héroe publicado, como 0x4c1800 (CL9 hito 8).
-            ClearTheWar(m_world);
+            Guild::ClearTheWar(m_world);
             for (const Protocol::FrontEnd::CharacterEntry& entry : list->list.characters)
             {
                 const auto constructed = Construct(entry, camera, input, sharedCloth, skeleton);
@@ -263,4 +263,4 @@ Core::Expected<void, std::string> SelectionState::Fail(std::string error)
     }
     return Core::Unexpected(std::move(error));
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

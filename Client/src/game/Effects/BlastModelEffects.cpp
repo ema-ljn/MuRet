@@ -38,7 +38,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::World
+namespace Client::Effects
 {
 namespace
 {
@@ -660,7 +660,7 @@ void FinishTheStep(ModelEffect& effect, const Models::Skeleton* skeleton, const 
 Core::Expected<void, std::string> Light(const ModelEffectStepServices& services, const glm::vec3& position,
                                         const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
-    return AddDynamicLight(services.lighting, position, color, radius, address);
+    return WorldObjects::AddDynamicLight(services.lighting, position, color, radius, address);
 }
 
 glm::vec3 Shade(float luminosity)
@@ -669,7 +669,7 @@ glm::vec3 Shade(float luminosity)
     return glm::vec3(F32(D(luminosity) * Shadow));
 }
 
-Core::Expected<void, std::string> Emit(Particles& particles, std::int32_t type, const glm::vec3& position,
+Core::Expected<void, std::string> Emit(Particles::Particles& particles, std::int32_t type, const glm::vec3& position,
                                        const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
                                        float scale, float worldClock, CrtRandom& random, std::string_view address)
 {
@@ -710,7 +710,7 @@ Core::Expected<void, std::string> NeedTheEffects(const ModelEffectStepServices& 
 }
 
 // 0x5210e5..0x52124e: el 0xf5 cae; al tocar el terreno suelta seis piedritas, el estallido y los blancos, y muere.
-Core::Expected<void, std::string> StepTheBlast(ModelEffect& effect, float luminosity, Particles& particles,
+Core::Expected<void, std::string> StepTheBlast(ModelEffect& effect, float luminosity, Particles::Particles& particles,
                                                float worldClock, CrtRandom& random,
                                                const ModelEffectStepServices& services)
 {
@@ -737,8 +737,8 @@ Core::Expected<void, std::string> StepTheBlast(ModelEffect& effect, float lumino
                 Emit(particles, 0x600, point, effect.transform.angles, white, 0, 1.0f, worldClock, random, "0x5211a0");
             !made.HasValue())
             return made;
-        if (auto made = Emit(particles, ExplosionParticle, point, effect.transform.angles, white, 0, 1.0f, worldClock,
-                             random, "0x5211bf");
+        if (auto made = Emit(particles, Particles::ExplosionParticle, point, effect.transform.angles, white, 0, 1.0f,
+                             worldClock, random, "0x5211bf");
             !made.HasValue())
             return made;
         if (effect.ownerContext != nullptr && effect.ownerContext == services.hero)
@@ -850,7 +850,7 @@ Core::Expected<void, std::string> StepTheMagicCircle(ModelEffect& effect, float 
 
 // 0x5215a5..0x5216d6: las rocas 0xe7..0xe9 caen fuera de las celdas con el bit 0x08; al tocar el terreno tiemblan la
 // cámara, sueltan cinco pedazos 0xea/0xeb y mueren. Cada paso, el polvo 5f2/3, sin la cola.
-Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles& particles, float worldClock,
+Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles::Particles& particles, float worldClock,
                                                  CrtRandom& random, const ModelEffectStepServices& services)
 {
     if (services.terrainAttributes == nullptr)
@@ -890,15 +890,15 @@ Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles&
     }
     AddTo(position, effect.velocity);
     effect.transform.angles.x = F32(10.0 / D(effect.transform.scale) + D(effect.transform.angles.x)); // 0x6b87a8
-    return Emit(particles, BreathParticle, position, effect.transform.angles, effect.light, 3, 1.0f, worldClock, random,
-                "0x5216d6");
+    return Emit(particles, Particles::BreathParticle, position, effect.transform.angles, effect.light, 3, 1.0f,
+                worldClock, random, "0x5216d6");
 }
 
 // 0x52186e..0x521c57: el ítem del dueño, girando detrás de él, con el polvo 5f2/3, la luz, los joints 0x617/0 y la
 // chispa 5c5/0 (en Kalima, la 6f4/3), el sprite 0x5ac y, en Kalima, la onda.
-Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float luminosity, Particles& particles,
-                                                      float worldClock, CrtRandom& random,
-                                                      const ModelEffectStepServices& services)
+Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float luminosity,
+                                                      Particles::Particles& particles, float worldClock,
+                                                      CrtRandom& random, const ModelEffectStepServices& services)
 {
     switch (effect.subtype)
     {
@@ -928,7 +928,7 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
     for (int axis = 0; axis < 3; ++axis)
         position[axis] = F32(D(offset[axis]) + D((*owner)[axis]));
     effect.transform.angles.z = F32(D(effect.transform.angles.z) - 18.0); // 0x6b886c
-    if (auto made = Emit(particles, BreathParticle, position, effect.transform.angles, effect.light, 3, 1.0f,
+    if (auto made = Emit(particles, Particles::BreathParticle, position, effect.transform.angles, effect.light, 3, 1.0f,
                          worldClock, random, "0x521960");
         !made.HasValue())
         return made;
@@ -958,7 +958,7 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
             constexpr std::int32_t FallSubtype = 3;
             constexpr glm::vec3 FallLight{0.5f}; // 0x521a68..0x521a76, 0x3f000000
             point.z = F32(D(point.z) + 120.0);
-            if (auto made = Emit(particles, KalimaWaterfallLast, point, angles, FallLight, FallSubtype, 1.0f,
+            if (auto made = Emit(particles, Particles::KalimaWaterfallLast, point, angles, FallLight, FallSubtype, 1.0f,
                                  worldClock, random, "0x521aa3");
                 !made.HasValue())
                 return made;
@@ -1022,23 +1022,23 @@ Core::Expected<void, std::string> StepTheFallingRock(ModelEffect& effect, CrtRan
 }
 
 // 0x523d3a..0x523dd4: el 0x106 suelta a veces el aliento 5f2/0, dos fuegos 5d9/5 y la luz.
-Core::Expected<void, std::string> StepTheDeathStab(ModelEffect& effect, float luminosity, Particles& particles,
-                                                   float worldClock, CrtRandom& random,
+Core::Expected<void, std::string> StepTheDeathStab(ModelEffect& effect, float luminosity,
+                                                   Particles::Particles& particles, float worldClock, CrtRandom& random,
                                                    const ModelEffectStepServices& services)
 {
     const glm::vec3 white(1.0f);
     const glm::vec3& position = effect.transform.position;
     if (random.Next() % 2 == 0)
     {
-        if (auto made = Emit(particles, BreathParticle, position, effect.transform.angles, white, 0, 1.0f, worldClock,
-                             random, "0x523d67");
+        if (auto made = Emit(particles, Particles::BreathParticle, position, effect.transform.angles, white, 0, 1.0f,
+                             worldClock, random, "0x523d67");
             !made.HasValue())
             return made;
     }
     for (const std::string_view address : {"0x523d89", "0x523da2"})
     {
-        if (auto made = Emit(particles, FireParticle, position, effect.transform.angles, white, 5, 1.0f, worldClock,
-                             random, address);
+        if (auto made = Emit(particles, Particles::FireParticle, position, effect.transform.angles, white, 5, 1.0f,
+                             worldClock, random, address);
             !made.HasValue())
             return made;
     }
@@ -1049,7 +1049,8 @@ Core::Expected<void, std::string> StepTheDeathStab(ModelEffect& effect, float lu
 
 // 0x523b8b..0x523d35 con el subtipo 1: la estela del 0x106 sigue a su dueño con el joint 0x614/3, el sprite 0x5fd y, en
 // Kalima con el héroe detrás del dueño, la onda.
-Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtRandom& random, KalimaWorld* kalima,
+Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtRandom& random,
+                                                       MapScripts::Kalima::KalimaWorld* kalima,
                                                        const ModelEffectStepServices& services)
 {
     const ModelEffect* owner = effect.owner.effect;
@@ -1093,8 +1094,8 @@ Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtR
 
 // 0x5251df..0x525318: las piedras 0x10c y 0x10d de las puertas. Uno de cada diez pasos corta en 0x5252e6, como las
 // 0x10a/0x10b: el polvo 5f3/0 va en [EBP − 0x28], un local que ningún camino escribe (Q-C1176, P-C232).
-Core::Expected<void, std::string> StepTheGateDebris(ModelEffect& effect, Particles& particles, CrtRandom& random,
-                                                    const ModelEffectStepServices& services)
+Core::Expected<void, std::string> StepTheGateDebris(ModelEffect& effect, Particles::Particles& particles,
+                                                    CrtRandom& random, const ModelEffectStepServices& services)
 {
     glm::vec3& position = effect.transform.position;
     AddTo(position, effect.velocity);
@@ -1122,7 +1123,7 @@ Core::Expected<void, std::string> StepTheGateDebris(ModelEffect& effect, Particl
     effect.transform.angles.x = F32(D(effect.transform.angles.x) - tilt);
     if (random.Next() % 10 != 0)
         return {};
-    if (std::ranges::none_of(particles.All(), [](const Particle& particle) { return !particle.alive; }))
+    if (std::ranges::none_of(particles.All(), [](const Particles::Particle& particle) { return !particle.alive; }))
         return {};
     return Core::Unexpected(std::format("0x5252e6: el polvo 0x5f3/0 de la piedra {:#x} va en [EBP − 0x28] de "
                                         "0x5208a0, un local que ningún camino escribe (Q-C1176; la VM, P-C232)",
@@ -1164,8 +1165,9 @@ Core::Expected<void, std::string> BrightenTheBlizzard(ModelEffect& effect, CrtRa
 }
 
 // 0x525506..0x5259xx: el 0x108.
-Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles& particles, float worldClock,
-                                                  CrtRandom& random, const ModelEffectStepServices& services)
+Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles::Particles& particles,
+                                                  float worldClock, CrtRandom& random,
+                                                  const ModelEffectStepServices& services)
 {
     const glm::vec3 white(1.0f);
     glm::vec3& position = effect.transform.position;
@@ -1194,7 +1196,7 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
         {
             if (random.Next() % 2 == 0)
             {
-                if (auto made = Emit(particles, DeathSpiritFireParticle, position, angles, white, 7,
+                if (auto made = Emit(particles, Particles::DeathSpiritFireParticle, position, angles, white, 7,
                                      effect.transform.scale, worldClock, random, "0x5258ab");
                     !made.HasValue())
                     return made;
@@ -1207,13 +1209,14 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
         return {};
     if (auto swayed = SwayTheBlizzard(effect, random, 10.0f, "0x52552d"); !swayed.HasValue())
         return swayed;
-    if (auto made = Emit(particles, BreathParticle, position, angles, white, 0, 1.5f, worldClock, random, "0x5255bb");
+    if (auto made = Emit(particles, Particles::BreathParticle, position, angles, white, 0, 1.5f, worldClock, random,
+                         "0x5255bb");
         !made.HasValue())
         return made;
     const bool icy = random.Next() % 2 == 0;
     if (auto made = icy ? Emit(particles, 0x5ca, position, angles, white, 1, 0.5f, worldClock, random, "0x5255fd")
-                        : Emit(particles, DeathSpiritFireParticle, position, angles, white, 7, effect.transform.scale,
-                               worldClock, random, "0x5255fd");
+                        : Emit(particles, Particles::DeathSpiritFireParticle, position, angles, white, 7,
+                               effect.transform.scale, worldClock, random, "0x5255fd");
         !made.HasValue())
         return made;
     if (auto bright = BrightenTheBlizzard(effect, random, services, "0x52566c", "0x52569a"); !bright.HasValue())
@@ -1225,8 +1228,8 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
     const glm::vec3 frost{std::bit_cast<float>(0x3e75c28fu), std::bit_cast<float>(0x3e8f5c29u), 0.8f};
     const glm::vec3 point{position.x, position.y, F32(D(position.z) + 50.0)};
     const float scale = F32(static_cast<double>((random.Next() & 31) + 80) * static_cast<double>(0.025f)); // 0x6b8bd0
-    if (auto made = Emit(particles, BreathParticle, point, angles, frost, StoneDustSubtype, scale, worldClock, random,
-                         "0x525721");
+    if (auto made = Emit(particles, Particles::BreathParticle, point, angles, frost, Particles::StoneDustSubtype, scale,
+                         worldClock, random, "0x525721");
         !made.HasValue())
         return made;
     // 0x525729: el rand() % 5 sale antes de 0x518cf0(0xca) (0x525750) y del 0x108/1 (0x52577a).
@@ -1254,8 +1257,8 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
 
 // 0x52b15a..0x52b268: los /1 y /2 del chorro 0x5de, dieciocho llamas 5de/0 (el /1) o chispas 5dc/13 (el /2) en un
 // anillo de 250 alrededor de la posición, corridas al azar.
-Core::Expected<void, std::string> StepTheFlameRing(ModelEffect& effect, Particles& particles, float worldClock,
-                                                   CrtRandom& random)
+Core::Expected<void, std::string> StepTheFlameRing(ModelEffect& effect, Particles::Particles& particles,
+                                                   float worldClock, CrtRandom& random)
 {
     constexpr int Flames = 18;
     constexpr glm::vec3 Radius{0.0f, 250.0f, 0.0f}; // 0x437a0000
@@ -1267,10 +1270,11 @@ Core::Expected<void, std::string> StepTheFlameRing(ModelEffect& effect, Particle
         AddTo(point, effect.transform.position);
         point.x = F32(static_cast<double>((random.Next() & 63) - 32) + D(point.x));
         point.y = F32(static_cast<double>((random.Next() & 63) - 32) + D(point.y));
-        const auto made = effect.subtype == 1 ? Emit(particles, FlameParticle, point, effect.transform.angles, white, 0,
-                                                     std::bit_cast<float>(0x3f99999au), worldClock, random, "0x52b253")
-                                              : Emit(particles, BlueTrailFireParticle, point, effect.transform.angles,
-                                                     white, 13, 2.5f, worldClock, random, "0x52b253");
+        const auto made = effect.subtype == 1
+                              ? Emit(particles, Particles::FlameParticle, point, effect.transform.angles, white, 0,
+                                     std::bit_cast<float>(0x3f99999au), worldClock, random, "0x52b253")
+                              : Emit(particles, Particles::BlueTrailFireParticle, point, effect.transform.angles, white,
+                                     13, 2.5f, worldClock, random, "0x52b253");
         if (!made.HasValue())
             return made;
     }
@@ -1339,8 +1343,9 @@ CreateBlastModelEffect(ModelEffects& effects, const Kernel::ModelEffectArguments
 }
 
 Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton,
-                                                       Particles& particles, float worldClock, CrtRandom& random,
-                                                       int lightDraw, KalimaWorld* kalima,
+                                                       Particles::Particles& particles, float worldClock,
+                                                       CrtRandom& random, int lightDraw,
+                                                       MapScripts::Kalima::KalimaWorld* kalima,
                                                        const ModelEffectStepServices& services)
 {
     const glm::vec3 before = effect.transform.position;
@@ -1511,4 +1516,4 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     FinishTheStep(effect, skeleton, services, tail, before);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Effects

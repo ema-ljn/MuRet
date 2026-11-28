@@ -8,17 +8,20 @@
 
 #include <ostream>
 
-// Cómo imprime GoogleTest los tipos de Client::UI (CL5.5), como AppPrinters.h. Un campo sale con
+// Cómo imprime GoogleTest los tipos de Client::Ui y Client::FrontEnd (CL5.5), como AppPrinters.h. Un campo sale con
 // su largo y si es la clave, nunca con lo que tiene, y un pedido de la cuenta, con su tipo y el
 // largo de cada campo: sin estos PrintTo, GoogleTest vuelca los bytes del objeto, y con SSO lo
 // tecleado va ahí.
-namespace Client::UI
+namespace Client::Ui
 {
 inline void PrintTo(const TextField& field, std::ostream* out)
 {
     *out << "TextField{" << field.Size() << " bytes" << (field.Masked() ? ", clave" : "") << "}";
 }
+} // namespace Client::Ui
 
+namespace Client::FrontEnd
+{
 inline void PrintTo(LoginRequest::Kind kind, std::ostream* out)
 {
     switch (kind)
@@ -51,4 +54,4 @@ inline void PrintTo(LoginFocus focus, std::ostream* out)
 {
     *out << (focus == LoginFocus::Account ? "Account" : "Password");
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

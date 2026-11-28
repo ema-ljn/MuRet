@@ -20,7 +20,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Party
 {
 namespace
 {
@@ -59,13 +59,13 @@ std::string_view NameView(std::span<const std::byte> name)
 // 0x78aba48. Más de cinco no llega: el 42 que los trae se descarta (0x4d67e0, Q-C960); negativa, los lazos no corren.
 std::size_t Members(const Kernel::WorldRuntime& runtime)
 {
-    return static_cast<std::size_t>(std::clamp<std::int32_t>(runtime.hud.partyCount, 0, PartySlots));
+    return static_cast<std::size_t>(std::clamp<std::int32_t>(runtime.hud.partyCount, 0, Social::PartySlots));
 }
 } // namespace
 
-std::span<const PartySlot> PartyMembers(const Kernel::WorldRuntime& runtime)
+std::span<const Social::PartySlot> PartyMembers(const Kernel::WorldRuntime& runtime)
 {
-    return std::span<const PartySlot>(runtime.social.party.slots).first(Members(runtime));
+    return std::span<const Social::PartySlot>(runtime.social.party.slots).first(Members(runtime));
 }
 
 bool IsInTheParty(const Kernel::WorldState& world, const Kernel::ActorState& actor)
@@ -73,11 +73,11 @@ bool IsInTheParty(const Kernel::WorldState& world, const Kernel::ActorState& act
     return IsInTheParty(PartyMembers(world.Runtime()), actor);
 }
 
-bool IsInTheParty(std::span<const PartySlot> members, const Kernel::ActorState& actor)
+bool IsInTheParty(std::span<const Social::PartySlot> members, const Kernel::ActorState& actor)
 {
     const std::string_view name = NameView(actor.name);
     return std::ranges::any_of(members,
-                               [name](const PartySlot& slot)
+                               [name](const Social::PartySlot& slot)
                                {
                                    const std::string_view member = NameView(slot.name);
                                    return name.empty() ? member.empty() : member.starts_with(name);
@@ -91,7 +91,7 @@ void MatchThePartyMembers(Kernel::WorldState& world, std::size_t index)
     const std::string_view name = NameView(actor.name);
     for (std::size_t at = 0; at < Members(runtime); ++at)
     {
-        PartySlot& slot = runtime.social.party.slots[at];
+        Social::PartySlot& slot = runtime.social.party.slots[at];
         if (slot.actorIndex != NotSearched)
             continue;
         slot.actorFlags = 0;
@@ -109,7 +109,7 @@ void MarkTheMissingMembers(Kernel::WorldState& world)
     const std::string_view hero = NameView(world.Hero().name);
     for (std::size_t at = 0; at < Members(runtime); ++at)
     {
-        PartySlot& slot = runtime.social.party.slots[at];
+        Social::PartySlot& slot = runtime.social.party.slots[at];
         if (slot.actorIndex >= 0)
             continue;
         slot.actorFlags = 0;
@@ -132,9 +132,9 @@ void FindThePartyInTheViewport(Kernel::WorldState& world)
     MarkTheMissingMembers(world);
 }
 
-bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry& panels)
+bool PickFromThePartyList(const Hud::FramePickingContext& context, Ui::PanelRegistry& panels)
 {
-    if (panels.IsOpen(UI::PartyPanel))
+    if (panels.IsOpen(Ui::PartyPanel))
         return false;
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -148,7 +148,7 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
     bool picked = false;
     for (std::size_t at = 0; at < Members(runtime); ++at)
     {
-        PartySlot& slot = runtime.social.party.slots[at];
+        Social::PartySlot& slot = runtime.social.party.slots[at];
         if (slot.actorIndex < 0)
         {
             if (slot.actorIndex == NotInView)
@@ -179,4 +179,4 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
     }
     return picked;
 }
-} // namespace Client::Scenes
+} // namespace Client::Party

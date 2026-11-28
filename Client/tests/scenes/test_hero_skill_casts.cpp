@@ -29,7 +29,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
+using Client::Skills::HeroSkillContext;
 
 constexpr int EntryDraws = 60;
 
@@ -134,7 +134,7 @@ TEST(HeroSkillCastsTest, ABlockedManaPotionShowsTheNativeNoticeBeforeTheWait)
     tested->world.Runtime().panels.warehouse = 1;
     tested->world.Runtime().ui.field5767954 = 5;
     std::vector<std::size_t> notices;
-    const Client::Scenes::InventoryServices inventory{
+    const Client::Items::InventoryServices inventory{
         .systemMessage = [&notices](std::size_t text, std::int32_t type) -> Client::Core::Expected<void, std::string>
         {
             EXPECT_EQ(type, 2);

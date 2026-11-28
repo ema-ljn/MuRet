@@ -10,7 +10,7 @@
 // Los sprites de un frame (CL7.6 B1): la tabla de 0x5491e0 (0x760f990, 1.000 lugares de 0x1d4 bytes),
 // que llenan el dibujo de los personajes y de los objetos y que 0x549440(0) dibuja y apaga en el mismo
 // frame. Contrato: 06 § Los efectos del login.
-namespace Client::World
+namespace Client::Particles
 {
 inline constexpr std::size_t SpriteCount = 1000;
 // La textura con su atlas de 3 × 3 (0x549290): su +4 es el cuadro, no la mezcla, y va con la normal.
@@ -53,4 +53,4 @@ private:
 // 0x549290, al dibujar: visto, el alpha sube 0,1 con tope 1; sin ver, baja 0,1 con piso 0,2. En 53 bits y
 // guardado en float.
 void StepSpriteAlpha(Sprite& sprite);
-} // namespace Client::World
+} // namespace Client::Particles

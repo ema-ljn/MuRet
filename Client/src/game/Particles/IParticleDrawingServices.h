@@ -6,7 +6,7 @@
 #include "Particles/Particles.h"
 #include <glm/ext/vector_float2.hpp>
 #include <cstdint>
-namespace Client::World
+namespace Client::Particles
 {
 // Servicios obligatorios y síncronos. Lookups CPU estables, sin cargas/reentrada; las otras
 // fronteras pueden mutar estado prestado. Nada se retiene ni se difiere al Present.
@@ -27,4 +27,4 @@ public:
     [[nodiscard]] virtual Result TextureEnv(Render::TextureEnvMode mode) = 0;
     [[nodiscard]] virtual Result Billboard(Render::ParticleBillboardRequest request) = 0;
 };
-} // namespace Client::World
+} // namespace Client::Particles

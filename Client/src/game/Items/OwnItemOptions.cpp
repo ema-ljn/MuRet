@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -55,4 +55,4 @@ void ApplyOwnItemOptionPercent(std::span<std::byte, 2> destination, std::uint32_
         WriteOptionDestination(destination, previous + static_cast<std::uint32_t>(adjustment));
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

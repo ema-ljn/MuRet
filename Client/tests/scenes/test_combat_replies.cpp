@@ -54,10 +54,10 @@
 // son inventados.
 namespace
 {
+using Client::Combat::ActorCombatContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::ActorCombatContext;
 
 constexpr std::uint32_t Seed = 4321;
 constexpr std::uint16_t Monster = 0x10;
@@ -164,9 +164,9 @@ protected:
         };
         return combat;
     }
-    [[nodiscard]] Client::Scenes::ChatReceiveContext Chat()
+    [[nodiscard]] Client::Chat::ChatReceiveContext Chat()
     {
-        return Client::Scenes::ChatReceiveContext{
+        return Client::Chat::ChatReceiveContext{
             .world = *m_world, .random = m_random, .measure = &m_letters, .texts = &m_texts};
     }
     void UseTerrain()
@@ -219,7 +219,7 @@ TEST_F(CombatRepliesTest, AKillWithoutShockMarksTheVictimOnTheHeroAndAddsTheExpe
     m_world->OwnCharacter().experience = 1000;
     const Client::Protocol::Combat::KillExperience reply{.key = 0x123, .shock = false, .amount = 500, .damage = 77};
 
-    const auto applied = Client::Scenes::ApplyKillExperience(reply, Combat(), Chat());
+    const auto applied = Client::Combat::ApplyKillExperience(reply, Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
     EXPECT_EQ(Hero().byte380, 2);
@@ -239,7 +239,7 @@ TEST_F(CombatRepliesTest, AKillWithoutShockMarksTheVictimOnTheHeroAndAddsTheExpe
     EXPECT_EQ(m_world->OwnCharacter().experience, 1500u);
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "Experiencia 500");
-    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::Ui::SystemMessage);
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 }
 
@@ -248,7 +248,7 @@ TEST_F(CombatRepliesTest, AKillWithoutExperienceStillClosesTheOwnRecordAndAddsNo
 {
     MonsterAt(12, 0x123);
     const auto applied =
-        Client::Scenes::ApplyKillExperience({.key = 0x123, .shock = false, .amount = 0, .damage = 3}, Combat(), Chat());
+        Client::Combat::ApplyKillExperience({.key = 0x123, .shock = false, .amount = 0, .damage = 3}, Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_TRUE(Runtime().chat.log.entries.empty());
     EXPECT_EQ(m_world->OwnCharacter().experience, 0u);
@@ -261,7 +261,7 @@ TEST_F(CombatRepliesTest, TheExtendedKillAddsTheWholeThirtyTwoBitExperience)
 {
     MonsterAt(30, 0x456);
     m_world->OwnCharacter().experience = 7;
-    const auto applied = Client::Scenes::ApplyKillExperience(
+    const auto applied = Client::Combat::ApplyKillExperience(
         {.key = 0x456, .shock = false, .amount = 0x10000u + 20000u, .damage = 9}, Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(m_world->OwnCharacter().experience, 7u + 0x10000u + 20000u);
@@ -276,7 +276,7 @@ TEST_F(CombatRepliesTest, AShockKillsAnotherPlayerWithTheDeathActionAndSound)
     Runtime().map = 2;
     ActorState& dead = PlayerAt(20, 0x55, 2);
     const auto applied =
-        Client::Scenes::ApplyKillExperience({.key = 0x55, .shock = true, .amount = 10, .damage = 4}, Combat(), Chat());
+        Client::Combat::ApplyKillExperience({.key = 0x55, .shock = true, .amount = 10, .damage = 4}, Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(dead.animation.action, 0xc3);
     EXPECT_EQ(dead.animation.frame, DeathFrame);
@@ -303,7 +303,7 @@ TEST_F(CombatRepliesTest, ThePlayerDeathSoundFollowsTheClassAndFenrir)
         Runtime().lastSoundId.reset();
         ActorState& dead = PlayerAt(20, 0x55, probe.characterClass);
         dead.pet.model = probe.pet;
-        ASSERT_TRUE(Client::Scenes::SetActorDie(dead, Combat()).HasValue());
+        ASSERT_TRUE(Client::Combat::SetActorDie(dead, Combat()).HasValue());
         EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{probe.sound}) << int{probe.characterClass};
     }
 }
@@ -312,7 +312,7 @@ TEST_F(CombatRepliesTest, ThePlayerDeathSoundFollowsTheClassAndFenrir)
 // los saca otra vez.
 TEST_F(CombatRepliesTest, AShockOnTheHeroZeroesTheOwnLifeInsideTheOwnRecord)
 {
-    const auto applied = Client::Scenes::ApplyKillExperience({.key = HeroKey, .shock = true, .amount = 1, .damage = 1},
+    const auto applied = Client::Combat::ApplyKillExperience({.key = HeroKey, .shock = true, .amount = 1, .damage = 1},
                                                              Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(m_world->OwnCharacter().life, 0);
@@ -331,7 +331,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeathSoundIsDrawn)
     CrtRandom expected = DrawnAfter(0);
     const std::int32_t sound = (expected.Next() & 1) + 0x5e;
     ASSERT_TRUE(
-        Client::Scenes::ApplyKillExperience({.key = 0x55, .shock = true, .amount = 0, .damage = 1}, Combat(), Chat())
+        Client::Combat::ApplyKillExperience({.key = 0x55, .shock = true, .amount = 0, .damage = 1}, Combat(), Chat())
             .HasValue());
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{sound});
     EXPECT_EQ(dead.animation.frame, DeathFrame);
@@ -362,7 +362,7 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
         Client::Sound::ModelSounds sounds{};
         sounds.fill(0x11);
         sounds[4] = tested.word;
-        const auto applied = Client::Scenes::ApplyKillExperience(
+        const auto applied = Client::Combat::ApplyKillExperience(
             {.key = 0x123, .shock = true, .amount = 5, .damage = 1}, CombatWithSounds(sounds), Chat());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(dead.animation.action, 6);
@@ -376,7 +376,7 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
         Runtime().lastSoundId.reset();
         Actor(14) = ActorState{};
         MonsterAt(14, 0x125).subtype = subtype;
-        ASSERT_TRUE(Client::Scenes::ApplyKillExperience({.key = 0x125, .shock = true, .amount = 5, .damage = 1},
+        ASSERT_TRUE(Client::Combat::ApplyKillExperience({.key = 0x125, .shock = true, .amount = 5, .damage = 1},
                                                         Combat(), Chat())
                         .HasValue());
         EXPECT_EQ(Actor(14).animation.action, 6);
@@ -390,7 +390,7 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
     dying.animation.action = 6;
     dying.animation.frame = 2.0f;
     const auto applied =
-        Client::Scenes::ApplyKillExperience({.key = 0x124, .shock = true, .amount = 5, .damage = 1}, Combat(), Chat());
+        Client::Combat::ApplyKillExperience({.key = 0x124, .shock = true, .amount = 5, .damage = 1}, Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(dying.animation.frame, 2.0f);
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
@@ -441,7 +441,7 @@ TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFul
                 }
 
                 auto effectPool = m_world->Map().effects.Effects();
-                for (Client::World::ModelEffect& effect : effectPool)
+                for (Client::Effects::ModelEffect& effect : effectPool)
                     effect.alive = true;
 
                 ActorState& dead = Actor(20);
@@ -471,15 +471,15 @@ TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFul
                     }
                 }
 
-                const auto died = Client::Scenes::SetActorDie(dead, Combat());
+                const auto died = Client::Combat::SetActorDie(dead, Combat());
                 ASSERT_TRUE(died.HasValue()) << died.Error();
                 EXPECT_FALSE(dead.alive);
                 EXPECT_EQ(dead.animation.action, 7);
                 EXPECT_EQ(std::bit_cast<std::uint32_t>(dead.animation.frame), expectedFrame);
                 EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{*sound});
                 EXPECT_EQ(m_random.State(), expected.State());
-                EXPECT_TRUE(std::ranges::all_of(effectPool,
-                                                [](const Client::World::ModelEffect& effect) { return effect.alive; }));
+                EXPECT_TRUE(std::ranges::all_of(effectPool, [](const Client::Effects::ModelEffect& effect)
+                                                { return effect.alive; }));
             }
         }
     }
@@ -498,7 +498,7 @@ TEST_F(CombatRepliesTest, ThePlayerAndThe170ScatterTheirBones)
         Runtime().map = 0;
         Runtime().lastSoundId.reset();
         auto effectPool = m_world->Map().effects.Effects();
-        for (Client::World::ModelEffect& effect : effectPool)
+        for (Client::Effects::ModelEffect& effect : effectPool)
             effect.alive = false;
         ActorState& dead = Actor(20);
         dead = ActorState{};
@@ -511,7 +511,7 @@ TEST_F(CombatRepliesTest, ThePlayerAndThe170ScatterTheirBones)
         CrtRandom expected = m_random;
         expected.Discard(Bones * BoneDraws);
 
-        const auto died = Client::Scenes::SetActorDie(dead, Combat());
+        const auto died = Client::Combat::SetActorDie(dead, Combat());
 
         ASSERT_TRUE(died.HasValue()) << died.Error();
         EXPECT_FALSE(dead.alive);
@@ -521,9 +521,9 @@ TEST_F(CombatRepliesTest, ThePlayerAndThe170ScatterTheirBones)
         for (std::size_t slot = 0; slot < Bones; ++slot)
         {
             SCOPED_TRACE(slot);
-            const Client::World::ModelEffect& bone = effectPool[slot];
+            const Client::Effects::ModelEffect& bone = effectPool[slot];
             EXPECT_TRUE(bone.alive);
-            EXPECT_EQ(bone.type, slot == 0 ? Client::World::FirstBoneEffect : Client::World::SecondBoneEffect);
+            EXPECT_EQ(bone.type, slot == 0 ? Client::Effects::FirstBoneEffect : Client::Effects::SecondBoneEffect);
             EXPECT_EQ(bone.subtype, 0);
             EXPECT_EQ(bone.ownerContext, nullptr);
             EXPECT_EQ(bone.transform.position.z, slot == 0 ? 180.0f : 130.0f);
@@ -545,7 +545,7 @@ TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
         Runtime().ownRecordDepth = depth;
         Runtime().lastSoundId.reset();
         m_world->OwnCharacter().life = 50;
-        for (Client::World::ModelEffect& effect : m_world->Map().effects.Effects())
+        for (Client::Effects::ModelEffect& effect : m_world->Map().effects.Effects())
             effect.alive = true;
 
         ActorState& hero = Hero();
@@ -559,7 +559,7 @@ TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
             expected.Discard(OwnRecordDraws);
         const std::int32_t sound = static_cast<std::int32_t>((expected.Next() & 1) + 0x5e);
 
-        const auto died = Client::Scenes::SetActorDie(hero, Combat());
+        const auto died = Client::Combat::SetActorDie(hero, Combat());
 
         ASSERT_TRUE(died.HasValue()) << died.Error();
         EXPECT_FALSE(hero.alive);
@@ -601,22 +601,23 @@ TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathScattersItsSplinters)
         expected.Discard(OwnRecordDraws);
         CrtRandom counted = expected;
 
-        const auto died = Client::Scenes::SetActorDie(hero, Combat());
+        const auto died = Client::Combat::SetActorDie(hero, Combat());
 
         ASSERT_TRUE(died.HasValue()) << died.Error();
-        auto twin = std::make_unique<Client::World::ModelEffects>();
+        auto twin = std::make_unique<Client::Effects::ModelEffects>();
         for (std::size_t slot = free; slot < twin->Effects().size(); ++slot)
             twin->Effects()[slot].alive = true;
         for (int pair = 0; pair < 8; ++pair)
         {
-            for (const std::int16_t type : {Client::World::FirstSplinterEffect, Client::World::SecondSplinterEffect})
+            for (const std::int16_t type :
+                 {Client::Effects::FirstSplinterEffect, Client::Effects::SecondSplinterEffect})
                 static_cast<void>(twin->CreateStoneChip(type, hero.position, hero.angles, hero.light, expected));
         }
         for (std::size_t slot = 0; slot < std::min<std::size_t>(free, 16); ++slot)
         {
             SCOPED_TRACE(slot);
-            const Client::World::ModelEffect& made = effectPool[slot];
-            const Client::World::ModelEffect& twinEffect = twin->Effects()[slot];
+            const Client::Effects::ModelEffect& made = effectPool[slot];
+            const Client::Effects::ModelEffect& twinEffect = twin->Effects()[slot];
             ASSERT_TRUE(made.alive);
             EXPECT_EQ(made.type, slot % 2 == 0 ? 0xe5 : 0xe6);
             EXPECT_EQ(made.subtype, 0);
@@ -651,7 +652,7 @@ TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathScattersItsSplinters)
 // REP STOSD de 0x60dc80 la dejó en diez WORD en 0) y suma la experiencia (Q-C1160, P-C252).
 TEST_F(CombatRepliesTest, TheBloodCastleRewardLandsOnSlotFourHundred)
 {
-    const auto applied = Client::Scenes::ApplyKillExperience({.key = 0x7fff, .shock = true, .amount = 100, .damage = 0},
+    const auto applied = Client::Combat::ApplyKillExperience({.key = 0x7fff, .shock = true, .amount = 100, .damage = 0},
                                                              Combat(), Chat());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(400).animation.action, 6);
@@ -669,7 +670,7 @@ TEST_F(CombatRepliesTest, AnOrdinaryDeathOnlyMarksTheActor)
         ActorState& dead = MonsterAt(12, 0x123);
         dead.movement = 1;
         dead.byte1a1 = 1;
-        ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0x10, .killer = 0}, Combat()).HasValue());
+        ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0x10, .killer = 0}, Combat()).HasValue());
         EXPECT_EQ(dead.dying, 1);
         EXPECT_EQ(dead.movement, 0);
         EXPECT_EQ(dead.deathSkill, 0x10);
@@ -691,7 +692,7 @@ TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
         dead.floatCC = 9.0f;
         ActorState& killer = PlayerAt(20, 0x55);
         killer.position = {1300.0f, 2400.0f, 0.0f};
-        ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = skill, .killer = 0x55}, Combat()).HasValue());
+        ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = skill, .killer = 0x55}, Combat()).HasValue());
 
         CrtRandom expected = DrawnAfter(0);
         const std::int32_t first = expected.Next() % 5;
@@ -721,7 +722,7 @@ TEST_F(CombatRepliesTest, AnotherPlayerPushedToDeathFliesThroughItsDyingSteps)
     dead.position = {1000.0f, 2000.0f, 0.0f};
     ActorState& killer = PlayerAt(21, 0x55);
     killer.position = {1300.0f, 2000.0f, 0.0f};
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x77, .skill = 0x3b, .killer = 0x55}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x77, .skill = 0x3b, .killer = 0x55}, Combat()).HasValue());
     ASSERT_EQ(dead.dying, 1);
     const std::uint32_t afterTheDeath = m_random.State();
     const Client::Actors::ActorDyingContext dying{.map = 0, .hero = false, .random = m_random};
@@ -758,7 +759,7 @@ TEST_F(CombatRepliesTest, OnTheBloodCastleBridgeTheDeadIsPushedTowardsTheFall)
     dead.position = {1250.0f, 2350.0f, 0.0f};
     Wall(12, 23) = 0x20;
     Wall(13, 23) = 0x08;
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
 
     CrtRandom expected = DrawnAfter(0);
     const std::int32_t e4 = expected.Next() % 10;
@@ -781,7 +782,7 @@ TEST_F(CombatRepliesTest, OnTheBloodCastleBridgeTheDeadIsPushedTowardsTheFall)
     m_random = CrtRandom(Seed);
     Wall(13, 23) = 0;
     Wall(11, 23) = 0x08;
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
     EXPECT_EQ(dead.push, glm::vec3(0.0f, 0.0f, static_cast<float>(push + 85.0)));
 }
 
@@ -819,7 +820,7 @@ TEST_F(CombatRepliesTest, OnTheEdgeOfTheGridTheBridgePushIsDiscarded)
         Wall(probe.x, probe.y) = 0x20;
         Wall(1, 0) = probe.rightFalls ? std::uint16_t{0x08} : std::uint16_t{0};
 
-        const auto died = Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat());
+        const auto died = Client::Combat::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat());
 
         ASSERT_TRUE(died.HasValue()) << died.Error();
         EXPECT_EQ(dead.dying, 1);
@@ -845,7 +846,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeadFallsIntoTheVoid)
     dead.position = {1250.0f, 2350.0f, 0.0f};
     dead.floatD8 = 1.0f;
     Wall(12, 23) = 0x08;
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0x28, .killer = 0}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0x28, .killer = 0}, Combat()).HasValue());
 
     CrtRandom expected = DrawnAfter(0);
     const std::int32_t e4 = expected.Next() % 10;
@@ -861,7 +862,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeadFallsIntoTheVoid)
     m_random = CrtRandom(Seed);
     Runtime().map = 11;
     Runtime().lastSoundId.reset();
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0x28, .killer = 0}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0x28, .killer = 0}, Combat()).HasValue());
     EXPECT_EQ(dead.byte1a1, 0);
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
     EXPECT_EQ(m_random.State(), After(0));
@@ -872,11 +873,11 @@ TEST_F(CombatRepliesTest, TheHeroDyingInACastleResetsTheEventObject)
 {
     Runtime().map = 11;
     UseTerrain();
-    Client::Scenes::EventMapObject object;
+    Client::Events::EventMapObject object;
     object.field10 = 5;
     object.field14 = {1, 2, 3, 4};
     Runtime().eventObject = object;
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = HeroKey, .skill = 0, .killer = 0}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = HeroKey, .skill = 0, .killer = 0}, Combat()).HasValue());
     EXPECT_EQ(Runtime().eventObject->field10, 0);
     EXPECT_EQ(Runtime().eventObject->field14, (std::array<std::int32_t, 4>{-1, -1, -1, -1}));
     EXPECT_EQ(Hero().dying, 1);
@@ -884,7 +885,7 @@ TEST_F(CombatRepliesTest, TheHeroDyingInACastleResetsTheEventObject)
     // Otro que muere no lo toca.
     Runtime().eventObject = object;
     MonsterAt(12, 0x123);
-    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
     EXPECT_EQ(Runtime().eventObject->field10, 5);
 }
 
@@ -893,7 +894,7 @@ TEST_F(CombatRepliesTest, ACastleDeathWithoutAttributesCuts)
 {
     Runtime().map = 23;
     MonsterAt(12, 0x123);
-    const auto cut = Client::Scenes::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat());
+    const auto cut = Client::Combat::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat());
     EXPECT_TRUE(HasError(cut, "0x4d07ff"));
 }
 
@@ -901,7 +902,7 @@ TEST_F(CombatRepliesTest, ACastleDeathWithoutAttributesCuts)
 TEST_F(CombatRepliesTest, AnUnarmedPlayerPunchesWithoutSound)
 {
     ActorState& player = PlayerAt(20, 0x55);
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x22);
     EXPECT_EQ(player.attackCount, 1);
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
@@ -914,7 +915,7 @@ TEST_F(CombatRepliesTest, ASwordAlternatesByTheAttackCountAndDrawsItsSound)
 {
     ActorState& player = PlayerAt(20, 0x55);
     player.hands[0].model = 0x213;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x23);
     CrtRandom expected = DrawnAfter(OwnRecordDraws);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{(expected.Next() & 1) + 0x3c});
@@ -923,14 +924,14 @@ TEST_F(CombatRepliesTest, ASwordAlternatesByTheAttackCountAndDrawsItsSound)
     // 0x4ea030 vuelve el frame a 0 al cambiar de acción: la segunda también pide sonido.
     player.animation.frame = 1.0f;
     Runtime().lastSoundId.reset();
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x24);
     EXPECT_EQ(player.attackCount, 2);
     EXPECT_TRUE(Runtime().lastSoundId.has_value());
 
     m_items = Client::Tests::ItemsMarking({0x213});
     player.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x27 + 2);
 }
 
@@ -939,14 +940,14 @@ TEST_F(CombatRepliesTest, ABowShootsByTheWingsAndSoundsWithoutDrawing)
 {
     ActorState& player = PlayerAt(20, 0x55, 2);
     player.hands[1].model = 0xa12;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x2e);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x55});
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 
     player.wings.model = 0x1a00;
     player.animation.frame = 0.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x30);
 }
 
@@ -956,19 +957,19 @@ TEST_F(CombatRepliesTest, OnFenrirTheDarkLordOverridesTheAction)
 {
     ActorState& player = PlayerAt(20, 0x55, 4);
     player.pet.model = 0x1c37;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x59);
     EXPECT_EQ(player.animation.previousAction, 0x56);
 
     ActorState& knight = PlayerAt(21, 0x56, 1);
     knight.pet.model = 0x1c37;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(knight, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(knight, Combat()).HasValue());
     EXPECT_EQ(knight.animation.action, 0x56);
 
     ActorState& safe = PlayerAt(22, 0x57, 4);
     safe.pet.model = 0x1c37;
     safe.safeZone = 1;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(safe, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(safe, Combat()).HasValue());
     EXPECT_EQ(safe.animation.action, 0x22);
 }
 
@@ -989,7 +990,7 @@ TEST_F(CombatRepliesTest, TheModel172DrawsItsAttack)
     monster.type = 0x172;
     monster.animation.action = static_cast<std::uint8_t>(action);
     monster.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(monster, Combat()).HasValue());
     EXPECT_EQ(monster.animation.action, action);
     EXPECT_EQ(monster.animation.frame, 1.0f);
     EXPECT_EQ(monster.attackCount, 1);
@@ -1005,18 +1006,18 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
     ActorState& monster = MonsterAt(12, 0x123);
     monster.animation.action = 3;
     monster.animation.frame = 1.5f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(monster, Combat()).HasValue());
     EXPECT_EQ(monster.animation.action, 3);
     EXPECT_EQ(monster.attackCount, 2);
     monster.animation.action = 4;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(monster, Combat()).HasValue());
     EXPECT_EQ(monster.animation.action, 4);
     EXPECT_EQ(monster.animation.frame, 1.5f);
     EXPECT_EQ(monster.attackCount, 4);
     EXPECT_EQ(m_random.State(), After(0));
 
     ActorState& still = MonsterAt(13, 0x124);
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(still, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(still, Combat()).HasValue());
     EXPECT_EQ(still.animation.action, 3);
     EXPECT_EQ(still.attackCount, 2);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
@@ -1034,7 +1035,7 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
         next.subtype = subtype;
         next.animation = {};
         const std::int32_t drawn = expected.Next() % 2;
-        ASSERT_TRUE(Client::Scenes::SetActorAttack(next, CombatWithSounds(sounds)).HasValue());
+        ASSERT_TRUE(Client::Combat::SetActorAttack(next, CombatWithSounds(sounds)).HasValue());
         EXPECT_EQ(Runtime().lastSoundId,
                   Client::Audio::SoundId{sounds[static_cast<std::size_t>(2 + drawn)] + (subtype == 9 ? 5 : 0) + 0xd2});
     }
@@ -1043,7 +1044,7 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
     Runtime().lastSoundId.reset();
     sounds[2] = -1;
     ActorState& silent = MonsterAt(15, 0x126);
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(silent, CombatWithSounds(sounds)).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(silent, CombatWithSounds(sounds)).HasValue());
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
     EXPECT_EQ(m_random.State(), expected.State());
 }
@@ -1067,7 +1068,7 @@ TEST_F(CombatRepliesTest, AnAttackWithoutAModelKeepsItsAnimationButStillCountsAn
         if (frameIsZeroOrUnordered)
             static_cast<void>(expected.Next());
 
-        const auto attacked = Client::Scenes::SetActorAttack(monster, Combat());
+        const auto attacked = Client::Combat::SetActorAttack(monster, Combat());
         ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
         EXPECT_EQ(monster.animation.action, 7);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(monster.animation.frame), frameBits);
@@ -1090,7 +1091,7 @@ TEST_F(CombatRepliesTest, APlayerWithAModelSoundSubtypeDrawsTwice)
     CrtRandom expected = DrawnAfter(OwnRecordDraws);
     const std::int32_t sound = (expected.Next() & 1) + 0x3c;
     static_cast<void>(expected.Next());
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
     EXPECT_EQ(player.animation.action, 0x22);
     EXPECT_NE(sound, 0xd2);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
@@ -1120,7 +1121,7 @@ TEST_F(CombatRepliesTest, TheKalimaMonstersChooseByTheirSkillByte)
         kalima.word376 = tested.kind;
         kalima.byte38e = tested.skill;
         kalima.animation.frame = 1.0f;
-        ASSERT_TRUE(Client::Scenes::SetActorAttack(kalima, Combat()).HasValue());
+        ASSERT_TRUE(Client::Combat::SetActorAttack(kalima, Combat()).HasValue());
         EXPECT_EQ(kalima.animation.action, tested.action);
         EXPECT_EQ(kalima.attackCount, 1);
         draws += tested.action != 0 ? 2 : 1;
@@ -1133,7 +1134,7 @@ TEST_F(CombatRepliesTest, TheKalimaMonstersChooseByTheirSkillByte)
     drawing.animation.frame = 1.0f;
     const std::uint8_t action = static_cast<std::uint8_t>((expected.Next() & 1) + 3);
     static_cast<void>(expected.Next());
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(drawing, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(drawing, Combat()).HasValue());
     EXPECT_EQ(drawing.animation.action, action);
     EXPECT_EQ(m_random.State(), expected.State());
 }
@@ -1152,7 +1153,7 @@ TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
         trials.attackCount = 0;
         trials.animation.action = skill == 0x32 ? 3 : 4;
         trials.animation.frame = 1.0f;
-        ASSERT_TRUE(Client::Scenes::SetActorAttack(trials, Combat()).HasValue());
+        ASSERT_TRUE(Client::Combat::SetActorAttack(trials, Combat()).HasValue());
         EXPECT_EQ(trials.animation.action, skill == 0x32 ? 3 : 4);
         EXPECT_EQ(trials.animation.frame, 1.0f);
         EXPECT_EQ(trials.attackCount, 1);
@@ -1164,7 +1165,7 @@ TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
     elsewhere.word376 = 0x123;
     elsewhere.animation.action = 3;
     elsewhere.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(elsewhere, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(elsewhere, Combat()).HasValue());
     EXPECT_EQ(elsewhere.attackCount, 2);
     EXPECT_EQ(m_random.State(), After(2));
 }
@@ -1192,7 +1193,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
         monster.byte42e = tested.skill;
         monster.animation.action = tested.action;
         monster.animation.frame = 1.0f;
-        ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+        ASSERT_TRUE(Client::Combat::SetActorAttack(monster, Combat()).HasValue());
         EXPECT_EQ(monster.animation.action, tested.action);
         EXPECT_EQ(monster.byte42e, 0xff);
         EXPECT_EQ(monster.attackCount, 1);
@@ -1205,7 +1206,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     again.byte42e = 0xff;
     again.animation.action = 3;
     again.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(again, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(again, Combat()).HasValue());
     EXPECT_EQ(again.attackCount, 2);
     EXPECT_EQ(m_random.State(), After(5));
 
@@ -1215,7 +1216,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     doppelganger.word376 = 0x131;
     doppelganger.animation.action = 3;
     doppelganger.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(doppelganger, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(doppelganger, Combat()).HasValue());
     EXPECT_EQ(doppelganger.attackCount, 1);
     EXPECT_EQ(doppelganger.byte42e, 0xff);
     EXPECT_EQ(m_random.State(), After(6));
@@ -1227,7 +1228,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     elsewhere.byte42e = 6;
     elsewhere.animation.action = 3;
     elsewhere.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(elsewhere, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(elsewhere, Combat()).HasValue());
     EXPECT_EQ(elsewhere.byte42e, 6);
     EXPECT_EQ(elsewhere.attackCount, 2);
     EXPECT_EQ(m_random.State(), After(6));
@@ -1240,7 +1241,7 @@ TEST_F(CombatRepliesTest, TheSpecialMonsterSetsItsActionWithoutCountingTwice)
     special.type = 0x19e;
     special.animation.action = 5;
     special.animation.frame = 1.0f;
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(special, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(special, Combat()).HasValue());
     EXPECT_EQ(special.byte110, 3);
     EXPECT_EQ(special.animation.action, 5);
     EXPECT_EQ(special.attackCount, 1);
@@ -1280,7 +1281,7 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
             SCOPED_TRACE(test.subtype);
             SCOPED_TRACE(std::bit_cast<std::uint32_t>(test.frame));
             auto effectPool = m_world->Map().effects.Effects();
-            for (Client::World::ModelEffect& poolEffect : effectPool)
+            for (Client::Effects::ModelEffect& poolEffect : effectPool)
                 poolEffect.alive = true;
             const std::uint16_t key = static_cast<std::uint16_t>(0x200 + slot);
             ActorState& effect = MonsterAt(slot, key);
@@ -1320,14 +1321,14 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
                 }
             }
 
-            const auto attacked = Client::Scenes::SetActorAttack(effect, combat);
+            const auto attacked = Client::Combat::SetActorAttack(effect, combat);
             ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
             EXPECT_EQ(effect.animation.action, 7);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(effect.animation.frame), frameBits);
             EXPECT_EQ(effect.attackCount, 0);
             EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{*expectedSound});
             EXPECT_EQ(m_random.State(), expected.State());
-            EXPECT_TRUE(std::ranges::all_of(effectPool, [](const Client::World::ModelEffect& poolEffect)
+            EXPECT_TRUE(std::ranges::all_of(effectPool, [](const Client::Effects::ModelEffect& poolEffect)
                                             { return poolEffect.alive; }));
         }
     }
@@ -1346,16 +1347,16 @@ TEST_F(CombatRepliesTest, TheSawOf27GoesOutWithTheStrike)
     saw.angles = {0.0f, 0.0f, 45.0f};
     Runtime().lastSoundId.reset();
     auto effectPool = m_world->Map().effects.Effects();
-    for (Client::World::ModelEffect& poolEffect : effectPool)
+    for (Client::Effects::ModelEffect& poolEffect : effectPool)
         poolEffect.alive = true;
     effectPool[3].alive = false;
     const CrtRandom expected = m_random;
 
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(saw, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(saw, Combat()).HasValue());
 
-    const Client::World::ModelEffect& created = effectPool[3];
+    const Client::Effects::ModelEffect& created = effectPool[3];
     EXPECT_TRUE(created.alive);
-    EXPECT_EQ(created.type, Client::World::SawEffect);
+    EXPECT_EQ(created.type, Client::Effects::SawEffect);
     EXPECT_EQ(created.subtype, 0);
     EXPECT_EQ(created.ownerContext, nullptr);
     EXPECT_EQ(created.life, 10);
@@ -1382,15 +1383,15 @@ TEST_F(CombatRepliesTest, TheFlameOf33GoesOutWithTheStrike)
     burner.light = {0.5f, 0.25f, 1.0f};
     Runtime().lastSoundId.reset();
     auto effectPool = m_world->Map().effects.Effects();
-    for (Client::World::ModelEffect& poolEffect : effectPool)
+    for (Client::Effects::ModelEffect& poolEffect : effectPool)
         poolEffect.alive = true;
     effectPool[3].alive = false;
     const CrtRandom expected = m_random;
 
-    const auto attacked = Client::Scenes::SetActorAttack(burner, Combat());
+    const auto attacked = Client::Combat::SetActorAttack(burner, Combat());
 
     ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
-    const Client::World::ModelEffect& created = effectPool[3];
+    const Client::Effects::ModelEffect& created = effectPool[3];
     EXPECT_TRUE(created.alive);
     EXPECT_EQ(created.type, 0x5da);
     EXPECT_EQ(created.subtype, 0);
@@ -1415,7 +1416,7 @@ TEST_F(CombatRepliesTest, TheModelSoundsComeFromTheRuntimeTable)
     CrtRandom expected = DrawnAfter(0);
     const std::int32_t drawn = expected.Next() % 2;
     ActorState& monster = MonsterAt(12, 0x100);
-    ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+    ASSERT_TRUE(Client::Combat::SetActorAttack(monster, Combat()).HasValue());
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x14 + drawn + 0xd2});
     EXPECT_EQ(m_random.State(), expected.State());
 }

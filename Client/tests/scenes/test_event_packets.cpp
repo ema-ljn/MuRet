@@ -65,18 +65,18 @@
 #include <vector>
 
 // CL9 hito 11 (04 § Los eventos): lo que los paquetes de Devil Square, Blood Castle, Chaos Castle, Kalima y Crywolf
-// hacen al llegar (Scenes::ApplyEventPacket), la cuenta de 0x40bab0 y el derrumbe de los objetos, contra el ASM de
+// hacen al llegar (Events::ApplyEventPacket), la cuenta de 0x40bab0 y el derrumbe de los objetos, contra el ASM de
 // c32bbd5f sin ejecutar el original. Text.bmd es inventado, con los especificadores de los textos del original.
 namespace
 {
 namespace Events = Client::Protocol::Events;
 using Client::Crt::CrtRandom;
+using Client::Events::EventMapKind;
+using Client::Events::EventMapObject;
+using Client::Events::EventPacketContext;
+using Client::Events::EventPacketResult;
 using Client::Kernel::WorldRuntime;
 using Client::Kernel::WorldState;
-using Client::Scenes::EventMapKind;
-using Client::Scenes::EventMapObject;
-using Client::Scenes::EventPacketContext;
-using Client::Scenes::EventPacketResult;
 
 constexpr std::size_t BloodCastleNameText = 1146;
 constexpr std::size_t ChaosCastleNameText = 1147;
@@ -257,7 +257,7 @@ protected:
 
     Client::Core::Expected<EventPacketResult, std::string> Apply(const Events::EventPacket& packet)
     {
-        return Client::Scenes::ApplyEventPacket(packet, Context());
+        return Client::Events::ApplyEventPacket(packet, Context());
     }
 
     EventPacketResult Applied(const Events::EventPacket& packet)
@@ -282,13 +282,13 @@ protected:
         return result.discarded.value_or(std::string{});
     }
 
-    // El aviso de 0x632e30 con `text`, como lo deja UI::OpenMessageBox en una caja vacía.
+    // El aviso de 0x632e30 con `text`, como lo deja Ui::OpenMessageBox en una caja vacía.
     void ExpectMessageBox(std::string_view text)
     {
-        Client::UI::DialogBoxState expected;
-        Client::UI::DialogState dialogs;
-        Client::UI::OpenMessageBox(expected, dialogs, text);
-        EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);
+        Client::Ui::DialogBoxState expected;
+        Client::Ui::DialogState dialogs;
+        Client::Ui::OpenMessageBox(expected, dialogs, text);
+        EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
         EXPECT_EQ(Runtime().dialogBox.lineCount, expected.lineCount);
         EXPECT_EQ(std::string(Runtime().dialogBox.rows.data()), std::string(expected.rows.data())) << text;
     }
@@ -304,7 +304,7 @@ protected:
     {
         auto other = std::make_unique<WorldState>();
         CrtRandom expected = random;
-        Client::Scenes::GamePanels panels(*other, expected);
+        Client::Hud::GamePanels panels(*other, expected);
         EXPECT_TRUE(panels.Registry().CloseAll().HasValue());
         return expected.State();
     }
@@ -512,7 +512,7 @@ TEST_F(EventPacketsTest, TheItemAcquiredNoticeNamesTheItemAndItsOwner)
         ASSERT_FALSE(Runtime().chat.log.entries.empty());
         EXPECT_EQ(Runtime().chat.log.entries.front().name, "Brezal");
         EXPECT_EQ(Runtime().chat.log.entries.front().text, test.text);
-        EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+        EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::Ui::SystemMessage);
     }
     // 0x5110d0 sin la clave (y con una desde 0x8000, por el MOVSX) da el 400, sin nombre.
     for (const std::uint16_t key : {std::uint16_t{0x0789}, std::uint16_t{0x8456}})
@@ -529,7 +529,7 @@ TEST_F(EventPacketsTest, TheItemAcquiredNoticeCutsWithoutTheItemsOrOutsideItsBuf
     letters.letterWidth = 1;
     auto context = Context();
     context.items = nullptr;
-    const auto withoutItems = Client::Scenes::ApplyEventPacket(Events::ItemAcquired{.key = 0x0456, .item = 1}, context);
+    const auto withoutItems = Client::Events::ApplyEventPacket(Events::ItemAcquired{.key = 0x0456, .item = 1}, context);
     ASSERT_FALSE(withoutItems.HasValue());
     EXPECT_NE(withoutItems.Error().find("0x4d6a54"), std::string::npos) << withoutItems.Error();
 
@@ -582,7 +582,7 @@ TEST_F(EventPacketsTest, TheDevilSquareEntryClosesTheOpenWindow)
     int sent = 0;
     auto context = Context();
     context.sendWindowClose = [&sent]() { ++sent; };
-    const auto applied = Client::Scenes::ApplyEventPacket(Events::DevilSquareEntryResult{3}, context);
+    const auto applied = Client::Events::ApplyEventPacket(Events::DevilSquareEntryResult{3}, context);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(sent, 1);
     EXPECT_EQ(Runtime().panels.eventNpc, 0);
@@ -595,7 +595,7 @@ TEST_F(EventPacketsTest, TheDevilSquareEntryClosesTheOpenWindow)
 // corta. Igual el almacén (C1 03 82) y la caja del caos vacía (C1 03 87).
 TEST_F(EventPacketsTest, TheBloodCastleEntryClosesAnOpenNpcWindow)
 {
-    using Client::UI::PanelState;
+    using Client::Ui::PanelState;
     struct NpcWindowCase
     {
         std::uint8_t PanelState::*open;
@@ -625,7 +625,7 @@ TEST_F(EventPacketsTest, TheBloodCastleEntryClosesAnOpenNpcWindow)
             sent.emplace_back(outgoing.packet.Bytes().begin(), outgoing.packet.Bytes().end());
             return {};
         };
-        const auto applied = Client::Scenes::ApplyEventPacket(Events::BloodCastleEntryResult{0}, context);
+        const auto applied = Client::Events::ApplyEventPacket(Events::BloodCastleEntryResult{0}, context);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_EQ(sent[0], (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x03}, window.closeCode}));
@@ -667,24 +667,24 @@ TEST_F(EventPacketsTest, TheOpenTimeOfDevilSquareAndBloodCastle)
 TEST_F(EventPacketsTest, TheOpenTimeOfChaosCastleOpensTheChaosCastleDialog)
 {
     Applied(Events::EventOpenTime{.kind = 4, .value4 = 0, .value5 = 7, .value6 = 0});
-    EXPECT_EQ(Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
+    EXPECT_EQ(Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
     {
-        Client::UI::DialogBoxState expected;
-        Client::UI::DialogState dialogs;
+        Client::Ui::DialogBoxState expected;
+        Client::Ui::DialogState dialogs;
         const std::array<std::string_view, 2> lines{"entra en s ahora", "Chaos Castle abre 7 de 100"};
-        ASSERT_TRUE(Client::UI::OpenTheChaosCastleDialog(expected, dialogs, lines).HasValue());
+        ASSERT_TRUE(Client::Ui::OpenTheChaosCastleDialog(expected, dialogs, lines).HasValue());
         EXPECT_EQ(Runtime().dialogBox.rows, expected.rows);
         EXPECT_EQ(Runtime().dialogBox.lineCount, expected.lineCount);
     }
     ResetTheBox();
     // 1 · 256 + 10 = 266 minutos: 4 horas y 26.
     Applied(Events::EventOpenTime{.kind = 4, .value4 = 1, .value5 = 0, .value6 = 10});
-    Client::UI::DialogBoxState expected;
-    Client::UI::DialogState dialogs;
+    Client::Ui::DialogBoxState expected;
+    Client::Ui::DialogState dialogs;
     const std::array<std::string_view, 1> lines{"Cuando 4entra en d minutos"};
-    ASSERT_TRUE(Client::UI::OpenTheChaosCastleDialog(expected, dialogs, lines).HasValue());
+    ASSERT_TRUE(Client::Ui::OpenTheChaosCastleDialog(expected, dialogs, lines).HasValue());
     EXPECT_EQ(Runtime().dialogBox.rows, expected.rows);
-    EXPECT_EQ(Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
+    EXPECT_EQ(Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
 }
 
 // 0x4daa3b..0x4daa73: el strcat de 851 sobre el registro 1154 (300 bytes) que no entra con su '\0' pisaría el 1155 y
@@ -712,7 +712,7 @@ TEST_F(EventPacketsTest, TheChaosCastleTimeThatOverflowsItsRecordIsDiscarded)
     ResetTheBox();
     withHours(299 - 8 - 18);
     EXPECT_FALSE(Applied(packet).discarded.has_value());
-    EXPECT_EQ(Runtime().dialogs.current, Client::UI::ChaosCastleDialog);
+    EXPECT_EQ(Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
 }
 
 // ----- 92 (0x4e4930) y la cuenta (0x40bab0).
@@ -765,7 +765,7 @@ TEST_F(EventPacketsTest, TheCountdownTextsByKind)
     {
         SCOPED_TRACE(probe.kind);
         EventMapObject event{.field08 = probe.kind, .field0c = 5000};
-        const auto text = Client::Scenes::EventCountdownText(event, 5000, &texts, true);
+        const auto text = Client::Events::EventCountdownText(event, 5000, &texts, true);
         ASSERT_TRUE(text.HasValue()) << text.Error();
         ASSERT_TRUE(text.Value().has_value());
         EXPECT_EQ(*text.Value(), probe.text);
@@ -777,23 +777,23 @@ TEST_F(EventPacketsTest, TheCountdownTextsByKind)
 TEST_F(EventPacketsTest, TheCountdownExpiresAfterThirtySeconds)
 {
     EventMapObject event{.field08 = 1, .field0c = 1000};
-    EXPECT_EQ(*Client::Scenes::EventCountdownText(event, 1000 + 12345, &texts, true).Value(), "ds uno en 18");
-    EXPECT_EQ(*Client::Scenes::EventCountdownText(event, 1000 + 30000, &texts, true).Value(), "ds uno en 0");
-    EXPECT_FALSE(Client::Scenes::EventCountdownText(event, 1000 + 30001, &texts, false).Value().has_value());
+    EXPECT_EQ(*Client::Events::EventCountdownText(event, 1000 + 12345, &texts, true).Value(), "ds uno en 18");
+    EXPECT_EQ(*Client::Events::EventCountdownText(event, 1000 + 30000, &texts, true).Value(), "ds uno en 0");
+    EXPECT_FALSE(Client::Events::EventCountdownText(event, 1000 + 30001, &texts, false).Value().has_value());
     EXPECT_EQ(event.field08, 1);
-    EXPECT_FALSE(Client::Scenes::EventCountdownText(event, 1000 + 30001, &texts, true).Value().has_value());
+    EXPECT_FALSE(Client::Events::EventCountdownText(event, 1000 + 30001, &texts, true).Value().has_value());
     EXPECT_EQ(event.field08, 0);
 
     EventMapObject wrapped{.field08 = 1, .field0c = static_cast<std::int32_t>(0xfffffc18u)};
-    EXPECT_EQ(*Client::Scenes::EventCountdownText(wrapped, 2000, &texts, true).Value(), "ds uno en 27");
+    EXPECT_EQ(*Client::Events::EventCountdownText(wrapped, 2000, &texts, true).Value(), "ds uno en 27");
 
     for (const std::int32_t kind : {0, 15, -1})
     {
         EventMapObject other{.field08 = kind, .field0c = 0};
-        EXPECT_FALSE(Client::Scenes::EventCountdownText(other, 0, &texts, true).Value().has_value());
+        EXPECT_FALSE(Client::Events::EventCountdownText(other, 0, &texts, true).Value().has_value());
     }
     EventMapObject missing{.field08 = 2, .field0c = 0};
-    const auto cut = Client::Scenes::EventCountdownText(missing, 0, nullptr, true);
+    const auto cut = Client::Events::EventCountdownText(missing, 0, nullptr, true);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x40bab0"), std::string::npos) << cut.Error();
 }
@@ -1117,7 +1117,7 @@ TEST_F(EventPacketsTest, TheGateTurnNeedsThePlayerSkeleton)
     Runtime().eventObject = EventMapObject{.kind = EventMapKind::BloodCastle};
     auto context = Context();
     context.playerSkeleton = nullptr;
-    const auto applied = Client::Scenes::ApplyEventPacket(Events::EventPlayState{.state = 0}, context);
+    const auto applied = Client::Events::ApplyEventPacket(Events::EventPlayState{.state = 0}, context);
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("0x40c16a"), std::string::npos) << applied.Error();
 }
@@ -1396,7 +1396,7 @@ TEST_F(EventPacketsTest, TheCrywolfInterfaceResetMatchesTheData)
     ui.light = 3;
     Runtime().crywolf.state = 2;
     Runtime().crywolf.stage = 3;
-    Client::Scenes::ResetTheCrywolfInterface(Runtime());
+    Client::Events::ResetTheCrywolfInterface(Runtime());
     EXPECT_EQ(ui.dwords6c73e0, (std::array<std::int32_t, 6>{-1, 2, 3, 4, 5, 6}));
     EXPECT_EQ(ui.dword6c73d4, 0x64);
     EXPECT_EQ(ui.light, 0);
@@ -1720,7 +1720,7 @@ TEST_F(EventPacketsTest, TheServerCommandFiveOpensTheAnswersDialog)
     table[0xc7].answerCount = 1;
     std::ranges::copy(std::string_view("seguir"), table[0xc7].answers[0].begin());
     std::ranges::copy(std::string_view("sin respuestas"), table[3].text.begin());
-    texts = Client::Tests::MakeTextTable({{Client::UI::NoAnswersText, "nada mas"}});
+    texts = Client::Tests::MakeTextTable({{Client::Ui::NoAnswersText, "nada mas"}});
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
@@ -1731,12 +1731,12 @@ TEST_F(EventPacketsTest, TheServerCommandFiveOpensTheAnswersDialog)
         {
             SCOPED_TRACE(int{index});
             ResetTheBox();
-            Client::UI::DialogBoxState expected;
-            Client::UI::DialogState expectedDialogs;
-            ASSERT_TRUE(Client::UI::OpenTheAnswersDialog(expected, expectedDialogs, &table, &texts, index).HasValue());
+            Client::Ui::DialogBoxState expected;
+            Client::Ui::DialogState expectedDialogs;
+            ASSERT_TRUE(Client::Ui::OpenTheAnswersDialog(expected, expectedDialogs, &table, &texts, index).HasValue());
             const EventPacketResult result = Applied(Events::ServerCommand{.command = 5, .value5 = index});
             EXPECT_FALSE(result.discarded.has_value());
-            EXPECT_EQ(Runtime().dialogs.current, Client::UI::AnswersDialog);
+            EXPECT_EQ(Runtime().dialogs.current, Client::Ui::AnswersDialog);
             EXPECT_EQ(Runtime().dialogBox.dialogIndex, index);
             EXPECT_EQ(Runtime().dialogBox.lineCount, expected.lineCount);
             EXPECT_EQ(Runtime().dialogBox.answerCount, expected.answerCount);
@@ -1744,10 +1744,10 @@ TEST_F(EventPacketsTest, TheServerCommandFiveOpensTheAnswersDialog)
             EXPECT_EQ(Runtime().dialogBox.answers, expected.answers);
         }
         ResetTheBox();
-        Runtime().dialogs.current = Client::UI::MessageBoxDialog;
+        Runtime().dialogs.current = Client::Ui::MessageBoxDialog;
         Applied(Events::ServerCommand{.command = 5, .value5 = 3});
-        EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);
-        EXPECT_EQ(Runtime().dialogs.pending, Client::UI::AnswersDialog);
+        EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
+        EXPECT_EQ(Runtime().dialogs.pending, Client::Ui::AnswersDialog);
 
         ResetTheBox();
         const std::string discarded = Discarded(Events::ServerCommand{.command = 5, .value5 = 200});

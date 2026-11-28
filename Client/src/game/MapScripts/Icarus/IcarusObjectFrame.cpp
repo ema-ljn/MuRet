@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::Icarus
 {
 namespace
 {
@@ -31,9 +31,10 @@ constexpr std::int16_t Flare = 10;
 // 0x6040f3: 0x68b18ac, el hueso 3 desde 0x68b181c, de a 0x30.
 constexpr std::size_t FlareBone = 3;
 
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, std::int32_t type, const glm::vec3& position,
-                                       const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
-                                       float scale, World::ParticleOwner owner, std::string_view address)
+Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass, std::int32_t type,
+                                       const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                                       std::int32_t subtype, float scale, Particles::ParticleOwner owner,
+                                       std::string_view address)
 {
     if (pass.particles == nullptr || pass.random == nullptr)
         return Core::Unexpected(
@@ -47,33 +48,35 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, std::int32_t 
 }
 } // namespace
 
-Core::Expected<void, std::string> StepIcarusObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepIcarusObjectFrame(WorldObjects::WorldObject& object,
+                                                        const WorldObjects::GameObjectPass& pass)
 {
     if (object.type >= 0 && object.type <= LastCloud)
     {
         // 0x603f03..0x6040db: con +0x58 en −2 no emite; después lo deja en −2 igual.
-        if (object.state.hiddenMesh != World::HiddenObject)
+        if (object.state.hiddenMesh != WorldObjects::HiddenObject)
         {
             const int count = object.type <= LastManyClouds ? ManyClouds : FewClouds;
-            const World::ParticleOwner owner{World::ParticleOwnerKind::WorldObject, object.identity};
+            const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::WorldObject, object.identity};
             for (int cloud = 0; cloud < count; ++cloud)
             {
-                if (auto emitted = Emit(pass, World::CloudParticle, object.transform.position, object.transform.angles,
-                                        glm::vec3(CloudLight), object.type, object.transform.scale, owner, "0x603f3b");
+                if (auto emitted =
+                        Emit(pass, Particles::CloudParticle, object.transform.position, object.transform.angles,
+                             glm::vec3(CloudLight), object.type, object.transform.scale, owner, "0x603f3b");
                     !emitted.HasValue())
                     return emitted;
             }
         }
-        object.state.hiddenMesh = World::HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     }
     if (object.type != Flare)
         return {};
     // 0x6040e9..0x604143: 0x4ec110(hueso 3, cero, salida, 0) y 0x53fe70(0x5ac, punto, ángulos, 1, 0, 1, 0).
-    const auto point = ObjectBonePoint(pass, FlareBone, glm::vec3(0.0f));
+    const auto point = WorldObjects::ObjectBonePoint(pass, FlareBone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
-    return Emit(pass, World::KalimaFlare, point.Value(), object.transform.angles, glm::vec3(1.0f), 0, 1.0f, {},
+    return Emit(pass, Particles::KalimaFlare, point.Value(), object.transform.angles, glm::vec3(1.0f), 0, 1.0f, {},
                 "0x604143");
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Icarus

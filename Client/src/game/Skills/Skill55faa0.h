@@ -12,7 +12,7 @@ struct ActorState;
 
 // CL9 hito 4, fase 2c: las skills del elfo sobre su blanco al alcance (0x55faa0). La llaman la rama del elfo de
 // 0x57cfc0 (0x57f239 y 0x57fa20, con el héroe dos veces) y la llegada de 0x5650c0 (0x56654a y 0x5666db, el caso 5).
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // 0x55faa0(p1, p2): primero el D3 de girar con la celda lógica del héroe publicado (la X, +0x41c, y la Y, +0x420,
@@ -25,4 +25,4 @@ namespace Client::Scenes
 // - Las demás, nada.
 [[nodiscard]] Core::Expected<void, std::string>
 UseTheElfSkillOnItsTarget(Kernel::ActorState& user, Kernel::ActorState& turned, const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

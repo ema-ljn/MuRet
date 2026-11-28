@@ -72,7 +72,7 @@ using Item4225d0 = std::function<void(ItemState&)>;
 // word, reread only if the late family asks for it. It may refer to D+e: what is seen is its value after the own
 // calculations, not an input snapshot. The upper 24 bits of this machine's addresses are not invented.
 // For ID1a04, apply4225d0 must exist and leave a valid state of its contract: the ID kept, count0/1->1/2 and ordinary
-// bookkeeping not aliasing the metadata. MuRet's is Scenes::AddTheDarkHorseOption, which opens the own record (06, "El
+// bookkeeping not aliasing the metadata. MuRet's is Items::AddTheDarkHorseOption, which opens the own record (06, "El
 // F3 10, el inventario"). An empty function on that branch breaks the precondition and throws; it is not a silent
 // success.
 void InitializeItemState(ItemState& item, std::span<const std::byte, Tables::ItemRecordSize> metadata,

@@ -33,8 +33,12 @@ class WorldState;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
 
-// 0x420cd0, desde 0x657670 en la vuelta a la selección: 0x723910 (la pestaña), 0x723911 (UI::DelegatedPanels::pet)
+namespace Client::Pets
+{
+
+// 0x420cd0, desde 0x657670 en la vuelta a la selección: 0x723910 (la pestaña), 0x723911 (Ui::DelegatedPanels::pet)
 // y los quince dwords de las tres mascotas en 0. Sin rand().
 void ResetThePets(Kernel::WorldRuntime& runtime);
 
@@ -63,5 +67,5 @@ void ApplyRavenInfo(Kernel::DarkSpirit& raven, std::uint8_t level, std::uint32_t
 // con la dirección del original: los joints del cuervo con 0xfe y 0xff (0x418390 y 0x418400, CL11) y lo que corta
 // 0x550d10.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoReply& reply,
-                                                             const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                             const Scenes::WorldEntryResources& resources);
+} // namespace Client::Pets

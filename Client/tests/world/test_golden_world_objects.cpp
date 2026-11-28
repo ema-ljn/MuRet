@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-// Client::World::CreateWorldObjects, StepWorldObject y DrawOf con el EncTerrain56.obj del laboratorio,
+// Client::WorldObjects::CreateWorldObjects, StepWorldObject y DrawOf con el EncTerrain56.obj del laboratorio,
 // contra lo que hizo el código real del main.exe con cada uno de sus 276 registros
 // (tests/vectors/world55, 06 § El mundo del login): bit a bit.
 namespace
@@ -34,9 +34,9 @@ using Client::Tests::WorldObjectVector;
 using Client::Tests::WorldObjectVectorCall;
 using Client::Tests::WorldObjectVectors;
 using Client::Tests::WorldObjectVectorState;
-using Client::World::ObjectDraw;
-using Client::World::ObjectDrawKind;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectDraw;
+using Client::WorldObjects::ObjectDrawKind;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 
@@ -85,13 +85,13 @@ protected:
     // Los objetos como los crea MuRet en el login, y los tres pasos del binario sobre cada uno.
     std::vector<WorldObject> Created() const
     {
-        return Client::Tests::CheckedWorldObjectProjection(m_records, Login, Client::World::ObjectScene::Login);
+        return Client::Tests::CheckedWorldObjectProjection(m_records, Login, Client::WorldObjects::ObjectScene::Login);
     }
 
     void StepOnce(WorldObject& object) const
     {
         object.seen = true;
-        Client::World::StepWorldObject(
+        Client::WorldObjects::StepWorldObject(
             object, Login, m_models.SkeletonOf(Client::Models::ModelId{static_cast<std::uint16_t>(object.type)}));
     }
 
@@ -150,7 +150,7 @@ TEST_F(GoldenWorldObjects, EachTypeDrawsAsTheBinary)
             StepOnce(objects[k]);
         }
         const WorldObjectVector& expected = m_vectors.objects[k];
-        const ObjectDraw draw = Client::World::DrawOf(objects[k], m_vectors.terrainLight, Login);
+        const ObjectDraw draw = Client::WorldObjects::DrawOf(objects[k], m_vectors.terrainLight, Login);
         const std::string where = "objeto " + std::to_string(k) + " (tipo " + std::to_string(objects[k].type) + ")";
         if (expected.calls.empty())
         {

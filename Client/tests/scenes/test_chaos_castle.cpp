@@ -42,11 +42,11 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::JointRequest;
 using Client::Math::BoneTransform;
-using Client::Scenes::GameObjectPass;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Scenes::JointState;
-using Client::World::Particle;
-using Client::World::Particles;
-using Client::World::WorldObject;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t ChaosCastleMap = 18;
 
@@ -119,7 +119,7 @@ std::function<Client::Core::Expected<void, std::string>(const JointRequest&)> Re
 
 void ExpectSameParticles(const Particles& actual, const Particles& expected)
 {
-    for (std::size_t k = 0; k < Client::World::ParticleCount; ++k)
+    for (std::size_t k = 0; k < Client::Particles::ParticleCount; ++k)
     {
         const Particle& a = actual.All()[k];
         const Particle& e = expected.All()[k];
@@ -138,9 +138,9 @@ void ExpectSameParticles(const Particles& actual, const Particles& expected)
     }
 }
 
-std::vector<Client::World::Sprite> AliveSprites(Client::World::FrameSprites& sprites)
+std::vector<Client::Particles::Sprite> AliveSprites(Client::Particles::FrameSprites& sprites)
 {
-    std::vector<Client::World::Sprite> alive;
+    std::vector<Client::Particles::Sprite> alive;
     for (const auto& sprite : sprites.Sprites())
         if (sprite.alive)
             alive.push_back(sprite);
@@ -158,7 +158,7 @@ struct TrapBolt
     explicit TrapBolt(std::uint32_t seed) : random(seed)
     {
         const JointRequest request{0x615, point, point, angles, 2, nullptr, 63.0f, -1, 0, 0, -1};
-        EXPECT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+        EXPECT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     }
 };
 
@@ -176,17 +176,17 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     const float clock = 0.0f;
     CrtRandom random(7);
     CrtRandom draws(7);
-    const Client::World::ChaosCastleCellContext context{
+    const Client::Events::ChaosCastle::ChaosCastleCellContext context{
         .area = 0xff, .random = &random, .worldClock = std::cref(clock)};
     for (std::uint8_t x = 20; x < 50; ++x)
     {
-        ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 80, context).HasValue());
+        ASSERT_TRUE(Client::Events::ChaosCastle::StepChaosCastleCell(x, 80, context).HasValue());
         static_cast<void>(draws.Next());
     }
     EXPECT_EQ(random.State(), draws.State());
 
-    const Client::World::ChaosCastleCellContext noRandom{.area = 0xff, .worldClock = std::cref(clock)};
-    const auto cut = Client::World::StepChaosCastleCell(30, 80, noRandom);
+    const Client::Events::ChaosCastle::ChaosCastleCellContext noRandom{.area = 0xff, .worldClock = std::cref(clock)};
+    const auto cut = Client::Events::ChaosCastle::StepChaosCastleCell(30, 80, noRandom);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x405e1e"), std::string::npos) << cut.Error();
 }
@@ -232,17 +232,17 @@ TEST(ChaosCastleTest, ACellOfTheAreaDropsItsStone)
     for (const CastleRow& row : Rows)
     {
         SCOPED_TRACE(row.seed);
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         float shake = 0.0f;
         CrtRandom random(row.seed);
-        const Client::World::ChaosCastleCellContext context{.area = 0,
-                                                            .heroZ = 125.5f,
-                                                            .random = &random,
-                                                            .particles = particles.get(),
-                                                            .worldClock = std::cref(clock),
-                                                            .cameraShake = &shake};
+        const Client::Events::ChaosCastle::ChaosCastleCellContext context{.area = 0,
+                                                                          .heroZ = 125.5f,
+                                                                          .random = &random,
+                                                                          .particles = particles.get(),
+                                                                          .worldClock = std::cref(clock),
+                                                                          .cameraShake = &shake};
         for (std::uint8_t x = 23; x <= 44; ++x)
-            ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 75, context).HasValue());
+            ASSERT_TRUE(Client::Events::ChaosCastle::StepChaosCastleCell(x, 75, context).HasValue());
         EXPECT_EQ(random.State(), row.state);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(shake), row.shake);
         for (std::size_t slot = 0; slot < row.count; ++slot)
@@ -269,19 +269,19 @@ TEST(ChaosCastleTest, ACellOfTheAreaDropsItsStone)
 TEST(ChaosCastleTest, ACellOfTheAreaShakesWithAFullPool)
 {
     const float clock = 0.0f;
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     for (auto& particle : particles->All())
         particle.alive = true;
     float shake = 0.0f;
     CrtRandom random(4);
-    const Client::World::ChaosCastleCellContext context{.area = 0,
-                                                        .heroZ = 125.5f,
-                                                        .random = &random,
-                                                        .particles = particles.get(),
-                                                        .worldClock = std::cref(clock),
-                                                        .cameraShake = &shake};
+    const Client::Events::ChaosCastle::ChaosCastleCellContext context{.area = 0,
+                                                                      .heroZ = 125.5f,
+                                                                      .random = &random,
+                                                                      .particles = particles.get(),
+                                                                      .worldClock = std::cref(clock),
+                                                                      .cameraShake = &shake};
     for (std::uint8_t x = 23; x <= 44; ++x)
-        ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 75, context).HasValue());
+        ASSERT_TRUE(Client::Events::ChaosCastle::StepChaosCastleCell(x, 75, context).HasValue());
     EXPECT_EQ(random.State(), 0x31f67436u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(shake), 0xbdcccccdu);
     EXPECT_TRUE(std::ranges::all_of(particles->All(), [](const Particle& particle) { return particle.type == 0; }));
@@ -293,8 +293,9 @@ TEST(ChaosCastleTest, AnAreaCellOutsideItsRectanglesDropsNothing)
     const float clock = 0.0f;
     const std::uint32_t seed = SeedWhere([](CrtRandom& r) { return r.Next() % 8 == 0; });
     CrtRandom random(seed);
-    const Client::World::ChaosCastleCellContext context{.area = 0, .random = &random, .worldClock = std::cref(clock)};
-    ASSERT_TRUE(Client::World::StepChaosCastleCell(10, 10, context).HasValue());
+    const Client::Events::ChaosCastle::ChaosCastleCellContext context{
+        .area = 0, .random = &random, .worldClock = std::cref(clock)};
+    ASSERT_TRUE(Client::Events::ChaosCastle::StepChaosCastleCell(10, 10, context).HasValue());
     CrtRandom draws(seed);
     static_cast<void>(draws.Next());
     EXPECT_EQ(random.State(), draws.State());
@@ -307,8 +308,9 @@ TEST(ChaosCastleTest, ThePreludePicksTheSelectorAmongTheSeenTraps)
     const std::uint32_t seed = SeedWhere([](CrtRandom& r) { return r.Next() % 10 == 0; });
     std::vector<JointCall> calls;
     CrtRandom random(seed);
-    const Client::World::ChaosCastlePreludeContext context{.random = &random, .createJoint = Recorder(calls)};
-    const auto selector = Client::World::StepChaosCastlePrelude(5, context);
+    const Client::Events::ChaosCastle::ChaosCastlePreludeContext context{.random = &random,
+                                                                         .createJoint = Recorder(calls)};
+    const auto selector = Client::Events::ChaosCastle::StepChaosCastlePrelude(5, context);
     ASSERT_TRUE(selector.HasValue()) << selector.Error();
     CrtRandom draws(seed);
     static_cast<void>(draws.Next());
@@ -333,12 +335,12 @@ TEST(ChaosCastleTest, ThePreludeThrowsAMeteorAroundTheHeroOutsideTheSafeZone)
     {
         std::vector<JointCall> calls;
         CrtRandom random(seed);
-        const Client::World::ChaosCastlePreludeContext safe{.random = &random,
-                                                            .heroPosition = hero,
-                                                            .heroAngles = heroAngles,
-                                                            .heroInSafeZone = true,
-                                                            .createJoint = Recorder(calls)};
-        const auto selector = Client::World::StepChaosCastlePrelude(0, safe);
+        const Client::Events::ChaosCastle::ChaosCastlePreludeContext safe{.random = &random,
+                                                                          .heroPosition = hero,
+                                                                          .heroAngles = heroAngles,
+                                                                          .heroInSafeZone = true,
+                                                                          .createJoint = Recorder(calls)};
+        const auto selector = Client::Events::ChaosCastle::StepChaosCastlePrelude(0, safe);
         ASSERT_TRUE(selector.HasValue());
         EXPECT_EQ(selector.Value(), 0);
         CrtRandom draws(seed);
@@ -348,9 +350,9 @@ TEST(ChaosCastleTest, ThePreludeThrowsAMeteorAroundTheHeroOutsideTheSafeZone)
     }
     std::vector<JointCall> calls;
     CrtRandom random(seed);
-    const Client::World::ChaosCastlePreludeContext context{
+    const Client::Events::ChaosCastle::ChaosCastlePreludeContext context{
         .random = &random, .heroPosition = hero, .heroAngles = heroAngles, .createJoint = Recorder(calls)};
-    const auto selector = Client::World::StepChaosCastlePrelude(0, context);
+    const auto selector = Client::Events::ChaosCastle::StepChaosCastlePrelude(0, context);
     ASSERT_TRUE(selector.HasValue()) << selector.Error();
     EXPECT_EQ(selector.Value(), 0);
     CrtRandom draws(seed);
@@ -373,8 +375,8 @@ TEST(ChaosCastleTest, ThePreludeThrowsAMeteorAroundTheHeroOutsideTheSafeZone)
     EXPECT_EQ(call.target, -1);
 
     CrtRandom cutRandom(seed);
-    const Client::World::ChaosCastlePreludeContext noJoint{.random = &cutRandom, .heroPosition = hero};
-    const auto cut = Client::World::StepChaosCastlePrelude(0, noJoint);
+    const Client::Events::ChaosCastle::ChaosCastlePreludeContext noJoint{.random = &cutRandom, .heroPosition = hero};
+    const auto cut = Client::Events::ChaosCastle::StepChaosCastlePrelude(0, noJoint);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x405597"), std::string::npos) << cut.Error();
 }
@@ -387,13 +389,13 @@ TEST(ChaosCastleTest, TheSeenTrapsCountAndOnlyTheSelectedOneFires)
     std::int32_t count = 0;
     std::uint8_t armed = 1;
     WorldObject other = Object(4);
-    Client::World::StepChaosCastleSeenObject(other, selector, count, armed);
+    Client::Events::ChaosCastle::StepChaosCastleSeenObject(other, selector, count, armed);
     EXPECT_EQ(count, 0);
     EXPECT_EQ(armed, 1);
     EXPECT_EQ(other.field60, 0);
 
     WorldObject first = Object(3);
-    Client::World::StepChaosCastleSeenObject(first, selector, count, armed);
+    Client::Events::ChaosCastle::StepChaosCastleSeenObject(first, selector, count, armed);
     EXPECT_EQ(count, 1);
     EXPECT_EQ(armed, 0);
     EXPECT_EQ(selector, 2);
@@ -401,19 +403,19 @@ TEST(ChaosCastleTest, TheSeenTrapsCountAndOnlyTheSelectedOneFires)
     EXPECT_EQ(first.field8a, 1);
 
     WorldObject second = Object(3);
-    Client::World::StepChaosCastleSeenObject(second, selector, count, armed);
+    Client::Events::ChaosCastle::StepChaosCastleSeenObject(second, selector, count, armed);
     EXPECT_EQ(selector, 1);
     EXPECT_EQ(second.field60, 10);
     EXPECT_EQ(second.field8a, 0);
 
     WorldObject third = Object(3);
-    Client::World::StepChaosCastleSeenObject(third, selector, count, armed);
+    Client::Events::ChaosCastle::StepChaosCastleSeenObject(third, selector, count, armed);
     EXPECT_EQ(selector, 0);
     EXPECT_EQ(third.field60, 10);
     EXPECT_EQ(third.field8a, 1);
 
     WorldObject fourth = Object(3);
-    Client::World::StepChaosCastleSeenObject(fourth, selector, count, armed);
+    Client::Events::ChaosCastle::StepChaosCastleSeenObject(fourth, selector, count, armed);
     EXPECT_EQ(count, 4);
     EXPECT_EQ(fourth.field60, 0);
     EXPECT_EQ(fourth.field8a, 0);
@@ -423,11 +425,11 @@ TEST(ChaosCastleTest, TheSeenTrapsCountAndOnlyTheSelectedOneFires)
 TEST(ChaosCastleTest, TheHerosFlagFadesTheObjectsOnlyInChaosCastle)
 {
     const float fade = std::bit_cast<float>(0x3e19999au);
-    EXPECT_EQ(Client::World::ChaosCastlePoseAlpha(18, 1, 1.0f), F32(1.0 - D(fade)));
-    EXPECT_EQ(Client::World::ChaosCastlePoseAlpha(23, 1, 0.5f), F32(0.5 - D(fade)));
-    EXPECT_EQ(Client::World::ChaosCastlePoseAlpha(18, 0, 1.0f), 1.0f);
-    EXPECT_EQ(Client::World::ChaosCastlePoseAlpha(17, 1, 1.0f), 1.0f);
-    EXPECT_EQ(Client::World::ChaosCastlePoseAlpha(24, 1, 1.0f), 1.0f);
+    EXPECT_EQ(Client::Events::ChaosCastle::ChaosCastlePoseAlpha(18, 1, 1.0f), F32(1.0 - D(fade)));
+    EXPECT_EQ(Client::Events::ChaosCastle::ChaosCastlePoseAlpha(23, 1, 0.5f), F32(0.5 - D(fade)));
+    EXPECT_EQ(Client::Events::ChaosCastle::ChaosCastlePoseAlpha(18, 0, 1.0f), 1.0f);
+    EXPECT_EQ(Client::Events::ChaosCastle::ChaosCastlePoseAlpha(17, 1, 1.0f), 1.0f);
+    EXPECT_EQ(Client::Events::ChaosCastle::ChaosCastlePoseAlpha(24, 1, 1.0f), 1.0f);
 }
 
 // 0x405abb..0x405c5c: las nubes del 6 al 0xc la primera vez, con el objeto de dueño, y después +0x58 = −2.
@@ -456,23 +458,24 @@ TEST(ChaosCastleTest, TheCloudObjectsReleaseTheirMistsOnce)
         Particles particles;
         CrtRandom random(9);
         const GameObjectPass pass{.map = ChaosCastleMap, .random = &random, .particles = &particles, .scene = 5};
-        const auto stepped = Client::Scenes::StepChaosCastleObjectFrame(object, pass);
+        const auto stepped = Client::WorldObjects::StepChaosCastleObjectFrame(object, pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 
         Particles expected;
         CrtRandom draws(9);
-        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::WorldObject, object.identity};
+        const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::WorldObject,
+                                                     object.identity};
         for (int k = 0; k < c.count; ++k)
             ASSERT_TRUE(expected
-                            .CreateOwnedChecked(Client::World::CloudParticle, object.transform.position,
+                            .CreateOwnedChecked(Client::Particles::CloudParticle, object.transform.position,
                                                 object.transform.angles, c.light, c.subtype, object.transform.scale,
                                                 0.0f, draws, 5, owner)
                             .HasValue());
         ExpectSameParticles(particles, expected);
         EXPECT_EQ(random.State(), draws.State());
 
-        const auto again = Client::Scenes::StepChaosCastleObjectFrame(object, pass);
+        const auto again = Client::WorldObjects::StepChaosCastleObjectFrame(object, pass);
         ASSERT_TRUE(again.HasValue());
         EXPECT_EQ(random.State(), draws.State());
     }
@@ -486,7 +489,7 @@ TEST(ChaosCastleTest, TheAreaShowsAndHidesItsObjects)
         WorldObject object = Object(type);
         object.state.hiddenMesh = before;
         const GameObjectPass pass{.map = ChaosCastleMap, .chaosCastleArea = area};
-        EXPECT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(object, pass).HasValue());
+        EXPECT_TRUE(Client::WorldObjects::StepChaosCastleObjectFrame(object, pass).HasValue());
         return object.state.hiddenMesh;
     };
     constexpr std::int16_t Shown = -1;
@@ -545,7 +548,7 @@ TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
                               .requestSound = [&sounds](Client::Audio::SoundId sound)
                               { sounds.push_back(sound.Value()); },
                               .chaosCastleArea = 2};
-    const auto fired = Client::Scenes::StepChaosCastleObjectFrame(object, pass);
+    const auto fired = Client::WorldObjects::StepChaosCastleObjectFrame(object, pass);
     ASSERT_TRUE(fired.HasValue()) << fired.Error();
     CrtRandom draws(21);
     const float scale = F32(static_cast<double>(draws.Next() % 10) + 60.0);
@@ -566,17 +569,17 @@ TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
     EXPECT_EQ(sounds, std::vector<std::int32_t>{sound});
     EXPECT_EQ(object.field60, 9);
     EXPECT_EQ(object.field8a, 1);
-    EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 
     object.state.hiddenMesh = Client::Models::NoHiddenMesh;
     for (std::int32_t expected = 8; expected >= 4; --expected)
     {
-        ASSERT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(object, pass).HasValue());
+        ASSERT_TRUE(Client::WorldObjects::StepChaosCastleObjectFrame(object, pass).HasValue());
         EXPECT_EQ(object.field60, expected);
         EXPECT_EQ(object.field8a, 1);
         object.state.hiddenMesh = Client::Models::NoHiddenMesh;
     }
-    ASSERT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(object, pass).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepChaosCastleObjectFrame(object, pass).HasValue());
     EXPECT_EQ(object.field60, 4);
     EXPECT_EQ(object.field8a, 0);
     EXPECT_EQ(calls.size(), 1u);
@@ -592,13 +595,13 @@ TEST(ChaosCastleTest, TheTrapNeedsItsFlagItsPoseItsJointAndItsSound)
     WorldObject hidden = Object(0);
     hidden.field8a = 1;
     hidden.field60 = 10;
-    hidden.state.hiddenMesh = Client::World::HiddenObject;
+    hidden.state.hiddenMesh = Client::WorldObjects::HiddenObject;
     const GameObjectPass full{.map = ChaosCastleMap,
                               .random = &random,
                               .retainedPose = &pose,
                               .createJoint = Recorder(calls),
                               .requestSound = [](Client::Audio::SoundId) {}};
-    ASSERT_TRUE(Client::Scenes::StepChaosCastleObjectFrame(hidden, full).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepChaosCastleObjectFrame(hidden, full).HasValue());
     EXPECT_EQ(hidden.field60, 10);
     EXPECT_TRUE(calls.empty());
 
@@ -606,18 +609,18 @@ TEST(ChaosCastleTest, TheTrapNeedsItsFlagItsPoseItsJointAndItsSound)
     trap.field8a = 1;
     trap.field60 = 10;
     const GameObjectPass noPose{.map = ChaosCastleMap, .random = &random};
-    const auto withoutPose = Client::Scenes::StepChaosCastleObjectFrame(trap, noPose);
+    const auto withoutPose = Client::WorldObjects::StepChaosCastleObjectFrame(trap, noPose);
     ASSERT_FALSE(withoutPose.HasValue());
     EXPECT_NE(withoutPose.Error().find("0x4ec110"), std::string::npos) << withoutPose.Error();
 
     const GameObjectPass noJoint{.map = ChaosCastleMap, .random = &random, .retainedPose = &pose};
-    const auto withoutJoint = Client::Scenes::StepChaosCastleObjectFrame(trap, noJoint);
+    const auto withoutJoint = Client::WorldObjects::StepChaosCastleObjectFrame(trap, noJoint);
     ASSERT_FALSE(withoutJoint.HasValue());
     EXPECT_NE(withoutJoint.Error().find("0x405d49"), std::string::npos) << withoutJoint.Error();
 
     const GameObjectPass noSound{
         .map = ChaosCastleMap, .random = &random, .retainedPose = &pose, .createJoint = Recorder(calls)};
-    const auto withoutSound = Client::Scenes::StepChaosCastleObjectFrame(trap, noSound);
+    const auto withoutSound = Client::WorldObjects::StepChaosCastleObjectFrame(trap, noSound);
     ASSERT_FALSE(withoutSound.HasValue());
     EXPECT_NE(withoutSound.Error().find("0x405d69"), std::string::npos) << withoutSound.Error();
 }
@@ -685,12 +688,12 @@ TEST(ChaosCastleTest, TheTrapBoltFallsOnItsTargetAndSparks)
     Particles expected;
     const float clock = 0.0f;
     ASSERT_TRUE(
-        expected.CreateChecked(Client::World::KalimaFanta, target, glm::vec3(0.0f), light, 0, 1.0f, clock, draws)
+        expected.CreateChecked(Client::Particles::KalimaFanta, target, glm::vec3(0.0f), light, 0, 1.0f, clock, draws)
             .HasValue());
 
     Particles particles;
-    Client::World::FrameSprites sprites;
-    const auto stepped = Client::Scenes::StepJoints(bolt.joints, bolt.random, nullptr, &particles, clock, &sprites);
+    Client::Particles::FrameSprites sprites;
+    const auto stepped = Client::Joints::StepJoints(bolt.joints, bolt.random, nullptr, &particles, clock, &sprites);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(bolt.random.State(), draws.State());
     EXPECT_EQ(joint.count, 49);
@@ -729,9 +732,9 @@ TEST(ChaosCastleTest, TheTrapBoltFadesAtTheEndAndNeedsItsPools)
     JointState& joint = bolt.joints[0];
     joint.life = 3;
     Particles particles;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     const float clock = 0.0f;
-    ASSERT_TRUE(Client::Scenes::StepJoints(bolt.joints, bolt.random, nullptr, &particles, clock, &sprites).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(bolt.joints, bolt.random, nullptr, &particles, clock, &sprites).HasValue());
     const float faded = F32(1.0 * D(std::bit_cast<float>(0x3f555555u)));
     EXPECT_EQ(joint.light, glm::vec3(faded));
     EXPECT_FALSE(joint.tailEnabled);
@@ -743,7 +746,7 @@ TEST(ChaosCastleTest, TheTrapBoltFadesAtTheEndAndNeedsItsPools)
 
     TrapBolt bare(31);
     const CrtRandom before = bare.random;
-    const auto cut = Client::Scenes::StepJoints(bare.joints, bare.random, nullptr, &particles, clock, nullptr);
+    const auto cut = Client::Joints::StepJoints(bare.joints, bare.random, nullptr, &particles, clock, nullptr);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x53770a"), std::string::npos) << cut.Error();
     EXPECT_EQ(bare.random.State(), before.State());
@@ -758,7 +761,7 @@ TEST(ChaosCastleTest, TheMeteorIsCreatedWithoutDraws)
     glm::vec3 angles{0.0f, 0.0f, 45.0f};
     const JointRequest request{0x6ee, first, first, angles, 9, nullptr, 57.0f, -1, 0, 0, -1};
     CrtRandom random(5);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     EXPECT_EQ(random.State(), CrtRandom(5).State());
     const JointState& joint = joints[0];
     EXPECT_EQ(joint.texture, 0x6ee);
@@ -785,7 +788,7 @@ TEST(ChaosCastleTest, TheMeteorRisesFasterEachStepAndFades)
     glm::vec3 angles{};
     const JointRequest request{0x6ee, first, first, angles, 9, nullptr, 57.0f, -1, 0, 0, -1};
     CrtRandom random(5);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];
     CrtRandom draws = random;
     const auto matrix = Client::Math::OriginalAngleMatrix(glm::vec3(-90.0f, 0.0f, 0.0f));
@@ -794,7 +797,7 @@ TEST(ChaosCastleTest, TheMeteorRisesFasterEachStepAndFades)
     p.x = F32((static_cast<double>(draws.Next() % 10) - 5.0) + D(p.x));
     p.y = F32((static_cast<double>(draws.Next() % 10) - 5.0) + D(p.y));
     p.z = F32(10.0 + D(p.z));
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_EQ(random.State(), draws.State());
     EXPECT_EQ(joint.position, p);
     EXPECT_EQ(joint.speed, 11.0f);
@@ -803,7 +806,7 @@ TEST(ChaosCastleTest, TheMeteorRisesFasterEachStepAndFades)
     EXPECT_EQ(joint.life, 19);
 
     joint.life = 9;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_EQ(joint.light, glm::vec3(F32(D(std::bit_cast<float>(0x3f5e9bd4u)))));
     EXPECT_EQ(joint.speed, 12.0f);
 }

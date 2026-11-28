@@ -18,7 +18,7 @@
 
 namespace
 {
-using namespace Client::World;
+using namespace Client::Fauna;
 // Sólo observación de fronteras; estos registros no implementan ningún cuerpo opaco.
 enum class Boundary
 {

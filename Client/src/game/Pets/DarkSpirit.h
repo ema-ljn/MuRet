@@ -24,10 +24,10 @@ namespace Client::Terrain
 struct TerrainPolygon;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
 {
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 // El cuervo (CL7.6 C): el pájaro del ítem 0x1c17 en la mano del Dark Lord, el modelo 0xc0
 // (Skill\DarkSpirit.bmd). Lo crea 0x420d60 con 0x4167b0 (un objeto de 0x460 bytes con un CHARACTER en
@@ -36,7 +36,7 @@ class Particles;
 // y 1, los del vuelo libre: los únicos del login. El 3 (posado en el hombro) y el 4 (bajando al hombro) son
 // los de la zona segura, portados desde el ASM; el 2, el 5 y el 6 son los del ataque que pone el A8 (Scenes/PetOrders),
 // portados desde el ASM en el CL9 hito 4 (06 § El ataque del cuervo).
-namespace Client::Scenes
+namespace Client::Pets
 {
 inline constexpr std::uint16_t DarkSpiritModel = Assets::DarkSpiritModel;
 
@@ -113,6 +113,7 @@ struct DarkSpiritBirthAccesses
 // +0x38d sube hasta 15. En todos, el grito y el salto junto al dueño cuando el contador de lejanía pasa de 90.
 [[nodiscard]] DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& skeleton,
                                                const DarkSpiritOwner& owner, std::uint8_t map,
-                                               World::Particles& particles, float worldClock, Crt::CrtRandom& random,
-                                               std::int32_t counter, const DarkSpiritTargets& targets = {});
-} // namespace Client::Scenes
+                                               Particles::Particles& particles, float worldClock,
+                                               Crt::CrtRandom& random, std::int32_t counter,
+                                               const DarkSpiritTargets& targets = {});
+} // namespace Client::Pets

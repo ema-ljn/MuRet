@@ -6,7 +6,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 struct Particle;
 
@@ -37,4 +37,4 @@ void CreateBloodCastleParticle(Particle& particle, Crt::CrtRandom& random);
 // e y y ((rand() & 3) − 2) · 0,8f en z, la escala +0,05f, la luz en vida · 0,04f (6ac/0), vida · 0,08f − 1
 // (6ac/2) o vida · 0,02f (622/6), y el giro + (rand() & 1) + 1.
 void StepBloodCastleParticle(Particle& particle, Crt::CrtRandom& random);
-} // namespace Client::World
+} // namespace Client::Particles

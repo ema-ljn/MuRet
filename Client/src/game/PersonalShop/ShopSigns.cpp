@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::PersonalShop
 {
 namespace
 {
@@ -127,17 +127,17 @@ std::int32_t Width(const Render::Text::ITextMeasure& measure, FontKind font, std
 // Lo que el dibujo escribe del mapa: el vivo o, en un dibujo intermedio, una copia.
 struct SignState
 {
-    std::map<std::size_t, ShopTitle>& titles;
+    std::map<std::size_t, Social::ShopTitle>& titles;
     std::int32_t& blink;
 };
 
 // 0x452d50 y 0x452e50 de un renglón: la caja con el texto en (0, 0), sin columnas de adelante, en el quad corrido por
 // ShopSignRowAt. 0x452d50 pinta la caja del ancho del cartel más 4 (0x452b12) y el quad muestra sus primeras `width`
 // columnas; MuRet pinta solo esas, que son las que se ven (las otras, del mismo color en cada columna, quedan fuera).
-void DrawTheRow(ShopSignDrawContext& context, UI::Point at, std::int32_t width, int rows, std::string_view text,
+void DrawTheRow(ShopSignDrawContext& context, Ui::Point at, std::int32_t width, int rows, std::string_view text,
                 const Render::Text::TextStyle& style, Core::PixelSize screen)
 {
-    const UI::Point row = ShopSignRowAt(at, width, rows, screen);
+    const Ui::Point row = ShopSignRowAt(at, width, rows, screen);
     context.text.DrawBoxed(row.x, row.y, text, style,
                            Render::Text::BoxShape{.width = width, .rows = rows, .prefixColumns = 0, .prefixColor = 0},
                            false);
@@ -145,8 +145,8 @@ void DrawTheRow(ShopSignDrawContext& context, UI::Point at, std::int32_t width, 
 }
 
 // 0x452a10(PK), con el cartel en su lugar.
-void DrawTheSign(ShopSignDrawContext& context, const ShopTitle& sign, const ShopSignLayout& layout, UI::Point at,
-                 std::uint8_t pk, std::string_view header, int rows, Core::PixelSize screen)
+void DrawTheSign(ShopSignDrawContext& context, const Social::ShopTitle& sign, const ShopSignLayout& layout,
+                 Ui::Point at, std::uint8_t pk, std::string_view header, int rows, Core::PixelSize screen)
 {
     const ShopSignColors colors = ShopSignColorsOf(pk, sign.hovered != 0);
     const std::int32_t box = Add(layout.width, BoxMargin);
@@ -156,7 +156,7 @@ void DrawTheSign(ShopSignDrawContext& context, const ShopTitle& sign, const Shop
                                        .colors = {.text = colors.header, .background = colors.background}},
                screen);
     // 0x452bbc..0x452bfc: el nombre en negrita, a su derecha, con lo que queda de la caja.
-    DrawTheRow(context, UI::Point{.x = Add(at.x, layout.header), .y = at.y}, Subtract(box, layout.header), rows,
+    DrawTheRow(context, Ui::Point{.x = Add(at.x, layout.header), .y = at.y}, Subtract(box, layout.header), rows,
                sign.name,
                Render::Text::TextStyle{.font = FontKind::Bold,
                                        .colors = {.text = colors.name, .background = colors.background}},
@@ -166,14 +166,14 @@ void DrawTheSign(ShopSignDrawContext& context, const ShopTitle& sign, const Shop
                                             .colors = {.text = LineText, .background = LineBackground}};
     if (!layout.lines.second.empty())
     {
-        DrawTheRow(context, UI::Point{.x = at.x, .y = Add(at.y, rows)}, box, rows, layout.lines.first, lineStyle,
+        DrawTheRow(context, Ui::Point{.x = at.x, .y = Add(at.y, rows)}, box, rows, layout.lines.first, lineStyle,
                    screen);
-        DrawTheRow(context, UI::Point{.x = at.x, .y = Add(at.y, 2 * rows)}, box, rows, layout.lines.second, lineStyle,
+        DrawTheRow(context, Ui::Point{.x = at.x, .y = Add(at.y, 2 * rows)}, box, rows, layout.lines.second, lineStyle,
                    screen);
     }
     else if (!layout.lines.first.empty())
     {
-        DrawTheRow(context, UI::Point{.x = at.x, .y = Add(at.y, rows)}, box, rows, layout.lines.first, lineStyle,
+        DrawTheRow(context, Ui::Point{.x = at.x, .y = Add(at.y, rows)}, box, rows, layout.lines.first, lineStyle,
                    screen);
     }
 }
@@ -211,7 +211,7 @@ std::string ShortShopTitle(std::string_view title)
     return shortTitle;
 }
 
-std::string ShortShopTitle(const PersonalShopState& shops, std::size_t index)
+std::string ShortShopTitle(const Social::PersonalShopState& shops, std::size_t index)
 {
     // 0x4518d8..0x4518e5: 0x453b60 busca el personaje; sin él, la salida no cambia.
     const auto found = shops.titles.find(index);
@@ -220,7 +220,7 @@ std::string ShortShopTitle(const PersonalShopState& shops, std::size_t index)
     return ShortShopTitle(found->second.title);
 }
 
-ShopSignLayout MeasureTheShopSign(const ShopTitle& sign, std::string_view header,
+ShopSignLayout MeasureTheShopSign(const Social::ShopTitle& sign, std::string_view header,
                                   const Render::Text::ITextMeasure& measure, int fontStep)
 {
     ShopSignLayout layout;
@@ -253,7 +253,7 @@ ShopSignLayout MeasureTheShopSign(const ShopTitle& sign, std::string_view header
     return layout;
 }
 
-Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& projection,
+Core::Expected<Ui::Point, std::string> PlaceTheShopSign(const Scenes::GameProjection& projection,
                                                         const Kernel::ActorState& owner, std::int32_t width,
                                                         Core::PixelSize screen)
 {
@@ -261,7 +261,7 @@ Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& pr
     const glm::vec3 above{
         owner.position.x, owner.position.y,
         static_cast<float>(static_cast<double>(owner.boundsTop) + static_cast<double>(owner.position.z) + AboveTheTop)};
-    const auto projected = ProjectGamePoint(projection, above);
+    const auto projected = Scenes::ProjectGamePoint(projection, above);
     if (!projected.HasValue())
         return Core::Unexpected(projected.Error());
     // 0x45214b..0x45217f: x · W / 640 menos la mitad del ancho (cdq, sub y sar, hacia el 0).
@@ -269,7 +269,7 @@ Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& pr
     // 0x452181..0x4521b8: y · H / 480 menos 36 · H / 480.
     const std::int32_t y = Subtract(Scaled(screen.height, projected.Value().y, DesignHeight),
                                     Scaled(screen.height, RaisedRows, DesignHeight));
-    return UI::Point{.x = x, .y = y};
+    return Ui::Point{.x = x, .y = y};
 }
 
 void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen)
@@ -310,7 +310,7 @@ void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen)
     }
 }
 
-UI::Point ShopSignRowAt(UI::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen)
+Ui::Point ShopSignRowAt(Ui::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen)
 {
     // 0x452eaa..0x452ed7.
     if (at.x < 0)
@@ -358,7 +358,7 @@ ShopSignColors ShopBubbleColorsOf(const Kernel::ActorState& owner, bool hovered)
     return ShopSignColorsOf(enemy ? PkSix : owner.pk, hovered);
 }
 
-bool ShopSignHovered(const PersonalShopState& shops, std::size_t index)
+bool ShopSignHovered(const Social::PersonalShopState& shops, std::size_t index)
 {
     // 0x4517cd..0x451806: lower_bound del personaje; con el suyo, +0x60.
     const auto found = shops.titles.find(index);
@@ -368,12 +368,12 @@ bool ShopSignHovered(const PersonalShopState& shops, std::size_t index)
 Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    PersonalShopState& shops = runtime.social.personalShop;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
     // 0x451c27..0x451c2c: el mapa vacío.
     if (shops.titles.empty())
         return {};
     // Un dibujo intermedio escribe +0x10, los +0x60 y los lugares en una copia.
-    std::optional<std::map<std::size_t, ShopTitle>> scratchTitles;
+    std::optional<std::map<std::size_t, Social::ShopTitle>> scratchTitles;
     std::int32_t scratchBlink = shops.signBlink;
     if (context.projecting)
         scratchTitles.emplace(shops.titles);
@@ -422,7 +422,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
         sign.x = boxes[at].x;
         sign.y = boxes[at].y;
         // 0x451c67..0x451cc0: IsOpen(0x200) no saca rand().
-        if (chosen != -1 && state.blink < BlinkShown && context.panels.IsOpen(UI::CommandsPanel) &&
+        if (chosen != -1 && state.blink < BlinkShown && context.panels.IsOpen(Ui::CommandsPanel) &&
             runtime.panels.delegated.commandsWindow.chosen == ShopCommand)
         {
             if (static_cast<std::int64_t>(index) == chosen)
@@ -436,11 +436,11 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
         if (sign.visible && shops.signsShown != 0)
         {
             const ShopSignBox& box = boxes[at];
-            DrawTheSign(context, sign, layouts[at], UI::Point{.x = box.x, .y = box.y}, actors[index].pk, header.Value(),
+            DrawTheSign(context, sign, layouts[at], Ui::Point{.x = box.x, .y = box.y}, actors[index].pk, header.Value(),
                         rows, screen);
         }
         ++at;
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::PersonalShop

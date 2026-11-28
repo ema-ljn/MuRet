@@ -19,14 +19,14 @@
 // 0x45ddc0, 0x45de20 y 0x45db70.
 namespace
 {
+using Client::Chat::ChatEntry;
+using Client::Chat::ChatLogState;
+using Client::Chat::ChatMeasure;
+using Client::Chat::ChatModes;
 using Client::Core::PixelSize;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::UI::ChatEntry;
-using Client::UI::ChatLogState;
-using Client::UI::ChatMeasure;
-using Client::UI::ChatModes;
 
 // Como el rasterizador falso: 6 columnas por letra y 13 filas.
 class LetterMeasure final : public ITextMeasure
@@ -74,7 +74,7 @@ protected:
 
     void Add(std::string_view name, std::string_view text, std::int32_t type, bool noticeSound = false)
     {
-        const auto added = Client::UI::AddToTheLog(m_log, m_modes, Measure(), name, text, type, 0, noticeSound);
+        const auto added = Client::Chat::AddToTheLog(m_log, m_modes, Measure(), name, text, type, 0, noticeSound);
         ASSERT_TRUE(added.HasValue()) << added.Error();
     }
 };
@@ -108,7 +108,7 @@ TEST_F(ChatLogTest, NineteenBytesBetweenNameAndTextAreNeverCut)
 {
     const LetterMeasure wide(20);
     const ChatMeasure measure{.measure = wide, .dcFont = FontKind::Normal, .screen = Screen640};
-    const auto added = Client::UI::AddToTheLog(m_log, m_modes, measure, "Ana", std::string(16, 'b'), 0, 0, false);
+    const auto added = Client::Chat::AddToTheLog(m_log, m_modes, measure, "Ana", std::string(16, 'b'), 0, 0, false);
 
     ASSERT_TRUE(added.HasValue()) << added.Error();
     ASSERT_EQ(m_log.entries.size(), 1u);
@@ -120,7 +120,7 @@ TEST_F(ChatLogTest, ATextOfLettersNarrowerThanAPointIsTheOriginalsDivisionByZero
 {
     const FixedMeasure fixed;
     const ChatMeasure measure{.measure = fixed, .dcFont = FontKind::Normal, .screen = Screen640};
-    const auto added = Client::UI::AddToTheLog(m_log, m_modes, measure, "Ana", std::string(300, 'c'), 0, 0, false);
+    const auto added = Client::Chat::AddToTheLog(m_log, m_modes, measure, "Ana", std::string(300, 'c'), 0, 0, false);
 
     EXPECT_FALSE(added.HasValue());
 }
@@ -138,31 +138,31 @@ TEST_F(ChatLogTest, NormalChatIsDroppedWithoutF2)
 // 0x45dc40, 0x45ddc0 y el 0x26 de 0x45bb20 con el filtro puesto y 0x77f3b78.
 TEST_F(ChatLogTest, TheFilterLetsInOnlyNormalChatWithOneOfItsWordsAndRings)
 {
-    EXPECT_EQ(Client::UI::SetTheChatFilter(m_log, "/filter dragon alas"), Client::UI::FilterOnText);
-    EXPECT_EQ(Client::UI::JoinedChatFilter(m_log), "dragon, alas");
+    EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter dragon alas"), Client::Chat::FilterOnText);
+    EXPECT_EQ(Client::Chat::JoinedChatFilter(m_log), "dragon, alas");
 
     Add("Ana", "vendo escudo", 3);
     EXPECT_TRUE(m_log.entries.empty());
 
-    const auto rung = Client::UI::AddToTheLog(m_log, m_modes, Measure(), "Ana", "compro alas", 3, 0, true);
+    const auto rung = Client::Chat::AddToTheLog(m_log, m_modes, Measure(), "Ana", "compro alas", 3, 0, true);
     ASSERT_TRUE(rung.HasValue()) << rung.Error();
-    EXPECT_EQ(rung.Value(), std::optional{Client::UI::ChatFilterSound});
+    EXPECT_EQ(rung.Value(), std::optional{Client::Chat::ChatFilterSound});
     // Los otros tipos no pasan por el filtro.
     Add("Ana", "vendo escudo", 0);
     EXPECT_EQ(m_log.entries.size(), 2u);
 
-    EXPECT_EQ(Client::UI::SetTheChatFilter(m_log, "/filter"), Client::UI::FilterOffText);
-    EXPECT_EQ(Client::UI::SetTheChatFilter(m_log, "/filter"), std::nullopt);
+    EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter"), Client::Chat::FilterOffText);
+    EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter"), std::nullopt);
 }
 
 // La suma de los largos de todas las palabras tiene que quedar por debajo de 31; la primera que no entra corta todo.
 TEST_F(ChatLogTest, TheFilterWordsMustAddUpToLessThan31Bytes)
 {
-    EXPECT_EQ(Client::UI::SetTheChatFilter(m_log, "/filter " + std::string(31, 'x')), std::nullopt);
+    EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter " + std::string(31, 'x')), std::nullopt);
     EXPECT_TRUE(m_log.filter[0].empty());
 
-    EXPECT_EQ(Client::UI::SetTheChatFilter(m_log, "/filter " + std::string(20, 'x') + " " + std::string(11, 'y')),
-              Client::UI::FilterOnText);
+    EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter " + std::string(20, 'x') + " " + std::string(11, 'y')),
+              Client::Chat::FilterOnText);
     EXPECT_EQ(m_log.filter[0], std::string(20, 'x'));
     EXPECT_TRUE(m_log.filter[1].empty());
 }
@@ -195,7 +195,7 @@ TEST_F(ChatLogTest, TheAgedScrollCountsRowsWithTheirAges)
         m_log.entries.push_back(Entry("Ana", "uno", 0));
     m_log.entries[2].age = 3;
 
-    Client::UI::ScrollTheLog(m_log, m_modes, -6);
+    Client::Chat::ScrollTheLog(m_log, m_modes, -6);
 
     // 1, 2, 2 + 1 + 3 = 6: el tercero.
     EXPECT_EQ(m_log.scroll, 3);
@@ -207,23 +207,23 @@ TEST_F(ChatLogTest, ScrollingStopsAtTheOldestRows)
         m_log.entries.push_back(Entry("Ana", "uno", 0));
     m_modes.placement = 1;
 
-    Client::UI::ScrollTheLog(m_log, m_modes, -100);
+    Client::Chat::ScrollTheLog(m_log, m_modes, -100);
     EXPECT_EQ(m_log.scroll, 4);
-    Client::UI::ScrollTheLog(m_log, m_modes, 100);
+    Client::Chat::ScrollTheLog(m_log, m_modes, 100);
     EXPECT_EQ(m_log.scroll, 0);
 }
 
 // 0x45d8c0, F4 y el segundo botón: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6).
 TEST_F(ChatLogTest, F4CyclesTheSizes)
 {
-    Client::UI::CycleTheLogSize(m_log, m_modes);
+    Client::Chat::CycleTheLogSize(m_log, m_modes);
     EXPECT_EQ(m_modes.placement, 1);
     EXPECT_EQ(m_log.rows, 3);
-    Client::UI::CycleTheLogSize(m_log, m_modes);
+    Client::Chat::CycleTheLogSize(m_log, m_modes);
     EXPECT_EQ(m_log.rows, 6);
-    Client::UI::CycleTheLogSize(m_log, m_modes);
+    Client::Chat::CycleTheLogSize(m_log, m_modes);
     EXPECT_EQ(m_log.rows, 30);
-    Client::UI::CycleTheLogSize(m_log, m_modes);
+    Client::Chat::CycleTheLogSize(m_log, m_modes);
     EXPECT_EQ(m_modes.placement, 0);
     EXPECT_EQ(m_log.rows, 6);
 }
@@ -232,10 +232,10 @@ TEST_F(ChatLogTest, F4CyclesTheSizes)
 TEST_F(ChatLogTest, SaidRecentlyLooksAtTheFirst16BytesOrAnAge)
 {
     Add("Ana", "abcdefghijklmnopXYZ", 0);
-    EXPECT_TRUE(Client::UI::SaidRecently(m_log, "abcdefghijklmnop", 1));
-    EXPECT_FALSE(Client::UI::SaidRecently(m_log, "otra cosa", 1));
+    EXPECT_TRUE(Client::Chat::SaidRecently(m_log, "abcdefghijklmnop", 1));
+    EXPECT_FALSE(Client::Chat::SaidRecently(m_log, "otra cosa", 1));
     m_log.entries[0].age = 1;
-    EXPECT_TRUE(Client::UI::SaidRecently(m_log, "otra cosa", 1));
+    EXPECT_TRUE(Client::Chat::SaidRecently(m_log, "otra cosa", 1));
 }
 
 // Un nombre de 11 bytes no tiene '\0' y se lee seguido del texto.
@@ -243,7 +243,7 @@ TEST_F(ChatLogTest, AnElevenByteNameRunsIntoTheText)
 {
     Add("Abcdefghijkl", "hola", 0);
     EXPECT_EQ(m_log.entries[0].name, "Abcdefghijk");
-    EXPECT_EQ(Client::UI::NameOf(m_log.entries[0]), "Abcdefghijkhola");
+    EXPECT_EQ(Client::Chat::NameOf(m_log.entries[0]), "Abcdefghijkhola");
 }
 
 // 0x555190: con el nombre vacío o un tipo de sistema, también al área vieja; el chat de otros, no.
@@ -251,22 +251,22 @@ TEST(MessageLogTest, TheOldAreaTakesOnlyNamelessOrSystemMessages)
 {
     const LetterMeasure letters;
     ChatLogState log;
-    Client::UI::MessageAreaState area;
-    const Client::UI::MessageSink sink{
+    Client::Ui::MessageAreaState area;
+    const Client::Ui::MessageSink sink{
         .log = log,
         .area = area,
         .modes = ChatModes{},
         .measure = ChatMeasure{.measure = letters, .dcFont = FontKind::Normal, .screen = Screen640}};
 
-    ASSERT_TRUE(Client::UI::AddMessage(sink, "Ana", "hola", 0).HasValue());
+    ASSERT_TRUE(Client::Ui::AddMessage(sink, "Ana", "hola", 0).HasValue());
     EXPECT_EQ(area.count, 0);
-    ASSERT_TRUE(Client::UI::AddMessage(sink, "Ana", "aviso", 1).HasValue());
-    ASSERT_TRUE(Client::UI::AddMessage(sink, "", "suelto", 0).HasValue());
+    ASSERT_TRUE(Client::Ui::AddMessage(sink, "Ana", "aviso", 1).HasValue());
+    ASSERT_TRUE(Client::Ui::AddMessage(sink, "", "suelto", 0).HasValue());
     EXPECT_EQ(area.count, 2);
     EXPECT_EQ(area.rows[0].text, "aviso");
     EXPECT_EQ(area.rows[1].text, "suelto");
     EXPECT_EQ(log.entries.size(), 3u);
-    EXPECT_EQ(area.clock, Client::UI::MessageClockSteps);
+    EXPECT_EQ(area.clock, Client::Ui::MessageClockSteps);
 }
 
 // 0x5554b0: 151 pasos desde 150 hasta el mensaje vacío.
@@ -275,21 +275,21 @@ TEST(MessageLogTest, TheClockAddsAnEmptyMessageEvery151Steps)
     const LetterMeasure letters;
     ChatLogState log;
     log.entries.push_back(Entry("Ana", "hola", 0));
-    Client::UI::MessageAreaState area;
-    area.clock = Client::UI::MessageClockSteps;
-    const Client::UI::MessageSink sink{
+    Client::Ui::MessageAreaState area;
+    area.clock = Client::Ui::MessageClockSteps;
+    const Client::Ui::MessageSink sink{
         .log = log,
         .area = area,
         .modes = ChatModes{},
         .measure = ChatMeasure{.measure = letters, .dcFont = FontKind::Normal, .screen = Screen640}};
 
     for (int step = 0; step < 150; ++step)
-        ASSERT_TRUE(Client::UI::StepTheMessageClock(sink).HasValue());
+        ASSERT_TRUE(Client::Ui::StepTheMessageClock(sink).HasValue());
     EXPECT_EQ(log.entries[0].age, 0u);
     EXPECT_EQ(area.count, 0);
-    ASSERT_TRUE(Client::UI::StepTheMessageClock(sink).HasValue());
+    ASSERT_TRUE(Client::Ui::StepTheMessageClock(sink).HasValue());
     EXPECT_EQ(log.entries[0].age, 1u);
     EXPECT_EQ(area.count, 1);
-    EXPECT_EQ(area.clock, Client::UI::MessageClockSteps);
+    EXPECT_EQ(area.clock, Client::Ui::MessageClockSteps);
 }
 } // namespace

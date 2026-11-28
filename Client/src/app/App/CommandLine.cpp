@@ -73,8 +73,8 @@ void AddOptions(CLI::App& app, OptionTexts& texts)
     AddValue(app, OptionNames::Pacing, texts.pacing, "MODE", "decoupled (MuRet's) or faithful (the original's pace)");
     AddValue(app, OptionNames::VSync, texts.vsync, "MODE", "on, adaptive or off; faithful pacing takes only off");
     AddValue(app, OptionNames::MaxFps, texts.maxFps, "N",
-             std::format("The FPS cap with VSync off: 0 (none) or {} to {}", Client::App::MinFpsLimit,
-                         Client::App::MaxFpsLimit));
+             std::format("The FPS cap with VSync off: 0 (none) or {} to {}", Client::Kernel::MinFpsLimit,
+                         Client::Kernel::MaxFpsLimit));
     AddFlag(app, OptionNames::Stats, texts.stats,
             std::format("Print the FPS and the steps per second every {} s",
                         std::chrono::duration_cast<std::chrono::seconds>(Client::App::StatsInterval).count()));

@@ -8,7 +8,7 @@
 // La ventana base de las ventanas viejas (CL8 hito 7; 06 § HUD y ventanas, "Las ventanas viejas"), 0x45a210 (vtable
 // 0x6b8d6c), y lo que comparten todas: los estados, los mensajes y el botón (0x45ad80). Están acá y no en
 // UI/OldWindows.h para que los controles de UI/OldList.h (las listas y el EDIT) los usen sin el administrador.
-namespace Client::UI
+namespace Client::Ui
 {
 // +0x48 (0x45a9b0 y 0x45a9c0): a la vista, cambiando de tamaño, oculta, arrastrada, minimizada (nadie la pone en la
 // CL8) y apagado (el botón, 0x45b200; nadie lo pone en la CL8).
@@ -102,4 +102,4 @@ struct OldButton
     std::int32_t pressed = 0;
 };
 
-} // namespace Client::UI
+} // namespace Client::Ui

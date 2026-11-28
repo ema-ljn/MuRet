@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -27,4 +27,4 @@ std::uint8_t ActionByTheHands(const Kernel::ActorState& by)
         return LeftHandAction;
     return NoHandAction;
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -39,7 +39,7 @@
 
 // 0x5ee2e0 (10.336 bytes) y el tramo de 0x5f7440 que le sigue, cotejados con el PE c32bbd5f: 06, "La ventana del
 // personaje".
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -115,7 +115,7 @@ Models::LogicalAccess OwnAccess(GameHudContext& context)
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -282,17 +282,17 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     // 0x7d36bb0 + 0x21e · lugar, que puso 0x4c1860.
     if (!context.chosenServer)
         return Core::Unexpected(std::string("0x5ee629: sin el servidor elegido ([0x6d5ec4] y [0x6d5ecc] en −1)"));
-    const std::uint16_t group = UI::GroupOf(*context.chosenServer);
-    const std::optional<int> slot = UI::GroupSlot(group);
+    const std::uint16_t group = FrontEnd::GroupOf(*context.chosenServer);
+    const std::optional<int> slot = FrontEnd::GroupSlot(group);
     if (!slot)
         return Core::Unexpected(std::format("0x5ee629: el grupo {} del servidor elegido no tiene lugar", group));
-    const int number = UI::ServerNumber(*context.chosenServer);
-    const bool nonPvp = UI::IsNonPvp(*slot, number);
+    const int number = FrontEnd::ServerNumber(*context.chosenServer);
+    const bool nonPvp = FrontEnd::IsNonPvp(*slot, number);
     // 0x447c70: el 460 sin PvP y el 461 si no, como el título de la cuenta.
-    auto serverFormat = TextOf(context, UI::LoginTitleText(*slot, number), nonPvp ? "0x5ee668" : "0x5ee696");
+    auto serverFormat = TextOf(context, FrontEnd::LoginTitleText(*slot, number), nonPvp ? "0x5ee668" : "0x5ee696");
     if (!serverFormat.HasValue())
         return Core::Unexpected(serverFormat.Error());
-    auto groupName = TextOf(context, UI::GroupNameText(group), "0x5ee660");
+    auto groupName = TextOf(context, FrontEnd::GroupNameText(group), "0x5ee660");
     if (!groupName.HasValue())
         return Core::Unexpected(groupName.Error());
     const std::string server = Sprintf(serverFormat.Value(), groupName.Value(), static_cast<std::int32_t>(number));
@@ -752,7 +752,7 @@ Core::Expected<void, std::string> DrawTheCloseButton(GameHudContext& context)
     if (!help.HasValue())
         return Core::Unexpected(help.Error());
     // 0x554340 deja el texto en blanco sobre un fondo transparente.
-    UI::DrawHelp(context.sprites, context.text, Truncate(left), Truncate(top) - 13, help.Value());
+    Ui::DrawHelp(context.sprites, context.text, Truncate(left), Truncate(top) - 13, help.Value());
     SetColors(context, 0xffffffffu, 0);
     return {};
 }
@@ -805,4 +805,4 @@ Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context
     }
     return DrawTheCloseButton(context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

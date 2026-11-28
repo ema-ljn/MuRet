@@ -56,7 +56,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::HeroMovementContext;
+using Client::Movement::HeroMovementContext;
 
 constexpr std::size_t NpcSlot = 7;
 constexpr std::uint16_t TalkingWord = 0xf0;
@@ -168,7 +168,7 @@ public:
             events.emplace_back("pick");
             return std::optional<Client::Pathfinding::PathCell>{};
         };
-        return Client::Scenes::StepHeroMovement(context);
+        return Client::Movement::StepHeroMovement(context);
     }
 
     // La llegada con el NPC en 0x6c8e54 y el héroe caminando (+0x378 en 1).
@@ -176,12 +176,12 @@ public:
     {
         world.Runtime().movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
         Hero().movement = 1;
-        return Client::Scenes::TalkToTheNpc(Hero(), Context());
+        return Client::Npc::TalkToTheNpc(Hero(), Context());
     }
 
     bool Said(std::string_view text, std::int32_t type)
     {
-        return std::ranges::any_of(world.Runtime().chat.area.rows, [&](const Client::UI::MessageAreaRow& row)
+        return std::ranges::any_of(world.Runtime().chat.area.rows, [&](const Client::Ui::MessageAreaRow& row)
                                    { return row.text == text && row.type == type; });
     }
 
@@ -229,7 +229,7 @@ TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
         EXPECT_EQ(tested->randomAtTheWalk->State(), Advanced(start, BeforeTheClickRandoms + 1 + 8).State());
         EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClickRandoms + 1 + 8 + AfterTheWalkRandoms).State());
         const auto& movement = tested->world.Runtime().movement;
-        EXPECT_EQ(tested->Hero().movementType, Client::Scenes::NpcTalkMovement);
+        EXPECT_EQ(tested->Hero().movementType, Client::Npc::NpcTalkMovement);
         EXPECT_EQ(tested->Hero().movement, 1);
         EXPECT_EQ(movement.attackTarget, 7);
         EXPECT_EQ(movement.chosenNpc, 7);
@@ -246,7 +246,7 @@ TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
 TEST(NpcTalkTest, TheBlockingFlagWalksWithoutTheTalk)
 {
     const auto tested = std::make_unique<TalkingHero>();
-    tested->Hero().flags7c = Client::Scenes::NpcTalkBlockedFlag;
+    tested->Hero().flags7c = Client::Npc::NpcTalkBlockedFlag;
     const auto clicked = tested->Click();
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
@@ -282,7 +282,7 @@ TEST(NpcTalkTest, WithoutAPathTheHeroTalksInPlace)
     EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
     EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
     EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTime, 1);
-    EXPECT_EQ(tested->Hero().movementType, Client::Scenes::NpcTalkMovement);
+    EXPECT_EQ(tested->Hero().movementType, Client::Npc::NpcTalkMovement);
 }
 
 // 0x59b2f7: el héroe camina hasta el NPC y, al terminar el camino, 0x5650c0 con +0x379 en 2 le habla.
@@ -298,7 +298,7 @@ TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
         constexpr int StepLimit = 100;
         for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
         {
-            const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
+            const auto stepped = Client::Movement::StepHeroMovement(tested->Context());
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         }
         EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115", "30 8123"}));
@@ -377,7 +377,7 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
         context.input.leftDown = true;
         context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
         { return std::optional<Client::Pathfinding::PathCell>{Client::Pathfinding::PathCell{186, 115}}; };
-        const auto stepped = Client::Scenes::StepHeroMovement(context);
+        const auto stepped = Client::Movement::StepHeroMovement(context);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
         const auto& path = tested->Hero().path;
@@ -421,7 +421,7 @@ TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
-        const auto stepped = Client::Scenes::StepHeroMovement(context);
+        const auto stepped = Client::Movement::StepHeroMovement(context);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
         EXPECT_EQ(runtime.floor.chosen, FloorItem);
@@ -474,7 +474,7 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
         const auto tested = std::make_unique<TalkingHero>();
         const CrtRandom expected = AfterTheStop(tested->random);
         tested->Hero().movement = 1;
-        ASSERT_TRUE(Client::Scenes::TalkToTheNpc(tested->Hero(), tested->Context()).HasValue());
+        ASSERT_TRUE(Client::Npc::TalkToTheNpc(tested->Hero(), tested->Context()).HasValue());
         EXPECT_TRUE(tested->events.empty());
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Hero().movement, 0);
@@ -485,7 +485,7 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
         tested->Hero().animation.action = 2;
         tested->Hero().movement = 1;
         const CrtRandom expected = Advanced(tested->random, 2 * Client::Models::SmallLogicalCloseRandoms + 1);
-        const auto stopped = Client::Scenes::TalkToTheNpc(tested->Hero(), tested->Context());
+        const auto stopped = Client::Npc::TalkToTheNpc(tested->Hero(), tested->Context());
         ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
         EXPECT_TRUE(tested->events.empty());
         EXPECT_EQ(tested->random.State(), expected.State());
@@ -518,7 +518,7 @@ TEST(NpcTalkTest, TheLevelLimitedNpcNeedsLevelTen)
         if (level < 10)
         {
             EXPECT_TRUE(tested->events.empty());
-            EXPECT_TRUE(tested->Said("hace falta el nivel 10", Client::UI::SystemMessage));
+            EXPECT_TRUE(tested->Said("hace falta el nivel 10", Client::Ui::SystemMessage));
             EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, 7);
         }
         else
@@ -538,7 +538,7 @@ TEST(NpcTalkTest, TheFlagLimitedNpcRefusesTheFlaggedHero)
     tested->world.Runtime().byte6eeda8 = 1;
     ASSERT_TRUE(tested->Arrive().HasValue());
     EXPECT_TRUE(tested->events.empty());
-    EXPECT_TRUE(tested->Said("no con eso puesto", Client::UI::ErrorMessage));
+    EXPECT_TRUE(tested->Said("no con eso puesto", Client::Ui::ErrorMessage));
     EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
     EXPECT_EQ(tested->world.Runtime().byte6eeda8, 1);
 }
@@ -738,7 +738,7 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
         constexpr int StepLimit = 100;
         for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
         {
-            const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
+            const auto stepped = Client::Movement::StepHeroMovement(tested->Context());
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         }
         EXPECT_EQ(hero.movement, 0);

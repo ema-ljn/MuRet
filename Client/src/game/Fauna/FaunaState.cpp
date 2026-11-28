@@ -10,15 +10,15 @@
 #include <span>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 namespace
 {
-World::BirdRecord BirdView(FaunaObject& slot)
+Fauna::BirdRecord BirdView(FaunaObject& slot)
 {
     return std::as_writable_bytes(std::span<FaunaObject, 1>(&slot, 1));
 }
-World::FishStepView FishView(FaunaObject& slot)
+Fauna::FishStepView FishView(FaunaObject& slot)
 {
     return {slot.active,
             slot.model,
@@ -51,12 +51,12 @@ World::FishStepView FishView(FaunaObject& slot)
 }
 template <std::size_t... I> auto BirdViews(std::array<FaunaObject, BirdPoolSize>& slots, std::index_sequence<I...>)
 {
-    return std::array<World::BirdRecord, BirdPoolSize>{BirdView(slots[I])...};
+    return std::array<Fauna::BirdRecord, BirdPoolSize>{BirdView(slots[I])...};
 }
 template <std::size_t... I>
-auto FishViewsOf(std::array<FaunaObject, World::FishPoolSize>& slots, std::index_sequence<I...>)
+auto FishViewsOf(std::array<FaunaObject, Fauna::FishPoolSize>& slots, std::index_sequence<I...>)
 {
-    return std::array<World::FishStepView, World::FishPoolSize>{FishView(slots[I])...};
+    return std::array<Fauna::FishStepView, Fauna::FishPoolSize>{FishView(slots[I])...};
 }
 } // namespace
 std::span<FaunaObject, BirdPoolSize> FaunaState::Birds()
@@ -67,21 +67,21 @@ std::span<const FaunaObject, BirdPoolSize> FaunaState::Birds() const
 {
     return m_birds;
 }
-std::span<FaunaObject, World::FishPoolSize> FaunaState::Fish()
+std::span<FaunaObject, Fauna::FishPoolSize> FaunaState::Fish()
 {
     return m_fish;
 }
-std::span<const FaunaObject, World::FishPoolSize> FaunaState::Fish() const
+std::span<const FaunaObject, Fauna::FishPoolSize> FaunaState::Fish() const
 {
     return m_fish;
 }
-std::array<World::BirdRecord, BirdPoolSize> FaunaState::BirdRecords()
+std::array<Fauna::BirdRecord, BirdPoolSize> FaunaState::BirdRecords()
 {
     return BirdViews(m_birds, std::make_index_sequence<BirdPoolSize>{});
 }
-std::array<World::FishStepView, World::FishPoolSize> FaunaState::FishViews()
+std::array<Fauna::FishStepView, Fauna::FishPoolSize> FaunaState::FishViews()
 {
-    return FishViewsOf(m_fish, std::make_index_sequence<World::FishPoolSize>{});
+    return FishViewsOf(m_fish, std::make_index_sequence<Fauna::FishPoolSize>{});
 }
 void FaunaState::Clear()
 {
@@ -102,4 +102,4 @@ void FaunaState::ClearSounds()
 {
     m_sounds.clear();
 }
-} // namespace Client::Scenes
+} // namespace Client::Fauna

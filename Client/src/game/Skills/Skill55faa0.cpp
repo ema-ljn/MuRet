@@ -25,7 +25,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -55,11 +55,11 @@ bool CrossbowInTheRight(const Kernel::ActorState& actor)
 // o Dinorant (+0x318) fuera de la zona segura (+0x3e2), 0x82 con el arco y 0x83 con la ballesta; si no, con el arco
 // 0x7e sin alas (+0x2f8 en −1) y 0x80 con ellas, y con la ballesta 0x7f y 0x81. Sin arma de tiro, ninguna. Con o sin
 // acción, de cualquier tipo, +0x38f sube.
-Core::Expected<void, std::string> SetTheShotAction(Kernel::ActorState& actor, const ActorCombatContext& context)
+Core::Expected<void, std::string> SetTheShotAction(Kernel::ActorState& actor, const Combat::ActorCombatContext& context)
 {
     if (actor.type == Tables::PlayerSkeletonModel)
     {
-        RefreshCombatActionSpeeds(context.world, context.random);
+        Combat::RefreshCombatActionSpeeds(context.world, context.random);
         const bool riding = (actor.pet.model == UniriaModel || actor.pet.model == DinorantModel) && actor.safeZone == 0;
         const bool winged = actor.wings.model != Kernel::NoItemModel;
         std::optional<std::uint8_t> action;
@@ -95,11 +95,11 @@ Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Kern
 // 0x561c50 (CheckTheArrows) con los servicios del contexto, o sin ellos.
 Core::Expected<bool, std::string> HasArrows(const HeroSkillContext& context)
 {
-    static const InventoryServices NoServices{};
-    return CheckTheArrows(
-        InventoryMoveContext{.world = context.world,
-                             .random = context.random,
-                             .services = context.inventory != nullptr ? *context.inventory : NoServices});
+    static const Items::InventoryServices NoServices{};
+    return Items::CheckTheArrows(
+        Items::InventoryMoveContext{.world = context.world,
+                                    .random = context.random,
+                                    .services = context.inventory != nullptr ? *context.inventory : NoServices});
 }
 } // namespace
 
@@ -108,7 +108,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(Kernel::ActorState& 
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const WeaponSkillRequest request = runtime.movement.weaponSkill;
+    const Movement::WeaponSkillRequest request = runtime.movement.weaponSkill;
     // 0x55fac2..0x55ffcf: el D3 de girar, antes que todo, con el ángulo del héroe publicado de ahora.
     {
         Kernel::ActorState& published = world.Hero();
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(Kernel::ActorState& 
     user.attackPosition = target.position;
     turned.angles.z = static_cast<float>(
         Math::CreateAngle(turned.position.x, turned.position.y, target.position.x, target.position.y));
-    const ActorCombatContext combat = CombatContextOf(context);
+    const Combat::ActorCombatContext combat = CombatContextOf(context);
     switch (skill)
     {
     case 0x1a:
@@ -153,7 +153,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(Kernel::ActorState& 
             return {};
         if (auto struck = StrikeTheTarget(skill, target, context, "0x5608de"); !struck.HasValue())
             return struck;
-        return SetActorAttack(user, combat);
+        return Combat::SetActorAttack(user, combat);
     }
     case 0x2e:
     {
@@ -171,4 +171,4 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(Kernel::ActorState& 
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -110,7 +110,6 @@
 // La espera y los cortes deliberados conservan sus oráculos de estado y de la CRT.
 namespace
 {
-using Client::App::SessionState;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WaitDrawThreshold;
 using Client::Kernel::WorldLoadingWait;
@@ -121,6 +120,7 @@ using Client::Scenes::GameScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Session::ModuleStates;
+using Client::Session::SessionState;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::LoggedInSession;
 
@@ -215,31 +215,31 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
 Client::Core::Expected<void, std::string>
 AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::ModuleStates& states,
-                         const Client::Kernel::ActorState& hero, Client::World::LeafWeather weather,
+                         const Client::Kernel::ActorState& hero, Client::Weather::LeafWeather weather,
                          std::int32_t heroCellLayer, Client::Models::ClothWorld& reference)
 {
     const Client::Terrain::WorldTerrain& terrain = states.terrain.current;
-    Client::World::Leaves leaves;
-    Client::Scenes::FaunaState fauna;
+    Client::Weather::Leaves leaves;
+    Client::Fauna::FaunaState fauna;
     const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
     const float worldClock = 0.0f;
-    Client::Scenes::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
-                                                hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
-                                                reference.random, worldClock};
-    if (auto stepped = Client::Scenes::StepGameLeaves(leafContext); !stepped.HasValue())
+    Client::Weather::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
+                                                 hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
+                                                 reference.random, worldClock};
+    if (auto stepped = Client::Weather::StepGameLeaves(leafContext); !stepped.HasValue())
         return stepped;
-    Client::Scenes::FaunaStepContext faunaContext{fauna,
-                                                  world.Runtime().map,
-                                                  world.Runtime().storm,
-                                                  hero.position,
-                                                  hero.animation.action,
-                                                  hero.safeZone,
-                                                  terrain,
-                                                  states.terrain.dynamicLight.Lighting(),
-                                                  states.assets.fauna,
-                                                  reference,
-                                                  worldClock};
-    return Client::Scenes::StepGameFauna(faunaContext);
+    Client::Fauna::FaunaStepContext faunaContext{fauna,
+                                                 world.Runtime().map,
+                                                 world.Runtime().storm,
+                                                 hero.position,
+                                                 hero.animation.action,
+                                                 hero.safeZone,
+                                                 terrain,
+                                                 states.terrain.dynamicLight.Lighting(),
+                                                 states.assets.fauna,
+                                                 reference,
+                                                 worldClock};
+    return Client::Fauna::StepGameFauna(faunaContext);
 }
 
 // Con el login, la lista y el lugar 3 elegido: la sesión espera la entrada.
@@ -376,7 +376,7 @@ TEST(GameSceneTest, TheFirstStepEmptiesTheChat)
     Harness tested(log);
     WorldRuntime& runtime = tested.Runtime();
     runtime.ui.chatOpen = true;
-    runtime.chat.log.entries.push_back(Client::UI::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
+    runtime.chat.log.entries.push_back(Client::Chat::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
     runtime.chat.log.filter[0] = "dragon";
     runtime.chat.area.rows[0].text = "viejo";
     runtime.chat.area.count = 1;
@@ -389,9 +389,9 @@ TEST(GameSceneTest, TheFirstStepEmptiesTheChat)
     EXPECT_TRUE(runtime.chat.log.entries.empty());
     EXPECT_TRUE(runtime.chat.log.filter[0].empty());
     EXPECT_EQ(runtime.chat.area.rows[0].text, "");
-    EXPECT_EQ(runtime.chat.area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));
+    EXPECT_EQ(runtime.chat.area.count, static_cast<std::int32_t>(Client::Ui::MessageAreaRows));
 
-    runtime.chat.log.entries.push_back(Client::UI::ChatEntry{.name = "Beto", .text = "chau", .type = 0});
+    runtime.chat.log.entries.push_back(Client::Chat::ChatEntry{.name = "Beto", .text = "chau", .type = 0});
     tested.scene.Step(tested.input);
     EXPECT_EQ(runtime.chat.log.entries.size(), 1u);
 }
@@ -634,7 +634,7 @@ public:
         {
             return &m_player;
         }
-        return model.Value() == Client::Scenes::DarkHorseModel ? &m_skeleton : nullptr;
+        return model.Value() == Client::Pets::DarkHorseModel ? &m_skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot>
     MeshTextures(Client::Models::ModelId /*model*/) const override
@@ -686,8 +686,7 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
         rider.alive = true;
         rider.byte88 = 1;
         rider.position = {10050.0f, 10050.0f, 170.0f};
-        const auto created =
-            Client::Scenes::CreateHelper(world, Client::Scenes::DarkHorseModel, rider.position, RiderSlot);
+        const auto created = Client::Pets::CreateHelper(world, Client::Pets::DarkHorseModel, rider.position, RiderSlot);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_EQ(created.Value(), std::optional<std::size_t>{0});
         rider.alive = riderAlive;
@@ -700,7 +699,7 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
             EXPECT_EQ(scene.Failure(), std::nullopt) << scene.Failure().value_or("");
             EXPECT_TRUE(world.Helpers()[0].alive);
             EXPECT_TRUE(world.Particles().All()[0].alive);
-            EXPECT_EQ(world.Particles().All()[0].type, Client::World::BreathParticle);
+            EXPECT_EQ(world.Particles().All()[0].type, Client::Particles::BreathParticle);
             EXPECT_EQ(world.Runtime().warpCounter, WorldLoadingWait - 1);
         }
         else
@@ -913,7 +912,7 @@ protected:
     // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta); con el ritmo fiel, cada dibujo es un frame del
     // original.
     [[nodiscard]] GameScene Scene(const Client::Tables::TextTable* texts = nullptr,
-                                  Client::App::PacingMode pacing = Client::App::PacingMode::Decoupled)
+                                  Client::Kernel::PacingMode pacing = Client::Kernel::PacingMode::Decoupled)
     {
         return GameScene(SceneContext{.dataRoot = m_dataRoot,
                                       .textures = store,
@@ -1029,11 +1028,11 @@ GrassHeights GrassHeightsOf(const Client::Tests::FrameEvent& models, std::uint16
     return heights;
 }
 
-// Los objetos que vio el dibujo (+0x16c), en el orden de 0x6046a0 (World::DrawOrder).
+// Los objetos que vio el dibujo (+0x16c), en el orden de 0x6046a0 (WorldObjects::DrawOrder).
 std::vector<std::size_t> SeenObjects(const WorldState& world)
 {
     std::vector<std::size_t> seen;
-    for (const std::size_t index : Client::World::DrawOrder(world.Map().objects))
+    for (const std::size_t index : Client::WorldObjects::DrawOrder(world.Map().objects))
     {
         if (world.Map().objects[index].seen)
         {
@@ -1270,8 +1269,8 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         // El recorrido andando con `level`, en una escena que dibuja un frame del original por dibujo.
         const auto startTheTour = [&](std::int32_t level)
         {
-            Client::Scenes::CameraTour& tour = world.Runtime().events.cameraTour;
-            tour = Client::Scenes::CameraTour{};
+            Client::Events::CameraTour& tour = world.Runtime().events.cameraTour;
+            tour = Client::Events::CameraTour{};
             tour.stage = 2;
             tour.waiting = false;
             tour.position = tourPoint;
@@ -1279,7 +1278,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         };
         const auto stopTheTour = [&]
         {
-            Client::Scenes::CameraTour& tour = world.Runtime().events.cameraTour;
+            Client::Events::CameraTour& tour = world.Runtime().events.cameraTour;
             if (probe.otherStage)
                 tour.stage = 3;
             else
@@ -1290,7 +1289,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         {
             ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
             startTheTour(0);
-            GameScene scene = Scene(nullptr, Client::App::PacingMode::Faithful);
+            GameScene scene = Scene(nullptr, Client::Kernel::PacingMode::Faithful);
             ASSERT_TRUE(scene.Enter().HasValue());
             Client::Tests::RecordingFrameTarget target;
             const Drawn first = draw(scene, target, FirstFrame);
@@ -1325,7 +1324,7 @@ TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
         // la meta de D ya son los del 2; el far, desde el segundo.
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
         startTheTour(2);
-        GameScene scene = Scene(nullptr, Client::App::PacingMode::Faithful);
+        GameScene scene = Scene(nullptr, Client::Kernel::PacingMode::Faithful);
         ASSERT_TRUE(scene.Enter().HasValue());
         Client::Tests::RecordingFrameTarget target;
         Client::Core::Duration at = FirstFrame;
@@ -1400,7 +1399,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         }
         ASSERT_EQ(cloth.random.State(), RandomAfter(probe.drawDraws).State());
         world.Runtime().heroCellLayer = probe.layer;
-        std::vector<Client::World::WorldObject>& objects = world.Map().objects;
+        std::vector<Client::WorldObjects::WorldObject>& objects = world.Map().objects;
         for (const std::size_t roof : probe.roofs)
         {
             ASSERT_TRUE(objects[roof].seen) << roof;
@@ -1468,7 +1467,7 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
     world.Runtime().map = 35;
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
-    const Client::World::WorldObject before = world.Map().objects.front();
+    const Client::WorldObjects::WorldObject before = world.Map().objects.front();
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
 
@@ -1525,7 +1524,7 @@ TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[HeroSlot].seen = true;
-    Client::Scenes::ChatBubble& bubble = world.Runtime().chat.bubbles[0];
+    Client::Chat::ChatBubble& bubble = world.Runtime().chat.bubbles[0];
     bubble.name = "Tero";
     bubble.nameTime = 100;
     bubble.owner = HeroSlot;

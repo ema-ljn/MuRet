@@ -6,11 +6,11 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::UI
+namespace Client::CastleSiege
 {
-std::array<OldButton, 7> CastleSeniorWindow::DefaultButtons()
+std::array<Ui::OldButton, 7> CastleSeniorWindow::DefaultButtons()
 {
-    std::array<OldButton, 7> buttons{};
+    std::array<Ui::OldButton, 7> buttons{};
     for (std::size_t i = 0; i < buttons.size(); ++i)
     {
         buttons[i].base.id = -320 - static_cast<std::int32_t>(i);
@@ -19,4 +19,4 @@ std::array<OldButton, 7> CastleSeniorWindow::DefaultButtons()
     }
     return buttons;
 }
-} // namespace Client::UI
+} // namespace Client::CastleSiege

@@ -50,7 +50,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Hud::Dialogs
 {
 namespace
 {
@@ -265,8 +265,8 @@ constexpr Color RedFourthRowColor{1.0f, 0.1f, 0.1f, 1.0f};
 constexpr Color MixRowColor{0.9f, 0.9f, 1.0f, 1.0f};
 // 0x630477..0x6304d4: los de sí y no, que dibuja 0x630cc4 (el 0x94 entra por 0x630cbd, sin mirar el 0xa3).
 constexpr auto YesNoDialogs =
-    std::to_array<std::int32_t>({0x94, UI::ItemNameDialog, 0x98, UI::MoneyTextDialog, UI::ChaosCastleDialog,
-                                 UI::ServerTimeDialog, UI::ItemNameWithLuckDialog, 0xa9, UI::NoticeQuestionDialog});
+    std::to_array<std::int32_t>({0x94, Ui::ItemNameDialog, 0x98, Ui::MoneyTextDialog, Ui::ChaosCastleDialog,
+                                 Ui::ServerTimeDialog, Ui::ItemNameWithLuckDialog, 0xa9, Ui::NoticeQuestionDialog});
 // 0x632a45..0x632aeb: los renglones del 0xa9 (la joya de bendición, CL9 hito 5) en la fuente gruesa y en amarillo,
 // centrados desde y = 100 + 0xf + 0x1e.
 constexpr std::int32_t BlessDialog = 0xa9;
@@ -475,7 +475,7 @@ constexpr std::string_view ServerMoveErrorText =
     "\xbc\xad\xb9\xf6 \xc0\xcc\xc0\xfc\xbd\xc3 \xbf\xc0\xb7\xf9 \xb9\xdf\xbb\xfd : "
     "\xb9\xae\xc0\xc7 \xb9\xd9\xb6\xf7";
 constexpr auto GenericTexts = std::to_array<GenericText>({
-    {UI::DisconnectDialog, 402, std::nullopt},
+    {Ui::DisconnectDialog, 402, std::nullopt},
     {0x6f, 405, 406},
     {0x1a, 405, 406},
     {0x1c, 409, std::nullopt},
@@ -558,7 +558,7 @@ constexpr int PartyRowStep = 6;
 constexpr int TradeRowStep = 0xb;
 // 0x63212a..0x6321f8: el pedido de guerra (0x7f, CL9 hito 8): el 430 (0x76dc9c4) con el rival en 75 − 6 y el 431
 // (0x76dcaf0) sin el tipo de guerra (0x576796d en 0) o el 432 (0x76dcc1c) con él, en 75 + 6.
-constexpr std::int32_t WarRequestDialog = UI::IgnoredOverChaosCastle;
+constexpr std::int32_t WarRequestDialog = Ui::IgnoredOverChaosCastle;
 constexpr std::size_t WarRequestText = 430;
 constexpr std::size_t WarQuestionText = 431;
 constexpr std::size_t TypedWarQuestionText = 432;
@@ -604,7 +604,7 @@ struct Frame
 
 bool MouseIn(const Frame& frame, int left, int top, int right, int bottom)
 {
-    const UI::Point mouse = frame.context.mouse;
+    const Ui::Point mouse = frame.context.mouse;
     return left <= mouse.x && mouse.x <= right && top <= mouse.y && mouse.y <= bottom;
 }
 
@@ -634,7 +634,7 @@ void WhiteWithTexture(Frame& frame)
 
 Core::Expected<std::string_view, std::string> TextOf(const Frame& frame, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(frame.context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(frame.context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("0x62db60: sin el texto {} de Text.bmd", index));
     return *text;
@@ -693,7 +693,7 @@ void DrawMenuButton(Frame& frame, int y, int height)
              MessageBoxDu, 1.0f);
     };
     draw();
-    const UI::Point mouse = frame.context.mouse;
+    const Ui::Point mouse = frame.context.mouse;
     if (MenuHoverLeft < mouse.x && mouse.x < MenuHoverRight && y <= mouse.y && mouse.y < y + height)
     {
         sprites.SetColor(HoverColor);
@@ -746,7 +746,7 @@ Core::Expected<void, std::string> DrawTheVolume(Frame& frame)
     DrawText(frame, x + CenterX, VolumeY, text.Value());
     const std::int32_t barX = x + VolumeBarOffset + width;
     const std::int32_t barY = VolumeBarTop;
-    UI::GameUiState& ui = frame.runtime.ui;
+    Ui::GameUiState& ui = frame.runtime.ui;
     if (!frame.context.projecting)
     {
         ui.volumeBarX = barX;
@@ -784,7 +784,7 @@ void DrawTheGlow(Frame& frame)
     for (int box = 0; box < GlowBoxes; ++box)
     {
         sprites.SetColor(detail < box ? GlowColor : Black);
-        static_cast<void>(UI::DrawNumber(sprites, static_cast<float>(GlowDigitFirstX + box * GlowStep), GlowDigitTop,
+        static_cast<void>(Ui::DrawNumber(sprites, static_cast<float>(GlowDigitFirstX + box * GlowStep), GlowDigitTop,
                                          GlowFirstDigit + box * GlowDigitStep, GlowDigitSize, GlowDigitSize));
     }
     WhiteWithTexture(frame);
@@ -824,7 +824,7 @@ Core::Expected<void, std::string> DrawTheOptions(Frame& frame)
 void DrawTheArrow(Frame& frame, bool atTheEnd, int left, int right, float x, float degrees)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
-    const UI::Point mouse = frame.context.mouse;
+    const Ui::Point mouse = frame.context.mouse;
     sprites.SetColor(White);
     bool& click = frame.runtime.movement.pendingClick;
     if (atTheEnd)
@@ -844,13 +844,13 @@ void DrawTheArrow(Frame& frame, bool atTheEnd, int left, int right, float x, flo
 }
 
 // 0x630e14..0x6313ff: el marco de las cajas, sus botones y las flechas del 0x8c.
-int BoxRowsOf(const UI::DialogBoxState& box, std::int32_t id)
+int BoxRowsOf(const Ui::DialogBoxState& box, std::int32_t id)
 {
-    if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == 0x9b)
+    if (id == Ui::MessageBoxDialog || id == Ui::PagedDialog || id == 0x9b)
         return ShortBoxRows;
-    if (id != UI::AnswersDialog)
+    if (id != Ui::AnswersDialog)
         return TallBoxRows;
-    const int rows = ((box.lineCount + box.answerCount) * UI::DialogLineStep + AnswersBoxRowsRound) / BoxRowStep;
+    const int rows = ((box.lineCount + box.answerCount) * Ui::DialogLineStep + AnswersBoxRowsRound) / BoxRowStep;
     return std::clamp(rows, ShortBoxRows, AnswersBoxRowsMaximum);
 }
 
@@ -862,7 +862,7 @@ void DrawTheBox(Frame& frame, std::int32_t id)
     for (int row = 0; row < rows; ++row, y += BoxRowStep)
         Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
     Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
-    for (const UI::DialogButton& button : frame.runtime.dialogBox.buttons)
+    for (const Ui::DialogButton& button : frame.runtime.dialogBox.buttons)
     {
         if (button.state <= 0)
             continue;
@@ -871,9 +871,9 @@ void DrawTheBox(Frame& frame, std::int32_t id)
         Quad(frame, static_cast<std::uint16_t>(MessageBoxSlot + button.state), static_cast<float>(button.x) + BoxLeft,
              static_cast<float>(button.y) + BoxTop, width, height - 1.0f, width * ButtonDu, height * ButtonDv);
     }
-    if (id != UI::PagedDialog)
+    if (id != Ui::PagedDialog)
         return;
-    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    const Ui::DialogBoxState& box = frame.runtime.dialogBox;
     frame.context.sprites.SetBlend(BlendMode::Alpha);
     DrawTheArrow(frame, box.page == 0, LeftArrowLeft, LeftArrowRight, LeftArrowX, LeftArrowDegrees);
     DrawTheArrow(frame, box.page == box.lastPage, RightArrowLeft, RightArrowRight, RightArrowX, RightArrowDegrees);
@@ -885,28 +885,28 @@ void DrawTheBox(Frame& frame, std::int32_t id)
 // final, el blanco.
 Core::Expected<void, std::string> DrawTheBoxText(Frame& frame, std::int32_t id)
 {
-    const UI::DialogBoxState& box = frame.runtime.dialogBox;
-    std::int32_t y = UI::DialogTextTop(box, id);
-    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
-        DrawCentered(frame, y, UI::DialogRow(box, static_cast<std::size_t>(row)));
-    if (id == UI::AnswersDialog)
+    const Ui::DialogBoxState& box = frame.runtime.dialogBox;
+    std::int32_t y = Ui::DialogTextTop(box, id);
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += Ui::DialogLineStep)
+        DrawCentered(frame, y, Ui::DialogRow(box, static_cast<std::size_t>(row)));
+    if (id == Ui::AnswersDialog)
     {
-        if (box.answerCount > static_cast<std::int32_t>(UI::DialogAnswerRows))
+        if (box.answerCount > static_cast<std::int32_t>(Ui::DialogAnswerRows))
             return Core::Unexpected(
                 std::format("0x632563: {} respuestas pasan los 10 renglones de 0x7d3691c", box.answerCount));
         // 0x632515..0x632535: la respuesta bajo el mouse, con la división hacia el cero, o −1 arriba de la primera.
-        const UI::Point mouse = frame.context.mouse;
+        const Ui::Point mouse = frame.context.mouse;
         const std::int32_t offset = mouse.y - y;
-        const std::int32_t hovered = offset < 0 ? -1 : offset / UI::DialogLineStep;
-        const bool inside = std::abs(UI::AnswersCenterX - mouse.x) <= UI::AnswersHalfWidth;
+        const std::int32_t hovered = offset < 0 ? -1 : offset / Ui::DialogLineStep;
+        const bool inside = std::abs(Ui::AnswersCenterX - mouse.x) <= Ui::AnswersHalfWidth;
         for (std::int32_t answer = 0; answer < box.answerCount; ++answer)
         {
             frame.context.sprites.SetColor(answer == hovered && inside ? HoveredAnswerColor : AnswerColor);
-            const std::size_t first = static_cast<std::size_t>(answer) * UI::DialogRowBytes;
+            const std::size_t first = static_cast<std::size_t>(answer) * Ui::DialogRowBytes;
             if (box.answers[first] == '\0')
                 continue;
-            DrawCentered(frame, y, UI::DialogAnswer(box, static_cast<std::size_t>(answer)));
-            y += UI::DialogLineStep;
+            DrawCentered(frame, y, Ui::DialogAnswer(box, static_cast<std::size_t>(answer)));
+            y += Ui::DialogLineStep;
         }
     }
     frame.context.sprites.SetColor(White);
@@ -1199,15 +1199,16 @@ Core::Expected<void, std::string> DrawTheJewelUnmix(Frame& frame)
         return Core::Unexpected(std::move(list).Error());
     DrawText(frame, UnmixNotesX, UnmixListTextY, list.Value());
     // 0x62f71a..0x62f739: la esquina de la lista (0x45a9d0) y su dibujo (0x402b20 → 0x4832e0).
-    JewelBundleList& bundles = frame.runtime.npcWindows.jewels.bundles;
-    if (auto drawn = DrawTheBundleList(frame.context, UnmixListX, bundles.height + UnmixListBottom); !drawn.HasValue())
+    Npc::JewelBundleList& bundles = frame.runtime.npcWindows.jewels.bundles;
+    if (auto drawn = ChaosMix::DrawTheBundleList(frame.context, UnmixListX, bundles.height + UnmixListBottom);
+        !drawn.HasValue())
         return drawn;
     // 0x62f73e..0x62f785: el OK, con el color y la mezcla que dejó la lista.
     const float top = static_cast<float>(bundles.height + UnmixListBottom) + UnmixButtonsDrop;
     Quad(frame, MessageBoxSlot, UnmixOkLeft, top, JewelKindWidth, JewelButtonHeight, MessageBoxDu, 1.0f);
     // 0x62f78a..0x62f807: con un elegido (la vtable + 0x64), el texto en 0xfffff0c8 y (1; 1; 0,2); sin él, 0,5 y el
     // color de texto que había.
-    if (ChosenBundle(bundles))
+    if (ChaosMix::ChosenBundle(bundles))
     {
         hud.textColors.text = JewelButtonTextColor;
         sprites.SetColor(JewelChosen);
@@ -1295,11 +1296,11 @@ void DrawTheGenericBox(Frame& frame)
 // La y del marco de los de sí y no ([EBP − 0x20], 0x630cc4..0x630cd8).
 int YesNoTopOf(std::int32_t id)
 {
-    return id == UI::ServerTimeDialog ? ServerTimeBoxTop : YesNoBoxTop;
+    return id == Ui::ServerTimeDialog ? ServerTimeBoxTop : YesNoBoxTop;
 }
 
 // 0x630e1f..0x630f50 y 0x630fdb..0x6310d0: un botón del 0xa8, su texto y la vuelta del color y de la mezcla.
-void DrawTheLuckButton(Frame& frame, const UI::DialogButton& button, int top, std::string_view text)
+void DrawTheLuckButton(Frame& frame, const Ui::DialogButton& button, int top, std::string_view text)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
     Kernel::HudState& hud = frame.context.hud;
@@ -1321,24 +1322,24 @@ Core::Expected<void, std::string> DrawTheWarningBox(Frame& frame, std::int32_t i
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
     const int top = YesNoTopOf(id);
-    const int rows = id == UI::ChaosCastleDialog ? ChaosCastleBoxRows : YesNoBoxRows;
+    const int rows = id == Ui::ChaosCastleDialog ? ChaosCastleBoxRows : YesNoBoxRows;
     Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(top), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
     int y = top + static_cast<int>(BoxEdgeHeight);
     for (int row = 0; row < rows; ++row, y += BoxRowStep)
         Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
     Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
-    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    const Ui::DialogBoxState& box = frame.runtime.dialogBox;
     for (std::size_t index = 0; index < box.buttons.size(); ++index)
     {
-        if (id == UI::ChaosCastleDialog)
+        if (id == Ui::ChaosCastleDialog)
         {
             const bool noItem = frame.runtime.dialogItem.scalar1Low == NoDialogItem && index == 0;
             sprites.SetColor(noItem ? NoItemYesColor : White);
         }
-        const UI::DialogButton& button = box.buttons[index];
+        const Ui::DialogButton& button = box.buttons[index];
         if (button.state < 1 || button.state > YesNoLastButtonState)
             continue;
-        if (id == UI::ItemNameWithLuckDialog)
+        if (id == Ui::ItemNameWithLuckDialog)
         {
             auto text = TextOf(frame, LuckButtonTexts[index]);
             if (!text.HasValue())
@@ -1354,7 +1355,7 @@ Core::Expected<void, std::string> DrawTheWarningBox(Frame& frame, std::int32_t i
         Quad(frame, static_cast<std::uint16_t>(MessageBoxSlot + button.state), static_cast<float>(button.x) + BoxLeft,
              static_cast<float>(button.y + top), width, height, width * ButtonDu, height * ButtonDv);
     }
-    if (id != UI::ItemNameWithLuckDialog)
+    if (id != Ui::ItemNameWithLuckDialog)
         return {};
     auto third = TextOf(frame, LuckThirdButtonText);
     if (!third.HasValue())
@@ -1368,7 +1369,7 @@ Core::Expected<void, std::string> DrawTheWarningBox(Frame& frame, std::int32_t i
 // estaba en la pila, y corta.
 Core::Expected<std::string, std::string> TheMixTitle(const Frame& frame)
 {
-    const NpcWindowState& npc = frame.runtime.npcWindows;
+    const Npc::NpcWindowState& npc = frame.runtime.npcWindows;
     const std::int32_t kind = npc.mixKind;
     const auto format = [&frame](std::size_t index) { return TextOf(frame, index); };
     std::size_t index = 0;
@@ -1445,11 +1446,11 @@ Core::Expected<void, std::string> DrawTheWarningRows(Frame& frame, std::int32_t 
     int x = YesNoTextX;
     int y = top + YesNoTextDrop;
     Render::SpriteBatch& sprites = frame.context.sprites;
-    if (id == UI::ChaosCastleDialog)
+    if (id == Ui::ChaosCastleDialog)
         x = CenterX;
-    else if (id != UI::ItemNameDialog)
+    else if (id != Ui::ItemNameDialog)
     {
-        if (id == UI::ServerTimeDialog)
+        if (id == Ui::ServerTimeDialog)
             x = ServerTimeTextX;
         if (choice == MixChoice)
         {
@@ -1478,8 +1479,8 @@ Core::Expected<void, std::string> DrawTheWarningRows(Frame& frame, std::int32_t 
             y = top + LowerTextDrop;
         }
     }
-    const UI::DialogBoxState& box = frame.runtime.dialogBox;
-    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
+    const Ui::DialogBoxState& box = frame.runtime.dialogBox;
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += Ui::DialogLineStep)
     {
         sprites.SetColor(YesNoRowColor);
         frame.context.hud.dcFont = Render::Text::FontKind::Bold;
@@ -1502,7 +1503,7 @@ Core::Expected<void, std::string> DrawTheWarningRows(Frame& frame, std::int32_t 
             if (choice == MixChoice)
                 sprites.SetColor(MixRowColor);
         }
-        DrawCenteredAt(frame, x, y, UI::DialogRow(box, static_cast<std::size_t>(row)));
+        DrawCenteredAt(frame, x, y, Ui::DialogRow(box, static_cast<std::size_t>(row)));
     }
     return {};
 }
@@ -1510,12 +1511,12 @@ Core::Expected<void, std::string> DrawTheWarningRows(Frame& frame, std::int32_t 
 // 0x632a45..0x632aeb: los renglones del 0xa9, y al final la fuente normal (sin volver al blanco).
 void DrawTheBlessRows(Frame& frame)
 {
-    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    const Ui::DialogBoxState& box = frame.runtime.dialogBox;
     frame.context.hud.dcFont = Render::Text::FontKind::Bold;
     frame.context.sprites.SetColor(BlessRowColor);
     int y = LowerYesNoTextY;
-    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
-        DrawCentered(frame, y, UI::DialogRow(box, static_cast<std::size_t>(row)));
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += Ui::DialogLineStep)
+        DrawCentered(frame, y, Ui::DialogRow(box, static_cast<std::size_t>(row)));
     frame.context.hud.dcFont = Render::Text::FontKind::Normal;
 }
 
@@ -1545,22 +1546,22 @@ std::optional<JewelDrawing> JewelDrawingOf(std::int32_t id)
 // 0x5762ec0. Una pasada intermedia trabaja sobre una copia y no mueve el foco.
 template <typename Setup> void DrawTheDialogEdit(Frame& frame, Setup setup)
 {
-    UI::ChatInputState& input = frame.runtime.chat.input;
-    UI::OldEdit copy = input.dialogEdit;
-    UI::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
+    Chat::ChatInputState& input = frame.runtime.chat.input;
+    Ui::OldEdit copy = input.dialogEdit;
+    Ui::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
     setup(edit);
     // 0x4682f1..0x4682f7: el foco también deja el id del EDIT (7) en 0x5762ec0, la lista que toma las flechas.
     if (!frame.context.projecting)
     {
-        input.focus = UI::ChatFocus::Dialog;
+        input.focus = Chat::ChatFocus::Dialog;
         frame.runtime.ui.focusedList = edit.base.id;
     }
-    const UI::OldWindowDrawContext drawing{.sprites = frame.context.sprites,
+    const Ui::OldWindowDrawContext drawing{.sprites = frame.context.sprites,
                                            .text = frame.context.text,
                                            .dcFont = frame.context.hud.dcFont,
                                            .textColors = frame.context.hud.textColors,
                                            .arrowHeld = frame.context.arrowHeld};
-    UI::OldDraw::DrawTheOldEdit(drawing, edit, true);
+    Ui::OldDraw::DrawTheOldEdit(drawing, edit, true);
 }
 
 // 0x630818..0x6308c6 (0x73): el marco del OK genérico, sin el botón, y con 0x6c7b8c en 1 (su valor de la .data; con 0,
@@ -1571,11 +1572,11 @@ void DrawTheMoneyBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
     DrawTheDialogEdit(frame,
-                      [&frame](UI::OldEdit& edit)
+                      [&frame](Ui::OldEdit& edit)
                       {
-                          edit.base.state = UI::ShownWindow;
+                          edit.base.state = Ui::ShownWindow;
                           edit.filter = MoneyEditFilter;
-                          UI::LimitTheEdit(edit, MoneyEditLimit, frame.context.arrowHeld);
+                          Ui::LimitTheEdit(edit, MoneyEditLimit, frame.context.arrowHeld);
                           edit.base.width = MoneyEditWidth;
                           edit.base.height = MoneyEditHeight;
                           edit.base.x = MoneyEditX;
@@ -1592,7 +1593,7 @@ void DrawTheShopBox(Frame& frame)
     for (int row = 0; row < ShopRows; ++row, y += BoxRowStep)
         Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
     Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
-    DrawTheDialogEdit(frame, [](UI::OldEdit&) {});
+    DrawTheDialogEdit(frame, [](Ui::OldEdit&) {});
     frame.context.sprites.SetBlend(BlendMode::Opaque);
     const bool ok = MouseIn(frame, ShopOkLeft, ShopButtonTop, ShopOkRight, ShopButtonBottom);
     Quad(frame, ok ? OkHoverSlot : OkSlot, ShopOkX, ShopButtonY, ShopButtonWidth, ShopButtonHeight, OkDu, OkDv);
@@ -1635,29 +1636,29 @@ void DrawTheYesNoBox(Frame& frame)
 void DrawTheNumberBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
-    UI::ChatInputState& input = frame.runtime.chat.input;
-    UI::OldEdit& field = input.numberField;
-    UI::ShowTheNumberField(input, ShownField);
+    Chat::ChatInputState& input = frame.runtime.chat.input;
+    Ui::OldEdit& field = input.numberField;
+    Chat::ShowTheNumberField(input, ShownField);
     field.filter = NumberFieldFilter;
     field.backgroundColor = 0;
-    UI::LimitTheEdit(field, NumberFieldLimit, frame.context.arrowHeld);
+    Ui::LimitTheEdit(field, NumberFieldLimit, frame.context.arrowHeld);
     field.base.width = NumberFieldWidth;
     field.base.height = NumberFieldHeight;
     field.base.x = NumberFieldX;
     field.base.y = NumberFieldY;
-    UI::FocusTheNumberField(input);
-    if (input.focus == UI::ChatFocus::NumberField)
+    Chat::FocusTheNumberField(input);
+    if (input.focus == Chat::ChatFocus::NumberField)
         frame.runtime.ui.focusedList = field.base.id;
     Render::SpriteBatch& sprites = frame.context.sprites;
     sprites.SetBlend(BlendMode::Alpha);
-    UI::OldEdit projected = field;
-    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = sprites,
+    Ui::OldEdit projected = field;
+    Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = sprites,
                                                          .text = frame.context.text,
                                                          .dcFont = frame.context.hud.dcFont,
                                                          .textColors = frame.context.hud.textColors,
                                                          .arrowHeld = frame.context.arrowHeld},
                                 frame.context.projecting ? projected : field,
-                                input.focus == UI::ChatFocus::NumberField);
+                                input.focus == Chat::ChatFocus::NumberField);
     sprites.SetBlend(BlendMode::Opaque);
     const std::uint16_t yes = MouseIn(frame, NarrowYesLeft, OkTop, NarrowYesRight, OkBottom) ? OkHoverSlot : OkSlot;
     Quad(frame, yes, NarrowYesX, OkY, NarrowWidth, OkHeight, OkDu, OkDv);
@@ -1671,7 +1672,7 @@ void DrawTheNumberBox(Frame& frame)
 void DrawTheConfirmBox(Frame& frame)
 {
     frame.runtime.dialogs.current = ConfirmDialog;
-    const ConfirmBoxState& box = frame.runtime.social.confirmBox;
+    const Social::ConfirmBoxState& box = frame.runtime.social.confirmBox;
     const std::int32_t step = Render::Text::FontStepFor(frame.context.sprites.Screen().width) + ConfirmLineGap;
     const std::int32_t height = step * static_cast<std::int32_t>(box.lines.size());
     const auto rows = static_cast<float>(height + ConfirmRowsExtra);
@@ -1722,7 +1723,7 @@ std::size_t InviterOf(const Kernel::WorldState& world, std::int32_t key)
 }
 
 // El nombre del otro del comercio (0x78aba1c, con su terminador), hasta el primer 0.
-std::string_view TradeNameOf(const TradeState& trade)
+std::string_view TradeNameOf(const Social::TradeState& trade)
 {
     const auto end = std::ranges::find(trade.otherName, std::byte{0});
     return {reinterpret_cast<const char*>(trade.otherName.data()),
@@ -1765,7 +1766,7 @@ Core::Expected<void, std::string> DrawTheWarRequest(Frame& frame)
     auto format = TextOf(frame, WarRequestText);
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    const GuildState& guild = frame.runtime.guild;
+    const Guild::GuildState& guild = frame.runtime.guild;
     const auto end = std::ranges::find(guild.rival, '\0');
     const std::string_view rival(guild.rival.data(), static_cast<std::size_t>(end - guild.rival.begin()));
     DrawCentered(frame, InvitationRowY - WarRowStep, Crt::Sprintf(format.Value(), rival));
@@ -1804,16 +1805,16 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         if (entry.id == id)
             generic = entry;
     }
-    const bool box = id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog || id == 0x8b ||
+    const bool box = id == Ui::MessageBoxDialog || id == Ui::PagedDialog || id == Ui::AnswersDialog || id == 0x8b ||
                      id == 0x97 || id == 0x9b;
     // 0x630477..0x6304d4: los de sí y no van a 0x630cc4.
     const bool yesNo = std::ranges::find(YesNoDialogs, id) != YesNoDialogs.end();
-    if (id == UI::EscapeMenuDialog)
+    if (id == Ui::EscapeMenuDialog)
     {
         if (auto drawn = DrawTheEscapeMenu(frame); !drawn.HasValue())
             return drawn;
     }
-    else if (id == UI::OptionsDialog)
+    else if (id == Ui::OptionsDialog)
     {
         if (auto drawn = DrawTheOptions(frame); !drawn.HasValue())
             return drawn;
@@ -1860,8 +1861,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         return DrawTheHeadTitle(frame, MixText);
     if (id == JewelUnmixDialog)
         return DrawTheHeadTitle(frame, UnmixText);
-    if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog ||
-        id == UI::NoticeQuestionDialog)
+    if (id == Ui::MessageBoxDialog || id == Ui::PagedDialog || id == Ui::AnswersDialog ||
+        id == Ui::NoticeQuestionDialog)
         return DrawTheBoxText(frame, id);
     // 0x632637 y 0x632a45: los renglones de los de sí y no.
     if (yesNo && id == BlessDialog)
@@ -1876,7 +1877,7 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         // 0x632a2b: [0x723c60] + 0x10, el texto de la caja del objeto del evento (0x40bdd0, 0x40c440 o 0x405220),
         // por su tipo (CL9 hito 11, Scenes/EventDrawing). Sin el objeto, nada.
         if (frame.runtime.eventObject)
-            return DrawTheEventBoxText(frame.context, *frame.runtime.eventObject);
+            return Events::DrawTheEventBoxText(frame.context, *frame.runtime.eventObject);
     }
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         return DrawTheInvitation(frame, id);
@@ -1911,4 +1912,4 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud::Dialogs

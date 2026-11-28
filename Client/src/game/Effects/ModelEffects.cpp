@@ -31,7 +31,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::World
+namespace Client::Effects
 {
 namespace
 {
@@ -1018,7 +1018,7 @@ float Shifted(int offset, float value)
 Core::Expected<std::optional<std::size_t>, std::string>
 ModelEffects::CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
                               Crt::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
-                              FrameSprites& sprites)
+                              Particles::FrameSprites& sprites)
 {
     if (!bonePoint)
         return Core::Unexpected(
@@ -1438,4 +1438,4 @@ void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton)
         effect.alive = false;
     }
 }
-} // namespace Client::World
+} // namespace Client::Effects

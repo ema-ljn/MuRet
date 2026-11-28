@@ -12,20 +12,20 @@ TEST(SiegeGateEffectsTest, EveryGateUsesTheTwoTickConstructorAndOnlyTheCommonSte
 {
     for (std::int16_t type = 0x3d; type <= 0x40; ++type)
     {
-        auto effects = std::make_unique<Client::World::ModelEffects>();
-        Client::World::Particles particles;
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
+        Client::Particles::Particles particles;
         Client::Crt::CrtRandom random(1);
-        const auto created = Client::World::CreateCastleGateEffect({.type = type, .subtype = 1}, *effects);
+        const auto created = Client::CastleSiege::CreateCastleGateEffect({.type = type, .subtype = 1}, *effects);
         ASSERT_TRUE(created.HasValue());
         ASSERT_TRUE(created.Value().has_value());
         auto& effect = effects->Effects()[*created.Value()];
         EXPECT_EQ(effect.life, 2);
         EXPECT_EQ(effect.subtype, 1);
         EXPECT_EQ(random.State(), 1u);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(effect, nullptr, particles, 0, random).HasValue());
         EXPECT_TRUE(effect.alive);
         EXPECT_EQ(effect.life, 1);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(effect, nullptr, particles, 0, random).HasValue());
         EXPECT_FALSE(effect.alive);
         EXPECT_EQ(effect.life, 0);
         Client::Crt::CrtRandom expected(1);

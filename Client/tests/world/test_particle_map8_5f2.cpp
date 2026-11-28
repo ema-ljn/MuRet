@@ -29,23 +29,23 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t Smoke = 0x5f2;
 using Client::Math::Bits;
 
 // En ramas sin trig, cualquier llamada al evaluador es un defecto observable.
-struct RejectingTrigonometry final : Client::World::IParticleTrigonometry
+struct RejectingTrigonometry final : Client::Particles::IParticleTrigonometry
 {
-    Client::Core::Expected<double, Client::World::ParticleError> SineProductPC53(double, float) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> SineProductPC53(double, float) const override
     {
         ADD_FAILURE() << "seno inesperado";
-        return Client::Core::Unexpected(Client::World::ParticleError::UnrepresentableTrigonometry);
+        return Client::Core::Unexpected(Client::Particles::ParticleError::UnrepresentableTrigonometry);
     }
-    Client::Core::Expected<double, Client::World::ParticleError> CosineProductPC53(double, float) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> CosineProductPC53(double, float) const override
     {
         ADD_FAILURE() << "coseno inesperado";
-        return Client::Core::Unexpected(Client::World::ParticleError::UnrepresentableTrigonometry);
+        return Client::Core::Unexpected(Client::Particles::ParticleError::UnrepresentableTrigonometry);
     }
 };
 
@@ -129,7 +129,7 @@ TEST(ParticleMap8Test, LegacyAdmissionRemainsUnchanged)
     {
         const auto result = pool.CreateChecked(Smoke, {}, {}, {}, subtype, 3, 1.0f, random);
         ASSERT_FALSE(result.HasValue());
-        EXPECT_EQ(result.Error(), Client::World::ParticleError::UnsupportedSubtype);
+        EXPECT_EQ(result.Error(), Client::Particles::ParticleError::UnsupportedSubtype);
     }
     EXPECT_EQ(random.State(), 7u);
 }
@@ -147,7 +147,8 @@ TEST(ParticleMap8Test, FourKeepsWideAccumulatorAndFinishesAfterExpiration)
                  .verticalSpeed = 16777216};
     float clock = 0;
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.life, 0);
     EXPECT_EQ(p.light, glm::vec3(0));
@@ -170,14 +171,16 @@ TEST(ParticleMap8Test, SevenUsesPostDecrementFiveBoundaryAndWideFall)
                  .verticalSpeed = 16777216};
     float clock = 0;
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.life, 5);
     EXPECT_EQ(p.position.z, -1);
     EXPECT_FLOAT_EQ(p.scale, 1.03f);
     EXPECT_EQ(Bits(p.light.x), 0x3f39999au);
     EXPECT_EQ(Bits(p.light.y), 0x3f126e98u);
     EXPECT_EQ(Bits(p.light.z), 0x3eaa7efau);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.life, 4);
     EXPECT_FLOAT_EQ(p.scale, 0.96f);
     EXPECT_FLOAT_EQ(p.light.x, 0.3625f);
@@ -197,14 +200,16 @@ TEST(ParticleMap8Test, EightFadesAtFiveAndContinuesAfterDeath)
                  .velocity = {1, 2, 3}};
     float clock = 0;
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.life, 5);
     EXPECT_EQ(p.scale, 3);
     EXPECT_EQ(p.position.z, 10);
     EXPECT_EQ(p.velocity, glm::vec3(0));
     EXPECT_EQ(p.light, glm::vec3(1, 2, 4));
     p.life = 1;
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.light, glm::vec3(.5, 1, 2));
 }
@@ -238,7 +243,7 @@ TEST(ParticleMap8Test, CreateFourUsesSignedLowWordAndMaskedInvalidProfile)
 }
 
 // Observador CPU explícito: los métodos inesperados fallan, ningún servicio opaco se omite.
-struct DrawingSpy final : Client::World::IParticleDrawingServices
+struct DrawingSpy final : Client::Particles::IParticleDrawingServices
 {
     explicit DrawingSpy(Particle& particle) : p(particle) {}
     Particle& p;
@@ -249,29 +254,29 @@ struct DrawingSpy final : Client::World::IParticleDrawingServices
     int subtracts = 0;
     float expectedWidth = 16;
     float expectedHeight = 32;
-    Client::Core::Expected<glm::vec2, Client::World::ParticleError> Dimensions(std::int32_t image) override
+    Client::Core::Expected<glm::vec2, Client::Particles::ParticleError> Dimensions(std::int32_t image) override
     {
         events.push_back("dimensions");
         EXPECT_EQ(image, Smoke);
         return glm::vec2(8, 16);
     }
-    Client::Core::Expected<std::uint8_t, Client::World::ParticleError> MaterialFlag(std::int32_t type) override
+    Client::Core::Expected<std::uint8_t, Client::Particles::ParticleError> MaterialFlag(std::int32_t type) override
     {
         events.push_back("flag");
         EXPECT_EQ(type, Smoke);
         return std::uint8_t{3};
     }
-    Result Failure(Client::World::ParticleDrawingPhase phase)
+    Result Failure(Client::Particles::ParticleDrawingPhase phase)
     {
-        return Client::Core::Unexpected(Client::World::ParticleDrawingError{
-            Client::World::ParticleError::MissingDrawingService, phase, std::make_error_code(std::errc::io_error)});
+        return Client::Core::Unexpected(Client::Particles::ParticleDrawingError{
+            Client::Particles::ParticleError::MissingDrawingService, phase, std::make_error_code(std::errc::io_error)});
     }
     Result Material(std::uint8_t flag) override
     {
         events.push_back("material");
         EXPECT_EQ(flag, 3);
         if (failMaterial)
-            return Failure(Client::World::ParticleDrawingPhase::Material);
+            return Failure(Client::Particles::ParticleDrawingPhase::Material);
         if (mutate)
         {
             p.subtype = 2;
@@ -298,22 +303,22 @@ struct DrawingSpy final : Client::World::IParticleDrawingServices
     Result Blended() override
     {
         ADD_FAILURE() << "unexpected620c10";
-        return Failure(Client::World::ParticleDrawingPhase::BlendedPrefix);
+        return Failure(Client::Particles::ParticleDrawingPhase::BlendedPrefix);
     }
     Result Type620850() override
     {
         ADD_FAILURE() << "unexpected620850";
-        return Failure(Client::World::ParticleDrawingPhase::Type620850);
+        return Failure(Client::Particles::ParticleDrawingPhase::Type620850);
     }
     Result Type620870() override
     {
         ADD_FAILURE() << "unexpected620870";
-        return Failure(Client::World::ParticleDrawingPhase::Type620870);
+        return Failure(Client::Particles::ParticleDrawingPhase::Type620870);
     }
     Result TextureEnv(Client::Render::TextureEnvMode) override
     {
         ADD_FAILURE() << "unexpected TextureEnv";
-        return Failure(Client::World::ParticleDrawingPhase::TextureEnv);
+        return Failure(Client::Particles::ParticleDrawingPhase::TextureEnv);
     }
     Result Billboard(Client::Render::ParticleBillboardRequest request) override
     {
@@ -331,7 +336,7 @@ struct DrawingSpy final : Client::World::IParticleDrawingServices
             EXPECT_EQ(request.position.get().z, 999);
         }
         if (failBillboard)
-            return Failure(Client::World::ParticleDrawingPhase::Bind);
+            return Failure(Client::Particles::ParticleDrawingPhase::Bind);
         return {};
     }
 };
@@ -350,7 +355,7 @@ TEST(ParticleMap8Test, DrawAllFourVariantsBorrowsVectorsAndForcesPositiveZeroOnl
                      .rotation = std::bit_cast<float>(0x7fc12345u)};
         DrawingSpy spy(p);
         float clock = 0;
-        ASSERT_TRUE(Client::World::DrawParticlesChecked(pool, 0, std::cref(clock), spy).HasValue());
+        ASSERT_TRUE(Client::Particles::DrawParticlesChecked(pool, 0, std::cref(clock), spy).HasValue());
         EXPECT_EQ(spy.events, (std::vector<std::string>{"dimensions", "flag", "material", "billboard"}));
     }
 }
@@ -362,7 +367,7 @@ TEST(ParticleMap8Test, DrawRereadsAllThreeSmokeSelectorsAfterServicesAndKeepsCap
     DrawingSpy spy(p);
     spy.mutate = true;
     float clock = 0;
-    ASSERT_TRUE(Client::World::DrawParticlesChecked(pool, 1, std::cref(clock), spy).HasValue());
+    ASSERT_TRUE(Client::Particles::DrawParticlesChecked(pool, 1, std::cref(clock), spy).HasValue());
     EXPECT_EQ(spy.events,
               (std::vector<std::string>{"dimensions", "flag", "material", "subtractive", "subtractive", "billboard"}));
     EXPECT_FALSE(p.alive);
@@ -380,7 +385,7 @@ TEST(ParticleMap8Test, DrawingErrorPreservesPrefixAndStopsFollowingSlots)
         spy.failMaterial = material;
         spy.failBillboard = !material;
         float clock = 0;
-        const auto result = Client::World::DrawParticlesChecked(pool, 0, std::cref(clock), spy);
+        const auto result = Client::Particles::DrawParticlesChecked(pool, 0, std::cref(clock), spy);
         ASSERT_FALSE(result.HasValue());
         EXPECT_EQ(result.Error().slot, 0u);
         EXPECT_EQ(result.Error().error.backendError, std::make_error_code(std::errc::io_error));
@@ -402,7 +407,8 @@ TEST(ParticleMap8Test, EightGrowthUsesStoredPhaseForHeightAndWidePhaseForScale)
                  .velocity = {2, 4, 8}};
     float clock = 0;
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.life, 6);
     EXPECT_EQ(Bits(p.scale), 0x3ca3d70au);
     EXPECT_EQ(p.position.z, 335544320);
@@ -441,9 +447,9 @@ TEST(ParticleMap8Test, UnsupportedFollowingSlotStopsOnlyAfterItsCommonPrefix)
     pool.All()[2] = Particle{.alive = true, .type = Smoke, .subtype = 8, .life = 6};
     float clock = 0;
     CrtRandom random(7);
-    const auto result = Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
+    const auto result = Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), Client::World::ParticleError::UnsupportedType);
+    EXPECT_EQ(result.Error(), Client::Particles::ParticleError::UnsupportedType);
     EXPECT_EQ(pool.All()[0].life, 1);
     EXPECT_EQ(pool.All()[1].life, 1);
     EXPECT_EQ(pool.All()[2].life, 6);
@@ -455,7 +461,8 @@ TEST(ParticleMap8Test, EmptyPassStillConsumesExactlyTwoWindDraws)
     Particles pool;
     float clock = std::numeric_limits<float>::quiet_NaN();
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(random.State(), 0xc40e66b9u);
 }
 
@@ -467,7 +474,8 @@ TEST(ParticleMap8Test, SevenReloadsRoundedScaleBeforeItsLateShrink)
     p = Particle{.alive = true, .type = Smoke, .subtype = 7, .scale = .1f, .life = 5};
     float clock = 0;
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(Bits(p.scale), 0x3cf5c28cu);
 }
 TEST(ParticleMap8Test, FirstFreePhysicalSlotKeepsItsUnwrittenResidualFields)
@@ -507,7 +515,7 @@ struct TrigObservation
 };
 // Productos prescritos para verificar el caller, no muestras numéricas FSIN del original.
 // El spy sólo observa: nunca modifica pool, reloj ni RNG.
-struct ObservedTrigonometry final : Client::World::IParticleTrigonometry
+struct ObservedTrigonometry final : Client::Particles::IParticleTrigonometry
 {
     ObservedTrigonometry(const Particle& observed, std::vector<TrigCall> prescribed)
         : particle(observed), calls(std::move(prescribed))
@@ -516,15 +524,15 @@ struct ObservedTrigonometry final : Client::World::IParticleTrigonometry
     const Particle& particle;
     std::vector<TrigCall> calls;
     mutable std::vector<TrigObservation> observations;
-    Client::Core::Expected<double, Client::World::ParticleError> SineProductPC53(double argument,
-                                                                                 float multiplier) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> SineProductPC53(double argument,
+                                                                                     float multiplier) const override
     {
         const std::size_t index = observations.size();
         observations.push_back({particle.life, particle.alive, particle.position.z, particle.scale, particle.light});
         if (index >= calls.size())
         {
             ADD_FAILURE() << "seno fuera de la secuencia prescrita";
-            return Client::Core::Unexpected(Client::World::ParticleError::UnrepresentableTrigonometry);
+            return Client::Core::Unexpected(Client::Particles::ParticleError::UnrepresentableTrigonometry);
         }
         const TrigCall& call = calls[index];
         if (std::isnan(call.argument))
@@ -537,13 +545,13 @@ struct ObservedTrigonometry final : Client::World::IParticleTrigonometry
         }
         EXPECT_EQ(Bits(multiplier), Bits(call.multiplier));
         if (call.fail)
-            return Client::Core::Unexpected(Client::World::ParticleError::UnrepresentableTrigonometry);
+            return Client::Core::Unexpected(Client::Particles::ParticleError::UnrepresentableTrigonometry);
         return call.product;
     }
-    Client::Core::Expected<double, Client::World::ParticleError> CosineProductPC53(double, float) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> CosineProductPC53(double, float) const override
     {
         ADD_FAILURE() << "coseno fuera del contrato5f2";
-        return Client::Core::Unexpected(Client::World::ParticleError::UnrepresentableTrigonometry);
+        return Client::Core::Unexpected(Client::Particles::ParticleError::UnrepresentableTrigonometry);
     }
 };
 
@@ -565,7 +573,7 @@ TEST(ParticleMap8Test, SixRetainsWideTimeForBothSignedLowWordRemainders)
         ObservedTrigonometry trigonometry(p, {{static_cast<double>(sign) * 0x1.a36e2e01a36e3p+19, 20, 0},
                                               {static_cast<double>(sign) * 0x1.c9871p-10, .5f, 0}});
         ASSERT_TRUE(
-            Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+            Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
         ASSERT_EQ(trigonometry.observations.size(), 2u);
         EXPECT_EQ(p.life, 10);
         EXPECT_TRUE(p.alive);
@@ -586,7 +594,8 @@ TEST(ParticleMap8Test, SixPreservesTheProduct53BeforeItsBaseAddition)
     float clock = 1;
     CrtRandom random(7);
     ObservedTrigonometry trigonometry(p, {{0x1.a36e2ep-13, 20, 10 + 0x1p-49}, {0x1.c9871p-10, .5f, 0}});
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.position.z, 0x1p-49f);
 }
 TEST(ParticleMap8Test, SixFirstFailureKeepsCommonMovementAndLifeTenWithoutResurrecting)
@@ -607,9 +616,9 @@ TEST(ParticleMap8Test, SixFirstFailureKeepsCommonMovementAndLifeTenWithoutResurr
     float clock = 0;
     CrtRandom random(7);
     ObservedTrigonometry trigonometry(p, {{0, 20, 0, true}});
-    const auto result = Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
+    const auto result = Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), Client::World::ParticleError::UnrepresentableTrigonometry);
+    EXPECT_EQ(result.Error(), Client::Particles::ParticleError::UnrepresentableTrigonometry);
     EXPECT_EQ(p.life, 10);
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.position, glm::vec3(6, 8, 10));
@@ -630,9 +639,9 @@ TEST(ParticleMap8Test, SixSecondFailureKeepsZAndRgbAndStopsBeforeScaleAndNextSlo
     float clock = 0;
     CrtRandom random(7);
     ObservedTrigonometry trigonometry(p, {{0, 20, .25}, {0, .5f, 0, true}});
-    const auto result = Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
+    const auto result = Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), Client::World::ParticleError::UnrepresentableTrigonometry);
+    EXPECT_EQ(result.Error(), Client::Particles::ParticleError::UnrepresentableTrigonometry);
     EXPECT_EQ(p.position.z, 4.25f);
     EXPECT_EQ(p.scale, 7);
     EXPECT_EQ(pool.All()[1].life, 2);
@@ -655,7 +664,7 @@ TEST(ParticleMap8Test, SixDoesNotPrevalidateFtolAtEitherSigned64Limit)
         CrtRandom random(7);
         ObservedTrigonometry trigonometry(p, {{static_cast<double>(sign) * 0x1.a36e2ep+50, 20, 0}, {0, .5f, 0}});
         ASSERT_TRUE(
-            Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+            Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
         EXPECT_EQ(p.position.z, 4);
         EXPECT_EQ(Bits(p.scale), 0x3fe66666u);
         EXPECT_EQ(trigonometry.observations.size(), 2u);
@@ -673,7 +682,8 @@ TEST(ParticleMap8Test, SixRejectsNonfiniteAtFirstTrigAfterLifeStore)
         const double argument =
             std::isnan(clock) ? std::numeric_limits<double>::quiet_NaN() : static_cast<double>(clock);
         ObservedTrigonometry trigonometry(p, {{argument, 20, 0, true}});
-        const auto result = Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
+        const auto result =
+            Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry);
         ASSERT_FALSE(result.HasValue());
         EXPECT_EQ(p.life, 10);
         EXPECT_EQ(p.scale, 7);
@@ -690,7 +700,7 @@ TEST(ParticleMap8Test, SixLoadsClockAfterWindInsteadOfAtPassEntry)
     // R1=61: (-939)*f32(.0006) se almacena como bf103afc; producto racional RN53 independiente.
     ObservedTrigonometry trigonometry(p, {{-0x1.d89d3b6dc29p-14, 20, 0}, {0, .5f, 0}});
     ASSERT_TRUE(
-        Client::World::StepParticlesChecked(pool, random, std::cref(pool.Wind().change.x), nullptr, trigonometry)
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(pool.Wind().change.x), nullptr, trigonometry)
             .HasValue());
     EXPECT_EQ(Bits(pool.Wind().change.x), 0xbf103afcu);
     EXPECT_EQ(trigonometry.observations.size(), 2u);
@@ -704,8 +714,8 @@ TEST(ParticleMap8Test, SixRetainsTimeAfterZChangesAliasedClockAndReloadsForTheNe
     CrtRandom random(7);
     ObservedTrigonometry trigonometry(
         p, {{0x1.47ae13fp-6, 20, 20}, {0x1.6571848p-3, .5f, 0}, {0x1.89374b2p-8, 20, 0}, {0x1.acee9fp-5, .5f, 0}});
-    ASSERT_TRUE(
-        Client::World::StepParticlesChecked(pool, random, std::cref(p.position.z), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(pool, random, std::cref(p.position.z), nullptr, trigonometry)
+                    .HasValue());
     ASSERT_EQ(trigonometry.observations.size(), 4u);
     EXPECT_EQ(p.position.z, 30);
     EXPECT_EQ(pool.All()[1].position.z, 8);
@@ -719,13 +729,14 @@ TEST(ParticleMap8Test, ExpiredSixCompletesItsSuffixOnceWithoutReactivation)
     float clock = 0;
     CrtRandom random(7);
     ObservedTrigonometry trigonometry(p, {{0, 20, 0}, {0, .5f, 0}});
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.life, 10);
     EXPECT_EQ(p.position.z, 4);
     EXPECT_EQ(Bits(p.scale), 0x3fe66666u);
     RejectingTrigonometry rejecting;
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, rejecting).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, rejecting).HasValue());
     EXPECT_EQ(p.life, 10);
     EXPECT_FALSE(p.alive);
 }
@@ -751,19 +762,19 @@ TEST(ParticleMap8Test, AllFourVariantsCompleteCreateStepAndBorrowedDraw)
         if (sample.subtype == 6)
         {
             ObservedTrigonometry trigonometry(p, {{0x1.8fc503d8p-7, 20, 0}, {0x1.b414bb4p-4, .5f, 0}});
-            ASSERT_TRUE(
-                Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+            ASSERT_TRUE(Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry)
+                            .HasValue());
             EXPECT_EQ(trigonometry.observations.size(), 2u);
         }
         else
         {
             ASSERT_TRUE(
-                Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, rejecting).HasValue());
+                Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, rejecting).HasValue());
         }
         DrawingSpy spy(p);
         spy.expectedWidth = std::bit_cast<float>(sample.width);
         spy.expectedHeight = std::bit_cast<float>(sample.height);
-        ASSERT_TRUE(Client::World::DrawParticlesChecked(pool, 0, std::cref(clock), spy).HasValue());
+        ASSERT_TRUE(Client::Particles::DrawParticlesChecked(pool, 0, std::cref(clock), spy).HasValue());
         EXPECT_EQ(spy.events, (std::vector<std::string>{"dimensions", "flag", "material", "billboard"}));
     }
 }
@@ -779,7 +790,8 @@ TEST(ParticleMap8Test, SixUsesNonzeroSecondProductBeforeTheScaleStore)
     // RN32 da40033333; omitir producto da3fe66666; narrow f32 previo empata y da40033334.
     // No es una muestra FSIN ni demuestra sensibilidad h64->double para el factor0.5.
     ObservedTrigonometry trigonometry(p, {{0x1.a36e2ep-13, 20, 0}, {0x1.c9871p-10, .5f, 0x1.000007ffffe00p-2}});
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     ASSERT_EQ(trigonometry.observations.size(), 2u);
     EXPECT_EQ(trigonometry.observations[1].scale, 7);
     EXPECT_EQ(Bits(p.scale), 0x40033333u);
@@ -794,7 +806,8 @@ TEST(ParticleMap8Test, FourComputesNonzeroRgbFromPostDecrementLife)
     float clock = 0;
     CrtRandom random(7);
     // Contrato5446e0 §5f2/4: vida9->8; base ancha 8*.125=1, RGB conserva los tres f32 exactos.
-    ASSERT_TRUE(Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    ASSERT_TRUE(
+        Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.life, 8);
     EXPECT_EQ(Bits(p.light.x), 0x3ef0f0f1u);
     EXPECT_EQ(Bits(p.light.y), 0x3eca3097u);
@@ -802,14 +815,14 @@ TEST(ParticleMap8Test, FourComputesNonzeroRgbFromPostDecrementLife)
 }
 
 // No se conserva el overload vivo provisional sin evaluador.
-using ClockOnlyCreateSignature = Client::Core::Expected<std::optional<std::size_t>, Client::World::ParticleError> (
+using ClockOnlyCreateSignature = Client::Core::Expected<std::optional<std::size_t>, Client::Particles::ParticleError> (
     Particles::*)(std::int32_t, const glm::vec3&, const glm::vec3&, const glm::vec3&, std::int32_t, float,
                   std::reference_wrapper<const float>, CrtRandom&, std::uint32_t);
 template <typename Pool>
 concept HasClockOnlyCreate = requires { static_cast<ClockOnlyCreateSignature>(&Pool::CreateChecked); };
 template <typename Pool>
 concept HasClockOnlyStep = requires(Pool& pool, CrtRandom& random, const float& clock) {
-    Client::World::StepParticlesChecked(pool, random, std::cref(clock), nullptr);
+    Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr);
 };
 static_assert(!HasClockOnlyCreate<Particles>);
 static_assert(!HasClockOnlyStep<Particles>);

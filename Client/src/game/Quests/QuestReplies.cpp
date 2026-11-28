@@ -34,7 +34,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Quests
 {
 namespace
 {
@@ -46,13 +46,13 @@ constexpr Audio::SoundId PointsPrizeSound{0x65};
 constexpr std::uint8_t ClassPrizeAction = 0xb8;
 
 // 0x4ddb00 y 0x4ddb40 desde 0x418ee0: 0x657a90 y 0x4198b0(−1).
-Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& resources, std::uint8_t index,
+Core::Expected<void, std::string> ShowTheNewState(const Scenes::WorldEntryResources& resources, std::uint8_t index,
                                                   std::uint8_t state)
 {
     Kernel::WorldState& world = resources.world;
     SetTheQuestState(world, index, state);
-    GamePanels panels(world, resources.cloth.random, GamePanelTables{.texts = resources.texts});
-    LendTheCastlePanelServices(panels, resources);
+    Hud::GamePanels panels(world, resources.cloth.random, Hud::GamePanelTables{.texts = resources.texts});
+    CastleSiege::LendTheCastlePanelServices(panels, resources);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
     auto opened = OpenTheQuestDialog(
@@ -73,7 +73,7 @@ Core::Expected<void, std::string> ShowTheNewState(const WorldEntryResources& res
 // cada vuelta suma el 60f/0xa desde la copia de la posición con la z más 200 (0x6b8928), hecha una vez antes de las
 // vueltas (0x4de0ae..0x4de0d0). Un pool lleno no crea ni saca rand(), y las vueltas siguen.
 Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& actor,
-                                                         const WorldEntryResources& resources, bool falling,
+                                                         const Scenes::WorldEntryResources& resources, bool falling,
                                                          std::uint32_t address)
 {
     constexpr int Rounds = 15;
@@ -83,7 +83,7 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& act
     constexpr double Raise = 200.0; // 0x6b8928
     glm::vec3 raised = actor.position;
     raised.z = static_cast<float>(static_cast<double>(actor.position.z) + Raise);
-    std::span<JointState> joints = resources.world.DrawTail().joints;
+    std::span<Scenes::JointState> joints = resources.world.DrawTail().joints;
     Crt::CrtRandom& random = resources.cloth.random;
     for (int round = 0; round < Rounds; ++round)
     {
@@ -98,7 +98,7 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& act
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = NoTarget};
-        if (auto created = CreateFaunaJoint(joints, sparkle, random); !created.HasValue())
+        if (auto created = Joints::CreateFaunaJoint(joints, sparkle, random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
         if (!falling)
             continue;
@@ -113,22 +113,22 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& act
                                               .skill = 0,
                                               .skillSerial = 0,
                                               .target = NoTarget};
-        if (auto created = CreateFaunaJoint(joints, descending, random); !created.HasValue())
+        if (auto created = Joints::CreateFaunaJoint(joints, descending, random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address + 0x23, created.Error()));
     }
     // 0x518cf0(0x61e, posición, ángulos, luz propia, 0, personaje, −1, 0, 0, 0, 0): el calco /0, como el de subir de
     // nivel. Con la tabla llena, ninguno.
     static_cast<void>(resources.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
-                                                                    World::LevelUpDecalSubtype));
+                                                                    Effects::LevelUpDecalSubtype));
     return {};
 }
 
 // 0x513100 (llamado en `address`: 0x4de140, 0x4de411 o 0x4de4c5), 0x4ea030(personaje, 0xb8) en 0x4de4d0 y el 0x66 de
 // 0x4de4db. Cada sonido de 0x4f2250 se despacha; el último queda en lastSoundId.
-Core::Expected<void, std::string> DressTheNewClass(Kernel::ActorState& actor, const WorldEntryResources& resources,
-                                                   std::uint32_t address)
+Core::Expected<void, std::string> DressTheNewClass(Kernel::ActorState& actor,
+                                                   const Scenes::WorldEntryResources& resources, std::uint32_t address)
 {
-    const auto stop = TransitionStopContext(actor, resources);
+    const auto stop = Scenes::TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, stop.Error()));
     const auto dressed = Actors::ApplyTheClassParts(actor, stop.Value());
@@ -148,7 +148,7 @@ void ApplyQuestFlag(const Protocol::Quests::QuestFlag& flag, Kernel::WorldState&
         quest.flags[flag.index] = flag.value;
 }
 
-void ApplyQuestList(const Protocol::Quests::QuestList& list, const WorldEntryResources& resources)
+void ApplyQuestList(const Protocol::Quests::QuestList& list, const Scenes::WorldEntryResources& resources)
 {
     // 0x418e20: lo que la copia escribiría después del objeto (+0x21398) se descarta con un aviso (Q-C1126).
     if (const std::size_t outside = ApplyTheQuestList(resources.world, list.count, std::span(list.states));
@@ -158,13 +158,13 @@ void ApplyQuestList(const Protocol::Quests::QuestList& list, const WorldEntryRes
 }
 
 Core::Expected<void, std::string> ApplyQuestState(const Protocol::Quests::QuestStateChange& change,
-                                                  const WorldEntryResources& resources)
+                                                  const Scenes::WorldEntryResources& resources)
 {
     return ShowTheNewState(resources, change.index, change.state);
 }
 
 Core::Expected<void, std::string> ApplySetQuestResult(const Protocol::Quests::SetQuestResult& result,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     if (result.result != 0)
         return {};
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> ApplySetQuestResult(const Protocol::Quests::Se
 }
 
 Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::QuestResult& result,
-                                                   const WorldEntryResources& resources)
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -230,4 +230,4 @@ Core::Expected<void, std::string> ApplyQuestResult(const Protocol::Quests::Quest
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Quests

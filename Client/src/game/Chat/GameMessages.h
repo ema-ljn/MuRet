@@ -24,12 +24,12 @@ struct WorldRuntime;
 
 // Los mensajes del juego sobre el chat de WorldRuntime (CL8 hito 3; 06 § El chat): 0x555190 para quien manda un
 // mensaje (la red, los comandos) y los dos relojes que 0x637700 corre detrás del paso de cualquier escena.
-namespace Client::Scenes
+namespace Client::Chat
 {
 
 // La entrada de 0x555190 sobre el chat y los modos de la UI de `runtime`, midiendo con `measure` en una pantalla de
 // `screen` y con la fuente del DC que dejó el último dibujo.
-[[nodiscard]] UI::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
+[[nodiscard]] Ui::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
                                             Core::PixelSize screen);
 
 // 0x555190(nombre, texto, tipo). El sonido que pide (el 0x26 del filtro) queda en WorldRuntime::lastSoundId.
@@ -70,5 +70,5 @@ StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMea
 // fuera del juego, el área vieja (0x5554e0). Escribe en `hud` lo que el dibujo deja: un dibujo intermedio de MuRet
 // pasa una copia.
 void DrawTheMessages(const Kernel::WorldState& world, Kernel::HudState& hud, Render::SpriteBatch& sprites,
-                     Render::Frame::ITextDrawer& text, UI::Point mouse, bool inTheGame);
-} // namespace Client::Scenes
+                     Render::Frame::ITextDrawer& text, Ui::Point mouse, bool inTheGame);
+} // namespace Client::Chat

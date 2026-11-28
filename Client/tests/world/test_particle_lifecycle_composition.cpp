@@ -18,18 +18,18 @@ namespace
 {
 using namespace Client;
 // Perfil CPU explícito: metadata fija y registro de fronteras D2, sin GL ni recursos reales.
-class TraceServices final : public World::IParticleDrawingServices
+class TraceServices final : public Particles::IParticleDrawingServices
 {
 public:
     std::vector<int> trace;
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> lights;
-    Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t) override
+    Core::Expected<glm::vec2, Particles::ParticleError> Dimensions(std::int32_t) override
     {
         trace.push_back(1);
         return glm::vec2(8, 16);
     }
-    Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t) override
+    Core::Expected<std::uint8_t, Particles::ParticleError> MaterialFlag(std::int32_t) override
     {
         trace.push_back(2);
         return std::uint8_t{3};
@@ -75,9 +75,9 @@ public:
 };
 TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispatch)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(7);
-    World::PortableParticleTrigonometry trig;
+    Particles::PortableParticleTrigonometry trig;
     const float clock = 0;
     const auto orbit =
         particles.CreateChecked(0x60f, {2, 3, 4}, {}, {1, 2, 3}, 3, 2, std::cref(clock), random, 91, trig);
@@ -95,7 +95,7 @@ TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispat
     // Estado legal preparado: tras decremento u=(59-59)*f32(0.1)=0, seno0 y coseno1.
     p.velocity.x = -59;
     s.verticalSpeed = 0;
-    ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
+    ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
     EXPECT_EQ(p.life, 59);
     EXPECT_EQ(p.position.x, 2);
     EXPECT_EQ(p.position.y, -37);
@@ -103,7 +103,7 @@ TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispat
     EXPECT_EQ(s.position.z, s.rotation);
     EXPECT_EQ(s.scale, 1.7999999523162842f);
     TraceServices services;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     ASSERT_EQ(services.positions.size(), 2u);
     EXPECT_EQ(services.positions[0], p.position);
     EXPECT_EQ(services.positions[1], s.position);
@@ -112,7 +112,7 @@ TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispat
 }
 TEST(ParticleLifecycleCompositionTest, LegacyStillDeniesBothNewFamilies)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(7);
     EXPECT_FALSE(particles.CreateChecked(0x60f, {}, {}, {}, 3, 1, 0, random).HasValue());
     EXPECT_FALSE(particles.CreateChecked(0x5f2, {}, {}, {}, 6, 1, 0, random).HasValue());
@@ -122,12 +122,12 @@ TEST(ParticleLifecycleCompositionTest, LegacyStillDeniesBothNewFamilies)
 
 TEST(ParticleLifecycleCompositionTest, PiercingSparkRetainsItsPhysicalParentAndMovesThroughDeath)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& retained = particles.All()[0];
     retained.rotationFactor = 7;
     retained.field64 = {8, 9};
     retained.field38 = 0x12345678;
-    const World::ParticleOwner owner{World::ParticleOwnerKind::ModelEffect, 37};
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::ModelEffect, 37};
     const auto slot = particles.CreatePiercingSpark({10, 20, 30}, 0.4f, owner, {110, 220, 330});
     ASSERT_TRUE(slot);
     auto& particle = particles.All()[*slot];
@@ -136,11 +136,11 @@ TEST(ParticleLifecycleCompositionTest, PiercingSparkRetainsItsPhysicalParentAndM
     EXPECT_FLOAT_EQ(particle.rotationFactor, 7);
     EXPECT_EQ(particle.field64, (glm::vec2{8, 9}));
     float clock = 0;
-    World::PortableParticleTrigonometry trig;
+    Particles::PortableParticleTrigonometry trig;
     Crt::CrtRandom random(3);
     int calls = 0;
     bool parentAlive = true;
-    const World::ParticleOwnerBones parent = [&](const World::Particle& child) -> std::optional<glm::vec3>
+    const Particles::ParticleOwnerBones parent = [&](const Particles::Particle& child) -> std::optional<glm::vec3>
     {
         ++calls;
         EXPECT_EQ(child.typedOwner, owner);
@@ -148,15 +148,15 @@ TEST(ParticleLifecycleCompositionTest, PiercingSparkRetainsItsPhysicalParentAndM
     };
     const auto step = [&]
     {
-        return World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig, {}, {}, {}, {}, nullptr,
-                                           {}, parent);
+        return Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig, {}, {}, {}, {},
+                                               nullptr, {}, parent);
     };
     ASSERT_TRUE(step().HasValue());
     EXPECT_EQ(particle.life, 14);
     EXPECT_EQ(particle.position, (glm::vec3{20, 40, 60}));
     EXPECT_EQ(particle.start, particle.position);
     TraceServices draw;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), draw).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), draw).HasValue());
     ASSERT_EQ(draw.positions.size(), 1u);
     EXPECT_EQ(draw.positions.front(), particle.position);
     ASSERT_EQ(draw.lights.size(), 1u);

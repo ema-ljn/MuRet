@@ -7,7 +7,7 @@
 #include <type_traits>
 namespace
 {
-using PositionView = Client::GameLogic::CharacterPositionState;
+using PositionView = Client::Actors::CharacterPositionState;
 using TypeBorrow = decltype(PositionView::type);
 using ItemBorrow = decltype(PositionView::item);
 using SafeZoneBorrow = decltype(PositionView::safeZone);
@@ -31,7 +31,7 @@ struct Character
     std::uint16_t item = 0xffff;
     std::uint8_t safeZone = 0;
     std::int32_t map = -1;
-    Client::GameLogic::CharacterPositionState View()
+    Client::Actors::CharacterPositionState View()
     {
         return {position, angles, phase, type, item, safeZone, map};
     }
@@ -41,7 +41,7 @@ TEST(CharacterPositionTest, TerrainSeesProvisionalPositionAndReplacesZ)
     Character actor;
     int speedCalls = 0;
     int heightCalls = 0;
-    Client::GameLogic::UpdateCharacterPosition(
+    Client::Actors::UpdateCharacterPosition(
         actor.View(),
         [&]
         {
@@ -64,7 +64,7 @@ TEST(CharacterPositionTest, TerrainSeesProvisionalPositionAndReplacesZ)
 TEST(CharacterPositionTest, MatrixPrecedesSpeedAndLiveFieldsAreReadAfterIt)
 {
     Character actor;
-    Client::GameLogic::UpdateCharacterPosition(
+    Client::Actors::UpdateCharacterPosition(
         actor.View(),
         [&]
         {
@@ -88,7 +88,7 @@ TEST(CharacterPositionTest, HeightOffsetsRespectMapItemAndSafeZonePrecedence)
             actor.map = map;
             actor.item = 0x1c15;
             actor.safeZone = static_cast<std::uint8_t>(safeZone);
-            Client::GameLogic::UpdateCharacterPosition(
+            Client::Actors::UpdateCharacterPosition(
                 actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
             const float expected = map == -1 || safeZone != 0 ? 20.0f : (map == 8 || map == 10 ? 110.0f : 50.0f);
             EXPECT_EQ(actor.position.z, expected);
@@ -97,7 +97,7 @@ TEST(CharacterPositionTest, HeightOffsetsRespectMapItemAndSafeZonePrecedence)
 TEST(CharacterPositionTest, TerrainCanChangeTypeAndPhaseBeforeTheSineCorrection)
 {
     Character actor;
-    Client::GameLogic::UpdateCharacterPosition(
+    Client::Actors::UpdateCharacterPosition(
         actor.View(), [] { return 0.0; },
         [&](float, float)
         {
@@ -115,7 +115,7 @@ TEST(CharacterPositionTest, SineIsSpilledBeforeAbsoluteAndPhaseUsesFloatRounding
     Character actor;
     actor.type = 0x154;
     actor.phase = -1.0f;
-    Client::GameLogic::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
+    Client::Actors::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
     // sin(-1) se redondea a 0xbf576aa4 antes de abs y de multiplicar por 70.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.position.z), 0x41f8c6b9u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.phase), 0xbf59999au);
@@ -123,14 +123,14 @@ TEST(CharacterPositionTest, SineIsSpilledBeforeAbsoluteAndPhaseUsesFloatRounding
 TEST(CharacterPositionTest, BaseHeightPreservesNegativeZeroWithoutAnExtraAddition)
 {
     Character actor;
-    Client::GameLogic::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return -0.0; });
+    Client::Actors::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return -0.0; });
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.position.z), 0x80000000u);
 }
 TEST(CharacterPositionTest, TerrainObservesTheProvisionalZFromThePitchedMovement)
 {
     Character actor;
     actor.angles.x = 30.0f;
-    Client::GameLogic::UpdateCharacterPosition(
+    Client::Actors::UpdateCharacterPosition(
         actor.View(), [] { return 12.0; },
         [&](float, float)
         {
@@ -144,7 +144,7 @@ TEST(CharacterPositionTest, OtherItemsNeverReceiveTheMapHeightOffset)
     Character actor;
     actor.item = 0x1c16;
     actor.map = 8;
-    Client::GameLogic::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
+    Client::Actors::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
     EXPECT_EQ(actor.position.z, 20.0f);
 }
 TEST(CharacterPositionTest, BobbingUsesTheFloatSpillOfTerrainPlusMapOffset)
@@ -153,7 +153,7 @@ TEST(CharacterPositionTest, BobbingUsesTheFloatSpillOfTerrainPlusMapOffset)
     actor.map = 8;
     actor.item = 0x1c15;
     actor.type = 0x154;
-    Client::GameLogic::UpdateCharacterPosition(
+    Client::Actors::UpdateCharacterPosition(
         actor.View(), [] { return 0.0; },
         [&actor](float, float)
         {
@@ -167,14 +167,14 @@ TEST(CharacterPositionTest, PhaseAboveTwoPiKeepsIncreasingWithoutWrap)
 {
     Character actor;
     actor.phase = 7.0f;
-    Client::GameLogic::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
+    Client::Actors::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.phase), 0x40e4cccdu);
 }
 TEST(CharacterPositionTest, LargePhaseAbsorbsTheFloatIncrement)
 {
     Character actor;
     actor.phase = 0x1p22f;
-    Client::GameLogic::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
+    Client::Actors::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.phase), 0x4a800000u);
 }
 TEST(CharacterPositionTest, MatchingConstMetadataCanBeBorrowed)
@@ -186,7 +186,7 @@ TEST(CharacterPositionTest, MatchingConstMetadataCanBeBorrowed)
     const std::int32_t map = 8;
     const PositionView view{actor.position,  actor.angles,        actor.phase,   std::cref(type),
                             std::cref(item), std::cref(safeZone), std::cref(map)};
-    Client::GameLogic::UpdateCharacterPosition(view, [] { return 0.0; }, [](float, float) { return 20.0; });
+    Client::Actors::UpdateCharacterPosition(view, [] { return 0.0; }, [](float, float) { return 20.0; });
     EXPECT_EQ(actor.position.z, 180.0f);
 }
 } // namespace

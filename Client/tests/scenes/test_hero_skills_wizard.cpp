@@ -50,7 +50,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
+using Client::Skills::HeroSkillContext;
 
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
@@ -164,7 +164,7 @@ struct WizardHero
     {
         return world.Actors()[ChosenSlot];
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
     }
@@ -220,7 +220,7 @@ struct WizardHero
     }
     Client::Core::Expected<void, std::string> Use()
     {
-        return Client::Scenes::UseTheWizardSkill(Hero(), skill, Context());
+        return Client::Skills::UseTheWizardSkill(Hero(), skill, Context());
     }
     std::vector<std::uint8_t> Sent(std::size_t index) const
     {
@@ -772,7 +772,7 @@ TEST(HeroSkillsWizardTest, TheThrustNeedsItsWeapon)
         const CrtRandom expected =
             Advanced(tested->random, OwnDraws + (thrusts ? SendDraws + OwnDraws + HeroCellDraws : 0));
         ASSERT_TRUE(
-            Client::Scenes::UseTheSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context()).HasValue());
+            Client::Skills::UseTheSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context()).HasValue());
         EXPECT_EQ(tested->random.State(), expected.State());
         ASSERT_EQ(tested->sent.size(), thrusts ? 2u : 0u);
         if (thrusts)
@@ -838,7 +838,7 @@ TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
                 const int hit = skill == 0x49 ? OwnDraws : HitDraws;
                 const CrtRandom expected =
                     Advanced(tested->random, OwnDraws + (sends ? SendDraws : 0) + hit + HeroCellDraws);
-                const auto used = Client::Scenes::UseTheSkillOnItsTarget(user, turned, tested->Context());
+                const auto used = Client::Skills::UseTheSkillOnItsTarget(user, turned, tested->Context());
                 ASSERT_TRUE(used.HasValue()) << used.Error();
                 EXPECT_EQ(tested->random.State(), expected.State());
 

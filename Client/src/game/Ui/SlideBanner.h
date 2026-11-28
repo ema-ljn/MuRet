@@ -44,7 +44,7 @@ class ITextDrawer;
 // +0x8d8) y los tramos de Slide.bmd. Lo llenan el timer 0x3eb (0x46b0e0, Scenes/Slides) y el 0D de 10 a 15
 // (0x4c66b3), lo pasa el paso de la UI (0x46b7b0) y lo dibuja el 15 del HUD (0x46b090). Ninguna de estas funciones
 // saca rand() salvo 0x46b680. Cada byte es una letra (Q-C67): _mbclen da 1.
-namespace Client::UI
+namespace Client::Ui
 {
 inline constexpr std::size_t SlideGroups = 5;
 
@@ -174,4 +174,4 @@ struct SlideDrawContext
 // franjas negras y, si tiene algo, su texto con el modo 6 de 0x467060 y lo corre. Corta en 0x46a850 si tendría que
 // sacar de adelante más bytes de los que quedan (Q-C518).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheSlides(SlideBanner& banner, const SlideDrawContext& context);
-} // namespace Client::UI
+} // namespace Client::Ui

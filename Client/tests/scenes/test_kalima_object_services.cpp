@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/KalimaObjectServices.h"
+#include "MapScripts/Kalima/KalimaObjectServices.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -11,17 +11,17 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/Sprites.h"
-#include "World/KalimaWorld.h"
-#include "World/Particles.h"
-#include "World/ParticleOwner.h"
+#include "Kernel/PoseBuffer.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/Sprites.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Particles/Particles.h"
+#include "Particles/ParticleOwner.h"
 #include "Kernel/ActorState.h"
 #include "Audio/SoundId.h"
 #include <limits>
 #include <cmath>
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -190,7 +190,7 @@ TEST(KalimaObjectServicesTest, TheStepHidesExactlyThirtySevenThroughFortyAfterTh
 TEST(KalimaObjectServicesTest, TheFlareUsesBoneTwentyAndDoesNotInventAnObjectOrigin)
 {
     auto object = Object(12);
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::World::FrameSprites sprites;
     Client::Crt::CrtRandom random(7);
     const auto result = Client::Scenes::StepKalimaObjectFrame(

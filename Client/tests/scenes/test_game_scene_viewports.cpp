@@ -23,7 +23,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"

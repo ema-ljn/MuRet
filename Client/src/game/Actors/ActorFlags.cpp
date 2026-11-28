@@ -1,14 +1,17 @@
 #include "Actors/ActorFlags.h"
 
+#include "Actors/EffectHooks.h"
+#include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
 
 #include <cstdint>
+#include <format>
 #include <span>
+#include <string>
 
 namespace Client::Actors
 {
@@ -30,29 +33,17 @@ void Lower(std::uint32_t& flags, std::uint32_t bit)
         flags -= bit;
 }
 
+Core::Expected<void, std::string> NoEffectHooks(std::uint32_t mask)
+{
+    return Core::Unexpected(std::format("0x4e6910: no effect hooks to turn off the effects of flag {:#x}", mask));
+}
+
 void KillTheFlames(Kernel::ActorState& actor, Kernel::WorldState& world)
 {
     KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 4);
     KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 9);
 }
 } // namespace
-
-bool KillModelEffectsOf(World::ModelEffects& effects, std::int16_t type, const void* owner, std::int32_t subtype)
-{
-    bool killed = false;
-    for (World::ModelEffect& effect : effects.Effects())
-    {
-        if (!effect.alive || effect.type != type)
-            continue;
-        if (subtype != AnySubtype && subtype != effect.subtype)
-            continue;
-        if (effect.ownerContext != owner)
-            continue;
-        effect.alive = false;
-        killed = true;
-    }
-    return killed;
-}
 
 void KillJointsOf(std::span<Scenes::JointState> joints, std::int32_t type, const void* owner, std::int32_t subtype)
 {
@@ -66,9 +57,12 @@ void KillJointsOf(std::span<Scenes::JointState> joints, std::int32_t type, const
     }
 }
 
-void RemoveActorFlag(std::uint32_t mask, Kernel::ActorState& actor, Kernel::WorldState& world)
+Core::Expected<void, std::string> RemoveActorFlag(std::uint32_t mask, Kernel::ActorState& actor,
+                                                  Kernel::WorldState& world, const IEffectHooks* hooks)
 {
-    World::ModelEffects& effects = world.Map().effects;
+    auto& effects = world.Map().effects;
+    const auto kill = [&](std::int16_t type, std::int32_t subtype)
+    { static_cast<void>(hooks->KillTheEffectsOf(effects, type, &actor, subtype)); };
     switch (mask)
     {
     // 0x4e6950..0x4e6a06 and 0x4e6a8c..0x4e6b07: only the flag.
@@ -84,49 +78,57 @@ void RemoveActorFlag(std::uint32_t mask, Kernel::ActorState& actor, Kernel::Worl
     case 0x8000:
     case 0x1000000:
         Lower(actor.flags78, mask);
-        return;
+        return {};
     // 0x4e69a5: 8, and the joints 0x10f/4 and 0x10f/9 even if it was not set.
     case 0x8:
         Lower(actor.flags78, mask);
         KillTheFlames(actor, world);
-        return;
+        return {};
     case 0x10:
         Lower(actor.flags78, mask);
-        KillModelEffectsOf(effects, ShieldEffect, &actor, 1);
-        return;
+        if (hooks == nullptr)
+            return NoEffectHooks(mask);
+        kill(ShieldEffect, 1);
+        return {};
     case 0x40:
         Lower(actor.flags78, mask);
-        KillModelEffectsOf(effects, SwordEffect, &actor, 0);
-        return;
+        if (hooks == nullptr)
+            return NoEffectHooks(mask);
+        kill(SwordEffect, 0);
+        return {};
     // 0x4e6a4f: the joint 0x10f/0 only on a player.
     case 0x100:
         Lower(actor.flags78, mask);
         if (actor.type == Tables::PlayerSkeletonModel)
             KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 0);
-        return;
+        return {};
     case 0x400:
         Lower(actor.flags78, mask);
-        KillModelEffectsOf(effects, ShieldEffect, &actor, 2);
-        return;
+        if (hooks == nullptr)
+            return NoEffectHooks(mask);
+        kill(ShieldEffect, 2);
+        return {};
     case 0x1000:
         Lower(actor.flags78, mask);
-        KillModelEffectsOf(effects, SwordEffect, &actor, 5);
-        return;
+        if (hooks == nullptr)
+            return NoEffectHooks(mask);
+        kill(SwordEffect, 5);
+        return {};
     // 0x4e6c23: with the bit in +0x78, types 0x204 to 0x208 subtract it from +0x7c, whether they have it or not
     // (wraps).
     case 0x10000:
         if ((actor.flags78 & mask) != mask)
-            return;
+            return {};
         if (actor.type >= FirstOtherFlagsType && actor.type <= LastOtherFlagsType)
             actor.flags7c -= mask;
         else
             actor.flags78 -= mask;
-        return;
+        return {};
     case 0x20000:
     case 0x40000:
     case 0x80000:
         Lower(actor.flags7c, mask);
-        return;
+        return {};
     // 0x4e6cb6..0x4e6e4c: the 0x100000 of +0x7c and thirteen of +0x78, in this order, and then the effects and joints.
     case 0x100000:
     {
@@ -134,25 +136,27 @@ void RemoveActorFlag(std::uint32_t mask, Kernel::ActorState& actor, Kernel::Worl
         for (const std::uint32_t bit :
              {0x1u, 0x2u, 0x4u, 0x8u, 0x400u, 0x10u, 0x20u, 0x40u, 0x100u, 0x800u, 0x1000u, 0x4000u, 0x200u})
             Lower(actor.flags78, bit);
-        KillModelEffectsOf(effects, ShieldEffect, &actor, 2);
-        KillModelEffectsOf(effects, ShieldEffect, &actor, 1);
-        KillModelEffectsOf(effects, SwordEffect, &actor, 0);
+        if (hooks == nullptr)
+            return NoEffectHooks(mask);
+        kill(ShieldEffect, 2);
+        kill(ShieldEffect, 1);
+        kill(SwordEffect, 0);
         KillTheFlames(actor, world);
         KillJointsOf(world.DrawTail().joints, FlameJoint, &actor, 0);
-        return;
+        return {};
     }
     // 0x4e6ede: like 8.
     case 0x2000000:
         Lower(actor.flags78, mask);
         KillTheFlames(actor, world);
-        return;
+        return {};
     // 0x4e6ea5: the one in +0x7c and, then, 0x20000.
     case 0x10000000:
         Lower(actor.flags7c, mask);
         Lower(actor.flags7c, 0x20000);
-        return;
+        return {};
     default:
-        return;
+        return {};
     }
 }
 

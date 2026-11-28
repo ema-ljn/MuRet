@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/ModelBody.h"
+#include "Monsters/ModelBody.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -11,11 +11,11 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Render/TextureSlot.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/CharacterHead.h"
 #include "Actors/CharacterStep.h"
 #include "Session/CharacterStepHooks.h"
 #include "Assets/FaunaModels.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -47,6 +47,7 @@
 namespace
 {
 const Client::Session::CharacterStepHooks StepHooks{};
+const Client::Scenes::ActorEffectHooks EffectHooks{};
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Models::ActionInfo;
@@ -330,7 +331,8 @@ protected:
                                                        .groundMarks = &m_marks,
                                                        .dynamicLighting = &m_lighting,
                                                        .faunaModels = &m_faunaModels,
-                                                       .hooks = &StepHooks});
+                                                       .hooks = &StepHooks,
+                                                       .effectHooks = &EffectHooks});
     }
 
     const Skeleton& Model() const

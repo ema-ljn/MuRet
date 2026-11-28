@@ -1,17 +1,17 @@
-#include "Scenes/TarkanObjectFrame.h"
+#include "MapScripts/Tarkan/TarkanObjectFrame.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Math/RoundedMath.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "Kernel/PoseBuffer.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -46,7 +46,7 @@ struct Fixture
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     float clock = 12345.0f;
 

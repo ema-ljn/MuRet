@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -26,15 +27,16 @@
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Effects/ActorEffectHooks.h"
+#include "Pets/DarkSpirit.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameMessages.h"
-#include "Scenes/HelperTable.h"
+#include "Chat/GameMessages.h"
+#include "Pets/HelperTable.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "Actors/MovementReplies.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Actors/ActorsState.h"
 #include "Actors/ViewportPacketRing.h"
 #include "Session/WorldEntry.h"
@@ -42,13 +44,13 @@
 #include "Kernel/WorldState.h"
 #include "Session/WorldTransitionSupport.h"
 #include "Camera/GameCamera.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/WorldTerrain.h"
-#include "UI/ChatLog.h"
-#include "UI/MessageArea.h"
+#include "Chat/ChatLog.h"
+#include "Ui/MessageArea.h"
 #include "Session/ModuleStates.h"
 #include "Session/ViewportHooks.h"
 #include "Audio/SoundId.h"
@@ -125,7 +127,8 @@ struct Game
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log,
-                .states = &states};
+                .states = &states,
+                .effectHooks = &effectHooks};
     }
     // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
@@ -147,6 +150,7 @@ struct Game
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Scenes::ActorEffectHooks effectHooks;
 };
 
 struct Cell
@@ -523,7 +527,7 @@ TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
         EXPECT_EQ(joint.type, 0x610);
         EXPECT_EQ(joint.subtype, 8);
         EXPECT_EQ(joint.ownerContext, &actor);
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Actor);
         EXPECT_EQ(joint.position, glm::vec3(actor.position.x, actor.position.y, 300.0f));
         EXPECT_EQ(joint.angles, actor.angles);
         EXPECT_EQ(joint.targetPosition, actor.position);

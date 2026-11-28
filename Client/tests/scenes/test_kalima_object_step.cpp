@@ -1,17 +1,17 @@
-#include "Scenes/KalimaObjectStep.h"
+#include "MapScripts/Kalima/KalimaObjectStep.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Models/Cloth.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaState.h"
+#include "Fauna/FaunaState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
-#include "World/Particles.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
 
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>

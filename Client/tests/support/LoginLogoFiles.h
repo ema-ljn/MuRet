@@ -2,7 +2,7 @@
 
 #include "Data/Models/Model.h"
 #include "Data/Textures/TextureSet.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "support/SceneDataFiles.h"
 #include "support/SyntheticModels.h"
 

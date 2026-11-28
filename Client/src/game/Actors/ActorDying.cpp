@@ -10,9 +10,9 @@
 #include "Scenes/SceneId.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ParticleBurst.h"
-#include "World/Particles.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Particles/ParticleBurst.h"
+#include "Particles/Particles.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 

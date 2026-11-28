@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/ILoopClient.h"
+#include "Scenes/ILoopClient.h"
 #include "Core/IClock.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"

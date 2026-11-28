@@ -10,24 +10,24 @@
 #include "Kernel/WorldState.h"
 #include "Player/OwnTimers.h"
 #include "Protocol/Pets/PetOrders.h"
-#include "Scenes/ActorCombat.h"
-#include "Scenes/AttackSkillCases.h"
-#include "Scenes/AttackStep.h"
-#include "Scenes/CrywolfContract.h"
-#include "Scenes/DarkSpirit.h"
-#include "Scenes/FaunaJointCreation.h"
-#include "Scenes/HealthBars.h"
-#include "Scenes/ModelBody.h"
-#include "Scenes/ModelEffects.h"
-#include "Scenes/MonsterHelpers.h"
-#include "Scenes/MonsterRibbonTrails.h"
-#include "Scenes/MonsterStepCases.h"
-#include "Scenes/NpcChatter.h"
-#include "Scenes/PartyActors.h"
-#include "Scenes/SiegeBattleUi.h"
-#include "World/IFishStepServices.h"
-#include "World/ObjectAlpha.h"
-#include "World/WorldObjectStepServices.h"
+#include "Combat/ActorCombat.h"
+#include "Skills/AttackSkillCases.h"
+#include "Combat/AttackStep.h"
+#include "Events/Crywolf/CrywolfContract.h"
+#include "Pets/DarkSpirit.h"
+#include "Joints/FaunaJointCreation.h"
+#include "Hud/HealthBars.h"
+#include "Monsters/ModelBody.h"
+#include "Monsters/ModelEffects.h"
+#include "Monsters/Drawing/MonsterHelpers.h"
+#include "Monsters/Drawing/MonsterRibbonTrails.h"
+#include "Monsters/MonsterStepCases.h"
+#include "Monsters/NpcChatter.h"
+#include "Party/PartyActors.h"
+#include "CastleSiege/SiegeBattleUi.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ObjectAlpha.h"
+#include "WorldObjects/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -188,17 +188,17 @@ Core::Expected<void, std::string> CharacterStepHooks::CreateTheJoint(const Actor
                                                                      const Actors::CharacterStepContext& context) const
 {
     constexpr std::int32_t NoKey = -1, NoTarget = -1;
-    const World::FishEffectRequest request{.type = joint.type,
-                                           .firstPosition = joint.first,
-                                           .secondPosition = joint.second,
-                                           .angles = joint.angles,
-                                           .subtype = joint.subtype,
-                                           .ownerContext = joint.owner,
-                                           .scale = joint.width,
-                                           .key = NoKey,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = NoTarget};
+    const Kernel::JointRequest request{.type = joint.type,
+                                       .firstPosition = joint.first,
+                                       .secondPosition = joint.second,
+                                       .angles = joint.angles,
+                                       .subtype = joint.subtype,
+                                       .ownerContext = joint.owner,
+                                       .scale = joint.width,
+                                       .key = NoKey,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = NoTarget};
     auto created = Scenes::CreateFaunaJoint(context.joints, request, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::move(created).Error());

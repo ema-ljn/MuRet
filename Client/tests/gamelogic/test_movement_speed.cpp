@@ -1,4 +1,4 @@
-#include "GameLogic/MovementSpeed.h"
+#include "Actors/MovementSpeed.h"
 
 #include <gtest/gtest.h>
 

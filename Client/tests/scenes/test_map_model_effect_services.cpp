@@ -1,8 +1,8 @@
-#include "Scenes/MapModelEffectServices.h"
+#include "WorldObjects/MapModelEffectServices.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/ModelEffects.h"
-#include "World/WorldObjects.h"
+#include "Effects/ModelEffects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "support/PlayerActors.h"
 

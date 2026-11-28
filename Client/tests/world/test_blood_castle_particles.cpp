@@ -2,9 +2,9 @@
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Render/TextureEnvMode.h"
-#include "World/BloodCastleParticleKernels.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/BloodCastleParticleKernels.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 #include "support/ParticleDrawRecorder.h"
 
 #include <glm/ext/vector_float2.hpp>

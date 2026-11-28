@@ -53,18 +53,19 @@ class Particles;
 namespace Client::Actors
 {
 struct FullSetScan;
+class IEffectHooks;
 } // namespace Client::Actors
 
 namespace Client::Kernel
 {
-class WorldState;
+struct PoseBuffer;
 struct WorldRuntime;
+class WorldState;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
 class IGuildMarks;
-struct FaunaDrawCarry;
 } // namespace Client::Scenes
 
 // The characters in the game's draw (0x6374dd, 0x510d00), as far as MuRet has them. Contract: 06 § El dibujo del juego.
@@ -90,7 +91,7 @@ struct GameCharacterPass
     std::span<CharacterCloth> cloths{};
     World::FrameSprites* sprites = nullptr;
     // The global pose buffer (0x68b181c) and the globals of 0x60b3d0 the frame's owner lends.
-    Scenes::FaunaDrawCarry* poseCarry = nullptr;
+    Kernel::PoseBuffer* poseCarry = nullptr;
     // The frame's joints (0x530860) and particles (0x53fe70), for what hangs and the full set, and the model effects
     // (0x518cf0), for the 0x5ac/3 of the +0x35c counter.
     std::span<Scenes::JointState> joints{};
@@ -126,8 +127,12 @@ struct GameCharacterPass
     // What the characters' draw poses and skins into, one character after another, kept by the frame's owner. Without
     // them, each character's draw uses buffers of its own.
     Models::SkinningBuffers* drawBuffers = nullptr;
-    // What the draw asks of other modules (Session::CharacterDrawHooks). nullptr: a monster or an NPC stops.
+    // What the draw asks of other modules (Session::CharacterDrawHooks). nullptr: a monster or an NPC stops, and so
+    // does a joint of what hangs, of the full set or of the raven.
     const ICharacterDrawHooks* hooks = nullptr;
+    // Who creates the model effects (0x518cf0) of the full set, the actions, the guild mark and the raven
+    // (Scenes::ActorEffectHooks). nullptr: those stop.
+    const IEffectHooks* effectHooks = nullptr;
 };
 
 // The ordinary player's body, its terrain light and the hero's override, reusing DrawCharacter, then what hangs with

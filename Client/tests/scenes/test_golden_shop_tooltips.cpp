@@ -18,29 +18,29 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/GameHud.h"
-#include "Scenes/GameInventoryHud.h"
+#include "Kernel/PoseBuffer.h"
+#include "Hud/GameHud.h"
+#include "Hud/GameInventoryHud.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Assets/GameModels.h"
-#include "Scenes/GamePanels.h"
-#include "Scenes/GameTooltips.h"
-#include "Scenes/LoginModels.h"
-#include "Scenes/NpcNames.h"
-#include "Scenes/NpcWindowState.h"
+#include "Hud/GamePanels.h"
+#include "Tooltips/GameTooltips.h"
+#include "FrontEnd/LoginModels.h"
+#include "Monsters/NpcNames.h"
+#include "Npc/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
-#include "Scenes/OwnItemPlacement.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/UiItemDrawing.h"
+#include "Items/OwnItemPlacement.h"
+#include "FrontEnd/SelectionState.h"
+#include "Items/UiItemDrawing.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameUiState.h"
-#include "UI/Widget.h"
-#include "World/IFishStepServices.h"
-#include "World/Sprites.h"
+#include "Ui/GameUiState.h"
+#include "Ui/Widget.h"
+#include "Kernel/JointRequest.h"
+#include "Particles/Sprites.h"
 #include "Camera/GameCamera.h"
 #include "Kernel/ItemState.h"
 #include "Audio/SoundId.h"
@@ -758,7 +758,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
     const auto loaded = models.Load(m_dataRoot, textures, m_log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     Client::Render::ModelBatch batch;
-    Client::Scenes::FaunaDrawCarry poseCarry;
+    Client::Kernel::PoseBuffer poseCarry;
     Client::World::FrameSprites sprites;
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.random = &m_random;
@@ -770,7 +770,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
     itemContext.originalFrame = true;
     itemContext.poseBones = [&poseCarry]() { return std::span<const Client::Math::BoneTransform>(poseCarry.bones); };
     std::size_t joints = 0;
-    itemContext.createJoint = [&joints](const Client::World::FishEffectRequest& request)
+    itemContext.createJoint = [&joints](const Client::Kernel::JointRequest& request)
     {
         EXPECT_EQ(request.ownerContext, Client::Scenes::UiItemLocalObject());
         ++joints;

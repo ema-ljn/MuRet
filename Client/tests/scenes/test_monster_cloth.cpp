@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterCloth.h"
+#include "Actors/Drawing/MonsterCloth.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -16,15 +16,16 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
@@ -249,7 +250,8 @@ protected:
                 .joints = m_joints,
                 .terrain = &m_terrain,
                 .faunaModels = &m_faunaModels,
-                .hooks = &m_drawHooks};
+                .hooks = &m_drawHooks,
+                .effectHooks = &m_effectHooks};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -280,10 +282,11 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Scenes::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
     std::vector<Client::Actors::Drawing::CharacterCloth> m_cloths;
     Client::Render::ModelBatch m_batch;

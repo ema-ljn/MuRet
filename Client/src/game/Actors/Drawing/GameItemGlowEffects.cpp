@@ -8,9 +8,9 @@
 #include "Models/Shine.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
-#include "World/IFishStepServices.h"
-#include "World/ObjectModelStepState.h"
-#include "World/Sprites.h"
+#include "Kernel/JointRequest.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -145,8 +145,7 @@ Result Joint(const DrawnObject& object, const ItemDrawContext& context, glm::vec
     if (!context.createJoint)
         return Core::Unexpected(std::string("530860: falta el creador de joints del brillo"));
     auto angles = object.transform.angles;
-    const World::FishEffectRequest request{type,  first, second, angles, subtype, context.ownerContext,
-                                           scale, -1,    0,      0,      -1};
+    const Kernel::JointRequest request{type, first, second, angles, subtype, context.ownerContext, scale, -1, 0, 0, -1};
     return context.createJoint(request);
 }
 Result BeamPair(const DrawnObject& object, const ItemDrawContext& context, std::size_t firstBone,

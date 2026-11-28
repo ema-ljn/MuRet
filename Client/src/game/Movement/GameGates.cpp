@@ -1,0 +1,207 @@
+#include "Movement/GameGates.h"
+
+#include "Core/Expected.h"
+#include "Tables/GateRecord.h"
+#include "Tables/GateTable.h"
+#include "Movement/GateCheck.h"
+#include "Movement/GateCheckState.h"
+#include "Movement/GateDecision.h"
+#include "Maps/MapId.h"
+#include "Models/LogicalAccess.h"
+#include "Kernel/ActorState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+
+namespace Client::Scenes
+{
+namespace
+{
+constexpr std::size_t SilentLevelGate = 28;
+constexpr std::size_t WingsSlot = 7;
+constexpr std::size_t MountSlot = 8;
+using Maps::CastleSiegeMap;
+constexpr std::int32_t LandOfTrialMap = Maps::LandOfTrialsMap;
+
+std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, const GameGateContext& context)
+{
+    const Models::LogicalAccess access(depth, context.random, Models::SmallLogicalCloseRandoms);
+    return value;
+}
+
+// 0x599f41..0x599ffd: no convertir en una lectura de X/Y por paso; cada comparación cierra la suya.
+bool ContainsWithAccesses(const Tables::GateRecord& gate, Kernel::ActorState& hero, const GameGateContext& context)
+{
+    return ReadCell(hero.cellX, hero.cellXAccesses, context) >= gate.x1 &&
+           ReadCell(hero.cellY, hero.cellYAccesses, context) >= gate.y1 &&
+           ReadCell(hero.cellX, hero.cellXAccesses, context) <= gate.x2 &&
+           ReadCell(hero.cellY, hero.cellYAccesses, context) <= gate.y2;
+}
+
+std::int32_t ReadWait(const GameGateContext& context)
+{
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Models::LogicalAccess access(runtime.warpDepth, context.random, Models::SmallLogicalCloseRandoms);
+    return runtime.warpCounter;
+}
+
+void WriteWait(std::int32_t value, const GameGateContext& context)
+{
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Models::LogicalAccess access(runtime.warpDepth, context.random, Models::SmallLogicalCloseRandoms);
+    runtime.warpCounter = value;
+}
+
+GameLogic::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
+{
+    const Kernel::WorldRuntime& runtime = context.world.Runtime();
+    const Kernel::ActorState& hero = context.world.Hero();
+    const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
+    const GameLogic::GateCheckState state{.x = hero.cellX,
+                                          .y = hero.cellY,
+                                          .map = runtime.map,
+                                          .level = own.level,
+                                          .characterClass = hero.characterClass,
+                                          .mount = static_cast<std::int16_t>(own.equipment[MountSlot].id),
+                                          .wings = static_cast<std::int16_t>(own.equipment[WingsSlot].id),
+                                          .alternateMount = context.alternateMount,
+                                          .alternateMountActive = runtime.cursorItemCount > 0,
+                                          .warpCounter = runtime.warpCounter,
+                                          .elapsedMs = context.ticksMs - runtime.movement.lastTeleportMs,
+                                          .heroGateBlocked = hero.byte399 != 0,
+                                          .requestBlocked = runtime.movement.gateRequestBlocked != 0,
+                                          .warpPending = runtime.movement.warpPending};
+    return GameLogic::CheckGate(index, gate, state);
+}
+
+// 0x59a094..0x59a16c: el gate28 abre/cierra sólo para probar el nivel, aun si después vuelve a abrir.
+bool PassesSilentLevelCheck(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
+{
+    if (index != SilentLevelGate)
+    {
+        return true;
+    }
+    const Models::LogicalAccess access(context.world.Runtime().ownRecordDepth, context.random,
+                                       Models::OwnRecordCloseRandoms);
+    const GameLogic::GateDecision decision = DecideGate(index, gate, context);
+    // En el gate28 sólo el nivel insuficiente no produce ninguno de estos efectos.
+    return decision.request.has_value() || decision.clearWarpPending || decision.waitSteps != 0 ||
+           !decision.warnings.empty();
+}
+
+Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::GateRecord& gate,
+                                           const GameGateContext& context)
+{
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    if (index == 0)
+    {
+        runtime.movement.gateRequestBlocked = 1; // 0x59a477, antes de SendPacket.
+    }
+    if (!context.requestGate)
+    {
+        return Core::Unexpected(std::string("0x599ef0: falta el servicio de envío del pedido de gate"));
+    }
+    context.requestGate(index);
+    WriteWait(Kernel::WorldLoadingWait, context); // 0x59ac6c, después de enviar y antes de las macros.
+    const auto destination = Tables::ReadGateRecord(context.gates, gate.target);
+    if (!destination)
+    {
+        return Core::Unexpected(std::string("0x599ef0: el destino del gate no está en la tabla"));
+    }
+    if (destination->map == CastleSiegeMap || destination->map == LandOfTrialMap)
+    {
+        if (!context.saveOptionsAndMacros)
+            return Core::Unexpected(
+                std::string("0x61c210/0x61c170: el gate30/31 sin los servicios de opciones y Macro.txt"));
+        if (auto saved = context.saveOptionsAndMacros(); !saved.HasValue())
+            return saved;
+    }
+    runtime.movement.warpPending = true;
+    runtime.selectedTargets.fill(-1);
+    runtime.movement.movementTarget = 0;
+    return {};
+}
+
+Core::Expected<GameLogic::GateDecision, std::string>
+ApplyEligibleGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
+{
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    // 0x59a172..0x59adc7: sigue abierto durante el envío, contador y resets, y cierra al final.
+    const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
+    GameLogic::GateDecision decision = DecideGate(index, gate, context);
+    if (decision.waitSteps != 0)
+    {
+        WriteWait(decision.waitSteps, context);
+        return decision;
+    }
+    if (!decision.warnings.empty())
+    {
+        return decision;
+    }
+    // 0x59a41f..0x59a434: el nivel alcanzó, vuelve a leer el contador antes de los bloqueos del pedido.
+    static_cast<void>(ReadWait(context));
+    if (decision.clearWarpPending)
+    {
+        runtime.movement.warpPending = false;
+    }
+    if (decision.request)
+    {
+        const auto sent = SendGate(*decision.request, gate, context);
+        if (!sent.HasValue())
+        {
+            return Core::Unexpected(sent.Error());
+        }
+    }
+    return decision;
+}
+
+void AppendDecision(GameLogic::GateDecision& result, const GameLogic::GateDecision& decision)
+{
+    result.warnings.insert(result.warnings.end(), decision.warnings.begin(), decision.warnings.end());
+    result.clearWarpPending = result.clearWarpPending || decision.clearWarpPending;
+    if (decision.request)
+    {
+        result.request = decision.request;
+    }
+    if (decision.waitSteps != 0)
+    {
+        result.waitSteps = decision.waitSteps;
+    }
+}
+} // namespace
+
+Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGateContext& context)
+{
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.hero >= context.world.Actors().size())
+    {
+        return Core::Unexpected(std::string("0x599ef0: el héroe publicado no está en el pool"));
+    }
+    Kernel::ActorState& hero = context.world.Hero();
+    GameLogic::GateDecision result;
+    for (std::size_t index = 0; index < Tables::GateCount && index < context.gates.Count(); ++index)
+    {
+        const auto gate = Tables::ReadGateRecord(context.gates, index);
+        if (!gate || gate->flag != 1 || gate->map != runtime.map || !ContainsWithAccesses(*gate, hero, context))
+        {
+            continue;
+        }
+        if (ReadWait(context) != 0 || hero.byte399 != 0 || !PassesSilentLevelCheck(index, *gate, context))
+        {
+            continue;
+        }
+        const auto decision = ApplyEligibleGate(index, *gate, context);
+        if (!decision.HasValue())
+        {
+            return Core::Unexpected(decision.Error());
+        }
+        AppendDecision(result, decision.Value());
+        // 0x59adcc: aun con el contador recién escrito, continúa leyendo los siguientes rectángulos.
+    }
+    return result;
+}
+} // namespace Client::Scenes

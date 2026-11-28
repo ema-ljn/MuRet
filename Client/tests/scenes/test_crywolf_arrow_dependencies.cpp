@@ -1,12 +1,13 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Kernel/JointRequest.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
-#include "World/IParticleTrigonometry.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Particles/IParticleTrigonometry.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "support/ParticleDrawRecorder.h"
 #include <gtest/gtest.h>
@@ -38,7 +39,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyL
     glm::vec3 position{100, 200, 300}, target{400, 500, 600}, angles{};
     const auto result =
         Client::Scenes::CreateFaunaJoint(joints, {0x610, position, target, angles, 13, &owner, 20, 40, 0, 0, -1},
-                                         random, Client::Scenes::JointOwnerKind::ModelEffect);
+                                         random, Client::Kernel::JointOwnerKind::ModelEffect);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_TRUE(result.Value());
     const auto& joint = joints[0];
@@ -67,7 +68,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
             joint.type = 0x610;
             joint.subtype = subtype;
             joint.ownerContext = &owner;
-            joint.ownerKind = Client::Scenes::JointOwnerKind::ModelEffect;
+            joint.ownerKind = Client::Kernel::JointOwnerKind::ModelEffect;
             joint.position = {100, 200, 300};
             joint.speed = 70;
             joint.width = 20;
@@ -157,7 +158,7 @@ TEST(CrywolfArrowDependenciesTest, TheFullPoolsDoNotReadTheOwnerOrAdvanceTheCons
     glm::vec3 empty{};
     const auto joint =
         Client::Scenes::CreateFaunaJoint(joints, {0x610, empty, empty, empty, 13, nullptr, 20, 40, 0, 0, -1}, random,
-                                         Client::Scenes::JointOwnerKind::ModelEffect);
+                                         Client::Kernel::JointOwnerKind::ModelEffect);
     ASSERT_TRUE(joint.HasValue());
     EXPECT_FALSE(joint.Value());
     auto particles = std::make_unique<Client::World::Particles>();

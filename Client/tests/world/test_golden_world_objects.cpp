@@ -1,7 +1,7 @@
 #include "support/CheckedWorldObjectProjection.h"
 
 #include "Math/X87.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

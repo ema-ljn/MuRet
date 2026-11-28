@@ -1,7 +1,7 @@
 #include "support/UiPrinters.h"
 
-#include "UI/LoginWindow.h"
-#include "UI/TextField.h"
+#include "FrontEnd/LoginWindow.h"
+#include "Ui/TextField.h"
 
 #include <gtest/gtest.h>
 

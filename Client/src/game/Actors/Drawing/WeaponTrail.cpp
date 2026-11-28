@@ -10,13 +10,12 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Kernel/WorldState.h"
-#include "Scenes/WorldModelPose.h"
-#include "World/Particles.h"
+#include "WorldObjects/WorldModelPose.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 

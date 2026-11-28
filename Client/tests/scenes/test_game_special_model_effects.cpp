@@ -4,9 +4,10 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Models/ObjectState.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skinning.h"
@@ -18,7 +19,7 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/ITerrainAttributeQuerySource.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include <memory>
@@ -381,7 +382,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemRequiresItsOwnerBeforeStoringAngul
 TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestoresOnlyTypeAndTransform)
 {
     TriangleModels models;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Crt::CrtRandom random(3);
@@ -403,7 +404,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
         EXPECT_EQ(object.model, 0x212);
         EXPECT_EQ(object.transform.position, (glm::vec3{100, 200, 400}));
         EXPECT_EQ(object.transform.angles, (glm::vec3{10, 90, 60}));
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     ASSERT_TRUE(
@@ -420,7 +421,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
 TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditiveFlagFortyTwo)
 {
     TriangleModels models;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::World::ModelEffect effect;
@@ -435,7 +436,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditive
     resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         EXPECT_FLOAT_EQ(effect.objectState.light, 0.3f);
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -450,7 +451,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditive
 TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPose)
 {
     TriangleModels models;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto light = std::make_unique<Client::Terrain::TerrainLighting>();
@@ -467,7 +468,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPo
     resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         light->cells.fill({1, 1, 1});
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     ASSERT_TRUE(
@@ -481,7 +482,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
 {
     TriangleModels models;
     models.model.meshes[0].normals[0].normal = {};
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto light = std::make_unique<Client::Terrain::TerrainLighting>();
@@ -495,7 +496,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
         ExpectItemPose(object, 0.8f);
         EXPECT_EQ(object.color, glm::vec3(0.3f));
         light->cells.fill({1, 1, 1});
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -518,7 +519,7 @@ TEST(GameSpecialModelEffectsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfAnEffe
     {
         SCOPED_TRACE(static_cast<int>(detail));
         TriangleModels models;
-        Client::Scenes::FaunaDrawCarry carry;
+        Client::Kernel::PoseBuffer carry;
         Client::Render::ModelBatch batch;
         auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         std::int16_t itemType = 0;
@@ -529,7 +530,7 @@ TEST(GameSpecialModelEffectsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfAnEffe
         Client::Scenes::ModelEffectDrawResources resources{*heights};
         resources.itemContext = &items;
         resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-        { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+        { return Client::Actors::Drawing::PublishPose(carry, models, object, false); };
         resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
 
         const auto result =
@@ -550,7 +551,7 @@ TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaCon
             SCOPED_TRACE(alpha);
             TriangleModels models;
             models.model.meshes[0].normals[0].normal = {};
-            Client::Scenes::FaunaDrawCarry carry;
+            Client::Kernel::PoseBuffer carry;
             Client::Render::ModelBatch batch;
             auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
             std::int16_t itemType = 0;
@@ -566,7 +567,7 @@ TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaCon
                 ExpectItemInitialization(effect, 0.8f, direction);
                 ExpectItemPose(object, 0.8f);
                 EXPECT_EQ(object.state, Client::Models::ObjectState{});
-                return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+                return Client::Actors::Drawing::PublishPose(carry, models, object, false);
             };
             resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
             const auto result = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr,
@@ -664,7 +665,7 @@ TEST(GameSpecialModelEffectsTest, MissingCrtRetainsTheCommonInitializationAndPre
 TEST(GameSpecialModelEffectsTest, FallenGlowStoresItsNativeAlphaWhileDrawingWithTheCapturedAlpha)
 {
     TriangleModels models;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::int16_t itemType = 0x1e23 - 0x212;
@@ -675,7 +676,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowStoresItsNativeAlphaWhileDrawingWith
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -693,7 +694,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowRetainsItsNativeAlphaWhenTheSecondMe
 {
     TriangleModels models;
     models.model.meshes.push_back(models.model.meshes[0]);
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::int16_t itemType = 0x1e23 - 0x212;
@@ -705,7 +706,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowRetainsItsNativeAlphaWhenTheSecondMe
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&]
     {
@@ -730,7 +731,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowRetainsItsNativeAlphaWhenTheSecondMe
 TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToTheEffect)
 {
     TriangleModels models;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::int16_t itemType = 0x1a16 - 0x212;
@@ -743,7 +744,7 @@ TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToThe
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+    { return Client::Actors::Drawing::PublishPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
@@ -763,7 +764,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
 {
     const glm::vec3 root{12.3f, -7.7f, 3.1f};
     PosedItemModels models(1, root);
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::World::FrameSprites sprites;
@@ -778,7 +779,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     item.poseBones = [&] { return std::span<const Client::Math::BoneTransform>(carry.bones); };
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+    { return Client::Actors::Drawing::PublishPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     resources.itemContext = &item;
 
@@ -808,7 +809,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
 TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndItsGlowAddsThePosition)
 {
     PosedItemModels models(3, glm::vec3(0));
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::World::FrameSprites sprites;
@@ -830,7 +831,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndIt
     resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         EXPECT_EQ(object.transform.angles, (glm::vec3{0, 90, 30}));
-        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     resources.itemContext = &item;
@@ -862,7 +863,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAn
 {
     const glm::vec3 root{12.3f, -7.7f, 3.1f};
     PosedItemModels models(1, root);
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::World::ModelEffect effect;
@@ -874,7 +875,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAn
     effect.light = {0.5f, 0.6f, 0.7f};
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+    { return Client::Actors::Drawing::PublishPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
 
     const auto result =

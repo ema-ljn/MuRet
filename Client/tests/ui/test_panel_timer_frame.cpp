@@ -1,4 +1,4 @@
-#include "UI/PanelTimerFrame.h"
+#include "Ui/PanelTimerFrame.h"
 
 #include <gtest/gtest.h>
 

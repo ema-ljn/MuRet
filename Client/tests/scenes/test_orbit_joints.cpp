@@ -1,12 +1,12 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -26,7 +26,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::JointOwnerKind;
+using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x60fu;
@@ -43,17 +43,17 @@ struct OrbitWorld
         glm::vec3 from = start;
         glm::vec3 to = second;
         glm::vec3 angles{};
-        const Client::World::FishEffectRequest request{.type = type,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owner,
-                                                       .scale = scale,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = type,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owner,
+                                                   .scale = scale,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
     }
 

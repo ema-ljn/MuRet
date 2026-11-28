@@ -1,4 +1,4 @@
-#include "Scenes/MonsterRibbonTrails.h"
+#include "Monsters/Drawing/MonsterRibbonTrails.h"
 
 #include "Core/Expected.h"
 

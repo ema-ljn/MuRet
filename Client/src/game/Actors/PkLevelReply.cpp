@@ -8,8 +8,8 @@
 #include "Kernel/IOnScreenMessages.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameText.h"
-#include "UI/MessageArea.h"
+#include "Ui/GameText.h"
+#include "Ui/MessageArea.h"
 #include "Crt/SprintfFormat.h"
 
 #include <cstddef>

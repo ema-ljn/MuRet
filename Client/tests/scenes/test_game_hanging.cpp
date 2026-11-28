@@ -1,7 +1,7 @@
 #include "Math/X87.h"
 #include "Models/IModelLibrary.h"
 #include "Actors/Drawing/GameHanging.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -14,12 +14,13 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Kernel/PoseBuffer.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Session/CharacterDrawHooks.h"
+#include "Kernel/JointRequest.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 
 #include <gtest/gtest.h>
 
@@ -44,6 +45,8 @@ namespace
 {
 using Client::Actors::Drawing::GameHangingPass;
 using Client::Kernel::ActorState;
+
+const Client::Session::CharacterDrawHooks JointHooks;
 
 constexpr std::uint16_t Player = 0x20a;
 constexpr std::uint16_t Sword = 0x212;
@@ -241,6 +244,7 @@ protected:
                 .carry = &m_carry,
                 .sprites = &m_sprites,
                 .joints = m_joints,
+                .jointHooks = &JointHooks,
                 .particles = &m_particles,
                 .logicSteps = 1};
     }
@@ -260,7 +264,7 @@ protected:
     std::vector<Client::Math::BoneTransform> m_body;
     Client::Render::ModelBatch m_batch;
     Client::Crt::CrtRandom m_random{1};
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     Client::World::FrameSprites m_sprites;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(8);
     Client::World::Particles m_particles;
@@ -523,7 +527,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     for (int spark = 0; spark < 4; ++spark)
     {
         glm::vec3 angles{static_cast<float>(draws.Next() % 60 + 150), 0.0f, 135.0f};
-        const Client::World::FishEffectRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
+        const Client::Kernel::JointRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
         ASSERT_TRUE(particles.CreateChecked(0x5c5, point, angles, glm::vec3(1.0f), 0, 1.0f, 0.0f, draws).HasValue());
     }
@@ -676,7 +680,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
     for (int beam = 0; beam < 3; ++beam)
     {
-        const Client::World::FishEffectRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
+        const Client::Kernel::JointRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
     }
     static_cast<void>(draws.Next()); // +0x38e of the left one.
@@ -719,7 +723,7 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
     Client::Crt::CrtRandom unused(1);
     for (auto [first, second] : edges)
     {
-        const Client::World::FishEffectRequest request{0x610, first, second, angles, 4, &m_actor, 20.0f, -1, 0, 0, -1};
+        const Client::Kernel::JointRequest request{0x610, first, second, angles, 4, &m_actor, 20.0f, -1, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
     }
     EXPECT_EQ(unused.State(), Client::Crt::CrtRandom(1).State());
@@ -761,7 +765,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     const float t = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + 1.0);
     glm::vec3 angles = m_actor.angles;
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
-    const Client::World::FishEffectRequest request{0x618, point, point, angles, 0x11, &m_actor, 30.0f, -1, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x618, point, point, angles, 0x11, &m_actor, 30.0f, -1, 0, 0, -1};
     Client::Crt::CrtRandom unused(1);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
     const glm::vec3 violet{1.0f, 0.4f, 1.0f};

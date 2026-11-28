@@ -3,8 +3,8 @@
 // ve. Por eso cada include de este header se queda.
 // IWYU pragma: always_keep
 
-#include "UI/LoginWindow.h"
-#include "UI/TextField.h"
+#include "FrontEnd/LoginWindow.h"
+#include "Ui/TextField.h"
 
 #include <ostream>
 

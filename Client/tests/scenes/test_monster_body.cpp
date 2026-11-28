@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterBody.h"
+#include "Monsters/Drawing/MonsterBody.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -16,13 +16,14 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Effects/ActorEffectHooks.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/MonsterBodyPasses.h"
+#include "Monsters/Drawing/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>
@@ -49,6 +50,7 @@
 // más su índice), deja ver qué pase dibuja qué malla con qué textura, qué color y qué mezcla.
 namespace
 {
+const Client::Scenes::ActorEffectHooks EffectHooks;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 using Client::Render::ModelBlend;
@@ -83,17 +85,17 @@ std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const
         angles.z = static_cast<float>((static_cast<double>(spread) + 10.0) * static_cast<double>(ray));
         for (const std::int32_t type : {0x613, 0x6ee})
         {
-            const Client::World::FishEffectRequest request{.type = type,
-                                                           .firstPosition = point,
-                                                           .secondPosition = point,
-                                                           .angles = angles,
-                                                           .subtype = 3,
-                                                           .ownerContext = nullptr,
-                                                           .scale = 50.0f,
-                                                           .key = 0,
-                                                           .skill = 0,
-                                                           .skillSerial = 0,
-                                                           .target = -1};
+            const Client::Kernel::JointRequest request{.type = type,
+                                                       .firstPosition = point,
+                                                       .secondPosition = point,
+                                                       .angles = angles,
+                                                       .subtype = 3,
+                                                       .ownerContext = nullptr,
+                                                       .scale = 50.0f,
+                                                       .key = 0,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
             const auto created = Client::Scenes::CreateFaunaJoint(*joints, request, random);
             EXPECT_TRUE(created.HasValue()) << created.Error();
         }
@@ -220,6 +222,7 @@ protected:
                                                .originalFrame = originalFrame,
                                                .cameraShake = &m_shake,
                                                .effects = m_effects.get(),
+                                               .effectHooks = &EffectHooks,
                                                .particles = m_particles.get(),
                                                .terrainHeight = m_terrainHeight,
                                                .joints = m_joints};
@@ -238,8 +241,8 @@ protected:
         Client::Crt::CrtRandom random{state};
         const auto emitted = Client::Actors::Drawing::EmitVertexEffectsOf(
             *m_models.Find(Client::Models::ModelId{m_actor->type}), m_transform.scale, m_meshes,
-            {.mesh = mesh, .type = type, .subtype = subtype}, {.effects = effects.get(), .particles = particles.get()},
-            random);
+            {.mesh = mesh, .type = type, .subtype = subtype},
+            {.effects = effects.get(), .particles = particles.get(), .effectHooks = &EffectHooks}, random);
         EXPECT_TRUE(emitted.HasValue()) << emitted.Error();
         EXPECT_EQ(m_cloth.random.State(), random.State());
         std::size_t made = 0;
@@ -566,8 +569,9 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     };
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random{8};
-    const auto emitted = Client::Actors::Drawing::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
-                                                                      {.effects = effects.get()}, random);
+    const auto emitted =
+        Client::Actors::Drawing::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
+                                                     {.effects = effects.get(), .effectHooks = &EffectHooks}, random);
     ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
     EXPECT_EQ(random.State(), after(19));
     const auto made = effects->Effects();
@@ -588,7 +592,8 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
         effect.alive = true;
     Client::Crt::CrtRandom full{8};
     ASSERT_TRUE(Client::Actors::Drawing::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
-                                                             {.effects = effects.get()}, full)
+                                                             {.effects = effects.get(), .effectHooks = &EffectHooks},
+                                                             full)
                     .HasValue());
     EXPECT_EQ(full.State(), after(2));
 }

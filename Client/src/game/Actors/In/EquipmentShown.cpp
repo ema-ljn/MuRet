@@ -10,7 +10,7 @@
 #include "Kernel/WorldState.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Assets/ModelIds.h"
-#include "Scenes/OwnItemPlacement.h"
+#include "Items/OwnItemPlacement.h"
 #include "Tables/PlayerModels.h"
 
 #include <cstddef>

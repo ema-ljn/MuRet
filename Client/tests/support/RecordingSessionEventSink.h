@@ -3,7 +3,7 @@
 #include "Session/CharacterEvent.h"
 #include "Session/ISessionEventSink.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Session/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"

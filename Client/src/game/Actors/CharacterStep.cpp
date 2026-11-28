@@ -3,7 +3,7 @@
 
 #include "Actors/ActorPickingBox.h"
 #include "Math/OriginalRotation.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -331,7 +331,8 @@ Core::Expected<void, std::string> LeaveTheRemainsOf(Kernel::ActorState& actor, c
                                                       .modelOrigin = placement.origin,
                                                       .effects = context.world.Map().effects,
                                                       .random = context.random,
-                                                      .marks = context.groundMarks});
+                                                      .marks = context.groundMarks,
+                                                      .effectHooks = context.effectHooks});
 }
 
 // 0x4fcb10(c, c) from 0x4fce57, with the action that finished.

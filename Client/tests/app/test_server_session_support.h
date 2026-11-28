@@ -2,7 +2,7 @@
 
 #include "Session/Credentials.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Session/WorldEvent.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"

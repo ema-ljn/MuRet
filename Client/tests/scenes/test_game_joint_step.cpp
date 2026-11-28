@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Core/Expected.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -9,10 +9,10 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Math/OriginalRetainedMath.h"
-#include "World/Sprites.h"
-#include "World/Particles.h"
-#include "World/IParticleDrawingServices.h"
-#include "World/ParticleDrawing.h"
+#include "Particles/Sprites.h"
+#include "Particles/Particles.h"
+#include "Particles/IParticleDrawingServices.h"
+#include "Particles/ParticleDrawing.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/TextureEnvMode.h"
 #include <algorithm>
@@ -20,12 +20,12 @@
 #include <functional>
 #include <optional>
 
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "Scenes/FaunaObject.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Fauna/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
 #include "Models/Cloth.h"
-#include "Scenes/UiItemDrawing.h"
+#include "Items/UiItemDrawing.h"
 
 #include <gtest/gtest.h>
 #include <array>
@@ -44,7 +44,7 @@ TEST(GameJointStepTest, Skill39BoltsConstructAndAdvanceWithoutRandomDraws)
     glm::vec3 target{400, 500, 600};
     glm::vec3 angles{10, 20, 30};
     Client::Crt::CrtRandom random(1);
-    const Client::World::FishEffectRequest request{0x60f, position, target, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x60f, position, target, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
     const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
@@ -80,8 +80,7 @@ TEST(GameJointStepTest, Skill39ConstructionPreservesTheRetainedQuadAndSeparatesI
         glm::vec3 point{100, 200, 300}, target{400, 500, 600}, angles{};
         int opaqueOwner = 7;
         Client::Crt::CrtRandom random(1);
-        const Client::World::FishEffectRequest request{0x60f, point, target, angles, 0x17, &opaqueOwner,
-                                                       40,    key,   0,      0,      -1};
+        const Client::Kernel::JointRequest request{0x60f, point, target, angles, 0x17, &opaqueOwner, 40, key, 0, 0, -1};
         const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(joint.points[0][0], (glm::vec3{96, 200, 300}));
@@ -117,7 +116,7 @@ TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
         std::array<Client::Scenes::JointState, 1> joints{};
         glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
         Client::Crt::CrtRandom random(1);
-        const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, key, 0, 0, -1};
+        const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, key, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
         auto& joint = joints[0];
         const auto anchor = joint.pathIncrement;
@@ -163,7 +162,7 @@ TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotio
     std::array<Client::Scenes::JointState, 1> joints{};
     glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
     Client::Crt::CrtRandom random(1);
-    const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 5, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 5, 0, 0, -1};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     for (const int count : {0, 5, 14})
@@ -207,9 +206,9 @@ TEST(GameJointStepTest, PiercingTrailJointsRetainTheirModelOwnerAndAdvanceWithou
     Client::Crt::CrtRandom random(1);
     for (int subtype = 0; subtype < 4; ++subtype)
     {
-        const Client::World::FishEffectRequest request{0x610, first, target, angles, subtype, &owner, 12, 30, 0, 0, -1};
+        const Client::Kernel::JointRequest request{0x610, first, target, angles, subtype, &owner, 12, 30, 0, 0, -1};
         const auto created =
-            Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect);
+            Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_EQ(created.Value(), static_cast<std::size_t>(subtype));
         const auto& joint = joints[static_cast<std::size_t>(subtype)];
@@ -245,9 +244,9 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
         owner.copiedAngles = {10, 20, 30};
         glm::vec3 point{}, angles{15, 25, 35};
         Client::Crt::CrtRandom random(1);
-        const Client::World::FishEffectRequest request{0x610, point, point, angles, subtype, &owner, 12, 30, 0, 0, -1};
+        const Client::Kernel::JointRequest request{0x610, point, point, angles, subtype, &owner, 12, 30, 0, 0, -1};
         ASSERT_TRUE(
-            Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect)
+            Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect)
                 .HasValue());
         auto& joint = joints[0];
         const float phase = subtype == 0 ? 0.0f : subtype == 1 ? 90.0f : subtype == 2 ? 180.0f : 240.0f;
@@ -309,9 +308,9 @@ TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutR
     owner.alive = false;
     glm::vec3 point{100, 200, 300}, angles{0, 0, 33.25f};
     Client::Crt::CrtRandom random(1);
-    const Client::World::FishEffectRequest request{0x60f, point, point, angles, 6, &owner, 30, -1, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x60f, point, point, angles, 6, &owner, 30, -1, 0, 0, -1};
     const auto created =
-        Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect);
+        Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
     EXPECT_EQ(joint.life, 20);
@@ -454,8 +453,8 @@ TEST(GameJointStepTest, HelperBeamsPrebuildNineSegmentsWithoutReadingTheirOpaque
         glm::vec3 second{100, 200, 300};
         glm::vec3 angles{};
         std::uint32_t opaqueOwner = 0;
-        Client::World::FishEffectRequest request{type, first, second, angles, type == 0x613 ? 4 : 14, &opaqueOwner, 20,
-                                                 -1,   0,     0,      -1};
+        Client::Kernel::JointRequest request{type, first, second, angles, type == 0x613 ? 4 : 14, &opaqueOwner, 20,
+                                             -1,   0,     0,      -1};
         Client::Crt::CrtRandom random(19);
         Client::Crt::CrtRandom expected(19);
         const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
@@ -505,8 +504,7 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
     context.special = &special;
     context.ownerContext = &owner;
     context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
-    context.createJoint =
-        [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    context.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
         if (!created.HasValue())
@@ -556,8 +554,7 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     context.special = &special;
     context.ownerContext = Client::Scenes::UiItemLocalObject();
     context.poseBones = [&]() { return std::span<const Client::Math::BoneTransform>(bones); };
-    context.createJoint =
-        [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    context.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         auto created = Client::Scenes::CreateFaunaJoint(tail->joints, request, random);
         if (!created.HasValue())
@@ -850,7 +847,7 @@ TEST(GameJointStepTest, FullJointPoolLeavesThePublisherArgumentsAndRandomUntouch
     joint.type = 123;
     glm::vec3 first{1, 2, 3}, second{4, 5, 6}, angles{7, 8, 9};
     std::uint32_t opaqueOwner = 0;
-    Client::World::FishEffectRequest request{0x614, first, second, angles, 14, &opaqueOwner, 23, -1, 0, 0, -1};
+    Client::Kernel::JointRequest request{0x614, first, second, angles, 14, &opaqueOwner, 23, -1, 0, 0, -1};
     Client::Crt::CrtRandom random(1);
     const auto result = Client::Scenes::CreateFaunaJoint(std::span(&joint, 1), request, random);
     ASSERT_TRUE(result.HasValue());

@@ -3,20 +3,22 @@
 
 #include "Core/Expected.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/JointRequest.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "Scenes/BlastEffectCalls.h"
-#include "Scenes/CastleBattleReceive.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Combat/BlastEffectCalls.h"
+#include "CastleSiege/CastleBattleReceive.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HelperTable.h"
-#include "Scenes/MonsterCreation.h"
-#include "Scenes/PersonalShopTitles.h"
-#include "Scenes/SiegeBattleUi.h"
-#include "Scenes/SocialState.h"
+#include "Pets/HelperTable.h"
+#include "Monsters/MonsterCreation.h"
+#include "PersonalShop/PersonalShopTitles.h"
+#include "CastleSiege/SiegeBattleUi.h"
+#include "Social/SocialState.h"
 #include "Session/WorldEntry.h"
 #include "Session/WorldTransitionSupport.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -42,13 +44,13 @@ Core::Expected<void, std::string> ViewportHooks::StartTheTeleportAction(Kernel::
 
 void ViewportHooks::CreateTheArrivalEffect(Kernel::ActorState& actor) const
 {
-    static_cast<void>(m_resources.world.Map().effects.Create(World::ModelEffectArguments{.type = World::ArrivalEffect,
-                                                                                         .position = actor.position,
-                                                                                         .angles = actor.angles,
-                                                                                         .light = actor.light,
-                                                                                         .owner = &actor,
-                                                                                         .key = NoEffectKey,
-                                                                                         .scale = 0.0f}));
+    static_cast<void>(m_resources.world.Map().effects.Create(Kernel::ModelEffectArguments{.type = World::ArrivalEffect,
+                                                                                          .position = actor.position,
+                                                                                          .angles = actor.angles,
+                                                                                          .light = actor.light,
+                                                                                          .owner = &actor,
+                                                                                          .key = NoEffectKey,
+                                                                                          .scale = 0.0f}));
 }
 
 // 0x530860(0x610, position, position, angles, 8, player, 20, −1, 0, 0, −1).
@@ -59,7 +61,7 @@ Core::Expected<void, std::string> ViewportHooks::CreateTheKalimaBeam(Kernel::Act
     const auto beam = Scenes::CreateFaunaJoint(m_resources.world.DrawTail().joints,
                                                {KalimaBeamJoint, actor.position, actor.position, actor.angles,
                                                 KalimaBeamSubtype, &actor, KalimaBeamWidth, NoKey, 0, 0, NoTarget},
-                                               m_resources.cloth.random, Scenes::JointOwnerKind::Actor);
+                                               m_resources.cloth.random, Kernel::JointOwnerKind::Actor);
     if (!beam.HasValue())
         return Core::Unexpected(beam.Error());
     return {};

@@ -1,7 +1,8 @@
-#include "Scenes/HighModelEffects.h"
+#include "Effects/HighModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
@@ -9,26 +10,25 @@
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaJointCreation.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameParticles.h"
-#include "Scenes/HighEffectEmitters.h"
-#include "Scenes/KundunEffects.h"
-#include "Scenes/KundunFallEffects.h"
-#include "Scenes/SkillBurstEffects.h"
-#include "Scenes/WizardEffects.h"
+#include "Effects/GameParticles.h"
+#include "Effects/HighEffectEmitters.h"
+#include "Effects/KundunEffects.h"
+#include "Effects/KundunFallEffects.h"
+#include "Effects/SkillBurstEffects.h"
+#include "Effects/WizardEffects.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/GameModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Effects/GameModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WizardModelEffects.h"
-#include "World/WorldObjectStepServices.h"
+#include "Effects/WizardModelEffects.h"
+#include "WorldObjects/WorldObjectStepServices.h"
 #include "Terrain/WorldTerrain.h"
 #include "Assets/FaunaModels.h"
 
@@ -252,7 +252,7 @@ TEST(HighEffectFamiliesTest, TheRingLeavesItsTwoBeamsOnItsOwnPoints)
             EXPECT_EQ(beam.type, 0x618);
             EXPECT_EQ(beam.subtype, index == 0 ? 0xa : 0xb);
             EXPECT_EQ(beam.ownerContext, &ring);
-            EXPECT_EQ(beam.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+            EXPECT_EQ(beam.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
             EXPECT_EQ(beam.width, 30.0f);
             EXPECT_EQ(beam.maximumCount, 5);
             EXPECT_EQ(beam.position, (glm::vec3{100.0f, 200.0f, 300.0f}));
@@ -1323,7 +1323,7 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     EXPECT_EQ(joint.type, 0x61c);
     EXPECT_EQ(joint.subtype, 0);
     EXPECT_EQ(joint.ownerContext, &caster);
-    EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ByType);
+    EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::ByType);
     EXPECT_EQ(joint.width, 150.0f);
     EXPECT_EQ(joint.key, 7);
     EXPECT_EQ(joint.skill, 3);
@@ -1535,7 +1535,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
                                                           .skill = 0,
                                                           .skillSerial = 0,
                                                           .target = -1},
-                                                         replay, Client::Scenes::JointOwnerKind::ModelEffect)
+                                                         replay, Client::Kernel::JointOwnerKind::ModelEffect)
                             .HasValue());
         }
         EXPECT_EQ(tested.random.State(), replay.State());

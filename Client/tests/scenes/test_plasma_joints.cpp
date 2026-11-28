@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -7,10 +7,10 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
-#include "World/Particles.h"
+#include "Kernel/JointRequest.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -48,17 +48,17 @@ struct PlasmaWorld
         glm::vec3 from = start;
         glm::vec3 to = second;
         glm::vec3 angles{};
-        const Client::World::FishEffectRequest request{.type = 0x14f,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owner,
-                                                       .scale = width,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x14f,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owner,
+                                                   .scale = width,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 

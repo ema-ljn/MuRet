@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/SkillReplies.h"
+#include "Skills/SkillReplies.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -19,19 +19,20 @@
 #include "Actors/ActorEffectFlags.h"
 #include "Actors/ActorFlags.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/BlastEffectCalls.h"
-#include "Actors/Drawing/CharacterDrawing.h"
+#include "Effects/ActorEffectHooks.h"
+#include "Combat/BlastEffectCalls.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
+#include "Session/CharacterDrawHooks.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Session/WorldTransitionSupport.h"
 #include "Camera/GameCamera.h"
-#include "World/ModelEffects.h"
-#include "World/WizardModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/WizardModelEffects.h"
 #include "Session/ModuleStates.h"
 #include "Audio/SoundId.h"
 
@@ -153,6 +154,8 @@ struct Replies
                                                       .log = log};
         resources.skills = skills;
         resources.states = &states;
+        resources.jointHooks = &jointHooks;
+        resources.effectHooks = &effectHooks;
         return resources;
     }
     Client::Core::Expected<void, std::string> Attack(std::uint8_t skill, std::uint16_t source = CasterKey,
@@ -178,6 +181,8 @@ struct Replies
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     const Client::Tables::SkillTable* skills = nullptr;
     Client::Session::ModuleStates states;
+    Client::Session::CharacterDrawHooks jointHooks;
+    Client::Scenes::ActorEffectHooks effectHooks;
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -992,7 +997,7 @@ TEST(SkillRepliesTest, TheDurationMagicWithoutTheKeyWritesTheLastActor)
         EXPECT_EQ(phantom.byte380, 0);
         EXPECT_EQ(tested->cloth.random.State(), expected.State());
         phantom.flags78 = 8;
-        Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, 0x0777}, tested->Resources());
+        ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, 0x0777}, tested->Resources()).HasValue());
         EXPECT_EQ(phantom.flags78, 0u);
     }
 }
@@ -1023,12 +1028,12 @@ TEST(SkillRepliesTest, TheMagicCancelLowersItsFlag)
     auto tested = std::make_unique<Replies>();
     ActorState& caster = tested->Actor(CasterIndex);
     caster.flags78 = 0x4fff;
-    Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, CasterKey}, tested->Resources());
+    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x4ff7u);
-    Client::Scenes::ApplyMagicCancel(MagicCancel{0x46, CasterKey}, tested->Resources());
+    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x46, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x0ff7u);
     // Una skill sin bandera no hace nada.
-    Client::Scenes::ApplyMagicCancel(MagicCancel{0x99, CasterKey}, tested->Resources());
+    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x99, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x0ff7u);
 }
 
@@ -1039,7 +1044,7 @@ TEST(SkillRepliesTest, TheMonsterCancelSettlesBeforeTheFlag)
     ActorState& caster = tested->Actor(CasterIndex);
     caster.type = MonsterType;
     caster.flags78 = 0x108;
-    Client::Scenes::ApplyMagicCancel(MagicCancel{0xc9, CasterKey}, tested->Resources());
+    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0xc9, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.byte110, 0x21);
     EXPECT_EQ(caster.flags78, 0u);
 }
@@ -1225,7 +1230,7 @@ TEST(SkillRepliesTest, TheBigClearLowersEverything)
     joints[1].type = 0x10f;
     joints[1].subtype = 9;
     joints[1].ownerContext = &tested->Actor(TargetIndex);
-    Client::Actors::RemoveActorFlag(0x100000, actor, tested->world);
+    ASSERT_TRUE(Client::Actors::RemoveActorFlag(0x100000, actor, tested->world, &tested->effectHooks).HasValue());
     EXPECT_EQ(actor.flags7c, 1u);
     EXPECT_EQ(actor.flags78, 0xffffffffu & ~0x5f7fu);
     EXPECT_FALSE(joints[0].alive);
@@ -1239,9 +1244,24 @@ TEST(SkillRepliesTest, SomeTypesLowerTheFlag10000FromTheSecondFlags)
     ActorState& actor = tested->Actor(CasterIndex);
     actor.type = 0x205;
     actor.flags78 = 0x10000;
-    Client::Actors::RemoveActorFlag(0x10000, actor, tested->world);
+    ASSERT_TRUE(Client::Actors::RemoveActorFlag(0x10000, actor, tested->world, nullptr).HasValue());
     EXPECT_EQ(actor.flags78, 0x10000u);
     EXPECT_EQ(actor.flags7c, 0u - 0x10000u);
+}
+
+// 0x4e6910 turns the effects off through the hooks: without them, a flag with effects lowers its bit and stops, and
+// one without effects does not need them.
+TEST(SkillRepliesTest, AFlagWithEffectsStopsWithoutTheEffectHooks)
+{
+    auto tested = std::make_unique<Replies>();
+    ActorState& actor = tested->Actor(CasterIndex);
+    actor.flags78 = 0x11;
+    const auto stopped = Client::Actors::RemoveActorFlag(0x10, actor, tested->world, nullptr);
+    ASSERT_FALSE(stopped.HasValue());
+    EXPECT_NE(stopped.Error().find("0x4e6910"), std::string::npos) << stopped.Error();
+    EXPECT_EQ(actor.flags78, 0x1u);
+    ASSERT_TRUE(Client::Actors::RemoveActorFlag(0x1, actor, tested->world, nullptr).HasValue());
+    EXPECT_EQ(actor.flags78, 0u);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

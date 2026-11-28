@@ -1,9 +1,9 @@
 #include "Models/IModelLibrary.h"
-#include "World/GameModelEffects.h"
+#include "Effects/GameModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Render/ModelBatch.h"
@@ -12,23 +12,23 @@
 #include "Data/Models/Model.h"
 #include "Core/IClock.h"
 #include "Terrain/SphereFrustum.h"
-#include "Scenes/GameParticles.h"
+#include "Effects/GameParticles.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
 #include "Models/ModelId.h"
-#include "World/KalimaWorld.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/ParticleOwner.h"
-#include "World/SelectionParticleKernels.h"
-#include "World/Sprites.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/SelectionParticleKernels.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjectStepServices.h"
 #include "Audio/SoundId.h"
 
 #include "support/PlayerActors.h"
@@ -2133,8 +2133,7 @@ TEST(GameModelEffectsTest, TheDarkLordEarthquakeEmitsItsBurstEvenWhenThePoolsAre
         Client::Crt::CrtRandom random(1);
         auto services = scene.Services();
         int calls = 0;
-        services.joint =
-            [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+        services.joint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
         {
             EXPECT_EQ(request.type, 0x617);
             EXPECT_EQ(request.subtype, 0);

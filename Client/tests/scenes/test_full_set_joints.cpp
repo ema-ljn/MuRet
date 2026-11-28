@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
@@ -9,10 +9,10 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HelperTable.h"
-#include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
-#include "World/Sprites.h"
+#include "Pets/HelperTable.h"
+#include "Joints/JointKernels.h"
+#include "Kernel/JointRequest.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -35,11 +35,11 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::HelperState;
+using Client::Kernel::JointOwnerKind;
+using Client::Kernel::JointRequest;
 using Client::Math::Detail::CosineProductPC53;
 using Client::Math::Detail::SineProductPC53;
-using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
-using Client::World::FishEffectRequest;
 
 using Client::Math::D;
 using Client::Math::F32;
@@ -85,17 +85,17 @@ Client::Core::Expected<std::optional<std::size_t>, std::string>
 Create(std::span<JointState> joints, Request request, void* owner, CrtRandom& random,
        JointOwnerKind ownerKind = JointOwnerKind::ByType)
 {
-    const FishEffectRequest made{request.type,
-                                 request.first,
-                                 request.second,
-                                 request.angles,
-                                 request.subtype,
-                                 owner,
-                                 request.width,
-                                 request.key,
-                                 request.skill,
-                                 0,
-                                 -1};
+    const JointRequest made{request.type,
+                            request.first,
+                            request.second,
+                            request.angles,
+                            request.subtype,
+                            owner,
+                            request.width,
+                            request.key,
+                            request.skill,
+                            0,
+                            -1};
     return Client::Scenes::CreateFaunaJoint(joints, made, random, ownerKind);
 }
 

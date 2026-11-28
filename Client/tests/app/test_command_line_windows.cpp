@@ -1,6 +1,6 @@
 #include "App/CommandLine.h"
 
-#include "App/ServerAddress.h"
+#include "Session/ServerAddress.h"
 #include "support/CommandLineTesting.h"
 
 #include <gtest/gtest.h>

@@ -39,7 +39,8 @@ function(mu_reaches_game file out)
         elseif(EXISTS "${MU_TESTS_DIR}/${included}")
             set(next "${MU_TESTS_DIR}/${included}")
         elseif(NOT EXISTS "${MU_CLIENT_SRC_DIR}/engine/${included}" AND
-               (EXISTS "${MU_CLIENT_SRC_DIR}/${included}" OR EXISTS "${MU_CLIENT_SRC_DIR}/game/${included}"))
+               (EXISTS "${MU_CLIENT_SRC_DIR}/${included}" OR EXISTS "${MU_CLIENT_SRC_DIR}/game/${included}" OR
+                EXISTS "${MU_CLIENT_SRC_DIR}/app/${included}"))
             set(reaches TRUE)
         endif()
         if(next)

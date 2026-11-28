@@ -1,9 +1,10 @@
-#include "Scenes/MonsterViewport.h"
+#include "Monsters/MonsterViewport.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -21,24 +22,24 @@
 #include "Actors/ActorPickingBox.h"
 #include "Kernel/ActorSearch.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/CastleBattleReceive.h"
+#include "CastleSiege/CastleBattleReceive.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/Particles.h"
-#include "Scenes/LoginModels.h"
-#include "Scenes/MonsterCreation.h"
-#include "Scenes/MonsterKinds.h"
-#include "Scenes/NpcNames.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/GameMovement.h"
-#include "Scenes/GameMovementState.h"
-#include "Scenes/GameUi.h"
+#include "Particles/Particles.h"
+#include "FrontEnd/LoginModels.h"
+#include "Monsters/MonsterCreation.h"
+#include "Monsters/MonsterKinds.h"
+#include "Monsters/NpcNames.h"
+#include "FrontEnd/SelectionState.h"
+#include "Movement/GameMovement.h"
+#include "Movement/GameMovementState.h"
+#include "Hud/GameUi.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
 #include "Terrain/TerrainPickingSegment.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
@@ -993,7 +994,7 @@ TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativ
             EXPECT_EQ(joints[index].type, 0x618);
             EXPECT_EQ(joints[index].subtype, static_cast<int>(index) + 2);
             EXPECT_EQ(joints[index].ownerContext, &actor);
-            EXPECT_EQ(joints[index].ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joints[index].ownerKind, Client::Kernel::JointOwnerKind::Actor);
             EXPECT_EQ(joints[index].width, 30.0f);
             EXPECT_EQ(joints[index].life, 999999999);
         }
@@ -1026,7 +1027,7 @@ TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
             EXPECT_EQ(joint.type, 0x60f);
             EXPECT_EQ(joint.subtype, 0x2a);
             EXPECT_EQ(joint.ownerContext, &actor);
-            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Actor);
             EXPECT_EQ(joint.width, 15.0f);
             EXPECT_EQ(joint.life, 100);
             const auto moved = Client::Math::OriginalVectorRotate({0.0f, -15.0f, 0.0f},

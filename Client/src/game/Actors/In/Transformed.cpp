@@ -9,8 +9,8 @@
 #include "Kernel/WorldState.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Session/WorldEntry.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
 
 #include <cstddef>
 #include <cstdint>

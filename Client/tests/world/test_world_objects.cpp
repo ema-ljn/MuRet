@@ -1,11 +1,11 @@
 #include "support/CheckedWorldObjectProjection.h"
 
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Models/ObjectState.h"
-#include "World/WorldObjectRegistrations.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
 
 #include <glm/ext/vector_float3.hpp>
 

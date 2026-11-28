@@ -1,4 +1,4 @@
-#include "UI/SlideBanner.h"
+#include "Ui/SlideBanner.h"
 
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"

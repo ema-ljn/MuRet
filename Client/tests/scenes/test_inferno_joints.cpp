@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -6,9 +6,9 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Sprites.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -40,17 +40,17 @@ struct Pool
     {
         glm::vec3 from = origin;
         glm::vec3 turn = angles;
-        const Client::World::FishEffectRequest request{.type = 0x61c,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = turn,
-                                                       .subtype = subtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = 40,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x61c,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = turn,
+                                                   .subtype = subtype,
+                                                   .ownerContext = nullptr,
+                                                   .scale = 40,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 
@@ -301,17 +301,17 @@ TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
     CrtRandom random(Seed);
     glm::vec3 from{1.0f, 2.0f, 3.0f};
     glm::vec3 turn{5.0f, 6.0f, 7.0f};
-    Client::World::FishEffectRequest request{.type = 0x61c,
-                                             .firstPosition = from,
-                                             .secondPosition = from,
-                                             .angles = turn,
-                                             .subtype = 1,
-                                             .ownerContext = &laser,
-                                             .scale = 180.0f,
-                                             .key = -1,
-                                             .skill = 0,
-                                             .skillSerial = 0,
-                                             .target = -1};
+    Client::Kernel::JointRequest request{.type = 0x61c,
+                                         .firstPosition = from,
+                                         .secondPosition = from,
+                                         .angles = turn,
+                                         .subtype = 1,
+                                         .ownerContext = &laser,
+                                         .scale = 180.0f,
+                                         .key = -1,
+                                         .skill = 0,
+                                         .skillSerial = 0,
+                                         .target = -1};
     const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());

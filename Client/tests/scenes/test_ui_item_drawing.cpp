@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/UiItemDrawing.h"
+#include "Items/UiItemDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -12,7 +12,7 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "support/TableFiles.h"
@@ -437,7 +437,7 @@ struct UiDrawing
     }
     UiModels models;
     Client::Render::ModelBatch batch;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     CrtRandom random{0x2468aceu};
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     std::map<std::uint16_t, std::int32_t> selections;

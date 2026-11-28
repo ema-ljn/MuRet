@@ -1,4 +1,4 @@
-#include "UI/Emotes.h"
+#include "Chat/Emotes.h"
 #include "Actors/Emote.h"
 
 #include "Tables/AddedEmotes.h"

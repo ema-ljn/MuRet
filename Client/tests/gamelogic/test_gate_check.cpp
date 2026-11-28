@@ -1,9 +1,9 @@
-#include "GameLogic/GateCheck.h"
+#include "Movement/GateCheck.h"
 
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
-#include "GameLogic/GateCheckState.h"
-#include "GameLogic/GateDecision.h"
+#include "Movement/GateCheckState.h"
+#include "Movement/GateDecision.h"
 #include "support/GateFiles.h"
 
 #include <gtest/gtest.h>

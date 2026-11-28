@@ -4447,7 +4447,7 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   publicado, los cuerpos de efecto (`0x52da99` → `0x602e90(efecto, 0, …)`: el `0x140` de
   `HighEffectDrawing`, el `+0x74` en `0x80` de `WizardEffectDrawing`, el `0x137/1` de `SkinShells` y
   el `0x13d`/`0x13e` de `MeteorEffects`) lo arman con `Scenes::WorldScratchOf`, como `DrawObject`.
-  La vista previa publica con `PublishFaunaPose(…, false)` (`CharacterSelectScene`).
+  La vista previa publica con `PublishPose(…, false)` (`CharacterSelectScene`).
   `0x4ecc30` la multiplica por el color en el pase con textura (el modo 2): con el blanco del caballo
   y la escala 1,6, va de 0,2 a 0,8 · 1,6 · 2,385 + 0,4 = 3,45, que el GL recorta a 1. **Verificado**
   contra las trazas de GL: el color por vértice de los bloques con luz por vértice ajusta con
@@ -4477,7 +4477,7 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   (`WorldState::Particles`, con el reloj del mundo de `HelperStepContext::worldClock`) y la onda de Icarus
   a los efectos con modelo (`ModelEffects::CreateGallopShockWave`, con su paso en `StepGameModelEffect`);
   el buffer global de la pose es `WorldState::PoseCarry`, que publican los dibujos del frame anterior
-  (el del caballo, `DrawHelpers` por `onPose`, que `GameScene` manda a `PublishFaunaPose`). La `0x5f3`
+  (el del caballo, `DrawHelpers` por `onPose`, que `GameScene` manda a `PublishPose`). La `0x5f3`
   es de `World::Particles` (el alta, el paso con el alto de su textura por `ParticleTextureHeightsOf` y
   el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Un hueso del
   buffer global que ningún dibujo escribió todavía es la matriz en cero de la `.bss` (200 huesos, hasta
@@ -7531,7 +7531,7 @@ volvió a posar, usa ese origen del suelo y los huesos retenidos. Los dos pases 
 tormenta y sus sorteos sólo corren en frames nativos.
 
 El piso tiene otro gate: `0x608b0a..0x608b20` posa sin traslación aun con alpha0; `0x60cf70` sólo
-publica el skin/cuerpo con alpha>0,01. `PublishFaunaFloorPose` conserva esa diferencia. Los objetos,
+publica el skin/cuerpo con alpha>0,01. `PublishFloorPose` conserva esa diferencia. Los objetos,
 piso, personajes, helpers y efectos comparten el mismo carry en orden. En frames de proyección de
 MuRet se usa **una copia temporal para todo el frame**: cada escritor actualiza ese scratch y el
 siguiente lo lee, sin cambiar la historia durable ni repetir RNG/seen/yaw nativos. Copiar y descartar
@@ -14577,7 +14577,7 @@ Otro tipo o subtipo no hace nada ni saca `rand()`. Los que llaman: el cuervo al 
 `0x4ee770(1, 0x5ac, 1, cuervo+0x1c, personaje)` sobre su malla 1, después de su `0x602e90(cuervo, 0, 0, …)`: en
 `0x5ffdf0`, `0x4eb860` con la bandera en 1 arma los huesos en el mundo, con la escala y el origen en la raíz
 (`0x4ebbda..0x4ebc14`, R · s en float y la traslación en el origen) y sin tocar los dummy, y `0x4ebc80` corre con
-Translate en 0 (`0x600154`, `0x6001a1`): el scratch es hueso · v. MuRet: `PublishFaunaPose` con `translated`, con
+Translate en 0 (`0x600154`, `0x6001a1`): el scratch es hueso · v. MuRet: `PublishPose` con `translated`, con
 `PoseWorldSkeleton` y `Render::Models::SkinMeshInWorld`: las posiciones con `OriginalVectorTransform` (`0x5fccc0`)
 y las normales con `OriginalVectorRotate` (`0x5fcbd0`) sobre el hueso del mundo, con su escala, en x87 emulado), las puertas del asedio
 (`0x42cfcb`, `0x12f`), sus monstruos (`0x42e6f3` el `0x131`, `0x42e76b` el `0x10a`), `0x439d90` (`0x439dc5`, la malla
@@ -14731,7 +14731,7 @@ En MuRet, el `0x1a7` en la 3 y la 4, el `0x1b3` en la 3 y el `0x1b1` en la 4 cor
 MuRet: `Scenes::DrawTheMonsterHelpers` (`MonsterHelpers.h`), desde la cola de `DrawGameMonster` después de `0x43c150` y
 `0x42dfe0`, con el personaje o su copia, el `rand()` del dibujo y los sprites y las partículas del frame; los sonidos en
 `WorldRuntime::lastSoundId`, solo en un frame del original. `Scenes::StepTheSwingsOf1abTo1b4`, desde
-`StepTheWeaponTrail` (`CharacterStep`), con las partículas y el reloj del paso: las poses van a `WorldState::PoseCarry` con `PublishFaunaPoseRaw` (sin mallas)
+`StepTheWeaponTrail` (`CharacterStep`), con las partículas y el reloj del paso: las poses van a `WorldState::PoseCarry` con `PublishPoseRaw` (sin mallas)
 y la key a `FaunaModels::RecordPoseKey`; la acción, la escala y la posición del modelo son las del personaje
 (Q-C1102). Un hueso con nombre que falta corta en su llamada. Tests: `MonsterHelpersTest` (`test_monster_helpers.cpp`:
 cada tipo en Lorencia, Devias o Crywolf, con sus `rand()` contados) y

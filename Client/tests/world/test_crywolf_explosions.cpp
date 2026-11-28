@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 #include <gtest/gtest.h>

@@ -20,12 +20,12 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/DarkHorse.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Pets/DarkHorse.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/LoginActor.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginActor.h"
+#include "FrontEnd/LoginModels.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Assets/TextureSets.h"
@@ -33,11 +33,11 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Models/Animation.h"
 #include "Models/ModelId.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/WizardModelEffects.h"
-#include "UI/MessageArea.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/WizardModelEffects.h"
+#include "Ui/MessageArea.h"
 #include "Terrain/TerrainLighting.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
@@ -981,17 +981,17 @@ TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
     drawn.alive = false;
     glm::vec3 point{11679.0f, 14191.0f, 533.0f};
     glm::vec3 angles{-10.0f, 0.0f, 40.0f};
-    const Client::World::FishEffectRequest request{.type = 0x613,
-                                                   .firstPosition = point,
-                                                   .secondPosition = point,
-                                                   .angles = angles,
-                                                   .subtype = 3,
-                                                   .ownerContext = nullptr,
-                                                   .scale = 50.0f,
-                                                   .key = 0,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
+    const Client::Kernel::JointRequest request{.type = 0x613,
+                                               .firstPosition = point,
+                                               .secondPosition = point,
+                                               .angles = angles,
+                                               .subtype = 3,
+                                               .ownerContext = nullptr,
+                                               .scale = 50.0f,
+                                               .key = 0,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, cloth.random).HasValue());
     const Client::Scenes::JointState& ray = joints[0];
     ASSERT_TRUE(ray.alive);

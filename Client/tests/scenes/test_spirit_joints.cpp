@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -14,12 +14,12 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/JointKernels.h"
-#include "Scenes/SkillHits.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Joints/JointKernels.h"
+#include "Skills/SkillHits.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 
@@ -45,7 +45,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::JointOwnerKind;
+using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x613beefu;
@@ -63,17 +63,17 @@ struct Pool
     {
         glm::vec3 from = at;
         glm::vec3 angles = startAngles;
-        const Client::World::FishEffectRequest request{.type = type,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owner,
-                                                       .scale = width,
-                                                       .key = -1,
-                                                       .skill = skill,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = type,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owner,
+                                                   .scale = width,
+                                                   .key = -1,
+                                                   .skill = skill,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         const Client::Scenes::JointKernels::CreationServices services{
             .playerBonePoint = {},
             .soundRequest = [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },

@@ -20,24 +20,25 @@
 #include <cstddef>
 #include <cstdint>
 #include <algorithm>
-#include "World/Particles.h"
-#include "World/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/ParticleOwner.h"
 #include "Models/Skinning.h"
 #include <glm/ext/vector_float2.hpp>
-#include "World/KalimaWorld.h"
-#include "Scenes/FaunaState.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Fauna/FaunaState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Assets/WorldModels.h"
 #include "Assets/TerrainTiles.h"
 #include "Assets/ModelTextureTable.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/WorldObjectsDrawing.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Render/TextureSlot.h"
 #include "support/FakeTextureStore.h"
 #include "Terrain/SphereFrustum.h"
-#include "World/ModelEffects.h"
-#include "Scenes/GameParticles.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/GameParticles.h"
 #include "Models/TextureMetadata.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Render/Pass3D.h"
@@ -331,13 +332,13 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::Crt::CrtRandom random(7);
     ASSERT_EQ(effects->CreateKalimaEffect({6400, 6400, 1000}, {}, {0.3f, 0.8f, 1}, random), 0u);
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     const Client::Scenes::GameObjectPass pass{
         .map = map, .originalFrame = false, .retainedPose = &pose, .waterTextureFrame = 0u};
     Client::Scenes::ModelEffectDrawResources resources{*m_states->terrain.current.heights};
     resources.kalimaPass = &pass;
     resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
-    { return Client::Scenes::PublishFaunaPose(pose, models, drawn, true); };
+    { return Client::Actors::Drawing::PublishPose(pose, models, drawn, true); };
     resources.posedMeshes = [&]() { return std::span<const Client::Models::SkinnedMesh>(pose.meshes); };
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});

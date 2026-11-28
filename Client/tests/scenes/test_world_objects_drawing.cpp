@@ -1,8 +1,8 @@
 #include "Models/IModelLibrary.h"
 #include "support/CheckedWorldObjectProjection.h"
 
-#include "Scenes/WorldObjectsDrawing.h"
-#include "Scenes/LandOfTrialsObjectServices.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "MapScripts/LandOfTrials/LandOfTrialsObjectServices.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -10,30 +10,31 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/ModelBatch.h"
 #include "Render/TextureEnvMode.h"
-#include "World/BloodCastleParticleKernels.h"
+#include "Particles/BloodCastleParticleKernels.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/ObjectState.h"
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Models/TextureMetadata.h"
 #include "Data/Textures/Texture.h"
 #include "Terrain/TerrainCulling.h"
 #include "Render/Billboard.h"
-#include "World/ParticleDrawing.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Particles/ParticleDrawing.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Models/Skinning.h"
 #include "Models/ModelId.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/ModelEffects.h"
-#include "Terrain/GroundEffectDrawing.h"
-#include "World/KalimaWorld.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/GroundEffectDrawing.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Terrain/SphereFrustum.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -846,7 +847,7 @@ TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
         Client::Crt::CrtRandom random(7);
         std::uint8_t depth = probe.depth;
         Client::World::FrameSprites sprites;
-        const Client::Scenes::FaunaDrawCarry pose;
+        const Client::Kernel::PoseBuffer pose;
         ModelBatch batch;
         const auto drawn = DrawGame(batch, models, objects,
                                     {.map = 2,
@@ -871,7 +872,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBon
 {
     const TwoMeshModels models;
     std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     Client::Math::BoneTransform bone(1.0f);
     bone[3] = glm::vec3(10.0f, 20.0f, 30.0f);
     pose.bones.push_back(bone);
@@ -1072,7 +1073,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
     {
         std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
         objects.front().state.hiddenMesh = Client::World::HiddenObject;
-        Client::Scenes::FaunaDrawCarry native;
+        Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
         auto projected = native;
@@ -1090,7 +1091,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         {
             EXPECT_EQ(pose.state.hiddenMesh, Client::World::HiddenObject);
             ++publications;
-            return Client::Scenes::PublishFaunaPose(target, models, pose, true);
+            return Client::Actors::Drawing::PublishPose(target, models, pose, true);
         };
         ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
         EXPECT_EQ(publications, 1);
@@ -1115,7 +1116,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
     {
         std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Login, Client::World::ObjectScene::Login)};
         objects.front().state.hiddenMesh = Client::World::HiddenObject;
-        Client::Scenes::FaunaDrawCarry native;
+        Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
         auto projected = native;
@@ -1132,7 +1133,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
             [&](const Client::Actors::Drawing::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
         {
             ++publications;
-            return Client::Scenes::PublishFaunaPose(target, models, pose, true);
+            return Client::Actors::Drawing::PublishPose(target, models, pose, true);
         };
         DrawWorldObjects(batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, Login,
                          {}, 0.0f, effects);

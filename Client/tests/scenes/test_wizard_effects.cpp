@@ -1,24 +1,25 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/WizardEffects.h"
+#include "Effects/WizardEffects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Models/Skeleton.h"
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Sprites.h"
-#include "World/WizardModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Sprites.h"
+#include "Effects/WizardModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -148,13 +149,13 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
     meteor.alive = true;
     meteor.type = Client::World::FireEffect;
     meteor.subtype = 7;
-    const Client::World::ModelEffectArguments burst{.type = 0xf6,
-                                                    .position = {100.0f, 200.0f, 300.0f},
-                                                    .angles = {},
-                                                    .light = {0.0f, 0.5f, 0.0f},
-                                                    .subtype = 2,
-                                                    .owner = &meteor,
-                                                    .key = 30};
+    const Client::Kernel::ModelEffectArguments burst{.type = 0xf6,
+                                                     .position = {100.0f, 200.0f, 300.0f},
+                                                     .angles = {},
+                                                     .light = {0.0f, 0.5f, 0.0f},
+                                                     .subtype = 2,
+                                                     .owner = &meteor,
+                                                     .key = 30};
     const auto created = services.otherEffect(burst);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(random.State(), 5u);
@@ -194,7 +195,7 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     const Client::World::WizardEffectServices services = Client::Scenes::WizardEffectServicesOf(
         *world, random,
         Client::Scenes::WizardSceneParts{.particles = &world->Particles(), .worldClock = 1000.0f, .sprites = &sprites});
-    const Client::World::ModelEffectArguments arguments = Client::Scenes::WizardArguments(
+    const Client::Kernel::ModelEffectArguments arguments = Client::Scenes::WizardArguments(
         0xcb, {1000.0f, 2000.0f, 300.0f}, {0.0f, 0.0f, 90.0f}, glm::vec3(1.0f), 1, &caster);
     const auto created = Client::World::CreateWizardModelEffect(world->Map().effects, arguments, random, services);
     ASSERT_TRUE(created.HasValue() && created.Value().has_value()) << (created.HasValue() ? "" : created.Error());
@@ -213,17 +214,17 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
         {
             if (subtype == 7)
                 angles.z = 10.0f * static_cast<float>(ray);
-            const Client::World::FishEffectRequest request{.type = 0x613,
-                                                           .firstPosition = point,
-                                                           .secondPosition = second,
-                                                           .angles = angles,
-                                                           .subtype = subtype,
-                                                           .ownerContext = &circle,
-                                                           .scale = 60.0f,
-                                                           .key = 0,
-                                                           .skill = 0,
-                                                           .skillSerial = 0,
-                                                           .target = -1};
+            const Client::Kernel::JointRequest request{.type = 0x613,
+                                                       .firstPosition = point,
+                                                       .secondPosition = second,
+                                                       .angles = angles,
+                                                       .subtype = subtype,
+                                                       .ownerContext = &circle,
+                                                       .scale = 60.0f,
+                                                       .key = 0,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
             ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
         }
     }

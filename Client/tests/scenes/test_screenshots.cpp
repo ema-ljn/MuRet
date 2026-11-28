@@ -14,7 +14,7 @@
 #include "Render/Frame/SceneCanvas.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/GameUiState.h"
+#include "Ui/GameUiState.h"
 #include "support/FileBytes.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/SceneDataFiles.h"

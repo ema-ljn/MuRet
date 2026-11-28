@@ -1,15 +1,16 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/BlastEffectCalls.h"
+#include "Combat/BlastEffectCalls.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -39,17 +40,17 @@ struct FlareWorld
         glm::vec3 from = start;
         glm::vec3 to{1.0f, 2.0f, 3.0f};
         glm::vec3 angles{10.0f, 20.0f, 30.0f};
-        const Client::World::FishEffectRequest request{.type = 0x5ac,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = 80.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x5ac,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = nullptr,
+                                                   .scale = 80.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 
@@ -260,7 +261,7 @@ TEST(FlareJointsTest, TheComboReleasesSixtyFlares)
                 joint.alive = true;
         CrtRandom random{Seed};
         const Client::Actors::CharacterStepContext context{.world = *world, .random = random, .joints = joints};
-        const Client::World::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
+        const Client::Kernel::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
 
         const auto made = Client::Scenes::CreateBlastEffect(arguments, nullptr, context);
 

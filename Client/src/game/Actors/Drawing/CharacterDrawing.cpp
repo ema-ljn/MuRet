@@ -2,8 +2,7 @@
 #include "Models/SkinningBuffers.h"
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
-#include "Scenes/CrywolfAltarDrawing.h"
-#include "World/ModelEffects.h"
+#include "MapScripts/Crywolf/CrywolfAltarDrawing.h"
 
 #include "Core/IClock.h"
 #include "Core/Expected.h"
@@ -35,9 +34,9 @@
 #include "Actors/Drawing/GameItemGlowEffects.h"
 #include "Actors/Drawing/GameItemGlowSpecialDrawing.h"
 #include "Math/Ftol.h"
-#include "World/ObjectModelStepState.h"
-#include "World/ScepterGlow.h"
-#include "World/Sprites.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Actors/Drawing/ScepterGlow.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -2167,11 +2166,6 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const Models::IModelLibrar
     }
 }
 
-namespace
-{
-// The meshes 0x5ffdf0 left: the scratch the pose published or, without it, all the model's meshes posed as DrawObject
-// poses them (WorldScratchOf), also those without texture (a bare 0x4ecc30 and 0x4eff40 do not look at the script).
-// Without the model, the skeleton or the pose, none.
 std::span<const Models::SkinnedMesh> PosedMeshesOf(const Models::IModelLibrary& models, const DrawnObject& object,
                                                    std::vector<Models::SkinnedMesh>& skinned)
 {
@@ -2181,6 +2175,8 @@ std::span<const Models::SkinnedMesh> PosedMeshesOf(const Models::IModelLibrary& 
     return skinned;
 }
 
+namespace
+{
 // 0x42d019..0x42d038: 0x620980, glColor3f(0, 0, 0) and 0x4eff40(+0x64, +0x58, −1, −1). The shadow skips the +0x58 mesh,
 // those without triangles and those with the blendMesh's texture (+2 of the mesh), and flattens each vertex from
 // model+0x6c..+0x74, which 0x5ffdf0 left at the object's position, with map 30's spread.
@@ -2292,97 +2288,6 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
         draw.mesh = &mesh;
         draw.skinned = &meshes[index];
         FlatTriangles(batch, draw, BlendedShadowState, shadowColor, fenrir.transform.position, spread);
-    }
-    return {};
-}
-
-Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       World::ModelEffect& effect, const DrawnObject& input,
-                                                       Core::Duration frameClock, const VertexEffectEmitter& emit)
-{
-    // 0x602e90 → 0x5ffdf0: C0 also drops a NaN alpha before the pose and before changing the object.
-    if (!(effect.alpha >= .01f) || input.state.hiddenMesh == -2)
-        return {};
-    const bool stone = effect.type == 0x12b;
-    const bool projectile = stone || effect.type == 0x12c;
-    const bool impact = projectile && effect.objectState.hiddenMesh == 99 && effect.seen;
-    const auto* model = models.Find(Models::ModelId{input.model});
-    if (model == nullptr || model->meshes.empty())
-    {
-        if (impact)
-            effect.objectState.hiddenMesh = -2;
-        return {};
-    }
-    std::vector<Models::SkinnedMesh> temporary;
-    const auto meshes = PosedMeshesOf(models, input, temporary);
-    DrawnObject object = input;
-    const auto draw = [&](std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt)
-    { return DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, flags, texture, &object.color); };
-    if (impact)
-    {
-        effect.objectState.hiddenMesh = -2;
-        object.state.hiddenMesh = -2;
-        if (!emit)
-            return Core::Unexpected(std::string("0x601c90: falta4ee770 del impacto del arma"));
-        if (auto emitted = emit(stone ? 0x12d : 0x12e, object, meshes); !emitted.HasValue())
-            return emitted;
-    }
-    else if (effect.type == 0x10a || effect.type == 0x10b)
-    {
-        if (effect.subtype == 2 || effect.subtype == 3)
-        {
-            object.color = effect.subtype == 2 ? glm::vec3{.1f, .3f, .6f} : glm::vec3{.1f, .6f, .3f};
-            if (auto chrome = draw(0x44, ChromeTextureSlot); !chrome.HasValue())
-                return chrome;
-        }
-        else
-        {
-            if (auto base = draw(2); !base.HasValue())
-                return base;
-            object.color = glm::vec3(1);
-            if (auto chrome = draw(0x44, ChromeTextureSlot); !chrome.HasValue())
-                return chrome;
-            object.color = {.3f, .3f, 1};
-            if (auto shiny = draw(0x48, ChromeTextureSlot); !shiny.HasValue())
-                return shiny;
-        }
-    }
-    else
-    {
-        const bool fragment = effect.type == 0x12d || effect.type == 0x12e;
-        const bool fragmentChrome = fragment && effect.subtype == 1;
-        const bool fragmentGreen = fragment && (effect.subtype == 2 || effect.subtype == 3);
-        if (stone || fragmentChrome)
-            object.color = glm::vec3(1);
-        else if (fragmentGreen)
-            object.color = {.5f, 1, .3f};
-        if (auto base = draw(2); !base.HasValue())
-            return base;
-        if ((stone && effect.subtype <= 1) || fragmentChrome)
-        {
-            object.color = {1, .2f, .1f};
-            object.state.light = 1;
-            if (auto chrome = draw(0x44); !chrome.HasValue())
-                return chrome;
-        }
-        if (fragmentChrome || fragmentGreen)
-            object.color = glm::vec3(1);
-    }
-    // 0x602365: uses the last color, even the red of 0x12b; 0x12d/0x12e restore white explicitly.
-    if ((effect.flags78 & 2) != 0)
-    {
-        object.state.blendMesh = -2;
-        object.state.light = 1;
-        if (auto tail = draw(2); !tail.HasValue())
-            return tail;
-    }
-    if (effect.type == 0xed || effect.type == 0xee)
-    {
-        object.color = glm::vec3(1);
-        object.state.blendMesh = -2;
-        object.state.light = 1;
-        if (auto additive = draw(0x42); !additive.HasValue())
-            return additive;
     }
     return {};
 }

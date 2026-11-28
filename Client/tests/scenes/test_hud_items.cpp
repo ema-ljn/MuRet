@@ -1,4 +1,4 @@
-#include "Scenes/HudItems.h"
+#include "Items/HudItems.h"
 
 #include "Tables/ItemTable.h"
 #include "Kernel/OwnInventory.h"

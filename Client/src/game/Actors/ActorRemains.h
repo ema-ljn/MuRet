@@ -33,6 +33,7 @@ struct ActorState;
 // (0x52e810)".
 namespace Client::Actors
 {
+class IEffectHooks;
 
 // What 0x52e810 reads and writes besides the character: the model of its type (0x5769ad8 + type · 0xe0, its +0x54)
 // with the scale (+0x68) and position (+0x6c) of the last one that copied them into it (Q-C1178, like Q-C412:
@@ -47,6 +48,8 @@ struct ActorRemainsContext
     Crt::CrtRandom& random;
     // nullptr: the first blood mark stops at 0x52e96c.
     Terrain::GroundMarkTable* marks = nullptr;
+    // Who creates the ice shards (0x518cf0). nullptr: the ice monster stops at its first shard.
+    const IEffectHooks* effectHooks = nullptr;
 };
 
 // 0x52e810(c): with the model's +0x54 bone at −1, nothing. 0x161 (the ice monster of Devias) turns off its live byte

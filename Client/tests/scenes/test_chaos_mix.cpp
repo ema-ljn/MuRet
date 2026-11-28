@@ -1,10 +1,10 @@
-#include "Scenes/ChaosMix.h"
+#include "ChaosMix/ChaosMix.h"
 
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/ItemPrice.h"
-#include "Scenes/NpcWindowState.h"
+#include "Items/ItemPrice.h"
+#include "Npc/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldRuntime.h"

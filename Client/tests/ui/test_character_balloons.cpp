@@ -1,11 +1,11 @@
-#include "UI/CharacterBalloons.h"
+#include "FrontEnd/CharacterBalloons.h"
 
 #include "Core/PixelSize.h"
 #include "Tables/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 
 #include "support/ExpectedError.h"
 #include "support/RecordingTextDrawer.h"

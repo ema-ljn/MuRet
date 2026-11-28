@@ -1,8 +1,8 @@
-#include "World/WeaponSparkKernels.h"
+#include "Particles/WeaponSparkKernels.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 

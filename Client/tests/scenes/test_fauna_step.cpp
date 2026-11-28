@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/FaunaStep.h"
+#include "Fauna/FaunaStep.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -8,15 +8,15 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Models/Cloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaObject.h"
-#include "Scenes/FaunaMotion.h"
+#include "Fauna/FaunaObject.h"
+#include "Fauna/FaunaMotion.h"
 #include "Data/Models/Model.h"
 #include "Render/TextureSlot.h"
 #include "Models/Skeleton.h"
 #include "Models/ModelId.h"
-#include "Scenes/FaunaState.h"
-#include "World/IBirdStepServices.h"
-#include "World/IFishStepServices.h"
+#include "Fauna/FaunaState.h"
+#include "Fauna/IBirdStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 
@@ -271,7 +271,7 @@ TEST_F(FaunaStepTest, KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan)
     m_models.missingPrefix = true;
     auto context = Context();
     context.effects.effect =
-        [](const Client::World::FishEffectRequest&) -> Client::Core::Expected<std::uint32_t, std::error_code>
+        [](const Client::Kernel::JointRequest&) -> Client::Core::Expected<std::uint32_t, std::error_code>
     { return std::uint32_t{0}; };
     const auto missing = StepGameFish(context);
     EXPECT_FALSE(missing.HasValue());

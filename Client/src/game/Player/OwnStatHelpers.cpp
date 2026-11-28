@@ -8,7 +8,7 @@
 #include "Actors/FullSetScan.h"
 #include "Player/ItemSetOptionList.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/OwnItemOptions.h"
+#include "Items/OwnItemOptions.h"
 #include "Kernel/WorldRuntime.h"
 #include "Math/Ftol.h"
 #include "Kernel/ItemState.h"

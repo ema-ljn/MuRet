@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterDrawing.h"
+#include "Monsters/Drawing/MonsterDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -24,20 +24,20 @@
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Models/SkinningBuffers.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/SkillReplies.h"
+#include "FrontEnd/SelectionState.h"
+#include "Skills/SkillReplies.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
@@ -45,6 +45,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
@@ -230,7 +231,8 @@ protected:
                 .terrain = &m_terrain,
                 .faunaModels = &m_faunaModels,
                 .drawBuffers = &m_buffers,
-                .hooks = &m_drawHooks};
+                .hooks = &m_drawHooks,
+                .effectHooks = &m_effectHooks};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -254,10 +256,11 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Scenes::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
     Client::Models::SkinningBuffers m_buffers;
     Client::Render::ModelBatch m_batch;
@@ -1785,7 +1788,8 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
         m_world->Map().effects.Clear();
         m_world->Runtime().lastSoundId.reset();
 
-        Client::Scenes::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources);
+        ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources)
+                        .HasValue());
 
         EXPECT_EQ(glow.byte110, strike);
         EXPECT_EQ(glow.flags78, 0u);

@@ -1,6 +1,6 @@
 #include "Models/IModelLibrary.h"
 #include "Protocol/FrontEnd/CharacterList.h"
-#include "Scenes/LetterPortrait.h"
+#include "Messenger/LetterPortrait.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -27,19 +27,20 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Pass3D.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatReceive.h"
-#include "Scenes/DarkHorse.h"
+#include "Effects/ActorEffectHooks.h"
+#include "Chat/ChatReceive.h"
+#include "Pets/DarkHorse.h"
 #include "Actors/Drawing/GameCharacters.h"
-#include "Scenes/GameFriends.h"
-#include "Scenes/GameHud.h"
-#include "Scenes/GameLetters.h"
-#include "Scenes/GameUi.h"
+#include "Messenger/GameFriends.h"
+#include "Hud/GameHud.h"
+#include "Messenger/GameLetters.h"
+#include "Hud/GameUi.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/HelperTable.h"
-#include "Scenes/LoginModels.h"
+#include "Pets/HelperTable.h"
+#include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/TooltipLines.h"
+#include "FrontEnd/SelectionState.h"
+#include "Tooltips/TooltipLines.h"
 #include "Session/CharacterStepHooks.h"
 #include "Session/ModuleStates.h"
 #include "Session/WorldEntry.h"
@@ -47,10 +48,10 @@
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
-#include "UI/LetterModel.h"
-#include "UI/OldWindowBase.h"
-#include "UI/OldWindows.h"
-#include "World/Sprites.h"
+#include "Messenger/LetterModel.h"
+#include "Ui/OldWindowBase.h"
+#include "Ui/OldWindows.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
@@ -721,6 +722,7 @@ public:
         draw.characters.sprites = &frameSprites;
         draw.characters.particles = &m_game.world.Particles();
         draw.characters.effects = &m_game.world.Map().effects;
+        draw.characters.effectHooks = &effectHooks;
         draw.helperModels = &m_game.drawn;
         draw.originalFrame = originalFrame;
         return draw;
@@ -734,6 +736,7 @@ public:
     Client::Render::ModelBatch models;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::World::FrameSprites frameSprites;
+    Client::Scenes::ActorEffectHooks effectHooks;
     std::vector<std::pair<std::string, std::size_t>> flushes;
 
 private:

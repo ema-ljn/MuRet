@@ -5,7 +5,7 @@
 #include "Input/Key.h"
 #include "Render/TextureSlot.h"
 #include "Assets/SceneTextures.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 
 #include <cstdint>
 #include <map>

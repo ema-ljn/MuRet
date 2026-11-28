@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/HighEffectDrawing.h"
+#include "Effects/HighEffectDrawing.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -14,17 +14,18 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HighModelEffects.h"
+#include "Effects/HighModelEffects.h"
 #include "Kernel/WorldMap.h"
-#include "Scenes/WorldObjectsDrawing.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Terrain/SphereFrustum.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -126,7 +127,7 @@ struct Drawer
             {
                 ++poses;
                 // Como en producción (GameSceneTail): 0x52da99 → 0x602e90(efecto, 0, …) deja el scratch del mundo.
-                auto published = Client::Scenes::PublishFaunaPose(carry, models, object, true);
+                auto published = Client::Actors::Drawing::PublishPose(carry, models, object, true);
                 bones = {BoneTransform(0.0f), BoneTransform(0.0f), Translation(SecondBonePoint),
                          Translation(ThirdBonePoint), Translation(FourthBonePoint)};
                 return published;
@@ -164,7 +165,7 @@ struct Drawer
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
     std::vector<BoneTransform> bones;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     int poses = 0;
     ModelBatch batch;
 };

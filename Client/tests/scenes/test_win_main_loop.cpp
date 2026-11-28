@@ -7,7 +7,7 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/SlideBanner.h"
+#include "Ui/SlideBanner.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

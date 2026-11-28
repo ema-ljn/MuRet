@@ -1,7 +1,8 @@
-#include "World/SiegeStoneEffects.h"
+#include "CastleSiege/SiegeStoneEffects.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/ModelEffects.h"
+#include "Kernel/ModelEffectArguments.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -12,7 +13,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::ModelEffectArguments;
+using Client::Kernel::ModelEffectArguments;
 using Client::World::ModelEffects;
 using Client::World::SiegeIceStoneEffect;
 using Client::World::SiegeStoneEffect;

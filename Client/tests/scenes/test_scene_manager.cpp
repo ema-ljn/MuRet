@@ -1,7 +1,7 @@
 #include "Scenes/SceneManager.h"
 
 #include "App/GameLoop.h"
-#include "App/PacingMode.h"
+#include "Kernel/PacingMode.h"
 #include "Platform/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -26,7 +26,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTransitions.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Kernel/WorldRuntime.h"

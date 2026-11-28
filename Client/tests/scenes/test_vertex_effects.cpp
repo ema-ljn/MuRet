@@ -3,19 +3,22 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/JointRequest.h"
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/BlastModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/SkinShellEffects.h"
-#include "World/Sprites.h"
+#include "Effects/ActorEffectHooks.h"
+#include "Session/CharacterDrawHooks.h"
+#include "Effects/BlastModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/SkinShellEffects.h"
+#include "Particles/Sprites.h"
 
 #include <gtest/gtest.h>
 
@@ -34,6 +37,8 @@
 
 namespace
 {
+const Client::Scenes::ActorEffectHooks EffectHooks;
+
 class VertexModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -69,7 +74,7 @@ TEST(VertexEffectsTest, RepeatedCornersConsumeThreeDrawsEachEvenWithAFullEffectP
     Client::Crt::CrtRandom random(1), expected(1);
     expected.Discard(18);
     const auto result =
-        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random);
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, &EffectHooks, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(random.State(), expected.State());
 }
@@ -86,7 +91,7 @@ TEST(VertexEffectsTest, GateChildrenUseThePublishedScratchAndRunTheirConstructor
     // CRT seed 2: 45 % 3 = 0; the second draw chooses 0x12f/0x130; eight from the constructor.
     expected.Discard(10);
     const auto result =
-        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x12f, 0, *effects, random);
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x12f, 0, *effects, &EffectHooks, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(effects->Effects()[0].alive);
     EXPECT_EQ(effects->Effects()[0].transform.position, (glm::vec3{11, 22, 83}));
@@ -105,9 +110,11 @@ TEST(VertexEffectsTest, AnInvalidMeshAndSignedEmptyPolygonsDoNotConsumeRandom)
     Client::Crt::CrtRandom random(1);
     const Client::Actors::Drawing::DrawnObject object;
     ASSERT_TRUE(
-        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, -1, 0x131, 0, *effects, random).HasValue());
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, -1, 0x131, 0, *effects, &EffectHooks, random)
+            .HasValue());
     ASSERT_TRUE(
-        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random).HasValue());
+        Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, &EffectHooks, random)
+            .HasValue());
     EXPECT_EQ(random.State(), 1u);
 }
 
@@ -122,8 +129,8 @@ TEST(VertexEffectsTest, TheTwoProjectileFamiliesPreserveTheirDifferentChildSubty
     {
         auto effects = std::make_unique<Client::World::ModelEffects>();
         Client::Crt::CrtRandom random(2), expected(2);
-        const auto result =
-            Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, family, 0, *effects, random);
+        const auto result = Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, family, 0, *effects,
+                                                                       &EffectHooks, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(effects->Effects()[0].alive);
         EXPECT_EQ(effects->Effects()[0].subtype, family == 0x12d ? 1 : 0);
@@ -158,8 +165,8 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
             ++counted;
         }
         ASSERT_EQ(counted, 20);
-        const auto result =
-            Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x13c, subtype, *effects, random);
+        const auto result = Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0, 0x13c, subtype,
+                                                                       *effects, &EffectHooks, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(random.State(), expected.State());
         const auto live = static_cast<std::size_t>(
@@ -187,6 +194,8 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
 using Client::Actors::Drawing::EmitVertexEffectsOf;
 using Client::Crt::CrtRandom;
 using Client::Models::SkinnedMesh;
+
+const Client::Session::CharacterDrawHooks JointHooks;
 
 // A model with `count` triangles of one corner (vertex 0) in mesh 0.
 Client::Data::Models::Model OneCornerModel(std::size_t count)
@@ -226,7 +235,7 @@ TEST(VertexEffectsTest, TheStonesOfTheStruckGlowTakeTheirSubtypes)
         if (probe.childSubtype >= 0)
             expected.Discard(8);
         ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x10a, .subtype = probe.subtype},
-                                        {.effects = effects.get()}, random)
+                                        {.effects = effects.get(), .effectHooks = &EffectHooks}, random)
                         .HasValue());
         EXPECT_EQ(random.State(), expected.State());
         ASSERT_EQ(Alive(*effects), probe.childSubtype >= 0 ? 1u : 0u);
@@ -271,7 +280,7 @@ TEST(VertexEffectsTest, TheGateStonesComeWithADimLight)
             }
         }
         ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x10c, .subtype = subtype},
-                                        {.effects = effects.get()}, random)
+                                        {.effects = effects.get(), .effectHooks = &EffectHooks}, random)
                         .HasValue());
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(Alive(*effects), Alive(*twin));
@@ -314,7 +323,7 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
                             .has_value());
         }
         const auto result = Client::Actors::Drawing::EmitVertexEffects(
-            models, object, meshes, 0, Client::World::SkinShellEffect, subtype, *effects, random);
+            models, object, meshes, 0, Client::World::SkinShellEffect, subtype, *effects, &EffectHooks, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(random.State(), expected.State());
         std::size_t made = 0;
@@ -340,7 +349,8 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
         Client::Crt::CrtRandom full(4), corners(4);
         corners.Discard(static_cast<std::uint32_t>(3 * models.model.meshes[0].triangles.size()));
         ASSERT_TRUE(Client::Actors::Drawing::EmitVertexEffects(models, object, meshes, 0,
-                                                               Client::World::SkinShellEffect, subtype, *effects, full)
+                                                               Client::World::SkinShellEffect, subtype, *effects,
+                                                               &EffectHooks, full)
                         .HasValue());
         EXPECT_EQ(full.State(), corners.State());
     }
@@ -390,12 +400,12 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
                                                       .skill = 0,
                                                       .skillSerial = 0,
                                                       .target = -1},
-                                                     expected, Client::Scenes::JointOwnerKind::Actor)
+                                                     expected, Client::Kernel::JointOwnerKind::Actor)
                         .HasValue());
     }
     ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes,
                                     {.type = 0x5ac, .subtype = 1, .angles = {0.0f, 0.0f, 45.0f}, .target = &target},
-                                    {.joints = joints}, shout)
+                                    {.joints = joints, .jointHooks = &JointHooks}, shout)
                     .HasValue());
     EXPECT_EQ(shout.State(), expected.State());
     // By hand, with seed 9 (68, 6151, 18175, 22398) and the turn at 45: (−68, 0, 31 − 60 + 45) and (−85, 0, 78 − 60 +
@@ -413,8 +423,8 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
     EXPECT_EQ(joints[1].ownerContext, &target);
 
     CrtRandom orphan(9);
-    const auto cut =
-        EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x5ac, .subtype = 1}, {.joints = joints}, orphan);
+    const auto cut = EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x5ac, .subtype = 1},
+                                         {.joints = joints, .jointHooks = &JointHooks}, orphan);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x4eefc5"), std::string::npos) << cut.Error();
 }
@@ -460,5 +470,29 @@ TEST(VertexEffectsTest, TheFadingParticlesComeOneInThirty)
         ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = other}, {}, quiet).HasValue());
         EXPECT_EQ(quiet.State(), 11u);
     }
+}
+
+// 0x4ee770 creates the stones, the gates' stones and the shells through the hooks: without them those stop before
+// their rand() calls; the siege's fragments do not need them.
+TEST(VertexEffectsTest, TheStonesAndTheShellsStopWithoutTheEffectHooks)
+{
+    const auto model = OneCornerModel(1);
+    const std::array meshes{SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    for (const std::int32_t type : {0x10a, 0x10c, 0x137})
+    {
+        SCOPED_TRACE(type);
+        auto effects = std::make_unique<Client::World::ModelEffects>();
+        CrtRandom random(5);
+        const auto stopped =
+            EmitVertexEffectsOf(model, 1.0f, meshes, {.type = type, .subtype = 1}, {.effects = effects.get()}, random);
+        ASSERT_FALSE(stopped.HasValue());
+        EXPECT_NE(stopped.Error().find("0x518cf0"), std::string::npos) << stopped.Error();
+        EXPECT_EQ(random.State(), 5u);
+        EXPECT_EQ(Alive(*effects), 0u);
+    }
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    CrtRandom random(5);
+    ASSERT_TRUE(
+        EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x131}, {.effects = effects.get()}, random).HasValue());
 }
 } // namespace

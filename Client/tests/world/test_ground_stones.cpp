@@ -1,6 +1,6 @@
 #include "Math/X87.h"
-#include "World/GameModelEffects.h"
-#include "World/ModelEffects.h"
+#include "Effects/GameModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -8,9 +8,9 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRotation.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjectStepServices.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"

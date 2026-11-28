@@ -1,4 +1,4 @@
-#include "Scenes/GameHover.h"
+#include "Hud/GameHover.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -6,7 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatBubbles.h"
+#include "Chat/ChatBubbles.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

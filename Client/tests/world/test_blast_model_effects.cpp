@@ -1,17 +1,18 @@
-#include "World/BlastModelEffects.h"
+#include "Effects/BlastModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/GameModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 
@@ -31,10 +32,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::JointRequest;
+using Client::Kernel::ModelEffectArguments;
 using Client::World::BlastEffectServices;
-using Client::World::FishEffectRequest;
 using Client::World::ModelEffect;
-using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;
 
 constexpr int OwnRecordCloseRandoms = 0xf08;
@@ -64,22 +65,22 @@ struct Harness
 
     BlastEffectServices Services()
     {
-        return {.ownRecordDepth = &depth,
-                .ownRecordCount = &count,
-                .hero = &hero,
-                .skillHits = [this](const ModelEffect&, float radius) -> Client::Core::Expected<void, std::string>
-                {
-                    hits.push_back(radius);
-                    return {};
-                },
-                .joint = [this](const FishEffectRequest& request,
-                                bool effectOwner) -> Client::Core::Expected<void, std::string>
-                {
-                    joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill,
-                                      request.ownerContext, effectOwner});
-                    return {};
-                },
-                .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); }};
+        return {
+            .ownRecordDepth = &depth,
+            .ownRecordCount = &count,
+            .hero = &hero,
+            .skillHits = [this](const ModelEffect&, float radius) -> Client::Core::Expected<void, std::string>
+            {
+                hits.push_back(radius);
+                return {};
+            },
+            .joint = [this](const JointRequest& request, bool effectOwner) -> Client::Core::Expected<void, std::string>
+            {
+                joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill,
+                                  request.ownerContext, effectOwner});
+                return {};
+            },
+            .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); }};
     }
 };
 
@@ -397,7 +398,7 @@ struct StepHarness
                 .map = &map,
                 .cameraShake = withShake ? &shake : nullptr,
                 .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); },
-                .joint = [this](const FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+                .joint = [this](const JointRequest& request) -> Client::Core::Expected<void, std::string>
                 {
                     joints.push_back(request.type);
                     return {};

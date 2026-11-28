@@ -1,23 +1,24 @@
-#include "Scenes/PetStats.h"
+#include "Pets/PetStats.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Protocol/Pets/PetInfo.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Player/OwnDerivedStats.h"
 #include "Player/OwnStatHelpers.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -323,7 +324,7 @@ TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
             EXPECT_EQ(joint.width, 40.0f);
             EXPECT_EQ(joint.life, 50);
             EXPECT_EQ(joint.ownerContext, &raven);
-            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Raven);
+            EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Raven);
             EXPECT_EQ(joint.light, raven.light);
             EXPECT_EQ(joint.position, raven.position);
             EXPECT_EQ(joint.targetPosition, raven.position);

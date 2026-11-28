@@ -25,7 +25,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>

@@ -1,4 +1,4 @@
-#include "Scenes/MonsterKinds.h"
+#include "Monsters/MonsterKinds.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"

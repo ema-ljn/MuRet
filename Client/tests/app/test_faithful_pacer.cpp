@@ -1,8 +1,8 @@
-#include "App/FaithfulPacer.h"
+#include "Kernel/FaithfulPacer.h"
 
 #include "App/GameLoop.h"
-#include "App/LoopTiming.h"
-#include "App/PacingMode.h"
+#include "Kernel/LoopTiming.h"
+#include "Kernel/PacingMode.h"
 #include "Platform/WindowState.h"
 #include "Input/InputState.h"
 #include "support/FakeClock.h"

@@ -5,14 +5,16 @@
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameParticles.h"
-#include "Scenes/NoriaObjectServices.h"
+#include "Effects/GameParticles.h"
+#include "MapScripts/Noria/NoriaObjectServices.h"
 #include "Assets/WorldModels.h"
-#include "World/ObjectModelStepState.h"
-#include "World/Sprites.h"
+#include "Terrain/TerrainCulling.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainHeight.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingSink.h"
@@ -20,12 +22,13 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/Particles.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -128,7 +131,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
         if (types.insert(object.type).second)
             representatives.push_back(object);
     ASSERT_EQ(representatives.size(), 44u);
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     Client::World::FrameSprites sprites;
     std::vector<Client::Scenes::JointState> joints(100);
     Client::Scenes::GameObjectPass pass;
@@ -139,9 +142,9 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     pass.retainedPose = &pose;
     pass.modelState = &state;
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
-    { return Client::Scenes::PublishFaunaPose(pose, models, drawn, true); };
+    { return Client::Actors::Drawing::PublishPose(pose, models, drawn, true); };
     int jointCalls = 0;
-    pass.createJoint = [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    pass.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         const auto made = Client::Scenes::CreateFaunaJoint(joints, request, random);
         if (!made.HasValue())
@@ -161,7 +164,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     fairyPose.model = 0x27;
     fairyPose.transform = fairy->transform;
     fairyPose.animation = fairy->animation;
-    ASSERT_TRUE(Client::Scenes::PublishFaunaPose(pose, models, fairyPose, true).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::PublishPose(pose, models, fairyPose, true).HasValue());
     random = Client::Crt::CrtRandom(4);
     const auto emitted = Client::Scenes::StepNoriaObjectFrame(*fairy, 61, pass);
     ASSERT_TRUE(emitted.HasValue()) << emitted.Error();

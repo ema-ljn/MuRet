@@ -2,14 +2,14 @@
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/EventMapObjectFrame.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/BloodCastleParticleKernels.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/EventMapObjectFrame.h"
+#include "Kernel/PoseBuffer.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/BloodCastleParticleKernels.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -37,9 +37,9 @@ using Client::World::WorldObject;
 using Client::Math::F32;
 
 // La pose global de 0x68b181c: huesos sin giro, el k en (10 · k; 100; 50).
-Client::Scenes::FaunaDrawCarry Pose(std::size_t bones)
+Client::Kernel::PoseBuffer Pose(std::size_t bones)
 {
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     for (std::size_t k = 0; k < bones; ++k)
     {
         BoneTransform bone(1.0f);

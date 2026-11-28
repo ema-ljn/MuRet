@@ -1,6 +1,6 @@
 #include "Assets/FaunaModels.h"
 #include "Audio/Playback.h"
-#include "Scenes/MonsterKinds.h"
+#include "Monsters/MonsterKinds.h"
 #include "Assets/MonsterModelTable.h"
 #include "Sound/MonsterSounds.h"
 #include "Core/ILogSink.h"

@@ -1,17 +1,18 @@
-#include "World/WizardModelEffects.h"
+#include "Effects/WizardModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
-#include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
-#include "World/Sprites.h"
+#include "Effects/GameModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainLight.h"
@@ -39,8 +40,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ModelEffectArguments;
 using Client::World::ModelEffect;
-using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;
 using Client::World::WizardEffectServices;
 using Client::World::WizardOwnerView;
@@ -100,8 +101,7 @@ struct Harness
             .cameraShake = &shake,
             .siegeActive = false,
             .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); },
-            .joint =
-                [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+            .joint = [this](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
             {
                 joints.push_back({request.type, request.firstPosition, request.secondPosition, request.angles,
                                   request.subtype, request.ownerContext, request.scale, request.key, request.target});

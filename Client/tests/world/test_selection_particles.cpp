@@ -1,12 +1,12 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "World/IParticleTrigonometry.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/SelectionParticleKernels.h"
-#include "World/WorldObjects.h"
+#include "Particles/IParticleTrigonometry.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/SelectionParticleKernels.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

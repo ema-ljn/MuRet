@@ -1,4 +1,4 @@
-#include "Scenes/CrywolfInterfaceDrawing.h"
+#include "Events/Crywolf/CrywolfInterfaceDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -10,10 +10,10 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameHud.h"
+#include "Hud/GameHud.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"

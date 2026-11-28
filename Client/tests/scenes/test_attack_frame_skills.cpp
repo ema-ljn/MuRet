@@ -1,7 +1,8 @@
-#include "Scenes/AttackFrameSkills.h"
+#include "Skills/AttackFrameSkills.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Math/HalfLifeMath.h"
@@ -9,7 +10,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/AttackStep.h"
+#include "Combat/AttackStep.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -17,9 +18,9 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Particles.h"
-#include "World/ModelEffects.h"
-#include "World/WizardModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 
@@ -456,7 +457,7 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
             EXPECT_EQ(bolt->angles, hero.angles);
             EXPECT_EQ(bolt->width, 40.0f);
             EXPECT_EQ(bolt->ownerContext, &hero);
-            EXPECT_EQ(bolt->ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(bolt->ownerKind, Client::Kernel::JointOwnerKind::Actor);
             EXPECT_EQ(bolt->texture, 0x62c);
         }
         EXPECT_EQ(DrawsSince(Seed, tested.random), 9);

@@ -12,15 +12,15 @@
 #include "Kernel/HelperTable.h"
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
-#include "Scenes/FaunaState.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Fauna/FaunaState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/Leaves.h"
+#include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
+#include "Kernel/PoseBuffer.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -214,11 +214,11 @@ SharedModelPlacement WorldState::ModelPlacement(std::uint16_t type) const
     return found != m_modelPlacements.end() ? found->second : SharedModelPlacement{};
 }
 
-Scenes::FaunaDrawCarry& WorldState::PoseCarry()
+PoseBuffer& WorldState::PoseCarry()
 {
     return m_poseCarry;
 }
-const Scenes::FaunaDrawCarry& WorldState::PoseCarry() const
+const PoseBuffer& WorldState::PoseCarry() const
 {
     return m_poseCarry;
 }

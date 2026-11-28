@@ -1,7 +1,8 @@
-#include "Scenes/AttackSkillCases.h"
+#include "Skills/AttackSkillCases.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -9,21 +10,21 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ArrowEffects.h"
+#include "Effects/ArrowEffects.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/HighModelEffects.h"
+#include "Effects/HighModelEffects.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SkillBurstEffects.h"
+#include "Effects/SkillBurstEffects.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
-#include "World/KalimaWorld.h"
-#include "World/KalimaWaves.h"
-#include "World/Particles.h"
-#include "World/WizardModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "MapScripts/Kalima/KalimaWaves.h"
+#include "Particles/Particles.h"
+#include "Effects/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 
@@ -730,7 +731,7 @@ TEST(AttackSkillCasesTest, TheBindingSkillsDropAStormOnTheirTarget)
         ASSERT_TRUE(storm.alive);
         EXPECT_EQ(storm.type, 0x632);
         EXPECT_EQ(storm.subtype, probe.subtype);
-        EXPECT_EQ(storm.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(storm.ownerKind, Client::Kernel::JointOwnerKind::Actor);
         EXPECT_EQ(storm.ownerContext, &tested.Victim());
         EXPECT_EQ(storm.position, glm::vec3(1500.0f, 1600.0f, 1220.0f));
         EXPECT_EQ(storm.angles, glm::vec3(90.0f, 0.0f, 0.0f));
@@ -982,7 +983,7 @@ TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
                 EXPECT_EQ(plasma.type, 0x14f);
                 EXPECT_EQ(plasma.subtype, shade + (pair == 0 ? 0 : 3));
                 EXPECT_EQ(plasma.ownerContext, &aimed);
-                EXPECT_EQ(plasma.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+                EXPECT_EQ(plasma.ownerKind, Client::Kernel::JointOwnerKind::Actor);
                 EXPECT_EQ(plasma.width, pair == 0 ? 100.0f : 80.0f);
                 EXPECT_EQ(plasma.position, point({0.0f, -140.0f, 130.0f}));
                 EXPECT_EQ(plasma.angles, (glm::vec3{pitch, 0.0f, yaw}));

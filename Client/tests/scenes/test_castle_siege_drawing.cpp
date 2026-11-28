@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/CastleSiegeObjectServices.h"
+#include "MapScripts/CastleSiege/CastleSiegeObjectServices.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -16,14 +16,14 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/SphereFrustum.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/WorldObjects.h"
-#include "World/ModelEffects.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "WorldObjects/WorldObjects.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -35,7 +35,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <limits>
 #include <optional>
 #include <span>
 #include <string>
@@ -580,109 +579,6 @@ TEST(CastleSiegeDrawingTest, AFragmentEmitsFromItsPosedVerticesInsteadOfDrawingT
     EXPECT_TRUE(drawn.result.Value());
     EXPECT_EQ(calls, 1);
     EXPECT_TRUE(drawn.batch.Vertices().empty());
-}
-
-TEST(CastleSiegeDrawingTest, TheStoneHasItsWhiteBaseAndRedDefaultChrome)
-{
-    const SiegeModels models(1);
-    Client::World::ModelEffect effect;
-    effect.type = 0x12b;
-    effect.subtype = 1;
-    DrawnObject object = SiegeObject();
-    object.color = {.2f, .4f, .6f};
-    ModelBatch batch;
-    batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Actors::Drawing::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
-    ASSERT_EQ(batch.Vertices().size(), 6u);
-    ASSERT_GE(batch.Commands().size(), 2u);
-    EXPECT_EQ(batch.Commands().front().state.texture, TextureSlot{0x300});
-    EXPECT_EQ(batch.Commands().back().state.texture, Client::Actors::Drawing::ChromeTextureSlot);
-    EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1);
-    EXPECT_FLOAT_EQ(batch.Vertices()[3].color.green, .2f);
-}
-TEST(CastleSiegeDrawingTest, TheImpactHidesBeforeEmittingItsNativeVertexFamilyAndDoesNotDrawTheBase)
-{
-    const SiegeModels models(1);
-    for (const std::int16_t type : std::array<std::int16_t, 2>{0x12b, 0x12c})
-    {
-        Client::World::ModelEffect effect;
-        effect.type = type;
-        effect.seen = true;
-        effect.objectState.hiddenMesh = 99;
-        DrawnObject object = SiegeObject();
-        object.state = effect.objectState;
-        ModelBatch batch;
-        batch.Begin(Client::Render::Pass3D{});
-        int calls = 0;
-        ASSERT_TRUE(
-            Client::Actors::Drawing::DrawCastleWeaponBody(
-                batch, models, effect, object, {},
-                [&](std::int32_t family, const DrawnObject& owner,
-                    std::span<const Client::Models::SkinnedMesh> meshes) -> Client::Core::Expected<void, std::string>
-                {
-                    ++calls;
-                    EXPECT_EQ(family, type == 0x12b ? 0x12d : 0x12e);
-                    EXPECT_EQ(effect.objectState.hiddenMesh, -2);
-                    EXPECT_EQ(owner.state.hiddenMesh, -2);
-                    EXPECT_EQ(meshes.size(), 1u);
-                    return {};
-                })
-                .HasValue());
-        EXPECT_EQ(calls, 1);
-        EXPECT_TRUE(batch.Vertices().empty());
-    }
-}
-TEST(CastleSiegeDrawingTest, InvisibleAndUnorderedAlphaDoNotConsumeTheImpact)
-{
-    const SiegeModels models(1);
-    for (const float alpha : {0.0f, std::numeric_limits<float>::quiet_NaN()})
-    {
-        Client::World::ModelEffect effect;
-        effect.type = 0x12b;
-        effect.seen = true;
-        effect.alpha = alpha;
-        effect.objectState.hiddenMesh = 99;
-        DrawnObject object = SiegeObject();
-        object.state = effect.objectState;
-        ModelBatch batch;
-        batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Actors::Drawing::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
-        EXPECT_EQ(effect.objectState.hiddenMesh, 99);
-        EXPECT_TRUE(batch.Vertices().empty());
-    }
-}
-
-TEST(CastleSiegeDrawingTest, FragmentColorsAndTheExtraBodyPassFollowTheNativeRestoration)
-{
-    const SiegeModels models(1);
-    struct Case
-    {
-        std::int16_t type;
-        std::int32_t subtype;
-        std::size_t vertices;
-        glm::vec3 last;
-    };
-    const std::array cases{
-        Case{0x12d, 1, 9, {1, 1, 1}},       Case{0x12e, 2, 6, {1, 1, 1}},       Case{0x12f, 0, 6, {.2f, .4f, .6f}},
-        Case{0x10a, 0, 12, {.3f, .3f, 1}},  Case{0x10b, 2, 6, {.1f, .3f, .6f}}, Case{0x114, 2, 6, {.2f, .4f, .6f}},
-        Case{0x114, 6, 6, {.2f, .4f, .6f}}, Case{0x115, 1, 6, {.2f, .4f, .6f}}, Case{0xed, 0, 9, {1, 1, 1}},
-        Case{0xee, 0, 9, {1, 1, 1}},        Case{0xe1, 1, 6, {.2f, .4f, .6f}}};
-    for (const auto& item : cases)
-    {
-        Client::World::ModelEffect effect;
-        effect.type = item.type;
-        effect.subtype = item.subtype;
-        effect.flags78 = 2;
-        DrawnObject object = SiegeObject();
-        object.color = {.2f, .4f, .6f};
-        ModelBatch batch;
-        batch.Begin(Client::Render::Pass3D{});
-        ASSERT_TRUE(Client::Actors::Drawing::DrawCastleWeaponBody(batch, models, effect, object, {}).HasValue());
-        ASSERT_EQ(batch.Vertices().size(), item.vertices);
-        EXPECT_FLOAT_EQ(batch.Vertices().back().color.red, item.last.r);
-        EXPECT_FLOAT_EQ(batch.Vertices().back().color.green, item.last.g);
-        EXPECT_FLOAT_EQ(batch.Vertices().back().color.blue, item.last.b);
-    }
 }
 
 TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEvenWithoutAModel)

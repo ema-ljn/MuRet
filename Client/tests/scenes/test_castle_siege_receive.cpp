@@ -1,7 +1,7 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/CastleSiegeReceive.h"
-#include "Scenes/GamePanels.h"
-#include "Scenes/CastleWindows.h"
+#include "CastleSiege/CastleSiegeReceive.h"
+#include "Hud/GamePanels.h"
+#include "CastleSiege/CastleWindows.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -15,9 +15,9 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/CastleSiegeState.h"
-#include "UI/MessageArea.h"
-#include "UI/PanelRegistry.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Ui/MessageArea.h"
+#include "Ui/PanelRegistry.h"
 
 #include "support/Bytes.h"
 #include "support/RecordingSink.h"

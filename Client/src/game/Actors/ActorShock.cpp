@@ -13,7 +13,7 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Audio/SoundId.h"
 
 #include <cstddef>

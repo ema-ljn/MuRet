@@ -1,14 +1,14 @@
-#include "Scenes/LandOfTrialsObjectServices.h"
+#include "MapScripts/LandOfTrials/LandOfTrialsObjectServices.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "Kernel/PoseBuffer.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -36,7 +36,7 @@ struct Fixture
 {
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
 
     Fixture()

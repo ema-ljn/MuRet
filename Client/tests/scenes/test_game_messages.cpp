@@ -1,11 +1,11 @@
-#include "Scenes/GameMessages.h"
+#include "Chat/GameMessages.h"
 
 #include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/WorldRuntime.h"
-#include "UI/ChatLog.h"
-#include "UI/MessageArea.h"
+#include "Chat/ChatLog.h"
+#include "Ui/MessageArea.h"
 
 #include <gtest/gtest.h>
 

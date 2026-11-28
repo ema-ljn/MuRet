@@ -3,7 +3,7 @@
 #include "Maps/MapId.h"
 #include "Models/IModelLibrary.h"
 #include "Models/ObjectState.h"
-#include "Scenes/CastleSiegeBlessing.h"
+#include "CastleSiege/CastleSiegeBlessing.h"
 
 #include "Crt/CrtRandom.h"
 #include "Actors/ActorPickingBox.h"
@@ -35,15 +35,15 @@
 #include "Actors/Drawing/GameHanging.h"
 #include "Actors/Drawing/CharacterDrawHooks.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
-#include "Scenes/GuildMarks.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildMarks.h"
+#include "Guild/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/PartyActors.h"
-#include "Scenes/SocialState.h"
+#include "Party/PartyActors.h"
+#include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/TerrainLighting.h"
 #include "Pathfinding/TerrainWalls.h"
@@ -533,6 +533,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                       .carry = pass.poseCarry,
                                       .sprites = pass.sprites,
                                       .joints = pass.joints,
+                                      .jointHooks = pass.hooks,
                                       .particles = pass.particles,
                                       .itemContext = pass.itemContext,
                                       .frameClock = pass.frameClock,
@@ -551,7 +552,9 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                                .sprites = pass.sprites,
                                                .particles = pass.particles,
                                                .joints = pass.joints,
+                                               .jointHooks = pass.hooks,
                                                .effects = pass.effects,
+                                               .effectHooks = pass.effectHooks,
                                                .world = &world,
                                                .slot = slot,
                                                .scan = scan,
@@ -585,7 +588,9 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                               .random = &random,
                                               .particles = pass.particles,
                                               .worldClock = worldClock,
-                                              .world = &world});
+                                              .world = &world,
+                                              .jointHooks = pass.hooks,
+                                              .effectHooks = pass.effectHooks});
 }
 
 // Between original frames, the z of the shadow's floor (0x50bc77..0x50bcbd) is the draw's, but it does not stay on the

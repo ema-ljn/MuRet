@@ -671,7 +671,7 @@ jobs:
           git ls-files -z -- 'Client/tests/*.h' \
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner' \
                 --extra-arg="-I$PWD/Client/src" --extra-arg="-I$PWD/Client/src/game" \
-                --extra-arg=-DSDL_OPENGL_1_FUNCTION_TYPEDEFS
+                --extra-arg="-I$PWD/Client/src/app" --extra-arg=-DSDL_OPENGL_1_FUNCTION_TYPEDEFS
 
       - name: Save clang-tidy's cache
         if: always() && steps.ctcache-restore.outcome == 'success'

@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -10,13 +10,13 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/JointKernels.h"
+#include "Joints/JointKernels.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SkillHits.h"
+#include "Skills/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
-#include "World/Particles.h"
+#include "Kernel/JointRequest.h"
+#include "Particles/Particles.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/SameBytes.h"
@@ -56,17 +56,17 @@ struct SweepWorld
         for (std::size_t slot = 0; slot < Last; ++slot)
             joints[slot].alive = true;
         glm::vec3 from = start;
-        const Client::World::FishEffectRequest request{.type = 0x61c,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = angles,
-                                                       .subtype = 0,
-                                                       .ownerContext = owner,
-                                                       .scale = 150.0f,
-                                                       .key = 7,
-                                                       .skill = 3,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x61c,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = angles,
+                                                   .subtype = 0,
+                                                   .ownerContext = owner,
+                                                   .scale = 150.0f,
+                                                   .key = 7,
+                                                   .skill = 3,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
         for (std::size_t slot = 0; slot < Last; ++slot)
             joints[slot].alive = false;

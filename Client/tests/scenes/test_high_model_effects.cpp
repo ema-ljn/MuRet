@@ -1,9 +1,10 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/HighModelEffects.h"
+#include "Effects/HighModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Protocol/Outgoing.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/LogicalAccess.h"
@@ -19,11 +20,11 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/GameModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Assets/FaunaModels.h"
 #include "Audio/SoundId.h"
@@ -51,13 +52,13 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
+using Client::Kernel::ModelEffectArguments;
 using Client::Kernel::WorldState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectContext;
 using Client::Scenes::HighEffectStepContext;
 using Client::Scenes::StepHighModelEffect;
 using Client::World::ModelEffect;
-using Client::World::ModelEffectArguments;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 
@@ -438,7 +439,7 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     EXPECT_EQ(star.type, 0x632);
     EXPECT_EQ(star.subtype, 5);
     EXPECT_EQ(star.ownerContext, &pulse);
-    EXPECT_EQ(star.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+    EXPECT_EQ(star.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
     EXPECT_EQ(star.position, point);
     EXPECT_EQ(star.angles, (glm::vec3{90, 0, 0}));
     EXPECT_EQ(star.bendAngles, (glm::vec3{90, 0, 0}));
@@ -1956,7 +1957,7 @@ struct GlowWorld
         tested.services.sprites = sprites.get();
         tested.services.effects = &tested.world->Map().effects;
         tested.services.joint =
-            [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+            [this](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
         {
             joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill, request.target,
                               request.firstPosition, request.secondPosition, request.angles});

@@ -1,5 +1,5 @@
-#include "World/KalimaObjectMovement.h"
-#include "World/WorldObjects.h"
+#include "MapScripts/Kalima/KalimaObjectMovement.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

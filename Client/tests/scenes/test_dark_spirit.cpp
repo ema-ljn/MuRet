@@ -1,4 +1,4 @@
-#include "Scenes/DarkSpirit.h"
+#include "Pets/DarkSpirit.h"
 #include "Actors/Drawing/GameCharacterEffects.h"
 
 #include "Crt/CrtRandom.h"
@@ -9,7 +9,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainHeight.h"
 

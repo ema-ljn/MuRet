@@ -1,7 +1,7 @@
-#include "UI/GameDialogs.h"
+#include "Ui/GameDialogs.h"
 
-#include "UI/Dialogs.h"
-#include "UI/Widget.h"
+#include "Ui/Dialogs.h"
+#include "Ui/Widget.h"
 
 #include "support/SceneDataFiles.h"
 

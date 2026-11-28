@@ -1,12 +1,13 @@
 #include "Models/IModelLibrary.h"
 #include "Kernel/HelperTable.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/JointRequest.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Math/HalfLifeMath.h"
@@ -21,18 +22,18 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/DarkHorse.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Pets/DarkHorse.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/PetHelperSteps.h"
+#include "Pets/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
@@ -830,7 +831,7 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
                               .random = tested.random,
                               .trapezoid = &tested.trapezoid};
     context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(tested.world.PoseCarry(), models, object, true); };
+    { return Client::Actors::Drawing::PublishPose(tested.world.PoseCarry(), models, object, true); };
     ASSERT_TRUE(DrawHelpers(context).HasValue());
     ASSERT_EQ(tested.world.PoseCarry().bones.size(), 28u);
     const glm::vec3 expected = Client::Math::OriginalVectorTransform(
@@ -1363,7 +1364,7 @@ TEST(HelperTableTest, TheOrbitsRaiseTwelveSparklesAroundTheHorse)
         EXPECT_EQ(joint.skill, 0);
         EXPECT_EQ(joint.skillSerial, 0);
         EXPECT_EQ(joint.ownerContext, &tested.Horse());
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Helper);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Helper);
         EXPECT_EQ(joint.angles, glm::vec3(0.0f, 0.0f, 90.0f * static_cast<float>(turn + 1)));
         EXPECT_EQ(joint.position, Points[turn]);
         EXPECT_EQ(joint.targetPosition, Points[turn]);

@@ -1,0 +1,308 @@
+#include "FrontEnd/CreatePreview.h"
+
+#include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Data/Models/Model.h"
+#include "Data/Models/ModelFiles.h"
+#include "Data/Textures/Sampling.h"
+#include "Render/ITextureStore.h"
+#include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
+#include "Models/ModelTextureSlots.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
+#include "Render/Pass3D.h"
+#include "Render/Text/TextLayout.h"
+#include "Render/TextureSlot.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Actors/ActorConstruction.h"
+#include "Models/Cloth.h"
+#include "Camera/SceneCameras.h"
+#include "Assets/SceneTextures.h"
+#include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
+#include "Assets/TextureSets.h"
+#include "Ui/Widget.h"
+
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float2.hpp>
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace Client::Scenes
+{
+namespace
+{
+constexpr std::string_view LogoFolder = "Logo\\";
+constexpr Data::Textures::Sampling LogoSampling{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};
+constexpr Data::Textures::Sampling NewFaceSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
+// 0x3e99999a en las acciones 0 y 1 de los NewFace (0x61ca30), por 2 en 0x4f9580 (0xa8 a 0xac).
+constexpr float NewFaceActionSpeed = 0.3f;
+constexpr float NewFaceSpeedFactor = 2.0f;
+constexpr std::uint8_t StandingAction = 0;
+constexpr std::uint8_t GreetingAction = 1;
+// 0x511290(objeto, modelo, 0, 0, 0): x = y = 0 · 100 + 50.
+constexpr glm::vec3 PreviewPosition{50.0f, 50.0f, 0.0f};
+// 0x511290 prende la luz por vértice (+0xe8 en 1, 0x511be6), y 0x6002e0 les pisa el color a los
+// 0xa8 a 0xac con 4,8 (0x4099999a, 0x6007d7) antes de RenderBody(2): cada esquina queda en
+// 4,8 · max(0,2; 0,8 · L · n + 0,4), que el shader recorta a 1 salvo de espaldas a la luz.
+constexpr float PreviewColor = 4.8f;
+// 0x63e460: el desplazamiento de la cámara, sus ángulos y el fov.
+constexpr glm::vec3 CameraOffset{10.0f, -500.0f, 48.0f};
+constexpr glm::vec3 CameraAngles{-90.0f, 0.0f, 0.0f};
+constexpr float PreviewFieldOfView = 10.0f;
+// El viewport: 410 × 335 de 640 × 480 desde la esquina de la caja.
+constexpr int PreviewWidth = 410;
+constexpr int PreviewHeight = 335;
+
+// Lo de 0x63e460 por clase: los ángulos (+0x1c), la escala (+0xc) y el corrimiento que suma a la
+// posición (0x6b8bf0 en x con la clase 2 y 0x6b8bf8 en z con la 3).
+struct ClassPose
+{
+    glm::vec3 angles;
+    float scale;
+    glm::vec3 offset;
+};
+
+constexpr std::array<ClassPose, NewFaceCount> ClassPoses{{
+    {{0.0f, 0.0f, -40.0f}, 5.9f, {0.0f, 0.0f, 0.0f}},
+    {{0.0f, 0.0f, -12.0f}, 6.05f, {0.0f, 0.0f, 0.0f}},
+    {{8.0f, 0.0f, 5.0f}, 9.1f, {4.8f, 0.0f, 0.0f}},
+    {{8.0f, 0.0f, -13.0f}, 6.0f, {0.0f, 0.0f, 1.8f}},
+    {{8.0f, 0.0f, -18.0f}, 6.0f, {0.0f, 0.0f, 0.0f}},
+}};
+
+std::uint16_t NewFaceOf(std::uint8_t characterClass)
+{
+    return static_cast<std::uint16_t>(FirstNewFaceModel + characterClass);
+}
+} // namespace
+
+std::array<Data::Models::ModelFile, 1 + NewFaceCount> SelectionModelFiles()
+{
+    std::array<Data::Models::ModelFile, 1 + NewFaceCount> files{};
+    files[0] = Data::Models::ModelFile{SelectionLogoModel, "Logo\\", "Logo", 5};
+    for (std::size_t k = 0; k < NewFaceCount; ++k)
+    {
+        files[1 + k] = Data::Models::ModelFile{static_cast<std::uint16_t>(FirstNewFaceModel + k), "Logo\\", "NewFace",
+                                               static_cast<int>(k + 1)};
+    }
+    return files;
+}
+
+Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::path& dataRoot,
+                                                        Render::ITextureStore& textures, Core::Log& log,
+                                                        const Models::ModelTextureSlots* gameSlots,
+                                                        std::optional<Models::TextureMetadata> startupTexture)
+{
+    Release();
+    m_startupTexture = startupTexture;
+    m_startupStore = startupTexture ? &textures : nullptr;
+    m_models.Clear();
+    // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
+    m_textures.reset();
+    m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SelectionModelsFirstSlot)
+                                         : Models::ModelTextureSlots(SelectionModelsFirstSlot));
+    for (const Data::Models::ModelFile& file : SelectionModelFiles())
+    {
+        auto model = Data::Models::LoadModelFile(dataRoot, file);
+        if (!model.HasValue())
+        {
+            log.Warning("el modelo {} de la selección no se puede leer y no se dibuja: {}", file.model,
+                        model.Error().path);
+            continue;
+        }
+        auto skeleton = Models::MakeSkeleton(model.Value());
+        if (!skeleton.HasValue())
+        {
+            log.Warning("el modelo {} de la selección no tiene un esqueleto que se pueda posar", file.model);
+            continue;
+        }
+        Models::Skeleton posed = std::move(skeleton).Value();
+        if (file.model != SelectionLogoModel)
+        {
+            for (std::size_t action = 0; action < posed.actions.size() && action <= GreetingAction; ++action)
+            {
+                posed.actions[action].speed = NewFaceActionSpeed;
+            }
+        }
+        auto meshTextures = m_slots->Assign(model.Value(), LogoFolder,
+                                            file.model == SelectionLogoModel ? LogoSampling : NewFaceSampling);
+        m_models.Insert(file.model, std::move(model).Value(), std::move(posed)).meshTextures = std::move(meshTextures);
+    }
+    m_textures.emplace(textures, m_slots->ToLoad());
+    return m_textures->Load(dataRoot);
+}
+
+void SelectionModels::Release()
+{
+    constexpr Render::TextureSlot slot{Assets::StartupSelectionTextureSlot};
+    if (m_textures)
+    {
+        m_textures->Release(m_startupTexture ? std::optional(slot) : std::nullopt);
+    }
+    if (m_startupStore != nullptr)
+    {
+        // 0x61cc65..0x61cc7a: el slot se libera aun si no lo reemplazó NewFace05.
+        m_startupStore->Release(slot);
+        m_startupStore = nullptr;
+        m_startupTexture.reset();
+    }
+}
+
+const Data::Models::Model* SelectionModels::Find(Models::ModelId model) const
+{
+    return m_models.ModelOf(model.Value());
+}
+
+const Models::Skeleton* SelectionModels::SkeletonOf(Models::ModelId model) const
+{
+    return m_models.SkeletonOf(model.Value());
+}
+
+std::span<const Render::TextureSlot> SelectionModels::MeshTextures(Models::ModelId model) const
+{
+    return m_models.MeshTextures(model.Value());
+}
+
+std::span<const Models::MeshTraits> SelectionModels::MeshTraitsOf(Models::ModelId model) const
+{
+    return m_models.MeshTraitsOf(model.Value());
+}
+
+std::optional<Models::TextureMetadata> SelectionModels::TextureMetadataOf(std::uint32_t selector) const
+{
+    const auto uploaded = m_textures ? m_textures->MetadataOf(selector) : std::nullopt;
+    if (uploaded)
+        return uploaded;
+    return selector == Assets::StartupSelectionTextureSlot ? m_startupTexture : std::nullopt;
+}
+
+std::optional<Render::TextureSlot> SelectionModels::TextureSlotOf(std::uint32_t selector) const
+{
+    if (TextureMetadataOf(selector))
+        return Render::TextureSlot{static_cast<std::uint16_t>(selector)};
+    return std::nullopt;
+}
+
+std::optional<glm::vec2> SelectionModels::TextureSize(Render::TextureSlot slot) const
+{
+    const auto metadata = TextureMetadataOf(slot.value);
+    return metadata ? std::optional(metadata->size) : std::nullopt;
+}
+
+const Models::ModelTextureSlots* SelectionModels::TextureSlots() const
+{
+    return m_slots ? &*m_slots : nullptr;
+}
+
+void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const Models::IModelLibrary& models)
+{
+    preview.characterClass = characterClass;
+    preview.type = NewFaceOf(characterClass);
+    preview.alive = true;
+    preview.position = PreviewPosition;
+    preview.animation = {};
+    if (const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{NewFaceOf(characterClass)}))
+    {
+        Models::SetAction(preview.animation, *skeleton, GreetingAction);
+    }
+}
+
+Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
+                                                 const Models::IModelLibrary& models,
+                                                 const Actors::ActorConstructionContext& construction,
+                                                 Models::ClothWorld& cloth)
+{
+    preview.characterClass = characterClass;
+    const auto built = Actors::ConstructActor(preview, NewFaceOf(characterClass), {}, construction, cloth);
+    if (!built.HasValue())
+    {
+        return built;
+    }
+    preview.byte88 = 0;
+    if (const auto* skeleton = models.SkeletonOf(Models::ModelId{preview.type}))
+    {
+        Models::SetAction(preview.animation, *skeleton, GreetingAction);
+    }
+    return {};
+}
+
+void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models)
+{
+    const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{NewFaceOf(preview.characterClass)});
+    if (skeleton == nullptr || preview.animation.action >= skeleton->actions.size())
+    {
+        return;
+    }
+    const Models::ActionInfo& action = skeleton->actions[preview.animation.action];
+    if (Models::AdvanceAnimation(preview.animation, action, action.speed * NewFaceSpeedFactor,
+                                 Models::AnimationScene::CharacterSelect))
+    {
+        Models::SetAction(preview.animation, *skeleton, StandingAction);
+    }
+}
+
+Actors::Drawing::DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& models, float stepAlpha,
+                                          int originalFrames)
+{
+    const ClassPose& pose = ClassPoses[preview.characterClass < NewFaceCount ? preview.characterClass : 1];
+    preview.angles = pose.angles;
+    preview.scale = pose.scale;
+    preview.light = glm::vec3(1.0f);
+    for (int frame = 0; frame < originalFrames; ++frame)
+    {
+        preview.position += pose.offset;
+    }
+    Actors::Drawing::DrawnObject drawn;
+    drawn.model = NewFaceOf(preview.characterClass);
+    drawn.animation = preview.animation;
+    if (const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{drawn.model});
+        skeleton != nullptr && preview.animation.action < skeleton->actions.size())
+    {
+        const Models::ActionInfo& action = skeleton->actions[preview.animation.action];
+        drawn.animation = Models::Interpolated(preview.animation, action, action.speed * NewFaceSpeedFactor, stepAlpha);
+    }
+    drawn.transform.position = preview.position;
+    drawn.transform.angles = preview.angles;
+    drawn.transform.scale = preview.scale;
+    drawn.color = glm::vec3(PreviewColor);
+    drawn.vertexLight = true;
+    return drawn;
+}
+
+Render::Camera3D PreviewCamera()
+{
+    Render::Camera3D camera = Camera::SelectionCamera();
+    camera.position = PreviewPosition + CameraOffset;
+    camera.angles = CameraAngles;
+    camera.skipXRotation = false;
+    camera.fieldOfView = PreviewFieldOfView;
+    return camera;
+}
+
+Render::Camera3D PreviewCamera(const CreatePreview& preview)
+{
+    Render::Camera3D camera = PreviewCamera();
+    camera.position = preview.position + CameraOffset;
+    return camera;
+}
+
+Render::ViewportRect PreviewViewport(const UI::Rect& box, Core::PixelSize screen)
+{
+    return Render::ViewportRect{Render::Text::DesignX(box.x, screen), Render::Text::DesignY(box.y, screen),
+                                Render::Text::DesignX(PreviewWidth, screen),
+                                Render::Text::DesignY(PreviewHeight, screen)};
+}
+} // namespace Client::Scenes

@@ -1,12 +1,12 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -26,9 +26,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::JointOwnerKind;
 using Client::Math::Detail::CosineDoubleProductPC53;
 using Client::Math::Detail::SineDoubleProductPC53;
-using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x60fu;
@@ -46,17 +46,17 @@ struct Helix
         glm::vec3 from = start;
         glm::vec3 to = target;
         glm::vec3 turn{0.0f, 0.0f, facing};
-        const Client::World::FishEffectRequest request{.type = type,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = turn,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owned ? &owner : nullptr,
-                                                       .scale = subtype == 0xc ? 100.0f : 50.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = type,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = turn,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owned ? &owner : nullptr,
+                                                   .scale = subtype == 0xc ? 100.0f : 50.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random,
                                                 owned ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
     }

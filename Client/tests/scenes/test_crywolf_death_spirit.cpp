@@ -1,17 +1,20 @@
-#include "Scenes/CrywolfDeathSpiritEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Kernel/ModelEffectArguments.h"
+#include "Effects/CrywolfDeathSpiritEffects.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/GameCharacterEffects.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Effects/CharacterEffectSteps.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/Sprites.h"
+#include "Session/CharacterDrawHooks.h"
+#include "Particles/Sprites.h"
 #include "Audio/SoundId.h"
 #include <vector>
 #include <cstddef>
 #include <string>
 #include "Crt/CrtRandom.h"
-#include "World/ModelEffects.h"
-#include "World/GameModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/GameModelEffects.h"
+#include "Particles/Particles.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <memory>
@@ -24,7 +27,7 @@ TEST(CrywolfDeathSpiritTest, TheMainSpiritRetainsItsTargetOffsetAndCopiesTheInpu
     auto particles = std::make_unique<Client::World::Particles>();
     Client::Kernel::ActorState owner;
     Client::Crt::CrtRandom random(7);
-    const Client::World::ModelEffectArguments args{
+    const Client::Kernel::ModelEffectArguments args{
         .type = 0x147, .position = {100, 200, 300}, .angles = {11, 22, 33}, .light = {0, 0, 80}, .owner = &owner};
     const auto result = Client::Scenes::CreateCrywolfDeathSpirit(args, *effects, particles.get(), random, 0);
     ASSERT_TRUE(result.HasValue());
@@ -179,12 +182,13 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     decal.owner.effect = &parent;
     std::vector<Client::Scenes::JointState> joints(3);
     Client::Crt::CrtRandom random(7), expected(7);
+    const Client::Session::CharacterDrawHooks hooks;
     expected.Discard(13);
-    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(decal, joints, random).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepPetSummon(decal, joints, &hooks, random).HasValue());
     for (auto& joint : joints)
     {
         EXPECT_TRUE(joint.alive);
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
         joint.life = 1;
     }
     parent.transform.position = {400, 500, 600};

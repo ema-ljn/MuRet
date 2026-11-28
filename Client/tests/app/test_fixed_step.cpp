@@ -1,6 +1,6 @@
 #include "App/FixedStep.h"
 
-#include "App/LoopTiming.h"
+#include "Kernel/LoopTiming.h"
 
 #include <gtest/gtest.h>
 

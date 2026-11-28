@@ -1,4 +1,4 @@
-#include "UI/ChatCommands.h"
+#include "Chat/ChatCommands.h"
 
 #include "Core/Expected.h"
 #include "Crypto/Xor3.h"
@@ -6,10 +6,10 @@
 #include "Tables/ItemTable.h"
 #include "Data/Tables/RecordTable.h"
 #include "Tables/TextTable.h"
-#include "UI/ChatInput.h"
-#include "UI/ChatLog.h"
-#include "UI/MessageArea.h"
-#include "UI/PanelRegistry.h"
+#include "Chat/ChatInput.h"
+#include "Chat/ChatLog.h"
+#include "Ui/MessageArea.h"
+#include "Ui/PanelRegistry.h"
 
 #include "support/ChatTexts.h"
 #include "support/ItemSetFiles.h"

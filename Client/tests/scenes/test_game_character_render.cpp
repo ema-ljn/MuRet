@@ -19,21 +19,22 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/DarkSpirit.h"
-#include "Scenes/EventGlobals.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Pets/DarkSpirit.h"
+#include "Events/EventGlobals.h"
+#include "Kernel/PoseBuffer.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GuildMarks.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildMarks.h"
+#include "Guild/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SocialState.h"
+#include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
@@ -278,16 +279,18 @@ protected:
                 .poseCarry = &m_carry,
                 .worldModels = &m_models,
                 .terrain = &m_terrain,
-                .hooks = &m_drawHooks};
+                .hooks = &m_drawHooks,
+                .effectHooks = &m_effectHooks};
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Scenes::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     CharacterModels m_models;
     Client::Render::ModelBatch m_batch;
 };
@@ -1067,7 +1070,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referencePass.clothWorld = &referenceClothWorld;
     referencePass.cloths = referenceCloths;
     referencePass.sprites = &referenceSprites;
-    Client::Scenes::FaunaDrawCarry referenceCarry;
+    Client::Kernel::PoseBuffer referenceCarry;
     referencePass.poseCarry = &referenceCarry;
     const auto reference =
         Client::Actors::Drawing::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);

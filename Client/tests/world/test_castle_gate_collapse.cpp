@@ -1,7 +1,7 @@
-#include "World/CastleSiegeObjectStep.h"
+#include "Kernel/ModelEffectArguments.h"
+#include "CastleSiege/CastleSiegeObjectStep.h"
 #include "Core/Expected.h"
-#include "World/ModelEffects.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 #include <gtest/gtest.h>
 #include <string>
@@ -17,7 +17,7 @@ TEST(CastleGateCollapseTest, TheFragmentAndSoundPrecedeHidingOnlyMeshZero)
     gate.state.hiddenMesh = -1;
     std::vector<int> calls;
     const Client::World::CastleGateCollapseServices services{
-        .emit = [&](const Client::World::ModelEffectArguments& effect) -> Client::Core::Expected<void, std::string>
+        .emit = [&](const Client::Kernel::ModelEffectArguments& effect) -> Client::Core::Expected<void, std::string>
         {
             EXPECT_EQ(gate.state.hiddenMesh, -1);
             EXPECT_EQ(effect.type, 0x3d);

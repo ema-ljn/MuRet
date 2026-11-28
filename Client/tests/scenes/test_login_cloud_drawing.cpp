@@ -3,7 +3,7 @@
 #include "support/PlayerActors.h"
 
 #include "Crt/CrtRandom.h"
-#include "Scenes/WorldObjectsDrawing.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -27,15 +27,14 @@
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Models/TextureMetadata.h"
 #include "Models/ModelId.h"
 #include "Data/Textures/Texture.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainCulling.h"
-#include "World/WizardModelEffects.h"
-#include "World/WorldObjects.h"
+#include "Effects/WizardModelEffects.h"
+#include "WorldObjects/WorldObjects.h"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

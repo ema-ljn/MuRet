@@ -22,17 +22,18 @@
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GuildMarks.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildMarks.h"
+#include "Guild/GuildState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -249,12 +250,17 @@ protected:
     }
     [[nodiscard]] Client::Actors::Drawing::GameCharacterPass Pass()
     {
-        return {.dynamicLighting = m_light.get(), .clothWorld = &m_cloth, .terrain = &m_terrain, .hooks = &m_drawHooks};
+        return {.dynamicLighting = m_light.get(),
+                .clothWorld = &m_cloth,
+                .terrain = &m_terrain,
+                .hooks = &m_drawHooks,
+                .effectHooks = &m_effectHooks};
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Scenes::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     UnarmedModels m_models;
     Client::Models::ClothWorld m_cloth;

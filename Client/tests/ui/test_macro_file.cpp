@@ -1,6 +1,6 @@
-#include "UI/MacroFile.h"
+#include "Chat/MacroFile.h"
 
-#include "UI/ChatInput.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 

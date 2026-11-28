@@ -1,11 +1,11 @@
-#include "UI/OptionsWindow.h"
+#include "FrontEnd/OptionsWindow.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
-#include "UI/NewUi.h"
-#include "UI/Widget.h"
+#include "Ui/NewUi.h"
+#include "Ui/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"

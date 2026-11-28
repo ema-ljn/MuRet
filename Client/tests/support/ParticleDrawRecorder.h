@@ -3,9 +3,9 @@
 #include "Core/Expected.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/TextureEnvMode.h"
-#include "World/IParticleDrawingServices.h"
-#include "World/ParticleDrawing.h"
-#include "World/Particles.h"
+#include "Particles/IParticleDrawingServices.h"
+#include "Particles/ParticleDrawing.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

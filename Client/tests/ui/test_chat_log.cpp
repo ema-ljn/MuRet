@@ -1,6 +1,6 @@
-#include "UI/ChatLog.h"
-#include "UI/MessageArea.h"
-#include "UI/MessageLog.h"
+#include "Chat/ChatLog.h"
+#include "Ui/MessageArea.h"
+#include "Ui/MessageLog.h"
 
 #include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"

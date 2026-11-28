@@ -5,13 +5,13 @@
 #include "Crt/CrtRandom.h"
 #include "Models/LogicalAccess.h"
 #include "Tables/GameData.h"
-#include "Scenes/GameDialogSteps.h"
+#include "Hud/Dialogs/GameDialogSteps.h"
 #include "Session/MapLoad.h"
 #include "Session/ReturnToSelection.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/MacroFile.h"
+#include "Chat/MacroFile.h"
 
 #include <cstdint>
 #include <optional>

@@ -1,6 +1,6 @@
 #include "Math/X87.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -15,11 +15,11 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/SkinShellEffects.h"
-#include "World/Sprites.h"
+#include "Kernel/JointRequest.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/SkinShellEffects.h"
+#include "Particles/Sprites.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/quaternion_float.hpp>
@@ -54,17 +54,17 @@ struct Storm
         glm::vec3 from{1000.0f, 1000.0f, 0.0f};
         glm::vec3 to = from;
         glm::vec3 angles{0.0f, 0.0f, 0.0f};
-        const Client::World::FishEffectRequest request{.type = 0x632,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = 40.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x632,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = nullptr,
+                                                   .scale = 40.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 
@@ -158,17 +158,17 @@ TEST(StormJointsTest, TheBoltHitsTheGround)
         std::vector<JointState> twinJoints(1);
         glm::vec3 from = moved;
         glm::vec3 angles = bolt.angles;
-        const Client::World::FishEffectRequest request{.type = 0x614,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = angles,
-                                                       .subtype = 4,
-                                                       .ownerContext = nullptr,
-                                                       .scale = 60.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x614,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = angles,
+                                                   .subtype = 4,
+                                                   .ownerContext = nullptr,
+                                                   .scale = 60.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twinJoints, request, replay).HasValue());
         const JointState& spark = storm->joints[0];
         ASSERT_TRUE(spark.alive);
@@ -277,18 +277,18 @@ struct FallingStar
     {
         glm::vec3 from = start;
         glm::vec3 turn = angles;
-        const Client::World::FishEffectRequest request{.type = 0x632,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = turn,
-                                                       .subtype = 5,
-                                                       .ownerContext = &owner,
-                                                       .scale = 110.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect);
+        const Client::Kernel::JointRequest request{.type = 0x632,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = turn,
+                                                   .subtype = 5,
+                                                   .ownerContext = &owner,
+                                                   .scale = 110.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+        return Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
     }
 
     Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
@@ -483,22 +483,22 @@ namespace
 struct Falling
 {
     Client::Core::Expected<std::optional<std::size_t>, std::string> Create(std::int32_t subtype, void* owner,
-                                                                           Client::Scenes::JointOwnerKind kind,
+                                                                           Client::Kernel::JointOwnerKind kind,
                                                                            float width = 120.0f, std::int32_t key = -1)
     {
         glm::vec3 from = start;
         glm::vec3 turn = angles;
-        const Client::World::FishEffectRequest request{.type = 0x632,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = turn,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owner,
-                                                       .scale = width,
-                                                       .key = key,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x632,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = turn,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owner,
+                                                   .scale = width,
+                                                   .key = key,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
     }
 
@@ -595,7 +595,7 @@ TEST(StormJointsTest, TheFallingSubtypesAreBornUpright)
     {
         SCOPED_TRACE(probe.subtype);
         Falling falling;
-        ASSERT_TRUE(falling.Create(probe.subtype, &falling.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(falling.Create(probe.subtype, &falling.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         const JointState& joint = falling.joints[0];
         CrtRandom expected{Seed};
         EXPECT_EQ(joint.orientation, expected.Next() & 1);
@@ -625,7 +625,7 @@ TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
     {
         SCOPED_TRACE(subtype);
         Falling falling;
-        ASSERT_TRUE(falling.Create(subtype, &falling.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(falling.Create(subtype, &falling.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         JointState& joint = falling.joints[0];
         const float speed = joint.speed;
         CrtRandom expected = falling.random;
@@ -671,7 +671,7 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
         SCOPED_TRACE(subtype);
         Falling falling;
         falling.ground = 5000.0;
-        ASSERT_TRUE(falling.Create(subtype, nullptr, Client::Scenes::JointOwnerKind::ByType).HasValue());
+        ASSERT_TRUE(falling.Create(subtype, nullptr, Client::Kernel::JointOwnerKind::ByType).HasValue());
         JointState& joint = falling.joints[0];
         CrtRandom expected = falling.random;
 
@@ -709,14 +709,14 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
         // Sin los modelos, el mundo o la tabla, MuRet corta.
         Falling owned;
         owned.ground = 5000.0;
-        ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         const auto cut = owned.Step();
         ASSERT_FALSE(cut.HasValue());
         EXPECT_TRUE(cut.Error().starts_with("0x53c1c6")) << cut.Error();
         // Sin la cola, el suelo no lee al dueño.
         Falling tailless;
         tailless.ground = 5000.0;
-        ASSERT_TRUE(tailless.Create(subtype, &tailless.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(tailless.Create(subtype, &tailless.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         tailless.joints[0].tailEnabled = false;
         ASSERT_TRUE(tailless.Step().HasValue());
     }
@@ -745,7 +745,7 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
         owned.target.boundsMaxX = 60.0f;
         owned.target.boundsMaxY = 70.0f;
         owned.target.boundsTop = 150.0f;
-        ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         CrtRandom expected = owned.random;
 
         const auto stepped = owned.Step(&models, world.get());
@@ -793,7 +793,7 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
         const NoModels none;
         Falling bare;
         bare.ground = 5000.0;
-        ASSERT_TRUE(bare.Create(subtype, &bare.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(bare.Create(subtype, &bare.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         const auto missing = bare.Step(&none, world.get());
         ASSERT_FALSE(missing.HasValue());
         EXPECT_TRUE(missing.Error().starts_with("0x53c1eb")) << missing.Error();
@@ -836,7 +836,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
         owned.ground = 5000.0;
         owned.target.position = {9000.0f, 9000.0f, 9000.0f};
         owned.target.angles = probe.angles;
-        ASSERT_TRUE(owned.Create(0, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        ASSERT_TRUE(owned.Create(0, &owned.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         CrtRandom expected = owned.random;
 
         const auto stepped = owned.Step(&models, world.get());
@@ -887,7 +887,7 @@ TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
     blast.start = effect.transform.position;
     blast.angles = effect.transform.angles;
     blast.joints[0].volley = 9;
-    ASSERT_TRUE(blast.Create(4, &effect, Client::Scenes::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
+    ASSERT_TRUE(blast.Create(4, &effect, Client::Kernel::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
     const JointState& joint = blast.joints[0];
     EXPECT_TRUE(joint.alive);
     EXPECT_EQ(joint.width, 40.0f);
@@ -906,7 +906,7 @@ TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
     EXPECT_EQ(blast.random.State(), Seed);
 
     Falling ownerless;
-    const auto cut = ownerless.Create(4, nullptr, Client::Scenes::JointOwnerKind::ByType);
+    const auto cut = ownerless.Create(4, nullptr, Client::Kernel::JointOwnerKind::ByType);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_TRUE(cut.Error().starts_with("0x5349d3")) << cut.Error();
 }
@@ -919,7 +919,7 @@ TEST(StormJointsTest, TheBlastJointFollowsItsEffect)
     Client::World::ModelEffect effect{};
     effect.alive = true;
     blast.start = {700.0f, 800.0f, 260.0f};
-    ASSERT_TRUE(blast.Create(4, &effect, Client::Scenes::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
+    ASSERT_TRUE(blast.Create(4, &effect, Client::Kernel::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
     JointState& joint = blast.joints[0];
     effect.transform.position = {710.0f, 790.0f, 250.0f};
 
@@ -940,7 +940,7 @@ TEST(StormJointsTest, TheBlastJointFollowsItsEffect)
     EXPECT_FALSE(joint.alive);
 
     Falling lost;
-    ASSERT_TRUE(lost.Create(4, &effect, Client::Scenes::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
+    ASSERT_TRUE(lost.Create(4, &effect, Client::Kernel::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
     lost.joints[0].ownerContext = nullptr;
     ASSERT_TRUE(lost.Step().HasValue());
     EXPECT_FALSE(lost.joints[0].alive);

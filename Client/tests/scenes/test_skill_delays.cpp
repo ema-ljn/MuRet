@@ -1,4 +1,4 @@
-#include "Scenes/SkillDelays.h"
+#include "Skills/SkillDelays.h"
 
 #include "Crt/CrtRandom.h"
 #include "Tables/SkillTable.h"

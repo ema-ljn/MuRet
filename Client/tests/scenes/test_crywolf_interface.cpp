@@ -37,7 +37,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::CrywolfInterface;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
@@ -47,6 +46,7 @@ using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t CrywolfMap = 34;

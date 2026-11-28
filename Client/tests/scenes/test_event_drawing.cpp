@@ -43,7 +43,6 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Events::EventMapKind;
 using Client::Events::EventMapObject;
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -51,6 +50,7 @@ using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};

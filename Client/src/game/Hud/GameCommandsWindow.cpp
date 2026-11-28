@@ -330,9 +330,9 @@ Core::Expected<void, std::string> NotifyAll(const Chat::GameChatContext& chat, c
     return {};
 }
 
-Core::Expected<void, std::string> SendTheGuildRequest(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
-                                                      Protocol::Outgoing packet, std::uint16_t key, std::size_t text,
-                                                      std::string_view where)
+Core::Expected<void, std::string> SendTheGuildRequest(const Ui::GameUiContext& context,
+                                                      const Chat::GameChatContext& chat, Protocol::Outgoing packet,
+                                                      std::uint16_t key, std::size_t text, std::string_view where)
 {
     if (!chat.send)
         return Core::Unexpected(std::format("{}: el paquete del gremio sin el cable", where));
@@ -610,8 +610,8 @@ void DrawTheCheckbox(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t 
     sprites.EnableTexture();
     sprites.SetBlend(BlendMode::Alpha);
     if (checked)
-        Ui::WindowDrawing::Quad(sprites, CheckSlot, static_cast<float>(x + CheckInset), static_cast<float>(y + CheckInset),
-                            CheckSize, CheckSize, CheckUv, CheckUv);
+        Ui::WindowDrawing::Quad(sprites, CheckSlot, static_cast<float>(x + CheckInset),
+                                static_cast<float>(y + CheckInset), CheckSize, CheckSize, CheckUv, CheckUv);
 }
 
 // 0x40a840..0x40a875: sprintf(buffer, text 927, "D"). MuRet does not use the text as the format: without '%' and
@@ -795,8 +795,8 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(Ui::GameHudContext& cont
         if (Social::CanBeAsked(context.world, static_cast<std::size_t>(chosen)))
         {
             Ui::WindowDrawing::Quad(sprites, NameCardSlot, F32(static_cast<double>(mouse.x) + NameCardOffset),
-                                F32(static_cast<double>(mouse.y) + NameCardOffset), NameCardWidth, NameCardHeight, 1.0f,
-                                1.0f);
+                                    F32(static_cast<double>(mouse.y) + NameCardOffset), NameCardWidth, NameCardHeight,
+                                    1.0f, 1.0f);
             sprites.SetBlend(BlendMode::Alpha);
             const std::string name = Actors::ChatNameOf(context.world.Actors()[static_cast<std::size_t>(chosen)]);
             hud.textColors = Render::Text::TextColors{.text = ChosenNameColor, .background = NameCardBack};

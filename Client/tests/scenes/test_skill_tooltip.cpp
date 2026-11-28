@@ -37,11 +37,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
 using Client::Tooltips::TooltipLines;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};

@@ -54,7 +54,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
@@ -64,6 +63,7 @@ using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameHudContext;
 using Client::Warehouse::KeypadKeyAt;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};

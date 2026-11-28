@@ -396,18 +396,18 @@ public:
     {
         Client::Kernel::WorldRuntime& runtime = world->Runtime();
         Client::Ui::GameHudContext context{.world = *world,
-                                            .random = random,
-                                            .ownRecordDepth = runtime.ownRecordDepth,
-                                            .cellXDepth = cellDepth,
-                                            .cellYDepth = cellDepth,
-                                            .hud = runtime.hud,
-                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                            .sound = sound,
-                                            .projecting = projecting,
-                                            .sprites = sprites,
-                                            .text = text,
-                                            .texts = withTexts ? &texts : nullptr,
-                                            .mouse = mouse};
+                                           .random = random,
+                                           .ownRecordDepth = runtime.ownRecordDepth,
+                                           .cellXDepth = cellDepth,
+                                           .cellYDepth = cellDepth,
+                                           .hud = runtime.hud,
+                                           .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                           .sound = sound,
+                                           .projecting = projecting,
+                                           .sprites = sprites,
+                                           .text = text,
+                                           .texts = withTexts ? &texts : nullptr,
+                                           .mouse = mouse};
         return Client::ChaosMix::DrawTheBundleList(context, ListX, ListY);
     }
 

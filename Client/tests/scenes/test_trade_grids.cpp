@@ -298,11 +298,11 @@ protected:
         if (click)
             Client::Kernel::LatchTheLeftButton(game->world.Runtime().mouse, true, true);
         return Client::Hud::StepTheGameUi(Client::Ui::GameUiContext{.world = game->world,
-                                                                     .random = game->cloth.random,
-                                                                     .input = input,
-                                                                     .mouseX = x,
-                                                                     .mouseY = y,
-                                                                     .inventory = &services});
+                                                                    .random = game->cloth.random,
+                                                                    .input = input,
+                                                                    .mouseX = x,
+                                                                    .mouseY = y,
+                                                                    .inventory = &services});
     }
 
     CrtRandom& Random()

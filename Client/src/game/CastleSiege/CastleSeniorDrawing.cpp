@@ -180,7 +180,7 @@ Core::Expected<void, std::string> NpcDetails(Ui::GameHudContext& context, Castle
         if (auto line = Formatted(context, x, Top + 216, 0x772f854, Recovery(type, recovery)); !line.HasValue())
             return line;
     Ui::WindowDrawing::Quad(context.sprites, 0x117, static_cast<float>(x),
-                             static_cast<float>(Top + (statue ? 252 : 240)), 190, 10, 0.7421875f, 0.625f);
+                            static_cast<float>(Top + (statue ? 252 : 240)), 190, 10, 0.7421875f, 0.625f);
     Ui::WindowDrawing::SelectFont(context, Render::Text::FontKind::Bold);
     if (auto line = Text(context, x, Top + (statue ? 267 : 259), 0x772ea44); !line.HasValue())
         return line;
@@ -202,7 +202,7 @@ Core::Expected<void, std::string> Npcs(Ui::GameHudContext& context, CastleSiege:
     if (auto title = Text(context, x, Top + 6, 0x772f278); !title.HasValue())
         return title;
     Ui::WindowDrawing::Quad(context.sprites, 0x660, static_cast<float>(x + 15), static_cast<float>(Top + 18), 160, 165,
-                             0.625f, 0.64453125f);
+                            0.625f, 0.64453125f);
     constexpr std::array<Ui::Point, 6> Gates{{{82, 53}, {64, 101}, {100, 101}, {48, 153}, {82, 153}, {116, 153}}};
     constexpr std::array<Ui::Point, 4> Statues{{{82, 38}, {82, 83}, {64, 128}, {100, 128}}};
     const auto count = statue ? Statues.size() : Gates.size();
@@ -270,7 +270,7 @@ Core::Expected<void, std::string> Taxes(Ui::GameHudContext& context, CastleSiege
         if (!line.HasValue())
             return Core::Unexpected(std::move(line).Error());
         Ui::WindowDrawing::DrawText(context, x + (i == 0 ? 20 : 26), Top + 75 + static_cast<std::int32_t>(i) * 13,
-                                     line.Value());
+                                    line.Value());
     }
     if (auto button = Button(context, window.buttons[4], x + 70, Top + 116, 0x770e1f4, window.buttons[4].base.state);
         !button.HasValue())
@@ -339,7 +339,7 @@ Core::Expected<void, std::string> Tabs(Ui::GameHudContext& context, std::int32_t
         // 0x6698d0: the fourth tab's height checks tab==2, while its y checks tab==3.
         const bool tall = i == 3 ? tab == 2 : selected;
         Ui::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(x + 15 + 40 * i), selected ? 48.0f : 50.0f,
-                                 40, tall ? 18.0f : 16.0f, 0.75f, 0.9375f);
+                                40, tall ? 18.0f : 16.0f, 0.75f, 0.9375f);
         if (auto label = Text(context, x + 15 + 40 * i, selected ? 53 : 54, Labels[static_cast<std::size_t>(i)], 40);
             !label.HasValue())
             return label;

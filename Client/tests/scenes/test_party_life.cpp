@@ -269,17 +269,17 @@ protected:
         auto& runtime = game->world.Runtime();
         ActorState& hero = game->world.Hero();
         Client::Ui::GameHudContext context{.world = game->world,
-                                            .random = m_random,
-                                            .ownRecordDepth = runtime.ownRecordDepth,
-                                            .cellXDepth = hero.cellXAccesses,
-                                            .cellYDepth = hero.cellYAccesses,
-                                            .hud = runtime.hud,
-                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                            .sound = m_sound,
-                                            .projection = m_projection ? &*m_projection : nullptr,
-                                            .sprites = m_sprites,
-                                            .text = m_text,
-                                            .mouse = m_mouse};
+                                           .random = m_random,
+                                           .ownRecordDepth = runtime.ownRecordDepth,
+                                           .cellXDepth = hero.cellXAccesses,
+                                           .cellYDepth = hero.cellYAccesses,
+                                           .hud = runtime.hud,
+                                           .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                           .sound = m_sound,
+                                           .projection = m_projection ? &*m_projection : nullptr,
+                                           .sprites = m_sprites,
+                                           .text = m_text,
+                                           .mouse = m_mouse};
         return Client::Party::DrawThePartyLife(context);
     }
 

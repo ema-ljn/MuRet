@@ -51,7 +51,8 @@ void DrawInBox(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std:
 // 0x554180(x, y, text, width, 0, ·): 0x467060 with mode 1 and a width, the box of that width from x
 // (0x467102..0x467119); if the text is wider, it shows from column cx − width. Leaves the measure clipped to the width,
 // like DrawInBox.
-void DrawClipped(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width);
+void DrawClipped(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                 std::int32_t width);
 
 // 0x554180(x, y, text, 120 · W / 640, 1, 3), a window's title: DrawInBox with the 120 box.
 void DrawTitle(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);

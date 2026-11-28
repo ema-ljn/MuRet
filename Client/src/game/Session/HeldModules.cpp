@@ -97,13 +97,9 @@ struct WorldStates
 
 namespace Client::Kernel
 {
-HudModules::HudModules() : HudModules(std::make_unique<Session::HudStates>())
-{
-}
+HudModules::HudModules() : HudModules(std::make_unique<Session::HudStates>()) {}
 
-HudModules::HudModules(const HudModules& other) : HudModules(std::make_unique<Session::HudStates>(*other.m_states))
-{
-}
+HudModules::HudModules(const HudModules& other) : HudModules(std::make_unique<Session::HudStates>(*other.m_states)) {}
 
 HudModules::HudModules(HudModules&& other)
     : HudModules(std::make_unique<Session::HudStates>(std::move(*other.m_states)))
@@ -132,9 +128,7 @@ HudModules::HudModules(std::unique_ptr<Session::HudStates> states)
 {
 }
 
-RuntimeModules::RuntimeModules() : RuntimeModules(std::make_unique<Session::RuntimeStates>())
-{
-}
+RuntimeModules::RuntimeModules() : RuntimeModules(std::make_unique<Session::RuntimeStates>()) {}
 
 RuntimeModules::RuntimeModules(const RuntimeModules& other)
     : RuntimeModules(std::make_unique<Session::RuntimeStates>(*other.m_states))
@@ -171,9 +165,7 @@ RuntimeModules::RuntimeModules(std::unique_ptr<Session::RuntimeStates> states)
 {
 }
 
-MapModules::MapModules() : MapModules(std::make_unique<Session::MapStates>())
-{
-}
+MapModules::MapModules() : MapModules(std::make_unique<Session::MapStates>()) {}
 
 MapModules::~MapModules() = default;
 
@@ -182,9 +174,7 @@ MapModules::MapModules(std::unique_ptr<Session::MapStates> states)
 {
 }
 
-WorldState::WorldState() : m_modules(std::make_unique<Session::WorldStates>())
-{
-}
+WorldState::WorldState() : m_modules(std::make_unique<Session::WorldStates>()) {}
 
 WorldState::~WorldState() = default;
 

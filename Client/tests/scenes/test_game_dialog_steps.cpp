@@ -41,6 +41,7 @@
 #include "Chat/ChatRuntime.h"
 #include "Npc/NpcWindowState.h"
 #include "Items/HudItems.h"
+#include "Ui/GameUiContext.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -65,9 +66,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameUiContext;
 using Client::Input::InputState;
 using Client::Kernel::WorldState;
+using Client::Ui::GameUiContext;
 
 class DialogPlayback final : public Client::Audio::IPlayback
 {

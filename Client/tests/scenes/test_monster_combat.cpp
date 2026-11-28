@@ -52,6 +52,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/ViewportPackets.h"
 #include "Chat/ChatRuntime.h"
+#include "Kernel/ModelSounds.h"
 
 #include <gtest/gtest.h>
 

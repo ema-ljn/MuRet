@@ -49,11 +49,11 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
-using Client::Ui::GameUiContext;
 using Client::Protocol::Outgoing;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 namespace Siege = Client::Scenes;
 
 class Requests final : public Client::Ui::IGameUiRequests

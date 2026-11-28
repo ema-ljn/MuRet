@@ -70,7 +70,8 @@ protected:
         return actor;
     }
 
-    Client::Kernel::WorldRuntime m_runtime = [] {
+    Client::Kernel::WorldRuntime m_runtime = []
+    {
         Client::Kernel::WorldRuntime runtime;
         runtime.map = 0;
         return runtime;

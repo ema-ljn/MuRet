@@ -43,11 +43,11 @@ namespace Client::Warehouse
 {
 namespace
 {
+using Render::Text::FontKind;
 using Ui::WindowDrawing::DrawCenteredText;
 using Ui::WindowDrawing::DrawText;
 using Ui::WindowDrawing::Quad;
 using Ui::WindowDrawing::SelectFont;
-using Render::Text::FontKind;
 
 namespace Npc = Protocol::Npc;
 

@@ -15,6 +15,7 @@
 #include "support/SameBytes.h"
 #include "Ui/Dialogs.h"
 #include "Ui/PanelRegistry.h"
+#include "Ui/GameUiContext.h"
 
 #include <gtest/gtest.h>
 

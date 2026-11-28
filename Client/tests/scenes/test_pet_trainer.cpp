@@ -48,13 +48,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameUiContext;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;

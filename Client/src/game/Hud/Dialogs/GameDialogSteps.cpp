@@ -260,7 +260,8 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {ReopeningDialog, DialogStep::GenericOk, "0x6263df", ""},
 });
 
-bool InBox(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t width, std::int32_t height)
+bool InBox(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t width,
+           std::int32_t height)
 {
     return context.mouseX >= left && context.mouseX < left + width && context.mouseY >= top &&
            context.mouseY < top + height;

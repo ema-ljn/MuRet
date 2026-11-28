@@ -50,14 +50,15 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
                       std::size_t columns, std::size_t rows);
 // Item.bmd +0x24 and +0x25 of the type: the cells wide and tall, each times 20 (0x6b86d0) on the x87 with the fstp,
 // into the box's width and height (x and y at 0). Without Item.bmd or the type, the error with `where`.
-[[nodiscard]] Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const Ui::GameHudContext& context, std::int32_t type,
-                                                                       std::string_view where);
+[[nodiscard]] Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const Ui::GameHudContext& context,
+                                                                       std::int32_t type, std::string_view where);
 
 // 0x5f2340: with the inventory open, the window at (0x1c2, 0), or at (0x104, 0) with the character or the party open:
 // the background, the equipment slots in their warning color, the 8 × 8 grid, the title, the zen, the close, repair and
 // personal shop buttons with their help, and the set label. Takes 3848 rand() per close of the own record that leaves
 // it with no accesses (the slots, the zen and the level) and one per trade and shop query.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheInventory(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheInventory(Ui::GameHudContext& context,
+                                                                 Ui::PanelRegistry& panels);
 
 // 0x5f3b40: with the trade open (IsOpen(0x20), its rand()), the window at (0x104, 0) (0x78a5a1c and 0x78a5a18): the
 // background with the line (0x5ee220 with 1), the boxes of the two grids (0x5e3660: the other's at y + 70, the own at
@@ -66,7 +67,8 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 // and close buttons, with their help (227 to 229), both zens (0x10f, "%d,%03d" and the color by how much), the other's
 // name, the bobbing arrow (9), their level by floor (368 and 369), the hero's name and the lines 370 (pulsing), 365,
 // 366 and 367. No more rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTradeWindow(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTradeWindow(Ui::GameHudContext& context,
+                                                                   Ui::PanelRegistry& panels);
 
 // 0x5f3030 (CL9 milestone 7): with the own personal shop or another's open (0x800 or 0x20000, no rand()), the window
 // at (0x104, 0) (0x78aba58 and 0x78aba5c), in bold: the background (0x5ee220 with 0) and the title (1102); with the
@@ -82,10 +84,12 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 // record open around it, each slot in its box) and the grid (0x5e3760 with 0, at Item.bmd's size); the shop's (with
 // its rand()) and the warehouse's, 8 × 15 from the NPC window's corner plus (15, 50), and the chaos box's, 8 × 4 from
 // the same corner plus (15, 110); the others' stop with their address.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGridItems(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGridItems(Ui::GameHudContext& context,
+                                                                 Ui::PanelRegistry& panels);
 
 // 0x5f7840: the grids' numbers (0x5e3760 with 1): potions with more than 1 and the jewel bundles.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGridNumbers(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGridNumbers(Ui::GameHudContext& context,
+                                                                   Ui::PanelRegistry& panels);
 
 // 0x5f7b10: the cursor item (0x7879f80), at Item.bmd's size and centered on the mouse, with 0x5e1480's last argument
 // at 1.

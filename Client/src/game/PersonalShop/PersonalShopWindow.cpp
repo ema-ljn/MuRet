@@ -594,8 +594,7 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const Ui::GameUiContext& c
     return {};
 }
 
-Core::Expected<void, std::string> StepThePersonalShopWindow(const Ui::GameUiContext& context,
-                                                            Ui::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePersonalShopWindow(const Ui::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     if (!panels.IsOpen(Ui::PersonalShopPanel) && !panels.IsOpen(Ui::OtherShopPanel))
         return {};

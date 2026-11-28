@@ -58,10 +58,10 @@ namespace Client::Guild
 {
 namespace
 {
-using Ui::WindowDrawing::DrawText;
-using Ui::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::SelectFont;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 // 0x65202d and 0x6520fe: the tab that is not chosen, at 0.6.
@@ -881,7 +881,7 @@ Core::Expected<void, std::string> DrawTheGuildWindow(Ui::GameHudContext& context
             return Core::Unexpected(std::format("0x651da0: el gremio {} del héroe cae fuera de la tabla", index));
         context.hud.textColors.text = ScoreColor;
         Ui::WindowDrawing::DrawTitle(context, x + TitleLeft, y + ScoreTop,
-                                      std::format("{} ( Score:{} )", *name, guild.score));
+                                     std::format("{} ( Score:{} )", *name, guild.score));
     }
     else
     {

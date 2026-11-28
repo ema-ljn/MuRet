@@ -166,7 +166,7 @@ Core::Expected<void, std::string> RegistrationTabs(Ui::GameHudContext& context,
         const float gray = selected ? 1.0f : 0.6f;
         context.sprites.SetColor({gray, gray, gray, 1});
         Ui::WindowDrawing::Quad(context.sprites, 0x646, static_cast<float>(Left + 15 + tab * 54),
-                                 selected ? 88.0f : 90.0f, 54, selected ? 18.0f : 16.0f, 0.75f, 0.9375f);
+                                selected ? 88.0f : 90.0f, 54, selected ? 18.0f : 16.0f, 0.75f, 0.9375f);
         const auto label = tab == 1 && window.state != 1 ? 0x7726830u : Labels[static_cast<std::size_t>(tab)];
         if (auto text = Text(context, Left + 15 + tab * 54, selected ? 93 : 94, label, 54); !text.HasValue())
             return text;

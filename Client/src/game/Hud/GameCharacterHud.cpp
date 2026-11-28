@@ -551,8 +551,8 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
     {
         // Access 13, inside access 12: it draws nothing when it closes.
         const auto access = OwnAccess(context);
-        auto magic = Player::MagicDamageOf(own, *skill, context.skills, runtime.skillDepths[*skill],
-                                           context.random, setOptions);
+        auto magic =
+            Player::MagicDamageOf(own, *skill, context.skills, runtime.skillDepths[*skill], context.random, setOptions);
         if (!magic.HasValue())
             return Core::Unexpected(magic.Error());
         damage = magic.Value();

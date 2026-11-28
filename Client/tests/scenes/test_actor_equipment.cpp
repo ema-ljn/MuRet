@@ -121,7 +121,8 @@ protected:
     Client::Kernel::OwnCharacterRecord m_own;
     std::uint8_t m_accesses = 0;
     ActorState m_hero;
-    Client::Kernel::WorldRuntime m_runtime = [] {
+    Client::Kernel::WorldRuntime m_runtime = []
+    {
         Client::Kernel::WorldRuntime runtime;
         runtime.map = 0;
         return runtime;

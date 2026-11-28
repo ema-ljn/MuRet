@@ -33,9 +33,9 @@ namespace Client::ChaosMix
 {
 namespace
 {
+using Render::Text::FontKind;
 using Ui::WindowDrawing::DrawText;
 using Ui::WindowDrawing::DrawTitle;
-using Render::Text::FontKind;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -367,7 +367,7 @@ Core::Expected<void, std::string> DrawTheMixButton(Ui::GameHudContext& context, 
     const float left = F32(static_cast<double>(x) + MixButtonLeft);
     const float top = F32(static_cast<double>(y) + MixButtonTop);
     Ui::WindowDrawing::Quad(sprites, MixButtonSlot, left, top, MixButtonWidth, MixButtonHeight, MixButtonDu,
-                             MixButtonDv);
+                            MixButtonDv);
     const auto mouseX = static_cast<double>(context.mouse.x);
     const auto mouseY = static_cast<double>(context.mouse.y);
     const bool inside = static_cast<double>(left) <= mouseX &&
@@ -378,7 +378,7 @@ Core::Expected<void, std::string> DrawTheMixButton(Ui::GameHudContext& context, 
         return {};
     if (context.leftDown)
         Ui::WindowDrawing::Quad(sprites, MixButtonDownSlot, left, top, MixButtonWidth, MixButtonHeight, MixButtonDu,
-                                 MixButtonDv);
+                                MixButtonDv);
     auto help = TextOf(context, MixingText, "0x5ff811");
     if (!help.HasValue())
         return Core::Unexpected(help.Error());

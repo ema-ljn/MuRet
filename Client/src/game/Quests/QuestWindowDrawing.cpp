@@ -255,7 +255,7 @@ Core::Expected<bool, std::string> DrawTheAskedItems(Ui::GameHudContext& context,
                 return Core::Unexpected(std::move(name).Error());
             // 0x6c64c0, "%s x %d".
             Ui::WindowDrawing::DrawText(context, ItemNameLeft, Truncate(static_cast<double>(y)),
-                                         std::format("{} x {}", name.Value(), count));
+                                        std::format("{} x {}", name.Value(), count));
         }
         else
         {
@@ -357,7 +357,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Ui::GameHudContext& context
         if (!finish.HasValue())
             return Core::Unexpected(std::move(finish).Error());
         Ui::WindowDrawing::DrawCenteredText(context, Truncate(static_cast<double>(button) + 60.0), 0x168,
-                                             finish.Value());
+                                            finish.Value());
         sprites.SetColor(White);
     }
     else if (quest.currentState == QuestAvailable)
@@ -405,7 +405,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Ui::GameHudContext& context
         if (!current.HasValue())
             return Core::Unexpected(current.Error());
         Ui::WindowDrawing::DrawInBox(context, x + QuestNameOffset, y + QuestNameOffset,
-                                      Tables::NameOf(*current.Value()), QuestNameBox);
+                                     Tables::NameOf(*current.Value()), QuestNameBox);
     }
     DrawTheQuestText(context, true);
     sprites.SetColor(White);
@@ -426,7 +426,7 @@ Core::Expected<void, std::string> DrawTheFirstTab(Ui::GameHudContext& context)
     if (!reached.HasValue())
         return Core::Unexpected(reached.Error());
     Ui::WindowDrawing::DrawInBox(context, quest.x + QuestNameOffset, quest.y + QuestNameOffset,
-                                  Tables::NameOf(*reached.Value()), QuestNameBox);
+                                 Tables::NameOf(*reached.Value()), QuestNameBox);
     DrawTheQuestText(context, false);
     Ui::WindowDrawing::SelectFont(context, FontKind::BigBold);
     hud.textColors = TextColors{.text = AnswerText, .background = 0};
@@ -489,7 +489,7 @@ Core::Expected<void, std::string> DrawTheThirdTab(Ui::GameHudContext& context)
     }
     const std::array<std::string_view, 3> header{"3", texts[1], texts[2]};
     Ui::WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + 0x50,
-                                         Ui::PlaceArguments(texts[0], header));
+                                        Ui::PlaceArguments(texts[0], header));
     hud.textColors.text = BodyText;
     Ui::WindowDrawing::DrawCenteredText(context, quest.x + 0x55, quest.y + 0x64, texts[3]);
     Ui::WindowDrawing::DrawCenteredText(context, quest.x + 0x69, quest.y + 0x78, texts[4]);
@@ -501,7 +501,7 @@ Core::Expected<void, std::string> DrawTheThirdTab(Ui::GameHudContext& context)
     const std::string count = std::to_string(quest.flags[quest.tab]);
     const std::array<std::string_view, 1> arguments{count};
     Ui::WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + StateTop,
-                                         Ui::PlaceArguments(format.Value(), arguments));
+                                        Ui::PlaceArguments(format.Value(), arguments));
     return {};
 }
 

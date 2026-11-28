@@ -112,7 +112,6 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Kernel/JointRequest.h"
-#include "CastleSiege/CastleSiegeState.h"
 #include "Chat/ChatRuntime.h"
 #include "Actors/FullSetScan.h"
 
@@ -475,17 +474,17 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // CL9 milestone 5: the bar picks the item up from the floor with C1 05 22 (InventoryContext).
     const Items::InventoryServices inventory = InventoryContext();
     return Hud::StepTheFunctionKeys(Ui::GameUiContext{.world = *m_context.world,
-                                                       .random = m_context.cloth->random,
-                                                       .input = input,
-                                                       .mouseX = mouse.x,
-                                                       .mouseY = mouse.y,
-                                                       .measure = m_context.textMeasure,
-                                                       .screen = m_screen,
-                                                       .chat = &chat,
-                                                       .inventory = &inventory,
-                                                       .fixedHeight = CameraState().fixedHeight,
-                                                       .worldEntry = m_context.worldEntry,
-                                                       .terrain = &MapTerrain()});
+                                                      .random = m_context.cloth->random,
+                                                      .input = input,
+                                                      .mouseX = mouse.x,
+                                                      .mouseY = mouse.y,
+                                                      .measure = m_context.textMeasure,
+                                                      .screen = m_screen,
+                                                      .chat = &chat,
+                                                      .inventory = &inventory,
+                                                      .fixedHeight = CameraState().fixedHeight,
+                                                      .worldEntry = m_context.worldEntry,
+                                                      .terrain = &MapTerrain()});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()

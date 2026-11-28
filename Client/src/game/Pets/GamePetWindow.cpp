@@ -411,8 +411,8 @@ Core::Expected<void, std::string> DrawTheStats(Ui::GameHudContext& context, std:
         return Core::Unexpected(std::move(level).Error());
     context.hud.textColors.text = LevelColor;
     Ui::WindowDrawing::DrawInBox(context, x + LevelLeft, Truncate(top),
-                                  Crt::Sprintf(level.Value(), static_cast<std::uint32_t>(stats.level)),
-                                  Ui::WindowDrawing::BoxWidth(context, LevelBox));
+                                 Crt::Sprintf(level.Value(), static_cast<std::uint32_t>(stats.level)),
+                                 Ui::WindowDrawing::BoxWidth(context, LevelBox));
     top = F32(static_cast<double>(top) + FirstStep);
 
     auto life = format(LifeText, "0x414a55");
@@ -474,9 +474,8 @@ Core::Expected<void, std::string> DrawTheStats(Ui::GameHudContext& context, std:
         Player::OwnSkillDamage damage{};
         {
             const auto access = OwnAccess(context);
-            auto skill =
-                Player::SkillDamageOf(HorseSkill, context.skills, world.Runtime().skillDepths[HorseSkill],
-                                      context.random, setOptions);
+            auto skill = Player::SkillDamageOf(HorseSkill, context.skills, world.Runtime().skillDepths[HorseSkill],
+                                               context.random, setOptions);
             if (!skill.HasValue())
                 return Core::Unexpected(std::format("0x414fd6: {}", skill.Error()));
             damage = skill.Value();
@@ -522,7 +521,7 @@ Core::Expected<void, std::string> DrawTheStats(Ui::GameHudContext& context, std:
         return Core::Unexpected(std::move(commandsTitle).Error());
     SetColors(context, CommandsTitleColors);
     Ui::WindowDrawing::DrawInBox(context, x + LevelLeft, y + CommandsTitleTop, commandsTitle.Value(),
-                                  Ui::WindowDrawing::BoxWidth(context, LevelBox));
+                                 Ui::WindowDrawing::BoxWidth(context, LevelBox));
     const float commandX = F32(static_cast<double>(x) + CommandsLeft);
     SetColors(context, LineColors);
     for (std::size_t command = 0; command < CommandTops.size(); ++command)
@@ -534,7 +533,7 @@ Core::Expected<void, std::string> DrawTheStats(Ui::GameHudContext& context, std:
         Quad(sprites, CommandsSlot, commandX, commandY, CommandWidth, CommandHeight,
              CommandDu * static_cast<float>(command), 0.0f, CommandDu, CommandDv);
         Ui::WindowDrawing::DrawText(context, Truncate(static_cast<double>(commandX)) + CommandTextLeft,
-                                     Truncate(static_cast<double>(commandY)) + CommandTextTop, text.Value());
+                                    Truncate(static_cast<double>(commandY)) + CommandTextTop, text.Value());
     }
     // 0x4157b4..0x415858: the help of the first order under the mouse, then it returns.
     const auto mouseX = static_cast<double>(static_cast<float>(context.mouse.x));

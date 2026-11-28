@@ -76,9 +76,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Scenes::WorldEntryResources;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::size_t HeroSlot = 7;

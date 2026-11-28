@@ -45,11 +45,11 @@ namespace Client::Guild
 {
 namespace
 {
+using Render::BlendMode;
+using Render::Text::FontKind;
 using Ui::WindowDrawing::DrawText;
 using Ui::WindowDrawing::Quad;
 using Ui::WindowDrawing::SelectFont;
-using Render::BlendMode;
-using Render::Text::FontKind;
 
 // 0x5a764e..0x5a7653.
 constexpr std::uint32_t ScoreBackground = 0x80000000u;
@@ -398,13 +398,13 @@ Core::Expected<void, std::string> DrawTheGuildPositions(Ui::GameHudContext& cont
     const std::int32_t box = Truncate(rx * PositionsTextBox);
     const std::int32_t left = x + PositionsLeft;
     Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + AssistantFrameTop),
-                                     PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
+                                    PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
     auto assistant = PositionsTextOf(context, AssistantText, "0x64f25c");
     if (!assistant.HasValue())
         return Core::Unexpected(std::move(assistant).Error());
     DrawInTheMiddle(context, left, y + AssistantTextTop, assistant.Value(), box);
     Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + BattleMasterFrameTop),
-                                     PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
+                                    PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
     auto battleMaster = PositionsTextOf(context, BattleMasterText, "0x64f2d9");
     if (!battleMaster.HasValue())
         return Core::Unexpected(std::move(battleMaster).Error());

@@ -7,7 +7,6 @@
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
-#include "CastleSiege/CastleSiegeState.h"
 
 #include <gtest/gtest.h>
 

@@ -754,20 +754,20 @@ protected:
     {
         Stage& stage = *m_stage;
         return Client::Ui::GameHudContext{.world = stage.world,
-                                           .random = stage.cloth.random,
-                                           .ownRecordDepth = m_own,
-                                           .cellXDepth = m_cellX,
-                                           .cellYDepth = m_cellY,
-                                           .hud = m_hud,
-                                           .crywolfSandOverlay = m_sand,
-                                           .sound = m_sound,
-                                           .sprites = stage.sprites,
-                                           .text = stage.text,
-                                           .texts = &stage.texts,
-                                           .items = &stage.items,
-                                           .setOptions = &stage.sets.options,
-                                           .setTypes = &stage.sets.types,
-                                           .mouse = {300, 200}};
+                                          .random = stage.cloth.random,
+                                          .ownRecordDepth = m_own,
+                                          .cellXDepth = m_cellX,
+                                          .cellYDepth = m_cellY,
+                                          .hud = m_hud,
+                                          .crywolfSandOverlay = m_sand,
+                                          .sound = m_sound,
+                                          .sprites = stage.sprites,
+                                          .text = stage.text,
+                                          .texts = &stage.texts,
+                                          .items = &stage.items,
+                                          .setOptions = &stage.sets.options,
+                                          .setTypes = &stage.sets.types,
+                                          .mouse = {300, 200}};
     }
 
     Expected<void, std::string> Draw(const FloorItemState& item, bool atTheItem = false)

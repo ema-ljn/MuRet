@@ -34,7 +34,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -42,6 +41,7 @@ using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};

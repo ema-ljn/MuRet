@@ -54,10 +54,10 @@ namespace Client::Guild
 {
 namespace
 {
-using Ui::WindowDrawing::DrawText;
-using Ui::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
+using Ui::WindowDrawing::DrawText;
+using Ui::WindowDrawing::SelectFont;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 
@@ -676,8 +676,8 @@ Core::Expected<void, std::string> DrawTheName(Ui::GameHudContext& context, Guild
 {
     Render::SpriteBatch& sprites = context.sprites;
     Ui::WindowDrawing::Quad(sprites, NameFieldSlot, static_cast<float>(x + PageLeft + 0x21),
-                             static_cast<float>(y + PageTop - 4), NameFieldWidth, NameFieldHeight, NameFieldDu,
-                             NameFieldDv);
+                            static_cast<float>(y + PageTop - 4), NameFieldWidth, NameFieldHeight, NameFieldDu,
+                            NameFieldDv);
     SelectFont(context, FontKind::Bold);
     context.hud.textColors = PageColors;
     auto name = TextOf(context.texts, NameText, "0x6551b7");
@@ -748,21 +748,21 @@ Core::Expected<void, std::string> DrawTheConfirmation(Ui::GameHudContext& contex
     SelectFont(context, FontKind::Normal);
     context.hud.textColors.background = 0;
     Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41),
-                                     NameBoxWidth, NameBoxHeight, false);
+                                    NameBoxWidth, NameBoxHeight, false);
     auto name = TextOf(context.texts, NameText, "0x655b2a");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawInTheBox(context, x + PageLeft, y + 0x47,
                  std::format("{} : {}", name.Value(), NameOf(guild.table[CreatingIndex].guildName)));
     Ui::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
-                                     MarkBoxSide, false);
+                                    MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x655b98: la marca nueva sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, CreatingGuildIndex, true);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
     Ui::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
-                             MarkSide, MarkSide, 1.0f, 1.0f);
+                            MarkSide, MarkSide, 1.0f, 1.0f);
     DrawTheButton(context, ButtonOf(guild, SecondGuildBackButton));
     DrawTheButton(context, ButtonOf(guild, SecondGuildNextButton));
     return {};

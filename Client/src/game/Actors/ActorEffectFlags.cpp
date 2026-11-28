@@ -146,14 +146,15 @@ Core::Expected<void, std::string> WrapInIce(Kernel::ActorState& actor, const Sce
     {
         if (subtype == SecondIce)
             angles.z = static_cast<float>(static_cast<double>(angles.z) + HalfTurn);
-        const auto created = resources.effectHooks->CreateTheWizardEffect(world, resources.cloth.random, scene,
-                                                                          {.type = IceEffect,
-                                                                           .position = actor.position,
-                                                                           .angles = angles,
-                                                                           .light = actor.light,
-                                                                           .subtype = subtype,
-                                                                           .owner = &actor},
-                                                                          &actor.light);
+        const auto created =
+            resources.effectHooks->CreateTheWizardEffect(world, resources.cloth.random, scene,
+                                                         Kernel::ModelEffectArguments{.type = IceEffect,
+                                                                                      .position = actor.position,
+                                                                                      .angles = angles,
+                                                                                      .light = actor.light,
+                                                                                      .subtype = subtype,
+                                                                                      .owner = &actor},
+                                                         &actor.light);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{:#x}: el 0xc1/{} del hielo: {}",
                                                 subtype == FirstIce ? calls.first : calls.second, subtype,

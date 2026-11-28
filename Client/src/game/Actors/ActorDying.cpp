@@ -225,7 +225,10 @@ Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std:
                 ForgetNamedBones(context.world->Runtime(), slot);
         }
         if (context.world != nullptr && slot < Kernel::ActorPoolSize)
-            context.world->ActorCloths()[slot].ReleaseResources();
+        {
+            Drawing::CharacterCloth& cloth = context.world->ActorCloths()[slot];
+            cloth.ReleaseResources();
+        }
     }
     const std::int32_t map = context.map;
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)

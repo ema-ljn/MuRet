@@ -186,8 +186,7 @@ std::int32_t HelpWidth(const ItemHelpRow& first, std::int32_t item, std::int32_t
 
 // 0x5b0c97..0x5b0d9f: 0x40cf00(item), bytes 2 and 3 of ItemSetType.bmd, and one line per piece (1 with 3 and 2 with 2)
 // with its mix from 0 to 3 and a set (0x40cf30).
-Core::Expected<void, std::string> WriteTheSetLines(Ui::GameHudContext& context, TooltipWriter& lines,
-                                                   std::int32_t item)
+Core::Expected<void, std::string> WriteTheSetLines(Ui::GameHudContext& context, TooltipWriter& lines, std::int32_t item)
 {
     if (context.setTypes == nullptr)
         return Core::Unexpected(std::format("0x40cf13: la ayuda del ítem {:#x} sin ItemSetType.bmd", item));
@@ -218,8 +217,8 @@ Core::Expected<void, std::string> WriteTheSetLines(Ui::GameHudContext& context, 
 
 // 0x5b09b0..0x5b0dea: the top box's lines, from 0, and the box. The title is copied with strcpy and the item's name
 // with "%s"; the "\n" and " " do not touch their color or their bold.
-Core::Expected<void, std::string> DrawTheHelpBox(Ui::GameHudContext& context, std::int32_t item,
-                                                 std::int32_t blankRows, Record record, std::int32_t width)
+Core::Expected<void, std::string> DrawTheHelpBox(Ui::GameHudContext& context, std::int32_t item, std::int32_t blankRows,
+                                                 Record record, std::int32_t width)
 {
     TooltipLines& written = context.hud.tooltip;
     written.next = 0;

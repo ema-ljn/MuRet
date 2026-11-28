@@ -61,8 +61,7 @@ Core::Expected<std::string_view, std::string> Text(const Ui::GameHudContext& con
         return Core::Unexpected(std::format("Castle Siege: falta el texto {} de Text.bmd", index));
     return *text;
 }
-Core::Expected<void, std::string> Center(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
-                                         std::size_t index)
+Core::Expected<void, std::string> Center(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, std::size_t index)
 {
     auto text = Text(context, index);
     if (!text.HasValue())

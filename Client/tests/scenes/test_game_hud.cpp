@@ -42,6 +42,7 @@
 #include "Ui/Dialogs.h"
 #include "Ui/GameUiState.h"
 #include "Ui/PanelRegistry.h"
+#include "Ui/GameHudContext.h"
 
 #include <gtest/gtest.h>
 
@@ -69,7 +70,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
@@ -78,6 +78,7 @@ using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr Client::Core::PixelSize Screen640{640, 480};

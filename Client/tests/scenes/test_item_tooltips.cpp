@@ -52,12 +52,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
 using Client::Tooltips::TooltipLines;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 // A Skill.bmd access that closes at 0 (0x3c bytes) and the price's IsOpen(0x10000) (a protected byte).

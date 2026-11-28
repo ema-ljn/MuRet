@@ -57,7 +57,6 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Hud::FramePickingContext;
-using Client::Ui::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
@@ -67,6 +66,7 @@ using Client::Network::Xor32Decode;
 using Client::Protocol::Items::UseItem;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameUiContext;
 
 // 0x5a05e5..0x5a10e2: the skill bar's own record, opened and closed in each step.
 constexpr int SkillBarRandoms = 3848;

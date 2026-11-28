@@ -452,7 +452,7 @@ Core::Expected<void, std::string> DrawTheFloorItemName(Ui::GameHudContext& conte
     if (screen.width > 0)
         half = static_cast<std::uint32_t>(extent.width / 2) * DesignWidth / static_cast<std::uint32_t>(screen.width);
     Ui::DrawHudLine(context.text, screen, hud, static_cast<std::int32_t>(static_cast<std::uint32_t>(x) - half),
-                     y - NameRise, name.Value());
+                    y - NameRise, name.Value());
     hud.textColors = EndColors;
     return {};
 }

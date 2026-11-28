@@ -260,8 +260,9 @@ Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const Ui::GameHudContex
     return box;
 }
 
-Core::Expected<void, std::string> DrawUiItem(Ui::GameHudContext& context, const Items::UiItemBox& box, std::int32_t type,
-                                             std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)
+Core::Expected<void, std::string> DrawUiItem(Ui::GameHudContext& context, const Items::UiItemBox& box,
+                                             std::int32_t type, std::uint32_t level, std::uint8_t excellent,
+                                             std::uint8_t set, bool always)
 {
     // 0x5e1486..0x5e1d69: under the mouse, the box's point and 0x620480 with it (no effects outside 0x7d36834).
     const bool hovered = Items::UiItemHovered(box, context.mouse, context.world.Runtime().cursorItemCount, always);
@@ -1283,7 +1284,8 @@ Core::Expected<void, std::string> DrawShopBoxText(Ui::GameHudContext& context, s
 
 // 0x5f310f..0x5f3233, with the own shop: the strip and, in the normal blend and on a background at 0, 1103 or 560
 // centered in 150 · W / 640. Ends with no blend.
-Core::Expected<void, std::string> DrawTheShopStatus(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
+Core::Expected<void, std::string> DrawTheShopStatus(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
+                                                    bool open)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const auto screenWidth = static_cast<std::uint32_t>(sprites.Screen().width);
@@ -1330,7 +1332,8 @@ Core::Expected<void, std::string> DrawTheShopName(Ui::GameHudContext& context, s
 
 // 0x5f33ac..0x5f34f6, with the own shop: the two buttons, on a background at 0: open (1107) or apply with the shop
 // open (1106), and close (1108), grey with the shop closed. Without a mouse they do not light up.
-Core::Expected<void, std::string> DrawTheShopButtons(Ui::GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
+Core::Expected<void, std::string> DrawTheShopButtons(Ui::GameHudContext& context, std::int32_t x, std::int32_t y,
+                                                     bool open)
 {
     Render::SpriteBatch& sprites = context.sprites;
     context.hud.textColors = TextColors{.text = ButtonTextColor, .background = 0};

@@ -35,11 +35,11 @@ namespace Client::Npc
 {
 namespace
 {
+using Render::Text::FontKind;
 using Ui::WindowDrawing::DrawText;
 using Ui::WindowDrawing::DrawTitle;
 using Ui::WindowDrawing::Quad;
 using Ui::WindowDrawing::SelectFont;
-using Render::Text::FontKind;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 

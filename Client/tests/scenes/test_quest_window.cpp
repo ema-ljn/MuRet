@@ -22,7 +22,6 @@
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Items/ItemNames.h"
-#include "Monsters/NpcNames.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Quests/QuestState.h"
@@ -63,14 +62,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
-using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordedText;
+using Client::Ui::GameHudContext;
+using Client::Ui::GameUiContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4242u;

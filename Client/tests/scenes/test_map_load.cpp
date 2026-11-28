@@ -33,7 +33,6 @@
 #include "support/PlayerActors.h"
 #include "support/TemporaryFolder.h"
 #include "support/ClothVectors.h"
-#include "CastleSiege/CastleSiegeState.h"
 #include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>

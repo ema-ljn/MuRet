@@ -35,12 +35,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 7;
 constexpr Client::Core::PixelSize Screen640{640, 480};

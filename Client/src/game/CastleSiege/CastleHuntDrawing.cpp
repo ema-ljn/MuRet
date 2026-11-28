@@ -53,7 +53,7 @@ Core::Expected<void, std::string> Admin(Ui::GameHudContext& context, CastleSiege
     if (!fee.HasValue())
         return Core::Unexpected(std::move(fee).Error());
     Ui::WindowDrawing::DrawText(context, 485, 133,
-                                 Crt::Sprintf(fee.Value(), std::string_view(Ui::FormatZen(window.fee))));
+                                Crt::Sprintf(fee.Value(), std::string_view(Ui::FormatZen(window.fee))));
     context.sprites.SetColor({0, 0, 0, 0.3f});
     context.sprites.ColorQuad(470, 185, 90, 30);
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, after the untextured background.

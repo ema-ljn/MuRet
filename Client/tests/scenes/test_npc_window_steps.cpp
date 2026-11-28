@@ -60,7 +60,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
@@ -71,6 +70,7 @@ using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Ui::GameUiContext;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // Those of the step with the inventory open and nothing under the mouse (test_game_inventory_step.cpp): the

@@ -35,8 +35,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameUiContext;
 using Client::Kernel::WorldState;
+using Client::Ui::GameUiContext;
 
 constexpr std::uint32_t Seed = 1;
 

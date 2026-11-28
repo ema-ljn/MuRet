@@ -285,19 +285,19 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     }
     const Items::InventoryServices inventory = InventoryContext();
     return Hud::StepTheGameDialogs(Ui::GameUiContext{.world = *m_context.world,
-                                                      .random = m_context.cloth->random,
-                                                      .input = input,
-                                                      .mouseX = mouse.x,
-                                                      .mouseY = mouse.y,
-                                                      .measure = m_context.textMeasure,
-                                                      .screen = m_screen,
-                                                      .texts = m_texts,
-                                                      .chosenSlot = chosenSlot,
-                                                      .requests = &requests,
-                                                      .inventory = &inventory,
-                                                      .worldEntry = m_context.worldEntry,
-                                                      .sendNpcWindow = NpcWindowSenderOf(m_session),
-                                                      .terrain = &MapTerrain()});
+                                                     .random = m_context.cloth->random,
+                                                     .input = input,
+                                                     .mouseX = mouse.x,
+                                                     .mouseY = mouse.y,
+                                                     .measure = m_context.textMeasure,
+                                                     .screen = m_screen,
+                                                     .texts = m_texts,
+                                                     .chosenSlot = chosenSlot,
+                                                     .requests = &requests,
+                                                     .inventory = &inventory,
+                                                     .worldEntry = m_context.worldEntry,
+                                                     .sendNpcWindow = NpcWindowSenderOf(m_session),
+                                                     .terrain = &MapTerrain()});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -313,22 +313,22 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                   std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
             : 0U;
     return Hud::StepTheGameUi(Ui::GameUiContext{.world = *m_context.world,
-                                                 .random = m_context.cloth->random,
-                                                 .input = input,
-                                                 .mouseX = mouse.x,
-                                                 .mouseY = mouse.y,
-                                                 .measure = m_context.textMeasure,
-                                                 .screen = m_screen,
-                                                 .chat = &chat,
-                                                 .texts = m_texts,
-                                                 .requests = &requests,
-                                                 .systemTime = systemTime,
-                                                 .inventory = &inventory,
-                                                 .itemSetTables = m_chatTables.itemSetTables,
-                                                 .skills = m_skills,
-                                                 .worldEntry = m_context.worldEntry,
-                                                 .sendNpcWindow = NpcWindowSenderOf(m_session),
-                                                 .terrain = &MapTerrain()});
+                                                .random = m_context.cloth->random,
+                                                .input = input,
+                                                .mouseX = mouse.x,
+                                                .mouseY = mouse.y,
+                                                .measure = m_context.textMeasure,
+                                                .screen = m_screen,
+                                                .chat = &chat,
+                                                .texts = m_texts,
+                                                .requests = &requests,
+                                                .systemTime = systemTime,
+                                                .inventory = &inventory,
+                                                .itemSetTables = m_chatTables.itemSetTables,
+                                                .skills = m_skills,
+                                                .worldEntry = m_context.worldEntry,
+                                                .sendNpcWindow = NpcWindowSenderOf(m_session),
+                                                .terrain = &MapTerrain()});
 }
 
 Npc::NpcWindowSender GameScene::NpcWindowSenderOf(App::ServerSession* session)
@@ -646,18 +646,18 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     }
     Hud::LendTheGameHooks(drawStep,
                           Ui::GameUiContext{.world = *m_context.world,
-                                             .random = m_context.cloth->random,
-                                             .input = input,
-                                             .mouseX = hud.mouse.x,
-                                             .mouseY = hud.mouse.y,
-                                             .measure = m_context.textMeasure,
-                                             .screen = m_screen,
-                                             .chat = &drawChat,
-                                             .texts = m_texts,
-                                             .chosenSlot = drawChosenSlot,
-                                             .requests = &drawRequests,
-                                             .worldEntry = m_context.worldEntry,
-                                             .terrain = &MapTerrain()},
+                                            .random = m_context.cloth->random,
+                                            .input = input,
+                                            .mouseX = hud.mouse.x,
+                                            .mouseY = hud.mouse.y,
+                                            .measure = m_context.textMeasure,
+                                            .screen = m_screen,
+                                            .chat = &drawChat,
+                                            .texts = m_texts,
+                                            .chosenSlot = drawChosenSlot,
+                                            .requests = &drawRequests,
+                                            .worldEntry = m_context.worldEntry,
+                                            .terrain = &MapTerrain()},
                           !m_projectingFrame);
     drawStep.field78abaac = drawUi.field78abaac;
     const Ui::OldWindowDrawView windowView{.mouseX = hud.mouse.x,

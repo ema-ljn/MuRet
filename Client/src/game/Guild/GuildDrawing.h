@@ -26,8 +26,7 @@ namespace Client::Guild
 // name (0x5542f0) at (_ftol(x) + 30, 19). An empty text is not drawn, but it is measured (0x77f31b8). The second score
 // (0x576796f, F3 23 of 0x4d9f00) runs after, independent of the war and the hero's guild; it looks up both current
 // names in 0..1998 and uses the same score counters.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(Ui::GameHudContext& context,
-                                                                Ui::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheWarScore(Ui::GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5a7eb0, after the HUD even when hidden (0x637668): the event clock and the F3 24 outcome.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheEventTimeAndOutcome(Ui::GameHudContext& context);

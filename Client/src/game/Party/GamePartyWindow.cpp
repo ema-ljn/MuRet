@@ -260,14 +260,14 @@ Core::Expected<void, std::string> DrawThePartyList(Ui::GameHudContext& context, 
         sprites.SetBlend(BlendMode::Alpha);
         Ui::WindowDrawing::SelectFont(context, FontKind::Normal);
         Ui::WindowDrawing::DrawText(context, Truncate(static_cast<double>(left)),
-                                     Truncate(static_cast<double>(top)) + ListNameTop, NameView(slot.name));
+                                    Truncate(static_cast<double>(top)) + ListNameTop, NameView(slot.name));
         top = F32(static_cast<double>(top) + ListRow);
     }
     const float edgeLeft = F32(static_cast<double>(left) - ListEdgeLeft);
     Ui::WindowDrawing::Quad(sprites, ListEdgeSlot, edgeLeft, ListEdgeTop, ListEdgeWidth, ListEdgeHeight, ListEdgeDu,
-                             ListEdgeDv);
+                            ListEdgeDv);
     Ui::WindowDrawing::Quad(sprites, ListEdgeSlot, edgeLeft, top, ListEdgeWidth, ListEdgeHeight, ListEdgeDu,
-                             ListEdgeDv);
+                            ListEdgeDv);
     sprites.SetColor(ListSideColor);
     const auto sides = static_cast<float>(hud.partyCount * ListSideStep);
     sprites.ColorQuad(F32(static_cast<double>(left) - ListLeftSide), ListSideTop, ListSideWidth, sides);
@@ -303,7 +303,7 @@ Core::Expected<void, std::string> DrawTheMembers(Ui::GameHudContext& context, st
             return Core::Unexpected(std::move(map).Error());
         Ui::WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberMapTop, map.Value());
         Ui::WindowDrawing::DrawText(context, x + MemberCellLeft, row + y + MemberMapTop,
-                                     std::format("{},{}", slot.x, slot.y));
+                                    std::format("{},{}", slot.x, slot.y));
         sprites.SetColor(MemberBarColor);
         sprites.ColorQuad(static_cast<float>(x + MemberBarLeft), static_cast<float>(row + y + MemberBarTop),
                           MemberBarWidth, MemberBarHeight);
@@ -319,7 +319,7 @@ Core::Expected<void, std::string> DrawTheMembers(Ui::GameHudContext& context, st
         sprites.SetBlend(BlendMode::Alpha);
         sprites.SetColor(White);
         Ui::WindowDrawing::DrawText(context, x + MemberNumbersLeft, row + y + MemberNumbersTop,
-                                     std::format("( {} / {} )", life, maxLife));
+                                    std::format("( {} / {} )", life, maxLife));
         // 0x5f1013..0x5f1089: the button with the hero as leader (the first slot) or in this slot.
         if (!leader && NameView(slot.name) != hero)
             continue;
@@ -338,7 +338,7 @@ Core::Expected<void, std::string> DrawTheMembers(Ui::GameHudContext& context, st
             return Core::Unexpected(std::move(help).Error());
         hud.textColors = KickHelpColors;
         Ui::WindowDrawing::DrawText(context, Truncate(static_cast<double>(left)),
-                                     Truncate(static_cast<double>(top)) - KickHelpAbove, help.Value());
+                                    Truncate(static_cast<double>(top)) - KickHelpAbove, help.Value());
     }
     return {};
 }

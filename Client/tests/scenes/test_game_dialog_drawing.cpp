@@ -52,11 +52,11 @@
 // with made-up texts and the world in Lorencia (0) and in Devias (2).
 namespace
 {
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
+using Client::Ui::GameHudContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t Lorencia = 0;

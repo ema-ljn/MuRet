@@ -35,14 +35,14 @@ namespace Client::PetTrainer
 {
 namespace
 {
+using Render::BlendMode;
+using Render::Text::FontKind;
+using Render::Text::TextColors;
 using Ui::WindowDrawing::DrawCenteredText;
 using Ui::WindowDrawing::DrawInBox;
 using Ui::WindowDrawing::DrawTitle;
 using Ui::WindowDrawing::Quad;
 using Ui::WindowDrawing::SelectFont;
-using Render::BlendMode;
-using Render::Text::FontKind;
-using Render::Text::TextColors;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 // 0x724580 at 4: nothing (*static*: nobody writes it that way).

@@ -327,7 +327,7 @@ void DrawTheSerialField(Ui::GameHudContext& context, std::int32_t left, std::int
 void DrawTheButtonQuad(Ui::GameHudContext& context, float top, float height)
 {
     Ui::WindowDrawing::Quad(context.sprites, ButtonSlot, static_cast<float>(ButtonLeft), top,
-                             static_cast<float>(ButtonWidth), height, ButtonDu, 1.0f);
+                            static_cast<float>(ButtonWidth), height, ButtonDu, 1.0f);
 }
 
 // With the button pressed under the mouse, the normal font, the gray and, with the release, the click and the button
@@ -404,8 +404,8 @@ Result DrawTheSerialEntry(Ui::GameHudContext& context)
     // 0x5f6918..0x5f695b: the frame, with 0x6c8e5c at 0xfff0ff96.
     context.hud.textColors = TitleColors;
     Ui::WindowDrawing::Quad(context.sprites, SerialFrameSlot, F32(static_cast<double>(left) + SerialFrameLeft),
-                             F32(static_cast<double>(top) + SerialFrameTop), SerialFrameWidth, SerialFrameHeight,
-                             SerialFrameDu, SerialFrameDv);
+                            F32(static_cast<double>(top) + SerialFrameTop), SerialFrameWidth, SerialFrameHeight,
+                            SerialFrameDu, SerialFrameDv);
     DrawTheSerialField(context, Truncate(left), row);
     // 0x5f6a43..0x5f6aef: the confirm button, 40 lower.
     top = F32(static_cast<double>(top) + static_cast<double>(ConfirmBelow));
@@ -417,12 +417,12 @@ Result DrawTheSerialEntry(Ui::GameHudContext& context)
             context.hud.textColors = HoveredConfirmColors;
     }
     Ui::WindowDrawing::Quad(context.sprites, ButtonSlot, left, top, static_cast<float>(ButtonWidth),
-                             static_cast<float>(ChipButtonHeight), ButtonDu, 1.0f);
+                            static_cast<float>(ChipButtonHeight), ButtonDu, 1.0f);
     auto confirm = TextOf(context.texts, ConfirmText, "0x5f6b28");
     if (!confirm.HasValue())
         return Core::Unexpected(std::move(confirm).Error());
     Ui::WindowDrawing::DrawCenteredText(context, Truncate(F32(static_cast<double>(left) + ConfirmTextLeft)),
-                                         Truncate(F32(static_cast<double>(top) + ConfirmTextTop)), confirm.Value());
+                                        Truncate(F32(static_cast<double>(top) + ConfirmTextTop)), confirm.Value());
     return {};
 }
 
@@ -482,7 +482,7 @@ Result DrawTheTypeTexts(Ui::GameHudContext& context, std::int32_t window)
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
         Ui::WindowDrawing::DrawCenteredText(context, middle, first + static_cast<std::int32_t>(line) * TypeTextStep,
-                                             text.Value());
+                                            text.Value());
     }
     if (window == SerialNumberWindow)
         DrawTheSerialResult(context, middle, first);

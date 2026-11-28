@@ -44,9 +44,8 @@ Core::Expected<void, std::string> CastleDraw::Text(Ui::GameHudContext& context, 
     return {};
 }
 
-Core::Expected<void, std::string> CastleDraw::Button(Ui::GameHudContext& context, Ui::OldButton& button,
-                                                     std::int32_t x, std::int32_t y, std::uint32_t label,
-                                                     std::int32_t state)
+Core::Expected<void, std::string> CastleDraw::Button(Ui::GameHudContext& context, Ui::OldButton& button, std::int32_t x,
+                                                     std::int32_t y, std::uint32_t label, std::int32_t state)
 {
     if (label != 0)
     {

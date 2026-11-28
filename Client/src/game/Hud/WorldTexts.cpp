@@ -53,7 +53,7 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const K
     context.hud.dcFont = Render::Text::FontKind::Bold;
     context.hud.textColors = WorldTextColors;
     Ui::DrawHudCentered(context.text, context.sprites.Screen(), context.hud, projected.Value().x, projected.Value().y,
-                    TextOf(entry));
+                        TextOf(entry));
     return {};
 }
 } // namespace

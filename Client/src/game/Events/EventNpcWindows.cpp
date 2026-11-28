@@ -256,8 +256,8 @@ Result DrawTheDevilSquareWindow(Ui::GameHudContext& context)
         if (!story.HasValue())
             return Core::Unexpected(std::move(story).Error());
         Ui::WindowDrawing::DrawInBox(context, WindowLeft + 0x1e,
-                                      WindowTop + 0x41 + static_cast<std::int32_t>(line) * 0x14, story.Value(),
-                                      StoryBox);
+                                     WindowTop + 0x41 + static_cast<std::int32_t>(line) * 0x14, story.Value(),
+                                     StoryBox);
     }
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
@@ -311,7 +311,7 @@ Result DrawTheBloodCastleWindow(Ui::GameHudContext& context)
     const std::vector<std::string> lines = Ui::SplitIntoLines(story.Value(), StoryLines, StoryLineBytes);
     for (std::size_t line = 0; line < lines.size(); ++line)
         Ui::WindowDrawing::DrawInBox(context, WindowLeft + 0x1e,
-                                      WindowTop + 0x40 + static_cast<std::int32_t>(line) * 0x14, lines[line], StoryBox);
+                                     WindowTop + 0x40 + static_cast<std::int32_t>(line) * 0x14, lines[line], StoryBox);
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }

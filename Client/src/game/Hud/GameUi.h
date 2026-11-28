@@ -1,11 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Core/PixelSize.h"
-#include "Tables/SkillTable.h"
 #include "Actors/ActorPickingBox.h"
-#include "Protocol/Player/OptionData.h"
-#include "Protocol/Outgoing.h"
 #include "Ui/GameUiContext.h"
 #include "Ui/OldWindows.h"
 #include "Ui/Widget.h"
@@ -13,48 +9,26 @@
 
 #include <array>
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <span>
 #include <string>
-#include <string_view>
 
 #include <glm/ext/vector_float3.hpp>
-
-namespace Client::Tables
-{
-struct ItemSetTables;
-}
-
-namespace Client::Input
-{
-class InputState;
-}
-
-namespace Client::Ui
-{
-struct GameUiState;
-}
 
 namespace Client::Crt
 {
 class CrtRandom;
-}
+} // namespace Client::Crt
 
-namespace Client::Render::Text
+namespace Client::Input
 {
-class ITextMeasure;
-}
-
-namespace Client::Tables
-{
-class TextTable;
-}
+class InputState;
+} // namespace Client::Input
 
 namespace Client::Ui
 {
 struct GameUiState;
-}
+} // namespace Client::Ui
 
 // The game's UI in the step and in the frame, CL8 milestone 1 (06 § HUD y ventanas, "El orden" and "El clic es
 // primero de la UI"): the dialogs before the step (0x623e70), the step's UI block (0x636ded..0x63705b) with 0x5ee140
@@ -73,26 +47,6 @@ struct FloorItemState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Chat
-{
-struct GameChatContext;
-} // namespace Client::Chat
-
-namespace Client::Items
-{
-struct InventoryServices;
-} // namespace Client::Items
-
-namespace Client::Movement
-{
-struct GameMovementState;
-} // namespace Client::Movement
-
-namespace Client::Scenes
-{
-struct WorldEntryResources;
-} // namespace Client::Scenes
-
 namespace Client::Hud
 {
 // 0x553520 for the old windows' keys: the same latch in the step and when handling messages during the draw.
@@ -100,7 +54,6 @@ namespace Client::Hud
 
 // 0x6578e0: chat/guild/panel fields and GetFocus other than the game window.
 [[nodiscard]] bool GameTextInputBusy(const Kernel::WorldRuntime& runtime);
-
 
 // The old windows' globals over the game's: the mouse's, the UI's, the keyboard focus (the chat input's) and the last
 // sound.

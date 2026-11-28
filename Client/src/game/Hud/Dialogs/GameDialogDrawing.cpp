@@ -37,7 +37,8 @@
 #include "Ui/Widget.h"
 #include "Kernel/ItemState.h"
 #include "Chat/ChatRuntime.h"
-#include "Events/EventMapObject.h"
+// The optional eventObject is read through, which needs the whole type.
+#include "Events/EventMapObject.h" // IWYU pragma: keep
 
 #include <algorithm>
 #include <array>

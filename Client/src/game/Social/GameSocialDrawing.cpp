@@ -30,11 +30,11 @@ namespace Client::Social
 {
 namespace
 {
+using Render::BlendMode;
+using Render::Text::FontKind;
 using Ui::WindowDrawing::DrawCenteredText;
 using Ui::WindowDrawing::Quad;
 using Ui::WindowDrawing::SelectFont;
-using Render::BlendMode;
-using Render::Text::FontKind;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 

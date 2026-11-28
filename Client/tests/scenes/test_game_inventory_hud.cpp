@@ -64,13 +64,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};

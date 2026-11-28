@@ -64,9 +64,8 @@ Core::Expected<void, std::string> Head(Ui::GameHudContext& context, Ui::OldList&
     return {};
 }
 
-Core::Expected<std::int32_t, std::string> Row(Ui::GameHudContext& context,
-                                              CastleSiege::SiegeRegistrationWindow& window, bool registered,
-                                              std::int32_t visual, std::size_t at)
+Core::Expected<std::int32_t, std::string> Row(Ui::GameHudContext& context, CastleSiege::SiegeRegistrationWindow& window,
+                                              bool registered, std::int32_t visual, std::size_t at)
 {
     auto& list = registered ? window.registeredGuildList : window.siegeGuildList;
     const auto& item = (registered ? window.registeredGuilds : window.siegeGuilds)[at];

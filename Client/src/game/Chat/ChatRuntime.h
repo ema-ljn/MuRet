@@ -40,4 +40,3 @@ struct ChatRuntime
     ChatInputState input{};
 };
 } // namespace Client::Chat
-

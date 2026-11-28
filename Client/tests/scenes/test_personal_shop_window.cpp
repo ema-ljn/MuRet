@@ -324,18 +324,18 @@ protected:
     Client::Ui::GameUiContext Context(std::int32_t x, std::int32_t y)
     {
         return Client::Ui::GameUiContext{.world = shop->world,
-                                          .random = random,
-                                          .input = input,
-                                          .mouseX = x,
-                                          .mouseY = y,
-                                          .texts = &shop->texts,
-                                          .requests = &requests,
-                                          .inventory = &services,
-                                          .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
-                                          {
-                                              sent.push_back(PlainOf(packet));
-                                              return Client::Core::Expected<void, std::string>{};
-                                          }};
+                                         .random = random,
+                                         .input = input,
+                                         .mouseX = x,
+                                         .mouseY = y,
+                                         .texts = &shop->texts,
+                                         .requests = &requests,
+                                         .inventory = &services,
+                                         .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                         {
+                                             sent.push_back(PlainOf(packet));
+                                             return Client::Core::Expected<void, std::string>{};
+                                         }};
     }
 
     [[nodiscard]] int DrawnByTheStep() const

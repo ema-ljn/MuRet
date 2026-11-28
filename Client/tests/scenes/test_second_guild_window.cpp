@@ -60,11 +60,11 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Guild::GuildMarkTextures;
 using Client::Guild::GuildState;
-using Client::Ui::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
+using Client::Ui::GameHudContext;
 
 constexpr std::uint32_t Seed = 11;
 constexpr Client::Core::PixelSize Screen640{640, 480};

@@ -26,6 +26,7 @@
 #include "support/SameBytes.h"
 #include "support/TableFiles.h"
 #include "Ui/GameUiState.h"
+#include "Ui/GameUiContext.h"
 
 #include <gtest/gtest.h>
 
@@ -44,7 +45,6 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Ui::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
@@ -52,6 +52,7 @@ using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Protocol::Outgoing;
 using Client::Tests::SameBytes;
+using Client::Ui::GameUiContext;
 
 // 0x5a05e5..0x5a10e2: the skill bar's own record; 0x5a343e..0x5a3587: the trade and NPC shop queries of Q, W and E;
 // 0x5a5511: IsOpen(0), which with the character (0x2000000) goes through both before.

@@ -133,16 +133,16 @@ protected:
         auto& hero = m_world->Hero();
         m_sprites.Begin(screen);
         Client::Ui::GameHudContext context{.world = *m_world,
-                                            .random = m_random,
-                                            .ownRecordDepth = runtime.ownRecordDepth,
-                                            .cellXDepth = hero.cellXAccesses,
-                                            .cellYDepth = hero.cellYAccesses,
-                                            .hud = runtime.hud,
-                                            .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                            .sound = runtime.lastSoundId,
-                                            .sprites = m_sprites,
-                                            .text = m_text,
-                                            .texts = &m_texts};
+                                           .random = m_random,
+                                           .ownRecordDepth = runtime.ownRecordDepth,
+                                           .cellXDepth = hero.cellXAccesses,
+                                           .cellYDepth = hero.cellYAccesses,
+                                           .hud = runtime.hud,
+                                           .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                           .sound = runtime.lastSoundId,
+                                           .sprites = m_sprites,
+                                           .text = m_text,
+                                           .texts = &m_texts};
         return Client::CastleSiege::DrawTheCastleWindows(context);
     }
     const Client::Render::DrawCommand* QuadAt(float x, float y) const
@@ -335,17 +335,17 @@ TEST_F(CastleWindowsTest, SeniorTaxArrowsModifyOnlyOnTheReleasedSignalDuringDraw
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
     Client::Ui::GameHudContext context{.world = *m_world,
-                                        .random = m_random,
-                                        .ownRecordDepth = runtime.ownRecordDepth,
-                                        .cellXDepth = hero.cellXAccesses,
-                                        .cellYDepth = hero.cellYAccesses,
-                                        .hud = runtime.hud,
-                                        .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                        .sound = runtime.lastSoundId,
-                                        .sprites = m_sprites,
-                                        .text = m_text,
-                                        .texts = &m_texts,
-                                        .mouse = {608, 88}};
+                                       .random = m_random,
+                                       .ownRecordDepth = runtime.ownRecordDepth,
+                                       .cellXDepth = hero.cellXAccesses,
+                                       .cellYDepth = hero.cellYAccesses,
+                                       .hud = runtime.hud,
+                                       .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                       .sound = runtime.lastSoundId,
+                                       .sprites = m_sprites,
+                                       .text = m_text,
+                                       .texts = &m_texts,
+                                       .mouse = {608, 88}};
     auto drawn = Client::CastleSiege::DrawTheCastleWindows(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(runtime.castleSiege.data.U32(Client::CastleSiege::ChaosTaxAt), 2u);
@@ -372,16 +372,16 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     m_sprites.Begin({640, 480});
     auto& hero = m_world->Actors()[0];
     Client::Ui::GameHudContext hud{.world = *m_world,
-                                    .random = m_random,
-                                    .ownRecordDepth = runtime.ownRecordDepth,
-                                    .cellXDepth = hero.cellXAccesses,
-                                    .cellYDepth = hero.cellYAccesses,
-                                    .hud = runtime.hud,
-                                    .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                                    .sound = runtime.lastSoundId,
-                                    .sprites = m_sprites,
-                                    .text = m_text,
-                                    .texts = &m_texts};
+                                   .random = m_random,
+                                   .ownRecordDepth = runtime.ownRecordDepth,
+                                   .cellXDepth = hero.cellXAccesses,
+                                   .cellYDepth = hero.cellYAccesses,
+                                   .hud = runtime.hud,
+                                   .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                   .sound = runtime.lastSoundId,
+                                   .sprites = m_sprites,
+                                   .text = m_text,
+                                   .texts = &m_texts};
     const auto drawn = Client::Guild::DrawThePanelDialog(hud, dialog);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);

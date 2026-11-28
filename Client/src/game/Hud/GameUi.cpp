@@ -362,7 +362,8 @@ void PlaceTheChatLog(Kernel::WorldRuntime& runtime, Ui::PanelRegistry& panels)
     frame.y = 0x1a4;
 }
 
-bool InRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
+bool InRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+            std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
@@ -559,7 +560,8 @@ Items::InventoryMoveContext MovesOf(const Ui::GameUiContext& context)
 
 // The mouse in [left, left + w) × [top, top + h), with the right and bottom edges on the x87:
 // FILD mouse; FILD left; FADD w; FCOMPP.
-bool MouseInEquipmentRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, float width, float height)
+bool MouseInEquipmentRect(const Ui::GameUiContext& context, std::int32_t left, std::int32_t top, float width,
+                          float height)
 {
     const auto x = static_cast<double>(context.mouseX);
     const auto y = static_cast<double>(context.mouseY);

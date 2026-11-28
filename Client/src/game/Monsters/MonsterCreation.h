@@ -57,8 +57,8 @@ inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 //   Monster{n + 1}.bmd the original exits (0x612dd6..0x612de1, Q-C23) and MuRet cuts. LoadMonster also writes the
 //   model's sound table into WorldRuntime::modelSounds (MonsterSounds.h).
 // - Write, Name, Dress (0x512930), Box (0x5133b0), Ground, Lower and CopyHeight write the character; MeshFlag and
-//   ModelByte go to WorldRuntime::modelPatches, BoneName to WorldRuntime::namedBones (0x401000), Sound to
-//   WorldRuntime::lastSoundId (CL10).
+//   ModelByte go to Monsters::MonstersState::modelPatches (without the modules' states they stop), BoneName to
+//   WorldRuntime::namedBones (0x401000), Sound to WorldRuntime::lastSoundId (CL10).
 // - The siege-dependent writes use 0x4294b0. Joint618/2,3 use ActorState as owner in every native case; the other Joint
 //   families and Arrival still cut with their address. Action (0x4ea030) uses the loaded model's actions.
 // Then the tail (MonsterTailOf), which copies the type's name from WorldRuntime::npcNames (0x7681eb8) to +0x1d9 if

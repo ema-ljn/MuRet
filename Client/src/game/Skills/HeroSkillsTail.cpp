@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/SkillId.h"
 #include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
@@ -34,9 +35,9 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::uint8_t FirstSharedSkill = 0x43;
-constexpr std::uint8_t LastSharedSkill = 0x48;
-constexpr std::uint8_t SternSkill = 0x43;
+constexpr std::uint8_t FirstSharedSkill = Tables::FirstSiegeSkill;
+constexpr std::uint8_t LastSharedSkill = Tables::LastSiegeSkill;
+constexpr std::uint8_t SternSkill = Tables::StunSkill;
 constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DinorantModel = 0x1c15;
 constexpr std::uint16_t DarkHorseModel = 0x1c16;

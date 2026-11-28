@@ -36,6 +36,7 @@
 #include "Terrain/WorldTerrain.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Tables/SkillId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -576,7 +577,7 @@ Core::Expected<void, std::string> ShootTheArrows(Kernel::ActorState& actor, Kern
             left += ItemModelBase;
     }
     // 0x53de8d..0x53def9: the arrows' subtype and the skills' sounds (0x41ed10(sound, o, 0), CL10).
-    constexpr std::uint8_t PiercingSkill = 0x34;
+    constexpr std::uint8_t PiercingSkill = Tables::PenetrationSkill;
     constexpr std::uint8_t ArrowRainSkill = 0x33;
     constexpr Audio::SoundId PiercingSound{0x55};
     constexpr Audio::SoundId ArrowRainSound{0x82};
@@ -717,7 +718,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(Effects::ModelEffect& ef
         skill = Kernel::OwnSkillByte(world.OwnCharacter(), effect.byte89);
     }
     constexpr std::uint8_t ArrowRainSkill = 0x33;
-    constexpr std::uint8_t PiercingSkill = 0x34;
+    constexpr std::uint8_t PiercingSkill = Tables::PenetrationSkill;
     constexpr std::int32_t PiercingSubtype = 2;
     if (skill == PiercingSkill)
     {
@@ -827,7 +828,7 @@ Core::Expected<void, std::string> HitWithTheArrow(Effects::ModelEffect& effect, 
     }
     const bool bursts = effect.type == AquagoldArrow || effect.type == CelestialArrow;
     constexpr std::uint8_t ArrowRainSkill = 0x33;
-    constexpr std::uint8_t PiercingSkill = 0x34;
+    constexpr std::uint8_t PiercingSkill = Tables::PenetrationSkill;
     if (skill == ArrowRainSkill)
     {
         // 0x520866..0x520887.

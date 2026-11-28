@@ -103,7 +103,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
     auto& runtime = m_context.world->Runtime();
     const Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Tables::PlayerSkeletonModelId) : nullptr;
-    const Session::CharacterStepHooks hooks{};
+    const Session::CharacterStepHooks hooks{m_context.states != nullptr ? &m_context.states->monsters : nullptr};
     if (auto stepped = Actors::StepCharacters(Actors::CharacterStepContext{
             .world = *m_context.world,
             .random = m_context.cloth->random,

@@ -1,5 +1,6 @@
 #include "Monsters/NpcChatter.h"
 
+#include "Monsters/MonstersState.h"
 #include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -140,7 +141,7 @@ Core::Expected<void, std::string> SayTheNpcLine(const Kernel::ActorState& actor,
 }
 
 Core::Expected<void, std::string> SayTheNamedLine(const Kernel::ActorState& actor, std::size_t slot,
-                                                  const Actors::CharacterStepContext& context)
+                                                  const Actors::CharacterStepContext& context, MonstersState* monsters)
 {
     if (!context.systemTime)
     {
@@ -150,17 +151,18 @@ Core::Expected<void, std::string> SayTheNamedLine(const Kernel::ActorState& acto
                                                 slot));
         return {};
     }
-    Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (!runtime.namedLineTime)
-        runtime.namedLineTime = context.systemTime() - NamedLineHead;
+    if (monsters == nullptr)
+        return Core::Unexpected(std::string("0x4fcd65: no Monsters::MonstersState for the clock of 0x7437488"));
+    if (!monsters->namedLineTime)
+        monsters->namedLineTime = context.systemTime() - NamedLineHead;
     const std::uint32_t now = context.systemTime();
-    if (now - *runtime.namedLineTime <= NamedLineGap || !HasTheMessageName(actor))
+    if (now - *monsters->namedLineTime <= NamedLineGap || !HasTheMessageName(actor))
         return {};
-    const bool first = runtime.namedLineFirst;
+    const bool first = monsters->namedLineFirst;
     if (auto said = Say(actor, slot, first ? FirstNamedText : SecondNamedText, context, 0x4fcdfb); !said.HasValue())
         return said;
-    runtime.namedLineTime = now;
-    runtime.namedLineFirst = !first;
+    monsters->namedLineTime = now;
+    monsters->namedLineFirst = !first;
     return {};
 }
 

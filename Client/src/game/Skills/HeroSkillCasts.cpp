@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/SkillTable.h"
+#include "Tables/SkillRecord.h"
 #include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
@@ -61,9 +62,9 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::size_t ManaOffset = 0x22;
-constexpr std::size_t StaminaOffset = 0x24;
-constexpr std::size_t RangeOffset = 0x26;
+constexpr std::size_t ManaOffset = Tables::SkillRecordLayout::Mana;
+constexpr std::size_t StaminaOffset = Tables::SkillRecordLayout::Stamina;
+constexpr std::size_t RangeOffset = Tables::SkillRecordLayout::Range;
 constexpr std::uint16_t DarkHorsePet = 0x1c16;
 constexpr std::uint16_t FenrirPet = 0x1c37;
 using Maps::IsBloodCastle;

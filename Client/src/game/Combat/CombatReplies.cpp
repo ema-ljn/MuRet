@@ -22,6 +22,7 @@
 #include "Crt/SprintfFormat.h"
 #include "Math/Ftol.h"
 #include "Audio/SoundId.h"
+#include "Tables/SkillId.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -42,7 +43,7 @@ constexpr float KillDamageScale = 15.0f;
 constexpr std::size_t ExperienceText = 486;
 constexpr std::uint8_t KillerOnRecord = 2;
 // The 0x17's pushes (0x4d0ab3, 0x4d0b41).
-constexpr std::uint8_t FirstPushSkill = 0x28;
+constexpr std::uint8_t FirstPushSkill = Tables::NovaSkill;
 constexpr std::uint8_t SecondPushSkill = 0x3b;
 // 0x4d0a5f..0x4d0aa2: 0x4d07c0 runs in Blood Castle (11 to 17) and Chaos Castle (18 to 23), two adjacent ranges.
 using Maps::FirstBloodCastleMap;

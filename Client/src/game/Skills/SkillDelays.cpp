@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/SkillTable.h"
+#include "Tables/SkillRecord.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
@@ -20,8 +21,8 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::size_t DelayOffset = 0x28;       // int, the delay
-constexpr std::size_t RequirementOffset = 0x2e; // WORD, what it asks of +0x36 + +0x20
+constexpr std::size_t DelayOffset = Tables::SkillRecordLayout::Delay;
+constexpr std::size_t RequirementOffset = Tables::SkillRecordLayout::Leadership; // what it asks of +0x36 + +0x20
 constexpr std::uint8_t NoDelaySkill = 0x4c;     // 0x552ee3: 0x552c50 sets no delay for it
 
 Models::LogicalAccess OwnAccess(const SkillDelayContext& context)

@@ -1,5 +1,6 @@
 #include "Monsters/MonsterCreation.h"
 
+#include "Monsters/MonstersState.h"
 #include "Core/Expected.h"
 #include "Kernel/ModelEffectArguments.h"
 #include "Models/Cloth.h"
@@ -104,6 +105,12 @@ Core::Expected<void, std::string> WrongWrite(const MonsterStep& step)
 {
     return Core::Unexpected(std::format("{:#x}: MuRet no sabe dónde va la escritura de {} bytes en +{:#x}",
                                         step.address, step.size, step.offset));
+}
+
+Core::Expected<void, std::string> NoModelTable(const MonsterStep& step)
+{
+    return Core::Unexpected(std::format("{:#x}: no Monsters::MonstersState for the model table's byte at +{:#x}",
+                                        step.address, step.offset));
 }
 
 Core::Expected<void, std::string> WriteThePart(Kernel::ActorItemPart& part, const MonsterStep& step,
@@ -487,17 +494,27 @@ private:
             return {};
         }
         case MonsterStepKind::MeshFlag:
-            runtime.modelPatches.push_back({.model = actor.type,
-                                            .mesh = step.offset,
-                                            .offset = 0,
-                                            .value = static_cast<std::uint8_t>(step.value)});
+        {
+            MonstersState* monsters = Scenes::MonstersOf(m_resources);
+            if (monsters == nullptr)
+                return NoModelTable(step);
+            monsters->modelPatches.push_back({.model = actor.type,
+                                              .mesh = step.offset,
+                                              .offset = 0,
+                                              .value = static_cast<std::uint8_t>(step.value)});
             return {};
+        }
         case MonsterStepKind::ModelByte:
-            runtime.modelPatches.push_back({.model = static_cast<std::uint16_t>(step.extra),
-                                            .mesh = std::nullopt,
-                                            .offset = step.offset,
-                                            .value = static_cast<std::uint8_t>(step.value)});
+        {
+            MonstersState* monsters = Scenes::MonstersOf(m_resources);
+            if (monsters == nullptr)
+                return NoModelTable(step);
+            monsters->modelPatches.push_back({.model = static_cast<std::uint16_t>(step.extra),
+                                              .mesh = std::nullopt,
+                                              .offset = step.offset,
+                                              .value = static_cast<std::uint8_t>(step.value)});
             return {};
+        }
         case MonsterStepKind::BoneName:
             Actors::NameABone(runtime, *m_index, step.text, step.value);
             return {};

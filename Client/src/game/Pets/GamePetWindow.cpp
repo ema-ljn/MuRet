@@ -26,6 +26,7 @@
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
 #include "Kernel/ItemState.h"
+#include "Tables/SkillId.h"
 
 #include <array>
 #include <cstddef>
@@ -151,7 +152,7 @@ constexpr double DurabilityWidth = 143.0;
 // 0x414d18: the scepter's % (byte +0x16 of slot 0) times 0.01 (0x6b86c0).
 constexpr float Percent = 0.01f;
 // 0x414fd4: Skill.bmd's 0x3e, the horse's damage.
-constexpr std::uint8_t HorseSkill = 0x3e;
+constexpr std::uint8_t HorseSkill = Tables::EarthshakeSkill;
 // 0x415249..0x415255: the required leadership.
 constexpr std::int32_t LeadershipPerLevel = 15;
 constexpr std::int32_t LeadershipBase = 0xb9;

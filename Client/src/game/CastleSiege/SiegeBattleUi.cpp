@@ -24,6 +24,7 @@
 #include "Ui/PanelRegistry.h"
 #include "CastleSiege/SiegeBattleUiState.h"
 #include "CastleSiege/SiegePanelState.h"
+#include "Tables/SkillId.h"
 
 #include <array>
 #include <bit>
@@ -46,8 +47,8 @@ constexpr std::uint8_t Assistant = 0x40;
 constexpr std::uint8_t BattleMaster = 0x20;
 constexpr std::uint8_t NoGuild = 0xff;
 constexpr std::size_t MemberReservation = 1600;
-constexpr std::uint8_t FirstSiegeSkill = 0x43;
-constexpr std::uint8_t LastSiegeSkill = 0x48;
+using Tables::FirstSiegeSkill;
+using Tables::LastSiegeSkill;
 
 bool HasBattleRole(const Kernel::WorldRuntime& runtime, const Kernel::ActorState& hero, bool guildRequired)
 {

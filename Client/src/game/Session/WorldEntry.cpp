@@ -316,6 +316,11 @@ Actors::ActorsState* ActorsOf(const WorldEntryResources& resources)
     return resources.states != nullptr ? &resources.states->actors : nullptr;
 }
 
+Monsters::MonstersState* MonstersOf(const WorldEntryResources& resources)
+{
+    return resources.states != nullptr ? &resources.states->monsters : nullptr;
+}
+
 Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply,
                                                               std::uint16_t playerKey,
                                                               const WorldEntryResources& resources,

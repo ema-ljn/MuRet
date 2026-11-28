@@ -63,6 +63,11 @@ class IEffectHooks;
 class IJointHooks;
 } // namespace Client::Actors
 
+namespace Client::Monsters
+{
+struct MonstersState;
+} // namespace Client::Monsters
+
 namespace Client::Assets
 {
 class FaunaModels;
@@ -163,6 +168,9 @@ struct WorldEntryResources
 [[nodiscard]] Assets::FaunaModels* FaunaModelsOf(const WorldEntryResources& resources);
 // The viewport's queue and the reported cell (Actors::ActorsState). nullptr without `states`.
 [[nodiscard]] Actors::ActorsState* ActorsOf(const WorldEntryResources& resources);
+// The phoenix's matrices, the name message's clock and the model table's patches (Monsters::MonstersState). nullptr
+// without `states`.
+[[nodiscard]] Monsters::MonstersState* MonstersOf(const WorldEntryResources& resources);
 
 // Los IDs de reproducción y de las pistas que la entrada detiene, en el orden nativo; el vector se conserva para
 // diagnóstico y fixtures.

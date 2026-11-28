@@ -7,6 +7,7 @@
 #include "Kernel/WorldState.h"
 #include "Maps/MapId.h"
 #include "Social/SocialState.h"
+#include "Tables/SkillId.h"
 
 #include <array>
 #include <cstddef>
@@ -25,7 +26,7 @@ constexpr std::uint8_t PlayerObject = 1;
 constexpr std::uint8_t MonsterObject = 2;
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
-constexpr std::int32_t BrakeSkill = 0x28;
+constexpr std::int32_t BrakeSkill = Tables::NovaSkill;
 constexpr std::int32_t BrakeMilliseconds = 300;
 constexpr std::uint32_t SiegeShield = 0x4000;
 constexpr std::uint8_t MinimumOutlawPk = 6;

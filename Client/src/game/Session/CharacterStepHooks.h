@@ -30,13 +30,21 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
-// The characters' step slots (Actors/CharacterStepHooks.h), each one in the module that owns the call. They keep no
-// state: whoever builds a step context can own one.
+namespace Client::Monsters
+{
+struct MonstersState;
+} // namespace Client::Monsters
+
+// The characters' step slots (Actors/CharacterStepHooks.h), each one in the module that owns the call. They keep only
+// where the monsters' state is (ModuleStates::monsters): whoever builds a step context can own one.
 namespace Client::Session
 {
 class CharacterStepHooks final : public Actors::ICharacterStepHooks
 {
 public:
+    // nullptr: the name message's clock (0x4fcd65) and the phoenix's attack cases (0x4f840e, 0x4f8b92) stop.
+    explicit CharacterStepHooks(Monsters::MonstersState* monsters = nullptr) : m_monsters(monsters) {}
+
     [[nodiscard]] Core::Expected<void, std::string> RefreshTheSiegePanel(Kernel::WorldRuntime& runtime) const override;
 
     [[nodiscard]] Core::Expected<void, std::string>
@@ -100,5 +108,8 @@ public:
     [[nodiscard]] Core::Expected<void, std::string>
     StepTheCastleObject(Kernel::ActorState& actor, const Actors::CharacterStepContext& context,
                         std::function<double(float, float)> height, const Models::Skeleton* skeleton) const override;
+
+private:
+    Monsters::MonstersState* m_monsters = nullptr;
 };
 } // namespace Client::Session

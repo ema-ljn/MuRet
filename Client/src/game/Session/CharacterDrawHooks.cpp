@@ -18,7 +18,7 @@ Core::Expected<void, std::string> CharacterDrawHooks::DrawTheMonster(Render::Mod
                                                                      const Actors::Drawing::GameCharacterPass& pass,
                                                                      bool originalFrame) const
 {
-    return Monsters::Drawing::DrawGameMonster(batch, models, world, slot, pass, originalFrame);
+    return Monsters::Drawing::DrawGameMonster(batch, models, world, slot, pass, originalFrame, m_monsters);
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>

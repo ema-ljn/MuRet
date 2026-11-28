@@ -193,9 +193,10 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Tables::GameData& data,
                                            const Models::IModelLibrary& models, App::ServerSession* session,
                                            const Models::ModelTextureSlots* gameSlots)
-    : m_context(context), m_texts(data.text ? &*data.text : nullptr),
-      m_items(data.items ? &data.items->table : nullptr), m_models(models), m_session(session),
-      m_textures(context.textures, Assets::SelectionTextureSet),
+    : m_context(context), m_stepHooks(context.states != nullptr ? &context.states->monsters : nullptr),
+      m_characterDrawHooks(context.states != nullptr ? &context.states->monsters : nullptr),
+      m_texts(data.text ? &*data.text : nullptr), m_items(data.items ? &data.items->table : nullptr), m_models(models),
+      m_session(session), m_textures(context.textures, Assets::SelectionTextureSet),
       m_windowTextures(context.textures, Assets::WindowTextureSet), m_world(context.textures, context.log),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),

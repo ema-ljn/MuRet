@@ -153,6 +153,8 @@ game/Tables/QuestTable.h	110	game/Tables	game/Tables	high	a MU data table; the g
 engine/Data/Tables/RecordTable.h	67	engine/Data/Tables	engine/Data/Tables	high	engine or protocol layer, no game state
 game/Tables/SkillTable.cpp	28	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/SkillTable.h	39	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
+game/Tables/SkillRecord.h	24	game/Tables	game/Tables	high	the offsets of a Skill.bmd record the client reads
+game/Tables/SkillId.h	18	game/Tables	game/Tables	high	the Skill.bmd ids several modules compare with (named-values home of the skill space)
 engine/Data/Tables/TableChecksum.cpp	55	engine/Data/Tables	engine/Data/Tables	high	engine or protocol layer, no game state
 engine/Data/Tables/TableChecksum.h	38	engine/Data/Tables	engine/Data/Tables	high	engine or protocol layer, no game state
 engine/Crypto/K16.cpp	22	engine/Crypto	engine/Crypto	high	MU byte ciphers, apart from sockets and formats; Xor32 leaves Network/Packet in AR1.1 (2026-11-21 review)
@@ -1010,6 +1012,7 @@ game/MapScripts/Noria/NoriaObjectServices.cpp	180	game/MapScripts/Noria	game/Map
 game/MapScripts/Noria/NoriaObjectServices.h	17	game/MapScripts/Noria	game/MapScripts/Noria	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 game/Monsters/NpcChatter.cpp	195	game/Monsters	game/Monsters	medium	what NPC characters say from the actor step; NPC characters live with monsters (kinds table), the talk windows are Npc's (AR0.1 review)
 game/Monsters/NpcChatter.h	46	game/Monsters	game/Monsters	medium	what NPC characters say from the actor step; NPC characters live with monsters (kinds table), the talk windows are Npc's (AR0.1 review)
+game/Monsters/MonstersState.h	38	game/Monsters	game/Monsters	high	the monsters' part of the original's globals (ADR 0029): the phoenix's matrices, the name message's clock and the model table's patches
 game/Monsters/NpcNames.cpp	57	game/Monsters	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Inventory (3 vs 1 own
 game/Monsters/NpcNames.h	40	game/Monsters	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Inventory (3 vs 1 own
 game/Npc/NpcTalk.cpp	252	game/Npc	game/Npc	medium	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6); include graph pulls to Hero (3 vs 1 own)

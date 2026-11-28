@@ -135,7 +135,7 @@ Core::Expected<void, std::string> CharacterStepHooks::SayTheNpcLine(const Kernel
 Core::Expected<void, std::string> CharacterStepHooks::SayTheNamedLine(const Kernel::ActorState& actor, std::size_t slot,
                                                                       const Actors::CharacterStepContext& context) const
 {
-    return Monsters::SayTheNamedLine(actor, slot, context);
+    return Monsters::SayTheNamedLine(actor, slot, context, m_monsters);
 }
 
 bool CharacterStepHooks::IsInTheParty(const Kernel::WorldState& world, const Kernel::ActorState& actor) const
@@ -203,7 +203,7 @@ Core::Expected<void, std::string> CharacterStepHooks::StepTheAttack(Kernel::Acto
                                                                     const Actors::CharacterStepContext& context,
                                                                     const std::optional<glm::vec3>& flareLight) const
 {
-    return Skills::StepTheAttack(actor, slot, context, flareLight.value_or(Skills::BodyLight));
+    return Skills::StepTheAttack(actor, slot, context, flareLight.value_or(Skills::BodyLight), m_monsters);
 }
 
 void CharacterStepHooks::QueueTheHealthBar(const Kernel::ActorState& actor,

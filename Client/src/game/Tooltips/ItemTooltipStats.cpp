@@ -3,6 +3,7 @@
 #include "Tooltips/TooltipLines.h"
 #include "Tooltips/TooltipWriter.h"
 #include "Kernel/ItemState.h"
+#include "Tables/SkillId.h"
 
 #include <algorithm>
 #include <array>
@@ -63,7 +64,7 @@ constexpr std::size_t DamagePercentText = 630;
 constexpr std::int32_t AngelPercent = 2;
 constexpr std::uint32_t CycloneSkill = 0x16;
 constexpr std::size_t CycloneText = 84;
-constexpr std::uint32_t TripleShotSkill = 0x18;
+constexpr std::uint32_t TripleShotSkill = Tables::TripleShotSkill;
 constexpr std::size_t TripleShotText = 86;
 constexpr std::size_t OptimalText = 628;
 constexpr std::size_t MagicSpeedText = 633;

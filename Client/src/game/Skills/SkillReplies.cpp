@@ -7,6 +7,7 @@
 #include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/SkillTable.h"
+#include "Tables/SkillRecord.h"
 #include "Protocol/Skills/Skill.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
@@ -1017,7 +1018,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
             // 0x4c549a..0x4c54fa: opens the entry and closes it with 0x4e7c40.
             const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], random,
                                               static_cast<std::uint16_t>(Tables::SkillRecordSize));
-            constexpr std::size_t HiddenOffset = 0x31;
+            constexpr std::size_t HiddenOffset = Tables::SkillRecordLayout::Origin;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
         }
         if (hidden == 1)

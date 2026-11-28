@@ -26,6 +26,7 @@
 #include "Chat/WhisperSenders.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Tables/SkillId.h"
 
 #include <array>
 #include <cstddef>
@@ -74,7 +75,7 @@ constexpr std::uint8_t NibbleShift = 4;
 constexpr std::uint8_t LowNibble = 0x0f;
 // 0x6b87b8: 0,1f.
 constexpr float AlphaStep = 0.1f;
-constexpr std::uint8_t NoSkill = 0xff;
+using Tables::NoSkill;
 
 // Hasta el primer '\0', como lo leen strlen y strcpy.
 std::string_view CString(std::string_view text)

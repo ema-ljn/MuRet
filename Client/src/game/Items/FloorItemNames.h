@@ -4,15 +4,15 @@
 
 #include <string>
 
+namespace Client::Kernel
+{
+struct FloorItemState;
+} // namespace Client::Kernel
+
 namespace Client::Hud
 {
 struct GameHudContext;
 } // namespace Client::Hud
-
-namespace Client::Scenes
-{
-struct FloorItemState;
-} // namespace Client::Scenes
 
 // El nombre de un ítem del piso (CL9 hito 5; 06 § Los ítems del piso): 0x5ba790, que llaman el hover con el elegido
 // (0x5bbd62) y Alt con los demás (0x5bbdd2). *Estático*, leído en el ASM.
@@ -29,5 +29,5 @@ namespace Client::Items
 // 0x1a0a, que lee los monstruos (0x7681eb8, CL9 hito 2), y los modelos y niveles con los que el original no escribe el
 // texto y dibuja lo que quedó en su pila (07 Q-C1242).
 [[nodiscard]] Core::Expected<void, std::string>
-DrawTheFloorItemName(Hud::GameHudContext& context, const Scenes::FloorItemState& item, bool atTheItem);
+DrawTheFloorItemName(Hud::GameHudContext& context, const Kernel::FloorItemState& item, bool atTheItem);
 } // namespace Client::Items

@@ -18,7 +18,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Effects/ActorEffectHooks.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Monsters/Drawing/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Kernel/JointRequest.h"
@@ -72,10 +72,10 @@ constexpr std::size_t KundunJointTable = 500;
 
 // Gemela de 0x43f1a6..0x43f243, escrita aparte: 0x56 vueltas con su rand() % 10, los ángulos (−10, 0, (r + 10) · i)
 // y el punto (x, y, z + 200) para el 0x613/3 y el 0x6ee/3 de ancho 50, sin dueño ni blanco.
-std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const glm::vec3& position,
+std::unique_ptr<std::vector<Client::Kernel::JointState>> KundunFallingRays(const glm::vec3& position,
                                                                            Client::Crt::CrtRandom& random)
 {
-    auto joints = std::make_unique<std::vector<Client::Scenes::JointState>>(KundunJointTable);
+    auto joints = std::make_unique<std::vector<Client::Kernel::JointState>>(KundunJointTable);
     glm::vec3 angles{-10.0f, 0.0f, 0.0f};
     glm::vec3 point{};
     for (std::int32_t ray = 0; ray < 0x56; ++ray)
@@ -103,8 +103,8 @@ std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const
     return joints;
 }
 
-void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
-                      std::span<const Client::Scenes::JointState> expected)
+void ExpectSameJoints(std::span<const Client::Kernel::JointState> actual,
+                      std::span<const Client::Kernel::JointState> expected)
 {
     ASSERT_EQ(actual.size(), expected.size());
     for (std::size_t slot = 0; slot < actual.size(); ++slot)
@@ -320,7 +320,7 @@ protected:
     std::unique_ptr<Client::Effects::ModelEffects> m_effects = std::make_unique<Client::Effects::ModelEffects>();
     std::unique_ptr<Client::Particles::Particles> m_particles = std::make_unique<Client::Particles::Particles>();
     // La tabla de joints (0x74a8d78): vacía salvo en Kundun al morir.
-    std::vector<Client::Scenes::JointState> m_joints;
+    std::vector<Client::Kernel::JointState> m_joints;
     std::vector<Client::Math::BoneTransform> m_bones{Client::Math::BoneTransform(1.0f)};
     std::function<double(float, float)> m_terrainHeight{};
     std::vector<Client::Models::SkinnedMesh> m_meshes;
@@ -1122,7 +1122,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         m_actor->animation = {.action = 6, .frame = 8.0f};
         m_actor->position = {12800.5f, 6400.25f, std::bit_cast<float>(0x4215999au)}; // z: 37,4f
         m_cloth.random = Client::Crt::CrtRandom{1};
-        m_joints.assign(KundunJointTable, Client::Scenes::JointState{});
+        m_joints.assign(KundunJointTable, Client::Kernel::JointState{});
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x192, map);
         ASSERT_TRUE(result.HasValue()) << result.Error();

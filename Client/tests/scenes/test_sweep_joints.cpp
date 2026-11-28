@@ -9,7 +9,7 @@
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/SkillHits.h"
@@ -41,7 +41,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::uint32_t Seed = 0x61cu;
 constexpr std::size_t Last = 19;
@@ -146,10 +146,10 @@ void Attach(SweepWorld& sweep, HeroWorld& hero)
         std::make_unique<Client::Joints::JointKernels::VolleyServices>(Client::Joints::JointKernels::VolleyServices{
             .siegeActive = hero.world.Runtime().castleSiege.siegeActive,
             .attributes = hero.terrain.attributes.get(),
-            .skillHits = [&sweep, &hero](const Client::Skills::SkillHitsRequest& request)
+            .skillHits = [&sweep, &hero](const Client::Actors::SkillHitsRequest& request)
                 -> Client::Core::Expected<void, std::string>
             {
-                const auto hit = Client::Skills::HitTheTargetsAround(request, hero.world, hero.terrain, sweep.random,
+                const auto hit = Client::Actors::HitTheTargetsAround(request, hero.world, hero.terrain, sweep.random,
                                                                      hero.Capture());
                 if (!hit.HasValue())
                     return Client::Core::Unexpected(hit.Error());

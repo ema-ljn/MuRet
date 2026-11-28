@@ -15,7 +15,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Effects/RingEffects.h"
 #include "Joints/JointFamilies.h"
@@ -190,7 +190,7 @@ bool HasFreeModelEffect(const Actors::CharacterStepContext& context)
 bool IsJointPoolFull(const Actors::CharacterStepContext& context)
 {
     return !context.joints.empty() &&
-           std::ranges::none_of(context.joints, [](const Scenes::JointState& joint) { return !joint.alive; });
+           std::ranges::none_of(context.joints, [](const Kernel::JointState& joint) { return !joint.alive; });
 }
 
 std::optional<std::size_t> CreateKalimaEarthquake(Kernel::ActorState& actor, std::uint8_t state,

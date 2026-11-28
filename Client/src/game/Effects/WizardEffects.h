@@ -50,18 +50,14 @@ struct CharacterStepContext;
 namespace Client::Kernel
 {
 class WorldState;
-} // namespace Client::Kernel
-
-namespace Client::Scenes
-{
 struct JointState;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 // CL11, lote magos: los servicios de World::WizardModelEffects desde el mundo de la escena. El dueño (+0x108) de los
 // efectos es un personaje del pool (ActorState: el byte vivo, +0x2, la posición, +0x78, la acción +0x111, +0x16c y
 // +0x1bc), el héroe es [0x743a170], el registro propio es el de WorldRuntime y OwnCharacterRecord (+0xf04), el asedio
 // es CastleSiegeState::siegeActive (0x4294b0), los joints van a la tabla del mundo (0x530860,
-// Scenes/FaunaJointCreation) y 0x517a20 es Skills::HitTheTargetsAround.
+// Scenes/FaunaJointCreation) y 0x517a20 es Actors::HitTheTargetsAround.
 namespace Client::Effects
 {
 
@@ -78,7 +74,7 @@ struct WizardSceneParts
     std::function<void(Audio::SoundId)> sound{};
     std::function<void(Protocol::Outgoing)> send{};
     // La tabla de joints (0x530860); vacía, la del mundo (WorldState::DrawTail).
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (`faunaModels`), para el empujón
     // del 0xc2/4 (0x524a8d). Sin ellos, un 0x20a que empuja corta.
     const Models::IModelLibrary* models = nullptr;

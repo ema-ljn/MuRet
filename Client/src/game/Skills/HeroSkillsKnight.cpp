@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Kernel/CharacterClass.h"
-#include "Pathfinding/PathFinder.h"
+#include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
 #include "Protocol/Skills/Skill.h"
@@ -14,9 +14,8 @@
 #include "Actors/ActorName.h"
 #include "Kernel/ActorState.h"
 #include "Combat/CombatActionSpeeds.h"
-#include "Events/Crywolf/CrywolfContract.h"
 #include "Movement/GameMovementState.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkills.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -307,7 +306,7 @@ Core::Expected<std::uint8_t, std::string> RelativeCellOf(const Kernel::ActorStat
 Core::Expected<std::uint16_t, std::string> ChosenKey(const Kernel::ActorState& hero, std::int32_t target,
                                                      const HeroSkillContext& context)
 {
-    const auto key = Hero::ChosenKeyOf(context.world, SlotOf(context.world, hero), target, context.controlDown);
+    const auto key = Combat::ChosenKeyOf(context.world, SlotOf(context.world, hero), target, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     return static_cast<std::uint16_t>(static_cast<std::uint32_t>(key.Value()));
@@ -596,9 +595,8 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(Kernel::ActorState& hero,
         return Core::Unexpected(std::string("0x58975f: falta TerrainWall para acercarse con la 0x4c"));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con el alcance distinto de 0 no cuenta (0x4eadd4).
     const auto path =
-        Pathfinding::PathFinder(terrain.attributes->cells)
-            .Find({cells.x, cells.y}, {static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)},
-                  Events::Crywolf::CrywolfAltarGoal(context.world), reach);
+        Actors::FindThePath(context.world, terrain.attributes->cells, {cells.x, cells.y},
+                            {static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)}, reach);
     if (!path)
         return {};
     hero.path = *path;

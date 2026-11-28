@@ -8,11 +8,11 @@
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
 #include "Actors/ActorActions.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Events/Crywolf/CrywolfContract.h"
 #include "Chat/GameMessages.h"
 #include "Movement/GameMovement.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Quests/QuestState.h"
@@ -130,7 +130,7 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
     }
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),
-                                    .scene = Scenes::SceneId::Game,
+                                    .scene = Kernel::SceneId::Game,
                                     .playerSkeleton = *playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
@@ -144,8 +144,8 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
 Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const Movement::HeroMovementContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& state = runtime.movement;
-    state.mouseUpdateTimeMax = ArrivalMouseUpdateTimeMax;
+    Kernel::MouseState& mouse = runtime.mouse;
+    mouse.updateTimeMax = ArrivalMouseUpdateTimeMax;
     // 0x5674d2..0x5674ed: fuera de Crywolf activo (0x435a00 && 0x4303c0), 0x4f2250 y +0x378 en 0 (en la llegada de
     // MoveHero el héroe ya está parado: 0x4f2250 vuelve a elegir la acción y saca su sufijo de rand()).
     const bool crywolf = Events::Crywolf::InTheCrywolfDefense(runtime);
@@ -160,16 +160,17 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
         hero.movement = 0;
     }
     // 0x5674f4: sin NPC elegido, nada más (0x56ab0c).
-    if (state.chosenNpc == -1)
+    if (runtime.chosenNpc.index == -1)
         return {};
-    if (state.chosenNpc < 0 || static_cast<std::size_t>(state.chosenNpc) >= context.world.Actors().size())
+    if (runtime.chosenNpc.index < 0 ||
+        static_cast<std::size_t>(runtime.chosenNpc.index) >= context.world.Actors().size())
         return Core::Unexpected(
-            std::format("0x567502: el NPC elegido {} está fuera de la tabla de personajes", state.chosenNpc));
-    const Kernel::ActorState& npc = context.world.Actors()[static_cast<std::size_t>(state.chosenNpc)];
+            std::format("0x567502: el NPC elegido {} está fuera de la tabla de personajes", runtime.chosenNpc.index));
+    const Kernel::ActorState& npc = context.world.Actors()[static_cast<std::size_t>(runtime.chosenNpc.index)];
     // 0x56751b: un +0x376 de menos de 0xcd va derecho a 0x569599 (0x6c8e54 en −1, sin tocar 0x6eeda8).
     if (npc.word376 < FirstTalkingNpc)
     {
-        state.chosenNpc = -1;
+        runtime.chosenNpc.index = -1;
         return {};
     }
     // 0x567521..0x5675ed: el nivel (+0xe, sin signo) del registro propio, abierto y cerrado por la tabla.
@@ -216,7 +217,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
             return Core::Unexpected(std::move(text).Error());
         if (auto said = SayIt(context, text.Value(), Ui::ErrorMessage, "0x567add"); !said.HasValue())
             return said;
-        state.chosenNpc = -1;
+        runtime.chosenNpc.index = -1;
         return {};
     }
     if (crywolf)
@@ -246,7 +247,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
         return sent;
     // 0x569573..0x56959b.
     runtime.byte6eeda8 = npc.word376 == QuestDialogNpc ? 1 : 0;
-    state.chosenNpc = -1;
+    runtime.chosenNpc.index = -1;
     return {};
 }
 } // namespace Client::Npc

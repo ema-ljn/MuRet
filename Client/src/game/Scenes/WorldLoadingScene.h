@@ -36,7 +36,7 @@ public:
     void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
     // Suelta las cuatro.
     void Leave() override;
-    [[nodiscard]] std::optional<SceneId> Next() const override;
+    [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
     [[nodiscard]] bool HoldsTheLastFrame() const override;

@@ -16,7 +16,6 @@
 #include "Events/EventDrawing.h"
 #include "Hud/Dialogs/GameDialogSteps.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Guild/GuildState.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "ChaosMix/JewelBundleList.h"
@@ -826,7 +825,7 @@ void DrawTheArrow(Frame& frame, bool atTheEnd, int left, int right, float x, flo
     Render::SpriteBatch& sprites = frame.context.sprites;
     const Ui::Point mouse = frame.context.mouse;
     sprites.SetColor(White);
-    bool& click = frame.runtime.movement.pendingClick;
+    bool& click = frame.runtime.mouse.pendingClick;
     if (atTheEnd)
         sprites.SetColor(FrameGrey);
     else if (left < mouse.x && ArrowTop < mouse.y && mouse.x < right && mouse.y < ArrowBottom)

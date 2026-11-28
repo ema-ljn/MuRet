@@ -11,7 +11,7 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/GameParticles.h"
 #include "Effects/HighEffectEmitters.h"
 #include "Effects/KundunEffects.h"
@@ -184,7 +184,7 @@ TEST(HighEffectFamiliesTest, TheFlareWaveDrawsOneScaleForEachOfItsSixtyJoints)
         if (!full)
         {
             const auto& joints = tested.world->DrawTail().joints;
-            EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Scenes::JointState& joint)
+            EXPECT_EQ(std::ranges::count_if(joints, [](const Client::Kernel::JointState& joint)
                                             { return joint.alive && joint.type == 0x5ac && joint.subtype == 0; }),
                       60);
             CrtRandom replay{Seed};
@@ -1303,7 +1303,7 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     static_cast<void>(replay.Next());
     glm::vec3 point{100.0f, 200.0f, 400.0f};
     glm::vec3 angles{0.0f, 0.0f, std::bit_cast<float>(0x42713333u)};
-    std::vector<Client::Scenes::JointState> twin(tested.world->DrawTail().joints.size());
+    std::vector<Client::Kernel::JointState> twin(tested.world->DrawTail().joints.size());
     ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twin,
                                                  {.type = 0x61c,
                                                   .firstPosition = point,
@@ -1520,7 +1520,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         const auto dx = static_cast<double>(replay.Next() % 100) - 50.0;
         const auto dy = static_cast<double>(replay.Next() % 100) - 50.0;
         const glm::vec3 point{static_cast<float>(dx + 500.0), static_cast<float>(dy + 600.0), 1270.0f};
-        std::vector<Client::Scenes::JointState> twin(tested.world->DrawTail().joints.size());
+        std::vector<Client::Kernel::JointState> twin(tested.world->DrawTail().joints.size());
         for (const std::int32_t subtype : {2, 3})
         {
             glm::vec3 first = point, second = point, angles{90.0f, 0.0f, 0.0f};

@@ -54,7 +54,7 @@ protected:
     Client::Core::Expected<Client::Actors::ActorStopResult, std::string> Apply(ActorState& actor)
     {
         const ActorStopContext context{.runtime = m_runtime,
-                                       .scene = Client::Scenes::SceneId::Game,
+                                       .scene = Client::Kernel::SceneId::Game,
                                        .playerSkeleton = m_skeleton,
                                        .random = m_random};
         return Client::Actors::ApplyTheClassParts(actor, context);

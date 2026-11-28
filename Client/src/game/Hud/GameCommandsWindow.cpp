@@ -17,6 +17,7 @@
 #include "Models/ModelId.h"
 #include "Models/LogicalAccess.h"
 #include "Actors/ActionSend.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Chat/ChatBubbles.h"
 #include "Chat/ChatReceive.h"
@@ -665,7 +666,7 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
     Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     if (delegated.commands == 0)
         return {};
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const std::int32_t x = runtime.hud.commandsX;
     const std::int32_t y = runtime.hud.commandsY;
     const std::int32_t mouseX = context.mouseX;
@@ -680,22 +681,22 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
     for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
     {
         if (command != 0 && mouseX > left && mouseX < left + ButtonHitWidth && mouseY > top &&
-            mouseY < top + ButtonHitHeight && movement.pendingClick)
+            mouseY < top + ButtonHitHeight && mouse.pendingClick)
         {
-            movement.pendingClick = false;
-            movement.leftHeld = false;
+            mouse.pendingClick = false;
+            mouse.leftHeld = false;
             delegated.commandsWindow.chosen = command;
         }
         top += ButtonStep;
     }
     if (mouseX < x + CloseLeft || mouseX >= x + CloseLeft + CloseSize || mouseY < y + CloseTop ||
-        mouseY >= y + CloseTop + CloseSize || !movement.pendingClick)
+        mouseY >= y + CloseTop + CloseSize || !mouse.pendingClick)
         return {};
-    movement.pendingClick = false;
+    mouse.pendingClick = false;
     runtime.RequestSound(FirstCloseSound);
     runtime.RequestSound(SecondCloseSound);
-    movement.mouseUpdateTime = 0;
-    movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
+    mouse.updateTime = 0;
+    mouse.updateTimeMax = CloseMouseUpdateTimeMax;
     Ui::ResetTheCommands(delegated);
     return {};
 }
@@ -749,7 +750,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     hud.textColors = NameColors;
     top = static_cast<float>(static_cast<double>(y) + ButtonsTop);
     const Ui::Point mouse = context.mouse;
-    const bool click = runtime.movement.pendingClick;
+    const bool click = runtime.mouse.pendingClick;
     for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
     {
         if (command != 0)

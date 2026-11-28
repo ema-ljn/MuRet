@@ -325,7 +325,7 @@ protected:
     {
         return Client::Actors::StepCharacter(m_actor, {.world = *m_world,
                                                        .random = random,
-                                                       .scene = Client::Scenes::SceneId::Game,
+                                                       .scene = Client::Kernel::SceneId::Game,
                                                        .terrain = &m_terrain,
                                                        .particles = &m_world->Particles(),
                                                        .groundMarks = &m_marks,

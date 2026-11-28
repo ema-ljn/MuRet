@@ -54,7 +54,7 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->altNames = world.Runtime().ui.altNames;
     m_projection->oldWindows = world.Runtime().oldWindows;
 }
-GameDrawTailState& GameScene::FrameTail()
+Kernel::GameDrawTailState& GameScene::FrameTail()
 {
     return m_projectingFrame ? m_projection->tail : m_context.world->DrawTail();
 }

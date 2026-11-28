@@ -24,7 +24,7 @@
 #include "Kernel/ActorState.h"
 #include "CastleSiege/CastleBattleReceive.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Particles/Particles.h"
 #include "FrontEnd/LoginModels.h"
 #include "Monsters/MonsterCreation.h"
@@ -32,7 +32,7 @@
 #include "Monsters/NpcNames.h"
 #include "FrontEnd/SelectionState.h"
 #include "Movement/GameMovement.h"
-#include "Movement/GameMovementState.h"
+#include "Session/HeroMovementHooks.h"
 #include "Hud/GameUi.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -81,6 +81,7 @@
 // (support/ViewportPackets.h); los nombres de los dueños y el Text 485 son inventados.
 namespace
 {
+const Client::Session::HeroMovementHooks MovementHooks{};
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Tables::PlayerSkeletonModel;
@@ -255,7 +256,7 @@ protected:
         ASSERT_EQ(runtime.selectedTargets[1], 1);
         ASSERT_EQ(runtime.selectedTargets[3], -1);
         std::vector<std::int16_t> talkKeys;
-        runtime.movement.mouseUpdateTime = 6;
+        runtime.mouse.updateTime = 6;
         const auto clicked = Client::Movement::StepHeroMovement(
             {.world = game->world,
              .random = game->cloth.random,
@@ -264,7 +265,8 @@ protected:
              .skills = &skills,
              .input = {.leftPressed = true, .leftDown = true},
              .sendTalk = [&](std::int16_t talked) { talkKeys.push_back(talked); },
-             .terrain = &game->states.terrain.current});
+             .terrain = &game->states.terrain.current,
+             .hooks = &MovementHooks});
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
         ASSERT_EQ(talkKeys, (std::vector<std::int16_t>{key}));
     }
@@ -355,7 +357,7 @@ TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
         SCOPED_TRACE(static_cast<int>(map));
         Load(map);
         game->world.Runtime().crywolf.stage = 4;
-        game->world.Runtime().movement.chosenNpc = 9;
+        game->world.Runtime().chosenNpc.index = 9;
         Actor(9).type = 0x205;
         const Cell cell = FreeRow();
         const Cell target{Byte(cell.x + 4), cell.y};
@@ -1022,7 +1024,7 @@ TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
         ActorState& actor = Actor(created.Value());
         if (!full)
         {
-            const Client::Scenes::JointState& joint = joints[0];
+            const Client::Kernel::JointState& joint = joints[0];
             EXPECT_TRUE(joint.alive);
             EXPECT_EQ(joint.type, 0x60f);
             EXPECT_EQ(joint.subtype, 0x2a);

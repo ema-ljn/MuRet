@@ -287,7 +287,7 @@ void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y
                 continue;
             const auto cell = static_cast<std::size_t>(row * GridSide + column);
             // 0x65364c: el byte de abajo de 0x78aba44.
-            if (runtime.movement.leftHeld)
+            if (runtime.mouse.leftHeld)
                 mark[cell] = static_cast<std::uint8_t>(static_cast<std::uint32_t>(guild.markColor) & 0xffu);
             if (runtime.ui.rightDown)
                 mark[cell] = 0;
@@ -300,9 +300,9 @@ void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y
         {
             const std::int32_t left = x + PaletteLeft + column * PaletteStep;
             if (mouseX < left || mouseX >= left + PaletteStep || mouseY < top || mouseY >= top + PaletteStep ||
-                !runtime.movement.pendingClick)
+                !runtime.mouse.pendingClick)
                 continue;
-            runtime.movement.pendingClick = false;
+            runtime.mouse.pendingClick = false;
             runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)
             guild.markColor = row * GridSide + column;
         }
@@ -362,12 +362,12 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
         window.dialog2a0 = opened.Value();
     }
     const Ui::OldWindowBase& base = window.base;
-    if (!runtime.movement.pendingClick || !Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
-                                                             base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
+    if (!runtime.mouse.pendingClick || !Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
+                                                          base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
         return {};
-    runtime.movement.pendingClick = false;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = CloseMouseUpdateTimeMax;
     if (auto sent = Send(context.send, Protocol::Guild::WriteMasterAnswer(ClosedAnswer), "0x65610a"); !sent.HasValue())
         return sent;
     runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)

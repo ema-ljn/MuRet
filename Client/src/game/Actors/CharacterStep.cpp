@@ -2,6 +2,7 @@
 #include "Maps/MapId.h"
 
 #include "Actors/ActorPickingBox.h"
+#include "Actors/WalkPath.h"
 #include "Math/OriginalRotation.h"
 #include "Particles/Particles.h"
 
@@ -31,7 +32,7 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/CharacterHead.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
 #include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
@@ -216,8 +217,7 @@ Core::Expected<void, std::string> StepOtherCharacter(Kernel::ActorState& actor, 
         false,
         player ? nullptr : own,
         modelSounds};
-    ActorMotionContext motion{
-        context.world.Runtime(), context.random, {}, context.hooks->CrywolfAltarGoal(context.world)};
+    ActorMotionContext motion{context.world.Runtime(), context.random, {}, CrywolfAltarGoal(context.world)};
     if (terrain.heights)
     {
         motion.height = [&](float x, float y)
@@ -299,7 +299,7 @@ Core::Expected<bool, std::string> AdvanceTheBody(Kernel::ActorState& actor, std:
     }
     // 0x4f9774: 0x4ec200, which returns 0 when it finishes; in scene 4 the frame + 2 decides it (Q-C21). The NewFace
     // is the selection's loose object; 0x4ec200 looks at the current scene, not the type.
-    const Models::AnimationScene scene = context.scene == Scenes::SceneId::CharacterSelect
+    const Models::AnimationScene scene = context.scene == Kernel::SceneId::CharacterSelect
                                              ? Models::AnimationScene::CharacterSelect
                                              : Models::AnimationScene::Other;
     // 0x4ec21b uses the BYTE +0xa0 published before animating, even if the actor changed its action.
@@ -1075,7 +1075,7 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
         return context.hooks->StepTheModelEffects(actor, slot, *skeleton, context);
     }
     static_cast<void>(context.random.Next());
-    if (context.scene == Scenes::SceneId::Game && map == ClockEffectMap)
+    if (context.scene == Kernel::SceneId::Game && map == ClockEffectMap)
     {
         if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())
         {

@@ -25,7 +25,7 @@
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Pets/DarkSpirit.h"
 #include "Terrain/DynamicWorldLight.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Assets/FaunaModels.h"
 #include "FrontEnd/CharacterSlots.h"
 #include "FrontEnd/LoginModels.h"
@@ -82,11 +82,11 @@ using Client::Actors::StepCharacters;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::CharacterHead;
+using Client::Kernel::SceneId;
 using Client::Kernel::StepCharacterHead;
 using Client::Kernel::WorldState;
 using Client::Models::ActionInfo;
 using Client::Models::Skeleton;
-using Client::Scenes::SceneId;
 using Client::Terrain::TerrainPolygon;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
@@ -1997,7 +1997,7 @@ TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
         SCOPED_TRACE(::testing::Message() << "mapa " << map);
         GameWorld tested(map);
         tested.world.Runtime().crywolf.stage = 4;
-        tested.world.Runtime().movement.chosenNpc = 9;
+        tested.world.Runtime().chosenNpc.index = 9;
         tested.world.Actors()[9].type = 0x205;
         ActorState& other = tested.Other(3);
         other.targetX = 7;
@@ -2527,7 +2527,7 @@ TEST(CharacterStepTest, OutsideTheGameTheHeroTakesTheSamePath)
     {
         for (const SceneId scene : {SceneId::CharacterSelect, SceneId::Login})
         {
-            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", " << Client::Scenes::SceneName(scene));
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", " << Client::Kernel::SceneName(scene));
             GameWorld tested(map);
             tested.Hero().safeZone = 1;
 
@@ -2712,7 +2712,7 @@ TEST(CharacterStepTest, TheSelectionEndsTheActionTwoFramesEarlier)
 {
     for (const SceneId scene : {SceneId::Game, SceneId::CharacterSelect})
     {
-        SCOPED_TRACE(Client::Scenes::SceneName(scene));
+        SCOPED_TRACE(Client::Kernel::SceneName(scene));
         GameWorld tested;
         tested.skeleton = SkeletonWith(3, 6, 1.0f);
         ActorState& hero = tested.Hero();

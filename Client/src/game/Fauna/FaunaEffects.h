@@ -9,10 +9,11 @@
 #include <optional>
 #include <span>
 #include <string>
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct JointState;
-}
+} // namespace Client::Kernel
+
 namespace Client::Terrain
 {
 struct TerrainLighting;
@@ -44,6 +45,6 @@ StepFaunaLightning(Effects::ModelEffect& effect, std::size_t physicalIndex, cons
                    Terrain::TerrainLighting& lighting, Models::ClothWorld& cloth);
 // Préstamos durables; load contiene referencias válidas hasta terminar el paso.
 [[nodiscard]] FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
-                                                    std::span<Scenes::JointState> joints,
+                                                    std::span<Kernel::JointState> joints,
                                                     Effects::ModelEffects& effects, Crt::CrtRandom& random);
 } // namespace Client::Fauna

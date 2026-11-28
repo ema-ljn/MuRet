@@ -1,4 +1,5 @@
 #include "Hud/GameCommandsWindow.h"
+#include "Kernel/MouseState.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -13,7 +14,6 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -193,7 +193,7 @@ protected:
 
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     }
 
     void Press(Client::Input::Key key)
@@ -300,7 +300,7 @@ TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterReadsTheCells)
 TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
 {
     OpenAndPlace();
-    Client::Movement::GameMovementState& movement = Runtime().movement;
+    Client::Kernel::MouseState& mouse = Runtime().mouse;
     for (const auto& [x, y] : {std::pair{ButtonsLeft, RowTop(3) + 1}, std::pair{ButtonsLeft + 108, RowTop(3) + 1},
                                std::pair{ButtonsLeft + 1, RowTop(3)}, std::pair{ButtonsLeft + 1, RowTop(3) + 20},
                                std::pair{ButtonsLeft + 1, RowTop(0) + 1}})
@@ -309,12 +309,12 @@ TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
         Click();
         ASSERT_TRUE(Step(x, y).HasValue());
         EXPECT_EQ(Window().chosen, -1);
-        EXPECT_TRUE(movement.pendingClick);
+        EXPECT_TRUE(mouse.pendingClick);
     }
     ASSERT_TRUE(Step(ButtonsLeft + 107, RowTop(3) + 19).HasValue());
     EXPECT_EQ(Window().chosen, 3);
-    EXPECT_FALSE(movement.pendingClick);
-    EXPECT_FALSE(movement.leftHeld);
+    EXPECT_FALSE(mouse.pendingClick);
+    EXPECT_FALSE(mouse.leftHeld);
 
     // Sin el clic, el mouse sobre otro no cambia nada; con el clic, el último.
     ASSERT_TRUE(Step(ButtonsLeft + 1, RowTop(11) + 1).HasValue());
@@ -330,8 +330,8 @@ TEST_P(GameCommandsWindowTest, AClickInsideAButtonChoosesItsCommand)
 TEST_P(GameCommandsWindowTest, TheCloseButtonResetsTheCommands)
 {
     OpenAndPlace();
-    Client::Movement::GameMovementState& movement = Runtime().movement;
-    movement.mouseUpdateTime = 5;
+    Client::Kernel::MouseState& mouse = Runtime().mouse;
+    mouse.updateTime = 5;
     Window().chosen = 4;
     Window().target = 9;
     for (const auto& [x, y] : {std::pair{CloseX - 1, CloseY}, std::pair{CloseX + 24, CloseY},
@@ -346,10 +346,10 @@ TEST_P(GameCommandsWindowTest, TheCloseButtonResetsTheCommands)
     EXPECT_EQ(Runtime().panels.delegated.commands, 0);
     EXPECT_EQ(Window().chosen, -1);
     EXPECT_EQ(Window().target, -1);
-    EXPECT_FALSE(movement.pendingClick);
-    EXPECT_TRUE(movement.leftHeld);
-    EXPECT_EQ(movement.mouseUpdateTime, 0);
-    EXPECT_EQ(movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(mouse.pendingClick);
+    EXPECT_TRUE(mouse.leftHeld);
+    EXPECT_EQ(mouse.updateTime, 0);
+    EXPECT_EQ(mouse.updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Seed);
 }

@@ -24,7 +24,7 @@
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/GroundMarks.h"

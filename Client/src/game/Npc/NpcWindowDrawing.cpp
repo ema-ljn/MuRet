@@ -298,7 +298,7 @@ Core::Expected<void, std::string> DrawTheNpcShop(Hud::GameHudContext& context, U
     Quad(sprites, RepairSlot, repairAllLeft, footTop, ButtonSize, ButtonSize, ButtonUv, ButtonUv);
     if (MouseOnTheButton(context, repairAllLeft, footTop))
     {
-        bool& click = runtime.movement.pendingClick;
+        bool& click = runtime.mouse.pendingClick;
         if (click)
         {
             if (!context.projecting)

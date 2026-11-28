@@ -114,7 +114,7 @@ protected:
                                   .random = m_random,
                                   .measure = &m_letters,
                                   .screen = Client::Core::PixelSize{640, 480},
-                                  .scene = Client::Scenes::SceneId::Game,
+                                  .scene = Client::Kernel::SceneId::Game,
                                   .texts = &m_texts,
                                   .chosenSlot = std::nullopt};
     }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
 
@@ -21,29 +21,29 @@ namespace Client::Joints::JointFamilies
 // FaunaJointCreation.cpp. La /0xc tiene alta y paso, pero hoy no tiene creador vivo: nadie conocido en c32bbd5f la
 // pide; la /0xf corta en el paso, en la luz de su 0x5ca (0x5370e8).
 inline constexpr std::int32_t LightningJoint = 0x614;
-[[nodiscard]] Core::Expected<void, std::string> CreateLightningJoint(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint,
                                                                      const Kernel::JointRequest& request,
                                                                      Crt::CrtRandom& random,
                                                                      const JointKernels::CreationServices* services);
-[[nodiscard]] Core::Expected<void, std::string> StepLightningJoint(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> StepLightningJoint(Kernel::JointState& joint,
                                                                    const JointKernels::StepServices& services);
 
 // El 0x61b y el 0x5bc (HandBoltJoints.cpp): alta 0x5335cf/0x5335d6 y paso 0x539ccc..0x539f16.
 inline constexpr std::int32_t RedHandBoltJoint = 0x61b;
 inline constexpr std::int32_t BlueHandBoltJoint = 0x5bc;
-void CreateHandBoltJoint(Scenes::JointState& joint);
-[[nodiscard]] Core::Expected<void, std::string> StepHandBoltJoint(Scenes::JointState& joint,
+void CreateHandBoltJoint(Kernel::JointState& joint);
+[[nodiscard]] Core::Expected<void, std::string> StepHandBoltJoint(Kernel::JointState& joint,
                                                                   const JointKernels::StepServices& services);
 
 // El 0x613 y el 0x6ee (SpiritJoints.cpp): alta 0x53265e (la mezcla en 3 y la tabla 0x534f18) y paso 0x538d77. La /4
 // (y la 6ee/9) tienen alta y paso propios en FaunaJointCreation.cpp; la 6ee/4 y la 613/9 cortan en el alta.
 inline constexpr std::int32_t SpiritJoint = 0x613;
 inline constexpr std::int32_t SecondSpiritJoint = 0x6ee;
-[[nodiscard]] Core::Expected<void, std::string> CreateSpiritJoint(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> CreateSpiritJoint(Kernel::JointState& joint,
                                                                   const Kernel::JointRequest& request,
                                                                   Crt::CrtRandom& random,
                                                                   const JointKernels::CreationServices* services);
-[[nodiscard]] Core::Expected<void, std::string> StepSpiritJoint(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> StepSpiritJoint(Kernel::JointState& joint,
                                                                 const JointKernels::StepServices& services);
 
 // El 0x60f/2 y el 0x60f/0x18 (DropJoints.cpp), la gota que el 0x613/2 suelta en su segundo paso (0x5396ff): alta
@@ -54,8 +54,8 @@ inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
 inline constexpr std::int32_t SinkingDropSubtype = 0x13;
 [[nodiscard]] bool IsDrop(std::int32_t type, std::int32_t subtype);
-void CreateDropJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-void StepDropJoint(Scenes::JointState& joint);
+void CreateDropJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+void StepDropJoint(Kernel::JointState& joint);
 
 // El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f. Vagan
 // alrededor de su dueño con el contador de pasos: la /7 de un personaje (0x4f8592), la /0xb y la /0x19 de la flecha
@@ -63,8 +63,8 @@ void StepDropJoint(Scenes::JointState& joint);
 inline constexpr std::int32_t WanderSubtype = 7;
 inline constexpr std::int32_t ArrowWanderSubtype = 0xb;
 inline constexpr std::int32_t PinkWanderSubtype = 0x19;
-void CreateWanderingJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(Scenes::JointState& joint,
+void CreateWanderingJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(Kernel::JointState& joint,
                                                                    const JointKernels::StepServices& services);
 
 // El 0x60f/4 y /0xc y el 0x62b/4 y /0xc (HelixJoints.cpp): alta 0x533faf..0x5340d7 y paso 0x53b08a..0x53b14c. La /4 y
@@ -75,31 +75,31 @@ inline constexpr std::int32_t HelixSubtype = 4;
 inline constexpr std::int32_t WideHelixSubtype = 0xc;
 [[nodiscard]] bool IsHelix(std::int32_t type, std::int32_t subtype);
 [[nodiscard]] Core::Expected<void, std::string>
-CreateHelixJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(Scenes::JointState& joint);
+CreateHelixJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(Kernel::JointState& joint);
 
 // El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
 // 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2, el efecto 0xf6/6 cada cinco vidas (0x53b760).
 inline constexpr std::int32_t InfernoJoint = 0x61c;
 [[nodiscard]] bool IsInferno(std::int32_t type, std::int32_t subtype);
-void CreateInfernoJoint(Scenes::JointState& joint, const Kernel::JointRequest& request);
-[[nodiscard]] Core::Expected<void, std::string> StepInfernoJoint(Scenes::JointState& joint,
+void CreateInfernoJoint(Kernel::JointState& joint, const Kernel::JointRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepInfernoJoint(Kernel::JointState& joint,
                                                                  const JointKernels::StepServices& services);
 
 // El 0x5f2 (FireTrailJoints.cpp): alta 0x531229..0x53128f y 0x532073 y paso 0x5366bd..0x5366ee. La estela de los
 // meteoros 0xc2/6 y /8 de los magos (0x51b098 y 0x51b268), con el efecto (Effects::ModelEffect) de dueño, que sigue
 // mientras vive y es 0xc2.
 inline constexpr std::int32_t FireTrailJoint = 0x5f2;
-void CreateFireTrailJoint(Scenes::JointState& joint, const Kernel::JointRequest& request);
-[[nodiscard]] Core::Expected<void, std::string> StepFireTrailJoint(Scenes::JointState& joint);
+void CreateFireTrailJoint(Kernel::JointState& joint, const Kernel::JointRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepFireTrailJoint(Kernel::JointState& joint);
 
 // El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
 // La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
 // el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.
 inline constexpr std::int32_t AuraJoint = 0x10f;
-[[nodiscard]] Core::Expected<void, std::string> CreateAuraJoint(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> CreateAuraJoint(Kernel::JointState& joint,
                                                                 const Kernel::JointRequest& request);
-[[nodiscard]] Core::Expected<void, std::string> StepAuraJoint(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> StepAuraJoint(Kernel::JointState& joint,
                                                               const JointKernels::StepServices& services);
 
 // El 0x618 (BeamJoints.cpp): alta 0x532125..0x5323ce y paso 0x5381f3..0x538704. El dueño (+0x54) es un personaje
@@ -107,8 +107,8 @@ inline constexpr std::int32_t AuraJoint = 0x10f;
 // modelo (JointOwnerKind::ModelEffect) en la /5 de las flechas y la /0xa y /0xb del 0x11b/1; la /6 y la /9 no lo leen.
 inline constexpr std::int32_t BeamJoint = 0x618;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateBeamJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepBeamJoint(Scenes::JointState& joint,
+CreateBeamJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepBeamJoint(Kernel::JointState& joint,
                                                               const JointKernels::StepServices& services);
 
 // El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
@@ -124,8 +124,8 @@ inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateStormJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepStormJoint(Scenes::JointState& joint,
+CreateStormJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepStormJoint(Kernel::JointState& joint,
                                                                const JointKernels::StepServices& services);
 
 // El 0x62c (SpiralJoints.cpp): alta 0x5346d8..0x534954 y paso 0x53b93f..0x53be71, sin el movimiento común (0x5358a3).
@@ -134,15 +134,15 @@ CreateStormJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
 // creador, el efecto 0x62c/1 (0x51f32e), nace detrás del corte 0x50e0c0 (el efecto de +0x78 & 0x800).
 inline constexpr std::int32_t SpiralJoint = 0x62c;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateSpiralJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(Scenes::JointState& joint,
+CreateSpiralJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(Kernel::JointState& joint,
                                                                 const JointKernels::StepServices& services);
 
 // El 0x5ac (FlareJoints.cpp): alta 0x530c93..0x530dd8 y paso 0x5359d7..0x535b32, sin la cola ni el movimiento comunes.
 // Los sesenta /0 del 0x114/0 (0x51c1b8) y del combo de BlastModelEffects (0x51c004), sin dueño.
 inline constexpr std::int32_t FlareJoint = 0x5ac;
-void CreateFlareJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(Scenes::JointState& joint);
+void CreateFlareJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(Kernel::JointState& joint);
 
 // El 0x60f y el 0x62b /0x10, /0xe y /0xf (OrbitJoints.cpp): alta 0x5337fa y 0x534132 y paso 0x53a5c7 y 0x53b18a. La
 // /0x10 es la columna de la lluvia de sombras 0xbd (0x51bcb0), con su personaje de dueño; la /0xe y la /0xf las pide el
@@ -152,23 +152,23 @@ inline constexpr std::int32_t WhirlSubtype = 0xe;
 inline constexpr std::int32_t MirroredWhirlSubtype = 0xf;
 [[nodiscard]] bool IsOrbit(std::int32_t type, std::int32_t subtype);
 [[nodiscard]] Core::Expected<void, std::string>
-CreateOrbitJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(Scenes::JointState& joint,
+CreateOrbitJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(Kernel::JointState& joint,
                                                                const JointKernels::StepServices& services);
 
 // El 0x61c/0 (SweepJoints.cpp): alta 0x5342e4 y paso 0x53b3e1, sin la cola ni el movimiento comunes. Lo pide el paso
 // del efecto 0x5be (0x52a72a), que crea la 0x37 (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
 // héroe).
 inline constexpr std::int32_t SweepSubtype = 0;
-void CreateSweepJoint(Scenes::JointState& joint, const Kernel::JointRequest& request);
-[[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(Scenes::JointState& joint,
+void CreateSweepJoint(Kernel::JointState& joint, const Kernel::JointRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(Kernel::JointState& joint,
                                                                const JointKernels::StepServices& services);
 
 // El 0x14f (PlasmaJoints.cpp): alta 0x530ddd y paso 0x535b37, una vuelta por punto hacia su personaje dueño (0x4e9810).
 // Lo pide la 0x4c (0x5026a4..0x502841, AttackSkillCases.cpp), con el subtipo de 0x4f2230 (el +0x31b, pet.flags1b).
 inline constexpr std::int32_t PlasmaJoint = 0x14f;
-void CreatePlasmaJoint(Scenes::JointState& joint, const Kernel::JointRequest& request);
-[[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(Scenes::JointState& joint,
+void CreatePlasmaJoint(Kernel::JointState& joint, const Kernel::JointRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(Kernel::JointState& joint,
                                                                 const JointKernels::StepServices& services);
 
 // El 0x610/5 y el 0x60f/0x29 y /0x2a (SparkJoints.cpp): las chispas del sexto ayudante de Kalima, el 0x196 (0x43e904;
@@ -180,7 +180,7 @@ inline constexpr std::int32_t FallingSparkleSubtype = 0x29;
 inline constexpr std::int32_t SpinningSparkleSubtype = 0x2a;
 [[nodiscard]] bool IsSpark(std::int32_t type, std::int32_t subtype);
 [[nodiscard]] Core::Expected<void, std::string>
-CreateSparkJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
-[[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(Scenes::JointState& joint,
+CreateSparkJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(Kernel::JointState& joint,
                                                                const JointKernels::StepServices& services);
 } // namespace Client::Joints::JointFamilies

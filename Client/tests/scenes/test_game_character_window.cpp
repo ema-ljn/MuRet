@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Kernel/MouseState.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -11,7 +12,6 @@
 #include "Models/LogicalAccess.h"
 #include "Actors/FullSetScan.h"
 #include "Chat/GameChat.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Items/InventoryMoves.h"
 #include "Player/ItemSetState.h"
@@ -137,7 +137,7 @@ public:
     }
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
     }
     // La ventana ya abierta, con el pedido del caballo hecho (0x723911 en 1).
     void OpenTheWindow()
@@ -321,7 +321,7 @@ TEST(GameCharacterWindowTest, TheStatButtonsSendTheirPoint)
                 EXPECT_TRUE(SamePacket(tested.sent[0],
                                        Client::Protocol::Player::WriteLevelUpPoint(static_cast<std::uint8_t>(button))));
                 EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
-                EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
+                EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
             }
         }
     }
@@ -349,13 +349,13 @@ TEST(GameCharacterWindowTest, TheCloseButtonClosesTheCharacter)
     {
         SteppingCharacter tested(map);
         tested.OpenTheWindow();
-        tested.world.Runtime().movement.mouseUpdateTime = 3;
+        tested.world.Runtime().mouse.updateTime = 3;
         tested.Click();
         ASSERT_TRUE(tested.Step(WindowX + 0x19, WindowY + 0x18b).HasValue());
         EXPECT_EQ(tested.world.Runtime().panels.character, 0);
-        EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
-        EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 0);
-        EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
+        EXPECT_EQ(tested.world.Runtime().mouse.updateTime, 0);
+        EXPECT_EQ(tested.world.Runtime().mouse.updateTimeMax, 6);
     }
 }
 
@@ -383,7 +383,7 @@ TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
         const CrtRandom expected = Advanced(tested.random, BaseStepRandoms - 1 + OwnRecordCloseRandoms);
         ASSERT_TRUE(tested.Step(Left + 15 + 45, 67).HasValue());
         EXPECT_EQ(runtime.petTab, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(runtime.ui.mouseOnUi, 1);
         EXPECT_EQ(tested.random.State(), expected.State()) << map;
 
@@ -393,7 +393,7 @@ TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
         tested.Click();
         ASSERT_TRUE(tested.Step(Left + 15 + 45 + 49, 63).HasValue());
         EXPECT_EQ(runtime.petTab, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick) << "la elegida se come el clic desde 63";
+        EXPECT_FALSE(runtime.mouse.pendingClick) << "la elegida se come el clic desde 63";
 
         tested.Click();
         ASSERT_TRUE(tested.Step(Left + 20 + 23, 395 + 23).HasValue());

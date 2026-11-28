@@ -121,9 +121,9 @@ protected:
         ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
         ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::WaitingCharacterList);
         EXPECT_EQ(m_world->Runtime().map, -1);
-        EXPECT_EQ(m_manager->Current(), Client::Scenes::SceneId::Game);
+        EXPECT_EQ(m_manager->Current(), Client::Kernel::SceneId::Game);
         Step();
-        ASSERT_EQ(m_manager->Current(), Client::Scenes::SceneId::CharacterSelect);
+        ASSERT_EQ(m_manager->Current(), Client::Kernel::SceneId::CharacterSelect);
         EXPECT_TRUE(m_manager->TakeTheSceneChange());
         const auto requests = Sent();
         EXPECT_TRUE(std::ranges::any_of(requests.packets,
@@ -142,14 +142,14 @@ protected:
         ASSERT_NO_FATAL_FAILURE(ChooseFromTheSelectionFrame());
         Client::Tests::TapKey(m_input, Client::Input::Key::Enter);
         Step();
-        ASSERT_EQ(m_manager->Current(), Client::Scenes::SceneId::WorldLoading);
+        ASSERT_EQ(m_manager->Current(), Client::Kernel::SceneId::WorldLoading);
         const auto before = m_target.frames.size();
         Draw();
         ASSERT_EQ(m_target.frames.size(), before + 1);
         EXPECT_TRUE(m_target.frames[before].presented);
         EXPECT_EQ(m_target.frames[before].events.size(), 4u); // Mosaico real recién emitido.
         Step();
-        ASSERT_EQ(m_manager->Current(), Client::Scenes::SceneId::Game);
+        ASSERT_EQ(m_manager->Current(), Client::Kernel::SceneId::Game);
         Step(); // GameScene pide F303 desde su primer paso, con la espera aún activa.
         const auto enter = Sent();
         EXPECT_TRUE(std::ranges::any_of(enter.packets,
@@ -192,8 +192,7 @@ protected:
         ASSERT_NE(walk, clicked.packets.end())
             << "target=" << m_world->Runtime().movement.targetX << "," << m_world->Runtime().movement.targetY
             << " hero=" << static_cast<int>(Hero().cellX) << "," << static_cast<int>(Hero().cellY)
-            << " window=" << m_world->Runtime().movement.mouseUpdateTime
-            << " max=" << m_world->Runtime().movement.mouseUpdateTimeMax;
+            << " window=" << m_world->Runtime().mouse.updateTime << " max=" << m_world->Runtime().mouse.updateTimeMax;
         // Oráculo literal de 04 § Caminar: los dos tramos elegidos son rectos sobre Data real.
         const auto expected = gate == 23 ? Client::Tests::Bytes({0xc1, 7, 0xd3, 215, 244, 0x52, 0x55})
                                          : Client::Tests::Bytes({0xc1, 8, 0xd3, 151, 6, 0x13, 0x11, 0x10});
@@ -597,8 +596,8 @@ TEST_P(GameT16KalimaWalk, RealPickingLiteralD3AndEchoAdvanceTheHeroAndEmitNative
                                            { return packet.Opcode() == Client::Network::Opcode{0xd3}; });
     ASSERT_NE(walk, sent.packets.end()) << "picked=" << m_world->Runtime().movement.targetX << ","
                                         << m_world->Runtime().movement.targetY
-                                        << " time=" << m_world->Runtime().movement.mouseUpdateTime << "/"
-                                        << m_world->Runtime().movement.mouseUpdateTimeMax
+                                        << " time=" << m_world->Runtime().mouse.updateTime << "/"
+                                        << m_world->Runtime().mouse.updateTimeMax
                                         << " block=" << m_world->Runtime().movement.movementBlocked
                                         << " walls=" << m_states->terrain.current.attributes->cells[64 * 256 + 64]
                                         << "," << m_states->terrain.current.attributes->cells[64 * 256 + 65] << ","

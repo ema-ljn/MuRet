@@ -33,13 +33,9 @@ class ITextDrawer;
 namespace Client::Kernel
 {
 class WorldState;
+struct GameDrawTailState;
 struct HudState;
 } // namespace Client::Kernel
-
-namespace Client::Scenes
-{
-struct GameDrawTailState;
-} // namespace Client::Scenes
 
 namespace Client::Hud
 {
@@ -49,7 +45,7 @@ struct GameHoverContext
 {
     Kernel::WorldState& world;
     // Los ítems del piso (0x77f46d0, 1000 de 0x220 bytes) del dibujo de este frame.
-    const Scenes::GameDrawTailState& tail;
+    const Kernel::GameDrawTailState& tail;
     // El rand() del frame, para el ancho del mundo (0x5bb8d0) del nombre de un monstruo.
     Crt::CrtRandom& random;
     // 0x6c8e28 (el ítem del piso), 0x6c8e2c (el NPC), 0x6c8e30 (el personaje), 0x6c8e34 y 0x6c8e38, como los dejó el

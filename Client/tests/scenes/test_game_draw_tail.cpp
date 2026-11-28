@@ -10,6 +10,7 @@
 #include "Render/Pass3D.h"
 #include "Kernel/JointRequest.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameProjection.h"
 #include "Effects/GameParticles.h"
@@ -232,7 +233,7 @@ TEST(GameDrawTailTest, DeviasLeavesUseTheWorldViewAndTheirOwnLight)
 TEST(GameDrawTailTest, RibbonsChangeBlendBeforeCheckingTheirPointCount)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::RibbonState ribbon;
+    Client::Kernel::RibbonState ribbon;
     ribbon.alive = true;
     std::uint16_t equipment = 0;
     ribbon.ownerEquipment = &equipment;
@@ -258,7 +259,7 @@ TEST(GameDrawTailTest, RibbonsChangeBlendBeforeCheckingTheirPointCount)
 TEST(GameDrawTailTest, MissingRibbonOwnerFailsBeforeChangingBlend)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::RibbonState ribbon;
+    Client::Kernel::RibbonState ribbon;
     ribbon.alive = true;
     EXPECT_FALSE(Client::Scenes::DrawRibbons(batch, std::span(&ribbon, 1)).HasValue());
     EXPECT_TRUE(batch.Commands().empty());
@@ -267,7 +268,7 @@ TEST(GameDrawTailTest, MissingRibbonOwnerFailsBeforeChangingBlend)
 TEST(GameDrawTailTest, DamageKeepsItsUnconditionalStateAndReportsItsLiveFrontier)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::DamageNumberState damage;
+    Client::Kernel::DamageNumberState damage;
     ASSERT_TRUE(Client::Scenes::DrawDamage(batch, std::span(&damage, 1), 0).HasValue());
     EXPECT_FALSE(batch.State().depthTest);
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Alpha);
@@ -281,7 +282,7 @@ TEST(GameDrawTailTest, DamageKeepsItsUnconditionalStateAndReportsItsLiveFrontier
 TEST(GameDrawTailTest, DamageDigitsUseTheAtlasAndKeepTheirSlotsAlive)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::DamageNumberState damage;
+    Client::Kernel::DamageNumberState damage;
     damage.alive = true;
     damage.number = 12;
     damage.scale = 16;
@@ -300,7 +301,7 @@ TEST(GameDrawTailTest, DamageDigitsUseTheAtlasAndKeepTheirSlotsAlive)
 
 TEST(GameDrawTailTest, DamageStepDelaysMotionUntilTheTimerIsNegative)
 {
-    Client::Scenes::DamageNumberState damage;
+    Client::Kernel::DamageNumberState damage;
     damage.alive = true;
     damage.timer = 1;
     damage.rise = true;
@@ -323,7 +324,7 @@ TEST(GameDrawTailTest, DamageStepDelaysMotionUntilTheTimerIsNegative)
 TEST(GameDrawTailTest, CommonHorseJointsDrawTheirSelectedFacesWithSegmentUvs)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.count = 1;
     joint.maximumCount = 3;
@@ -377,7 +378,7 @@ TEST(GameDrawTailTest, PlainFloorSwordsRenderBeforePublishingTheirProjectedShort
     Client::Render::ModelBatch batch;
     TriangleModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.scale = 1;
@@ -457,7 +458,7 @@ TEST(GameDrawTailTest, ProjectionPreparationMatchesTheThreeReferenceScreensAtThi
 
 TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.position = {10, 20, 30};
@@ -505,7 +506,7 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
 // otro subtipo nace y sigue a su dueño igual, y con el dueño inactivo muere sin la cola ni la vida.
 TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.previousPosition = {10, 20, 30};
@@ -545,7 +546,7 @@ TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
 
 TEST(GameDrawTailTest, CrywolfJointCopiesItsOwnerTrailBeforeGrowingAndExpiring)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.previousPosition = {10, 20, 30};
@@ -575,7 +576,7 @@ TEST(GameDrawTailTest, CrywolfJointCopiesItsOwnerTrailBeforeGrowingAndExpiring)
 
 TEST(GameDrawTailTest, TarkanJointChecksItsOwnerBeforeCopyingTheTrail)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.previousPosition = {12, 22, 32};
@@ -624,7 +625,7 @@ TEST(GameDrawTailTest, FirstDeviasSnowPassKeepsTheActiveWorldModelview)
 
 TEST(GameDrawTailTest, DamageUnorderedScaleFallsBackToFifteenLikeTheX87Comparison)
 {
-    Client::Scenes::DamageNumberState damage;
+    Client::Kernel::DamageNumberState damage;
     damage.alive = true;
     damage.scale = std::numeric_limits<float>::quiet_NaN();
     damage.speed = 10;
@@ -634,7 +635,7 @@ TEST(GameDrawTailTest, DamageUnorderedScaleFallsBackToFifteenLikeTheX87Compariso
 
 TEST(GameDrawTailTest, IcarusJointOwnerColorFailureKeepsTheEarlierConstructorPrefix)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     glm::vec3 first{}, second{}, angles{};
     Client::Kernel::JointRequest request{.type = 0x610,
                                          .firstPosition = first,
@@ -663,7 +664,7 @@ TEST(GameDrawTailTest, IcarusJointOwnerColorFailureKeepsTheEarlierConstructorPre
 TEST(GameDrawTailTest, BloodCastleJointRendersItsFadingAndUnfadedSubtypes)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.count = 1;
     joint.maximumCount = 30;
@@ -687,7 +688,7 @@ TEST(GameDrawTailTest, BloodCastleJointRendersItsFadingAndUnfadedSubtypes)
 TEST(GameDrawTailTest, IcarusJointEmitsTwoRotatedSpritesBeforeDrawingItsFirstFace)
 {
     Client::Render::ModelBatch batch;
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x610;
     joint.subtype = 8;
@@ -727,7 +728,7 @@ TEST(GameDrawTailTest, BloodCastleJointMissingRandomFailsAfterMovementAndOwnerCh
 {
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x10f;
     joint.subtype = 3;
@@ -747,7 +748,7 @@ TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerCo
     owner.active = 1;
     owner.timer = 50;
     owner.light = {0.25f, 0.5f, 0.75f};
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x10f;
     joint.subtype = 3;
@@ -774,7 +775,7 @@ TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerCo
 TEST(GameDrawTailTest, BloodCastleDeadOwnerStillAddsItsLastTailWithoutRandom)
 {
     Client::Fauna::FaunaObject owner;
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x10f;
     joint.subtype = 3;
@@ -797,7 +798,7 @@ TEST(GameDrawTailTest, IcarusJointCopiesEvenItsDeadOwnerAndPinsTheTailToHeightTh
 {
     Client::Fauna::FaunaObject owner;
     owner.position = {12, 34, 56};
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x610;
     joint.subtype = 8;
@@ -983,7 +984,7 @@ TEST(GameDrawTailTest, TheHighEffectsDrawThroughTheirModelsOrNotAtAll)
 
 TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrowingItsTail)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     joints[0].width = 10;
     joints[0].icarusRotations = std::array<float, 2>{45, 60};
     glm::vec3 position{10, 20, 30}, angles{};
@@ -1027,7 +1028,7 @@ TEST(GameDrawTailTest, FloorStepFallsBeforeClampingAndSettlesItsWeaponWithoutRes
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(7);
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.position = {100, 200, 200};
@@ -1070,7 +1071,7 @@ TEST(GameDrawTailTest, FloorStepTakesItsTwoCallerRandomsEvenWhenTheParticlePoolI
     for (auto& particle : particles.All())
         particle.alive = true;
     Client::Crt::CrtRandom random(7);
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.effectCounter = 48;
@@ -1087,7 +1088,7 @@ TEST(GameDrawTailTest, FloorStepEmitsBothSparkSubtypesAtTheSameRotatedPoint)
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(7);
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.position = {100, 200, 10000};
@@ -1113,7 +1114,7 @@ TEST(GameDrawTailTest, FloorPublishesItsPoseEvenWhenAlphaSuppressesTheBody)
     Client::Render::ModelBatch batch;
     TriangleModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.scale = 1;
@@ -1611,7 +1612,7 @@ TEST(GameDrawTailTest, FloorBodyUsesThePrecedingTransparentPoseAndRetainsItsDumm
     Client::Kernel::PoseBuffer carry;
     carry.meshes.resize(1);
     carry.meshes[0].positions.assign(3, glm::vec3(42));
-    std::array<Client::Scenes::FloorItemState, 2> items{};
+    std::array<Client::Kernel::FloorItemState, 2> items{};
     for (std::size_t i = 0; i < items.size(); ++i)
     {
         items[i].alive = true;
@@ -1694,7 +1695,7 @@ TEST(GameDrawTailTest, PublishedFloorBodyReportsMissingAndIncompleteScratchBefor
     Client::Render::ModelBatch batch;
     TriangleModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FloorItemState item;
+    Client::Kernel::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
     item.alpha = 1;

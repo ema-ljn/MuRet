@@ -16,8 +16,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/PlayerActionSpeeds.h"
@@ -502,7 +501,7 @@ Core::Expected<void, std::string> StepTheSkill37(Kernel::ActorState& actor, std:
         return {};
     }
     // 0x4f9f5d..0x4f9f6f: o+0x8a = 0x558eb0(c, [0x6c8e30]).
-    const auto key = Hero::ChosenKeyOf(context.world, slot, context.controlDown);
+    const auto key = Combat::ChosenKeyOf(context.world, slot, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     actor.word8a = static_cast<std::int16_t>(key.Value());

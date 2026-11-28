@@ -437,8 +437,8 @@ Core::Expected<void, std::string> ApplyCreateResult(const CreateResult& result, 
     auto closed = CloseThePanel(context, Ui::SecondGuildPanel);
     if (!closed.HasValue())
         return Core::Unexpected(closed.Error());
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     return {};
 }
 

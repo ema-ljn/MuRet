@@ -29,7 +29,7 @@ TEST(ActorMotionStopTest, SwimmingMapReadsTheVisiblePositionAttributeWithoutLogi
     runtime.map = 7;
     auto skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Crt::CrtRandom random(1);
-    const Client::Actors::ActorStopContext context{runtime,    Client::Scenes::SceneId::Game, skeleton, nullptr, random,
+    const Client::Actors::ActorStopContext context{runtime,    Client::Kernel::SceneId::Game, skeleton, nullptr, random,
                                                    walls.get()};
     const auto flying = Client::Actors::SetActorStop(actor, context);
     ASSERT_TRUE(flying.HasValue()) << (flying.HasValue() ? "" : flying.Error());
@@ -61,7 +61,7 @@ TEST(ActorMotionStopTest, PlayerSubtype209CarriesItsModelSoundsThroughArrivalSto
     Client::Actors::PlayerActionSpeeds speeds;
     const std::array<std::int16_t, 10> sounds{};
     const Client::Actors::ActorWalkContext walk{
-        {runtime, Client::Scenes::SceneId::Game, player, nullptr, random}, speeds, false, nullptr, sounds};
+        {runtime, Client::Kernel::SceneId::Game, player, nullptr, random}, speeds, false, nullptr, sounds};
     auto walls = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
 
     const auto stepped =

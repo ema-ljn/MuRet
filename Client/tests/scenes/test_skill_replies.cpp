@@ -21,7 +21,7 @@
 #include "Kernel/ActorState.h"
 #include "Effects/ActorEffectHooks.h"
 #include "Combat/BlastEffectCalls.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/CharacterDrawHooks.h"
@@ -1119,7 +1119,7 @@ TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
     const auto rings = [&]
     {
         return std::ranges::count_if(joints,
-                                     [&caster](const Client::Scenes::JointState& joint)
+                                     [&caster](const Client::Kernel::JointState& joint)
                                      {
                                          return joint.alive && joint.type == 0x10f && joint.subtype == 0 &&
                                                 joint.ownerContext == &caster && joint.width == 50.0f &&

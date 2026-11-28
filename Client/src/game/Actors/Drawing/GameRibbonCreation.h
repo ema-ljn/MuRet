@@ -8,10 +8,10 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Kernel
 {
 struct RibbonState;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 namespace Client::Actors::Drawing
 {
@@ -29,7 +29,7 @@ struct RibbonCreateRequest
 
 // 0x52e470 → 0x52e3b0: lookup by owner and key, addition and shift; it does not consume the CRT.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateRibbon(std::span<Scenes::RibbonState> ribbons, const RibbonCreateRequest& request);
+CreateRibbon(std::span<Kernel::RibbonState> ribbons, const RibbonCreateRequest& request);
 // 0x5091d0 → 0x52e500: ages and duplicates the first pair before the possible second subtraction of count.
-[[nodiscard]] Core::Expected<void, std::string> StepRibbons(std::span<Scenes::RibbonState> ribbons);
+[[nodiscard]] Core::Expected<void, std::string> StepRibbons(std::span<Kernel::RibbonState> ribbons);
 } // namespace Client::Actors::Drawing

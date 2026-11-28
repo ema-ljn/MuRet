@@ -34,11 +34,11 @@ class ModelEffects;
 namespace Client::Kernel
 {
 class WorldState;
+struct FloorItemState;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-struct FloorItemState;
 struct WorldEntryResources;
 } // namespace Client::Scenes
 
@@ -72,7 +72,7 @@ struct FloorItemCreation
 // HangingRandomCount), la caja de ±30, la posición y la altura: con `dropped`, 180 por encima del terreno y la
 // velocidad 20 (las medallas de plata y de oro, los modelos 0x2242 y 0x2243, crean antes las grietas 0x100 y 0xfe con
 // la medalla de dueño, sin rand(), y quedan a 3 con la velocidad 50); si no, en el terreno. Termina con 0x607fb0.
-[[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(Scenes::FloorItemState& item,
+[[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(Kernel::FloorItemState& item,
                                                                 const Protocol::Items::ItemData& bytes,
                                                                 const glm::vec3& position, bool dropped,
                                                                 const FloorItemCreation& creation);

@@ -23,7 +23,7 @@
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Fauna/FaunaObject.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Models/Cloth.h"
 #include "Items/UiItemDrawing.h"
 
@@ -39,7 +39,7 @@
 
 TEST(GameJointStepTest, Skill39BoltsConstructAndAdvanceWithoutRandomDraws)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     glm::vec3 position{100, 200, 300};
     glm::vec3 target{400, 500, 600};
     glm::vec3 angles{10, 20, 30};
@@ -70,7 +70,7 @@ TEST(GameJointStepTest, Skill39ConstructionPreservesTheRetainedQuadAndSeparatesI
     for (const int key : {-1, 0, 1, 2, 3, 4, 5, 6, 0xffff})
     {
         SCOPED_TRACE(key);
-        std::array<Client::Scenes::JointState, 1> joints{};
+        std::array<Client::Kernel::JointState, 1> joints{};
         auto& joint = joints[0];
         joint.width = 8;
         joint.count = 49;
@@ -113,7 +113,7 @@ TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
     for (const int key : {0, 1, 2, 3, 4})
     {
         SCOPED_TRACE(key);
-        std::array<Client::Scenes::JointState, 1> joints{};
+        std::array<Client::Kernel::JointState, 1> joints{};
         glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
         Client::Crt::CrtRandom random(1);
         const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, key, 0, 0, -1};
@@ -159,7 +159,7 @@ TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
 
 TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotion)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
     Client::Crt::CrtRandom random(1);
     const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 5, 0, 0, -1};
@@ -202,7 +202,7 @@ TEST(GameJointStepTest, PiercingTrailJointsRetainTheirModelOwnerAndAdvanceWithou
     owner.transform.position = {130, 260, 390};
     owner.copiedAngles = {10, 20, 30};
     glm::vec3 first{1, 2, 3}, target{4, 5, 6}, angles{};
-    std::array<Client::Scenes::JointState, 4> joints{};
+    std::array<Client::Kernel::JointState, 4> joints{};
     Client::Crt::CrtRandom random(1);
     for (int subtype = 0; subtype < 4; ++subtype)
     {
@@ -236,7 +236,7 @@ TEST(GameJointStepTest, PiercingTrailsFollowLiveModelFieldsThenAppendAndDieWithT
     for (const int subtype : {0, 1, 2, 3})
     {
         SCOPED_TRACE(subtype);
-        std::array<Client::Scenes::JointState, 1> joints{};
+        std::array<Client::Kernel::JointState, 1> joints{};
         Client::Effects::ModelEffect owner;
         owner.alive = true;
         owner.start = {100, 200, 300};
@@ -301,7 +301,7 @@ TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutR
         Fixture{20, {0x42988a79u, 0x43360cfbu, 0x43a36793u}}, Fixture{10, {0x42ee94f8u, 0x433a5743u, 0x439f0494u}},
         Fixture{9, {0x42e0b86du, 0x433367c4u, 0x439efcc1u}}, Fixture{1, {0x42f681f3u, 0x43276a4du, 0x4395632fu}},
         Fixture{0, {0x42f95c08u, 0x4325f566u, 0x4395d765u}}};
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     auto& joint = joints[0];
     joint.width = 8;
     Client::Effects::ModelEffect owner;
@@ -357,7 +357,7 @@ TEST(GameJointStepTest, MissingCounterFailsAfterTheOwnerTargetWasCopied)
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
     owner.position = {100, 200, 300};
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x10f;
     joint.subtype = 1;
@@ -386,7 +386,7 @@ TEST(GameJointStepTest, CounterPhaseWrapAndHalfFrequenciesMatchIndependentFixtur
                              Vector{1, 123, {0x420d027au, 0x432f752bu, 0x43a54486u}, 0x3f063b49u},
                              Vector{499, INT32_MIN, {0x429234d9u, 0x43673c2au, 0x43d393abu}, 0x3e8620e4u},
                              Vector{1, INT32_MAX, {0x431ef97cu, 0x432ba13fu, 0x43822862u}, 0x3e6aa8afu}};
-    auto joints = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
+    auto joints = std::make_unique<std::array<Client::Kernel::JointState, 500>>();
     for (const auto& vector : vectors)
     {
         joints->fill({});
@@ -416,7 +416,7 @@ TEST(GameJointStepTest, OpenCounterAccessAvoidsFourDrawsAndDeadOwnerNeverOpensIt
 {
     Client::Fauna::FaunaObject owner;
     owner.active = 1;
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     auto& joint = joints[0];
     joint.alive = true;
     joint.type = 0x10f;
@@ -446,7 +446,7 @@ TEST(GameJointStepTest, HelperBeamsPrebuildNineSegmentsWithoutReadingTheirOpaque
 {
     for (const int type : {0x613, 0x614})
     {
-        std::array<Client::Scenes::JointState, 1> joints{};
+        std::array<Client::Kernel::JointState, 1> joints{};
         joints[0].targetPosition = {900, 800, 700};
         joints[0].width = 8;
         glm::vec3 first{};
@@ -489,13 +489,13 @@ TEST(GameJointStepTest, HelperBeamsPrebuildNineSegmentsWithoutReadingTheirOpaque
 
 TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloorOwnerOpaque)
 {
-    Client::Scenes::FloorItemState owner;
+    Client::Kernel::FloorItemState owner;
     owner.type = 0x1a18;
     Client::Actors::Drawing::DrawnObject object;
     object.model = 0x1a18;
     std::array<Client::Math::BoneTransform, 31> bones;
     bones.fill(Client::Math::BoneTransform(1));
-    std::array<Client::Scenes::JointState, 20> joints{};
+    std::array<Client::Kernel::JointState, 20> joints{};
     Client::Crt::CrtRandom random(19);
     Client::Particles::FrameSprites sprites;
     Client::Actors::Drawing::ItemSpecialDrawContext special;
@@ -543,7 +543,7 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     object.model = 0x1a18;
     std::array<Client::Math::BoneTransform, 31> bones;
     bones.fill(Client::Math::BoneTransform(1));
-    auto tail = std::make_unique<Client::Scenes::GameDrawTailState>();
+    auto tail = std::make_unique<Client::Kernel::GameDrawTailState>();
     for (auto& joint : tail->joints)
         joint.targetPosition = {900, 800, 700};
     Client::Crt::CrtRandom random(19);
@@ -568,14 +568,14 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
     EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 20);
     for (std::size_t index = 0; index < 20; ++index)
     {
-        const Client::Scenes::JointState& joint = tail->joints[index];
+        const Client::Kernel::JointState& joint = tail->joints[index];
         EXPECT_EQ(joint.ownerContext, Client::Items::UiItemLocalObject());
         EXPECT_EQ(joint.targetPosition, glm::vec3(900, 800, 700));
         EXPECT_EQ(joint.position, glm::vec3(900, 800, 700));
     }
 
     // El dibujo intermedio no las ve; la tabla de verdad las guarda para el paso.
-    auto copy = std::make_unique<Client::Scenes::GameDrawTailState>(*tail);
+    auto copy = std::make_unique<Client::Kernel::GameDrawTailState>(*tail);
     Client::Items::HideUiItemJoints(*copy);
     EXPECT_EQ(std::ranges::count_if(copy->joints, [](const auto& joint) { return joint.alive; }), 0);
     EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 20);
@@ -590,7 +590,7 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
 
 TEST(GameJointStepTest, ReachedBeamEmitsThunderWithTwoCreationDrawsThenStepsItsRotation)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;
@@ -631,7 +631,7 @@ TEST(GameJointStepTest, ReachedBeamEmitsThunderWithTwoCreationDrawsThenStepsItsR
 
 TEST(GameJointStepTest, MissingParticlePoolKeepsSteeringJitterAndInnerTailBeforeLife)
 {
-    std::array<Client::Scenes::JointState, 2> joints{};
+    std::array<Client::Kernel::JointState, 2> joints{};
     auto& joint = joints[0];
     joint.alive = true;
     joint.type = 0x614;
@@ -738,7 +738,7 @@ TEST(GameJointStepTest, ThunderDrawingUsesTheCommonBillboardAfterMaterial)
 // matriz previa.
 TEST(GameJointStepTest, BeamMovementJitterAndBothTailMatricesMatchIndependentVectors)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;
@@ -774,7 +774,7 @@ TEST(GameJointStepTest, BeamMovementJitterAndBothTailMatricesMatchIndependentVec
 
 TEST(GameJointStepTest, FullParticlePoolConsumesOnlyJointJitterAndTheSmokeDecision)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;
@@ -798,7 +798,7 @@ TEST(GameJointStepTest, FullParticlePoolConsumesOnlyJointJitterAndTheSmokeDecisi
 
 TEST(GameJointStepTest, SmokeUsesTheBeamPositionAfterThreeDiscardedScratchDraws)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;
@@ -822,7 +822,7 @@ TEST(GameJointStepTest, SmokeUsesTheBeamPositionAfterThreeDiscardedScratchDraws)
 
 TEST(GameJointStepTest, MissingRandomStopsAfterBothSteeringStoresWithoutTailOrLife)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;
@@ -842,7 +842,7 @@ TEST(GameJointStepTest, MissingRandomStopsAfterBothSteeringStoresWithoutTailOrLi
 
 TEST(GameJointStepTest, FullJointPoolLeavesThePublisherArgumentsAndRandomUntouched)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 123;
     glm::vec3 first{1, 2, 3}, second{4, 5, 6}, angles{7, 8, 9};
@@ -860,7 +860,7 @@ TEST(GameJointStepTest, FullJointPoolLeavesThePublisherArgumentsAndRandomUntouch
 
 TEST(GameJointStepTest, TailCapacityFailureKeepsTheReachedRandomPrefixAndLaterSlotsUntouched)
 {
-    std::array<Client::Scenes::JointState, 2> joints{};
+    std::array<Client::Kernel::JointState, 2> joints{};
     auto& joint = joints[0];
     joint.alive = true;
     joint.type = 0x614;
@@ -888,7 +888,7 @@ TEST(GameJointStepTest, TailCapacityFailureKeepsTheReachedRandomPrefixAndLaterSl
 
 TEST(GameJointStepTest, EqualReachDistanceStillMovesAndZeroIterationsNeedNoRandom)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;
@@ -926,7 +926,7 @@ TEST(GameJointStepTest, UnsaturatedSteeringKeepsTheNativeAngleProductForBothAxes
     const std::array vectors{Vector{{1, -1, 0}, {0, 0, 45}, 2}, Vector{{1, 0, -1}, {45, 0, 90}, 0}};
     for (const auto& vector : vectors)
     {
-        Client::Scenes::JointState joint;
+        Client::Kernel::JointState joint;
         joint.alive = true;
         joint.type = 0x614;
         joint.subtype = 14;
@@ -944,7 +944,7 @@ TEST(GameJointStepTest, UnsaturatedSteeringKeepsTheNativeAngleProductForBothAxes
 
 TEST(GameJointStepTest, DistanceSpillRoundsUpToTheReachThresholdBeforeComparing)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.type = 0x614;
     joint.subtype = 14;

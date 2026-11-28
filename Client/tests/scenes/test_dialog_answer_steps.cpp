@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "Hud/Dialogs/GameDialogSteps.h"
 
 #include "Core/Expected.h"
@@ -10,7 +11,6 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Items/InventoryMoves.h"
 #include "Kernel/WorldRuntime.h"
@@ -99,8 +99,8 @@ public:
         runtime.dialogs.current = id;
         runtime.dialogs.pending = 0x8a;
         runtime.lastSoundId = Client::Audio::SoundId{Silent};
-        runtime.movement.mouseUpdateTime = 3;
-        runtime.movement.mouseUpdateTimeMax = 1;
+        runtime.mouse.updateTime = 3;
+        runtime.mouse.updateTimeMax = 1;
         services.systemMessage = [this](std::size_t index, std::int32_t type)
         {
             messages.emplace_back(index, type);
@@ -147,7 +147,7 @@ public:
 
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Hud::LatchTheLeftButton(world->Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world->Runtime().mouse, true, true);
         return Step(x, y);
     }
 
@@ -189,8 +189,8 @@ void ExpectClosedWithTheSound(const AnsweringDialogs& tested, std::int32_t sound
     auto& runtime = tested.Runtime();
     EXPECT_EQ(runtime.dialogs.current, 0x8a);
     EXPECT_EQ(runtime.dialogs.pending, 0);
-    EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(runtime.mouse.updateTime, 0);
+    EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{sound});
 }
 
@@ -230,7 +230,7 @@ TEST(DialogAnswerStepsTest, TheChaosCastleWithoutItemStaysAndItsNoCloses)
         EXPECT_TRUE(tested.sent.empty());
         EXPECT_EQ(tested.Runtime().dialogs.current, Client::Ui::ChaosCastleDialog);
         EXPECT_EQ(tested.Runtime().lastSoundId, Client::Audio::SoundId{Silent});
-        EXPECT_FALSE(tested.Runtime().movement.pendingClick);
+        EXPECT_FALSE(tested.Runtime().mouse.pendingClick);
 
         ASSERT_TRUE(tested.Click(NoX, ChaosCastleY).HasValue());
         EXPECT_TRUE(tested.sent.empty());
@@ -284,7 +284,7 @@ TEST(DialogAnswerStepsTest, TheLuckThirdButtonAndEscapeSkipTheItem)
         EXPECT_EQ(third.random.State(), quiet.State());
         ExpectClosedWithTheSound(third, Silent);
         EXPECT_EQ(third.Runtime().dialogBox.thirdButton.state, 5);
-        EXPECT_FALSE(third.Runtime().movement.pendingClick);
+        EXPECT_FALSE(third.Runtime().mouse.pendingClick);
 
         AnsweringDialogs escape(map, Client::Ui::ItemNameWithLuckDialog);
         escape.OpenWithTheButtons();

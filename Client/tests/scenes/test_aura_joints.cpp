@@ -7,7 +7,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 
@@ -33,7 +33,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::int32_t Aura = 0x10f;
 

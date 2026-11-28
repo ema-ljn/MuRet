@@ -12,11 +12,11 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Npc/NpcWindowState.h"
 #include "Npc/NpcWindowSteps.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/Dialogs.h"
@@ -378,9 +378,9 @@ Core::Expected<bool, std::string> StepTheKeypad(const Hud::GameUiContext& contex
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abb20 == 0)
         return false;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const std::int32_t key = KeypadKeyAt(context.mouseX, context.mouseY);
-    if (movement.pendingClick)
+    if (mouse.pendingClick)
     {
         if (key >= 0)
         {
@@ -388,14 +388,14 @@ Core::Expected<bool, std::string> StepTheKeypad(const Hud::GameUiContext& contex
                 return Core::Unexpected(std::move(pressed).Error());
         }
         // 0x5e9aad..0x5e9ab8: vuelve a leer el clic.
-        if (movement.pendingClick)
+        if (mouse.pendingClick)
             runtime.npcWindows.keypadPressed = 1;
     }
     // 0x5e9abf..0x5e9ae1.
-    if (movement.releasedClick)
+    if (mouse.releasedClick)
         runtime.npcWindows.keypadPressed = 0;
-    movement.pendingClick = false;
-    movement.leftHeld = false;
+    mouse.pendingClick = false;
+    mouse.leftHeld = false;
     return true;
 }
 

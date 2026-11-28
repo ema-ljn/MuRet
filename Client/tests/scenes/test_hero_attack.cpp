@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Combat/Attackable.h"
 #include "Hero/HeroAttack.h"
 
 #include "Core/Expected.h"
@@ -96,8 +97,8 @@ protected:
         target.byte88 = 2;
         target.position = {18350.0f, 11550.0f, 0.0f};
         Runtime().movement.attackTarget = TargetIndex;
-        Runtime().movement.mouseUpdateTime = 0;
-        Runtime().movement.mouseUpdateTimeMax = 16;
+        Runtime().mouse.updateTime = 0;
+        Runtime().mouse.updateTimeMax = 16;
     }
 
     [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
@@ -186,7 +187,7 @@ TEST_F(HeroAttackTest, InRangeTheHeroTurnsAndSendsTheD3AndTheD7)
         EXPECT_EQ(Hero().attackPosition, Target().position);
         EXPECT_EQ(Hero().attackTarget, TargetIndex);
         EXPECT_EQ(Hero().movement, 0);
-        EXPECT_EQ(Runtime().movement.mouseUpdateTime, 16);
+        EXPECT_EQ(Runtime().mouse.updateTime, 16);
         EXPECT_EQ(Runtime().movement.targetX, 183u);
         EXPECT_EQ(Runtime().movement.targetY, 115u);
         EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
@@ -355,7 +356,7 @@ TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywol
             Target().position = {offTheGrid ? 25650.0f : 19250.0f, 11550.0f, 0.0f};
             Runtime().crywolf.stage = 3;
             m_world->Actors()[AltarIndex].type = 0x206;
-            Runtime().movement.chosenNpc = offTheGrid ? -1 : static_cast<std::int32_t>(AltarIndex);
+            Runtime().chosenNpc.index = offTheGrid ? -1 : static_cast<std::int32_t>(AltarIndex);
 
             const auto arrived = Client::Hero::InteractOnArrival(Hero(), Arrival());
 
@@ -437,13 +438,13 @@ TEST(ActionBrakeTest, ThreeHundredMillisecondsOrLessDoNotPass)
 
     std::uint32_t last = 1000;
     ticks = {1300};
-    EXPECT_FALSE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_FALSE(Client::Combat::PassesTheActionBrake(last, 0, tickCount));
     EXPECT_EQ(calls, 1u);
     EXPECT_EQ(last, 1000u);
 
     calls = 0;
     ticks = {1301, 1305};
-    EXPECT_TRUE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_TRUE(Client::Combat::PassesTheActionBrake(last, 0, tickCount));
     EXPECT_EQ(calls, 2u);
     EXPECT_EQ(last, 1305u);
 }
@@ -457,16 +458,16 @@ TEST(ActionBrakeTest, TheDifferenceIsSignedAndAbsolute)
 
     std::uint32_t last = 2000;
     now = 1000;
-    EXPECT_TRUE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_TRUE(Client::Combat::PassesTheActionBrake(last, 0, tickCount));
     EXPECT_EQ(last, 1000u);
 
     last = 1200;
     now = 1000;
-    EXPECT_FALSE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_FALSE(Client::Combat::PassesTheActionBrake(last, 0, tickCount));
 
     last = 0xffffff00u;
     now = 0x10;
-    EXPECT_FALSE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_FALSE(Client::Combat::PassesTheActionBrake(last, 0, tickCount));
 }
 
 // Con la skill 0x28 no hay freno: anota el reloj con una sola llamada.
@@ -475,7 +476,7 @@ TEST(ActionBrakeTest, TheSkill28SkipsTheBrake)
     std::size_t calls = 0;
     const std::function<std::uint32_t()> tickCount = [&]() { return static_cast<std::uint32_t>(1001 + calls++); };
     std::uint32_t last = 1000;
-    EXPECT_TRUE(Client::Hero::PassesTheActionBrake(last, 0x28, tickCount));
+    EXPECT_TRUE(Client::Combat::PassesTheActionBrake(last, 0x28, tickCount));
     EXPECT_EQ(calls, 1u);
     EXPECT_EQ(last, 1001u);
 }
@@ -483,15 +484,15 @@ TEST(ActionBrakeTest, TheSkill28SkipsTheBrake)
 // 0x558bb0: con un ítem en el cursor o sin elegido, no; en Chaos Castle, cualquiera que no sea el héroe.
 TEST_F(HeroAttackTest, NothingIsAttackableWithAnItemOnTheCursorOrWithoutAChosen)
 {
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
     Chosen(TargetIndex);
     Runtime().cursorItemCount = 1;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
     Runtime().cursorItemCount = -1;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
 
     Runtime().selectedTargets[2] = 401;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).HasValue());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).HasValue());
 }
 
 TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
@@ -501,9 +502,9 @@ TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
         Runtime().map = map;
         ActorState& other = Chosen(20);
         other.byte88 = 0;
-        EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+        EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
         Chosen(HeroIndex);
-        EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+        EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
     }
 }
 
@@ -515,12 +516,12 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     for (const std::int32_t map : {0, 2})
     {
         Runtime().map = map;
-        EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+        EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     }
     Runtime().guild.warOn = 1;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).Value());
     Runtime().guild.warType = 1;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     Runtime().guild.warOn = 0;
     Runtime().guild.warType = 0;
 
@@ -528,16 +529,16 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
     player.pk = 3;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, true).Value());
     player.pk = 6;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.pk = 3;
     player.byte370 = 8;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
 
     Chosen(HeroIndex);
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558e74..0x558e7b: el umbral PK 6 permite al héroe; con 5 no lo permite ni siquiera con Ctrl.
@@ -545,12 +546,12 @@ TEST_F(HeroAttackTest, TheOutlawThresholdAllowsTheHeroAtSixButNotFive)
 {
     Chosen(HeroIndex);
     Hero().pk = 5;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 
     Hero().pk = 6;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558d6e..0x558d7e: +0x370 en 2/8 antecede los filtros de gremio, duelo y PK.
@@ -570,7 +571,7 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
     {
         SCOPED_TRACE(byte370);
         player.byte370 = byte370;
-        EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+        EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     }
 }
 
@@ -583,9 +584,9 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
     player.byte374 = 2;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.pk = 6;
     player.word1f2 = 3;
     Hero().word1f2 = 5;
@@ -593,22 +594,22 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     GuildName(5, "Rojos");
     for (const bool controlDown : {false, true})
     {
-        const auto attackable = Client::Hero::IsAttackable(*m_world, controlDown);
+        const auto attackable = Client::Combat::IsAttackable(*m_world, controlDown);
         ASSERT_TRUE(attackable.HasValue()) << attackable.Error();
         EXPECT_FALSE(attackable.Value());
     }
     GuildName(5, "Azules");
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.byte374 = 0;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 
     // Un héroe sin gremio (−1) compara con lo que está antes de la tabla (Q-C1281): el byte 9 del miembro 74.
     Hero().word1f2 = 0xffff;
     player.byte374 = 2;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     // Un índice fuera de la tabla leería otra memoria: corta.
     player.word1f2 = 2000;
-    const auto outside = Client::Hero::IsAttackable(*m_world, false);
+    const auto outside = Client::Combat::IsAttackable(*m_world, false);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x558da4"), std::string::npos);
 }
@@ -628,11 +629,11 @@ TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
     duel.rivalKey = 0x77;
     for (std::size_t i = 0; i < 5; ++i)
         duel.rivalName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
-    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, false).Value(), 0x77);
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
+    EXPECT_EQ(Client::Combat::ChosenKeyOf(*m_world, HeroIndex, false).Value(), 0x77);
     duel.rivalKey = 0x78;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
-    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
+    EXPECT_EQ(Client::Combat::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
 }
 
 // 0x558e0f y 0x558f94: la clave del personaje va con MOVSX contra el DWORD de 0x78abadc, que el duelo escribe sin
@@ -649,11 +650,11 @@ TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
     duel.rivalKey = 0x8001;
     for (std::size_t i = 0; i < 5; ++i)
         duel.rivalName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
-    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
+    EXPECT_EQ(Client::Combat::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
     duel.rivalKey = -0x7fff;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
-    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, false).Value(), -0x7fff);
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
+    EXPECT_EQ(Client::Combat::ChosenKeyOf(*m_world, HeroIndex, false).Value(), -0x7fff);
 }
 
 // 0x558c2a..0x558d6d: en el asedio, un atacante (+0x360 en 6 a 11) contra un defensor (12 o 13) decide por el escudo
@@ -666,15 +667,15 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
     player.byte360 = 13;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 
     // Del mismo lado no decide: sigue como sin asedio.
     player.flags78 = 0;
     player.byte360 = 9;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558c5b..0x558c7e: también el defensor puede atacar al atacante; el escudo 0x4000 del blanco bloquea ambos sentidos.
@@ -686,9 +687,9 @@ TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
     player.byte360 = 6;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558cc1..0x558d59: las marcas 0x80000/0x400000/0x800000 comparan blanco sin marcas; si ambos tienen marca, sigue
@@ -702,19 +703,19 @@ TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
     player.pk = 3;
     Hero().flags78 = 0x80000;
     player.flags78 = 0;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 
     player.pk = 6;
     player.flags78 = 0x400000 | 0x4000;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
 
     Hero().flags78 = 0x40000;
     player.pk = 3;
     player.flags78 = 0;
-    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).Value());
 }
 } // namespace

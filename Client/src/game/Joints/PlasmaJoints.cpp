@@ -5,7 +5,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -32,7 +32,7 @@ namespace
 using Math::D;
 using Math::F32;
 
-Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, std::int32_t type,
+Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, std::int32_t type,
                                            const JointKernels::StepServices& services, std::string_view address)
 {
     if (services.particles == nullptr)
@@ -47,7 +47,7 @@ Core::Expected<void, std::string> Particle(const Scenes::JointState& joint, std:
 
 // 0x535cdf..0x535d4a: al llegar, sólo con el ancho en 50 justo (el inmediato 0x42480000), la partícula 0x5ca; después,
 // con rand() % 8 en 0, tres rand() sin usar y la 0x5f2/0.
-Core::Expected<void, std::string> Arrive(const Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Arrive(const Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr std::uint32_t ArrivalWidthBits = 0x42480000u;
     if (std::bit_cast<std::uint32_t>(joint.width) != ArrivalWidthBits)
@@ -63,7 +63,7 @@ Core::Expected<void, std::string> Arrive(const Scenes::JointState& joint, const 
 
 // 0x535c26..0x535c77: con el ancho de 50 o más, la luz dinámica de radio 2 con ((rand() & 3) + 4) · 0,04f · 0,4f en
 // los tres canales.
-Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr float BrightWidth = 50; // 0x6b86b0
     if (!(joint.width >= BrightWidth))
@@ -76,7 +76,7 @@ Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, const Jo
 }
 } // namespace
 
-void CreatePlasmaJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
+void CreatePlasmaJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x530ddd..0x530e0a: velocidad 50, la textura repetida (+0x9f0), el ancho, 50 puntos y vida 20. Por subtipo, la
     // textura y la luz: /0..2 la 0x614 con (0,7f; 1; 0,7f), (1; 0,6f; 0,6f) y (0,7f; 0,7f; 1); /3..5 la 0x632 con
@@ -123,7 +123,7 @@ void CreatePlasmaJoint(Scenes::JointState& joint, const Kernel::JointRequest& re
     }
 }
 
-Core::Expected<void, std::string> StepPlasmaJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepPlasmaJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     // 0x535b37..0x535cd4: después del movimiento común, una vuelta por punto.
     for (std::int32_t point = 0; point < joint.maximumCount; ++point)

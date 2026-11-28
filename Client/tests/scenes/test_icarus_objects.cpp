@@ -9,7 +9,7 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/KalimaParticleKernels.h"
@@ -39,10 +39,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::JointState;
 using Client::MapScripts::Icarus::IcarusObjectServices;
 using Client::Math::RoundedSin;
 using Client::Particles::Particle;
-using Client::Scenes::JointState;
 using Client::WorldObjects::GameObjectPass;
 using Client::WorldObjects::WorldObject;
 

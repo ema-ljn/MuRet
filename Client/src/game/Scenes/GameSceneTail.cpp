@@ -17,6 +17,7 @@
 #include "Effects/ModelEffects.h"
 #include "Actors/Drawing/PosePublishing.h"
 #include "Fauna/FaunaDrawing.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Effects/GameParticles.h"
 #include "Scenes/GameProjection.h"
@@ -96,7 +97,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
 {
     Kernel::WorldState& world = *m_context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    GameDrawTailState& tail = FrameTail();
+    Kernel::GameDrawTailState& tail = FrameTail();
     auto& itemState = FrameItemRender();
     const float clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
     const auto projection = MakeGameProjection(pass, m_drawnCamera.fieldOfView);
@@ -105,7 +106,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     Actors::Drawing::ItemSpecialDrawContext special;
     Actors::Drawing::ItemDrawContext itemContext;
     FillTheItemContexts(special, itemContext, canvas.frameClock, frames);
-    if (std::ranges::any_of(tail.floorItems, [](const FloorItemState& item) { return item.alive; }))
+    if (std::ranges::any_of(tail.floorItems, [](const Kernel::FloorItemState& item) { return item.alive; }))
     {
         if (m_models == nullptr)
             return Core::Unexpected(std::string("0x608a98: faltan los modelos globales del piso"));
@@ -157,7 +158,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
             {canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
              [&](const Actors::Drawing::DrawnObject& object)
              { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); }, true,
-             [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, SceneId::Game,
+             [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, Kernel::SceneId::Game,
              &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
              // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
              [systemTime = static_cast<std::uint32_t>(

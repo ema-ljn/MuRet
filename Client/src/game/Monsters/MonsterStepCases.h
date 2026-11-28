@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Hud/WorldTexts.h"
+#include "Kernel/WorldTextQueue.h"
 
 #include <cstdint>
 #include <functional>
@@ -34,7 +34,7 @@ namespace Client::Monsters
 // Text.bmd[1176] (0x77133fc) con +0x1d6 sin signo, el strcat de los dos en el buffer de 100 bytes y 0x4381f0 con la
 // posición (+0x10). Sin rand(). Sin Text.bmd, o si el strcat se pasara de los 100 bytes, corta.
 [[nodiscard]] Core::Expected<void, std::string>
-QueueTheGateName(const Kernel::ActorState& actor, const Tables::TextTable* texts, Hud::WorldTextQueue& queue);
+QueueTheGateName(const Kernel::ActorState& actor, const Tables::TextTable* texts, Kernel::WorldTextQueue& queue);
 
 // 0x4fb910..0x4fb9c7, el 0xf1 desde 0x4fb380: la z sube +0xe4 y +0xe4 baja 6; si la altura del terreno (0x5f93c0) más
 // 30 queda por encima, la z pasa a esa y +0xe4 a −0,4f veces; los ángulos suman +0xcc, +0xd0 y +0xd4, que se achican a

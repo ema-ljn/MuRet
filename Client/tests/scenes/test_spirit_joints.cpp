@@ -13,6 +13,7 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Joints/JointKernels.h"
 #include "Actors/SkillHits.h"
@@ -46,7 +47,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 constexpr std::uint32_t Seed = 0x613beefu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
@@ -719,11 +720,11 @@ TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
 // u otra vida, ninguno.
 TEST(SpiritJointsTest, TheWideVolleyOfTheHeroHitsEveryFifteenSteps)
 {
-    std::vector<Client::Skills::SkillHitsRequest> hits;
+    std::vector<Client::Actors::SkillHitsRequest> hits;
     const Client::Joints::JointKernels::VolleyServices volley{
         .siegeActive = false,
         .skillHits =
-            [&hits](const Client::Skills::SkillHitsRequest& request) -> Client::Core::Expected<void, std::string>
+            [&hits](const Client::Actors::SkillHitsRequest& request) -> Client::Core::Expected<void, std::string>
         {
             hits.push_back(request);
             return {};

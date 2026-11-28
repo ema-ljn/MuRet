@@ -450,7 +450,7 @@ public:
         return exit->message.empty() ? std::string("the client quit") : exit->message;
     }
 
-    [[nodiscard]] std::optional<Scenes::SceneId> CurrentScene() const
+    [[nodiscard]] std::optional<Kernel::SceneId> CurrentScene() const
     {
         return m_client.CurrentScene();
     }
@@ -479,7 +479,7 @@ public:
             const std::vector<std::string> fields = SplitTabs(row);
             trace += "\n  audio " + fields[1] + (fields.size() > 2 ? " " + fields[2] : "");
         }
-        if (m_client.CurrentScene() == Scenes::SceneId::Game)
+        if (m_client.CurrentScene() == Kernel::SceneId::Game)
         {
             trace += WorldTrace();
         }
@@ -767,7 +767,7 @@ TEST_F(CharacterizationTest, PrintScreenReadsTheScreenOnce)
     {
         static_cast<void>(client.RunFrame());
     }
-    ASSERT_EQ(client.CurrentScene(), Scenes::SceneId::Login);
+    ASSERT_EQ(client.CurrentScene(), Kernel::SceneId::Login);
     for (const char* event : {"key-down", "key-up", "end", "end"})
     {
         const auto applied = client.Apply(ScriptRow{.frame = 0, .event = event, .value = "PrintScreen"});

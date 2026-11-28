@@ -11,7 +11,6 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Npc/NpcWindowState.h"
@@ -473,7 +472,7 @@ BundleListStep StepTheBundleList(const Hud::GameUiContext& context)
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
     Npc::JewelBundleList& list = runtime.npcWindows.jewels.bundles;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     ui.capture = list.id;
     // 0x45aa8c..0x45aab1: la cola, en orden. La vtable + 0x24 (0x45abc0) solo atiende el 8, y la + 0x1c (0x403160)
     // no hace nada.
@@ -542,7 +541,7 @@ Core::Expected<void, std::string> DrawTheBundleList(Hud::GameHudContext& context
     list.x = x;
     list.y = y;
     Render::SpriteBatch& sprites = context.sprites;
-    DrawTheFrame(sprites, list, runtime.movement.pendingClick, context.mouse);
+    DrawTheFrame(sprites, list, runtime.mouse.pendingClick, context.mouse);
     // 0x4832ef..0x483312: glColor3f(1, 1, 1) y la fuente normal en el DC.
     sprites.SetColor(White);
     context.hud.dcFont = Render::Text::FontKind::Normal;

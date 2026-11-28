@@ -9,7 +9,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skills/Skill.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
@@ -55,13 +55,13 @@
 namespace
 {
 using Client::Actors::CharacterStepContext;
-using Client::Combat::StepTheAttack;
 using Client::Crt::CrtRandom;
 using Client::Effects::ArrowStepContext;
 using Client::Effects::ModelEffect;
 using Client::Effects::StepArrow;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
+using Client::Skills::StepTheAttack;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;
@@ -1852,9 +1852,9 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
             if (particlesFull)
                 for (Client::Particles::Particle& particle : tested->particles.All())
                     particle.alive = true;
-            std::vector<Client::Scenes::JointState> joints(100);
+            std::vector<Client::Kernel::JointState> joints(100);
             if (jointsFull)
-                for (Client::Scenes::JointState& joint : joints)
+                for (Client::Kernel::JointState& joint : joints)
                     joint.alive = true;
             auto context = tested->Context();
             context.joints = joints;

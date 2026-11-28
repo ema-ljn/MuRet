@@ -15,7 +15,7 @@
 #include "Skills/AttackSkillCases.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Monsters/MonsterAttackStep.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldMap.h"
@@ -39,7 +39,7 @@
 #include <string>
 
 // 0x4fdb9a..0x50539e con 0x4f97b0 y 0x4f5b70, cotejados con el PE c32bbd5f: 06, "El paso del ataque".
-namespace Client::Combat
+namespace Client::Skills
 {
 namespace
 {
@@ -390,7 +390,7 @@ Core::Expected<void, std::string> StepTheAttack(Kernel::ActorState& actor, std::
         return {};
     // 0x4fdbf1..0x4fdc10.
     actor.byte381 = 0;
-    const auto key = Hero::ChosenKeyOf(context.world, slot, context.controlDown);
+    const auto key = Combat::ChosenKeyOf(context.world, slot, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     actor.word8a = static_cast<std::int16_t>(key.Value());
@@ -414,4 +414,4 @@ Core::Expected<void, std::string> StepTheAttack(Kernel::ActorState& actor, std::
     actor.byte380 = 0;
     return {};
 }
-} // namespace Client::Combat
+} // namespace Client::Skills

@@ -216,7 +216,7 @@ Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& c
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::PersonalShopState& shops = runtime.social.personalShop;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     if (!TheShopIsReady(context.world))
     {
         // 0x5eaa3b: 0x555190 con el nombre de 0x78abb7c, que nadie escribe (*inferido*, 08 P-C72).
@@ -432,7 +432,7 @@ Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& co
     Chat::ChatInputState& input = runtime.chat.input;
     Social::PersonalShopState& shops = runtime.social.personalShop;
     Social::SocialState& social = runtime.social;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     const auto in = [&context](std::int32_t left, std::int32_t right)
     {
         return context.mouseX >= left && context.mouseY >= ShopButtonTop && context.mouseX <= right &&
@@ -534,7 +534,7 @@ bool OpenTheConfirmBox(Social::ConfirmBoxState& box, Ui::DialogState& dialogs, s
 Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (runtime.dialogs.current != ConfirmDialog || !click)
         return {};
     const Social::ConfirmBoxState& box = runtime.social.confirmBox;
@@ -612,7 +612,7 @@ Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiCon
     }
     shops.windowX = ShopWindowX;
     shops.windowY = ShopWindowY;
-    bool& click = runtime.movement.pendingClick;
+    bool& click = runtime.mouse.pendingClick;
     if (InRect(context, OpenButtonLeft, FootButtonTop, OpenButtonRight, FootButtonBottom) && click)
     {
         if (auto pressed = PressTheOpenButton(context, panels); !pressed.HasValue())

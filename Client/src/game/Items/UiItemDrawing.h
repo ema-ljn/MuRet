@@ -23,6 +23,7 @@
 // entera con la cámara en el origen.
 namespace Client::Kernel
 {
+struct GameDrawTailState;
 struct PoseBuffer;
 } // namespace Client::Kernel
 
@@ -45,11 +46,6 @@ namespace Client::Actors::Drawing
 {
 struct ItemDrawContext;
 } // namespace Client::Actors::Drawing
-
-namespace Client::Scenes
-{
-struct GameDrawTailState;
-} // namespace Client::Scenes
 
 namespace Client::Items
 {
@@ -164,5 +160,5 @@ void CloseUiItemPass(UiItemResources& resources);
 // paso del frame siguiente (la vida en 0, 0x53c3ad..0x53c3bd), antes del dibujo que sigue: el original no las dibuja
 // nunca. Los dibujos intermedios de MuRet (GameScene::PrepareDrawProjection) las apagan en su copia de la cola; la
 // tabla de verdad las guarda para el paso, con sus rand().
-void HideUiItemJoints(Scenes::GameDrawTailState& tail);
+void HideUiItemJoints(Kernel::GameDrawTailState& tail);
 } // namespace Client::Items

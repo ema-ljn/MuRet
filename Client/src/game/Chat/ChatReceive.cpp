@@ -170,7 +170,7 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
 
 Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, const ChatReceiveContext& context)
 {
-    if (context.scene == Scenes::SceneId::Login)
+    if (context.scene == Kernel::SceneId::Login)
     {
         if (context.requestServerList)
             context.requestServerList();
@@ -266,7 +266,7 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
     if (notice.type == SystemNotice)
     {
         // 0x4c65d8: fuera de la selección, 0x555190 con el "" de 0x5767980.
-        if (context.scene != Scenes::SceneId::CharacterSelect)
+        if (context.scene != Kernel::SceneId::CharacterSelect)
             return AddMessage(context, {}, text, Ui::SystemMessage);
         // 0x4c65f9..0x4c662a: la franja de la barra (+0x510), una vez; después, con el "" de 0x5767984.
         if (runtime.chat.selectionNotice)
@@ -295,7 +295,7 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
     // 0x4c667d..0x4c66b3: 0x46b720(pkt[4], pkt[6..7], texto, tipo − 10, pkt[0xc] · 0,1f, pkt[8..0xb]). La x87
     // multiplica el byte por el float y guarda en float: el producto es exacto y se redondea una vez. 0x46b720 y
     // 0x46abf0 solo encolan en la escena 5.
-    if (context.scene != Scenes::SceneId::Game)
+    if (context.scene != Kernel::SceneId::Game)
         return {};
     const auto speed = static_cast<float>(static_cast<double>(notice.speed) * static_cast<double>(SlideSpeedStep));
     Ui::QueueTheSlide(runtime.hud.slides, notice.byte4, notice.word6, text, notice.type - FirstSlideNotice, speed,

@@ -363,9 +363,9 @@ Core::Expected<void, std::string> StepTheKickButtons(const Hud::GameUiContext& c
         const std::int32_t left = runtime.hud.partyX + KickLeft;
         const std::int32_t top = runtime.hud.partyY + KickTop + at * KickStep;
         if (context.mouseX < left || context.mouseX >= left + KickSize || context.mouseY < top ||
-            context.mouseY >= top + KickSize || !runtime.movement.pendingClick)
+            context.mouseY >= top + KickSize || !runtime.mouse.pendingClick)
             continue;
-        runtime.movement.pendingClick = false;
+        runtime.mouse.pendingClick = false;
         runtime.RequestSound(KickSound);
         if (context.requests == nullptr)
             return Core::Unexpected(std::string("0x5e3ded: echar de la party (C1 04 43) sin el cable"));
@@ -392,11 +392,11 @@ Core::Expected<void, std::string> StepThePartyWindow(const Hud::GameUiContext& c
     if (auto kicked = StepTheKickButtons(context); !kicked.HasValue())
         return kicked;
     if (mouseX < x + CloseLeft || mouseX >= x + CloseLeft + CloseSize || mouseY < y + CloseTop ||
-        mouseY >= y + CloseTop + CloseSize || !runtime.movement.pendingClick)
+        mouseY >= y + CloseTop + CloseSize || !runtime.mouse.pendingClick)
         return {};
-    runtime.movement.pendingClick = false;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = CloseMouseUpdateTimeMax;
     auto closed = panels.Close(Ui::PartyPanel);
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());

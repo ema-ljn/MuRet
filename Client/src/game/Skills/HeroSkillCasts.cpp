@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/SkillTable.h"
-#include "Pathfinding/PathFinder.h"
+#include "Actors/WalkPath.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
 #include "Network/Delivery.h"
@@ -21,11 +21,10 @@
 #include "Effects/ArrowEffects.h"
 #include "Actors/CharacterStep.h"
 #include "Combat/CombatActionSpeeds.h"
-#include "Events/Crywolf/CrywolfContract.h"
 #include "Effects/GameParticles.h"
 #include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkills.h"
 #include "Items/HudItems.h"
 #include "Items/InventoryMoves.h"
@@ -415,7 +414,7 @@ Core::Expected<bool, std::string> PassesTheSkillBrake(std::int32_t skill, const 
 {
     if (!context.tickCount)
         return Core::Unexpected(std::format("{}: el freno de 300 ms (0x576791c) sin GetTickCount", where));
-    return Hero::PassesTheActionBrake(context.world.Runtime().movement.lastActionTick, skill, context.tickCount);
+    return Combat::PassesTheActionBrake(context.world.Runtime().movement.lastActionTick, skill, context.tickCount);
 }
 
 Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& caster, Kernel::ActorState& hero,
@@ -475,9 +474,9 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
                                             *cellX, *cellY));
     // 0x55980f: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance distinto de 0
     // no cuenta (0x4eadd4).
-    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({x, y}, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)},
-                                Events::Crywolf::CrywolfAltarGoal(world), reach);
+    const auto path =
+        Actors::FindThePath(world, terrain.attributes->cells, {x, y},
+                            {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, reach);
     if (!path)
         return false;
     caster.path = *path;
@@ -606,7 +605,7 @@ Core::Expected<bool, std::string> UseTheListedWeaponSkill(Kernel::ActorState& he
         return Core::Unexpected(ready.Error());
     if (!ready.Value())
         return false;
-    const auto attackable = Hero::IsAttackable(world, context.controlDown);
+    const auto attackable = Combat::IsAttackable(world, context.controlDown);
     if (!attackable.HasValue())
         return Core::Unexpected(attackable.Error());
     if (!attackable.Value())
@@ -671,7 +670,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(Kernel::ActorState& hero, 
         else if (InRange(skill, 0x13, 0x17) || skill == 0x31)
         {
             // 0x55b460..0x55b484.
-            const auto attackable = Hero::IsAttackable(world, context.controlDown);
+            const auto attackable = Combat::IsAttackable(world, context.controlDown);
             if (!attackable.HasValue())
                 return Core::Unexpected(attackable.Error());
             if (!attackable.Value())
@@ -759,7 +758,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
         if (state.weaponSkill.target != -1)
         {
             const auto chosen =
-                Hero::ChosenKeyOf(world, SlotOf(world, hero), state.weaponSkill.target, context.controlDown);
+                Combat::ChosenKeyOf(world, SlotOf(world, hero), state.weaponSkill.target, context.controlDown);
             if (!chosen.HasValue())
                 return Core::Unexpected(chosen.Error());
             key = chosen.Value();

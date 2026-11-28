@@ -10,7 +10,7 @@
 #include "Kernel/ActorState.h"
 #include "Terrain/DynamicWorldLight.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"

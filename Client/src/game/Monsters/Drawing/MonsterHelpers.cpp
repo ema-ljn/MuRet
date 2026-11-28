@@ -16,7 +16,7 @@
 #include "Joints/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighModelEffects.h"
 #include "Joints/JointFamilies.h"
 #include "Effects/MeteorEffects.h"

@@ -6,7 +6,7 @@
 #include "Actors/CharacterStep.h"
 #include "Kernel/ModelEffectArguments.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -66,13 +66,13 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
         .hero = &world.Hero(),
         .skillHits = [&](const Effects::ModelEffect& effect, float radius) -> Core::Expected<void, std::string>
         {
-            const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+            const Actors::SkillHitsRequest request{.skillIndex = effect.byte89,
                                                    .point = effect.transform.position,
                                                    .radius = radius,
                                                    .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                                    .key = effect.disturbanceState,
                                                    .extra = 0};
-            const auto hit = Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+            const auto hit = Actors::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
                                                          context.random, context.send);
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());

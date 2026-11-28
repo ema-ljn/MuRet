@@ -5,7 +5,6 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "Kernel/PlayerKey.h"
 #include "Tables/PlayerModels.h"
-#include "Pathfinding/PathFinder.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
@@ -15,9 +14,8 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorWalk.h"
 #include "Combat/BlastEffectCalls.h"
-#include "Events/Crywolf/CrywolfContract.h"
+#include "Actors/WalkPath.h"
 #include "Combat/DamageNumbers.h"
-#include "Scenes/GameDrawTail.h"
 #include "Actors/ActionReply.h"
 #include "Kernel/SceneId.h"
 #include "Session/WorldEntry.h"
@@ -75,7 +73,7 @@ Core::Expected<ActorStopContext, std::string> StopContext(const Kernel::ActorSta
         actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     return ActorStopContext{
         .runtime = resources.world.Runtime(),
-        .scene = Scenes::SceneId::Game,
+        .scene = Kernel::SceneId::Game,
         .playerSkeleton = *playerSkeleton,
         .items = resources.items,
         .random = resources.cloth.random,
@@ -99,10 +97,9 @@ Core::Expected<void, std::string> ApplyOtherWalk(Kernel::ActorState& actor,
     const auto& attributes = Scenes::TerrainOf(resources).attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el D3 recibido"));
-    Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: with a Crywolf altar in 0x6c8e54, the A* flag also in another's D3.
-    const auto path = finder.Find({actor.cellX, actor.cellY}, {actor.targetX, actor.targetY},
-                                  Events::Crywolf::CrywolfAltarGoal(resources.world));
+    const auto path =
+        FindThePath(resources.world, attributes->cells, {actor.cellX, actor.cellY}, {actor.targetX, actor.targetY});
     actor.movement = path.has_value() ? 1 : 0;
     if (path)
     {

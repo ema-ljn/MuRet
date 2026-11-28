@@ -4,6 +4,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
@@ -21,7 +22,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 // 0x531b0c, /7: dos rand() y z +1050, sin la cola común; el paso dibuja 50 tramos sin emitir las partículas de /2. Los
 // 45 de la bajada bajan 20 cada uno (0x53774b, 0x6b86d0).

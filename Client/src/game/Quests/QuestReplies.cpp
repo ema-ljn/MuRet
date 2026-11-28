@@ -11,7 +11,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ClassParts.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Hud/GamePanels.h"
 #include "CastleSiege/CastleWindows.h"
 #include "Monsters/MonsterCreation.h"
@@ -83,7 +83,7 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& act
     constexpr double Raise = 200.0; // 0x6b8928
     glm::vec3 raised = actor.position;
     raised.z = static_cast<float>(static_cast<double>(actor.position.z) + Raise);
-    std::span<Scenes::JointState> joints = resources.world.DrawTail().joints;
+    std::span<Kernel::JointState> joints = resources.world.DrawTail().joints;
     Crt::CrtRandom& random = resources.cloth.random;
     for (int round = 0; round < Rounds; ++round)
     {

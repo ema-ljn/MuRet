@@ -7,7 +7,7 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HighEffectEmitters.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/WorldState.h"

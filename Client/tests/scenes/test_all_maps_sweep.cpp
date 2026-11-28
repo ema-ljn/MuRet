@@ -47,8 +47,8 @@
 
 namespace
 {
+using Client::Kernel::SceneId;
 using Client::Kernel::WorldState;
-using Client::Scenes::SceneId;
 using Client::Tests::MapSweepCase;
 using Client::Tests::MapSweepCases;
 using Client::Tests::MapSweepCut;

@@ -26,7 +26,7 @@ struct ActorMotionContext
     Kernel::WorldRuntime& runtime;
     Crt::CrtRandom& random;
     std::function<double(float, float)> height;
-    // 0x4eac0a..0x4eac41: the A* flag 0x4eac00 computes on entry (Events::Crywolf::CrywolfAltarGoal) for the path
+    // 0x4eac0a..0x4eac41: the A* flag 0x4eac00 computes on entry (Actors::CrywolfAltarGoal) for the path
     // retry (0x508e0e). Nothing in 0x508ba0 before the retry changes what it looks at.
     bool altarGoal = false;
 };

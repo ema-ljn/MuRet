@@ -20,13 +20,9 @@ struct WorldTerrain;
 // (0x5ac928..0x5ac9c2). La rama del ítem de MoveHero (0x59dc5e..0x59ddea) está en GameMovement, con su camino.
 namespace Client::Kernel
 {
+struct FloorItemState;
 struct ItemState;
 } // namespace Client::Kernel
-
-namespace Client::Scenes
-{
-struct FloorItemState;
-} // namespace Client::Scenes
 
 namespace Client::Items
 {
@@ -35,7 +31,7 @@ struct InventoryMoveContext;
 // 0x59e2e0, sin rand(): cada ítem vivo y a la vista (+0x16c) con la luz del pase de vértices (+0xe8 en 1) y 0,2
 // (+0xf4..+0xfc); después, el primero vivo y a la vista cuya caja (+0x13c, la del último dibujo) toca el segmento
 // del mouse (0x622900 con 0x7d36834 y 0x7d366c0), con +0xe8 en 0 y la luz en 1,5. Devuelve su índice o −1.
-[[nodiscard]] std::int32_t PickTheFloorItem(std::span<Scenes::FloorItemState> items,
+[[nodiscard]] std::int32_t PickTheFloorItem(std::span<Kernel::FloorItemState> items,
                                             const Terrain::TerrainPickingSegment& ray);
 
 // 0x5c9d20(tipo, 0x78a9bb0, 8, 8): si la huella del tipo (Item.bmd +0x24 y +0x25) entra en algún lugar de la grilla

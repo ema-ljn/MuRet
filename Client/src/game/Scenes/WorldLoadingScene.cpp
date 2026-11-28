@@ -108,9 +108,9 @@ void WorldLoadingScene::Leave()
     m_textures.Release();
 }
 
-std::optional<SceneId> WorldLoadingScene::Next() const
+std::optional<Kernel::SceneId> WorldLoadingScene::Next() const
 {
-    return m_done ? std::optional<SceneId>{SceneId::Game} : std::nullopt;
+    return m_done ? std::optional<Kernel::SceneId>{Kernel::SceneId::Game} : std::nullopt;
 }
 
 bool WorldLoadingScene::WantsToQuit() const

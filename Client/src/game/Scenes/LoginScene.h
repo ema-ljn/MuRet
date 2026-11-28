@@ -132,7 +132,7 @@ public:
     // y las ilustraciones de los créditos.
     void Leave() override;
     // La selección con el login aceptado (SessionState::LoggedIn), como 0x634dce con el 0x14.
-    [[nodiscard]] std::optional<SceneId> Next() const override;
+    [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     // Con el OK de un aviso que cierra el juego (Q-C69).
     [[nodiscard]] bool WantsToQuit() const override;
     // Con la ventana de la cuenta abierta: es la de arriba, porque un aviso la cierra al abrirse.

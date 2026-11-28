@@ -13,7 +13,7 @@
 #include "Kernel/ActorState.h"
 #include "Pets/DarkSpirit.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Player/OwnDerivedStats.h"
@@ -298,7 +298,7 @@ TEST(PetStatsTest, APetBeyondTheThirdIsDiscardedWhenItWrites)
 // 0x421fae): era la clave, no el subtipo.
 TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
 {
-    using Client::Scenes::JointState;
+    using Client::Kernel::JointState;
     for (const auto& [kind, count] :
          {std::pair<std::uint8_t, int>{std::uint8_t{0xfe}, 5}, std::pair<std::uint8_t, int>{std::uint8_t{0xff}, 15}})
     {
@@ -341,7 +341,7 @@ TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
 TEST(PetStatsTest, TheOrderJointsOfTheRavenWithAFullTableAreNone)
 {
     auto tested = std::make_unique<Pets>();
-    for (Client::Scenes::JointState& joint : tested->world.DrawTail().joints)
+    for (Client::Kernel::JointState& joint : tested->world.DrawTail().joints)
         joint.alive = true;
     const auto applied = tested->Reply({.pet = 0, .kind = 0xff, .slot = 1, .level = 7, .experience = 5000});
     ASSERT_TRUE(applied.HasValue()) << applied.Error();

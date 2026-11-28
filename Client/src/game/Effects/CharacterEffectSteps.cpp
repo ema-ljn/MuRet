@@ -81,7 +81,7 @@ Core::Expected<void, std::string> RaiseSwellLifeChildren(const Effects::ModelEff
 }
 } // namespace
 
-Core::Expected<void, std::string> StepFullSetFlare(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
+Core::Expected<void, std::string> StepFullSetFlare(Effects::ModelEffect& effect, std::span<Kernel::JointState> joints,
                                                    const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random)
 {
     if (!effect.alive)
@@ -124,7 +124,7 @@ Core::Expected<void, std::string> StepFullSetFlare(Effects::ModelEffect& effect,
     return {};
 }
 
-Core::Expected<void, std::string> StepSkillFlare(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
+Core::Expected<void, std::string> StepSkillFlare(Effects::ModelEffect& effect, std::span<Kernel::JointState> joints,
                                                  const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random,
                                                  Particles::Particles* particles,
                                                  Particles::ParticleOwner particleOwner)
@@ -202,7 +202,7 @@ bool StepsAsPetSummon(const Effects::ModelEffect& effect)
            (effect.subtype < FirstBindingSubtype || effect.subtype > LastOwnSubtype);
 }
 
-Core::Expected<void, std::string> StepPetSummon(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
+Core::Expected<void, std::string> StepPetSummon(Effects::ModelEffect& effect, std::span<Kernel::JointState> joints,
                                                 const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random)
 {
     if (!effect.alive)

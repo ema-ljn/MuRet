@@ -9,7 +9,7 @@
 #include "WorldObjects/EventMapObjectFrame.h"
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/KalimaParticleKernels.h"
@@ -41,10 +41,10 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::JointRequest;
+using Client::Kernel::JointState;
 using Client::Math::BoneTransform;
 using Client::Particles::Particle;
 using Client::Particles::Particles;
-using Client::Scenes::JointState;
 using Client::WorldObjects::GameObjectPass;
 using Client::WorldObjects::WorldObject;
 

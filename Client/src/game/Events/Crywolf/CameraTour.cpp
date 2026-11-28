@@ -15,7 +15,7 @@
 #include "Kernel/ActorState.h"
 #include "Effects/ArrowEffects.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"

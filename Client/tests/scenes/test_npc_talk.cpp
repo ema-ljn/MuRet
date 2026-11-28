@@ -20,6 +20,7 @@
 #include "Actors/ActorActions.h"
 #include "Kernel/ActorState.h"
 #include "Movement/GameMovement.h"
+#include "Session/HeroMovementHooks.h"
 #include "Movement/GameMovementState.h"
 #include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
@@ -53,6 +54,7 @@
 // terreno es uno sin paredes, el mismo en los dos.
 namespace
 {
+const Client::Session::HeroMovementHooks MovementHooks{};
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
@@ -136,6 +138,7 @@ public:
     HeroMovementContext Context()
     {
         HeroMovementContext context{.world = world, .random = random, .playerSkeleton = &skeleton, .skills = &skills};
+        context.hooks = &MovementHooks;
         context.terrain = &terrain;
         context.sendWalk = [this](std::span<const Client::Protocol::Movement::Cell> /*path*/,
                                   Client::Protocol::Movement::Cell target,
@@ -158,7 +161,7 @@ public:
     Client::Core::Expected<void, std::string> Click()
     {
         world.Runtime().selectedTargets[1] = static_cast<std::int32_t>(NpcSlot);
-        world.Runtime().movement.mouseUpdateTime = 6;
+        world.Runtime().mouse.updateTime = 6;
         auto context = Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
@@ -174,7 +177,7 @@ public:
     // La llegada con el NPC en 0x6c8e54 y el héroe caminando (+0x378 en 1).
     Client::Core::Expected<void, std::string> Arrive()
     {
-        world.Runtime().movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        world.Runtime().chosenNpc.index = static_cast<std::int32_t>(NpcSlot);
         Hero().movement = 1;
         return Client::Npc::TalkToTheNpc(Hero(), Context());
     }
@@ -203,7 +206,7 @@ CrtRandom AfterTheStop(const CrtRandom& start)
     const auto twin = std::make_unique<TalkingHero>();
     twin->random = start;
     const Client::Actors::ActorStopContext stop{twin->world.Runtime(),
-                                                Client::Scenes::SceneId::Game,
+                                                Client::Kernel::SceneId::Game,
                                                 twin->skeleton,
                                                 nullptr,
                                                 twin->random,
@@ -229,16 +232,18 @@ TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
         EXPECT_EQ(tested->randomAtTheWalk->State(), Advanced(start, BeforeTheClickRandoms + 1 + 8).State());
         EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClickRandoms + 1 + 8 + AfterTheWalkRandoms).State());
         const auto& movement = tested->world.Runtime().movement;
-        EXPECT_EQ(tested->Hero().movementType, Client::Npc::NpcTalkMovement);
+        const Client::Kernel::MouseState& mouse = tested->world.Runtime().mouse;
+        EXPECT_EQ(tested->Hero().movementType, Client::Movement::NpcTalkMovement);
         EXPECT_EQ(tested->Hero().movement, 1);
         EXPECT_EQ(movement.attackTarget, 7);
-        EXPECT_EQ(movement.chosenNpc, 7);
-        EXPECT_EQ(movement.chosenNpcType, 0xf9);
-        EXPECT_EQ(movement.chosenNpcAngle, 0x42b40000u);
+        const Client::Kernel::ChosenNpc& chosen = tested->world.Runtime().chosenNpc;
+        EXPECT_EQ(chosen.index, 7);
+        EXPECT_EQ(chosen.type, 0xf9);
+        EXPECT_EQ(chosen.angle, 0x42b40000u);
         EXPECT_EQ(movement.targetX, 185u);
         EXPECT_EQ(movement.targetY, 115u);
         // 0x59dc48: sigue en 0x59e248, que suma MouseUpdateTime.
-        EXPECT_EQ(movement.mouseUpdateTime, 1);
+        EXPECT_EQ(mouse.updateTime, 1);
     }
 }
 
@@ -246,12 +251,12 @@ TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
 TEST(NpcTalkTest, TheBlockingFlagWalksWithoutTheTalk)
 {
     const auto tested = std::make_unique<TalkingHero>();
-    tested->Hero().flags7c = Client::Npc::NpcTalkBlockedFlag;
+    tested->Hero().flags7c = Client::Movement::NpcTalkBlockedFlag;
     const auto clicked = tested->Click();
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
     EXPECT_EQ(tested->Hero().movementType, 0);
-    EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, 7);
+    EXPECT_EQ(tested->world.Runtime().chosenNpc.index, 7);
 }
 
 // 0x59da82..0x59daa9: con la tienda de NPC o el almacén abiertos, el clic sigue en el terreno.
@@ -266,7 +271,7 @@ TEST(NpcTalkTest, TheShopOrTheWarehouseSendTheClickToTheGround)
         const auto clicked = tested->Click();
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
         EXPECT_EQ(tested->events, (std::vector<std::string>{"pick"}));
-        EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
+        EXPECT_EQ(tested->world.Runtime().chosenNpc.index, -1);
         EXPECT_EQ(tested->world.Runtime().movement.attackTarget, -1);
     }
 }
@@ -279,10 +284,10 @@ TEST(NpcTalkTest, WithoutAPathTheHeroTalksInPlace)
     const auto clicked = tested->Click();
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
-    EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
-    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
-    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTime, 1);
-    EXPECT_EQ(tested->Hero().movementType, Client::Npc::NpcTalkMovement);
+    EXPECT_EQ(tested->world.Runtime().chosenNpc.index, -1);
+    EXPECT_EQ(tested->world.Runtime().mouse.updateTimeMax, 12);
+    EXPECT_EQ(tested->world.Runtime().mouse.updateTime, 1);
+    EXPECT_EQ(tested->Hero().movementType, Client::Movement::NpcTalkMovement);
 }
 
 // 0x59b2f7: el héroe camina hasta el NPC y, al terminar el camino, 0x5650c0 con +0x379 en 2 le habla.
@@ -304,8 +309,8 @@ TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
         EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115", "30 8123"}));
         EXPECT_EQ(hero.movement, 0);
         EXPECT_EQ(hero.cellX, 185);
-        EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
-        EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
+        EXPECT_EQ(tested->world.Runtime().chosenNpc.index, -1);
+        EXPECT_EQ(tested->world.Runtime().mouse.updateTimeMax, 12);
     }
 }
 
@@ -366,12 +371,12 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
         auto& runtime = tested->world.Runtime();
         runtime.map = map;
         runtime.crywolf.stage = 4;
-        runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        runtime.chosenNpc.index = static_cast<std::int32_t>(NpcSlot);
         tested->Npc().type = 0x205;
         auto& walls = tested->terrain.attributes->cells;
         const std::size_t clicked = Client::Data::Terrain::CellIndex(186, 115);
         walls[clicked] = 0x04;
-        runtime.movement.mouseUpdateTime = 6;
+        runtime.mouse.updateTime = 6;
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
@@ -393,7 +398,7 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
             EXPECT_EQ(walls[clicked], 0x04);
             EXPECT_EQ(last, (Client::Pathfinding::PathCell{185, 114}));
         }
-        EXPECT_EQ(runtime.movement.chosenNpc, static_cast<std::int32_t>(NpcSlot));
+        EXPECT_EQ(runtime.chosenNpc.index, static_cast<std::int32_t>(NpcSlot));
     }
 }
 
@@ -410,14 +415,14 @@ TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
         auto& runtime = tested->world.Runtime();
         runtime.map = map;
         runtime.crywolf.stage = 4;
-        runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        runtime.chosenNpc.index = static_cast<std::int32_t>(NpcSlot);
         tested->Npc().type = 0x205;
         runtime.selectedTargets[0] = FloorItem;
         tested->world.DrawTail().floorItems[FloorItem].position = {18650.0f, 11550.0f, 0.0f};
         auto& walls = tested->terrain.attributes->cells;
         const std::size_t item = Client::Data::Terrain::CellIndex(186, 115);
         walls[item] = 0x04;
-        runtime.movement.mouseUpdateTime = 6;
+        runtime.mouse.updateTime = 6;
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
@@ -459,8 +464,8 @@ TEST(NpcTalkTest, TheArrivalStopsTheHeroAndSendsTheTalk)
         EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Hero().movement, 0);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 12);
-        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 12);
+        EXPECT_EQ(runtime.chosenNpc.index, -1);
         EXPECT_EQ(runtime.panels.repairMode, 0);
         EXPECT_EQ(runtime.panels.field78abb09, 0);
         EXPECT_EQ(runtime.byte6eeda8, 0);
@@ -500,7 +505,7 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
         ASSERT_TRUE(tested->Arrive().HasValue());
         EXPECT_TRUE(tested->events.empty());
         EXPECT_EQ(tested->random.State(), expected.State());
-        EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
+        EXPECT_EQ(tested->world.Runtime().chosenNpc.index, -1);
         EXPECT_EQ(tested->world.Runtime().byte6eeda8, 1);
     }
 }
@@ -519,12 +524,12 @@ TEST(NpcTalkTest, TheLevelLimitedNpcNeedsLevelTen)
         {
             EXPECT_TRUE(tested->events.empty());
             EXPECT_TRUE(tested->Said("hace falta el nivel 10", Client::Ui::SystemMessage));
-            EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, 7);
+            EXPECT_EQ(tested->world.Runtime().chosenNpc.index, 7);
         }
         else
         {
             EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
-            EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
+            EXPECT_EQ(tested->world.Runtime().chosenNpc.index, -1);
         }
     }
 }
@@ -539,7 +544,7 @@ TEST(NpcTalkTest, TheFlagLimitedNpcRefusesTheFlaggedHero)
     ASSERT_TRUE(tested->Arrive().HasValue());
     EXPECT_TRUE(tested->events.empty());
     EXPECT_TRUE(tested->Said("no con eso puesto", Client::Ui::ErrorMessage));
-    EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
+    EXPECT_EQ(tested->world.Runtime().chosenNpc.index, -1);
     EXPECT_EQ(tested->world.Runtime().byte6eeda8, 1);
 }
 
@@ -609,7 +614,7 @@ TEST(NpcTalkTest, CrywolfAltarsTalkOnlyWhenTheyCan)
         const auto arrived = hero->Arrive();
         ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
         EXPECT_EQ(hero->events, tested.talks ? std::vector<std::string>{"30 8123"} : std::vector<std::string>{});
-        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        EXPECT_EQ(runtime.chosenNpc.index, -1);
         const bool crywolf = tested.map == 34 && tested.stage != 0;
         EXPECT_EQ(hero->Hero().movement, crywolf ? 1 : 0);
         if (crywolf)
@@ -660,7 +665,7 @@ TEST(NpcTalkTest, AnElfAtACrywolfAltarSeesItsStateInsteadOfTalking)
             EXPECT_EQ(std::string_view(ui.contractLines[1].data()), tested.second);
             EXPECT_EQ(ui.byte723a44, tested.window);
             EXPECT_EQ(ui.dwords723bdc[1], tested.value);
-            EXPECT_EQ(runtime.movement.chosenNpc, -1);
+            EXPECT_EQ(runtime.chosenNpc.index, -1);
             EXPECT_EQ(runtime.byte6eeda8, 1);
             EXPECT_EQ(hero->Hero().movement, 1);
             EXPECT_EQ(hero->random.State(), Advanced(start, OwnRecordRandoms).State());
@@ -744,7 +749,7 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
         EXPECT_EQ(hero.movement, 0);
         EXPECT_EQ(hero.cellX, last.x);
         EXPECT_EQ(hero.cellY, last.y);
-        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        EXPECT_EQ(runtime.chosenNpc.index, -1);
         const std::string walk = std::format("D3 {} {}", probe.altarX, probe.altarY);
         const auto& ui = runtime.crywolf.ui;
         if (probe.map == CrywolfMap)

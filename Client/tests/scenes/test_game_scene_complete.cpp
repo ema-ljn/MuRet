@@ -87,7 +87,7 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
         ASSERT_TRUE(modelsLoaded.HasValue()) << modelsLoaded.Error();
         world.Runtime().map = map;
         const auto loaded = Client::Scenes::LoadMap(
-            map, {m_dataRoot, world, states.terrain, Client::Scenes::SceneId::Game, 0, cloth.random});
+            map, {m_dataRoot, world, states.terrain, Client::Kernel::SceneId::Game, 0, cloth.random});
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         world.Runtime().drawingEnabled = true;
         world.Actors()[0].position = {13550.0f, 12550.0f, 0.0f};

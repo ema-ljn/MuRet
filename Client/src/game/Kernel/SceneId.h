@@ -7,7 +7,7 @@
 // de dibujo (0x637700) y la lógica de cada paso para elegir qué correr (02 § Las cinco escenas y
 // sus transiciones). En MuRet cada una es una clase (IScene.h), y el número queda para el log y
 // las trazas.
-namespace Client::Scenes
+namespace Client::Kernel
 {
 enum class SceneId : std::uint8_t
 {
@@ -36,4 +36,4 @@ enum class SceneId : std::uint8_t
     }
     return "?";
 }
-} // namespace Client::Scenes
+} // namespace Client::Kernel

@@ -11,13 +11,13 @@
 #include "Render/TextureSlot.h"
 #include "Hud/GameHud.h"
 #include "Hud/GameInventoryHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameWindowDrawing.h"
 #include "Items/ItemNames.h"
 #include "Monsters/NpcNames.h"
 #include "Quests/QuestState.h"
 #include "Quests/Quests.h"
 #include "Items/UiItemDrawing.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/ZenText.h"
@@ -340,15 +340,15 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& contex
         const float button = F32(static_cast<double>(left) + 35.0);
         const auto mouseX = static_cast<double>(context.mouse.x);
         const auto mouseY = static_cast<double>(context.mouse.y);
-        Movement::GameMovementState& movement = runtime.movement;
+        Kernel::MouseState& mouse = runtime.mouse;
         if (mouseX >= static_cast<double>(button) && mouseX < static_cast<double>(button) + 120.0 && mouseY >= 355.0 &&
-            mouseY < 379.0 && movement.pendingClick)
+            mouseY < 379.0 && mouse.pendingClick)
         {
             sprites.SetColor(PressedGrey);
-            if (movement.releasedClick && !context.projecting)
+            if (mouse.releasedClick && !context.projecting)
             {
-                movement.pendingClick = false;
-                movement.leftHeld = false;
+                mouse.pendingClick = false;
+                mouse.leftHeld = false;
             }
         }
         Hud::WindowDrawing::SelectFont(context, FontKind::Normal);

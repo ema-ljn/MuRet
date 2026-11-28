@@ -251,7 +251,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
     Ui::GameUiState& ui = runtime.ui;
     Kernel::ChatRuntime& chat = runtime.chat;
     const Kernel::ActorState& hero = context.world.Hero();
-    const Chat::ChatLogGlobals globals{.leftClick = runtime.movement.pendingClick,
+    const Chat::ChatLogGlobals globals{.leftClick = runtime.mouse.pendingClick,
                                        .rightDown = ui.rightDown,
                                        .wheel = ui.wheel,
                                        .capture = ui.capture,
@@ -262,7 +262,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
     // El foco en uno de los EDIT del chat: mientras el campo está abierto lo tiene (0x636e80).
     const Chat::ChatLogStepView view{.mouseX = context.mouseX,
                                      .mouseY = context.mouseY,
-                                     .leftDown = runtime.movement.leftHeld,
+                                     .leftDown = runtime.mouse.leftHeld,
                                      .chatOpen = ui.chatOpen,
                                      .heroSafeZone = hero.safeZone != 0,
                                      .heroName = Actors::HeroNameOf(hero),
@@ -286,7 +286,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
 {
     Ui::GameUiState& ui = runtime.ui;
-    if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != Chat::ChatLogId))
+    if (!runtime.mouse.leftHeld || (ui.hovered != 0 && ui.hovered != Chat::ChatLogId))
         return;
     runtime.oldWindows.focus = 0;
     if (ui.chatOpen || runtime.chat.input.otherInput || runtime.chat.input.dialogFieldOn ||
@@ -317,13 +317,13 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
     const std::int32_t mouseX = context.mouseX;
     const std::int32_t mouseY = context.mouseY;
     Kernel::CrywolfInterface& crywolf = runtime.crywolf.ui;
-    Movement::GameMovementState& movement = runtime.movement;
-    if (crywolf.byte723bf9 == 1 && movement.leftHeld)
+    Kernel::MouseState& mouse = runtime.mouse;
+    if (crywolf.byte723bf9 == 1 && mouse.leftHeld)
     {
         if (mouseX > ButtonLeft && mouseX < ButtonRight && mouseY > ButtonTop && mouseY < ButtonBottom)
             crywolf.dwords723bdc[0] = ButtonPushed;
-        movement.leftHeld = false;
-        movement.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.pendingClick = false;
     }
     return Events::Crywolf::StepTheContractWindow(Events::Crywolf::ContractWindowContext{
         .runtime = runtime,
@@ -590,7 +590,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
         return {};
     // 0x5c2c56..0x5c2c5f.
     runtime.ui.field78abaac = 1;
-    if (runtime.movement.pendingClick)
+    if (runtime.mouse.pendingClick)
     {
         // 0x5c2c65..0x5c2c79 y 0x5c2dd5..0x5c3594: con el modo de reparar (y sin 0x576794c), lo que se repara gasta el
         // clic y sale el C1 05 34 con el lugar y 0x78abb10, en C3 y con el registro abierto.
@@ -599,7 +599,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
             const std::uint16_t worn = context.world.OwnCharacter().equipment[slot].id;
             if (IsNotRepaired(worn) || worn == RavenItem)
                 return {};
-            runtime.movement.pendingClick = false;
+            runtime.mouse.pendingClick = false;
             return Npc::SendRepair(context.random, context.sendNpcWindow, static_cast<std::uint8_t>(slot & 0xff),
                                    static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
         }
@@ -695,9 +695,9 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
     runtime.ui.field78abb28 = ShopHelpPlace;
     runtime.ui.field78abb2c = static_cast<std::int32_t>(index);
     Npc::NpcWindowState& npc = runtime.npcWindows;
-    if (!runtime.movement.pendingClick || runtime.panels.repairMode != 0)
+    if (!runtime.mouse.pendingClick || runtime.panels.repairMode != 0)
         return GridHover::Stayed;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     if (npc.buyLock != 0)
         return GridHover::Stayed;
     const std::int32_t topLeft = hovered.gridRow * Npc::NpcGridColumns + hovered.gridColumn;
@@ -813,7 +813,7 @@ Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& cont
                                                        const Kernel::ItemState& hovered)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     const Kernel::CursorGrid from = CursorGridOf(grid.place);
     runtime.cursorGrid = from;
     constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
@@ -938,7 +938,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
         ui.field78abb2c = cell + FirstPersonalShopSlot;
     }
     const bool repairing = runtime.panels.repairMode != 0;
-    if (shopOpen() && runtime.movement.pendingClick && !repairing)
+    if (shopOpen() && runtime.mouse.pendingClick && !repairing)
     {
         if (auto clicked = ClickWithTheShopOpen(context, grid, hovered); !clicked.HasValue())
             return Core::Unexpected(clicked.Error());
@@ -952,11 +952,11 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     if (repairing)
     {
-        if (IsNotRepaired(hovered.id) || !runtime.movement.pendingClick)
+        if (IsNotRepaired(hovered.id) || !runtime.mouse.pendingClick)
             return GridHover::Stayed;
         // 0x5c4472..0x5c4a89: el clic consumido y el C1 05 34 con el lugar de la esquina del ítem (fila · columnas +
         // columna + 12) y 0x78abb10; después sigue con la casilla de al lado (0x5c4b3b).
-        runtime.movement.pendingClick = false;
+        runtime.mouse.pendingClick = false;
         const auto position = static_cast<std::uint8_t>((row * Columns + column + FirstGridSlot) & 0xff);
         if (auto sent = Npc::SendRepair(context.random, context.sendNpcWindow, position,
                                         static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
@@ -965,7 +965,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
         return GridHover::Stayed;
     }
     // 0x5c4a8e..0x5c4a9f y 0x5c52b1..0x5c5894: levantarlo.
-    if (runtime.movement.pendingClick && runtime.movement.gateRequestBlocked == 0)
+    if (runtime.mouse.pendingClick && runtime.movement.gateRequestBlocked == 0)
     {
         auto picked = ownTrade ? Items::PickUpFromTheTradeGrid(MovesOf(context), index)
                       : grid.place == Ui::HoveredItem::Place::InventoryCell
@@ -1101,7 +1101,7 @@ Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& contex
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::PanelState& state = runtime.panels;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
     const auto inFoot = [&context, x, y](std::int32_t from, std::int32_t to)
@@ -1128,17 +1128,17 @@ Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& contex
     if (level >= RepairButtonLevel)
     {
         runtime.field78abb10 = 1;
-        if (inFoot(0x30, 0x48) && movement.pendingClick)
+        if (inFoot(0x30, 0x48) && mouse.pendingClick)
         {
-            movement.pendingClick = false;
+            mouse.pendingClick = false;
             state.repairMode ^= 1;
         }
     }
-    if (inFoot(0x14, 0x2c) && movement.pendingClick)
+    if (inFoot(0x14, 0x2c) && mouse.pendingClick)
     {
-        movement.pendingClick = false;
-        movement.mouseUpdateTime = 0;
-        movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        mouse.pendingClick = false;
+        mouse.updateTime = 0;
+        mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
         if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
@@ -1146,9 +1146,9 @@ Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& contex
     {
         if (level < PersonalShopLevel)
             return {};
-        if (movement.pendingClick)
+        if (mouse.pendingClick)
         {
-            movement.pendingClick = false;
+            mouse.pendingClick = false;
             if (auto toggled = toggleThePersonalShop(); !toggled.HasValue())
                 return toggled;
         }
@@ -1180,7 +1180,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     if (!panels.IsOpen(Ui::CharacterPanel))
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const std::int32_t x = runtime.hud.characterX;
     const std::int32_t y = runtime.hud.characterY;
     if (InRect(context, x, y, x + CharacterWindowWidth, y + CharacterWindowHeight))
@@ -1194,9 +1194,9 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
             for (std::int32_t button = 0; button < buttons; ++button)
             {
                 const std::int32_t top = y + 0x73 + button * 0x3c;
-                if (!InRect(context, x + 0x7d, top, x + 0x95, top + 0x18) || !movement.pendingClick)
+                if (!InRect(context, x + 0x7d, top, x + 0x95, top + 0x18) || !mouse.pendingClick)
                     continue;
-                movement.pendingClick = false;
+                mouse.pendingClick = false;
                 if (auto sent = SendRaw(context, Protocol::Player::WriteLevelUpPoint(static_cast<std::uint8_t>(button)),
                                         "0x5e494b");
                     !sent.HasValue())
@@ -1205,11 +1205,11 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
             }
         }
     }
-    if (!InRect(context, x + 0x19, y + 0x18b, x + 0x31, y + 0x1a3) || !movement.pendingClick)
+    if (!InRect(context, x + 0x19, y + 0x18b, x + 0x31, y + 0x1a3) || !mouse.pendingClick)
         return {};
-    movement.pendingClick = false;
-    movement.mouseUpdateTime = 0;
-    movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    mouse.pendingClick = false;
+    mouse.updateTime = 0;
+    mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     if (auto closed = panels.Close(Ui::CharacterPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
@@ -1223,7 +1223,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
 Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const std::int32_t left = panels.IsOpen(Ui::CharacterPanel) ? PetWindowBesideTheCharacter : PetWindowLeft;
     const auto mouseX = static_cast<float>(context.mouseX);
     const auto mouseY = static_cast<float>(context.mouseY);
@@ -1233,11 +1233,10 @@ Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context,
     const auto clickTab = [&](std::uint8_t tab, float top)
     {
         const float x = static_cast<float>(tab * PetTabStep) + base + PetTabLeft;
-        if (x <= mouseX && mouseX <= x + PetTabWidth && top <= mouseY && mouseY <= PetTabBottom &&
-            movement.pendingClick)
+        if (x <= mouseX && mouseX <= x + PetTabWidth && top <= mouseY && mouseY <= PetTabBottom && mouse.pendingClick)
         {
-            movement.leftHeld = false;
-            movement.pendingClick = false;
+            mouse.leftHeld = false;
+            mouse.pendingClick = false;
             runtime.petTab = tab;
         }
     };
@@ -1249,10 +1248,10 @@ Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context,
             clickTab(tab, PetChosenTabTop);
     const float closeLeft = base + PetCloseLeft;
     if (closeLeft <= mouseX && mouseX < closeLeft + PetCloseSize && PetCloseTop <= mouseY &&
-        mouseY < PetCloseTop + PetCloseSize && movement.pendingClick)
+        mouseY < PetCloseTop + PetCloseSize && mouse.pendingClick)
     {
-        movement.leftHeld = false;
-        movement.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.pendingClick = false;
         if (auto closed = panels.Close(Ui::PetPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
@@ -1279,11 +1278,11 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
             return sent;
         pet = 1;
     }
-    Movement::GameMovementState& movement = runtime.movement;
-    if (InRect(context, PetButtonLeft, PetButtonTop, PetButtonRight, PetButtonBottom) && movement.pendingClick)
+    Kernel::MouseState& mouse = runtime.mouse;
+    if (InRect(context, PetButtonLeft, PetButtonTop, PetButtonRight, PetButtonBottom) && mouse.pendingClick)
     {
-        movement.leftHeld = false;
-        movement.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.pendingClick = false;
         auto toggled = panels.IsOpen(Ui::PetPanel) ? panels.Close(Ui::PetPanel) : panels.Open(Ui::PetPanel);
         if (!toggled.HasValue())
             return Core::Unexpected(std::move(toggled).Error());
@@ -1440,9 +1439,9 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
     if (InRect(context, x + 0xe, y + 0x16, x + 0xb0, y + 0x2a))
     {
         context.world.ItemSets().byte9304 = 1;
-        runtime.movement.pendingClick = false;
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        runtime.mouse.pendingClick = false;
+        runtime.mouse.updateTime = 0;
+        runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     }
     return {};
 }
@@ -1671,11 +1670,11 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
         inAGrid = inAGrid || dropped.Value();
     }
     // 0x5dec46..0x5deca1: el clic, consumido, y nada más si quedó en una grilla.
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return {};
-    runtime.movement.pendingClick = false;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    runtime.mouse.pendingClick = false;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     if (inAGrid)
         return {};
     // 0x5deca7..0x5df448: la tienda de NPC, con su rand(); con el mouse en su grilla, venderlo.
@@ -1760,14 +1759,14 @@ void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int3
     ui.skillTooltip = index;
     ui.skillTooltipY = tooltipY;
     ui.mouseOnUi = 1;
-    if (!runtime.movement.pendingClick)
+    if (!runtime.mouse.pendingClick)
         return;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     context.world.Hero().skillIndex = index;
     ui.skillListOpen = 0;
     runtime.RequestSound(ButtonSound);
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = 6;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = 6;
 }
 
 // 0x420e90: con el cuervo (+0x430), los cuatro botones de sus órdenes (las skills 0x78 a 0x7b), de 0x20 desde x 0x100,
@@ -1948,10 +1947,10 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
         ui.skillTooltip = context.world.Hero().skillIndex;
         ui.skillTooltipY = 0x1bc;
         ui.mouseOnUi = 1;
-        runtime.movement.mouseUpdateTime = 0;
-        if (runtime.movement.pendingClick)
+        runtime.mouse.updateTime = 0;
+        if (runtime.mouse.pendingClick)
         {
-            runtime.movement.pendingClick = false;
+            runtime.mouse.pendingClick = false;
             ui.skillListOpen = ui.skillListOpen == 0 ? 1 : 0;
             runtime.RequestSound(ButtonSound);
         }
@@ -2037,11 +2036,11 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
     if (!InRect(context, edit.x, edit.y - 4, edit.x + edit.width, edit.y + edit.height + 4))
         return false;
     ui.mouseOnUi = 1;
-    if (runtime.movement.pendingClick)
+    if (runtime.mouse.pendingClick)
     {
         Chat::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        runtime.mouse.updateTime = 0;
+        runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     }
     return true;
 }
@@ -2057,12 +2056,12 @@ void StepTheChatButtons(const GameUiContext& context)
             runtime.chat.input.field = edit.field;
     }
     if (!InRect(context, WhisperModeLeft, WhisperModeTop, WhisperModeRight, WhisperModeBottom) ||
-        !runtime.movement.pendingClick)
+        !runtime.mouse.pendingClick)
         return;
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     runtime.chat.input.whisperMode = !runtime.chat.input.whisperMode;
-    runtime.movement.mouseUpdateTime = 0;
-    runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    runtime.mouse.updateTime = 0;
+    runtime.mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     runtime.RequestSound(ButtonSound);
 }
 
@@ -2093,7 +2092,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const Input::InputState& input = context.input;
     const Kernel::ActorState& hero = context.world.Hero();
     // 0x59ff32..0x59ff3f: con el recorrido de la cámara (0x4033d0), nada.
@@ -2109,7 +2108,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     StepTheArrowKey(context, UpKey, -1);
     StepTheArrowKey(context, DownKey, 1);
     // 0x5a03c3..0x5a05e5: los botones del HUD, cada uno con su rectángulo: abierto lo cierra y si no lo abre.
-    if (movement.pendingClick)
+    if (mouse.pendingClick)
     {
         struct HudButton
         {
@@ -2128,7 +2127,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         {
             if (!InRect(context, button.left, button.top, button.right, button.bottom))
                 continue;
-            movement.pendingClick = false;
+            mouse.pendingClick = false;
             if (auto toggled = Toggle(panels, button.id); !toggled.HasValue())
                 return toggled;
         }
@@ -2312,40 +2311,6 @@ bool OldWindowKeyEdge(Ui::GameUiState& ui, const Input::InputState& input, std::
 }
 
 // 0x4b3961: un DOWN nuevo rearma held aunque la UI lo hubiera consumido y UP+DOWN lleguen en un mismo pump.
-void LatchTheLeftButton(Movement::GameMovementState& state, bool pressed, bool down)
-{
-    // WM_LBUTTONDBLCLK no toca 0x7d36874 (0x4b4444..0x4b47b6), que solo escriben WM_LBUTTONDOWN (0x4b3961) y
-    // WM_LBUTTONUP (0x4b3cf1): con el segundo apretón de un doble clic como el último, `down` (el de los mensajes,
-    // Input::MouseMessageState) queda en false y el botón queda arriba para el juego mientras se sostiene, hasta el
-    // próximo WM_LBUTTONDOWN.
-    if (!down)
-        state.leftHeld = false;
-    else if (pressed || !state.previousLeftDown)
-        state.leftHeld = true;
-    state.previousLeftDown = down;
-    // WM_LBUTTONDOWN prende el flanco con el botón arriba (0x4b395a) y WM_LBUTTONUP lo apaga (0x4b3ce3): un clic
-    // apretado y soltado en el mismo paso no queda, como después de los dos mensajes.
-    state.pendingClick = down && (state.pendingClick || pressed);
-}
-
-void LatchTheLeftRelease(Movement::GameMovementState& state, bool pressed, bool released, bool down,
-                         std::int32_t mouseX, std::int32_t mouseY)
-{
-    if (state.releasedClick && (state.releaseX != mouseX || state.releaseY != mouseY))
-        state.releasedClick = false;
-    // Apretado después del soltado, el botón queda abajo: el WM_LBUTTONDOWN fue el último.
-    if (pressed && (!released || down))
-    {
-        state.releasedClick = false;
-        return;
-    }
-    if (!released)
-        return;
-    state.releasedClick = true;
-    state.releaseX = mouseX;
-    state.releaseY = mouseY;
-}
-
 void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context, bool effects)
 {
     Kernel::WorldState& world = context.world;
@@ -2395,10 +2360,10 @@ void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context,
 Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
 {
     Ui::GameUiState& ui = runtime.ui;
-    Movement::GameMovementState& movement = runtime.movement;
-    return Ui::OldWindowGlobals{.leftHeld = movement.leftHeld,
-                                .leftClick = movement.pendingClick,
-                                .releasedClick = movement.releasedClick,
+    Kernel::MouseState& mouse = runtime.mouse;
+    return Ui::OldWindowGlobals{.leftHeld = mouse.leftHeld,
+                                .leftClick = mouse.pendingClick,
+                                .releasedClick = mouse.releasedClick,
                                 .mouseOnUi = ui.mouseOnUi,
                                 .hovered = ui.hovered,
                                 .capture = ui.capture,
@@ -2409,8 +2374,8 @@ Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
                                 .wheel = ui.wheel,
                                 .rightClick = ui.rightClick,
                                 .doubleClick = ui.doubleClick,
-                                .mouseUpdateTime = &movement.mouseUpdateTime,
-                                .mouseUpdateTimeMax = &movement.mouseUpdateTimeMax,
+                                .mouseUpdateTime = &mouse.updateTime,
+                                .mouseUpdateTimeMax = &mouse.updateTimeMax,
                                 .soundRequest = [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); }};
 }
 
@@ -2648,7 +2613,7 @@ void KeepTheChosen(const FramePickingContext& context)
         return;
     }
     const bool mouse =
-        runtime.movement.leftHeld || runtime.movement.pendingClick || runtime.ui.rightDown || runtime.ui.rightClick;
+        runtime.mouse.leftHeld || runtime.mouse.pendingClick || runtime.ui.rightDown || runtime.ui.rightClick;
     if (targets[4] == NoTarget || mouse || context.world.Hero().dying != 0)
         targets[2] = NoTarget;
 }

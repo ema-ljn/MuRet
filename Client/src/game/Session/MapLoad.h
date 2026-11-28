@@ -45,7 +45,7 @@ struct MapLoadContext
     // The terrain's state: the load replaces its current terrain and leaves the ground marks (Q-C228).
     Terrain::TerrainState& terrain;
     // DAT_006d5dc8: en la selección (4) no corre 0x510f70.
-    SceneId scene;
+    Kernel::SceneId scene;
     // DAT_057678bc, la clave del jugador que dio el F1 00.
     std::uint16_t playerKey;
     // El rand() de la CRT: el pasto y los objetos que lo piden al crearse.

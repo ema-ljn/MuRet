@@ -38,7 +38,7 @@ public:
     // Suelta sus seis slots, como 0x63c150 al final de 0x622e40.
     void Leave() override;
     // El login, después del último avance (0x622f93).
-    [[nodiscard]] std::optional<SceneId> Next() const override;
+    [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     // Si los modelos no se pudieron leer (falta Player.bmd): el error ya está en el log.
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;

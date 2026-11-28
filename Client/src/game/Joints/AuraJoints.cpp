@@ -6,7 +6,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -47,7 +47,7 @@ constexpr float Tenth8 = std::bit_cast<float>(0x3f4ccccdu);    // 0,8f
 
 // 0x535d4f..0x535db2: el 10f/4 pasa a /9 si el personaje de +0xa0c monta a Fenrir (0x1c37 en +0x318) fuera de la zona
 // segura (+0x3e2), y el /9 vuelve a /4 si no. Con +0xa0c en −1, nada.
-Core::Expected<void, std::string> SwapByFenrir(Scenes::JointState& joint, std::span<const Kernel::ActorState> actors)
+Core::Expected<void, std::string> SwapByFenrir(Kernel::JointState& joint, std::span<const Kernel::ActorState> actors)
 {
     constexpr std::uint16_t FenrirModel = 0x1c37;
     if (joint.target == -1 || (joint.subtype != 4 && joint.subtype != 9))
@@ -66,7 +66,7 @@ Core::Expected<void, std::string> SwapByFenrir(Scenes::JointState& joint, std::s
 }
 
 // 0x5360dc..0x536185: corre los tramos con el destino, restando el viejo y sumando el nuevo en dos vueltas de float.
-void ShiftByTarget(Scenes::JointState& joint, const glm::vec3& target, bool add)
+void ShiftByTarget(Kernel::JointState& joint, const glm::vec3& target, bool add)
 {
     const auto count = joint.count < 0 ? 0 : static_cast<std::size_t>(joint.count);
     for (std::size_t segment = 0; segment < count && segment < joint.points.size(); ++segment)
@@ -79,7 +79,7 @@ void ShiftByTarget(Scenes::JointState& joint, const glm::vec3& target, bool add)
 // encima de su +0x10 + 10. El /4 y el /9 viven mientras el dueño tenga 8 o 0x2000000 en +0x78. Los subtipos sin caso
 // (de 0xa en adelante o negativos, que ningún llamador crea) hacen lo mismo sin correr los tramos ni moverse: el dueño,
 // el destino, el acceso al contador y la dirección, y van a la cola (0x536452).
-Core::Expected<void, std::string> StepTheRing(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepTheRing(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const bool ring = joint.subtype == 0 || joint.subtype == 4 || joint.subtype == 9;
     const auto* owner = JointKernels::ActorOwner(joint);
@@ -136,7 +136,7 @@ Core::Expected<void, std::string> StepTheRing(Scenes::JointState& joint, const J
 }
 
 // 0x536005..0x53606e: el 10f/8 gira 25 en z alrededor de su +0x24, agrega la cola y sube 15.
-Core::Expected<void, std::string> StepTheSpin(Scenes::JointState& joint)
+Core::Expected<void, std::string> StepTheSpin(Kernel::JointState& joint)
 {
     joint.angles.z = F32(D(joint.angles.z) + 25);
     const auto matrix = Math::OriginalAngleMatrix(joint.angles);
@@ -154,7 +154,7 @@ Core::Expected<void, std::string> StepTheSpin(Scenes::JointState& joint)
 // cae 20, gira −5 y ensancha 15. Con la y negativa: la tanda 40 de la /5 y la /6 suelta la onda 0x6eb/3 (0x536626:
 // 0x518cf0(0x6eb, +0x24, ángulos, luz, 3, 0, −1, 0, 0, 0, 0), sin rand(); llena, nada); la tanda sube y, hasta la 20,
 // la y vuelve a −30 y el ancho a 40; después el +0x24 sube 5.
-Core::Expected<void, std::string> StepTheRise(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepTheRise(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr float Brake = std::bit_cast<float>(0x3f733333u);  // 0x6ba30c, 0,95
     constexpr float Floor = std::bit_cast<float>(0xc1200000u);  // 0x5365b3, −10
@@ -223,7 +223,7 @@ Core::Expected<void, std::string> StepTheRise(Scenes::JointState& joint, const J
 // ancho es la vida · 3 y la posición va de la mano del dueño (+0x194, la que deja 0x4f9a0d) hacia el destino
 // (+0x58) corrido por la dirección de 0x53d1a0(17721 · lugar, dir, 1,4f) · 300: con a = (vida − 10) · 0,1 entre 0 y
 // 1, (1 − a) · mano + a · punto. La x del punto suma el producto sin guardarlo en float.
-Core::Expected<void, std::string> StepTheBeam(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepTheBeam(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const auto* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr || !owner->alive)
@@ -266,7 +266,7 @@ Core::Expected<void, std::string> StepTheBeam(Scenes::JointState& joint, const J
 
 } // namespace
 
-Core::Expected<void, std::string> CreateAuraJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
+Core::Expected<void, std::string> CreateAuraJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x530edd: el destino es el +0x10 del dueño, que tiene que estar.
     const auto* owner = JointKernels::ActorOwner(joint);
@@ -347,7 +347,7 @@ Core::Expected<void, std::string> CreateAuraJoint(Scenes::JointState& joint, con
     return {};
 }
 
-Core::Expected<void, std::string> StepAuraJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepAuraJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (auto swapped = SwapByFenrir(joint, services.actors); !swapped.HasValue())
         return swapped;

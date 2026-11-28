@@ -365,7 +365,7 @@ TEST_F(GuildReceiveTest, CreatingAGuildOpensTheSecondWindowAndTheResultClosesIt)
         EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_EQ(Runtime().chat.input.messageBuffer[0], '\0');
         EXPECT_EQ(Runtime().chat.input.messageLength, 0);
-        EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x04, 0x54, 0x00}}));
         EXPECT_EQ(DrawsSince(), 4) << "cerrar 0x40000 no consulta el comercio ni la tienda";
     }

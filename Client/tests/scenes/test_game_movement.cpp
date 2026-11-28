@@ -4,6 +4,7 @@
 #include "Network/Xor32Packet.h"
 #include "Models/IModelLibrary.h"
 #include "Movement/GameMovement.h"
+#include "Session/HeroMovementHooks.h"
 #include "Items/InventoryMoves.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldRuntime.h"
@@ -47,6 +48,7 @@
 
 namespace
 {
+const Client::Session::HeroMovementHooks MovementHooks{};
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
 using Client::Movement::HeroMovementContext;
@@ -110,7 +112,8 @@ public:
                 .playerSkeleton = &skeleton,
                 .skills = &skills,
                 .models = &models,
-                .terrain = &terrain};
+                .terrain = &terrain,
+                .hooks = &MovementHooks};
     }
     WorldState world;
     Client::Terrain::WorldTerrain terrain;
@@ -127,7 +130,8 @@ TEST(GameMovementTest, AStunnedHeroDoesNotTouchTheWaitCounter)
     world.Runtime().warpCounter = 50;
     world.Actors()[0].flags78 = 0x1000;
     const auto before = random.State();
-    const auto result = StepHeroMovement(HeroMovementContext{.world = world, .random = random});
+    const auto result =
+        StepHeroMovement(HeroMovementContext{.world = world, .random = random, .hooks = &MovementHooks});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(world.Runtime().warpCounter, 50);
     EXPECT_EQ(random.State(), before);
@@ -140,7 +144,8 @@ TEST(GameMovementTest, ADyingHeroDoesNotTouchTheWaitCounter)
     world.Runtime().warpCounter = 50;
     world.Actors()[0].dying = 1;
     const auto before = random.State();
-    const auto result = StepHeroMovement(HeroMovementContext{.world = world, .random = random});
+    const auto result =
+        StepHeroMovement(HeroMovementContext{.world = world, .random = random, .hooks = &MovementHooks});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(world.Runtime().warpCounter, 50);
     EXPECT_EQ(random.State(), before);
@@ -154,7 +159,8 @@ TEST(GameMovementTest, TheWaitCounterUsesTwoIndependentCloses)
     CrtRandom expected = random;
     for (int i = 0; i < 8; ++i)
         static_cast<void>(expected.Next());
-    const auto result = StepHeroMovement(HeroMovementContext{.world = world, .random = random});
+    const auto result =
+        StepHeroMovement(HeroMovementContext{.world = world, .random = random, .hooks = &MovementHooks});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(world.Runtime().warpCounter, 49);
     EXPECT_EQ(random.State(), expected.State());
@@ -171,7 +177,7 @@ TEST(GameMovementTest, AnOrdinaryIdleStepClosesTheOwnRecord)
     const auto result = StepHeroMovement(tested.Context());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.random.State(), expected.State());
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 1);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTime, 1);
 }
 
 TEST(GameMovementTest, AClickBeforeTheWindowExpiresStaysPending)
@@ -182,14 +188,14 @@ TEST(GameMovementTest, AClickBeforeTheWindowExpiresStaysPending)
     context.input.leftDown = true;
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_TRUE(tested.world.Runtime().movement.pendingClick);
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 1);
+    EXPECT_TRUE(tested.world.Runtime().mouse.pendingClick);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTime, 1);
 }
 
 TEST(GameMovementTest, AShiftClickIsConsumedWithoutPicking)
 {
     MovingHero tested;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
     context.input.leftDown = true;
@@ -203,14 +209,14 @@ TEST(GameMovementTest, AShiftClickIsConsumedWithoutPicking)
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(picks, 0);
-    EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 1);
+    EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTime, 1);
 }
 
 TEST(GameMovementTest, TheMouseOnTheUiDoesNotAdvanceTheClickWindow)
 {
     MovingHero tested;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     // 0x775857c: la UI del paso la prende con el mouse en la barra (y ≥ 432) o sobre un panel.
     tested.world.Runtime().ui.mouseOnUi = 1;
     auto context = tested.Context();
@@ -219,8 +225,8 @@ TEST(GameMovementTest, TheMouseOnTheUiDoesNotAdvanceTheClickWindow)
     context.input.leftDown = true;
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 6);
-    EXPECT_TRUE(tested.world.Runtime().movement.pendingClick);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTime, 6);
+    EXPECT_TRUE(tested.world.Runtime().mouse.pendingClick);
 }
 
 TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
@@ -229,7 +235,7 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     // El cable no captura ocupantes. Esta celda fuerza el camino documentado7,6,7;
     // en una grilla vacía el A* nativo puede elegir7,7,6 con la misma meta.
     tested.terrain.attributes->cells[115 * 256 + 180] = 2;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
     context.input.leftDown = true;
@@ -254,7 +260,7 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     EXPECT_EQ(bytes, expected);
     EXPECT_EQ(tested.world.Actors()[0].movement, 1);
     EXPECT_EQ(tested.world.Actors()[0].movementType, 0);
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 16);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTimeMax, 16);
 }
 // CL9 hito 11, 0x56b4db..0x56b78f: con la ventana de los eventos (0x78abb00) abierta, después del D3 va el C1 03 97,
 // 0x78abb00 vuelve a 0, el cursor queda pedido en SetCursorPos(x · ancho / 260, y · alto / 480) (Q-C1330), 0x6c8dcc
@@ -273,7 +279,7 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
     {
         out.tested = std::make_unique<MovingHero>();
         out.tested->world.Runtime().map = map;
-        out.tested->world.Runtime().movement.mouseUpdateTime = 6;
+        out.tested->world.Runtime().mouse.updateTime = 6;
         out.tested->world.Runtime().panels.field78abb00 = window;
         if (window == 3)
         {
@@ -317,12 +323,13 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
             const auto result = walk(map, window, left);
             ASSERT_TRUE(result.HasValue()) << result.Error();
             const Client::Movement::GameMovementState& movement = left.tested->world.Runtime().movement;
+            const Client::Kernel::MouseState& mouse = left.tested->world.Runtime().mouse;
             EXPECT_EQ(left.sent, (std::vector<std::string>{"D3", "97"}));
             ASSERT_TRUE(movement.cursorWarpRequest.has_value());
             EXPECT_EQ(*movement.cursorWarpRequest, (std::array<std::int32_t, 2>{400, 300}));
             EXPECT_EQ(left.tested->world.Runtime().panels.field78abb00, 0);
-            EXPECT_EQ(movement.mouseUpdateTimeMax, 6);
-            EXPECT_FALSE(movement.leftHeld);
+            EXPECT_EQ(mouse.updateTimeMax, 6);
+            EXPECT_FALSE(mouse.leftHeld);
         }
 
         Walk serial;
@@ -352,7 +359,7 @@ TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
         SCOPED_TRACE(map);
         auto tested = std::make_unique<MovingHero>();
         tested->world.Runtime().map = map;
-        tested->world.Runtime().movement.mouseUpdateTime = 6;
+        tested->world.Runtime().mouse.updateTime = 6;
         tested->world.Runtime().panels.trade = 1;
         tested->world.Runtime().panels.inventory = 1;
         std::vector<std::vector<std::byte>> sent;
@@ -392,7 +399,7 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
         SCOPED_TRACE(map);
         auto tested = std::make_unique<MovingHero>();
         tested->world.Runtime().map = map;
-        tested->world.Runtime().movement.mouseUpdateTime = 6;
+        tested->world.Runtime().mouse.updateTime = 6;
         tested->world.Runtime().panels.delegated.secondGuild = 1;
         std::vector<std::vector<std::byte>> sent;
         auto context = tested->Context();
@@ -447,7 +454,7 @@ TEST(GameMovementTest, AWalkWithAnNpcWindowOpenClosesItAfterTheD3)
             auto tested = std::make_unique<MovingHero>();
             auto& runtime = tested->world.Runtime();
             runtime.map = map;
-            runtime.movement.mouseUpdateTime = 6;
+            runtime.mouse.updateTime = 6;
             runtime.panels.*window.open = 1;
             runtime.panels.inventory = 1;
             runtime.npcWindows.grid[5].id = 0x0c01;
@@ -492,7 +499,7 @@ TEST(GameMovementTest, ATransformedHeroUsesItsSevenActionModelFromClickThroughAr
     MovingHero tested;
     auto& hero = tested.world.Actors()[0];
     hero.type = TransformedModel;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     tested.world.ActionSpeeds().Set(2, 3.25f);
     auto context = tested.Context();
     context.playerSkeleton = nullptr;
@@ -536,7 +543,7 @@ TEST(GameMovementTest, ATransformedHeroUsesTheBaseLibrarySkeletonWhenAttackingOn
     auto& runtime = tested.world.Runtime();
     auto& hero = tested.world.Actors()[0];
     hero.type = TransformedModel;
-    runtime.movement.mouseUpdateTime = 6;
+    runtime.mouse.updateTime = 6;
     tested.world.ActionSpeeds().Set(2, 3.25f);
     auto& target = tested.world.Actors()[13];
     target.alive = true;
@@ -601,7 +608,7 @@ TEST(GameMovementTest, AClickDuringTheWarpWaitRemainsPending)
     context.input.leftDown = true;
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_TRUE(tested.world.Runtime().movement.pendingClick);
+    EXPECT_TRUE(tested.world.Runtime().mouse.pendingClick);
 }
 TEST(GameMovementTest, TheHeroLooksAtTheMouseBeforeMoving)
 {
@@ -805,7 +812,7 @@ std::unique_ptr<MovingHero> AHeroClickingAPlayer(std::uint8_t cellX)
 {
     auto tested = std::make_unique<MovingHero>();
     auto& runtime = tested->world.Runtime();
-    runtime.movement.mouseUpdateTime = 6;
+    runtime.mouse.updateTime = 6;
     runtime.selectedTargets[2] = static_cast<std::int32_t>(ChosenSlot);
     auto& chosen = tested->world.Actors()[ChosenSlot];
     chosen.alive = true;
@@ -865,7 +872,7 @@ TEST(GameMovementTest, AClickOnAPlayerWithCtrlWalksToItAndRemembersIt)
             const auto& runtime = tested->world.Runtime();
             const auto& hero = tested->world.Actors()[0];
             EXPECT_EQ(walk.count, 1);
-            EXPECT_EQ(runtime.movement.mouseUpdateTime, 1);
+            EXPECT_EQ(runtime.mouse.updateTime, 1);
             EXPECT_EQ(hero.movement, 1);
             if (!control || safeZone != 0)
             {
@@ -918,7 +925,7 @@ TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->world.Runtime().movement.attackTarget, static_cast<std::int32_t>(ChosenSlot));
         EXPECT_EQ(tested->world.Actors()[0].movementType, 3);
-        EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTime, 1);
+        EXPECT_EQ(tested->world.Runtime().mouse.updateTime, 1);
         if (wall == 4)
         {
             EXPECT_EQ(walks, 0);
@@ -994,7 +1001,7 @@ TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarClearsTh
         if (probe.altar != 0)
         {
             tested->world.Actors()[AltarSlot].type = probe.altar;
-            runtime.movement.chosenNpc = static_cast<std::int32_t>(AltarSlot);
+            runtime.chosenNpc.index = static_cast<std::int32_t>(AltarSlot);
         }
         auto context = tested->Context();
         context.input.leftPressed = true;
@@ -1062,7 +1069,7 @@ TEST(GameMovementTest, ABowWithoutArrowsLeavesMoveHero)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(walks, 0);
     EXPECT_EQ(texts, std::vector<std::size_t>{251});
-    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTime, 0);
+    EXPECT_EQ(tested->world.Runtime().mouse.updateTime, 0);
     EXPECT_EQ(tested->world.Actors()[0].path.count, 4u);
     // Las celdas, las manos y los dos accesos de 0x561c50.
     EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClick + 4 * CellDraws + 3 * OwnDraws).State());
@@ -1124,8 +1131,8 @@ TEST(GameMovementTest, AWalkingElfWithABowSendsItsCellAndShoots)
     EXPECT_EQ(hero.byte381, 1);
     EXPECT_EQ(hero.movement, 0);
     // 0x5653c1 pone el contador en su tope antes de la suma de 0x59e248.
-    const auto& movement = tested->world.Runtime().movement;
-    EXPECT_EQ(movement.mouseUpdateTime, movement.mouseUpdateTimeMax + 1);
+    const Client::Kernel::MouseState& mouse = tested->world.Runtime().mouse;
+    EXPECT_EQ(mouse.updateTime, mouse.updateTimeMax + 1);
 }
 
 // 0x59b89e..0x59b8cd: con el ataque automático, el otro elegido (0x6c8e38) en 1 y un elegido, el clic vuelve solo,
@@ -1232,7 +1239,7 @@ TEST(GameMovementTest, TheShockActionConsumesTheClickWithoutStartingAnotherPath)
 {
     MovingHero tested;
     tested.world.Actors()[0].animation.action = 0xc2;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
     context.input.leftDown = true;
@@ -1245,8 +1252,8 @@ TEST(GameMovementTest, TheShockActionConsumesTheClickWithoutStartingAnotherPath)
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(picks, 0);
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 7);
-    EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTime, 7);
+    EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
 }
 
 TEST(GameMovementTest, TheActionPrefixFadesBeforeItsOwnAndSkillReads)
@@ -1285,7 +1292,7 @@ TEST(GameMovementTest, AShiftClickClosesItsOwnRecordBeforeTheActionPrefix)
     {
         MovingHero tested;
         tested.world.Runtime().ownRecordDepth = depth;
-        tested.world.Runtime().movement.mouseUpdateTime = 6;
+        tested.world.Runtime().mouse.updateTime = 6;
         auto context = tested.Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
@@ -1303,7 +1310,7 @@ TEST(GameMovementTest, AShiftClickClosesItsOwnRecordBeforeTheActionPrefix)
 TEST(GameMovementTest, AClickClosesBeforePickingAndReadsTwoWindowsAfterSending)
 {
     MovingHero tested;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
     context.input.leftDown = true;
@@ -1343,7 +1350,7 @@ HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32
     tested.world.OwnCharacter().equipment[0].id = right;
     tested.world.OwnCharacter().equipment[1].id = left;
     tested.world.Runtime().cursorItemCount = cursorItemCount;
-    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    tested.world.Runtime().mouse.updateTime = 6;
     auto context = tested.Context();
     context.inventory = inventory;
     context.input.leftPressed = true;
@@ -1438,7 +1445,8 @@ TEST(GameMovementTest, AContinuouslyHeldClickExpiresAtOneHourUntilReleased)
 {
     MovingHero tested;
     auto& state = tested.world.Runtime().movement;
-    state.mouseUpdateTime = 6;
+    Client::Kernel::MouseState& mouse = tested.world.Runtime().mouse;
+    mouse.updateTime = 6;
     auto context = tested.Context();
     context.input.leftDown = true;
     context.input.worldTime = 3'600'000.0f;
@@ -1450,8 +1458,8 @@ TEST(GameMovementTest, AContinuouslyHeldClickExpiresAtOneHourUntilReleased)
     };
     ASSERT_TRUE(StepHeroMovement(context).HasValue());
     EXPECT_EQ(picks, 0);
-    EXPECT_FALSE(state.leftHeld);
-    EXPECT_FALSE(state.pendingClick);
+    EXPECT_FALSE(mouse.leftHeld);
+    EXPECT_FALSE(mouse.pendingClick);
     ASSERT_TRUE(StepHeroMovement(context).HasValue());
     EXPECT_EQ(picks, 0);
     context.input.leftDown = false;
@@ -1469,10 +1477,11 @@ TEST(GameMovementTest, IdleInputRefreshesTheHoldClockOnlyWhenTheCadenceAllowsIt)
     auto context = tested.Context();
     context.input.worldTime = 100;
     auto& state = tested.world.Runtime().movement;
+    Client::Kernel::MouseState& mouse = tested.world.Runtime().mouse;
     state.heldSince = 42;
     ASSERT_TRUE(StepHeroMovement(context).HasValue());
     EXPECT_FLOAT_EQ(state.heldSince, 42);
-    state.mouseUpdateTime = 6;
+    mouse.updateTime = 6;
     ASSERT_TRUE(StepHeroMovement(context).HasValue());
     EXPECT_FLOAT_EQ(state.heldSince, 100);
     state.movementBlocked = true;

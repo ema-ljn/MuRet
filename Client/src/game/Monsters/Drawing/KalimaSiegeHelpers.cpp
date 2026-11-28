@@ -13,7 +13,6 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
 #include "Effects/KundunEffects.h"
 #include "Kernel/JointRequest.h"
 #include "MapScripts/Kalima/KalimaWorld.h"

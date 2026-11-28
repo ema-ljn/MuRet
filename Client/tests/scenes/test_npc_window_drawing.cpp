@@ -438,16 +438,16 @@ TEST_P(NpcWindowDrawingTest, RepairAllSpendsThePendingClick)
 {
     Open();
     Runtime().panels.field78abb09 = 1;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
 
     ASSERT_TRUE(DrawTheShop(375, 380, true).HasValue());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
 
     m_text.texts.clear();
     m_sprites.Begin(Screen640);
     ASSERT_TRUE(DrawTheShop(375, 380).HasValue());
 
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     std::vector<DrawnQuad> quads = TexturedQuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 2 + GridCells + 6);
     ExpectQuadAt(quads[6 + GridCells], 0x11f, RepairAllX, FootY, 24.0f, 24.0f);

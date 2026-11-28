@@ -521,7 +521,7 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             : 0.0f;
     return {.world = *m_context.world,
             .random = m_context.cloth->random,
-            .scene = SceneId::CharacterSelect,
+            .scene = Kernel::SceneId::CharacterSelect,
             .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId),
             .items = m_items,
             .terrain = StepTerrain(),
@@ -576,7 +576,7 @@ void CharacterSelectScene::StepCharacters()
                                                                      .models = &m_models,
                                                                      .random = m_context.cloth->random,
                                                                      .worldClock = worldClock,
-                                                                     .scene = SceneId::CharacterSelect,
+                                                                     .scene = Kernel::SceneId::CharacterSelect,
                                                                      .terrain = StepTerrain(),
                                                                      .logicSteps = m_context.cloth->logicSteps});
             !helpers.HasValue())
@@ -1204,7 +1204,7 @@ void CharacterSelectScene::TryToEnter()
         m_context.world->PrepareSelectedActor(*chosen, m_context.cloth->random);
     }
     m_context.log.Info("se elige el personaje del lugar {} para entrar al mundo", chosen->slot);
-    m_next = SceneId::WorldLoading;
+    m_next = Kernel::SceneId::WorldLoading;
 }
 
 Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& character) const
@@ -1295,7 +1295,7 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     // trapecio del terreno.
     Camera::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = Terrain::CullingScene::CharacterSelect;
-    const std::optional<Render::Frame::SceneWorld> world = WorldOf(SceneId::CharacterSelect);
+    const std::optional<Render::Frame::SceneWorld> world = WorldOf(Kernel::SceneId::CharacterSelect);
     const std::uint8_t map = world ? world->map : 0;
     cameraInput.map = map;
     const Render::Camera3D camera = StepTheCameraAndTheTrapezoid(cameraInput, canvas.frameClock);
@@ -1554,7 +1554,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             { return Actors::Drawing::PublishPose(*poseCarry, m_models, object, true); },
             .publishProjectedPose = true,
             .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry->meshes); },
-            .scene = SceneId::CharacterSelect,
+            .scene = Kernel::SceneId::CharacterSelect,
             .lighting = &m_world.FrameLighting(),
             .sprites = &m_world.FrameSprites(),
             .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
@@ -1924,7 +1924,7 @@ void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canva
     m_create.Draw(canvas.sprites, canvas.text, canvas.screen);
 }
 
-std::optional<SceneId> CharacterSelectScene::Next() const
+std::optional<Kernel::SceneId> CharacterSelectScene::Next() const
 {
     return m_next;
 }

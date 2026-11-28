@@ -8,13 +8,13 @@
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "ChaosMix/ChaosMix.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Items/HudItems.h"
 #include "Items/InventoryMoves.h"
 #include "Items/ItemPrice.h"
 #include "Npc/NpcWindowState.h"
 #include "Npc/NpcWindows.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
@@ -119,16 +119,16 @@ bool Inside(const Hud::GameUiContext& context, const Rect& rect)
 }
 
 // 0x7d36874 y 0x7d366d4 en 0.
-void ConsumeTheClick(Movement::GameMovementState& movement)
+void ConsumeTheClick(Kernel::MouseState& mouse)
 {
-    movement.leftHeld = false;
-    movement.pendingClick = false;
+    mouse.leftHeld = false;
+    mouse.pendingClick = false;
 }
 
 // El botón de `count` desde `firstTop` cada `step` bajo el mouse con el clic, como lo recorren 0x44b580 y 0x44b972.
 std::optional<std::size_t> PressedButton(const Hud::GameUiContext& context, std::int32_t firstTop, std::int32_t step)
 {
-    if (!context.world.Runtime().movement.pendingClick)
+    if (!context.world.Runtime().mouse.pendingClick)
         return std::nullopt;
     std::size_t button = 0;
     for (std::int32_t top = firstTop; top < ButtonsEnd; top += step, ++button)
@@ -331,15 +331,15 @@ Core::Expected<void, std::string> StepTheTrainerMenu(const Hud::GameUiContext& c
     const std::optional<std::size_t> pressed = PressedButton(context, MenuFirstTop, MenuStep);
     if (!pressed)
     {
-        if (!Inside(context, SmallClose) || !runtime.movement.pendingClick)
+        if (!Inside(context, SmallClose) || !runtime.mouse.pendingClick)
             return {};
-        ConsumeTheClick(runtime.movement);
+        ConsumeTheClick(runtime.mouse);
         auto closed = CloseTheTrainer(context.world, context.inventory, context.sendNpcWindow);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         return {};
     }
-    ConsumeTheClick(runtime.movement);
+    ConsumeTheClick(runtime.mouse);
     if (*pressed == RecoveryButton)
     {
         // 0x449960.
@@ -359,21 +359,21 @@ Core::Expected<void, std::string> StepTheTrainerMenu(const Hud::GameUiContext& c
 Core::Expected<void, std::string> StepThePetRecovery(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (Inside(context, SmallWindow))
         runtime.ui.mouseOnUi = 1;
     const std::optional<std::size_t> pressed = PressedButton(context, RecoveryFirstTop, RecoveryStep);
     if (!pressed)
     {
-        if (!Inside(context, SmallClose) || !movement.pendingClick)
+        if (!Inside(context, SmallClose) || !mouse.pendingClick)
             return {};
-        ConsumeTheClick(movement);
+        ConsumeTheClick(mouse);
         auto closed = CloseTheTrainer(context.world, context.inventory, context.sendNpcWindow);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         return {};
     }
-    ConsumeTheClick(movement);
+    ConsumeTheClick(mouse);
     const Pet& pet = Pets[*pressed];
     auto quoted =
         QuoteThePetRecovery(PetQuoteContext{.world = context.world,
@@ -406,12 +406,12 @@ Core::Expected<void, std::string> StepThePetRecovery(const Hud::GameUiContext& c
 Core::Expected<void, std::string> StepTheTrainerBox(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (Inside(context, BoxWindow))
         runtime.ui.mouseOnUi = 1;
-    if (Inside(context, MixButton) && movement.pendingClick)
+    if (Inside(context, MixButton) && mouse.pendingClick)
     {
-        ConsumeTheClick(movement);
+        ConsumeTheClick(mouse);
         const std::uint8_t kind = runtime.panels.delegated.field724584;
         if (kind == HorseMix || kind == RavenMix)
         {
@@ -423,9 +423,9 @@ Core::Expected<void, std::string> StepTheTrainerBox(const Hud::GameUiContext& co
                 return sent;
         }
     }
-    if (Inside(context, BoxClose) && movement.pendingClick)
+    if (Inside(context, BoxClose) && mouse.pendingClick)
     {
-        ConsumeTheClick(movement);
+        ConsumeTheClick(mouse);
         // 0x44d661: 0x65cae0(0x8000, 0).
         if (auto closed = panels.Close(Ui::TrainerPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());

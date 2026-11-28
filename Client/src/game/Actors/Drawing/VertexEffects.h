@@ -35,12 +35,8 @@ class Particles;
 namespace Client::Kernel
 {
 struct ActorState;
-} // namespace Client::Kernel
-
-namespace Client::Scenes
-{
 struct JointState;
-} // namespace Client::Scenes
+} // namespace Client::Kernel
 
 namespace Client::Actors
 {
@@ -72,7 +68,7 @@ struct VertexEffectTables
     Particles::Particles* particles = nullptr;
     float worldClock = 0.0f;
     Particles::FrameSprites* sprites = nullptr;
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
     const IEffectHooks* effectHooks = nullptr;
 };

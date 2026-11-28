@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
 
@@ -27,9 +27,9 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::JointOwnerKind;
+using Client::Kernel::JointState;
 using Client::Math::Detail::CosineDoubleProductPC53;
 using Client::Math::Detail::SineDoubleProductPC53;
-using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x60fu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);           // 0x6b87b8

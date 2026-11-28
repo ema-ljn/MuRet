@@ -1,14 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/WorldTextQueue.h"
 
-#include <glm/ext/vector_float3.hpp>
-
-#include <array>
-#include <cstddef>
-#include <deque>
 #include <string>
-#include <string_view>
 
 namespace Client::Render
 {
@@ -36,25 +31,10 @@ struct GameProjection;
 namespace Client::Hud
 {
 
-// 0x4381f0: el texto, copiado en 64 bytes, y la posición.
-inline constexpr std::size_t WorldTextSize = 64;
-
-struct WorldText
-{
-    std::array<char, WorldTextSize> text{};
-    glm::vec3 position{};
-};
-
-using WorldTextQueue = std::deque<WorldText>;
-
-// 0x4381f0(texto, posición): copia los primeros 64 bytes del texto (los 0x10 dwords de 0x438209, aunque el texto sea
-// más corto: MuRet completa con 0 lo que el original toma de la pila) y la posición, y los pone al final de la cola.
-void QueueWorldText(WorldTextQueue& queue, std::string_view text, const glm::vec3& position);
-
 struct WorldTextDrawContext
 {
     // 0x723c18. En un dibujo intermedio de MuRet la cola se lee sin vaciarla: la vacía el frame del original.
-    WorldTextQueue& queue;
+    Kernel::WorldTextQueue& queue;
     // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, una entrada en la cola corta.
     const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;

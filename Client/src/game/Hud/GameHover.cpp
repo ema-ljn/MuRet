@@ -9,7 +9,7 @@
 #include "Kernel/ActorState.h"
 #include "Chat/ChatBubbles.h"
 #include "Items/FloorItemNames.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Hud/GamePanels.h"
 #include "PersonalShop/PersonalShopTitles.h"
 #include "Social/SocialState.h"

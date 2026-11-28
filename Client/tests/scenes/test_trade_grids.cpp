@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Hud/GameUi.h"
 
@@ -296,7 +297,7 @@ protected:
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool click)
     {
         if (click)
-            Client::Hud::LatchTheLeftButton(game->world.Runtime().movement, true, true);
+            Client::Kernel::LatchTheLeftButton(game->world.Runtime().mouse, true, true);
         return Client::Hud::StepTheGameUi(Client::Hud::GameUiContext{.world = game->world,
                                                                      .random = game->cloth.random,
                                                                      .input = input,
@@ -368,7 +369,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
     EXPECT_EQ(trade.ownOk, 0);
     EXPECT_EQ(runtime.ui.field78abb39, 1);
     EXPECT_EQ(runtime.itemMoveTarget, 2);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 
     // La respuesta: 0x5bc740 en la grilla propia, sin rand() con el registro abierto.
     expected = Random();
@@ -484,7 +485,7 @@ TEST_P(TradeGridsTest, TheRightClickOnTheOwnGridIsTheInventoryBranch)
     ASSERT_TRUE(Client::Items::ApplyItemMoveResult({1, 6, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
     ASSERT_EQ(trade.ownGrid[6].id, 0x1c00);
     // El botón izquierdo suelto (WM_LBUTTONUP): el clic de antes ya no queda.
-    Client::Hud::LatchTheLeftButton(runtime.movement, false, false);
+    Client::Kernel::LatchTheLeftButton(runtime.mouse, false, false);
 
     runtime.ui.rightClick = true;
     CrtRandom expected = Advanced(Random(), QuietStepRandoms + TradeQueryRandoms);
@@ -528,7 +529,7 @@ TEST_P(TradeGridsTest, WhatIsNotTradedStaysInTheCursor)
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(runtime.cursorItemCount, 1);
     EXPECT_EQ(runtime.ui.field78abb39, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 
     // Un bastón que no entra desde la fila 2 (3 de alto): la marca 3 en las dos casillas de la grilla.
     runtime.cursorItem.id = StaffType;

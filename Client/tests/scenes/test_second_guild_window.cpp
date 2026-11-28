@@ -11,10 +11,10 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Chat/GameChat.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Guild/GuildMarks.h"
 #include "Guild/GuildPanels.h"
@@ -266,15 +266,15 @@ protected:
         const Client::Ui::OldWindowBase& base = Guild().secondWindow.buttons[button].base;
         m_mouseX = base.x + base.width / 2;
         m_mouseY = base.y + base.height / 2;
-        Client::Movement::GameMovementState& movement = Runtime().movement;
-        movement.pendingClick = true;
-        movement.leftHeld = true;
+        Client::Kernel::MouseState& mouse = Runtime().mouse;
+        mouse.pendingClick = true;
+        mouse.leftHeld = true;
         Frame();
-        movement.pendingClick = false;
-        movement.leftHeld = false;
-        movement.releasedClick = true;
+        mouse.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.releasedClick = true;
         Frame();
-        movement.releasedClick = false;
+        mouse.releasedClick = false;
     }
 
     // El izquierdo abajo sobre el cuadro (fila, columna) de la grilla de la marca.
@@ -282,9 +282,9 @@ protected:
     {
         m_mouseX = WindowX + 0x32 + column * 15 + 7;
         m_mouseY = WindowY + 0x64 + row * 15 + 7;
-        Runtime().movement.leftHeld = true;
+        Runtime().mouse.leftHeld = true;
         Frame();
-        Runtime().movement.leftHeld = false;
+        Runtime().mouse.leftHeld = false;
     }
 
     // El flanco del clic sobre el color (fila, columna) de la paleta.
@@ -292,7 +292,7 @@ protected:
     {
         m_mouseX = WindowX + 0xf + column * 20 + 10;
         m_mouseY = WindowY + 0x104 + row * 20 + 10;
-        Runtime().movement.pendingClick = true;
+        Runtime().mouse.pendingClick = true;
         Frame();
     }
 
@@ -452,14 +452,14 @@ TEST_P(SecondGuildWindowTest, ASecondClickOnTheMarkGetsTheBusyNotice)
 TEST_P(SecondGuildWindowTest, TheCloseButtonAnswersNoTwiceAndClosesTheWindow)
 {
     OpenIt();
-    Runtime().movement.mouseUpdateTime = 3;
+    Runtime().mouse.updateTime = 3;
     m_mouseX = WindowX + 0x19 + 5;
     m_mouseY = 0x18b + 5;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step().HasValue());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_EQ(Runtime().movement.mouseUpdateTime, 0);
-    EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
+    EXPECT_EQ(Runtime().mouse.updateTime, 0);
+    EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
     ASSERT_EQ(m_sent.size(), 2u);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x04, 0x54, 0x00}));
@@ -495,7 +495,7 @@ TEST_P(SecondGuildWindowTest, TheEditorPaintsErasesAndChoosesColors)
     Guild().createStep = 1;
     Choose(1, 3);
     EXPECT_EQ(Guild().markColor, 11);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FLOAT_EQ(Hero().angles.z, 112.5f);
     Paint(2, 5);

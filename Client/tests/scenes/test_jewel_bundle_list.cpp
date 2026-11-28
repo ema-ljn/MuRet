@@ -11,7 +11,6 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
@@ -101,13 +100,13 @@ public:
     // Sin el clic.
     Client::ChaosMix::BundleListStep Step(std::int32_t x, std::int32_t y)
     {
-        world->Runtime().movement.pendingClick = false;
+        world->Runtime().mouse.pendingClick = false;
         return Run(x, y);
     }
 
     Client::ChaosMix::BundleListStep Click(std::int32_t x, std::int32_t y)
     {
-        world->Runtime().movement.pendingClick = true;
+        world->Runtime().mouse.pendingClick = true;
         return Run(x, y);
     }
 
@@ -245,7 +244,7 @@ TEST(JewelBundleListTest, TheBarArrowsAndTheTrackScroll)
         EXPECT_EQ(list.arrowRepeat, 1);
         EXPECT_EQ(runtime.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
         EXPECT_EQ(runtime.Runtime().ui.focusedList, list.id);
-        EXPECT_TRUE(runtime.Runtime().movement.pendingClick);
+        EXPECT_TRUE(runtime.Runtime().mouse.pendingClick);
         runtime.Runtime().lastSoundId.reset();
         for (int step = 0; step < 14; ++step)
             static_cast<void>(tested.Click(400, 241));
@@ -362,11 +361,11 @@ TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheDoubleClick)
         EXPECT_FALSE(stepped.asked.has_value());
         EXPECT_EQ(list.selection, 2);
         EXPECT_EQ(list.rows[1].flag, 1);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         static_cast<void>(tested.Click(RowX, secondRowY));
         EXPECT_EQ(list.rows[1].flag, 0);
         static_cast<void>(tested.Click(OutsideX, secondRowY));
-        EXPECT_TRUE(runtime.movement.pendingClick);
+        EXPECT_TRUE(runtime.mouse.pendingClick);
 
         runtime.ui.doubleClick = true;
         stepped = tested.Step(RowX, 3 * 13 + 230);
@@ -540,7 +539,7 @@ TEST(JewelBundleListTest, ThePressedArrowFlipsAndAnIntermediateDrawWritesNothing
         tested.world->Runtime().npcWindows.jewels.kind = 0;
         for (std::int32_t cell = 0; cell < 12; ++cell)
             Client::ChaosMix::AddTheBundle(list, cell, 0);
-        tested.world->Runtime().movement.pendingClick = true;
+        tested.world->Runtime().mouse.pendingClick = true;
         tested.mouse = {397, 345};
         ASSERT_TRUE(tested.Draw(true).HasValue());
         EXPECT_EQ(list.x, 0);

@@ -1,5 +1,5 @@
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include <gtest/gtest.h>
 #include <array>
 #include <cstddef>
@@ -8,7 +8,7 @@
 
 TEST(GameRibbonCreationTest, ExistingOwnerWithNonPositiveKeyReusesItsLifeAndShiftsItsHistory)
 {
-    std::array<Client::Scenes::RibbonState, 2> ribbons{};
+    std::array<Client::Kernel::RibbonState, 2> ribbons{};
     std::uint16_t equipment = 0;
     const Client::Actors::Drawing::RibbonCreateRequest request{&equipment,         &equipment, {1, 2, 3}, {4, 5, 6},
                                                                {0.2f, 0.3f, 0.4f}, 3,          false,     7};
@@ -37,7 +37,7 @@ TEST(GameRibbonCreationTest, ExistingOwnerWithNonPositiveKeyReusesItsLifeAndShif
 
 TEST(GameRibbonCreationTest, PositiveKeysSplitAnOwnerAndAFullPoolDoesNotOverwrite)
 {
-    std::array<Client::Scenes::RibbonState, 2> ribbons{};
+    std::array<Client::Kernel::RibbonState, 2> ribbons{};
     std::uint16_t equipment = 1;
     Client::Actors::Drawing::RibbonCreateRequest request{&equipment, &equipment, {}, {}, {}, 0, true, 1};
     ASSERT_TRUE(Client::Actors::Drawing::CreateRibbon(ribbons, request).HasValue());
@@ -56,7 +56,7 @@ TEST(GameRibbonCreationTest, PositiveKeysSplitAnOwnerAndAFullPoolDoesNotOverwrit
 
 TEST(GameRibbonCreationTest, StepDuplicatesTheHeadAndExpiresOnlyAfterItsExtraCountDecrement)
 {
-    std::array<Client::Scenes::RibbonState, 1> ribbons{};
+    std::array<Client::Kernel::RibbonState, 1> ribbons{};
     auto& ribbon = ribbons[0];
     ribbon.alive = true;
     ribbon.life = 1;
@@ -77,13 +77,13 @@ TEST(GameRibbonCreationTest, StepDuplicatesTheHeadAndExpiresOnlyAfterItsExtraCou
 
 TEST(GameRibbonCreationTest, ReemissionAfterTwoTicksReplacesBothHeadsWithoutShiftingTheRetainedPayload)
 {
-    std::array<Client::Scenes::RibbonState, 1> ribbons{};
+    std::array<Client::Kernel::RibbonState, 1> ribbons{};
     std::uint16_t equipment = 7;
     const Client::Actors::Drawing::RibbonCreateRequest request{&equipment,         &equipment, {1, 2, 3}, {4, 5, 6},
                                                                {0.2f, 0.3f, 0.4f}, 3,          false,     7};
     ASSERT_TRUE(Client::Actors::Drawing::CreateRibbon(ribbons, request).HasValue());
     auto& ribbon = ribbons[0];
-    for (std::size_t index = 1; index < Client::Scenes::RibbonPointCount; ++index)
+    for (std::size_t index = 1; index < Client::Kernel::RibbonPointCount; ++index)
     {
         ribbon.first[index] = glm::vec3(static_cast<float>(index));
         ribbon.second[index] = -ribbon.first[index];
@@ -115,7 +115,7 @@ TEST(GameRibbonCreationTest, ReemissionAfterTwoTicksReplacesBothHeadsWithoutShif
     EXPECT_EQ(ribbon.light, next.light);
     EXPECT_EQ(ribbon.first[0], next.first);
     EXPECT_EQ(ribbon.second[0], next.second);
-    for (std::size_t index = 1; index < Client::Scenes::RibbonPointCount; ++index)
+    for (std::size_t index = 1; index < Client::Kernel::RibbonPointCount; ++index)
     {
         EXPECT_EQ(ribbon.first[index], firstHistory[index]);
         EXPECT_EQ(ribbon.second[index], secondHistory[index]);
@@ -124,13 +124,13 @@ TEST(GameRibbonCreationTest, ReemissionAfterTwoTicksReplacesBothHeadsWithoutShif
 
 TEST(GameRibbonCreationTest, OversizedPositiveHistoryFailsAfterTypeAndLightWithoutChangingItsHeads)
 {
-    std::array<Client::Scenes::RibbonState, 1> ribbons{};
+    std::array<Client::Kernel::RibbonState, 1> ribbons{};
     std::uint16_t equipment = 7;
     const Client::Actors::Drawing::RibbonCreateRequest request{&equipment, &equipment, {1, 2, 3}, {4, 5, 6},
                                                                {},         3,          false,     7};
     ASSERT_TRUE(Client::Actors::Drawing::CreateRibbon(ribbons, request).HasValue());
     auto& ribbon = ribbons[0];
-    ribbon.count = static_cast<std::int32_t>(Client::Scenes::RibbonPointCount);
+    ribbon.count = static_cast<std::int32_t>(Client::Kernel::RibbonPointCount);
     const auto first = ribbon.first;
     const auto second = ribbon.second;
     auto next = request;
@@ -141,7 +141,7 @@ TEST(GameRibbonCreationTest, OversizedPositiveHistoryFailsAfterTypeAndLightWitho
     EXPECT_NE(result.Error().find("0x52e3d5"), std::string::npos);
     EXPECT_EQ(ribbon.first, first);
     EXPECT_EQ(ribbon.second, second);
-    EXPECT_EQ(ribbon.count, static_cast<std::int32_t>(Client::Scenes::RibbonPointCount));
+    EXPECT_EQ(ribbon.count, static_cast<std::int32_t>(Client::Kernel::RibbonPointCount));
     EXPECT_EQ(ribbon.life, 30);
     EXPECT_EQ(ribbon.type, next.type);
     EXPECT_EQ(ribbon.light, next.light);

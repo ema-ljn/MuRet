@@ -13,7 +13,6 @@
 #include "Combat/ActorCombat.h"
 #include "Skills/AttackSkillCases.h"
 #include "Skills/AttackStep.h"
-#include "Events/Crywolf/CrywolfContract.h"
 #include "Pets/DarkSpirit.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Hud/HealthBars.h"
@@ -97,11 +96,6 @@ Actors::ModelActionEnd StepEndOf(Monsters::ModelActionEnd end)
 Core::Expected<void, std::string> CharacterStepHooks::RefreshTheSiegePanel(Kernel::WorldRuntime& runtime) const
 {
     return CastleSiege::RefreshTheSiegePanel(runtime);
-}
-
-bool CharacterStepHooks::CrywolfAltarGoal(const Kernel::WorldState& world) const
-{
-    return Events::Crywolf::CrywolfAltarGoal(world);
 }
 
 Core::Expected<void, std::string>
@@ -209,7 +203,7 @@ Core::Expected<void, std::string> CharacterStepHooks::StepTheAttack(Kernel::Acto
                                                                     const Actors::CharacterStepContext& context,
                                                                     const std::optional<glm::vec3>& flareLight) const
 {
-    return Combat::StepTheAttack(actor, slot, context, flareLight.value_or(Skills::BodyLight));
+    return Skills::StepTheAttack(actor, slot, context, flareLight.value_or(Skills::BodyLight));
 }
 
 void CharacterStepHooks::QueueTheHealthBar(const Kernel::ActorState& actor,

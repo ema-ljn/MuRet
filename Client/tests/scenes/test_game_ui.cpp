@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Kernel/MouseState.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/SkillTable.h"
 #include "Input/InputEvent.h"
@@ -11,7 +12,6 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Chat/GameChat.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "CastleSiege/SiegeBattleUi.h"
 #include "Items/InventoryMoves.h"
@@ -107,7 +107,7 @@ public:
     }
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
     }
     Client::Ui::GameUiState& Ui()
     {
@@ -207,13 +207,13 @@ TEST(GameUiTest, TheLastMenuButtonGoesBackToTheGame)
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
     runtime.dialogs.current = Client::Ui::EscapeMenuDialog;
-    runtime.movement.mouseUpdateTime = 3;
+    runtime.mouse.updateTime = 3;
     tested.Click();
     ASSERT_TRUE(tested.Dialogs(0x110, 185).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
-    EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
+    EXPECT_EQ(runtime.mouse.updateTime, 0);
+    EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
@@ -316,8 +316,8 @@ TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
             EXPECT_EQ(runtime.crywolf.ui.dwords723bdc[0], crywolf && pushed ? 5 : 0);
             if (crywolf)
             {
-                EXPECT_FALSE(runtime.movement.leftHeld);
-                EXPECT_FALSE(runtime.movement.pendingClick);
+                EXPECT_FALSE(runtime.mouse.leftHeld);
+                EXPECT_FALSE(runtime.mouse.pendingClick);
             }
             EXPECT_EQ(runtime.crywolf.ui.byte723bf9, 1);
         }
@@ -327,20 +327,20 @@ TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
     tested.world.Runtime().map = CrywolfMap;
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 310).HasValue());
-    EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_TRUE(tested.world.Runtime().mouse.leftHeld);
     EXPECT_EQ(tested.world.Runtime().crywolf.ui.dwords723bdc[0], 0);
     // La ventana 1 del contrato (0x435c5c, Scenes/CrywolfContract) también se queda con el clic, solo en el 34.
     tested.world.Runtime().crywolf.ui.byte723a44 = 1;
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 310).HasValue());
-    EXPECT_FALSE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_FALSE(tested.world.Runtime().mouse.leftHeld);
     EXPECT_EQ(tested.world.Runtime().crywolf.ui.byte723a44, 1);
     // Otro clic necesita soltar el botón antes (0x4b3ce3).
     tested.world.Runtime().map = 2;
-    Client::Hud::LatchTheLeftButton(tested.world.Runtime().movement, false, false);
+    Client::Kernel::LatchTheLeftButton(tested.world.Runtime().mouse, false, false);
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 310).HasValue());
-    EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_TRUE(tested.world.Runtime().mouse.leftHeld);
 }
 
 TEST(GameUiTest, TheInventoryButtonOfTheHudTakesTheClick)
@@ -351,7 +351,7 @@ TEST(GameUiTest, TheInventoryButtonOfTheHudTakesTheClick)
     ASSERT_TRUE(tested.Step(0x1a0, 0x1d0).HasValue());
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(tested.Panels().inventory, 1);
-    EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
     EXPECT_EQ(tested.Ui().mouseOnUi, 1);
 }
 
@@ -503,7 +503,7 @@ TEST(GameUiTest, TheSkillBarButtonTogglesTheList)
     EXPECT_EQ(tested.Ui().skillListOpen, 1);
     EXPECT_EQ(tested.Ui().skillTooltipX, 0x140);
     EXPECT_EQ(tested.Ui().skillTooltipY, 0x1bc);
-    EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
 }
 
@@ -579,8 +579,8 @@ TEST(GameUiTest, TheClickOnTheListChoosesTheSkillAndClosesIt)
     EXPECT_EQ(tested->world.Actors()[0].skillIndex, 4);
     EXPECT_EQ(tested->Ui().skillListOpen, 0);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
-    EXPECT_FALSE(tested->world.Runtime().movement.pendingClick);
-    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(tested->world.Runtime().mouse.pendingClick);
+    EXPECT_EQ(tested->world.Runtime().mouse.updateTimeMax, 6);
 }
 
 // 0x5a08fd..0x5a106e: Ctrl y un número sobre una skill de la lista le dan esa tecla, que deja la que la tenía. Con el
@@ -848,7 +848,7 @@ TEST(GameUiTest, TheSiegePanelPagesAndFades)
     tested.Click();
     ASSERT_TRUE(tested.Step(panel.x + 130, panel.y + 20).HasValue());
     EXPECT_EQ(panel.page, 2);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     tested.Click();
     ASSERT_TRUE(tested.Step(panel.x + 130, panel.y + 20).HasValue());
     EXPECT_EQ(panel.page, 1);
@@ -866,22 +866,22 @@ TEST(GameUiTest, TheSiegePanelPagesAndFades)
     // Afuera de los dos, el clic sigue.
     tested.Click();
     ASSERT_TRUE(tested.Step(panel.x + 60, panel.y + 100).HasValue());
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
 }
 
 TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
 {
-    Client::Movement::GameMovementState state;
-    Client::Hud::LatchTheLeftButton(state, true, true);
+    Client::Kernel::MouseState state;
+    Client::Kernel::LatchTheLeftButton(state, true, true);
     EXPECT_TRUE(state.pendingClick);
     EXPECT_TRUE(state.leftHeld);
     state.pendingClick = false;
     state.leftHeld = false;
     // El mismo botón abajo, sin otro WM_LBUTTONDOWN: nada vuelve.
-    Client::Hud::LatchTheLeftButton(state, false, true);
+    Client::Kernel::LatchTheLeftButton(state, false, true);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
-    Client::Hud::LatchTheLeftButton(state, false, false);
+    Client::Kernel::LatchTheLeftButton(state, false, false);
     EXPECT_FALSE(state.leftHeld);
 }
 
@@ -889,9 +889,9 @@ TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
 TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
 {
     Client::Input::InputState input;
-    Client::Movement::GameMovementState state;
+    Client::Kernel::MouseState state;
     input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonDown, .button = Client::Input::MouseButton::Left});
-    Client::Hud::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+    Client::Kernel::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
     ASSERT_TRUE(state.leftHeld);
     ASSERT_TRUE(state.previousLeftDown);
     state.leftHeld = false;
@@ -902,7 +902,7 @@ TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
     ASSERT_TRUE(input.MouseMessages().leftPress);
     ASSERT_TRUE(input.MouseMessages().leftDown);
 
-    Client::Hud::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+    Client::Kernel::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
 
     EXPECT_TRUE(state.leftHeld);
     EXPECT_TRUE(state.pendingClick);
@@ -912,11 +912,11 @@ TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
 // queda.
 TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
 {
-    Client::Movement::GameMovementState state;
-    Client::Hud::LatchTheLeftButton(state, true, true);
-    Client::Hud::LatchTheLeftButton(state, false, false);
+    Client::Kernel::MouseState state;
+    Client::Kernel::LatchTheLeftButton(state, true, true);
+    Client::Kernel::LatchTheLeftButton(state, false, false);
     EXPECT_FALSE(state.pendingClick);
-    Client::Hud::LatchTheLeftButton(state, true, false);
+    Client::Kernel::LatchTheLeftButton(state, true, false);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
 }
@@ -929,10 +929,10 @@ TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
     using Client::Input::InputEvent;
     using Client::Input::MouseButton;
     Client::Input::InputState input;
-    Client::Movement::GameMovementState state;
-    const auto latch = [&input](Client::Movement::GameMovementState& latched)
+    Client::Kernel::MouseState state;
+    const auto latch = [&input](Client::Kernel::MouseState& latched)
     {
-        Client::Hud::LatchTheLeftButton(latched, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+        Client::Kernel::LatchTheLeftButton(latched, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
         input.ConsumeEdges();
     };
     input.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
@@ -963,8 +963,8 @@ TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
     batch.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
     batch.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
     batch.Apply({.kind = InputEvent::Kind::ButtonDoubleClick, .button = MouseButton::Left});
-    Client::Movement::GameMovementState fast;
-    Client::Hud::LatchTheLeftButton(fast, batch.MouseMessages().leftPress, batch.MouseMessages().leftDown);
+    Client::Kernel::MouseState fast;
+    Client::Kernel::LatchTheLeftButton(fast, batch.MouseMessages().leftPress, batch.MouseMessages().leftDown);
     EXPECT_FALSE(fast.leftHeld);
     EXPECT_FALSE(fast.pendingClick);
 }
@@ -973,22 +973,22 @@ TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
 // lo apaga (0x4b3cea, 0x4b344d y 0x4b3947).
 TEST(GameUiTest, TheReleaseLatchLastsWhileTheMouseStaysStill)
 {
-    Client::Movement::GameMovementState state;
+    Client::Kernel::MouseState state;
     // Apretado y soltado en el mismo paso: el último mensaje es el soltado.
-    Client::Hud::LatchTheLeftRelease(state, true, true, false, 10, 20);
+    Client::Kernel::LatchTheLeftRelease(state, true, true, false, 10, 20);
     EXPECT_TRUE(state.releasedClick);
     EXPECT_EQ(state.releaseX, 10);
     EXPECT_EQ(state.releaseY, 20);
-    Client::Hud::LatchTheLeftRelease(state, false, false, false, 10, 20);
+    Client::Kernel::LatchTheLeftRelease(state, false, false, false, 10, 20);
     EXPECT_TRUE(state.releasedClick);
-    Client::Hud::LatchTheLeftRelease(state, false, false, false, 11, 20);
+    Client::Kernel::LatchTheLeftRelease(state, false, false, false, 11, 20);
     EXPECT_FALSE(state.releasedClick);
-    Client::Hud::LatchTheLeftRelease(state, false, true, false, 5, 5);
+    Client::Kernel::LatchTheLeftRelease(state, false, true, false, 5, 5);
     EXPECT_TRUE(state.releasedClick);
-    Client::Hud::LatchTheLeftRelease(state, true, false, true, 5, 5);
+    Client::Kernel::LatchTheLeftRelease(state, true, false, true, 5, 5);
     EXPECT_FALSE(state.releasedClick);
     // Soltado y vuelto a apretar: el último es el apretón.
-    Client::Hud::LatchTheLeftRelease(state, true, true, true, 5, 5);
+    Client::Kernel::LatchTheLeftRelease(state, true, true, true, 5, 5);
     EXPECT_FALSE(state.releasedClick);
 }
 
@@ -1056,8 +1056,8 @@ TEST(GameUiTest, TheMouseOverTheSetLabelOpensTheSetWindow)
     const auto stepped = tested.Step(0x1c2 + 0x20, 0x20);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.world.ItemSets().byte9304, 1);
-    EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(tested.world.Runtime().mouse.pendingClick);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTimeMax, 6);
 
     tested.world.ItemSets().byte9304 = 0;
     ASSERT_TRUE(tested.Step(0x1c2 + 0xb0, 0x20).HasValue());

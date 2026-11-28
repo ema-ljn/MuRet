@@ -17,7 +17,6 @@
 #include "Actors/CharacterStep.h"
 #include "Assets/FaunaModels.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
 #include "Effects/GuildMarkEffects.h"
 #include "Effects/FireBreathEffect.h"
 #include "Effects/HighEffectEmitters.h"
@@ -288,13 +287,13 @@ Core::Expected<void, std::string> BeginTheMovingLight(Effects::ModelEffect& effe
     for (int hit = 0; hit < Hits; ++hit)
     {
         point = Sum(step, point);
-        const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+        const Actors::SkillHitsRequest request{.skillIndex = effect.byte89,
                                                .point = point,
                                                .radius = HitRadius,
                                                .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
                                                .key = effect.disturbanceState,
                                                .extra = 0};
-        if (auto hits = Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+        if (auto hits = Actors::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
                                                     context.random, context.send);
             !hits.HasValue())
             return Core::Unexpected(std::format("0x51e75b: {}", hits.Error()));

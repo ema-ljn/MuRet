@@ -860,7 +860,7 @@ TEST(HeroSkillsKnightTest, TheApproachWalksTheSameWithACrywolfAltar)
         tested->Movement().targetX = 190;
         tested->Movement().targetY = 115;
         tested->world.Runtime().crywolf.stage = 3;
-        tested->world.Runtime().movement.chosenNpc = 30;
+        tested->world.Runtime().chosenNpc.index = 30;
         tested->world.Actors()[30].type = chosenType;
         const auto expected = Advanced(tested->random, PaidDraws + CellsDraws);
         const auto used = tested->Use();

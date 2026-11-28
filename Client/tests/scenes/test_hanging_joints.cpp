@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
@@ -29,7 +29,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::JointRequest;
-using Client::Scenes::JointState;
+using Client::Kernel::JointState;
 
 using Client::Math::D;
 using Client::Math::F32;

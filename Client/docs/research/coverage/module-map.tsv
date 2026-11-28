@@ -572,6 +572,8 @@ game/Skills/AttackSkillReads.cpp	34	game/Skills	game/Skills	medium	skills, a mod
 game/Skills/AttackSkillReads.h	27	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 game/Skills/AttackStep.cpp	416	game/Skills	game/Skills	high	the body step's skill: the attack frames, the skill cases and the strike, out of Combat (AR4.2)
 game/Skills/AttackStep.h	29	game/Skills	game/Skills	high	the body step's skill: the attack frames, the skill cases and the strike, out of Combat (AR4.2)
+game/Combat/Attackable.cpp	239	game/Combat	game/Combat	high	whether the hero may attack a character, the chosen key and the 300 ms brake, out of Hero (AR4.2)
+game/Combat/Attackable.h	42	game/Combat	game/Combat	high	whether the hero may attack a character, the chosen key and the 300 ms brake, out of Hero (AR4.2)
 game/Joints/AuraJoints.cpp	369	game/Joints	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 game/Joints/BeamJoints.cpp	477	game/Joints	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 game/Combat/BlastEffectCalls.cpp	120	game/Combat	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
@@ -784,6 +786,7 @@ game/Hud/GameMoveWindow.h	28	game/Hud	game/Hud	high	game UI step/frame order, HU
 game/Movement/GameMovement.cpp	907	game/Movement	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
 game/Movement/GameMovement.h	114	game/Movement	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
 game/Movement/GameMovementState.h	79	game/Movement	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
+game/Movement/HeroMovementHooks.h	66	game/Movement	game/Movement	high	what the hero's step asks of other modules, one slot per call in the original's order (AR4.2)
 game/Hud/GamePanels.cpp	303	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Castle
 game/Hud/GamePanels.h	131	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Castle
 game/Effects/GameParticles.cpp	360	game/Effects	game/Effects	medium	the game-side particle driver (emission, step and draw over the shared table); it calls effects, fauna and actors, so it stays above Particles, in Effects (AR0.1 review)
@@ -1061,6 +1064,8 @@ game/Pets/PetOrders.cpp	82	game/Pets	game/Pets	high	Dark Lord raven/horse, helpe
 game/Pets/PetOrders.h	28	game/Pets	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
 game/Pets/PetStats.cpp	296	game/Pets	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to SessionApply (2 vs 1 own)
 game/Pets/PetStats.h	58	game/Pets	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to SessionApply (2 vs 1 own)
+game/Pets/TransitionRaven.cpp	58	game/Pets	game/Pets	high	the raven a transition or the F3 10 creates again, out of the session (AR4.2)
+game/Pets/TransitionRaven.h	44	game/Pets	game/Pets	high	the raven a transition or the F3 10 creates again, out of the session (AR4.2)
 game/Tooltips/PetTooltip.cpp	360	game/Tooltips	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 game/Tooltips/PetTooltip.h	28	game/Tooltips	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 game/PetTrainer/PetTrainer.cpp	438	game/PetTrainer	game/PetTrainer	high	the pet trainer (2026-11-21 review)
@@ -1398,6 +1403,12 @@ game/Terrain/ITerrainAttributeQuerySource.h	20	game/Terrain	game/Terrain	medium	
 game/WorldObjects/IWorldObjectCreationServices.h	36	game/WorldObjects	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 game/Kernel/ItemState.cpp	610	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 game/Kernel/ItemState.h	87	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
+game/Kernel/ChosenNpc.h	18	game/Kernel	game/Kernel	high	the NPC the hero talks to, which the movement, the NPC windows and the events read (AR4.2)
+game/Kernel/DrawTailState.h	132	game/Kernel	game/Kernel	high	the lists the draw tail draws (floor items, joints, ribbons, damage numbers), which many modules fill, out of Scenes (AR4.2)
+game/Kernel/WorldTextQueue.cpp	18	game/Kernel	game/Kernel	high	the 3D texts' queue the characters fill and the HUD empties, out of Hud (AR4.2)
+game/Kernel/WorldTextQueue.h	27	game/Kernel	game/Kernel	high	the 3D texts' queue the characters fill and the HUD empties, out of Hud (AR4.2)
+game/Kernel/MouseState.cpp	39	game/Kernel	game/Kernel	high	who takes the frame's click: the UI first, then the modules that ask before the hero walks (AR4.2)
+game/Kernel/MouseState.h	37	game/Kernel	game/Kernel	high	who takes the frame's click: the UI first, then the modules that ask before the hero walks (AR4.2)
 game/MapScripts/Kalima/KalimaObjectMovement.cpp	47	game/MapScripts/Kalima	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
 game/MapScripts/Kalima/KalimaObjectMovement.h	11	game/MapScripts/Kalima	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
 game/Particles/KalimaParticleKernels.cpp	586	game/Particles	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
@@ -1522,6 +1533,8 @@ game/Session/ViewportHooks.h	64	game/Session	game/Session	high	the viewport's sl
 game/Session/ViewportHooks.cpp	144	game/Session	game/Session	high	the viewport's slots over the world, which the route builds per packet (AR4.1)
 game/Session/CharacterStepHooks.h	106	game/Session	game/Session	high	the characters' step slots, each one in the module that owns the call (AR4.1)
 game/Session/CharacterStepHooks.cpp	340	game/Session	game/Session	high	the characters' step slots, each one in the module that owns the call (AR4.1)
+game/Session/HeroMovementHooks.h	47	game/Session	game/Session	high	the hero's step slots, each one in the module that owns the call (AR4.2)
+game/Session/HeroMovementHooks.cpp	137	game/Session	game/Session	high	the hero's step slots, each one in the module that owns the call (AR4.2)
 game/Session/CharacterDrawHooks.cpp	30	game/Session	game/Session	high	the characters' draw slots, each one in the module that owns the call (AR4.1)
 game/Session/CharacterDrawHooks.h	53	game/Session	game/Session	high	the characters' draw slots, each one in the module that owns the call (AR4.1)
 game/Camera/CameraState.h	21	game/Camera	game/Camera	high	what the camera owns of the original's globals: the trapezoid's effective level (AR4.1)
@@ -1536,6 +1549,8 @@ game/Session/ItemCreators.h	15	game/Session	game/Session	high	what the items cre
 game/Session/ItemCreators.cpp	45	game/Session	game/Session	high	what the items create in the joints and model effects, outside the actors (AR4.1)
 game/Kernel/ModelEffectArguments.h	29	game/Kernel	game/Kernel	high	the arguments of the model effect creation every module hands it (AR4.1)
 game/Actors/EffectHooks.h	112	game/Actors	game/Actors	high	the port the characters create and turn off their model effects through (AR4.1)
+game/Actors/WalkPath.cpp	41	game/Actors	game/Actors	high	the path ported once, with Crywolf's altar goal, for every character's path (AR4.2)
+game/Actors/WalkPath.h	33	game/Actors	game/Actors	high	the path ported once, with Crywolf's altar goal, for every character's path (AR4.2)
 game/Effects/ActorEffectHooks.h	74	game/Effects	game/Effects	high	the characters' model effect slots, each one with the effect function it names (AR4.1)
 game/Effects/ActorEffectHooks.cpp	117	game/Effects	game/Effects	high	the characters' model effect slots, each one with the effect function it names (AR4.1)
 game/Effects/CharacterEffectSteps.h	66	game/Effects	game/Effects	high	the steps of the model effects the characters create: the full set's and the skills' flares and the summon (AR4.1)

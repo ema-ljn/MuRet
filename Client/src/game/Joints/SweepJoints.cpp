@@ -3,7 +3,7 @@
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Actors/SkillHits.h"
@@ -35,7 +35,7 @@ using Math::F32;
 constexpr float Reach = std::bit_cast<float>(0xc3340000u); // −180
 
 // 0x53b4c2..0x53b53b: 0x530860(0x614, partida, posición, ángulos, 3, 0, escala, 5, 0xa, 0, −1).
-Core::Expected<void, std::string> Spark(const JointKernels::StepServices& services, Scenes::JointState& joint,
+Core::Expected<void, std::string> Spark(const JointKernels::StepServices& services, Kernel::JointState& joint,
                                         glm::vec3& from, float scale)
 {
     constexpr std::int32_t SparkJoint = 0x614, SparkSubtype = 3, SparkKey = 5, SparkSkill = 0xa;
@@ -58,7 +58,7 @@ Core::Expected<void, std::string> Spark(const JointKernels::StepServices& servic
 // 0x53b400..0x53b53b: un tramo: la posición es el destino más (0, −180, 0) girado por la velocidad (los ángulos del
 // barrido), un tramo con la matriz de los ángulos, vz − 11; con rand() & 1 en 0 la partícula 0x5d9 (luz del joint,
 // escala 1) y los dos 0x614/3 desde la posición de antes, de escala rand() % 10 + 5 y (rand() & 7) + 4.
-Core::Expected<void, std::string> Sweep(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> Sweep(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     glm::vec3 from = joint.position;
     const auto swing = Math::OriginalVectorRotate({0, Reach, 0}, Math::OriginalAngleMatrix(joint.velocity));
@@ -95,7 +95,7 @@ Core::Expected<void, std::string> Sweep(Scenes::JointState& joint, const JointKe
 // ftol(vida · 0,2f) (0x6b8cfc, 0x69fd3c): devuelve true y el paso sale de las vueltas (0x53b5ec). Si no,
 // 0x517a20(+0x9ea, posición, 150, +0x9eb, +0x9e8, 0): los blancos de la skill alrededor, con el C1 10, y sigue con la
 // vuelta siguiente. Lo mismo que lee el 0x613 de ancho 80 (JointKernels::VolleyServices, 0x539a50).
-Core::Expected<bool, std::string> HitAroundTheHero(Scenes::JointState& joint,
+Core::Expected<bool, std::string> HitAroundTheHero(Kernel::JointState& joint,
                                                    const JointKernels::StepServices& services)
 {
     if (services.volley == nullptr)
@@ -121,7 +121,7 @@ Core::Expected<bool, std::string> HitAroundTheHero(Scenes::JointState& joint,
     if (!volley.skillHits)
         return Core::Unexpected(std::string("0x53b5b1: faltan los blancos de la skill (0x517a20)"));
     constexpr float HitRadius = std::bit_cast<float>(0x43160000u); // 150, 0x53b5a2
-    const Skills::SkillHitsRequest request{.skillIndex = joint.skill,
+    const Actors::SkillHitsRequest request{.skillIndex = joint.skill,
                                            .point = joint.position,
                                            .radius = HitRadius,
                                            .volley = joint.volley,
@@ -133,7 +133,7 @@ Core::Expected<bool, std::string> HitAroundTheHero(Scenes::JointState& joint,
 }
 } // namespace
 
-void CreateSweepJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
+void CreateSweepJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x5342e4..0x534399: sin la cola común, velocidad 0, el ancho, la z de los ángulos + 30, el destino en la posición
     // de partida, vida 20, 18 puntos, la velocidad (+0x9dc) con los ángulos nuevos, la cuenta en −1; la posición, 180
@@ -155,7 +155,7 @@ void CreateSweepJoint(Scenes::JointState& joint, const Kernel::JointRequest& req
     joint.light = {1, 1, 1};
 }
 
-Core::Expected<void, std::string> StepSweepJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepSweepJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     // 0x53b3f1..0x53b5c3: ocho vueltas; cada una agrega un tramo mientras la cuenta sea menor que los puntos − 1.
     // 0x53b53e..0x53b567: en la /0 (+0xc) con el dueño (+0x54) igual al héroe ([0x743a170]), vida de más de 18 y la

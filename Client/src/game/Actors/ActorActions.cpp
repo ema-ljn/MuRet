@@ -217,7 +217,7 @@ std::uint8_t FenrirStand(const Kernel::ActorState& actor)
 Core::Expected<bool, std::string> IsFlying(const Kernel::ActorState& actor, const ActorStopContext& context)
 {
     bool flyingCell = false;
-    if (context.scene == Scenes::SceneId::Game && IsFlyingMap(context.runtime.map))
+    if (context.scene == Kernel::SceneId::Game && IsFlyingMap(context.runtime.map))
     {
         if (context.terrainWalls == nullptr)
         {

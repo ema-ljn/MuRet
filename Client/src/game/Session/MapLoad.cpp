@@ -16,7 +16,7 @@
 #include "Kernel/ActorState.h"
 #include "Events/EventMapObject.h"
 #include "Fauna/FaunaState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Pets/HelperTable.h"
 #include "WorldObjects/MapModelEffectServices.h"
 #include "PersonalShop/PersonalShopTitles.h"
@@ -114,13 +114,13 @@ std::string DescribeCreationError(WorldObjects::WorldObjectCreationError error)
 
 // 0x606660 sobre cada registro, en orden; se detiene en el primero que MuRet no crea.
 // DAT_006d5dc8 al crear (0x60685e): el farol y el dueño del dragón solo corren en el login y la selección.
-WorldObjects::ObjectScene ObjectSceneOf(SceneId scene)
+WorldObjects::ObjectScene ObjectSceneOf(Kernel::SceneId scene)
 {
     switch (scene)
     {
-    case SceneId::Login:
+    case Kernel::SceneId::Login:
         return WorldObjects::ObjectScene::Login;
-    case SceneId::CharacterSelect:
+    case Kernel::SceneId::CharacterSelect:
         return WorldObjects::ObjectScene::CharacterSelect;
     default:
         return WorldObjects::ObjectScene::Other;
@@ -295,7 +295,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     ReleaseTheMapObjects(loaded);
     ClearWorldTransientPools(context.world);
     ForgetThePreviousTerrain(loaded, context.terrain.current, reusePreviousPaths);
-    if (context.scene != SceneId::CharacterSelect)
+    if (context.scene != Kernel::SceneId::CharacterSelect)
     {
         // El DWORD 0x57678bc lleva la clave sin signo.
         KillOtherActors(context.world, static_cast<std::int32_t>(context.playerKey));

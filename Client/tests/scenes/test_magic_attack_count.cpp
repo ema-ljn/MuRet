@@ -16,7 +16,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/HandShine.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "FrontEnd/SelectionState.h"
@@ -213,9 +213,9 @@ protected:
         return shines;
     }
 
-    std::vector<const Client::Scenes::DamageNumberState*> Numbers() const
+    std::vector<const Client::Kernel::DamageNumberState*> Numbers() const
     {
-        std::vector<const Client::Scenes::DamageNumberState*> numbers;
+        std::vector<const Client::Kernel::DamageNumberState*> numbers;
         for (const auto& number : m_world->DrawTail().damage)
             if (number.alive)
                 numbers.push_back(&number);

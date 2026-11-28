@@ -1,4 +1,5 @@
 #include "Hud/Dialogs/GameDialogSteps.h"
+#include "Kernel/MouseState.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -7,7 +8,6 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Npc/NpcWindowState.h"
 #include "Kernel/OwnInventory.h"
@@ -103,7 +103,7 @@ public:
 
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Hud::LatchTheLeftButton(world->Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world->Runtime().mouse, true, true);
         return Step(x, y);
     }
 
@@ -172,7 +172,7 @@ TEST(JewelUnmixTest, AKindWithoutBundlesSaysWhyAndGoesBack)
         EXPECT_EQ(tested.Jewels().kind, 0xff);
         EXPECT_EQ(tested.Runtime().dialogs.current, UnmixDialog);
         EXPECT_EQ(tested.Runtime().dialogs.pending, 0);
-        EXPECT_FALSE(tested.Runtime().movement.pendingClick);
+        EXPECT_FALSE(tested.Runtime().mouse.pendingClick);
         EXPECT_TRUE(tested.sent.empty());
         EXPECT_EQ(tested.random.State(), before.State());
     }
@@ -204,7 +204,7 @@ TEST(JewelUnmixTest, AKindFillsTheList)
             EXPECT_EQ(tested.Jewels().bundles.selection, 0);
             EXPECT_EQ(tested.Runtime().dialogs.current, UnmixDialog);
             EXPECT_TRUE(tested.sent.empty());
-            EXPECT_FALSE(tested.Runtime().movement.pendingClick);
+            EXPECT_FALSE(tested.Runtime().mouse.pendingClick);
             EXPECT_TRUE(tested.Errors().empty());
             EXPECT_EQ(tested.random.State(), before.State());
         }
@@ -229,7 +229,7 @@ TEST(JewelUnmixTest, TheCancelClosesAllAndKeepsTheClick)
         ASSERT_TRUE(tested.Click(279, 210).HasValue());
         ASSERT_TRUE(tested.Click(BlessX, 186).HasValue());
         EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
-        EXPECT_TRUE(runtime.movement.pendingClick);
+        EXPECT_TRUE(runtime.mouse.pendingClick);
         EXPECT_TRUE(tested.sent.empty());
 
         tested.Jewels().cell = 3;
@@ -237,7 +237,7 @@ TEST(JewelUnmixTest, TheCancelClosesAllAndKeepsTheClick)
         EXPECT_EQ(runtime.dialogs.current, 0);
         EXPECT_EQ(tested.Jewels().mode, 0);
         EXPECT_EQ(tested.Jewels().cell, -1);
-        EXPECT_TRUE(runtime.movement.pendingClick);
+        EXPECT_TRUE(runtime.mouse.pendingClick);
         ASSERT_EQ(tested.sent.size(), 1u);
         EXPECT_TRUE(SameBytes(tested.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
     }
@@ -260,7 +260,7 @@ TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
         ASSERT_EQ(tested.Jewels().bundles.rows.size(), 2u);
 
         ASSERT_TRUE(tested.Click(OkX, ButtonsY).HasValue());
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(runtime.dialogs.current, UnmixDialog);
         EXPECT_EQ(tested.Jewels().cell, -1);
 
@@ -272,8 +272,8 @@ TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
         EXPECT_EQ(tested.Jewels().price, 1000000);
         EXPECT_EQ(runtime.dialogs.current, Client::Ui::ServerTimeDialog);
         EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "deshacer alma 6?");
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_TRUE(tested.sent.empty());
 
         runtime.dialogs.current = UnmixDialog;
@@ -347,7 +347,7 @@ TEST(JewelUnmixTest, TheCancelWithAKindClosesAll)
         ASSERT_TRUE(tested.Click(CancelX, ButtonsY).HasValue());
         EXPECT_EQ(runtime.dialogs.current, 0);
         EXPECT_EQ(tested.Jewels().kind, 0xff);
-        EXPECT_TRUE(runtime.movement.pendingClick);
+        EXPECT_TRUE(runtime.mouse.pendingClick);
         ASSERT_EQ(tested.sent.size(), 1u);
         EXPECT_TRUE(SameBytes(tested.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
     }

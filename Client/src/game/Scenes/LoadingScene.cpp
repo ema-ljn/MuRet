@@ -141,11 +141,11 @@ void LoadingScene::Leave()
     m_textures.Release();
 }
 
-std::optional<SceneId> LoadingScene::Next() const
+std::optional<Kernel::SceneId> LoadingScene::Next() const
 {
     if (m_done)
     {
-        return SceneId::Login;
+        return Kernel::SceneId::Login;
     }
     return std::nullopt;
 }

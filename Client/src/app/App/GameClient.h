@@ -140,7 +140,7 @@ public:
     // 0x63945d: the first loop turn, then the first scene.
     [[nodiscard]] Core::Expected<void, std::string> Start();
     [[nodiscard]] Scenes::ILoopClient& Loop();
-    [[nodiscard]] std::optional<Scenes::SceneId> CurrentScene() const;
+    [[nodiscard]] std::optional<Kernel::SceneId> CurrentScene() const;
     [[nodiscard]] bool WantsTextInput() const;
     [[nodiscard]] std::optional<GameExit> Exit() const;
 
@@ -155,9 +155,9 @@ private:
     struct Online;
 
     [[nodiscard]] ServerSession* MutableSession();
-    [[nodiscard]] std::unique_ptr<Scenes::IScene> MakeScene(Scenes::SceneId id);
+    [[nodiscard]] std::unique_ptr<Scenes::IScene> MakeScene(Kernel::SceneId id);
     [[nodiscard]] Core::Expected<void, std::string> PollNetwork();
-    [[nodiscard]] std::optional<Scenes::SceneId> TakeSceneOrder();
+    [[nodiscard]] std::optional<Kernel::SceneId> TakeSceneOrder();
     [[nodiscard]] bool Connecting() const;
     void BeforeSceneFrame(Core::Duration now);
     void AfterSceneFrame(Core::Duration now);

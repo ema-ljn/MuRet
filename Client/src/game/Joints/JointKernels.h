@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -52,10 +52,10 @@ struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Skills
+namespace Client::Actors
 {
 struct SkillHitsRequest;
-} // namespace Client::Skills
+} // namespace Client::Actors
 
 // Lo que comparten el alta de los joints (0x530860), su paso (0x535840) y las familias que viven en sus propios
 // archivos (FaunaJointCreation.cpp despacha).
@@ -63,19 +63,19 @@ namespace Client::Joints::JointKernels
 {
 // 0x530afa..0x530c38 (y el final de 0x535520): los cuatro puntos del primer tramo, (∓ancho/2, 0, 0) y (0, 0,
 // ∓ancho/2) girados por la matriz y sumados a la posición. En el alta el ancho es el retenido del uso anterior.
-void FirstQuad(Scenes::JointState& joint, const Math::OriginalMatrix& matrix);
-void FirstQuad(Scenes::JointState& joint);
+void FirstQuad(Kernel::JointState& joint, const Math::OriginalMatrix& matrix);
+void FirstQuad(Kernel::JointState& joint);
 // 0x535520(joint, matriz): la cuenta + 1 hasta los puntos − 1, corre los tramos y rehace el primero.
-[[nodiscard]] Core::Expected<void, std::string> AppendJointTail(Scenes::JointState& joint,
+[[nodiscard]] Core::Expected<void, std::string> AppendJointTail(Kernel::JointState& joint,
                                                                 const Math::OriginalMatrix& matrix);
-[[nodiscard]] Core::Expected<void, std::string> AppendJointTail(Scenes::JointState& joint);
+[[nodiscard]] Core::Expected<void, std::string> AppendJointTail(Kernel::JointState& joint);
 // 0x535520 sin rehacer el primer tramo: la cuenta y la corrida de los tramos. Sólo para una cola que no se dibuja y
 // cuya matriz es indefinida (Q-C1623).
-[[nodiscard]] Core::Expected<void, std::string> AdvanceJointTail(Scenes::JointState& joint);
+[[nodiscard]] Core::Expected<void, std::string> AdvanceJointTail(Kernel::JointState& joint);
 // 0x535020(joint, matriz, cruzado): lo mismo que 0x535520, pero con `crossed` el segundo par de puntos va en y,
 // (0, ∓ancho/2, 0), en vez de en z.
 [[nodiscard]] Core::Expected<void, std::string>
-AppendCrossedJointTail(Scenes::JointState& joint, const Math::OriginalMatrix& matrix, bool crossed);
+AppendCrossedJointTail(Kernel::JointState& joint, const Math::OriginalMatrix& matrix, bool crossed);
 
 // 0x4ec110(el modelo del jugador, los huesos propios del dueño + hueso · 0x30, offset, punto, 1): lo que el alta de
 // algunos joints lee de un personaje dueño (el 614/2, 0x5313fe). La escala y el origen son los que el último dibujo
@@ -101,19 +101,19 @@ using EffectHit = std::function<Core::Expected<void, std::string>(Effects::Model
 
 // Lo que el 0x613/0, /5 y /0x13 de ancho 80 leen después de soltar su 0xd0 (0x539a50..0x539add): el asedio de
 // 0x4294b0 ([0x7239ec], CastleSiegeState::siegeActive), los atributos de 0x5f82c0 (0x7d0d348) y los blancos del héroe
-// de 0x517a20 (Skills::HitTheTargetsAround).
+// de 0x517a20 (Actors::HitTheTargetsAround).
 struct VolleyServices
 {
     bool siegeActive = false;
     const Data::Terrain::TerrainAttributes* attributes = nullptr;
-    std::function<Core::Expected<void, std::string>(const Skills::SkillHitsRequest&)> skillHits{};
+    std::function<Core::Expected<void, std::string>(const Actors::SkillHitsRequest&)> skillHits{};
 };
 
 // Lo que el paso de una familia de joints le pide al frame: el pool entero (las altas que hace el paso caen en él,
 // 0x53703d), el lugar del joint, y los servicios que el paso común ya recibe.
 struct StepServices
 {
-    std::span<Scenes::JointState> joints;
+    std::span<Kernel::JointState> joints;
     std::size_t index = 0;
     Crt::CrtRandom* random = nullptr;
     Models::ClothWorld* cloth = nullptr;
@@ -152,5 +152,5 @@ struct StepServices
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,
 // con el byte vivo en +0, la posición en +0x10, los ángulos en +0x1c y la luz en +0xf4.
-[[nodiscard]] const Kernel::ActorState* ActorOwner(const Scenes::JointState& joint);
+[[nodiscard]] const Kernel::ActorState* ActorOwner(const Kernel::JointState& joint);
 } // namespace Client::Joints::JointKernels

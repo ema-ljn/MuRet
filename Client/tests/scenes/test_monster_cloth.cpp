@@ -19,7 +19,7 @@
 #include "Kernel/PoseBuffer.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Particles/Sprites.h"
@@ -287,7 +287,7 @@ protected:
     ClothWorld m_clothWorld;
     Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
-    std::vector<Client::Scenes::JointState> m_joints;
+    std::vector<Client::Kernel::JointState> m_joints;
     std::vector<Client::Actors::Drawing::CharacterCloth> m_cloths;
     Client::Render::ModelBatch m_batch;
 };

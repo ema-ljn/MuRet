@@ -21,6 +21,7 @@
 #include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Effects/GameParticles.h"
@@ -131,7 +132,7 @@ struct SelectionWorld::Projection
     Particles::Particles particles{};
     Effects::ModelEffects effects{};
     std::vector<WorldObjects::WorldObject> objects{};
-    Scenes::GameDrawTailState tail{};
+    Kernel::GameDrawTailState tail{};
     Actors::Drawing::GameItemRenderState items{};
     WorldObjects::ObjectModelStepState modelState{};
 };
@@ -373,7 +374,7 @@ std::span<WorldObjects::WorldObject> SelectionWorld::FrameObjects()
     return m_projecting ? std::span(m_projection->objects) : std::span(m_world->Map().objects);
 }
 
-Scenes::GameDrawTailState& SelectionWorld::FrameTail()
+Kernel::GameDrawTailState& SelectionWorld::FrameTail()
 {
     return m_projecting ? m_projection->tail : m_world->DrawTail();
 }
@@ -468,7 +469,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
                                                                       Kernel::PoseBuffer& poseCarry)
 {
     const float clock = Milliseconds(frame.frameClock);
-    Scenes::GameDrawTailState& tail = FrameTail();
+    Kernel::GameDrawTailState& tail = FrameTail();
     // 0x52e590: las cintas.
     if (auto ribbons = Scenes::DrawRibbons(frame.batch, tail.ribbons); !ribbons.HasValue())
         return ribbons;
@@ -515,7 +516,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
 
 Core::Expected<void, std::string> SelectionWorld::DrawEye(const Render::Pass3D& pass, const SelectionWorldFrame& frame,
                                                           const Assets::SceneTextures& sceneTextures,
-                                                          std::span<const Scenes::DamageNumberState> damage)
+                                                          std::span<const Kernel::DamageNumberState> damage)
 {
     // 0x6213e0: la modelview en la identidad para el pase de ojo.
     Render::Pass3D eye = pass;

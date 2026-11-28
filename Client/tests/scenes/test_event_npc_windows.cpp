@@ -373,11 +373,11 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepSendsTheEntry)
     ASSERT_TRUE(Step(300, 232).HasValue());
     EXPECT_TRUE(sent.empty());
 
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms);
     const auto stepped = Step(300, 232);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     ASSERT_EQ(sent.size(), 1u);
     const Client::Protocol::Outgoing entry = Client::Protocol::Events::WriteDevilSquareEntry(1, 20 + 0x18);
     EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(), entry.packet.Bytes()));
@@ -399,7 +399,7 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
         Open(0);
         world->OwnCharacter().level = level;
         Runtime().events.devilSquareLevels[1] = {131, 180};
-        Runtime().movement.pendingClick = true;
+        Runtime().mouse.pendingClick = true;
         const auto stepped = Step(300, 232);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
@@ -415,7 +415,7 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
     Open(0);
     world->OwnCharacter().level = 150;
     Runtime().events.devilSquareLevels[1] = {131, 180};
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     const auto stepped = Step(300, 232);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sent.empty());
@@ -425,9 +425,9 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
     world = std::make_unique<WorldState>();
     Open(0);
     Runtime().cursorItemCount = 1;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step(300, 232).HasValue());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
@@ -439,17 +439,17 @@ TEST_F(EventNpcWindowTest, TheBloodCastleStepSendsTheEntry)
     Open(1);
     world->OwnCharacter().level = 100;
     PutItem(5, 0x1a12, 2);
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     // El puente 1 (15-80) no es del nivel: los siete accesos y el clic sigue.
     CrtRandom expected = Advanced(random, 7u * OwnRecordCloseRandoms);
     ASSERT_TRUE(Step(300, 180).HasValue());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(random.State(), expected.State());
 
     expected = Advanced(random, 2u * OwnRecordCloseRandoms);
     ASSERT_TRUE(Step(300, 210).HasValue());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(),
                                          Client::Protocol::Events::WriteBloodCastleEntry(2, 5 + 12).packet.Bytes()));
@@ -458,7 +458,7 @@ TEST_F(EventNpcWindowTest, TheBloodCastleStepSendsTheEntry)
     sent.clear();
     world->OwnCharacter().level = 350;
     PutItem(5, 0x1a12, 6);
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step(300, 170 + 6 * 35 + 1).HasValue());
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(),
@@ -466,7 +466,7 @@ TEST_F(EventNpcWindowTest, TheBloodCastleStepSendsTheEntry)
 
     sent.clear();
     world->Inventory().cells[5].occupied = 0;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step(300, 170 + 6 * 35 + 1).HasValue());
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(std::string_view(Runtime().dialogBox.rows.data()), "sin capa");

@@ -69,6 +69,7 @@ struct WorldTerrain;
 namespace Client::Kernel
 {
 class WorldState;
+struct FloorItemState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
@@ -89,7 +90,6 @@ struct GameMovementState;
 
 namespace Client::Scenes
 {
-struct FloorItemState;
 struct WorldEntryResources;
 } // namespace Client::Scenes
 
@@ -178,19 +178,6 @@ struct GameUiContext
     const Terrain::WorldTerrain* terrain = nullptr;
 };
 
-// El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
-// abajo), antes de cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus
-// pruebas, con los flags de los mensajes del mouse (Input::MouseMessageState): el WM_LBUTTONDBLCLK no prende
-// 0x7d36874 (P-C187).
-void LatchTheLeftButton(Movement::GameMovementState& state, bool pressed, bool down);
-
-// El WndProc y el soltado del izquierdo: WM_LBUTTONUP prende 0x7d366ec con el mouse de ese momento (0x4b3cea, en
-// 0x576358c y 0x5763590), WM_LBUTTONDOWN lo apaga (0x4b3947) y cualquier mensaje con el mouse en otro lugar también
-// (0x4b344d). MuRet ve los mensajes del paso juntos, con el mouse del paso (*inferido*, P-C96). Va antes de
-// LatchTheLeftButton, con el mouse en 640 × 480.
-void LatchTheLeftRelease(Movement::GameMovementState& state, bool pressed, bool released, bool down,
-                         std::int32_t mouseX, std::int32_t mouseY);
-
 // Los globales de las ventanas viejas sobre los del juego: los del mouse, los de la UI, el foco del teclado (el de la
 // entrada del chat) y el último sonido.
 [[nodiscard]] Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime);
@@ -230,7 +217,7 @@ struct FramePickingContext
     std::span<Actors::ActorPickingBox> pickingBoxes{};
     // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
     // mismo segmento; sin él (antes del primer dibujo) no busca.
-    std::span<Scenes::FloorItemState> floorItems{};
+    std::span<Kernel::FloorItemState> floorItems{};
     // The current map's terrain, whose .map layers the pick reads in Lorencia and Devias. nullptr:
     // Terrain::EmptyTerrain().
     const Terrain::WorldTerrain* terrain = nullptr;

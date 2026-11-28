@@ -9,7 +9,7 @@
 #include "Actors/PlayerActionSpeeds.h"
 #include "Fauna/FaunaState.h"
 #include "Kernel/PoseBuffer.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -101,8 +101,8 @@ public:
     [[nodiscard]] const Fauna::FaunaState& Fauna() const;
     [[nodiscard]] PoseBuffer& PoseCarry();
     [[nodiscard]] const PoseBuffer& PoseCarry() const;
-    [[nodiscard]] Scenes::GameDrawTailState& DrawTail();
-    [[nodiscard]] const Scenes::GameDrawTailState& DrawTail() const;
+    [[nodiscard]] Kernel::GameDrawTailState& DrawTail();
+    [[nodiscard]] const Kernel::GameDrawTailState& DrawTail() const;
     [[nodiscard]] Weather::Leaves& Leaves();
     [[nodiscard]] const Weather::Leaves& Leaves() const;
     // Player.bmd (0x20a), shared by all players: each one's step (0x505ec6) and its body's pose (0x6001b0, with alpha
@@ -144,7 +144,7 @@ private:
     Actors::PlayerActionSpeeds m_actionSpeeds;
     Fauna::FaunaState m_fauna;
     PoseBuffer m_poseCarry;
-    std::unique_ptr<Scenes::GameDrawTailState> m_drawTail = std::make_unique<Scenes::GameDrawTailState>();
+    std::unique_ptr<Kernel::GameDrawTailState> m_drawTail = std::make_unique<Kernel::GameDrawTailState>();
     std::unique_ptr<Weather::Leaves> m_leaves = std::make_unique<Weather::Leaves>();
     SharedModelPlacement m_playerModel;
     std::map<std::uint16_t, SharedModelPlacement> m_modelPlacements;

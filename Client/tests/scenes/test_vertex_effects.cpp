@@ -11,7 +11,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Effects/BlastModelEffects.h"
@@ -378,7 +378,7 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
 
     Client::Kernel::ActorState target;
     target.position = {100.0f, 200.0f, 300.0f};
-    std::vector<Client::Scenes::JointState> joints(4);
+    std::vector<Client::Kernel::JointState> joints(4);
     CrtRandom shout(9), expected(9);
     for (int joint = 0; joint < 2; ++joint)
     {
@@ -387,7 +387,7 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
         glm::vec3 first{11, 22, 33};
         glm::vec3 second = target.position;
         glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 45.0)};
-        std::vector<Client::Scenes::JointState> twin(1);
+        std::vector<Client::Kernel::JointState> twin(1);
         ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twin,
                                                      {.type = 0x613,
                                                       .firstPosition = first,

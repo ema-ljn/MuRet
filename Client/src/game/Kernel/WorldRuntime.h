@@ -29,7 +29,7 @@
 #include "Kernel/SceneId.h"
 #include "Social/SocialState.h"
 #include "Tooltips/TooltipLines.h"
-#include "Hud/WorldTexts.h"
+#include "Kernel/WorldTextQueue.h"
 #include "CastleSiege/CastleSiegeState.h"
 #include "Chat/ChatInput.h"
 #include "Chat/ChatLog.h"
@@ -42,6 +42,8 @@
 #include "Ui/SlideBanner.h"
 #include "Chat/WhisperSenders.h"
 #include "Kernel/ItemState.h"
+#include "Kernel/ChosenNpc.h"
+#include "Kernel/MouseState.h"
 #include "Weather/LeafWeather.h"
 #include "WorldObjects/ObjectModelStepState.h"
 
@@ -394,12 +396,14 @@ struct WorldRuntime
     Ui::OldWindowManager oldWindows{};
     HudState hud{};
     ChatRuntime chat{};
+    MouseState mouse{};
     Movement::GameMovementState movement{};
     // The five mouse selectors start at -1 in the .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
+    ChosenNpc chosenNpc{};
     // 0x723c18: the 3D texts' queue (WorldTexts.h). 0x4381f0 fills it from the characters' body (0x4fd603, the 0xc5)
     // and its drawing (0x4383f0) empties it each game frame.
-    Hud::WorldTextQueue worldTexts{};
+    WorldTextQueue worldTexts{};
     // 0x723c68 (+8, the list; +0xc, the count): movereq.bmd's destinations, which 0x448440 reads at load (0x61ccb0)
     // and the /move window walks in its step (0x448580) and drawing (0x448fa0). main.cpp copies them from GameData.
     std::vector<Tables::MoveRequirement> moves{};
@@ -481,7 +485,7 @@ struct WorldRuntime
     // DAT_006d5dc8 written by a packet: the F1 02 with 1 sets 4 (0x4c363f) while the network is read, and the
     // original's next step is already the selection's. MuRet leaves it here and the SceneManager takes it after the
     // Poll (main.cpp) and enters it on its next step. Empty, nobody asked for it.
-    std::optional<Scenes::SceneId> orderedScene{};
+    std::optional<Kernel::SceneId> orderedScene{};
     // DAT_07d3a13e: whether the world's load (0x6356f0) already set up the counter and uploaded its textures. The
     // selection clears it just before going to scene 3 (0x633efe, 0x634469, 0x634631) and 0x6356f0 sets it
     // (0x635980). Nothing else writes it.

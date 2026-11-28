@@ -24,7 +24,7 @@ using Client::Actors::ActorDyingContext;
 using Client::Actors::StepActorDying;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::SceneId;
+using Client::Kernel::SceneId;
 
 constexpr std::uint32_t Seed = 0x13579bdu;
 constexpr std::size_t Slot = 3;

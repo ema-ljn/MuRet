@@ -46,7 +46,7 @@ Core::Expected<void, std::string> Head(Hud::GameHudContext& context, Ui::OldList
     Ui::OldDraw::DrawTheListBar(sprites, list, count,
                                 {.mouseX = context.mouse.x,
                                  .mouseY = context.mouse.y,
-                                 .leftClick = context.world.Runtime().movement.pendingClick});
+                                 .leftClick = context.world.Runtime().mouse.pendingClick});
     constexpr std::array<std::uint32_t, 4> SiegeHeaders{0x76ca724, 0x772d07c, 0x772d1a8, 0x772d2d4};
     constexpr std::array<std::uint32_t, 3> RegisteredHeaders{0x76ca724, 0x7732860, 0x773298c};
     constexpr std::array<std::int32_t, 4> SiegeLeft{5, 63, 98, 123};

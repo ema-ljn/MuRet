@@ -4,7 +4,7 @@
 #include "Kernel/JointRequest.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -18,7 +18,7 @@ namespace Client::Joints::JointKernels
 {
 namespace
 {
-void PlaceFirstQuad(Scenes::JointState& joint, const Math::OriginalMatrix& matrix, bool crossed)
+void PlaceFirstQuad(Kernel::JointState& joint, const Math::OriginalMatrix& matrix, bool crossed)
 {
     // 0x530b07 y 0x53553f: ancho · −0,5f (0x6ba298) y · 0,5f (0x6b882c), guardados en float.
     const auto half = static_cast<float>(static_cast<double>(joint.width) * 0.5);
@@ -34,7 +34,7 @@ void PlaceFirstQuad(Scenes::JointState& joint, const Math::OriginalMatrix& matri
     }
 }
 
-Core::Expected<void, std::string> ShiftTail(Scenes::JointState& joint)
+Core::Expected<void, std::string> ShiftTail(Kernel::JointState& joint)
 {
     const auto count = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.count) + 1u);
     const auto maximum = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.maximumCount) - 1u);
@@ -47,18 +47,18 @@ Core::Expected<void, std::string> ShiftTail(Scenes::JointState& joint)
 }
 } // namespace
 
-void FirstQuad(Scenes::JointState& joint, const Math::OriginalMatrix& matrix)
+void FirstQuad(Kernel::JointState& joint, const Math::OriginalMatrix& matrix)
 {
     // 530afa: width es el retenido del uso anterior, antes de que el caso escriba el nuevo.
     PlaceFirstQuad(joint, matrix, false);
 }
 
-void FirstQuad(Scenes::JointState& joint)
+void FirstQuad(Kernel::JointState& joint)
 {
     FirstQuad(joint, Math::OriginalAngleMatrix(joint.angles));
 }
 
-Core::Expected<void, std::string> AppendJointTail(Scenes::JointState& joint, const Math::OriginalMatrix& matrix)
+Core::Expected<void, std::string> AppendJointTail(Kernel::JointState& joint, const Math::OriginalMatrix& matrix)
 {
     if (auto shifted = ShiftTail(joint); !shifted.HasValue())
         return shifted;
@@ -66,17 +66,17 @@ Core::Expected<void, std::string> AppendJointTail(Scenes::JointState& joint, con
     return {};
 }
 
-Core::Expected<void, std::string> AdvanceJointTail(Scenes::JointState& joint)
+Core::Expected<void, std::string> AdvanceJointTail(Kernel::JointState& joint)
 {
     return ShiftTail(joint);
 }
 
-Core::Expected<void, std::string> AppendJointTail(Scenes::JointState& joint)
+Core::Expected<void, std::string> AppendJointTail(Kernel::JointState& joint)
 {
     return AppendJointTail(joint, Math::OriginalAngleMatrix(joint.angles));
 }
 
-Core::Expected<void, std::string> AppendCrossedJointTail(Scenes::JointState& joint, const Math::OriginalMatrix& matrix,
+Core::Expected<void, std::string> AppendCrossedJointTail(Kernel::JointState& joint, const Math::OriginalMatrix& matrix,
                                                          bool crossed)
 {
     if (auto shifted = ShiftTail(joint); !shifted.HasValue())
@@ -85,7 +85,7 @@ Core::Expected<void, std::string> AppendCrossedJointTail(Scenes::JointState& joi
     return {};
 }
 
-const Kernel::ActorState* ActorOwner(const Scenes::JointState& joint)
+const Kernel::ActorState* ActorOwner(const Kernel::JointState& joint)
 {
     if (joint.ownerKind != Kernel::JointOwnerKind::ByType && joint.ownerKind != Kernel::JointOwnerKind::Actor)
         return nullptr;

@@ -23,7 +23,7 @@
 #include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Effects/GameParticles.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
@@ -131,9 +131,9 @@ std::vector<Client::Particles::Particle> LiveParticles(Client::Particles::Partic
     return live;
 }
 
-std::vector<Client::Scenes::JointState> LiveJoints(std::span<const Client::Scenes::JointState> joints)
+std::vector<Client::Kernel::JointState> LiveJoints(std::span<const Client::Kernel::JointState> joints)
 {
-    std::vector<Client::Scenes::JointState> live;
+    std::vector<Client::Kernel::JointState> live;
     for (const auto& joint : joints)
     {
         if (joint.alive)
@@ -204,7 +204,7 @@ protected:
     CrtRandom m_random{1};
     Client::Particles::FrameSprites m_sprites;
     Client::Particles::Particles m_particles;
-    std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(16);
+    std::vector<Client::Kernel::JointState> m_joints = std::vector<Client::Kernel::JointState>(16);
     std::vector<ActorState> m_actors = std::vector<ActorState>(400);
     Client::Effects::ModelEffects m_effects;
 };
@@ -889,7 +889,7 @@ TEST_F(GameCharacterEffectsTest, TheSparklesOfEachLevelCreateTheirOrbitsAndJoint
         SCOPED_TRACE(testing::Message() << probe.level << ' ' << probe.steps);
         m_random = CrtRandom{1};
         m_particles.Clear();
-        m_joints.assign(m_joints.size(), Client::Scenes::JointState{});
+        m_joints.assign(m_joints.size(), Client::Kernel::JointState{});
         for (std::size_t skip = 0; skip < skipped; ++skip)
             static_cast<void>(m_random.Next());
         const glm::vec3 light = m_actor.light;
@@ -1367,7 +1367,7 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
             spirit.angles = {10.0f, 0.0f, 30.0f};
             m_batch.Begin(Client::Render::Pass3D{});
             CrtRandom oracle = m_random;
-            auto twin = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
+            auto twin = std::make_unique<std::array<Client::Kernel::JointState, 500>>();
             std::array<float, 10> widths{};
             for (float& width : widths)
             {
@@ -1608,7 +1608,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     ASSERT_EQ(carry.meshes[1].normals.size(), 1u);
     EXPECT_EQ(carry.meshes[1].normals[0], bits(0xbd78f129u, 0x3dd79713u, 0x3f307a40u));
     Client::Crt::CrtRandom replay;
-    std::vector<Client::Scenes::JointState> twin(joints.size());
+    std::vector<Client::Kernel::JointState> twin(joints.size());
     for (std::size_t corner = 0; corner < 3; ++corner)
     {
         SCOPED_TRACE(corner);

@@ -5,7 +5,7 @@
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -28,9 +28,9 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointRequest;
+using Client::Kernel::JointState;
 using Client::Math::Detail::CosineProductPC53;
 using Client::Math::Detail::SineProductPC53;
-using Client::Scenes::JointState;
 
 constexpr std::int32_t Sparkle = 0x60f, FallingSubtype = 0xa;
 constexpr float PrizeWidth = 40.0f;

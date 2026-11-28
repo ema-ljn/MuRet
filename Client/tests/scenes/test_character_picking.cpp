@@ -7,7 +7,7 @@
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Actors/ActorPickingBox.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Hud/GameUi.h"
 #include "Party/PartyActors.h"
 #include "Social/SocialState.h"
@@ -440,10 +440,10 @@ TEST(CharacterPickingTest, AltOverAFloorItemAlsoLooksForTheParty)
         Name(world.Actors()[3].name, "Brezal");
         world.Actors()[3].type = 0x20a;
         Party(world, {"Brezal", "Tejon"}, -2);
-        auto items = std::make_unique<std::array<Client::Scenes::FloorItemState, 1000>>();
+        auto items = std::make_unique<std::array<Client::Kernel::FloorItemState, 1000>>();
         if (withItem)
         {
-            Client::Scenes::FloorItemState& item = (*items)[6];
+            Client::Kernel::FloorItemState& item = (*items)[6];
             item.alive = true;
             item.seen = true;
             item.pickBox = Client::Models::Box{.min = {1500.0f, 970.0f, 30.0f}, .max = {1560.0f, 1030.0f, 90.0f}};
@@ -586,7 +586,7 @@ TEST(CharacterPickingTest, TheChosenMonsterStaysWithoutButtons)
     ASSERT_TRUE(tested.Pick().HasValue());
     EXPECT_EQ(targets[2], 5);
     EXPECT_EQ(targets[4], 5);
-    world.Runtime().movement.leftHeld = true;
+    world.Runtime().mouse.leftHeld = true;
     ASSERT_TRUE(tested.Pick().HasValue());
     EXPECT_EQ(targets[2], 3);
     EXPECT_EQ(targets[4], 5);

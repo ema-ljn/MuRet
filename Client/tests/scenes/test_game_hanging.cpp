@@ -16,7 +16,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
@@ -98,8 +98,8 @@ Client::Crt::CrtRandom Skipped(std::uint32_t seed, std::size_t count)
     return random;
 }
 
-void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
-                      std::span<const Client::Scenes::JointState> expected)
+void ExpectSameJoints(std::span<const Client::Kernel::JointState> actual,
+                      std::span<const Client::Kernel::JointState> expected)
 {
     ASSERT_EQ(actual.size(), expected.size());
     for (std::size_t k = 0; k < actual.size(); ++k)
@@ -266,7 +266,7 @@ protected:
     Client::Crt::CrtRandom m_random{1};
     Client::Kernel::PoseBuffer m_carry;
     Client::Particles::FrameSprites m_sprites;
-    std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(8);
+    std::vector<Client::Kernel::JointState> m_joints = std::vector<Client::Kernel::JointState>(8);
     Client::Particles::Particles m_particles;
 };
 
@@ -522,7 +522,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     point.x = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.x));
     point.y = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.y));
     point.z = 64.0f;
-    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    std::vector<Client::Kernel::JointState> joints(m_joints.size());
     Client::Particles::Particles particles;
     for (int spark = 0; spark < 4; ++spark)
     {
@@ -677,7 +677,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     glm::vec3 second{150.0f, 17.0f, 50.0f};
     glm::vec3 angles = m_actor.angles;
     Client::Crt::CrtRandom draws = Skipped(1, 4);
-    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    std::vector<Client::Kernel::JointState> joints(m_joints.size());
     for (int beam = 0; beam < 3; ++beam)
     {
         const Client::Kernel::JointRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
@@ -719,7 +719,7 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
         {{150.0f, 140.0f, 71.0f}, {150.0f, 5.0f, 61.0f}},
     }};
     glm::vec3 angles = m_actor.angles;
-    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    std::vector<Client::Kernel::JointState> joints(m_joints.size());
     Client::Crt::CrtRandom unused(1);
     for (auto [first, second] : edges)
     {
@@ -764,7 +764,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     static_cast<void>(draws.Next() % 60);
     const float t = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + 1.0);
     glm::vec3 angles = m_actor.angles;
-    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    std::vector<Client::Kernel::JointState> joints(m_joints.size());
     const Client::Kernel::JointRequest request{0x618, point, point, angles, 0x11, &m_actor, 30.0f, -1, 0, 0, -1};
     Client::Crt::CrtRandom unused(1);
     ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, unused).HasValue());

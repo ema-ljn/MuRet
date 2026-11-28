@@ -29,7 +29,7 @@
 #include "Hud/GameInventoryHud.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Chat/GameMessages.h"
-#include "Movement/GameMovementState.h"
+#include "Kernel/MouseState.h"
 #include "Hud/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
@@ -261,9 +261,9 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
     const Ui::Point mouse = Ui::MouseIn640x480(input, m_screen);
     const Input::MouseMessageState& mouseMessages = input.MouseMessages();
-    Hud::LatchTheLeftRelease(runtime.movement, mouseMessages.leftPress, mouseMessages.leftRelease,
-                             mouseMessages.leftDown, mouse.x, mouse.y);
-    Hud::LatchTheLeftButton(runtime.movement, mouseMessages.leftPress, mouseMessages.leftDown);
+    Kernel::LatchTheLeftRelease(runtime.mouse, mouseMessages.leftPress, mouseMessages.leftRelease,
+                                mouseMessages.leftDown, mouse.x, mouse.y);
+    Kernel::LatchTheLeftButton(runtime.mouse, mouseMessages.leftPress, mouseMessages.leftDown);
     if (const std::optional<bool> doubleClick = input.TakeDoubleClickMessage(); doubleClick.has_value())
         runtime.ui.doubleClick = *doubleClick;
     LatchTheRightButton(runtime.ui, input);
@@ -595,15 +595,15 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         };
     // Una pasada intermedia parte del mismo estado que su copia del administrador y no publica efectos de red.
     Ui::GameUiState projectedUi = runtime.ui;
-    Movement::GameMovementState projectedMovement = runtime.movement;
+    Kernel::MouseState projectedMouse = runtime.mouse;
     Chat::ChatFocus projectedFocus = runtime.chat.input.focus;
     Ui::GameUiState& drawUi = m_projectingFrame ? projectedUi : runtime.ui;
-    Movement::GameMovementState& drawMovement = m_projectingFrame ? projectedMovement : runtime.movement;
+    Kernel::MouseState& drawMouse = m_projectingFrame ? projectedMouse : runtime.mouse;
     Chat::ChatFocus& drawFocus = m_projectingFrame ? projectedFocus : runtime.chat.input.focus;
     const Ui::OldWindowGlobals drawGlobals{
-        .leftHeld = drawMovement.leftHeld,
-        .leftClick = drawMovement.pendingClick,
-        .releasedClick = drawMovement.releasedClick,
+        .leftHeld = drawMouse.leftHeld,
+        .leftClick = drawMouse.pendingClick,
+        .releasedClick = drawMouse.releasedClick,
         .mouseOnUi = drawUi.mouseOnUi,
         .hovered = drawUi.hovered,
         .capture = drawUi.capture,
@@ -614,8 +614,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         .wheel = drawUi.wheel,
         .rightClick = drawUi.rightClick,
         .doubleClick = drawUi.doubleClick,
-        .mouseUpdateTime = &drawMovement.mouseUpdateTime,
-        .mouseUpdateTimeMax = &drawMovement.mouseUpdateTimeMax,
+        .mouseUpdateTime = &drawMouse.updateTime,
+        .mouseUpdateTimeMax = &drawMouse.updateTimeMax,
         .soundRequest = !m_projectingFrame ? std::function<void(Audio::SoundId)>{[&runtime](Audio::SoundId sound)
                                                                                  { runtime.RequestSound(sound); }}
                                            : std::function<void(Audio::SoundId)>{}};
@@ -661,7 +661,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     drawStep.field78abaac = drawUi.field78abaac;
     const Ui::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
-                                           .leftClick = runtime.movement.pendingClick,
+                                           .leftClick = runtime.mouse.pendingClick,
                                            .friendsOpen = panels.Registry().IsOpen(Ui::FriendsPanel),
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,

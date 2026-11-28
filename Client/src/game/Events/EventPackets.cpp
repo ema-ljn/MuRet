@@ -1630,7 +1630,7 @@ void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime)
     ui.dword7239f4 = -1;
     ui.dword6c73dc = 0x0a;
     // 0x42fdf8: el NPC elegido de la llegada (0x6c8e54), que es de GameMovementState.
-    runtime.movement.chosenNpc = -1;
+    runtime.chosenNpc.index = -1;
     ui.dword6c73d8 = 1;
     ui.byte723bec = 0;
     // 0x42fe0d: solo el primero de los seis.

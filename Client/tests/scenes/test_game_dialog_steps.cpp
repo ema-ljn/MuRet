@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Hud/Dialogs/GameDialogSteps.h"
 
@@ -18,7 +19,6 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
-#include "Movement/GameMovementState.h"
 #include "Events/EventGlobals.h"
 #include "Hud/GameUi.h"
 #include "Guild/GuildState.h"
@@ -229,7 +229,7 @@ public:
     }
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
         return Dialogs(x, y);
     }
 
@@ -320,7 +320,7 @@ TEST(GameDialogStepsTest, ExitingTheGameSavesTheOptionsAndAsksToQuit)
         EXPECT_EQ(tested.requests.Of("Macro.txt").text, "hola\r\n\r\n\r\nchau\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
         EXPECT_TRUE(runtime.ui.logoutRequested);
         EXPECT_EQ(runtime.dialogs.current, 0);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     }
 }
@@ -423,8 +423,8 @@ TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialo
             EXPECT_EQ(id, Client::Audio::SoundId{0x19});
             EXPECT_EQ(runtime.dialogs.current, options ? Client::Ui::OptionsDialog : 0x8b);
             EXPECT_EQ(runtime.dialogs.pending, options ? 0x8b : 0);
-            EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-            EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+            EXPECT_EQ(runtime.mouse.updateTime, 0);
+            EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
         };
         runtime.audio = &playback;
         Client::Sound::SoundRequests playbackRequests(&playback);
@@ -433,7 +433,7 @@ TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialo
         EXPECT_EQ(sounds, 1);
         EXPECT_EQ(runtime.dialogs.current, 0x8b);
         EXPECT_EQ(runtime.dialogs.pending, 0);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
     }
 }
 
@@ -454,15 +454,15 @@ TEST(GameDialogStepsTest, QuittingOkDialogsKeepTheCloseStateWithoutAnAudibleClic
         Client::Sound::SoundRequests playbackRequests(&playback);
         runtime.sounds = &playbackRequests;
         runtime.ui.enterPressed = true;
-        runtime.movement.mouseUpdateTime = 20;
+        runtime.mouse.updateTime = 20;
         ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
         EXPECT_EQ(sounds, 0);
         EXPECT_TRUE(runtime.ui.destroyRequested);
         EXPECT_FALSE(runtime.ui.enterPressed);
         EXPECT_EQ(runtime.dialogs.current, 0x8b);
         EXPECT_EQ(runtime.dialogs.pending, 0);
-        EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(runtime.mouse.updateTime, 0);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
     }
 }
 
@@ -491,13 +491,13 @@ TEST(GameDialogStepsTest, TheVolumeBarAndTheWheelSetTheVolume)
     ASSERT_TRUE(tested.Click(0x140 + 17, 0x80).HasValue());
     EXPECT_EQ(runtime.ui.volume, 3);
     EXPECT_EQ(runtime.ui.volumeDragging, 1);
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.ui.volumeRequest, -1045);
 
     // Agarrada, el mouse fuera de su alto todavía la mueve; sin el clic, la suelta.
     ASSERT_TRUE(tested.Dialogs(0x140 + 0x31, 0x79).HasValue());
     EXPECT_EQ(runtime.ui.volume, 9);
-    runtime.movement.pendingClick = false;
+    runtime.mouse.pendingClick = false;
     ASSERT_TRUE(tested.Dialogs(0x140, 0x80).HasValue());
     EXPECT_EQ(runtime.ui.volumeDragging, 0);
     EXPECT_EQ(runtime.ui.volume, 9);
@@ -528,7 +528,7 @@ TEST(GameDialogStepsTest, TheGlowBoxesKeepTheClick)
     runtime.dialogs.current = Client::Ui::OptionsDialog;
     ASSERT_TRUE(tested.Click(0x10e + 0x14 + 0x12, 0xda).HasValue());
     EXPECT_EQ(runtime.ui.glowDetail, 1);
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
     EXPECT_FALSE(runtime.lastSoundId.has_value());
     ASSERT_TRUE(tested.Click(0x10e, 0xc8).HasValue());
     EXPECT_EQ(runtime.ui.glowDetail, 0);
@@ -546,7 +546,7 @@ TEST(GameDialogStepsTest, TheGenericOkClosesWithItsButtonOrEnter)
     EXPECT_EQ(runtime.dialogs.current, 0x72);
     ASSERT_TRUE(tested.Click(0x161, 0x76).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
 
     runtime.dialogs.current = Client::Ui::DisconnectDialog;
     runtime.ui.enterPressed = true;
@@ -592,8 +592,8 @@ TEST(GameDialogStepsTest, YesToThePartyInvitationSendsTheAnswerInC3)
     EXPECT_EQ(tested.requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0x41, 0x01, 0x12, 0x34}));
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(runtime.dialogs.current, 0);
-    EXPECT_FALSE(runtime.movement.pendingClick);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
+    EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
@@ -816,8 +816,8 @@ TEST_P(WarRequestTest, YesSendsTheAcceptanceAndKeepsTheRival)
     EXPECT_EQ(m_tested->requests.requests[0].bytes, AnswerBytes(true));
     EXPECT_EQ(m_tested->random.State(), CrtRandom().State());
     EXPECT_EQ(Runtime().dialogs.current, 0);
-    EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
+    EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     ExpectTheRivalKept();
 }
@@ -900,7 +900,7 @@ protected:
         EXPECT_EQ(runtime.chat.input.fieldCount, 2);
         EXPECT_EQ(runtime.social.moneyField, 0);
         EXPECT_FALSE(runtime.ui.chatOpen);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     }
 
@@ -1074,7 +1074,7 @@ TEST_P(LeaveNumberTest, YesSendsTheLeaveWithTheTypedNumber)
     EXPECT_EQ(m_tested->random.State(), CrtRandom().State());
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     // Los diez bytes y el largo en 0; lo de después, como estaba.
     for (std::size_t index = 0; index < 10; ++index)
         EXPECT_EQ(Input().messageBuffer[index], '\0') << index;
@@ -1139,7 +1139,7 @@ TEST_P(LeaveNumberTest, WithoutAMemberOrRequestsItCuts)
     // El cut deja el EDIT ya vacío (GetText y SetText(0) van antes del nombre).
     EXPECT_EQ(Input().numberField.text.Value(), "");
     Runtime().guild.kickMember = KickedSlot;
-    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+    Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     const auto withoutRequests = Client::Hud::StepTheGameDialogs(GameUiContext{.world = m_tested->world,
                                                                                .random = m_tested->random,
                                                                                .input = m_tested->input,
@@ -1196,20 +1196,20 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
         ASSERT_TRUE(tested->Click(x, y).HasValue());
         EXPECT_EQ(runtime.dialogs.current, Client::Ui::AnswersDialog);
         EXPECT_EQ(runtime.dialogBox.dialogIndex, 3);
-        EXPECT_TRUE(runtime.movement.pendingClick);
-        runtime.movement.pendingClick = false;
+        EXPECT_TRUE(runtime.mouse.pendingClick);
+        runtime.mouse.pendingClick = false;
     }
     EXPECT_TRUE(runtime.ui.enterPressed);
     EXPECT_FALSE(runtime.lastSoundId.has_value());
 
     // La primera, en el borde de la derecha: el 5, sin respuestas ("1) " y el 609), queda abierto.
-    runtime.movement.mouseUpdateTime = 4;
-    runtime.movement.mouseUpdateTimeMax = 12;
+    runtime.mouse.updateTime = 4;
+    runtime.mouse.updateTimeMax = 12;
     ASSERT_TRUE(tested->Click(0x13f + 0x6a, 147).HasValue());
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
-    EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(runtime.mouse.updateTime, 0);
+    EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
     EXPECT_EQ(runtime.dialogs.current, Client::Ui::AnswersDialog);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 5);
     EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) nada mas");
@@ -1270,8 +1270,8 @@ TEST(GameDialogStepsTest, TheWarningAnswersWithItsTwoButtons)
         EXPECT_EQ(runtime.social.trade.warningByte, 1);
         EXPECT_EQ(runtime.dialogs.current, 0);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(runtime.dialogBox.buttons[0].state, 2);
         EXPECT_EQ(runtime.dialogBox.buttons[1].state, 3);
 
@@ -1286,7 +1286,7 @@ TEST(GameDialogStepsTest, TheWarningAnswersWithItsTwoButtons)
         // Un píxel afuera: el clic se gasta igual y no hay respuesta.
         OpenTheWarning(runtime);
         ASSERT_TRUE(tested.Click(0x78 + 0xd5 + 0x47, 0x5a + 0x64).HasValue());
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(runtime.social.trade.warningByte, 0xff);
         EXPECT_EQ(runtime.dialogs.current, 0x94);
         EXPECT_EQ(runtime.dialogBox.buttons[0].state, 1);
@@ -1409,7 +1409,7 @@ TEST(GameDialogStepsTest, TheA7ClosesOnlyInsideItsInclusiveButtonWithoutConsumin
     EXPECT_EQ(runtime.events.guildWarOutcome.secondScore, 0);
     EXPECT_EQ(runtime.events.timeValue, 0);
     EXPECT_EQ(runtime.dialogs.pending, 0);
-    EXPECT_TRUE(runtime.movement.pendingClick);
+    EXPECT_TRUE(runtime.mouse.pendingClick);
     EXPECT_EQ(tested->random.State(), before.State());
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{55});
     EXPECT_TRUE(tested->requests.requests.empty());

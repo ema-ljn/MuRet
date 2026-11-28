@@ -30,7 +30,7 @@ protected:
     void Step(Client::Kernel::ActorState& actor)
     {
         const Client::Actors::ActorWalkContext walk{
-            {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
+            {m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
         auto result = Client::Actors::StepOtherActorMotion(
             actor, walk, {m_runtime, m_random, [](float, float) { return 7.0; }}, m_walls->cells);
         ASSERT_TRUE(result.HasValue()) << (result.HasValue() ? "" : result.Error());
@@ -186,7 +186,7 @@ TEST_F(ActorMotionTest, SixStraightCellsUseTwelveUnitsUntilTheFinalSnap)
         actor.path.cells[cell] = {static_cast<std::uint8_t>(10 + cell), 20};
     }
     const Client::Actors::ActorWalkContext walk{
-        {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true};
+        {m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, true};
     bool arrived = false;
     int steps = 0;
     while (!arrived && steps < 100)
@@ -233,7 +233,7 @@ TEST_F(ActorMotionTest, ATransformedActorStopsWithItsOwnSkeletonAtArrival)
         action.keyCount = 10;
     const std::array<std::int16_t, 10> sounds{};
     const Client::Actors::ActorWalkContext walk{
-        {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random},
+        {m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random},
         m_speeds,
         false,
         &transformed,
@@ -258,7 +258,7 @@ TEST_F(ActorMotionTest, AnIdleTransformedActorReadsYAndXAndPreservesTheTwoCloseR
     actor.cellX = actor.targetX = 10;
     actor.cellY = actor.targetY = 20;
     const Client::Actors::ActorWalkContext walk{
-        {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
+        {m_runtime, Client::Kernel::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
     Client::Crt::CrtRandom expected = m_random;
     for (int access = 0; access < 2 * Client::Models::SmallLogicalCloseRandoms; ++access)
         static_cast<void>(expected.Next());

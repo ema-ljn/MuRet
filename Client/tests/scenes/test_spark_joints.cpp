@@ -6,7 +6,7 @@
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Terrain/TerrainLighting.h"
 
@@ -31,9 +31,9 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
+using Client::Kernel::JointState;
 using Client::Math::OriginalAngleMatrix;
 using Client::Math::OriginalVectorRotate;
-using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x5ba4u;
 

@@ -146,7 +146,7 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     // (06, "La entrada al mundo", paso 1). Es esta carga y no la entrada a la escena 4, que la
     // selección hace antes de tener la lista (0x6342cb).
     m_world.Runtime().drawingEnabled = true;
-    constexpr std::uint8_t SelectionMap = Scenes::WorldOf(Scenes::SceneId::CharacterSelect)->map;
+    constexpr std::uint8_t SelectionMap = Scenes::WorldOf(Kernel::SceneId::CharacterSelect)->map;
     // 0x633f44: el 54 es el mundo en curso antes de 0x61a560, aunque la carga falle. El préstamo anterior
     // deja de valer antes de que la carga pise el terreno del mundo.
     BorrowTerrain(SelectionMap, nullptr);
@@ -155,7 +155,7 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     const Scenes::MapLoadContext context{.dataRoot = dataRoot,
                                          .world = m_world,
                                          .terrain = terrain,
-                                         .scene = Scenes::SceneId::CharacterSelect,
+                                         .scene = Kernel::SceneId::CharacterSelect,
                                          .playerKey = 0,
                                          .random = random != nullptr ? *random : m_localCloth.random,
                                          .faunaModels = faunaModels};

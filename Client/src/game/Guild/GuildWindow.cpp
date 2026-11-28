@@ -224,12 +224,12 @@ std::int32_t HoverTheRow(const GuildWindowStepContext& context, Ui::OldList& lis
         Truncate(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
     if (Chat::MouseInRect(context.mouseX, context.mouseY, list.base.x, Ui::ListRowY(list, size, row) - MemberRowAbove,
                           width, MemberRowHeight, TopLeftRect) &&
-        runtime.movement.pendingClick)
+        runtime.mouse.pendingClick)
     {
         Ui::SelectInTheList(list, size, list.scroll + row + 1);
         Row& element = rows[at];
         element.toggled = (element.toggled + 1) % 2;
-        runtime.movement.pendingClick = false;
+        runtime.mouse.pendingClick = false;
     }
     return 1;
 }
@@ -679,12 +679,12 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
         return {};
     if (Chat::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
         runtime.ui.mouseOnUi = 1;
-    if (runtime.movement.pendingClick && Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
-                                                           base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
+    if (runtime.mouse.pendingClick && Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
+                                                        base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
     {
-        runtime.movement.pendingClick = false;
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
+        runtime.mouse.pendingClick = false;
+        runtime.mouse.updateTime = 0;
+        runtime.mouse.updateTimeMax = CloseMouseUpdateTimeMax;
         runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)
         // 0x6518e3: la vtable + 0x2c, 0x6522f0. El paso sigue con la ventana cerrada.
         if (auto closed = CloseTheGuildWindow(context.world, context.send); !closed.HasValue())
@@ -692,7 +692,7 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
     }
     if (context.world.Hero().guildStatus == NoGuildStatus)
         return {};
-    if (runtime.movement.leftHeld)
+    if (runtime.mouse.leftHeld)
     {
         const auto inTab = [&](std::int32_t tab)
         {
@@ -815,7 +815,7 @@ Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& worl
                           TopLeftRect))
         runtime.ui.mouseOnUi = 1;
     // 0x64e64e: con el flanco del clic (0x7d366d4, que no gasta), las dos cajas eligen el cargo.
-    if (runtime.movement.pendingClick)
+    if (runtime.mouse.pendingClick)
     {
         if (Chat::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + AssistantChoiceTop,
                               PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))

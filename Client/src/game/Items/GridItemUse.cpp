@@ -219,12 +219,12 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
         runtime.cursorItemCount = 0;
         return {};
     }
-    const bool pendingClick = runtime.movement.pendingClick;
+    const bool pendingClick = runtime.mouse.pendingClick;
     const auto picked = inventory ? PickUpFromTheGrid(context, static_cast<std::size_t>(cell))
                         : grid.grid == Kernel::CursorGrid::OwnTrade
                             ? PickUpFromTheTradeGrid(context, static_cast<std::size_t>(cell))
                             : PickUpFromOtherGrid(context, grid.grid, static_cast<std::size_t>(cell));
-    runtime.movement.pendingClick = pendingClick;
+    runtime.mouse.pendingClick = pendingClick;
     if (inventory)
         runtime.ui.field78abb28 = 1;
     if (!picked.HasValue())

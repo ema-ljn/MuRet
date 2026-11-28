@@ -11,7 +11,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
@@ -75,7 +75,7 @@ protected:
         m_effects = std::make_unique<Client::Effects::ModelEffects>();
         m_heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_heights->cells.fill(0.0f);
-        m_joints.assign(32, Client::Scenes::JointState{});
+        m_joints.assign(32, Client::Kernel::JointState{});
         m_batch.Begin(Client::Render::Pass3D{});
         m_random = CrtRandom{Seed};
         m_kalima.reset();
@@ -197,7 +197,7 @@ protected:
     std::unique_ptr<Client::Effects::ModelEffects> m_effects;
     std::unique_ptr<Client::MapScripts::Kalima::KalimaWorld> m_kalima;
     std::unique_ptr<Client::Data::Terrain::TerrainHeights> m_heights;
-    std::vector<Client::Scenes::JointState> m_joints;
+    std::vector<Client::Kernel::JointState> m_joints;
     Client::Render::ModelBatch m_batch;
     float m_shake = 0.0f;
     std::optional<Client::Audio::SoundId> m_sound;
@@ -606,11 +606,11 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
         const auto result = Draw(0);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(burst.dword60, 0x66);
-        EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }),
+        EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Kernel::JointState& joint) { return joint.alive; }),
                   24);
         for (std::size_t turn = 0; turn < 24; ++turn)
         {
-            const Client::Scenes::JointState& joint = m_joints[turn];
+            const Client::Kernel::JointState& joint = m_joints[turn];
             EXPECT_EQ(joint.type, 0x6ee);
             EXPECT_EQ(joint.subtype, 0xe);
             EXPECT_EQ(joint.angles, glm::vec3(20.0f, 0.0f, 30.0f * static_cast<float>(turn)));
@@ -707,7 +707,7 @@ TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBone
     SetUp();
     Actor(0x194, 3);
     ASSERT_TRUE(Draw(36).HasValue());
-    EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }), 12);
+    EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Kernel::JointState& joint) { return joint.alive; }), 12);
     EXPECT_EQ(m_joints[0].type, 0x614);
     EXPECT_EQ(m_joints[0].subtype, 7);
     EXPECT_EQ(m_joints[0].position, Bone(10));
@@ -809,7 +809,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     CrtRandom turns{After(4)};
     const auto pitch = static_cast<float>(turns.Next() % 360);
     const auto yaw = static_cast<float>(turns.Next() % 360);
-    const Client::Scenes::JointState& spark = m_joints[0];
+    const Client::Kernel::JointState& spark = m_joints[0];
     EXPECT_TRUE(spark.alive);
     EXPECT_EQ(spark.type, 0x610);
     EXPECT_EQ(spark.subtype, 5);

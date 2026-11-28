@@ -1,7 +1,9 @@
 #include "Skills/HeroSkills.h"
+#include "Skills/Skill57ce80.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 #include "Maps/MapId.h"
@@ -9,7 +11,7 @@
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Movement/GameMovementState.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkillsElf.h"
 #include "Skills/HeroSkillsKnight.h"
@@ -19,13 +21,10 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/GameUiState.h"
-#include "Math/Ftol.h"
 #include "Kernel/ItemState.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 #include "Tables/PlayerModels.h"
-
-#include <glm/ext/vector_float3.hpp>
 
 #include <array>
 #include <bit>
@@ -34,6 +33,7 @@
 #include <format>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace Client::Skills
 {
@@ -44,7 +44,6 @@ constexpr std::uint32_t HiddenHeroFlag = 0x4000;
 constexpr std::uint32_t PartySkillFlag = 0x200;
 constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr float TeleportFade = 0.1f;
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});        // [0x6b86c0], 0,01
 constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0,001
 constexpr double MaximumHoldSeconds = 3600.0;                                            // [0x6ba43c]
 constexpr std::int32_t SpectatorMap = 6;
@@ -204,7 +203,7 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& her
     std::optional<Protocol::Pets::PetCommand> command;
     if (slot == AttackOrderSlot)
     {
-        const auto attackable = Hero::IsAttackable(context.world, context.controlDown);
+        const auto attackable = Combat::IsAttackable(context.world, context.controlDown);
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
         // 0x558bb0 ya miró el −1 y el lugar del elegido.
@@ -230,42 +229,6 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& her
     ui.rightDown = false;
     ui.rightHoldFrames = 0;
     return true;
-}
-
-// 0x57ce80(héroe): con un elegido (0x6c8e30), su celda (ftol de la posición · 0,01) en 0x77e1ba8/0x77e1bac y su
-// posición en +0x3a8..+0x3b0; sin él, el punto del terreno bajo el mouse y su celda, si lo hay. El resultado no lo
-// mira nadie (0x57d4c7).
-Core::Expected<void, std::string> AimTheSkill(Kernel::ActorState& hero, const HeroSkillContext& context)
-{
-    Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Movement::GameMovementState& state = runtime.movement;
-    glm::vec3 point{};
-    const std::int32_t chosen = runtime.selectedTargets[2];
-    if (chosen != -1)
-    {
-        if (chosen < 0 || static_cast<std::size_t>(chosen) >= context.world.Actors().size())
-            return Core::Unexpected(std::string("0x57ce8e: el elegido está fuera de la tabla de personajes"));
-        point = context.world.Actors()[static_cast<std::size_t>(chosen)].position;
-    }
-    else
-    {
-        if (!context.pickTerrainPoint)
-            return Core::Unexpected(std::string("0x57ceea: 0x5fc260(1) y 0x5fac90 sin el rayo del mouse"));
-        const auto picked = context.pickTerrainPoint();
-        if (!picked.HasValue())
-            return Core::Unexpected(picked.Error());
-        if (!picked.Value())
-            return {};
-        point = *picked.Value();
-    }
-    const auto x = Math::OriginalFtolLow(static_cast<double>(point.x) * static_cast<double>(CellReciprocal));
-    const auto y = Math::OriginalFtolLow(static_cast<double>(point.y) * static_cast<double>(CellReciprocal));
-    if (!x || !y)
-        return Core::Unexpected(std::string("0x57ceaa: la celda del blanco fuera del perfil ftol"));
-    state.targetX = std::bit_cast<std::uint32_t>(*x);
-    state.targetY = std::bit_cast<std::uint32_t>(*y);
-    hero.attackPosition = point;
-    return {};
 }
 
 // 0x559890(héroe, ítem): la skill del arma de las clases 1, 3 y 4. Con lo que la frena, 0; las de la lista van a
@@ -351,7 +314,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(Kernel::ActorState& hero, C
                 Movement::WeaponSkillRequest& request = runtime.movement.weaponSkill;
                 request.active = 1;
                 request.slot = context.world.Hero().skillIndex;
-                const auto attackable = Hero::IsAttackable(context.world, context.controlDown);
+                const auto attackable = Combat::IsAttackable(context.world, context.controlDown);
                 if (!attackable.HasValue())
                     return Core::Unexpected(attackable.Error());
                 request.target = attackable.Value() ? runtime.selectedTargets[2] : -1;
@@ -438,6 +401,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     Movement::GameMovementState& state = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     Ui::GameUiState& ui = runtime.ui;
     // 0x57cfe2..0x57d00f.
     if (state.inputBlocked || ui.mouseOnUi != 0 || (hero.flags78 & FrozenHeroFlag) == FrozenHeroFlag)
@@ -466,9 +430,9 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
     if (state.movementBlocked)
     {
         // 0x57d261..0x57d282: trabado, solo el clic izquierdo (el flanco se gasta) o el botón abajo, sin el reloj.
-        if (!state.pendingClick && !state.leftHeld)
+        if (!mouse.pendingClick && !mouse.leftHeld)
             return {};
-        state.pendingClick = false;
+        mouse.pendingClick = false;
         uses = true;
     }
     else
@@ -542,8 +506,9 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
     {
         // 0x57d4be..0x57d51f: el blanco y, desde la celda lógica (la Y antes que la X), si se lo ve. La línea que sale
         // de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
-        if (auto aimed = AimTheSkill(hero, context); !aimed.HasValue())
-            return aimed;
+        // 0x57d4c7: nobody looks at the result.
+        if (auto aimed = AimTheHeroSkill(hero, context); !aimed.HasValue())
+            return Core::Unexpected(std::move(aimed).Error());
         const auto y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
         const auto x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
         const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);

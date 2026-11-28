@@ -100,7 +100,7 @@ struct HelperStepContext
     float worldClock = 0.0f;
     // DAT_006d5dc8: solo la 5 apaga el ayudante sin jinete (0x44402a), y la 4 decide el final de la animación
     // con el frame + 2 (0x4ec200, Q-C21).
-    Scenes::SceneId scene = Scenes::SceneId::Game;
+    Kernel::SceneId scene = Kernel::SceneId::Game;
     // The attributes (0x7d0d348) of scene 4's load; without it, an empty terrain's.
     const Terrain::WorldTerrain* terrain = nullptr;
     // 0x7d3a0f0, la cuenta de los pasos lógicos que 0x4453e0 lee cruda para la onda 0x6eb/0 de la acción 3 del
@@ -158,7 +158,7 @@ struct HelperDrawContext
     std::function<std::span<const Models::SkinnedMesh>()> posedMeshes{};
     // DAT_006d5dc8, por la escala de 0x4452db..0x445309: 1,6 en la 2 y 1 en la 4; en la 5, la del lugar con los
     // Fenrir y 1 con los demás.
-    Scenes::SceneId scene = Scenes::SceneId::Game;
+    Kernel::SceneId scene = Kernel::SceneId::Game;
     // El buffer dinámico de la luz del terreno (0x5ffce0): el color de los que no son el caballo.
     const Terrain::TerrainLighting* lighting = nullptr;
     // La tabla de los sprites del frame (0x5491e0): el brillo del 0x1c12 (0x445390) y los de los Fenrir.

@@ -23,7 +23,7 @@
 #include "Items/FloorItemActions.h"
 #include "Items/FloorItemNames.h"
 #include "Items/FloorItemPackets.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Hud/GameHover.h"
 #include "Hud/GameHud.h"
 #include "Items/InventoryMoves.h"
@@ -79,12 +79,12 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
+using Client::Kernel::FloorItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Items::FloorItemEntry;
 using Client::Protocol::Items::FloorItemsCreate;
 using Client::Protocol::Items::ItemData;
-using Client::Scenes::FloorItemState;
 using Client::Scenes::WorldEntryResources;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
@@ -502,7 +502,7 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
         const auto packet = Client::Protocol::Items::WritePickUp(sent.front());
         EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x05, 0x22, 0x00, 0x07})));
         EXPECT_EQ(runtime.floor.pendingPickUp, 7);
-        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
 
         runtime.floor.chosen = 5;
         ASSERT_TRUE(Client::Items::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f},
@@ -620,7 +620,7 @@ TEST(FloorItemsSceneTest, TheDropResultReturnsOrRemovesTheCursorItem)
     cell.gridColumn = 2;
     cell.gridRow = 1;
     cell.occupied = 1;
-    stage->world.Runtime().movement.pendingClick = true;
+    stage->world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(stage->Moves(), 10).HasValue());
     stage->world.Runtime().floor.pendingDrop = 22;
 
@@ -630,7 +630,7 @@ TEST(FloorItemsSceneTest, TheDropResultReturnsOrRemovesTheCursorItem)
     EXPECT_EQ(cell.id, Potion);
     EXPECT_EQ(stage->world.Runtime().floor.pendingDrop, -1);
 
-    stage->world.Runtime().movement.pendingClick = true;
+    stage->world.Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Client::Items::PickUpFromTheGrid(stage->Moves(), 10).HasValue());
     const auto dropped = Client::Items::ApplyDropResult({.result = 1, .slot = 22}, stage->Resources());
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
@@ -925,7 +925,7 @@ TEST_F(FloorItemNameTest, TheBoxOfLevelThirteenTakesTheModelOfTheNextCase)
 // proyección.
 TEST_F(FloorItemNameTest, TheHoverNamesThePickedItemAndAltTheOthers)
 {
-    auto tail = std::make_unique<Scenes::GameDrawTailState>();
+    auto tail = std::make_unique<Client::Kernel::GameDrawTailState>();
     tail->floorItems[3] = Item(Potion, 0);
     tail->floorItems[4] = Item(Jewel, 0);
     std::array<std::int32_t, 5> targets{3, -1, -1, -1, -1};

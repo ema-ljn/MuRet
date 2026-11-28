@@ -10,7 +10,7 @@
 #include "Camera/GameCamera.h"
 #include "Actors/EffectHooks.h"
 #include "Actors/JointHooks.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/JointRequest.h"
 #include "Tables/TextTable.h"
 #include "Kernel/IOnScreenMessages.h"

@@ -130,7 +130,7 @@ struct WorldEntryResources
     const Render::Text::ITextMeasure* textMeasure = nullptr;
     std::function<Core::PixelSize()> screen{};
     // 0x6d5dc8, la escena en curso, que miran el 00 (la 2) y el 0D (la 4 y la 5). Vacía, ninguna.
-    std::function<std::optional<SceneId>()> scene{};
+    std::function<std::optional<Kernel::SceneId>()> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2. nullptr si no se cargó: esos mensajes cortan con error.
     const Tables::TextTable* texts = nullptr;
     // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista que llega (F3 11, 0x4c5070). nullptr si no se cargó:

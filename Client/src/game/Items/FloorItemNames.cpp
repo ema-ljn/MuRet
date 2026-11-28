@@ -8,7 +8,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Hud/GameHud.h"
 #include "Items/HudItems.h"
 #include "Hud/HudText.h"
@@ -87,7 +87,7 @@ using Name = Core::Expected<std::string, std::string>;
 struct NameFrame
 {
     Hud::GameHudContext& context;
-    const Scenes::FloorItemState& item;
+    const Kernel::FloorItemState& item;
     std::int32_t level = 0;
 };
 
@@ -435,7 +435,7 @@ Name ComposeTheName(const NameFrame& frame)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& context, const Scenes::FloorItemState& item,
+Core::Expected<void, std::string> DrawTheFloorItemName(Hud::GameHudContext& context, const Kernel::FloorItemState& item,
                                                        bool atTheItem)
 {
     // 0x5ba7a7..0x5ba7c7: SelectObject con la fuente normal (0x5763554) y los colores.

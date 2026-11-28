@@ -16,7 +16,6 @@
 #include "Events/EventGlobals.h"
 #include "Chat/GameChat.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Monsters/NpcNames.h"
@@ -274,22 +273,22 @@ TEST_F(EventChipWindowTest, TheMutoButtonAsksForTheNumber)
         EXPECT_TRUE(sent.empty());
         EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
 
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         const auto stepped = Step(0x25c, 0xf3);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(), Bytes({0xC1, 0x04, 0x98, 0x10})));
         EXPECT_TRUE(Client::Tests::SameBytes(Decoded(sent[0]), Bytes({0xC1, 0x04, 0x98, 0x01})));
-        EXPECT_FALSE(Runtime().movement.releasedClick);
+        EXPECT_FALSE(Runtime().mouse.releasedClick);
         EXPECT_EQ(random.State(), before);
 
         // Fuera del botón (0xf4), el soltado se apaga igual al final (0x5e74cc).
         sent.clear();
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         Runtime().ui.mouseOnUi = 0;
         ASSERT_TRUE(Step(0x1e5, 0xf4).HasValue());
         EXPECT_TRUE(sent.empty());
-        EXPECT_FALSE(Runtime().movement.releasedClick);
+        EXPECT_FALSE(Runtime().mouse.releasedClick);
         // 0x1b1 ya no es de la UI.
         Runtime().ui.mouseOnUi = 0;
         ASSERT_TRUE(Step(0x1e5, 0x1b1).HasValue());
@@ -311,15 +310,15 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
         const std::uint32_t before = random.State();
 
         Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(0x1e5, 0xe7).HasValue());
         ASSERT_EQ(sent.size(), 1u);
         EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(), Bytes({0xC1, 0x05, 0x95, 0x1C, 0xBF})));
         EXPECT_TRUE(Client::Tests::SameBytes(Decoded(sent[0]), Bytes({0xC1, 0x05, 0x95, 0x00, 0x1F})));
-        EXPECT_FALSE(Runtime().movement.releasedClick);
+        EXPECT_FALSE(Runtime().mouse.releasedClick);
 
         Runtime().panels.field78abb00 = Client::Events::StoneChipWindow;
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(0x25c, 0xfc).HasValue());
         ASSERT_EQ(sent.size(), 2u);
         EXPECT_TRUE(Client::Tests::SameBytes(sent[1].packet.Bytes(), Bytes({0xC1, 0x05, 0x95, 0x1D, 0xA4})));
@@ -327,7 +326,7 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
 
         // Con 5 busca la Rena de nivel 0 y manda el tipo 4.
         Runtime().panels.field78abb00 = 5;
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(0x1e5, 0xe7).HasValue());
         ASSERT_EQ(sent.size(), 3u);
         EXPECT_TRUE(Client::Tests::SameBytes(Decoded(sent[2]), Bytes({0xC1, 0x05, 0x95, 0x04, 0x1F})));
@@ -336,10 +335,10 @@ TEST_F(EventChipWindowTest, TheChipButtonRegistersTheRenaOrTheStone)
         // Sin la Rena, el soltado se gasta sin enviar.
         world->Inventory().cells[31].occupied = 0;
         Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(0x1e5, 0xe7).HasValue());
         EXPECT_EQ(sent.size(), 3u);
-        EXPECT_FALSE(Runtime().movement.releasedClick);
+        EXPECT_FALSE(Runtime().mouse.releasedClick);
     }
 }
 
@@ -354,8 +353,8 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         Reset(map);
         Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
         Runtime().chat.input.dialogEdit.text.SetText("AB12CD34EF56");
-        Runtime().movement.releasedClick = true;
-        Runtime().movement.leftHeld = true;
+        Runtime().mouse.releasedClick = true;
+        Runtime().mouse.leftHeld = true;
         const std::uint32_t before = random.State();
         const auto stepped = Step(485, 290);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -363,23 +362,23 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         EXPECT_TRUE(Client::Tests::SameBytes(sent[0].packet.Bytes(),
                                              Bytes({0xC1, 0x12, 0x9D, 0x55, 0xAB, 0x28, 0x85, 0xF6, 0x96, 0x7A, 0xB7,
                                                     0x35, 0x7C, 0x64, 0x1B, 0x73, 0xCF, 0x04})));
-        EXPECT_FALSE(Runtime().movement.leftHeld);
-        EXPECT_FALSE(Runtime().movement.releasedClick);
+        EXPECT_FALSE(Runtime().mouse.leftHeld);
+        EXPECT_FALSE(Runtime().mouse.releasedClick);
         EXPECT_EQ(random.State(), before);
 
         Runtime().chat.input.dialogEdit.text.SetText("Q7X");
-        Runtime().movement.releasedClick = true;
+        Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(485 + 119, 290 + 21).HasValue());
         ASSERT_EQ(sent.size(), 2u);
         EXPECT_TRUE(Client::Tests::SameBytes(
             Decoded(sent[1]), Bytes({0xC1, 0x12, 0x9D, 'Q', '7', 'X', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})));
 
         // Fuera del botón (y + 22), nada, y el izquierdo sigue.
-        Runtime().movement.releasedClick = true;
-        Runtime().movement.leftHeld = true;
+        Runtime().mouse.releasedClick = true;
+        Runtime().mouse.leftHeld = true;
         ASSERT_TRUE(Step(485, 290 + 22).HasValue());
         EXPECT_EQ(sent.size(), 2u);
-        EXPECT_TRUE(Runtime().movement.leftHeld);
+        EXPECT_TRUE(Runtime().mouse.leftHeld);
     }
 }
 
@@ -394,18 +393,18 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
     }
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
     Runtime().chat.input.dialogEdit.text.SetText("AB12");
-    Runtime().movement.releasedClick = true;
-    Runtime().movement.leftHeld = true;
+    Runtime().mouse.releasedClick = true;
+    Runtime().mouse.leftHeld = true;
     ASSERT_TRUE(Step(500, 300).HasValue());
     EXPECT_TRUE(sent.empty());
     EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
     EXPECT_EQ(std::string_view(Runtime().dialogBox.rows.data()), "sin lugar");
-    EXPECT_FALSE(Runtime().movement.leftHeld);
+    EXPECT_FALSE(Runtime().mouse.leftHeld);
 
     Reset(0);
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
     Runtime().chat.input.dialogEdit.text.SetText("ABCDEFGHIJKLM");
-    Runtime().movement.releasedClick = true;
+    Runtime().mouse.releasedClick = true;
     const auto cut = Step(500, 300);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5e6d68"), std::string::npos) << cut.Error();
@@ -438,8 +437,8 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             Runtime().social.moneyField = 1;
             Runtime().social.typedMoney = 500;
             Runtime().social.trade.field78abacc = 2;
-            Runtime().movement.pendingClick = true;
-            Runtime().movement.mouseUpdateTime = 3;
+            Runtime().mouse.pendingClick = true;
+            Runtime().mouse.updateTime = 3;
             const std::uint32_t closed = AfterClosingTheInventory();
 
             const auto stepped = Step(0x1c2 + 0x19 + 23, 0x18b + 23);
@@ -451,9 +450,9 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             EXPECT_EQ(Runtime().panels.field78abb00, 0);
             EXPECT_EQ(Runtime().panels.field78abb04, 0);
             EXPECT_EQ(Runtime().panels.inventory, 0);
-            EXPECT_FALSE(Runtime().movement.pendingClick);
-            EXPECT_EQ(Runtime().movement.mouseUpdateTime, 0);
-            EXPECT_EQ(Runtime().movement.mouseUpdateTimeMax, 6);
+            EXPECT_FALSE(Runtime().mouse.pendingClick);
+            EXPECT_EQ(Runtime().mouse.updateTime, 0);
+            EXPECT_EQ(Runtime().mouse.updateTimeMax, 6);
             EXPECT_FALSE(Runtime().ui.chatOpen);
             EXPECT_FALSE(Runtime().events.serialEntry);
             EXPECT_EQ(Runtime().social.moneyField, 0);
@@ -472,7 +471,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
 TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 {
     Runtime().panels.field78abb00 = Client::Events::RenaChipWindow;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     const CrtRandom before = random;
     ASSERT_TRUE(Step(0x19, 0x18b).HasValue());
     EXPECT_EQ(DrawsBetween(before, random.State()), 2u);
@@ -670,15 +669,15 @@ TEST_F(EventChipWindowTest, TheStoneWindowWithoutStonesIsGrey)
 TEST_F(EventChipWindowTest, ThePressedButtonTakesTheClick)
 {
     Runtime().panels.field78abb00 = Client::Events::MutoNumberWindow;
-    Runtime().movement.pendingClick = true;
-    Runtime().movement.releasedClick = true;
-    Runtime().movement.leftHeld = true;
+    Runtime().mouse.pendingClick = true;
+    Runtime().mouse.releasedClick = true;
+    Runtime().mouse.leftHeld = true;
     ASSERT_TRUE(Draw({0x1e5, 0xdc}, true).HasValue());
-    EXPECT_TRUE(Runtime().movement.pendingClick);
-    EXPECT_TRUE(Runtime().movement.leftHeld);
+    EXPECT_TRUE(Runtime().mouse.pendingClick);
+    EXPECT_TRUE(Runtime().mouse.leftHeld);
     ASSERT_TRUE(Draw({0x1e5, 0xdc}).HasValue());
-    EXPECT_FALSE(Runtime().movement.pendingClick);
-    EXPECT_FALSE(Runtime().movement.leftHeld);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.leftHeld);
     const std::vector<DrawnQuad> quads = QuadsOf(sprites);
     bool pressed = false;
     for (const DrawnQuad& quad : quads)

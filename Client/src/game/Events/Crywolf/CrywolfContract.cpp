@@ -3,10 +3,10 @@
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
-#include "Movement/GameMovementState.h"
+#include "Actors/WalkPath.h"
 #include "Kernel/WorldRuntime.h"
-#include "Kernel/WorldState.h"
 #include "Ui/GameText.h"
 #include "Crt/OriginalFormat.h"
 #include "Kernel/CharacterClass.h"
@@ -59,8 +59,8 @@ constexpr Box ConfirmBox{0x122, 0x158, 0xfa, 0x118};
 constexpr std::array<std::uint16_t, 3> RefusedPets{0x1c14, 0x1c15, 0x1c37};
 
 // 0x567b36..0x567b5b: los altares en el viewport y la clase de la elfa.
-constexpr std::uint16_t FirstAltarType = 0x204;
-constexpr std::uint16_t LastAltarType = 0x208;
+constexpr std::uint16_t FirstAltarType = Actors::FirstCrywolfAltarType;
+constexpr std::uint16_t LastAltarType = Actors::LastCrywolfAltarType;
 
 bool Inside(const Box& box, std::int32_t x, std::int32_t y)
 {
@@ -154,13 +154,13 @@ Result StepTheContractWindow(const ContractWindowContext& context)
 {
     Kernel::WorldRuntime& runtime = context.runtime;
     Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     const std::int32_t x = context.mouseX;
     const std::int32_t y = context.mouseY;
     if (ui.byte723a44 == QuestionWindow)
     {
         // 0x435c6b..0x435cb4: el No.
-        if (Inside(RefuseBox, x, y) && movement.leftHeld)
+        if (Inside(RefuseBox, x, y) && mouse.leftHeld)
         {
             ui.dwords723bdc[0] = RefusePushed;
             if (auto shown = ShowTheContractMessage(runtime, context.texts, {.message = ContractRefusedMessage});
@@ -170,7 +170,7 @@ Result StepTheContractWindow(const ContractWindowContext& context)
         // 0x435cb7..0x435cec: el Sí; con el mouse encima y el botón arriba, nada.
         if (Inside(AcceptBox, x, y))
         {
-            if (!movement.leftHeld)
+            if (!mouse.leftHeld)
                 return {};
             if (std::ranges::find(RefusedPets, context.heroPet) != RefusedPets.end())
             {
@@ -189,18 +189,18 @@ Result StepTheContractWindow(const ContractWindowContext& context)
             }
         }
         // 0x4361b4..0x4361c6.
-        if (movement.leftHeld)
+        if (mouse.leftHeld)
         {
-            movement.leftHeld = false;
-            movement.pendingClick = false;
+            mouse.leftHeld = false;
+            mouse.pendingClick = false;
         }
         return {};
     }
     // 0x4361dc..0x436216: el OK.
-    if (ui.byte723a44 == NoticeWindow && Inside(ConfirmBox, x, y) && movement.leftHeld)
+    if (ui.byte723a44 == NoticeWindow && Inside(ConfirmBox, x, y) && mouse.leftHeld)
     {
-        movement.leftHeld = false;
-        movement.pendingClick = false;
+        mouse.leftHeld = false;
+        mouse.pendingClick = false;
         ui.dwords723bdc[0] = ConfirmPushed;
     }
     return {};
@@ -243,20 +243,5 @@ Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(Kernel::WorldRuntim
     if (!shown.HasValue())
         return Core::Unexpected(std::move(shown).Error());
     return AltarClick::Contract;
-}
-
-bool CrywolfAltarGoal(const Kernel::WorldState& world)
-{
-    // 0x4eac0a..0x4eac1a.
-    const Kernel::WorldRuntime& runtime = world.Runtime();
-    if (!InTheCrywolfDefense(runtime))
-        return false;
-    // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, con CMP de 16 bits con signo.
-    const std::int32_t chosen = runtime.movement.chosenNpc;
-    const auto actors = world.Actors();
-    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
-        return false;
-    const auto type = static_cast<std::int16_t>(actors[static_cast<std::size_t>(chosen)].type);
-    return type >= static_cast<std::int16_t>(FirstAltarType) && type <= static_cast<std::int16_t>(LastAltarType);
 }
 } // namespace Client::Events::Crywolf

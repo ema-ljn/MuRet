@@ -9,6 +9,11 @@
 #include <span>
 #include <string>
 
+namespace Client::Kernel
+{
+struct JointState;
+} // namespace Client::Kernel
+
 namespace Client::Render
 {
 class ModelBatch;
@@ -31,11 +36,6 @@ struct JointRequest;
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
-{
-struct JointState;
-} // namespace Client::Scenes
-
 // The characters' draw slots (Actors/Drawing/CharacterDrawHooks.h), each one in the module that owns the call. They
 // keep no state: whoever builds a draw pass can own one.
 namespace Client::Session
@@ -47,7 +47,7 @@ public:
     DrawTheMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
                    std::size_t slot, const Actors::Drawing::GameCharacterPass& pass, bool originalFrame) const override;
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-    CreateTheJoint(std::span<Scenes::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
+    CreateTheJoint(std::span<Kernel::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
                    Kernel::JointOwnerKind owner) const override;
 };
 } // namespace Client::Session

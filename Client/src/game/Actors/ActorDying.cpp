@@ -265,7 +265,7 @@ Core::Expected<void, std::string> StepActorDying(Kernel::ActorState& actor, std:
                 return Core::Unexpected(std::format("{} (paso {})", flare.Error(), actor.dying));
         }
     }
-    if (context.scene == Scenes::SceneId::Game && map == BubbleMap)
+    if (context.scene == Kernel::SceneId::Game && map == BubbleMap)
         return BlowTheBubbles(actor, slot, context);
     return {};
 }

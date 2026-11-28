@@ -42,17 +42,13 @@ class ModelEffects;
 namespace Client::Kernel
 {
 struct ActorState;
+struct JointState;
 } // namespace Client::Kernel
 
 namespace Client::Actors
 {
 class IEffectHooks;
 } // namespace Client::Actors
-
-namespace Client::Scenes
-{
-struct JointState;
-} // namespace Client::Scenes
 
 namespace Client::Monsters::Drawing
 {
@@ -138,7 +134,7 @@ struct MonsterBodyFrame
     // 0x530860: la tabla de joints (0x74a8d78, WorldState::DrawTail), para los rayos de Kundun al morir (0x43f20d),
     // que sólo la tocan en un frame del original; entre frames, la copia proyectada (GameCharacterPass::joints).
     // Vacía: corta ahí.
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
 };
 
 // 0x41ed10(id, objeto, 0) en un frame del original: lo anota para CL10.

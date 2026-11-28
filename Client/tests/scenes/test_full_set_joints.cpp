@@ -8,7 +8,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Pets/HelperTable.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -37,9 +37,9 @@ using Client::Kernel::ActorState;
 using Client::Kernel::HelperState;
 using Client::Kernel::JointOwnerKind;
 using Client::Kernel::JointRequest;
+using Client::Kernel::JointState;
 using Client::Math::Detail::CosineProductPC53;
 using Client::Math::Detail::SineProductPC53;
-using Client::Scenes::JointState;
 
 using Client::Math::D;
 using Client::Math::F32;

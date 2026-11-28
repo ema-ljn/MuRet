@@ -182,15 +182,15 @@ protected:
                                                    &m_models->TextureSlots(), &*m_data->gates, &*m_data->skills);
     }
 
-    std::unique_ptr<Scenes::IScene> MakeScene(Scenes::SceneId id)
+    std::unique_ptr<Scenes::IScene> MakeScene(Kernel::SceneId id)
     {
         m_scene = nullptr;
-        if (id == Scenes::SceneId::CharacterSelect)
+        if (id == Kernel::SceneId::CharacterSelect)
             return std::make_unique<Scenes::CharacterSelectScene>(Context(), *m_data, *m_models, &m_online->session,
                                                                   &m_models->TextureSlots());
-        if (id == Scenes::SceneId::WorldLoading)
+        if (id == Kernel::SceneId::WorldLoading)
             return std::make_unique<Scenes::WorldLoadingScene>(Context());
-        if (id != Scenes::SceneId::Game)
+        if (id != Kernel::SceneId::Game)
             return nullptr;
         auto scene = MakeGame();
         m_scene = scene.get();
@@ -215,10 +215,10 @@ protected:
     void OpenManagedScene()
     {
         m_manager = std::make_unique<Scenes::SceneManager>(
-            [this](Scenes::SceneId id) { return MakeScene(id); }, m_target, m_clock,
+            [this](Kernel::SceneId id) { return MakeScene(id); }, m_target, m_clock,
             [this]() { return m_online->session.Poll(); }, m_log,
             [this]() { return std::exchange(m_world->Runtime().orderedScene, std::nullopt); });
-        ASSERT_TRUE(m_manager->Start(Scenes::SceneId::Game).HasValue());
+        ASSERT_TRUE(m_manager->Start(Kernel::SceneId::Game).HasValue());
     }
 
     void Step()
@@ -263,7 +263,7 @@ protected:
         const auto& frame = m_target.frames[before];
         EXPECT_TRUE(frame.presented);
         EXPECT_EQ(frame.clock, m_clock.Now());
-        const bool selection = m_manager && m_manager->Current() == Scenes::SceneId::CharacterSelect;
+        const bool selection = m_manager && m_manager->Current() == Kernel::SceneId::CharacterSelect;
         EXPECT_TRUE(std::ranges::any_of(frame.events,
                                         [selection](const auto& event)
                                         {

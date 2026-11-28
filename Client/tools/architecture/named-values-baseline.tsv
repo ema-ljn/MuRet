@@ -253,11 +253,11 @@ skill	game/Combat/ActorCombat.cpp	FirstActionSkill	0x32
 skill	game/Combat/ActorCombat.cpp	FirstKalimaSkill	0x1
 skill	game/Combat/ActorCombat.cpp	KalimaSkill	0x11
 skill	game/Combat/ActorCombat.cpp	UsedSkill	0xff
+skill	game/Combat/Attackable.cpp	BrakeSkill	0x28
 skill	game/Combat/CombatReplies.cpp	FirstPushSkill	0x28
 skill	game/Combat/CombatReplies.cpp	SecondPushSkill	0x3b
 skill	game/Effects/ArrowEffects.cpp	PiercingSkill	0x34
 skill	game/Hero/HeroAttack.cpp	ArrivalSkill	0x5
-skill	game/Hero/HeroAttack.cpp	BrakeSkill	0x28
 skill	game/Hero/HeroAttack.cpp	LastSkill	0xff
 skill	game/Items/FloorItemNames.cpp	FirstScrollSkill	0x1e
 skill	game/Joints/FaunaJointCreation.cpp	MirroredSkill	0x1

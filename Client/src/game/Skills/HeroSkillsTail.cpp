@@ -8,7 +8,7 @@
 #include "Kernel/ActorState.h"
 #include "Combat/CombatActionSpeeds.h"
 #include "Movement/GameMovementState.h"
-#include "Hero/HeroAttack.h"
+#include "Combat/Attackable.h"
 #include "Skills/HeroSkillCasts.h"
 #include "Skills/HeroSkillSupport.h"
 #include "Skills/HeroSkills.h"
@@ -227,7 +227,7 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosen =
-            Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
+            Combat::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
         key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(chosen.Value()) & 0xffffu);

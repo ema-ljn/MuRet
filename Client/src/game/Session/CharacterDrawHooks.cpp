@@ -22,7 +22,7 @@ Core::Expected<void, std::string> CharacterDrawHooks::DrawTheMonster(Render::Mod
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CharacterDrawHooks::CreateTheJoint(std::span<Scenes::JointState> joints, const Kernel::JointRequest& request,
+CharacterDrawHooks::CreateTheJoint(std::span<Kernel::JointState> joints, const Kernel::JointRequest& request,
                                    Crt::CrtRandom& random, Kernel::JointOwnerKind owner) const
 {
     return Joints::CreateFaunaJoint(joints, request, random, owner);

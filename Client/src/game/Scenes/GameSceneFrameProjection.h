@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Models/Cloth.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Actors/ActorPickingBox.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Kernel/WorldRuntime.h"
@@ -24,7 +24,7 @@ namespace Client::Scenes
 // Un único dueño en heap por dibujo intermedio: todos sus servicios prestan estas mismas copias.
 struct GameSceneFrameProjection
 {
-    GameDrawTailState tail{};
+    Kernel::GameDrawTailState tail{};
     Terrain::TerrainLighting lighting{};
     WorldObjects::ObjectModelStepState modelState{};
     Actors::Drawing::GameItemRenderState items{};

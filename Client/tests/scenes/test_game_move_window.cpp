@@ -164,8 +164,8 @@ protected:
 
     void HoldTheButton()
     {
-        m_world->Runtime().movement.leftHeld = true;
-        m_world->Runtime().movement.pendingClick = true;
+        m_world->Runtime().mouse.leftHeld = true;
+        m_world->Runtime().mouse.pendingClick = true;
     }
 
     [[nodiscard]] std::int32_t Mode() const
@@ -217,8 +217,8 @@ TEST_F(GameMoveWindowTest, AClickOnAnAllowedDestinationSaysIt)
     ASSERT_TRUE(Step(50, 40).HasValue());
     EXPECT_TRUE(Said("/mover Campo"));
     EXPECT_EQ(Mode(), 0);
-    EXPECT_FALSE(m_world->Runtime().movement.leftHeld);
-    EXPECT_FALSE(m_world->Runtime().movement.pendingClick);
+    EXPECT_FALSE(m_world->Runtime().mouse.leftHeld);
+    EXPECT_FALSE(m_world->Runtime().mouse.pendingClick);
     EXPECT_EQ(m_world->Runtime().chat.input.lastSaid, "/mover Campo");
     EXPECT_EQ(m_random.State(), Advanced(OwnRecordRandoms).State());
 }
@@ -231,7 +231,7 @@ TEST_F(GameMoveWindowTest, TheLevelIsTwoThirdsForTheThirdAndFourthClasses)
     ASSERT_TRUE(Step(50, 60).HasValue());
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
-    EXPECT_TRUE(m_world->Runtime().movement.leftHeld);
+    EXPECT_TRUE(m_world->Runtime().mouse.leftHeld);
 
     m_world->OwnCharacter().characterClass = 0x23;
     ASSERT_TRUE(Step(50, 60).HasValue());
@@ -265,8 +265,8 @@ TEST_F(GameMoveWindowTest, TheBottomRowClosesTheWindow)
     EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
     ASSERT_TRUE(Step(50, 82).HasValue());
     EXPECT_EQ(Mode(), 0);
-    EXPECT_FALSE(m_world->Runtime().movement.leftHeld);
-    EXPECT_FALSE(m_world->Runtime().movement.pendingClick);
+    EXPECT_FALSE(m_world->Runtime().mouse.leftHeld);
+    EXPECT_FALSE(m_world->Runtime().mouse.pendingClick);
     EXPECT_TRUE(m_sent.empty());
 }
 

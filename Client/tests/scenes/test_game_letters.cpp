@@ -234,7 +234,7 @@ protected:
                                   .random = m_random,
                                   .measure = &m_letters,
                                   .screen = Client::Core::PixelSize{640, 480},
-                                  .scene = Client::Scenes::SceneId::Game,
+                                  .scene = Client::Kernel::SceneId::Game,
                                   .texts = &m_texts,
                                   .chosenSlot = std::nullopt,
                                   .rooms = &m_rooms};
@@ -463,7 +463,7 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     chat = &Manager().windows.at(chatId);
     const std::int32_t rowX = chat->chat.invite.base.x + 4;
     const std::int32_t rowY = Client::Ui::ListRowY(chat->chat.invite, chat->chat.invitable.size(), 0) + 3;
-    Runtime().movement.pendingClick = true;
+    Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step(rowX, rowY).HasValue());
     chat = &Manager().windows.at(chatId);
     EXPECT_EQ(Client::Ui::SelectedInTheList(chat->chat.invite, chat->chat.invitable.size()),

@@ -2,7 +2,7 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Effects/BlastModelEffects.h"
@@ -33,7 +33,7 @@ bool IsInferno(std::int32_t type, std::int32_t subtype)
     return type == InfernoJoint && subtype >= 2 && subtype <= 6; // 0x534432..0x53443e y 0x53b6a0..0x53b6ac
 }
 
-void CreateInfernoJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
+void CreateInfernoJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x534444..0x53448c: lo común de la /2..6.
     constexpr float Speed = 8;                                  // 0x41000000
@@ -95,7 +95,7 @@ void CreateInfernoJoint(Scenes::JointState& joint, const Kernel::JointRequest& r
     joint.pathIncrement = joint.position;
 }
 
-Core::Expected<void, std::string> StepInfernoJoint(Scenes::JointState& joint,
+Core::Expected<void, std::string> StepInfernoJoint(Kernel::JointState& joint,
                                                    const JointKernels::StepServices& services)
 {
     // 0x53b6b2..0x53b6ec: la velocidad suma vz; vz suma 0,5 con menos de 15 de vida y si no vx.

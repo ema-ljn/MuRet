@@ -19,7 +19,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Session/IWorldTransitionPublisher.h"
 #include "FrontEnd/LoginModels.h"
 #include "Hud/MapBanner.h"
@@ -202,7 +202,7 @@ TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAnd
     EXPECT_EQ(tested.Hero().alpha, 0.0f);
     EXPECT_EQ(tested.world.Runtime().warpCounter, 30);
     EXPECT_EQ(tested.camera.level, 9);
-    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(tested.world.Runtime().mouse.updateTimeMax, 6);
     EXPECT_EQ(tested.world.Runtime().storm, 0);
     EXPECT_EQ(tested.world.Runtime().selectedTargets[0], -1);
 }
@@ -525,7 +525,7 @@ TEST_F(WorldTransitionsMapsTest, AGameServerCanReturnToSelectionAndEnterAgain)
     ASSERT_EQ(online.session.State(), Client::Session::SessionState::WaitingCharacterList);
     EXPECT_EQ(tested.world.Runtime().hero, firstSlot);
     EXPECT_EQ(tested.world.Runtime().map, -1);
-    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Kernel::SceneId::CharacterSelect);
     EXPECT_FALSE(tested.world.DrawTail().damage[0].alive);
     online.socket.reads = {EntryPacket(serials)};
     static_cast<void>(online.session.Poll());

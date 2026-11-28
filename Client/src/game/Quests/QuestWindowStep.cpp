@@ -3,10 +3,10 @@
 #include "Core/Expected.h"
 #include "Tables/DialogTable.h"
 #include "Models/LogicalAccess.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GameUi.h"
 #include "Quests/QuestState.h"
 #include "Quests/Quests.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/GameDialogs.h"
@@ -68,11 +68,11 @@ constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 constexpr Audio::SoundId ButtonSound = Sound::CreateWindowSound;
 
 // El clic gastado por un botón de la ventana: 0x7d366d4 en 0, 0x77f3b10 en 0 y 0x6c8dcc en 6.
-void SpendTheClick(Movement::GameMovementState& movement)
+void SpendTheClick(Kernel::MouseState& mouse)
 {
-    movement.pendingClick = false;
-    movement.mouseUpdateTime = 0;
-    movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    mouse.pendingClick = false;
+    mouse.updateTime = 0;
+    mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
 }
 
 bool MouseIn(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const Hud::GameUiContext& 
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
     Ui::DialogBoxState& box = runtime.dialogBox;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     // 0x419bf7..0x419c22: ((7 − (respuestas + renglones)) · 0x12) / 2 + renglones · 0x12 + 0x42, la división con signo.
     const std::int32_t answers = box.answerCount;
     std::int32_t top =
@@ -143,13 +143,13 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const Hud::GameUiContext& 
     const std::int64_t distance = static_cast<std::int64_t>(AnswersCenterX) - context.mouseX;
     if ((distance < 0 ? -distance : distance) > AnswersHalfWidth)
         return {};
-    if (!movement.pendingClick)
+    if (!mouse.pendingClick)
         return {};
     // 0x419c84..0x419cb7: gasta el clic antes de mirar la fila, que sale solo si es negativa (Q-C870).
-    movement.pendingClick = false;
-    movement.leftHeld = false;
-    movement.mouseUpdateTime = 0;
-    movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    mouse.pendingClick = false;
+    mouse.leftHeld = false;
+    mouse.updateTime = 0;
+    mouse.updateTimeMax = ButtonMouseUpdateTimeMax;
     const std::int32_t row = offset / Ui::DialogLineStep;
     if (row < 0)
         return {};
@@ -182,12 +182,12 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const Hud::GameUiContext& 
     }
     case static_cast<std::int32_t>(Tables::DialogAction::Close):
         // 0x41a320..0x41a335: el clic gastado otra vez y 0x419900.
-        SpendTheClick(movement);
+        SpendTheClick(mouse);
         if (auto closed = CloseTheQuestWindow(context, "0x41a335"); !closed.HasValue())
             return closed;
         break;
     case static_cast<std::int32_t>(Tables::DialogAction::Accept):
-        SpendTheClick(movement);
+        SpendTheClick(mouse);
         if (auto sent = SendTheQuestState(context, "0x41a35b"); !sent.HasValue())
             return sent;
         break;
@@ -211,7 +211,7 @@ Core::Expected<void, std::string> StepTheQuestDialog(const Hud::GameUiContext& c
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const QuestState& quest = runtime.quest;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (MouseIn(context, quest.x, quest.y, quest.x + WindowWidth, quest.y + WindowHeight))
         runtime.ui.mouseOnUi = 1;
     if (auto answered = StepTheQuestAnswers(context); !answered.HasValue())
@@ -222,25 +222,25 @@ Core::Expected<void, std::string> StepTheQuestDialog(const Hud::GameUiContext& c
         return Core::Unexpected(complete.Error());
     if (complete.Value() &&
         MouseIn(context, quest.x + FinishLeft, FinishTop, quest.x + FinishLeft + FinishWidth, FinishBottom) &&
-        movement.pendingClick)
+        mouse.pendingClick)
     {
         // 0x41aaa1..0x41b0cc: el A2, el clic y el botón abajo en 0 (0x77f3b10 y 0x6c8dcc quedan) y el sonido.
         if (auto sent = SendTheQuestState(context, "0x41aaa1"); !sent.HasValue())
             return sent;
-        movement.pendingClick = false;
-        movement.leftHeld = false;
+        mouse.pendingClick = false;
+        mouse.leftHeld = false;
         runtime.RequestSound(ButtonSound);
     }
     if (MouseIn(context, quest.x + CloseLeft, quest.y + CloseTop, quest.x + CloseLeft + CloseSize,
                 quest.y + CloseTop + CloseSize) &&
-        movement.pendingClick)
+        mouse.pendingClick)
     {
-        SpendTheClick(movement);
+        SpendTheClick(mouse);
         if (auto closed = CloseTheQuestWindow(context, "0x41b13d"); !closed.HasValue())
             return closed;
     }
     // 0x41b142..0x41b14c.
-    movement.releasedClick = false;
+    mouse.releasedClick = false;
     return {};
 }
 
@@ -249,7 +249,7 @@ Core::Expected<void, std::string> StepTheQuestList(const Hud::GameUiContext& con
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     QuestState& quest = runtime.quest;
-    Movement::GameMovementState& movement = runtime.movement;
+    Kernel::MouseState& mouse = runtime.mouse;
     if (MouseIn(context, quest.x, quest.y, quest.x + WindowWidth, quest.y + WindowHeight))
         runtime.ui.mouseOnUi = 1;
     for (std::int32_t tab = 0; tab < TabCount; ++tab)
@@ -258,22 +258,22 @@ Core::Expected<void, std::string> StepTheQuestList(const Hud::GameUiContext& con
         const std::int32_t left = quest.x + TabLeft + tab * TabStep;
         const std::int32_t top = chosen ? ChosenTabTop : TabTop;
         const std::int32_t height = chosen ? ChosenTabHeight : TabHeight;
-        if (!MouseIn(context, left, top, left + TabWidth, top + height) || !movement.pendingClick)
+        if (!MouseIn(context, left, top, left + TabWidth, top + height) || !mouse.pendingClick)
             continue;
         // 0x41b23e..0x41b24d: la 1 y la 2 no gastan el clic. 0x41b253..0x41b281: la 0 lo gasta y queda elegida; el
         // C1 9F de 0x41b287 pide una pestaña distinta de la elegida y de la 0, que no hay (Q-C845).
         if (tab == 0)
         {
-            SpendTheClick(movement);
+            SpendTheClick(mouse);
             quest.tab = 0;
         }
         break;
     }
     if (!MouseIn(context, quest.x + CloseLeft, quest.y + CloseTop, quest.x + CloseLeft + CloseSize,
                  quest.y + CloseTop + CloseSize) ||
-        !movement.pendingClick)
+        !mouse.pendingClick)
         return {};
-    SpendTheClick(movement);
+    SpendTheClick(mouse);
     // 0x41b58b: 0x65cae0(8, 0), que pone la ventana en 0, manda el C1 03 31 y suena.
     auto closed = panels.Close(Ui::QuestPanel);
     if (!closed.HasValue())
@@ -291,9 +291,9 @@ Core::Expected<void, std::string> StepTheQuestWindow(const Hud::GameUiContext& c
         quest.x = BesideTheCharacterX;
         quest.y = 0;
         if (MouseIn(context, QuestButtonLeft, QuestButtonTop, QuestButtonRight, QuestButtonBottom) &&
-            runtime.movement.pendingClick)
+            runtime.mouse.pendingClick)
         {
-            SpendTheClick(runtime.movement);
+            SpendTheClick(runtime.mouse);
             // 0x41b621..0x41b63b: Close(8) o Open(8), los dos con 0 de segundo argumento.
             auto toggled = panels.IsOpen(Ui::QuestPanel) ? panels.Close(Ui::QuestPanel) : panels.Open(Ui::QuestPanel);
             if (!toggled.HasValue())

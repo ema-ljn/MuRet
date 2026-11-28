@@ -10,7 +10,7 @@
 #include "Combat/BlastEffectCalls.h"
 #include "CastleSiege/CastleBattleReceive.h"
 #include "Joints/FaunaJointCreation.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Pets/HelperTable.h"
 #include "Monsters/MonsterCreation.h"
 #include "PersonalShop/PersonalShopTitles.h"

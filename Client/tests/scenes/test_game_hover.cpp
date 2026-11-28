@@ -7,7 +7,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Chat/ChatBubbles.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "support/RecordingTextDrawer.h"
@@ -28,11 +28,11 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Hud::GameHoverContext;
 using Client::Kernel::ActorState;
+using Client::Kernel::GameDrawTailState;
 using Client::Kernel::HudState;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
-using Client::Scenes::GameDrawTailState;
 using Client::Tests::RecordingTextDrawer;
 
 constexpr std::uint32_t Seed = 0x13572468u;

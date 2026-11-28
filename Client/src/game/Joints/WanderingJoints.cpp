@@ -7,7 +7,7 @@
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
@@ -43,7 +43,7 @@ std::int32_t Wrapped(std::int32_t value, std::uint32_t amount)
 }
 
 // +0x54 de la /0xb y la /0x19: la flecha 0xf8 (un efecto con modelo).
-Effects::ModelEffect* ArrowOwner(const Scenes::JointState& joint)
+Effects::ModelEffect* ArrowOwner(const Kernel::JointState& joint)
 {
     if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         return nullptr;
@@ -52,7 +52,7 @@ Effects::ModelEffect* ArrowOwner(const Scenes::JointState& joint)
 
 // El punto alrededor del que vaga: el +0x10 del personaje dueño (la /7, 0x53adb1) o el +0x17c de la flecha, su
 // partida (la /0xb y la /0x19, 0x53ad64).
-const glm::vec3* Anchor(const Scenes::JointState& joint)
+const glm::vec3* Anchor(const Kernel::JointState& joint)
 {
     if (joint.subtype == WanderSubtype)
     {
@@ -110,7 +110,7 @@ struct Reach
     double radius;
 };
 
-Reach ReachOf(const Scenes::JointState& joint)
+Reach ReachOf(const Kernel::JointState& joint)
 {
     constexpr double FourThirds = static_cast<double>(std::bit_cast<float>(0x3faaaaabu)); // 0x6ba2d4
     constexpr double Widest = 150.0;                                                      // 0x6b87ac
@@ -139,7 +139,7 @@ void Glint(Particles::FrameSprites& sprites, Crt::CrtRandom& random, std::uint16
 }
 } // namespace
 
-void CreateWanderingJoint(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
+void CreateWanderingJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
     joint.life = 100;
@@ -175,7 +175,7 @@ void CreateWanderingJoint(Scenes::JointState& joint, const Kernel::JointRequest&
     joint.targetPosition = request.secondPosition;
 }
 
-Core::Expected<void, std::string> StepWanderingJoint(Scenes::JointState& joint,
+Core::Expected<void, std::string> StepWanderingJoint(Kernel::JointState& joint,
                                                      const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;

@@ -356,7 +356,7 @@ TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWi
     EXPECT_EQ(Cell(1, 3).id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_EQ(random.State(), before.State());
-    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_FALSE(runtime.mouse.pendingClick);
     const auto dropped = Client::Items::DropOnOtherGrid(
         Moves(), {.mouseX = 100, .mouseY = 100, .left = 275, .top = 50, .grid = Client::Kernel::CursorGrid::NpcGrid});
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
@@ -425,7 +425,7 @@ TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPasswor
         ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
         EXPECT_TRUE(dropped.Value());
         EXPECT_FALSE(runtime.ui.automaticMove);
-        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_FALSE(runtime.mouse.pendingClick);
         EXPECT_EQ(random.State(), Advanced(before, locked ? 40 : 2).State());
         if (locked)
         {
@@ -637,7 +637,7 @@ protected:
         world.Runtime().cursorItem = ItemState{};
         world.Runtime().cursorItem.id = jewel;
         world.Runtime().cursorItem.occupied = 1;
-        world.Runtime().movement.pendingClick = true;
+        world.Runtime().mouse.pendingClick = true;
         world.Runtime().ui.field5767954 = 0;
         sent.clear();
         Client::Hud::GamePanels panels(world, random);

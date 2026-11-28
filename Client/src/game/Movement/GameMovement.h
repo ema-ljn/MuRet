@@ -58,6 +58,13 @@ struct InventoryServices;
 
 namespace Client::Movement
 {
+class IHeroMovementHooks;
+
+// +0x379 at 2: the arrival talks to the NPC of 0x6c8e54.
+inline constexpr std::uint8_t NpcTalkMovement = 2;
+// 0x59daaf..0x59dabe: with this bit of +0x7c the click does not set +0x379 to 2 (the one there stays).
+inline constexpr std::uint32_t NpcTalkBlockedFlag = 0x10000000;
+
 struct HeroMovementInput
 {
     std::int32_t mouseX = 0;
@@ -139,6 +146,8 @@ struct HeroMovementContext
     Terrain::TerrainLighting* dynamicLighting = nullptr;
     // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
     Assets::FaunaModels* faunaModels = nullptr;
+    // What the step asks of other modules (Session::HeroMovementHooks). nullptr: the step does not start.
+    const IHeroMovementHooks* hooks = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Movement

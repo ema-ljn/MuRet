@@ -1,5 +1,6 @@
 #include "Network/Xor32Packet.h"
 #include "Movement/GameMovement.h"
+#include "Session/HeroMovementHooks.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -14,6 +15,7 @@
 #include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Models/Skeleton.h"
+#include "Kernel/MouseState.h"
 #include "Kernel/ActorState.h"
 #include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
@@ -59,6 +61,7 @@
 // presta 205 acciones sin geometría. El picker presta una celda explícita: no valida rayos ni GL.
 namespace
 {
+const Client::Session::HeroMovementHooks MovementHooks{};
 const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Core::Expected;
 using Client::Kernel::ActorState;
@@ -188,6 +191,7 @@ protected:
     {
         HeroMovementContext context{
             .world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .skills = &*m_skills};
+        context.hooks = &MovementHooks;
         context.terrain = &m_terrain.current;
         context.faunaModels = &m_faunaModels;
         context.input.leftPressed = click;
@@ -214,8 +218,8 @@ protected:
     Expected<void, std::string> Click(PathCell target)
     {
         m_target = target;
-        auto& movement = m_world.Runtime().movement;
-        movement.mouseUpdateTime = movement.mouseUpdateTimeMax;
+        Client::Kernel::MouseState& mouse = m_world.Runtime().mouse;
+        mouse.updateTime = mouse.updateTimeMax;
         return Step(true);
     }
 
@@ -377,7 +381,7 @@ TEST_P(GameMovementMapMatrix, AZeroStartAxisRetainsTheOldPathAndSendsNothing)
     EXPECT_EQ(Hero().path.cells[0].x, 9);
     EXPECT_FLOAT_EQ(Hero().position.x, CellCentre);
     EXPECT_EQ(m_world.Runtime().movement.targetX, 1U);
-    EXPECT_FALSE(m_world.Runtime().movement.pendingClick);
+    EXPECT_FALSE(m_world.Runtime().mouse.pendingClick);
 }
 
 TEST_P(GameMovementMapMatrix, SafeZoneResetsRunBeforeTheChaosCastleSpeedOverride)
@@ -448,7 +452,7 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
         world.Runtime().map = boundary.map;
         Client::Crt::CrtRandom random(Seed);
         const auto loaded = Client::Scenes::LoadMap(
-            boundary.map, {m_dataRoot, world, terrain, Client::Scenes::SceneId::Game, 5, random});
+            boundary.map, {m_dataRoot, world, terrain, Client::Kernel::SceneId::Game, 5, random});
         ASSERT_FALSE(loaded.HasValue());
         EXPECT_NE(loaded.Error().find(boundary.message), std::string::npos) << loaded.Error();
     }
@@ -462,7 +466,7 @@ TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
     world.Runtime().map = 32;
     Client::Crt::CrtRandom random(Seed);
     const auto loaded =
-        Client::Scenes::LoadMap(32, {m_dataRoot, world, terrain, Client::Scenes::SceneId::Game, 5, random});
+        Client::Scenes::LoadMap(32, {m_dataRoot, world, terrain, Client::Kernel::SceneId::Game, 5, random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     EXPECT_EQ(world.Runtime().map, 9);
     Client::Scenes::ArmEventMapObject(world.Runtime().map, world.Runtime());

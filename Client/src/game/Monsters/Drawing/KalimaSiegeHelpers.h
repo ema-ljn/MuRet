@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -70,7 +70,7 @@ struct KalimaSiegeHelperPass
     Crt::CrtRandom& random;
     Particles::FrameSprites* sprites = nullptr;
     Particles::Particles* particles = nullptr;
-    std::span<Scenes::JointState> joints{};
+    std::span<Kernel::JointState> joints{};
     Effects::ModelEffects* effects = nullptr;
     // 0x723c48: sin él, 0x437860 no perturba nada.
     MapScripts::Kalima::KalimaWorld* kalima = nullptr;

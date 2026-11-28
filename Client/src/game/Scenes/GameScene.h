@@ -107,11 +107,15 @@ namespace Client::Items
 struct InventoryServices;
 } // namespace Client::Items
 
+namespace Client::Kernel
+{
+struct GameDrawTailState;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 struct GameProjection;
 struct GameSceneFrameProjection;
-struct GameDrawTailState;
 
 // 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
 // (0x7d36899), que no se prende nunca.
@@ -164,7 +168,7 @@ public:
     // que subió Enter.
     void Leave() override;
     // Ninguna: sin conexión, el juego sigue (Q-C70).
-    [[nodiscard]] std::optional<SceneId> Next() const override;
+    [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
     // Lo que decidió el último PrepareFrame; antes del primero, retiene.
@@ -256,7 +260,7 @@ private:
     [[nodiscard]] Particles::FrameSprites& FrameSpritesForDraw();
     void PrepareDrawProjection(int frames);
     void ObserveMapLoad();
-    [[nodiscard]] GameDrawTailState& FrameTail();
+    [[nodiscard]] Kernel::GameDrawTailState& FrameTail();
     [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
     [[nodiscard]] Models::ClothWorld& FrameCloth();
     [[nodiscard]] WorldObjects::ObjectModelStepState& FrameModelState();

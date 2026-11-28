@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Kernel/JointRequest.h"
@@ -13,9 +14,9 @@
 
 namespace
 {
-Client::Scenes::JointState Joint(int type, int subtype = 0)
+Client::Kernel::JointState Joint(int type, int subtype = 0)
 {
-    Client::Scenes::JointState joint;
+    Client::Kernel::JointState joint;
     joint.alive = true;
     joint.count = 2;
     joint.maximumCount = 5;
@@ -240,7 +241,7 @@ TEST(GameJointDrawingTest, EnergyArrowMutatesItsLightAndEmitsOneSpritePerAdmitte
 
 TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithoutRandomness)
 {
-    std::array<Client::Scenes::JointState, 1> joints{};
+    std::array<Client::Kernel::JointState, 1> joints{};
     glm::vec3 point{100, 200, 300}, angles{};
     Client::Crt::CrtRandom random(1);
     Client::Particles::FrameSprites sprites;

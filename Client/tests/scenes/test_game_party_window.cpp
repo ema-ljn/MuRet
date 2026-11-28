@@ -1,4 +1,5 @@
 #include "Network/Xor32Packet.h"
+#include "Kernel/MouseState.h"
 #include "Party/GamePartyWindow.h"
 
 #include "Core/Expected.h"
@@ -16,7 +17,6 @@
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
 #include "Hud/GameHud.h"
-#include "Movement/GameMovementState.h"
 #include "Hud/GamePanels.h"
 #include "Hud/GameUi.h"
 #include "Social/SocialState.h"
@@ -281,7 +281,7 @@ protected:
 
     void Click()
     {
-        Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
     }
 
     void Press(Client::Input::Key key)
@@ -376,8 +376,8 @@ TEST_P(GamePartyWindowTest, TheMouseOverTheWindowIsOfTheUi)
 TEST_P(GamePartyWindowTest, TheCloseButtonClosesTheParty)
 {
     OpenAndPlace();
-    Client::Movement::GameMovementState& movement = Runtime().movement;
-    movement.mouseUpdateTime = 4;
+    Client::Kernel::MouseState& mouse = Runtime().mouse;
+    mouse.updateTime = 4;
     ASSERT_TRUE(Step(CloseX, CloseY).HasValue());
     EXPECT_EQ(Runtime().panels.party, 1) << "sin el clic";
     for (const auto& [x, y] : {std::pair{CloseX - 1, CloseY}, std::pair{CloseX + 24, CloseY},
@@ -387,14 +387,14 @@ TEST_P(GamePartyWindowTest, TheCloseButtonClosesTheParty)
         Click();
         ASSERT_TRUE(Step(x, y).HasValue());
         EXPECT_EQ(Runtime().panels.party, 1);
-        EXPECT_TRUE(movement.pendingClick);
+        EXPECT_TRUE(mouse.pendingClick);
     }
     ASSERT_TRUE(Step(CloseX + 23, CloseY + 23).HasValue());
     EXPECT_EQ(Runtime().panels.party, 0);
-    EXPECT_FALSE(movement.pendingClick);
-    EXPECT_TRUE(movement.leftHeld);
-    EXPECT_EQ(movement.mouseUpdateTime, 0);
-    EXPECT_EQ(movement.mouseUpdateTimeMax, 6);
+    EXPECT_FALSE(mouse.pendingClick);
+    EXPECT_TRUE(mouse.leftHeld);
+    EXPECT_EQ(mouse.updateTime, 0);
+    EXPECT_EQ(mouse.updateTimeMax, 6);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
     EXPECT_EQ(m_random.State(), Seed);
 }
@@ -438,7 +438,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     Click();
     ASSERT_TRUE(step(Left + 0x8c, Top + 0x37 + 0x23).HasValue());
     EXPECT_EQ(requests.requests, (std::vector<std::string>{"C1 04 43 07 "}));
-    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
     EXPECT_EQ(m_random.State(), Seed);

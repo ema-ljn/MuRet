@@ -16,7 +16,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/GameDrawTail.h"
+#include "Kernel/DrawTailState.h"
 #include "Monsters/MonsterAttackStep.h"
 #include "Monsters/MonsterCreation.h"
 #include "FrontEnd/SelectionState.h"
@@ -177,7 +177,7 @@ struct Game
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Particles::Particles particles;
-    std::vector<Client::Scenes::JointState> joints{};
+    std::vector<Client::Kernel::JointState> joints{};
 };
 
 // Un monstruo del alta con +0x381, la acción (+0x111), +0x38e y el blanco (+0x3a4), y lo que hace 0x4f5b70 sin su
@@ -252,7 +252,7 @@ protected:
         monster.byte38e = probe.skill;
         monster.byte38eAccesses = 0;
         monster.attackTarget = probe.target;
-        game->joints.assign(probe.joints, Client::Scenes::JointState{});
+        game->joints.assign(probe.joints, Client::Kernel::JointState{});
         return monster;
     }
 
@@ -294,7 +294,7 @@ protected:
         FillModelEffectPoolExceptLast(0);
         for (Client::Particles::Particle& particle : game->particles.All())
             particle.alive = true;
-        game->joints.assign(1, Client::Scenes::JointState{});
+        game->joints.assign(1, Client::Kernel::JointState{});
         game->joints.front().alive = true;
     }
 
@@ -303,7 +303,7 @@ protected:
         FillModelEffectPoolExceptLast(modelsFull ? 0 : 1);
         for (Client::Particles::Particle& particle : game->particles.All())
             particle.alive = particlesFull;
-        game->joints.assign(1, Client::Scenes::JointState{});
+        game->joints.assign(1, Client::Kernel::JointState{});
         game->joints.front().alive = jointsFull;
     }
 
@@ -505,7 +505,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
     for (std::size_t bolt = 0; bolt < turns.size(); ++bolt)
     {
         SCOPED_TRACE(bolt);
-        const Client::Scenes::JointState& joint = game->joints[bolt];
+        const Client::Kernel::JointState& joint = game->joints[bolt];
         ASSERT_TRUE(joint.alive);
         EXPECT_EQ(joint.type, 0x610);
         EXPECT_EQ(joint.subtype, 6);
@@ -681,7 +681,7 @@ TEST_F(MonsterAttackCasesTest, Kalima95SkipsJointsWhenTheirPoolIsFullAndChecksTh
             .name = "Kalima 95 skill 0x11 en 14", .type = 0x95, .step = 14, .skill = 0x11, .target = probe.target});
         if (probe.jointsFull)
         {
-            game->joints.assign(1, Client::Scenes::JointState{});
+            game->joints.assign(1, Client::Kernel::JointState{});
             game->joints.front().alive = true;
         }
 
@@ -1999,7 +1999,7 @@ TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolTakesTheFirstSpiri
         EXPECT_EQ(Draws(), SkillRead + 3 * probe.joints + Tail);
         EXPECT_EQ(sounds, probe.expectedSounds);
         ASSERT_EQ(game->joints.size(), 1u);
-        const Client::Scenes::JointState& joint = game->joints.front();
+        const Client::Kernel::JointState& joint = game->joints.front();
         ASSERT_TRUE(joint.alive);
         CrtRandom angles(seed);
         static_cast<void>(angles.Next()); // +0x38e
@@ -2092,7 +2092,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
             EXPECT_EQ(soundDraws, std::vector<int>{0});
         }
         ASSERT_EQ(game->joints.size(), 1u);
-        const Client::Scenes::JointState& joint = game->joints.front();
+        const Client::Kernel::JointState& joint = game->joints.front();
         ASSERT_TRUE(joint.alive);
         EXPECT_EQ(joint.type, 0x614);
         EXPECT_EQ(joint.subtype, 2);
@@ -3032,14 +3032,14 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
             {
                 EXPECT_EQ(Draws(), SkillRead + 1 + 2 * MeteorDraws);
                 const auto trails =
-                    std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)
+                    std::ranges::count_if(game->joints, [](const Client::Kernel::JointState& joint)
                                           { return joint.alive && joint.type == 0x5f2 && joint.subtype == 0; });
                 EXPECT_EQ(trails, 2);
                 continue;
             }
             EXPECT_EQ(Draws(), SkillRead + 1 + 2 * (BlastDraws + OwnRecord));
             const auto beams =
-                std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)
+                std::ranges::count_if(game->joints, [](const Client::Kernel::JointState& joint)
                                       { return joint.alive && joint.type == 0x618 && joint.subtype == 5; });
             EXPECT_EQ(beams, 2);
         }
@@ -3090,13 +3090,13 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         ASSERT_NE(
             game->states.assets.fauna.SkeletonOf(Client::Models::ModelId{static_cast<std::uint16_t>(fallback.type)}),
             nullptr);
-        game->joints.assign(1, Client::Scenes::JointState{});
+        game->joints.assign(1, Client::Kernel::JointState{});
         const auto stepped = Step(fallback);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         // El primer 0x614/0 (0x4f8fef) toma el único lugar; el segundo (0x4f9012) no tiene dónde y la 0x5ca/0
         // (0x4f9034) saca sus dos rand().
         EXPECT_EQ(Draws(), Tail + 2);
-        const Client::Scenes::JointState& joint = game->joints.front();
+        const Client::Kernel::JointState& joint = game->joints.front();
         ASSERT_TRUE(joint.alive);
         EXPECT_EQ(joint.type, 0x614);
         EXPECT_EQ(joint.subtype, 0);
@@ -3157,7 +3157,7 @@ TEST_F(MonsterAttackCasesTest, SaturatedSkill3FallbackPreservesLogicalDepthAndLe
         EXPECT_TRUE(std::all_of(game->particles.All().begin(), game->particles.All().end(),
                                 [](const Client::Particles::Particle& particle) { return particle.alive; }));
         EXPECT_TRUE(std::all_of(game->joints.begin(), game->joints.end(),
-                                [](const Client::Scenes::JointState& joint) { return joint.alive; }));
+                                [](const Client::Kernel::JointState& joint) { return joint.alive; }));
     }
 }
 
@@ -3579,7 +3579,7 @@ TEST_F(MonsterAttackCasesTest, TheFiveStabsFallFromTheTrailPoints)
     EXPECT_EQ(stabs, 5);
     EXPECT_EQ(children, 5);
     const auto joints = std::count_if(game->joints.begin(), game->joints.end(),
-                                      [](const Client::Scenes::JointState& joint) { return joint.alive; });
+                                      [](const Client::Kernel::JointState& joint) { return joint.alive; });
     EXPECT_EQ(joints, 5 * 4);
     EXPECT_NE(monster.trailOrigin, monster.position);
 }

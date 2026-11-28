@@ -129,7 +129,7 @@ Actors::ActorStopContext StopContextOf(const Scenes::WorldEntryResources& resour
 {
     const auto& terrain = Scenes::TerrainOf(resources);
     return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
-                                    .scene = Scenes::SceneId::Game,
+                                    .scene = Kernel::SceneId::Game,
                                     .playerSkeleton = player,
                                     .items = resources.items,
                                     .random = resources.cloth.random,
@@ -402,7 +402,7 @@ Actors::CharacterStepContext StepContextOf(const Scenes::WorldEntryResources& re
     return Actors::CharacterStepContext{
         .world = world,
         .random = resources.cloth.random,
-        .scene = Scenes::SceneId::Game,
+        .scene = Kernel::SceneId::Game,
         .playerSkeleton = PlayerSkeleton(resources),
         .items = resources.items,
         .terrain = &Scenes::TerrainOf(resources),
@@ -434,7 +434,7 @@ Pets::HelperStepContext HelperStepContextOf(const Scenes::WorldEntryResources& r
                                    .models = &resources.models,
                                    .random = resources.cloth.random,
                                    .worldClock = worldClock,
-                                   .scene = Scenes::SceneId::Game,
+                                   .scene = Kernel::SceneId::Game,
                                    .terrain = &Scenes::TerrainOf(resources),
                                    .logicSteps = resources.cloth.logicSteps,
                                    .cameraShake = &resources.cameraInput.shake};
@@ -776,7 +776,7 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
                                           .onPose = draw.onHelperPose,
                                           .publishProjectedPose = true,
                                           .posedMeshes = draw.posedMeshes,
-                                          .scene = Scenes::SceneId::Game,
+                                          .scene = Kernel::SceneId::Game,
                                           .lighting = characters.dynamicLighting,
                                           .sprites = characters.sprites,
                                           .worldClock = worldClock,
